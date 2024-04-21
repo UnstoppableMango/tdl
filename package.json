@@ -1,8 +1,8 @@
 {
   "packageManager": "yarn@4.1.1",
   "workspaces": [
-    "des/*",
-    "ser/*",
+    "plugin/des/*",
+    "plugin/ser/*",
     "src/*"
   ]
 }
