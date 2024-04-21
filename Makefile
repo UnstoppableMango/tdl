@@ -17,13 +17,15 @@ BROKER_BIN := $(BROKER_DIR)/$(BIN_PATH)/$(NS).Broker.dll
 LANG_DIR := src/Language
 LANG_SRC := $(shell find $(LANG_DIR) -name '*.fs' -not -path '*obj*' -type f)
 
-.PHONY: build test clean
+.PHONY: build test lint clean
 build: $(LANG_SRC) $(BROKER_SRC)
 	@touch .make/build_lang
 	dotnet build
 
 test: build
 	dotnet test --no-build
+
+lint: .make/lint_lang
 
 clean:
 	rm -rf .make
@@ -33,6 +35,10 @@ clean:
 
 $(BROKER_BIN): $(BROKER_SRC)
 	dotnet build ${BROKER_DIR}
+
+.make/lint_lang: .make/tool_restore $(LANG_SRC)
+	dotnet fantomas ${LANG_DIR}
+	@touch $@
 
 .make/build_lang: $(LANG_SRC)
 	dotnet build ${LANG_DIR}
