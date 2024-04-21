@@ -8,3 +8,5 @@ obj/
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+.make/
