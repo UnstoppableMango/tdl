@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnMango.Tdl.Broker", "src\B
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnMango.Tdl.Broker.Tests", "src\Broker.Tests\UnMango.Tdl.Broker.Tests.csproj", "{C857D199-195E-428D-B43C-547812AB6C72}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "UnMango.Tdl.Language", "src\Language\UnMango.Tdl.Language.fsproj", "{732F29D7-9CB2-47F0-A4EB-D5D5970669D1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -26,9 +28,14 @@ Global
 		{C857D199-195E-428D-B43C-547812AB6C72}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C857D199-195E-428D-B43C-547812AB6C72}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C857D199-195E-428D-B43C-547812AB6C72}.Release|Any CPU.Build.0 = Release|Any CPU
+		{732F29D7-9CB2-47F0-A4EB-D5D5970669D1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{732F29D7-9CB2-47F0-A4EB-D5D5970669D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{732F29D7-9CB2-47F0-A4EB-D5D5970669D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{732F29D7-9CB2-47F0-A4EB-D5D5970669D1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{08902DF7-376C-4CC7-92AA-E5E8AE26975F} = {4C2EFA7D-EC3E-4D68-8DC6-EC1418D2A36F}
 		{C857D199-195E-428D-B43C-547812AB6C72} = {4C2EFA7D-EC3E-4D68-8DC6-EC1418D2A36F}
+		{732F29D7-9CB2-47F0-A4EB-D5D5970669D1} = {4C2EFA7D-EC3E-4D68-8DC6-EC1418D2A36F}
 	EndGlobalSection
 EndGlobal
