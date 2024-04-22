@@ -1,0 +1,6 @@
+{
+  "name": "@unmango/2ts",
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}
