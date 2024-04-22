@@ -11,7 +11,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnMango.Tdl.Broker.Tests", 
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "UnMango.Tdl.Language", "src\Language\UnMango.Tdl.Language.fsproj", "{732F29D7-9CB2-47F0-A4EB-D5D5970669D1}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "doc", "doc", "{B9C442CF-6905-4A8C-93F4-DE3D1B510D41}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{B9C442CF-6905-4A8C-93F4-DE3D1B510D41}"
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
 		.editorconfig = .editorconfig
