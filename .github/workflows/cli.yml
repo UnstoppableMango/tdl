@@ -45,7 +45,7 @@ jobs:
         run: dotnet restore
 
       - name: Build project
-        run: dotnet build -c Release --no-restore
+        run: dotnet build -c Release -r linux-x64 --no-restore
 
       - name: Run tests
         run: dotnet test -c Release --collect:"XPlat Code Coverage" --no-build
