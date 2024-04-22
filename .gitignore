@@ -10,5 +10,6 @@ obj/
 !.yarn/versions
 
 .make/
+out/
 
 discord.xml
