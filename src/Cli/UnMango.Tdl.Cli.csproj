@@ -8,6 +8,7 @@
 		<InvariantGlobalization>true</InvariantGlobalization>
 		<PackAsTool>true</PackAsTool>
 		<ToolCommandName>um</ToolCommandName>
+		<AssemblyName>um</AssemblyName>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -16,6 +17,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\Common\UnMango.Tdl.Common.fsproj" />
 		<ProjectReference Include="..\Language\UnMango.Tdl.Language.fsproj"/>
 	</ItemGroup>
 

@@ -6,6 +6,7 @@ using UnMango.Tdl.Cli;
 var root = new RootCommand("UnstoppableMango's Type Description Language CLI")
 {
 	Commands.To(),
+	Commands.Gen(),
 	Commands.From(),
 };
 
