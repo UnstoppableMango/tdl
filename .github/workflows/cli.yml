@@ -44,7 +44,7 @@ jobs:
         run: dotnet build -c Release --no-restore src/Cli
 
       - name: Run tests
-        run: dotnet test -c Release --collect:"XPlat Code Coverage" --no-build
+        run: dotnet test -c Release --collect:"XPlat Code Coverage" --no-build src/Cli
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4
@@ -57,7 +57,7 @@ jobs:
 
       - name: Package library
         if: github.event_name == 'push'
-        run: dotnet pack -c Release -o out --no-build
+        run: dotnet pack -c Release -o out --no-build src/Cli
 
       - name: Upload artifact
         id: upload
