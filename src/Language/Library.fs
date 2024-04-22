@@ -7,6 +7,7 @@ type Primitive =
   | Number
   | Boolean
   | Void
+  | Any
 
 type Object = Map<string, Value>
 
@@ -35,7 +36,7 @@ module Yaml =
   let bool: Parser<Primitive, string> = stringReturn "boolean" Boolean
   let vd: Parser<Primitive, string> = stringReturn "void" Void
 
-  let typ = choice [ str ]
+  let typ = choice [ str; num; bool; vd ]
 
   let run v =
     runParserOnString str "" "" v
