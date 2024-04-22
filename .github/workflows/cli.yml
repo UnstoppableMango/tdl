@@ -42,7 +42,7 @@ jobs:
         run: dotnet tool restore
 
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore -r linux-x64
 
       - name: Build project
         run: dotnet build -c Release -r linux-x64 --no-restore
