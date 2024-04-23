@@ -1,10 +1,15 @@
 ﻿namespace UnMango.Tdl
 
+open System
 open System.IO
+open System.Runtime.InteropServices
+open System.Text.RegularExpressions
+open System.Threading
+open System.Threading.Tasks
+open CliWrap.EventStream
 open UnMango.CliWrap.FSharp
 
 type DevelopmentMeta = { Configuration: string; Tfm: string }
-
 type BrokerLocation = Development of DevelopmentMeta
 
 type Broker =
@@ -14,38 +19,77 @@ type Broker =
 
 module Broker =
   let private dir = Path.Join("..", "Broker")
+  let private startedPattern = Regex("Content root path: .*")
+  let private stoppedPattern = Regex("Application is shutting down...")
 
-  let dev = Development
+  let private matchPattern (pattern: Regex) (e: CommandEvent) =
+    match e with
+    | :? StandardOutputCommandEvent as o -> pattern.IsMatch(o.Text)
+    | _ -> false
+
+  let private started e = matchPattern startedPattern e
+  let private stopped e = matchPattern stoppedPattern e
+
+  type Stop(obs, cts: CancellationTokenSource) =
+    interface IAsyncDisposable with
+      member this.DisposeAsync() =
+        task {
+          do! cts.CancelAsync()
+          do! obs |> Observable.first stopped
+          do cts.Dispose()
+        }
+        |> ValueTask
+
+  let debugMeta =
+    { Configuration = "Debug"
+      Tfm = "net9.0" }
+
+  let dev =
+    { Endpoint = "http://127.0.0.1:6969"
+      Location = Development debugMeta
+      Bin = "UnMango.Tdl.Broker.dll" }
 
   let binDir broker =
     match broker.Location with
     | Development meta -> Path.Join(dir, "bin", meta.Configuration, meta.Tfm)
 
-  let buildCmd meta =
+  let buildCmd =
     command "dotnet" {
       workingDirectory dir
       args [ "build" ]
+      stdout (PipeTo.f Console.WriteLine)
     }
 
-  let startCmd binDir broker =
+  let startCmd broker =
     match broker.Location with
-    | Development meta ->
+    | Development _ ->
       command "dotnet" {
-        workingDirectory binDir
+        workingDirectory (binDir broker)
         env [ "ASPNETCORE_URLS", broker.Endpoint ]
         args [ broker.Bin ]
+        stdout (PipeTo.f Console.WriteLine)
       }
 
-  let start broker =
+  let start broker : Async<IAsyncDisposable> =
     async {
       match broker.Location with
       | Development _ ->
-        let! _ = buildCmd broker |> Cli.exec
-        let binDir = binDir broker
-        let! _ = startCmd binDir broker |> Cli.exec
-        return broker
+        do! buildCmd |> Cli.exec |> Async.Ignore
+        let! ct = Async.CancellationToken
+        use forceful = CancellationTokenSource.CreateLinkedTokenSource(ct)
+        let graceful = new CancellationTokenSource()
+
+        forceful.CancelAfter(TimeSpan.FromSeconds(30L))
+        let obs = startCmd broker |> _.Observe(forceful.Token, graceful.Token)
+        do! obs |> Observable.first started
+
+        return Stop(obs, graceful)
     }
 
 type Broker with
   static member Dev = Broker.dev
-  member this.Start(endpoint) = Broker.start endpoint this
+
+  member this.Start(endpoint, [<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken) =
+    { this with Endpoint = endpoint }
+    |> Broker.start
+    |> fun t -> Async.StartAsTask(t, cancellationToken = cancellationToken)
