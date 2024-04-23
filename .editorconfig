@@ -11,6 +11,10 @@ indent_style = space
 
 [*.cs]
 indent_size = 4
+
 # I'll die on this hill
 csharp_new_line_before_open_brace = namespace, types
 dotnet_sort_system_directives_first = true
+
+# We manually build a single service provider
+dotnet_diagnostic.ASP0000.severity = none

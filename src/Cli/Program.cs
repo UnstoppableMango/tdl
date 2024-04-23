@@ -1,6 +1,10 @@
 ﻿using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Parsing;
+using Microsoft.AspNetCore.Connections;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets;
+using Serilog;
 using UnMango.Tdl;
 using UnMango.Tdl.Cli;
 
@@ -10,7 +14,31 @@ var root = new RootCommand("UnstoppableMango's Type Description Language CLI") {
 	Commands.From(),
 };
 
+Log.Logger = new LoggerConfiguration()
+	.Enrich.FromLogContext()
+	.WriteTo.Console()
+	.CreateLogger();
+
+var services = new ServiceCollection()
+	.AddSerilog()
+	.Configure((KestrelServerOptions options) => {
+		options.ListenUnixSocket("TODO", o => { o.Protocols = HttpProtocols.Http2; });
+	})
+	.Configure((SocketTransportOptions options) => { })
+	.AddSingleton<IConnectionListenerFactory, SocketTransportFactory>()
+	.AddSingleton<KestrelServer>()
+	.AddSingleton<Application>()
+	.BuildServiceProvider();
+
 var builder = new CommandLineBuilder(root)
+	.AddMiddleware(async (context, next) => {
+		var cancellationToken = context.GetCancellationToken();
+		var server = services.GetRequiredService<KestrelServer>();
+		var app = services.GetRequiredService<Application>();
+		await server.StartAsync(app, cancellationToken);
+		await next(context);
+		await server.StopAsync(cancellationToken);
+	})
 	.AddMiddleware(async (context, next) => {
 		var cancellationToken = context.GetCancellationToken();
 		using var scope = await Broker.Dev.Start("http://127.0.0.1:6969", cancellationToken);
@@ -20,4 +48,12 @@ var builder = new CommandLineBuilder(root)
 
 var parser = builder.Build();
 
-await parser.InvokeAsync(args);
+try {
+	await parser.InvokeAsync(args);
+}
+catch (Exception e) {
+	Log.Fatal(e, "Unexpected error");
+}
+finally {
+	await Log.CloseAndFlushAsync();
+}

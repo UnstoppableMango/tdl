@@ -8,7 +8,7 @@ internal static class Handlers
 		IEnumerable<FileInfo> files,
 		CancellationToken cancellationToken) {
 		Console.WriteLine("Delay to prove it works");
-		await Task.Delay(5000, cancellationToken);
+		await Task.Delay(2000, cancellationToken);
 		return 0;
 	}
 
