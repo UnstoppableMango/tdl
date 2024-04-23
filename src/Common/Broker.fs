@@ -7,6 +7,7 @@ open System.Text.RegularExpressions
 open System.Threading
 open System.Threading.Tasks
 open CliWrap.EventStream
+open FSharp.Control.Reactive
 open UnMango.CliWrap.FSharp
 
 type DevelopmentMeta = { Configuration: string; Tfm: string }
@@ -20,7 +21,7 @@ type Broker =
 module Broker =
   let private dir = Path.Join("..", "Broker")
   let private startedPattern = Regex("Content root path: .*")
-  let private stoppedPattern = Regex("Application is shutting down...")
+  let private stoppedPattern = Regex("Application is shutting down")
 
   let private matchPattern (pattern: Regex) (e: CommandEvent) =
     match e with
@@ -31,11 +32,18 @@ module Broker =
   let private stopped e = matchPattern stoppedPattern e
 
   type Stop(obs, cts: CancellationTokenSource) =
+    interface IDisposable with
+      member this.Dispose() =
+        do cts.Cancel()
+        do obs |> Observable.firstIf stopped |> Observable.wait |> ignore
+        do cts.Dispose()
+
     interface IAsyncDisposable with
       member this.DisposeAsync() =
         task {
           do! cts.CancelAsync()
-          do! obs |> Observable.first stopped
+          // TODO: Is there any async version like Rx.NET?
+          do obs |> Observable.firstIf stopped |> Observable.wait |> ignore
           do cts.Dispose()
         }
         |> ValueTask
@@ -70,7 +78,7 @@ module Broker =
         stdout (PipeTo.f Console.WriteLine)
       }
 
-  let start broker : Async<IAsyncDisposable> =
+  let start broker : Async<IDisposable> =
     async {
       match broker.Location with
       | Development _ ->
@@ -81,9 +89,9 @@ module Broker =
 
         forceful.CancelAfter(TimeSpan.FromSeconds(30L))
         let obs = startCmd broker |> _.Observe(forceful.Token, graceful.Token)
-        do! obs |> Observable.first started
+        do obs |> Observable.firstIf started |> Observable.wait |> ignore
 
-        return Stop(obs, graceful)
+        return new Stop(obs, graceful)
     }
 
 type Broker with

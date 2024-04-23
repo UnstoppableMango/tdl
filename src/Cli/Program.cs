@@ -13,9 +13,8 @@ var root = new RootCommand("UnstoppableMango's Type Description Language CLI") {
 var builder = new CommandLineBuilder(root)
 	.AddMiddleware(async (context, next) => {
 		var cancellationToken = context.GetCancellationToken();
-		var scope = await Broker.Dev.Start("http://127.0.0.1:6969", cancellationToken);
+		using var scope = await Broker.Dev.Start("http://127.0.0.1:6969", cancellationToken);
 		await next(context);
-		await scope.DisposeAsync();
 	})
 	.UseDefaults();
 
