@@ -2,12 +2,14 @@ namespace UnMango.Tdl.Cli;
 
 internal static class Handlers
 {
-	public static Task<int> From(
+	public static async Task<int> From(
 		string source,
 		string? target,
 		IEnumerable<FileInfo> files,
 		CancellationToken cancellationToken) {
-		return Task.FromResult(0);
+		Console.WriteLine("Delay to prove it works");
+		await Task.Delay(5000, cancellationToken);
+		return 0;
 	}
 
 	public static Task<int> Gen(string target, string? source, IEnumerable<FileInfo> files) {
