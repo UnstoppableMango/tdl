@@ -5,11 +5,36 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
-"@unmango/2ts@workspace:des/typescript":
+"@connectrpc/connect@npm:^1.4.0":
+  version: 1.4.0
+  resolution: "@connectrpc/connect@npm:1.4.0"
+  peerDependencies:
+    "@bufbuild/protobuf": ^1.4.2
+  checksum: 10c0/6006e4aef6908a786ffbda6f7c9c92fe0906e031e891c7ce28de9d1b8e3feb9115d924ec6fc38131a5b9936b537594b0a828711e3e0544f760c78e010eda1ea1
+  languageName: node
+  linkType: hard
+
+"@unmango/2ts@workspace:plugin/des/typescript":
   version: 0.0.0-use.local
-  resolution: "@unmango/2ts@workspace:des/typescript"
+  resolution: "@unmango/2ts@workspace:plugin/des/typescript"
   dependencies:
     typescript: "npm:^5.4.5"
+  languageName: unknown
+  linkType: soft
+
+"@unmango/tdl-es@workspace:gen/es":
+  version: 0.0.0-use.local
+  resolution: "@unmango/tdl-es@workspace:gen/es"
+  dependencies:
+    "@connectrpc/connect": "npm:^1.4.0"
+  peerDependencies:
+    "@bufbuild/protobuf": ^1.4.2
+  languageName: unknown
+  linkType: soft
+
+"@unmango/tdl-ts@workspace:gen/ts":
+  version: 0.0.0-use.local
+  resolution: "@unmango/tdl-ts@workspace:gen/ts"
   languageName: unknown
   linkType: soft
 
