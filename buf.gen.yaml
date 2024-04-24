@@ -13,7 +13,9 @@ plugins:
     opt: paths=source_relative
   - plugin: buf.build/connectrpc/es:v1.4.0
     out: gen/es
+    opt: target=ts
   - plugin: buf.build/bufbuild/es
     out: gen/es
+    opt: target=ts
   - plugin: buf.build/community/stephenh-ts-proto:v1.167.9
     out: gen/ts

@@ -1,5 +1,12 @@
 {
   "name": "@unmango/2ts",
+  "type": "module",
+  "dependencies": {
+    "@bufbuild/protobuf": "^1.9.0",
+    "@connectrpc/connect": "^1.4.0",
+    "@unmango/tdl-es": "workspace:^",
+    "express": "^4.19.2"
+  },
   "devDependencies": {
     "typescript": "^5.4.5"
   }
