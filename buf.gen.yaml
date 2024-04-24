@@ -3,8 +3,11 @@ version: v1
 managed:
   enabled: true
   go_package_prefix:
-    default: github.com/unstoppablemango/tdl/gen
+    default: github.com/unstoppablemango/tdl/gen/go
 plugins:
+  - plugin: buf.build/connectrpc/go:v1.16.1
+    out: gen/go
+    opt: paths=source_relative
   - plugin: buf.build/protocolbuffers/go
     out: gen/go
     opt: paths=source_relative

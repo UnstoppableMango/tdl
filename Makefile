@@ -34,18 +34,21 @@ gen: clean_gen
 
 lint: .make/lint_proto .make/lint_lang
 
-clean:
+clean: clean_gen
 	rm -rf .make
 	@find ${WORKING_DIR} -depth \( -name 'bin' -o -name 'obj' \) -type d \
 		-exec echo 'Removing: {}' \; \
 		-exec rm -rf '{}' \;
 
 .PHONY: tidy
-tidy:
+tidy: gen
 	cd gen && go mod tidy
 
 clean_gen:
-	find gen -mindepth 2 -not -name package.json -delete
+	@echo 'Cleaning sources...'
+	@find gen -mindepth 2 \
+		-not -name package.json \
+		-delete
 
 $(BROKER_BIN): $(BROKER_SRC)
 	dotnet build ${BROKER_DIR}
