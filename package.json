@@ -4,6 +4,7 @@
     "gen/*",
     "plugin/des/*",
     "plugin/ser/*",
-    "src/*"
+    "src/*",
+    "tools/node"
   ]
 }

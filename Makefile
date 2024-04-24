@@ -22,15 +22,15 @@ LANG_DIR := src/Language
 LANG_SRC := $(shell find $(LANG_DIR) -name '*.fs' -not -path '*obj*' -type f)
 
 .PHONY: build test gen lint clean
-build: $(LANG_SRC) $(BROKER_SRC)
+build: $(LANG_SRC) $(CLI_SRC) $(BROKER_SRC) build_proto
 	@touch .make/build_lang
 	dotnet build
 
 test: build
 	dotnet test --no-build
 
-gen: clean_gen
-	buf generate proto
+gen: clean_gen build_proto
+	buf generate
 
 lint: .make/lint_proto .make/lint_lang
 
@@ -44,10 +44,14 @@ clean: clean_gen
 tidy: gen
 	cd gen && go mod tidy
 
+build_proto:
+	buf build
+
 clean_gen:
 	@echo 'Cleaning sources...'
 	@find gen -mindepth 2 \
-		-not -name package.json \
+		-not -name 'package.json' \
+		-not -name 'index.ts' \
 		-delete
 
 $(BROKER_BIN): $(BROKER_SRC)
@@ -59,6 +63,10 @@ $(BROKER_BIN): $(BROKER_SRC)
 
 .make/build_lang: $(LANG_SRC)
 	dotnet build ${LANG_DIR}
+	@touch $@
+
+.make/build_cli: $(CLI_SRC)
+	dotnet build ${CLI_DIR}
 	@touch $@
 
 .make/lint_proto:
