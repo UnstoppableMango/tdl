@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option csharp_namespace = "UnMango.Tdl.Broker";
+option csharp_namespace = "UnMango.Tdl";
 
 package greet;
 
