@@ -1,19 +1,11 @@
 {
-	"name": "@unmango/2ts",
-	"type": "module",
-	"scripts": {
-		"build": "tsc",
-		"clean": "rm -rf dist"
-	},
-	"dependencies": {
-		"@bufbuild/protobuf": "^1.9.0",
-		"@connectrpc/connect": "^1.4.0",
-		"@connectrpc/connect-node": "^1.4.0",
-		"@unmango/tdl-es": "workspace:^"
-	},
-	"devDependencies": {
-		"@types/node": "^20.12.7",
-		"@unmango/tools": "workspace:^",
-		"typescript": "5.4.5"
-	}
+  "name": "@unmango/2ts",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
 }
