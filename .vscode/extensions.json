@@ -3,7 +3,6 @@
     "ms-dotnettools.csharp",
     "editorconfig.editorconfig",
     "ionide.ionide-fsharp",
-    "davidanson.vscode-markdownlint",
-    "arcanis.vscode-zipfs"
+    "davidanson.vscode-markdownlint"
   ]
 }

@@ -1,5 +1,4 @@
 {
-  "packageManager": "yarn@4.1.1",
   "workspaces": [
     "gen/*",
     "plugin/des/*",

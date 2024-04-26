@@ -1,18 +1,10 @@
+# Build Artifacts
 bin/
 obj/
 dist/
 out/
 
-.yarn/*
-!.yarn/cache
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/sdks
-!.yarn/versions
-
+# User specific
 .make/
-
 .idea/**/workspace.xml
-
 discord.xml
