@@ -77,6 +77,6 @@ $(BROKER_BIN): $(BROKER_SRC)
 	dotnet fantomas ${LANG_DIR}
 	@touch $@
 
-.make/build_plugin_des_ts:
-	cd plugin/des/typescript && bun run build
+.make/build_plugin_gen_ts:
+	cd plugin/gen/ts && bun run build
 	@touch $@
