@@ -44,6 +44,7 @@ clean: clean_gen
 tidy: gen
 	cd gen && go mod tidy
 
+.PHONY: build_proto
 build_proto:
 	buf build
 

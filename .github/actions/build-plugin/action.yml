@@ -1,0 +1,25 @@
+name: Build Bun Plugin
+description: Builds a plugin using Bun
+
+inputs:
+  type:
+    description: Type of plugin. Acceptible values - bun
+    required: true
+  path:
+    description: Path to the plugin
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Bun
+      if: type == 'bun'
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
+    - name: Build
+      shell: bash
+      if: type == 'bun'
+      working-directory: ${{ inputs.path }}
+      run: bun run build
