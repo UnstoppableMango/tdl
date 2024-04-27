@@ -1,5 +1,7 @@
 <Project>
 	<PropertyGroup>
-		<ProtoDir>$(MSBuildThisFileDirectory)/proto</ProtoDir>
+		<ProtoRoot>$(MSBuildThisFileDirectory)/proto</ProtoRoot>
+		<ProtoPkgDir>$(ProtoRoot)/unmango/dev/tdl</ProtoPkgDir>
+		<ProtoDir>$(ProtoPkgDir)/v1alpha1</ProtoDir>
 	</PropertyGroup>
 </Project>
