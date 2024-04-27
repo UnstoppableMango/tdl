@@ -3,5 +3,8 @@
   "author": "UnstoppableMango",
   "dependencies": {
     "protobufjs": "^7.2.6"
-  }
+  },
+  "trustedDependencies": [
+    "protobufjs"
+  ]
 }
