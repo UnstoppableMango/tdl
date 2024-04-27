@@ -76,3 +76,7 @@ $(BROKER_BIN): $(BROKER_SRC)
 .make/lint_lang: .make/tool_restore $(LANG_SRC)
 	dotnet fantomas ${LANG_DIR}
 	@touch $@
+
+.make/build_plugin_des_ts:
+	cd plugin/des/typescript && bun run build
+	@touch $@

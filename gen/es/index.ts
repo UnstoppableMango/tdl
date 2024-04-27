@@ -1,2 +1,2 @@
-export * from './greet_connect';
-export * from './greet_pb';
+export * from './unmango/dev/tdl/v1alpha1/uml_connect';
+export * from './unmango/dev/tdl/v1alpha1/uml_pb';
