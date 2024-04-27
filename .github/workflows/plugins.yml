@@ -1,4 +1,4 @@
-name: Plugin
+name: Plugins
 
 on:
   pull_request:
