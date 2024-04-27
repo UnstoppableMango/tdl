@@ -18,6 +18,12 @@ runs:
       with:
         bun-version: latest
 
+    - name: Restore dependencies
+      if: inputs.type == 'bun'
+      shell: bash
+      working-directory: ${{ inputs.path }}
+      run: bun install --frozen-lockfile
+
     - name: Build
       shell: bash
       if: inputs.type == 'bun'
