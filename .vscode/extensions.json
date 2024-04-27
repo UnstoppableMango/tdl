@@ -3,6 +3,7 @@
     "ms-dotnettools.csharp",
     "editorconfig.editorconfig",
     "ionide.ionide-fsharp",
-    "davidanson.vscode-markdownlint"
+    "davidanson.vscode-markdownlint",
+    "oven.bun-vscode"
   ]
 }
