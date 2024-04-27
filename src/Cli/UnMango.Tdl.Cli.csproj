@@ -14,7 +14,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Protobuf Include="$(ProtoDir)\greet.proto" GrpcServices="Server;Client" />
+		<Protobuf Include="$(ProtoDir)\uml.proto" GrpcServices="Server;Client" />
 	</ItemGroup>
 
 	<ItemGroup>
