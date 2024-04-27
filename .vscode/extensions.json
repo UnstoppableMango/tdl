@@ -4,6 +4,7 @@
     "editorconfig.editorconfig",
     "ionide.ionide-fsharp",
     "davidanson.vscode-markdownlint",
-    "oven.bun-vscode"
+    "oven.bun-vscode",
+    "dbaeumer.vscode-eslint"
   ]
 }
