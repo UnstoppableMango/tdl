@@ -24,6 +24,12 @@ runs:
       working-directory: ${{ inputs.path }}
       run: bun install --frozen-lockfile
 
+    - name: Lint
+      if: inputs.type == 'bun'
+      shell: bash
+      working-directory: ${{ inputs.path }}
+      run: bun lint
+
     - name: Build
       shell: bash
       if: inputs.type == 'bun'
