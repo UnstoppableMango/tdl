@@ -17,11 +17,28 @@ export default tslint.config(
 			"obj/",
 			"proto/",
 		],
+	},
+	{
 		languageOptions: {
 			parserOptions: {
 				project: ["tsconfig.eslint.json", "plugin/gen/*/tsconfig.json"],
 				tsconfigRootDir: import.meta.dirname,
 			},
 		},
+		rules: {
+			// My best guess is that this doesn't play nice with bun yet
+			"@typescript-eslint/no-unsafe-argument": "off",
+		},
+	},
+	{
+		files: ["eslint.config.mjs"],
+		rules: {
+			// Can't seem to source types for this anywhere
+			"@typescript-eslint/no-unsafe-member-access": "off",
+		},
+	},
+	{
+		files: ['**/*.js'],
+		extends: [tslint.configs.disableTypeChecked],
 	},
 );
