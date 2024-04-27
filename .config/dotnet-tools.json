@@ -1,20 +1,20 @@
 {
-  "version": 1,
-  "isRoot": true,
-  "tools": {
-    "fantomas": {
-      "version": "6.3.4",
-      "commands": [
-        "fantomas"
-      ],
-      "rollForward": false
-    },
-    "minver-cli": {
-      "version": "5.0.0",
-      "commands": [
-        "minver"
-      ],
-      "rollForward": false
-    }
-  }
+	"version": 1,
+	"isRoot": true,
+	"tools": {
+		"fantomas": {
+			"version": "6.3.4",
+			"commands": [
+				"fantomas"
+			],
+			"rollForward": false
+		},
+		"minver-cli": {
+			"version": "5.0.0",
+			"commands": [
+				"minver"
+			],
+			"rollForward": false
+		}
+	}
 }

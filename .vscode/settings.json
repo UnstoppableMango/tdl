@@ -1,3 +1,38 @@
 {
-  "eslint.experimental.useFlatConfig": true
+	"eslint.experimental.useFlatConfig": true,
+	"[dockerfile]": {
+		"editor.defaultFormatter": "dprint.dprint",
+		"editor.quickSuggestions": {
+			"strings": true
+		}
+	},
+	"[javascript]": {
+		"editor.defaultFormatter": "dprint.dprint",
+		"editor.maxTokenizationLineLength": 2500
+	},
+	"[json]": {
+		"editor.defaultFormatter": "dprint.dprint"
+	},
+	"[jsonc]": {
+		"editor.defaultFormatter": "dprint.dprint",
+		"editor.quickSuggestions": {
+			"strings": true
+		},
+		"editor.suggest.insertMode": "replace"
+	},
+	"[markdown]": {
+		"editor.defaultFormatter": "dprint.dprint",
+		"editor.unicodeHighlight.ambiguousCharacters": false,
+		"editor.unicodeHighlight.invisibleCharacters": false,
+		"diffEditor.ignoreTrimWhitespace": false,
+		"editor.wordWrap": "on",
+		"editor.quickSuggestions": {
+			"comments": "off",
+			"strings": "off",
+			"other": "off"
+		}
+	},
+	"[typescript]": {
+		"editor.defaultFormatter": "dprint.dprint"
+	}
 }
