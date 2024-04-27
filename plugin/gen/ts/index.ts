@@ -1,9 +1,9 @@
-import { name, version } from './package.json';
-import * as net from 'node:net';
 import { Command } from '@commander-js/extra-typings';
 import { createPromiseClient } from '@connectrpc/connect';
 import { createGrpcTransport } from '@connectrpc/connect-node';
 import { UmlService } from '@unmango/tdl-es';
+import * as net from 'node:net';
+import { name, version } from './package.json';
 
 const program = new Command()
 	.name(name)

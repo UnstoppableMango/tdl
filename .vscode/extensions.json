@@ -1,10 +1,11 @@
 {
-  "recommendations": [
-    "ms-dotnettools.csharp",
-    "editorconfig.editorconfig",
-    "ionide.ionide-fsharp",
-    "davidanson.vscode-markdownlint",
-    "oven.bun-vscode",
-    "dbaeumer.vscode-eslint"
-  ]
+	"recommendations": [
+		"ms-dotnettools.csharp",
+		"editorconfig.editorconfig",
+		"ionide.ionide-fsharp",
+		"davidanson.vscode-markdownlint",
+		"oven.bun-vscode",
+		"dbaeumer.vscode-eslint",
+		"dprint.dprint"
+	]
 }

@@ -24,6 +24,12 @@ runs:
       working-directory: ${{ inputs.path }}
       run: bun install --frozen-lockfile
 
+    - name: Build
+      shell: bash
+      if: inputs.type == 'bun'
+      working-directory: ${{ inputs.path }}
+      run: bun run build
+
     - name: Lint
       if: inputs.type == 'bun'
       shell: bash
@@ -31,8 +37,6 @@ runs:
       # working-directory: ${{ inputs.path }}
       run: bun lint
 
-    - name: Build
-      shell: bash
+    - name: Format
       if: inputs.type == 'bun'
-      working-directory: ${{ inputs.path }}
-      run: bun run build
+      uses: dprint/check@v2.2
