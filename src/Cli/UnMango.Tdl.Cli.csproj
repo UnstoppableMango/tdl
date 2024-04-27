@@ -9,6 +9,7 @@
 		<!-- Soon TM -->
 		<PublishAot>false</PublishAot>
 		<PackAsTool>true</PackAsTool>
+		<PackageId>UnMango.Tdl.Cli</PackageId>
 		<ToolCommandName>um</ToolCommandName>
 		<AssemblyName>um</AssemblyName>
 	</PropertyGroup>
