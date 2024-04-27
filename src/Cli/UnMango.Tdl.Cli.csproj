@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
@@ -14,7 +14,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Protobuf Include="$(ProtoDir)\uml.proto" GrpcServices="Server;Client" />
+		<Protobuf Include="$(ProtoDir)\uml.proto" GrpcServices="Client" />
 	</ItemGroup>
 
 	<ItemGroup>

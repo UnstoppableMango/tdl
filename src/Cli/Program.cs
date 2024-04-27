@@ -1,9 +1,6 @@
 ﻿using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Parsing;
-using Microsoft.AspNetCore.Connections;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets;
 using Serilog;
 using UnMango.Tdl;
 using UnMango.Tdl.Cli;
@@ -19,26 +16,7 @@ Log.Logger = new LoggerConfiguration()
 	.WriteTo.Console()
 	.CreateLogger();
 
-var services = new ServiceCollection()
-	.AddSerilog()
-	.Configure((KestrelServerOptions options) => {
-		options.ListenUnixSocket("TODO", o => { o.Protocols = HttpProtocols.Http2; });
-	})
-	.Configure((SocketTransportOptions options) => { })
-	.AddSingleton<IConnectionListenerFactory, SocketTransportFactory>()
-	.AddSingleton<KestrelServer>()
-	.AddSingleton<Application>()
-	.BuildServiceProvider();
-
 var builder = new CommandLineBuilder(root)
-	.AddMiddleware(async (context, next) => {
-		var cancellationToken = context.GetCancellationToken();
-		var server = services.GetRequiredService<KestrelServer>();
-		var app = services.GetRequiredService<Application>();
-		await server.StartAsync(app, cancellationToken);
-		await next(context);
-		await server.StopAsync(cancellationToken);
-	})
 	.AddMiddleware(async (context, next) => {
 		var cancellationToken = context.GetCancellationToken();
 		using var scope = await Broker.Dev.Start("http://127.0.0.1:6969", cancellationToken);
