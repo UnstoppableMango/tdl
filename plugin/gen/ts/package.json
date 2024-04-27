@@ -4,8 +4,10 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
+		"build": "bun build index.ts --compile --outfile dist/app",
+		"lint": "eslint .",
+		"lint:fix": "eslint . --fix",
 		"prestart": "cd ../../../ && make gen",
-    "build": "bun build index.ts --compile --outfile dist/app",
     "start": "bun run index.ts --help"
   },
   "dependencies": {

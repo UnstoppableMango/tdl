@@ -24,7 +24,7 @@ const transport = createGrpcTransport({
 	httpVersion: '2',
 	baseUrl: opts.broker,
 	nodeOptions: {
-		createConnection(authority, option) {
+		createConnection() {
 			if (!opts.broker) {
 				throw new Error('Broker URI is required');
 			}
