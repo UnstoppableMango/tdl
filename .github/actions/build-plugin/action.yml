@@ -13,13 +13,13 @@ runs:
   using: composite
   steps:
     - name: Setup Bun
-      if: type == 'bun'
+      if: inputs.type == 'bun'
       uses: oven-sh/setup-bun@v1
       with:
         bun-version: latest
 
     - name: Build
       shell: bash
-      if: type == 'bun'
+      if: inputs.type == 'bun'
       working-directory: ${{ inputs.path }}
       run: bun run build
