@@ -1,0 +1,21 @@
+{
+  "name": "@unmango/2ts",
+  "version": "0.1.0",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+		"prestart": "cd ../../../ && make gen",
+    "build": "bun build index.ts --compile --outfile dist/app",
+    "start": "bun run index.ts --help"
+  },
+  "dependencies": {
+    "@commander-js/extra-typings": "^12.0.1",
+    "@connectrpc/connect": "^1.4.0",
+    "@connectrpc/connect-node": "^1.4.0",
+    "typescript": "^5.4.5",
+		"@unmango/tdl-es": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}

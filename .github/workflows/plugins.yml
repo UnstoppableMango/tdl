@@ -1,0 +1,17 @@
+name: Plugin
+
+on:
+  pull_request:
+    branches: [main]
+    paths: [plugin/**]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/build-plugin
+        with:
+          type: bun
+          path: plugin/gen/ts

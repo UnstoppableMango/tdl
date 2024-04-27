@@ -1,0 +1,31 @@
+name: Build Bun Plugin
+description: Builds a plugin using Bun
+
+inputs:
+  type:
+    description: Type of plugin. Acceptible values - bun
+    required: true
+  path:
+    description: Path to the plugin
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Bun
+      if: inputs.type == 'bun'
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
+    - name: Restore dependencies
+      if: inputs.type == 'bun'
+      shell: bash
+      working-directory: ${{ inputs.path }}
+      run: bun install --frozen-lockfile
+
+    - name: Build
+      shell: bash
+      if: inputs.type == 'bun'
+      working-directory: ${{ inputs.path }}
+      run: bun run build

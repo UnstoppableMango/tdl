@@ -4,6 +4,6 @@
     "editorconfig.editorconfig",
     "ionide.ionide-fsharp",
     "davidanson.vscode-markdownlint",
-    "arcanis.vscode-zipfs"
+    "oven.bun-vscode"
   ]
 }

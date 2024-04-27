@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package unmango.dev.tdl.v1alpha1;
+
+option csharp_namespace = "UnMango.Tdl";
+
+service UmlService {
+  rpc Pull(PullRequest) returns (PullResponse);
+}
+
+message PullRequest {
+  string actor = 1;
+}
+
+message PullResponse {
+  string uml = 1;
+}

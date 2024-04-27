@@ -44,6 +44,7 @@ clean: clean_gen
 tidy: gen
 	cd gen && go mod tidy
 
+.PHONY: build_proto
 build_proto:
 	buf build
 
@@ -75,4 +76,8 @@ $(BROKER_BIN): $(BROKER_SRC)
 
 .make/lint_lang: .make/tool_restore $(LANG_SRC)
 	dotnet fantomas ${LANG_DIR}
+	@touch $@
+
+.make/build_plugin_gen_ts:
+	cd plugin/gen/ts && bun run build
 	@touch $@
