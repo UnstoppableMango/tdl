@@ -1,23 +1,28 @@
 {
-  "typescript": {
-  },
-  "json": {
-  },
-  "markdown": {
-  },
-  "toml": {
-  },
-  "dockerfile": {
-  },
-  "excludes": [
-    "**/node_modules",
-    "**/*-lock.json"
-  ],
-  "plugins": [
-    "https://plugins.dprint.dev/typescript-0.90.4.wasm",
-    "https://plugins.dprint.dev/json-0.19.2.wasm",
-    "https://plugins.dprint.dev/markdown-0.16.4.wasm",
-    "https://plugins.dprint.dev/toml-0.6.1.wasm",
-    "https://plugins.dprint.dev/dockerfile-0.3.0.wasm"
-  ]
+	"useTabs": true,
+	"typescript": {
+		"quoteStyle": "preferSingle"
+	},
+	"json": {
+	},
+	"markdown": {
+	},
+	"toml": {
+	},
+	"dockerfile": {
+	},
+	"excludes": [
+		"**/dist/",
+		"**/node_modules",
+		"**/*-lock.json",
+		"./gen/",
+		"./src/"
+	],
+	"plugins": [
+		"https://plugins.dprint.dev/typescript-0.90.4.wasm",
+		"https://plugins.dprint.dev/json-0.19.2.wasm",
+		"https://plugins.dprint.dev/markdown-0.16.4.wasm",
+		"https://plugins.dprint.dev/toml-0.6.1.wasm",
+		"https://plugins.dprint.dev/dockerfile-0.3.0.wasm"
+	]
 }
