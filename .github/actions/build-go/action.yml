@@ -1,0 +1,46 @@
+name: Build go
+description: Builds go code
+
+inputs:
+  lib:
+    description: Treat as a library.
+    default: 'false'
+  path:
+    description: Path to the package.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: go.work
+
+    - name: Verify dependencies
+      shell: bash
+      working-directory: ${{ inputs.path }}
+      run: go mod verify
+
+    - name: Build
+      if: inputs.lib == 'true'
+      shell: bash
+      working-directory: ${{ inputs.path }}
+      run: go build ./...
+
+    - name: Build
+      if: inputs.lib != 'true'
+      shell: bash
+      working-directory: ${{ inputs.path }}
+      run: make build
+
+    - name: Vet
+      shell: bash
+      working-directory: ${{ inputs.path }}
+      run: go vet ./...
+
+    - name: Lint
+      uses: golangci/golangci-lint-action@v5
+      with:
+        version: v1.57
+        working-directory: ${{ inputs.path }}

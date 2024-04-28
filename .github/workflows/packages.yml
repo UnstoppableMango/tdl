@@ -1,0 +1,35 @@
+name: Packages
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/actions/**
+      - .github/workflows/packages.yml
+      - packages/**
+      - pkg/**
+
+jobs:
+  build-bun:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/build-bun
+        with:
+          path: packages/ts
+
+  build-go:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        path:
+          - gen/go
+          - pkg/pcl
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/build-go
+        with:
+          lib: true
+          path: ${{ matrix.path }}

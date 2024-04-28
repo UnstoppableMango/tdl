@@ -3,10 +3,8 @@
 	"packageManager": "bun@1.1.5",
 	"workspaces": [
 		"gen/*",
-		"plugin/conv/*",
-		"plugin/gen/*",
-		"src/*",
-		"tools/node"
+		"packages/*",
+		"src/*"
 	],
 	"scripts": {
 		"lint": "eslint"

@@ -1,0 +1,3 @@
+.PHONY: go
+go:
+	cd go && go build ./...

@@ -2,16 +2,20 @@ name: CLI
 
 on:
   pull_request:
-    branches: [ 'main' ]
+    branches: ['main']
     paths:
+      - .github/actions/**
       - .github/workflows/cli.yml
+      - cli/**
       - src/Cli/**
       - src/Cli.Tests/**
   push:
-    branches: [ 'main' ]
-    tags: [ 'v*.*.*' ]
+    branches: ['main']
+    tags: ['v*.*.*']
     paths:
+      - .github/actions/**
       - .github/workflows/cli.yml
+      - cli/**
       - src/Cli/**
       - src/Cli.Tests/**
 
@@ -20,7 +24,7 @@ env:
   ContinuousIntegrationBuild: true
 
 jobs:
-  build:
+  build-cli:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,56 +32,25 @@ jobs:
           fetch-depth: 0
           filter: tree:0
 
-      - name: Setup dotnet
-        uses: actions/setup-dotnet@v4
-        with:
-          global-json-file: global.json
-
-      - name: Restore tools
-        if: github.event_name == 'pull_request'
-        run: dotnet tool restore
-
-      - name: Restore dependencies
-        run: dotnet restore src/Cli
-
-      - name: Build project
-        run: dotnet build -c Release --no-restore src/Cli
-
-      - name: Run tests
-        run: dotnet test -c Release --collect:"XPlat Code Coverage" --no-build src/Cli
-
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v4
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Lint solution
-        if: github.event_name == 'pull_request'
-        run: dotnet format --verify-no-changes src/Cli
-
-      - name: Package library
-        if: github.event_name == 'push'
-        run: dotnet pack -c Release -o out --no-build src/Cli
-
-      - name: Upload artifact
+      - uses: ./.github/actions/build-cs
         id: upload
-        if: github.event_name == 'push'
-        uses: actions/upload-artifact@v4
         with:
-          name: nuget
-          path: out/*.nupkg
-          if-no-files-found: error
+          codecov-token: ${{ secrets.CODECOV_TOKEN }}
+          restore-tools: true
+          lint: true
+          pack: ${{ github.event_name == 'push' }}
+          path: src/Cli
 
     outputs:
       artifact-id: ${{ steps.upload.outputs.artifact-id }}
 
-  publish:
+  publish-cli:
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
-    needs: [ 'build' ]
+    needs: ['build-cli']
     strategy:
       matrix:
-        source: [ 'nuget', 'github' ]
+        source: ['nuget', 'github']
     env:
       PACKAGE_PATTERN: UnMango.Tdl.*.nupkg
     permissions:
@@ -111,3 +84,17 @@ jobs:
           dotnet nuget push "$PACKAGE_PATTERN" \
             --source ${{ matrix.source }} \
             --skip-duplicate
+
+  build-go:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tool:
+          - uml2go
+          - uml2pcl
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/build-go
+        with:
+          path: cli/${{ matrix.tool }}
