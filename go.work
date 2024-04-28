@@ -1,6 +1,8 @@
 go 1.22.2
 
 use (
+	./cli/uml2pcl
 	./gen
+	./pkg
 	./plugin
 )
