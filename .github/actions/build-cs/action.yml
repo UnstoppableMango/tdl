@@ -1,0 +1,91 @@
+name: Build C#
+description: Builds C# code
+
+inputs:
+  configuration:
+    description: The project configuration to build.
+    default: Release
+  lint:
+    description: Run dotnet format.
+    default: 'false'
+  pack:
+    description: Package library.
+    default: 'false'
+  path:
+    description: Path to the project.
+    required: true
+  restore-tools:
+    description: Run dotnet tool restore
+    default: 'false'
+
+outputs:
+  artifact-id:
+    description: The id of the published artifact
+    value: ${{ steps.upload.outputs.artifact-id }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v4
+      with:
+        global-json-file: global.json
+
+    - name: Restore tools
+      if: inputs.restore-tools == 'true'
+      shell: bash
+      run: dotnet tool restore
+
+    - name: Restore dependencies
+      shell: bash
+      run: dotnet restore ${{ inputs.path }}
+
+    - name: Build
+      shell: bash
+      run: >
+        dotnet build
+          --configuration ${{ inputs.configuration }}
+          --no-restore
+          ${{ inputs.path }}
+
+    - name: Test
+      shell: bash
+      run: >
+        dotnet test
+          --configuration ${{ inputs.configuration }}
+          --collect:"XPlat Code Coverage"
+          --no-build
+          ${{ inputs.path }}
+
+    - name: Upload coverage reports to Codecov
+      if: 'false' # Nothing to upload at the moment
+      uses: codecov/codecov-action@v4
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+    - name: Lint
+      if: inputs.lint == 'true'
+      shell: bash
+      run: >
+        dotnet format
+          --verify-no-changes
+          ${{ inputs.path }}
+
+    - name: Package library
+      if: inputs.pack == 'true'
+      shell: bash
+      run: >
+        dotnet pack
+          --configuration ${{ inputs.configuration }}
+          --output out
+          --no-build
+          ${{ inputs.path }}
+
+    - name: Upload artifact
+      id: upload
+      if: inputs.pack == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: nuget
+        path: out/*.nupkg
+        if-no-files-found: error

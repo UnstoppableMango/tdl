@@ -4,5 +4,4 @@ use (
 	./cli
 	./gen
 	./pkg
-	./plugin
 )

@@ -1,42 +1,34 @@
-name: Build Bun Plugin
-description: Builds a plugin using Bun
+name: Build Bun
+description: Builds code using Bun
 
 inputs:
-  type:
-    description: Type of plugin. Acceptible values - bun
-    required: true
   path:
-    description: Path to the plugin
+    description: Path to the package
     required: true
 
 runs:
   using: composite
   steps:
     - name: Setup Bun
-      if: inputs.type == 'bun'
       uses: oven-sh/setup-bun@v1
       with:
         bun-version: latest
 
     - name: Restore dependencies
-      if: inputs.type == 'bun'
       shell: bash
       working-directory: ${{ inputs.path }}
       run: bun install --frozen-lockfile
 
     - name: Build
       shell: bash
-      if: inputs.type == 'bun'
       working-directory: ${{ inputs.path }}
       run: bun run build
 
     - name: Lint
-      if: inputs.type == 'bun'
       shell: bash
       # This will likely error on unrelated linting errors...
       # working-directory: ${{ inputs.path }}
       run: bun lint
 
     - name: Format
-      if: inputs.type == 'bun'
       uses: dprint/check@v2.2
