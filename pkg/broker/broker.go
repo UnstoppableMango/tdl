@@ -1,16 +1,15 @@
-package uml
+package broker
 
 import (
-	"context"
-	"io"
 	"net/http"
 
 	"connectrpc.com/connect"
-	"github.com/unstoppablemango/tdl/gen/proto/go/unmango/dev/tdl/v1alpha1/tdlv1alpha1connect"
+	tdl "github.com/unstoppablemango/tdl/gen/proto/go/unmango/dev/tdl/v1alpha1/tdlv1alpha1connect"
+	"github.com/unstoppablemango/tdl/pkg/uml"
 )
 
 type broker struct {
-	client tdlv1alpha1connect.UmlServiceClient
+	client tdl.UmlServiceClient
 }
 
 type brokerOptions struct {
@@ -20,8 +19,8 @@ type brokerOptions struct {
 type BrokerOption = func(*brokerOptions)
 
 type Broker interface {
-	From(context.Context, io.Reader) (*Spec, error)
-	To(context.Context, io.Writer, *Spec) error
+	uml.Converter
+	uml.Generator
 }
 
 func WithUrl(baseUrl string) BrokerOption {
@@ -36,7 +35,7 @@ func NewBroker(opts ...BrokerOption) (Broker, error) {
 		opt(options)
 	}
 
-	client := tdlv1alpha1connect.NewUmlServiceClient(
+	client := tdl.NewUmlServiceClient(
 		http.DefaultClient,
 		options.baseUrl,
 		connect.WithGRPC(),

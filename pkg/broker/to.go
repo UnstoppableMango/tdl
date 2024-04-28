@@ -1,4 +1,4 @@
-package uml
+package broker
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 
 	"connectrpc.com/connect"
 	tdl "github.com/unstoppablemango/tdl/gen/proto/go/unmango/dev/tdl/v1alpha1"
+	"github.com/unstoppablemango/tdl/pkg/uml"
 )
 
 type ToRequest = connect.Request[tdl.ToRequest]
@@ -26,7 +27,7 @@ func (r *toStreamReader) Read(p []byte) (n int, err error) {
 
 var _ io.Reader = &toStreamReader{}
 
-func (b *broker) To(ctx context.Context, writer io.Writer, spec *Spec) error {
+func (b *broker) To(ctx context.Context, spec *uml.Spec, writer io.Writer) error {
 	stream, err := b.client.To(ctx, &ToRequest{
 		Msg: &tdl.ToRequest{Spec: spec},
 	})

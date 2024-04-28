@@ -13,6 +13,14 @@ export interface FromResponse {
   spec: Spec | undefined;
 }
 
+export interface GenRequest {
+  spec: Spec | undefined;
+}
+
+export interface GenResponse {
+  data: Uint8Array;
+}
+
 export interface ToRequest {
   spec: Spec | undefined;
 }
@@ -150,6 +158,120 @@ export const FromResponse = {
   fromPartial<I extends Exact<DeepPartial<FromResponse>, I>>(object: I): FromResponse {
     const message = createBaseFromResponse();
     message.spec = (object.spec !== undefined && object.spec !== null) ? Spec.fromPartial(object.spec) : undefined;
+    return message;
+  },
+};
+
+function createBaseGenRequest(): GenRequest {
+  return { spec: undefined };
+}
+
+export const GenRequest = {
+  encode(message: GenRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.spec !== undefined) {
+      Spec.encode(message.spec, writer.uint32(10).fork()).ldelim();
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): GenRequest {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGenRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break;
+          }
+
+          message.spec = Spec.decode(reader, reader.uint32());
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GenRequest {
+    return { spec: isSet(object.spec) ? Spec.fromJSON(object.spec) : undefined };
+  },
+
+  toJSON(message: GenRequest): unknown {
+    const obj: any = {};
+    if (message.spec !== undefined) {
+      obj.spec = Spec.toJSON(message.spec);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GenRequest>, I>>(base?: I): GenRequest {
+    return GenRequest.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GenRequest>, I>>(object: I): GenRequest {
+    const message = createBaseGenRequest();
+    message.spec = (object.spec !== undefined && object.spec !== null) ? Spec.fromPartial(object.spec) : undefined;
+    return message;
+  },
+};
+
+function createBaseGenResponse(): GenResponse {
+  return { data: new Uint8Array(0) };
+}
+
+export const GenResponse = {
+  encode(message: GenResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.data.length !== 0) {
+      writer.uint32(10).bytes(message.data);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): GenResponse {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseGenResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break;
+          }
+
+          message.data = reader.bytes();
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): GenResponse {
+    return { data: isSet(object.data) ? bytesFromBase64(object.data) : new Uint8Array(0) };
+  },
+
+  toJSON(message: GenResponse): unknown {
+    const obj: any = {};
+    if (message.data.length !== 0) {
+      obj.data = base64FromBytes(message.data);
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<GenResponse>, I>>(base?: I): GenResponse {
+    return GenResponse.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<GenResponse>, I>>(object: I): GenResponse {
+    const message = createBaseGenResponse();
+    message.data = object.data ?? new Uint8Array(0);
     return message;
   },
 };
@@ -569,6 +691,7 @@ export const Type = {
 
 export interface UmlService {
   From(request: Observable<FromRequest>): Promise<FromResponse>;
+  Gen(request: GenRequest): Observable<GenResponse>;
   To(request: ToRequest): Observable<ToResponse>;
 }
 
@@ -580,12 +703,19 @@ export class UmlServiceClientImpl implements UmlService {
     this.service = opts?.service || UmlServiceServiceName;
     this.rpc = rpc;
     this.From = this.From.bind(this);
+    this.Gen = this.Gen.bind(this);
     this.To = this.To.bind(this);
   }
   From(request: Observable<FromRequest>): Promise<FromResponse> {
     const data = request.pipe(map((request) => FromRequest.encode(request).finish()));
     const promise = this.rpc.clientStreamingRequest(this.service, "From", data);
     return promise.then((data) => FromResponse.decode(_m0.Reader.create(data)));
+  }
+
+  Gen(request: GenRequest): Observable<GenResponse> {
+    const data = GenRequest.encode(request).finish();
+    const result = this.rpc.serverStreamingRequest(this.service, "Gen", data);
+    return result.pipe(map((data) => GenResponse.decode(_m0.Reader.create(data))));
   }
 
   To(request: ToRequest): Observable<ToResponse> {

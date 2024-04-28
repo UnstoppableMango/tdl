@@ -81,6 +81,80 @@ export class FromResponse extends Message<FromResponse> {
 }
 
 /**
+ * @generated from message unmango.dev.tdl.v1alpha1.GenRequest
+ */
+export class GenRequest extends Message<GenRequest> {
+  /**
+   * @generated from field: unmango.dev.tdl.v1alpha1.Spec spec = 1;
+   */
+  spec?: Spec;
+
+  constructor(data?: PartialMessage<GenRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "unmango.dev.tdl.v1alpha1.GenRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "spec", kind: "message", T: Spec },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GenRequest {
+    return new GenRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GenRequest {
+    return new GenRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GenRequest {
+    return new GenRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GenRequest | PlainMessage<GenRequest> | undefined, b: GenRequest | PlainMessage<GenRequest> | undefined): boolean {
+    return proto3.util.equals(GenRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message unmango.dev.tdl.v1alpha1.GenResponse
+ */
+export class GenResponse extends Message<GenResponse> {
+  /**
+   * @generated from field: bytes data = 1;
+   */
+  data = new Uint8Array(0);
+
+  constructor(data?: PartialMessage<GenResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "unmango.dev.tdl.v1alpha1.GenResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "data", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GenResponse {
+    return new GenResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GenResponse {
+    return new GenResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GenResponse {
+    return new GenResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GenResponse | PlainMessage<GenResponse> | undefined, b: GenResponse | PlainMessage<GenResponse> | undefined): boolean {
+    return proto3.util.equals(GenResponse, a, b);
+  }
+}
+
+/**
  * @generated from message unmango.dev.tdl.v1alpha1.ToRequest
  */
 export class ToRequest extends Message<ToRequest> {

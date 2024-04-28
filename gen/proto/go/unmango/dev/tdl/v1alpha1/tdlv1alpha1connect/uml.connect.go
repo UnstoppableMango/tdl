@@ -35,6 +35,8 @@ const (
 const (
 	// UmlServiceFromProcedure is the fully-qualified name of the UmlService's From RPC.
 	UmlServiceFromProcedure = "/unmango.dev.tdl.v1alpha1.UmlService/From"
+	// UmlServiceGenProcedure is the fully-qualified name of the UmlService's Gen RPC.
+	UmlServiceGenProcedure = "/unmango.dev.tdl.v1alpha1.UmlService/Gen"
 	// UmlServiceToProcedure is the fully-qualified name of the UmlService's To RPC.
 	UmlServiceToProcedure = "/unmango.dev.tdl.v1alpha1.UmlService/To"
 )
@@ -43,12 +45,14 @@ const (
 var (
 	umlServiceServiceDescriptor    = v1alpha1.File_unmango_dev_tdl_v1alpha1_uml_proto.Services().ByName("UmlService")
 	umlServiceFromMethodDescriptor = umlServiceServiceDescriptor.Methods().ByName("From")
+	umlServiceGenMethodDescriptor  = umlServiceServiceDescriptor.Methods().ByName("Gen")
 	umlServiceToMethodDescriptor   = umlServiceServiceDescriptor.Methods().ByName("To")
 )
 
 // UmlServiceClient is a client for the unmango.dev.tdl.v1alpha1.UmlService service.
 type UmlServiceClient interface {
 	From(context.Context) *connect.ClientStreamForClient[v1alpha1.FromRequest, v1alpha1.FromResponse]
+	Gen(context.Context, *connect.Request[v1alpha1.GenRequest]) (*connect.ServerStreamForClient[v1alpha1.GenResponse], error)
 	To(context.Context, *connect.Request[v1alpha1.ToRequest]) (*connect.ServerStreamForClient[v1alpha1.ToResponse], error)
 }
 
@@ -68,6 +72,12 @@ func NewUmlServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(umlServiceFromMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		gen: connect.NewClient[v1alpha1.GenRequest, v1alpha1.GenResponse](
+			httpClient,
+			baseURL+UmlServiceGenProcedure,
+			connect.WithSchema(umlServiceGenMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 		to: connect.NewClient[v1alpha1.ToRequest, v1alpha1.ToResponse](
 			httpClient,
 			baseURL+UmlServiceToProcedure,
@@ -80,12 +90,18 @@ func NewUmlServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 // umlServiceClient implements UmlServiceClient.
 type umlServiceClient struct {
 	from *connect.Client[v1alpha1.FromRequest, v1alpha1.FromResponse]
+	gen  *connect.Client[v1alpha1.GenRequest, v1alpha1.GenResponse]
 	to   *connect.Client[v1alpha1.ToRequest, v1alpha1.ToResponse]
 }
 
 // From calls unmango.dev.tdl.v1alpha1.UmlService.From.
 func (c *umlServiceClient) From(ctx context.Context) *connect.ClientStreamForClient[v1alpha1.FromRequest, v1alpha1.FromResponse] {
 	return c.from.CallClientStream(ctx)
+}
+
+// Gen calls unmango.dev.tdl.v1alpha1.UmlService.Gen.
+func (c *umlServiceClient) Gen(ctx context.Context, req *connect.Request[v1alpha1.GenRequest]) (*connect.ServerStreamForClient[v1alpha1.GenResponse], error) {
+	return c.gen.CallServerStream(ctx, req)
 }
 
 // To calls unmango.dev.tdl.v1alpha1.UmlService.To.
@@ -96,6 +112,7 @@ func (c *umlServiceClient) To(ctx context.Context, req *connect.Request[v1alpha1
 // UmlServiceHandler is an implementation of the unmango.dev.tdl.v1alpha1.UmlService service.
 type UmlServiceHandler interface {
 	From(context.Context, *connect.ClientStream[v1alpha1.FromRequest]) (*connect.Response[v1alpha1.FromResponse], error)
+	Gen(context.Context, *connect.Request[v1alpha1.GenRequest], *connect.ServerStream[v1alpha1.GenResponse]) error
 	To(context.Context, *connect.Request[v1alpha1.ToRequest], *connect.ServerStream[v1alpha1.ToResponse]) error
 }
 
@@ -111,6 +128,12 @@ func NewUmlServiceHandler(svc UmlServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(umlServiceFromMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	umlServiceGenHandler := connect.NewServerStreamHandler(
+		UmlServiceGenProcedure,
+		svc.Gen,
+		connect.WithSchema(umlServiceGenMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	umlServiceToHandler := connect.NewServerStreamHandler(
 		UmlServiceToProcedure,
 		svc.To,
@@ -121,6 +144,8 @@ func NewUmlServiceHandler(svc UmlServiceHandler, opts ...connect.HandlerOption) 
 		switch r.URL.Path {
 		case UmlServiceFromProcedure:
 			umlServiceFromHandler.ServeHTTP(w, r)
+		case UmlServiceGenProcedure:
+			umlServiceGenHandler.ServeHTTP(w, r)
 		case UmlServiceToProcedure:
 			umlServiceToHandler.ServeHTTP(w, r)
 		default:
@@ -134,6 +159,10 @@ type UnimplementedUmlServiceHandler struct{}
 
 func (UnimplementedUmlServiceHandler) From(context.Context, *connect.ClientStream[v1alpha1.FromRequest]) (*connect.Response[v1alpha1.FromResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("unmango.dev.tdl.v1alpha1.UmlService.From is not implemented"))
+}
+
+func (UnimplementedUmlServiceHandler) Gen(context.Context, *connect.Request[v1alpha1.GenRequest], *connect.ServerStream[v1alpha1.GenResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("unmango.dev.tdl.v1alpha1.UmlService.Gen is not implemented"))
 }
 
 func (UnimplementedUmlServiceHandler) To(context.Context, *connect.Request[v1alpha1.ToRequest], *connect.ServerStream[v1alpha1.ToResponse]) error {
