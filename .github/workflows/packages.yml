@@ -42,7 +42,10 @@ jobs:
       matrix:
         path:
           - gen/go
+          - pkg/broker
+          - pkg/go
           - pkg/pcl
+          - pkg/uml
     steps:
       - uses: actions/checkout@v4
 
