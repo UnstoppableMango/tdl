@@ -4,11 +4,18 @@ import (
 	"context"
 	"io"
 
+	"github.com/pulumi/pulumi/pkg/v3/codegen/schema"
 	tdl "github.com/unstoppablemango/tdl/gen/proto/go/unmango/dev/tdl/v1alpha1"
 	"github.com/unstoppablemango/tdl/pkg/uml"
 )
 
 type converter struct{}
+
+type PclConverter interface {
+	uml.Converter
+	FromPcl(ctx context.Context, pcl schema.PackageSpec) (*tdl.Spec, error)
+	ToPcl(ctx context.Context, spec tdl.Spec) (*schema.PackageSpec, error)
+}
 
 var Converter uml.Converter = &converter{}
 
