@@ -6,6 +6,7 @@
 		"davidanson.vscode-markdownlint",
 		"oven.bun-vscode",
 		"dbaeumer.vscode-eslint",
-		"dprint.dprint"
+		"dprint.dprint",
+		"golang.go"
 	]
 }
