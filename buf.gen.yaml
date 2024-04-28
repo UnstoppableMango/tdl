@@ -3,23 +3,28 @@ version: v1
 managed:
   enabled: true
   go_package_prefix:
-    default: github.com/unstoppablemango/tdl/gen/go
+    default: github.com/unstoppablemango/tdl/gen/proto/go
+
 plugins:
   - plugin: buf.build/connectrpc/go:v1.16.1
-    out: gen/go
+    out: gen/proto/go
     opt: paths=source_relative
+
   - plugin: buf.build/protocolbuffers/go
-    out: gen/go
+    out: gen/proto/go
     opt: paths=source_relative
+
   - plugin: buf.build/connectrpc/es:v1.4.0
-    out: gen/es
+    out: gen/proto/es
     opt:
       - target=ts
       - import_extension=none # https://github.com/connectrpc/connect-es/issues/1049
+
   - plugin: buf.build/bufbuild/es
-    out: gen/es
+    out: gen/proto/es
     opt:
       - target=ts
       - import_extension=none # https://github.com/connectrpc/connect-es/issues/1049
+
   - plugin: buf.build/community/stephenh-ts-proto:v1.167.9
-    out: gen/ts
+    out: gen/proto/ts

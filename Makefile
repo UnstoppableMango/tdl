@@ -1,6 +1,8 @@
 WORKING_DIR := $(shell pwd)
 _ := $(shell mkdir -p .make)
 
+export GOWORK := off
+
 CFG ?=
 ifeq ($(CFG),)
 CFG := Debug
@@ -42,7 +44,9 @@ clean: clean_gen
 
 .PHONY: tidy
 tidy: gen
-	cd gen && go mod tidy
+	$(MAKE) -C cli tidy
+	$(MAKE) -C gen tidy
+	$(MAKE) -C pkg tidy
 
 .PHONY: build_proto
 build_proto:
@@ -50,7 +54,7 @@ build_proto:
 
 clean_gen:
 	@echo 'Cleaning sources...'
-	@find gen -mindepth 2 \
+	@find gen -mindepth 3 \
 		-not -name 'package.json' \
 		-not -name 'index.ts' \
 		-delete

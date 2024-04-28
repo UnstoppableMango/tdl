@@ -8,8 +8,25 @@ on:
       - .github/workflows/packages.yml
       - packages/**
       - pkg/**
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
+    paths:
+      - .github/actions/**
+      - .github/workflows/packages.yml
+      - packages/**
+      - pkg/**
 
 jobs:
+  build-proto:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/build-proto
+        with:
+          path: proto
+
   build-bun:
     runs-on: ubuntu-latest
     steps:
@@ -24,8 +41,11 @@ jobs:
     strategy:
       matrix:
         path:
-          - gen/go
+          - gen/proto/go
+          - pkg/broker
+          - pkg/go
           - pkg/pcl
+          - pkg/uml
     steps:
       - uses: actions/checkout@v4
 

@@ -26,6 +26,7 @@ export default tslint.config(
 			},
 		},
 		rules: {
+			'@typescript-eslint/no-unused-vars': 'off',
 			// My best guess is that this doesn't play nice with bun yet
 			'@typescript-eslint/no-unsafe-argument': 'off',
 		},
