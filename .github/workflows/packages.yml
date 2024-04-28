@@ -31,4 +31,5 @@ jobs:
 
       - uses: ./.github/actions/build-go
         with:
+          lib: true
           path: ${{ matrix.path }}

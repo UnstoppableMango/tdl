@@ -2,8 +2,11 @@ name: Build go
 description: Builds go code
 
 inputs:
+  lib:
+    description: Treat as a library.
+    default: 'false'
   path:
-    description: Path to the package
+    description: Path to the package.
     required: true
 
 runs:
@@ -20,6 +23,13 @@ runs:
       run: go mod verify
 
     - name: Build
+      if: inputs.lib == 'true'
+      shell: bash
+      working-directory: ${{ inputs.path }}
+      run: go build ./...
+
+    - name: Build
+      if: inputs.lib != 'true'
       shell: bash
       working-directory: ${{ inputs.path }}
       run: make build
@@ -27,7 +37,7 @@ runs:
     - name: Vet
       shell: bash
       working-directory: ${{ inputs.path }}
-      run: make vet
+      run: go vet ./...
 
     - name: Lint
       uses: golangci/golangci-lint-action@v5
