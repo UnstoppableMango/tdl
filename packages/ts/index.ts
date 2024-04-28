@@ -35,5 +35,5 @@ const transport = createGrpcTransport({
 });
 
 const client = createPromiseClient(UmlService, transport);
-const result = await client.pull({ actor: name });
-console.log(result.uml);
+// const result = await client.from({ });
+// console.log(result.uml);
