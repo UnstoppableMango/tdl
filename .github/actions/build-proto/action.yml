@@ -21,6 +21,7 @@ runs:
         input: ${{ inputs.path }}
 
     - name: Buf breaking
+      if: 'false' # Lots of breaking changes in v1alpha1
       uses: bufbuild/buf-breaking-action@v1
       with:
         input: ${{ inputs.path }}

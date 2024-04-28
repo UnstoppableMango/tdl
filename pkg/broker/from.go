@@ -31,7 +31,9 @@ var _ io.Writer = &fromStreamWriter{}
 func (b *broker) From(ctx context.Context, reader io.Reader, opts ...uml.ConverterOption) (*uml.Spec, error) {
 	stream := b.client.From(ctx)
 	writer := fromStreamWriter{FromClientStream: stream}
-	io.Copy(&writer, reader)
+	if _, err := io.Copy(&writer, reader); err != nil {
+		return nil, err
+	}
 
 	res, err := stream.CloseAndReceive()
 	if err != nil {
