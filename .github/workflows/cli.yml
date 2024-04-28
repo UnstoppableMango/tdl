@@ -35,6 +35,7 @@ jobs:
       - uses: ./.github/actions/build-cs
         id: upload
         with:
+          codecov-token: ${{ secrets.CODECOV_TOKEN }}
           restore-tools: true
           lint: true
           pack: ${{ github.event_name == 'push' }}

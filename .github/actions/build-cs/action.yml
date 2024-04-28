@@ -2,6 +2,9 @@ name: Build C#
 description: Builds C# code
 
 inputs:
+  codecov-token:
+    description: Codecov token.
+    required: true
   configuration:
     description: The project configuration to build.
     default: Release
@@ -61,7 +64,7 @@ runs:
       if: 'false' # Nothing to upload at the moment
       uses: codecov/codecov-action@v4
       env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        CODECOV_TOKEN: ${{ inputs.CODECOV_TOKEN }}
 
     - name: Lint
       if: inputs.lint == 'true'

@@ -31,6 +31,6 @@ runs:
 
     - name: Lint
       uses: golangci/golangci-lint-action@v5
-      working-directory: ${{ inputs.path }}
       with:
         version: v1.57
+        working-directory: ${{ inputs.path }}
