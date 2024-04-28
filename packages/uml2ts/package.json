@@ -1,0 +1,24 @@
+{
+	"name": "@unmango/uml2ts",
+	"version": "0.1.0",
+	"module": "index.ts",
+	"type": "module",
+	"scripts": {
+		"build": "bun build index.ts --compile --outfile dist/uml2ts",
+		"clean": "rm -rf dist",
+		"lint": "eslint .",
+		"lint:fix": "eslint . --fix",
+		"prestart": "cd ../../../ && make gen",
+		"start": "bun run index.ts --help"
+	},
+	"dependencies": {
+		"@commander-js/extra-typings": "^12.0.1",
+		"@connectrpc/connect": "^1.4.0",
+		"@connectrpc/connect-node": "^1.4.0",
+		"typescript": "^5.4.5",
+		"@unmango/tdl-es": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/bun": "latest"
+	}
+}

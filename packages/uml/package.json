@@ -1,5 +1,5 @@
 {
-	"name": "@unmango/2ts",
+	"name": "@unmango/uml",
 	"module": "index.ts",
 	"type": "module",
 	"scripts": {
