@@ -1,6 +1,8 @@
 WORKING_DIR := $(shell pwd)
 _ := $(shell mkdir -p .make)
 
+export GOWORK := off
+
 CFG ?=
 ifeq ($(CFG),)
 CFG := Debug

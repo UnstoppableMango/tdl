@@ -1,3 +1,5 @@
+export GOWORK := off
+
 .PHONY: build test
 build: build_go
 test: test_go
