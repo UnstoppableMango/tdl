@@ -14,17 +14,36 @@ type converter struct{}
 type PclConverter interface {
 	uml.Converter
 	FromPcl(ctx context.Context, pcl schema.PackageSpec) (*tdl.Spec, error)
-	ToPcl(ctx context.Context, spec tdl.Spec) (*schema.PackageSpec, error)
+	ToPcl(ctx context.Context, spec *tdl.Spec) (*schema.PackageSpec, error)
 }
 
-var Converter uml.Converter = &converter{}
+var Converter PclConverter = &converter{}
 
 // From implements uml.Converter.
-func (c *converter) From(ctx context.Context, reader io.Reader) (*tdl.Spec, error) {
+func (c *converter) From(ctx context.Context, reader io.Reader, opts ...uml.ConverterOption) (*tdl.Spec, error) {
 	panic("unimplemented")
 }
 
+// FromPcl implements PclConverter.
+func (c *converter) FromPcl(ctx context.Context, pcl schema.PackageSpec) (*tdl.Spec, error) {
+	spec := tdl.Spec{
+		Name:        pcl.Name,
+		Repository:  pcl.Repository,
+		Version:     pcl.Version,
+		DisplayName: pcl.DisplayName,
+		Description: pcl.Description,
+		Tags:        pcl.Keywords,
+	}
+
+	return &spec, nil
+}
+
 // To implements uml.Converter.
-func (c *converter) To(ctx context.Context, spec *tdl.Spec, writer io.Writer) error {
+func (c *converter) To(ctx context.Context, spec *tdl.Spec, writer io.Writer, opts ...uml.ConverterOption) error {
+	panic("unimplemented")
+}
+
+// ToPcl implements PclConverter.
+func (c *converter) ToPcl(ctx context.Context, spec *tdl.Spec) (*schema.PackageSpec, error) {
 	panic("unimplemented")
 }

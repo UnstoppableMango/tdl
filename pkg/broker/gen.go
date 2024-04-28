@@ -27,7 +27,7 @@ func (r *genStreamReader) Read(p []byte) (n int, err error) {
 
 var _ io.Reader = &genStreamReader{}
 
-func (b *broker) Gen(ctx context.Context, spec *uml.Spec, writer io.Writer) error {
+func (b *broker) Gen(ctx context.Context, spec *uml.Spec, writer io.Writer, opts ...uml.GeneratorOption) error {
 	stream, err := b.client.Gen(ctx, &GenRequest{
 		Msg: &tdl.GenRequest{Spec: spec},
 	})
