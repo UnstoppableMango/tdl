@@ -45,19 +45,19 @@ runs:
 
     - name: Build
       shell: bash
-      run: >
-        dotnet build
-          --configuration ${{ inputs.configuration }}
-          --no-restore
+      run: |
+        dotnet build \
+          --configuration ${{ inputs.configuration }} \
+          --no-restore \
           ${{ inputs.path }}
 
     - name: Test
       shell: bash
-      run: >
-        dotnet test
-          --configuration ${{ inputs.configuration }}
-          --collect:"XPlat Code Coverage"
-          --no-build
+      run: |
+        dotnet test \
+          --configuration ${{ inputs.configuration }} \
+          --collect:"XPlat Code Coverage" \
+          --no-build \
           ${{ inputs.path }}
 
     - name: Upload coverage reports to Codecov
@@ -69,19 +69,19 @@ runs:
     - name: Lint
       if: inputs.lint == 'true'
       shell: bash
-      run: >
-        dotnet format
-          --verify-no-changes
+      run: |
+        dotnet format \
+          --verify-no-changes \
           ${{ inputs.path }}
 
     - name: Package library
       if: inputs.pack == 'true'
       shell: bash
-      run: >
-        dotnet pack
-          --configuration ${{ inputs.configuration }}
-          --output out
-          --no-build
+      run: |
+        dotnet pack \
+          --configuration ${{ inputs.configuration }} \
+          --output out \
+          --no-build \
           ${{ inputs.path }}
 
     - name: Upload artifact

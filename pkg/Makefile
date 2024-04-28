@@ -10,3 +10,9 @@ test_go:
 
 tidy:
 	go mod tidy
+
+lint_go:
+	golangci-lint run
+
+vet:
+	go vet ./...
