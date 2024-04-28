@@ -42,7 +42,9 @@ clean: clean_gen
 
 .PHONY: tidy
 tidy: gen
-	cd gen && go mod tidy
+	$(MAKE) -C cli tidy
+	$(MAKE) -C gen tidy
+	$(MAKE) -C pkg tidy
 
 .PHONY: build_proto
 build_proto:
