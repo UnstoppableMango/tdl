@@ -5,13 +5,36 @@ package unmango.dev.tdl.v1alpha1;
 option csharp_namespace = "UnMango.Tdl";
 
 service UmlService {
-  rpc Pull(PullRequest) returns (PullResponse);
+  rpc From(stream FromRequest) returns (FromResponse);
+  rpc To(ToRequest) returns (stream ToResponse);
 }
 
-message PullRequest {
-  string actor = 1;
+message FromRequest {
+  bytes data = 1;
 }
 
-message PullResponse {
-  string uml = 1;
+message FromResponse {
+  Spec spec = 1;
+}
+
+message ToRequest {
+  Spec spec = 1;
+}
+
+message ToResponse {
+  bytes data = 1;
+}
+
+message Spec {
+  string name = 1;
+  string repository = 2;
+  string version = 3;
+  string display_name = 4;
+  string description = 5;
+  repeated string tags = 6;
+  map<string, Type> types = 7;
+}
+
+message Type {
+  string name = 1;
 }

@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { PullRequest, PullResponse } from "./uml_pb";
+import { FromRequest, FromResponse, ToRequest, ToResponse } from "./uml_pb";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -13,13 +13,22 @@ export const UmlService = {
   typeName: "unmango.dev.tdl.v1alpha1.UmlService",
   methods: {
     /**
-     * @generated from rpc unmango.dev.tdl.v1alpha1.UmlService.Pull
+     * @generated from rpc unmango.dev.tdl.v1alpha1.UmlService.From
      */
-    pull: {
-      name: "Pull",
-      I: PullRequest,
-      O: PullResponse,
-      kind: MethodKind.Unary,
+    from: {
+      name: "From",
+      I: FromRequest,
+      O: FromResponse,
+      kind: MethodKind.ClientStreaming,
+    },
+    /**
+     * @generated from rpc unmango.dev.tdl.v1alpha1.UmlService.To
+     */
+    to: {
+      name: "To",
+      I: ToRequest,
+      O: ToResponse,
+      kind: MethodKind.ServerStreaming,
     },
   }
 } as const;

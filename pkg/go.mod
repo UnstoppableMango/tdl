@@ -1,3 +1,10 @@
 module github.com/unstoppablemango/tdl/pkg
 
 go 1.22.2
+
+require connectrpc.com/connect v1.16.1
+
+require (
+	github.com/google/go-cmp v0.6.0 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
+)

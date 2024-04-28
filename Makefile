@@ -50,7 +50,7 @@ build_proto:
 
 clean_gen:
 	@echo 'Cleaning sources...'
-	@find gen -mindepth 2 \
+	@find gen -mindepth 3 \
 		-not -name 'package.json' \
 		-not -name 'index.ts' \
 		-delete

@@ -8,7 +8,7 @@ import (
 	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
-	v1alpha1 "github.com/unstoppablemango/tdl/gen/go/unmango/dev/tdl/v1alpha1"
+	v1alpha1 "github.com/unstoppablemango/tdl/gen/proto/go/unmango/dev/tdl/v1alpha1"
 	http "net/http"
 	strings "strings"
 )
@@ -33,19 +33,23 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// UmlServicePullProcedure is the fully-qualified name of the UmlService's Pull RPC.
-	UmlServicePullProcedure = "/unmango.dev.tdl.v1alpha1.UmlService/Pull"
+	// UmlServiceFromProcedure is the fully-qualified name of the UmlService's From RPC.
+	UmlServiceFromProcedure = "/unmango.dev.tdl.v1alpha1.UmlService/From"
+	// UmlServiceToProcedure is the fully-qualified name of the UmlService's To RPC.
+	UmlServiceToProcedure = "/unmango.dev.tdl.v1alpha1.UmlService/To"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
 var (
 	umlServiceServiceDescriptor    = v1alpha1.File_unmango_dev_tdl_v1alpha1_uml_proto.Services().ByName("UmlService")
-	umlServicePullMethodDescriptor = umlServiceServiceDescriptor.Methods().ByName("Pull")
+	umlServiceFromMethodDescriptor = umlServiceServiceDescriptor.Methods().ByName("From")
+	umlServiceToMethodDescriptor   = umlServiceServiceDescriptor.Methods().ByName("To")
 )
 
 // UmlServiceClient is a client for the unmango.dev.tdl.v1alpha1.UmlService service.
 type UmlServiceClient interface {
-	Pull(context.Context, *connect.Request[v1alpha1.PullRequest]) (*connect.Response[v1alpha1.PullResponse], error)
+	From(context.Context) *connect.ClientStreamForClient[v1alpha1.FromRequest, v1alpha1.FromResponse]
+	To(context.Context, *connect.Request[v1alpha1.ToRequest]) (*connect.ServerStreamForClient[v1alpha1.ToResponse], error)
 }
 
 // NewUmlServiceClient constructs a client for the unmango.dev.tdl.v1alpha1.UmlService service. By
@@ -58,10 +62,16 @@ type UmlServiceClient interface {
 func NewUmlServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) UmlServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
 	return &umlServiceClient{
-		pull: connect.NewClient[v1alpha1.PullRequest, v1alpha1.PullResponse](
+		from: connect.NewClient[v1alpha1.FromRequest, v1alpha1.FromResponse](
 			httpClient,
-			baseURL+UmlServicePullProcedure,
-			connect.WithSchema(umlServicePullMethodDescriptor),
+			baseURL+UmlServiceFromProcedure,
+			connect.WithSchema(umlServiceFromMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
+		to: connect.NewClient[v1alpha1.ToRequest, v1alpha1.ToResponse](
+			httpClient,
+			baseURL+UmlServiceToProcedure,
+			connect.WithSchema(umlServiceToMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -69,17 +79,24 @@ func NewUmlServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 
 // umlServiceClient implements UmlServiceClient.
 type umlServiceClient struct {
-	pull *connect.Client[v1alpha1.PullRequest, v1alpha1.PullResponse]
+	from *connect.Client[v1alpha1.FromRequest, v1alpha1.FromResponse]
+	to   *connect.Client[v1alpha1.ToRequest, v1alpha1.ToResponse]
 }
 
-// Pull calls unmango.dev.tdl.v1alpha1.UmlService.Pull.
-func (c *umlServiceClient) Pull(ctx context.Context, req *connect.Request[v1alpha1.PullRequest]) (*connect.Response[v1alpha1.PullResponse], error) {
-	return c.pull.CallUnary(ctx, req)
+// From calls unmango.dev.tdl.v1alpha1.UmlService.From.
+func (c *umlServiceClient) From(ctx context.Context) *connect.ClientStreamForClient[v1alpha1.FromRequest, v1alpha1.FromResponse] {
+	return c.from.CallClientStream(ctx)
+}
+
+// To calls unmango.dev.tdl.v1alpha1.UmlService.To.
+func (c *umlServiceClient) To(ctx context.Context, req *connect.Request[v1alpha1.ToRequest]) (*connect.ServerStreamForClient[v1alpha1.ToResponse], error) {
+	return c.to.CallServerStream(ctx, req)
 }
 
 // UmlServiceHandler is an implementation of the unmango.dev.tdl.v1alpha1.UmlService service.
 type UmlServiceHandler interface {
-	Pull(context.Context, *connect.Request[v1alpha1.PullRequest]) (*connect.Response[v1alpha1.PullResponse], error)
+	From(context.Context, *connect.ClientStream[v1alpha1.FromRequest]) (*connect.Response[v1alpha1.FromResponse], error)
+	To(context.Context, *connect.Request[v1alpha1.ToRequest], *connect.ServerStream[v1alpha1.ToResponse]) error
 }
 
 // NewUmlServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -88,16 +105,24 @@ type UmlServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewUmlServiceHandler(svc UmlServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	umlServicePullHandler := connect.NewUnaryHandler(
-		UmlServicePullProcedure,
-		svc.Pull,
-		connect.WithSchema(umlServicePullMethodDescriptor),
+	umlServiceFromHandler := connect.NewClientStreamHandler(
+		UmlServiceFromProcedure,
+		svc.From,
+		connect.WithSchema(umlServiceFromMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	umlServiceToHandler := connect.NewServerStreamHandler(
+		UmlServiceToProcedure,
+		svc.To,
+		connect.WithSchema(umlServiceToMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/unmango.dev.tdl.v1alpha1.UmlService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case UmlServicePullProcedure:
-			umlServicePullHandler.ServeHTTP(w, r)
+		case UmlServiceFromProcedure:
+			umlServiceFromHandler.ServeHTTP(w, r)
+		case UmlServiceToProcedure:
+			umlServiceToHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -107,6 +132,10 @@ func NewUmlServiceHandler(svc UmlServiceHandler, opts ...connect.HandlerOption) 
 // UnimplementedUmlServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedUmlServiceHandler struct{}
 
-func (UnimplementedUmlServiceHandler) Pull(context.Context, *connect.Request[v1alpha1.PullRequest]) (*connect.Response[v1alpha1.PullResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("unmango.dev.tdl.v1alpha1.UmlService.Pull is not implemented"))
+func (UnimplementedUmlServiceHandler) From(context.Context, *connect.ClientStream[v1alpha1.FromRequest]) (*connect.Response[v1alpha1.FromResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("unmango.dev.tdl.v1alpha1.UmlService.From is not implemented"))
+}
+
+func (UnimplementedUmlServiceHandler) To(context.Context, *connect.Request[v1alpha1.ToRequest], *connect.ServerStream[v1alpha1.ToResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("unmango.dev.tdl.v1alpha1.UmlService.To is not implemented"))
 }
