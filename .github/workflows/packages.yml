@@ -41,7 +41,7 @@ jobs:
     strategy:
       matrix:
         path:
-          - gen/go
+          - gen/proto/go
           - pkg/broker
           - pkg/go
           - pkg/pcl
