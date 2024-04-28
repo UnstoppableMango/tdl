@@ -1,4 +1,4 @@
-module github.com/unstoppablemango/tdl/cli/uml2pcl
+module github.com/unstoppablemango/tdl/cli
 
 go 1.22.2
 
