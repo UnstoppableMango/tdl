@@ -10,7 +10,7 @@ on:
       - pkg/**
 
 jobs:
-  build:
+  build-bun:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,3 +18,17 @@ jobs:
       - uses: ./.github/actions/build-bun
         with:
           path: packages/ts
+
+  build-go:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        path:
+          - gen/go
+          - pkg/pcl
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/build-go
+        with:
+          path: ${{ matrix.path }}
