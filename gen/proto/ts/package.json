@@ -2,7 +2,8 @@
   "name": "@unmango/tdl-ts",
   "author": "UnstoppableMango",
   "dependencies": {
-    "protobufjs": "^7.2.6"
+    "protobufjs": "^7.2.6",
+    "rxjs": "^7.8.1"
   },
   "trustedDependencies": [
     "protobufjs"

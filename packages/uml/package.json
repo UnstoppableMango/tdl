@@ -8,6 +8,9 @@
 		"lint": "eslint .",
 		"lint:fix": "eslint . --fix"
 	},
+	"dependencies": {
+		"@unmango/tdl-ts": "workspace:*"
+	},
 	"devDependencies": {
 		"@types/bun": "latest"
 	},

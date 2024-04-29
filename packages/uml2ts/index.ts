@@ -1,39 +1,25 @@
 import { Command } from '@commander-js/extra-typings';
-import { createPromiseClient } from '@connectrpc/connect';
-import { createGrpcTransport } from '@connectrpc/connect-node';
-import { UmlService } from '@unmango/tdl-es';
-import * as net from 'node:net';
+import { generator } from '@unmango/2ts';
+import * as tdl from '@unmango/tdl-es';
 import { name, version } from './package.json';
 
 const program = new Command()
 	.name(name)
 	.description('Plugin to convert UML to typescript.')
 	.version(version)
-	.helpOption()
-	.argument('<uml>', 'The thing to do the stuff with')
-	.option('--broker <uri>', 'address of the broker');
+	.helpOption();
 
-program.parse(process.argv);
-const opts = program.opts();
+program.command('gen')
+	.description('Generate typescript.')
+	.action(async () => {
+		const bytes = new Uint8Array(0);
+		const spec = tdl.Spec.fromBinary(bytes);
+		const writer = new WritableStream({
+			async write(chunk) {
+				await Bun.write(Bun.stdout, chunk);
+			},
+		});
+		await generator.gen(spec, writer);
+	});
 
-if (!opts.broker) {
-	throw new Error('Broker URI is required');
-}
-
-const transport = createGrpcTransport({
-	httpVersion: '2',
-	baseUrl: opts.broker,
-	nodeOptions: {
-		createConnection() {
-			if (!opts.broker) {
-				throw new Error('Broker URI is required');
-			}
-
-			return net.connect(opts.broker);
-		},
-	},
-});
-
-const client = createPromiseClient(UmlService, transport);
-// const result = await client.from({ });
-// console.log(result.uml);
+await program.parseAsync();
