@@ -12,14 +12,14 @@ const program = new Command()
 program.command('gen')
 	.description('Generate typescript.')
 	.action(async () => {
-		const bytes = new Uint8Array(0);
+		if (!process.stdin.readable) {
+			throw new Error('need more');
+		}
+
+		const buffer = await Bun.stdin.arrayBuffer();
+		const bytes = new Uint8Array(buffer);
 		const spec = tdl.Spec.fromBinary(bytes);
-		const writer = new WritableStream({
-			async write(chunk) {
-				await Bun.write(Bun.stdout, chunk);
-			},
-		});
-		await generator.gen(spec, writer);
+		await generator.gen(spec, process.stdout);
 	});
 
 await program.parseAsync();
