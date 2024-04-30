@@ -1,6 +1,4 @@
 import { Command } from '@commander-js/extra-typings';
-import { generator } from '@unmango/2ts';
-import * as tdl from '@unmango/tdl-es';
 import { name, version } from './package.json';
 
 const program = new Command()
@@ -17,9 +15,7 @@ program.command('gen')
 		}
 
 		const buffer = await Bun.stdin.arrayBuffer();
-		const bytes = new Uint8Array(buffer);
-		const spec = tdl.Spec.fromBinary(bytes);
-		await generator.gen(spec, process.stdout);
+		await gen(new Uint8Array(buffer), process.stdout);
 	});
 
 await program.parseAsync();

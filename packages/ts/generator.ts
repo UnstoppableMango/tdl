@@ -24,5 +24,24 @@ function gen(spec: tdl.Spec): ts.NodeArray<ts.Node> {
 }
 
 function genType(name: string, type: tdl.Type): ts.Node {
-	return ts.factory.createInterfaceDeclaration([], name, undefined, undefined, []);
+	const props = Object.entries(type.fields).map(x => genProps(...x));
+
+	return ts.factory.createInterfaceDeclaration(
+		[ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
+		name,
+		undefined,
+		undefined,
+		props,
+	);
+}
+
+function genProps(name: string, field: tdl.Field): ts.PropertySignature {
+	const type = ts.factory.createTypeReferenceNode(field.type);
+
+	return ts.factory.createPropertySignature(
+		[ts.factory.createModifier(ts.SyntaxKind.ReadonlyKeyword)],
+		name,
+		undefined,
+		type,
+	);
 }
