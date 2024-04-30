@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package unmango.dev.tdl.v1alpha1;
 
+import "google/protobuf/any.proto";
+
 option csharp_namespace = "UnMango.Tdl";
 
 service UmlService {
@@ -36,14 +38,48 @@ message ToResponse {
 
 message Spec {
   string name = 1;
-  string repository = 2;
+  string source = 2;
   string version = 3;
   string display_name = 4;
   string description = 5;
-  repeated string tags = 6;
+  map<string, string> labels = 6;
   map<string, Type> types = 7;
+  map<string, Function> functions = 8;
+  map<string, google.protobuf.Any> meta = 128;
 }
 
 message Type {
-  string name = 1;
+  string type = 1;
+  map<string, Field> fields = 2;
+  map<string, Function> methods = 3;
+  map<string, GenericParameter> generic_parameters = 4;
+  optional Constructor constructor = 5;
+  map<string, google.protobuf.Any> meta = 128;
+}
+
+message Field {
+  string type = 1;
+  bool readonly = 2;
+  map<string, google.protobuf.Any> meta = 128;
+}
+
+message Function {
+  Type return_type = 1;
+  map<string, Type> parameters = 2;
+  map<string, GenericParameter> generic_parameters = 3;
+  map<string, google.protobuf.Any> meta = 128;
+}
+
+message GenericParameter {
+  repeated Modifier modifiers = 1;
+  map<string, google.protobuf.Any> meta = 128;
+}
+
+message Modifier {
+  map<string, google.protobuf.Any> meta = 128;
+}
+
+message Constructor {
+  map<string, Type> parameters = 1;
+  map<string, google.protobuf.Any> meta = 128;
 }
