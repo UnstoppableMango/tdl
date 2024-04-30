@@ -7,7 +7,7 @@ replace github.com/unstoppablemango/tdl/gen => ../gen
 require (
 	connectrpc.com/connect v1.16.1
 	github.com/onsi/ginkgo/v2 v2.17.2
-	github.com/onsi/gomega v1.33.0
+	github.com/onsi/gomega v1.33.1
 	github.com/pulumi/pulumi/pkg/v3 v3.114.0
 	github.com/unstoppablemango/tdl/gen v0.0.0-00010101000000-000000000000
 	google.golang.org/protobuf v1.33.0
