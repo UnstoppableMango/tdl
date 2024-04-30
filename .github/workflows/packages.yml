@@ -41,7 +41,6 @@ jobs:
     strategy:
       matrix:
         path:
-          - gen/proto/go
           - pkg/broker
           - pkg/go
           - pkg/pcl
@@ -53,3 +52,4 @@ jobs:
         with:
           lib: true
           path: ${{ matrix.path }}
+          gomod: pkg/go.mod
