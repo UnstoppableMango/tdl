@@ -10,7 +10,7 @@ require (
 	github.com/onsi/gomega v1.33.0
 	github.com/pulumi/pulumi/pkg/v3 v3.114.0
 	github.com/unstoppablemango/tdl/gen v0.0.0-00010101000000-000000000000
-	google.golang.org/protobuf v1.33.0
+	google.golang.org/protobuf v1.34.0
 )
 
 require (
