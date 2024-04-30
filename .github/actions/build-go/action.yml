@@ -8,6 +8,9 @@ inputs:
   path:
     description: Path to the package.
     required: true
+  gomod:
+    description: Path to the go.mod file.
+    required: true
 
 runs:
   using: composite
@@ -15,7 +18,7 @@ runs:
     - name: Setup go
       uses: actions/setup-go@v5
       with:
-        go-version-file: go.work
+        go-version-file: ${{ inputs.gomod }}
 
     - name: Verify dependencies
       shell: bash
