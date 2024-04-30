@@ -1,0 +1,28 @@
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - .idea
+      - .vscode
+      - .editorconfig
+      - .gitignore
+      - LICENSE
+      - README.md
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # TODO: Setup gorle
+      - run: goreleaser check .goreleaser.yaml
+
+  bun:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
