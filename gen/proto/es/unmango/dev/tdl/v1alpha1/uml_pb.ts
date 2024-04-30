@@ -4,7 +4,7 @@
 // @ts-nocheck
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Message, proto3 } from "@bufbuild/protobuf";
+import { Any, Message, proto3 } from "@bufbuild/protobuf";
 
 /**
  * @generated from message unmango.dev.tdl.v1alpha1.FromRequest
@@ -238,9 +238,9 @@ export class Spec extends Message<Spec> {
   name = "";
 
   /**
-   * @generated from field: string repository = 2;
+   * @generated from field: string source = 2;
    */
-  repository = "";
+  source = "";
 
   /**
    * @generated from field: string version = 3;
@@ -258,14 +258,24 @@ export class Spec extends Message<Spec> {
   description = "";
 
   /**
-   * @generated from field: repeated string tags = 6;
+   * @generated from field: map<string, string> labels = 6;
    */
-  tags: string[] = [];
+  labels: { [key: string]: string } = {};
 
   /**
    * @generated from field: map<string, unmango.dev.tdl.v1alpha1.Type> types = 7;
    */
   types: { [key: string]: Type } = {};
+
+  /**
+   * @generated from field: map<string, unmango.dev.tdl.v1alpha1.Function> functions = 8;
+   */
+  functions: { [key: string]: Function } = {};
+
+  /**
+   * @generated from field: map<string, google.protobuf.Any> meta = 128;
+   */
+  meta: { [key: string]: Any } = {};
 
   constructor(data?: PartialMessage<Spec>) {
     super();
@@ -276,12 +286,14 @@ export class Spec extends Message<Spec> {
   static readonly typeName = "unmango.dev.tdl.v1alpha1.Spec";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "repository", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "source", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "version", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 4, name: "display_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 5, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: "tags", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 6, name: "labels", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "scalar", T: 9 /* ScalarType.STRING */} },
     { no: 7, name: "types", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "message", T: Type} },
+    { no: 8, name: "functions", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "message", T: Function} },
+    { no: 128, name: "meta", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "message", T: Any} },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Spec {
@@ -306,9 +318,34 @@ export class Spec extends Message<Spec> {
  */
 export class Type extends Message<Type> {
   /**
-   * @generated from field: string name = 1;
+   * @generated from field: string type = 1;
    */
-  name = "";
+  type = "";
+
+  /**
+   * @generated from field: map<string, unmango.dev.tdl.v1alpha1.Field> fields = 2;
+   */
+  fields: { [key: string]: Field } = {};
+
+  /**
+   * @generated from field: map<string, unmango.dev.tdl.v1alpha1.Function> methods = 3;
+   */
+  methods: { [key: string]: Function } = {};
+
+  /**
+   * @generated from field: map<string, unmango.dev.tdl.v1alpha1.GenericParameter> generic_parameters = 4;
+   */
+  genericParameters: { [key: string]: GenericParameter } = {};
+
+  /**
+   * @generated from field: optional unmango.dev.tdl.v1alpha1.Constructor constructor = 5;
+   */
+  constructor$?: Constructor;
+
+  /**
+   * @generated from field: map<string, google.protobuf.Any> meta = 128;
+   */
+  meta: { [key: string]: Any } = {};
 
   constructor(data?: PartialMessage<Type>) {
     super();
@@ -318,7 +355,12 @@ export class Type extends Message<Type> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "unmango.dev.tdl.v1alpha1.Type";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "fields", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "message", T: Field} },
+    { no: 3, name: "methods", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "message", T: Function} },
+    { no: 4, name: "generic_parameters", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "message", T: GenericParameter} },
+    { no: 5, name: "constructor", kind: "message", T: Constructor, opt: true },
+    { no: 128, name: "meta", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "message", T: Any} },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Type {
@@ -335,6 +377,233 @@ export class Type extends Message<Type> {
 
   static equals(a: Type | PlainMessage<Type> | undefined, b: Type | PlainMessage<Type> | undefined): boolean {
     return proto3.util.equals(Type, a, b);
+  }
+}
+
+/**
+ * @generated from message unmango.dev.tdl.v1alpha1.Field
+ */
+export class Field extends Message<Field> {
+  /**
+   * @generated from field: string type = 1;
+   */
+  type = "";
+
+  /**
+   * @generated from field: bool readonly = 2;
+   */
+  readonly = false;
+
+  /**
+   * @generated from field: map<string, google.protobuf.Any> meta = 128;
+   */
+  meta: { [key: string]: Any } = {};
+
+  constructor(data?: PartialMessage<Field>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "unmango.dev.tdl.v1alpha1.Field";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "readonly", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 128, name: "meta", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "message", T: Any} },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Field {
+    return new Field().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Field {
+    return new Field().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Field {
+    return new Field().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: Field | PlainMessage<Field> | undefined, b: Field | PlainMessage<Field> | undefined): boolean {
+    return proto3.util.equals(Field, a, b);
+  }
+}
+
+/**
+ * @generated from message unmango.dev.tdl.v1alpha1.Function
+ */
+export class Function extends Message<Function> {
+  /**
+   * @generated from field: unmango.dev.tdl.v1alpha1.Type return_type = 1;
+   */
+  returnType?: Type;
+
+  /**
+   * @generated from field: map<string, unmango.dev.tdl.v1alpha1.Type> parameters = 2;
+   */
+  parameters: { [key: string]: Type } = {};
+
+  /**
+   * @generated from field: map<string, unmango.dev.tdl.v1alpha1.GenericParameter> generic_parameters = 3;
+   */
+  genericParameters: { [key: string]: GenericParameter } = {};
+
+  /**
+   * @generated from field: map<string, google.protobuf.Any> meta = 128;
+   */
+  meta: { [key: string]: Any } = {};
+
+  constructor(data?: PartialMessage<Function>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "unmango.dev.tdl.v1alpha1.Function";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "return_type", kind: "message", T: Type },
+    { no: 2, name: "parameters", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "message", T: Type} },
+    { no: 3, name: "generic_parameters", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "message", T: GenericParameter} },
+    { no: 128, name: "meta", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "message", T: Any} },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Function {
+    return new Function().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Function {
+    return new Function().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Function {
+    return new Function().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: Function | PlainMessage<Function> | undefined, b: Function | PlainMessage<Function> | undefined): boolean {
+    return proto3.util.equals(Function, a, b);
+  }
+}
+
+/**
+ * @generated from message unmango.dev.tdl.v1alpha1.GenericParameter
+ */
+export class GenericParameter extends Message<GenericParameter> {
+  /**
+   * @generated from field: repeated unmango.dev.tdl.v1alpha1.Modifier modifiers = 1;
+   */
+  modifiers: Modifier[] = [];
+
+  /**
+   * @generated from field: map<string, google.protobuf.Any> meta = 128;
+   */
+  meta: { [key: string]: Any } = {};
+
+  constructor(data?: PartialMessage<GenericParameter>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "unmango.dev.tdl.v1alpha1.GenericParameter";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "modifiers", kind: "message", T: Modifier, repeated: true },
+    { no: 128, name: "meta", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "message", T: Any} },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GenericParameter {
+    return new GenericParameter().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GenericParameter {
+    return new GenericParameter().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GenericParameter {
+    return new GenericParameter().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GenericParameter | PlainMessage<GenericParameter> | undefined, b: GenericParameter | PlainMessage<GenericParameter> | undefined): boolean {
+    return proto3.util.equals(GenericParameter, a, b);
+  }
+}
+
+/**
+ * @generated from message unmango.dev.tdl.v1alpha1.Modifier
+ */
+export class Modifier extends Message<Modifier> {
+  /**
+   * @generated from field: map<string, google.protobuf.Any> meta = 128;
+   */
+  meta: { [key: string]: Any } = {};
+
+  constructor(data?: PartialMessage<Modifier>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "unmango.dev.tdl.v1alpha1.Modifier";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 128, name: "meta", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "message", T: Any} },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Modifier {
+    return new Modifier().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Modifier {
+    return new Modifier().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Modifier {
+    return new Modifier().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: Modifier | PlainMessage<Modifier> | undefined, b: Modifier | PlainMessage<Modifier> | undefined): boolean {
+    return proto3.util.equals(Modifier, a, b);
+  }
+}
+
+/**
+ * @generated from message unmango.dev.tdl.v1alpha1.Constructor
+ */
+export class Constructor extends Message<Constructor> {
+  /**
+   * @generated from field: map<string, unmango.dev.tdl.v1alpha1.Type> parameters = 1;
+   */
+  parameters: { [key: string]: Type } = {};
+
+  /**
+   * @generated from field: map<string, google.protobuf.Any> meta = 128;
+   */
+  meta: { [key: string]: Any } = {};
+
+  constructor(data?: PartialMessage<Constructor>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "unmango.dev.tdl.v1alpha1.Constructor";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "parameters", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "message", T: Type} },
+    { no: 128, name: "meta", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "message", T: Any} },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Constructor {
+    return new Constructor().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): Constructor {
+    return new Constructor().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): Constructor {
+    return new Constructor().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: Constructor | PlainMessage<Constructor> | undefined, b: Constructor | PlainMessage<Constructor> | undefined): boolean {
+    return proto3.util.equals(Constructor, a, b);
   }
 }
 

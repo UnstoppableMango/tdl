@@ -31,8 +31,7 @@ build: $(LANG_SRC) $(CLI_SRC) $(BROKER_SRC) build_proto
 test: build
 	dotnet test --no-build
 
-gen: clean_gen build_proto
-	buf generate
+gen: gen_proto
 
 lint: .make/lint_proto .make/lint_lang
 
@@ -61,9 +60,12 @@ tidy: gen
 release:
 	goreleaser release --snapshot --clean
 
-.PHONY: build_proto
+.PHONY: proto build_proto gen_proto
+proto: build_proto gen_proto
 build_proto:
 	buf build
+gen_proto: build_proto
+	buf generate
 
 $(BROKER_BIN): $(BROKER_SRC)
 	dotnet build ${BROKER_DIR}
