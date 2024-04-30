@@ -62,6 +62,19 @@ clean_gen:
 $(BROKER_BIN): $(BROKER_SRC)
 	dotnet build ${BROKER_DIR}
 
+# The naming is kinda silly but its short
+.PHONY: work
+work: go.work go.work.sum
+
+go.work:
+	go work init
+	go work use cli
+	go work use gen
+	go work use pkg
+
+go.work.sum: go.work
+	go work sync
+
 .make/tool_restore: .config/dotnet-tools.json
 	dotnet tool restore
 	@touch $@
