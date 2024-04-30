@@ -9,20 +9,20 @@ describe('Generator', () => {
 			name: 'test-name',
 			description: 'Some description',
 			displayName: 'Test Name',
-			repository: 'https://github.com/UnstoppableMango/tdl',
-			tags: ['test-tag'],
+			source: 'https://github.com/UnstoppableMango/tdl',
+			labels: {
+				test: 'label',
+			},
 			types: {
 				'test': {
-					name: 'my-type',
+					type: 'string',
 				},
 			},
 			version: '0.1.0',
 		});
-		const bytes = spec.toBinary();
-		const sink = new Bun.ArrayBufferSink();
 
 		await generator.gen(
-			bytes,
+			spec,
 			new Writable({
 				write: (chunk) => sink.write(chunk),
 			}),

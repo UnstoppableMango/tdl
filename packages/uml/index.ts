@@ -1,4 +1,4 @@
-import * as tdl from '@unmango/tdl-ts';
+import * as tdl from '@unmango/tdl-es';
 import { Readable, Writable } from 'node:stream';
 
 export interface ConverterFrom {

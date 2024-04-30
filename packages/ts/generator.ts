@@ -1,4 +1,4 @@
-import * as tdl from '@unmango/tdl-ts';
+import * as tdl from '@unmango/tdl-es';
 import * as uml from '@unmango/uml';
 import { Writable } from 'node:stream';
 import ts from 'typescript';

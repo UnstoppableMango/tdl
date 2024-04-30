@@ -1,4 +1,5 @@
 import { Command } from '@commander-js/extra-typings';
+import { generator } from '@unmango/2ts';
 import { name, version } from './package.json';
 
 const program = new Command()
@@ -15,7 +16,7 @@ program.command('gen')
 		}
 
 		const buffer = await Bun.stdin.arrayBuffer();
-		await gen(new Uint8Array(buffer), process.stdout);
+		await generator.gen(new Uint8Array(buffer), process.stdout);
 	});
 
 await program.parseAsync();
