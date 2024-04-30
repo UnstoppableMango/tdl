@@ -66,12 +66,14 @@ $(BROKER_BIN): $(BROKER_SRC)
 .PHONY: work
 work: go.work go.work.sum
 
+go.work: GOWORK :=
 go.work:
 	go work init
 	go work use cli
 	go work use gen
 	go work use pkg
 
+go.work.sum: GOWORK :=
 go.work.sum: go.work
 	go work sync
 
