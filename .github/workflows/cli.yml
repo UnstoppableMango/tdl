@@ -68,21 +68,12 @@ jobs:
             --api-key ${{ secrets.NUGET_API_KEY }} \
             --skip-duplicate
 
-      - name: Authenticate to GitHub Packages
-        if: matrix.source == 'github'
-        run: |
-          dotnet nuget add source \
-            --username ${{ github.repository_owner }} \
-            --password ${{ secrets.GITHUB_TOKEN }} \
-            --store-password-in-clear-text \
-            --name github \
-            "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
-
       - name: Publish to GitHub Packages
         if: matrix.source == 'github'
         run: |
           dotnet nuget push "$PACKAGE_PATTERN" \
-            --source ${{ matrix.source }} \
+            --source https://nuget.pkg.github.com/${{ github.repository_owner }} \
+            --api-key ${{ secrets.GITHUB_TOKEN }} \
             --skip-duplicate
 
   build-go:
