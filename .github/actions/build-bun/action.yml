@@ -24,6 +24,11 @@ runs:
       working-directory: ${{ inputs.path }}
       run: bun run build
 
+    - name: Test
+      shell: bash
+      working-directory: ${{ inputs.path }}
+      run: bun test
+
     - name: Lint
       shell: bash
       # This will likely error on unrelated linting errors...
