@@ -14,8 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # TODO: Setup gorle
-      - run: goreleaser check .goreleaser.yaml
+
+      - uses: goreleaser/goreleaser-action@v5
+        with:
+          version: latest
+          args: check
 
   bun:
     runs-on: ubuntu-latest
