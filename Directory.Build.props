@@ -6,6 +6,10 @@
 	</PropertyGroup>
 
 	<PropertyGroup>
+		<MinVerTagPrefix>v</MinVerTagPrefix>
+	</PropertyGroup>
+
+	<PropertyGroup>
 		<ProtoRoot>$(MSBuildThisFileDirectory)/proto</ProtoRoot>
 		<ProtoPkgDir>$(ProtoRoot)/unmango/dev/tdl</ProtoPkgDir>
 		<ProtoDir>$(ProtoPkgDir)/v1alpha1</ProtoDir>
