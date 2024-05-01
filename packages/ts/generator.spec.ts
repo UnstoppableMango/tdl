@@ -15,6 +15,11 @@ describe('Generator', () => {
 			types: {
 				'test': {
 					type: 'string',
+					fields: {
+						test: {
+							type: 'string',
+						}
+					},
 				},
 			},
 			version: '0.1.0',
