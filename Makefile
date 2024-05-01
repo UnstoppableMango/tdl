@@ -57,6 +57,10 @@ tidy: gen
 	@$(MAKE) -C gen tidy
 	@$(MAKE) -C pkg tidy
 
+.PHONY: release
+release:
+	goreleaser release --snapshot --clean
+
 .PHONY: build_proto
 build_proto:
 	buf build
