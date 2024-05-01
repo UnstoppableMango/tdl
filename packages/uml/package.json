@@ -1,7 +1,9 @@
 {
 	"name": "@unmango/uml",
-	"module": "index.ts",
 	"type": "module",
+	"module": "index.ts",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
 	"scripts": {
 		"build": "bun build index.ts --outdir dist",
 		"clean": "rm -rf dist",
