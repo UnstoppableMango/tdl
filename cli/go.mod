@@ -8,7 +8,7 @@ replace github.com/unstoppablemango/tdl/gen => ../gen
 
 require (
 	github.com/spf13/cobra v1.8.0
-	github.com/unstoppablemango/tdl/pkg v0.0.0-00010101000000-000000000000
+	github.com/unstoppablemango/tdl/pkg v0.0.1-alpha
 )
 
 require (
