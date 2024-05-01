@@ -46,8 +46,8 @@ clean_gen:
 clean_dist:
 	@find . -type d -name dist \
 		-not -path '*node_modules*' \
-		-exec echo 'Removing: {}' \; \
-		-exec rm -rf '{}' +
+		-exec rm -rf '{}' + \
+		-ls
 
 .PHONY: tidy
 tidy: gen

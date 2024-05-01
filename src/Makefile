@@ -1,4 +1,5 @@
 clean:
-	@find ${WORKING_DIR} -depth \( -name 'bin' -o -name 'obj' \) -type d \
-		-exec echo 'Removing: {}' \; \
-		-exec rm -rf '{}' +
+	@find ${WORKING_DIR} -depth -type d \
+		\( -name 'bin' -o -name 'obj' \) \
+		-exec rm -rf '{}' + \
+		-ls
