@@ -93,7 +93,7 @@ jobs:
 
   goreleaser:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     needs: [build-go]
     permissions:
       contents: write
