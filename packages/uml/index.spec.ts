@@ -17,7 +17,7 @@ const arbSpec = () =>
 describe('read', () => {
 	it.each<SupportedMimeType>([
 		'application/protobuf',
-		'application/protobuf',
+		'application/x-protobuf',
 		'application/vnd.google.protobuf',
 	])('should read %s data', (type) => {
 		fc.assert(fc.property(arbSpec(), (spec): void => {
