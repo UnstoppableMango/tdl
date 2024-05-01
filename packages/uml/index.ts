@@ -15,7 +15,13 @@ export interface Generator {
 	gen(spec: tdl.Spec): Promise<string>;
 }
 
-export function read(data: Uint8Array, type?: string): tdl.Spec {
+export type SupportedMimeType =
+	| 'application/json'
+	| 'application/x-protobuf'
+	| 'application/protobuf'
+	| 'application/vnd.google.protobuf';
+
+export function read(data: Uint8Array, type?: SupportedMimeType): tdl.Spec {
 	switch (type) {
 		case 'application/json': {
 			const decoder = new TextDecoder();
@@ -28,7 +34,6 @@ export function read(data: Uint8Array, type?: string): tdl.Spec {
 			return tdl.Spec.fromBinary(data);
 		case undefined:
 		case null:
-		case '':
 			return tdl.Spec.fromBinary(data);
 		default:
 			throw new Error('unrecognized media type');
