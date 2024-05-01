@@ -20,7 +20,8 @@
 		"@unmango/2ts": "workspace:*"
 	},
 	"devDependencies": {
-		"@types/bun": "latest"
+		"@types/bun": "latest",
+		"fast-check": "^3.18.0"
 	},
 	"peerDependencies": {
 		"typescript": "^5.0.0"
