@@ -8,7 +8,7 @@ replace github.com/unstoppablemango/tdl/gen => ../gen
 
 require (
 	github.com/spf13/cobra v1.8.0
-	github.com/unstoppablemango/tdl/pkg v0.0.1-alpha
+	github.com/unstoppablemango/tdl/pkg v0.0.1
 )
 
 require (
@@ -79,7 +79,7 @@ require (
 	github.com/tweekmonster/luser v0.0.0-20161003172636-3fa38070dbd7 // indirect
 	github.com/uber/jaeger-client-go v2.30.0+incompatible // indirect
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
-	github.com/unstoppablemango/tdl/gen v0.0.0-00010101000000-000000000000 // indirect
+	github.com/unstoppablemango/tdl/gen v0.0.1-alpha // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/zclconf/go-cty v1.13.2 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
