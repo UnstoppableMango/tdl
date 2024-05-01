@@ -1,0 +1,33 @@
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - .idea
+      - .vscode
+      - .editorconfig
+      - .gitignore
+      - LICENSE
+      - README.md
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: goreleaser/goreleaser-action@v5
+        with:
+          version: latest
+          args: check
+
+  bun:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile

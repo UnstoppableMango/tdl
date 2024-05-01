@@ -90,3 +90,28 @@ jobs:
         with:
           path: cli/${{ matrix.tool }}
           gomod: cli/go.mod
+
+  goreleaser:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    needs: [build-go]
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '>=1.22.2'
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

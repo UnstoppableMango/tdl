@@ -8,3 +8,10 @@ proto_go:
 
 tidy:
 	go mod tidy
+
+clean:
+	@echo 'Cleaning sources...'
+	@find . -mindepth 3 \
+		-not -name 'package.json' \
+		-not -name 'index.ts' \
+		-ls -delete
