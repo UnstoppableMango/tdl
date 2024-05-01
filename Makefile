@@ -36,28 +36,28 @@ gen: clean_gen build_proto
 
 lint: .make/lint_proto .make/lint_lang
 
-clean: clean_gen
+clean: clean_gen clean_dist
 	rm -rf .make
-	@find ${WORKING_DIR} -depth \( -name 'bin' -o -name 'obj' \) -type d \
+	@$(MAKE) -C src clean
+
+clean_gen:
+	@$(MAKE) -C gen clean
+
+clean_dist:
+	@find . -type d -name dist \
+		-not -path '*node_modules*' \
 		-exec echo 'Removing: {}' \; \
-		-exec rm -rf '{}' \;
+		-exec rm -rf '{}' +
 
 .PHONY: tidy
 tidy: gen
-	$(MAKE) -C cli tidy
-	$(MAKE) -C gen tidy
-	$(MAKE) -C pkg tidy
+	@$(MAKE) -C cli tidy
+	@$(MAKE) -C gen tidy
+	@$(MAKE) -C pkg tidy
 
 .PHONY: build_proto
 build_proto:
 	buf build
-
-clean_gen:
-	@echo 'Cleaning sources...'
-	@find gen -mindepth 3 \
-		-not -name 'package.json' \
-		-not -name 'index.ts' \
-		-delete
 
 $(BROKER_BIN): $(BROKER_SRC)
 	dotnet build ${BROKER_DIR}
