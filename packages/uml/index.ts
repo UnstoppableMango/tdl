@@ -15,11 +15,15 @@ export interface Generator {
 	gen(spec: tdl.Spec): Promise<string>;
 }
 
-export type SupportedMimeType =
-	| 'application/json'
-	| 'application/x-protobuf'
-	| 'application/protobuf'
-	| 'application/vnd.google.protobuf';
+export const SUPPORTED_MIME_TYPES = [
+	'application/json',
+	'application/x-protobuf',
+	'application/protobuf',
+	'application/vnd.google.protobuf',
+] as const;
+
+export type SupportedMimeTypeTuple = typeof SUPPORTED_MIME_TYPES;
+export type SupportedMimeType = SupportedMimeTypeTuple[number];
 
 export function read(data: Uint8Array, type?: SupportedMimeType): tdl.Spec {
 	switch (type) {
