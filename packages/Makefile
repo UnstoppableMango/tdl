@@ -10,6 +10,9 @@ build_uml:
 build_uml2ts:
 	cd uml2ts && bun run build
 
+test:
+	bun test .
+
 .PHONY: clean clean_ts clean_uml clean_uml2ts
 clean: clean_ts clean_uml clean_uml2ts
 
