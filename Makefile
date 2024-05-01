@@ -23,7 +23,7 @@ CLI_BIN := $(CLI_DIR)/$(BIN_PATH)/um.dll
 LANG_DIR := src/Language
 LANG_SRC := $(shell find $(LANG_DIR) -name '*.fs' -not -path '*obj*' -type f)
 
-.PHONY: build test gen lint clean
+.PHONY: build test gen lint
 build: $(LANG_SRC) $(CLI_SRC) $(BROKER_SRC) build_proto
 	@touch .make/build_lang
 	dotnet build
@@ -36,13 +36,15 @@ gen: clean_gen build_proto
 
 lint: .make/lint_proto .make/lint_lang
 
-clean: clean_gen clean_dist
+.PHONY: clean clean_gen clean_src clean_dist
+clean: clean_gen clean_src clean_dist
 	rm -rf .make
+clean_src:
 	@$(MAKE) -C src clean
-
+clean_cli:
+	@$(MAKE) -C cli clean
 clean_gen:
 	@$(MAKE) -C gen clean
-
 clean_dist:
 	@find . -type d -name dist \
 		-not -path '*node_modules*' \
