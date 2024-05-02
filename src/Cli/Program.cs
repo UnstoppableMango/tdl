@@ -18,8 +18,11 @@ Log.Logger = new LoggerConfiguration()
 
 var builder = new CommandLineBuilder(root)
 	.AddMiddleware(async (context, next) => {
-		var cancellationToken = context.GetCancellationToken();
-		using var scope = await Broker.Dev.Start("http://127.0.0.1:6969", cancellationToken);
+		if (Environment.GetEnvironmentVariable("ENABLE_BROKER") == "true") {
+			var cancellationToken = context.GetCancellationToken();
+			using var scope = await Broker.Dev.Start("http://127.0.0.1:6969", cancellationToken);
+		}
+
 		await next(context);
 	})
 	.UseDefaults();
