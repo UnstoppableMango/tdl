@@ -3,8 +3,8 @@ import { gen, program } from './program';
 
 type ApplyCommand = (c: Command) => Command;
 
-const app = (p: Command, ...commands: ApplyCommand[]) => {
-	return commands.reduce(x => x, p);
+const app = (root: () => Command, ...commands: ApplyCommand[]) => {
+	return commands.reduce((x, c) => c(x), root());
 };
 
-await app(program(), gen).parseAsync();
+await app(program, gen).parseAsync();
