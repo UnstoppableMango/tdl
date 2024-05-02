@@ -1,5 +1,7 @@
 version: v1
-name: github.com/unstoppablemango/tdl
+# name: github.com/unstoppablemango/tdl
+deps:
+  - buf.build/googleapis/googleapis
 breaking:
   use:
     - FILE

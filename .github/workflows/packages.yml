@@ -29,12 +29,18 @@ jobs:
 
   build-bun:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        path:
+          - ts
+          - uml
+          - uml2ts
     steps:
       - uses: actions/checkout@v4
 
       - uses: ./.github/actions/build-bun
         with:
-          path: packages/ts
+          path: packages/${{ matrix.path }}
 
   build-go:
     runs-on: ubuntu-latest

@@ -3,6 +3,7 @@ package pcl
 import (
 	"context"
 	"io"
+	"strings"
 
 	"github.com/pulumi/pulumi/pkg/v3/codegen/schema"
 	tdl "github.com/unstoppablemango/tdl/gen/proto/go/unmango/dev/tdl/v1alpha1"
@@ -28,11 +29,13 @@ func (c *converter) From(ctx context.Context, reader io.Reader, opts ...uml.Conv
 func (c *converter) FromPcl(ctx context.Context, pcl schema.PackageSpec) (*tdl.Spec, error) {
 	spec := tdl.Spec{
 		Name:        pcl.Name,
-		Repository:  pcl.Repository,
+		Source:      pcl.Repository,
 		Version:     pcl.Version,
 		DisplayName: pcl.DisplayName,
 		Description: pcl.Description,
-		Tags:        pcl.Keywords,
+		Labels: map[string]string{
+			"keywords": strings.Join(pcl.Keywords, ","),
+		},
 	}
 
 	return &spec, nil

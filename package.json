@@ -3,8 +3,7 @@
 	"packageManager": "bun@1.1.5",
 	"workspaces": [
 		"gen/proto/*",
-		"packages/*",
-		"src/*"
+		"packages/*"
 	],
 	"scripts": {
 		"lint": "eslint"

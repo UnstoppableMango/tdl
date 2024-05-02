@@ -23,28 +23,33 @@ CLI_BIN := $(CLI_DIR)/$(BIN_PATH)/um.dll
 LANG_DIR := src/Language
 LANG_SRC := $(shell find $(LANG_DIR) -name '*.fs' -not -path '*obj*' -type f)
 
-.PHONY: build test gen lint
-build: $(LANG_SRC) $(CLI_SRC) $(BROKER_SRC) build_proto
+.PHONY: build build_dotnet
+build: build_dotnet
 	@touch .make/build_lang
-	dotnet build
+build_dotnet: .make/build_dotnet
 
-test: build
+.PHONY: test test_dotnet
+test: test_dotnet test_packages
+test_dotnet: build_dotnet
 	dotnet test --no-build
+test_packages:
+	@$(MAKE) -C packages test
 
-gen: clean_gen build_proto
-	buf generate
+.PHONY: gen
+gen: gen_proto
 
+.PHONY: lint
 lint: .make/lint_proto .make/lint_lang
 
 .PHONY: clean clean_gen clean_src clean_dist
 clean: clean_gen clean_src clean_dist
 	rm -rf .make
-clean_src:
-	@$(MAKE) -C src clean
 clean_cli:
 	@$(MAKE) -C cli clean
 clean_gen:
 	@$(MAKE) -C gen clean
+clean_src:
+	@$(MAKE) -C src clean
 clean_dist:
 	@find . -type d -name dist \
 		-not -path '*node_modules*' \
@@ -61,12 +66,10 @@ tidy: gen
 release:
 	goreleaser release --snapshot --clean
 
-.PHONY: build_proto
-build_proto:
-	buf build
-
-$(BROKER_BIN): $(BROKER_SRC)
-	dotnet build ${BROKER_DIR}
+.PHONY: proto gen_proto build_proto
+proto: build_proto gen_proto
+gen_proto: .make/gen_proto
+build_proto: .make/build_proto
 
 # The naming is kinda silly but its short
 .PHONY: work
@@ -87,22 +90,30 @@ go.work.sum: go.work
 	dotnet tool restore
 	@touch $@
 
+PROTO_SRC := $(shell find proto -type f -name '*.proto')
+.make/gen_proto: .make/build_proto $(PROTO_SRC)
+	buf generate
+	@touch $@
+.make/build_proto: $(PROTO_SRC)
+	buf build
+	@touch $@
+.make/lint_proto: $(PROTO_SRC)
+	buf lint proto
+	@touch $@
+
+.make/build_dotnet: $(LANG_SRC) $(BROKER_SRC) $(CLI_SRC) .make/gen_proto
+	dotnet build
+	@touch $@ .make/build_lang .make/build_broker .make/build_cli
 .make/build_lang: $(LANG_SRC)
 	dotnet build ${LANG_DIR}
 	@touch $@
-
-.make/build_cli: $(CLI_SRC)
-	dotnet build ${CLI_DIR}
+.make/build_broker: $(BROKER_SRC) .make/gen_proto
+	dotnet build ${BROKER_DIR}
 	@touch $@
-
-.make/lint_proto:
-	buf lint proto
+.make/build_cli: $(CLI_SRC) .make/gen_proto
+	dotnet build ${CLI_DIR}
 	@touch $@
 
 .make/lint_lang: .make/tool_restore $(LANG_SRC)
 	dotnet fantomas ${LANG_DIR}
-	@touch $@
-
-.make/build_plugin_gen_ts:
-	cd plugin/gen/ts && bun run build
 	@touch $@
