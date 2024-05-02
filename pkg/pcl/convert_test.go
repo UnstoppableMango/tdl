@@ -21,7 +21,7 @@ var _ = Describe("Convert", func() {
 			Description: "test-description",
 			DisplayName: "Test Name",
 			Repository:  "github.com/UnstoppableMango/tdl",
-			Keywords:    []string{"pulumi"},
+			Keywords:    []string{"pulumi", "thing"},
 			Version:     "v0.1.0",
 		}
 
@@ -38,11 +38,11 @@ var _ = Describe("Convert", func() {
 		Expect(spec.DisplayName).NotTo(BeEmpty())
 		Expect(spec.DisplayName).To(Equal(pcl.DisplayName))
 
-		Expect(spec.Repository).NotTo(BeEmpty())
-		Expect(spec.Repository).To(Equal(pcl.Repository))
+		Expect(spec.Source).NotTo(BeEmpty())
+		Expect(spec.Source).To(Equal(pcl.Repository))
 
-		Expect(spec.Tags).NotTo(BeEmpty())
-		Expect(spec.Tags).To(BeEquivalentTo(pcl.Keywords))
+		Expect(spec.Labels).NotTo(BeEmpty())
+		Expect(spec.Labels["keywords"]).To(BeEquivalentTo("pulumi,thing"))
 
 		Expect(spec.Version).NotTo(BeEmpty())
 		Expect(spec.Version).To(Equal(pcl.Version))
