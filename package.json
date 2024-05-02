@@ -4,7 +4,6 @@
 	"workspaces": [
 		"gen/proto/*",
 		"packages/*",
-		"src/*"
 	],
 	"scripts": {
 		"lint": "eslint"
