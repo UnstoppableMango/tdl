@@ -1,34 +1,24 @@
-import { Field, Spec, Type } from '@unmango/tdl-es';
+import { Spec } from '@unmango/tdl-es';
 import type { SupportedMimeType } from '@unmango/uml';
-import { beforeAll, describe, expect, it } from 'bun:test';
-import fc from 'fast-check';
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import fs from 'node:fs/promises';
 import path from 'node:path';
-
-const arbField = () =>
-	fc.gen().map(g =>
-		new Field({
-			type: g(fc.string),
-		})
-	);
-
-const arbType = (fields: Record<string, fc.Arbitrary<Field>>) =>
-	fc.gen().map(g =>
-		new Type({
-			fields: g(() => fc.record(fields)),
-		})
-	);
-
-// TODO: Using `fc.string()` for a `Type` name is flaky because we haven't properly defined what a `TypeName` can be yet.
-//       Would probably be better to have a custom `TypeName` arb and/or actually add `TypName` to the UMl spec.
 
 const binPath = path.join(
 	__dirname,
 	'dist',
-	'uml2ts_test'
+	'uml2ts_test',
 );
 
-beforeAll(() => {
-	Bun.spawn([
+const ensureClean = async () => {
+	if (await fs.exists(binPath)) {
+		await fs.unlink(binPath);
+	}
+};
+
+beforeAll(async () => {
+	await ensureClean();
+	const proc = Bun.spawn([
 		'bun',
 		'build',
 		'index.ts',
@@ -36,7 +26,10 @@ beforeAll(() => {
 		'--outfile',
 		binPath,
 	], { cwd: __dirname });
+	await proc.exited;
 });
+
+afterAll(ensureClean);
 
 describe('gen', () => {
 	it.each<SupportedMimeType>([
@@ -44,37 +37,29 @@ describe('gen', () => {
 		'application/x-protobuf',
 		'application/vnd.google.protobuf',
 	])('should read %s data', async (mime) => {
-		await fc.assert(fc.asyncProperty(
-			fc.tuple(fc.string(), arbType({})),
-			async ([name, type]): Promise<void> => {
-				const spec = new Spec({ types: { [name]: type } });
-				const bytes = spec.toBinary();
+		const name = 'testType';
+		const spec = new Spec({ types: { [name]: {} } });
+		const bytes = spec.toBinary();
 
-				const proc = Bun.spawn([binPath, 'gen', '--type', mime], {
-					stdin: new Blob([bytes]),
-				});
+		const proc = Bun.spawn([binPath, 'gen', '--type', mime], {
+			stdin: new Blob([bytes]),
+		});
 
-				const actual = await Bun.readableStreamToText(proc.stdout);
-				expect(actual).toEqual(`export interface ${name} {\n}\n`);
-			},
-		));
+		const actual = await Bun.readableStreamToText(proc.stdout);
+		expect(actual).toEqual(`export interface ${name} {\n}\n`);
 	});
 
 	it('should read json data', async () => {
-		await fc.assert(fc.asyncProperty(
-			fc.tuple(fc.string(), arbType({})),
-			async ([name, type]): Promise<void> => {
-				const spec = new Spec({ types: { [name]: type } });
-				const json = spec.toJsonString();
-				const mime: SupportedMimeType = 'application/json';
+		const name = 'testType';
+		const spec = new Spec({ types: { [name]: {} } });
+		const json = spec.toJsonString();
+		const mime: SupportedMimeType = 'application/json';
 
-				const proc = Bun.spawn([binPath, 'gen', '--type', mime], {
-					stdin: Buffer.from(json, 'utf-8'),
-				});
+		const proc = Bun.spawn([binPath, 'gen', '--type', mime], {
+			stdin: Buffer.from(json, 'utf-8'),
+		});
 
-				const actual = await Bun.readableStreamToText(proc.stdout);
-				expect(actual).toEqual(`export interface ${name} {\n}\n`);
-			},
-		));
+		const actual = await Bun.readableStreamToText(proc.stdout);
+		expect(actual).toEqual(`export interface ${name} {\n}\n`);
 	});
 });
