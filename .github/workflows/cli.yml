@@ -96,12 +96,14 @@ jobs:
     strategy:
       matrix:
         tool:
+          - uml2go
+          - uml2pcl
           - uml2ts
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/build-docker
         with:
-          file: docker/uml2ts/Dockerfile
+          file: docker/${{ matrix.tool }}/Dockerfile
           images: ghcr.io/${{ github.repository_owner }}/${{ matrix.tool }}
           push: ${{ github.event_name != 'pull_request' }}
           token: ${{ secrets.GITHUB_TOKEN }}

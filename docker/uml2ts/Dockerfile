@@ -1,4 +1,5 @@
-FROM oven/bun:1 AS base
+# syntax=docker/dockerfile:1
+FROM oven/bun:1.1.6 AS base
 ARG BUILDPLATFORM
 WORKDIR /build
 
@@ -25,11 +26,15 @@ COPY packages/ts/ packages/ts/
 COPY packages/uml/ packages/uml/
 COPY packages/uml2ts/ .
 
-RUN bun run build
+RUN bun build \
+			--compile \
+			--minify \
+			--sourcemap ./index.ts \
+			--outfile ./dist/uml2ts
 
 FROM ubuntu:noble-20240429 AS test
 COPY --from=build /build/dist/uml2ts .
 
-FROM --platform=$BUILDPLATFORM scratch AS dist
-COPY --from=build /build/dist/uml2ts .
-ENTRYPOINT ["uml2ts"]
+FROM --platform=$BUILDPLATFORM oven/bun:1.1.6-distroless
+COPY --from=build /build/dist/uml2ts /
+ENTRYPOINT ["/uml2ts"]
