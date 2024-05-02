@@ -28,6 +28,6 @@ describe('Generator', () => {
 		const actual = await generator.gen(spec);
 
 		expect(actual).not.toBeNull();
-		expect(actual).toBeEmpty();
+		expect(actual).toEqual(`export interface test {\n    readonly test: string;\n}\n`);
 	});
 });
