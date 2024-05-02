@@ -1,5 +1,3 @@
-# We use the root of the repo as the build context so this file isn't actually used lol
-
 node_modules
 Dockerfile*
 docker-compose*
@@ -17,8 +15,4 @@ coverage*
 .config
 .github
 .make
-cli
 docker
-pkg
-proto
-src
