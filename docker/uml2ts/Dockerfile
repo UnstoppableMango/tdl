@@ -1,4 +1,5 @@
 FROM oven/bun:1 AS base
+ARG BUILDPLATFORM
 WORKDIR /build
 
 FROM base AS install
@@ -26,9 +27,9 @@ COPY packages/uml2ts/ .
 
 RUN bun run build
 
-FROM ubuntu:latest as test
+FROM ubuntu:noble-20240429 as test
 COPY --from=build /build/dist/uml2ts .
 
-FROM --platform=$BUILDPLATFORM scratch
+FROM --platform=$BUILDPLATFORM scratch as dist
 COPY --from=build /build/dist/uml2ts .
 ENTRYPOINT ["uml2ts"]
