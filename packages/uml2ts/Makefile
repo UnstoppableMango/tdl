@@ -13,3 +13,6 @@ clean:
 
 docker:
 	@$(MAKE) -C ${ROOT}/docker uml2ts
+
+test_image:
+	@$(MAKE) -C ${ROOT}/docker uml2ts_test
