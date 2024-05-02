@@ -71,6 +71,10 @@ proto: build_proto gen_proto
 gen_proto: .make/gen_proto
 build_proto: .make/build_proto
 
+.PHONY: docker
+docker:
+	@$(MAKE) -C docker all
+
 # The naming is kinda silly but its short
 .PHONY: work
 work: go.work go.work.sum

@@ -1,5 +1,8 @@
 CONTEXT := $(shell git rev-parse --show-toplevel)
 
+.PHONY: all
+all: uml2ts
+
 .PHONY: uml2ts uml2ts_test
 uml2ts:
 	docker build \
