@@ -26,6 +26,9 @@ COPY packages/uml2ts/ .
 
 RUN bun run build
 
+FROM ubuntu:latest as test
+COPY --from=build /build/dist/uml2ts .
+
 FROM --platform=$BUILDPLATFORM scratch
 COPY --from=build /build/dist/uml2ts .
 ENTRYPOINT ["uml2ts"]
