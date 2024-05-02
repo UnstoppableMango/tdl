@@ -6,8 +6,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<InvariantGlobalization>true</InvariantGlobalization>
-		<!-- Soon TM -->
-		<PublishAot>false</PublishAot>
+		<PublishAot>true</PublishAot>
 		<PackAsTool>true</PackAsTool>
 		<PackageId>UnMango.Tdl.Cli</PackageId>
 		<ToolCommandName>um</ToolCommandName>
