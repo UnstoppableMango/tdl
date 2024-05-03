@@ -12,3 +12,4 @@ node_modules/
 .idea/**/workspace.xml
 go.work*
 discord.xml
+*.user
