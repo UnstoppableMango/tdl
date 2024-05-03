@@ -28,6 +28,8 @@ public sealed class DockerTests(ITestOutputHelper test)
 		await docker.GenerateAsync(input, output);
 
 		Assert.True(output.Length > 0, $"output length was: {output.Length}");
-		Assert.NotEmpty(Encoding.UTF8.GetString(output.ToArray()));
+		var actual = Encoding.UTF8.GetString(output.ToArray());
+		test.WriteLine(actual);
+		Assert.Equal("export interface testType \n{\n}", actual);
 	}
 }
