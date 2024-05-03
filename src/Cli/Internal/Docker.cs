@@ -44,6 +44,7 @@ internal sealed class Docker(IConsole console, IDockerClient docker, string plug
 				OpenStdin = true,
 				AttachStdin = true,
 				AttachStdout = true,
+				AttachStderr = true,
 				Cmd = command,
 			},
 			cancellationToken);
