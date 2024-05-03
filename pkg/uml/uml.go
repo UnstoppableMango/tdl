@@ -1,9 +1,6 @@
 package uml
 
 import (
-	"context"
-	"io"
-
 	tdl "github.com/unstoppablemango/tdl/gen/proto/go/unmango/dev/tdl/v1alpha1"
 )
 
