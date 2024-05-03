@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM oven/bun:1.1.6 AS base
+FROM oven/bun:1.1.7 AS base
 ARG BUILDPLATFORM
 WORKDIR /build
 
@@ -35,6 +35,6 @@ RUN bun build \
 FROM ubuntu:noble-20240429 AS test
 COPY --from=build /build/dist/uml2ts .
 
-FROM --platform=$BUILDPLATFORM oven/bun:1.1.6-distroless
+FROM --platform=$BUILDPLATFORM oven/bun:1.1.7-distroless
 COPY --from=build /build/dist/uml2ts /
 ENTRYPOINT ["/uml2ts"]
