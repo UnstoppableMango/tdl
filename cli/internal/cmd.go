@@ -26,9 +26,13 @@ func NewGenCmd(gen uml.Generator) *cobra.Command {
 		Use:  "gen",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := cmd.Context()
-			err := gen.Gen(ctx, &uml.Spec{}, os.Stdout)
-			return err
+			gen := new(uml.GeneratorOptions{
+				Target: args[0],
+			})
+
+			return gen.Gen(cmd.Context(), &uml.Spec{}, os.Stdout)
 		},
 	}
+
+	return cmd
 }
