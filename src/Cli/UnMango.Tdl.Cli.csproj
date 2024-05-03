@@ -15,6 +15,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Docker.DotNet" Version="3.125.15" />
 		<PackageReference Include="Grpc.AspNetCore" Version="2.62.0" />
 		<PackageReference Include="MinVer" Version="5.0.0" PrivateAssets="all"/>
 		<PackageReference Include="Serilog.Extensions.Hosting" Version="8.0.0" />
