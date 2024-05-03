@@ -8,7 +8,7 @@ require (
 	connectrpc.com/connect v1.16.1
 	github.com/onsi/ginkgo/v2 v2.17.2
 	github.com/onsi/gomega v1.33.1
-	github.com/pulumi/pulumi/pkg/v3 v3.114.0
+	github.com/pulumi/pulumi/pkg/v3 v3.115.0
 	github.com/unstoppablemango/tdl/gen v0.0.3
 	google.golang.org/protobuf v1.34.0
 )
@@ -70,7 +70,7 @@ require (
 	github.com/pkg/term v1.1.0 // indirect
 	github.com/pulumi/appdash v0.0.0-20231130102222-75f619a67231 // indirect
 	github.com/pulumi/esc v0.6.2 // indirect
-	github.com/pulumi/pulumi/sdk/v3 v3.114.0 // indirect
+	github.com/pulumi/pulumi/sdk/v3 v3.115.0 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06 // indirect
