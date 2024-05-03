@@ -12,7 +12,7 @@ public sealed class DockerTests(ITestOutputHelper test)
 		using var client = new DockerClientConfiguration()
 			.CreateClient();
 
-		var docker = new Cli.Internal.Docker(new XUnitConsole(test), client);
+		var docker = new Cli.Internal.Docker(new XUnitConsole(test), client, "uml2ts");
 		var spec = new Spec {
 			Name = "test-spec",
 			Types_ = {
@@ -25,7 +25,7 @@ public sealed class DockerTests(ITestOutputHelper test)
 		await using MemoryStream input = new(spec.ToByteArray()), output = new();
 		Assert.True(input.Length > 0, $"input length was: {input.Length}");
 
-		await docker.RunPlugin("uml2ts", input, output);
+		await docker.GenerateAsync(input, output);
 
 		Assert.True(output.Length > 0, $"output length was: {output.Length}");
 		Assert.NotEmpty(Encoding.UTF8.GetString(output.ToArray()));

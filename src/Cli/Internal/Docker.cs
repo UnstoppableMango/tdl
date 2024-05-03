@@ -1,35 +1,50 @@
 using System.CommandLine;
 using Docker.DotNet;
 using Docker.DotNet.Models;
+using UnMango.Tdl.Abstractions;
 
 namespace UnMango.Tdl.Cli.Internal;
 
-internal sealed class Docker(IConsole console, IDockerClient docker)
+internal sealed class Docker(IConsole console, IDockerClient docker, string plugin) : IConverter, IGenerator
 {
-	public async Task RunPlugin(
-		string plugin,
+	private const string Tag = "main";
+	private readonly string _image = $"ghcr.io/unstoppablemango/{plugin}";
+
+	public Task ToAsync(Stream input, Stream output, CancellationToken cancellationToken = default) {
+		throw new NotImplementedException();
+	}
+
+	public Task FromAsync(Stream input, Stream output, CancellationToken cancellationToken = default) {
+		throw new NotImplementedException();
+	}
+
+	public Task GenerateAsync(Stream input, Stream output, CancellationToken cancellationToken = default) {
+		return Run("tdl-gen-test", ["gen"], input, output, cancellationToken);
+	}
+
+	private async Task Run(
+		string name,
+		IList<string> command,
 		Stream input,
 		Stream output,
 		CancellationToken cancellationToken = default) {
-		const string tag = "main";
-		var image = $"ghcr.io/unstoppablemango/{plugin}";
 		var progress = new ConsoleProgress(console);
 
 		await docker.Images.CreateImageAsync(
-			new ImagesCreateParameters { FromImage = image, Tag = tag },
+			new ImagesCreateParameters { FromImage = _image, Tag = Tag },
 			null,
 			progress,
 			cancellationToken);
 
 		var container = await docker.Containers.CreateContainerAsync(
 			new CreateContainerParameters {
-				Image = $"{image}:{tag}",
-				Name = "tdl-test",
+				Image = $"{_image}:{Tag}",
+				Name = name,
 				StdinOnce = true,
 				OpenStdin = true,
 				AttachStdin = true,
 				AttachStdout = true,
-				Cmd = ["gen"],
+				Cmd = command,
 			},
 			cancellationToken);
 
@@ -76,6 +91,8 @@ internal sealed class Docker(IConsole console, IDockerClient docker)
 				cancellationToken);
 		}
 	}
+
+	private static string ImageFor(string plugin) => $"ghcr.io/unstoppablemango/{plugin}";
 
 	private sealed record ConsoleProgress(IConsole Console) : IProgress<JSONMessage>, IProgress<string>
 	{

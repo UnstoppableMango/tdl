@@ -25,6 +25,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\Abstractions\UnMango.Tdl.Abstractions.csproj" />
 		<ProjectReference Include="..\FSharp\UnMango.Tdl.FSharp.fsproj" />
 		<ProjectReference Include="..\Language\UnMango.Tdl.Language.fsproj"/>
 	</ItemGroup>
