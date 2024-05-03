@@ -13,6 +13,6 @@ type generator struct{}
 var Go uml.Generator = &generator{}
 
 // Gen implements uml.Generator.
-func (g *generator) Gen(ctx context.Context, spec *tdl.Spec, writer io.Writer, opts ...uml.GeneratorOption) error {
+func (g *generator) Gen(ctx context.Context, spec *tdl.Spec, writer io.Writer) error {
 	panic("unimplemented")
 }
