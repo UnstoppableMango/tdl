@@ -28,5 +28,9 @@
 		<ProjectReference Include="..\FSharp\UnMango.Tdl.FSharp.fsproj" />
 		<ProjectReference Include="..\Language\UnMango.Tdl.Language.fsproj"/>
 	</ItemGroup>
+	
+	<ItemGroup>
+		<InternalsVisibleTo Include="UnMango.Tdl.Cli.Tests" />
+	</ItemGroup>
 
 </Project>
