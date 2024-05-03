@@ -6,6 +6,8 @@
 	</PropertyGroup>
 
 	<PropertyGroup>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
 		<MinVerTagPrefix>v</MinVerTagPrefix>
 	</PropertyGroup>
 
