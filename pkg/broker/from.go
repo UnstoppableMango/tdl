@@ -28,7 +28,7 @@ func (w *fromStreamWriter) Write(p []byte) (n int, err error) {
 
 var _ io.Writer = &fromStreamWriter{}
 
-func (b *broker) From(ctx context.Context, reader io.Reader, opts ...uml.ConverterOption) (*uml.Spec, error) {
+func (b *broker) From(ctx context.Context, reader io.Reader) (*uml.Spec, error) {
 	stream := b.client.From(ctx)
 	writer := fromStreamWriter{FromClientStream: stream}
 	if _, err := io.Copy(&writer, reader); err != nil {
