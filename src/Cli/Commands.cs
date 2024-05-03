@@ -5,7 +5,7 @@ namespace UnMango.Tdl.Cli;
 
 file class TokenBinder : BinderBase<CancellationToken>
 {
-	public static TokenBinder Value = new();
+	public static readonly TokenBinder Value = new();
 
 	protected override CancellationToken GetBoundValue(BindingContext bindingContext) {
 		var token = bindingContext.GetService(typeof(CancellationToken));
