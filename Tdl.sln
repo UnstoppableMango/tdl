@@ -55,6 +55,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "v1alpha1", "v1alpha1", "{74
 		proto\unmango\dev\tdl\v1alpha1\uml.proto = proto\unmango\dev\tdl\v1alpha1\uml.proto
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnMango.Tdl.Abstractions", "src\Abstractions\UnMango.Tdl.Abstractions.csproj", "{C91D0104-CD82-4A78-868C-B8F4B1ED459A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -92,6 +94,10 @@ Global
 		{C2AD9627-8FFF-4D17-918B-FBB764EFB207}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C2AD9627-8FFF-4D17-918B-FBB764EFB207}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C2AD9627-8FFF-4D17-918B-FBB764EFB207}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C91D0104-CD82-4A78-868C-B8F4B1ED459A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C91D0104-CD82-4A78-868C-B8F4B1ED459A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C91D0104-CD82-4A78-868C-B8F4B1ED459A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C91D0104-CD82-4A78-868C-B8F4B1ED459A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{08902DF7-376C-4CC7-92AA-E5E8AE26975F} = {4C2EFA7D-EC3E-4D68-8DC6-EC1418D2A36F}
@@ -103,5 +109,6 @@ Global
 		{A019E942-34BF-4F88-AFA8-3AA445D409E6} = {B3AC8EAB-9388-4D81-AF13-DEC3F7C08EB0}
 		{C2AD9627-8FFF-4D17-918B-FBB764EFB207} = {4C2EFA7D-EC3E-4D68-8DC6-EC1418D2A36F}
 		{748534DB-77B0-4CEF-83C1-C12855E2A79F} = {D33909C2-5104-4E7E-A0F1-FC98FF7B4C5A}
+		{C91D0104-CD82-4A78-868C-B8F4B1ED459A} = {4C2EFA7D-EC3E-4D68-8DC6-EC1418D2A36F}
 	EndGlobalSection
 EndGlobal
