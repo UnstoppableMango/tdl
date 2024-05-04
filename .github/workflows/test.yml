@@ -1,0 +1,19 @@
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  test1:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'Test 1'
+---
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  test1:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'Test 1'
