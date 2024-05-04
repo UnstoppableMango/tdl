@@ -7,7 +7,7 @@ namespace UnMango.Tdl.Cli.Internal;
 
 internal sealed class Docker(IConsole console, IDockerClient docker, string plugin) : IConverter, IGenerator
 {
-	private const string Tag = "main";
+	private const string Tag = "main", ContainerName = "tdl-gen";
 	private readonly string _image = $"ghcr.io/unstoppablemango/{plugin}";
 
 	public Task ToAsync(Stream input, Stream output, CancellationToken cancellationToken = default) {
@@ -19,11 +19,10 @@ internal sealed class Docker(IConsole console, IDockerClient docker, string plug
 	}
 
 	public Task GenerateAsync(Stream input, Stream output, CancellationToken cancellationToken = default) {
-		return Run("tdl-gen-test", ["gen"], input, output, cancellationToken);
+		return Run(["gen"], input, output, cancellationToken);
 	}
 
 	private async Task Run(
-		string name,
 		IList<string> command,
 		Stream input,
 		Stream output,
@@ -39,7 +38,7 @@ internal sealed class Docker(IConsole console, IDockerClient docker, string plug
 		var container = await docker.Containers.CreateContainerAsync(
 			new CreateContainerParameters {
 				Image = $"{_image}:{Tag}",
-				Name = name,
+				Name = ContainerName,
 				StdinOnce = true,
 				OpenStdin = true,
 				AttachStdin = true,
@@ -92,8 +91,6 @@ internal sealed class Docker(IConsole console, IDockerClient docker, string plug
 				cancellationToken);
 		}
 	}
-
-	private static string ImageFor(string plugin) => $"ghcr.io/unstoppablemango/{plugin}";
 
 	private sealed record ConsoleProgress(IConsole Console) : IProgress<JSONMessage>, IProgress<string>
 	{
