@@ -14,6 +14,7 @@ type Progress(r) =
 
 type Workload =
   { Cmd: string list
+    Entrypoint: string list
     Image: string
     Name: string
     Progress: Progress
@@ -22,6 +23,7 @@ type Workload =
 module Workload =
   let create n i t =
     { Cmd = []
+      Entrypoint = []
       Image = i
       Name = n
       Progress = Progress(ignore)
@@ -56,12 +58,14 @@ module private Builder =
   let create w docker =
     docker.Client.Containers.CreateContainerAsync(
       CreateContainerParameters(
-        Image = $"${w.Image}:${w.Tag}",
+        Image = $"{w.Image}:{w.Tag}",
         Name = w.Name,
         StdinOnce = true,
         OpenStdin = true,
         AttachStdin = true,
-        AttachStdout = true
+        AttachStdout = true,
+        Cmd = ResizeArray(w.Cmd),
+        Entrypoint = ResizeArray(w.Entrypoint)
       ),
       docker.CancellationToken
     )
