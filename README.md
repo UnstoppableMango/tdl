@@ -80,7 +80,7 @@ Wrote 69B to ./myTypes.ts
 ```ts
 // myTypes.ts
 export interface SomeType {
-  someField: string;
+	someField: string;
 }
 ```
 
@@ -132,22 +132,22 @@ Run `make clean` to remove local artifacts like `/.make` targets and `/node_modu
 
 ### Repository Structure
 
-| Directory | Description |
-|----------:|:------------|
-|`/.config` | Just `dotnet` tools at the moment |
-|`/.github` | GitHub configuration files |
-|`/.github/actions` | GitHub actions |
-|`/.github/workflows` | GitHub workflows |
-|`/.idea` | JetBrains IDE configuration (yes some of this gets checked in, fight me) |
-|`/.make` | Local `make` sentinel target files |
-|`/.vscode` | VSCode configuration |
-|`/cli` | Go CLI applications |
-|`/docker` | Dockerfiles |
-|`/gen` | Generated code |
-|`/packages` | Node-ish ecosystem packages and applications |
-|`/pkg` | Go packages |
-|`/proto` | Protobuf definitions |
-|`/src` | .NET ecosystem libraries and applications |
+|            Directory | Description                                                              |
+| -------------------: | :----------------------------------------------------------------------- |
+|           `/.config` | Just `dotnet` tools at the moment                                        |
+|           `/.github` | GitHub configuration files                                               |
+|   `/.github/actions` | GitHub actions                                                           |
+| `/.github/workflows` | GitHub workflows                                                         |
+|             `/.idea` | JetBrains IDE configuration (yes some of this gets checked in, fight me) |
+|             `/.make` | Local `make` sentinel target files                                       |
+|           `/.vscode` | VSCode configuration                                                     |
+|               `/cli` | Go CLI applications                                                      |
+|            `/docker` | Dockerfiles                                                              |
+|               `/gen` | Generated code                                                           |
+|          `/packages` | Node-ish ecosystem packages and applications                             |
+|               `/pkg` | Go packages                                                              |
+|             `/proto` | Protobuf definitions                                                     |
+|               `/src` | .NET ecosystem libraries and applications                                |
 
 ## Architecture
 
