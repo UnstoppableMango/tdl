@@ -7,6 +7,7 @@ open Docker.DotNet
 open FsCheck.FSharp
 open FsCheck.Xunit
 open UnMango.Tdl
+open Xunit
 
 type Message =
   static member Double() =
@@ -33,5 +34,6 @@ let ``Can perform IO with a container`` (message: string) =
     do! client |> Docker.exec workload input output
     let actual = Encoding.UTF8.GetString(output.ToArray())
 
-    return actual = message
+    Assert.True(output.Length > 0)
+    Assert.Equal(message, actual)
   }

@@ -102,22 +102,28 @@ module private Builder =
       do! remove id docker
     }
 
+  let wait id docker =
+    docker.Client.Containers.WaitContainerAsync(id, docker.CancellationToken)
+    |> Async.AwaitTask
+
 let exec w i o (docker: IDockerClient) =
   task {
     let! docker = Builder.from docker
-    do! Builder.Image.create w docker
-    let! container = Builder.create w docker
-    use! stream = Builder.attach container.ID docker
-    let! started = Builder.start container.ID docker
+    do! docker |> Builder.Image.create w
+    let! container = docker |> Builder.create w
+
+    use! stream = docker |> Builder.attach container.ID
+    let! cancellationToken = Async.CancellationToken
+    do! stream.CopyFromAsync(i, cancellationToken)
+    do! stream.CopyOutputToAsync(null, o, null, cancellationToken)
+
+    let! started = docker |> Builder.start container.ID
 
     if not started then
+      do! docker |> Builder.remove container.ID
       failwith "failed to start container"
 
-    try
-      let! cancellationToken = Async.CancellationToken
-      do! stream.CopyFromAsync(i, cancellationToken)
-      do! stream.CopyOutputToAsync(null, o, null, cancellationToken)
-    finally
-      Builder.cleanup container.ID docker |> Async.RunSynchronously
+    do! docker |> Builder.wait container.ID |> Async.Ignore
+    do! docker |> Builder.cleanup container.ID
   }
   |> Async.AwaitTask
