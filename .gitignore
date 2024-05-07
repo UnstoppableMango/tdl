@@ -4,6 +4,7 @@ obj/
 dist/
 out/
 .make/
+.fake/
 
 # Packages
 node_modules/
