@@ -2,8 +2,6 @@ module github.com/unstoppablemango/tdl/pkg
 
 go 1.22.2
 
-replace github.com/unstoppablemango/tdl/gen => ../gen
-
 require (
 	connectrpc.com/connect v1.16.1
 	github.com/onsi/ginkgo/v2 v2.17.3

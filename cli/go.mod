@@ -2,10 +2,6 @@ module github.com/unstoppablemango/tdl/cli
 
 go 1.22.2
 
-replace github.com/unstoppablemango/tdl/pkg => ../pkg
-
-replace github.com/unstoppablemango/tdl/gen => ../gen
-
 require (
 	github.com/spf13/cobra v1.8.0
 	github.com/unstoppablemango/tdl/pkg v0.0.3
