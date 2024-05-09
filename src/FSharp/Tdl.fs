@@ -3,18 +3,17 @@ module UnMango.Tdl.Tdl
 open System.IO
 open UnMango.Tdl.Abstractions
 
-type From = Stream -> Stream -> Async<unit>
-type To = Stream -> Stream -> Async<unit>
-type Gen = Stream -> Stream -> Async<unit>
+type From = Stream -> Async<Spec>
+type Gen = Spec -> Stream -> Async<unit>
 
 module From =
   let convert i o = async { failwith "TODO" }
 
-  let wrap (c: IConverterFrom) : From =
-    fun i o ->
+  let wrap (c: IConverter) : From =
+    fun o ->
       async {
         let! ct = Async.CancellationToken
-        return! c.FromAsync(i, o, ct) |> Async.AwaitTask
+        return! c.FromAsync(o, ct) |> Async.AwaitTask
       }
 
 module Gen =
@@ -25,14 +24,4 @@ module Gen =
       async {
         let! ct = Async.CancellationToken
         return! g.GenerateAsync(i, o, ct) |> Async.AwaitTask
-      }
-
-module To =
-  let convert i o = async { failwith "TODO" }
-
-  let wrap (c: IConverterTo) : To =
-    fun i o ->
-      async {
-        let! ct = Async.CancellationToken
-        return! c.ToAsync(i, o, ct) |> Async.AwaitTask
       }
