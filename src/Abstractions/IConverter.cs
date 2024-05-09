@@ -1,4 +1,7 @@
 namespace UnMango.Tdl.Abstractions;
 
 [PublicAPI]
-public interface IConverter : IConverterTo, IConverterFrom;
+public interface IConverter
+{
+	Task<Spec> FromAsync(Stream input, CancellationToken cancellationToken = default);
+}

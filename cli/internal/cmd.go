@@ -8,7 +8,7 @@ import (
 	"github.com/unstoppablemango/tdl/pkg/uml"
 )
 
-func NewFromCmd(conv uml.ConvertFrom) *cobra.Command {
+func NewFromCmd(conv uml.Converter) *cobra.Command {
 	return &cobra.Command{
 		Use:  "from",
 		Args: cobra.ExactArgs(1),
@@ -16,18 +16,6 @@ func NewFromCmd(conv uml.ConvertFrom) *cobra.Command {
 			ctx := cmd.Context()
 			spec, err := conv.From(ctx, os.Stdin)
 			fmt.Printf("output:\n%s\n", spec)
-			return err
-		},
-	}
-}
-
-func NewToCmd(conv uml.ConvertTo) *cobra.Command {
-	return &cobra.Command{
-		Use:  "to",
-		Args: cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := cmd.Context()
-			err := conv.To(ctx, &uml.Spec{}, os.Stdout)
 			return err
 		},
 	}
