@@ -2,14 +2,12 @@ module github.com/unstoppablemango/tdl/pkg
 
 go 1.22.2
 
-replace github.com/unstoppablemango/tdl/gen => ../gen
-
 require (
 	connectrpc.com/connect v1.16.1
 	github.com/onsi/ginkgo/v2 v2.17.3
 	github.com/onsi/gomega v1.33.1
 	github.com/pulumi/pulumi/pkg/v3 v3.115.2
-	github.com/unstoppablemango/tdl/gen v0.0.3
+	github.com/unstoppablemango/tdl/gen v0.0.4
 	google.golang.org/protobuf v1.34.1
 )
 
