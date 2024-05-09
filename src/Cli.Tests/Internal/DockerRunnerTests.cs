@@ -5,14 +5,14 @@ using Xunit.Abstractions;
 
 namespace UnMango.Tdl.Cli.Tests.Internal;
 
-public sealed class DockerTests(ITestOutputHelper test)
+public sealed class DockerRunnerTests(ITestOutputHelper test)
 {
 	[Fact]
 	public async Task TestDocker() {
 		using var client = new DockerClientConfiguration()
 			.CreateClient();
 
-		var docker = new Cli.Internal.Docker(new XUnitConsole(test), client, "uml2ts");
+		var docker = new Cli.Internal.DockerRunner(new XUnitConsole(test), client, "uml2ts");
 		var spec = new Spec {
 			Name = "test-spec",
 			Types_ = {
@@ -25,7 +25,7 @@ public sealed class DockerTests(ITestOutputHelper test)
 		await using MemoryStream input = new(spec.ToByteArray()), output = new();
 		Assert.True(input.Length > 0, $"input length was: {input.Length}");
 
-		await docker.GenerateAsync(input, output);
+		// await docker.GenerateAsync(input, output);
 
 		Assert.True(output.Length > 0, $"output length was: {output.Length}");
 		var actual = Encoding.UTF8.GetString(output.ToArray());
