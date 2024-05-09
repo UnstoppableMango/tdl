@@ -22,11 +22,7 @@ internal sealed class Docker(IConsole console, IDockerClient docker, string plug
 		return Run(["gen"], input, output, cancellationToken);
 	}
 
-	private async Task Run(
-		IList<string> command,
-		Stream input,
-		Stream output,
-		CancellationToken cancellationToken = default) {
+	private async Task Run(IList<string> command, CancellationToken cancellationToken = default) {
 		var progress = new ConsoleProgress(console);
 
 		await docker.Images.CreateImageAsync(
@@ -39,22 +35,9 @@ internal sealed class Docker(IConsole console, IDockerClient docker, string plug
 			new CreateContainerParameters {
 				Image = $"{_image}:{Tag}",
 				Name = ContainerName,
-				StdinOnce = true,
-				OpenStdin = true,
-				AttachStdin = true,
 				AttachStdout = true,
 				AttachStderr = true,
 				Cmd = command,
-			},
-			cancellationToken);
-
-		using var stream = await docker.Containers.AttachContainerAsync(
-			container.ID,
-			false,
-			new ContainerAttachParameters {
-				Stdin = true,
-				Stdout = true,
-				Stderr = true,
 			},
 			cancellationToken);
 
@@ -74,8 +57,6 @@ internal sealed class Docker(IConsole console, IDockerClient docker, string plug
 		}
 
 		try {
-			await stream.CopyFromAsync(input, cancellationToken);
-			await stream.CopyOutputToAsync(null, output, null, cancellationToken);
 		}
 		finally {
 			await docker.Containers.StopContainerAsync(
