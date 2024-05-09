@@ -6,22 +6,15 @@ ARG TARGETOS
 
 FROM base AS build
 WORKDIR /build
-
-# COPY src/Abstractions/UnMango.Tdl.Abstractions.csproj ./Abstractions/
 COPY src/Broker/UnMango.Tdl.Broker.csproj ./Broker/
-# COPY src/FSharp/UnMango.Tdl.FSharp.fsproj ./FSharp/
-# COPY src/Language/UnMango.Tdl.Language.fsproj ./Language/
 
 RUN dotnet restore \
-			--arch $TARGETARCH \
-			Broker/UnMango.Tdl.Broker.csproj
+		--arch $TARGETARCH \
+		Broker/UnMango.Tdl.Broker.csproj
 
 COPY proto ./proto
 COPY Directory.Build.props .
-# COPY src/Abstractions/ ./Abstractions/
 COPY src/Broker/ ./Broker/
-# COPY src/FSharp/ ./FSharp/
-# COPY src/Language/ ./Language/
 
 # RUN ls -la Broker && exit 1
 RUN MINVERDISABLE=true \
