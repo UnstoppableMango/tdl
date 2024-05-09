@@ -10,15 +10,11 @@ internal sealed class Docker(IConsole console, IDockerClient docker, string plug
 	private const string Tag = "main", ContainerName = "tdl-gen";
 	private readonly string _image = $"ghcr.io/unstoppablemango/{plugin}";
 
-	public Task ToAsync(Stream input, Stream output, CancellationToken cancellationToken = default) {
+	public Task<Spec> FromAsync(Stream input, CancellationToken cancellationToken = default) {
 		throw new NotImplementedException();
 	}
 
-	public Task FromAsync(Stream input, Stream output, CancellationToken cancellationToken = default) {
-		throw new NotImplementedException();
-	}
-
-	public Task GenerateAsync(Stream input, Stream output, CancellationToken cancellationToken = default) {
+	public Task GenerateAsync(Spec spec, Stream output, CancellationToken cancellationToken = default) {
 		return Run(["gen"], input, output, cancellationToken);
 	}
 
