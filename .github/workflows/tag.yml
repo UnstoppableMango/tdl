@@ -1,0 +1,22 @@
+name: Tag go modules
+
+on:
+  release:
+    types: [released]
+
+jobs:
+  gomod:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        mod:
+          - cli
+          - gen
+          - pkg
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          VERSION='${{ github.event.release.tag_name }}'
+          TAG="${{ matrix.mod }}/$VERSION"
+          git tag "$TAG"
+          git push origin "$TAG"
