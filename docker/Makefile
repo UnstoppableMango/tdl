@@ -1,7 +1,16 @@
 CONTEXT := $(shell git rev-parse --show-toplevel)
 
 .PHONY: all
-all: uml2go uml2pcl uml2ts
+all: broker uml2go uml2pcl uml2ts
+
+.PHONY: broker
+broker:
+	docker build \
+		-f broker/Dockerfile \
+		-t unstoppablemango/tdl-broker:local \
+		${CONTEXT}
+# broker:
+# 	@$(MAKE) -C ${CONTEXT}/src brokerc
 
 .PHONY: uml2go uml2go_test
 uml2go:
