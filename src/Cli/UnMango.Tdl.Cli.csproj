@@ -18,6 +18,10 @@
 		<PackageReference Include="Docker.DotNet" Version="3.125.15" />
 		<PackageReference Include="Grpc.AspNetCore" Version="2.62.0" />
 		<PackageReference Include="MinVer" Version="5.0.0" PrivateAssets="all"/>
+		<PackageReference Include="NSubstitute.Analyzers.CSharp" Version="1.0.17">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
 		<PackageReference Include="Serilog.Extensions.Hosting" Version="8.0.0" />
 		<PackageReference Include="Serilog.Sinks.Console" Version="5.0.1" />
 		<PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
