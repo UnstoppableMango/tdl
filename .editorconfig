@@ -24,3 +24,6 @@ dotnet_diagnostic.asp0000.severity = none
 
 # ReSharper properties
 resharper_csharp_wrap_parameters_style = chop_if_long
+
+[*Dockerfile]
+indent_size = 4
