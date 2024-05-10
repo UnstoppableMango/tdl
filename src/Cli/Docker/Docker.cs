@@ -1,3 +1,6 @@
+using System.Formats.Tar;
+using System.Text;
+using CliWrap;
 using Docker.DotNet;
 using Docker.DotNet.Models;
 using Serilog;
@@ -31,6 +34,40 @@ internal sealed class Docker(IDockerClient docker, IDockerProgress progress) : I
 
 		Log.Debug("No match found");
 		return null;
+	}
+
+	public async Task Build(string dockerfile, IList<string> tags, CancellationToken cancellationToken) {
+		var gitOutput = new StringBuilder();
+		_ = await new Command("git")
+			.WithArguments(["rev-parse", "--show-toplevel"])
+			.WithStandardOutputPipe(PipeTarget.ToStringBuilder(gitOutput))
+			.ExecuteAsync(cancellationToken);
+		var root = gitOutput.ToString().Trim();
+		var dockerignore = await File.ReadAllLinesAsync(Path.Combine(root, ".dockerignore"), cancellationToken);
+		var allFiles = Directory.EnumerateFiles(
+			root,
+			"*",
+			new EnumerationOptions {
+				RecurseSubdirectories = true,
+			});
+
+		await using var tarStream = new MemoryStream();
+		await using var tarWriter = new TarWriter(tarStream);
+
+		foreach (var file in allFiles) {
+			await tarWriter.WriteEntryAsync(file, null, cancellationToken);
+		}
+
+		await docker.Images.BuildImageFromDockerfileAsync(
+			new ImageBuildParameters {
+				Dockerfile = dockerfile,
+				Tags = tags,
+			},
+			tarStream,
+			Array.Empty<AuthConfig>(),
+			new Dictionary<string, string>(),
+			progress,
+			cancellationToken);
 	}
 
 	public Task FollowLogs(string id, CancellationToken cancellationToken) {
