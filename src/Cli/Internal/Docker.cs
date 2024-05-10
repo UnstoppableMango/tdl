@@ -36,8 +36,6 @@ internal static class DockerExtensions
 
 internal sealed class Docker(IDockerClient docker, IDockerProgress progress) : IDocker
 {
-	private const string Port = "42069/tcp";
-
 	public async Task<StartResult> Start(
 		string image,
 		string tag,

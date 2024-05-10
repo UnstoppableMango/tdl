@@ -11,7 +11,7 @@ public sealed class DockerRunnerTests
 		await using MemoryStream output = new();
 		var spec = new Spec();
 		var createResponse = new CreateContainerResponse { ID = "test-id" };
-		var startResult = new StartResult(createResponse, new ContainerInspectResponse());
+		var startResult = new StartResult(createResponse);
 		var client = Substitute.For<IDocker>();
 
 		client.Start(
