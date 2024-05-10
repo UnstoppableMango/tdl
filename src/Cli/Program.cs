@@ -3,12 +3,10 @@ using System.CommandLine.Builder;
 using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 using Serilog;
-using UnMango.Tdl;
 using UnMango.Tdl.Cli;
 using UnMango.Tdl.Cli.Internal;
 
 var root = new RootCommand("UnstoppableMango's Type Description Language CLI") {
-	Commands.To(),
 	Commands.Gen(),
 	Commands.From(),
 };
