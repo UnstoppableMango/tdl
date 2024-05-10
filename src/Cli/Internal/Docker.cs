@@ -33,6 +33,7 @@ internal sealed class Docker(IDockerClient docker, IDockerProgress progress) : I
 	private static string RandomName => $"tdl-{Random.Next()}";
 
 	public async Task<StartResult> Start(StartArgs args, CancellationToken cancellationToken) {
+#if !DEBUG
 		await docker.Images.CreateImageAsync(
 			new ImagesCreateParameters {
 				FromImage = args.Image,
@@ -41,6 +42,7 @@ internal sealed class Docker(IDockerClient docker, IDockerProgress progress) : I
 			new AuthConfig(),
 			progress,
 			cancellationToken);
+#endif
 
 		var container = await docker.Containers.CreateContainerAsync(
 			new CreateContainerParameters {
