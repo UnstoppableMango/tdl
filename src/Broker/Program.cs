@@ -1,14 +1,23 @@
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using UnMango.Tdl.Broker.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+var socket = builder.Environment.IsDevelopment()
+	? Path.Combine(Path.GetTempPath(), "tdl.sock")
+	: "/var/run/tdl.sock";
+
+builder.WebHost.ConfigureKestrel(kestrel => {
+	kestrel.ListenUnixSocket(socket, listen => {
+		listen.Protocols = HttpProtocols.Http2;
+	});
+});
+
 builder.Services.AddGrpc();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 app.MapGrpcService<UmlService>();
-app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
+app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client.");
 
 app.Run();
