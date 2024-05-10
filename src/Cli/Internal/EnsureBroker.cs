@@ -1,5 +1,5 @@
 using System.CommandLine.Invocation;
-using Docker.DotNet;
+using Serilog;
 
 namespace UnMango.Tdl.Cli.Internal;
 
@@ -12,7 +12,7 @@ internal static class EnsureBroker
 		var docker = context.BindingContext.GetRequiredService<IDocker>();
 
 		// TODO: Check local env and build if needed
-		var start = await docker.Start("image", "tag", ["command"], "name", ct);
+		var start = await docker.Start("ghcr.io/unstoppablemango/tdl-broker", "main", [], "tdl-test", ct);
 
 		try {
 			// TODO: How do we make the container IP available

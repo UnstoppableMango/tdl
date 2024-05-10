@@ -3,7 +3,7 @@ using Docker.DotNet.Models;
 
 namespace UnMango.Tdl.Cli.Internal;
 
-public sealed record StartResult(CreateContainerResponse Container, ContainerInspectResponse Inspection);
+public sealed record StartResult(CreateContainerResponse Container);
 
 public interface IDocker
 {
@@ -46,7 +46,7 @@ internal sealed class Docker(IDockerClient docker, IDockerProgress progress) : I
 		CancellationToken cancellationToken) {
 		await docker.Images.CreateImageAsync(
 			new ImagesCreateParameters { FromImage = image, Tag = tag },
-			null,
+			new AuthConfig(),
 			progress,
 			cancellationToken);
 
@@ -54,13 +54,9 @@ internal sealed class Docker(IDockerClient docker, IDockerProgress progress) : I
 			new CreateContainerParameters {
 				Image = $"{image}:{tag}",
 				Name = name,
-				AttachStdout = true,
-				AttachStderr = true,
 				Cmd = command,
-				ExposedPorts = { [Port] = new EmptyStruct() },
 			},
 			cancellationToken);
-
 
 		await docker.Containers.GetContainerLogsAsync(
 			container.ID,
@@ -77,15 +73,11 @@ internal sealed class Docker(IDockerClient docker, IDockerProgress progress) : I
 			throw new Exception("Failed to start the container.");
 		}
 
-		var inspect = await docker.Containers.InspectContainerAsync(
-			container.ID,
-			cancellationToken);
-
-		return new StartResult(container, inspect);
+		return new StartResult(container);
 	}
 
 	public async Task Stop(string id, CancellationToken cancellationToken) {
-		await docker.Containers.StopContainerAsync(
+		_ = await docker.Containers.StopContainerAsync(
 			id,
 			new ContainerStopParameters {
 				WaitBeforeKillSeconds = 15,
