@@ -1,12 +1,12 @@
 ﻿using System.CommandLine;
 using System.CommandLine.Builder;
+using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 using Serilog;
-using UnMango.Tdl;
 using UnMango.Tdl.Cli;
+using UnMango.Tdl.Cli.Internal;
 
 var root = new RootCommand("UnstoppableMango's Type Description Language CLI") {
-	Commands.To(),
 	Commands.Gen(),
 	Commands.From(),
 };
@@ -17,11 +17,8 @@ Log.Logger = new LoggerConfiguration()
 	.CreateLogger();
 
 var builder = new CommandLineBuilder(root)
-	.AddMiddleware(async (context, next) => {
-		var cancellationToken = context.GetCancellationToken();
-		using var scope = await Broker.Dev.Start("http://127.0.0.1:6969", cancellationToken);
-		await next(context);
-	})
+	.AddMiddleware(AddDocker.Middleware, MiddlewareOrder.Configuration)
+	.AddMiddleware(EnsureBroker.Middleware)
 	.UseDefaults();
 
 var parser = builder.Build();

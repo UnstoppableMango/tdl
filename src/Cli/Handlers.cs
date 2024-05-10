@@ -8,15 +8,17 @@ internal static class Handlers
 		IEnumerable<FileInfo> files,
 		CancellationToken cancellationToken) {
 		Console.WriteLine("Delay to prove it works");
-		await Task.Delay(2000, cancellationToken);
+		await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
 		return 0;
 	}
 
-	public static Task<int> Gen(string target, string? source, IEnumerable<FileInfo> files) {
-		return Task.FromResult(0);
-	}
-
-	public static Task<int> To(string target, string? source, IEnumerable<FileInfo> files) {
-		return Task.FromResult(0);
+	public static async Task<int> Gen(
+		string target,
+		string? source,
+		IEnumerable<FileInfo> files,
+		CancellationToken cancellationToken) {
+		Console.WriteLine("Delay to prove it works");
+		await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+		return 0;
 	}
 }

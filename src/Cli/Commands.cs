@@ -39,21 +39,7 @@ internal static class Commands
 			sourceArg, fileArg,
 		};
 		command.AddAlias("gen");
-		command.SetHandler(Handlers.Gen, targetArg, sourceArg, fileArg);
-		return command;
-	}
-
-	public static Command To() {
-		var targetArg = new Argument<string>("target", "The target output format.");
-		var fromOpt = new Option<string?>(["--from", "-f"], "The source format.");
-		var fileArg = new Argument<IEnumerable<FileInfo>>("file", "The file(s) to convert.") {
-			Arity = ArgumentArity.ZeroOrMore,
-		};
-		var command = new Command("to", "Convert from uml to the target output format.") {
-			targetArg, fromOpt, fileArg,
-		};
-		command.AddAlias("2");
-		command.SetHandler(Handlers.To, targetArg, fromOpt, fileArg);
+		command.SetHandler(Handlers.Gen, targetArg, sourceArg, fileArg, TokenBinder.Value);
 		return command;
 	}
 }
