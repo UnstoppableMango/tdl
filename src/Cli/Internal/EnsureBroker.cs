@@ -8,18 +8,22 @@ using Microsoft.Extensions.DependencyInjection;
 internal static class EnsureBroker
 {
 	public static InvocationMiddleware Middleware => async (context, next) => {
-		var ct = context.GetCancellationToken();
+		var cancellationToken = context.GetCancellationToken();
 		var docker = context.BindingContext.GetRequiredService<IDocker>();
 
 		// TODO: Check local env and build if needed
-		var start = await docker.Start("ghcr.io/unstoppablemango/tdl-broker", "main", [], "tdl-test", ct);
+		var start = await docker.Start(new StartArgs {
+			Image = "ghcr.io/unstoppablemango/tdl-broker",
+			Tag = "main",
+			Name = "tdl-test",
+			Volumes = [$"{Config.SocketDir}:/var/run/tdl"],
+		}, cancellationToken);
 
 		try {
-			// TODO: How do we make the container IP available
 			await next(context);
 		}
 		finally {
-			await docker.Stop(start, ct);
+			await docker.Stop(start, cancellationToken);
 		}
 	};
 }

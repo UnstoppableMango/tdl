@@ -1,6 +1,3 @@
-using System.CommandLine;
-using Docker.DotNet;
-using Docker.DotNet.Models;
 using UnMango.Tdl.Abstractions;
 
 namespace UnMango.Tdl.Cli.Internal;
@@ -8,17 +5,21 @@ namespace UnMango.Tdl.Cli.Internal;
 internal sealed class DockerRunner(IDocker docker, string plugin) : IRunner
 {
 	private const string Tag = "main";
-	private readonly string _image = $"ghcr.io/unstoppablemango/{plugin}";
+
+	private readonly StartArgs _defaultArgs = new() {
+		Image = $"ghcr.io/unstoppablemango/{plugin}",
+		Tag = Tag,
+		Volumes = [$"{Config.SocketDir}:/var/run/tdl"],
+	};
 
 	public async Task<Spec> FromAsync(Stream input, CancellationToken cancellationToken = default) {
-		var result = await docker.Start(_image, Tag, ["from"], cancellationToken);
-		await docker.Stop(result.Container.ID, cancellationToken);
-
-		throw new NotImplementedException();
+		var container = await docker.Start(_defaultArgs with { Cmd = ["from"] }, cancellationToken);
+		await docker.Stop(container, cancellationToken);
+		return new Spec();
 	}
 
 	public async Task GenerateAsync(Spec spec, Stream output, CancellationToken cancellationToken = default) {
-		var result = await docker.Start(_image, Tag, ["gen"], cancellationToken);
-		await docker.Stop(result.Container.ID, cancellationToken);
+		var container = await docker.Start(_defaultArgs with { Cmd = ["gen"] }, cancellationToken);
+		await docker.Stop(container, cancellationToken);
 	}
 }
