@@ -5,11 +5,12 @@ internal static class Config
 {
 	private static readonly string AppData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
 
-	public const string ContainerTag =
 #if DEBUG
-		"local";
+	public const string ContainerRepo = "unstoppablemango";
+	public const string ContainerTag = "local";
 #else
-		"main";
+	public const string ContainerRepo = "ghcr.io/unstoppablemango";
+	public const string ContainerTag = "main";
 #endif
 
 	public static readonly string SocketDir = Path.Join(AppData, "tdl");

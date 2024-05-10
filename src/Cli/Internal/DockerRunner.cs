@@ -5,7 +5,7 @@ namespace UnMango.Tdl.Cli.Internal;
 internal sealed class DockerRunner(IDocker docker, string plugin) : IRunner
 {
 	private readonly StartArgs _defaultArgs = new() {
-		Image = $"ghcr.io/unstoppablemango/{plugin}",
+		Image = $"{Config.ContainerRepo}/{plugin}",
 		Tag = Config.ContainerTag,
 		Volumes = [$"{Config.SocketDir}:/var/run/tdl"],
 	};

@@ -13,7 +13,7 @@ internal static class EnsureBroker
 
 		// TODO: Check local env and build if needed
 		var start = await docker.Start(new StartArgs {
-			Image = "ghcr.io/unstoppablemango/tdl-broker",
+			Image = $"{Config.ContainerRepo}/tdl-broker",
 			Tag = Config.ContainerTag,
 			Name = "tdl-test",
 			Volumes = [$"{Config.SocketDir}:/var/run/tdl"],
