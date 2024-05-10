@@ -16,7 +16,6 @@ COPY proto ./proto
 COPY Directory.Build.props .
 COPY src/Broker/ ./Broker/
 
-# RUN ls -la Broker && exit 1
 RUN MINVERDISABLE=true \
 	dotnet publish \
 		--no-restore \
