@@ -5,7 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 var socket = builder.Environment.IsDevelopment()
 	? Path.Combine(Path.GetTempPath(), "tdl.sock")
-	: "/var/run/tdl.sock";
+	: "/var/run/tdl/broker.sock";
 
 builder.WebHost.ConfigureKestrel(kestrel => {
 	kestrel.ListenUnixSocket(socket, listen => {
