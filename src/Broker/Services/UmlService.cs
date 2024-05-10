@@ -21,6 +21,6 @@ public class UmlService : Tdl.UmlService.UmlServiceBase
 		IServerStreamWriter<GenResponse> responseStream,
 		ServerCallContext context) {
 		var data = ByteString.CopyFromUtf8("Hello World!");
-		await responseStream.WriteAsync(new GenResponse { Data = data });
+		await responseStream.WriteAsync(new GenResponse { Data = data }, context.CancellationToken);
 	}
 }
