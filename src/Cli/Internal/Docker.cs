@@ -3,7 +3,9 @@ using Docker.DotNet.Models;
 
 namespace UnMango.Tdl.Cli.Internal;
 
-internal interface IDocker
+public sealed record StartResult(CreateContainerResponse Container, ContainerInspectResponse Inspection);
+
+public interface IDocker
 {
 	Task<StartResult> Start(
 		string image,
@@ -31,8 +33,6 @@ internal static class DockerExtensions
 	public static Task Stop(this IDocker docker, StartResult start, CancellationToken cancellationToken = default)
 		=> docker.Stop(start.Container.ID, cancellationToken);
 }
-
-internal sealed record StartResult(CreateContainerResponse Container, ContainerInspectResponse Inspection);
 
 internal sealed class Docker(IDockerClient docker, IDockerProgress progress) : IDocker
 {

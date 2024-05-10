@@ -1,34 +1,38 @@
-using System.Text;
-using Docker.DotNet;
-using Google.Protobuf;
+using Docker.DotNet.Models;
 using NSubstitute;
 using UnMango.Tdl.Cli.Internal;
-using Xunit.Abstractions;
 
 namespace UnMango.Tdl.Cli.Tests.Internal;
 
-public sealed class DockerRunnerTests(ITestOutputHelper test)
+public sealed class DockerRunnerTests
 {
 	[Fact]
 	public async Task TestDocker() {
-		var client = Substitute.For<IDocker>();
-		var docker = new DockerRunner(client, string.Empty);
 		await using MemoryStream output = new();
+		var spec = new Spec();
+		var createResponse = new CreateContainerResponse { ID = "test-id" };
+		var startResult = new StartResult(createResponse, new ContainerInspectResponse());
+		var client = Substitute.For<IDocker>();
 
-		var spec = new Spec {
-			Name = "test-spec",
-			Types_ = {
-				["testType"] = new Type {
-					Type_ = "object",
-				},
-			},
-		};
+		client.Start(
+				Arg.Any<string>(),
+				Arg.Any<string>(),
+				Arg.Any<IList<string>>(),
+				Arg.Any<string>(),
+				CancellationToken.None)
+			.Returns(startResult);
+
+		var docker = new DockerRunner(client, string.Empty);
 
 		await docker.GenerateAsync(spec, output);
 
-		Assert.True(output.Length > 0, $"output length was: {output.Length}");
-		var actual = Encoding.UTF8.GetString(output.ToArray());
-		test.WriteLine(actual);
-		Assert.Equal("export interface testType \n{\n}", actual);
+		List<string> expectedCmd = ["gen"];
+		await client.Received().Start(
+			Arg.Any<string>(),
+			Arg.Any<string>(),
+			Arg.Is<IList<string>>(x => x.SequenceEqual(expectedCmd)),
+			Arg.Any<string>(),
+			CancellationToken.None);
+		await client.Received().Stop(createResponse.ID, CancellationToken.None);
 	}
 }
