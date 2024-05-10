@@ -9,7 +9,7 @@ internal sealed record ConsoleProgress(IConsole Console) : IDockerProgress
 		// Console.Write("Got progress: ");
 		// Console.WriteLine(value.ProgressMessage);
 		// Console.WriteLine(value.ErrorMessage);
-		Console.Write(value.Status);
+		Console.WriteLine(value.Status);
 	}
 
 	public void Report(string value) => Console.WriteLine(value);
