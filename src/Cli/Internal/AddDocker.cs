@@ -9,7 +9,7 @@ internal static class AddDocker
 		var progress = new ConsoleProgress(context.Console);
 		using var client = new DockerClientConfiguration().CreateClient();
 		var docker = new Docker(client, progress);
-		context.BindingContext.AddService(_ => docker);
+		context.BindingContext.AddService<IDocker>(_ => docker);
 		return next(context);
 	};
 }
