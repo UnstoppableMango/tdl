@@ -4,6 +4,8 @@ namespace UnMango.Tdl.Cli;
 
 internal static class Handlers
 {
+	private const int MaxRetries = 10;
+
 	public static async Task<int> From(
 		string source,
 		string? target,
@@ -19,14 +21,17 @@ internal static class Handlers
 		string? source,
 		IEnumerable<FileInfo> files,
 		CancellationToken cancellationToken) {
-		var config = new Config(Env.Dev);
 		Log.Verbose("Creating client channel");
-		using var channel = Client.createChannel(config.Socket);
+		using var channel = Client.createChannel(Config.Socket);
 		var client = new UmlService.UmlServiceClient(channel);
 
-		while (!File.Exists(config.Socket)) {
-			Log.Debug("Waiting for socket");
+		var retryCount = 0;
+		while (!File.Exists(Config.Socket)) {
+			Log.Debug("Waiting for socket: Attempt {RetryCount}", retryCount);
+			if (retryCount++ >= MaxRetries)
+				throw new Exception("Failed waiting for socket");
 		}
+
 
 		try {
 			Log.Debug("Sending gen request");
