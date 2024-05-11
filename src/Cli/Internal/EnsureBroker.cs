@@ -34,7 +34,7 @@ internal static class EnsureBroker
 		Log.Verbose("Started broker");
 
 		try {
-			await using var _ = docker.FollowLogs(container);
+			_ = docker.FollowLogs(container);
 			await docker.WaitFor(container, ApplicationStarted.IsMatch, cancellationToken);
 			Log.Verbose("Invoking next");
 			await next(context);
