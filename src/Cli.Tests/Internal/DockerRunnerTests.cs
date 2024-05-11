@@ -11,13 +11,13 @@ public sealed class DockerRunnerTests
 		await using MemoryStream output = new();
 		var spec = new Spec();
 		var createResponse = new CreateContainerResponse { ID = "test-id" };
-		var startResult = new StartResult(createResponse);
 		var client = Substitute.For<IDocker>();
+		var startResult = new Container(client, createResponse);
 
 		client.Start(Arg.Any<StartArgs>(), CancellationToken.None)
 			.Returns(startResult);
 
-		var docker = new DockerRunner(client, string.Empty);
+		var docker = new DockerRunner(client, new Config(Env.Dev), string.Empty);
 
 		await docker.GenerateAsync(spec, output);
 
