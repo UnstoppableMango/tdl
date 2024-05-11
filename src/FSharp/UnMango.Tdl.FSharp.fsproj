@@ -10,6 +10,7 @@
 		<Compile Include="Library.fs"/>
 		<Compile Include="Broker.fs"/>
 		<Compile Include="Tdl.fs" />
+		<Compile Include="Config.fs" />
 	</ItemGroup>
 
 	<ItemGroup>
