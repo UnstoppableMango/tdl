@@ -63,17 +63,17 @@ internal sealed class Docker(IDockerClient docker, IDockerProgress progress) : I
 	}
 
 	public async Task<IContainer> Start(StartArgs args, CancellationToken cancellationToken) {
-#if !DEBUG
-		Log.Debug("Creating image");
-		await docker.Images.CreateImageAsync(
-			new ImagesCreateParameters {
-				FromImage = args.Image,
-				Tag = args.Tag,
-			},
-			new AuthConfig(),
-			progress,
-			cancellationToken);
-#endif
+		if (Config.Env.IsRelease) {
+			Log.Debug("Creating image");
+			await docker.Images.CreateImageAsync(
+				new ImagesCreateParameters {
+					FromImage = args.Image,
+					Tag = args.Tag,
+				},
+				new AuthConfig(),
+				progress,
+				cancellationToken);
+		}
 
 		Log.Debug("Creating container");
 		var container = await docker.Containers.CreateContainerAsync(
