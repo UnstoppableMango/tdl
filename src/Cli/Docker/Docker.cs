@@ -2,7 +2,7 @@ using Docker.DotNet;
 using Docker.DotNet.Models;
 using Serilog;
 
-namespace UnMango.Tdl.Cli.Internal;
+namespace UnMango.Tdl.Cli.Docker;
 
 public sealed record StartArgs
 {
