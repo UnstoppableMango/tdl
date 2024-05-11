@@ -7,11 +7,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Compile Include="Library.fs"/>
+		<Compile Include="Util.fs" />
 		<Compile Include="Tools.fs" />
-		<Compile Include="Broker.fs"/>
 		<Compile Include="Tdl.fs" />
-		<Compile Include="Client.fs" />
+		<Compile Include="GrpcClient.fs" />
 		<Compile Include="Config.fs" />
 	</ItemGroup>
 

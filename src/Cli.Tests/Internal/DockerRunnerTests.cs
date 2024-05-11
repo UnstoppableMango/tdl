@@ -12,7 +12,7 @@ public sealed class DockerRunnerTests
 		var spec = new Spec();
 		var createResponse = new CreateContainerResponse { ID = "test-id" };
 		var client = Substitute.For<IDocker>();
-		var startResult = new Container(client, createResponse);
+		var startResult = Container.From(client, createResponse);
 
 		client.Start(Arg.Any<StartArgs>(), CancellationToken.None)
 			.Returns(startResult);
