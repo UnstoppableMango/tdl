@@ -41,6 +41,9 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{A019E942-34BF-4F88-AFA8-3AA445D409E6}"
 	ProjectSection(SolutionItems) = preProject
 		.github\workflows\cli.yml = .github\workflows\cli.yml
+		.github\workflows\ci.yml = .github\workflows\ci.yml
+		.github\workflows\packages.yml = .github\workflows\packages.yml
+		.github\workflows\tag.yml = .github\workflows\tag.yml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "proto", "proto", "{D33909C2-5104-4E7E-A0F1-FC98FF7B4C5A}"
