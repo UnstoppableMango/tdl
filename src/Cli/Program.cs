@@ -41,11 +41,11 @@ finally {
 return;
 
 static LogEventLevel ConsoleLogLevel() {
-	if (Config.VerboseEnabled())
+	if (Config.VerboseEnabled)
 		return LogEventLevel.Verbose;
 
 	// ReSharper disable once ConvertIfStatementToReturnStatement
-	if (Config.DebugEnabled())
+	if (Config.DebugEnabled)
 		return LogEventLevel.Debug;
 
 	return LogEventLevel.Error;

@@ -19,17 +19,16 @@ internal static class EnsureBroker
 	public static InvocationMiddleware Middleware => async (context, next) => {
 		var cancellationToken = context.GetCancellationToken();
 		var docker = context.BindingContext.GetRequiredService<IDocker>();
-		var config = new Config(Env.Dev);
 		var uid = await Config.Uid();
 		var gid = await Config.Gid();
 
 		Log.Debug("Starting broker");
 		var container = await docker.Start(new StartArgs {
-			Image = $"{config.ContainerRepo}/tdl-broker",
-			Tag = config.ContainerTag,
+			Image = $"{Config.ContainerRepo}/tdl-broker",
+			Tag = Config.ContainerTag,
 			Name = "tdl-test",
 			User = $"{uid}:{gid}",
-			Volumes = [$"{config.SocketDir}:/var/run/tdl"],
+			Volumes = [$"{Config.SocketDir}:/var/run/tdl"],
 		}, cancellationToken);
 		Log.Verbose("Started broker");
 
