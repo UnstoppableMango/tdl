@@ -1,6 +1,6 @@
 using Docker.DotNet.Models;
 using NSubstitute;
-using UnMango.Tdl.Cli.Internal;
+using UnMango.Tdl.Cli.Docker;
 
 namespace UnMango.Tdl.Cli.Tests.Internal;
 
