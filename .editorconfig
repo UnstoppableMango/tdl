@@ -11,6 +11,7 @@ indent_style = space
 
 [*.fs]
 indent_style = space
+fsharp_newline_before_multiline_computation_expression = false
 
 [*.cs]
 indent_size = 4
