@@ -14,16 +14,22 @@ var root = new RootCommand("UnstoppableMango's Type Description Language CLI") {
 Log.Logger = new LoggerConfiguration()
 	.Enrich.FromLogContext()
 	.WriteTo.Console()
+	.MinimumLevel.Verbose()
 	.CreateLogger();
 
 var builder = new CommandLineBuilder(root)
+	.UseDefaults()
+	.UseExceptionHandler((exception, _) => {
+		Log.Fatal(exception, "Invocation error");
+	})
 	.AddMiddleware(AddDocker.Middleware, MiddlewareOrder.Configuration)
-	.AddMiddleware(EnsureBroker.Middleware)
-	.UseDefaults();
+	.AddMiddleware(EnsureBroker.Middleware);
 
+Log.Verbose("Building parser");
 var parser = builder.Build();
 
 try {
+	Log.Verbose("Invoking parser");
 	await parser.InvokeAsync(args);
 }
 catch (Exception e) {
