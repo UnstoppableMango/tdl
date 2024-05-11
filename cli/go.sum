@@ -213,6 +213,8 @@ github.com/unstoppablemango/tdl/gen v0.0.4 h1:S1hldumuVSvbtebzIeYxMO3u+M2joV4H/m
 github.com/unstoppablemango/tdl/gen v0.0.4/go.mod h1:zlpx5CC3x3JE7RAL5F5dc+QSEq7qL2xxleBKRv8dlE4=
 github.com/unstoppablemango/tdl/pkg v0.0.4 h1:KxooCmhsD1A/3uO1VhK3R3fFBI32MRCn9E3gR1JY3SM=
 github.com/unstoppablemango/tdl/pkg v0.0.4/go.mod h1:OSJeoqYyJNIHT8r13GNzSxVZFRr4h42rECUXUq2QZqM=
+github.com/unstoppablemango/tdl/pkg v0.0.6 h1:Zb97rWBbCTdCd2wvk6LvvKXQT832yIspZKYLq+KjT0Q=
+github.com/unstoppablemango/tdl/pkg v0.0.6/go.mod h1:NtqD6awbN5jiv4VeinIbq88TG82NqsoRf0fp6vlQVwE=
 github.com/xanzy/ssh-agent v0.3.3 h1:+/15pJfg/RsTxqYcX6fHqOXZwwMP+2VyYWJeWM2qQFM=
 github.com/xanzy/ssh-agent v0.3.3/go.mod h1:6dzNDKs0J9rVPHPhaGCukekBHKqfl+L3KghI1Bc68Uw=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
