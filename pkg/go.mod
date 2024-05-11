@@ -7,7 +7,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.17.3
 	github.com/onsi/gomega v1.33.1
 	github.com/pulumi/pulumi/pkg/v3 v3.115.2
-	github.com/unstoppablemango/tdl/gen v0.0.4
+	github.com/unstoppablemango/tdl/gen v0.0.6
 	google.golang.org/protobuf v1.34.1
 )
 
