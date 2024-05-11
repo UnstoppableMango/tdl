@@ -15,8 +15,8 @@ internal static partial class EnsureBroker
 		var cancellationToken = context.GetCancellationToken();
 		var docker = context.BindingContext.GetRequiredService<IDocker>();
 		var config = new Config(Env.Dev);
-		var uid = Environment.GetEnvironmentVariable("UID");
-		var gid = Environment.GetEnvironmentVariable("GID");
+		var uid = await Config.Uid();
+		var gid = await Config.Gid();
 
 		Log.Debug("Starting broker");
 		var container = await docker.Start(new StartArgs {

@@ -127,7 +127,7 @@ internal sealed class Docker(IDockerClient docker, IDockerProgress progress) : I
 	public Task WaitFor(string id, Predicate<string> condition, CancellationToken cancellationToken) {
 		var tcs = new TaskCompletionSource();
 		var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-		cancellationToken.Register(() => tcs.SetCanceled(cts.Token));
+		cancellationToken.Register(() => tcs.SetCanceled(cancellationToken));
 
 		var subject = new Subject<string>(condition, () => {
 			Log.Debug("Condition met");

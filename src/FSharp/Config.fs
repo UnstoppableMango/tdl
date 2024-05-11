@@ -2,6 +2,9 @@ namespace UnMango.Tdl
 
 open System
 open System.IO
+open System.Text
+open CliWrap
+open UnMango.CliWrap.FSharp
 
 type Env =
   | Dev
@@ -32,3 +35,7 @@ type Config(env) =
   member _.ContainerTag = Config.containerTag env
   member _.SocketDir = Config.socketDir env
   member _.Socket = Config.socket env
+
+  static member Uid() = Tools.uid |> Async.StartAsTask
+
+  static member Gid() = Tools.gid |> Async.StartAsTask
