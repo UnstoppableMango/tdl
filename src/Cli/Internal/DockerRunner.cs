@@ -2,12 +2,12 @@ using UnMango.Tdl.Abstractions;
 
 namespace UnMango.Tdl.Cli.Internal;
 
-internal sealed class DockerRunner(IDocker docker, string plugin) : IRunner
+internal sealed class DockerRunner(IDocker docker, Config config, string plugin) : IRunner
 {
 	private readonly StartArgs _defaultArgs = new() {
-		Image = $"{Config.ContainerRepo}/{plugin}",
-		Tag = Config.ContainerTag,
-		Volumes = [$"{Config.SocketDir}:/var/run/tdl"],
+		Image = $"{config.ContainerRepo}/{plugin}",
+		Tag = config.ContainerTag,
+		Volumes = [$"{config.SocketDir}:/var/run/tdl"],
 	};
 
 	public async Task<Spec> FromAsync(Stream input, CancellationToken cancellationToken = default) {
