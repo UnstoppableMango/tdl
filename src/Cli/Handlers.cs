@@ -22,7 +22,7 @@ internal static class Handlers
 		IEnumerable<FileInfo> files,
 		CancellationToken cancellationToken) {
 		Log.Verbose("Creating client channel");
-		using var channel = Client.createChannel(Config.Socket);
+		using var channel = GrpcClient.createChannel(Config.Socket);
 		var client = new UmlService.UmlServiceClient(channel);
 
 		var retryCount = 0;

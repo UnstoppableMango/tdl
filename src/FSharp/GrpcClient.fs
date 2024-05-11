@@ -1,4 +1,4 @@
-module UnMango.Tdl.Client
+module UnMango.Tdl.GrpcClient
 
 open System
 open System.IO
