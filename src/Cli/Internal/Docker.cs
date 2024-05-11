@@ -12,10 +12,13 @@ public sealed record StartArgs
 	public string? Name { get; init; }
 	public IList<string> Volumes { get; init; } = [];
 	public string? User { get; init; }
+	public IDictionary<string, string> Labels { get; init; } = new Dictionary<string, string>();
 }
 
 public interface IDocker
 {
+	Task<IContainer?> FindMatching(IDictionary<string, string> labels, CancellationToken cancellationToken);
+
 	Task FollowLogs(string id, CancellationToken cancellationToken = default);
 
 	Task<IContainer> Start(StartArgs args, CancellationToken cancellationToken = default);
@@ -49,6 +52,24 @@ internal sealed class Docker(IDockerClient docker, IDockerProgress progress) : I
 	private static readonly Random Random = new();
 	private static string RandomName => $"tdl-{Random.Next()}";
 
+	public async Task<IContainer?> FindMatching(
+		IDictionary<string, string> labels,
+		CancellationToken cancellationToken) {
+		Log.Debug("Listing containers");
+		var containers = await docker.Containers.ListContainersAsync(
+			new ContainersListParameters {
+				Filters = labels.ToDictionary(
+					x => x.Key,
+					x => new Dictionary<string, bool> {
+						[x.Value] = true,
+					} as IDictionary<string, bool>),
+			},
+			cancellationToken);
+
+		var firstMatch = containers.FirstOrDefault();
+		return firstMatch == null ? null : Container.From(this, firstMatch);
+	}
+
 	public Task FollowLogs(string id, CancellationToken cancellationToken) {
 		Log.Debug("Getting container logs");
 		return docker.Containers.GetContainerLogsAsync(
@@ -76,13 +97,14 @@ internal sealed class Docker(IDockerClient docker, IDockerProgress progress) : I
 		}
 
 		Log.Debug("Creating container");
-		var container = await docker.Containers.CreateContainerAsync(
+		var createResponse = await docker.Containers.CreateContainerAsync(
 			new CreateContainerParameters {
 				Image = $"{args.Image}:{args.Tag}",
 				Name = args.Name ?? RandomName,
 				Cmd = args.Cmd,
 				User = args.User,
 				Tty = true,
+				Labels = args.Labels,
 				HostConfig = new HostConfig {
 					Binds = args.Volumes,
 				},
@@ -91,7 +113,7 @@ internal sealed class Docker(IDockerClient docker, IDockerProgress progress) : I
 
 		Log.Debug("Starting container");
 		var started = await docker.Containers.StartContainerAsync(
-			container.ID,
+			createResponse.ID,
 			new ContainerStartParameters(),
 			cancellationToken);
 
@@ -100,7 +122,7 @@ internal sealed class Docker(IDockerClient docker, IDockerProgress progress) : I
 		}
 
 		Log.Verbose("Started container");
-		return new Container(this, container);
+		return Container.From(this, createResponse);
 	}
 
 	public async Task Stop(string id, CancellationToken cancellationToken) {
