@@ -12,7 +12,8 @@
 	</PropertyGroup>
 
 	<PropertyGroup>
-		<ProtoRoot>$(MSBuildThisFileDirectory)/proto</ProtoRoot>
+		<ProjectRoot>$(MSBuildThisFileDirectory)</ProjectRoot>
+		<ProtoRoot>$(ProjectRoot)/proto</ProtoRoot>
 		<ProtoPkgDir>$(ProtoRoot)/unmango/dev/tdl</ProtoPkgDir>
 		<ProtoDir>$(ProtoPkgDir)/v1alpha1</ProtoDir>
 	</PropertyGroup>

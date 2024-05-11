@@ -16,7 +16,6 @@ COPY proto ./proto
 COPY Directory.Build.props .
 COPY src/Broker/ ./Broker/
 
-# RUN ls -la Broker && exit 1
 RUN MINVERDISABLE=true \
 	dotnet publish \
 		--no-restore \
@@ -33,7 +32,11 @@ RUN addgroup tdl && useradd -G tdl broker
 
 WORKDIR /app
 COPY --from=build /out/ ./
-RUN chown broker:tdl -R .
 
-USER broker
+RUN mkdir /var/run/tdl && \
+    chown broker:tdl -R /var/run/tdl && \
+    chown broker:tdl -R /app
+
+USER broker:tdl
+VOLUME ["/var/run/tdl"]
 ENTRYPOINT ["dotnet", "UnMango.Tdl.Broker.dll"]

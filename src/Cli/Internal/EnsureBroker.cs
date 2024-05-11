@@ -1,25 +1,43 @@
 using System.CommandLine.Invocation;
+using System.Text.RegularExpressions;
 using Serilog;
 
 namespace UnMango.Tdl.Cli.Internal;
 
 using Microsoft.Extensions.DependencyInjection;
 
-internal static class EnsureBroker
+internal static partial class EnsureBroker
 {
-	public static InvocationMiddleware Middleware => async (context, next) => {
-		var ct = context.GetCancellationToken();
-		var docker = context.BindingContext.GetRequiredService<IDocker>();
+	[GeneratedRegex(".*Application started.*")]
+	private static partial Regex ApplicationStarted();
 
-		// TODO: Check local env and build if needed
-		var start = await docker.Start("ghcr.io/unstoppablemango/tdl-broker", "main", [], "tdl-test", ct);
+	public static InvocationMiddleware Middleware => async (context, next) => {
+		var cancellationToken = context.GetCancellationToken();
+		var docker = context.BindingContext.GetRequiredService<IDocker>();
+		var config = new Config(Env.Dev);
+		var uid = Environment.GetEnvironmentVariable("UID");
+		var gid = Environment.GetEnvironmentVariable("GID");
+
+		Log.Debug("Starting broker");
+		var container = await docker.Start(new StartArgs {
+			Image = $"{config.ContainerRepo}/tdl-broker",
+			Tag = config.ContainerTag,
+			Name = "tdl-test",
+			User = $"{uid}:{gid}",
+			Volumes = [$"{config.SocketDir}:/var/run/tdl"],
+		}, cancellationToken);
+		Log.Verbose("Started broker");
 
 		try {
-			// TODO: How do we make the container IP available
+			await using var _ = docker.FollowLogs(container);
+			await docker.WaitFor(container, ApplicationStarted().IsMatch, cancellationToken);
+			Log.Verbose("Invoking next");
 			await next(context);
+			Log.Verbose("After invoking next");
 		}
 		finally {
-			await docker.Stop(start, ct);
+			Log.Debug("Stopping broker");
+			await docker.Stop(container, cancellationToken);
 		}
 	};
 }

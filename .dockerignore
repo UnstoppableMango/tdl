@@ -18,3 +18,4 @@ coverage*
 docker
 **/bin/
 **/obj/
+launchSettings.json
