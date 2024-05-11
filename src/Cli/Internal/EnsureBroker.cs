@@ -6,10 +6,15 @@ namespace UnMango.Tdl.Cli.Internal;
 
 using Microsoft.Extensions.DependencyInjection;
 
-internal static partial class EnsureBroker
+internal static partial class Patterns
 {
 	[GeneratedRegex(".*Application started.*")]
-	private static partial Regex ApplicationStarted();
+	public static partial Regex ApplicationStarted();
+}
+
+internal static class EnsureBroker
+{
+	private static readonly Regex ApplicationStarted = Patterns.ApplicationStarted();
 
 	public static InvocationMiddleware Middleware => async (context, next) => {
 		var cancellationToken = context.GetCancellationToken();
@@ -30,7 +35,7 @@ internal static partial class EnsureBroker
 
 		try {
 			await using var _ = docker.FollowLogs(container);
-			await docker.WaitFor(container, ApplicationStarted().IsMatch, cancellationToken);
+			await docker.WaitFor(container, ApplicationStarted.IsMatch, cancellationToken);
 			Log.Verbose("Invoking next");
 			await next(context);
 			Log.Verbose("After invoking next");
