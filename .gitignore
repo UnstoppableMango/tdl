@@ -14,3 +14,4 @@ node_modules/
 go.work*
 discord.xml
 *.user
+.envrc
