@@ -17,7 +17,7 @@ public sealed class DockerRunnerTests
 		client.Start(Arg.Any<StartArgs>(), CancellationToken.None)
 			.Returns(startResult);
 
-		var docker = new DockerRunner(client, new Config(Env.Dev), string.Empty);
+		var docker = new DockerRunner(client, string.Empty);
 
 		await docker.GenerateAsync(spec, output);
 

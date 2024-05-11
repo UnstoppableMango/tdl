@@ -75,6 +75,13 @@ build_proto: .make/build_proto
 docker:
 	@$(MAKE) -C docker all
 
+.PHONY: dev undev
+dev: work .envrc
+	@echo 'Ensuring development environment'
+undev:
+	@echo 'Tearing down dev environment'
+	rm -f .envrc .make/regen_envrc
+
 # The naming is kinda silly but its short
 .PHONY: work
 work: go.work go.work.sum
@@ -89,6 +96,9 @@ go.work:
 go.work.sum: GOWORK :=
 go.work.sum: go.work
 	go work sync
+
+.envrc: .make/regen_envrc
+	echo 'export TDL_DEV=true' > .envrc
 
 .make/tool_restore: .config/dotnet-tools.json
 	dotnet tool restore
@@ -120,4 +130,7 @@ PROTO_SRC := $(shell find proto -type f -name '*.proto')
 
 .make/lint_lang: .make/tool_restore $(LANG_SRC)
 	dotnet fantomas ${LANG_DIR}
+	@touch $@
+
+.make/regen_envrc:
 	@touch $@

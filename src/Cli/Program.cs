@@ -3,6 +3,8 @@ using System.CommandLine.Builder;
 using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 using Serilog;
+using Serilog.Events;
+using UnMango.Tdl;
 using UnMango.Tdl.Cli;
 using UnMango.Tdl.Cli.Internal;
 
@@ -13,15 +15,12 @@ var root = new RootCommand("UnstoppableMango's Type Description Language CLI") {
 
 Log.Logger = new LoggerConfiguration()
 	.Enrich.FromLogContext()
-	.WriteTo.Console()
+	.WriteTo.Console(restrictedToMinimumLevel: ConsoleLogLevel())
 	.MinimumLevel.Verbose()
 	.CreateLogger();
 
-var builder = new CommandLineBuilder(root)
-	.UseDefaults()
-	.UseExceptionHandler((exception, _) => {
-		Log.Fatal(exception, "Invocation error");
-	})
+var builder = new CommandLineBuilder(root).UseDefaults()
+	.UseExceptionHandler((ex, _) => Log.Fatal(ex, "Invocation error"))
 	.AddMiddleware(AddDocker.Middleware, MiddlewareOrder.Configuration)
 	.AddMiddleware(EnsureBroker.Middleware);
 
@@ -37,4 +36,17 @@ catch (Exception e) {
 }
 finally {
 	await Log.CloseAndFlushAsync();
+}
+
+return;
+
+static LogEventLevel ConsoleLogLevel() {
+	if (Config.VerboseEnabled)
+		return LogEventLevel.Verbose;
+
+	// ReSharper disable once ConvertIfStatementToReturnStatement
+	if (Config.DebugEnabled)
+		return LogEventLevel.Debug;
+
+	return LogEventLevel.Error;
 }

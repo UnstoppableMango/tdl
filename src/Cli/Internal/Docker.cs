@@ -16,7 +16,7 @@ public sealed record StartArgs
 
 public interface IDocker
 {
-	IAsyncDisposable FollowLogs(string id, CancellationToken cancellationToken = default);
+	Task FollowLogs(string id, CancellationToken cancellationToken = default);
 
 	Task<IContainer> Start(StartArgs args, CancellationToken cancellationToken = default);
 
@@ -27,7 +27,7 @@ public interface IDocker
 
 internal static class DockerExtensions
 {
-	public static IAsyncDisposable FollowLogs(
+	public static Task FollowLogs(
 		this IDocker docker,
 		IContainer container,
 		CancellationToken cancellationToken = default)
@@ -49,22 +49,17 @@ internal sealed class Docker(IDockerClient docker, IDockerProgress progress) : I
 	private static readonly Random Random = new();
 	private static string RandomName => $"tdl-{Random.Next()}";
 
-	public IAsyncDisposable FollowLogs(string id, CancellationToken cancellationToken) {
-		Log.Verbose("Creating logs cancellation token source");
-		var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-
+	public Task FollowLogs(string id, CancellationToken cancellationToken) {
 		Log.Debug("Getting container logs");
-		var task = docker.Containers.GetContainerLogsAsync(
+		return docker.Containers.GetContainerLogsAsync(
 			id,
 			new ContainerLogsParameters {
 				Follow = true,
 				ShowStdout = true,
 				ShowStderr = true,
 			},
-			cts.Token,
+			cancellationToken,
 			progress);
-
-		return new DockerLogReader(task, cts);
 	}
 
 	public async Task<IContainer> Start(StartArgs args, CancellationToken cancellationToken) {
@@ -127,7 +122,7 @@ internal sealed class Docker(IDockerClient docker, IDockerProgress progress) : I
 	public Task WaitFor(string id, Predicate<string> condition, CancellationToken cancellationToken) {
 		var tcs = new TaskCompletionSource();
 		var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-		cancellationToken.Register(() => tcs.SetCanceled(cts.Token));
+		cancellationToken.Register(() => tcs.SetCanceled(cancellationToken));
 
 		var subject = new Subject<string>(condition, () => {
 			Log.Debug("Condition met");
@@ -148,14 +143,6 @@ internal sealed class Docker(IDockerClient docker, IDockerProgress progress) : I
 
 		Log.Debug("Waiting for condition");
 		return tcs.Task;
-	}
-
-	private sealed class DockerLogReader(Task logsTask, CancellationTokenSource cts) : IAsyncDisposable
-	{
-		public async ValueTask DisposeAsync() {
-			await cts.CancelAsync();
-			await logsTask;
-		}
 	}
 
 	private sealed class Subject<T>(Predicate<T> condition, Action onComplete) : IProgress<T>
