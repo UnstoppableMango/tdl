@@ -1,21 +1,20 @@
 using System.CommandLine;
-using System.CommandLine.Binding;
+using UnMango.Tdl.Cli.Broker;
+using UnMango.Tdl.Cli.Internal;
 
 namespace UnMango.Tdl.Cli;
 
-file class TokenBinder : BinderBase<CancellationToken>
-{
-	public static readonly TokenBinder Value = new();
-
-	protected override CancellationToken GetBoundValue(BindingContext bindingContext) {
-		var token = bindingContext.GetService(typeof(CancellationToken));
-		if (token is null) throw new Exception("Unable to retrieve cancellationToken");
-		return (CancellationToken)token;
-	}
-}
-
 internal static class Commands
 {
+	public static Command Broker() {
+		return new Command("broker", "Manage the tdl broker") {
+			BrokerCommands.Status(),
+			BrokerCommands.Start(),
+			BrokerCommands.Stop(),
+			BrokerCommands.Upgrade(),
+		};
+	}
+
 	public static Command From() {
 		var sourceArg = new Argument<string>("source", "The source format");
 		var toOpt = new Option<string?>(["--to", "-t", "-2"], "The target format");

@@ -1,51 +1,9 @@
 using Docker.DotNet;
 using Docker.DotNet.Models;
+using Newtonsoft.Json;
 using Serilog;
 
 namespace UnMango.Tdl.Cli.Docker;
-
-public sealed record StartArgs
-{
-	public required string Image { get; init; }
-	public required string Tag { get; init; }
-	public IList<string> Cmd { get; init; } = [];
-	public string? Name { get; init; }
-	public IList<string> Volumes { get; init; } = [];
-	public string? User { get; init; }
-	public IDictionary<string, string> Labels { get; init; } = new Dictionary<string, string>();
-}
-
-public interface IDocker
-{
-	Task<IContainer?> FindMatching(IDictionary<string, string> labels, CancellationToken cancellationToken);
-
-	Task FollowLogs(string id, CancellationToken cancellationToken = default);
-
-	Task<IContainer> Start(StartArgs args, CancellationToken cancellationToken = default);
-
-	Task Stop(string id, CancellationToken cancellationToken = default);
-
-	Task WaitFor(string id, Predicate<string> condition, CancellationToken cancellationToken = default);
-}
-
-internal static class DockerExtensions
-{
-	public static Task FollowLogs(
-		this IDocker docker,
-		IContainer container,
-		CancellationToken cancellationToken = default)
-		=> docker.FollowLogs(container.Id, cancellationToken);
-
-	public static Task Stop(this IDocker docker, IContainer container, CancellationToken cancellationToken = default)
-		=> docker.Stop(container.Id, cancellationToken);
-
-	public static Task WaitFor(
-		this IDocker docker,
-		IContainer container,
-		Predicate<string> condition,
-		CancellationToken cancellationToken = default)
-		=> docker.WaitFor(container.Id, condition, cancellationToken);
-}
 
 internal sealed class Docker(IDockerClient docker, IDockerProgress progress) : IDocker
 {
@@ -56,13 +14,15 @@ internal sealed class Docker(IDockerClient docker, IDockerProgress progress) : I
 		IDictionary<string, string> labels,
 		CancellationToken cancellationToken) {
 		Log.Debug("Listing containers");
+		Log.Verbose("Constructing label filter");
+		var labelFilter = labels.ToDictionary(
+			x => $"{x.Key}={x.Value}",
+			_ => true);
+
+		Console.WriteLine(JsonConvert.SerializeObject(labelFilter));
 		var containers = await docker.Containers.ListContainersAsync(
 			new ContainersListParameters {
-				Filters = labels.ToDictionary(
-					x => x.Key,
-					x => new Dictionary<string, bool> {
-						[x.Value] = true,
-					} as IDictionary<string, bool>),
+				Filters = { ["label"] = labelFilter },
 			},
 			cancellationToken);
 
@@ -81,6 +41,22 @@ internal sealed class Docker(IDockerClient docker, IDockerProgress progress) : I
 			},
 			cancellationToken,
 			progress);
+	}
+
+	public async Task<InspectResult> Inspect(string id, CancellationToken cancellationToken) {
+		var result = await docker.Containers.InspectContainerAsync(id, cancellationToken);
+
+		return new InspectResult {
+			Version = result.Image.Split(':')[0],
+			State = result.State switch {
+				{ Running: true } => $"Running: {result.State.Status}",
+				{ Dead: true } => $"Dead: {result.State.Status}",
+				{ Paused: true } => $"Paused: {result.State.Status}",
+				{ Error.Length: > 0 } => $"Error: {result.State.Error}",
+				{ OOMKilled: true } => "OOMKilled",
+				_ => "Unknown",
+			},
+		};
 	}
 
 	public async Task<IContainer> Start(StartArgs args, CancellationToken cancellationToken) {

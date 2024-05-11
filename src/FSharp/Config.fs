@@ -38,6 +38,8 @@ module Config =
     | Dev -> "local"
     | Release -> "main"
 
+  let ownerLabel = "tdl.owner"
+
   let socketDir: Env -> string =
     function
     | _ -> Path.Combine(appdata, "tdl")
@@ -55,6 +57,8 @@ type Config =
   static member ContainerTag = Config.containerTag Config.env
   static member SocketDir = Config.socketDir Config.env
   static member Socket = Config.socket Config.env
+
+  static member OwnerLabel = Config.ownerLabel
 
   static member Uid() = Tools.uid |> Async.StartAsTask
   static member Gid() = Tools.gid |> Async.StartAsTask
