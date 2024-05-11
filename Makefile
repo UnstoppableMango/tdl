@@ -75,9 +75,12 @@ build_proto: .make/build_proto
 docker:
 	@$(MAKE) -C docker all
 
-.PHONY: dev
+.PHONY: dev undev
 dev: work .envrc
 	@echo 'Ensuring development environment'
+undev:
+	@echo 'Tearing down dev environment'
+	rm -f .envrc .make/regen_envrc
 
 # The naming is kinda silly but its short
 .PHONY: work
