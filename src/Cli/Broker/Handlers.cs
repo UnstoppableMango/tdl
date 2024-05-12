@@ -1,3 +1,4 @@
+using System.CommandLine;
 using UnMango.Tdl.Cli.Docker;
 using UnMango.Tdl.Cli.Internal;
 
@@ -10,19 +11,20 @@ internal static class Handlers
 		return Task.CompletedTask;
 	}
 
-	public static async Task Status(IDocker docker, CancellationToken cancellationToken) {
+	public static async Task Status(IDocker docker, IConsole console, CancellationToken cancellationToken) {
 		var labels = new Dictionary<string, string> {
 			[Config.OwnerLabel] = Constants.Owner,
 		};
 
 		var container = await docker.FindMatching(labels, cancellationToken);
-
 		if (container is null) {
-			Console.WriteLine("Unable to find matching container: {0}", labels);
+			console.WriteLine($"Unable to find matching container: {labels}");
 			return;
 		}
 
 		var inspection = await docker.Inspect(container, cancellationToken);
+		console.WriteLine($"Version : {inspection.Version}");
+		console.WriteLine($"State   : {inspection.State}");
 	}
 
 	public static Task Stop(CancellationToken cancellationToken) {

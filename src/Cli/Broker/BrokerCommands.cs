@@ -1,4 +1,5 @@
 using System.CommandLine;
+using UnMango.Tdl.Cli.Docker;
 using UnMango.Tdl.Cli.Internal;
 
 namespace UnMango.Tdl.Cli.Broker;
@@ -13,7 +14,7 @@ internal static class BrokerCommands
 
 	public static Command Status() {
 		var command = new Command("status", "Check the status of the broker");
-		command.SetHandler(Handlers.Status, DockerBinder.Value, TokenBinder.Value);
+		command.SetHandler(Handlers.Status, Binder.Service<IDocker>(), ConsoleBinder.Value, TokenBinder.Value);
 		return command;
 	}
 
