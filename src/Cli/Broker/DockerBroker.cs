@@ -11,7 +11,7 @@ internal static partial class Patterns
 	public static partial Regex ApplicationStarted();
 }
 
-internal sealed class DockerBroker(IDocker docker, IConsole console) : IBroker
+internal sealed class DockerBroker(IDocker docker) : IBroker
 {
 	private const string OwnerLabel = "tdl.owner", Owner = "tdl-cli";
 	private static readonly Regex ApplicationStarted = Patterns.ApplicationStarted();
@@ -55,7 +55,6 @@ internal sealed class DockerBroker(IDocker docker, IConsole console) : IBroker
 	public async Task<BrokerStatus> Status(CancellationToken cancellationToken) {
 		var container = await docker.FindMatching(Labels, cancellationToken);
 		if (container is null) {
-			console.WriteLine($"Unable to find matching container: {Labels}");
 			return new BrokerStatus {
 				State = "not found",
 				Version = "unknown",

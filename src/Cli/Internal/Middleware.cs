@@ -1,6 +1,5 @@
 using System.CommandLine.Invocation;
 using Docker.DotNet;
-using Microsoft.Extensions.DependencyInjection;
 using UnMango.Tdl.Cli.Broker;
 using UnMango.Tdl.Cli.Docker;
 
@@ -16,7 +15,7 @@ internal static class Middleware
 		using var client = new DockerClientConfiguration().CreateClient();
 		var docker = new Docker.Docker(client, progress);
 		context.BindingContext.AddService<IDocker>(_ => docker);
-		context.BindingContext.AddService<IBroker>(_ => new DockerBroker(docker, context.Console));
+		context.BindingContext.AddService<IBroker>(_ => new DockerBroker(docker));
 
 		await next(context);
 	};
