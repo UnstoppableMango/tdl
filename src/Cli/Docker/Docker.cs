@@ -13,21 +13,25 @@ internal sealed class Docker(IDockerClient docker, IDockerProgress progress) : I
 	public async Task<IContainer?> FindMatching(
 		IDictionary<string, string> labels,
 		CancellationToken cancellationToken) {
-		Log.Debug("Listing containers");
-		Log.Verbose("Constructing label filter");
-		var labelFilter = labels.ToDictionary(
-			x => $"{x.Key}={x.Value}",
-			_ => true);
+		Dictionary<string, IDictionary<string, bool>> filters = new() {
+			["label"] = labels.ToDictionary(
+				x => $"{x.Key}={x.Value}",
+				_ => true),
+		};
 
-		Console.WriteLine(JsonConvert.SerializeObject(labelFilter));
+		Log.Debug("Listing containers");
 		var containers = await docker.Containers.ListContainersAsync(
 			new ContainersListParameters {
-				Filters = { ["label"] = labelFilter },
+				Filters = filters,
 			},
 			cancellationToken);
 
 		var firstMatch = containers.FirstOrDefault();
-		return firstMatch == null ? null : Container.From(this, firstMatch);
+		if (firstMatch is not null)
+			return Container.From(this, firstMatch);
+
+		Log.Debug("No match found");
+		return null;
 	}
 
 	public Task FollowLogs(string id, CancellationToken cancellationToken) {
@@ -47,15 +51,8 @@ internal sealed class Docker(IDockerClient docker, IDockerProgress progress) : I
 		var result = await docker.Containers.InspectContainerAsync(id, cancellationToken);
 
 		return new InspectResult {
-			Version = result.Image.Split(':')[0],
-			State = result.State switch {
-				{ Running: true } => $"Running: {result.State.Status}",
-				{ Dead: true } => $"Dead: {result.State.Status}",
-				{ Paused: true } => $"Paused: {result.State.Status}",
-				{ Error.Length: > 0 } => $"Error: {result.State.Error}",
-				{ OOMKilled: true } => "OOMKilled",
-				_ => "Unknown",
-			},
+			Version = result.Config.Image.Split(':')[1],
+			State = result.State.Status,
 		};
 	}
 
