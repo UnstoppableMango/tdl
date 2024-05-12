@@ -7,7 +7,6 @@ using Serilog.Events;
 using UnMango.Tdl;
 using UnMango.Tdl.Cli;
 using UnMango.Tdl.Cli.Broker;
-using UnMango.Tdl.Cli.Docker;
 using UnMango.Tdl.Cli.Internal;
 
 var root = new RootCommand("UnstoppableMango's Type Description Language CLI") {
