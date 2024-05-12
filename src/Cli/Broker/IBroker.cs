@@ -9,13 +9,19 @@ public sealed record BrokerStatus
 
 public interface IBroker
 {
-	ValueTask<bool> Running(CancellationToken cancellationToken);
+	ValueTask<bool> Running(CancellationToken cancellationToken = default);
 
-	ValueTask Start(CancellationToken cancellationToken);
+	ValueTask Start(CancellationToken cancellationToken = default);
 
-	Task<BrokerStatus> Status(CancellationToken cancellationToken);
+	Task<BrokerStatus> Status(CancellationToken cancellationToken = default);
 
-	ValueTask Stop(CancellationToken cancellationToken);
+	ValueTask Stop(CancellationToken cancellationToken = default);
 
-	Task Upgrade(string version, CancellationToken cancellationToken);
+	Task Upgrade(string? version, CancellationToken cancellationToken = default);
+}
+
+public static class BrokerExtensions
+{
+	public static Task Upgrade(this IBroker broker, CancellationToken cancellationToken = default)
+		=> broker.Upgrade(null, cancellationToken);
 }

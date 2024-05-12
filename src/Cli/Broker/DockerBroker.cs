@@ -79,7 +79,7 @@ internal sealed class DockerBroker(IDocker docker) : IBroker
 		await docker.Stop(container, cancellationToken);
 	}
 
-	public Task Upgrade(string version, CancellationToken cancellationToken) {
+	public Task Upgrade(string? version, CancellationToken cancellationToken) {
 		throw new NotImplementedException();
 	}
 }
