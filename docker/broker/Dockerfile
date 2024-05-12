@@ -33,10 +33,12 @@ RUN addgroup tdl && useradd -G tdl broker
 WORKDIR /app
 COPY --from=build /out/ ./
 
-RUN mkdir /var/run/tdl && \
+RUN mkdir /var/run/tdl /app/plugin && \
     chown broker:tdl -R /var/run/tdl && \
     chown broker:tdl -R /app
 
 USER broker:tdl
-VOLUME ["/var/run/tdl"]
+VOLUME /var/run/tdl
+VOLUME /app/plugins
+
 ENTRYPOINT ["dotnet", "UnMango.Tdl.Broker.dll"]
