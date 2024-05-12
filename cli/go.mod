@@ -4,7 +4,7 @@ go 1.22.2
 
 require (
 	github.com/spf13/cobra v1.8.0
-	github.com/unstoppablemango/tdl/pkg v0.0.4
+	github.com/unstoppablemango/tdl/pkg v0.0.6
 )
 
 require (
