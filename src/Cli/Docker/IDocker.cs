@@ -16,6 +16,7 @@ public sealed record StartArgs
 	public IList<string> Volumes { get; init; } = [];
 	public string? User { get; init; }
 	public IDictionary<string, string> Labels { get; init; } = new Dictionary<string, string>();
+	public IEnumerable<string> Tmpfs { get; init; } = [];
 }
 
 public interface IDocker

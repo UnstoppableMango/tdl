@@ -1,6 +1,5 @@
 using Docker.DotNet;
 using Docker.DotNet.Models;
-using Newtonsoft.Json;
 using Serilog;
 
 namespace UnMango.Tdl.Cli.Docker;
@@ -80,6 +79,10 @@ internal sealed class Docker(IDockerClient docker, IDockerProgress progress) : I
 				Labels = args.Labels,
 				HostConfig = new HostConfig {
 					Binds = args.Volumes,
+					Mounts = args.Tmpfs.Select(x => new Mount {
+						Type = "tmpfs",
+						Target = x,
+					}).ToList(),
 				},
 			},
 			cancellationToken);

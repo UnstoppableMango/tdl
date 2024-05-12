@@ -1,4 +1,3 @@
-using System.CommandLine;
 using System.Text.RegularExpressions;
 using Serilog;
 using UnMango.Tdl.Cli.Docker;
@@ -44,6 +43,7 @@ internal sealed class DockerBroker(IDocker docker) : IBroker
 			Tag = Config.ContainerTag,
 			User = $"{uid}:{gid}",
 			Volumes = [$"{Config.SocketDir}:/var/run/tdl"],
+			Tmpfs = ["/app/plugins"],
 			Labels = { [OwnerLabel] = Owner },
 		}, cancellationToken);
 		Log.Verbose("Started broker");
