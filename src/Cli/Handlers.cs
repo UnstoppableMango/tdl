@@ -32,7 +32,6 @@ internal static class Handlers
 				throw new Exception("Failed waiting for socket");
 		}
 
-
 		try {
 			Log.Debug("Sending gen request");
 			using var stream = client.Gen(new GenRequest(), cancellationToken: cancellationToken);

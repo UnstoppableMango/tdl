@@ -8,6 +8,7 @@ using UnMango.Tdl;
 using UnMango.Tdl.Cli;
 using UnMango.Tdl.Cli.Broker;
 using UnMango.Tdl.Cli.Docker;
+using UnMango.Tdl.Cli.Internal;
 
 var root = new RootCommand("UnstoppableMango's Type Description Language CLI") {
 	Commands.Broker(),
@@ -23,7 +24,7 @@ Log.Logger = new LoggerConfiguration()
 
 var builder = new CommandLineBuilder(root).UseDefaults()
 	.UseExceptionHandler((ex, _) => Log.Fatal(ex, "Invocation error"))
-	.AddMiddleware(AddDocker.Middleware, MiddlewareOrder.Configuration)
+	.AddMiddleware(Middleware.Services, MiddlewareOrder.Configuration)
 	.AddMiddleware(EnsureBroker.Middleware);
 
 Log.Verbose("Building parser");
