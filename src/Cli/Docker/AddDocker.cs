@@ -1,7 +1,7 @@
 using System.CommandLine.Invocation;
 using Docker.DotNet;
 
-namespace UnMango.Tdl.Cli.Internal;
+namespace UnMango.Tdl.Cli.Docker;
 
 internal static class AddDocker
 {

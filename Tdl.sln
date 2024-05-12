@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{4C2EFA7D-EC3E-4D68-8DC6-EC1418D2A36F}"
+	ProjectSection(SolutionItems) = preProject
+		src\Makefile = src\Makefile
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnMango.Tdl.Broker", "src\Broker\UnMango.Tdl.Broker.csproj", "{08902DF7-376C-4CC7-92AA-E5E8AE26975F}"
 EndProject
@@ -41,6 +44,9 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{A019E942-34BF-4F88-AFA8-3AA445D409E6}"
 	ProjectSection(SolutionItems) = preProject
 		.github\workflows\cli.yml = .github\workflows\cli.yml
+		.github\workflows\ci.yml = .github\workflows\ci.yml
+		.github\workflows\packages.yml = .github\workflows\packages.yml
+		.github\workflows\tag.yml = .github\workflows\tag.yml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "proto", "proto", "{D33909C2-5104-4E7E-A0F1-FC98FF7B4C5A}"

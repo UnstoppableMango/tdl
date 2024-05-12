@@ -3,6 +3,9 @@ _ := $(shell mkdir -p .make)
 
 export GOWORK := off
 
+VERSION := $(shell dotnet minver --tag-prefix v --verbosity warn)
+export MINVERVERSIONOVERRIDE = ${VERSION}
+
 CFG ?=
 ifeq ($(CFG),)
 CFG := Debug
@@ -74,6 +77,9 @@ build_proto: .make/build_proto
 .PHONY: docker
 docker:
 	@$(MAKE) -C docker all
+
+version:
+	@echo '${VERSION}'
 
 .PHONY: dev undev
 dev: work .envrc

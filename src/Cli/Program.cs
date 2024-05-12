@@ -1,4 +1,4 @@
-﻿using System.CommandLine;
+using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
@@ -6,9 +6,11 @@ using Serilog;
 using Serilog.Events;
 using UnMango.Tdl;
 using UnMango.Tdl.Cli;
-using UnMango.Tdl.Cli.Internal;
+using UnMango.Tdl.Cli.Broker;
+using UnMango.Tdl.Cli.Docker;
 
 var root = new RootCommand("UnstoppableMango's Type Description Language CLI") {
+	Commands.Broker(),
 	Commands.Gen(),
 	Commands.From(),
 };

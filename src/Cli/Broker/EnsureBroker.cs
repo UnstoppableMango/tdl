@@ -1,10 +1,10 @@
 using System.CommandLine.Invocation;
 using System.Text.RegularExpressions;
-using Serilog;
-
-namespace UnMango.Tdl.Cli.Internal;
-
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
+using UnMango.Tdl.Cli.Docker;
+
+namespace UnMango.Tdl.Cli.Broker;
 
 internal static partial class Patterns
 {

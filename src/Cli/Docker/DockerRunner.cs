@@ -1,6 +1,6 @@
 using UnMango.Tdl.Abstractions;
 
-namespace UnMango.Tdl.Cli.Internal;
+namespace UnMango.Tdl.Cli.Docker;
 
 internal sealed class DockerRunner(IDocker docker, string plugin) : IRunner
 {

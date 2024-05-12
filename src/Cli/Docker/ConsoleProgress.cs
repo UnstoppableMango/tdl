@@ -1,7 +1,7 @@
 using System.CommandLine;
 using Docker.DotNet.Models;
 
-namespace UnMango.Tdl.Cli.Internal;
+namespace UnMango.Tdl.Cli.Docker;
 
 // TODO: Batch similar messages like "Downloading", "Extracting", etc.
 internal sealed record ConsoleProgress(IConsole Console) : IDockerProgress
