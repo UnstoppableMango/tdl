@@ -96,7 +96,6 @@ jobs:
     strategy:
       matrix:
         tool:
-          - broker
           - uml2go
           - uml2pcl
           - uml2ts

@@ -47,6 +47,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{
 		.github\workflows\ci.yml = .github\workflows\ci.yml
 		.github\workflows\packages.yml = .github\workflows\packages.yml
 		.github\workflows\tag.yml = .github\workflows\tag.yml
+		.github\workflows\broker.yml = .github\workflows\broker.yml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "proto", "proto", "{D33909C2-5104-4E7E-A0F1-FC98FF7B4C5A}"
