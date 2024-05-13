@@ -6,6 +6,7 @@ ARG TARGETOS
 
 FROM --platform=$BUILDPLATFORM base AS build
 WORKDIR /build
+COPY src/Abstractions/UnMango.Tdl.Abstractions.csproj ./Abstractions/
 COPY src/Broker/UnMango.Tdl.Broker.csproj ./Broker/
 
 RUN dotnet restore \
@@ -14,6 +15,7 @@ RUN dotnet restore \
 
 COPY proto ./proto
 COPY Directory.Build.props .
+COPY src/Abstractions/ ./Abstractions/
 COPY src/Broker/ ./Broker/
 
 RUN MINVERDISABLE=true \
