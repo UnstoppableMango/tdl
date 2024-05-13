@@ -4,7 +4,7 @@ ARG BUILDPLATFORM
 ARG TARGETARCH
 ARG TARGETOS
 
-FROM base AS build
+FROM --platform=$BUILDPLATFORM base AS build
 WORKDIR /build
 COPY src/Broker/UnMango.Tdl.Broker.csproj ./Broker/
 

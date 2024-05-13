@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1
-FROM oven/bun:1.1.8 AS base
+FROM --platform=$BUILDPLATFORM oven/bun:1.1.8 AS base
 ARG BUILDPLATFORM
 WORKDIR /build
 
-FROM base AS install
+FROM --platform=$BUILDPLATFORM base AS install
 
 RUN mkdir -p gen/proto/{es,ts} packages/{ts,uml,uml2ts}
 
@@ -32,7 +32,7 @@ RUN bun build \
 			--sourcemap ./index.ts \
 			--outfile ./dist/uml2ts
 
-FROM ubuntu:noble-20240429 AS test
+FROM --platform=$BUILDPLATFORM ubuntu:noble-20240429 AS test
 COPY --from=build /build/dist/uml2ts .
 
 FROM --platform=$BUILDPLATFORM oven/bun:1.1.8-distroless
