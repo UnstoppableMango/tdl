@@ -20,20 +20,34 @@ internal static class Handlers
 		return broker.Stop(cancellationToken).AsTask();
 	}
 
-	public static Task Upgrade(IBroker broker, CancellationToken cancellationToken) {
-		var entryAssembly = Assembly.GetEntryAssembly();
-		if (entryAssembly is null) {
-			Log.Error("Failed to retrieve entry assembly");
-			return Task.CompletedTask;
+	public static Task Upgrade(IBroker broker, bool latest, string? version, CancellationToken cancellationToken) {
+		if (latest) {
+			Log.Verbose("Using latest version");
+			return broker.Upgrade(cancellationToken);
 		}
 
-		var version = entryAssembly.GetName().Version;
-		if (version is null) {
-			Log.Error("Failed to retrieve version");
-			return Task.CompletedTask;
+		if (string.IsNullOrWhiteSpace(version)) {
+			Log.Verbose("Using assembly version");
+			version = GetAssemblyVersion();
 		}
 
 		Log.Verbose("Upgrading broker");
-		return broker.Upgrade(version.ToString(), cancellationToken);
+		return broker.Upgrade(version, cancellationToken);
+	}
+
+	private static string? GetAssemblyVersion() {
+		var assembly = Assembly.GetEntryAssembly();
+		if (assembly is null) {
+			Log.Debug("Failed to retrieve entry assembly");
+			return null;
+		}
+
+		var version = assembly.GetName().Version;
+		if (version is null) {
+			Log.Debug("Failed to retrieve assembly version");
+			return null;
+		}
+
+		return $"{version.Major}.{version.Minor}.{version.Revision}";
 	}
 }

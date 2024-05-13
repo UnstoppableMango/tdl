@@ -33,11 +33,6 @@ module Config =
   let debugEnabled = envSet "TDL_DEBUG"
   let verboseEnabled = envSet "TDL_VERBOSE"
 
-  let containerTag =
-    function
-    | Dev -> "local"
-    | Release -> "main"
-
   let ownerLabel = "tdl.owner"
 
   let socketDir: Env -> string =
@@ -54,7 +49,6 @@ type Config =
   static member VerboseEnabled = Config.verboseEnabled
 
   static member ContainerRepo = Config.containerRepo Config.env
-  static member ContainerTag = Config.containerTag Config.env
   static member SocketDir = Config.socketDir Config.env
   static member Socket = Config.socket Config.env
 

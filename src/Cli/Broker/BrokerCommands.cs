@@ -24,8 +24,24 @@ internal static class BrokerCommands
 	}
 
 	public static Command Upgrade() {
-		var command = new Command("upgrade", "Upgrade the broker");
-		command.SetHandler(Handlers.Upgrade, Binder.Service<IBroker>(), TokenBinder.Value);
+		var latestOption = new Option<bool>("--latest", "Upgrade to the latest version");
+		latestOption.AddAlias("-l");
+
+		var versionOption = new Option<string>("--version", "The version to upgrade to");
+		versionOption.AddAlias("-v");
+
+		var command = new Command("upgrade", "Upgrade the broker") {
+			latestOption,
+			versionOption,
+		};
+
+		command.SetHandler(
+			Handlers.Upgrade,
+			Binder.Service<IBroker>(),
+			latestOption,
+			versionOption,
+			TokenBinder.Value);
+
 		return command;
 	}
 }

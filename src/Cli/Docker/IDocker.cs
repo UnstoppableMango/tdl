@@ -10,7 +10,7 @@ public sealed class InspectResult
 public sealed record StartArgs
 {
 	public required string Image { get; init; }
-	public required string Tag { get; init; }
+	public string? Tag { get; init; }
 	public IList<string> Cmd { get; init; } = [];
 	public string? Name { get; init; }
 	public IList<string> Volumes { get; init; } = [];

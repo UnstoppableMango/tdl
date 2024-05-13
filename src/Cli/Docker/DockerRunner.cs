@@ -6,7 +6,7 @@ internal sealed class DockerRunner(IDocker docker, string plugin) : IRunner
 {
 	private readonly StartArgs _defaultArgs = new() {
 		Image = $"{Config.ContainerRepo}/{plugin}",
-		Tag = Config.ContainerTag,
+		// Tag = Config.ContainerTag,
 		Volumes = [$"{Config.SocketDir}:/var/run/tdl"],
 	};
 
