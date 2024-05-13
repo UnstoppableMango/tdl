@@ -38,7 +38,9 @@ internal sealed class DockerBroker(IDocker docker) : IBroker
 		var gid = await Config.Gid();
 
 		Log.Debug("Starting broker");
-		var container = await docker.Start(DefaultStartArgs(uid, gid), cancellationToken);
+		var container = await docker.Start(DefaultStartArgs(uid, gid) with {
+			Tag = Config.Env.IsDev ? "local" : "latest", // TODO: Use an actual version
+		}, cancellationToken);
 		Log.Verbose("Started broker");
 
 		_ = docker.FollowLogs(container, cancellationToken);
@@ -74,6 +76,11 @@ internal sealed class DockerBroker(IDocker docker) : IBroker
 	}
 
 	public async Task Upgrade(string? version, CancellationToken cancellationToken) {
+		if (Config.Env.IsDev) {
+			Log.Information("Overriding version in development mode");
+			version = "local";
+		}
+
 		var container = await Find(cancellationToken);
 		if (container is null) {
 			Log.Debug("No broker to upgrade");
@@ -108,7 +115,6 @@ internal sealed class DockerBroker(IDocker docker) : IBroker
 
 	private static StartArgs DefaultStartArgs(string uid, string gid) => new() {
 		Image = $"{Config.ContainerRepo}/tdl-broker",
-		Tag = Config.ContainerTag,
 		User = $"{uid}:{gid}",
 		Volumes = [$"{Config.SocketDir}:/var/run/tdl"],
 		Tmpfs = ["/app/plugins"],
