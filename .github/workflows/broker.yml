@@ -40,7 +40,6 @@ jobs:
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           restore-tools: true
           lint: true
-          pack: ${{ github.event_name == 'push' }}
           path: src/Broker
 
     outputs:
