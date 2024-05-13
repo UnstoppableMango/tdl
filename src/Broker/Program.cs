@@ -24,6 +24,4 @@ builder.Services.AddHostedService<PluginService>();
 var app = builder.Build();
 
 app.MapGrpcService<UmlService>();
-app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client.");
-
 app.Run();

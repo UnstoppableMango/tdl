@@ -7,8 +7,7 @@ on:
       - .github/actions/**
       - .github/workflows/cli.yml
       - cli/**
-      - src/Cli/**
-      - src/Cli.Tests/**
+      - src/Cli*/**
   push:
     branches: ['main']
     tags: ['v*.*.*']
@@ -16,8 +15,7 @@ on:
       - .github/actions/**
       - .github/workflows/cli.yml
       - cli/**
-      - src/Cli/**
-      - src/Cli.Tests/**
+      - src/Cli*/**
 
 env:
   CI: true
@@ -33,7 +31,7 @@ jobs:
           filter: tree:0
 
       - uses: ./.github/actions/build-cs
-        id: upload
+        id: build
         with:
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           restore-tools: true
@@ -42,7 +40,7 @@ jobs:
           path: src/Cli
 
     outputs:
-      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+      artifact-id: ${{ steps.build.outputs.artifact-id }}
 
   publish-cli:
     runs-on: ubuntu-latest
@@ -96,7 +94,6 @@ jobs:
     strategy:
       matrix:
         tool:
-          - broker
           - uml2go
           - uml2pcl
           - uml2ts

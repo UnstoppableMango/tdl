@@ -1,0 +1,62 @@
+name: Broker
+
+on:
+  pull_request:
+    branches: ['main']
+    paths:
+      - .github/actions/**
+      - .github/workflows/broker.yml
+      - docker/broker/**
+      - src/Broker*/**
+      - src/Abstractions/**
+      - src/FSharp/**
+  push:
+    branches: ['main']
+    tags: ['v*.*.*']
+    paths:
+      - .github/actions/**
+      - .github/workflows/broker.yml
+      - docker/broker/**
+      - src/Broker*/**
+      - src/Abstractions/**
+      - src/FSharp/**
+
+env:
+  CI: true
+  ContinuousIntegrationBuild: true
+
+jobs:
+  build-broker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: tree:0
+
+      - uses: ./.github/actions/build-cs
+        id: build
+        with:
+          codecov-token: ${{ secrets.CODECOV_TOKEN }}
+          restore-tools: true
+          lint: true
+          pack: ${{ github.event_name == 'push' }}
+          path: src/Broker
+
+    outputs:
+      artifact-id: ${{ steps.build.outputs.artifact-id }}
+
+  build-docker:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tool: ['broker']
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "NAME=$(cat docker/${{ matrix.tool }}/.name)" >> "$GITHUB_ENV"
+      - uses: ./.github/actions/build-docker
+        with:
+          file: docker/${{ matrix.tool }}/Dockerfile
+          images: ghcr.io/${{ github.repository_owner }}/${{ env.NAME }}
+          push: ${{ github.event_name != 'pull_request' }}
+          token: ${{ secrets.GITHUB_TOKEN }}
