@@ -11,6 +11,7 @@ build_uml2ts:
 restore:
 	bun install
 
+.PHONY: test
 test:
 	bun test .
 
