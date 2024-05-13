@@ -92,9 +92,13 @@ internal sealed class DockerBroker(IDocker docker) : IBroker
 		var uid = await Config.Uid();
 		var gid = await Config.Gid();
 
+		if (version is null or "0.0.0") {
+			version = "latest";
+		}
+
 		Log.Debug("Upgrading broker to version {Version}", version);
 		await docker.Start(DefaultStartArgs(uid, gid) with {
-			Tag = version ?? "latest",
+			Tag = version,
 		}, cancellationToken);
 	}
 

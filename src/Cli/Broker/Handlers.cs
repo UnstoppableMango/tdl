@@ -43,10 +43,11 @@ internal static class Handlers
 		}
 
 		var version = assembly.GetName().Version;
-		if (version is not null)
-			return version.ToString();
+		if (version is null) {
+			Log.Debug("Failed to retrieve assembly version");
+			return null;
+		}
 
-		Log.Debug("Failed to retrieve assembly version");
-		return null;
+		return $"{version.Major}.{version.Minor}.{version.Revision}";
 	}
 }
