@@ -33,7 +33,7 @@ jobs:
           filter: tree:0
 
       - uses: ./.github/actions/build-cs
-        id: upload
+        id: build
         with:
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
           restore-tools: true
@@ -42,7 +42,7 @@ jobs:
           path: src/Cli
 
     outputs:
-      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+      artifact-id: ${{ steps.build.outputs.artifact-id }}
 
   publish-cli:
     runs-on: ubuntu-latest
