@@ -66,13 +66,15 @@ runs:
       env:
         CODECOV_TOKEN: ${{ inputs.CODECOV_TOKEN }}
 
-    - name: Lint
+    - name: dotnet format
       if: inputs.lint == 'true'
       shell: bash
-      run: |
-        dotnet format \
-          --verify-no-changes \
-          ${{ inputs.path }}
+      run: dotnet format --verify-no-changes ${{ inputs.path }}
+
+    - name: fantomas
+      if: inputs.lint == 'true' && inputs.restore-tools == 'true'
+      shell: bash
+      run: dotnet fantomas --check ${{ inputs.path }}
 
     - name: Package library
       if: inputs.pack == 'true'
