@@ -15,7 +15,7 @@ internal sealed class DockerBroker(IDocker docker) : IBroker
 	private const string OwnerLabel = "tdl.owner", Owner = "tdl-cli";
 	private static readonly Regex ApplicationStarted = Patterns.ApplicationStarted();
 
-	private static readonly IDictionary<string, string> Labels = new Dictionary<string, string> {
+	private static readonly Dictionary<string, string> Labels = new() {
 		[Config.OwnerLabel] = Owner,
 	};
 
@@ -38,14 +38,7 @@ internal sealed class DockerBroker(IDocker docker) : IBroker
 		var gid = await Config.Gid();
 
 		Log.Debug("Starting broker");
-		var container = await docker.Start(new StartArgs {
-			Image = $"{Config.ContainerRepo}/tdl-broker",
-			Tag = Config.ContainerTag,
-			User = $"{uid}:{gid}",
-			Volumes = [$"{Config.SocketDir}:/var/run/tdl"],
-			Tmpfs = ["/app/plugins"],
-			Labels = { [OwnerLabel] = Owner },
-		}, cancellationToken);
+		var container = await docker.Start(DefaultStartArgs(uid, gid), cancellationToken);
 		Log.Verbose("Started broker");
 
 		_ = docker.FollowLogs(container, cancellationToken);
@@ -53,7 +46,7 @@ internal sealed class DockerBroker(IDocker docker) : IBroker
 	}
 
 	public async Task<BrokerStatus> Status(CancellationToken cancellationToken) {
-		var container = await docker.FindMatching(Labels, cancellationToken);
+		var container = await Find(cancellationToken);
 		if (container is null) {
 			return new BrokerStatus {
 				State = "not found",
@@ -69,17 +62,52 @@ internal sealed class DockerBroker(IDocker docker) : IBroker
 	}
 
 	public async ValueTask Stop(CancellationToken cancellationToken) {
+		// TODO: We can probably optimize away this Running -> Find call
 		if (!await Running(cancellationToken))
 			return;
 
-		var container = await docker.FindMatching(Labels, cancellationToken);
+		var container = await Find(cancellationToken);
 		if (container is null)
 			return;
 
 		await docker.Stop(container, cancellationToken);
 	}
 
-	public Task Upgrade(string? version, CancellationToken cancellationToken) {
-		throw new NotImplementedException();
+	public async Task Upgrade(string? version, CancellationToken cancellationToken) {
+		var container = await Find(cancellationToken);
+		if (container is null) {
+			Log.Debug("No broker to upgrade");
+			return;
+		}
+
+		var inspection = await docker.Inspect(container, cancellationToken);
+		if (inspection.Version == version) {
+			Log.Debug("Broker is already at version {Version}", version);
+			return;
+		}
+
+		Log.Debug("Stopping current broker");
+		await docker.Stop(container, cancellationToken);
+
+		var uid = await Config.Uid();
+		var gid = await Config.Gid();
+
+		Log.Debug("Upgrading broker to version {Version}", version);
+		await docker.Start(DefaultStartArgs(uid, gid) with {
+			Tag = version ?? "latest",
+		}, cancellationToken);
 	}
+
+	private Task<IContainer?> Find(CancellationToken cancellationToken) {
+		return docker.FindMatching(Labels, cancellationToken);
+	}
+
+	private static StartArgs DefaultStartArgs(string uid, string gid) => new() {
+		Image = $"{Config.ContainerRepo}/tdl-broker",
+		Tag = Config.ContainerTag,
+		User = $"{uid}:{gid}",
+		Volumes = [$"{Config.SocketDir}:/var/run/tdl"],
+		Tmpfs = ["/app/plugins"],
+		Labels = { [OwnerLabel] = Owner },
+	};
 }
