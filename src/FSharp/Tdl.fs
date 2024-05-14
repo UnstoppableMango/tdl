@@ -3,7 +3,9 @@ module UnMango.Tdl.Tdl
 open System.IO
 open UnMango.Tdl.Abstractions
 
-type TdlError = | None
+type TdlError =
+  | Message of string
+  | None
 
 type FromResult = Result<Spec, TdlError>
 type GenResult = Result<unit, TdlError>
@@ -12,7 +14,10 @@ type From = Stream -> Async<Spec>
 type Gen = Spec -> Stream -> Async<unit>
 
 module TdlError =
-  let message e = "An error occurred"
+  let message =
+    function
+    | Message m -> m
+    | None -> "No error"
 
 type Runner = { From: From; Gen: Gen }
 
@@ -34,3 +39,7 @@ module Runner =
   let wrap (r: IRunner) =
     { From = r :> IConverter |> From.wrap
       Gen = r :> IGenerator |> Gen.wrap }
+
+type Plugin =
+  static member From(source: ISource) = source.Plugin
+  static member From(target: ITarget) = target.Plugin
