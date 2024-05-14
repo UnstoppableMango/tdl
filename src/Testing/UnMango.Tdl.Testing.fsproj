@@ -7,7 +7,6 @@
 
   <ItemGroup>
     <Compile Include="Spec.fs" />
-    <Compile Include="ConverterTest.fs" />
   </ItemGroup>
 
   <ItemGroup>
