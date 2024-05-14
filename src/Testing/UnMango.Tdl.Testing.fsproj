@@ -6,7 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="RunnerTest.fs" />
+    <Compile Include="Spec.fs" />
+    <Compile Include="ConverterTest.fs" />
   </ItemGroup>
 
   <ItemGroup>
