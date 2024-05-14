@@ -35,6 +35,13 @@ module Config =
 
   let ownerLabel = "tdl.owner"
 
+  let runningInContainer = envSet "DOTNET_RUNNING_IN_CONTAINER"
+
+  let pluginDir (env: Env) : string =
+    match env, runningInContainer with
+    | _, true -> "/app/plugins"
+    | _ -> Directory.CreateTempSubdirectory("tdl").FullName
+
   let socketDir: Env -> string =
     function
     | _ -> Path.Combine(appdata, "tdl")
