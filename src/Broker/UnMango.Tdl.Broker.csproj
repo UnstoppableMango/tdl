@@ -9,7 +9,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Protobuf Include="$(ProtoDir)\uml.proto" GrpcServices="Server" />
 		<None Include="$(ProjectRoot)\docker\broker\Dockerfile" />
 		<None Include="$(ProjectRoot)\.dockerignore" />
 	</ItemGroup>

@@ -5,7 +5,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Protobuf Include="$(ProtoDir)\uml.proto" GrpcServices="Client" />
+		<Protobuf Include="$(ProtoDir)\uml.proto" GrpcServices="Both" />
 	</ItemGroup>
 
 	<ItemGroup>
