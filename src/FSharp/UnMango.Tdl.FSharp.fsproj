@@ -12,6 +12,7 @@
 		<Compile Include="Tdl.fs" />
 		<Compile Include="GrpcClient.fs" />
 		<Compile Include="Config.fs" />
+		<Compile Include="CliRunner.fs" />
 	</ItemGroup>
 
 	<ItemGroup>
