@@ -22,26 +22,18 @@ module CliRunner =
 
   let from tool : From =
     fun input -> async {
-      let toolDir = Config.Env |> Config.toolDir
-      let tool = Path.Combine(toolDir, tool)
       use stream = new MemoryStream()
-
       do! converter tool input stream |> Async.Ignore
-
       stream.Position <- 0
       return stream |> Spec.Parser.ParseFrom
     }
 
   let gen tool : Gen =
     fun spec output -> async {
-      let toolDir = Config.Env |> Config.toolDir
-      let tool = Path.Combine(toolDir, tool)
       use stream = new MemoryStream()
       spec.WriteTo(stream)
       stream.Position <- 0
-
       do! generator tool stream output |> Async.Ignore
-
       return ()
     }
 
