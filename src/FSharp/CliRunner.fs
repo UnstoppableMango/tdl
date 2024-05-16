@@ -1,51 +1,54 @@
 namespace UnMango.Tdl
 
 open System.IO
+open CliWrap
 open Google.Protobuf
 open UnMango.CliWrap.FSharp
 open UnMango.Tdl.Abstractions
 open UnMango.Tdl.Tdl
 
 module CliRunner =
-  let from plugin : From =
+  type ToolCmd = string -> Stream -> Stream -> Async<CommandResult>
+
+  let toolCmd op tool input output = command tool {
+    args [ op ]
+    stdin (input :> Stream)
+    stdout (PipeTo.stream output)
+    async
+  }
+
+  let converter: ToolCmd = toolCmd "from"
+  let generator: ToolCmd = toolCmd "gen"
+
+  let from tool : From =
     fun input -> async {
-      let pluginDir = Config.Env |> Config.pluginDir
-      let plugin = Path.Combine(pluginDir, plugin)
+      let toolDir = Config.Env |> Config.toolDir
+      let tool = Path.Combine(toolDir, tool)
       use stream = new MemoryStream()
 
-      let! _ = command plugin {
-        args [ "from" ]
-        stdin input
-        stdout (PipeTo.stream stream)
-        async
-      }
+      do! converter tool input stream |> Async.Ignore
 
       stream.Position <- 0
       return stream |> Spec.Parser.ParseFrom
     }
 
-  let gen plugin : Gen =
+  let gen tool : Gen =
     fun spec output -> async {
-      let pluginDir = Config.Env |> Config.pluginDir
-      let plugin = Path.Combine(pluginDir, plugin)
+      let toolDir = Config.Env |> Config.toolDir
+      let tool = Path.Combine(toolDir, tool)
       use stream = new MemoryStream()
       spec.WriteTo(stream)
       stream.Position <- 0
 
-      let! _ = command plugin {
-        args [ "gen" ]
-        stdin stream
-        stdout (PipeTo.stream output)
-        async
-      }
+      do! generator tool stream output |> Async.Ignore
 
       return ()
     }
 
-type CliRunner(plugin) =
+type CliRunner(tool) =
   interface IRunner with
     member this.FromAsync(input, cancellationToken) =
-      Async.StartAsTask(CliRunner.from plugin input, cancellationToken = cancellationToken)
+      Async.StartAsTask(CliRunner.from tool input, cancellationToken = cancellationToken)
 
     member this.GenerateAsync(input, output, cancellationToken) =
-      Async.StartAsTask(CliRunner.gen plugin input output, cancellationToken = cancellationToken)
+      Async.StartAsTask(CliRunner.gen tool input output, cancellationToken = cancellationToken)

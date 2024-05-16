@@ -37,7 +37,7 @@ module Config =
 
   let runningInContainer = envSet "DOTNET_RUNNING_IN_CONTAINER"
 
-  let pluginDir (env: Env) : string =
+  let toolDir (env: Env) : string =
     match env, runningInContainer with
     | _, true -> "/app/plugins"
     | _ -> Directory.CreateTempSubdirectory("tdl").FullName
