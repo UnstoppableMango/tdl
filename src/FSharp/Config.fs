@@ -39,7 +39,7 @@ module Config =
 
   let toolDir (env: Env) : string =
     match env, runningInContainer with
-    | _, true -> "/app/plugins"
+    | _, true -> "/app/plugins" // TODO: Rename
     | _ -> Directory.CreateTempSubdirectory("tdl").FullName
 
   let socketDir: Env -> string =
