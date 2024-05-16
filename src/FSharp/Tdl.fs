@@ -3,14 +3,20 @@ module UnMango.Tdl.Tdl
 open System.IO
 open UnMango.Tdl.Abstractions
 
+type TdlError = | None
+
+type FromResult = Result<Spec, TdlError>
+type GenResult = Result<unit, TdlError>
+
 type From = Stream -> Async<Spec>
 type Gen = Spec -> Stream -> Async<unit>
+
+module TdlError =
+  let message e = "An error occurred"
 
 type Runner = { From: From; Gen: Gen }
 
 module From =
-  let convert i o = async { failwith "TODO" }
-
   let wrap (c: IConverter) : From =
     fun o -> async {
       let! ct = Async.CancellationToken
@@ -18,8 +24,6 @@ module From =
     }
 
 module Gen =
-  let generate i o = async { failwith "TODO" }
-
   let wrap (g: IGenerator) : Gen =
     fun i o -> async {
       let! ct = Async.CancellationToken
