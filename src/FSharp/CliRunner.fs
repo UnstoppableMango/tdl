@@ -1,6 +1,7 @@
 namespace UnMango.Tdl
 
 open System.IO
+open Google.Protobuf
 open UnMango.CliWrap.FSharp
 open UnMango.Tdl.Abstractions
 open UnMango.Tdl.Tdl
@@ -8,20 +9,38 @@ open UnMango.Tdl.Tdl
 module CliRunner =
   let from: From =
     fun input -> async {
-      let! ct = Async.CancellationToken
-
       let pluginDir = Config.Env |> Config.pluginDir
-      let plugin = Path.Combine(pluginDir, "TODO")
+      let plugin = Path.Combine(pluginDir, source.Plugin)
+      use stream = new MemoryStream()
 
-      let! res = command plugin {
+      let! _ = command plugin {
         args [ "from" ]
+        stdin source.Input
+        stdout (PipeTo.stream stream)
         async
       }
 
-      return Spec()
+      stream.Position <- 0
+      return stream |> Spec.Parser.ParseFrom |> Ok
     }
 
-  let gen: Gen = failwith "TODO"
+  let gen: Gen =
+    fun spec target -> async {
+      let pluginDir = Config.Env |> Config.pluginDir
+      let plugin = Path.Combine(pluginDir, target.Plugin)
+      use stream = new MemoryStream()
+      spec.WriteTo(stream)
+      stream.Position <- 0
+
+      let! _ = command plugin {
+        args [ "gen" ]
+        stdin stream
+        stdout (PipeTo.stream target.Output)
+        async
+      }
+
+      return Ok()
+    }
 
 type CliRunner() =
   interface IRunner with
