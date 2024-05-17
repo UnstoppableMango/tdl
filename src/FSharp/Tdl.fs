@@ -39,7 +39,3 @@ module Runner =
   let wrap (r: IRunner) =
     { From = r :> IConverter |> From.wrap
       Gen = r :> IGenerator |> Gen.wrap }
-
-type Plugin =
-  static member From(source: ISource) = source.Plugin
-  static member From(target: ITarget) = target.Plugin
