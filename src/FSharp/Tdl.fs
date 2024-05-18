@@ -10,8 +10,8 @@ type TdlError =
 type FromResult = Result<Spec, TdlError>
 type GenResult = Result<unit, TdlError>
 
-type From = Stream -> Async<Spec>
-type Gen = Spec -> Stream -> Async<unit>
+type From = Stream -> Async<FromResult>
+type Gen = Spec -> Stream -> Async<GenResult>
 
 module TdlError =
   let message =
