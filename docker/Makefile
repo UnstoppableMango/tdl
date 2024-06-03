@@ -1,4 +1,5 @@
-CONTEXT := $(shell git rev-parse --show-toplevel)
+CONTEXT    := $(shell git rev-parse --show-toplevel)
+BROKER_TAG ?= unstoppablemango/tdl-broker:local
 
 .PHONY: all
 all: broker uml2go uml2pcl uml2ts
@@ -7,7 +8,7 @@ all: broker uml2go uml2pcl uml2ts
 broker:
 	docker build \
 		-f broker/Dockerfile \
-		-t unstoppablemango/tdl-broker:local \
+		-t ${BROKER_TAG} \
 		${CONTEXT}
 # broker:
 # 	@$(MAKE) -C ${CONTEXT}/src brokerc

@@ -6,9 +6,12 @@ using UnMango.Tdl.Broker.Internal;
 
 namespace UnMango.Tdl.Broker.Services;
 
+using Config = UnMango.Tdl.Broker.Internal.Config;
+
 internal sealed class PluginService(
 	IGitHubClient gitHub,
 	IHttpClientFactory httpClientFactory,
+	IPluginCache pluginCache,
 	ILogger<PluginService> logger) : BackgroundService
 {
 	private const bool Overwrite = true;
@@ -85,6 +88,12 @@ internal sealed class PluginService(
 		default:
 			logger.LogError("Unsupported file extension {Extension}", archiveExt);
 			break;
+		}
+
+		foreach (var file in Directory.EnumerateFiles(Config.PluginDir, "uml*")) {
+			var name = Path.GetFileName(file);
+			logger.LogInformation("Adding plugin {Name} at {Path}", name, file);
+			await pluginCache.Add(name, new CliRunner(file));
 		}
 	}
 

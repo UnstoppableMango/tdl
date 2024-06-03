@@ -9,7 +9,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Protobuf Include="$(ProtoDir)\uml.proto" GrpcServices="Server" />
 		<None Include="$(ProjectRoot)\docker\broker\Dockerfile" />
 		<None Include="$(ProjectRoot)\.dockerignore" />
 	</ItemGroup>
@@ -18,6 +17,11 @@
 		<PackageReference Include="Grpc.AspNetCore" Version="2.63.0" />
 		<PackageReference Include="MinVer" Version="5.0.0" PrivateAssets="all" />
 		<PackageReference Include="Octokit" Version="11.0.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\Abstractions\UnMango.Tdl.Abstractions.csproj" />
+	  <ProjectReference Include="..\FSharp\UnMango.Tdl.FSharp.fsproj" />
 	</ItemGroup>
 
 </Project>

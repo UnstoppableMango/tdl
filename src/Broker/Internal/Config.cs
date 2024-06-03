@@ -9,5 +9,5 @@ internal static class Config
 
 	public static readonly string PluginDir = RunningInDocker
 		? "/app/plugins"
-		: Directory.CreateTempSubdirectory("tdl-plugins").FullName;
+		: Directory.CreateTempSubdirectory("tdl-plugins-").FullName;
 }

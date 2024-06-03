@@ -42,7 +42,7 @@ test_packages:
 gen: gen_proto
 
 .PHONY: lint
-lint: .make/lint_proto .make/lint_lang
+lint: .make/lint_proto .make/lint_dotnet
 
 .PHONY: clean clean_gen clean_src clean_dist
 clean: clean_gen clean_src clean_dist
@@ -104,7 +104,7 @@ go.work.sum: go.work
 	go work sync
 
 .envrc: .make/regen_envrc
-	echo 'export TDL_DEV=true' > .envrc
+	echo '#!/bin/bash\nexport TDL_DEV=true' > .envrc
 
 .make/tool_restore: .config/dotnet-tools.json
 	dotnet tool restore
@@ -134,8 +134,12 @@ PROTO_SRC := $(shell find proto -type f -name '*.proto')
 	dotnet build ${CLI_DIR}
 	@touch $@
 
+.make/lint_dotnet: .make/lint_lang .make/lint_broker
 .make/lint_lang: .make/tool_restore $(LANG_SRC)
 	dotnet fantomas ${LANG_DIR}
+	@touch $@
+.make/lint_broker: $(BROKER_SRC)
+	dotnet format --include ${BROKER_SRC} --verify-no-changes
 	@touch $@
 
 .make/regen_envrc:

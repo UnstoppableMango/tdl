@@ -19,7 +19,8 @@ builder.WebHost.ConfigureKestrel(kestrel => {
 builder.Services.AddGrpc();
 builder.Services.AddHttpClient(HttpClients.GitHub);
 builder.Services.AddTransient<IGitHubClient>(_ => new GitHubClient(new ProductHeaderValue(Config.GitHubProduct)));
-builder.Services.AddHostedService<PluginService>();
+builder.Services.AddHostedService<PluginService>()
+	.AddSingleton<IPluginCache, MemoryPluginCache>();
 
 var app = builder.Build();
 
