@@ -30,7 +30,7 @@ RUN MINVERDISABLE=true \
 		/p:PublishAot=false \
 		Broker/UnMango.Tdl.Broker.csproj
 
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/aspnet:9.0.0-preview.3 AS final
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/aspnet:9.0.0-preview.4 AS final
 
 RUN addgroup tdl && useradd -G tdl broker
 
