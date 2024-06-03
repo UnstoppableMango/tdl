@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0.100-preview.3 AS base
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0.100-preview.4 AS base
 ARG BUILDPLATFORM
 ARG TARGETARCH
 ARG TARGETOS
