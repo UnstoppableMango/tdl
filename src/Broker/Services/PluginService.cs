@@ -9,6 +9,7 @@ namespace UnMango.Tdl.Broker.Services;
 internal sealed class PluginService(
 	IGitHubClient gitHub,
 	IHttpClientFactory httpClientFactory,
+	IPluginCache pluginCache,
 	ILogger<PluginService> logger) : BackgroundService
 {
 	private const bool Overwrite = true;
@@ -85,6 +86,11 @@ internal sealed class PluginService(
 		default:
 			logger.LogError("Unsupported file extension {Extension}", archiveExt);
 			break;
+		}
+
+		foreach (var file in Directory.EnumerateFiles(Config.PluginDir)) {
+			var name = Path.GetFileName(file);
+			await pluginCache.Add(name, new CliRunner(file));
 		}
 	}
 
