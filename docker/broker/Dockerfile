@@ -37,9 +37,8 @@ RUN addgroup tdl && useradd -G tdl broker
 WORKDIR /app
 COPY --from=build /out/ ./
 
-RUN mkdir /var/run/tdl /app/plugin && \
-    chown broker:tdl -R /var/run/tdl && \
-    chown broker:tdl -R /app
+RUN mkdir /var/run/tdl /app/plugins && \
+	chown broker:tdl -R /var/run/tdl /app
 
 USER broker:tdl
 VOLUME /var/run/tdl
