@@ -104,7 +104,7 @@ go.work.sum: go.work
 	go work sync
 
 .envrc: .make/regen_envrc
-	echo 'export TDL_DEV=true' > .envrc
+	echo '#!/bin/bash\nexport TDL_DEV=true' > .envrc
 
 .make/tool_restore: .config/dotnet-tools.json
 	dotnet tool restore
