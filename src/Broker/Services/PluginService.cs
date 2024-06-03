@@ -6,6 +6,8 @@ using UnMango.Tdl.Broker.Internal;
 
 namespace UnMango.Tdl.Broker.Services;
 
+using Config = UnMango.Tdl.Broker.Internal.Config;
+
 internal sealed class PluginService(
 	IGitHubClient gitHub,
 	IHttpClientFactory httpClientFactory,

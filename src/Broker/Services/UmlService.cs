@@ -3,6 +3,8 @@ using Grpc.Core;
 
 namespace UnMango.Tdl.Broker.Services;
 
+using Tdl = UnMango.Tdl;
+
 public class UmlService : Tdl.UmlService.UmlServiceBase
 {
 	public override async Task<FromResponse> From(
