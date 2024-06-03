@@ -90,8 +90,9 @@ internal sealed class PluginService(
 			break;
 		}
 
-		foreach (var file in Directory.EnumerateFiles(Config.PluginDir)) {
+		foreach (var file in Directory.EnumerateFiles(Config.PluginDir, "uml*")) {
 			var name = Path.GetFileName(file);
+			logger.LogInformation("Adding plugin {Name} at {Path}", name, file);
 			await pluginCache.Add(name, new CliRunner(file));
 		}
 	}

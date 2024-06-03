@@ -34,7 +34,12 @@ internal static class Handlers
 
 		try {
 			Log.Debug("Sending gen request");
-			using var stream = client.Gen(new GenRequest(), cancellationToken: cancellationToken);
+			using var stream = client.Gen(new GenRequest {
+				Target = target,
+				Spec = new Spec {
+					Name = "Hello World!",
+				},
+			}, cancellationToken: cancellationToken);
 
 			Log.Verbose("Streaming response");
 			while (await stream.ResponseStream.MoveNext(cancellationToken)) {

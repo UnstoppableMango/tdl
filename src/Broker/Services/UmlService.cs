@@ -1,11 +1,12 @@
 using Google.Protobuf;
 using Grpc.Core;
+using UnMango.Tdl.Broker.Internal;
 
 namespace UnMango.Tdl.Broker.Services;
 
 using Tdl = UnMango.Tdl;
 
-public class UmlService : Tdl.UmlService.UmlServiceBase
+public class UmlService(IPluginCache pluginCache) : Tdl.UmlService.UmlServiceBase
 {
 	public override async Task<FromResponse> From(
 		IAsyncStreamReader<FromRequest> requestStream,
@@ -22,7 +23,14 @@ public class UmlService : Tdl.UmlService.UmlServiceBase
 		GenRequest request,
 		IServerStreamWriter<GenResponse> responseStream,
 		ServerCallContext context) {
-		var data = ByteString.CopyFromUtf8("Hello World!");
-		await responseStream.WriteAsync(new GenResponse { Data = data }, context.CancellationToken);
+		var runner = await pluginCache.Get(request.Target);
+
+		await using var stream = new MemoryStream();
+		await runner.GenerateAsync(request.Spec, stream, context.CancellationToken);
+		var data = await ByteString.FromStreamAsync(stream, context.CancellationToken);
+
+		await responseStream.WriteAsync(
+			new GenResponse { Data = data },
+			context.CancellationToken);
 	}
 }
