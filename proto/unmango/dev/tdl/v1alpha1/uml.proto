@@ -14,6 +14,7 @@ service UmlService {
 
 message FromRequest {
   bytes data = 1;
+	string source = 2;
 }
 
 message FromResponse {
@@ -22,6 +23,7 @@ message FromResponse {
 
 message GenRequest {
   Spec spec = 1;
+	string target = 2;
 }
 
 message GenResponse {

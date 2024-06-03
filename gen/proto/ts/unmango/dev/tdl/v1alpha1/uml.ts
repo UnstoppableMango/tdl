@@ -8,6 +8,7 @@ export const protobufPackage = "unmango.dev.tdl.v1alpha1";
 
 export interface FromRequest {
   data: Uint8Array;
+  source: string;
 }
 
 export interface FromResponse {
@@ -16,6 +17,7 @@ export interface FromResponse {
 
 export interface GenRequest {
   spec: Spec | undefined;
+  target: string;
 }
 
 export interface GenResponse {
@@ -159,13 +161,16 @@ export interface Constructor_MetaEntry {
 }
 
 function createBaseFromRequest(): FromRequest {
-  return { data: new Uint8Array(0) };
+  return { data: new Uint8Array(0), source: "" };
 }
 
 export const FromRequest = {
   encode(message: FromRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.data.length !== 0) {
       writer.uint32(10).bytes(message.data);
+    }
+    if (message.source !== "") {
+      writer.uint32(18).string(message.source);
     }
     return writer;
   },
@@ -184,6 +189,13 @@ export const FromRequest = {
 
           message.data = reader.bytes();
           continue;
+        case 2:
+          if (tag !== 18) {
+            break;
+          }
+
+          message.source = reader.string();
+          continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -194,13 +206,19 @@ export const FromRequest = {
   },
 
   fromJSON(object: any): FromRequest {
-    return { data: isSet(object.data) ? bytesFromBase64(object.data) : new Uint8Array(0) };
+    return {
+      data: isSet(object.data) ? bytesFromBase64(object.data) : new Uint8Array(0),
+      source: isSet(object.source) ? globalThis.String(object.source) : "",
+    };
   },
 
   toJSON(message: FromRequest): unknown {
     const obj: any = {};
     if (message.data.length !== 0) {
       obj.data = base64FromBytes(message.data);
+    }
+    if (message.source !== "") {
+      obj.source = message.source;
     }
     return obj;
   },
@@ -211,6 +229,7 @@ export const FromRequest = {
   fromPartial<I extends Exact<DeepPartial<FromRequest>, I>>(object: I): FromRequest {
     const message = createBaseFromRequest();
     message.data = object.data ?? new Uint8Array(0);
+    message.source = object.source ?? "";
     return message;
   },
 };
@@ -273,13 +292,16 @@ export const FromResponse = {
 };
 
 function createBaseGenRequest(): GenRequest {
-  return { spec: undefined };
+  return { spec: undefined, target: "" };
 }
 
 export const GenRequest = {
   encode(message: GenRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.spec !== undefined) {
       Spec.encode(message.spec, writer.uint32(10).fork()).ldelim();
+    }
+    if (message.target !== "") {
+      writer.uint32(18).string(message.target);
     }
     return writer;
   },
@@ -298,6 +320,13 @@ export const GenRequest = {
 
           message.spec = Spec.decode(reader, reader.uint32());
           continue;
+        case 2:
+          if (tag !== 18) {
+            break;
+          }
+
+          message.target = reader.string();
+          continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -308,13 +337,19 @@ export const GenRequest = {
   },
 
   fromJSON(object: any): GenRequest {
-    return { spec: isSet(object.spec) ? Spec.fromJSON(object.spec) : undefined };
+    return {
+      spec: isSet(object.spec) ? Spec.fromJSON(object.spec) : undefined,
+      target: isSet(object.target) ? globalThis.String(object.target) : "",
+    };
   },
 
   toJSON(message: GenRequest): unknown {
     const obj: any = {};
     if (message.spec !== undefined) {
       obj.spec = Spec.toJSON(message.spec);
+    }
+    if (message.target !== "") {
+      obj.target = message.target;
     }
     return obj;
   },
@@ -325,6 +360,7 @@ export const GenRequest = {
   fromPartial<I extends Exact<DeepPartial<GenRequest>, I>>(object: I): GenRequest {
     const message = createBaseGenRequest();
     message.spec = (object.spec !== undefined && object.spec !== null) ? Spec.fromPartial(object.spec) : undefined;
+    message.target = object.target ?? "";
     return message;
   },
 };

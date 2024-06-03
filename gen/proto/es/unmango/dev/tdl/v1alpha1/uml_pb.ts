@@ -15,6 +15,11 @@ export class FromRequest extends Message<FromRequest> {
    */
   data = new Uint8Array(0);
 
+  /**
+   * @generated from field: string source = 2;
+   */
+  source = "";
+
   constructor(data?: PartialMessage<FromRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -24,6 +29,7 @@ export class FromRequest extends Message<FromRequest> {
   static readonly typeName = "unmango.dev.tdl.v1alpha1.FromRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "data", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+    { no: 2, name: "source", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): FromRequest {
@@ -89,6 +95,11 @@ export class GenRequest extends Message<GenRequest> {
    */
   spec?: Spec;
 
+  /**
+   * @generated from field: string target = 2;
+   */
+  target = "";
+
   constructor(data?: PartialMessage<GenRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -98,6 +109,7 @@ export class GenRequest extends Message<GenRequest> {
   static readonly typeName = "unmango.dev.tdl.v1alpha1.GenRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "spec", kind: "message", T: Spec },
+    { no: 2, name: "target", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GenRequest {
