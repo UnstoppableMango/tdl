@@ -11,22 +11,11 @@ type ConverterOptions struct {
 
 type ConverterOption func(*ConverterOptions) error
 
-type ConvertFrom interface {
+type Converter interface {
 	From(ctx context.Context, reader io.Reader) (*Spec, error)
 }
 
-type ConvertTo interface {
-	To(ctx context.Context, spec *Spec, writer io.Writer) error
-}
-
-type Converter interface {
-	ConvertFrom
-	ConvertTo
-}
-
 type (
-	NewConvertFrom func(ConverterOptions) ConvertFrom
-	NewConvertTo   func(ConverterOptions) ConvertTo
 	NewConverter   func(ConverterOptions) Converter
 )
 
