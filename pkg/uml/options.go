@@ -6,7 +6,9 @@ type Opt[T any] interface {
 
 func Apply[T Opt[V], V any](options *V, opts ...T) {
 	for _, opt := range opts {
-		opt(options)
+		if err := opt(options); err != nil {
+			panic(err)
+		}
 	}
 }
 
