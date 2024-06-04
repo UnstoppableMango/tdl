@@ -2,7 +2,6 @@
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0.100-preview.4 AS base
 ARG BUILDPLATFORM
 ARG TARGETARCH
-ARG TARGETOS
 
 FROM --platform=$BUILDPLATFORM base AS build
 WORKDIR /build
@@ -23,7 +22,6 @@ COPY src/Broker/ ./Broker/
 RUN MINVERDISABLE=true \
 	dotnet publish \
 		--no-restore \
-		--os $TARGETOS \
 		--arch $TARGETARCH \
 		--configuration Release \
 		--output /out \
