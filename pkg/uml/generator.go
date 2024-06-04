@@ -24,7 +24,3 @@ func WithTarget(t string) GeneratorOption {
 		return nil
 	}
 }
-
-func GenFrom(opts []GeneratorOption) GeneratorOptions {
-	return Apply(GeneratorOptions{}, opts)
-}

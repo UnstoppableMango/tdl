@@ -78,11 +78,6 @@ func (d *Docker) From(ctx context.Context, reader io.Reader) (*v1alpha1.Spec, er
 	panic("unimplemented")
 }
 
-// To implements uml.Converter.
-func (d *Docker) To(ctx context.Context, spec *v1alpha1.Spec, writer io.Writer) error {
-	panic("unimplemented")
-}
-
 var _ uml.Converter = &Docker{}
 var _ uml.Generator = &Docker{}
 

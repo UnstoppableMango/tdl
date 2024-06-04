@@ -16,7 +16,7 @@ type Converter interface {
 }
 
 type (
-	NewConverter   func(ConverterOptions) Converter
+	NewConverter func(ConverterOptions) Converter
 )
 
 func WithMimeType(t string) ConverterOption {
@@ -24,8 +24,4 @@ func WithMimeType(t string) ConverterOption {
 		opts.MimeType = &t
 		return nil
 	}
-}
-
-func ConvFrom(opts []ConverterOption) ConverterOptions {
-	return Apply(ConverterOptions{}, opts)
 }
