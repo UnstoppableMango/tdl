@@ -11,6 +11,8 @@ inputs:
   push:
     description: Push the resulting image.
     default: 'false'
+  build-args:
+    description: Optional build arguments to provide.
   token:
     description: The GITHUB_TOKEN to use for pushing to ghcr.io.
     required: true
@@ -51,6 +53,7 @@ runs:
     - uses: docker/build-push-action@v5
       with:
         file: ${{ inputs.file }}
+        build-args: ${{ inputs.build-args }}
         provenance: true
         sbom: true
         platforms: linux/amd64,linux/arm64
