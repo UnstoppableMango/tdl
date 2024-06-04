@@ -22,7 +22,7 @@ plugins:
       - target=ts
       - import_extension=none # https://github.com/connectrpc/connect-es/issues/1049
 
-  - plugin: buf.build/bufbuild/es
+  - plugin: buf.build/bufbuild/es:v1.10.0
     out: gen/proto/es
     opt:
       - target=ts
