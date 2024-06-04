@@ -27,7 +27,7 @@ func (r *toStreamReader) Read(p []byte) (n int, err error) {
 
 var _ io.Reader = &toStreamReader{}
 
-func (b *broker) To(ctx context.Context, spec *uml.Spec, writer io.Writer, opts ...uml.ConverterOption) error {
+func (b *broker) To(ctx context.Context, spec *uml.Spec, writer io.Writer) error {
 	stream, err := b.client.To(ctx, &ToRequest{
 		Msg: &tdl.ToRequest{Spec: spec},
 	})

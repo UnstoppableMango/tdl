@@ -2,6 +2,7 @@ package pcl
 
 import (
 	"context"
+	"errors"
 	"io"
 	"strings"
 
@@ -21,7 +22,7 @@ type PclConverter interface {
 var Converter PclConverter = &converter{}
 
 // From implements uml.Converter.
-func (c *converter) From(ctx context.Context, reader io.Reader, opts ...uml.ConverterOption) (*tdl.Spec, error) {
+func (c *converter) From(ctx context.Context, reader io.Reader) (*tdl.Spec, error) {
 	panic("unimplemented")
 }
 
@@ -38,11 +39,24 @@ func (c *converter) FromPcl(ctx context.Context, pcl schema.PackageSpec) (*tdl.S
 		},
 	}
 
+	for name, typeSpec := range pcl.Types {
+		typ, err := FromType(typeSpec)
+		if err != nil {
+			return nil, err
+		}
+
+		spec.Types[name] = typ
+	}
+
 	return &spec, nil
 }
 
+func FromType(typ schema.ComplexTypeSpec) (*tdl.Type, error) {
+	return nil, errors.New("TODO")
+}
+
 // To implements uml.Converter.
-func (c *converter) To(ctx context.Context, spec *tdl.Spec, writer io.Writer, opts ...uml.ConverterOption) error {
+func (c *converter) To(ctx context.Context, spec *tdl.Spec, writer io.Writer) error {
 	panic("unimplemented")
 }
 
