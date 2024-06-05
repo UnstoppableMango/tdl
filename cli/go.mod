@@ -3,7 +3,7 @@ module github.com/unstoppablemango/tdl/cli
 go 1.22.2
 
 require (
-	github.com/docker/docker v26.1.3+incompatible
+	github.com/docker/docker v26.1.4+incompatible
 	github.com/spf13/cobra v1.8.0
 	github.com/unstoppablemango/tdl/gen v0.0.7
 	github.com/unstoppablemango/tdl/pkg v0.0.8
