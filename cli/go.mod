@@ -1,12 +1,12 @@
 module github.com/unstoppablemango/tdl/cli
 
-go 1.22.3
+go 1.22.2
 
 require (
 	github.com/docker/docker v26.1.1+incompatible
 	github.com/spf13/cobra v1.8.0
-	github.com/unstoppablemango/tdl/gen v0.0.6
-	github.com/unstoppablemango/tdl/pkg v0.0.7
+	github.com/unstoppablemango/tdl/gen v0.0.7
+	github.com/unstoppablemango/tdl/pkg v0.0.8
 	google.golang.org/protobuf v1.34.1
 )
 
@@ -63,7 +63,6 @@ require (
 	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/muesli/termenv v0.15.2 // indirect
 	github.com/natefinch/atomic v1.0.1 // indirect
-	github.com/onsi/ginkgo/v2 v2.19.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0 // indirect
 	github.com/opentracing/basictracer-go v1.1.0 // indirect
@@ -86,7 +85,6 @@ require (
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3 // indirect
 	github.com/skeema/knownhosts v1.2.2 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/texttheater/golang-levenshtein v1.0.1 // indirect
 	github.com/tweekmonster/luser v0.0.0-20161003172636-3fa38070dbd7 // indirect
 	github.com/uber/jaeger-client-go v2.30.0+incompatible // indirect
