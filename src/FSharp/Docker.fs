@@ -71,21 +71,28 @@ module private Builder =
     )
     |> Async.AwaitTask
 
-  let from client =
-    async {
-      let! cancellationToken = Async.CancellationToken
+  let from client = async {
+    let! cancellationToken = Async.CancellationToken
 
-      return
-        { CancellationToken = cancellationToken
-          Client = client }
-    }
+    return
+      { CancellationToken = cancellationToken
+        Client = client }
+  }
 
   let remove id docker =
-    docker.Client.Containers.RemoveContainerAsync(id, ContainerRemoveParameters(), docker.CancellationToken)
+    docker.Client.Containers.RemoveContainerAsync(
+      id,
+      ContainerRemoveParameters(),
+      docker.CancellationToken
+    )
     |> Async.AwaitTask
 
   let start id docker =
-    docker.Client.Containers.StartContainerAsync(id, ContainerStartParameters(), docker.CancellationToken)
+    docker.Client.Containers.StartContainerAsync(
+      id,
+      ContainerStartParameters(),
+      docker.CancellationToken
+    )
     |> Async.AwaitTask
 
   let stop id docker =
@@ -96,11 +103,10 @@ module private Builder =
     )
     |> Async.AwaitTask
 
-  let cleanup id docker =
-    async {
-      do! stop id docker |> Async.Ignore
-      do! remove id docker
-    }
+  let cleanup id docker = async {
+    do! stop id docker |> Async.Ignore
+    do! remove id docker
+  }
 
   let wait id docker =
     docker.Client.Containers.WaitContainerAsync(id, docker.CancellationToken)

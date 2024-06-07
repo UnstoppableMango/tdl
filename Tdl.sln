@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
@@ -87,6 +87,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "cli", "cli", "{E530B3E1-AD2
 		cli\go.sum = cli\go.sum
 	EndProjectSection
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "UnMango.Tdl.RunnerTest", "src\RunnerTest\UnMango.Tdl.RunnerTest.fsproj", "{A393940E-2F83-4897-ABB2-2B899BF68A70}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -136,6 +138,10 @@ Global
 		{03D2F47F-3FBB-4581-BAF2-3E75C92A8AFD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{03D2F47F-3FBB-4581-BAF2-3E75C92A8AFD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{03D2F47F-3FBB-4581-BAF2-3E75C92A8AFD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A393940E-2F83-4897-ABB2-2B899BF68A70}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A393940E-2F83-4897-ABB2-2B899BF68A70}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A393940E-2F83-4897-ABB2-2B899BF68A70}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A393940E-2F83-4897-ABB2-2B899BF68A70}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{08902DF7-376C-4CC7-92AA-E5E8AE26975F} = {4C2EFA7D-EC3E-4D68-8DC6-EC1418D2A36F}
@@ -152,5 +158,6 @@ Global
 		{E9EB306E-7387-4B06-B59C-A9FFC26EA60B} = {4C2EFA7D-EC3E-4D68-8DC6-EC1418D2A36F}
 		{2C9FDB41-F299-42BC-8E07-3297A4387BF3} = {4C2EFA7D-EC3E-4D68-8DC6-EC1418D2A36F}
 		{03D2F47F-3FBB-4581-BAF2-3E75C92A8AFD} = {4C2EFA7D-EC3E-4D68-8DC6-EC1418D2A36F}
+		{A393940E-2F83-4897-ABB2-2B899BF68A70} = {4C2EFA7D-EC3E-4D68-8DC6-EC1418D2A36F}
 	EndGlobalSection
 EndGlobal

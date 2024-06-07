@@ -20,20 +20,19 @@ let rand = Random()
 let testWorkload = Docker.Workload.create $"tdl-test-{rand.Next()}"
 
 [<Property(Arbitrary = [| typeof<Message> |])>]
-let ``Can perform IO with a container`` (message: string) =
-  async {
-    use input = new MemoryStream(Encoding.UTF8.GetBytes(message), false)
-    use output = new MemoryStream()
-    use config = new DockerClientConfiguration()
-    use client = config.CreateClient()
+let ``Can perform IO with a container`` (message: string) = async {
+  use input = new MemoryStream(Encoding.UTF8.GetBytes(message), false)
+  use output = new MemoryStream()
+  use config = new DockerClientConfiguration()
+  use client = config.CreateClient()
 
-    let workload =
-      { testWorkload "ubuntu" "latest" with
-          Entrypoint = [ "cat" ] }
+  let workload =
+    { testWorkload "ubuntu" "latest" with
+        Entrypoint = [ "cat" ] }
 
-    do! client |> Docker.exec workload input output
-    let actual = Encoding.UTF8.GetString(output.ToArray())
+  do! client |> Docker.exec workload input output
+  let actual = Encoding.UTF8.GetString(output.ToArray())
 
-    Assert.True(output.Length > 0)
-    Assert.Equal(message, actual)
-  }
+  Assert.True(output.Length > 0)
+  Assert.Equal(message, actual)
+}

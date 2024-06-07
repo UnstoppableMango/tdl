@@ -24,14 +24,6 @@ export interface GenResponse {
   data: Uint8Array;
 }
 
-export interface ToRequest {
-  spec: Spec | undefined;
-}
-
-export interface ToResponse {
-  data: Uint8Array;
-}
-
 export interface Spec {
   name: string;
   source: string;
@@ -417,120 +409,6 @@ export const GenResponse = {
   },
   fromPartial<I extends Exact<DeepPartial<GenResponse>, I>>(object: I): GenResponse {
     const message = createBaseGenResponse();
-    message.data = object.data ?? new Uint8Array(0);
-    return message;
-  },
-};
-
-function createBaseToRequest(): ToRequest {
-  return { spec: undefined };
-}
-
-export const ToRequest = {
-  encode(message: ToRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.spec !== undefined) {
-      Spec.encode(message.spec, writer.uint32(10).fork()).ldelim();
-    }
-    return writer;
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): ToRequest {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseToRequest();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1:
-          if (tag !== 10) {
-            break;
-          }
-
-          message.spec = Spec.decode(reader, reader.uint32());
-          continue;
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skipType(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): ToRequest {
-    return { spec: isSet(object.spec) ? Spec.fromJSON(object.spec) : undefined };
-  },
-
-  toJSON(message: ToRequest): unknown {
-    const obj: any = {};
-    if (message.spec !== undefined) {
-      obj.spec = Spec.toJSON(message.spec);
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<ToRequest>, I>>(base?: I): ToRequest {
-    return ToRequest.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<ToRequest>, I>>(object: I): ToRequest {
-    const message = createBaseToRequest();
-    message.spec = (object.spec !== undefined && object.spec !== null) ? Spec.fromPartial(object.spec) : undefined;
-    return message;
-  },
-};
-
-function createBaseToResponse(): ToResponse {
-  return { data: new Uint8Array(0) };
-}
-
-export const ToResponse = {
-  encode(message: ToResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.data.length !== 0) {
-      writer.uint32(10).bytes(message.data);
-    }
-    return writer;
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): ToResponse {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseToResponse();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1:
-          if (tag !== 10) {
-            break;
-          }
-
-          message.data = reader.bytes();
-          continue;
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skipType(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): ToResponse {
-    return { data: isSet(object.data) ? bytesFromBase64(object.data) : new Uint8Array(0) };
-  },
-
-  toJSON(message: ToResponse): unknown {
-    const obj: any = {};
-    if (message.data.length !== 0) {
-      obj.data = base64FromBytes(message.data);
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<ToResponse>, I>>(base?: I): ToResponse {
-    return ToResponse.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<ToResponse>, I>>(object: I): ToResponse {
-    const message = createBaseToResponse();
     message.data = object.data ?? new Uint8Array(0);
     return message;
   },
@@ -2779,7 +2657,6 @@ export const Constructor_MetaEntry = {
 export interface UmlService {
   From(request: Observable<FromRequest>): Promise<FromResponse>;
   Gen(request: GenRequest): Observable<GenResponse>;
-  To(request: ToRequest): Observable<ToResponse>;
 }
 
 export const UmlServiceServiceName = "unmango.dev.tdl.v1alpha1.UmlService";
@@ -2791,7 +2668,6 @@ export class UmlServiceClientImpl implements UmlService {
     this.rpc = rpc;
     this.From = this.From.bind(this);
     this.Gen = this.Gen.bind(this);
-    this.To = this.To.bind(this);
   }
   From(request: Observable<FromRequest>): Promise<FromResponse> {
     const data = request.pipe(map((request) => FromRequest.encode(request).finish()));
@@ -2803,12 +2679,6 @@ export class UmlServiceClientImpl implements UmlService {
     const data = GenRequest.encode(request).finish();
     const result = this.rpc.serverStreamingRequest(this.service, "Gen", data);
     return result.pipe(map((data) => GenResponse.decode(_m0.Reader.create(data))));
-  }
-
-  To(request: ToRequest): Observable<ToResponse> {
-    const data = ToRequest.encode(request).finish();
-    const result = this.rpc.serverStreamingRequest(this.service, "To", data);
-    return result.pipe(map((data) => ToResponse.decode(_m0.Reader.create(data))));
   }
 }
 

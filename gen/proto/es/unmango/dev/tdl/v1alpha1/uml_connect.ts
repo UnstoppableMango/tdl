@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { FromRequest, FromResponse, GenRequest, GenResponse, ToRequest, ToResponse } from "./uml_pb";
+import { FromRequest, FromResponse, GenRequest, GenResponse } from "./uml_pb";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -28,15 +28,6 @@ export const UmlService = {
       name: "Gen",
       I: GenRequest,
       O: GenResponse,
-      kind: MethodKind.ServerStreaming,
-    },
-    /**
-     * @generated from rpc unmango.dev.tdl.v1alpha1.UmlService.To
-     */
-    to: {
-      name: "To",
-      I: ToRequest,
-      O: ToResponse,
       kind: MethodKind.ServerStreaming,
     },
   }

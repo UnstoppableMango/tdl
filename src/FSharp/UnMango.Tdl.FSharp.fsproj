@@ -9,7 +9,6 @@
 	<ItemGroup>
 		<Compile Include="Util.fs" />
 		<Compile Include="Tools.fs" />
-		<Compile Include="Broker.fs"/>
 		<Compile Include="Docker.fs" />
 		<Compile Include="Tdl.fs" />
 		<Compile Include="GrpcClient.fs" />

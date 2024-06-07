@@ -9,7 +9,6 @@ option csharp_namespace = "UnMango.Tdl";
 service UmlService {
   rpc From(stream FromRequest) returns (FromResponse);
   rpc Gen(GenRequest) returns (stream GenResponse);
-  rpc To(ToRequest) returns (stream ToResponse);
 }
 
 message FromRequest {
@@ -27,14 +26,6 @@ message GenRequest {
 }
 
 message GenResponse {
-  bytes data = 1;
-}
-
-message ToRequest {
-  Spec spec = 1;
-}
-
-message ToResponse {
   bytes data = 1;
 }
 

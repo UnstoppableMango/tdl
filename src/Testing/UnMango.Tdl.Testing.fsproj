@@ -6,7 +6,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Any.fs" />
+    <Compile Include="Field.fs" />
+    <Compile Include="Modifier.fs" />
+    <Compile Include="GenericParameter.fs" />
+    <Compile Include="Function.fs" />
+    <Compile Include="Constructor.fs" />
+    <Compile Include="Type.fs" />
     <Compile Include="Spec.fs" />
+    <Compile Include="Tdl.fs" />
+    <Compile Include="RunnerTest.fs" />
   </ItemGroup>
 
   <ItemGroup>
