@@ -14,7 +14,7 @@
     <Compile Include="Constructor.fs" />
     <Compile Include="Type.fs" />
     <Compile Include="Spec.fs" />
-    <Compile Include="Tdl.fs" />
+    <Compile Include="TdlArbs.fs" />
     <Compile Include="RunnerTest.fs" />
   </ItemGroup>
 

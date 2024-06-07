@@ -16,7 +16,7 @@ let validatePath (arg: Argument<FileInfo>) (result: SymbolResult) : unit =
 let run (bin: FileInfo) =
   let from = CliRunner.from bin.FullName
   let gen = CliRunner.gen bin.FullName
-  let spec = ArbMap.defaults |> Tdl.merge |> ArbMap.arbitrary<Spec>
+  let spec = ArbMap.defaults |> TdlArbs.merge |> ArbMap.arbitrary<Spec>
   (gen, from) |> RunnerTest.roundTrip |> Prop.forAll spec |> Check.Quick
 
 [<EntryPoint>]
