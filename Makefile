@@ -37,6 +37,9 @@ test_dotnet: build_dotnet
 	dotnet test --no-build
 test_packages:
 	@$(MAKE) -C packages test
+echo_test:
+	@$(MAKE) -C cli/echo
+	dotnet run --project src/RunnerTest cli/echo/bin/echo
 
 .PHONY: gen
 gen: gen_proto
