@@ -107,6 +107,22 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
+  verify-runner-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: ./.github/actions/build-go
+        with:
+          path: cli/echo
+          gomod: cli/go.mod
+
+      - name: Verify runner tests
+        uses: ./.github/actions/runner-test
+        with:
+          path: cli/echo/bin/echo
+
   goreleaser:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')

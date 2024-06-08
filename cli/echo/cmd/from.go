@@ -14,7 +14,7 @@ func init() {
 	rootCmd.AddCommand(fromCmd)
 }
 
-type echoConverter struct {}
+type echoConverter struct{}
 
 // From implements uml.Converter.
 func (e echoConverter) From(ctx context.Context, reader io.Reader) (*tdl.Spec, error) {

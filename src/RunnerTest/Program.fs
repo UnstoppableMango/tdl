@@ -1,4 +1,5 @@
-﻿open System.CommandLine
+﻿open System
+open System.CommandLine
 open System.CommandLine.Builder
 open System.CommandLine.Parsing
 open System.IO
@@ -17,7 +18,15 @@ let run (bin: FileInfo) =
   let from = CliRunner.from bin.FullName
   let gen = CliRunner.gen bin.FullName
   let spec = ArbMap.defaults |> TdlArbs.merge |> ArbMap.arbitrary<Spec>
-  (gen, from) |> RunnerTest.roundTrip |> Prop.forAll spec |> Check.Quick
+
+  Console.WriteLine("Executing runner test suite")
+
+  [ "Should round-trip", RunnerTest.roundTrip
+    "Should generate data", RunnerTest.generateData ]
+  |> List.map (fun (n, t) -> n, t (gen, from))
+  |> List.map (fun (n, t) -> n, Prop.forAll spec t)
+  |> List.map Check.Quick
+  |> ignore
 
 [<EntryPoint>]
 let main args =
