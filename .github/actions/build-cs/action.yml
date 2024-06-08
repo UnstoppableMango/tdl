@@ -20,9 +20,6 @@ inputs:
   restore-tools:
     description: Run dotnet tool restore
     default: 'false'
-  runtime-id:
-    description: The runtime identifier to use
-    default: linux-x64
 
 outputs:
   artifact-id:
@@ -44,16 +41,12 @@ runs:
 
     - name: Restore dependencies
       shell: bash
-      run: |
-        dotnet restore \
-          --runtime ${{ inputs.runtime-id }} \
-          ${{ inputs.path }}
+      run: dotnet restore ${{ inputs.path }}
 
     - name: Build
       shell: bash
       run: |
         dotnet build \
-          --runtime ${{ inputs.runtime-id }} \
           --configuration ${{ inputs.configuration }} \
           --no-restore \
           ${{ inputs.path }}
@@ -62,7 +55,6 @@ runs:
       shell: bash
       run: |
         dotnet test \
-          --runtime ${{ inputs.runtime-id }} \
           --configuration ${{ inputs.configuration }} \
           --collect:"XPlat Code Coverage" \
           --no-build \
@@ -89,7 +81,6 @@ runs:
       shell: bash
       run: |
         dotnet pack \
-          --use-current-runtime \
           --configuration ${{ inputs.configuration }} \
           --output out \
           --no-build \
