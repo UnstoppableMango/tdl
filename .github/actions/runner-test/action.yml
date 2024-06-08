@@ -1,0 +1,24 @@
+name: Execute runner tests
+description: Execute the runner test suite against a given runner binary.
+
+inputs:
+  path:
+    description: The path to the runner binary.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Build runner test
+      uses: ./.github/actions/build-cs
+      with:
+        path: src/RunnerTest
+        configuration: Release
+
+    - name: Execute runner tests on ${{ inputs.path }}
+      shell: bash
+      run: |
+        dotnet run \
+          --project src/RunnerTest \
+          --configuration Release \
+          ${{ inputs.path }}

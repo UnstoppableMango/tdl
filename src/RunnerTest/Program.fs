@@ -1,4 +1,5 @@
-﻿open System.CommandLine
+﻿open System
+open System.CommandLine
 open System.CommandLine.Builder
 open System.CommandLine.Parsing
 open System.IO
@@ -6,7 +7,6 @@ open FsCheck
 open FsCheck.FSharp
 open UnMango.Tdl
 open UnMango.Tdl.Testing
-open System
 
 let validatePath (arg: Argument<FileInfo>) (result: SymbolResult) : unit =
   match result.GetValueForArgument(arg) with
