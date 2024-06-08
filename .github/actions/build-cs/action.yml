@@ -81,6 +81,7 @@ runs:
       shell: bash
       run: |
         dotnet pack \
+          /p:PublishAot=false \
           --configuration ${{ inputs.configuration }} \
           --output out \
           --no-build \
