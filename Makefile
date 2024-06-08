@@ -27,7 +27,7 @@ LANG_DIR := src/Language
 LANG_SRC := $(shell find $(LANG_DIR) -name '*.fs' -not -path '*obj*' -type f)
 
 .PHONY: build build_dotnet
-build: build_dotnet
+build: build_dotnet cli docker pkg
 	@touch .make/build_lang
 build_dotnet: .make/build_dotnet
 
@@ -74,9 +74,15 @@ proto: build_proto gen_proto
 gen_proto: .make/gen_proto
 build_proto: .make/build_proto
 
-.PHONY: docker
+.PHONY: cli docker pkg src
+cli:
+	@$(MAKE) -C cli
 docker:
-	@$(MAKE) -C docker all
+	@$(MAKE) -C docker
+pkg:
+	@$(MAKE) -C pkg
+src:
+	@$(MAKE) -C src
 
 version:
 	@echo '${VERSION}'
