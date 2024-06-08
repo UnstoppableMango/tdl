@@ -11,12 +11,18 @@ inputs:
   lint:
     description: Run dotnet format.
     default: 'false'
+  output:
+    description: Optional output directory.
+    default: out
   pack:
     description: Package library.
     default: 'false'
   path:
     description: Path to the project.
     required: true
+  publish:
+    description: Publish application.
+    default: 'false'
   restore-tools:
     description: Run dotnet tool restore
     default: 'false'
@@ -76,6 +82,17 @@ runs:
       shell: bash
       run: dotnet fantomas --check ${{ inputs.path }}
 
+    - name: Publish library
+      if: inputs.publish == 'true'
+      shell: bash
+      run: |
+        dotnet publish \
+          /p:PublishAot=false \
+          --configuration ${{ inputs.configuration }} \
+          --output ${{ inputs.output }} \
+          --no-build \
+          ${{ inputs.path }}
+
     - name: Package library
       if: inputs.pack == 'true'
       shell: bash
@@ -83,7 +100,7 @@ runs:
         dotnet pack \
           /p:PublishAot=false \
           --configuration ${{ inputs.configuration }} \
-          --output out \
+          --output ${{ inputs.output }} \
           --no-build \
           ${{ inputs.path }}
 
@@ -93,5 +110,5 @@ runs:
       uses: actions/upload-artifact@v4
       with:
         name: nuget
-        path: out/*.nupkg
+        path: ${{ inputs.output }}/*.nupkg
         if-no-files-found: error
