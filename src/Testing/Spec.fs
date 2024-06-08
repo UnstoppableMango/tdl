@@ -12,9 +12,9 @@ let generate arbMap = gen {
   let! source = arbMap |> ArbMap.generate<string>
   let! version = arbMap |> ArbMap.generate<string>
   let! displayName = arbMap |> ArbMap.generate<string>
-  let! labels = arbMap |> ArbMap.generate<Dictionary<string, string>>
-  let! meta = arbMap |> ArbMap.generate<Dictionary<string, Any>>
-  let! types = arbMap |> ArbMap.generate<Dictionary<string, Type>>
+  // let! labels = arbMap |> ArbMap.generate<Dictionary<string, string>>
+  // let! meta = arbMap |> ArbMap.generate<Dictionary<string, Any>>
+  // let! types = arbMap |> ArbMap.generate<Dictionary<string, Type>>
 
   let result =
     Spec(
@@ -25,9 +25,10 @@ let generate arbMap = gen {
       Description = description
     )
 
-  result.Labels.Add(labels)
-  result.Meta.Add(meta)
-  result.Types_.Add(types)
+  // TODO: Something in here is causing a stack overflow
+  // result.Labels.Add(labels)
+  // result.Meta.Add(meta)
+  // result.Types_.Add(types)
 
   return result
 }
