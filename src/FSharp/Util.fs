@@ -8,5 +8,7 @@ open CliWrap.EventStream
 
 type CommandExtensions =
   [<Extension>]
-  static member inline Observe(command: Command, forceful: CancellationToken, graceful: CancellationToken) =
+  static member inline Observe
+    (command: Command, forceful: CancellationToken, graceful: CancellationToken)
+    =
     command.Observe(Encoding.Default, Encoding.Default, forceful, graceful)
