@@ -14,8 +14,7 @@ func init() {
 	rootCmd.AddCommand(genCmd)
 }
 
-type echoGenerator struct {
-}
+type echoGenerator struct{}
 
 // Gen implements uml.Generator.
 func (e echoGenerator) Gen(ctx context.Context, spec *tdlv1alpha1.Spec, writer io.Writer) error {
@@ -24,7 +23,7 @@ func (e echoGenerator) Gen(ctx context.Context, spec *tdlv1alpha1.Spec, writer i
 		return err
 	}
 
-	_, err =writer.Write(data)
+	_, err = writer.Write(data)
 	return err
 }
 
