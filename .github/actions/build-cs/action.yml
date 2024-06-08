@@ -89,7 +89,7 @@ runs:
       shell: bash
       run: |
         dotnet pack \
-          --runtime ${{ inputs.runtime-id }} \
+          --use-current-runtime \
           --configuration ${{ inputs.configuration }} \
           --output out \
           --no-build \
