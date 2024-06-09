@@ -9,12 +9,18 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func NewFromCmd(create uml.NewConverter) *cobra.Command {
+func NewFromCmd[T uml.NewConverter[uml.ConverterOptions]](create T) *cobra.Command {
 	return &cobra.Command{
 		Use: "from",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts := uml.ConverterOptions{}
-			spec, err := create(opts).From(cmd.Context(), os.Stdin)
+			ctx := cmd.Context()
+			conv, err := create(ctx, opts, args)
+			if err != nil {
+				return err
+			}
+
+			spec, err := conv.From(cmd.Context(), os.Stdin)
 			if err != nil {
 				return err
 			}
@@ -33,7 +39,7 @@ func NewFromCmd(create uml.NewConverter) *cobra.Command {
 	}
 }
 
-func NewGenCmd(create uml.NewGenerator) *cobra.Command {
+func NewGenCmd[T uml.NewGenerator[uml.GeneratorOptions]](create T) *cobra.Command {
 	return &cobra.Command{
 		Use: "gen",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -48,7 +54,13 @@ func NewGenCmd(create uml.NewGenerator) *cobra.Command {
 				return err
 			}
 
-			return create(opts).Gen(cmd.Context(), &spec, os.Stdout)
+			ctx := cmd.Context()
+			gen, err := create(ctx, opts, args)
+			if err != nil {
+				return err
+			}
+
+			return gen.Gen(ctx, &spec, os.Stdout)
 		},
 	}
 }
