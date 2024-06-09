@@ -1,0 +1,20 @@
+{
+	"name": "@unmango/tdl",
+	"license": "GPL-3.0-only",
+	"module": "index.ts",
+	"type": "module",
+	"scripts": {
+		"build": "bun build index.ts --outdir dist",
+		"clean": "rm -rf dist",
+		"lint": "eslint .",
+		"lint:fix": "eslint . --fix"
+	},
+	"dependencies": {
+		"@unmango/uml": "workspace:*",
+		"@unmango/tdl-es": "workspace:*",
+		"typescript": "5.4.5"
+	},
+	"devDependencies": {
+		"@types/bun": "latest"
+	}
+}

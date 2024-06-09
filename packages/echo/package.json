@@ -14,7 +14,8 @@
 	},
 	"dependencies": {
 		"@commander-js/extra-typings": "^12.0.1",
-		"@unmango/tdl-es": "workspace:*"
+		"@unmango/tdl-es": "workspace:*",
+		"@unmango/tdl": "workspace:*"
 	},
 	"devDependencies": {
 		"@types/bun": "latest"
