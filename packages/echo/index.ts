@@ -1,5 +1,5 @@
 import type { Command } from '@commander-js/extra-typings';
-import { from,  gen, program } from './program';
+import { from, gen, program } from './program';
 
 type ApplyCommand = (c: Command) => Command;
 
