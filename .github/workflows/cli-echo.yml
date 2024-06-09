@@ -1,0 +1,28 @@
+name: echo CLI
+
+on:
+  pull_request:
+    branches: ['main']
+    paths:
+      - .github/actions/build-go/**
+      - .github/workflows/go-cli.yml
+      - .github/workflows/cli-echo.yml
+      - cli/go.*
+      - cli/echo/**
+      - cli/internal/**
+  push:
+    branches: ['main']
+    tags: ['v*.*.*']
+    paths:
+      - .github/actions/build-go/**
+      - .github/workflows/go-cli.yml
+      - .github/workflows/cli-echo.yml
+      - cli/go.*
+      - cli/echo/**
+      - cli/internal/**
+
+jobs:
+  build:
+    uses: ./.github/workflows/go-cli.yml
+    with:
+      name: echo

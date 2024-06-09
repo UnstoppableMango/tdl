@@ -1,0 +1,24 @@
+name: ts package
+
+on:
+  pull_request:
+    branches: ['main']
+    paths:
+      - .github/actions/build-bun/**
+      - .github/actions/build-docker/**
+      - .github/workflows/packages-ts.yml
+      - packages/ts/**
+  push:
+    branches: ['main']
+    tags: ['v*.*.*']
+    paths:
+      - .github/actions/build-cs/**
+      - .github/actions/build-docker/**
+      - .github/workflows/packages-ts.yml
+      - packages/ts/**
+
+jobs:
+  build:
+    uses: ./.github/workflows/ts-cli.yml
+    with:
+      name: ts

@@ -57,7 +57,9 @@ func pluginOption(plugin string) DockerOption {
 func NewDocker(opts ...DockerOption) Docker {
 	docker := Docker{}
 	for _, opt := range opts {
-		opt(&docker)
+		if err := opt(&docker); err != nil {
+			panic(err)
+		}
 	}
 	return docker
 }
@@ -134,18 +136,17 @@ func (d *Docker) run(ctx context.Context, cmd []string, spec *tdl.Spec, writer i
 		return err
 	}
 
-	dispose := func() error {
+	dispose := func() {
+		// TODO: Handle the errors better
 		err := docker.ContainerStop(ctx, ctr.ID, container.StopOptions{})
 		if err != nil {
-			return err
+			return
 		}
 
 		err = docker.ContainerRemove(ctx, ctr.ID, container.RemoveOptions{})
 		if err != nil {
-			return err
+			return
 		}
-
-		return nil
 	}
 	defer dispose()
 

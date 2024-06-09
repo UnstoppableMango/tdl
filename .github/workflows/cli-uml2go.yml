@@ -1,0 +1,33 @@
+name: uml2go CLI
+
+on:
+  pull_request:
+    branches: ['main']
+    paths:
+      - .github/actions/build-go/**
+      - .github/actions/build-docker/**
+      - .github/workflows/go-cli.yml
+      - .github/workflows/cli-uml2go.yml
+      - cli/go.*
+      - cli/uml2go/**
+      - cli/internal/**
+      - docker/uml2go/**
+  push:
+    branches: ['main']
+    tags: ['v*.*.*']
+    paths:
+      - .github/actions/build-go/**
+      - .github/actions/build-docker/**
+      - .github/workflows/go-cli.yml
+      - .github/workflows/cli-uml2go.yml
+      - cli/go.*
+      - cli/uml2go/**
+      - cli/internal/**
+      - docker/uml2go/**
+
+jobs:
+  build:
+    uses: ./.github/workflows/go-cli.yml
+    with:
+      name: uml2go
+      docker: true

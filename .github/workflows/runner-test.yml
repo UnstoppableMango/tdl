@@ -1,0 +1,49 @@
+name: Runner Test
+
+on:
+  pull_request:
+    branches: ['main']
+    paths:
+      - .github/actions/build-go/**
+      - .github/actions/build-cs/**
+      - .github/workflows/runner-test.yml
+      - cli/go.*
+      - cli/echo/**
+      - cli/internal/**
+      - src/Abstractions/**
+      - src/FSharp/**
+      - src/Language/**
+      - src/RunnerTest/**
+      - src/Testing/**
+  push:
+    branches: ['main']
+    tags: ['v*.*.*']
+    paths:
+      - .github/actions/build-go/**
+      - .github/actions/build-cs/**
+      - .github/workflows/runner-test.yml
+      - cli/go.*
+      - cli/echo/**
+      - cli/internal/**
+      - src/Abstractions/**
+      - src/FSharp/**
+      - src/Language/**
+      - src/RunnerTest/**
+      - src/Testing/**
+
+jobs:
+  verify-runner-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: ./.github/actions/build-go
+        with:
+          path: cli/echo
+          gomod: cli/go.mod
+
+      - name: Verify runner tests
+        uses: ./.github/actions/runner-test
+        with:
+          path: cli/echo/bin/echo
