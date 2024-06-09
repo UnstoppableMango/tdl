@@ -5,18 +5,19 @@ import (
 	"io"
 )
 
-type Generator interface {
-	Gen(ctx context.Context, spec *Spec, writer io.Writer) error
-}
-
 type GeneratorOptions struct {
 	Target string
 }
 
-type (
-	GeneratorOption func(*GeneratorOptions) error
-	NewGenerator    func(GeneratorOptions) Generator
-)
+type GeneratorOption func(*GeneratorOptions) error
+
+type Generator interface {
+	Gen(ctx context.Context, spec *Spec, writer io.Writer) error
+}
+
+type NewGenerator[T any] interface {
+	RunnerFactory[T, Generator]
+}
 
 func WithTarget(t string) GeneratorOption {
 	return func(opts *GeneratorOptions) error {

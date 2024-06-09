@@ -6,6 +6,7 @@ require (
 	connectrpc.com/connect v1.16.2
 	github.com/docker/docker v26.1.4+incompatible
 	github.com/gogo/protobuf v1.3.2
+	github.com/google/go-github/v62 v62.0.0
 	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.33.1
 	github.com/pulumi/pulumi/pkg/v3 v3.119.0
@@ -49,6 +50,7 @@ require (
 	github.com/golang/glog v1.2.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
+	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/pprof v0.0.0-20240424215950-a892ee059fd6 // indirect
 	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect

@@ -9,7 +9,8 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
-	v1alpha1 "github.com/unstoppablemango/tdl/gen/proto/go/unmango/dev/tdl/v1alpha1"
+	tdl "github.com/unstoppablemango/tdl/gen/proto/go/unmango/dev/tdl/v1alpha1"
+	"github.com/unstoppablemango/tdl/pkg/plugin"
 	"github.com/unstoppablemango/tdl/pkg/uml"
 	"google.golang.org/protobuf/proto"
 )
@@ -36,11 +37,8 @@ func WithName(name string) DockerOption {
 
 func WithTarget(target string) DockerOption {
 	return func(d *Docker) error {
-		plugin, err := uml.PluginForTarget(target)
-		if err != nil {
-			d.plugin = plugin
-		}
-
+		p, err := plugin.ForTarget(target)
+		d.plugin = p
 		return err
 	}
 }
@@ -69,18 +67,18 @@ var (
 )
 
 // Gen implements uml.Generator.
-func (d *Docker) Gen(ctx context.Context, spec *v1alpha1.Spec, writer io.Writer) error {
+func (d *Docker) Gen(ctx context.Context, spec *tdl.Spec, writer io.Writer) error {
 	return d.run(ctx, genCmd, spec, writer)
 }
 
 // From implements uml.Converter.
-func (d *Docker) From(ctx context.Context, reader io.Reader) (*v1alpha1.Spec, error) {
+func (d *Docker) From(ctx context.Context, reader io.Reader) (*tdl.Spec, error) {
 	panic("unimplemented")
 }
 
 var _ uml.Runner = &Docker{}
 
-func (d *Docker) run(ctx context.Context, cmd []string, spec *v1alpha1.Spec, writer io.Writer) error {
+func (d *Docker) run(ctx context.Context, cmd []string, spec *tdl.Spec, writer io.Writer) error {
 	docker, err := client.NewClientWithOpts(
 		client.FromEnv,
 		client.WithAPIVersionNegotiation(),
