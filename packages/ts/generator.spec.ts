@@ -25,7 +25,7 @@ describe('Generator', () => {
 			version: '0.1.0',
 		});
 
-		const actual = await generator.gen(spec);
+		await generator.gen(spec);
 
 		expect(actual).not.toBeNull();
 		expect(actual).toEqual(`export interface test {\n    readonly test: string;\n}\n`);
