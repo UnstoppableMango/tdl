@@ -8,6 +8,7 @@ export class Echo implements Runner<Spec> {
 		const data = new Uint8Array(input);
 		return Spec.fromBinary(data);
 	}
+
 	async gen(spec: Spec, writer: BunFile): Promise<void> {
 		const data = spec.toBinary();
 		await Bun.write(writer, data);
