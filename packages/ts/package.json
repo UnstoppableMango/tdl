@@ -1,5 +1,6 @@
 {
 	"name": "@unmango/2ts",
+	"license": "GPL-3.0-only",
 	"module": "index.ts",
 	"type": "module",
 	"scripts": {

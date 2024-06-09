@@ -1,5 +1,6 @@
 {
 	"name": "@unmango/uml",
+	"license": "GPL-3.0-only",
 	"type": "module",
 	"module": "index.ts",
 	"main": "dist/index.js",

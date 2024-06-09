@@ -1,6 +1,6 @@
 {
 	"name": "@unmango/tdl",
-	"packageManager": "bun@1.1.5",
+	"packageManager": "bun@1.1.12",
 	"workspaces": [
 		"gen/proto/*",
 		"packages/*"

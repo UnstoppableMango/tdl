@@ -1,13 +1,15 @@
 import * as tdl from '@unmango/tdl-es';
 import * as uml from '@unmango/uml';
+import type { Writable } from 'stream';
 import ts from 'typescript';
 
 export class Generator implements uml.Generator {
-	gen(spec: tdl.Spec): Promise<string> {
+	gen(spec: tdl.Spec, writer: Writable): Promise<void> {
 		const source = ts.createSourceFile('types.d.ts', '', ts.ScriptTarget.ES2019, undefined, ts.ScriptKind.TS);
 		const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
 		const result = printer.printList(ts.ListFormat.MultiLine, gen(spec), source);
-		return Promise.resolve(result);
+		writer.write();
+		return Promise.resolve();
 	}
 }
 
