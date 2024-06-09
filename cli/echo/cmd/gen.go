@@ -5,7 +5,7 @@ import (
 	"io"
 
 	cli "github.com/unstoppablemango/tdl/cli/internal"
-	tdlv1alpha1 "github.com/unstoppablemango/tdl/gen/proto/go/unmango/dev/tdl/v1alpha1"
+	tdl "github.com/unstoppablemango/tdl/gen/proto/go/unmango/dev/tdl/v1alpha1"
 	"github.com/unstoppablemango/tdl/pkg/uml"
 	"google.golang.org/protobuf/proto"
 )
@@ -17,7 +17,7 @@ func init() {
 type echoGenerator struct{}
 
 // Gen implements uml.Generator.
-func (e echoGenerator) Gen(ctx context.Context, spec *tdlv1alpha1.Spec, writer io.Writer) error {
+func (e echoGenerator) Gen(ctx context.Context, spec *tdl.Spec, writer io.Writer) error {
 	data, err := proto.Marshal(spec)
 	if err != nil {
 		return err
@@ -27,6 +27,6 @@ func (e echoGenerator) Gen(ctx context.Context, spec *tdlv1alpha1.Spec, writer i
 	return err
 }
 
-var genCmd = cli.NewGenCmd(func(_ uml.GeneratorOptions) uml.Generator {
-	return echoGenerator{}
+var genCmd = cli.NewGenCmd(func(ctx context.Context, _ uml.GeneratorOptions, args []string) (uml.Generator, error) {
+	return echoGenerator{}, nil
 })
