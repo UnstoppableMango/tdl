@@ -6,7 +6,7 @@ on:
     paths:
       - .github/actions/build-go/**
       - .github/actions/build-docker/**
-      - .github/workflows/go/cli.yml
+      - .github/workflows/go-cli.yml
       - .github/workflows/cli-uml2go.yml
       - cli/go.*
       - cli/uml2go/**
@@ -18,7 +18,7 @@ on:
     paths:
       - .github/actions/build-go/**
       - .github/actions/build-docker/**
-      - .github/workflows/go/cli.yml
+      - .github/workflows/go-cli.yml
       - .github/workflows/cli-uml2go.yml
       - cli/go.*
       - cli/uml2go/**
@@ -27,7 +27,7 @@ on:
 
 jobs:
   build:
-    uses: ./.github/workflows/go/cli.yml
+    uses: ./.github/workflows/go-cli.yml
     with:
       name: uml2go
       docker: true

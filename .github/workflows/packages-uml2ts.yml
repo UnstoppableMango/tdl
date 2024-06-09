@@ -19,7 +19,7 @@ on:
 
 jobs:
   build:
-    uses: ./.github/workflows/ts/cli.yml
+    uses: ./.github/workflows/ts-cli.yml
     with:
       name: uml2ts
       docker: true
