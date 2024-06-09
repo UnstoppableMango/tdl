@@ -1,11 +1,11 @@
 {
-	"name": "@unmango/uml2ts",
+	"name": "echo",
 	"version": "0.1.0",
 	"license": "GPL-3.0-only",
 	"module": "index.ts",
 	"type": "module",
 	"scripts": {
-		"build": "bun build index.ts --compile --outfile dist/uml2ts",
+		"build": "bun build index.ts --compile --outfile dist/echo",
 		"clean": "rm -rf dist",
 		"lint": "eslint .",
 		"lint:fix": "eslint . --fix",
@@ -14,15 +14,10 @@
 	},
 	"dependencies": {
 		"@commander-js/extra-typings": "^12.0.1",
-		"@connectrpc/connect": "^1.4.0",
-		"@connectrpc/connect-node": "^1.4.0",
-		"@unmango/tdl-es": "workspace:*",
-		"@unmango/2ts": "workspace:*"
+		"@unmango/tdl-es": "workspace:*"
 	},
 	"devDependencies": {
-		"@types/bun": "latest",
-		"fast-check": "^3.18.0",
-		"testcontainers": "^10.9.0"
+		"@types/bun": "latest"
 	},
 	"peerDependencies": {
 		"typescript": "^5.0.0"
