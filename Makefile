@@ -30,8 +30,11 @@ RUNNER_TEST_DIR := src/RunnerTest
 RUNNER_TEST_SRC := $(shell find $(RUNNER_TEST_DIR) -name '*.fs' -not -path '*obj*' -type f)
 RUNNER_TEST_BIN := $(RUNNER_TEST_DIR)/$(BIN_PATH)/$(NS).RunnerTest.dll
 
-ECHO_SRC := $(shell find cli/echo -type f -name '*.go')
-ECHO_CLI := cli/echo/bin/echo
+GO_ECHO_SRC := $(shell find cli/echo -type f -name '*.go')
+GO_ECHO_CLI := cli/echo/bin/echo
+
+TS_ECHO_SRC := $(shell find packages/echo -type f -name '*.ts')
+TS_ECHO_CLI := packages/echo/dist/echo
 
 .PHONY: build build_dotnet
 build: build_dotnet cli docker pkg
@@ -44,8 +47,11 @@ test_dotnet: build_dotnet
 	dotnet test --no-build
 test_packages:
 	@$(MAKE) -C packages test
-echo_test: $(ECHO_CLI) $(RUNNER_TEST_BIN)
-	@dotnet ${RUNNER_TEST_BIN} ${ECHO_CLI}
+echo_test: go_echo_test ts_echo_test
+go_echo_test: $(GO_ECHO_CLI) $(RUNNER_TEST_BIN)
+	@dotnet ${RUNNER_TEST_BIN} ${GO_ECHO_CLI}
+ts_echo_test: $(TS_ECHO_CLI) $(RUNNER_TEST_BIN)
+	@dotnet ${RUNNER_TEST_BIN} ${TS_ECHO_CLI}
 
 .PHONY: gen
 gen: gen_proto
@@ -107,8 +113,11 @@ undev:
 .PHONY: work
 work: go.work go.work.sum
 
-$(ECHO_CLI): $(ECHO_SRC)
+$(GO_ECHO_CLI): $(GO_ECHO_SRC)
 	@$(MAKE) -C cli/echo --no-print-directory
+
+$(TS_ECHO_CLI): $(TS_ECHO_SRC)
+	@$(MAKE) -C packages/echo --no-print-directory
 
 $(RUNNER_TEST_BIN): $(RUNNER_TEST_SRC)
 	dotnet build ${RUNNER_TEST_DIR}
