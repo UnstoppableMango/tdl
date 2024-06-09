@@ -1,0 +1,34 @@
+name: Go Packages
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/actions/build-go/**
+      - .github/workflows/pkg.yml
+      - pkg/**
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
+    paths:
+      - .github/actions/build-go/**
+      - .github/workflows/pkg.yml
+      - pkg/**
+
+jobs:
+  build-go:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        path:
+          - pkg/broker
+          - pkg/go
+          - pkg/pcl
+          - pkg/uml
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-go
+        with:
+          lib: true
+          path: ${{ matrix.path }}
+          gomod: pkg/go.mod
