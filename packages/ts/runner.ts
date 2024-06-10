@@ -1,5 +1,5 @@
-import type { Spec } from '@unmango/tdl-es';
 import * as tdl from '@unmango/tdl';
+import type { Spec } from '@unmango/tdl-es';
 import { from } from './converter';
 import { gen } from './generator';
 

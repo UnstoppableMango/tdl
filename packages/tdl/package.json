@@ -1,21 +1,21 @@
 {
-  "name": "@unmango/tdl",
-  "license": "GPL-3.0-only",
-  "module": "index.ts",
-  "type": "module",
-  "scripts": {
-    "build": "bun build index.ts --outdir dist",
-    "clean": "rm -rf dist",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
-  },
-  "dependencies": {
-    "@unmango/tdl-es": "workspace:*",
-    "@unmango/uml": "workspace:*",
-    "fp-ts": "^2.16.6",
-    "typescript": "5.4.5"
-  },
-  "devDependencies": {
-    "@types/bun": "latest"
-  }
+	"name": "@unmango/tdl",
+	"license": "GPL-3.0-only",
+	"module": "index.ts",
+	"type": "module",
+	"scripts": {
+		"build": "bun build index.ts --outdir dist",
+		"clean": "rm -rf dist",
+		"lint": "eslint .",
+		"lint:fix": "eslint . --fix"
+	},
+	"dependencies": {
+		"@unmango/tdl-es": "workspace:*",
+		"@unmango/uml": "workspace:*",
+		"fp-ts": "^2.16.6",
+		"typescript": "5.4.5"
+	},
+	"devDependencies": {
+		"@types/bun": "latest"
+	}
 }

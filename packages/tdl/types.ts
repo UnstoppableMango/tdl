@@ -20,11 +20,11 @@ export interface Runner<T = Spec> {
 // TODO: I'm thinking all abstract all of this into a single pipe type
 export type Decoder<T> = {
 	(data: T, writer: In): Promise<void>;
-}
+};
 
 export type Encoder<T> = {
 	(spec: Out): Promise<T>;
-}
+};
 
 export interface Serdes<T> {
 	decode: Decoder<T>;

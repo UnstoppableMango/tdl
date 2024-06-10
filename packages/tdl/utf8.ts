@@ -8,7 +8,7 @@ export const decode: Decoder<string> = async (data: string, reader: BunFile): Pr
 export const encode: Encoder<string> = async (spec: BunFile): Promise<string> => {
 	const data = await spec.arrayBuffer();
 	return new TextDecoder().decode(data);
-}
+};
 
 export class Utf8Serdes implements Serdes<string> {
 	decode: Decoder<string> = decode;
