@@ -1,4 +1,5 @@
 import * as tdl from '@unmango/tdl-es';
+import { ArrayBufferSink } from 'bun';
 import { describe, expect, it } from 'bun:test';
 import { gen } from './generator';
 
@@ -26,8 +27,10 @@ describe('Generator', () => {
 		});
 
 		Bun.file('/dev/null');
-		const buf = new Uint8Array();
-		await gen(spec, Bun.file('/dev/null'));
+		const buf = new ArrayBufferSink();
+		await gen(spec, buf);
+		const decoder = new TextDecoder();
+		const actual = decoder.decode(buf.end());
 
 		expect(actual).not.toBeNull();
 		expect(actual).toEqual(`export interface test {\n    readonly test: string;\n}\n`);
