@@ -1,13 +1,14 @@
 import type { Gen } from '@unmango/tdl';
 import type { Field, Spec, Type } from '@unmango/tdl-es';
-import type { BunFile } from 'bun';
+import type { ArrayBufferSink } from 'bun';
 import ts from 'typescript';
 
-export const gen: Gen<Spec> = async (spec: Spec, writer: BunFile): Promise<void> => {
+export const gen: Gen<Spec> = (spec: Spec, writer: ArrayBufferSink): Promise<void> => {
 	const source = ts.createSourceFile('types.d.ts', '', ts.ScriptTarget.ES2019, undefined, ts.ScriptKind.TS);
 	const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
 	const result = printer.printList(ts.ListFormat.MultiLine, genNodes(spec), source);
-	await Bun.write(writer, result);
+	writer.write(result);
+	return Promise.resolve();
 };
 
 function genNodes(spec: Spec): ts.NodeArray<ts.Node> {
