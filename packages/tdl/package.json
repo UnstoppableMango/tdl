@@ -1,5 +1,5 @@
 {
-	"name": "@unmango/2ts",
+	"name": "@unmango/tdl",
 	"license": "GPL-3.0-only",
 	"module": "index.ts",
 	"type": "module",
@@ -10,9 +10,9 @@
 		"lint:fix": "eslint . --fix"
 	},
 	"dependencies": {
-		"@unmango/uml": "workspace:*",
-		"@unmango/tdl": "workspace:*",
 		"@unmango/tdl-es": "workspace:*",
+		"@unmango/uml": "workspace:*",
+		"fp-ts": "^2.16.6",
 		"typescript": "5.4.5"
 	},
 	"devDependencies": {

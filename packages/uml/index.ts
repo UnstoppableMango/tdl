@@ -1,13 +1,4 @@
 import * as tdl from '@unmango/tdl-es';
-import { Readable, Writable } from 'node:stream';
-
-export interface Converter {
-	from(reader: Readable): Promise<tdl.Spec>;
-}
-
-export interface Generator {
-	gen(spec: tdl.Spec, writer: Writable): Promise<void>;
-}
 
 export const SUPPORTED_MIME_TYPES = [
 	'application/json',

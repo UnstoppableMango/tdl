@@ -10,7 +10,11 @@ export const from = (program: Command): Command => {
 	program.command('from')
 		.description('Write back the protobuf data.')
 		.addOption(mimeTypeOption)
-		.action((_) => cmd.from());
+		.action(async (_) => {
+			const echo = new cmd.Echo();
+			const spec = await echo.from(Bun.stdin);
+			await echo.gen(spec, Bun.stdout);
+		});
 
 	return program;
 };
@@ -19,7 +23,11 @@ export const gen = (program: Command): Command => {
 	program.command('gen')
 		.description('Also, write back the protobuf data.')
 		.addOption(mimeTypeOption)
-		.action((_) => cmd.gen());
+		.action(async (_) => {
+			const echo = new cmd.Echo();
+			const spec = await echo.from(Bun.stdin);
+			await echo.gen(spec, Bun.stdout);
+		});
 
 	return program;
 };
