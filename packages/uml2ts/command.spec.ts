@@ -1,5 +1,5 @@
-import { Spec } from '@unmango/tdl-es';
 import type { SupportedMimeType } from '@unmango/tdl';
+import { Spec } from '@unmango/tdl-es';
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import fs from 'node:fs/promises';
 import path from 'node:path';
