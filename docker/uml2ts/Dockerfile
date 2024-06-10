@@ -7,9 +7,11 @@ FROM --platform=$BUILDPLATFORM base AS install
 
 RUN mkdir -p gen/proto/{es,ts} packages/{ts,uml,uml2ts}
 
+# Need everything for the lockfile
 COPY package.json .
 COPY gen/proto/es/package.json gen/proto/es/
 COPY gen/proto/ts/package.json gen/proto/ts/
+COPY packages/echo/package.json packages/echo/
 COPY packages/tdl/package.json packages/tdl/
 COPY packages/ts/package.json packages/ts/
 COPY packages/uml2ts/package.json packages/uml2ts/
@@ -21,7 +23,6 @@ FROM --platform=$BUILDPLATFORM install AS build
 COPY --from=install /build/node_modules .
 
 COPY gen/proto/es/ gen/proto/es/
-COPY gen/proto/ts/ gen/proto/ts/
 COPY packages/tdl/ packages/tdl/
 COPY packages/ts/ packages/ts/
 COPY packages/uml2ts/ .
