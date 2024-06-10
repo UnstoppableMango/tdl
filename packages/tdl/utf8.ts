@@ -1,9 +1,10 @@
-import type { BunFile } from 'bun';
+import type { ArrayBufferSink, BunFile } from 'bun';
 import type { Decoder, Encoder, Serdes } from './types';
 
-export const decode: Decoder<string> = async (data: string, reader: BunFile): Promise<void> => {
+export const decode: Decoder<string> = (data: string, writer: ArrayBufferSink): Promise<void> => {
 	const result = new TextEncoder().encode(data);
-	await Bun.write(reader, result);
+	writer.write(result);
+	return Promise.resolve();
 };
 export const encode: Encoder<string> = async (spec: BunFile): Promise<string> => {
 	const data = await spec.arrayBuffer();

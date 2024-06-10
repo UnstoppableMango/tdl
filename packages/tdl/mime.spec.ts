@@ -1,7 +1,7 @@
 import { Spec } from '@unmango/tdl-es';
 import { describe, expect, it } from 'bun:test';
 import fc from 'fast-check';
-import { read, type SupportedMimeType } from './index';
+import { read, type SupportedMimeType } from './mime';
 
 const arbSpec = () =>
 	fc.gen().map(g =>
