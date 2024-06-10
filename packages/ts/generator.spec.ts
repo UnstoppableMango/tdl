@@ -6,6 +6,7 @@ import { gen } from './generator';
 describe('Generator', () => {
 	it('should work', async () => {
 		const spec = new tdl.Spec({
+			version: '0.1.0',
 			name: 'test-name',
 			description: 'Some description',
 			displayName: 'Test Name',
@@ -23,10 +24,8 @@ describe('Generator', () => {
 					},
 				},
 			},
-			version: '0.1.0',
 		});
 
-		Bun.file('/dev/null');
 		const buf = new ArrayBufferSink();
 		await gen(spec, buf);
 		const decoder = new TextDecoder();
