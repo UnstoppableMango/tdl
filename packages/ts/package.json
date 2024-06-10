@@ -10,7 +10,6 @@
 		"lint:fix": "eslint . --fix"
 	},
 	"dependencies": {
-		"@unmango/uml": "workspace:*",
 		"@unmango/tdl": "workspace:*",
 		"@unmango/tdl-es": "workspace:*",
 		"typescript": "5.4.5"

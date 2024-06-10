@@ -1,8 +1,11 @@
 import { gen as generate } from '@unmango/2ts';
-import * as uml from '@unmango/uml';
+import * as tdl from '@unmango/tdl';
+import { ArrayBufferSink } from 'bun';
 
-export async function gen(type?: uml.SupportedMimeType): Promise<void> {
+export async function gen(type?: tdl.SupportedMimeType): Promise<void> {
 	const buffer = await Bun.stdin.arrayBuffer();
-	const spec = uml.read(new Uint8Array(buffer), type);
-	await generate(spec, Bun.stdout);
+	const spec = tdl.read(new Uint8Array(buffer), type);
+	const sink = new ArrayBufferSink();
+	await generate(spec, sink);
+	await Bun.write(Bun.stdout, sink.end());
 }
