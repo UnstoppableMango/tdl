@@ -22,8 +22,8 @@ COPY --from=install /build/node_modules .
 
 COPY gen/proto/es/ gen/proto/es/
 COPY gen/proto/ts/ gen/proto/ts/
+COPY packages/tdl/ packages/tdl/
 COPY packages/ts/ packages/ts/
-COPY packages/uml/ packages/uml/
 COPY packages/uml2ts/ .
 
 RUN bun build \
