@@ -10,8 +10,8 @@ RUN mkdir -p gen/proto/{es,ts} packages/{ts,uml,uml2ts}
 COPY package.json .
 COPY gen/proto/es/package.json gen/proto/es/
 COPY gen/proto/ts/package.json gen/proto/ts/
+COPY packages/tdl/package.json packages/tdl/
 COPY packages/ts/package.json packages/ts/
-COPY packages/uml/package.json packages/uml/
 COPY packages/uml2ts/package.json packages/uml2ts/
 COPY bun.lockb .
 
