@@ -1,10 +1,10 @@
 import { Command, Option } from '@commander-js/extra-typings';
-import * as uml from '@unmango/uml';
+import * as tdl from '@unmango/tdl';
 import * as cmd from './command';
 import { name, version } from './package.json';
 
 const mimeTypeOption = new Option('--type <TYPE>', 'The media type of the input.')
-	.choices(uml.SUPPORTED_MIME_TYPES);
+	.choices(tdl.SUPPORTED_MIME_TYPES);
 
 export const from = (program: Command): Command => {
 	program.command('from')
