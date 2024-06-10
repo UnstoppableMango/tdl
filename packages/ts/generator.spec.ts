@@ -1,6 +1,6 @@
 import * as tdl from '@unmango/tdl-es';
 import { describe, expect, it } from 'bun:test';
-import { generator } from '.';
+import { gen } from './generator';
 
 describe('Generator', () => {
 	it('should work', async () => {
@@ -25,7 +25,9 @@ describe('Generator', () => {
 			version: '0.1.0',
 		});
 
-		await generator.gen(spec);
+		Bun.file('/dev/null');
+		const buf = new Uint8Array();
+		await gen(spec, Bun.file('/dev/null'));
 
 		expect(actual).not.toBeNull();
 		expect(actual).toEqual(`export interface test {\n    readonly test: string;\n}\n`);

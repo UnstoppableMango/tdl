@@ -1,24 +1,21 @@
-import * as tdl from '@unmango/tdl-es';
-import * as uml from '@unmango/uml';
-import type { Writable } from 'stream';
+import type { Gen } from '@unmango/tdl';
+import type { Field, Spec, Type } from '@unmango/tdl-es';
+import type { BunFile } from 'bun';
 import ts from 'typescript';
 
-export class Generator implements uml.Generator {
-	gen(spec: tdl.Spec, writer: Writable): Promise<void> {
-		const source = ts.createSourceFile('types.d.ts', '', ts.ScriptTarget.ES2019, undefined, ts.ScriptKind.TS);
-		const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
-		const result = printer.printList(ts.ListFormat.MultiLine, gen(spec), source);
-		writer.write();
-		return Promise.resolve();
-	}
-}
+export const gen: Gen<Spec> = async (spec: Spec, writer: BunFile): Promise<void> => {
+	const source = ts.createSourceFile('types.d.ts', '', ts.ScriptTarget.ES2019, undefined, ts.ScriptKind.TS);
+	const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
+	const result = printer.printList(ts.ListFormat.MultiLine, genNodes(spec), source);
+	await Bun.write(writer, result);
+};
 
-function gen(spec: tdl.Spec): ts.NodeArray<ts.Node> {
+function genNodes(spec: Spec): ts.NodeArray<ts.Node> {
 	const types = Object.entries(spec.types).map(x => genType(...x));
 	return ts.factory.createNodeArray(types);
 }
 
-function genType(name: string, type: tdl.Type): ts.Node {
+function genType(name: string, type: Type): ts.Node {
 	const props = Object.entries(type.fields).map(x => genProps(...x));
 
 	return ts.factory.createInterfaceDeclaration(
@@ -30,7 +27,7 @@ function genType(name: string, type: tdl.Type): ts.Node {
 	);
 }
 
-function genProps(name: string, field: tdl.Field): ts.PropertySignature {
+function genProps(name: string, field: Field): ts.PropertySignature {
 	const type = ts.factory.createTypeReferenceNode(field.type);
 
 	return ts.factory.createPropertySignature(
