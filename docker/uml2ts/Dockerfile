@@ -27,10 +27,10 @@ COPY packages/ts/ packages/ts/
 COPY packages/uml2ts/ .
 
 RUN bun build \
-			--compile \
-			--minify \
-			--sourcemap ./index.ts \
-			--outfile ./dist/uml2ts
+		--compile \
+		--minify \
+		--sourcemap ./index.ts \
+		--outfile ./dist/uml2ts
 
 FROM --platform=$BUILDPLATFORM ubuntu:noble-20240530 AS test
 COPY --from=build /build/dist/uml2ts .
