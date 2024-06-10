@@ -1,8 +1,8 @@
 import type { Spec } from '@unmango/tdl-es';
-import type { BunFile } from 'bun';
+import type { ArrayBufferSink, BunFile } from 'bun';
 
 type In = BunFile;
-type Out = BunFile;
+type Out = ArrayBufferSink;
 
 export type From<T = Spec> = {
 	(reader: In): Promise<T>;

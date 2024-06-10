@@ -1,5 +1,5 @@
 import { Spec } from '@unmango/tdl-es';
-import type { BunFile } from 'bun';
+import type { ArrayBufferSink, BunFile } from 'bun';
 import type { Runner } from './types';
 
 export class CliRunner implements Runner<Spec> {
@@ -14,11 +14,11 @@ export class CliRunner implements Runner<Spec> {
 		return Spec.fromBinary(data);
 	}
 
-	async gen(spec: Spec, writer: BunFile): Promise<void> {
+	async gen(spec: Spec, writer: ArrayBufferSink): Promise<void> {
 		const proc = Bun.spawn([this.path, 'gen'], {
 			stdin: spec.toBinary(),
 		});
 		const data = await Bun.readableStreamToBytes(proc.stdout);
-		await Bun.write(writer, data);
+		writer.write(data);
 	}
 }
