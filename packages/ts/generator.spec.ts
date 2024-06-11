@@ -1,30 +1,14 @@
-import * as tdl from '@unmango/tdl-es';
+import { Spec } from '@unmango/tdl-es';
 import { ArrayBufferSink } from 'bun';
 import { describe, expect, it } from 'bun:test';
+import * as YAML from 'yaml';
 import { gen } from './generator';
+import { tests } from './testdata';
 
-describe('Generator', () => {
-	it('should work', async () => {
-		const spec = new tdl.Spec({
-			version: '0.1.0',
-			name: 'test-name',
-			description: 'Some description',
-			displayName: 'Test Name',
-			source: 'https://github.com/UnstoppableMango/tdl',
-			labels: {
-				test: 'label',
-			},
-			types: {
-				'test': {
-					type: 'string',
-					fields: {
-						test: {
-							type: 'string',
-						},
-					},
-				},
-			},
-		});
+describe('gen', () => {
+	it.each(tests)('should generate %p', async (_, source, target) => {
+		const spec = new Spec(YAML.parse(source));
+		expect(spec).not.toBeNull();
 
 		const buf = new ArrayBufferSink();
 		await gen(spec, buf);
@@ -32,6 +16,6 @@ describe('Generator', () => {
 		const actual = decoder.decode(buf.end());
 
 		expect(actual).not.toBeNull();
-		expect(actual).toEqual(`export interface test {\n    readonly test: string;\n}\n`);
+		expect(actual).toEqual(target);
 	});
 });
