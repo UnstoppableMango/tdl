@@ -18,6 +18,7 @@ let run (bin: FileInfo) =
   let from = CliRunner.from bin.FullName
   let gen = CliRunner.gen bin.FullName
   let spec = ArbMap.defaults |> TdlArbs.merge |> ArbMap.arbitrary<Spec>
+  let config = Config.Quick.WithMaxTest(200)
 
   Console.WriteLine("Executing runner test suite")
 
@@ -25,7 +26,7 @@ let run (bin: FileInfo) =
     "Should generate data", RunnerTest.generateData ]
   |> List.map (fun (n, t) -> n, t (gen, from))
   |> List.map (fun (n, t) -> n, Prop.forAll spec t)
-  |> List.map Check.Quick
+  |> List.map (fun (n, t) -> Check.One(n, config, t))
   |> ignore
 
 [<EntryPoint>]
