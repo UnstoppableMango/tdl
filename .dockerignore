@@ -19,3 +19,4 @@ docker
 **/bin/
 **/obj/
 launchSettings.json
+testdata/
