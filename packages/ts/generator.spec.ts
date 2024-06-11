@@ -1,7 +1,7 @@
-import * as YAML from 'yaml';
 import { Spec } from '@unmango/tdl-es';
 import { ArrayBufferSink } from 'bun';
 import { describe, expect, it } from 'bun:test';
+import * as YAML from 'yaml';
 import { gen } from './generator';
 import { tests } from './testdata';
 
