@@ -11,7 +11,7 @@ require (
 	github.com/onsi/gomega v1.33.1
 	github.com/pulumi/pulumi/pkg/v3 v3.119.0
 	github.com/unstoppablemango/tdl/gen v0.0.13
-	google.golang.org/protobuf v1.34.1
+	google.golang.org/protobuf v1.34.2
 )
 
 require (
