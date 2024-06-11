@@ -6,7 +6,7 @@ require (
 	github.com/spf13/cobra v1.8.0
 	github.com/unstoppablemango/tdl/gen v0.0.13
 	github.com/unstoppablemango/tdl/pkg v0.0.13
-	google.golang.org/protobuf v1.34.1
+	google.golang.org/protobuf v1.34.2
 )
 
 require (
