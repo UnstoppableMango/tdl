@@ -1,4 +1,4 @@
 export interface TestType {
-	stringField: string;
-	numberField: number;
+    readonly stringField: string;
+    readonly numberField: number;
 }
