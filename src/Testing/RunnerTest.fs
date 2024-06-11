@@ -1,7 +1,6 @@
 module UnMango.Tdl.Testing.RunnerTest
 
 open System.IO
-open Google.Protobuf
 open UnMango.Tdl
 
 let roundTrip (gen: Tdl.Gen, from: Tdl.From) spec = async {
