@@ -6,3 +6,5 @@ types:
         type: string
       numberField:
         type: number
+      booleanField:
+        type: boolean
