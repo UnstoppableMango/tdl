@@ -119,8 +119,8 @@ work: go.work go.work.sum
 bin/uml2ts: .make/gen_proto $(shell find packages/uml2ts -type f -path '*.ts')
 	bun build packages/uml2ts/index.ts --compile --outfile $@
 
-bin/um: .make/gen_proto
-	go build -C cli/um -o $@
+bin/um: .make/gen_proto $(shell find cli/um -type f -path '*.go')
+	go build -C cli/um -o ${WORKING_DIR}/$@
 
 $(GO_ECHO_CLI): $(GO_ECHO_SRC)
 	@$(MAKE) -C cli/echo --no-print-directory
