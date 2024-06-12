@@ -141,6 +141,7 @@ Run `make clean` to remove local artifacts like `/.make` targets and `/node_modu
 |             `/.idea` | JetBrains IDE configuration (yes some of this gets checked in, fight me) |
 |             `/.make` | Local `make` sentinel target files                                       |
 |           `/.vscode` | VSCode configuration                                                     |
+|               `/bin` | Binaries                                                                 |
 |               `/cli` | Go CLI applications                                                      |
 |            `/docker` | Dockerfiles                                                              |
 |               `/gen` | Generated code                                                           |
