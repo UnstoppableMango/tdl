@@ -32,7 +32,8 @@ function genProps(name: string, field: Field): ts.PropertySignature {
 	const type = ts.factory.createTypeReferenceNode(field.type);
 
 	return ts.factory.createPropertySignature(
-		[ts.factory.createModifier(ts.SyntaxKind.ReadonlyKeyword)],
+		// [ts.factory.createModifier(ts.SyntaxKind.ReadonlyKeyword)],
+		[],
 		name,
 		undefined,
 		type,
