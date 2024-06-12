@@ -1,5 +1,5 @@
 WORKING_DIR := $(shell pwd)
-_ := $(shell mkdir -p .make)
+_ := $(shell mkdir -p .make bin)
 
 export GOWORK := off
 
@@ -61,7 +61,7 @@ lint: .make/lint_proto .make/lint_dotnet
 
 .PHONY: clean clean_gen clean_src clean_dist
 clean: clean_gen clean_src clean_dist
-	rm -rf .make
+	rm -rf .make bin
 clean_cli:
 	@$(MAKE) -C cli clean
 clean_gen:
@@ -99,6 +99,7 @@ pkg:
 src:
 	@$(MAKE) -C src
 
+.PHONY: version
 version:
 	@echo '${VERSION}'
 
@@ -112,6 +113,14 @@ undev:
 # The naming is kinda silly but its short
 .PHONY: work
 work: go.work go.work.sum
+
+###################### Real targets ######################
+
+bin/uml2ts: .make/gen_proto $(shell find packages/uml2ts -type f -path '*.ts')
+	bun build packages/uml2ts/index.ts --compile --outfile $@
+
+bin/um: .make/gen_proto $(shell find cli/um -type f -path '*.go')
+	go build -C cli/um -o ${WORKING_DIR}/$@
 
 $(GO_ECHO_CLI): $(GO_ECHO_SRC)
 	@$(MAKE) -C cli/echo --no-print-directory
@@ -135,6 +144,8 @@ go.work.sum: go.work
 
 .envrc: .make/regen_envrc
 	echo '#!/bin/bash\nexport TDL_DEV=true' > .envrc
+
+###################### Sentinal targets ######################
 
 .make/tool_restore: .config/dotnet-tools.json
 	dotnet tool restore

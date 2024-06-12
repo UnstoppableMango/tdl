@@ -11,6 +11,9 @@ test:
 clean:
 	rm -rf dist
 
+lint:
+	bun lint
+
 docker:
 	@$(MAKE) -C ${ROOT}/docker uml2ts
 
