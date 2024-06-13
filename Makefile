@@ -53,7 +53,7 @@ go_echo_test: $(GO_ECHO_CLI) $(RUNNER_TEST_BIN)
 ts_echo_test: $(TS_ECHO_CLI) $(RUNNER_TEST_BIN)
 	@dotnet ${RUNNER_TEST_BIN} ${TS_ECHO_CLI}
 e2e:
-	go run -C e2e/cmd main.go
+	go run -C e2e/cmd ./...
 
 .PHONY: gen
 gen: gen_proto

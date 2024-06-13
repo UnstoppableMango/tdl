@@ -7,12 +7,15 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	tdlv1alpha1 "github.com/unstoppablemango/tdl/gen/proto/go/unmango/dev/tdl/v1alpha1"
+	"gopkg.in/yaml.v3"
 )
 
 //go:embed testdata/**
 var testdata embed.FS
 
-var matcher = regexp.MustCompile(".")
+var matcher = regexp.MustCompile(`(?P<name>\w*)\..*`)
 
 type Test struct {
 	Name   string
@@ -26,8 +29,15 @@ func main() {
 		panic(err)
 	}
 
+	fmt.Printf("Running %d test(s)\n", len(tests))
 	for _, test := range tests {
-		fmt.Println(test.Name)
+		fmt.Printf("Runnint test '%s'\n", test.Name)
+
+		var spec tdlv1alpha1.Spec
+		err = yaml.Unmarshal([]byte(test.Source), &spec)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
@@ -45,10 +55,17 @@ func readTests() ([]Test, error) {
 			file := d.Name()
 			matches := matcher.FindStringSubmatch(file)
 			i := matcher.SubexpIndex("name")
+
+			content, err := os.ReadFile(path)
+			if err != nil {
+				return err
+			}
+
 			switch matches[i] {
 			case "source":
-				content, err := os.ReadFile(path)
 				builder.WithSource(string(content))
+			case "target":
+				builder.WithTarget(string(content))
 			}
 		}
 

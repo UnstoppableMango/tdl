@@ -14,7 +14,7 @@ type state struct {
 }
 
 func NewTestBuilder() TestBuilder {
-	return state{}
+	return &state{}
 }
 
 // Done implements TestBuilder.
@@ -37,18 +37,18 @@ func (s state) Done() (Test, bool) {
 }
 
 // WithName implements TestBuilder.
-func (s state) WithName(name string) {
+func (s *state) WithName(name string) {
 	s.Name = &name
 }
 
 // WithSource implements TestBuilder.
-func (s state) WithSource(source string) {
+func (s *state) WithSource(source string) {
 	s.Source = &source
 }
 
 // WithTarget implements TestBuilder.
-func (s state) WithTarget(target string) {
+func (s *state) WithTarget(target string) {
 	s.Target = &target
 }
 
-var _ TestBuilder = state{}
+var _ TestBuilder = &state{}
