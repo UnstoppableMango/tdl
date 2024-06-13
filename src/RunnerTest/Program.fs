@@ -8,6 +8,11 @@ open FsCheck.FSharp
 open UnMango.Tdl
 open UnMango.Tdl.Testing
 
+let maxTest =
+  match Environment.GetEnvironmentVariable("CI") with
+  | ci when String.IsNullOrWhiteSpace(ci) -> 100
+  | _ -> 500
+
 let validatePath (arg: Argument<FileInfo>) (result: SymbolResult) : unit =
   match result.GetValueForArgument(arg) with
   | null -> result.ErrorMessage <- "<path> is required"
@@ -18,7 +23,7 @@ let run (bin: FileInfo) =
   let from = CliRunner.from bin.FullName
   let gen = CliRunner.gen bin.FullName
   let spec = ArbMap.defaults |> TdlArbs.merge |> ArbMap.arbitrary<Spec>
-  let config = Config.Quick.WithMaxTest(200)
+  let config = Config.Quick.WithMaxTest(maxTest)
 
   Console.WriteLine("Executing runner test suite")
 
