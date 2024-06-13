@@ -3,5 +3,16 @@
 	"extends": [
 		"config:recommended"
 	],
-	"automerge": true
+	"automerge": true,
+	"customManagers": [
+		{
+			"customType": "regex",
+			"fileMatch": "package.json",
+			"matchStrings": [
+				"\"packageManager\": \"bun@(?<currentValue>.*?)\""
+			],
+			"depNameTemplate": "oven-sh/bun",
+			"datasourceTemplate": "github-releases"
+		}
+	]
 }
