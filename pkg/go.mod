@@ -9,7 +9,7 @@ require (
 	github.com/google/go-github/v62 v62.0.0
 	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.33.1
-	github.com/pulumi/pulumi/pkg/v3 v3.119.0
+	github.com/pulumi/pulumi/pkg/v3 v3.120.0
 	github.com/unstoppablemango/tdl/gen v0.0.13
 	google.golang.org/protobuf v1.34.2
 )
@@ -85,7 +85,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/pulumi/appdash v0.0.0-20231130102222-75f619a67231 // indirect
 	github.com/pulumi/esc v0.9.1 // indirect
-	github.com/pulumi/pulumi/sdk/v3 v3.119.0 // indirect
+	github.com/pulumi/pulumi/sdk/v3 v3.120.0 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06 // indirect
