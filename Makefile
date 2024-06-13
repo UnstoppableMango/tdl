@@ -41,7 +41,7 @@ build: build_dotnet cli docker pkg
 	@touch .make/build_lang
 build_dotnet: .make/build_dotnet
 
-.PHONY: test test_dotnet
+.PHONY: test test_dotnet e2e
 test: test_dotnet test_packages
 test_dotnet: build_dotnet
 	dotnet test --no-build
@@ -52,6 +52,8 @@ go_echo_test: $(GO_ECHO_CLI) $(RUNNER_TEST_BIN)
 	@dotnet ${RUNNER_TEST_BIN} ${GO_ECHO_CLI}
 ts_echo_test: $(TS_ECHO_CLI) $(RUNNER_TEST_BIN)
 	@dotnet ${RUNNER_TEST_BIN} ${TS_ECHO_CLI}
+e2e:
+	go run -C e2e/cmd main.go
 
 .PHONY: gen
 gen: gen_proto
@@ -135,6 +137,7 @@ go.work: GOWORK :=
 go.work:
 	go work init
 	go work use cli
+	go work use e2e
 	go work use gen
 	go work use pkg
 

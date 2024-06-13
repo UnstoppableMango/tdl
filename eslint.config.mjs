@@ -17,6 +17,7 @@ export default tslint.config(
 			'**/gen/',
 			'**/obj/',
 			'**/dist/',
+			'**/testdata/',
 		],
 	},
 	{
