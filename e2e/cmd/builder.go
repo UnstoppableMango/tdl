@@ -1,16 +1,18 @@
 package main
 
+import "io"
+
 type TestBuilder interface {
 	Done() (Test, bool)
 	WithName(string)
-	WithSource(string)
-	WithTarget(string)
+	WithSource(io.Reader)
+	WithTarget(io.Reader)
 }
 
 type state struct {
 	Name   *string
-	Source *string
-	Target *string
+	Source io.Reader
+	Target io.Reader
 }
 
 func NewTestBuilder() TestBuilder {
@@ -31,8 +33,8 @@ func (s state) Done() (Test, bool) {
 
 	return Test{
 		Name:   *s.Name,
-		Source: *s.Source,
-		Target: *s.Target,
+		Source: s.Source,
+		Target: s.Target,
 	}, true
 }
 
@@ -42,13 +44,13 @@ func (s *state) WithName(name string) {
 }
 
 // WithSource implements TestBuilder.
-func (s *state) WithSource(source string) {
-	s.Source = &source
+func (s *state) WithSource(source io.Reader) {
+	s.Source = source
 }
 
 // WithTarget implements TestBuilder.
-func (s *state) WithTarget(target string) {
-	s.Target = &target
+func (s *state) WithTarget(target io.Reader) {
+	s.Target = target
 }
 
 var _ TestBuilder = &state{}
