@@ -52,6 +52,7 @@ go_echo_test: $(GO_ECHO_CLI) $(RUNNER_TEST_BIN)
 	@dotnet ${RUNNER_TEST_BIN} ${GO_ECHO_CLI}
 ts_echo_test: $(TS_ECHO_CLI) $(RUNNER_TEST_BIN)
 	@dotnet ${RUNNER_TEST_BIN} ${TS_ECHO_CLI}
+e2e: export BIN_DIR := $(WORKING_DIR)/bin
 e2e:
 	go run -C e2e/cmd ./...
 
@@ -78,9 +79,10 @@ clean_dist:
 
 .PHONY: tidy
 tidy: gen
-	@$(MAKE) -C cli tidy
-	@$(MAKE) -C gen tidy
-	@$(MAKE) -C pkg tidy
+	@$(MAKE) -C cli tidy --no-print-directory
+	@$(MAKE) -C e2e tidy --no-print-directory
+	@$(MAKE) -C gen tidy --no-print-directory
+	@$(MAKE) -C pkg tidy --no-print-directory
 
 .PHONY: release
 release:
