@@ -14,5 +14,11 @@
 			"depNameTemplate": "oven-sh/bun",
 			"datasourceTemplate": "github-releases"
 		}
+	],
+	"packageRules": [
+		{
+			"groupName": "tdl",
+			"matchDepNames": "UnstoppableMango/tdl"
+		}
 	]
 }
