@@ -202,12 +202,8 @@ github.com/pulumi/appdash v0.0.0-20231130102222-75f619a67231 h1:vkHw5I/plNdTr435
 github.com/pulumi/appdash v0.0.0-20231130102222-75f619a67231/go.mod h1:murToZ2N9hNJzewjHBgfFdXhZKjY3z5cYC1VXk+lbFE=
 github.com/pulumi/esc v0.9.1 h1:HH5eEv8sgyxSpY5a8yePyqFXzA8cvBvapfH8457+mIs=
 github.com/pulumi/esc v0.9.1/go.mod h1:oEJ6bOsjYlQUpjf70GiX+CXn3VBmpwFDxUTlmtUN84c=
-github.com/pulumi/pulumi/pkg/v3 v3.119.0 h1:I7716j1xugGCUgcEIhRn1MzzfSpZnsDZpi+pc5qf4hg=
-github.com/pulumi/pulumi/pkg/v3 v3.119.0/go.mod h1:sKovnH/g9x8nKUNS38PlGQf2M8IwKu9uxBELuiSx4F4=
 github.com/pulumi/pulumi/pkg/v3 v3.120.0 h1:L2b8DiI4dQa+iRGXdbrMQl2AXUfnjP3siHEas6xPW84=
 github.com/pulumi/pulumi/pkg/v3 v3.120.0/go.mod h1:ZLTGs4I1q5VXzjV5LLBLVIAfE811TMsSDFJaWs7WD4g=
-github.com/pulumi/pulumi/sdk/v3 v3.119.0 h1:CPP0ZxAM1WT0O5/IJF0x13ZyvFMoWJi21gqNxBrLusk=
-github.com/pulumi/pulumi/sdk/v3 v3.119.0/go.mod h1:/mQJPO+HehhoSJ9O3C6eUKAGeAr+4KSrbDhLsXHKldc=
 github.com/pulumi/pulumi/sdk/v3 v3.120.0 h1:KYtMkCmcSg4U+w41/Q0l3llKEodbfdyq6J0VMoEoVmY=
 github.com/pulumi/pulumi/sdk/v3 v3.120.0/go.mod h1:/mQJPO+HehhoSJ9O3C6eUKAGeAr+4KSrbDhLsXHKldc=
 github.com/rivo/uniseg v0.1.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
@@ -254,10 +250,6 @@ github.com/uber/jaeger-client-go v2.30.0+incompatible h1:D6wyKGCecFaSRUpo8lCVbaO
 github.com/uber/jaeger-client-go v2.30.0+incompatible/go.mod h1:WVhlPFC8FDjOFMMWRy2pZqQJSXxYSwNYOkTr/Z6d3Kk=
 github.com/uber/jaeger-lib v2.4.1+incompatible h1:td4jdvLcExb4cBISKIpHuGoVXh+dVKhn2Um6rjCsSsg=
 github.com/uber/jaeger-lib v2.4.1+incompatible/go.mod h1:ComeNDZlWwrWnDv8aPp0Ba6+uUTzImX/AauajbLI56U=
-github.com/unstoppablemango/tdl/gen v0.0.11 h1:CrnCwic+cWSDBgz1pw+cWKSU4NN+XhbHqkBIgBVHmYA=
-github.com/unstoppablemango/tdl/gen v0.0.11/go.mod h1:BYOn3N45US6LYBhdSVg3kFprU5Vt97cO4IUBMU1snDw=
-github.com/unstoppablemango/tdl/gen v0.0.12 h1:7Z0mu778HS6Jk8+F40KoHGx3rliBFfgVfaKwuRxL0q4=
-github.com/unstoppablemango/tdl/gen v0.0.12/go.mod h1:BYOn3N45US6LYBhdSVg3kFprU5Vt97cO4IUBMU1snDw=
 github.com/unstoppablemango/tdl/gen v0.0.13 h1:wQavL+pyYiWotImuXTZS/8SZVrAAVi8l6ROOAZd0e4U=
 github.com/unstoppablemango/tdl/gen v0.0.13/go.mod h1:BYOn3N45US6LYBhdSVg3kFprU5Vt97cO4IUBMU1snDw=
 github.com/xanzy/ssh-agent v0.3.3 h1:+/15pJfg/RsTxqYcX6fHqOXZwwMP+2VyYWJeWM2qQFM=
@@ -383,8 +375,6 @@ google.golang.org/genproto/googleapis/rpc v0.0.0-20240515191416-fc5f0ca64291 h1:
 google.golang.org/genproto/googleapis/rpc v0.0.0-20240515191416-fc5f0ca64291/go.mod h1:EfXuqaE1J41VCDicxHzUDm+8rk+7ZdXzHV0IhO/I6s0=
 google.golang.org/grpc v1.64.0 h1:KH3VH9y/MgNQg1dE7b3XfVK0GsPSIzJwdF617gUSbvY=
 google.golang.org/grpc v1.64.0/go.mod h1:oxjF8E3FBnjp+/gVFYdWacaLDx9na1aqy9oovLpxQYg=
-google.golang.org/protobuf v1.34.1 h1:9ddQBjfCyZPOHPUiPxpYESBLc+T8P3E+Vo4IbKZgFWg=
-google.golang.org/protobuf v1.34.1/go.mod h1:c6P6GXX6sHbq/GpV6MGZEdwhWPcYBgnhAHhKbcUYpos=
 google.golang.org/protobuf v1.34.2 h1:6xV6lTsCfpGD21XK49h7MhtcApnLqkfYgPcdHftf6hg=
 google.golang.org/protobuf v1.34.2/go.mod h1:qYOHts0dSfpeUzUFpOMr/WGzszTmLH+DiWniOlNbLDw=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
