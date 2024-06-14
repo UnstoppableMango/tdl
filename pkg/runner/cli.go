@@ -37,20 +37,7 @@ func (c *cli) From(ctx context.Context, reader io.Reader) (*tdl.Spec, error) {
 	}
 
 	cmd := exec.Command(c.Path)
-	stdin, stdout, err := pipes(cmd)
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err = stdin.Write(inData); err != nil {
-		return nil, err
-	}
-
-	if err = cmd.Run(); err != nil {
-		return nil, err
-	}
-
-	outData, err := io.ReadAll(stdout)
+	outData, err := runCmd(cmd, inData)
 	if err != nil {
 		return nil, err
 	}
@@ -71,20 +58,7 @@ func (c *cli) Gen(ctx context.Context, spec *tdl.Spec, writer io.Writer) error {
 	}
 
 	cmd := exec.Command(c.Path)
-	stdin, stdout, err := pipes(cmd)
-	if err != nil {
-		return err
-	}
-
-	if _, err = stdin.Write(inData); err != nil {
-		return err
-	}
-
-	if err = cmd.Run(); err != nil {
-		return err
-	}
-
-	outData, err := io.ReadAll(stdout)
+	outData, err := runCmd(cmd, inData)
 	if err != nil {
 		return err
 	}
@@ -98,16 +72,29 @@ func (c *cli) Gen(ctx context.Context, spec *tdl.Spec, writer io.Writer) error {
 
 var _ uml.Runner = &cli{}
 
-func pipes(cmd *exec.Cmd) (io.WriteCloser, io.ReadCloser, error) {
+func runCmd(cmd *exec.Cmd, inData []byte) ([]byte, error) {
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
+	}
+
+	if _, err = stdin.Write(inData); err != nil {
+		return nil, err
+	}
+
+	if err = cmd.Run(); err != nil {
+		return nil, err
 	}
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return stdin, stdout, nil
+	outData, err := io.ReadAll(stdout)
+	if err != nil {
+		return nil, err
+	}
+
+	return outData, nil
 }
