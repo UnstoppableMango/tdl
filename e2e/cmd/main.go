@@ -1,19 +1,20 @@
 package main
 
 import (
+	"bytes"
+	"context"
 	"embed"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path"
 	"regexp"
 	"strings"
 
 	tdl "github.com/unstoppablemango/tdl/gen/proto/go/unmango/dev/tdl/v1alpha1"
-	"google.golang.org/protobuf/proto"
+	"github.com/unstoppablemango/tdl/pkg/runner"
 	"gopkg.in/yaml.v3"
 )
 
@@ -44,13 +45,15 @@ func main() {
 }
 
 func runTest(test Test) error {
-	fmt.Printf("Runnint test '%s'\n", test.Name)
+	fmt.Printf("Running test '%s'\n", test.Name)
 
+	fmt.Println("Reading source")
 	source, err := io.ReadAll(test.Source)
 	if err != nil {
 		return err
 	}
 
+	fmt.Println("Unmarshaling source")
 	var spec tdl.Spec
 	if err = yaml.Unmarshal(source, &spec); err != nil {
 		return err
@@ -60,26 +63,36 @@ func runTest(test Test) error {
 		return errors.New("BIN_DIR not found")
 	}
 
-	bin := path.Join(binDir, "um", "gen")
-	cmd := exec.Command(bin)
-
-	stdin, err := cmd.StdinPipe()
+	bin := path.Join(binDir, "um")
+	cmd, err := runner.NewCli(bin)
 	if err != nil {
 		return err
 	}
 
-	data, err := proto.Marshal(&spec)
+	fmt.Println("Running generator")
+	buf := bytes.Buffer{}
+	if err = cmd.Gen(context.TODO(), &spec, &buf); err != nil {
+		return err
+	}
+
+	fmt.Println("Reading target")
+	expectedBytes, err := io.ReadAll(test.Target)
 	if err != nil {
 		return err
 	}
 
-	_, err = stdin.Write(data)
+	fmt.Println("Reading actual from buffer")
+	actualBytes, err := io.ReadAll(&buf)
 	if err != nil {
 		return err
 	}
 
-	if err := cmd.Run(); err != nil {
-		return err
+	expected := string(expectedBytes)
+	actual := string(actualBytes)
+	if actual != expected {
+		fmt.Printf("Expected: %s\n", expected)
+		fmt.Printf("Actual:   %s\n", actual)
+		return errors.New("output did not match")
 	}
 
 	return nil
