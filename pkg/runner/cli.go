@@ -12,7 +12,21 @@ import (
 )
 
 type cli struct {
-	Path string
+	Path     string
+	FromArgs []string
+	GenArgs  []string
+}
+
+func NewCli(path string, args ...string) (uml.Runner, error) {
+	if _, err := os.Stat(path); err != nil {
+		return nil, err
+	}
+
+	return &cli{
+		Path:     path,
+		FromArgs: append([]string{"from"}, args...),
+		GenArgs:  append([]string{"gen"}, args...),
+	}, nil
 }
 
 // From implements uml.Runner.
@@ -83,14 +97,6 @@ func (c *cli) Gen(ctx context.Context, spec *tdl.Spec, writer io.Writer) error {
 }
 
 var _ uml.Runner = &cli{}
-
-func NewCli(path string) (uml.Runner, error) {
-	if _, err := os.Stat(path); err != nil {
-		return nil, err
-	}
-
-	return &cli{Path: path}, nil
-}
 
 func pipes(cmd *exec.Cmd) (io.WriteCloser, io.ReadCloser, error) {
 	stdin, err := cmd.StdinPipe()
