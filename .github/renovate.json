@@ -18,7 +18,9 @@
 	"packageRules": [
 		{
 			"groupName": "tdl",
-			"matchDepNames": "UnstoppableMango/tdl"
+			"matchPackagePatterns": [
+				"unstoppablemango/tdl"
+			]
 		}
 	]
 }
