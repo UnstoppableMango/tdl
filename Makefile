@@ -122,8 +122,8 @@ bin/uml2ts: .make/gen_proto $(shell find packages/uml2ts -type f -path '*.ts')
 bin/um: .make/gen_proto $(shell find cli/um -type f -path '*.go')
 	go build -C cli/um -o ${WORKING_DIR}/$@
 
-$(GO_ECHO_CLI): $(GO_ECHO_SRC)
-	@$(MAKE) -C cli/echo --no-print-directory
+$(GO_ECHO_CLI):
+	@$(MAKE) -C cli/echo build --no-print-directory
 
 $(TS_ECHO_CLI): $(TS_ECHO_SRC)
 	@$(MAKE) -C packages/echo --no-print-directory
