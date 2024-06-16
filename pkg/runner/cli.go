@@ -1,20 +1,19 @@
 package runner
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"os"
 	"os/exec"
 
-	"github.com/gogo/protobuf/proto"
-	tdl "github.com/unstoppablemango/tdl/gen/proto/go/unmango/dev/tdl/v1alpha1"
 	"github.com/unstoppablemango/tdl/pkg/uml"
+	"google.golang.org/protobuf/proto"
 )
 
 type cli struct {
-	Path     string
-	FromArgs []string
-	GenArgs  []string
+	Path string
+	Args []string
 }
 
 func NewCli(path string, args ...string) (uml.Runner, error) {
@@ -23,78 +22,44 @@ func NewCli(path string, args ...string) (uml.Runner, error) {
 	}
 
 	return &cli{
-		Path:     path,
-		FromArgs: append([]string{"from"}, args...),
-		GenArgs:  append([]string{"gen"}, args...),
+		Path: path,
+		Args: args,
 	}, nil
 }
 
 // From implements uml.Runner.
-func (c *cli) From(ctx context.Context, reader io.Reader) (*tdl.Spec, error) {
-	inData, err := io.ReadAll(reader)
-	if err != nil {
+func (c *cli) From(ctx context.Context, reader io.Reader) (*uml.Spec, error) {
+	args := append([]string{"from"}, c.Args...)
+	cmd := exec.Command(c.Path, args...)
+
+	cmd.Stdin = reader
+	buf := &bytes.Buffer{}
+	cmd.Stdout = buf
+
+	if err := cmd.Run(); err != nil {
 		return nil, err
 	}
 
-	cmd := exec.Command(c.Path)
-	outData, err := runCmd(cmd, inData)
-	if err != nil {
-		return nil, err
-	}
+	spec := &uml.Spec{}
+	err := proto.Unmarshal(buf.Bytes(), spec)
 
-	spec := &tdl.Spec{}
-	if err = proto.Unmarshal(outData, spec); err != nil {
-		return nil, err
-	}
-
-	return spec, nil
+	return spec, err
 }
 
 // Gen implements uml.Runner.
-func (c *cli) Gen(ctx context.Context, spec *tdl.Spec, writer io.Writer) error {
+func (c *cli) Gen(ctx context.Context, spec *uml.Spec, writer io.Writer) error {
 	inData, err := proto.Marshal(spec)
 	if err != nil {
 		return err
 	}
 
-	cmd := exec.Command(c.Path)
-	outData, err := runCmd(cmd, inData)
-	if err != nil {
-		return err
-	}
+	args := append([]string{"gen"}, c.Args...)
+	cmd := exec.Command(c.Path, args...)
 
-	if _, err = writer.Write(outData); err != nil {
-		return err
-	}
+	cmd.Stdin = bytes.NewReader(inData)
+	cmd.Stdout = writer
 
-	return nil
+	return cmd.Run()
 }
 
 var _ uml.Runner = &cli{}
-
-func runCmd(cmd *exec.Cmd, inData []byte) ([]byte, error) {
-	stdin, err := cmd.StdinPipe()
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err = stdin.Write(inData); err != nil {
-		return nil, err
-	}
-
-	if err = cmd.Run(); err != nil {
-		return nil, err
-	}
-
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-
-	outData, err := io.ReadAll(stdout)
-	if err != nil {
-		return nil, err
-	}
-
-	return outData, nil
-}

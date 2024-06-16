@@ -8,7 +8,7 @@ build:
 	go build ./...
 
 test: echo_cli
-	go test ./...
+	go test ./... -ginkgo.timeout=5s
 
 tidy:
 	go mod tidy

@@ -45,8 +45,8 @@ var _ = Describe("runner/cli", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("marshalling an arbitrary spec")
-			input := uml.Spec{Name: "testing"}
-			data, err := proto.Marshal(&input)
+			input := &uml.Spec{Name: "testing"}
+			data, err := proto.Marshal(input)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("creating a byte reader")
@@ -56,7 +56,7 @@ var _ = Describe("runner/cli", func() {
 			spec, err := cliRunner.From(context.Background(), reader)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(spec).To(Equal(&input))
+			Expect(spec).To(BeEquivalentTo(input))
 		})
 	})
 
@@ -64,23 +64,23 @@ var _ = Describe("runner/cli", func() {
 		It("should work", func() {
 			Expect(err).NotTo(HaveOccurred())
 
-			input := uml.Spec{Name: "testing"}
-			buf := bytes.Buffer{}
+			input := &uml.Spec{Name: "testing"}
+			buf := &bytes.Buffer{}
 
 			By("executing the runner")
-			err = cliRunner.Gen(context.Background(), &input, &buf)
+			err = cliRunner.Gen(context.Background(), input, buf)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("reading from the buffer")
-			data, err := io.ReadAll(&buf)
+			data, err := io.ReadAll(buf)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("unmarshalling the result")
-			spec := uml.Spec{}
-			err = proto.Unmarshal(data, &spec)
+			spec := &uml.Spec{}
+			err = proto.Unmarshal(data, spec)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(&spec).To(Equal(&input))
+			Expect(spec).To(Equal(input))
 		})
 	})
 })
