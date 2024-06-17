@@ -37,6 +37,11 @@ runs:
       working-directory: ${{ inputs.path }}
       run: make build
 
+    - name: Test
+      shell: bash
+      working-directory: ${{ inputs.path }}
+      run: go test ./...
+
     - name: Vet
       shell: bash
       working-directory: ${{ inputs.path }}
