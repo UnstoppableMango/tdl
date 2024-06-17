@@ -1,20 +1,24 @@
-export GOWORK := off
+WORKING_DIR ?= $(shell git rev-parse --show-toplevel)
+
+export GOWORK  := off
+export BIN_DIR := $(WORKING_DIR)/bin
 
 .PHONY: build test
-build: build_go
-test: test_go
-
-build_go:
+build:
 	go build ./...
 
-test_go:
-	go test ./...
+test: echo_cli
+	go test ./... -ginkgo.timeout=5s
 
 tidy:
 	go mod tidy
 
-lint_go:
+lint:
 	golangci-lint run
 
 vet:
 	go vet ./...
+
+# Don't like this, but can't think of a better way right now
+echo_cli:
+	@$(MAKE) -C ${WORKING_DIR}/cli/echo build --no-print-directory

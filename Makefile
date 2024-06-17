@@ -3,7 +3,7 @@ _ := $(shell mkdir -p .make bin)
 
 export GOWORK := off
 
-VERSION := $(shell dotnet minver --tag-prefix v --verbosity warn)
+VERSION ?= $(shell dotnet minver --tag-prefix v --verbosity warn)
 export MINVERVERSIONOVERRIDE = ${VERSION}
 
 CFG ?=
@@ -31,10 +31,10 @@ RUNNER_TEST_SRC := $(shell find $(RUNNER_TEST_DIR) -name '*.fs' -not -path '*obj
 RUNNER_TEST_BIN := $(RUNNER_TEST_DIR)/$(BIN_PATH)/$(NS).RunnerTest.dll
 
 GO_ECHO_SRC := $(shell find cli/echo -type f -name '*.go')
-GO_ECHO_CLI := cli/echo/bin/echo
+GO_ECHO_CLI := bin/go_echo
 
 TS_ECHO_SRC := $(shell find packages/echo -type f -name '*.ts')
-TS_ECHO_CLI := packages/echo/dist/echo
+TS_ECHO_CLI := bin/ts_echo
 
 .PHONY: build build_dotnet
 build: build_dotnet cli docker pkg
@@ -122,8 +122,8 @@ bin/uml2ts: .make/gen_proto $(shell find packages/uml2ts -type f -path '*.ts')
 bin/um: .make/gen_proto $(shell find cli/um -type f -path '*.go')
 	go build -C cli/um -o ${WORKING_DIR}/$@
 
-$(GO_ECHO_CLI): $(GO_ECHO_SRC)
-	@$(MAKE) -C cli/echo --no-print-directory
+$(GO_ECHO_CLI):
+	@$(MAKE) -C cli/echo build --no-print-directory
 
 $(TS_ECHO_CLI): $(TS_ECHO_SRC)
 	@$(MAKE) -C packages/echo --no-print-directory

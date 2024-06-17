@@ -1,5 +1,10 @@
-build:
-	go build -o bin/
+WORKING_DIR ?= $(shell git rev-parse --show-toplevel)
+SRC         := $(shell find . -type f -path '*.go')
+BIN         := $(WORKING_DIR)/bin/go_echo
+
+.PHONY: build test lint tidy run clean vet
+
+build: $(BIN)
 
 test:
 	go test
@@ -18,3 +23,6 @@ clean:
 
 vet:
 	go vet
+
+$(BIN): $(SRC)
+	go build -o $@
