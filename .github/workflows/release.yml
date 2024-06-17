@@ -27,8 +27,6 @@ jobs:
           - bun-windows-x64
           - bun-darwin-x64
           - bun-darwin-arm64
-    env:
-      ARCHIVE: ${{ matrix.tool }}_${{ matrix.target }}.tar.gz
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -73,6 +71,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: '*'
+          path: ${{ github.workspace }}/bin
 
       - name: Set up Go
         uses: actions/setup-go@v5
