@@ -31,10 +31,10 @@ RUNNER_TEST_SRC := $(shell find $(RUNNER_TEST_DIR) -name '*.fs' -not -path '*obj
 RUNNER_TEST_BIN := $(RUNNER_TEST_DIR)/$(BIN_PATH)/$(NS).RunnerTest.dll
 
 GO_ECHO_SRC := $(shell find cli/echo -type f -name '*.go')
-GO_ECHO_CLI := cli/echo/bin/echo
+GO_ECHO_CLI := bin/go_echo
 
 TS_ECHO_SRC := $(shell find packages/echo -type f -name '*.ts')
-TS_ECHO_CLI := packages/echo/dist/echo
+TS_ECHO_CLI := bin/ts_echo
 
 .PHONY: build build_dotnet
 build: build_dotnet cli docker pkg
