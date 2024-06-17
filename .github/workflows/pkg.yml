@@ -24,10 +24,14 @@ jobs:
           - pkg/broker
           - pkg/go
           - pkg/pcl
+          - pkg/plugin
+          - pkg/runner
           - pkg/uml
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/build-go
+
+      - name: Build go
+        uses: ./.github/actions/build-go
         with:
           lib: true
           path: ${{ matrix.path }}
