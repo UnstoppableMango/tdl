@@ -3,7 +3,7 @@ _ := $(shell mkdir -p .make bin)
 
 export GOWORK := off
 
-VERSION := $(shell dotnet minver --tag-prefix v --verbosity warn)
+VERSION ?= $(shell dotnet minver --tag-prefix v --verbosity warn)
 export MINVERVERSIONOVERRIDE = ${VERSION}
 
 CFG ?=
