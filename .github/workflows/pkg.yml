@@ -30,6 +30,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Make echo cli
+        if: matrix.path == 'pkg/runner'
+        run: make echo_cli
+
       - name: Build go
         uses: ./.github/actions/build-go
         with:
