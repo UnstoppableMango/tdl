@@ -28,7 +28,7 @@ var _ = Describe("runner/cli", func() {
 
 	BeforeEach(func() {
 		runner, err = NewCli(bin)
-		cliRunner = runner.(*cli)
+		cliRunner, _ = runner.(*cli)
 	})
 
 	Describe("NewCli", func() {
