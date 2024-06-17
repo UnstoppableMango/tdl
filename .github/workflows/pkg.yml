@@ -33,6 +33,7 @@ jobs:
       - name: Make echo cli
         if: matrix.path == 'pkg/runner'
         run: make echo_cli
+        working-directory: ${{ matrix.path }}
 
       - name: Build go
         uses: ./.github/actions/build-go
