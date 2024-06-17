@@ -16,7 +16,7 @@ jobs:
   bun:
     name: Compile Bun apps
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.ref_name != 'main'
     strategy:
       matrix:
         tool:
@@ -50,7 +50,7 @@ jobs:
   goreleaser:
     name: Run GoReleaser
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.ref_name != 'main'
     needs: bun
     permissions:
       contents: write
