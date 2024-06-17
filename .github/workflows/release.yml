@@ -39,7 +39,6 @@ jobs:
           bun-version: latest
 
       - name: Restore dependencies
-        shell: bash
         working-directory: packages/${{ matrix.tool }}
         run: bun install --frozen-lockfile
 
