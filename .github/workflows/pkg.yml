@@ -7,13 +7,6 @@ on:
       - .github/actions/build-go/**
       - .github/workflows/pkg.yml
       - pkg/**
-  push:
-    branches: [main]
-    tags: ['v*.*.*']
-    paths:
-      - .github/actions/build-go/**
-      - .github/workflows/pkg.yml
-      - pkg/**
 
 jobs:
   build-go:

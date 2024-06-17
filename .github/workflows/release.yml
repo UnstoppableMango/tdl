@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  pull_request:
+    branches: ['main']
+    paths:
+      - .github/workflows/release.yml
+  push:
+    branches: ['main']
+    tags: ['v*.*.*']
+    paths:
+      - .github/workflows/release.yml
+      - cli/**
+
+jobs:
+  bun:
+    name: Compile Bun apps
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    strategy:
+      matrix:
+        tool:
+          - uml2ts
+        target:
+          - bun-linux-x64
+          - bun-linux-arm64
+          - bun-windows-x64
+          - bun-darwin-x64
+          - bun-darwin-arm64
+    env:
+      ARCHIVE: ${{ matrix.tool }}_${{ matrix.target }}.tar.gz
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          bun build \
+            --compile \
+            --minify \
+            --sourcemap ./packages/${{ matrix.tool }}/index.ts \
+            --outfile ${{ matrix.tool }}
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.tool }}_${{ matrix.target }}
+          path: ${{ matrix.tool }}
+
+  goreleaser:
+    name: Run GoReleaser
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: bun
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*'
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '>=1.22.2'
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: '~> v2'
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
