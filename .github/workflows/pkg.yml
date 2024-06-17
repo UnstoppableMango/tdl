@@ -34,7 +34,6 @@ jobs:
         if: matrix.path == 'pkg/runner'
         run: make bin/go_echo
         env:
-          BIN_DIR: ${{ github.workspace }}/bin
           VERSION: 'This disables dotnet minver in make'
 
       - name: Build go
@@ -43,3 +42,5 @@ jobs:
           lib: true
           path: ${{ matrix.path }}
           gomod: pkg/go.mod
+        env:
+          BIN_DIR: ${{ github.workspace }}/bin
