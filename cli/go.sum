@@ -259,10 +259,14 @@ github.com/unstoppablemango/tdl/gen v0.0.14 h1:mgTyCPWsmC8V9e/ZAePDPWU2R8chN4MvR
 github.com/unstoppablemango/tdl/gen v0.0.14/go.mod h1:zhoLdZumyVy/Lz3t9GvH1zBgiCy/fF8KtoRhrSwZJx4=
 github.com/unstoppablemango/tdl/gen v0.0.15 h1:tqiQnVM3CBZCsQ0U+mrtIhjKbVomuVw9rGWYpyzxmRI=
 github.com/unstoppablemango/tdl/gen v0.0.15/go.mod h1:zhoLdZumyVy/Lz3t9GvH1zBgiCy/fF8KtoRhrSwZJx4=
+github.com/unstoppablemango/tdl/gen v0.0.16 h1:dDJj5QbWckgeLXEf73rDzP1O5F+XFfXjX8767seN0Us=
+github.com/unstoppablemango/tdl/gen v0.0.16/go.mod h1:zhoLdZumyVy/Lz3t9GvH1zBgiCy/fF8KtoRhrSwZJx4=
 github.com/unstoppablemango/tdl/pkg v0.0.14 h1:CfTnOM57MhnM7aOH28hyg8Rax5R77+sJV0TYZ+I7FEs=
 github.com/unstoppablemango/tdl/pkg v0.0.14/go.mod h1:mREC+aKY2XpiyCGDphlD1q44HAuxcG4olyeJwkHRpOI=
 github.com/unstoppablemango/tdl/pkg v0.0.15 h1:OHCXaRFssW2ifQjsu5hmFf7VXkj+IE2zYxWgEWBMbPw=
 github.com/unstoppablemango/tdl/pkg v0.0.15/go.mod h1:Ouqwy4FOUVNu59Ksr+9SjNRu4FEpQAyNfmRxtcSdkDw=
+github.com/unstoppablemango/tdl/pkg v0.0.16 h1:eb0ccAR/J8ZNhZeba8G4JwJ3IHO1o0oKAgrYF6uTnOk=
+github.com/unstoppablemango/tdl/pkg v0.0.16/go.mod h1:vm8aYoldAQEZ/+wbJkrjgAMQbdtSpYKGNnzELL1aqUM=
 github.com/xanzy/ssh-agent v0.3.3 h1:+/15pJfg/RsTxqYcX6fHqOXZwwMP+2VyYWJeWM2qQFM=
 github.com/xanzy/ssh-agent v0.3.3/go.mod h1:6dzNDKs0J9rVPHPhaGCukekBHKqfl+L3KghI1Bc68Uw=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
