@@ -7,8 +7,14 @@ open UnMango.Tdl
 open UnMango.Tdl.Testing
 
 module Fake =
-  let from: Tdl.From = fun stream -> async { return Spec.Parser.ParseFrom(stream) }
-  let gen: Tdl.Gen = fun spec stream -> async { spec.WriteTo(stream) }
+  let from: Tdl.From =
+    fun stream -> async { return Spec.Parser.ParseFrom(stream) |> Ok }
+
+  let gen: Tdl.Gen =
+    fun spec stream -> async {
+      spec.WriteTo(stream)
+      return None
+    }
 
 [<Property(Arbitrary = [| typeof<TdlArbs> |])>]
 let ``Should round-trip`` spec =
