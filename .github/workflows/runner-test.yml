@@ -5,7 +5,7 @@ on:
     branches: ['main']
     paths:
       - .github/actions/build-go/**
-      - .github/actions/build-cs/**
+      - .github/actions/build-dotnet/**
       - .github/workflows/runner-test.yml
       - cli/go.*
       - cli/echo/**
@@ -21,7 +21,7 @@ on:
     tags: ['v*.*.*']
     paths:
       - .github/actions/build-go/**
-      - .github/actions/build-cs/**
+      - .github/actions/build-dotnet/**
       - .github/workflows/runner-test.yml
       - cli/go.*
       - cli/echo/**

@@ -1,5 +1,5 @@
-name: Build C#
-description: Builds C# code
+name: Build .NET
+description: Builds .NET code
 
 inputs:
   codecov-token:

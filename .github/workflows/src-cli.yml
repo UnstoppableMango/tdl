@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: ['main']
     paths:
-      - .github/actions/build-cs/**
+      - .github/actions/build-dotnet/**
       - .github/actions/build-docker/**
       - .github/workflows/src-cli.yml
       - src/Cli*/**
@@ -12,7 +12,7 @@ on:
     branches: ['main']
     tags: ['v*.*.*']
     paths:
-      - .github/actions/build-cs/**
+      - .github/actions/build-dotnet/**
       - .github/actions/build-docker/**
       - .github/workflows/src-cli.yml
       - src/Cli*/**
@@ -30,7 +30,7 @@ jobs:
           fetch-depth: 0
           filter: tree:0
 
-      - uses: ./.github/actions/build-cs
+      - uses: ./.github/actions/build-dotnet
         id: build
         with:
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
