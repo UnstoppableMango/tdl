@@ -22,7 +22,7 @@ COPY cli/ ./cli/
 WORKDIR /build/cli/uml2pcl
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /out/uml2pcl
 
-FROM --platform=$BUILDPLATFORM ubuntu:noble-20240530 AS test
+FROM --platform=$BUILDPLATFORM ubuntu:noble-20240605 AS test
 COPY --from=build /out/uml2pcl .
 
 FROM --platform=$BUILDPLATFORM scratch
