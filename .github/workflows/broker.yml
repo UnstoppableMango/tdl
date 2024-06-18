@@ -34,7 +34,7 @@ jobs:
           fetch-depth: 0
           filter: tree:0
 
-      - uses: ./.github/actions/build-cs
+      - uses: ./.github/actions/build-dotnet
         id: build
         with:
           codecov-token: ${{ secrets.CODECOV_TOKEN }}

@@ -64,9 +64,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnMango.Tdl.Abstractions", 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "actions", "actions", "{5113428B-0798-4AED-87E4-2DC342D1FA4A}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build-cs", "build-cs", "{7309D3E2-0898-4B28-9817-7E33417829D6}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build-dotnet", "build-dotnet", "{7309D3E2-0898-4B28-9817-7E33417829D6}"
 	ProjectSection(SolutionItems) = preProject
-		.github\actions\build-cs\action.yml = .github\actions\build-cs\action.yml
+		.github\actions\build-dotnet\action.yml = .github\actions\build-dotnet\action.yml
 	EndProjectSection
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "UnMango.Tdl.Testing", "src\Testing\UnMango.Tdl.Testing.fsproj", "{E9EB306E-7387-4B06-B59C-A9FFC26EA60B}"

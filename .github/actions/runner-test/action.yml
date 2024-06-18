@@ -10,7 +10,7 @@ runs:
   using: composite
   steps:
     - name: Build runner test
-      uses: ./.github/actions/build-cs
+      uses: ./.github/actions/build-dotnet
       with:
         path: src/RunnerTest
         configuration: Release

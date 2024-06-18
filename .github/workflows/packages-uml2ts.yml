@@ -12,7 +12,7 @@ on:
     branches: ['main']
     tags: ['v*.*.*']
     paths:
-      - .github/actions/build-cs/**
+      - .github/actions/build-dotnet/**
       - .github/actions/build-docker/**
       - .github/workflows/packages-uml2ts.yml
       - packages/uml2ts/**
