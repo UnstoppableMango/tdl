@@ -36,6 +36,7 @@ internal sealed class Docker(IDockerClient docker, IDockerProgress progress) : I
 		return null;
 	}
 
+	// WIP
 	public async Task Build(string dockerfile, IList<string> tags, CancellationToken cancellationToken) {
 		var gitOutput = new StringBuilder();
 		_ = await new Command("git")
