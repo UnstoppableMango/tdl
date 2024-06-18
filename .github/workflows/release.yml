@@ -86,6 +86,9 @@ jobs:
           args: release --snapshot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Disable the monorepo feature
+          GORELEASER_CURRENT_TAG: v0.0.1
+          GORELEASER_PREVIOUS_TAG: v0.0.1-alpha
 
       - name: Run GoReleaser
         if: github.event_name != 'pull_request'
