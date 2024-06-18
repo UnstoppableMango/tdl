@@ -5,10 +5,9 @@ open UnMango.Tdl.Abstractions
 
 type TdlError =
   | Message of string
-  | None
 
 type FromResult = Result<Spec, TdlError>
-type GenResult = Result<unit, TdlError>
+type GenResult = TdlError option
 
 type From = Stream -> Async<FromResult>
 type Gen = Spec -> Stream -> Async<GenResult>
@@ -17,7 +16,6 @@ module TdlError =
   let message =
     function
     | Message m -> m
-    | None -> "No error"
 
 type Runner = { From: From; Gen: Gen }
 
