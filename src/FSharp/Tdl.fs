@@ -3,21 +3,18 @@ module UnMango.Tdl.Tdl
 open System.IO
 open UnMango.Tdl.Abstractions
 
-type TdlError =
-  | Message of string
-  | None
+type TdlError = Message of string
 
 type FromResult = Result<Spec, TdlError>
-type GenResult = Result<unit, TdlError>
+type GenResult = TdlError option
 
-type From = Stream -> Async<Spec>
-type Gen = Spec -> Stream -> Async<unit>
+type From = Stream -> Async<FromResult>
+type Gen = Spec -> Stream -> Async<GenResult>
 
 module TdlError =
   let message =
     function
     | Message m -> m
-    | None -> "No error"
 
 type Runner = { From: From; Gen: Gen }
 
@@ -25,14 +22,26 @@ module From =
   let wrap (c: IConverter) : From =
     fun o -> async {
       let! ct = Async.CancellationToken
-      return! c.FromAsync(o, ct) |> Async.AwaitTask
+
+      try
+        let! res = c.FromAsync(o, ct) |> Async.AwaitTask
+        return Ok res
+      with ex ->
+        return (Message ex.Message |> Error)
     }
 
 module Gen =
+  open System
+
   let wrap (g: IGenerator) : Gen =
     fun i o -> async {
       let! ct = Async.CancellationToken
-      return! g.GenerateAsync(i, o, ct) |> Async.AwaitTask
+
+      try
+        do! g.GenerateAsync(i, o, ct) |> Async.AwaitTask
+        return None
+      with ex ->
+        return (Message ex.Message |> Some)
     }
 
 module Runner =
