@@ -1,0 +1,100 @@
+name: Release
+
+on:
+  pull_request:
+    branches: ['main']
+    paths:
+      - .github/workflows/release.yml
+  push:
+    branches: ['main']
+    tags: ['v*.*.*']
+    paths:
+      - .github/workflows/release.yml
+      - cli/**
+
+jobs:
+  bun:
+    name: Compile Bun apps
+    runs-on: ubuntu-latest
+    if: github.ref_name != 'main'
+    strategy:
+      matrix:
+        tool:
+          - uml2ts
+        target:
+          - bun-linux-x64
+          - bun-linux-arm64
+          - bun-windows-x64
+          - bun-darwin-x64
+          - bun-darwin-arm64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Restore dependencies
+        working-directory: packages/${{ matrix.tool }}
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        run: |
+          bun build \
+            --compile \
+            --minify \
+            --sourcemap ./packages/${{ matrix.tool }}/index.ts \
+            --outfile ${{ matrix.tool }}
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.tool }}_${{ matrix.target }}
+          path: ${{ matrix.tool }}
+
+  goreleaser:
+    name: Run GoReleaser
+    runs-on: ubuntu-latest
+    if: github.ref_name != 'main'
+    needs: bun
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*'
+          path: ${{ github.workspace }}/bin
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '>=1.22.2'
+
+      - name: GoReleaser Dry-run
+        if: github.event_name == 'pull_request'
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: '~> v2'
+          args: release --snapshot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Disable the monorepo feature
+          GORELEASER_CURRENT_TAG: v0.0.1
+          GORELEASER_PREVIOUS_TAG: v0.0.1-alpha
+
+      - name: Run GoReleaser
+        if: github.event_name != 'pull_request'
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: '~> v2'
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
