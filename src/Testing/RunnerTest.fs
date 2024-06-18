@@ -7,25 +7,27 @@ let roundTrip (gen: Tdl.Gen, from: Tdl.From) spec = async {
   use stream = new MemoryStream()
 
   match! gen spec stream with
-  | Some(Tdl.Message e) -> failwith e
+  | Some(Tdl.Message e) -> return failwith e
   | _ -> ()
 
   stream.Position <- 0
-  let! result = from stream
-  return result.Equals(spec)
+  match! from stream with
+  | Ok result -> return result.Equals(spec)
+  | _ -> return false
 }
 
 let generateData (gen: Tdl.Gen, _: Tdl.From) spec = async {
   use stream = new MemoryStream()
 
   match! gen spec stream with
-  | Some(Tdl.Message e) -> failwith e
+  | Some(Tdl.Message e) -> return failwith e
   | _ -> ()
 
   return stream.Length > 0
 }
 
 let consumeData (_: Tdl.Gen, from: Tdl.From) (spec: Spec) (stream: MemoryStream) = async {
-  let! result = from stream
-  return result.Equals(spec)
+  match! from stream with
+  | Ok result -> return result.Equals(spec)
+  | _ -> return false
 }

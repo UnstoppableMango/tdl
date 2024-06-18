@@ -40,12 +40,15 @@ module CliRunner =
 
 type CliRunner(tool) =
   interface IRunner with
-    member this.FromAsync(input, cancellationToken) =
-      Async.StartAsTask(async {
-        match! CliRunner.from tool input with
-        | Ok result -> return result
-        | Error(Tdl.Message m) -> return failwith m
-      }, cancellationToken = cancellationToken)
+    member _.FromAsync(input, cancellationToken) =
+      Async.StartAsTask(
+        async {
+          match! CliRunner.from tool input with
+          | Ok result -> return result
+          | Error(Message m) -> return failwith m
+        },
+        cancellationToken = cancellationToken
+      )
 
-    member this.GenerateAsync(input, output, cancellationToken) =
+    member _.GenerateAsync(input, output, cancellationToken) =
       Async.StartAsTask(CliRunner.gen tool input output, cancellationToken = cancellationToken)
