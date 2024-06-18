@@ -4,7 +4,6 @@ open System.IO
 open CliWrap
 open Google.Protobuf
 open UnMango.CliWrap.FSharp
-open UnMango.Tdl.Abstractions
 open UnMango.Tdl.Tdl
 
 module CliRunner =
@@ -25,7 +24,8 @@ module CliRunner =
       use stream = new MemoryStream()
       do! converter tool input stream |> Async.Ignore
       stream.Position <- 0
-      return stream |> Spec.Parser.ParseFrom
+      let result = stream |> Spec.Parser.ParseFrom
+      return Ok result
     }
 
   let gen tool : Gen =
@@ -34,13 +34,5 @@ module CliRunner =
       spec.WriteTo(stream)
       stream.Position <- 0
       do! generator tool stream output |> Async.Ignore
-      return ()
+      return None
     }
-
-type CliRunner(tool) =
-  interface IRunner with
-    member this.FromAsync(input, cancellationToken) =
-      Async.StartAsTask(CliRunner.from tool input, cancellationToken = cancellationToken)
-
-    member this.GenerateAsync(input, output, cancellationToken) =
-      Async.StartAsTask(CliRunner.gen tool input output, cancellationToken = cancellationToken)
