@@ -4,6 +4,7 @@ open System.IO
 open CliWrap
 open Google.Protobuf
 open UnMango.CliWrap.FSharp
+open UnMango.Tdl.Abstractions
 open UnMango.Tdl.Tdl
 
 module CliRunner =
@@ -36,3 +37,15 @@ module CliRunner =
       do! generator tool stream output |> Async.Ignore
       return None
     }
+
+type CliRunner(tool) =
+  interface IRunner with
+    member this.FromAsync(input, cancellationToken) =
+      Async.StartAsTask(async {
+        match! CliRunner.from tool input with
+        | Ok result -> return result
+        | Error(Tdl.Message m) -> return failwith m
+      }, cancellationToken = cancellationToken)
+
+    member this.GenerateAsync(input, output, cancellationToken) =
+      Async.StartAsTask(CliRunner.gen tool input output, cancellationToken = cancellationToken)
