@@ -14,8 +14,8 @@ import (
 	"regexp"
 	"strings"
 
-	tdl "github.com/unstoppablemango/tdl/gen/proto/go/unmango/dev/tdl/v1alpha1"
 	"github.com/unstoppablemango/tdl/pkg/runner"
+	"github.com/unstoppablemango/tdl/pkg/uml"
 	"gopkg.in/yaml.v3"
 )
 
@@ -61,7 +61,7 @@ func runTest(test Test) error {
 	}
 
 	logger.Info("Unmarshaling source")
-	var spec tdl.Spec
+	var spec uml.Spec
 	if err = yaml.Unmarshal(source, &spec); err != nil {
 		return err
 	}
