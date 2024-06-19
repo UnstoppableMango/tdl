@@ -16,9 +16,9 @@ type cli struct {
 	Args []string
 }
 
-type CliOpt = uml.Opt[cli]
+type CliOpt func(*cli) error
 
-func NewCli[T CliOpt](path string, opts ...T) (uml.Runner, error) {
+func NewCli(path string, opts ...CliOpt) (uml.Runner, error) {
 	if _, err := os.Stat(path); err != nil {
 		return nil, err
 	}
@@ -26,9 +26,9 @@ func NewCli[T CliOpt](path string, opts ...T) (uml.Runner, error) {
 	return uml.Apply(cli{Path: path}, opts...)
 }
 
-func WithArgs[T CliOpt](arg ...string) T {
-	return func(opts *cli) error {
-		opts.Args = append(opts.Args, arg...)
+func WithArgs(arg ...string) CliOpt {
+	return func(c *cli) error {
+		c.Args = append(c.Args, arg...)
 		return nil
 	}
 }
