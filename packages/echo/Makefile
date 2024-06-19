@@ -1,15 +1,16 @@
-ROOT := $(shell git rev-parse --show-toplevel)
+ROOT    := $(shell git rev-parse --show-toplevel)
+BIN_DIR := $(ROOT)/bin
 
 .PHONY: build test clean docker
 
 build:
-	bun run build
+	bun build index.ts --compile --outfile ${BIN_DIR}/ts_echo
 
 test:
 	bun test
 
 clean:
-	rm -rf dist
+	rm -rf ${BIN_DIR}/ts_echo
 
 docker:
 	@$(MAKE) -C ${ROOT}/docker uml2ts
