@@ -3,7 +3,6 @@ module github.com/unstoppablemango/tdl/e2e
 go 1.22.3
 
 require (
-	github.com/unstoppablemango/tdl/gen v0.0.17
 	github.com/unstoppablemango/tdl/pkg v0.0.17
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -31,6 +30,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/unstoppablemango/tdl/gen v0.0.16 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.51.0 // indirect
 	go.opentelemetry.io/otel v1.27.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.27.0 // indirect
