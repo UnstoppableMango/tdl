@@ -1,0 +1,10 @@
+types:
+  TestType:
+    type: object
+    fields:
+      stringField:
+        type: string
+      numberField:
+        type: number
+      booleanField:
+        type: boolean
