@@ -4,12 +4,14 @@ type Opt[T any] interface {
 	~func(*T) error
 }
 
-func Apply[T Opt[V], V any](options *V, opts ...T) {
+func Apply[T Opt[V], V any](options *V, opts ...T) *V {
 	for _, opt := range opts {
 		if err := opt(options); err != nil {
 			panic(err)
 		}
 	}
+
+	return options
 }
 
 func Flat[T Opt[V], V any](opts ...T) T {
