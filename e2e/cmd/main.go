@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log/slog"
 	"os"
 	"path"
 	"regexp"
@@ -21,8 +22,14 @@ import (
 //go:embed testdata/**
 var testdata embed.FS
 
-var matcher = regexp.MustCompile(`(?P<name>\w*)\..*`)
-var binDir = os.Getenv("BIN_DIR")
+var (
+	matcher = regexp.MustCompile(`(?P<name>\w*)\..*`)
+	binDir  = os.Getenv("BIN_DIR")
+	logger  = slog.New(slog.NewTextHandler(
+		os.Stderr,
+		&slog.HandlerOptions{Level: slog.LevelDebug}),
+	)
+)
 
 type Test struct {
 	Name   string
@@ -36,24 +43,24 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Printf("Running %d test(s)\n", len(tests))
+	logger.Info("Running test(s)", "num", len(tests))
 	for _, test := range tests {
 		if err := runTest(test); err != nil {
-			fmt.Println(err)
+			logger.Error(err.Error())
 		}
 	}
 }
 
 func runTest(test Test) error {
-	fmt.Printf("Running test '%s'\n", test.Name)
+	logger := logger.With("name", test.Name)
 
-	fmt.Println("Reading source")
+	logger.Info("Reading source")
 	source, err := io.ReadAll(test.Source)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("Unmarshaling source")
+	logger.Info("Unmarshaling source")
 	var spec tdl.Spec
 	if err = yaml.Unmarshal(source, &spec); err != nil {
 		return err
@@ -64,24 +71,27 @@ func runTest(test Test) error {
 	}
 
 	bin := path.Join(binDir, "um")
-	cmd, err := runner.NewCli(bin, runner.WithArgs("ts"))
+	cmd, err := runner.NewCli(bin,
+		runner.WithArgs("ts"),
+		runner.WithLogger(logger),
+	)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("Running generator")
+	logger.Info("Running generator")
 	buf := &bytes.Buffer{}
 	if err = cmd.Gen(context.TODO(), &spec, buf); err != nil {
 		return err
 	}
 
-	fmt.Println("Reading target")
+	logger.Info("Reading target")
 	expectedBytes, err := io.ReadAll(test.Target)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("Reading actual from buffer")
+	logger.Info("Reading actual from buffer")
 	actualBytes, err := io.ReadAll(buf)
 	if err != nil {
 		return err
