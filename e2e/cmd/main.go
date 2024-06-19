@@ -64,7 +64,7 @@ func runTest(test Test) error {
 	}
 
 	bin := path.Join(binDir, "um")
-	cmd, err := runner.NewCli(bin, "ts")
+	cmd, err := runner.NewCli(bin, runner.WithArgs("ts"))
 	if err != nil {
 		return err
 	}
