@@ -16,15 +16,21 @@ type cli struct {
 	Args []string
 }
 
-func NewCli(path string, args ...string) (uml.Runner, error) {
+type CliOpt = uml.Opt[cli]
+
+func NewCli[T CliOpt](path string, opts ...T) (uml.Runner, error) {
 	if _, err := os.Stat(path); err != nil {
 		return nil, err
 	}
 
-	return &cli{
-		Path: path,
-		Args: args,
-	}, nil
+	return uml.Apply(cli{Path: path}, opts...)
+}
+
+func WithArgs[T CliOpt](arg ...string) T {
+	return func(opts *cli) error {
+		opts.Args = append(opts.Args, arg...)
+		return nil
+	}
 }
 
 // From implements uml.Runner.
