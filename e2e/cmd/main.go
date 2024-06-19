@@ -64,14 +64,14 @@ func runTest(test Test) error {
 	}
 
 	bin := path.Join(binDir, "um")
-	cmd, err := runner.NewCli(bin)
+	cmd, err := runner.NewCli(bin, "ts")
 	if err != nil {
 		return err
 	}
 
 	fmt.Println("Running generator")
-	buf := bytes.Buffer{}
-	if err = cmd.Gen(context.TODO(), &spec, &buf); err != nil {
+	buf := &bytes.Buffer{}
+	if err = cmd.Gen(context.TODO(), &spec, buf); err != nil {
 		return err
 	}
 
@@ -82,7 +82,7 @@ func runTest(test Test) error {
 	}
 
 	fmt.Println("Reading actual from buffer")
-	actualBytes, err := io.ReadAll(&buf)
+	actualBytes, err := io.ReadAll(buf)
 	if err != nil {
 		return err
 	}
