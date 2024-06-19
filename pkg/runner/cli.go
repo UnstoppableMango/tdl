@@ -3,6 +3,8 @@ package runner
 import (
 	"bytes"
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -18,7 +20,21 @@ type cli struct {
 	log  *slog.Logger
 }
 
-type CliOpt func(*cli) error
+type (
+	CliOpt func(*cli) error
+	CliErr struct {
+		Stdout string
+		Stderr string
+	}
+)
+
+// Error implements error.
+func (c *CliErr) Error() string {
+	// Kinda hate all of this
+	stdout := fmt.Sprintf("stdout: %s\n", c.Stdout)
+	stderr := fmt.Sprintf("stderr: %s\n", c.Stderr)
+	return fmt.Sprintf("%s, %s", stdout, stderr)
+}
 
 func NewCli(path string, opts ...CliOpt) (uml.Runner, error) {
 	if _, err := os.Stat(path); err != nil {
@@ -52,18 +68,23 @@ func (c *cli) From(ctx context.Context, reader io.Reader) (*uml.Spec, error) {
 	cmd := exec.Command(c.Path, args...)
 	c.log.Debug("built command", "path", c.Path, "args", args)
 
-	buf := &bytes.Buffer{}
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
 	cmd.Stdin = reader
-	cmd.Stdout = buf
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
 
 	c.log.Info("executing command")
 	if err := cmd.Run(); err != nil {
-		return nil, err
+		return nil, errors.Join(err, &CliErr{
+			Stdout: stdout.String(),
+			Stderr: stderr.String(),
+		})
 	}
 
 	c.log.Debug("unmarshalling proto response")
 	spec := &uml.Spec{}
-	err := proto.Unmarshal(buf.Bytes(), spec)
+	err := proto.Unmarshal(stdout.Bytes(), spec)
 
 	return spec, err
 }
@@ -88,3 +109,4 @@ func (c *cli) Gen(ctx context.Context, spec *uml.Spec, writer io.Writer) error {
 }
 
 var _ uml.Runner = &cli{}
+var _ error = &CliErr{}
