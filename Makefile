@@ -53,7 +53,7 @@ go_echo_test: $(GO_ECHO_CLI) $(RUNNER_TEST_BIN)
 ts_echo_test: $(TS_ECHO_CLI) $(RUNNER_TEST_BIN)
 	@dotnet ${RUNNER_TEST_BIN} ${TS_ECHO_CLI}
 e2e: export BIN_DIR := $(WORKING_DIR)/bin
-e2e: bin/um
+e2e: bin/um $(GO_ECHO_CLI) $(TS_ECHO_CLI)
 	go run -C e2e/cmd ./...
 
 .PHONY: gen
