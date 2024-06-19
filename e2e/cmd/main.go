@@ -8,8 +8,8 @@ import (
 	"regexp"
 	"strings"
 
-	tdlv1alpha1 "github.com/unstoppablemango/tdl/gen/proto/go/unmango/dev/tdl/v1alpha1"
-	"gopkg.in/yaml.v3"
+	tdl "github.com/unstoppablemango/tdl/gen/proto/go/unmango/dev/tdl/v1alpha1"
+	"gopkg.in/yaml.v2"
 )
 
 //go:embed testdata/**
@@ -33,7 +33,7 @@ func main() {
 	for _, test := range tests {
 		fmt.Printf("Runnint test '%s'\n", test.Name)
 
-		var spec tdlv1alpha1.Spec
+		var spec tdl.Spec
 		err = yaml.Unmarshal([]byte(test.Source), &spec)
 		if err != nil {
 			panic(err)
