@@ -12,6 +12,8 @@ func init() {
 	rootCmd.AddCommand(fromCmd)
 }
 
-var fromCmd = cli.NewFromCmd(func(ctx context.Context, co uml.ConverterOptions, args []string) (uml.Converter, error) {
-	return pcl.Converter, nil
-})
+var fromCmd = cli.NewFromCmd(
+	func(ctx context.Context, opts cli.FromCmdOptions, args []string) (uml.Converter, error) {
+		return pcl.Converter, nil
+	},
+)

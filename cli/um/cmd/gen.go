@@ -14,6 +14,9 @@ func init() {
 	rootCmd.AddCommand(genCmd)
 }
 
-var genCmd = cli.NewGenCmd(func(ctx context.Context, opts uml.GeneratorOptions, args []string) (uml.Generator, error) {
-	return runner.NewCli("")
-})
+var genCmd = cli.NewGenCmd(
+	func(ctx context.Context, opts cli.GenCmdOptions, args []string) (uml.Generator, error) {
+		opts.Log.Debug("executing cli runner")
+		return runner.NewCli("")
+	},
+)

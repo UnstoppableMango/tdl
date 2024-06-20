@@ -32,6 +32,8 @@ func (e echoConverter) From(ctx context.Context, reader io.Reader) (*tdl.Spec, e
 	return &spec, nil
 }
 
-var fromCmd = cli.NewFromCmd(func(ctx context.Context, _ uml.ConverterOptions, args []string) (uml.Converter, error) {
-	return echoConverter{}, nil
-})
+var fromCmd = cli.NewFromCmd(
+	func(ctx context.Context, _ cli.FromCmdOptions, args []string) (uml.Converter, error) {
+		return echoConverter{}, nil
+	},
+)
