@@ -7,12 +7,13 @@
 	"customManagers": [
 		{
 			"customType": "regex",
+			"depName": "oven-sh/bun",
+			"datasource": "github-releases",
 			"fileMatch": "package.json",
+			"extractVersionTemplate": "bun-v(?<version>.*?)",
 			"matchStrings": [
 				"\"packageManager\": \"bun@(?<currentValue>.*?)\""
-			],
-			"depNameTemplate": "oven-sh/bun",
-			"datasourceTemplate": "github-releases"
+			]
 		}
 	],
 	"packageRules": [
