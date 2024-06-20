@@ -12,9 +12,13 @@ type loggerKey struct{}
 
 func WithLogger(ctx context.Context) context.Context {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-	return context.WithValue(ctx, &loggerKey{}, logger)
+	return context.WithValue(ctx, loggerKey{}, logger)
 }
 
-func GetLogger(cmd *cobra.Command) slog.Logger {
-	return cmd.Context().Value(&loggerKey{}).(slog.Logger)
+func GetLogger(cmd *cobra.Command) *slog.Logger {
+	if log, ok := cmd.Context().Value(loggerKey{}).(*slog.Logger); ok {
+		return log
+	}
+
+	return slog.Default()
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"log/slog"
 	"os"
 	"path"
 
@@ -40,6 +41,21 @@ var _ = Describe("runner/cli", func() {
 		It("should use the provided path", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(cliRunner.Path).To(Equal(bin))
+		})
+
+		It("should initialize a default logger", func() {
+			Expect(cliRunner.log).NotTo(BeNil())
+		})
+
+		It("should use the supplied logger", func() {
+			expected := slog.New(slog.NewTextHandler(os.Stdout, nil))
+
+			sut, err := NewCli(bin, WithLogger(expected))
+			cli, ok := sut.(*cli)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(ok).To(BeTrue())
+			Expect(cli.log).To(Equal(expected))
 		})
 	})
 

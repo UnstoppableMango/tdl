@@ -11,7 +11,7 @@ import (
 
 type FromCmdOptions struct {
 	uml.ConverterOptions
-	Log slog.Logger
+	Log *slog.Logger
 }
 
 func NewFromCmd[T uml.NewConverter[FromCmdOptions]](create T) *cobra.Command {

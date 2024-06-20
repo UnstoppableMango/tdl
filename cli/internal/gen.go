@@ -12,7 +12,7 @@ import (
 
 type GenCmdOptions struct {
 	uml.GeneratorOptions
-	Log slog.Logger
+	Log *slog.Logger
 }
 
 func NewGenCmd[T uml.NewGenerator[GenCmdOptions]](create T) *cobra.Command {
