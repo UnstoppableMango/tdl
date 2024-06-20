@@ -11,12 +11,12 @@
 			"datasourceTemplate": "github-releases",
 			"fileMatch": [
 				"package.json",
-				".*\\/action.yml"
+				".*\\/action\\.ya?ml"
 			],
-			"extractVersionTemplate": "bun-v(?<version>.*?)",
+			"extractVersionTemplate": "[Bb]un[- ]v(?<version>.*)",
 			"matchStrings": [
-				"\"packageManager\": \"bun@(?<currentValue>.*?)\"",
-				"bun-version: (?<currentValue>.*?)"
+				"\"packageManager\": \"bun@(?<currentValue>.*)\"",
+				"bun-version: (?<currentValue>.*)"
 			]
 		}
 	],
