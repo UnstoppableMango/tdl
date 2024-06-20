@@ -19,7 +19,7 @@ func NewFromCmd[T uml.NewConverter[FromCmdOptions]](create T) *cobra.Command {
 		Use: "from",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			log := GetLogger(cmd)
-			opts := FromCmdOptions{}
+			opts := FromCmdOptions{Log: log}
 			ctx := cmd.Context()
 
 			log.Debug("creating converter")
