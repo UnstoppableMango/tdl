@@ -47,5 +47,10 @@ jobs:
         with:
           bun-version: 1.1.15
 
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
       - name: Run end-to-end tests
         run: make e2e
