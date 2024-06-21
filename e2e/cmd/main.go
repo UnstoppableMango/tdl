@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"embed"
 	"errors"
 	"fmt"
@@ -10,12 +9,13 @@ import (
 	"io/fs"
 	"log/slog"
 	"os"
+	"os/exec"
 	"path"
 	"regexp"
 	"strings"
 
-	"github.com/unstoppablemango/tdl/pkg/runner"
 	"github.com/unstoppablemango/tdl/pkg/uml"
+	"google.golang.org/protobuf/proto"
 	"gopkg.in/yaml.v3"
 )
 
@@ -61,8 +61,14 @@ func runTest(test Test) error {
 	}
 
 	logger.Info("Unmarshaling source")
-	var spec uml.Spec
-	if err = yaml.Unmarshal(source, &spec); err != nil {
+	var spec *uml.Spec
+	if err = yaml.Unmarshal(source, spec); err != nil {
+		return err
+	}
+
+	stdout := &bytes.Buffer{}
+	data, err := proto.Marshal(spec)
+	if err != nil {
 		return err
 	}
 
@@ -71,17 +77,12 @@ func runTest(test Test) error {
 	}
 
 	bin := path.Join(binDir, "um")
-	cmd, err := runner.NewCli(bin,
-		runner.WithArgs("ts"),
-		runner.WithLogger(logger),
-	)
-	if err != nil {
-		return err
-	}
+	cmd := exec.Command(bin, "gen", "ts")
+	cmd.Stdin = bytes.NewReader(data)
+	cmd.Stdout = stdout
 
 	logger.Info("Running generator")
-	buf := &bytes.Buffer{}
-	if err = cmd.Gen(context.Background(), &spec, buf); err != nil {
+	if err = cmd.Run(); err != nil {
 		return err
 	}
 
@@ -91,14 +92,8 @@ func runTest(test Test) error {
 		return err
 	}
 
-	logger.Info("Reading actual from buffer")
-	actualBytes, err := io.ReadAll(buf)
-	if err != nil {
-		return err
-	}
-
 	expected := string(expectedBytes)
-	actual := string(actualBytes)
+	actual := stdout.String()
 	if actual != expected {
 		fmt.Printf("Expected: %s\n", expected)
 		fmt.Printf("Actual:   %s\n", actual)
