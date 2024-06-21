@@ -61,12 +61,13 @@ func runTest(test Test) error {
 	}
 
 	logger.Info("Unmarshaling source")
-	var spec *uml.Spec
+	spec := &uml.Spec{}
 	if err = yaml.Unmarshal(source, spec); err != nil {
 		return err
 	}
 
 	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
 	data, err := proto.Marshal(spec)
 	if err != nil {
 		return err
@@ -80,10 +81,14 @@ func runTest(test Test) error {
 	cmd := exec.Command(bin, "gen", "ts")
 	cmd.Stdin = bytes.NewReader(data)
 	cmd.Stdout = stdout
+	cmd.Stderr = stderr
 
 	logger.Info("Running generator")
 	if err = cmd.Run(); err != nil {
-		return err
+		return errors.Join(err,
+			fmt.Errorf("stdout: %s", stdout.String()),
+			fmt.Errorf("sdterr: %s", stderr.String()),
+		)
 	}
 
 	logger.Info("Reading target")
