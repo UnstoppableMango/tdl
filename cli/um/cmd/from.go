@@ -29,9 +29,16 @@ var fromCmd = cli.NewFromCmd(
 			return nil, err
 		}
 
+		extraArgs := []string{}
+		if inputFile != "" {
+			opts.Log.Debug("using input file", "file", inputFile)
+			extraArgs = append(extraArgs, "--input", inputFile)
+		}
+
 		opts.Log.Debug("executing cli runner")
 		return runner.NewCli(bin,
 			runner.WithLogger(opts.Log),
+			runner.WithArgs(extraArgs...),
 		)
 	},
 )

@@ -1,23 +1,26 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
 	cli "github.com/unstoppablemango/tdl/cli/internal"
 )
 
-var rootCmd = &cobra.Command{
-	Use: "um",
-	PreRun: func(cmd *cobra.Command, args []string) {
-		cmd.SetContext(cli.WithLogger(cmd.Context()))
-	},
-}
+var (
+	inputFile string
+	rootCmd   = &cobra.Command{
+		Use:   "um",
+		Short: "UnstoppableMango's Type Description Language CLI",
+		PreRun: func(cmd *cobra.Command, args []string) {
+			cmd.SetContext(cli.WithLogger(cmd.Context()))
+		},
+	}
+)
 
 func Execute() {
+	cli.InputFile(rootCmd, &inputFile, "Path to the input file")
 	if err := rootCmd.Execute(); err != nil {
-		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
