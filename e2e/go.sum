@@ -74,12 +74,8 @@ github.com/sirupsen/logrus v1.9.3 h1:dueUQJ1C2q9oE3F7wvmSGAaVtTmUizReu6fjN8uqzbQ
 github.com/sirupsen/logrus v1.9.3/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
 github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=
 github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
-github.com/unstoppablemango/tdl/gen v0.0.16 h1:dDJj5QbWckgeLXEf73rDzP1O5F+XFfXjX8767seN0Us=
-github.com/unstoppablemango/tdl/gen v0.0.16/go.mod h1:zhoLdZumyVy/Lz3t9GvH1zBgiCy/fF8KtoRhrSwZJx4=
 github.com/unstoppablemango/tdl/gen v0.0.17 h1:FOGygsLDZ5g4HFTxnkAwet9mzNn1XrUqnIBdbu8ymmw=
 github.com/unstoppablemango/tdl/gen v0.0.17/go.mod h1:zhoLdZumyVy/Lz3t9GvH1zBgiCy/fF8KtoRhrSwZJx4=
-github.com/unstoppablemango/tdl/pkg v0.0.17 h1:5s3caf8qIgvtfB4gUONcuQYcpC9pyamFJjl432H/+E4=
-github.com/unstoppablemango/tdl/pkg v0.0.17/go.mod h1:eybW6CFVVZ2cr++2LHtdomHHA5bSLDQKNgAGAi7RrgU=
 github.com/unstoppablemango/tdl/pkg v0.0.18 h1:48GGMM2JrSefprMmrQHeldgztZke1gTm+Y3bOuTGBNk=
 github.com/unstoppablemango/tdl/pkg v0.0.18/go.mod h1:jtxIdfkg0ap4aDTtzzt63e1VBr1zBSgcAZw0tpHQlZs=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
@@ -117,6 +113,7 @@ golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9/go.mod h1:RxMgew5VJxzue5/jJ
 golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20190412213103-97732733099d/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20210616094352-59db8d763f22/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.21.0 h1:rF+pYz3DAGSQAxAu1CbC7catZg4ebC4UIeIhKxBZvws=
 golang.org/x/sys v0.21.0/go.mod h1:/VUhepiaJMQUp4+oa/7Zr1D23ma6VTLIYjOOTFZPUcA=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
