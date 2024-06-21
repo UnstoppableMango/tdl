@@ -5,6 +5,7 @@ on:
     branches: ['main']
     paths:
       - .github/actions/build-bun/**
+      - .github/workflows/bun-cli.yml
       - .github/workflows/packages-ts.yml
       - packages/ts/**
   push:
@@ -12,11 +13,12 @@ on:
     tags: ['v*.*.*']
     paths:
       - .github/actions/build-bun/**
+      - .github/workflows/bun-cli.yml
       - .github/workflows/packages-ts.yml
       - packages/ts/**
 
 jobs:
   build:
-    uses: ./.github/workflows/ts-cli.yml
+    uses: ./.github/workflows/bun-cli.yml
     with:
       name: ts
