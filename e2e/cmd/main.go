@@ -100,8 +100,8 @@ func runTest(test Test) error {
 	expected := string(expectedBytes)
 	actual := stdout.String()
 	if actual != expected {
-		fmt.Printf("Expected: %s\n", expected)
-		fmt.Printf("Actual:   %s\n", actual)
+		fmt.Printf("Expected: \n%s", expected)
+		fmt.Printf("Actual:   \n%s", actual)
 		return errors.New("output did not match")
 	}
 
