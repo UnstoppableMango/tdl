@@ -97,14 +97,15 @@ func runTest(test Test) error {
 		return err
 	}
 
-	expected := string(expectedBytes)
-	actual := stdout.String()
+	expected := strings.TrimSpace(string(expectedBytes))
+	actual := strings.TrimSpace(stdout.String())
 	if actual != expected {
-		fmt.Printf("Expected: \n%s", expected)
-		fmt.Printf("Actual:   \n%s", actual)
+		fmt.Printf("Expected:\n%s", expected)
+		fmt.Printf("Actual:\n%s", actual)
 		return errors.New("output did not match")
 	}
 
+	logger.Info("Success! ✅")
 	return nil
 }
 
