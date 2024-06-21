@@ -1,4 +1,4 @@
-name: uml2ts package
+name: packages/uml2ts
 
 on:
   pull_request:
@@ -6,6 +6,7 @@ on:
     paths:
       - .github/actions/build-bun/**
       - .github/actions/build-docker/**
+      - .github/workflows/bun-cli.yml
       - .github/workflows/packages-uml2ts.yml
       - packages/uml2ts/**
   push:
@@ -14,12 +15,14 @@ on:
     paths:
       - .github/actions/build-dotnet/**
       - .github/actions/build-docker/**
+      - .github/workflows/bun-cli.yml
       - .github/workflows/packages-uml2ts.yml
       - packages/uml2ts/**
 
 jobs:
   build:
-    uses: ./.github/workflows/ts-cli.yml
+    name: Bun CLI Build
+    uses: ./.github/workflows/bun-cli.yml
     with:
       name: uml2ts
       docker: true

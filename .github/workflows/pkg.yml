@@ -1,4 +1,4 @@
-name: Go Packages
+name: pkg
 
 on:
   pull_request:
@@ -9,7 +9,7 @@ on:
       - pkg/**
 
 jobs:
-  build-go:
+  build:
     runs-on: ubuntu-latest
     strategy:
       matrix:

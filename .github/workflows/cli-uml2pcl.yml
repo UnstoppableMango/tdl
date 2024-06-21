@@ -1,4 +1,4 @@
-name: uml2pcl CLI
+name: cli/uml2pcl
 
 on:
   pull_request:
@@ -27,6 +27,7 @@ on:
 
 jobs:
   build:
+    name: Go CLI Build
     uses: ./.github/workflows/go-cli.yml
     with:
       name: uml2pcl

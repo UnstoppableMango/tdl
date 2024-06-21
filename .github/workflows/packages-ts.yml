@@ -1,4 +1,4 @@
-name: ts package
+name: packages/ts
 
 on:
   pull_request:
@@ -11,7 +11,7 @@ on:
     branches: ['main']
     tags: ['v*.*.*']
     paths:
-      - .github/actions/build-dotnet/**
+      - .github/actions/build-bun/**
       - .github/workflows/packages-ts.yml
       - packages/ts/**
 
