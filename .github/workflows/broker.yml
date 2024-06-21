@@ -26,7 +26,8 @@ env:
   ContinuousIntegrationBuild: true
 
 jobs:
-  build-broker:
+  build:
+    name: .NET Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -45,14 +46,17 @@ jobs:
     outputs:
       artifact-id: ${{ steps.build.outputs.artifact-id }}
 
-  build-docker:
+  docker:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         tool: ['broker']
     steps:
       - uses: actions/checkout@v4
-      - run: echo "NAME=$(cat docker/${{ matrix.tool }}/.name)" >> "$GITHUB_ENV"
+
+      - name: Set image name
+        run: echo "NAME=$(cat docker/${{ matrix.tool }}/.name)" >> "$GITHUB_ENV"
+
       - uses: ./.github/actions/build-docker
         with:
           file: docker/${{ matrix.tool }}/Dockerfile

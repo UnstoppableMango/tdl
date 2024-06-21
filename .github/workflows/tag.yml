@@ -14,7 +14,9 @@ jobs:
           - pkg
     steps:
       - uses: actions/checkout@v4
-      - run: |
+
+      - name: Tag ${{ matrix.mod }}
+        run: |
           VERSION='${{ github.event.release.tag_name }}'
           TAG="${{ matrix.mod }}/$VERSION"
           git tag "$TAG"

@@ -1,4 +1,4 @@
-name: Protocol Buffers
+name: proto
 
 on:
   pull_request:
@@ -18,10 +18,12 @@ on:
       - buf.*
 
 jobs:
-  build-proto:
+  build:
+    name: Buf Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: ./.github/actions/build-proto
         with:
           path: proto
