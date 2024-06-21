@@ -46,7 +46,7 @@ func main() {
 	logger.Info("Running test(s)", "num", len(tests))
 	for _, test := range tests {
 		if err := runTest(test); err != nil {
-			logger.Error(err.Error())
+			logger.Error("test failed", "err", err)
 		}
 	}
 }
@@ -81,7 +81,7 @@ func runTest(test Test) error {
 
 	logger.Info("Running generator")
 	buf := &bytes.Buffer{}
-	if err = cmd.Gen(context.TODO(), &spec, buf); err != nil {
+	if err = cmd.Gen(context.Background(), &spec, buf); err != nil {
 		return err
 	}
 
