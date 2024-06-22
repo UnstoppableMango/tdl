@@ -9,7 +9,8 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use: "um",
+	Use:   "um",
+	Short: "UnstoppableMango's Type Description Language CLI",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		cmd.SetContext(cli.WithLogger(cmd.Context()))
 	},
