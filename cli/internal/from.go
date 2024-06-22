@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"io"
 	"log/slog"
 	"os"
 
@@ -28,8 +29,18 @@ func NewFromCmd[T uml.NewConverter[FromCmdOptions]](create T) *cobra.Command {
 				return err
 			}
 
+			var input io.Reader = os.Stdin
+			if len(args) > 1 {
+				log.Debug("found file arguments")
+				// TODO: Accept more files
+				input, err = os.Open(args[1])
+				if err != nil {
+					return err
+				}
+			}
+
 			log.Debug("executing converter")
-			spec, err := conv.From(ctx, os.Stdin)
+			spec, err := conv.From(ctx, input)
 			if err != nil {
 				return err
 			}
