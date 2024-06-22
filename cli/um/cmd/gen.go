@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	genCmd.Args = cobra.ExactArgs(1)
+	genCmd.Args = cobra.MinimumNArgs(1)
 	rootCmd.AddCommand(genCmd)
 }
 

@@ -23,8 +23,19 @@ func NewGenCmd[T uml.NewGenerator[GenCmdOptions]](create T) *cobra.Command {
 			opts := GenCmdOptions{Log: log}
 			ctx := cmd.Context()
 
-			log.Debug("reading stdin")
-			data, err := io.ReadAll(os.Stdin)
+			var err error
+			var input io.Reader = os.Stdin
+			if len(args) > 1 {
+				log.Debug("found file arguments")
+				// TODO: Accept more files
+				input, err = os.Open(args[1])
+				if err != nil {
+					return err
+				}
+			}
+
+			log.Debug("reading input")
+			data, err := io.ReadAll(input)
 			if err != nil {
 				return err
 			}

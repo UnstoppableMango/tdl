@@ -8,7 +8,8 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use: "um",
+	Use:   "um",
+	Short: "UnstoppableMango's Type Description Language CLI",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		cmd.SetContext(cli.WithLogger(cmd.Context()))
 	},
@@ -16,8 +17,6 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		log := cli.GetLogger(rootCmd)
-		log.Error("command failed", "err", err)
 		os.Exit(1)
 	}
 }
