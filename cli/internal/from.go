@@ -7,7 +7,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/unstoppablemango/tdl/pkg/uml"
-	"google.golang.org/protobuf/proto"
 )
 
 type FromCmdOptions struct {
@@ -15,50 +14,44 @@ type FromCmdOptions struct {
 	Log *slog.Logger
 }
 
-func NewFromCmd[T uml.NewConverter[FromCmdOptions]](create T) *cobra.Command {
+func NewFromCmd(converter uml.Converter) *cobra.Command {
 	return &cobra.Command{
 		Use:   "from [file...]",
 		Short: "Generate a UMl spec from source code",
 		Long:  `Searches file(s) for types and generates a UMl spec describing them`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			log := GetLogger(cmd)
-			opts := FromCmdOptions{Log: log}
 			ctx := cmd.Context()
-
-			log.Debug("creating converter")
-			conv, err := create(ctx, opts, args)
-			if err != nil {
-				return err
+			exec := &runnerCmd{
+				args: args,
+				log:  GetLogger(cmd),
 			}
 
-			var input io.Reader = os.Stdin
-			if len(args) > 1 {
-				log.Debug("found file arguments")
-				// TODO: Accept more files
-				input, err = os.Open(args[1])
+			return exec.run(func(key string, input io.Reader) error {
+				log := exec.log.With("key", key)
+
+				log.Debug("executing converter")
+				spec, err := converter.From(ctx, input)
 				if err != nil {
 					return err
 				}
-			}
 
-			log.Debug("executing converter")
-			spec, err := conv.From(ctx, input)
-			if err != nil {
+				log.Debug("guessing media type")
+				mediaType, err := uml.GuessMediaType(key)
+				if err != nil {
+					return err
+				}
+
+				log.Debug("marshalling result")
+				data, err := uml.Marshal(mediaType, spec)
+				if err != nil {
+					return err
+				}
+
+				log.Debug("writing result to stdout")
+				_, err = os.Stdout.Write(data)
+
 				return err
-			}
-
-			log.Debug("marshalling result")
-			data, err := proto.Marshal(spec)
-			if err != nil {
-				return err
-			}
-
-			log.Debug("writing result")
-			if _, err = os.Stdout.Write(data); err != nil {
-				return err
-			}
-
-			return nil
+			})
 		},
 	}
 }
