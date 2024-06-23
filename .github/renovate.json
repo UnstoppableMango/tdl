@@ -11,7 +11,7 @@
 			"datasourceTemplate": "github-releases",
 			"fileMatch": [
 				"package.json",
-				".*\\/action\\.ya?ml"
+				".*\\/.*\\.ya?ml"
 			],
 			"extractVersionTemplate": "[Bb]un[- ]v(?<version>.*)",
 			"matchStrings": [
