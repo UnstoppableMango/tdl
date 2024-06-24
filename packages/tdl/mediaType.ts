@@ -1,16 +1,16 @@
 import * as tdl from '@unmango/tdl-es';
 
-export const SUPPORTED_MIME_TYPES = [
+export const SUPPORTED_MEDIA_TYPES = [
 	'application/json',
 	'application/x-protobuf',
 	'application/protobuf',
 	'application/vnd.google.protobuf',
 ] as const;
 
-export type SupportedMimeTypeTuple = typeof SUPPORTED_MIME_TYPES;
-export type SupportedMimeType = SupportedMimeTypeTuple[number];
+export type SupportedMediaTypeTuple = typeof SUPPORTED_MEDIA_TYPES;
+export type SupportedMediaType = SupportedMediaTypeTuple[number];
 
-export function read(data: Uint8Array, type?: SupportedMimeType): tdl.Spec {
+export function read(data: Uint8Array, type?: SupportedMediaType): tdl.Spec {
 	switch (type) {
 		case 'application/json': {
 			const decoder = new TextDecoder();

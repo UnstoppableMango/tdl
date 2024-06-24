@@ -3,13 +3,13 @@ import * as tdl from '@unmango/tdl';
 import * as cmd from './command';
 import { name, version } from './package.json';
 
-const mimeTypeOption = new Option('--type <TYPE>', 'The media type of the input.')
-	.choices(tdl.SUPPORTED_MIME_TYPES);
+const mediaTypeOption = new Option('--type <TYPE>', 'The media type of the input.')
+	.choices(tdl.SUPPORTED_MEDIA_TYPES);
 
 export const gen = (program: Command): Command =>
 	program.command('gen')
 		.description('Generate typescript.')
-		.addOption(mimeTypeOption)
+		.addOption(mediaTypeOption)
 		.action((opts) => cmd.gen(opts.type));
 
 export const program = (): Command =>
