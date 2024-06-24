@@ -1,7 +1,7 @@
 import { Spec } from '@unmango/tdl-es';
 import { describe, expect, it } from 'bun:test';
 import fc from 'fast-check';
-import { read, type SupportedMimeType } from './mime';
+import { read, type SupportedMediaType } from './mediaType';
 
 const arbSpec = () =>
 	fc.gen().map(g =>
@@ -15,7 +15,7 @@ const arbSpec = () =>
 	);
 
 describe('read', () => {
-	it.each<SupportedMimeType>([
+	it.each<SupportedMediaType>([
 		'application/protobuf',
 		'application/x-protobuf',
 		'application/vnd.google.protobuf',

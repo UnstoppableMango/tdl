@@ -6,7 +6,7 @@ import (
 )
 
 type ConverterOptions struct {
-	MimeType *string
+	MediaType *string
 }
 
 type ConverterOption func(*ConverterOptions) error
@@ -19,9 +19,9 @@ type NewConverter[T any] interface {
 	RunnerFactory[T, Converter]
 }
 
-func WithMimeType(t string) ConverterOption {
+func WithMediaType(t string) ConverterOption {
 	return func(opts *ConverterOptions) error {
-		opts.MimeType = &t
+		opts.MediaType = &t
 		return nil
 	}
 }
