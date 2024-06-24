@@ -14,6 +14,10 @@ type ConverterOptions struct {
 
 type ConverterOption func(*ConverterOptions) error
 
+type From[T, V any] interface {
+	func(context.Context, T) (*V, error)
+}
+
 type Converter interface {
 	From(ctx context.Context, reader io.Reader) (*Spec, error)
 }
