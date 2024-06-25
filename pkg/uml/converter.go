@@ -3,10 +3,13 @@ package uml
 import (
 	"context"
 	"io"
+	"log/slog"
 )
 
 type ConverterOptions struct {
 	MediaType *string
+	Target    *string
+	Log       *slog.Logger
 }
 
 type ConverterOption func(*ConverterOptions) error
