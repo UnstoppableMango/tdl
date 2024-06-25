@@ -27,7 +27,7 @@ func (e echoGenerator) Gen(ctx context.Context, spec *uml.Spec, writer io.Writer
 }
 
 var genCmd = cli.NewGenCmd(
-	func(ctx context.Context, _ cli.GenCmdOptions, args []string) (uml.Generator, error) {
+	func(_ uml.GeneratorOptions) (uml.Generator, error) {
 		return echoGenerator{}, nil
 	},
 )
