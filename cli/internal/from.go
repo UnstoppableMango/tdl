@@ -8,7 +8,7 @@ import (
 	"github.com/unstoppablemango/tdl/pkg/uml"
 )
 
-func NewFromCmd(create func(uml.ConverterOptions) uml.Converter) *cobra.Command {
+func NewFromCmd(create func(uml.ConverterOptions) (uml.Converter, error)) *cobra.Command {
 	return &cobra.Command{
 		Use:   "from [file...]",
 		Short: "Generate a UMl spec from source code",
@@ -29,9 +29,14 @@ func NewFromCmd(create func(uml.ConverterOptions) uml.Converter) *cobra.Command 
 					return err
 				}
 
-				converter := create(uml.ConverterOptions{
+				log.Debug("creating converter")
+				converter, err := create(uml.ConverterOptions{
 					MediaType: &mediaType,
+					Log:       log,
 				})
+				if err != nil {
+					return err
+				}
 
 				log.Debug("executing converter")
 				spec, err := converter.From(ctx, input)
