@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"context"
-
 	"github.com/spf13/cobra"
 	cli "github.com/unstoppablemango/tdl/cli/internal"
 	"github.com/unstoppablemango/tdl/pkg/plugin"
@@ -16,9 +14,9 @@ func init() {
 }
 
 var genCmd = cli.NewGenCmd(
-	func(ctx context.Context, opts cli.GenCmdOptions, args []string) (uml.Generator, error) {
+	func(opts uml.GeneratorOptions) (uml.Generator, error) {
 		opts.Log.Debug("getting plugin name")
-		source, err := plugin.ForTarget(args[0])
+		source, err := plugin.ForTarget(opts.Target)
 		if err != nil {
 			return nil, err
 		}
