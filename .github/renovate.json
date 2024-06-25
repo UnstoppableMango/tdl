@@ -26,6 +26,12 @@
 			"matchPackagePatterns": [
 				"unstoppablemango/tdl"
 			]
+		},
+		{
+			"groupName": "bun",
+			"matchPackagePatterns": [
+				"oven-sh/bun"
+			]
 		}
 	]
 }
