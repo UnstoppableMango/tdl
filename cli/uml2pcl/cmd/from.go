@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"context"
-
 	cli "github.com/unstoppablemango/tdl/cli/internal"
 	"github.com/unstoppablemango/tdl/pkg/pcl"
 	"github.com/unstoppablemango/tdl/pkg/uml"
@@ -13,7 +11,7 @@ func init() {
 }
 
 var fromCmd = cli.NewFromCmd(
-	func(ctx context.Context, opts cli.FromCmdOptions, args []string) (uml.Converter, error) {
+	func(opts uml.ConverterOptions) (uml.Converter, error) {
 		return pcl.Converter, nil
 	},
 )
