@@ -2,19 +2,13 @@ package cli
 
 import (
 	"io"
-	"log/slog"
 	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/unstoppablemango/tdl/pkg/uml"
 )
 
-type FromCmdOptions struct {
-	uml.ConverterOptions
-	Log *slog.Logger
-}
-
-func NewFromCmd(converter uml.Converter) *cobra.Command {
+func NewFromCmd(create func(uml.ConverterOptions) uml.Converter) *cobra.Command {
 	return &cobra.Command{
 		Use:   "from [file...]",
 		Short: "Generate a UMl spec from source code",
@@ -29,14 +23,18 @@ func NewFromCmd(converter uml.Converter) *cobra.Command {
 			return exec.run(func(key string, input io.Reader) error {
 				log := exec.log.With("key", key)
 
-				log.Debug("executing converter")
-				spec, err := converter.From(ctx, input)
+				log.Debug("guessing media type")
+				mediaType, err := uml.GuessMediaType(key)
 				if err != nil {
 					return err
 				}
 
-				log.Debug("guessing media type")
-				mediaType, err := uml.GuessMediaType(key)
+				converter := create(uml.ConverterOptions{
+					MediaType: &mediaType,
+				})
+
+				log.Debug("executing converter")
+				spec, err := converter.From(ctx, input)
 				if err != nil {
 					return err
 				}
