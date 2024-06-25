@@ -3,10 +3,12 @@ package uml
 import (
 	"context"
 	"io"
+	"log/slog"
 )
 
 type GeneratorOptions struct {
 	Target string
+	Log    *slog.Logger
 }
 
 type GeneratorOption func(*GeneratorOptions) error
