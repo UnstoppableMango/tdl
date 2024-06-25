@@ -8,7 +8,7 @@ import (
 	"github.com/unstoppablemango/tdl/pkg/uml"
 )
 
-func NewGenCmd(generator uml.Generator) *cobra.Command {
+func NewGenCmd(create func(uml.GeneratorOptions) uml.Generator) *cobra.Command {
 	return &cobra.Command{
 		Use:   "gen [spec...]",
 		Short: "Generate source code types from the supplied spec(s)",
@@ -40,6 +40,10 @@ func NewGenCmd(generator uml.Generator) *cobra.Command {
 				if err = uml.Unmarshal(mediaType, data, spec); err != nil {
 					return err
 				}
+
+				generator := create(uml.GeneratorOptions{
+					Target: key, // TODO
+				})
 
 				log.Debug("executing generator")
 				return generator.Gen(ctx, spec, os.Stdout)
