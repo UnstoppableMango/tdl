@@ -11,12 +11,18 @@ import (
 type loggerKey struct{}
 
 func WithLogger(ctx context.Context) context.Context {
-	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	})
+
+	logger := slog.New(handler)
+
 	return context.WithValue(ctx, loggerKey{}, logger)
 }
 
 func GetLogger(cmd *cobra.Command) *slog.Logger {
-	if log, ok := cmd.Context().Value(loggerKey{}).(*slog.Logger); ok {
+	v := cmd.Context().Value(loggerKey{})
+	if log, ok := v.(*slog.Logger); ok {
 		return log
 	}
 
