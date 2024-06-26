@@ -16,7 +16,7 @@
 	<ItemGroup>
 		<PackageReference Include="Grpc.AspNetCore" Version="2.63.0" />
 		<PackageReference Include="MinVer" Version="5.0.0" PrivateAssets="all" />
-		<PackageReference Include="Octokit" Version="12.0.0" />
+		<PackageReference Include="Octokit" Version="13.0.0" />
 	</ItemGroup>
 
 	<ItemGroup>
