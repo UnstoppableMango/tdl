@@ -17,7 +17,9 @@ type GenCmdOptions struct {
 
 func NewGenCmd[T uml.NewGenerator[GenCmdOptions]](create T) *cobra.Command {
 	return &cobra.Command{
-		Use: "gen",
+		Use:   "gen [spec...]",
+		Short: "Generate source code types from the supplied spec(s)",
+		Long:  `Generate source code types from the supplied spec(s)`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			log := GetLogger(cmd)
 			opts := GenCmdOptions{Log: log}

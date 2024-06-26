@@ -17,7 +17,9 @@ type FromCmdOptions struct {
 
 func NewFromCmd[T uml.NewConverter[FromCmdOptions]](create T) *cobra.Command {
 	return &cobra.Command{
-		Use: "from",
+		Use:   "from [file...]",
+		Short: "Generate a UMl spec from source code",
+		Long:  `Searches file(s) for types and generates a UMl spec describing them`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			log := GetLogger(cmd)
 			opts := FromCmdOptions{Log: log}
