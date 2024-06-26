@@ -1,7 +1,6 @@
 package uml
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"log/slog"
@@ -36,35 +35,14 @@ func WithMediaType(t string) ConverterOption {
 	}
 }
 
-func MapFromInput[A, B, C any, F From[A, C], R From[B, C]](f func(B) A, from F) R {
-	return func(ctx context.Context, input B) (C, error) {
+func MapFromInput[A, B, C any, F From[A, C], R From[B, C]](from F, f func(B) A) R {
+	return func(ctx context.Context, input B) result.R[C] {
 		return from(ctx, f(input))
 	}
 }
 
-func MapFromOutput[A, B, C any, F From[A, B], R From[A, C]](f func(B) C, from F) R {
-	return func(ctx context.Context, input A) (C, error) {
-		result, err := from(ctx, input)
-		if err != nil {
-			return nil, err
-		}
-
-		return f(result), nil
-	}
-}
-
-func FromMediaType[F From[io.Reader, *Spec], R From[io.Reader, io.Reader]](mediaType string, from F) R {
-	return func(ctx context.Context, reader io.Reader) (io.Reader, error) {
-		spec, err := from(ctx, reader)
-		if err != nil {
-			return nil, err
-		}
-
-		data, err := Marshal(mediaType, spec)
-		if err != nil {
-			return nil, err
-		}
-
-		return bytes.NewBuffer(data), nil
+func MapFromOutput[A, B, C any, F From[A, B], R From[A, C]](from F, f func(B) C) R {
+	return func(ctx context.Context, input A) result.R[C] {
+		return result.Map(from(ctx, input), f)
 	}
 }
