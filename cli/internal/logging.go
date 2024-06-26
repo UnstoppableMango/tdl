@@ -26,5 +26,8 @@ func GetLogger(cmd *cobra.Command) *slog.Logger {
 		return log
 	}
 
-	return slog.Default()
+	log := slog.Default()
+	log.Debug("using the default logger")
+
+	return log
 }
