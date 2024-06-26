@@ -1,6 +1,9 @@
 package gen
 
-import "context"
+import (
+	"context"
+	"errors"
+)
 
 type Generator[Input, Output any] interface {
 	input() Input
@@ -24,6 +27,10 @@ func (g generator[I, O]) output() O {
 
 var _ Generator[string, string] = generator[string, string]{}
 
+func New[I, O any](input I, output O) Generator[I, O] {
+	return generator[I, O]{Input: input, Output: output}
+}
+
 func MapI[A, B, Output any](x Generator[A, Output], f func(A) B) Generator[B, Output] {
 	return generator[B, Output]{
 		Input:  f(x.input()),
@@ -38,6 +45,6 @@ func MapO[A, B, Input any](x Generator[Input, A], f func(A) B) Generator[Input, 
 	}
 }
 
-func Run[I, O any](ctx context.Context, g Generator[I, O], input I, output O) error {
-
+func Run[I, O any](ctx context.Context, g Generator[I, O]) error {
+	return errors.New("TODO")
 }

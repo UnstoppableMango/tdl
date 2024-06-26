@@ -1,6 +1,7 @@
 package gen
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -14,9 +15,11 @@ func TestGen(ctx context.Context, spec string, writer io.Writer) error {
 }
 
 func MapTest(t *testing.T) {
-	gen := TestGen
+	gen := New("", bytes.Buffer{})
 
 	actual := MapI(gen, func(string) int {
 		return 69
 	})
+
+	Run(context.TODO(), actual)
 }
