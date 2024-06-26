@@ -1,6 +1,7 @@
 package uml
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"log/slog"
@@ -44,5 +45,21 @@ func MapFromInput[A, B, C any, F From[A, C], R From[B, C]](from F, f func(B) A) 
 func MapFromOutput[A, B, C any, F From[A, B], R From[A, C]](from F, f func(B) C) R {
 	return func(ctx context.Context, input A) result.R[C] {
 		return result.Map(from(ctx, input), f)
+	}
+}
+
+func FromMediaType[F From[io.Reader, *Spec], R From[io.Reader, io.Reader]](mediaType string, from F) R {
+	return func(ctx context.Context, reader io.Reader) result.R[io.Reader] {
+		spec, err := from(ctx, reader)
+		if err != nil {
+			return nil, err
+		}
+
+		data, err := Marshal(mediaType, spec)
+		if err != nil {
+			return nil, err
+		}
+
+		return bytes.NewBuffer(data), nil
 	}
 }
