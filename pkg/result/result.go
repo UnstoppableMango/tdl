@@ -2,7 +2,7 @@ package result
 
 type R[T any] interface {
 	GetError() error
-	GetResult() T
+	GetValue() T
 	IsErr() bool
 	IsOk() bool
 	Unwrap() (T, error)
@@ -18,27 +18,30 @@ func (r *result[T]) GetError() error {
 	return r.err
 }
 
-// GetResult implements R
-func (r *result[T]) GetResult() T {
+// GetValue implements R
+func (r *result[T]) GetValue() T {
 	return r.v
 }
 
+// IsErr implements R
 func (r *result[T]) IsErr() bool {
 	return r.err != nil
 }
 
+// IsOk implements R
 func (r *result[T]) IsOk() bool {
 	return r.err == nil
 }
 
+// Unwrap implements R
 func (r *result[T]) Unwrap() (T, error) {
 	return r.v, r.err
 }
 
-func Of[T any](v T) R[T] {
+func Ok[T any](v T) R[T] {
 	return &result[T]{v: v}
 }
 
-func OfErr[T any](err error) R[T] {
+func Err[T any](err error) R[T] {
 	return &result[T]{err: err}
 }

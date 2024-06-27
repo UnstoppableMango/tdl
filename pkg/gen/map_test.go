@@ -26,10 +26,10 @@ var _ = Describe("Map", func() {
 	mapper := func(reader io.Reader) result.R[string] {
 		buf := new(strings.Builder)
 		if _, err := io.Copy(buf, reader); err != nil {
-			return result.OfErr[string](err)
+			return result.Err[string](err)
 		}
 
-		return result.Of(buf.String())
+		return result.Ok(buf.String())
 	}
 
 	BeforeEach(func() {

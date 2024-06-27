@@ -30,7 +30,7 @@ func (e echoRunner) From(ctx context.Context, reader io.Reader) (*uml.Spec, erro
 
 // Gen implements uml.Runner.
 func (e echoRunner) Gen(ctx context.Context, spec *uml.Spec, writer io.Writer) error {
-	return echoGenerator.Generate(ctx, spec, writer)
+	return echoGenerator.Gen(ctx, spec, writer)
 }
 
 var _ uml.Runner = echoRunner{}
