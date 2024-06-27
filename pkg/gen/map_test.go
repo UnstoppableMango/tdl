@@ -13,7 +13,7 @@ import (
 	"github.com/unstoppablemango/tdl/pkg/result"
 )
 
-var _ = Describe("Gen", func() {
+var _ = Describe("Map", func() {
 	var input *string = nil
 	var output *string = nil
 
