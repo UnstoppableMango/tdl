@@ -5,36 +5,35 @@ import (
 	"errors"
 )
 
+type GeneratorFunc[I, O any] func(context.Context, I, O) error
+
 type Generator[Input, Output any] interface {
-	input() Input
-	output() Output
+	gen(context.Context, Input, Output) error
 }
 
 type generator[I, O any] struct {
-	Input  I
-	Output O
+	run GeneratorFunc[I, O]
 }
 
-// input implements Generator.
-func (g generator[I, O]) input() I {
-	return g.Input
-}
-
-// output implements Generator.
-func (g generator[I, O]) output() O {
-	return g.Output
+// gen implements Generator.
+func (g generator[I, O]) gen(ctx context.Context, input I, output O) error {
+	return g.run(ctx, input, output)
 }
 
 var _ Generator[string, string] = generator[string, string]{}
 
-func New[I, O any](input I, output O) Generator[I, O] {
-	return generator[I, O]{Input: input, Output: output}
+func New[I, O any](gen GeneratorFunc[I, O]) Generator[I, O] {
+	return generator[I, O]{run: gen}
 }
 
-func MapI[A, B, Output any](x Generator[A, Output], f func(A) B) Generator[B, Output] {
+func MapI[A, B, Output any](
+	x Generator[A, Output],
+	f func(GeneratorFunc[A, Output]) GeneratorFunc[B, Output],
+) Generator[B, Output] {
 	return generator[B, Output]{
-		Input:  f(x.input()),
-		Output: x.output(),
+		run: func(ctx context.Context, b B, o Output) error {
+			return nil
+		},
 	}
 }
 
