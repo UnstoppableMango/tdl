@@ -4,8 +4,8 @@ go 1.22.2
 
 require (
 	github.com/spf13/cobra v1.8.1
-	github.com/unstoppablemango/tdl/gen v0.0.20
-	github.com/unstoppablemango/tdl/pkg v0.0.20
+	github.com/unstoppablemango/tdl/gen v0.0.21
+	github.com/unstoppablemango/tdl/pkg v0.0.21
 	google.golang.org/protobuf v1.34.2
 )
 
@@ -30,7 +30,7 @@ require (
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/djherbis/times v1.5.0 // indirect
-	github.com/docker/docker v26.1.4+incompatible // indirect
+	github.com/docker/docker v27.0.2+incompatible // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/edsrzf/mmap-go v1.1.0 // indirect
