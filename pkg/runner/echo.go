@@ -23,6 +23,10 @@ var (
 
 type echoRunner struct{}
 
+func NewEcho() uml.Runner {
+	return &echoRunner{}
+}
+
 // From implements uml.Runner.
 func (e echoRunner) From(ctx context.Context, reader io.Reader) (*uml.Spec, error) {
 	panic("unimplemented")
