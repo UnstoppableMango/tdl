@@ -2,46 +2,24 @@ package gen
 
 import (
 	"context"
-	"errors"
+
+	"github.com/unstoppablemango/tdl/pkg/result"
 )
 
 type GeneratorFunc[I, O any] func(context.Context, I, O) error
 
-type Generator[Input, Output any] interface {
-	gen(context.Context, Input, Output) error
-}
-
-type generator[I, O any] struct {
-	run GeneratorFunc[I, O]
-}
-
-// gen implements Generator.
-func (g generator[I, O]) gen(ctx context.Context, input I, output O) error {
-	return g.run(ctx, input, output)
-}
-
-var _ Generator[string, string] = generator[string, string]{}
-
-func New[I, O any](gen GeneratorFunc[I, O]) Generator[I, O] {
-	return generator[I, O]{run: gen}
-}
-
-func MapI[A, B, Output any](x Generator[A, Output], f func(B) A) Generator[B, Output] {
-	return generator[B, Output]{
-		run: func(ctx context.Context, b B, o Output) error {
-			return x.gen(ctx, f(b), o)
-		},
+func MapI[A, B, Output any](x GeneratorFunc[A, Output], f func(B) result.R[A]) GeneratorFunc[B, Output] {
+	return func(ctx context.Context, b B, output Output) error {
+		return result.Iter(f(b), func(a A) {
+			x(ctx, a, output)
+		})
 	}
 }
 
-func MapO[A, B, Input any](x Generator[Input, A], f func(B) A) Generator[Input, B] {
-	return generator[Input, B]{
-		run: func(ctx context.Context, input Input, b B) error {
-			return x.gen(ctx, input, f(b))
-		},
+func MapO[A, B, Input any](x GeneratorFunc[Input, A], f func(B) result.R[A]) GeneratorFunc[Input, B] {
+	return func(ctx context.Context, input Input, b B) error {
+		return result.Iter(f(b), func(a A) {
+			x(ctx, input, a)
+		})
 	}
-}
-
-func Run[I, O any](ctx context.Context, g Generator[I, O]) error {
-	return errors.New("TODO")
 }
