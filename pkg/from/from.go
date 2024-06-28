@@ -8,6 +8,10 @@ import (
 
 type ConverterFunc[I, O any] func(context.Context, I) result.R[O]
 
+func (f ConverterFunc[I, O]) From(ctx context.Context, input I) result.R[O] {
+	return f(ctx, input)
+}
+
 type Converter[I, O any] interface {
 	From(context.Context, I) result.R[O]
 }
