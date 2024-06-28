@@ -6,6 +6,10 @@ import (
 
 type GeneratorFunc[I, O any] func(context.Context, I, O) error
 
+func (f GeneratorFunc[I, O]) Gen(ctx context.Context, input I, output O) error {
+	return f(ctx, input, output)
+}
+
 type Generator[I, O any] interface {
 	Gen(context.Context, I, O) error
 }
