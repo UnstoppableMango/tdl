@@ -12,12 +12,8 @@ github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e/go.mod h1:pJLUxLENpZxwdsK
 github.com/rogpeppe/go-internal v1.9.0/go.mod h1:WtVeX8xhTBvf0smdhujwtBcq4Qrzq/fJaraNFVN+nFs=
 github.com/rogpeppe/go-internal v1.12.0 h1:exVL4IDcn6na9z1rAb56Vxr+CgyK3nn3O+epU5NdKM8=
 github.com/rogpeppe/go-internal v1.12.0/go.mod h1:E+RYuTGaKKdloAfM02xzb0FW3Paa99yedzYV+kq4uf4=
-github.com/unstoppablemango/tdl/gen v0.0.19 h1:NCQ9/4Agcl7pHiaa1xqGj0RJK6YYTH0vcnzoc8kHiTQ=
-github.com/unstoppablemango/tdl/gen v0.0.19/go.mod h1:zhoLdZumyVy/Lz3t9GvH1zBgiCy/fF8KtoRhrSwZJx4=
 github.com/unstoppablemango/tdl/gen v0.0.20 h1:VvBRY3rY1/0Oz1quw0CEzuXslHOxLqOI24Yuk7MSB4M=
 github.com/unstoppablemango/tdl/gen v0.0.20/go.mod h1:zhoLdZumyVy/Lz3t9GvH1zBgiCy/fF8KtoRhrSwZJx4=
-github.com/unstoppablemango/tdl/pkg v0.0.20 h1:vUNZv04qyMOUHSlbXmkpS7DugWZlKz9F9Vy//XaBw4k=
-github.com/unstoppablemango/tdl/pkg v0.0.20/go.mod h1:CmBAZO/OB/HKrynVbloa+8aXBXQwA3vyQTyXjv0qXNU=
 github.com/unstoppablemango/tdl/pkg v0.0.21 h1:ek7HzEfPTKRe1NMxxdKdB4r71TrTs8GgqaJk8MtD4Hg=
 github.com/unstoppablemango/tdl/pkg v0.0.21/go.mod h1:n4KzdX7TKPrAJnGklExBv61D5mW2oBEeP/EmoAuAnsI=
 google.golang.org/protobuf v1.34.2 h1:6xV6lTsCfpGD21XK49h7MhtcApnLqkfYgPcdHftf6hg=
