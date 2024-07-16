@@ -8,8 +8,8 @@ inputs:
   path:
     description: Path to the package.
     required: true
-  gomod:
-    description: Path to the go.mod file.
+  module:
+    description: Path to the go module.
     required: true
 
 runs:
@@ -18,7 +18,8 @@ runs:
     - name: Setup go
       uses: actions/setup-go@v5
       with:
-        go-version-file: ${{ inputs.gomod }}
+        go-version-file: ${{ inputs.module }}/go.mod
+        cache-dependency-path: ${{ inputs.module }}/go.sum
 
     - name: Verify dependencies
       shell: bash

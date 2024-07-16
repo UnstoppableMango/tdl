@@ -20,7 +20,7 @@ jobs:
       - uses: ./.github/actions/build-go
         with:
           path: cli/${{ inputs.name }}
-          gomod: cli/go.mod
+          module: cli
 
   build-docker:
     if: inputs.docker
