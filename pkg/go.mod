@@ -6,6 +6,7 @@ require (
 	connectrpc.com/connect v1.16.2
 	github.com/docker/docker v27.0.3+incompatible
 	github.com/google/go-github/v62 v62.0.0
+	github.com/google/go-github/v63 v63.0.0
 	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.33.1
 	github.com/pulumi/pulumi/pkg/v3 v3.124.0
