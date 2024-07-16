@@ -34,6 +34,6 @@ jobs:
         with:
           lib: true
           path: ${{ matrix.path }}
-          gomod: pkg/go.mod
+          module: pkg
         env:
           BIN_DIR: ${{ github.workspace }}/bin

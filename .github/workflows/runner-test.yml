@@ -44,7 +44,7 @@ jobs:
         uses: ./.github/actions/build-go
         with:
           path: cli/echo
-          gomod: cli/go.mod
+          module: cli
 
       - name: Verify runner tests
         uses: ./.github/actions/runner-test
