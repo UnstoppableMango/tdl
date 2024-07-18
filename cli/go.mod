@@ -4,8 +4,8 @@ go 1.22.2
 
 require (
 	github.com/spf13/cobra v1.8.1
-	github.com/unstoppablemango/tdl/gen v0.0.21
-	github.com/unstoppablemango/tdl/pkg v0.0.21
+	github.com/unstoppablemango/tdl/gen v0.0.22
+	github.com/unstoppablemango/tdl/pkg v0.0.22
 	google.golang.org/protobuf v1.34.2
 )
 
@@ -45,6 +45,7 @@ require (
 	github.com/golang/glog v1.2.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/go-github/v62 v62.0.0 // indirect
+	github.com/google/go-github/v63 v63.0.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0 // indirect
 	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645 // indirect
