@@ -6,6 +6,8 @@ on:
     paths:
       - .github/actions/build-go/**
       - .github/workflows/pkg.yml
+      - cli/internal/**
+      - cli/echo/**
       - pkg/**
 
 jobs:
