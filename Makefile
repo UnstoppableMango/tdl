@@ -41,10 +41,12 @@ build: build_dotnet cli docker pkg
 	@touch .make/build_lang
 build_dotnet: .make/build_dotnet
 
-.PHONY: test test_dotnet e2e
-test: test_dotnet test_packages
+.PHONY: test test_dotnet test_pkg test_packages e2e
+test: test_dotnet test_pkg test_packages
 test_dotnet: build_dotnet
 	dotnet test --no-build
+test_pkg:
+	@$(MAKE) -C pkg test
 test_packages:
 	@$(MAKE) -C packages test
 echo_test: go_echo_test ts_echo_test
