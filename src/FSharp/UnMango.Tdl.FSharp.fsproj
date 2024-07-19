@@ -19,7 +19,7 @@
 	<ItemGroup>
 		<PackageReference Include="Docker.DotNet" Version="3.125.15" />
 		<PackageReference Include="FSharp.Control.Reactive" Version="5.0.5"/>
-		<PackageReference Include="Grpc.Net.Client" Version="2.63.0" />
+		<PackageReference Include="Grpc.Net.Client" Version="2.64.0" />
 		<PackageReference Include="MinVer" Version="5.0.0" PrivateAssets="all"/>
 		<PackageReference Include="UnMango.CliWrap.FSharp" Version="0.0.7-alpha.0.16"/>
 	</ItemGroup>
