@@ -1,5 +1,6 @@
 WORKING_DIR ?= $(shell git rev-parse --show-toplevel)
 SRC         := $(shell find . -type f -path '*.go')
+INTERNAL    := $(shell find ../internal -type f -path '*.go')
 BIN         := $(WORKING_DIR)/bin/go_echo
 
 .PHONY: build test lint tidy run clean vet
@@ -24,5 +25,5 @@ clean:
 vet:
 	go vet
 
-$(BIN): $(SRC)
+$(BIN): $(SRC) $(INTERNAL)
 	go build -o $@
