@@ -101,11 +101,19 @@ func (c *cli) Gen(ctx context.Context, spec *uml.Spec, writer io.Writer) error {
 	cmd := exec.Command(c.Path, args...)
 	c.log.Debug("built command", "path", c.Path, "args", args)
 
+	stderr := &bytes.Buffer{}
 	cmd.Stdin = bytes.NewReader(inData)
 	cmd.Stdout = writer
+	cmd.Stderr = stderr
 
 	c.log.Info("executing command")
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		return errors.Join(err, &CliErr{
+			Stderr: stderr.String(),
+		})
+	}
+
+	return nil
 }
 
 var _ uml.Runner = &cli{}
