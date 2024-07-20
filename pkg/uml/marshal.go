@@ -23,14 +23,19 @@ func Marshal(typ string, spec *Spec) ([]byte, error) {
 
 	switch mediaType {
 	case "application/json":
+		fallthrough
 	case "text/json":
 		return json.Marshal(spec)
 	case "application/x-protobuf":
+		fallthrough
 	case "application/protobuf":
+		fallthrough
 	case "application/vnd.google.protobuf":
 		return proto.Marshal(spec)
 	case "application/x-yaml":
+		fallthrough
 	case "application/yaml":
+		fallthrough
 	case "text/yaml":
 		return yaml.Marshal(spec)
 	}
