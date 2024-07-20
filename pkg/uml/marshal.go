@@ -51,14 +51,19 @@ func Unmarshal(typ string, data []byte, spec *Spec) error {
 
 	switch mediaType {
 	case "application/json":
+		fallthrough
 	case "text/json":
 		return json.Unmarshal(data, spec)
 	case "application/x-protobuf":
+		fallthrough
 	case "application/protobuf":
+		fallthrough
 	case "application/vnd.google.protobuf":
 		return proto.Unmarshal(data, spec)
 	case "application/x-yaml":
+		fallthrough
 	case "application/yaml":
+		fallthrough
 	case "text/yaml":
 		return yaml.Unmarshal(data, spec)
 	}
