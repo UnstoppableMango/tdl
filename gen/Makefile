@@ -1,4 +1,4 @@
-export GOWORK := off
+export GOWORK :=
 
 .PHONY: go proto_go tidy
 go: proto_go
