@@ -20,15 +20,17 @@ func (c *runnerCmd) run(onInput func(key string, input io.Reader) error) error {
 	}
 
 	c.log.Debug("checking for file args")
-	for i, a := range c.args[1:] {
-		scoped := c.log.With("index", i, "file", a)
-		scoped.Debug("found file in args")
-		if input, err := os.Open(a); err == nil {
-			scoped.Debug("opened file")
-			inputs[a] = input
-		} else {
-			scoped.Debug("failed to open file")
-			return err
+	if len(c.args) > 1 {
+		for i, a := range c.args[1:] {
+			scoped := c.log.With("index", i, "file", a)
+			scoped.Debug("found file in args")
+			if input, err := os.Open(a); err == nil {
+				scoped.Debug("opened file")
+				inputs[a] = input
+			} else {
+				scoped.Debug("failed to open file")
+				return err
+			}
 		}
 	}
 
