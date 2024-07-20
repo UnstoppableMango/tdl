@@ -1,9 +1,8 @@
-go 1.22.3
-
-toolchain go1.22.4
+go 1.22.5
 
 use (
 	./cli
+	./e2e
 	./gen
 	./pkg
 )
