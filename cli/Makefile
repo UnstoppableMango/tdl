@@ -1,4 +1,4 @@
-export GOWORK := off
+export GOWORK :=
 
 .PHONY: all uml2go uml2pcl
 all: uml2go uml2pcl

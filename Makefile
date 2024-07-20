@@ -1,7 +1,7 @@
 WORKING_DIR := $(shell pwd)
 _ := $(shell mkdir -p .make bin)
 
-export GOWORK := off
+export GOWORK :=
 
 VERSION ?= $(shell dotnet minver --tag-prefix v --verbosity warn)
 export MINVERVERSIONOVERRIDE = ${VERSION}

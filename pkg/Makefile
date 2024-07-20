@@ -1,6 +1,6 @@
 WORKING_DIR ?= $(shell git rev-parse --show-toplevel)
 
-export GOWORK  := off
+export GOWORK  :=
 export BIN_DIR := $(WORKING_DIR)/bin
 
 .PHONY: build test
