@@ -10,21 +10,27 @@ import (
 
 type loggerKey struct{}
 
-func WithLogger(ctx context.Context) context.Context {
+func NewLogger() *slog.Logger {
 	handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	})
 
-	logger := slog.New(handler)
+	return slog.New(handler)
+}
 
+func WithLogger(ctx context.Context, logger *slog.Logger) context.Context {
 	return context.WithValue(ctx, loggerKey{}, logger)
 }
 
-func GetLogger(cmd *cobra.Command) *slog.Logger {
-	v := cmd.Context().Value(loggerKey{})
-	if log, ok := v.(*slog.Logger); ok {
+func FromContext(ctx context.Context) *slog.Logger {
+	val := ctx.Value(loggerKey{})
+	if log, ok := val.(*slog.Logger); ok {
 		return log
 	}
 
 	return slog.Default()
+}
+
+func FromCommand(cmd *cobra.Command) *slog.Logger {
+	return FromContext(cmd.Context())
 }

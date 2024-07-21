@@ -2,60 +2,57 @@ package cli
 
 import (
 	"io"
-	"log/slog"
 	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/unstoppablemango/tdl/pkg/uml"
-	"google.golang.org/protobuf/proto"
 )
 
-type GenCmdOptions struct {
-	uml.GeneratorOptions
-	Log *slog.Logger
-}
-
-func NewGenCmd[T uml.NewGenerator[GenCmdOptions]](create T) *cobra.Command {
+func NewGenCmd(create func(uml.GeneratorOptions) (uml.Generator, error)) *cobra.Command {
 	return &cobra.Command{
 		Use:   "gen [spec...]",
 		Short: "Generate source code types from the supplied spec(s)",
 		Long:  `Generate source code types from the supplied spec(s)`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			log := GetLogger(cmd)
-			opts := GenCmdOptions{Log: log}
 			ctx := cmd.Context()
+			exec := &runnerCmd{
+				args: args,
+				log:  FromCommand(cmd),
+			}
 
-			var err error
-			var input io.Reader = os.Stdin
-			if len(args) > 1 {
-				log.Debug("found file arguments")
-				// TODO: Accept more files
-				input, err = os.Open(args[1])
+			return exec.run(func(target, key string, input io.Reader) error {
+				log := exec.log.With("key", key)
+
+				log.Debug("guessing media type")
+				mediaType, err := uml.GuessMediaType(key)
 				if err != nil {
 					return err
 				}
-			}
 
-			log.Debug("reading input")
-			data, err := io.ReadAll(input)
-			if err != nil {
-				return err
-			}
+				log.Debug("reading input")
+				data, err := io.ReadAll(input)
+				if err != nil {
+					return err
+				}
 
-			log.Debug("unmarhshalling input")
-			spec := uml.Spec{}
-			if err = proto.Unmarshal(data, &spec); err != nil {
-				return err
-			}
+				spec := &uml.Spec{}
+				log.Debug("unmarshalling spec", "mediaType", mediaType)
+				if err = uml.Unmarshal(mediaType, data, spec); err != nil {
+					return err
+				}
 
-			log.Debug("creating generator")
-			gen, err := create(ctx, opts, args)
-			if err != nil {
-				return err
-			}
+				log.Debug("creating generator")
+				generator, err := create(uml.GeneratorOptions{
+					Target: target,
+					Log:    log,
+				})
+				if err != nil {
+					return err
+				}
 
-			log.Debug("executing generator")
-			return gen.Gen(ctx, &spec, os.Stdout)
+				log.Debug("executing generator")
+				return generator.Gen(ctx, spec, os.Stdout)
+			})
 		},
 	}
 }

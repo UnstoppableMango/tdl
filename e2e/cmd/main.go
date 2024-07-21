@@ -101,6 +101,7 @@ func runTest(test Test) error {
 	actual := strings.TrimSpace(stdout.String())
 	if actual != expected {
 		fmt.Printf("Expected:\n%s", expected)
+		fmt.Println()
 		fmt.Printf("Actual:\n%s", actual)
 		return errors.New("output did not match")
 	}
