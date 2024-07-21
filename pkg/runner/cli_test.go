@@ -28,7 +28,7 @@ var _ = Describe("runner/cli", func() {
 	var err error
 
 	BeforeEach(func() {
-		runner, err = NewCli(bin)
+		runner, err = NewCli(bin, WithArgs("ts"))
 		cliRunner, _ = runner.(*cli)
 	})
 
