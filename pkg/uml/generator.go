@@ -13,6 +13,10 @@ type GeneratorOptions struct {
 
 type GeneratorOption func(*GeneratorOptions) error
 
+type Gen[T, V any] interface {
+	func(context.Context, *T, V) error
+}
+
 type Generator interface {
 	Gen(ctx context.Context, spec *Spec, writer io.Writer) error
 }
