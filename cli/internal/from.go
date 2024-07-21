@@ -20,7 +20,7 @@ func NewFromCmd(create func(uml.ConverterOptions) (uml.Converter, error)) *cobra
 				log:  FromCommand(cmd),
 			}
 
-			return exec.run(func(key string, input io.Reader) error {
+			return exec.run(func(target, key string, input io.Reader) error {
 				log := exec.log.With("key", key)
 
 				log.Debug("guessing media type")

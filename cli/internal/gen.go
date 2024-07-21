@@ -20,7 +20,7 @@ func NewGenCmd(create func(uml.GeneratorOptions) (uml.Generator, error)) *cobra.
 				log:  FromCommand(cmd),
 			}
 
-			return exec.run(func(key string, input io.Reader) error {
+			return exec.run(func(target, key string, input io.Reader) error {
 				log := exec.log.With("key", key)
 
 				log.Debug("guessing media type")
@@ -43,7 +43,7 @@ func NewGenCmd(create func(uml.GeneratorOptions) (uml.Generator, error)) *cobra.
 
 				log.Debug("creating generator")
 				generator, err := create(uml.GeneratorOptions{
-					Target: key, // TODO
+					Target: target,
 					Log:    log,
 				})
 				if err != nil {

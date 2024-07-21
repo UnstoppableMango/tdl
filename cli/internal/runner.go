@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"io"
 	"log/slog"
 	"os"
@@ -11,7 +12,13 @@ type runnerCmd struct {
 	log  *slog.Logger
 }
 
-func (c *runnerCmd) run(onInput func(key string, input io.Reader) error) error {
+func (c *runnerCmd) run(onInput func(target, key string, input io.Reader) error) error {
+	if len(c.args) < 1 {
+		return errors.New("missing target")
+	}
+
+	target := c.args[0]
+
 	inputs := map[string]io.Reader{}
 	stat, _ := os.Stdin.Stat()
 	if (stat.Mode() & os.ModeCharDevice) == 0 {
@@ -36,7 +43,7 @@ func (c *runnerCmd) run(onInput func(key string, input io.Reader) error) error {
 
 	for key, input := range inputs {
 		c.log.Debug("executing input callback", "key", key)
-		if err := onInput(key, input); err != nil {
+		if err := onInput(target, key, input); err != nil {
 			return err
 		}
 	}
