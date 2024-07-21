@@ -10,7 +10,10 @@ import (
 var rootCmd = &cobra.Command{
 	Use: "uml2go",
 	PreRun: func(cmd *cobra.Command, args []string) {
-		cmd.SetContext(cli.WithLogger(cmd.Context()))
+		cmd.SetContext(cli.WithLogger(
+			cmd.Context(),
+			cli.NewLogger(),
+		))
 	},
 }
 

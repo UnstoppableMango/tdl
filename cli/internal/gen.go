@@ -17,7 +17,7 @@ func NewGenCmd(create func(uml.GeneratorOptions) (uml.Generator, error)) *cobra.
 			ctx := cmd.Context()
 			exec := &runnerCmd{
 				args: args,
-				log:  GetLogger(cmd),
+				log:  FromCommand(cmd),
 			}
 
 			return exec.run(func(key string, input io.Reader) error {
@@ -44,6 +44,7 @@ func NewGenCmd(create func(uml.GeneratorOptions) (uml.Generator, error)) *cobra.
 				log.Debug("creating generator")
 				generator, err := create(uml.GeneratorOptions{
 					Target: key, // TODO
+					Log:    log,
 				})
 				if err != nil {
 					return err

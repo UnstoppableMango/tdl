@@ -17,7 +17,7 @@ func NewFromCmd(create func(uml.ConverterOptions) (uml.Converter, error)) *cobra
 			ctx := cmd.Context()
 			exec := &runnerCmd{
 				args: args,
-				log:  GetLogger(cmd),
+				log:  FromCommand(cmd),
 			}
 
 			return exec.run(func(key string, input io.Reader) error {
