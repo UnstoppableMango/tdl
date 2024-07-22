@@ -56,7 +56,7 @@ ts_echo_test: $(TS_ECHO_CLI) $(RUNNER_TEST_BIN)
 	@dotnet ${RUNNER_TEST_BIN} ${TS_ECHO_CLI}
 e2e: export BIN_DIR := $(WORKING_DIR)/bin
 e2e: bin/um $(GO_ECHO_CLI) $(TS_ECHO_CLI) bin/uml2ts
-	go run -C e2e/cmd ./...
+	@$(MAKE) -C cli/um e2e
 
 .PHONY: gen
 gen: gen_proto
