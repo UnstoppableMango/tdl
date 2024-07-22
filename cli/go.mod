@@ -6,8 +6,8 @@ require (
 	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.33.1
 	github.com/spf13/cobra v1.8.1
-	github.com/unstoppablemango/tdl/gen v0.0.22
-	github.com/unstoppablemango/tdl/pkg v0.0.22
+	github.com/unstoppablemango/tdl/gen v0.0.24
+	github.com/unstoppablemango/tdl/pkg v0.0.24
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -33,7 +33,7 @@ require (
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/djherbis/times v1.5.0 // indirect
-	github.com/docker/docker v27.0.3+incompatible // indirect
+	github.com/docker/docker v27.1.0+incompatible // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/edsrzf/mmap-go v1.1.0 // indirect
@@ -83,8 +83,8 @@ require (
 	github.com/pkg/term v1.1.0 // indirect
 	github.com/pulumi/appdash v0.0.0-20231130102222-75f619a67231 // indirect
 	github.com/pulumi/esc v0.9.1 // indirect
-	github.com/pulumi/pulumi/pkg/v3 v3.124.0 // indirect
-	github.com/pulumi/pulumi/sdk/v3 v3.124.0 // indirect
+	github.com/pulumi/pulumi/pkg/v3 v3.125.0 // indirect
+	github.com/pulumi/pulumi/sdk/v3 v3.125.0 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06 // indirect
