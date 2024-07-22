@@ -35,7 +35,7 @@ type Test struct {
 
 var _ = Describe("End to end", func() {
 	if binDir == "" {
-		Fail("BIN_DIR not found")
+		Skip("BIN_DIR not found")
 	}
 
 	tests, err := readTests()
