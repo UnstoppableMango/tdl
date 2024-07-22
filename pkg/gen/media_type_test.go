@@ -26,7 +26,8 @@ var _ = Describe("MediaType", func() {
 			generator := gen.FromMediaType(echo.Gen, mediaType)
 
 			buf := &bytes.Buffer{}
-			generator(context.Background(), bytes.NewReader(media), buf)
+			err = generator(context.Background(), bytes.NewReader(media), buf)
+			Expect(err).NotTo(HaveOccurred())
 
 			actual := &uml.Spec{}
 			err = proto.Unmarshal(buf.Bytes(), actual)
