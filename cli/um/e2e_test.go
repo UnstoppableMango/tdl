@@ -69,13 +69,6 @@ var _ = Describe("End to end", func() {
 			err = cmd.Run()
 			Expect(err).NotTo(HaveOccurred())
 
-			// if err = cmd.Run(); err != nil {
-			// 	return errors.Join(err,
-			// 		fmt.Errorf("stdout: %s", stdout.String()),
-			// 		fmt.Errorf("sdterr: %s", stderr.String()),
-			// 	)
-			// }
-
 			By("Reading target")
 			expectedBytes, err := io.ReadAll(test.Target)
 			Expect(err).NotTo(HaveOccurred())
