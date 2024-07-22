@@ -13,18 +13,21 @@ import (
 )
 
 var _ = Describe("MediaType", func() {
-	Describe("FromMediaType", func() {
-		It("should work", func() {
+	DescribeTable("FromMediaType",
+		Entry("protobuf", "application/protobuf"),
+		Entry("yaml", "application/yaml"),
+		Entry("json", "application/json"),
+		func(mediaType string) {
 			spec := &uml.Spec{Name: "Test"}
-			media, err := proto.Marshal(spec)
-			mediaType := "application/protobuf"
+			media, err := uml.Marshal(mediaType, spec)
 			Expect(err).NotTo(HaveOccurred())
 
 			echo := runner.NewEcho()
 			generator := gen.FromMediaType(echo.Gen, mediaType)
 
 			buf := &bytes.Buffer{}
-			generator(context.Background(), bytes.NewReader(media), buf)
+			err = generator(context.Background(), bytes.NewReader(media), buf)
+			Expect(err).NotTo(HaveOccurred())
 
 			actual := &uml.Spec{}
 			err = proto.Unmarshal(buf.Bytes(), actual)
@@ -32,6 +35,6 @@ var _ = Describe("MediaType", func() {
 
 			// TODO: Better assertion
 			Expect(actual.Name).To(Equal(spec.Name))
-		})
-	})
+		},
+	)
 })
