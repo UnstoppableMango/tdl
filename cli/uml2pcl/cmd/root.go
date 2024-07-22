@@ -5,15 +5,13 @@ import (
 
 	"github.com/spf13/cobra"
 	cli "github.com/unstoppablemango/tdl/cli/internal"
+	"github.com/unstoppablemango/tdl/pkg/logging"
 )
 
 var rootCmd = &cobra.Command{
 	Use: "uml2pcl",
 	PreRun: func(cmd *cobra.Command, args []string) {
-		cmd.SetContext(cli.WithLogger(
-			cmd.Context(),
-			cli.NewLogger(),
-		))
+		cli.SetLogger(cmd, logging.NewLogger())
 	},
 }
 
