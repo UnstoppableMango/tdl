@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"runtime"
 
@@ -11,12 +10,12 @@ import (
 	"github.com/unstoppablemango/tdl/pkg/logging"
 )
 
+var (
+	owner = "UnstoppableMango"
+	repo  = "tdl"
+)
+
 var assetName string
-var plugins = map[string]string{
-	"go":  "uml2go",
-	"pcl": "uml2pcl",
-	"ts":  "uml2ts",
-}
 
 func init() {
 	var os, ext string
@@ -70,7 +69,16 @@ func (c GitHubClient) getReleaseAsset(ctx context.Context) (*github.ReleaseAsset
 		return nil, err
 	}
 
-	return "", fmt.Errorf("unsupported target: %s", target)
+	log.Debug("searching for asset", "asset", assetName)
+	for _, asset := range release.Assets {
+		if *asset.Name == assetName {
+			return asset, nil
+		}
+
+		log.Debug("skipping asset", "asset", asset.Name)
+	}
+
+	return nil, fmt.Errorf("unable to find asset %s", assetName)
 }
 
 func (c GitHubClient) cacheAsset(ctx context.Context, asset *github.ReleaseAsset) error {
@@ -79,7 +87,7 @@ func (c GitHubClient) cacheAsset(ctx context.Context, asset *github.ReleaseAsset
 	log.Debug("downloading release", "asset", asset.Name)
 	reader, _, err := c.client.Repositories.DownloadReleaseAsset(ctx, owner, repo, *asset.ID, nil)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	defer reader.Close()
