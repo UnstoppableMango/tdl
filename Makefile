@@ -82,7 +82,6 @@ clean_dist:
 .PHONY: tidy
 tidy: gen
 	@$(MAKE) -C cli tidy --no-print-directory
-	@$(MAKE) -C e2e tidy --no-print-directory
 	@$(MAKE) -C gen tidy --no-print-directory
 	@$(MAKE) -C pkg tidy --no-print-directory
 
@@ -141,7 +140,6 @@ go.work: GOWORK :=
 go.work:
 	go work init
 	go work use cli
-	go work use e2e
 	go work use gen
 	go work use pkg
 
