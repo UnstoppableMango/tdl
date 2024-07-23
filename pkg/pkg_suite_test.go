@@ -1,4 +1,4 @@
-package pcl
+package pkg_test
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestPcl(t *testing.T) {
+func TestPkg(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Pcl Suite")
+	RunSpecs(t, "Pkg Suite")
 }
