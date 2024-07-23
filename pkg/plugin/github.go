@@ -47,19 +47,6 @@ func NewGitHubClient(client *github.Client, cache cache.Cache) GitHubClient {
 	return GitHubClient{client: client, cache: cache}
 }
 
-func (c GitHubClient) GetPlugin(ctx context.Context) (string, error) {
-	asset, err := c.getReleaseAsset(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	if err = c.cacheAsset(ctx, asset); err != nil {
-		return "", err
-	}
-
-	return c.cache.Path(assetName), nil
-}
-
 func (c GitHubClient) getReleaseAsset(ctx context.Context) (*github.ReleaseAsset, error) {
 	log := logging.FromContext(ctx)
 
