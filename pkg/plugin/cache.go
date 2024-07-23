@@ -29,13 +29,31 @@ func NewCache(client *github.Client, path string, logger *slog.Logger) PluginCac
 
 // PathFor implements PluginCache.
 func (c *pluginCache) PathFor(name string) (string, error) {
-	asset, err := c.cache.Get(name)
+	cached, err := c.cache.Get(name)
 	if err == nil {
-		asset.Close()
+		cached.Close()
 		c.cache.Path(name)
 	}
 
-	panic("unimplemented")
+	ctx := context.Background()
+	c.populate(ctx)
+
+	// TODO: Ensure file exists
+	return c.cache.Path(name), nil
+}
+
+func (c *pluginCache) populate(ctx context.Context) error {
+	asset, err := c.getLatestAsset(ctx)
+	if err != nil {
+		return err
+	}
+
+	if err = c.cacheAsset(ctx, asset); err != nil {
+		return err
+	}
+
+	// TODO: Extract archive
+	return nil
 }
 
 func (c pluginCache) getLatestAsset(ctx context.Context) (*github.ReleaseAsset, error) {
