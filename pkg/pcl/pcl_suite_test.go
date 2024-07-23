@@ -1,4 +1,4 @@
-package pcl
+package pcl_test
 
 import (
 	"testing"

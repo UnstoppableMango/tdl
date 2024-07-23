@@ -2,19 +2,20 @@ package plugin
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"runtime"
 
 	"github.com/google/go-github/v63/github"
+	"github.com/unstoppablemango/tdl/pkg/cache"
+	"github.com/unstoppablemango/tdl/pkg/logging"
+)
+
+var (
+	owner = "UnstoppableMango"
+	repo  = "tdl"
 )
 
 var assetName string
-var plugins = map[string]string{
-	"go":  "uml2go",
-	"pcl": "uml2pcl",
-	"ts":  "uml2ts",
-}
 
 func init() {
 	var os, ext string
@@ -37,29 +38,60 @@ func init() {
 	)
 }
 
-func ForTarget(target string) (string, error) {
-	if plugin, ok := plugins[target]; ok {
-		return plugin, nil
-	}
-
-	return "", fmt.Errorf("unsupported target: %s", target)
+type GitHubClient struct {
+	client *github.Client
+	cache  cache.Cache
 }
 
-func Download(ctx context.Context, client *github.Client, target string) (string, error) {
-	release, _, err := client.Repositories.GetLatestRelease(ctx, "UnstoppableMango", "tdl")
+func NewGitHubClient(client *github.Client, cache cache.Cache) GitHubClient {
+	return GitHubClient{client: client, cache: cache}
+}
+
+func (c GitHubClient) GetPlugin(ctx context.Context) (string, error) {
+	asset, err := c.getReleaseAsset(ctx)
 	if err != nil {
 		return "", err
 	}
 
-	var asset *github.ReleaseAsset = nil
-	for _, x := range release.Assets {
-		if *x.Name == assetName {
-			asset = x
-		}
-	}
-	if asset == nil {
-		return "", fmt.Errorf("unable to find asset %s", assetName)
+	if err = c.cacheAsset(ctx, asset); err != nil {
+		return "", err
 	}
 
-	return "", errors.New("TODO")
+	return c.cache.Path(assetName), nil
+}
+
+func (c GitHubClient) getReleaseAsset(ctx context.Context) (*github.ReleaseAsset, error) {
+	log := logging.FromContext(ctx)
+
+	log.Debug("fetching latest release")
+	release, _, err := c.client.Repositories.GetLatestRelease(ctx, owner, repo)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug("searching for asset", "asset", assetName)
+	for _, asset := range release.Assets {
+		if *asset.Name == assetName {
+			return asset, nil
+		}
+
+		log.Debug("skipping asset", "asset", asset.Name)
+	}
+
+	return nil, fmt.Errorf("unable to find asset %s", assetName)
+}
+
+func (c GitHubClient) cacheAsset(ctx context.Context, asset *github.ReleaseAsset) error {
+	log := logging.FromContext(ctx)
+
+	log.Debug("downloading release", "asset", asset.Name)
+	reader, _, err := c.client.Repositories.DownloadReleaseAsset(ctx, owner, repo, *asset.ID, nil)
+	if err != nil {
+		return err
+	}
+
+	defer reader.Close()
+
+	log.Debug("writing asset to cache")
+	return c.cache.Add(assetName, reader)
 }

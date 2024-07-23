@@ -37,7 +37,7 @@ func WithName(name string) DockerOption {
 
 func WithTarget(target string) DockerOption {
 	return func(d *Docker) error {
-		p, err := plugin.ForTarget(target)
+		p, err := plugin.LookupPath(target)
 		d.plugin = p
 		return err
 	}
