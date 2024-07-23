@@ -1,4 +1,4 @@
-package pkg_test
+package plugin_test
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestPkg(t *testing.T) {
+func TestPlugin(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Pkg Suite")
+	RunSpecs(t, "Plugin Suite")
 }
