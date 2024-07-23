@@ -7,6 +7,8 @@ import (
 	"runtime"
 
 	"github.com/google/go-github/v63/github"
+	"github.com/unstoppablemango/tdl/pkg/cache"
+	"github.com/unstoppablemango/tdl/pkg/logging"
 )
 
 var assetName string
@@ -37,29 +39,51 @@ func init() {
 	)
 }
 
-func ForTarget(target string) (string, error) {
-	if plugin, ok := plugins[target]; ok {
-		return plugin, nil
+type GitHubClient struct {
+	client *github.Client
+	cache  cache.Cache
+}
+
+func NewGitHubClient(client *github.Client, cache cache.Cache) GitHubClient {
+	return GitHubClient{client: client, cache: cache}
+}
+
+func (c GitHubClient) GetPlugin(ctx context.Context) (string, error) {
+	asset, err := c.getReleaseAsset(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	if err = c.cacheAsset(ctx, asset); err != nil {
+		return "", err
+	}
+
+	return c.cache.Path(assetName), nil
+}
+
+func (c GitHubClient) getReleaseAsset(ctx context.Context) (*github.ReleaseAsset, error) {
+	log := logging.FromContext(ctx)
+
+	log.Debug("fetching latest release")
+	release, _, err := c.client.Repositories.GetLatestRelease(ctx, owner, repo)
+	if err != nil {
+		return nil, err
 	}
 
 	return "", fmt.Errorf("unsupported target: %s", target)
 }
 
-func Download(ctx context.Context, client *github.Client, target string) (string, error) {
-	release, _, err := client.Repositories.GetLatestRelease(ctx, "UnstoppableMango", "tdl")
+func (c GitHubClient) cacheAsset(ctx context.Context, asset *github.ReleaseAsset) error {
+	log := logging.FromContext(ctx)
+
+	log.Debug("downloading release", "asset", asset.Name)
+	reader, _, err := c.client.Repositories.DownloadReleaseAsset(ctx, owner, repo, *asset.ID, nil)
 	if err != nil {
 		return "", err
 	}
 
-	var asset *github.ReleaseAsset = nil
-	for _, x := range release.Assets {
-		if *x.Name == assetName {
-			asset = x
-		}
-	}
-	if asset == nil {
-		return "", fmt.Errorf("unable to find asset %s", assetName)
-	}
+	defer reader.Close()
 
-	return "", errors.New("TODO")
+	log.Debug("writing asset to cache")
+	return c.cache.Add(assetName, reader)
 }
