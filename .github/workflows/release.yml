@@ -24,7 +24,6 @@ jobs:
         target:
           - bun-linux-x64
           - bun-linux-arm64
-          - bun-windows-x64
           - bun-darwin-x64
           - bun-darwin-arm64
     steps:
@@ -44,6 +43,7 @@ jobs:
         run: |
           bun build \
             --compile \
+            --target ${{ matrix.target }} \
             --minify \
             --sourcemap ./packages/${{ matrix.tool }}/index.ts \
             --outfile ${{ matrix.tool }}
