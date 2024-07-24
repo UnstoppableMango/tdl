@@ -16,7 +16,7 @@ func init() {
 var genCmd = cli.NewGenCmd(
 	func(opts uml.GeneratorOptions) (uml.Generator, error) {
 		opts.Log.Debug("getting plugin name")
-		source, err := plugin.ForTarget(opts.Target)
+		source, err := uml.PluginForTarget(opts.Target)
 		if err != nil {
 			return nil, err
 		}
