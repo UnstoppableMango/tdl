@@ -1916,7 +1916,7 @@ github.com/ugorji/go v1.1.7/go.mod h1:kZn38zHttfInRq0xu/PH0az30d+z6vm202qpg1oXVM
 github.com/ugorji/go/codec v1.1.7/go.mod h1:Ax+UKWsSmolVDwsd+7N3ZtXu+yMGCf907BLYF3GoBXY=
 github.com/unstoppablemango/tdl/gen v0.0.10/go.mod h1:BYOn3N45US6LYBhdSVg3kFprU5Vt97cO4IUBMU1snDw=
 github.com/unstoppablemango/tdl/gen v0.0.20/go.mod h1:zhoLdZumyVy/Lz3t9GvH1zBgiCy/fF8KtoRhrSwZJx4=
-github.com/unstoppablemango/tdl/gen v0.0.24/go.mod h1:zhoLdZumyVy/Lz3t9GvH1zBgiCy/fF8KtoRhrSwZJx4=
+github.com/unstoppablemango/tdl/gen v0.0.26/go.mod h1:zhoLdZumyVy/Lz3t9GvH1zBgiCy/fF8KtoRhrSwZJx4=
 github.com/unstoppablemango/tdl/pkg v0.0.10/go.mod h1:/Qwsx7xIDjDWTKxkyB/vK2GXNdlA2ii0fp3THnYQ2FM=
 github.com/unstoppablemango/tdl/pkg v0.0.11/go.mod h1:/Qwsx7xIDjDWTKxkyB/vK2GXNdlA2ii0fp3THnYQ2FM=
 github.com/unstoppablemango/tdl/pkg v0.0.20/go.mod h1:CmBAZO/OB/HKrynVbloa+8aXBXQwA3vyQTyXjv0qXNU=

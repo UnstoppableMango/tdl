@@ -252,12 +252,8 @@ github.com/uber/jaeger-client-go v2.30.0+incompatible h1:D6wyKGCecFaSRUpo8lCVbaO
 github.com/uber/jaeger-client-go v2.30.0+incompatible/go.mod h1:WVhlPFC8FDjOFMMWRy2pZqQJSXxYSwNYOkTr/Z6d3Kk=
 github.com/uber/jaeger-lib v2.4.1+incompatible h1:td4jdvLcExb4cBISKIpHuGoVXh+dVKhn2Um6rjCsSsg=
 github.com/uber/jaeger-lib v2.4.1+incompatible/go.mod h1:ComeNDZlWwrWnDv8aPp0Ba6+uUTzImX/AauajbLI56U=
-github.com/unstoppablemango/tdl/gen v0.0.24 h1:6LIoRVUtCu7Rnj+8pXjgsGvlknCdA7pZZpl1tFjB88Y=
-github.com/unstoppablemango/tdl/gen v0.0.24/go.mod h1:zhoLdZumyVy/Lz3t9GvH1zBgiCy/fF8KtoRhrSwZJx4=
 github.com/unstoppablemango/tdl/gen v0.0.26 h1:xeTSTKXp3wOml9mGdDC3lnZTiN6pPN812agioPK+zPo=
 github.com/unstoppablemango/tdl/gen v0.0.26/go.mod h1:zhoLdZumyVy/Lz3t9GvH1zBgiCy/fF8KtoRhrSwZJx4=
-github.com/unstoppablemango/tdl/pkg v0.0.24 h1:wSXWAgFNB8vTULdgFfNiT/l6nJjL1fR79NZH5Vts1n0=
-github.com/unstoppablemango/tdl/pkg v0.0.24/go.mod h1:NzVg+4fiwiw9xFl6GJmkE/Z2jBpqQF1DLS7/DhEu564=
 github.com/unstoppablemango/tdl/pkg v0.0.26 h1:n2dYIjKBJkGvy3Rkzi+mBzs7Ggz55vHaPrgsdNWElj8=
 github.com/unstoppablemango/tdl/pkg v0.0.26/go.mod h1:6OLTXe5cZmwMHpD8de1kG7re7jDQ+HNI9hBbCNVZryQ=
 github.com/xanzy/ssh-agent v0.3.3 h1:+/15pJfg/RsTxqYcX6fHqOXZwwMP+2VyYWJeWM2qQFM=
