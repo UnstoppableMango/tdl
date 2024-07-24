@@ -36,10 +36,9 @@ archives:
         format: zip
     files:
       - >-
-        uml2ts_bun-{{.Os}}-
+        bin/uml2ts_bun-{{.Os}}-
         {{- if eq .Arch "amd64" }}x64
-        {{- else }}{{ .Arch }}{{ end }}/
-        uml2ts
+        {{- else }}{{ .Arch }}{{ end }}/uml2ts
 
 changelog:
   sort: asc
