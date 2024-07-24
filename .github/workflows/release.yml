@@ -44,6 +44,7 @@ jobs:
         run: |
           bun build \
             --compile \
+            --target ${{ matrix.target }} \
             --minify \
             --sourcemap ./packages/${{ matrix.tool }}/index.ts \
             --outfile ${{ matrix.tool }}

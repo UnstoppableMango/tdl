@@ -34,6 +34,12 @@ archives:
     format_overrides:
       - goos: windows
         format: zip
+    files:
+      - >-
+        uml2ts_bun-{{.Os}}-
+        {{- if eq .Arch "amd64" }}x64
+        {{- else }}{{ .Arch }}{{ end }}/
+        uml2ts
 
 changelog:
   sort: asc
