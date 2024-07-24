@@ -78,7 +78,7 @@ func (c *fsCache) Remove(name string) error {
 
 func (c *fsCache) ensure() error {
 	c.log.Debug("ensuring cache directory")
-	err := os.Mkdir(c.path, 0750)
+	err := os.MkdirAll(c.path, os.ModePerm)
 	if errors.Is(err, os.ErrExist) {
 		return nil
 	}

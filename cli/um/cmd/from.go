@@ -22,7 +22,7 @@ var fromCmd = cli.NewFromCmd(
 		}
 
 		opts.Log.Debug("looking up plugin")
-		bin, err := plugin.LookupPath(source)
+		bin, err := plugins.PathFor(source)
 		if err != nil {
 			return nil, err
 		}
