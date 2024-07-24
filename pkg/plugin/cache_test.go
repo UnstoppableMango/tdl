@@ -14,10 +14,9 @@ var _ = Describe("PluginCache", func() {
 	var cacheDir string
 
 	BeforeEach(func() {
-		Skip("Super Skip: I'm renaming artifacts right now and this is broken")
-		if _, found := os.LookupEnv("CI"); !found {
-			Skip("Only running cache test in CI")
-		}
+		// if _, found := os.LookupEnv("CI"); !found {
+		// 	Skip("Only running cache test in CI")
+		// }
 
 		By("creating a temporary directory")
 		tmp, err := os.MkdirTemp("", "plugin-cache-test")
@@ -30,13 +29,17 @@ var _ = Describe("PluginCache", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("should retrieve path", func() {
-		gh := github.NewClient(nil)
-		cache := plugin.NewCache(gh, cacheDir, slog.Default())
+	DescribeTable("should retrieve path",
+		Entry("uml2go", "uml2go"),
+		Entry("uml2pcl", "uml2pcl"),
+		func(name string) {
+			gh := github.NewClient(nil)
+			cache := plugin.NewCache(gh, cacheDir, slog.Default())
 
-		result, err := cache.PathFor("uml2go")
+			result, err := cache.PathFor(name)
 
-		Expect(err).NotTo(HaveOccurred())
-		Expect(result).NotTo(BeEmpty())
-	})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).NotTo(BeEmpty())
+		},
+	)
 })
