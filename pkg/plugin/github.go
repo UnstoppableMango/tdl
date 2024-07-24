@@ -36,11 +36,12 @@ func init() {
 		ext = "zip"
 	}
 
-	assetName = fmt.Sprintf("tdl_%s_%s.%s",
-		os,
-		runtime.GOARCH,
-		ext,
-	)
+	arch := runtime.GOARCH
+	if arch == "amd64" {
+		arch = "x86_64"
+	}
+
+	assetName = fmt.Sprintf("tdl_%s_%s.%s", os, arch, ext)
 }
 
 type githubClient struct {
