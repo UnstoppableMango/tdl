@@ -34,10 +34,7 @@ archives:
       - goos: windows
         format: zip
     files:
-      - >-
-        bin/uml2ts_bun-{{.Os}}-
-        {{- if eq .Arch "amd64" }}x64
-        {{- else }}{{ .Arch }}{{ end }}/*
+      - bin/**
 
 changelog:
   sort: asc
