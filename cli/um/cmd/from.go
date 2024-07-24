@@ -16,7 +16,7 @@ func init() {
 var fromCmd = cli.NewFromCmd(
 	func(opts uml.ConverterOptions) (uml.Converter, error) {
 		opts.Log.Debug("getting plugin name")
-		source, err := uml.PluginForTarget(*opts.Target)
+		source, err := plugin.ForTarget(*opts.Target)
 		if err != nil {
 			return nil, err
 		}
