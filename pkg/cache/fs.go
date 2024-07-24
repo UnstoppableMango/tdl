@@ -6,21 +6,25 @@ import (
 	"log/slog"
 	"os"
 	"path"
+	"sync"
 )
 
 type fsCache struct {
-	path string
-	log  *slog.Logger
+	path  string
+	locks map[string]*sync.RWMutex
+	log   *slog.Logger
 }
 
 func NewFsCache(path string, logger *slog.Logger) Cache {
-	return &fsCache{path: path, log: logger}
+	return &fsCache{path: path, log: logger, locks: map[string]*sync.RWMutex{}}
 }
 
 // Path implements Cache.
 func (c *fsCache) Path(name string) (string, error) {
 	p := path.Join(c.path, name)
+	c.lock(name).RLock()
 	_, err := os.Stat(p)
+	c.lock(name).RUnlock()
 
 	return p, err
 }
@@ -33,6 +37,7 @@ func (c *fsCache) Add(name string, reader io.Reader) error {
 
 	itemPath := c.itemPath(name)
 	c.log.Debug("creating file", "path", itemPath)
+	c.lock(name).Lock()
 	file, err := os.Create(itemPath)
 	if err != nil {
 		return err
@@ -40,6 +45,7 @@ func (c *fsCache) Add(name string, reader io.Reader) error {
 
 	c.log.Debug("writing cache item", "path", itemPath)
 	written, err := io.Copy(file, reader)
+	c.lock(name).Unlock()
 	if err != nil {
 		return err
 	}
@@ -56,7 +62,9 @@ func (c *fsCache) Get(name string) (io.ReadCloser, error) {
 
 	itemPath := c.itemPath(name)
 	c.log.Debug("opening file", "path", itemPath)
+	c.lock(name).RLock()
 	file, err := os.Open(itemPath)
+	c.lock(name).RUnlock()
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +81,11 @@ func (c *fsCache) Remove(name string) error {
 
 	itemPath := c.itemPath(name)
 	c.log.Debug("removing cache item", "path", itemPath)
-	return os.Remove(itemPath)
+	c.lock(name).Lock()
+	err := os.Remove(itemPath)
+	c.lock(name).Unlock()
+
+	return err
 }
 
 func (c *fsCache) ensure() error {
@@ -90,4 +102,12 @@ func (c *fsCache) itemPath(name string) string {
 	return path.Join(c.path, name)
 }
 
-var _ Cache = &fsCache{}
+func (c *fsCache) lock(name string) *sync.RWMutex {
+	lock, ok := c.locks[name]
+	if !ok {
+		lock = &sync.RWMutex{}
+		c.locks[name] = lock
+	}
+
+	return lock
+}
