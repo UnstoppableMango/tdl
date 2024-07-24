@@ -7,7 +7,7 @@ import (
 type Cache interface {
 	Add(string, io.Reader) error
 	Get(string) (io.ReadCloser, error)
-	Path(...string) string
+	Path(string) (string, error)
 	Remove(string) error
 }
 

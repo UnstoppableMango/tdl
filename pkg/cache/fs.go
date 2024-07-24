@@ -18,9 +18,11 @@ func NewFsCache(path string, logger *slog.Logger) Cache {
 }
 
 // Path implements Cache.
-func (c *fsCache) Path(rel ...string) string {
-	segments := append([]string{c.path}, rel...)
-	return path.Join(segments...)
+func (c *fsCache) Path(name string) (string, error) {
+	p := path.Join(c.path, name)
+	_, err := os.Stat(p)
+
+	return p, err
 }
 
 // Add implements Cache.
