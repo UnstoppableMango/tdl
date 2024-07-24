@@ -1,13 +1,18 @@
 package plugin
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"context"
+	"errors"
 	"fmt"
+	"io"
+	"log/slog"
+	"net/http"
 	"runtime"
 
 	"github.com/google/go-github/v63/github"
 	"github.com/unstoppablemango/tdl/pkg/cache"
-	"github.com/unstoppablemango/tdl/pkg/logging"
 )
 
 var (
@@ -38,47 +43,68 @@ func init() {
 	)
 }
 
-type GitHubClient struct {
+type githubClient struct {
 	client *github.Client
 	cache  cache.Cache
+	log    *slog.Logger
 }
 
-func NewGitHubClient(client *github.Client, cache cache.Cache) GitHubClient {
-	return GitHubClient{client: client, cache: cache}
-}
-
-func (c GitHubClient) getReleaseAsset(ctx context.Context) (*github.ReleaseAsset, error) {
-	log := logging.FromContext(ctx)
-
-	log.Debug("fetching latest release")
+func (c githubClient) getLatestAsset(ctx context.Context) (*github.ReleaseAsset, error) {
+	c.log.Debug("fetching latest release")
 	release, _, err := c.client.Repositories.GetLatestRelease(ctx, owner, repo)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Debug("searching for asset", "asset", assetName)
+	c.log.Debug("searching for asset", "asset", assetName)
 	for _, asset := range release.Assets {
 		if *asset.Name == assetName {
 			return asset, nil
 		}
 
-		log.Debug("skipping asset", "asset", asset.Name)
+		c.log.Debug("skipping asset", "asset", asset.Name)
 	}
 
 	return nil, fmt.Errorf("unable to find asset %s", assetName)
 }
 
-func (c GitHubClient) cacheAsset(ctx context.Context, asset *github.ReleaseAsset) error {
-	log := logging.FromContext(ctx)
+func (c githubClient) cacheAsset(ctx context.Context, asset *github.ReleaseAsset) error {
+	log := c.log.With("asset", asset.Name)
 
-	log.Debug("downloading release", "asset", asset.Name)
-	reader, _, err := c.client.Repositories.DownloadReleaseAsset(ctx, owner, repo, *asset.ID, nil)
+	log.Debug("downloading release")
+	reader, _, err := c.client.Repositories.DownloadReleaseAsset(ctx, owner, repo, *asset.ID, http.DefaultClient)
 	if err != nil {
 		return err
+	}
+	if reader == nil {
+		return errors.New("github redirects not supported")
 	}
 
 	defer reader.Close()
 
-	log.Debug("writing asset to cache")
-	return c.cache.Add(assetName, reader)
+	gzipStream, err := gzip.NewReader(reader)
+	if err != nil {
+		return err
+	}
+
+	tarFile := tar.NewReader(gzipStream)
+	for {
+		h, err := tarFile.Next()
+		if err == io.EOF {
+			log.Debug("reached end of tar stream")
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		log.Debug("caching tar entry", "name", h.Name)
+		err = c.cache.Add(h.Name, tarFile)
+		if err != nil {
+			return err
+		}
+	}
+
+	log.Debug("finished caching asset")
+	return nil
 }

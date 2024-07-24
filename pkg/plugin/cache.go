@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/google/go-github/v63/github"
@@ -13,33 +12,41 @@ type PluginCache interface {
 	PathFor(string) (string, error)
 }
 
+// There's a better way to structure these types...
+// and I'll figure it out later
 type pluginCache struct {
-	cache  cache.Cache
-	client *github.Client
-	log    *slog.Logger
+	githubClient
+	cache cache.Cache
+	log   *slog.Logger
 }
 
 func NewCache(client *github.Client, path string, logger *slog.Logger) PluginCache {
-	return &pluginCache{
-		cache:  cache.NewFsCache(path, logger),
+	fsCache := cache.NewFsCache(path, logger)
+	gh := githubClient{
 		client: client,
+		cache:  fsCache,
 		log:    logger,
+	}
+
+	return &pluginCache{
+		githubClient: gh,
+		cache:        fsCache,
+		log:          logger,
 	}
 }
 
 // PathFor implements PluginCache.
 func (c *pluginCache) PathFor(name string) (string, error) {
-	cached, err := c.cache.Get(name)
+	p, err := c.cache.Path(name)
 	if err == nil {
-		cached.Close()
-		c.cache.Path(name)
+		return p, nil
 	}
 
-	ctx := context.Background()
-	c.populate(ctx)
+	if err = c.populate(context.Background()); err != nil {
+		return "", err
+	}
 
-	// TODO: Ensure file exists
-	return c.cache.Path(name), nil
+	return c.cache.Path(name)
 }
 
 func (c *pluginCache) populate(ctx context.Context) error {
@@ -48,42 +55,5 @@ func (c *pluginCache) populate(ctx context.Context) error {
 		return err
 	}
 
-	if err = c.cacheAsset(ctx, asset); err != nil {
-		return err
-	}
-
-	// TODO: Extract archive
-	return nil
-}
-
-func (c pluginCache) getLatestAsset(ctx context.Context) (*github.ReleaseAsset, error) {
-	c.log.Debug("fetching latest release")
-	release, _, err := c.client.Repositories.GetLatestRelease(ctx, owner, repo)
-	if err != nil {
-		return nil, err
-	}
-
-	c.log.Debug("searching for asset", "asset", assetName)
-	for _, asset := range release.Assets {
-		if *asset.Name == assetName {
-			return asset, nil
-		}
-
-		c.log.Debug("skipping asset", "asset", asset.Name)
-	}
-
-	return nil, fmt.Errorf("unable to find asset %s", assetName)
-}
-
-func (c pluginCache) cacheAsset(ctx context.Context, asset *github.ReleaseAsset) error {
-	c.log.Debug("downloading release", "asset", asset.Name)
-	reader, _, err := c.client.Repositories.DownloadReleaseAsset(ctx, owner, repo, *asset.ID, nil)
-	if err != nil {
-		return err
-	}
-
-	defer reader.Close()
-
-	c.log.Debug("writing asset to cache")
-	return c.cache.Add(assetName, reader)
+	return c.cacheAsset(ctx, asset)
 }
