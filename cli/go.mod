@@ -6,8 +6,8 @@ require (
 	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.33.1
 	github.com/spf13/cobra v1.8.1
-	github.com/unstoppablemango/tdl/gen v0.0.24
-	github.com/unstoppablemango/tdl/pkg v0.0.24
+	github.com/unstoppablemango/tdl/gen v0.0.26
+	github.com/unstoppablemango/tdl/pkg v0.0.26
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/yaml.v3 v3.0.1
 )
