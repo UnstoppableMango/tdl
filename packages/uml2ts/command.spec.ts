@@ -84,16 +84,10 @@ describe('gen', () => {
 		const media: SupportedMediaType = 'application/json';
 
 		await fc.assert(fc.asyncProperty(arbSpec(), async (spec) => {
-			const json = spec.toJsonString();
-			const stdin = Buffer.from(json, 'utf-8')
+			const stdin = spec.toBinary();
 
-			const procA = Bun.spawn([binPath, 'gen', '--type', media], {
-				stdin,
-			});
-
-			const procB = Bun.spawn([binPath, 'gen', '--type', media], {
-				stdin,
-			});
+			const procA = Bun.spawn([binPath, 'gen'], { stdin });
+			const procB = Bun.spawn([binPath, 'gen'], { stdin });
 
 			const [a, b] = await Promise.all([
 				Bun.readableStreamToText(procA.stdout),
