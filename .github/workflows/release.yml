@@ -71,7 +71,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: '*'
-          path: ${{ github.workspace }}/dist
+          path: ${{ github.workspace }}/bin
 
       - name: Set up Go
         uses: actions/setup-go@v5

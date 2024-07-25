@@ -28,7 +28,7 @@ archives:
       {{.ProjectName}}-{{.Os}}-{{.Arch}}
     files:
       - >-
-          dist/uml2ts_bun-{{.Os}}
+          bin/uml2ts_bun-{{.Os}}
           {{- if eq .Arch "amd64" }}x64
           {{- else }}{{ .Arch }}{{ end }}/uml2ts
 
