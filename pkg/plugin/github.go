@@ -16,33 +16,13 @@ import (
 )
 
 var (
-	owner = "UnstoppableMango"
-	repo  = "tdl"
+	owner     = "UnstoppableMango"
+	repo      = "tdl"
+	assetName = fmt.Sprintf("tdl_%s_%s.tar.gz",
+		runtime.GOOS,
+		runtime.GOARCH,
+	)
 )
-
-var assetName string
-
-func init() {
-	var os, ext string
-	switch runtime.GOOS {
-	case "linux":
-		os = "Linux"
-		ext = "tar.gz"
-	case "darwin":
-		os = "Darwin"
-		ext = "tar.gz"
-	case "windows":
-		os = "Windows"
-		ext = "zip"
-	}
-
-	arch := runtime.GOARCH
-	if arch == "amd64" {
-		arch = "x86_64"
-	}
-
-	assetName = fmt.Sprintf("tdl_%s_%s.%s", os, arch, ext)
-}
 
 type githubClient struct {
 	client *github.Client

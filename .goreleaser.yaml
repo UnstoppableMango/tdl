@@ -12,6 +12,9 @@ builds:
     goos:
       - linux
       - darwin
+    goarch:
+      - amd64
+      - arm64
     id: uml2go
     dir: cli/uml2go
     binary: uml2go
@@ -22,19 +25,13 @@ builds:
 
 archives:
   - format: tar.gz
-    # this name template makes the OS and Arch compatible with the results of `uname`.
     name_template: >-
-      {{ .ProjectName }}_
-      {{- title .Os }}_
-      {{- if eq .Arch "amd64" }}x86_64
-      {{- else if eq .Arch "386" }}i386
-      {{- else }}{{ .Arch }}{{ end }}
-      {{- if .Arm }}v{{ .Arm }}{{ end }}
-    format_overrides:
-      - goos: windows
-        format: zip
+      {{.ProjectName}}-{{.Os}}-{{.Arch}}
     files:
-      - bin/**
+      - >-
+          bin/uml2ts_bun-{{.Os}}-
+          {{- if eq .Arch "amd64" }}x64
+          {{- else }}{{ .Arch }}{{ end }}/uml2ts
 
 changelog:
   sort: asc
