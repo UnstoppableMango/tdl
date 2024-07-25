@@ -1,36 +1,19 @@
 package cli
 
 import (
-	"context"
 	"log/slog"
-	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/unstoppablemango/tdl/pkg/logging"
 )
 
-type loggerKey struct{}
-
-func NewLogger() *slog.Logger {
-	handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level: slog.LevelDebug,
-	})
-
-	return slog.New(handler)
-}
-
-func WithLogger(ctx context.Context, logger *slog.Logger) context.Context {
-	return context.WithValue(ctx, loggerKey{}, logger)
-}
-
-func FromContext(ctx context.Context) *slog.Logger {
-	val := ctx.Value(loggerKey{})
-	if log, ok := val.(*slog.Logger); ok {
-		return log
-	}
-
-	return slog.Default()
-}
-
 func FromCommand(cmd *cobra.Command) *slog.Logger {
-	return FromContext(cmd.Context())
+	return logging.FromContext(cmd.Context())
+}
+
+func SetLogger(cmd *cobra.Command, logger *slog.Logger) {
+	cmd.SetContext(logging.WithLogger(
+		cmd.Context(),
+		logger,
+	))
 }

@@ -69,12 +69,8 @@ func (c githubClient) cacheAsset(ctx context.Context, asset *github.ReleaseAsset
 	}
 
 	tarFile := tar.NewReader(gzipStream)
-	for {
-		h, err := tarFile.Next()
-		if err == io.EOF {
-			log.Debug("reached end of tar stream")
-			break
-		}
+	h, err := tarFile.Next()
+	for err != io.EOF {
 		if err != nil {
 			return err
 		}
@@ -84,6 +80,8 @@ func (c githubClient) cacheAsset(ctx context.Context, asset *github.ReleaseAsset
 		if err != nil {
 			return err
 		}
+
+		h, err = tarFile.Next()
 	}
 
 	log.Debug("finished caching asset")
