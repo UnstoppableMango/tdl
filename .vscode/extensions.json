@@ -7,7 +7,7 @@
 		"oven.bun-vscode",
 		"dbaeumer.vscode-eslint",
 		"dprint.dprint",
-    "golang.go",
-    "mkhl.direnv"
+		"golang.go",
+		"mkhl.direnv"
 	]
 }
