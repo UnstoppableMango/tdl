@@ -28,10 +28,11 @@ archives:
     name_template: >-
       {{.ProjectName}}-{{.Os}}-{{.Arch}}
     files:
-      - >-
+      - src: >-
           bin/uml2ts_bun-{{.Os}}-
           {{- if eq .Arch "amd64" }}x64
           {{- else }}{{ .Arch }}{{ end }}/uml2ts
+        strip_parent: true
 
 changelog:
   sort: asc
