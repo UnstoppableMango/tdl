@@ -12,8 +12,9 @@ builds:
     goos:
       - linux
       - darwin
-    ignore:
-      - goarch: '386'
+    goarch:
+      - amd64
+      - arm64
     id: uml2go
     dir: cli/uml2go
     binary: uml2go
@@ -28,7 +29,7 @@ archives:
       {{.ProjectName}}-{{.Os}}-{{.Arch}}
     files:
       - >-
-          bin/uml2ts_bun-{{.Os}}
+          bin/uml2ts_bun-{{.Os}}-
           {{- if eq .Arch "amd64" }}x64
           {{- else }}{{ .Arch }}{{ end }}/uml2ts
 
