@@ -83,18 +83,21 @@ describe('gen', () => {
 	it('should be deterministic', async () => {
 		const media: SupportedMediaType = 'application/json';
 
-		await fc.assert(fc.asyncProperty(arbSpec(), async (spec) => {
-			const stdin = spec.toBinary();
+		await fc.assert(
+			fc.asyncProperty(arbSpec(), async (spec) => {
+				const stdin = spec.toBinary();
 
-			const procA = Bun.spawn([binPath, 'gen'], { stdin });
-			const procB = Bun.spawn([binPath, 'gen'], { stdin });
+				const procA = Bun.spawn([binPath, 'gen'], { stdin });
+				const procB = Bun.spawn([binPath, 'gen'], { stdin });
 
-			const [a, b] = await Promise.all([
-				Bun.readableStreamToText(procA.stdout),
-				Bun.readableStreamToText(procB.stdout),
-			]);
+				const [a, b] = await Promise.all([
+					Bun.readableStreamToText(procA.stdout),
+					Bun.readableStreamToText(procB.stdout),
+				]);
 
-			expect(a).toEqual(b);
-		}), { numRuns: 20 });
+				expect(a).toEqual(b);
+			}),
+			{ numRuns: 20 },
+		);
 	});
 });

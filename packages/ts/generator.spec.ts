@@ -37,19 +37,22 @@ describe('gen', () => {
 	});
 
 	it('should be deterministic', async () => {
-		await fc.assert(fc.asyncProperty(arbSpec(), async (spec) => {
-			const bufA = new ArrayBufferSink();
-			await gen(spec, bufA);
-			const decoder = new TextDecoder();
-			const a = decoder.decode(bufA.end());
+		await fc.assert(
+			fc.asyncProperty(arbSpec(), async (spec) => {
+				const bufA = new ArrayBufferSink();
+				await gen(spec, bufA);
+				const decoder = new TextDecoder();
+				const a = decoder.decode(bufA.end());
 
-			const bufB = new ArrayBufferSink();
-			await gen(spec, bufB);
-			const b = decoder.decode(bufB.end());
+				const bufB = new ArrayBufferSink();
+				await gen(spec, bufB);
+				const b = decoder.decode(bufB.end());
 
-			expect(a).not.toBeNull();
-			expect(b).not.toBeNull();
-			expect(b).toEqual(a);
-		}), { numRuns: 1_000 });
+				expect(a).not.toBeNull();
+				expect(b).not.toBeNull();
+				expect(b).toEqual(a);
+			}),
+			{ numRuns: 1_000 },
+		);
 	});
 });
