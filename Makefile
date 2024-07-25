@@ -6,6 +6,8 @@ export GOWORK :=
 VERSION ?= $(shell dotnet minver --tag-prefix v --verbosity warn)
 export MINVERVERSIONOVERRIDE = ${VERSION}
 
+MODULES = cli gen pkg
+
 CFG ?=
 ifeq ($(CFG),)
 CFG := Debug
@@ -80,10 +82,7 @@ clean_dist:
 		-ls
 
 .PHONY: tidy
-tidy: gen
-	@$(MAKE) -C cli tidy --no-print-directory
-	@$(MAKE) -C gen tidy --no-print-directory
-	@$(MAKE) -C pkg tidy --no-print-directory
+tidy: .make/go_mod_tidy
 
 .PHONY: release
 release:
@@ -187,6 +186,16 @@ PROTO_SRC := $(shell find proto -type f -name '*.proto')
 .make/lint_broker: $(BROKER_SRC)
 	dotnet format --include ${BROKER_SRC} --verify-no-changes
 	@touch $@
+
+# $(MODULES:%=%/.make/go_mod_tidy):
+# $(MODULES:%=%/.make/%):
+# 	@$(MAKE) -C $(@D:/.make=) .make/$(@F) --no-print-directory
+
+.PHONY: .make/go_mod_tidy
+.make/go_mod_tidy: $(MODULES:%=.make/%/go_mod_tidy)
+
+$(MODULES:%=.make/%/%):
+	@$(MAKE) -C $(notdir $(@D)) .make/$(@F) --no-print-directory
 
 .make/regen_envrc:
 	@touch $@

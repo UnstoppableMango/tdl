@@ -1,3 +1,5 @@
+_ := $(shell mkdir -p .make)
+
 WORKING_DIR ?= $(shell git rev-parse --show-toplevel)
 
 export GOWORK  :=
@@ -10,8 +12,7 @@ build:
 test: echo_cli
 	go test ./... -ginkgo.timeout=5s
 
-tidy:
-	go mod tidy
+tidy: .make/go_mod_tidy
 
 lint:
 	golangci-lint run
@@ -22,3 +23,7 @@ vet:
 # Don't like this, but can't think of a better way right now
 echo_cli:
 	@$(MAKE) -C ${WORKING_DIR}/cli/echo build --no-print-directory
+
+.make/go_mod_tidy: go.mod
+	go mod tidy
+	@touch $@
