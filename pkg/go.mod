@@ -7,7 +7,7 @@ require (
 	github.com/docker/docker v27.1.1+incompatible
 	github.com/google/go-github/v63 v63.0.0
 	github.com/onsi/ginkgo/v2 v2.19.0
-	github.com/onsi/gomega v1.33.1
+	github.com/onsi/gomega v1.34.0
 	github.com/pulumi/pulumi/pkg/v3 v3.126.0
 	github.com/unstoppablemango/tdl/gen v0.0.26
 	google.golang.org/protobuf v1.34.2
