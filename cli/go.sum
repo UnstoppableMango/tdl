@@ -256,8 +256,12 @@ github.com/uber/jaeger-lib v2.4.1+incompatible h1:td4jdvLcExb4cBISKIpHuGoVXh+dVK
 github.com/uber/jaeger-lib v2.4.1+incompatible/go.mod h1:ComeNDZlWwrWnDv8aPp0Ba6+uUTzImX/AauajbLI56U=
 github.com/unstoppablemango/tdl/gen v0.0.26 h1:xeTSTKXp3wOml9mGdDC3lnZTiN6pPN812agioPK+zPo=
 github.com/unstoppablemango/tdl/gen v0.0.26/go.mod h1:zhoLdZumyVy/Lz3t9GvH1zBgiCy/fF8KtoRhrSwZJx4=
+github.com/unstoppablemango/tdl/gen v0.0.28 h1:Ffrk3h4/NYpKM0S0lxzF+cTu7gER26pgoFubhojNFPM=
+github.com/unstoppablemango/tdl/gen v0.0.28/go.mod h1:zhoLdZumyVy/Lz3t9GvH1zBgiCy/fF8KtoRhrSwZJx4=
 github.com/unstoppablemango/tdl/pkg v0.0.26 h1:n2dYIjKBJkGvy3Rkzi+mBzs7Ggz55vHaPrgsdNWElj8=
 github.com/unstoppablemango/tdl/pkg v0.0.26/go.mod h1:6OLTXe5cZmwMHpD8de1kG7re7jDQ+HNI9hBbCNVZryQ=
+github.com/unstoppablemango/tdl/pkg v0.0.28 h1:CR3+NSm7DpnZG6GR+FlOnBy+8D0bBvjd3u/cpen4rNA=
+github.com/unstoppablemango/tdl/pkg v0.0.28/go.mod h1:0TE3zIZ48lOJi4pH1aqfyJy2CxkJOCThipBNVi+k130=
 github.com/xanzy/ssh-agent v0.3.3 h1:+/15pJfg/RsTxqYcX6fHqOXZwwMP+2VyYWJeWM2qQFM=
 github.com/xanzy/ssh-agent v0.3.3/go.mod h1:6dzNDKs0J9rVPHPhaGCukekBHKqfl+L3KghI1Bc68Uw=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
