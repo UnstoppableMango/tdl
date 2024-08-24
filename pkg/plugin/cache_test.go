@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/google/go-github/v63/github"
+	"github.com/google/go-github/v64/github"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/unstoppablemango/tdl/pkg/plugin"
