@@ -1,5 +1,4 @@
 {
-	"eslint.experimental.useFlatConfig": true,
 	"FSharp.autoRevealInExplorer": "sameAsFileExplorer",
 	"FSharp.showExplorerOnStartup": false,
 	"[dockerfile]": {
