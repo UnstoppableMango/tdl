@@ -5,7 +5,7 @@ import (
 	"path"
 
 	"github.com/adrg/xdg"
-	"github.com/google/go-github/v63/github"
+	"github.com/google/go-github/v64/github"
 	"github.com/spf13/cobra"
 	cli "github.com/unstoppablemango/tdl/cli/internal"
 	"github.com/unstoppablemango/tdl/pkg/logging"
