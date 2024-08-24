@@ -8,7 +8,7 @@ export const from: tdl.From<Spec> = async (reader: BunFile): Promise<Spec> => {
 	const content = new TextDecoder().decode(data);
 	const source = ts.createSourceFile('stdin', content, ts.ScriptTarget.ES2019, undefined, ts.ScriptKind.TS);
 	source.forEachChild(parseNode);
-	return await Promise.reject('not implemented');
+	return await Promise.reject(new Error('not implemented'));
 };
 
 function parseNode(node: ts.Node): void {
