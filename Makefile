@@ -16,32 +16,29 @@ TFM      := net9.0
 BIN_PATH := bin/$(CFG)/$(TFM)
 
 BROKER_DIR := src/Broker
-BROKER_SRC := $(shell find $(BROKER_DIR) -name '*.cs' -not -path '*obj*' -type f)
 BROKER_BIN := $(BROKER_DIR)/$(BIN_PATH)/$(NS).Broker.dll
 
 CLI_DIR := src/Cli
-CLI_SRC := $(shell find $(CLI_DIR) -name '*.cs' -not -path '*obj*' -type f)
 CLI_BIN := $(CLI_DIR)/$(BIN_PATH)/um.dll
 
 LANG_DIR := src/Language
-LANG_SRC := $(shell find $(LANG_DIR) -name '*.fs' -not -path '*obj*' -type f)
 
 RUNNER_TEST_DIR := src/RunnerTest
-RUNNER_TEST_SRC := $(shell find $(RUNNER_TEST_DIR) -name '*.fs' -not -path '*obj*' -type f)
 RUNNER_TEST_BIN := $(RUNNER_TEST_DIR)/$(BIN_PATH)/$(NS).RunnerTest.dll
 
-GO_ECHO_SRC := $(shell find cli/echo -type f -name '*.go')
 GO_ECHO_CLI := bin/go_echo
-
-TS_ECHO_SRC := $(shell find packages/echo -type f -name '*.ts')
 TS_ECHO_CLI := bin/ts_echo
 
-.PHONY: build build_dotnet
+CS_SRC := $(shell git ls-files '*.cs')
+FS_SRC := $(shell git ls-files '*.fs')
+GO_SRC := $(shell git ls-files '*.go')
+TS_SRC := $(shell git ls-files '*.ts')
+JS_SRC := $(shell git ls-files '*.js')
+
 build: build_dotnet cli docker pkg
 	@touch .make/build_lang
 build_dotnet: .make/build_dotnet
 
-.PHONY: test test_dotnet test_pkg test_packages e2e
 test: test_dotnet test_pkg test_packages
 test_dotnet: build_dotnet
 	dotnet test --no-build
@@ -61,10 +58,8 @@ e2e: bin/um $(GO_ECHO_CLI) $(TS_ECHO_CLI) bin/uml2ts
 .PHONY: gen
 gen: gen_proto
 
-.PHONY: lint
 lint: .make/lint_proto .make/lint_dotnet
 
-.PHONY: clean clean_gen clean_src clean_dist
 clean: clean_gen clean_src clean_dist
 	rm -rf .make bin
 clean_cli:
@@ -79,17 +74,15 @@ clean_dist:
 		-exec rm -rf '{}' + \
 		-ls
 
-.PHONY: tidy
 tidy: gen
 	@$(MAKE) -C cli tidy --no-print-directory
 	@$(MAKE) -C gen tidy --no-print-directory
 	@$(MAKE) -C pkg tidy --no-print-directory
 
-.PHONY: release
 release:
 	goreleaser release --snapshot --clean
 
-.PHONY: proto gen_proto build_proto
+.PHONY: proto
 proto: build_proto gen_proto
 gen_proto: .make/gen_proto
 build_proto: .make/build_proto
@@ -104,11 +97,9 @@ pkg:
 src:
 	@$(MAKE) -C src
 
-.PHONY: version
 version:
 	@echo '${VERSION}'
 
-.PHONY: dev undev
 dev: work .envrc
 	@echo 'Ensuring development environment'
 undev:
