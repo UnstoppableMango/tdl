@@ -9,15 +9,6 @@ on:
       - .github/workflows/bun-cli.yml
       - .github/workflows/packages-uml2ts.yml
       - packages/uml2ts/**
-  push:
-    branches: ['main']
-    tags: ['v*.*.*']
-    paths:
-      - .github/actions/build-dotnet/**
-      - .github/actions/build-docker/**
-      - .github/workflows/bun-cli.yml
-      - .github/workflows/packages-uml2ts.yml
-      - packages/uml2ts/**
 
 jobs:
   build:

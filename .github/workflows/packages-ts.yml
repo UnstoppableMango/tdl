@@ -8,14 +8,6 @@ on:
       - .github/workflows/bun-cli.yml
       - .github/workflows/packages-ts.yml
       - packages/ts/**
-  push:
-    branches: ['main']
-    tags: ['v*.*.*']
-    paths:
-      - .github/actions/build-bun/**
-      - .github/workflows/bun-cli.yml
-      - .github/workflows/packages-ts.yml
-      - packages/ts/**
 
 jobs:
   build:

@@ -12,18 +12,6 @@ on:
       - cli/uml2pcl/**
       - cli/internal/**
       - docker/uml2pcl/**
-  push:
-    branches: ['main']
-    tags: ['v*.*.*']
-    paths:
-      - .github/actions/build-go/**
-      - .github/actions/build-docker/**
-      - .github/workflows/go-cli.yml
-      - .github/workflows/cli-uml2pcl.yml
-      - cli/go.*
-      - cli/uml2pcl/**
-      - cli/internal/**
-      - docker/uml2pcl/**
 
 jobs:
   build:

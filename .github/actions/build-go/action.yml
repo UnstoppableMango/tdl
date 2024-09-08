@@ -39,16 +39,19 @@ runs:
       run: make build
 
     - name: Test
+      if: github.event_name == 'pull_request'
       shell: bash
       working-directory: ${{ inputs.path }}
       run: go test ./...
 
     - name: Vet
+      if: github.event_name == 'pull_request'
       shell: bash
       working-directory: ${{ inputs.path }}
       run: go vet ./...
 
     - name: Lint
+      if: github.event_name == 'pull_request'
       uses: golangci/golangci-lint-action@v6
       with:
         version: v1.60.3
