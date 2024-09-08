@@ -19,24 +19,18 @@ BROKER_DIR := src/Broker
 BROKER_BIN := $(BROKER_DIR)/$(BIN_PATH)/$(NS).Broker.dll
 
 CLI_DIR := src/Cli
-CLI_BIN := $(CLI_DIR)/$(BIN_PATH)/um.dll
+CLI_BIN := src/Cli/$(BIN_PATH)/um.dll
 
-LANG_DIR := src/Language
-
-RUNNER_TEST_DIR := src/RunnerTest
-RUNNER_TEST_BIN := $(RUNNER_TEST_DIR)/$(BIN_PATH)/$(NS).RunnerTest.dll
-
-GO_ECHO_CLI := bin/go_echo
-TS_ECHO_CLI := bin/ts_echo
+RUNNER_TEST := src/RunnerTest/$(BIN_PATH)/$(NS).RunnerTest.dll
 
 CS_SRC := $(shell git ls-files '*.cs')
 FS_SRC := $(shell git ls-files '*.fs')
 GO_SRC := $(shell git ls-files '*.go')
 TS_SRC := $(shell git ls-files '*.ts')
 JS_SRC := $(shell git ls-files '*.js')
+PROTO_SRC := $(shell git ls-files '*.proto')
 
 build: build_dotnet cli docker pkg
-	@touch .make/build_lang
 build_dotnet: .make/build_dotnet
 
 test: test_dotnet test_pkg test_packages
@@ -47,12 +41,12 @@ test_pkg:
 test_packages:
 	@$(MAKE) -C packages test
 echo_test: go_echo_test ts_echo_test
-go_echo_test: $(GO_ECHO_CLI) $(RUNNER_TEST_BIN)
-	@dotnet ${RUNNER_TEST_BIN} ${GO_ECHO_CLI}
-ts_echo_test: $(TS_ECHO_CLI) $(RUNNER_TEST_BIN)
-	@dotnet ${RUNNER_TEST_BIN} ${TS_ECHO_CLI}
+go_echo_test: bin/go_echo $(RUNNER_TEST)
+	@dotnet ${RUNNER_TEST} bin/go_echo
+ts_echo_test: bin/ts_echo $(RUNNER_TEST)
+	@dotnet ${RUNNER_TEST} bin/ts_echo
 e2e: export BIN_DIR := $(WORKING_DIR)/bin
-e2e: bin/um $(GO_ECHO_CLI) $(TS_ECHO_CLI) bin/uml2ts
+e2e: bin/um bin/go_echo bin/ts_echo bin/uml2ts
 	@$(MAKE) -C cli/um e2e
 
 .PHONY: gen
@@ -112,20 +106,20 @@ work: go.work go.work.sum
 
 ###################### Real targets ######################
 
-bin/uml2ts: .make/gen_proto $(shell find packages/uml2ts -type f -path '*.ts')
+bin/uml2ts: .make/gen_proto $(filter packages/uml2ts/%,$(TS_SRC))
 	bun build packages/uml2ts/index.ts --compile --outfile $@
 
-bin/um: .make/gen_proto $(shell find cli/um cli/internal -type f -path '*.go')
+bin/um: .make/gen_proto $(filter cli/um/% cli/internal/%,$(GO_SRC))
 	go build -C cli/um -o ${WORKING_DIR}/$@
 
-$(GO_ECHO_CLI):
+bin/go_echo:
 	@$(MAKE) -C cli/echo build --no-print-directory
 
-$(TS_ECHO_CLI): $(TS_ECHO_SRC)
+bin/ts_echo: $(filter packages/echo/%,$(TS_SRC))
 	@$(MAKE) -C packages/echo --no-print-directory
 
-$(RUNNER_TEST_BIN): $(RUNNER_TEST_SRC)
-	dotnet build ${RUNNER_TEST_DIR}
+$(RUNNER_TEST): $(filter src/RunnerTest,$(FS_SRC))
+	dotnet build src/RunnerTest
 
 go.work: GOWORK :=
 go.work:
@@ -147,7 +141,6 @@ go.work.sum: go.work
 	dotnet tool restore
 	@touch $@
 
-PROTO_SRC := $(shell find proto -type f -name '*.proto')
 .make/gen_proto: .make/build_proto $(PROTO_SRC)
 	buf generate
 	@touch $@
@@ -158,25 +151,11 @@ PROTO_SRC := $(shell find proto -type f -name '*.proto')
 	buf lint proto
 	@touch $@
 
-.make/build_dotnet: $(LANG_SRC) $(BROKER_SRC) $(CLI_SRC) .make/gen_proto
+.make/build_dotnet: .make/gen_proto $(CS_SRC) $(FS_SRC)
 	dotnet build
-	@touch $@ .make/build_lang .make/build_broker .make/build_cli
-.make/build_lang: $(LANG_SRC)
-	dotnet build ${LANG_DIR}
-	@touch $@
-.make/build_broker: $(BROKER_SRC) .make/gen_proto
-	dotnet build ${BROKER_DIR}
-	@touch $@
-.make/build_cli: $(CLI_SRC) .make/gen_proto
-	dotnet build ${CLI_DIR}
-	@touch $@
-
-.make/lint_dotnet: .make/lint_lang .make/lint_broker
-.make/lint_lang: .make/tool_restore $(LANG_SRC)
-	dotnet fantomas ${LANG_DIR}
-	@touch $@
-.make/lint_broker: $(BROKER_SRC)
-	dotnet format --include ${BROKER_SRC} --verify-no-changes
+	@touch $@ .make/build_cli
+.make/build_cli: $(filter src/Cli/%,$(CS_SRC)) .make/gen_proto
+	dotnet build src/Cli
 	@touch $@
 
 .make/regen_envrc:
