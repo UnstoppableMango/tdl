@@ -13,6 +13,8 @@ ifeq ($(CFG),)
 CFG := Debug
 endif
 
+export BIN_DIR := $(WORKING_DIR)/bin
+
 DOTNET_NS := UnMango.Tdl
 TFM       := net9.0
 BIN_PATH  := bin/$(CFG)/$(TFM)
@@ -27,7 +29,7 @@ TS_SRC := $(filter %.ts,$(SRC))
 JS_SRC := $(filter %.js,$(SRC))
 PROTO_SRC := $(filter %.proto,$(SRC))
 
-build: build_dotnet cli docker pkg
+build: build_dotnet
 build_dotnet: .make/build_dotnet
 
 test: test_dotnet test_packages $(GO_MODULES:%=.make/test_%)
@@ -35,23 +37,25 @@ test_dotnet: .make/test_dotnet
 test_packages: .make/test_packages
 
 echo_test: go_echo_test ts_echo_test
-go_echo_test: bin/go_echo $(RUNNER_TEST)
-	@dotnet ${RUNNER_TEST} bin/go_echo
-ts_echo_test: bin/ts_echo $(RUNNER_TEST)
-	@dotnet ${RUNNER_TEST} bin/ts_echo
+go_echo_test: .make/go_echo_test
+ts_echo_test: .make/ts_echo_test
 
-e2e: export BIN_DIR := $(WORKING_DIR)/bin
-e2e: bin/um bin/go_echo bin/ts_echo bin/uml2ts
-	@$(MAKE) -C cli/um e2e
+e2e: .make/e2e
 
 .PHONY: gen
 gen: gen_proto
 
-lint: .make/lint_proto lint_go lint_dotnet
+lint: .make/lint_proto lint_go lint_dotnet lint_packages
 lint_go: $(GO_MODULES:%=.make/%_lint_go)
 lint_dotnet: .make/lint_cs .make/lint_fs
+lint_packages: .make/lint_packages
 
-clean: clean_dist
+clean: clean_gen clean_dist
+clean_gen:
+	@find gen -mindepth 3 \
+	-not -name 'package.json' \
+	-not -name 'index.ts' \
+	-ls -delete
 clean_dist:
 	@find . -type d -name dist \
 	-not -path '*node_modules*' \
@@ -69,7 +73,7 @@ proto: build_proto gen_proto
 gen_proto: .make/gen_proto
 build_proto: .make/build_proto
 
-version:
+version: .make/tool_restore
 	@echo '${VERSION}'
 
 dev: work .envrc
@@ -90,11 +94,11 @@ bin/uml2ts: .make/gen_proto $(filter packages/uml2ts/%,$(TS_SRC))
 bin/um: .make/gen_proto $(filter cli/um/% cli/internal/%,$(GO_SRC))
 	go build -C cli/um -o ${WORKING_DIR}/$@
 
-bin/go_echo:
-	@$(MAKE) -C cli/echo build --no-print-directory
+bin/go_echo: $(GO_SRC)
+	go -C cli/echo build -o ${WORKING_DIR}/$@
 
-bin/ts_echo: $(filter packages/echo/%,$(TS_SRC))
-	@$(MAKE) -C packages/echo --no-print-directory
+bin/ts_echo: $(TS_SRC)
+	bun build packages/echo/index.ts --compile --outfile $@
 
 $(RUNNER_TEST): $(filter src/RunnerTest,$(FS_SRC))
 	dotnet build src/RunnerTest
@@ -113,20 +117,20 @@ go.work.sum: go.work
 
 ###################### Sentinal targets ######################
 
-.make/gen_proto: .make/build_proto $(PROTO_SRC)
-	buf generate
-	@touch $@
-.make/build_proto: $(PROTO_SRC)
+.make/build_proto: buf.work.yaml proto/buf.yaml $(PROTO_SRC)
 	buf build
 	@touch $@
-.make/lint_proto: $(PROTO_SRC)
+.make/gen_proto: .make/build_proto buf.gen.yaml $(PROTO_SRC)
+	buf generate
+	@touch $@
+.make/lint_proto: proto/buf.yaml $(PROTO_SRC)
 	buf lint proto
 	@touch $@
 
 .make/tool_restore: .config/dotnet-tools.json
 	dotnet tool restore
 	@touch $@
-.make/restore_dotnet: $(filter %.csproj %.fsproj,$(SRC))
+.make/restore_dotnet: .make/tool_restore $(filter %.csproj %.fsproj,$(SRC))
 	dotnet restore
 	@touch $@
 .make/lint_cs: .make/restore_dotnet $(CS_SRC)
@@ -146,8 +150,11 @@ go.work.sum: go.work
 	dotnet test --no-build
 	@touch $@
 
-.make/test_packages: $(TS_SRC) $(JS_SRC)
-	bun test $?
+.make/lint_packages: $(TS_SRC) $(JS_SRC)
+	bun eslint --no-warn-ignored $?
+	@touch $@
+.make/test_packages: bin/uml2ts $(TS_SRC) $(JS_SRC)
+	bun test --timeout 10000 $?
 	@touch $@
 
 .make/test_cli: $(filter cli/%,$(GO_SRC))
@@ -177,6 +184,17 @@ $(GO_MODULES:%=.make/%_go_vet): .make/%_go_vet:
 $(GO_MODULES:%=.make/%_go_mod_tidy): .make/%_go_mod_tidy: %/go.mod %/go.sum
 	go -C $* mod tidy
 	@touch $@
+
+.make/go_echo_test: bin/go_echo $(RUNNER_TEST)
+	@dotnet ${RUNNER_TEST} bin/go_echo
+	@touch $@
+
+.make/ts_echo_test: bin/ts_echo $(RUNNER_TEST)
+	@dotnet ${RUNNER_TEST} bin/ts_echo
+	@touch $@
+
+.make/e2e: bin/um bin/go_echo bin/ts_echo bin/uml2ts
+	go -C cli/um test --ginkgo.focus 'End to end'
 
 .make/regen_envrc:
 	@touch $@
