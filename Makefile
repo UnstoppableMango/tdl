@@ -30,18 +30,16 @@ PROTO_SRC := $(filter %.proto,$(SRC))
 build: build_dotnet cli docker pkg
 build_dotnet: .make/build_dotnet
 
-test: test_dotnet test_pkg test_packages
-test_dotnet: build_dotnet
-	dotnet test --no-build
-test_pkg:
-	@$(MAKE) -C pkg test
-test_packages:
-	@$(MAKE) -C packages test
+test: test_dotnet test_packages $(GO_MODULES:%=.make/test_%)
+test_dotnet: .make/test_dotnet
+test_packages: .make/test_packages
+
 echo_test: go_echo_test ts_echo_test
 go_echo_test: bin/go_echo $(RUNNER_TEST)
 	@dotnet ${RUNNER_TEST} bin/go_echo
 ts_echo_test: bin/ts_echo $(RUNNER_TEST)
 	@dotnet ${RUNNER_TEST} bin/ts_echo
+
 e2e: export BIN_DIR := $(WORKING_DIR)/bin
 e2e: bin/um bin/go_echo bin/ts_echo bin/uml2ts
 	@$(MAKE) -C cli/um e2e
@@ -49,23 +47,19 @@ e2e: bin/um bin/go_echo bin/ts_echo bin/uml2ts
 .PHONY: gen
 gen: gen_proto
 
-lint: .make/lint_proto .make/lint_dotnet
+lint: .make/lint_proto lint_go lint_dotnet
+lint_go: $(GO_MODULES:%=.make/%_lint_go)
+lint_dotnet: .make/lint_cs .make/lint_fs
 
-clean: clean_gen clean_src clean_dist
-	rm -rf .make bin
-clean_cli:
-	@$(MAKE) -C cli clean
-clean_gen:
-	@$(MAKE) -C gen clean
-clean_src:
-	@$(MAKE) -C src clean
+clean: clean_dist
 clean_dist:
 	@find . -type d -name dist \
-		-not -path '*node_modules*' \
-		-exec rm -rf '{}' + \
-		-ls
+	-not -path '*node_modules*' \
+	-exec rm -rf '{}' + \
+	-ls
 
 tidy: $(GO_MODULES:%=.make/%_go_mod_tidy)
+vet: $(GO_MODULES:%=.make/%_go_vet)
 
 release:
 	goreleaser release --snapshot --clean
@@ -74,16 +68,6 @@ release:
 proto: build_proto gen_proto
 gen_proto: .make/gen_proto
 build_proto: .make/build_proto
-
-.PHONY: cli docker pkg src
-cli:
-	@$(MAKE) -C cli
-docker:
-	@$(MAKE) -C docker
-pkg:
-	@$(MAKE) -C pkg
-src:
-	@$(MAKE) -C src
 
 version:
 	@echo '${VERSION}'
@@ -116,11 +100,9 @@ $(RUNNER_TEST): $(filter src/RunnerTest,$(FS_SRC))
 	dotnet build src/RunnerTest
 
 go.work: GOWORK :=
-go.work:
+go.work: $(GO_MODULES:%=%/go.mod)
 	go work init
-	go work use cli
-	go work use gen
-	go work use pkg
+	go work use $(GO_MODULES)
 
 go.work.sum: GOWORK :=
 go.work.sum: go.work
@@ -130,10 +112,6 @@ go.work.sum: go.work
 	echo '#!/bin/bash\nexport TDL_DEV=true' > .envrc
 
 ###################### Sentinal targets ######################
-
-.make/tool_restore: .config/dotnet-tools.json
-	dotnet tool restore
-	@touch $@
 
 .make/gen_proto: .make/build_proto $(PROTO_SRC)
 	buf generate
@@ -145,14 +123,52 @@ go.work.sum: go.work
 	buf lint proto
 	@touch $@
 
-.make/build_dotnet: .make/gen_proto $(CS_SRC) $(FS_SRC)
+.make/tool_restore: .config/dotnet-tools.json
+	dotnet tool restore
+	@touch $@
+.make/restore_dotnet: $(filter %.csproj %.fsproj,$(SRC))
+	dotnet restore
+	@touch $@
+.make/lint_cs: .make/restore_dotnet $(CS_SRC)
+	dotnet format analyzers \
+	--no-restore \
+	--verbosity diag \
+	--exclude .make \
+	--include $?
+	@touch $@
+.make/lint_fs: .make/tool_restore $(FS_SRC)
+	dotnet fantomas $(filter-out .make/%,$?)
+	@touch $@
+.make/build_dotnet: .make/restore_dotnet .make/build_proto $(CS_SRC) $(FS_SRC)
 	dotnet build
-	@touch $@ .make/build_cli
-.make/build_cli: $(filter src/Cli/%,$(CS_SRC)) .make/gen_proto
-	dotnet build src/Cli
+	@touch $@
+.make/test_dotnet: $(CS_SRC) $(FS_SRC)
+	dotnet test --no-build
 	@touch $@
 
-.make/regen_envrc:
+.make/test_packages: $(TS_SRC) $(JS_SRC)
+	bun test $?
+	@touch $@
+
+.make/test_cli: $(filter cli/%,$(GO_SRC))
+.make/test_gen: $(filter gen/%,$(GO_SRC))
+.make/test_pkg: $(filter pkg/%,$(GO_SRC))
+$(GO_MODULES:%=.make/test_%): .make/test_%:
+	go -C $* test ./... -ginkgo.timeout=5s
+	@touch $@
+
+.make/cli_lint_go: $(filter cli/%,$(GO_SRC))
+.make/gen_lint_go: $(filter gen/%,$(GO_SRC))
+.make/pkg_lint_go: $(filter pkg/%,$(GO_SRC))
+$(GO_MODULES:%=.make/%_lint_go): .make/%_lint_go:
+	golangci-lint run ./$*/...
+	@touch $@
+
+.make/cli_go_vet: $(filter cli/%,$(GO_SRC))
+.make/gen_go_vet: $(filter gen/%,$(GO_SRC))
+.make/pkg_go_vet: $(filter pkg/%,$(GO_SRC))
+$(GO_MODULES:%=.make/%_go_vet): .make/%_go_vet:
+	go -C $* vet ./...
 	@touch $@
 
 .make/cli_go_mod_tidy: $(filter cli/%,$(GO_SRC))
@@ -160,4 +176,7 @@ go.work.sum: go.work
 .make/pkg_go_mod_tidy: $(filter pkg/%,$(GO_SRC))
 $(GO_MODULES:%=.make/%_go_mod_tidy): .make/%_go_mod_tidy: %/go.mod %/go.sum
 	go -C $* mod tidy
+	@touch $@
+
+.make/regen_envrc:
 	@touch $@
