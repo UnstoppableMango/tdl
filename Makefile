@@ -13,17 +13,11 @@ ifeq ($(CFG),)
 CFG := Debug
 endif
 
-NS       := UnMango.Tdl
-TFM      := net9.0
-BIN_PATH := bin/$(CFG)/$(TFM)
+DOTNET_NS := UnMango.Tdl
+TFM       := net9.0
+BIN_PATH  := bin/$(CFG)/$(TFM)
 
-BROKER_DIR := src/Broker
-BROKER_BIN := $(BROKER_DIR)/$(BIN_PATH)/$(NS).Broker.dll
-
-CLI_DIR := src/Cli
-CLI_BIN := src/Cli/$(BIN_PATH)/um.dll
-
-RUNNER_TEST := src/RunnerTest/$(BIN_PATH)/$(NS).RunnerTest.dll
+RUNNER_TEST := src/RunnerTest/$(BIN_PATH)/$(DOTNET_NS).RunnerTest.dll
 
 SRC := $(shell git ls-files)
 CS_SRC := $(filter %.cs,$(SRC))
@@ -71,8 +65,7 @@ clean_dist:
 		-exec rm -rf '{}' + \
 		-ls
 
-tidy: $(GO_MODULES:%=.make/%/go_mod_tidy)
-	@echo $^
+tidy: $(GO_MODULES:%=.make/%_go_mod_tidy)
 
 release:
 	goreleaser release --snapshot --clean
@@ -159,8 +152,12 @@ go.work.sum: go.work
 	dotnet build src/Cli
 	@touch $@
 
-$(GO_MODULES:%=.make/%/%):
-	$(MAKE) -C $(notdir $(@D)) .make/$(@F)
-
 .make/regen_envrc:
+	@touch $@
+
+.make/cli_go_mod_tidy: $(filter cli/%,$(GO_SRC))
+.make/gen_go_mod_tidy: $(filter gen/%,$(GO_SRC))
+.make/pkg_go_mod_tidy: $(filter pkg/%,$(GO_SRC))
+$(GO_MODULES:%=.make/%_go_mod_tidy): .make/%_go_mod_tidy: %/go.mod %/go.sum
+	go -C $* mod tidy
 	@touch $@
