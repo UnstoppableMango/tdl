@@ -23,12 +23,13 @@ CLI_BIN := src/Cli/$(BIN_PATH)/um.dll
 
 RUNNER_TEST := src/RunnerTest/$(BIN_PATH)/$(NS).RunnerTest.dll
 
-CS_SRC := $(shell git ls-files '*.cs')
-FS_SRC := $(shell git ls-files '*.fs')
-GO_SRC := $(shell git ls-files '*.go')
-TS_SRC := $(shell git ls-files '*.ts')
-JS_SRC := $(shell git ls-files '*.js')
-PROTO_SRC := $(shell git ls-files '*.proto')
+SRC := $(shell git ls-files)
+CS_SRC := $(filter %.cs,$(SRC))
+FS_SRC := $(filter %.fs,$(SRC))
+GO_SRC := $(filter %.go,$(SRC))
+TS_SRC := $(filter %.ts,$(SRC))
+JS_SRC := $(filter %.js,$(SRC))
+PROTO_SRC := $(filter %.proto,$(SRC))
 
 build: build_dotnet cli docker pkg
 build_dotnet: .make/build_dotnet
