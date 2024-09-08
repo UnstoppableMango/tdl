@@ -6,6 +6,8 @@ export GOWORK :=
 VERSION ?= $(shell dotnet minver --tag-prefix v --verbosity warn)
 export MINVERVERSIONOVERRIDE = ${VERSION}
 
+GO_MODULES = cli gen pkg
+
 CFG ?=
 ifeq ($(CFG),)
 CFG := Debug
@@ -69,10 +71,8 @@ clean_dist:
 		-exec rm -rf '{}' + \
 		-ls
 
-tidy: gen
-	@$(MAKE) -C cli tidy --no-print-directory
-	@$(MAKE) -C gen tidy --no-print-directory
-	@$(MAKE) -C pkg tidy --no-print-directory
+tidy: $(GO_MODULES:%=.make/%/go_mod_tidy)
+	@echo $^
 
 release:
 	goreleaser release --snapshot --clean
@@ -158,6 +158,9 @@ go.work.sum: go.work
 .make/build_cli: $(filter src/Cli/%,$(CS_SRC)) .make/gen_proto
 	dotnet build src/Cli
 	@touch $@
+
+$(GO_MODULES:%=.make/%/%):
+	$(MAKE) -C $(notdir $(@D)) .make/$(@F)
 
 .make/regen_envrc:
 	@touch $@
