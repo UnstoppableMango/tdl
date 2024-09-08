@@ -25,15 +25,18 @@ runs:
       run: bun run build
 
     - name: Test
+      if: github.event_name == 'pull_request'
       shell: bash
       working-directory: ${{ inputs.path }}
       run: bun test
 
     - name: Lint
+      if: github.event_name == 'pull_request'
       shell: bash
       # This will likely error on unrelated linting errors...
       # working-directory: ${{ inputs.path }}
       run: bun lint
 
     - name: Format
+      if: github.event_name == 'pull_request'
       uses: dprint/check@v2.2

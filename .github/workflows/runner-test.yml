@@ -16,22 +16,6 @@ on:
       - src/Language/**
       - src/RunnerTest/**
       - src/Testing/**
-  push:
-    branches: ['main']
-    tags: ['v*.*.*']
-    paths:
-      - .github/actions/build-go/**
-      - .github/actions/build-dotnet/**
-      - .github/workflows/runner-test.yml
-      - cli/go.*
-      - cli/echo/**
-      - cli/internal/**
-      - packages/echo/**
-      - src/Abstractions/**
-      - src/FSharp/**
-      - src/Language/**
-      - src/RunnerTest/**
-      - src/Testing/**
 
 jobs:
   go-echo:

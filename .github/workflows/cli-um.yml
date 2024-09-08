@@ -11,16 +11,6 @@ on:
       - cli/um/**
       - cli/internal/**
       - e2e/**
-  push:
-    branches: ['main']
-    tags: ['v*.*.*']
-    paths:
-      - .github/actions/build-go/**
-      - .github/workflows/go-cli.yml
-      - .github/workflows/cli-um.yml
-      - cli/go.*
-      - cli/um/**
-      - cli/internal/**
 
 jobs:
   build:

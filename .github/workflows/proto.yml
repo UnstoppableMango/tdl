@@ -8,14 +8,6 @@ on:
       - .github/workflows/proto.yml
       - proto/**
       - buf.*
-  push:
-    branches: [main]
-    tags: ['v*.*.*']
-    paths:
-      - .github/actions/build-proto/**
-      - .github/workflows/proto.yml
-      - proto/**
-      - buf.*
 
 jobs:
   build:

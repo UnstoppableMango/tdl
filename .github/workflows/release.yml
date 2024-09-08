@@ -7,17 +7,16 @@ on:
       - .github/workflows/release.yml
       - .goreleaser.yaml
   push:
-    branches: ['main']
     tags: ['v*.*.*']
     paths:
       - .github/workflows/release.yml
+      - .goreleaser.yaml
       - cli/**
 
 jobs:
   bun:
     name: Compile Bun apps
     runs-on: ubuntu-latest
-    if: github.ref_name != 'main'
     strategy:
       matrix:
         tool:
@@ -58,7 +57,6 @@ jobs:
   goreleaser:
     name: Run GoReleaser
     runs-on: ubuntu-latest
-    if: github.ref_name != 'main'
     needs: bun
     permissions:
       contents: write

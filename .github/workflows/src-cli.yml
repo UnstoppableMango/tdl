@@ -8,14 +8,6 @@ on:
       - .github/actions/build-docker/**
       - .github/workflows/src-cli.yml
       - src/Cli*/**
-  push:
-    branches: ['main']
-    tags: ['v*.*.*']
-    paths:
-      - .github/actions/build-dotnet/**
-      - .github/actions/build-docker/**
-      - .github/workflows/src-cli.yml
-      - src/Cli*/**
 
 env:
   CI: true
