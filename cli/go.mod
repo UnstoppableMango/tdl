@@ -6,7 +6,7 @@ require (
 	github.com/adrg/xdg v0.5.0
 	github.com/google/go-github/v64 v64.0.0
 	github.com/onsi/ginkgo/v2 v2.20.2
-	github.com/onsi/gomega v1.34.1
+	github.com/onsi/gomega v1.34.2
 	github.com/spf13/cobra v1.8.1
 	github.com/unstoppablemango/tdl/gen v0.0.28
 	github.com/unstoppablemango/tdl/pkg v0.0.28
