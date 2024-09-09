@@ -11,6 +11,7 @@ let roundTrip (gen: Tdl.Gen, from: Tdl.From) spec = async {
   | _ -> ()
 
   stream.Position <- 0
+
   match! from stream with
   | Ok result -> return result.Equals(spec)
   | _ -> return false

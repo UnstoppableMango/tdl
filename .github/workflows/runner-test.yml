@@ -30,6 +30,10 @@ jobs:
           path: cli/echo
           module: cli
 
+      # Workaround because the build-go action has an identity crisis
+      - name: Run make build
+        run: make bin/go_echo
+
       - name: Verify runner tests
         uses: ./.github/actions/runner-test
         with:
