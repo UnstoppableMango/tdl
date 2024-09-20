@@ -3,7 +3,7 @@ module github.com/unstoppablemango/tdl/pkg
 go 1.23.0
 
 require (
-	connectrpc.com/connect v1.16.2
+	connectrpc.com/connect v1.17.0
 	github.com/docker/docker v27.3.0+incompatible
 	github.com/google/go-github/v64 v64.0.0
 	github.com/google/go-github/v65 v65.0.0
