@@ -4,7 +4,7 @@ go 1.23.0
 
 require (
 	connectrpc.com/connect v1.16.2
-	github.com/docker/docker v27.2.1+incompatible
+	github.com/docker/docker v27.3.0+incompatible
 	github.com/google/go-github/v64 v64.0.0
 	github.com/google/go-github/v65 v65.0.0
 	github.com/onsi/ginkgo/v2 v2.20.2
