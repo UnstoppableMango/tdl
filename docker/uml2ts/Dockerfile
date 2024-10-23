@@ -33,7 +33,7 @@ RUN bun build \
 		--sourcemap ./index.ts \
 		--outfile ./dist/uml2ts
 
-FROM --platform=$BUILDPLATFORM ubuntu:noble-20240801 AS test
+FROM --platform=$BUILDPLATFORM ubuntu:noble-20241011 AS test
 COPY --from=build /build/dist/uml2ts .
 
 FROM --platform=$BUILDPLATFORM oven/bun:1.1.32-distroless
