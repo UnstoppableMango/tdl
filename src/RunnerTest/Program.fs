@@ -15,7 +15,6 @@ let maxTest =
 
 let validatePath (arg: Argument<FileInfo>) (result: SymbolResult) : unit =
   match result.GetValueForArgument(arg) with
-  | null -> result.ErrorMessage <- "<path> is required"
   | bin when not bin.Exists -> result.ErrorMessage <- $"File does not exist: {bin.FullName}"
   | _ -> ()
 

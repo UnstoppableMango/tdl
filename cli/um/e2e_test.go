@@ -62,7 +62,7 @@ var _ = DescribeTableSubtree("End to end",
 
 			By("Running generator")
 			err = cmd.Run()
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred(), stderr.String())
 
 			expected := strings.TrimSpace(string(target))
 			actual := strings.TrimSpace(stdout.String())
