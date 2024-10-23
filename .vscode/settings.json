@@ -35,5 +35,6 @@
 	},
 	"[typescript]": {
 		"editor.defaultFormatter": "dprint.dprint"
-	}
+	},
+	"makefile.configureOnOpen": false
 }
