@@ -4,7 +4,7 @@ go 1.23.0
 
 require (
 	github.com/adrg/xdg v0.5.0
-	github.com/google/go-github/v64 v64.0.0
+	github.com/google/go-github/v66 v66.0.0
 	github.com/google/go-github/v66 v66.0.0
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/onsi/gomega v1.34.2
