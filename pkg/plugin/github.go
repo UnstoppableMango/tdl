@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"runtime"
 
-	"github.com/google/go-github/v64/github"
+	"github.com/google/go-github/v66/github"
 	"github.com/unstoppablemango/tdl/pkg/cache"
 )
 
