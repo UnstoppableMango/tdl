@@ -6,29 +6,6 @@ import "google/protobuf/any.proto";
 
 option csharp_namespace = "UnMango.Tdl";
 
-service UmlService {
-  rpc From(stream FromRequest) returns (FromResponse);
-  rpc Gen(GenRequest) returns (stream GenResponse);
-}
-
-message FromRequest {
-  bytes data = 1;
-	string source = 2;
-}
-
-message FromResponse {
-  Spec spec = 1;
-}
-
-message GenRequest {
-  Spec spec = 1;
-	string target = 2;
-}
-
-message GenResponse {
-  bytes data = 1;
-}
-
 message Spec {
   string name = 1;
   string source = 2;

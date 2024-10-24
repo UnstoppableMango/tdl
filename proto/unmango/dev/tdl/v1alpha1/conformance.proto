@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package unmango.dev.tdl.v1alpha1;
+
+option csharp_namespace = "UnMango.Tdl";
+
+// Stubbing out the idea of running conformance tests via gRPC
+
+service ConformanceService {
+	rpc Test(TestRequest) returns (TestResponse);
+}
+
+message TestRequest {}
+
+message TestResponse {}
