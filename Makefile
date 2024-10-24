@@ -20,7 +20,7 @@ GO_PB_SRC := ${PROTO_SRC:proto/%.proto=pkg/%.pb.go}
 build: bin/ux .make/buf_build
 generate: ${GO_PB_SRC}
 lint: .make/buf_lint
-tidy: go.sum gen/go.sum go.work.sum
+tidy: go.sum
 
 clean:
 	rm bin/ux
@@ -51,15 +51,6 @@ go.mod:
 
 go.sum: go.mod
 	go mod tidy && touch $@
-
-%/go.sum: %/go.mod ${GO_SRC}
-	go -C $(dir $@) mod tidy && touch $@
-
-go.work: go.mod gen/go.mod pkg/go.mod
-	rm $@ && go work init $(dir $^)
-
-go.work.sum: go.work go.mod gen/go.mod pkg/go.mod
-	go work sync && touch $@
 
 .make/buf_build: buf.yaml ${PROTO_SRC} | bin/buf
 	$(BUF) build
