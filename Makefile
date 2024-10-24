@@ -29,6 +29,9 @@ bin/buf: .versions/buf
 buf.yaml: | bin/buf
 	$(BUF) config init
 
+buf.lock: | bin/buf
+	$(BUF) dep update
+
 go.mod:
 	go mod init ${MODULE}
 
@@ -47,6 +50,10 @@ go.work: go.mod gen/go.mod pkg/go.mod
 go.work.sum: go.work go.mod gen/go.mod pkg/go.mod
 	go work sync && touch $@
 
-.make/buf_build: ${PROTO_SRC} | bin/buf
+.make/buf_build: buf.yaml ${PROTO_SRC} | bin/buf
 	$(BUF) build
+	@touch $@
+
+.make/buf_lint: buf.yaml ${PROTO_SRC} | bin/buf
+	$(BUF) lint
 	@touch $@
