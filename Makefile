@@ -12,12 +12,24 @@ MODULE  := github.com/unstoppablemango/${PROJECT}
 
 LOCALBIN := ${WORKING_DIR}/bin
 BUF      := ${LOCALBIN}/buf
+GINKGO   := ${LOCALBIN}/ginkgo
 
-GO_SRC    := $(shell $(FIND) . -name '*.go' -not -path '*/node_modules/*')
+GO_SRC    := $(shell $(FIND) . -name '*.go' -not -path '*/node_modules/*' -printf '%P\n')
 PROTO_SRC := $(shell $(FIND) . -name '*.proto' -not -path '*/node_modules/*' -printf '%P\n')
 GO_PB_SRC := ${PROTO_SRC:proto/%.proto=pkg/%.pb.go}
 
+# Temporarily focusing on cmd/ux
+GO_SUITES    := $(filter ./cmd/ux/%_suite_test.go,${GO_SRC})
+GO_REPORTS   := $(addsuffix report.json,$(dir ${GO_SUITES}))
+
+ifeq ($(CI),)
+TEST_FLAGS := --json-report report.json --keep-separate-reports
+else
+TEST_FLAGS := --github-output --race --trace
+endif
+
 build: bin/ux .make/buf_build
+test: ${GO_REPORTS}
 generate: ${GO_PB_SRC}
 lint: .make/buf_lint
 tidy: go.sum
@@ -28,11 +40,26 @@ clean:
 ${GO_PB_SRC}: buf.gen.yaml ${PROTO_SRC} | bin/buf
 	$(BUF) generate
 
+${GO_REPORTS} &: ${GO_SRC} | bin/ginkgo
+	$(GINKGO) run ${TEST_FLAGS} $(sort $(dir $?))
+
+%_suite_test.go: | bin/ginkgo
+	cd $(dir $@) && $(GINKGO) bootstrap
+
+$(GO_SRC:%.go=%_test.go): %_test.go: | bin/ginkgo
+	cd $(dir $@) && $(GINKGO) generate $(notdir $*)
+
 bin/ux: $(filter cmd/ux/%,${GO_SRC})
 	go -C cmd/ux build -o ${WORKING_DIR}/$@
 
+bin/devops:
+	go -C cmd/devops build -o ${WORKING_DIR}/$@
+
 bin/buf: .versions/buf
 	GOBIN=${LOCALBIN} go install github.com/bufbuild/buf/cmd/buf@v$(shell cat $<)
+
+bin/ginkgo: go.mod go.sum
+	GOBIN=${LOCALBIN} go install github.com/onsi/ginkgo/v2/ginkgo
 
 .envrc: hack/example.envrc
 	cp $< $@
