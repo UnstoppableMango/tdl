@@ -23,8 +23,6 @@ GO_PB_SRC ?= ${PROTO_SRC:proto/%.proto=pkg/%.pb.go}
 GO_SUITES    := $(filter cmd/ux/%_suite_test.go,${GO_SRC})
 GO_REPORTS   := $(addsuffix report.json,$(dir ${GO_SUITES}))
 
-$(info ${GO_REPORTS})
-
 ifeq ($(CI),)
 TEST_FLAGS := --json-report report.json --keep-separate-reports
 else
@@ -43,7 +41,7 @@ clean:
 ${GO_PB_SRC}: buf.gen.yaml ${PROTO_SRC} | bin/buf
 	$(BUF) generate
 
-cmd/ux/report.json: $(filter cmd/ux/%,${GO_SRC})
+cmd/ux/report.json: $(filter cmd/ux/%,${GO_SRC}) | bin/ux
 ${GO_REPORTS} &: | bin/ginkgo
 	$(GINKGO) run ${TEST_FLAGS} $(sort $(dir $?))
 
