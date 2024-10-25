@@ -4,7 +4,13 @@ managed:
   override:
     - file_option: go_package_prefix
       value: github.com/unstoppablemango/tdl/pkg
+
 plugins:
+  - remote: buf.build/connectrpc/go:v1.17.0
+    out: pkg
+    opt:
+      - paths=source_relative
+
   - remote: buf.build/protocolbuffers/go:v1.35.1
     out: pkg
     opt:

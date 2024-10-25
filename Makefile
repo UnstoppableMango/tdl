@@ -25,7 +25,7 @@ tidy: go.sum
 clean:
 	rm bin/ux
 
-${GO_PB_SRC}: ${PROTO_SRC} | bin/buf
+${GO_PB_SRC}: buf.gen.yaml ${PROTO_SRC} | bin/buf
 	$(BUF) generate
 
 bin/ux: $(filter cmd/ux/%,${GO_SRC})
