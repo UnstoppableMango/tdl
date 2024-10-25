@@ -11,12 +11,13 @@ PROJECT := tdl
 MODULE  := github.com/unstoppablemango/${PROJECT}
 
 LOCALBIN := ${WORKING_DIR}/bin
+DEVOPS   := ${LOCALBIN}/devops
 BUF      := ${LOCALBIN}/buf
 GINKGO   := ${LOCALBIN}/ginkgo
 
-GO_SRC    := $(shell $(FIND) . -name '*.go' -not -path '*/node_modules/*' -printf '%P\n')
-PROTO_SRC := $(shell $(FIND) . -name '*.proto' -not -path '*/node_modules/*' -printf '%P\n')
-GO_PB_SRC := ${PROTO_SRC:proto/%.proto=pkg/%.pb.go}
+GO_SRC    := $(shell $(DEVOPS) list --go)
+PROTO_SRC := $(shell $(DEVOPS) list --proto)
+GO_PB_SRC ?= ${PROTO_SRC:proto/%.proto=pkg/%.pb.go}
 
 # Temporarily focusing on cmd/ux
 GO_SUITES    := $(filter ./cmd/ux/%_suite_test.go,${GO_SRC})
@@ -28,7 +29,7 @@ else
 TEST_FLAGS := --github-output --race --trace
 endif
 
-build: bin/ux .make/buf_build
+build: bin/ux bin/devops .make/buf_build
 test: ${GO_REPORTS}
 generate: ${GO_PB_SRC}
 lint: .make/buf_lint
@@ -52,7 +53,7 @@ $(GO_SRC:%.go=%_test.go): %_test.go: | bin/ginkgo
 bin/ux: $(filter cmd/ux/%,${GO_SRC})
 	go -C cmd/ux build -o ${WORKING_DIR}/$@
 
-bin/devops:
+bin/devops: ${GO_SRC}
 	go -C cmd/devops build -o ${WORKING_DIR}/$@
 
 bin/buf: .versions/buf

@@ -4,12 +4,14 @@ go 1.23.2
 
 require (
 	connectrpc.com/connect v1.17.0
+	github.com/charmbracelet/log v0.4.0
 	github.com/docker/docker v27.3.1+incompatible
 	github.com/google/go-github/v66 v66.0.0
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/onsi/gomega v1.34.2
 	github.com/pulumi/pulumi/pkg/v3 v3.137.0
 	github.com/spf13/cobra v1.8.1
+	github.com/unmango/go v0.0.5-alpha
 	github.com/unstoppablemango/tdl/gen v0.0.28
 	google.golang.org/protobuf v1.35.1
 	gopkg.in/yaml.v3 v3.0.1
@@ -29,7 +31,6 @@ require (
 	github.com/charmbracelet/bubbles v0.16.1 // indirect
 	github.com/charmbracelet/bubbletea v0.25.0 // indirect
 	github.com/charmbracelet/lipgloss v0.10.0 // indirect
-	github.com/charmbracelet/log v0.4.0 // indirect
 	github.com/cheggaaa/pb v1.0.29 // indirect
 	github.com/cloudflare/circl v1.3.7 // indirect
 	github.com/containerd/console v1.0.4-0.20230313162750-1ae8d489ac81 // indirect
@@ -99,7 +100,6 @@ require (
 	github.com/texttheater/golang-levenshtein v1.0.1 // indirect
 	github.com/uber/jaeger-client-go v2.30.0+incompatible // indirect
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
-	github.com/unmango/go v0.0.5-alpha // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/zclconf/go-cty v1.13.2 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.49.0 // indirect
