@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package unmango.dev.ux.v1alpha1;
+
+import "unmango/dev/tdl/v1alpha1/gen.proto";
+import "unmango/dev/tdl/v1alpha1/spec.proto";
+
+option csharp_namespace = "UnMango.Ux";
+
+service UxService {
+	rpc Gen(GenRequest) returns (GenResponse);
+}
+
+message GenRequest {
+	unmango.dev.tdl.v1alpha1.Spec spec = 1;
+	repeated string targets = 2;
+}
+
+message GenResponse {
+	map<string, TargetOutput> targets = 1;
+}
+
+message TargetOutput {
+	string name = 1;
+	map<string, unmango.dev.tdl.v1alpha1.Unit> output = 2;
+}

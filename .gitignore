@@ -5,6 +5,7 @@ dist/
 out/
 .make/
 .fake/
+report.json
 
 # Packages
 node_modules/
