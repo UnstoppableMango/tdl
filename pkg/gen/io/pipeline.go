@@ -16,8 +16,12 @@ type (
 	LookupFunc   func(string) (PipelineFunc, error)
 )
 
+func TargetToBin(target string) string {
+	return "uml2" + target
+}
+
 func BinFromPath(target string) (PipelineFunc, error) {
-	binary, err := exec.LookPath(target)
+	binary, err := exec.LookPath(TargetToBin(target))
 	if err != nil {
 		return nil, fmt.Errorf("looking up target: %w", err)
 	}
