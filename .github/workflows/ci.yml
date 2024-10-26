@@ -46,7 +46,6 @@ jobs:
       - run: bun install --frozen-lockfile
 
   md-lint:
-    if: false
     name: Markdown Lint
     runs-on: ubuntu-latest
     steps:
