@@ -19,7 +19,7 @@ tests against it. Currently only supports a path to binary
 that communicates via stdin/stdout`,
 		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			err := conform.Execute(afero.NewOsFs(), args[0], args[:1])
+			err := conform.Execute(afero.NewOsFs(), args[0], args[1:])
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err.Error())
 				os.Exit(1)

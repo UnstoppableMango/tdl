@@ -20,7 +20,7 @@ func Execute(fsys afero.Fs, endpoint string, args []string) error {
 		return fmt.Errorf("only CLI tests are supported: %w", err)
 	}
 
-	CliTests("ux Conformance Tests", endpoint, args)
+	CliTests("Conformance Tests", endpoint, args)
 
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	if !ginkgo.RunSpecs(&fakeT{}, "Conformance Tests") {

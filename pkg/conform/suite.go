@@ -3,6 +3,7 @@ package conform
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 
@@ -13,7 +14,9 @@ import (
 )
 
 func CliTests(description, binary string, args []string) {
-	ginkgo.Describe(description, func() {
+	execArgs := append(args, "--conformance-test")
+
+	ginkgo.Describe(fmt.Sprintf("%s: CLI: %s %s", description, binary, args), func() {
 		ginkgo.It("should stat", func() {
 			_, err := os.Stat(binary)
 
@@ -21,7 +24,7 @@ func CliTests(description, binary string, args []string) {
 		})
 
 		ginkgo.It("should execute", func(ctx context.Context) {
-			cmd := exec.CommandContext(ctx, binary, args...)
+			cmd := exec.CommandContext(ctx, binary, execArgs...)
 			out, err := cmd.CombinedOutput()
 
 			g.Expect(err).NotTo(g.HaveOccurred(), string(out))
@@ -33,7 +36,7 @@ func CliTests(description, binary string, args []string) {
 			data, err := proto.Marshal(&tdlv1alpha1.Spec{})
 			g.Expect(err).NotTo(g.HaveOccurred())
 
-			cmd := exec.CommandContext(ctx, binary, append(args, "--conformance-test")...)
+			cmd := exec.CommandContext(ctx, binary, execArgs...)
 			cmd.Stdin = bytes.NewReader(data)
 			out, err := cmd.CombinedOutput()
 
