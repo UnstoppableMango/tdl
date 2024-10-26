@@ -3,6 +3,7 @@ package conform
 import (
 	"fmt"
 
+	"github.com/charmbracelet/log"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/spf13/afero"
@@ -14,16 +15,16 @@ func (t *fakeT) Fail() {
 	fmt.Println("fail")
 }
 
-func Execute(fsys afero.Fs, endpoint string) error {
+func Execute(fsys afero.Fs, endpoint string, args []string) error {
 	if _, err := fsys.Stat(endpoint); err != nil {
-		return err
+		return fmt.Errorf("only CLI tests are supported: %w", err)
 	}
 
-	CliTests(endpoint)
+	CliTests("ux Conformance Tests", endpoint, args)
 
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	if !ginkgo.RunSpecs(&fakeT{}, "Conformance Tests") {
-		fmt.Println("RunSpecs returned false")
+		log.Debug("RunSpecs returned false")
 	}
 
 	return nil

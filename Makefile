@@ -37,6 +37,7 @@ tidy: go.sum
 
 clean:
 	rm bin/ux
+	find . -type f -name 'report.json' -delete
 
 ${GO_PB_SRC}: buf.gen.yaml ${PROTO_SRC} | bin/buf
 	$(BUF) generate
