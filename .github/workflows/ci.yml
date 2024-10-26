@@ -33,7 +33,6 @@ jobs:
           args: check
 
   bun:
-    if: false
     name: Bun Install
     runs-on: ubuntu-latest
     steps:
