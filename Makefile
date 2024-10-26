@@ -37,7 +37,7 @@ lint: .make/buf_lint
 tidy: go.sum
 
 clean:
-	rm -f bin/ux
+	rm -f bin/ux bin/uml2ts
 	find . -type f -name 'report.json' -delete
 	bun run --cwd packages/tdl clean
 
@@ -47,7 +47,7 @@ ${GO_PB_SRC}: buf.gen.yaml ${PROTO_SRC} | bin/buf
 packages/tdl/dist:
 	bun run --cwd $(dir $@) build
 
-cmd/ux/report.json: $(filter cmd/ux/%,${GO_SRC}) | bin/ux
+cmd/ux/report.json: $(filter cmd/ux/%,${GO_SRC}) | bin/ux bin/uml2ts
 ${GO_REPORTS} &: | bin/ginkgo
 	$(GINKGO) run ${TEST_FLAGS} $(sort $(dir $?))
 
@@ -59,6 +59,9 @@ $(GO_SRC:%.go=%_test.go): %_test.go: | bin/ginkgo
 
 bin/ux: ${GO_SRC}
 	go -C cmd/ux build -o ${WORKING_DIR}/$@
+
+bin/uml2ts:
+	bun build --cwd packages/ts index.ts --compile --outfile ${WORKING_DIR}/$@
 
 bin/devops: ${GO_SRC}
 	go -C cmd/devops build -o ${WORKING_DIR}/$@
