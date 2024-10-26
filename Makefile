@@ -15,6 +15,8 @@ DEVOPS   := ${LOCALBIN}/devops
 BUF      := ${LOCALBIN}/buf
 GINKGO   := ${LOCALBIN}/ginkgo
 
+export PATH := ${LOCALBIN}:${PATH}
+
 GO_SRC    := $(shell $(DEVOPS) list --go)
 TS_SRC    := $(shell find packages -name '*.ts' -not -path '*/node_modules/*')
 PROTO_SRC := $(shell $(DEVOPS) list --proto)
