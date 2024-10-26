@@ -30,7 +30,7 @@ jobs:
 
       - run: bun install --frozen-lockfile
       - run: make build
-      # - run: make test
+      - run: make test
 
   goreleaser:
     name: GoReleaser Check

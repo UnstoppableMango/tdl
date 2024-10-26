@@ -2,29 +2,26 @@
 // @generated from file unmango/dev/tdl/v1alpha1/gen.proto (package unmango.dev.tdl.v1alpha1, syntax proto3)
 /* eslint-disable */
 
-import type { Message } from '@bufbuild/protobuf';
-import type { GenFile, GenMessage, GenService as GenService$1 } from '@bufbuild/protobuf/codegenv1';
-import { fileDesc, messageDesc, serviceDesc } from '@bufbuild/protobuf/codegenv1';
-import type { Spec } from './spec_pb';
-import { file_unmango_dev_tdl_v1alpha1_spec } from './spec_pb';
+import type { GenFile, GenMessage, GenService as GenService$1 } from "@bufbuild/protobuf/codegenv1";
+import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
+import type { Spec } from "./spec_pb";
+import { file_unmango_dev_tdl_v1alpha1_spec } from "./spec_pb";
+import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file unmango/dev/tdl/v1alpha1/gen.proto.
  */
 export const file_unmango_dev_tdl_v1alpha1_gen: GenFile = /*@__PURE__*/
-	fileDesc(
-		'CiJ1bm1hbmdvL2Rldi90ZGwvdjFhbHBoYTEvZ2VuLnByb3RvEhh1bm1hbmdvLmRldi50ZGwudjFhbHBoYTEiOgoKR2VuUmVxdWVzdBIsCgRzcGVjGAEgASgLMh4udW5tYW5nby5kZXYudGRsLnYxYWxwaGExLlNwZWMinwEKC0dlblJlc3BvbnNlEkEKBm91dHB1dBgBIAMoCzIxLnVubWFuZ28uZGV2LnRkbC52MWFscGhhMS5HZW5SZXNwb25zZS5PdXRwdXRFbnRyeRpNCgtPdXRwdXRFbnRyeRILCgNrZXkYASABKAkSLQoFdmFsdWUYAiABKAsyHi51bm1hbmdvLmRldi50ZGwudjFhbHBoYTEuVW5pdDoCOAEiGQoEVW5pdBIRCglnZW5lcmF0ZWQYASABKAwyYAoKR2VuU2VydmljZRJSCgNHZW4SJC51bm1hbmdvLmRldi50ZGwudjFhbHBoYTEuR2VuUmVxdWVzdBolLnVubWFuZ28uZGV2LnRkbC52MWFscGhhMS5HZW5SZXNwb25zZUL1AQocY29tLnVubWFuZ28uZGV2LnRkbC52MWFscGhhMUIIR2VuUHJvdG9QAVpIZ2l0aHViLmNvbS91bnN0b3BwYWJsZW1hbmdvL3RkbC9wa2cvdW5tYW5nby9kZXYvdGRsL3YxYWxwaGExO3RkbHYxYWxwaGExogIDVURUqgIYVW5tYW5nby5EZXYuVGRsLlYxYWxwaGExygIYVW5tYW5nb1xEZXZcVGRsXFYxYWxwaGEx4gIkVW5tYW5nb1xEZXZcVGRsXFYxYWxwaGExXEdQQk1ldGFkYXRh6gIbVW5tYW5nbzo6RGV2OjpUZGw6OlYxYWxwaGExYgZwcm90bzM',
-		[file_unmango_dev_tdl_v1alpha1_spec],
-	);
+  fileDesc("CiJ1bm1hbmdvL2Rldi90ZGwvdjFhbHBoYTEvZ2VuLnByb3RvEhh1bm1hbmdvLmRldi50ZGwudjFhbHBoYTEiOgoKR2VuUmVxdWVzdBIsCgRzcGVjGAEgASgLMh4udW5tYW5nby5kZXYudGRsLnYxYWxwaGExLlNwZWMinwEKC0dlblJlc3BvbnNlEkEKBm91dHB1dBgBIAMoCzIxLnVubWFuZ28uZGV2LnRkbC52MWFscGhhMS5HZW5SZXNwb25zZS5PdXRwdXRFbnRyeRpNCgtPdXRwdXRFbnRyeRILCgNrZXkYASABKAkSLQoFdmFsdWUYAiABKAsyHi51bm1hbmdvLmRldi50ZGwudjFhbHBoYTEuVW5pdDoCOAEiGQoEVW5pdBIRCglnZW5lcmF0ZWQYASABKAwyYAoKR2VuU2VydmljZRJSCgNHZW4SJC51bm1hbmdvLmRldi50ZGwudjFhbHBoYTEuR2VuUmVxdWVzdBolLnVubWFuZ28uZGV2LnRkbC52MWFscGhhMS5HZW5SZXNwb25zZUL1AQocY29tLnVubWFuZ28uZGV2LnRkbC52MWFscGhhMUIIR2VuUHJvdG9QAVpIZ2l0aHViLmNvbS91bnN0b3BwYWJsZW1hbmdvL3RkbC9wa2cvdW5tYW5nby9kZXYvdGRsL3YxYWxwaGExO3RkbHYxYWxwaGExogIDVURUqgIYVW5tYW5nby5EZXYuVGRsLlYxYWxwaGExygIYVW5tYW5nb1xEZXZcVGRsXFYxYWxwaGEx4gIkVW5tYW5nb1xEZXZcVGRsXFYxYWxwaGExXEdQQk1ldGFkYXRh6gIbVW5tYW5nbzo6RGV2OjpUZGw6OlYxYWxwaGExYgZwcm90bzM", [file_unmango_dev_tdl_v1alpha1_spec]);
 
 /**
  * @generated from message unmango.dev.tdl.v1alpha1.GenRequest
  */
-export type GenRequest = Message<'unmango.dev.tdl.v1alpha1.GenRequest'> & {
-	/**
-	 * @generated from field: unmango.dev.tdl.v1alpha1.Spec spec = 1;
-	 */
-	spec?: Spec;
+export type GenRequest = Message<"unmango.dev.tdl.v1alpha1.GenRequest"> & {
+  /**
+   * @generated from field: unmango.dev.tdl.v1alpha1.Spec spec = 1;
+   */
+  spec?: Spec;
 };
 
 /**
@@ -32,16 +29,16 @@ export type GenRequest = Message<'unmango.dev.tdl.v1alpha1.GenRequest'> & {
  * Use `create(GenRequestSchema)` to create a new message.
  */
 export const GenRequestSchema: GenMessage<GenRequest> = /*@__PURE__*/
-	messageDesc(file_unmango_dev_tdl_v1alpha1_gen, 0);
+  messageDesc(file_unmango_dev_tdl_v1alpha1_gen, 0);
 
 /**
  * @generated from message unmango.dev.tdl.v1alpha1.GenResponse
  */
-export type GenResponse = Message<'unmango.dev.tdl.v1alpha1.GenResponse'> & {
-	/**
-	 * @generated from field: map<string, unmango.dev.tdl.v1alpha1.Unit> output = 1;
-	 */
-	output: { [key: string]: Unit };
+export type GenResponse = Message<"unmango.dev.tdl.v1alpha1.GenResponse"> & {
+  /**
+   * @generated from field: map<string, unmango.dev.tdl.v1alpha1.Unit> output = 1;
+   */
+  output: { [key: string]: Unit };
 };
 
 /**
@@ -49,16 +46,16 @@ export type GenResponse = Message<'unmango.dev.tdl.v1alpha1.GenResponse'> & {
  * Use `create(GenResponseSchema)` to create a new message.
  */
 export const GenResponseSchema: GenMessage<GenResponse> = /*@__PURE__*/
-	messageDesc(file_unmango_dev_tdl_v1alpha1_gen, 1);
+  messageDesc(file_unmango_dev_tdl_v1alpha1_gen, 1);
 
 /**
  * @generated from message unmango.dev.tdl.v1alpha1.Unit
  */
-export type Unit = Message<'unmango.dev.tdl.v1alpha1.Unit'> & {
-	/**
-	 * @generated from field: bytes generated = 1;
-	 */
-	generated: Uint8Array;
+export type Unit = Message<"unmango.dev.tdl.v1alpha1.Unit"> & {
+  /**
+   * @generated from field: bytes generated = 1;
+   */
+  generated: Uint8Array;
 };
 
 /**
@@ -66,19 +63,20 @@ export type Unit = Message<'unmango.dev.tdl.v1alpha1.Unit'> & {
  * Use `create(UnitSchema)` to create a new message.
  */
 export const UnitSchema: GenMessage<Unit> = /*@__PURE__*/
-	messageDesc(file_unmango_dev_tdl_v1alpha1_gen, 2);
+  messageDesc(file_unmango_dev_tdl_v1alpha1_gen, 2);
 
 /**
  * @generated from service unmango.dev.tdl.v1alpha1.GenService
  */
 export const GenService: GenService$1<{
-	/**
-	 * @generated from rpc unmango.dev.tdl.v1alpha1.GenService.Gen
-	 */
-	gen: {
-		methodKind: 'unary';
-		input: typeof GenRequestSchema;
-		output: typeof GenResponseSchema;
-	};
+  /**
+   * @generated from rpc unmango.dev.tdl.v1alpha1.GenService.Gen
+   */
+  gen: {
+    methodKind: "unary";
+    input: typeof GenRequestSchema;
+    output: typeof GenResponseSchema;
+  },
 }> = /*@__PURE__*/
-	serviceDesc(file_unmango_dev_tdl_v1alpha1_gen, 0);
+  serviceDesc(file_unmango_dev_tdl_v1alpha1_gen, 0);
+

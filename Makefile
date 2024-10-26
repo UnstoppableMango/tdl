@@ -15,13 +15,16 @@ DEVOPS   := ${LOCALBIN}/devops
 BUF      := ${LOCALBIN}/buf
 GINKGO   := ${LOCALBIN}/ginkgo
 
+export PATH := ${LOCALBIN}:${PATH}
+
 GO_SRC    := $(shell $(DEVOPS) list --go)
+TS_SRC    := $(shell find packages -name '*.ts' -not -path '*/node_modules/*')
 PROTO_SRC := $(shell $(DEVOPS) list --proto)
 GO_PB_SRC ?= ${PROTO_SRC:proto/%.proto=pkg/%.pb.go}
 
 # Temporarily focusing on cmd/ux
-GO_SUITES    := $(filter cmd/ux/%_suite_test.go,${GO_SRC})
-GO_REPORTS   := $(addsuffix report.json,$(dir ${GO_SUITES}))
+GO_SUITES  := $(filter cmd/ux/%_suite_test.go,${GO_SRC})
+GO_REPORTS := $(addsuffix report.json,$(dir ${GO_SUITES}))
 
 ifeq ($(CI),)
 TEST_FLAGS := --json-report report.json --keep-separate-reports
@@ -29,7 +32,7 @@ else
 TEST_FLAGS := --github-output --race --trace
 endif
 
-build: generate bin/ux bin/devops .make/buf_build packages/tdl/dist
+build: generate bin/ux bin/devops .make/buf_build packages/tdl/dist packages/ts/dist
 test: ${GO_REPORTS}
 generate: ${GO_PB_SRC}
 format: .make/dprint
@@ -37,17 +40,18 @@ lint: .make/buf_lint
 tidy: go.sum
 
 clean:
-	rm -f bin/ux
+	rm -f bin/ux bin/uml2ts
 	find . -type f -name 'report.json' -delete
 	bun run --cwd packages/tdl clean
+	bun run --cwd packages/ts clean
 
 ${GO_PB_SRC}: buf.gen.yaml ${PROTO_SRC} | bin/buf
 	$(BUF) generate
 
-packages/tdl/dist:
+packages/%/dist:
 	bun run --cwd $(dir $@) build
 
-cmd/ux/report.json: $(filter cmd/ux/%,${GO_SRC}) | bin/ux
+cmd/ux/report.json: $(filter cmd/ux/%,${GO_SRC}) | bin/ux bin/uml2ts
 ${GO_REPORTS} &: | bin/ginkgo
 	$(GINKGO) run ${TEST_FLAGS} $(sort $(dir $?))
 
@@ -59,6 +63,9 @@ $(GO_SRC:%.go=%_test.go): %_test.go: | bin/ginkgo
 
 bin/ux: ${GO_SRC}
 	go -C cmd/ux build -o ${WORKING_DIR}/$@
+
+bin/uml2ts: ${TS_SRC}
+	bun build --cwd packages/uml2ts index.ts --compile --outfile ${WORKING_DIR}/$@
 
 bin/devops: ${GO_SRC}
 	go -C cmd/devops build -o ${WORKING_DIR}/$@
