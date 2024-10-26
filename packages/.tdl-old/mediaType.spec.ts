@@ -1,18 +1,20 @@
-import { Spec } from '@unmango/tdl-es';
+import { create, toBinary, toJsonString } from '@bufbuild/protobuf';
 import { describe, expect, it } from 'bun:test';
 import fc from 'fast-check';
 import { read, type SupportedMediaType } from './mediaType';
+import { SpecSchema } from './proto/v1alpha1/tdl';
 
-const arbSpec = () =>
-	fc.gen().map(g =>
-		new Spec({
+const arbSpec = () => {
+	return fc.gen().map(g => {
+		return create(SpecSchema, {
 			name: g(fc.string),
 			description: g(fc.string),
 			displayName: g(fc.string),
 			source: g(fc.string),
 			version: g(fc.string),
-		})
-	);
+		});
+	});
+};
 
 describe('read', () => {
 	it.each<SupportedMediaType>([
@@ -21,7 +23,7 @@ describe('read', () => {
 		'application/vnd.google.protobuf',
 	])('should read %s data', (type) => {
 		fc.assert(fc.property(arbSpec(), (spec): void => {
-			const bytes = spec.toBinary();
+			const bytes = toBinary(SpecSchema, spec);
 
 			const actual = read(bytes, type);
 
@@ -31,7 +33,7 @@ describe('read', () => {
 
 	it('should read json data', () => {
 		fc.assert(fc.property(arbSpec(), (spec): void => {
-			const json = spec.toJsonString();
+			const json = toJsonString(SpecSchema, spec);
 			const bytes = Buffer.from(json, 'utf-8');
 
 			const actual = read(bytes, 'application/json');

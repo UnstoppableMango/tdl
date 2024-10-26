@@ -1,3 +1,1 @@
-export * from './mediaType';
-export * from './runner';
-export * from './types';
+export * as v1alpha1 from './v1alpha1';
