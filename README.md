@@ -6,58 +6,6 @@ Language for generating code and mapping types between languages.
 
 Nothing currently works, but this is how it works in my head.
 
-## Converting
-
-### From UML
-
-```yaml
-# myTypes.uml
-# It looks like yaml now, it might not later. idk
-name: MyTypes
-types:
-  someType:
-    type: object
-    fields:
-      someField:
-        type: string
-```
-
-```shell
-$ um to proto myTypes.uml
-Wrote 69B to ./myTypes.proto
-```
-
-```proto
-// myTypes.proto
-message SomeType {
-  someField: string;
-}
-```
-
-### To UML
-
-```proto
-// myTypes.proto
-message MyType {
-  string some_field = 1;
-}
-```
-
-```shell
-$ um from myTypes.proto
-Wrote 420B to ./myTypes.uml
-```
-
-```yaml
-# myTypes.uml
-types:
-  myType:
-    type: object
-    fields:
-      someField:
-        type: string
-```
-
 ## Generating
 
 ```yaml
@@ -110,15 +58,17 @@ Probably good to have but not needed
 
 ### Setup
 
-Run `make work` to configure a local `go.work`, if you want it.
+Run `make .envrc` to configure a local `.envrc` based on `hack/example.envrc`.
 
 ### Building
 
-Run `make gen` to generate code in `/gen`. Actually I lied. This doesn't do that yet.
+Run `make generate` to perform any codegen required by the project.
 
 Run `make build` to build everything.
 
-Run `make docker` to build all docker images.
+🚧 Work in progress 🚧
+
+~~Run `make docker` to build all docker images.~~
 
 ### Testing
 
@@ -128,29 +78,54 @@ Run `make test` to run all test suites.
 
 Run `make lint` to lint everything.
 
-Run `make clean` to remove local artifacts like `/.make` targets and `/node_modules`.
+Run `make clean` to remove local artifacts such as `/.make` targets.
 
 ### Repository Structure
 
-|            Directory | Description                                                              |
-| -------------------: | :----------------------------------------------------------------------- |
-|           `/.config` | Just `dotnet` tools at the moment                                        |
-|           `/.github` | GitHub configuration files                                               |
-|   `/.github/actions` | GitHub actions                                                           |
-| `/.github/workflows` | GitHub workflows                                                         |
-|             `/.idea` | JetBrains IDE configuration (yes some of this gets checked in, fight me) |
-|             `/.make` | Local `make` sentinel target files                                       |
-|           `/.vscode` | VSCode configuration                                                     |
-|               `/bin` | Binaries                                                                 |
-|               `/cli` | Go CLI applications                                                      |
-|            `/docker` | Dockerfiles                                                              |
-|               `/gen` | Generated code                                                           |
-|          `/packages` | Node-ish ecosystem packages and applications                             |
-|               `/pkg` | Go packages                                                              |
-|             `/proto` | Protobuf definitions                                                     |
-|               `/src` | .NET ecosystem libraries and applications                                |
+|            Directory | Description                                                     |
+| -------------------: | :-------------------------------------------------------------- |
+|           `/.config` | Just `dotnet` tools at the moment                               |
+|           `/.github` | GitHub configuration files                                      |
+|   `/.github/actions` | GitHub actions                                                  |
+| `/.github/workflows` | GitHub workflows                                                |
+|             `/.idea` | JetBrains IDE configuration (I check in some of this, fight me) |
+|             `/.make` | Local `make` sentinel target files                              |
+|              `/.run` | JetBrains IDE run configurations                                |
+|         `/.versions` | Version files for dependency pinning                            |
+|           `/.vscode` | VSCode configuration                                            |
+|               `/bin` | Binaries                                                        |
+|               `/cli` | Old directory for Go CLI applications                           |
+|               `/cmd` | Go CLI applications                                             |
+|            `/docker` | Dockerfiles                                                     |
+|              `/docs` | Any documentation too large for the README                      |
+|              `/hack` | Any files that help with hacking on the project such as scripts |
+|          `/packages` | Node-ish ecosystem packages and applications                    |
+|               `/pkg` | Go packages                                                     |
+|             `/proto` | Protobuf definitions                                            |
+|               `/src` | .NET ecosystem libraries and applications                       |
+
+## Design Philosophy
+
+- Codegen everything on the path of least resistance.
+- Integrate existing tools before writing new ones. i.e. `protoc`, `graphql-codegen`, etc.
+- Tools can have overlapping responsibilities. i.e. Two generators can output TypeScript code.
+- Developer productivity and ease of use takes priority.
+- Output the least amount code to accomplish a task. i.e. Don't generate a `package.json` in a TypeScript generator.
 
 ## Architecture
+
+The primary entrypoint is the `ux` CLI.
+This tool doesn't perform any codegen on it's own and instead orchestrates codegen pipelines.
+Codegen pipelines are primarily composed of generator applications.
+A generator application receives a protobuf encoded specification (`Spec`) via stdin and writes its output to stdout.
+The `ux` CLI can perform conformance tests on a generator application with `ux conform` to ensure the generator is compatible with `ux`.
+
+The intent behind this design is to allow generators to be written in the language that is most convenient for performing its task.
+For example, when generating TypeScript code the `typescript` package contains all of the tools required for reading, manipulating, and writing TypeScript code.
+While it would be possible to generate TypeScript in i.e. Go, it is much easier to simply write the generator in a language compatible with `npm` packages.
+Additionally, this design should allow for integrating existing codegen tools without needing to compile them into the source language of `ux`, which is currently Go.
+
+### Thoughts from when I started this project
 
 I've got a dozen conflicting ideas but the current path I'm working towards is a primary CLI `um` calling a "runner" CLI `um2something` and communicating between stdin and stdout.
 
@@ -162,19 +137,3 @@ As fun as that might be, I'm worried I might be pushing the limits of "how over-
 CLI tools should be really snappy so the overhead of setting up a gRPC server might be ridiculous. If it's not though... I might do that. It sounds really cool "the user CLI communicates with the runner CLI via gRPC on a unix domain socket".
 
 If we want to REALLY over-engineer everything I was thinking we could have a little broker do-dad that hangs out in the background and loads up plugins that the user CLI can call to convert things. It would be fun and ridiculous.
-
-## Notes to self
-
-As I'm typing out these examples I'm realizing there is a lot of overlap between the commands I've hallucinated.
-Intuitively these two commands should behave the same
-
-```shell
-um to ts
-um gen ts
-```
-
-There really isn't a need to differentiate between a specification like protobuf and a language like typescript, they won't ever overlap.
-
-In the CLI tools I can just alias `to` and `gen`.
-However, I naively started implementing a number of abstractions for generators and converters that will take a bit of refactoring.
-This is what I get for premature optimization and over-engineering shit.
