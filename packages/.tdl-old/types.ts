@@ -1,5 +1,5 @@
-import type { Spec } from '@unmango/tdl-es';
 import type { ArrayBufferSink, BunFile } from 'bun';
+import type { Spec } from './proto/v1alpha1/tdl';
 
 type In = BunFile;
 type Out = ArrayBufferSink;

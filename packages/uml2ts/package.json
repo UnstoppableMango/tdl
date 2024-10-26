@@ -17,7 +17,6 @@
 		"@connectrpc/connect": "^1.4.0",
 		"@connectrpc/connect-node": "^1.4.0",
 		"@unmango/tdl": "workspace:*",
-		"@unmango/tdl-es": "workspace:*",
 		"@unmango/2ts": "workspace:*"
 	},
 	"devDependencies": {

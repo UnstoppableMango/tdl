@@ -29,17 +29,23 @@ else
 TEST_FLAGS := --github-output --race --trace
 endif
 
-build: bin/ux bin/devops .make/buf_build
+build: generate bin/ux bin/devops .make/buf_build packages/tdl/dist
 test: ${GO_REPORTS}
 generate: ${GO_PB_SRC}
+format: .make/dprint
 lint: .make/buf_lint
 tidy: go.sum
 
 clean:
-	rm bin/ux
+	rm -f bin/ux
+	find . -type f -name 'report.json' -delete
+	bun run --cwd packages/tdl clean
 
 ${GO_PB_SRC}: buf.gen.yaml ${PROTO_SRC} | bin/buf
 	$(BUF) generate
+
+packages/tdl/dist:
+	bun run --cwd $(dir $@) build
 
 cmd/ux/report.json: $(filter cmd/ux/%,${GO_SRC}) | bin/ux
 ${GO_REPORTS} &: | bin/ginkgo
@@ -51,7 +57,7 @@ ${GO_REPORTS} &: | bin/ginkgo
 $(GO_SRC:%.go=%_test.go): %_test.go: | bin/ginkgo
 	cd $(dir $@) && $(GINKGO) generate $(notdir $*)
 
-bin/ux: $(filter cmd/ux/%,${GO_SRC})
+bin/ux: ${GO_SRC}
 	go -C cmd/ux build -o ${WORKING_DIR}/$@
 
 bin/devops: ${GO_SRC}
@@ -60,7 +66,7 @@ bin/devops: ${GO_SRC}
 bin/buf: .versions/buf
 	GOBIN=${LOCALBIN} go install github.com/bufbuild/buf/cmd/buf@v$(shell cat $<)
 
-bin/ginkgo: go.mod go.sum
+bin/ginkgo: go.mod
 	GOBIN=${LOCALBIN} go install github.com/onsi/ginkgo/v2/ginkgo
 
 .envrc: hack/example.envrc
@@ -78,7 +84,7 @@ go.mod:
 %/go.mod:
 	go -C $(dir $@) mod init ${MODULE}/$*
 
-go.sum: go.mod
+go.sum: go.mod ${GO_SRC}
 	go mod tidy && touch $@
 
 .make/buf_build: buf.yaml ${PROTO_SRC} | bin/buf
@@ -88,3 +94,6 @@ go.sum: go.mod
 .make/buf_lint: buf.yaml ${PROTO_SRC} | bin/buf
 	$(BUF) lint
 	@touch $@
+
+.make/dprint:
+	dprint fmt

@@ -15,17 +15,17 @@ import (
 var bin string
 
 func TestUx(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Ux Suite")
-}
+	g := NewWithT(t)
 
-var _ = BeforeSuite(func(ctx context.Context) {
-	revParse, err := exec.CommandContext(ctx,
+	revParse, err := exec.CommandContext(context.Background(),
 		"git", "rev-parse", "--show-toplevel",
 	).CombinedOutput()
-	Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).NotTo(HaveOccurred())
 
 	root := strings.TrimSpace(string(revParse))
 	bin = filepath.Join(root, "bin", "ux")
-	Expect(os.Stat(bin)).NotTo(BeNil())
-})
+	g.Expect(os.Stat(bin)).NotTo(BeNil())
+
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Ux Suite")
+}

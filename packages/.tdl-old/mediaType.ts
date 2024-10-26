@@ -1,4 +1,5 @@
-import * as tdl from '@unmango/tdl-es';
+import { fromBinary, fromJsonString } from '@bufbuild/protobuf';
+import { type Spec, SpecSchema } from './proto/v1alpha1/tdl';
 
 export const SUPPORTED_MEDIA_TYPES = [
 	'application/json',
@@ -10,20 +11,20 @@ export const SUPPORTED_MEDIA_TYPES = [
 export type SupportedMediaTypeTuple = typeof SUPPORTED_MEDIA_TYPES;
 export type SupportedMediaType = SupportedMediaTypeTuple[number];
 
-export function read(data: Uint8Array, type?: SupportedMediaType): tdl.Spec {
+export function read(data: Uint8Array, type?: SupportedMediaType): Spec {
 	switch (type) {
 		case 'application/json': {
 			const decoder = new TextDecoder();
 			const json = decoder.decode(data);
-			return tdl.Spec.fromJsonString(json);
+			return fromJsonString(SpecSchema, json);
 		}
 		case 'application/x-protobuf':
 		case 'application/protobuf':
 		case 'application/vnd.google.protobuf':
-			return tdl.Spec.fromBinary(data);
+			return fromBinary(SpecSchema, data);
 		case undefined:
 		case null:
-			return tdl.Spec.fromBinary(data);
+			return fromBinary(SpecSchema, data);
 		default:
 			throw new Error('unrecognized media type');
 	}
