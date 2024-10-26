@@ -1,5 +1,3 @@
-export { ConformanceService } from '../__generated__/unmango/dev/tdl/v1alpha1/conformance_connect';
-
 export {
 	type TestRequest,
 	TestRequestSchema,

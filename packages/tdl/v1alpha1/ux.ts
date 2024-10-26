@@ -1,5 +1,3 @@
-export { UxService } from '../__generated__/unmango/dev/ux/v1alpha1/ux_connect';
-
 export {
 	type GenRequest,
 	GenRequestSchema,

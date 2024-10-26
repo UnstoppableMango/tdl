@@ -29,18 +29,22 @@ else
 TEST_FLAGS := --github-output --race --trace
 endif
 
-build: bin/ux bin/devops .make/buf_build
+build: generate bin/ux bin/devops .make/buf_build packages/tdl/dist
 test: ${GO_REPORTS}
 generate: ${GO_PB_SRC}
 lint: .make/buf_lint
 tidy: go.sum
 
 clean:
-	rm bin/ux
+	rm -f bin/ux
 	find . -type f -name 'report.json' -delete
+	bun run --cwd packages/tdl clean
 
 ${GO_PB_SRC}: buf.gen.yaml ${PROTO_SRC} | bin/buf
 	$(BUF) generate
+
+packages/tdl/dist:
+	bun run --cwd $(dir $@) build
 
 cmd/ux/report.json: $(filter cmd/ux/%,${GO_SRC}) | bin/ux
 ${GO_REPORTS} &: | bin/ginkgo

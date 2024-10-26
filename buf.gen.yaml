@@ -1,6 +1,7 @@
 version: v2
 
-clean: true
+# This keeps deleting the entire /pkg module
+clean: false
 
 managed:
   enabled: true
@@ -19,11 +20,11 @@ plugins:
     opt:
       - paths=source_relative
 
-  - remote: buf.build/connectrpc/es:v1.6.1
-    out: packages/tdl/__generated__
-    opt:
-      - target=ts
-      - import_extension=none # https://github.com/connectrpc/connect-es/issues/1049
+  # - remote: buf.build/connectrpc/es:v1.6.1
+  #   out: packages/tdl/__generated__
+  #   opt:
+  #     - target=ts
+  #     - import_extension=none # https://github.com/connectrpc/connect-es/issues/1049
 
   - remote: buf.build/bufbuild/es:v2.2.0
     out: packages/tdl/__generated__
