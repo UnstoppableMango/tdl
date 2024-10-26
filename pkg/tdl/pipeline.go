@@ -6,6 +6,8 @@ type Pipeline[T, V any] interface {
 	~func(T, V) error
 }
 
+type Lookup[T, V any, P Pipeline[T, V]] func(string) (P, error)
+
 // WTF
 func Map[
 	T, V, X, Y any,
