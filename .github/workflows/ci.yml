@@ -28,6 +28,7 @@ jobs:
         with:
           bun-version-file: package.json
 
+      - run: bun install --frozen-lockfile
       - run: make build
       # - run: make test
 
