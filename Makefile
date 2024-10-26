@@ -51,9 +51,9 @@ ${GO_PB_SRC}: buf.gen.yaml ${PROTO_SRC} | bin/buf
 packages/%/dist:
 	bun run --cwd $(dir $@) build
 
-cmd/ux/report.json: $(filter cmd/ux/%,${GO_SRC}) | bin/ux bin/uml2ts
-${GO_REPORTS} &: | bin/ginkgo
-	$(GINKGO) run ${TEST_FLAGS} $(sort $(dir $?))
+cmd/ux/report.json: ${TS_SRC} | bin/ux bin/uml2ts
+${GO_REPORTS} &: ${GO_SRC} | bin/ginkgo
+	$(GINKGO) run ${TEST_FLAGS} $(dir $@)
 
 %_suite_test.go: | bin/ginkgo
 	cd $(dir $@) && $(GINKGO) bootstrap
