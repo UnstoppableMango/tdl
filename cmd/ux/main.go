@@ -8,7 +8,12 @@ import (
 )
 
 func main() {
-	if err := cmd.NewUx().Execute(); err != nil {
+	rootCmd := cmd.NewUx()
+	rootCmd.AddCommand(
+		cmd.NewConform(),
+	)
+
+	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}

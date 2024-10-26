@@ -10,6 +10,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/onsi/gomega v1.34.2
 	github.com/pulumi/pulumi/pkg/v3 v3.137.0
+	github.com/spf13/afero v1.9.5
 	github.com/spf13/cobra v1.8.1
 	github.com/unmango/go v0.0.5-alpha
 	github.com/unstoppablemango/tdl/gen v0.0.28
