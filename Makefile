@@ -32,6 +32,7 @@ endif
 build: generate bin/ux bin/devops .make/buf_build packages/tdl/dist
 test: ${GO_REPORTS}
 generate: ${GO_PB_SRC}
+format: .make/dprint
 lint: .make/buf_lint
 tidy: go.sum
 
@@ -93,3 +94,6 @@ go.sum: go.mod ${GO_SRC}
 .make/buf_lint: buf.yaml ${PROTO_SRC} | bin/buf
 	$(BUF) lint
 	@touch $@
+
+.make/dprint:
+	dprint fmt

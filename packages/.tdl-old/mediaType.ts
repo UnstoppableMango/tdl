@@ -1,5 +1,5 @@
-import { type Spec, SpecSchema } from './proto/v1alpha1/tdl';
 import { fromBinary, fromJsonString } from '@bufbuild/protobuf';
+import { type Spec, SpecSchema } from './proto/v1alpha1/tdl';
 
 export const SUPPORTED_MEDIA_TYPES = [
 	'application/json',

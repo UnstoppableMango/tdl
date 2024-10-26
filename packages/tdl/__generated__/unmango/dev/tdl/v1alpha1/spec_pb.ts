@@ -2,66 +2,69 @@
 // @generated from file unmango/dev/tdl/v1alpha1/spec.proto (package unmango.dev.tdl.v1alpha1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
-import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { Any } from "@bufbuild/protobuf/wkt";
-import { file_google_protobuf_any } from "@bufbuild/protobuf/wkt";
-import type { Message } from "@bufbuild/protobuf";
+import type { Message } from '@bufbuild/protobuf';
+import type { GenFile, GenMessage } from '@bufbuild/protobuf/codegenv1';
+import { fileDesc, messageDesc } from '@bufbuild/protobuf/codegenv1';
+import type { Any } from '@bufbuild/protobuf/wkt';
+import { file_google_protobuf_any } from '@bufbuild/protobuf/wkt';
 
 /**
  * Describes the file unmango/dev/tdl/v1alpha1/spec.proto.
  */
 export const file_unmango_dev_tdl_v1alpha1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CiN1bm1hbmdvL2Rldi90ZGwvdjFhbHBoYTEvc3BlYy5wcm90bxIYdW5tYW5nby5kZXYudGRsLnYxYWxwaGExIucECgRTcGVjEgwKBG5hbWUYASABKAkSDgoGc291cmNlGAIgASgJEg8KB3ZlcnNpb24YAyABKAkSFAoMZGlzcGxheV9uYW1lGAQgASgJEhMKC2Rlc2NyaXB0aW9uGAUgASgJEjoKBmxhYmVscxgGIAMoCzIqLnVubWFuZ28uZGV2LnRkbC52MWFscGhhMS5TcGVjLkxhYmVsc0VudHJ5EjgKBXR5cGVzGAcgAygLMikudW5tYW5nby5kZXYudGRsLnYxYWxwaGExLlNwZWMuVHlwZXNFbnRyeRJACglmdW5jdGlvbnMYCCADKAsyLS51bm1hbmdvLmRldi50ZGwudjFhbHBoYTEuU3BlYy5GdW5jdGlvbnNFbnRyeRI3CgRtZXRhGIABIAMoCzIoLnVubWFuZ28uZGV2LnRkbC52MWFscGhhMS5TcGVjLk1ldGFFbnRyeRotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBGkwKClR5cGVzRW50cnkSCwoDa2V5GAEgASgJEi0KBXZhbHVlGAIgASgLMh4udW5tYW5nby5kZXYudGRsLnYxYWxwaGExLlR5cGU6AjgBGlQKDkZ1bmN0aW9uc0VudHJ5EgsKA2tleRgBIAEoCRIxCgV2YWx1ZRgCIAEoCzIiLnVubWFuZ28uZGV2LnRkbC52MWFscGhhMS5GdW5jdGlvbjoCOAEaQQoJTWV0YUVudHJ5EgsKA2tleRgBIAEoCRIjCgV2YWx1ZRgCIAEoCzIULmdvb2dsZS5wcm90b2J1Zi5Bbnk6AjgBIrgFCgRUeXBlEgwKBHR5cGUYASABKAkSOgoGZmllbGRzGAIgAygLMioudW5tYW5nby5kZXYudGRsLnYxYWxwaGExLlR5cGUuRmllbGRzRW50cnkSPAoHbWV0aG9kcxgDIAMoCzIrLnVubWFuZ28uZGV2LnRkbC52MWFscGhhMS5UeXBlLk1ldGhvZHNFbnRyeRJRChJnZW5lcmljX3BhcmFtZXRlcnMYBCADKAsyNS51bm1hbmdvLmRldi50ZGwudjFhbHBoYTEuVHlwZS5HZW5lcmljUGFyYW1ldGVyc0VudHJ5Ej8KC2NvbnN0cnVjdG9yGAUgASgLMiUudW5tYW5nby5kZXYudGRsLnYxYWxwaGExLkNvbnN0cnVjdG9ySACIAQESNwoEbWV0YRiAASADKAsyKC51bm1hbmdvLmRldi50ZGwudjFhbHBoYTEuVHlwZS5NZXRhRW50cnkaTgoLRmllbGRzRW50cnkSCwoDa2V5GAEgASgJEi4KBXZhbHVlGAIgASgLMh8udW5tYW5nby5kZXYudGRsLnYxYWxwaGExLkZpZWxkOgI4ARpSCgxNZXRob2RzRW50cnkSCwoDa2V5GAEgASgJEjEKBXZhbHVlGAIgASgLMiIudW5tYW5nby5kZXYudGRsLnYxYWxwaGExLkZ1bmN0aW9uOgI4ARpkChZHZW5lcmljUGFyYW1ldGVyc0VudHJ5EgsKA2tleRgBIAEoCRI5CgV2YWx1ZRgCIAEoCzIqLnVubWFuZ28uZGV2LnRkbC52MWFscGhhMS5HZW5lcmljUGFyYW1ldGVyOgI4ARpBCglNZXRhRW50cnkSCwoDa2V5GAEgASgJEiMKBXZhbHVlGAIgASgLMhQuZ29vZ2xlLnByb3RvYnVmLkFueToCOAFCDgoMX2NvbnN0cnVjdG9yIqQBCgVGaWVsZBIMCgR0eXBlGAEgASgJEhAKCHJlYWRvbmx5GAIgASgIEjgKBG1ldGEYgAEgAygLMikudW5tYW5nby5kZXYudGRsLnYxYWxwaGExLkZpZWxkLk1ldGFFbnRyeRpBCglNZXRhRW50cnkSCwoDa2V5GAEgASgJEiMKBXZhbHVlGAIgASgLMhQuZ29vZ2xlLnByb3RvYnVmLkFueToCOAEilwQKCEZ1bmN0aW9uEjMKC3JldHVybl90eXBlGAEgASgLMh4udW5tYW5nby5kZXYudGRsLnYxYWxwaGExLlR5cGUSRgoKcGFyYW1ldGVycxgCIAMoCzIyLnVubWFuZ28uZGV2LnRkbC52MWFscGhhMS5GdW5jdGlvbi5QYXJhbWV0ZXJzRW50cnkSVQoSZ2VuZXJpY19wYXJhbWV0ZXJzGAMgAygLMjkudW5tYW5nby5kZXYudGRsLnYxYWxwaGExLkZ1bmN0aW9uLkdlbmVyaWNQYXJhbWV0ZXJzRW50cnkSOwoEbWV0YRiAASADKAsyLC51bm1hbmdvLmRldi50ZGwudjFhbHBoYTEuRnVuY3Rpb24uTWV0YUVudHJ5GlEKD1BhcmFtZXRlcnNFbnRyeRILCgNrZXkYASABKAkSLQoFdmFsdWUYAiABKAsyHi51bm1hbmdvLmRldi50ZGwudjFhbHBoYTEuVHlwZToCOAEaZAoWR2VuZXJpY1BhcmFtZXRlcnNFbnRyeRILCgNrZXkYASABKAkSOQoFdmFsdWUYAiABKAsyKi51bm1hbmdvLmRldi50ZGwudjFhbHBoYTEuR2VuZXJpY1BhcmFtZXRlcjoCOAEaQQoJTWV0YUVudHJ5EgsKA2tleRgBIAEoCRIjCgV2YWx1ZRgCIAEoCzIULmdvb2dsZS5wcm90b2J1Zi5Bbnk6AjgBItEBChBHZW5lcmljUGFyYW1ldGVyEjUKCW1vZGlmaWVycxgBIAMoCzIiLnVubWFuZ28uZGV2LnRkbC52MWFscGhhMS5Nb2RpZmllchJDCgRtZXRhGIABIAMoCzI0LnVubWFuZ28uZGV2LnRkbC52MWFscGhhMS5HZW5lcmljUGFyYW1ldGVyLk1ldGFFbnRyeRpBCglNZXRhRW50cnkSCwoDa2V5GAEgASgJEiMKBXZhbHVlGAIgASgLMhQuZ29vZ2xlLnByb3RvYnVmLkFueToCOAEiigEKCE1vZGlmaWVyEjsKBG1ldGEYgAEgAygLMiwudW5tYW5nby5kZXYudGRsLnYxYWxwaGExLk1vZGlmaWVyLk1ldGFFbnRyeRpBCglNZXRhRW50cnkSCwoDa2V5GAEgASgJEiMKBXZhbHVlGAIgASgLMhQuZ29vZ2xlLnByb3RvYnVmLkFueToCOAEirgIKC0NvbnN0cnVjdG9yEkkKCnBhcmFtZXRlcnMYASADKAsyNS51bm1hbmdvLmRldi50ZGwudjFhbHBoYTEuQ29uc3RydWN0b3IuUGFyYW1ldGVyc0VudHJ5Ej4KBG1ldGEYgAEgAygLMi8udW5tYW5nby5kZXYudGRsLnYxYWxwaGExLkNvbnN0cnVjdG9yLk1ldGFFbnRyeRpRCg9QYXJhbWV0ZXJzRW50cnkSCwoDa2V5GAEgASgJEi0KBXZhbHVlGAIgASgLMh4udW5tYW5nby5kZXYudGRsLnYxYWxwaGExLlR5cGU6AjgBGkEKCU1ldGFFbnRyeRILCgNrZXkYASABKAkSIwoFdmFsdWUYAiABKAsyFC5nb29nbGUucHJvdG9idWYuQW55OgI4AUL2AQocY29tLnVubWFuZ28uZGV2LnRkbC52MWFscGhhMUIJU3BlY1Byb3RvUAFaSGdpdGh1Yi5jb20vdW5zdG9wcGFibGVtYW5nby90ZGwvcGtnL3VubWFuZ28vZGV2L3RkbC92MWFscGhhMTt0ZGx2MWFscGhhMaICA1VEVKoCGFVubWFuZ28uRGV2LlRkbC5WMWFscGhhMcoCGFVubWFuZ29cRGV2XFRkbFxWMWFscGhhMeICJFVubWFuZ29cRGV2XFRkbFxWMWFscGhhMVxHUEJNZXRhZGF0YeoCG1VubWFuZ286OkRldjo6VGRsOjpWMWFscGhhMWIGcHJvdG8z", [file_google_protobuf_any]);
+	fileDesc(
+		'CiN1bm1hbmdvL2Rldi90ZGwvdjFhbHBoYTEvc3BlYy5wcm90bxIYdW5tYW5nby5kZXYudGRsLnYxYWxwaGExIucECgRTcGVjEgwKBG5hbWUYASABKAkSDgoGc291cmNlGAIgASgJEg8KB3ZlcnNpb24YAyABKAkSFAoMZGlzcGxheV9uYW1lGAQgASgJEhMKC2Rlc2NyaXB0aW9uGAUgASgJEjoKBmxhYmVscxgGIAMoCzIqLnVubWFuZ28uZGV2LnRkbC52MWFscGhhMS5TcGVjLkxhYmVsc0VudHJ5EjgKBXR5cGVzGAcgAygLMikudW5tYW5nby5kZXYudGRsLnYxYWxwaGExLlNwZWMuVHlwZXNFbnRyeRJACglmdW5jdGlvbnMYCCADKAsyLS51bm1hbmdvLmRldi50ZGwudjFhbHBoYTEuU3BlYy5GdW5jdGlvbnNFbnRyeRI3CgRtZXRhGIABIAMoCzIoLnVubWFuZ28uZGV2LnRkbC52MWFscGhhMS5TcGVjLk1ldGFFbnRyeRotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBGkwKClR5cGVzRW50cnkSCwoDa2V5GAEgASgJEi0KBXZhbHVlGAIgASgLMh4udW5tYW5nby5kZXYudGRsLnYxYWxwaGExLlR5cGU6AjgBGlQKDkZ1bmN0aW9uc0VudHJ5EgsKA2tleRgBIAEoCRIxCgV2YWx1ZRgCIAEoCzIiLnVubWFuZ28uZGV2LnRkbC52MWFscGhhMS5GdW5jdGlvbjoCOAEaQQoJTWV0YUVudHJ5EgsKA2tleRgBIAEoCRIjCgV2YWx1ZRgCIAEoCzIULmdvb2dsZS5wcm90b2J1Zi5Bbnk6AjgBIrgFCgRUeXBlEgwKBHR5cGUYASABKAkSOgoGZmllbGRzGAIgAygLMioudW5tYW5nby5kZXYudGRsLnYxYWxwaGExLlR5cGUuRmllbGRzRW50cnkSPAoHbWV0aG9kcxgDIAMoCzIrLnVubWFuZ28uZGV2LnRkbC52MWFscGhhMS5UeXBlLk1ldGhvZHNFbnRyeRJRChJnZW5lcmljX3BhcmFtZXRlcnMYBCADKAsyNS51bm1hbmdvLmRldi50ZGwudjFhbHBoYTEuVHlwZS5HZW5lcmljUGFyYW1ldGVyc0VudHJ5Ej8KC2NvbnN0cnVjdG9yGAUgASgLMiUudW5tYW5nby5kZXYudGRsLnYxYWxwaGExLkNvbnN0cnVjdG9ySACIAQESNwoEbWV0YRiAASADKAsyKC51bm1hbmdvLmRldi50ZGwudjFhbHBoYTEuVHlwZS5NZXRhRW50cnkaTgoLRmllbGRzRW50cnkSCwoDa2V5GAEgASgJEi4KBXZhbHVlGAIgASgLMh8udW5tYW5nby5kZXYudGRsLnYxYWxwaGExLkZpZWxkOgI4ARpSCgxNZXRob2RzRW50cnkSCwoDa2V5GAEgASgJEjEKBXZhbHVlGAIgASgLMiIudW5tYW5nby5kZXYudGRsLnYxYWxwaGExLkZ1bmN0aW9uOgI4ARpkChZHZW5lcmljUGFyYW1ldGVyc0VudHJ5EgsKA2tleRgBIAEoCRI5CgV2YWx1ZRgCIAEoCzIqLnVubWFuZ28uZGV2LnRkbC52MWFscGhhMS5HZW5lcmljUGFyYW1ldGVyOgI4ARpBCglNZXRhRW50cnkSCwoDa2V5GAEgASgJEiMKBXZhbHVlGAIgASgLMhQuZ29vZ2xlLnByb3RvYnVmLkFueToCOAFCDgoMX2NvbnN0cnVjdG9yIqQBCgVGaWVsZBIMCgR0eXBlGAEgASgJEhAKCHJlYWRvbmx5GAIgASgIEjgKBG1ldGEYgAEgAygLMikudW5tYW5nby5kZXYudGRsLnYxYWxwaGExLkZpZWxkLk1ldGFFbnRyeRpBCglNZXRhRW50cnkSCwoDa2V5GAEgASgJEiMKBXZhbHVlGAIgASgLMhQuZ29vZ2xlLnByb3RvYnVmLkFueToCOAEilwQKCEZ1bmN0aW9uEjMKC3JldHVybl90eXBlGAEgASgLMh4udW5tYW5nby5kZXYudGRsLnYxYWxwaGExLlR5cGUSRgoKcGFyYW1ldGVycxgCIAMoCzIyLnVubWFuZ28uZGV2LnRkbC52MWFscGhhMS5GdW5jdGlvbi5QYXJhbWV0ZXJzRW50cnkSVQoSZ2VuZXJpY19wYXJhbWV0ZXJzGAMgAygLMjkudW5tYW5nby5kZXYudGRsLnYxYWxwaGExLkZ1bmN0aW9uLkdlbmVyaWNQYXJhbWV0ZXJzRW50cnkSOwoEbWV0YRiAASADKAsyLC51bm1hbmdvLmRldi50ZGwudjFhbHBoYTEuRnVuY3Rpb24uTWV0YUVudHJ5GlEKD1BhcmFtZXRlcnNFbnRyeRILCgNrZXkYASABKAkSLQoFdmFsdWUYAiABKAsyHi51bm1hbmdvLmRldi50ZGwudjFhbHBoYTEuVHlwZToCOAEaZAoWR2VuZXJpY1BhcmFtZXRlcnNFbnRyeRILCgNrZXkYASABKAkSOQoFdmFsdWUYAiABKAsyKi51bm1hbmdvLmRldi50ZGwudjFhbHBoYTEuR2VuZXJpY1BhcmFtZXRlcjoCOAEaQQoJTWV0YUVudHJ5EgsKA2tleRgBIAEoCRIjCgV2YWx1ZRgCIAEoCzIULmdvb2dsZS5wcm90b2J1Zi5Bbnk6AjgBItEBChBHZW5lcmljUGFyYW1ldGVyEjUKCW1vZGlmaWVycxgBIAMoCzIiLnVubWFuZ28uZGV2LnRkbC52MWFscGhhMS5Nb2RpZmllchJDCgRtZXRhGIABIAMoCzI0LnVubWFuZ28uZGV2LnRkbC52MWFscGhhMS5HZW5lcmljUGFyYW1ldGVyLk1ldGFFbnRyeRpBCglNZXRhRW50cnkSCwoDa2V5GAEgASgJEiMKBXZhbHVlGAIgASgLMhQuZ29vZ2xlLnByb3RvYnVmLkFueToCOAEiigEKCE1vZGlmaWVyEjsKBG1ldGEYgAEgAygLMiwudW5tYW5nby5kZXYudGRsLnYxYWxwaGExLk1vZGlmaWVyLk1ldGFFbnRyeRpBCglNZXRhRW50cnkSCwoDa2V5GAEgASgJEiMKBXZhbHVlGAIgASgLMhQuZ29vZ2xlLnByb3RvYnVmLkFueToCOAEirgIKC0NvbnN0cnVjdG9yEkkKCnBhcmFtZXRlcnMYASADKAsyNS51bm1hbmdvLmRldi50ZGwudjFhbHBoYTEuQ29uc3RydWN0b3IuUGFyYW1ldGVyc0VudHJ5Ej4KBG1ldGEYgAEgAygLMi8udW5tYW5nby5kZXYudGRsLnYxYWxwaGExLkNvbnN0cnVjdG9yLk1ldGFFbnRyeRpRCg9QYXJhbWV0ZXJzRW50cnkSCwoDa2V5GAEgASgJEi0KBXZhbHVlGAIgASgLMh4udW5tYW5nby5kZXYudGRsLnYxYWxwaGExLlR5cGU6AjgBGkEKCU1ldGFFbnRyeRILCgNrZXkYASABKAkSIwoFdmFsdWUYAiABKAsyFC5nb29nbGUucHJvdG9idWYuQW55OgI4AUL2AQocY29tLnVubWFuZ28uZGV2LnRkbC52MWFscGhhMUIJU3BlY1Byb3RvUAFaSGdpdGh1Yi5jb20vdW5zdG9wcGFibGVtYW5nby90ZGwvcGtnL3VubWFuZ28vZGV2L3RkbC92MWFscGhhMTt0ZGx2MWFscGhhMaICA1VEVKoCGFVubWFuZ28uRGV2LlRkbC5WMWFscGhhMcoCGFVubWFuZ29cRGV2XFRkbFxWMWFscGhhMeICJFVubWFuZ29cRGV2XFRkbFxWMWFscGhhMVxHUEJNZXRhZGF0YeoCG1VubWFuZ286OkRldjo6VGRsOjpWMWFscGhhMWIGcHJvdG8z',
+		[file_google_protobuf_any],
+	);
 
 /**
  * @generated from message unmango.dev.tdl.v1alpha1.Spec
  */
-export type Spec = Message<"unmango.dev.tdl.v1alpha1.Spec"> & {
-  /**
-   * @generated from field: string name = 1;
-   */
-  name: string;
+export type Spec = Message<'unmango.dev.tdl.v1alpha1.Spec'> & {
+	/**
+	 * @generated from field: string name = 1;
+	 */
+	name: string;
 
-  /**
-   * @generated from field: string source = 2;
-   */
-  source: string;
+	/**
+	 * @generated from field: string source = 2;
+	 */
+	source: string;
 
-  /**
-   * @generated from field: string version = 3;
-   */
-  version: string;
+	/**
+	 * @generated from field: string version = 3;
+	 */
+	version: string;
 
-  /**
-   * @generated from field: string display_name = 4;
-   */
-  displayName: string;
+	/**
+	 * @generated from field: string display_name = 4;
+	 */
+	displayName: string;
 
-  /**
-   * @generated from field: string description = 5;
-   */
-  description: string;
+	/**
+	 * @generated from field: string description = 5;
+	 */
+	description: string;
 
-  /**
-   * @generated from field: map<string, string> labels = 6;
-   */
-  labels: { [key: string]: string };
+	/**
+	 * @generated from field: map<string, string> labels = 6;
+	 */
+	labels: { [key: string]: string };
 
-  /**
-   * @generated from field: map<string, unmango.dev.tdl.v1alpha1.Type> types = 7;
-   */
-  types: { [key: string]: Type };
+	/**
+	 * @generated from field: map<string, unmango.dev.tdl.v1alpha1.Type> types = 7;
+	 */
+	types: { [key: string]: Type };
 
-  /**
-   * @generated from field: map<string, unmango.dev.tdl.v1alpha1.Function> functions = 8;
-   */
-  functions: { [key: string]: Function };
+	/**
+	 * @generated from field: map<string, unmango.dev.tdl.v1alpha1.Function> functions = 8;
+	 */
+	functions: { [key: string]: Function };
 
-  /**
-   * @generated from field: map<string, google.protobuf.Any> meta = 128;
-   */
-  meta: { [key: string]: Any };
+	/**
+	 * @generated from field: map<string, google.protobuf.Any> meta = 128;
+	 */
+	meta: { [key: string]: Any };
 };
 
 /**
@@ -69,41 +72,41 @@ export type Spec = Message<"unmango.dev.tdl.v1alpha1.Spec"> & {
  * Use `create(SpecSchema)` to create a new message.
  */
 export const SpecSchema: GenMessage<Spec> = /*@__PURE__*/
-  messageDesc(file_unmango_dev_tdl_v1alpha1_spec, 0);
+	messageDesc(file_unmango_dev_tdl_v1alpha1_spec, 0);
 
 /**
  * @generated from message unmango.dev.tdl.v1alpha1.Type
  */
-export type Type = Message<"unmango.dev.tdl.v1alpha1.Type"> & {
-  /**
-   * @generated from field: string type = 1;
-   */
-  type: string;
+export type Type = Message<'unmango.dev.tdl.v1alpha1.Type'> & {
+	/**
+	 * @generated from field: string type = 1;
+	 */
+	type: string;
 
-  /**
-   * @generated from field: map<string, unmango.dev.tdl.v1alpha1.Field> fields = 2;
-   */
-  fields: { [key: string]: Field };
+	/**
+	 * @generated from field: map<string, unmango.dev.tdl.v1alpha1.Field> fields = 2;
+	 */
+	fields: { [key: string]: Field };
 
-  /**
-   * @generated from field: map<string, unmango.dev.tdl.v1alpha1.Function> methods = 3;
-   */
-  methods: { [key: string]: Function };
+	/**
+	 * @generated from field: map<string, unmango.dev.tdl.v1alpha1.Function> methods = 3;
+	 */
+	methods: { [key: string]: Function };
 
-  /**
-   * @generated from field: map<string, unmango.dev.tdl.v1alpha1.GenericParameter> generic_parameters = 4;
-   */
-  genericParameters: { [key: string]: GenericParameter };
+	/**
+	 * @generated from field: map<string, unmango.dev.tdl.v1alpha1.GenericParameter> generic_parameters = 4;
+	 */
+	genericParameters: { [key: string]: GenericParameter };
 
-  /**
-   * @generated from field: optional unmango.dev.tdl.v1alpha1.Constructor constructor = 5;
-   */
-  constructor$?: Constructor;
+	/**
+	 * @generated from field: optional unmango.dev.tdl.v1alpha1.Constructor constructor = 5;
+	 */
+	constructor$?: Constructor;
 
-  /**
-   * @generated from field: map<string, google.protobuf.Any> meta = 128;
-   */
-  meta: { [key: string]: Any };
+	/**
+	 * @generated from field: map<string, google.protobuf.Any> meta = 128;
+	 */
+	meta: { [key: string]: Any };
 };
 
 /**
@@ -111,26 +114,26 @@ export type Type = Message<"unmango.dev.tdl.v1alpha1.Type"> & {
  * Use `create(TypeSchema)` to create a new message.
  */
 export const TypeSchema: GenMessage<Type> = /*@__PURE__*/
-  messageDesc(file_unmango_dev_tdl_v1alpha1_spec, 1);
+	messageDesc(file_unmango_dev_tdl_v1alpha1_spec, 1);
 
 /**
  * @generated from message unmango.dev.tdl.v1alpha1.Field
  */
-export type Field = Message<"unmango.dev.tdl.v1alpha1.Field"> & {
-  /**
-   * @generated from field: string type = 1;
-   */
-  type: string;
+export type Field = Message<'unmango.dev.tdl.v1alpha1.Field'> & {
+	/**
+	 * @generated from field: string type = 1;
+	 */
+	type: string;
 
-  /**
-   * @generated from field: bool readonly = 2;
-   */
-  readonly: boolean;
+	/**
+	 * @generated from field: bool readonly = 2;
+	 */
+	readonly: boolean;
 
-  /**
-   * @generated from field: map<string, google.protobuf.Any> meta = 128;
-   */
-  meta: { [key: string]: Any };
+	/**
+	 * @generated from field: map<string, google.protobuf.Any> meta = 128;
+	 */
+	meta: { [key: string]: Any };
 };
 
 /**
@@ -138,31 +141,31 @@ export type Field = Message<"unmango.dev.tdl.v1alpha1.Field"> & {
  * Use `create(FieldSchema)` to create a new message.
  */
 export const FieldSchema: GenMessage<Field> = /*@__PURE__*/
-  messageDesc(file_unmango_dev_tdl_v1alpha1_spec, 2);
+	messageDesc(file_unmango_dev_tdl_v1alpha1_spec, 2);
 
 /**
  * @generated from message unmango.dev.tdl.v1alpha1.Function
  */
-export type Function = Message<"unmango.dev.tdl.v1alpha1.Function"> & {
-  /**
-   * @generated from field: unmango.dev.tdl.v1alpha1.Type return_type = 1;
-   */
-  returnType?: Type;
+export type Function = Message<'unmango.dev.tdl.v1alpha1.Function'> & {
+	/**
+	 * @generated from field: unmango.dev.tdl.v1alpha1.Type return_type = 1;
+	 */
+	returnType?: Type;
 
-  /**
-   * @generated from field: map<string, unmango.dev.tdl.v1alpha1.Type> parameters = 2;
-   */
-  parameters: { [key: string]: Type };
+	/**
+	 * @generated from field: map<string, unmango.dev.tdl.v1alpha1.Type> parameters = 2;
+	 */
+	parameters: { [key: string]: Type };
 
-  /**
-   * @generated from field: map<string, unmango.dev.tdl.v1alpha1.GenericParameter> generic_parameters = 3;
-   */
-  genericParameters: { [key: string]: GenericParameter };
+	/**
+	 * @generated from field: map<string, unmango.dev.tdl.v1alpha1.GenericParameter> generic_parameters = 3;
+	 */
+	genericParameters: { [key: string]: GenericParameter };
 
-  /**
-   * @generated from field: map<string, google.protobuf.Any> meta = 128;
-   */
-  meta: { [key: string]: Any };
+	/**
+	 * @generated from field: map<string, google.protobuf.Any> meta = 128;
+	 */
+	meta: { [key: string]: Any };
 };
 
 /**
@@ -170,21 +173,21 @@ export type Function = Message<"unmango.dev.tdl.v1alpha1.Function"> & {
  * Use `create(FunctionSchema)` to create a new message.
  */
 export const FunctionSchema: GenMessage<Function> = /*@__PURE__*/
-  messageDesc(file_unmango_dev_tdl_v1alpha1_spec, 3);
+	messageDesc(file_unmango_dev_tdl_v1alpha1_spec, 3);
 
 /**
  * @generated from message unmango.dev.tdl.v1alpha1.GenericParameter
  */
-export type GenericParameter = Message<"unmango.dev.tdl.v1alpha1.GenericParameter"> & {
-  /**
-   * @generated from field: repeated unmango.dev.tdl.v1alpha1.Modifier modifiers = 1;
-   */
-  modifiers: Modifier[];
+export type GenericParameter = Message<'unmango.dev.tdl.v1alpha1.GenericParameter'> & {
+	/**
+	 * @generated from field: repeated unmango.dev.tdl.v1alpha1.Modifier modifiers = 1;
+	 */
+	modifiers: Modifier[];
 
-  /**
-   * @generated from field: map<string, google.protobuf.Any> meta = 128;
-   */
-  meta: { [key: string]: Any };
+	/**
+	 * @generated from field: map<string, google.protobuf.Any> meta = 128;
+	 */
+	meta: { [key: string]: Any };
 };
 
 /**
@@ -192,16 +195,16 @@ export type GenericParameter = Message<"unmango.dev.tdl.v1alpha1.GenericParamete
  * Use `create(GenericParameterSchema)` to create a new message.
  */
 export const GenericParameterSchema: GenMessage<GenericParameter> = /*@__PURE__*/
-  messageDesc(file_unmango_dev_tdl_v1alpha1_spec, 4);
+	messageDesc(file_unmango_dev_tdl_v1alpha1_spec, 4);
 
 /**
  * @generated from message unmango.dev.tdl.v1alpha1.Modifier
  */
-export type Modifier = Message<"unmango.dev.tdl.v1alpha1.Modifier"> & {
-  /**
-   * @generated from field: map<string, google.protobuf.Any> meta = 128;
-   */
-  meta: { [key: string]: Any };
+export type Modifier = Message<'unmango.dev.tdl.v1alpha1.Modifier'> & {
+	/**
+	 * @generated from field: map<string, google.protobuf.Any> meta = 128;
+	 */
+	meta: { [key: string]: Any };
 };
 
 /**
@@ -209,21 +212,21 @@ export type Modifier = Message<"unmango.dev.tdl.v1alpha1.Modifier"> & {
  * Use `create(ModifierSchema)` to create a new message.
  */
 export const ModifierSchema: GenMessage<Modifier> = /*@__PURE__*/
-  messageDesc(file_unmango_dev_tdl_v1alpha1_spec, 5);
+	messageDesc(file_unmango_dev_tdl_v1alpha1_spec, 5);
 
 /**
  * @generated from message unmango.dev.tdl.v1alpha1.Constructor
  */
-export type Constructor = Message<"unmango.dev.tdl.v1alpha1.Constructor"> & {
-  /**
-   * @generated from field: map<string, unmango.dev.tdl.v1alpha1.Type> parameters = 1;
-   */
-  parameters: { [key: string]: Type };
+export type Constructor = Message<'unmango.dev.tdl.v1alpha1.Constructor'> & {
+	/**
+	 * @generated from field: map<string, unmango.dev.tdl.v1alpha1.Type> parameters = 1;
+	 */
+	parameters: { [key: string]: Type };
 
-  /**
-   * @generated from field: map<string, google.protobuf.Any> meta = 128;
-   */
-  meta: { [key: string]: Any };
+	/**
+	 * @generated from field: map<string, google.protobuf.Any> meta = 128;
+	 */
+	meta: { [key: string]: Any };
 };
 
 /**
@@ -231,5 +234,4 @@ export type Constructor = Message<"unmango.dev.tdl.v1alpha1.Constructor"> & {
  * Use `create(ConstructorSchema)` to create a new message.
  */
 export const ConstructorSchema: GenMessage<Constructor> = /*@__PURE__*/
-  messageDesc(file_unmango_dev_tdl_v1alpha1_spec, 6);
-
+	messageDesc(file_unmango_dev_tdl_v1alpha1_spec, 6);
