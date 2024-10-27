@@ -33,7 +33,7 @@ TEST_FLAGS := --github-output --race --trace
 endif
 
 build: generate bin/ux bin/devops .make/buf_build packages/tdl/dist packages/ts/dist
-test: ${GO_REPORTS}
+test: ${GO_REPORTS} .make/ts_test
 generate: ${GO_PB_SRC}
 format: .make/dprint
 lint: .make/buf_lint
@@ -93,6 +93,9 @@ go.mod:
 
 go.sum: go.mod ${GO_SRC}
 	go mod tidy && touch $@
+
+.make/ts_test:
+	bun test --cwd packages/ts
 
 .make/buf_build: buf.yaml ${PROTO_SRC} | bin/buf
 	$(BUF) build
