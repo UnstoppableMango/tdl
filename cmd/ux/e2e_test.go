@@ -34,6 +34,7 @@ func ExecuteIO(input io.Reader, output io.Writer) error {
 	cmd := exec.Command(bin, "gen", "ts")
 	cmd.Stdin = input
 	cmd.Stdout = output
+	cmd.Stderr = output
 
 	return cmd.Run()
 }
