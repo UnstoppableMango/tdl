@@ -21,7 +21,7 @@ types:
 ```
 
 ```shell
-$ um gen ts myTypes.uml
+$ ux gen ts myTypes.uml
 Wrote 69B to ./myTypes.ts
 ```
 
