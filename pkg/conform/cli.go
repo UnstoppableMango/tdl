@@ -3,7 +3,6 @@ package conform
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"os"
 	"os/exec"
 
@@ -22,7 +21,7 @@ func CliTests(description, binary string, args []string) {
 	// is at least semi-aware of conformance tests
 	execArgs := append(args, "--conformance-test")
 
-	ginkgo.Describe(fmt.Sprintf("%s: CLI: %s %s", description, binary, args), func() {
+	ginkgo.Describe(description, func() {
 		ginkgo.It("should stat", func() {
 			_, err := os.Stat(binary)
 
