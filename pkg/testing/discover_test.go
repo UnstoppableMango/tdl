@@ -17,6 +17,6 @@ var _ = Describe("Discover", func() {
 		tests, err := testing.Discover(fsys, "testdata/validroot")
 
 		Expect(err).NotTo(HaveOccurred())
-		Expect(tests).NotTo(BeEmpty())
+		Expect(tests).To(HaveLen(2))
 	})
 })

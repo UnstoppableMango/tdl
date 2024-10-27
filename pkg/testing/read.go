@@ -56,12 +56,12 @@ func readTestData(fsys afero.Fs, path string, test *Test) error {
 	}
 
 	name := filepath.Base(path)
-	if strings.Contains(name, "input") {
+	if strings.Contains(name, "input") || strings.Contains(name, "source") {
 		log.Debug("read input data", "len", len(data))
 		test.Input = data
 		return nil
 	}
-	if strings.Contains(name, "output") {
+	if strings.Contains(name, "output") || strings.Contains(name, "target") {
 		log.Debug("read output data", "len", len(data))
 		test.Output = data
 		return nil

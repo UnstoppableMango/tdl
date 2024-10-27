@@ -19,4 +19,15 @@ var _ = Describe("Read", func() {
 		Expect(test.Input).NotTo(BeNil())
 		Expect(test.Output).NotTo(BeNil())
 	})
+
+	It("should read source and target inputs", func() {
+		fsys := afero.FromIOFS{FS: testdata}
+		test, err := testing.ReadTest(fsys, "testdata/validroot/source_target")
+
+		Expect(err).NotTo(HaveOccurred())
+		Expect(test).NotTo(BeNil())
+		Expect(test.Name).To(Equal("source_target"))
+		Expect(test.Input).NotTo(BeNil())
+		Expect(test.Output).NotTo(BeNil())
+	})
 })
