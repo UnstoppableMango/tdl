@@ -10,17 +10,17 @@ import (
 	"github.com/unstoppablemango/tdl/pkg/testing"
 )
 
-// IOSuite is a helper function for defining IOTests
+// IOSuite is a helper function for defining IOTests.
+// It calls IOTest for each testing.Test in tests
+//
 // IOSuite MUST be called during the Ginkgo test construction phase
-func IOSuite(description string, tests []*testing.Test, generator io.PipelineFunc) bool {
-	return ginkgo.Describe(description, func() {
-		for _, test := range tests {
-			_ = IOTest(test, generator)
-		}
-	})
+func IOSuite(tests []*testing.Test, generator io.PipelineFunc) {
+	for _, test := range tests {
+		_ = IOTest(test, generator)
+	}
 }
 
-// IOTest asserts that given test.Input generator produces test.Output
+// IOTest asserts that given [test.Input] [generator] produces [test.Output]
 func IOTest(test *testing.Test, generator io.PipelineFunc) bool {
 	return ginkgo.It(fmt.Sprintf("should pass: %s", test.Name), func() {
 		expected := string(test.Output)

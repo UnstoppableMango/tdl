@@ -12,7 +12,10 @@ import (
 )
 
 var _ = Describe("End to end", func() {
-	conform.CliTests("CLI Conformance", bin, []string{"gen", "ts"})
+	Describe("CLI Conformance", func() {
+		conform.CliTests(bin, []string{"gen", "ts"})
+	})
+
 	conform.IOSuite("TypeScript Conformance", typescriptSuite, ExecuteIO)
 
 	It("should pass my excessive sanity check", func() {
