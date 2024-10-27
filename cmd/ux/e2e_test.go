@@ -2,6 +2,8 @@ package main_test
 
 import (
 	"context"
+	"errors"
+	"io"
 	"os/exec"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -11,6 +13,7 @@ import (
 
 var _ = Describe("End to end", func() {
 	conform.CliTests("ux e2e", bin, []string{"gen", "ts"})
+	conform.IOSuite("TypeScript Suite", typescriptSuite, ExecuteIO)
 
 	It("should pass my excessive sanity check", func() {
 		Expect(bin).NotTo(BeEmpty())
@@ -22,3 +25,15 @@ var _ = Describe("End to end", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 })
+
+func ExecuteIO(input io.Reader, output io.Writer) error {
+	if bin == "" {
+		return errors.New("test has not been initialized: bin was empty")
+	}
+
+	cmd := exec.Command(bin, "gen", "ts")
+	cmd.Stdin = input
+	cmd.Stdout = output
+
+	return cmd.Run()
+}
