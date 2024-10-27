@@ -16,7 +16,9 @@ var _ = Describe("End to end", func() {
 		conform.CliTests(bin, []string{"gen", "ts"})
 	})
 
-	conform.IOSuite("TypeScript Conformance", typescriptSuite, ExecuteIO)
+	Describe("TypeScript Conformance", func() {
+		conform.IOSuite(typescriptSuite, ExecuteIO)
+	})
 
 	It("should pass my excessive sanity check", func() {
 		Expect(bin).NotTo(BeEmpty())
