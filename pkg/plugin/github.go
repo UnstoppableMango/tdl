@@ -12,7 +12,6 @@ import (
 	"runtime"
 
 	"github.com/google/go-github/v66/github"
-	"github.com/unstoppablemango/tdl/pkg/cache"
 )
 
 var (
@@ -26,7 +25,6 @@ var (
 
 type githubClient struct {
 	client *github.Client
-	cache  cache.Cache
 	log    *slog.Logger
 }
 
@@ -75,11 +73,11 @@ func (c githubClient) cacheAsset(ctx context.Context, asset *github.ReleaseAsset
 			return err
 		}
 
-		log.Debug("caching tar entry", "name", h.Name)
-		err = c.cache.Add(h.Name, tarFile)
-		if err != nil {
-			return err
-		}
+		log.Debug("found tar entry", "name", h.Name)
+		// err = c.cache.Add(h.Name, tarFile)
+		// if err != nil {
+		// 	return err
+		// }
 
 		h, err = tarFile.Next()
 	}

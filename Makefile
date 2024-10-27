@@ -22,8 +22,7 @@ TS_SRC    := $(shell find packages -name '*.ts' -not -path '*/node_modules/*')
 PROTO_SRC := $(shell $(DEVOPS) list --proto)
 GO_PB_SRC ?= ${PROTO_SRC:proto/%.proto=pkg/%.pb.go}
 
-# Temporarily focusing on cmd/ux
-GO_SUITES  := $(filter cmd/ux/%_suite_test.go,${GO_SRC})
+GO_SUITES  := $(filter %_suite_test.go,${GO_SRC})
 GO_REPORTS := $(addsuffix report.json,$(dir ${GO_SUITES}))
 
 ifeq ($(CI),)
