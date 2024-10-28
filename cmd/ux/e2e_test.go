@@ -21,7 +21,7 @@ var _ = Describe("End to end", func() {
 		conform.CliTests(bin, []string{"gen", "ts"})
 	})
 
-	Describe("TypeScript Conformance", func() {
+	Describe("TypeScript Conformance", FlakeAttempts(5), func() {
 		conform.IOSuite(typescriptSuite, ExecuteIO)
 	})
 

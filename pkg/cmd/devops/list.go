@@ -16,12 +16,71 @@ import (
 var Blacklist = []string{
 	"node_modules",
 	"bin", "obj",
+	"pcl",
+	".tdl-old",
+	".uml2ts-old",
+	"testdata",
+	".idea",
+	".vscode",
+	".git",
 }
 
 type ListOptions struct {
-	Absolute bool
-	Go       bool
-	Proto    bool
+	Absolute   bool
+	Go         bool
+	Proto      bool
+	Typescript bool
+}
+
+type printer struct {
+	Opts    *ListOptions
+	Sources []string
+	Root    string
+}
+
+func (o *ListOptions) sources() []string {
+	sources := []string{}
+	if o.Go {
+		sources = append(sources, ".go")
+	}
+	if o.Proto {
+		sources = append(sources, ".proto")
+	}
+	if o.Typescript {
+		sources = append(sources, ".ts")
+	}
+
+	return sources
+}
+
+func (o *ListOptions) printer(root string) *printer {
+	return &printer{
+		Opts:    o,
+		Sources: o.sources(),
+		Root:    root,
+	}
+}
+
+func (p *printer) shouldPrint(path string) bool {
+	if len(p.Sources) == 0 {
+		return true
+	}
+
+	return slices.Contains(p.Sources, filepath.Ext(path))
+}
+
+func (p *printer) handle(path string) error {
+	if !p.shouldPrint(path) {
+		return nil
+	}
+
+	rel, err := filepath.Rel(p.Root, path)
+	if err != nil {
+		return err
+	}
+
+	_, err = fmt.Println(rel)
+	return err
 }
 
 func NewList(options *ListOptions) *cobra.Command {
@@ -44,25 +103,18 @@ func NewList(options *ListOptions) *cobra.Command {
 			root := strings.TrimSpace(string(revParse))
 			log.Debugf("walking root: %s", root)
 
+			printer := options.printer(root)
 			err = filepath.WalkDir(root,
 				func(path string, d fs.DirEntry, err error) error {
-					if blacklisted(path) {
-						return filepath.SkipDir
-					}
-					if options.Go && !strings.HasSuffix(path, ".go") {
-						return nil
-					}
-					if options.Proto && !strings.HasSuffix(path, ".proto") {
+					if d.IsDir() {
+						if blacklisted(path) {
+							return filepath.SkipDir
+						}
+
 						return nil
 					}
 
-					rel, err := filepath.Rel(root, path)
-					if err != nil {
-						return err
-					}
-
-					_, err = fmt.Println(rel)
-					return err
+					return printer.handle(path)
 				},
 			)
 			if err != nil {
@@ -73,7 +125,8 @@ func NewList(options *ListOptions) *cobra.Command {
 	}
 
 	cmd.Flags().BoolVar(&options.Absolute, "absolute", false, "Print fully qualified paths rather than paths relative to the git root")
-	cmd.Flags().BoolVar(&options.Go, "go", false, "List go sources")
+	cmd.Flags().BoolVar(&options.Go, "go", false, "List Go sources")
+	cmd.Flags().BoolVar(&options.Typescript, "ts", false, "List TypeScript sources")
 	cmd.Flags().BoolVar(&options.Proto, "proto", false, "List protobuf sources")
 
 	return cmd
