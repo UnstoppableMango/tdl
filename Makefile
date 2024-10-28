@@ -18,12 +18,12 @@ GINKGO   := ${LOCALBIN}/ginkgo
 export PATH := ${LOCALBIN}:${PATH}
 
 GO_SRC    := $(shell $(DEVOPS) list --go)
-TS_SRC    := $(shell find packages -name '*.ts' -not -path '*/node_modules/*')
+TS_SRC    := $(shell $(DEVOPS) list --ts)
 PROTO_SRC := $(shell $(DEVOPS) list --proto)
 GO_PB_SRC ?= ${PROTO_SRC:proto/%.proto=pkg/%.pb.go}
 
-GO_SUITES  := $(filter %_suite_test.go,${GO_SRC})
-GO_REPORTS := $(addsuffix report.json,$(dir ${GO_SUITES}))
+GO_SUITES  ?= $(filter %_suite_test.go,${GO_SRC})
+GO_REPORTS ?= $(addsuffix report.json,$(dir ${GO_SUITES}))
 
 ifeq ($(CI),)
 TEST_FLAGS := --json-report report.json --keep-separate-reports
