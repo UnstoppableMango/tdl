@@ -32,7 +32,7 @@ TEST_FLAGS := --github-output --race --trace
 endif
 
 build: generate bin/ux bin/devops .make/buf_build packages/tdl/dist packages/ts/dist
-test: ${GO_REPORTS} .make/ts_test
+test: .make/go_test .make/ts_test
 generate: ${GO_PB_SRC}
 format: .make/dprint
 lint: .make/buf_lint
@@ -49,10 +49,6 @@ ${GO_PB_SRC}: buf.gen.yaml ${PROTO_SRC} | bin/buf
 
 packages/%/dist:
 	bun run --cwd $(dir $@) build
-
-cmd/ux/report.json: ${TS_SRC} | bin/ux bin/uml2ts
-${GO_REPORTS} &: ${GO_SRC} | bin/ginkgo
-	$(GINKGO) run ${TEST_FLAGS} $(dir $@)
 
 %_suite_test.go: | bin/ginkgo
 	cd $(dir $@) && $(GINKGO) bootstrap
@@ -93,8 +89,13 @@ go.mod:
 go.sum: go.mod ${GO_SRC}
 	go mod tidy && touch $@
 
-.make/ts_test:
+.make/go_test: ${GO_SRC} | bin/ginkgo bin/ux bin/uml2ts
+	$(GINKGO) run ${TEST_FLAGS} $(sort $(dir $^))
+	@touch $@
+
+.make/ts_test: ${TS_SRC}
 	bun test --cwd packages/ts
+	@touch $@
 
 .make/buf_build: buf.yaml ${PROTO_SRC} | bin/buf
 	$(BUF) build

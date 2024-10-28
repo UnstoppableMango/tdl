@@ -16,6 +16,7 @@ import (
 var Blacklist = []string{
 	"node_modules",
 	"bin", "obj",
+	"pcl", "uml",
 }
 
 type ListOptions struct {
