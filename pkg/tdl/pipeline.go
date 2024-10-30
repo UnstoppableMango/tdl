@@ -22,10 +22,10 @@ func MapA[
 	A, B, T any,
 	PA Pipeline[A, T],
 	PB Pipeline[B, T],
-](p PA, f func(B, T) (A, T)) PB {
+](p PA, f func(B) A) PB {
 	return Map[A, T, B, T, PA, PB](p,
 		func(b B, t T) (A, T) {
-			return f(b, t)
+			return f(b), t
 		},
 	)
 }
@@ -34,10 +34,10 @@ func MapB[
 	A, B, T any,
 	PA Pipeline[T, A],
 	PB Pipeline[T, B],
-](p PA, f func(T, B) (T, A)) PB {
+](p PA, f func(B) A) PB {
 	return Map[T, A, T, B, PA, PB](p,
 		func(t T, b B) (T, A) {
-			return f(t, b)
+			return t, f(b)
 		},
 	)
 }
