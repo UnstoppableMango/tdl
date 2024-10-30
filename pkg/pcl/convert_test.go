@@ -1,20 +1,12 @@
 package pcl
 
 import (
-	"context"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pulumi/pulumi/pkg/v3/codegen/schema"
 )
 
 var _ = Describe("Convert", func() {
-	var converter PclConverter
-
-	BeforeEach(func() {
-		converter = Converter
-	})
-
 	It("should convert from pcl", func() {
 		pcl := schema.PackageSpec{
 			Name:        "test-name",
@@ -25,7 +17,7 @@ var _ = Describe("Convert", func() {
 			Version:     "v0.1.0",
 		}
 
-		spec, err := converter.FromPcl(context.Background(), pcl)
+		spec, err := FromPcl(pcl)
 		Expect(err).To(BeNil())
 		Expect(spec).NotTo(BeNil())
 
