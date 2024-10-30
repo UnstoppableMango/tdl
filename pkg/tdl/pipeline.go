@@ -1,7 +1,5 @@
 package tdl
 
-import "github.com/unmango/go/fp"
-
 type Pipeline[T, V any] interface {
 	~func(T, V) error
 }
@@ -9,11 +7,37 @@ type Pipeline[T, V any] interface {
 type Lookup[T, V any, P Pipeline[T, V]] func(string) (P, error)
 
 // WTF
+
 func Map[
 	T, V, X, Y any,
 	A Pipeline[T, V],
 	B Pipeline[X, Y],
-	F fp.Functor[A, B],
-](a A, f F) B {
-	return f(a)
+](p A, f func(X, Y) (T, V)) B {
+	return func(x X, y Y) error {
+		return p(f(x, y))
+	}
+}
+
+func MapA[
+	A, B, T any,
+	PA Pipeline[A, T],
+	PB Pipeline[B, T],
+](p PA, f func(B, T) (A, T)) PB {
+	return Map[A, T, B, T, PA, PB](p,
+		func(b B, t T) (A, T) {
+			return f(b, t)
+		},
+	)
+}
+
+func MapB[
+	A, B, T any,
+	PA Pipeline[T, A],
+	PB Pipeline[T, B],
+](p PA, f func(T, B) (T, A)) PB {
+	return Map[T, A, T, B, PA, PB](p,
+		func(t T, b B) (T, A) {
+			return f(t, b)
+		},
+	)
 }
