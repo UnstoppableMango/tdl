@@ -54,3 +54,32 @@ func FromMediaType(media tdl.MediaType, bytes []byte) (*tdlv1alpha1.Spec, error)
 		},
 	})
 }
+
+func ToJson(spec *tdlv1alpha1.Spec) ([]byte, error) {
+	return json.Marshal(spec)
+}
+
+func ToProto(spec *tdlv1alpha1.Spec) ([]byte, error) {
+	return proto.Marshal(spec)
+}
+
+func ToYaml(spec *tdlv1alpha1.Spec) ([]byte, error) {
+	return yaml.Marshal(spec)
+}
+
+func ToMediaType(media tdl.MediaType, spec *tdlv1alpha1.Spec) ([]byte, error) {
+	return mt.Match(media, mt.Matcher[[]byte]{
+		Json: func() ([]byte, error) {
+			return ToJson(spec)
+		},
+		Protobuf: func() ([]byte, error) {
+			return ToProto(spec)
+		},
+		Yaml: func() ([]byte, error) {
+			return ToYaml(spec)
+		},
+		Other: func() ([]byte, error) {
+			return nil, mt.UnsupportedErr(media)
+		},
+	})
+}

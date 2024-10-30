@@ -29,3 +29,9 @@ func With[T any, I Input[T], O Output[T]](pipeline I, unmarshal Unmarshaler) O {
 		return pipeline(&spec, t)
 	}
 }
+
+func WithMediaType[T any, I Input[T], O Output[T]](pipeline I, media tdl.MediaType) O {
+	return With[T, I, O](pipeline, func(b []byte, s *tdlv1alpha1.Spec) error {
+		panic("unimplemented")
+	})
+}

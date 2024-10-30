@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/unstoppablemango/tdl/pkg/tdl"
+	"github.com/unstoppablemango/tdl/pkg/tdl/spec"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
 
@@ -23,4 +24,10 @@ func With[T any, I Input[T], O Output[T]](pipeline I, marshal Marshaler) O {
 			return pipeline(bytes.NewReader(data), t)
 		}
 	}
+}
+
+func WithMediaType[T any, I Input[T], O Output[T]](pipeline I, media tdl.MediaType) O {
+	return With[T, I, O](pipeline, func(s *tdlv1alpha1.Spec) ([]byte, error) {
+		return spec.ToMediaType(media, s)
+	})
 }
