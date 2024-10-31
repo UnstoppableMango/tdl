@@ -55,7 +55,7 @@ func Exec(binary string) tdl.Gen {
 
 		cmd := exec.Command(binary)
 		cmd.Stdin = bytes.NewReader(data)
-		// cmd.Stdout = w // TODO
+		cmd.Stdout = NewSinkWriter(sink)
 
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("executing binary: %w", err)
