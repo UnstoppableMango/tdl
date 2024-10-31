@@ -12,15 +12,15 @@ import (
 )
 
 type (
-	PipelineFunc func(io.Reader, io.Writer) error
-	LookupFunc   func(string) (PipelineFunc, error)
+	PipeFunc   func(io.Reader, io.Writer) error
+	LookupFunc func(string) (PipeFunc, error)
 )
 
 func TargetToBin(target string) string {
 	return "uml2" + target
 }
 
-func BinFromPath(target string) (PipelineFunc, error) {
+func BinFromPath(target string) (PipeFunc, error) {
 	binary, err := exec.LookPath(TargetToBin(target))
 	if err != nil {
 		return nil, fmt.Errorf("looking up target: %w", err)
@@ -30,7 +30,7 @@ func BinFromPath(target string) (PipelineFunc, error) {
 	return UnmarshalProto(gen), nil
 }
 
-func UnmarshalProto(generator tdl.Gen) PipelineFunc {
+func UnmarshalProto(generator tdl.Gen) PipeFunc {
 	return func(r io.Reader, w io.Writer) error {
 		data, err := io.ReadAll(r)
 		if err != nil {

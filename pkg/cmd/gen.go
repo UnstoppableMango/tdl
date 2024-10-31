@@ -10,7 +10,7 @@ import (
 	"github.com/unstoppablemango/tdl/pkg/gen/io"
 )
 
-func NewGen(pipeline io.PipelineFunc) *cobra.Command {
+func NewGen(pipeline io.PipeFunc) *cobra.Command {
 	var conformanceTest bool
 
 	cmd := &cobra.Command{

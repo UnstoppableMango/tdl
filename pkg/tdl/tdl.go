@@ -7,3 +7,9 @@ import (
 )
 
 type Gen func(*tdlv1alpha1.Spec, io.Writer) error
+
+type MediaType string
+
+type Pipeline[T, V any] interface {
+	~func(T, V) error
+}

@@ -1,4 +1,4 @@
-package plugin_test
+package media_test
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestPlugin(t *testing.T) {
+func TestMedia(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Plugin Suite")
+	RunSpecs(t, "Media Suite")
 }
