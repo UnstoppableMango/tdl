@@ -14,14 +14,14 @@ import (
 // It calls IOTest for each testing.Test in tests
 //
 // IOSuite MUST be called during the Ginkgo test construction phase
-func IOSuite(tests []*testing.Test, generator io.PipelineFunc) {
+func IOSuite(tests []*testing.Test, generator io.PipeFunc) {
 	for _, test := range tests {
 		_ = IOTest(test, generator)
 	}
 }
 
 // IOTest asserts that given [test.Input] [generator] produces [test.Output]
-func IOTest(test *testing.Test, generator io.PipelineFunc) bool {
+func IOTest(test *testing.Test, generator io.PipeFunc) bool {
 	return ginkgo.It(fmt.Sprintf("should pass: %s", test.Name), func() {
 		expected := string(test.Output)
 		input := bytes.NewReader(test.Input)
