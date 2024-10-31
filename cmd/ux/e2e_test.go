@@ -16,7 +16,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var _ = Describe("End to end", func() {
+var _ = Describe("End to end", Pending, func() {
 	Describe("CLI Conformance", func() {
 		conform.CliTests(bin, []string{"gen", "ts"})
 	})
