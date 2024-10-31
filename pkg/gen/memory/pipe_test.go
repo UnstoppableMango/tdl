@@ -3,6 +3,7 @@ package memory_test
 import (
 	"bytes"
 	"io"
+	"slices"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -43,6 +44,20 @@ var _ = Describe("Pipe", func() {
 
 			Expect(err).To(HaveOccurred())
 		})
+
+		DescribeTable("Units",
+			Entry("single unit", []string{"test-unit"}),
+			Entry("multiple units", []string{"test-unit", "other-unit"}),
+			func(units []string) {
+				for _, u := range units {
+					Expect(pipe.WriteUnit(u, &bytes.Buffer{})).To(Succeed())
+				}
+
+				actual := slices.Collect(pipe.Units())
+
+				Expect(actual).To(ConsistOf(units))
+			},
+		)
 	})
 
 	Describe("BufferedPipe", func() {
@@ -94,5 +109,19 @@ var _ = Describe("Pipe", func() {
 
 			Expect(err).To(HaveOccurred())
 		})
+
+		DescribeTable("Units",
+			Entry("single unit", []string{"test-unit"}),
+			Entry("multiple units", []string{"test-unit", "other-unit"}),
+			func(units []string) {
+				for _, u := range units {
+					Expect(pipe.WriteUnit(u, &bytes.Buffer{})).To(Succeed())
+				}
+
+				actual := slices.Collect(pipe.Units())
+
+				Expect(actual).To(ConsistOf(units))
+			},
+		)
 	})
 })
