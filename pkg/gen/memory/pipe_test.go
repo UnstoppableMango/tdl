@@ -46,6 +46,7 @@ var _ = Describe("Pipe", func() {
 		})
 
 		DescribeTable("Units",
+			Entry("no units", []string{}),
 			Entry("single unit", []string{"test-unit"}),
 			Entry("multiple units", []string{"test-unit", "other-unit"}),
 			func(units []string) {
@@ -111,6 +112,7 @@ var _ = Describe("Pipe", func() {
 		})
 
 		DescribeTable("Units",
+			Entry("no units", []string{}),
 			Entry("single unit", []string{"test-unit"}),
 			Entry("multiple units", []string{"test-unit", "other-unit"}),
 			func(units []string) {
