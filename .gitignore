@@ -6,6 +6,7 @@ out/
 .make/
 .fake/
 report.json
+*.test
 
 # Packages
 node_modules/
