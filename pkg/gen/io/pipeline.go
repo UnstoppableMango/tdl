@@ -42,12 +42,12 @@ func UnmarshalProto(generator tdl.Gen) PipeFunc {
 			return fmt.Errorf("unmarshalling spec: %w", err)
 		}
 
-		return generator(&spec, w)
+		return generator(&spec, NewSink(w))
 	}
 }
 
 func Exec(binary string) tdl.Gen {
-	return func(s *tdlv1alpha1.Spec, w io.Writer) error {
+	return func(s *tdlv1alpha1.Spec, sink tdl.Sink) error {
 		data, err := proto.Marshal(s)
 		if err != nil {
 			return fmt.Errorf("marshalling spec: %w", err)
@@ -55,7 +55,7 @@ func Exec(binary string) tdl.Gen {
 
 		cmd := exec.Command(binary)
 		cmd.Stdin = bytes.NewReader(data)
-		cmd.Stdout = w
+		// cmd.Stdout = w // TODO
 
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("executing binary: %w", err)

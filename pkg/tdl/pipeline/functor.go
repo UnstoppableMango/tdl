@@ -1,13 +1,13 @@
 package pipeline
 
-import "github.com/unstoppablemango/tdl/pkg/tdl"
+import "github.com/unstoppablemango/tdl/pkg/tdl/constraint"
 
 // WTF am I doing
 
 func Map[
 	T, V, X, Y any,
-	A tdl.Pipeline[T, V],
-	B tdl.Pipeline[X, Y],
+	A constraint.Pipeline[T, V],
+	B constraint.Pipeline[X, Y],
 ](p A, f func(X, Y) (T, V)) B {
 	return func(x X, y Y) error {
 		return p(f(x, y))
@@ -16,8 +16,8 @@ func Map[
 
 func MapA[
 	A, B, T any,
-	PA tdl.Pipeline[A, T],
-	PB tdl.Pipeline[B, T],
+	PA constraint.Pipeline[A, T],
+	PB constraint.Pipeline[B, T],
 ](p PA, f func(B) A) PB {
 	return Map[A, T, B, T, PA, PB](p,
 		func(b B, t T) (A, T) {
@@ -28,8 +28,8 @@ func MapA[
 
 func MapB[
 	A, B, T any,
-	PA tdl.Pipeline[T, A],
-	PB tdl.Pipeline[T, B],
+	PA constraint.Pipeline[T, A],
+	PB constraint.Pipeline[T, B],
 ](p PA, f func(B) A) PB {
 	return Map[T, A, T, B, PA, PB](p,
 		func(t T, b B) (T, A) {

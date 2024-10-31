@@ -5,13 +5,14 @@ import (
 	"io"
 
 	"github.com/unstoppablemango/tdl/pkg/tdl"
+	"github.com/unstoppablemango/tdl/pkg/tdl/constraint"
 	"github.com/unstoppablemango/tdl/pkg/tdl/spec"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
 
 type (
-	Input[T any]  tdl.Pipeline[*tdlv1alpha1.Spec, T]
-	Output[T any] tdl.Pipeline[io.Reader, T]
+	Input[T any]  constraint.Pipeline[*tdlv1alpha1.Spec, T]
+	Output[T any] constraint.Pipeline[io.Reader, T]
 
 	// The name doesn't match the API, but I'll fix that later
 	Unmarshaler func([]byte) (*tdlv1alpha1.Spec, error)
