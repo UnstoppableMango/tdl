@@ -5,7 +5,7 @@ go 1.23.0
 require (
 	github.com/adrg/xdg v0.5.2
 	github.com/onsi/ginkgo/v2 v2.21.0
-	github.com/onsi/gomega v1.34.2
+	github.com/onsi/gomega v1.35.0
 	github.com/spf13/cobra v1.8.1
 	github.com/unstoppablemango/tdl/gen v0.0.28
 	github.com/unstoppablemango/tdl/pkg v0.0.28
