@@ -94,7 +94,6 @@ Run `make clean` to remove local artifacts such as `/.make` targets.
 |         `/.versions` | Version files for dependency pinning                            |
 |           `/.vscode` | VSCode configuration                                            |
 |               `/bin` | Binaries                                                        |
-|               `/cli` | Old directory for Go CLI applications                           |
 |               `/cmd` | Go CLI applications                                             |
 |            `/docker` | Dockerfiles                                                     |
 |              `/docs` | Any documentation too large for the README                      |
