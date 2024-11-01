@@ -90,7 +90,7 @@ go.sum: go.mod ${GO_SRC}
 	go mod tidy && touch $@
 
 .make/go_test: ${GO_SRC} | bin/ginkgo bin/ux bin/uml2ts
-	$(GINKGO) run ${TEST_FLAGS} $(sort $(dir $^))
+	$(GINKGO) run ${TEST_FLAGS} $(sort $(dir $?))
 	@touch $@
 
 .make/ts_test: ${TS_SRC}

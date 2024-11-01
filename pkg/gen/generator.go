@@ -17,3 +17,7 @@ func (g funcGenerator[G]) Execute(spec *tdlv1alpha1.Spec, sink tdl.Sink) error {
 func Lift[G constraint.Gen](fn G) tdl.Generator {
 	return funcGenerator[G]{fn}
 }
+
+func New(gen tdl.Gen) tdl.Generator {
+	return Lift(gen)
+}
