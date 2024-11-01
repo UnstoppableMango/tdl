@@ -13,6 +13,7 @@ func main() {
 	rootCmd.AddCommand(
 		cmd.NewConform(),
 		cmd.NewGenFor(io.BinFromPath),
+		cmd.NewWhich(),
 	)
 
 	if err := rootCmd.Execute(); err != nil {
