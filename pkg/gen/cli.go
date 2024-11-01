@@ -26,7 +26,9 @@ func (c *Cli) Execute(s *tdlv1alpha1.Spec, sink tdl.Sink) error {
 	return cmd.Run()
 }
 
-func NewCli(name string, options ...CliOption) tdl.Generator {
+var _ tdl.Generator = &Cli{}
+
+func NewCli(name string, options ...CliOption) *Cli {
 	gen := &Cli{name: name}
 	option.ApplyAll(gen, options)
 
