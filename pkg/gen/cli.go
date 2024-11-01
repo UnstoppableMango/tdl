@@ -26,6 +26,10 @@ func (c *Cli) Execute(s *tdlv1alpha1.Spec, sink tdl.Sink) error {
 	return cmd.Run()
 }
 
+func (c *Cli) Name() string {
+	return c.name
+}
+
 var _ tdl.Generator = &Cli{}
 
 func NewCli(name string, options ...CliOption) *Cli {
