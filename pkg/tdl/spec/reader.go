@@ -1,6 +1,7 @@
 package spec
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 
@@ -13,9 +14,7 @@ import (
 type reader struct {
 	spec      *tdlv1alpha1.Spec
 	mediatype tdl.MediaType
-	bytes     []byte
-	offset    int
-	err       error
+	buffer    *bytes.Buffer
 }
 
 // Read implements io.Reader.
@@ -23,25 +22,25 @@ func (r *reader) Read(p []byte) (n int, err error) {
 	if len(p) == 0 {
 		return 0, nil
 	}
-
-	if r.bytes == nil {
-		r.bytes, r.err = ToMediaType(r.mediatype, r.spec)
-	}
-	if r.err != nil {
-		return len(p), fmt.Errorf("marshaling: %w", err)
+	if err = r.ensure(); err != nil {
+		return len(p), err
 	}
 
-	var i int
-	for i = 0; i < len(p); i++ {
-		if i+r.offset >= len(r.bytes) {
-			return i, io.EOF
-		}
+	return r.buffer.Read(p)
+}
 
-		p[i] = r.bytes[i+r.offset]
+func (r *reader) ensure() error {
+	if r.buffer != nil {
+		return nil
 	}
 
-	r.offset = i + r.offset
-	return i, nil
+	data, err := ToMediaType(r.mediatype, r.spec)
+	if err != nil {
+		return fmt.Errorf("marshaling: %w", err)
+	}
+
+	r.buffer = bytes.NewBuffer(data)
+	return nil
 }
 
 type ReaderOption func(*reader)
