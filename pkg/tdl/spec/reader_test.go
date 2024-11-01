@@ -19,9 +19,18 @@ var _ = Describe("Reader", func() {
 		Expect(r).NotTo(BeNil())
 	})
 
-	It("should read protobuf by default", Pending, func() {
-		fn := func(name string) bool {
-			s := &tdlv1alpha1.Spec{Name: name}
+	It("should return n == 0 when len(p) == 0", func() {
+		r := spec.NewReader(&tdlv1alpha1.Spec{})
+
+		n, err := r.Read([]byte{})
+
+		Expect(err).NotTo(HaveOccurred())
+		Expect(n).To(BeZero())
+	})
+
+	It("should read protobuf by default", func() {
+		fn := func(name, displayName string) bool {
+			s := &tdlv1alpha1.Spec{Name: name, DisplayName: displayName}
 			r := spec.NewReader(s)
 
 			data, err := io.ReadAll(r)
