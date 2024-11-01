@@ -54,3 +54,9 @@ func NewReader(spec *tdlv1alpha1.Spec, options ...ReaderOption) io.Reader {
 
 	return reader
 }
+
+func WithMediaType(media tdl.MediaType) ReaderOption {
+	return func(r *reader) {
+		r.mediatype = media
+	}
+}
