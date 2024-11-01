@@ -16,6 +16,7 @@ type Matcher[T any] struct {
 	Other    MatchFunc[T]
 }
 
+// Error returned by Match when no match was found
 var Unmatched = errors.New("no match for mediatype")
 
 var (
@@ -76,6 +77,8 @@ func Match[T any](media tdl.MediaType, match Matcher[T]) (T, error) {
 	case ApplicationXYaml:
 		fallthrough
 	case ApplicationYaml:
+		fallthrough
+	case TextYaml:
 		if match.Yaml != nil {
 			return match.Yaml()
 		}

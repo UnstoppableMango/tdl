@@ -28,3 +28,8 @@ type Generator interface {
 }
 
 type MediaType string
+
+// String implements fmt.Stringer.
+func (m MediaType) String() string {
+	return string(m)
+}
