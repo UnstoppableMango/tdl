@@ -26,7 +26,7 @@ func (c *Cli) Execute(s *tdlv1alpha1.Spec, sink tdl.Sink) error {
 	return cmd.Run()
 }
 
-func (c *Cli) Name() string {
+func (c *Cli) String() string {
 	return c.name
 }
 

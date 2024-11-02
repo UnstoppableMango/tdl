@@ -11,7 +11,7 @@ import (
 func FromPath(token tdl.Token, options ...gen.CliOption) (tdl.Generator, error) {
 	path, err := exec.LookPath(token.Name)
 	if err != nil {
-		return nil, fmt.Errorf("looking up bin from path: %w", err)
+		return nil, fmt.Errorf("bin from path: %w", err)
 	}
 
 	return gen.NewCli(path, options...), nil
