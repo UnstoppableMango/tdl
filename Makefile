@@ -56,13 +56,13 @@ packages/%/dist:
 $(GO_SRC:%.go=%_test.go): %_test.go: | bin/ginkgo
 	cd $(dir $@) && $(GINKGO) generate $(notdir $*)
 
-bin/ux: ${GO_SRC}
+bin/ux: $(shell $(DEVOPS) list --go --exclude-tests)
 	go -C cmd/ux build -o ${WORKING_DIR}/$@
 
-bin/uml2ts: ${TS_SRC}
+bin/uml2ts: $(shell $(DEVOPS) list --ts --exclude-tests)
 	bun build --cwd packages/uml2ts index.ts --compile --outfile ${WORKING_DIR}/$@
 
-bin/devops: ${GO_SRC}
+bin/devops: $(shell $(DEVOPS) list --go --exclude-tests)
 	go -C cmd/devops build -o ${WORKING_DIR}/$@
 
 bin/buf: .versions/buf
@@ -82,9 +82,6 @@ buf.lock: | bin/buf
 
 go.mod:
 	go mod init ${MODULE}
-
-%/go.mod:
-	go -C $(dir $@) mod init ${MODULE}/$*
 
 go.sum: go.mod ${GO_SRC}
 	go mod tidy && touch $@
