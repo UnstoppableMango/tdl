@@ -1,14 +1,13 @@
 _ := $(shell mkdir -p .make)
+WORKING_DIR := $(shell git rev-parse --show-toplevel)
+
+PROJECT := tdl
+MODULE  := github.com/unstoppablemango/${PROJECT}
 
 FIND := find
 ifeq ($(shell uname),Darwin)
 FIND := gfind
 endif
-
-WORKING_DIR := $(shell git rev-parse --show-toplevel)
-
-PROJECT := tdl
-MODULE  := github.com/unstoppablemango/${PROJECT}
 
 LOCALBIN := ${WORKING_DIR}/bin
 DEVOPS   := ${LOCALBIN}/devops
@@ -34,7 +33,7 @@ endif
 build: generate bin/ux bin/devops .make/buf_build packages/tdl/dist packages/ts/dist
 test: .make/go_test .make/ts_test
 generate: ${GO_PB_SRC}
-format: .make/dprint
+format: .make/dprint .make/go_fmt
 lint: .make/buf_lint
 tidy: go.sum
 
@@ -104,3 +103,7 @@ go.sum: go.mod ${GO_SRC}
 
 .make/dprint:
 	dprint fmt
+
+.make/go_fmt: ${GO_SRC}
+	go fmt $(addprefix ./,$(sort $(dir $?)))
+	@touch $@

@@ -36,6 +36,6 @@
 	"[typescript]": {
 		"editor.defaultFormatter": "dprint.dprint"
 	},
-  "makefile.configureOnOpen": false,
-  "typescript.tsdk": "node_modules/typescript/lib"
+	"makefile.configureOnOpen": false,
+	"typescript.tsdk": "node_modules/typescript/lib"
 }
