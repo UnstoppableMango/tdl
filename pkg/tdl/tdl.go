@@ -2,11 +2,14 @@ package tdl
 
 import (
 	"io"
+	"iter"
 
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
 
 type Sink interface {
+	Units() iter.Seq[string]
+	Reader(string) (io.Reader, error)
 	WriteUnit(string, io.Reader) error
 }
 

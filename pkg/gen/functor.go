@@ -1,11 +1,13 @@
-package pipe
+package gen
 
 import (
 	"fmt"
 	"io"
+
+	"github.com/unstoppablemango/tdl/pkg/tdl"
 )
 
-func MapSource[T any](source Source, fn func(string, io.Reader) (T, error)) (map[string]T, error) {
+func MapSource[T any](source tdl.Sink, fn func(string, io.Reader) (T, error)) (map[string]T, error) {
 	result := map[string]T{}
 	for unit := range source.Units() {
 		r, err := source.Reader(unit)
