@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"github.com/unmango/go/option"
-	"github.com/unstoppablemango/tdl/pkg/media"
+	"github.com/unstoppablemango/tdl/pkg/mediatype"
 	"github.com/unstoppablemango/tdl/pkg/tdl"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
@@ -48,7 +48,7 @@ type ReaderOption func(*reader)
 func NewReader(spec *tdlv1alpha1.Spec, options ...ReaderOption) io.Reader {
 	reader := &reader{
 		spec:      spec,
-		mediatype: media.ApplicationProtobuf,
+		mediatype: mediatype.ApplicationProtobuf,
 	}
 	option.ApplyAll(reader, options)
 
@@ -67,5 +67,5 @@ func ReadAll(reader io.Reader) (*tdlv1alpha1.Spec, error) {
 		return nil, err
 	}
 
-	return FromMediaType(media.ApplicationProtobuf, data)
+	return FromMediaType(mediatype.ApplicationProtobuf, data)
 }

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	mt "github.com/unstoppablemango/tdl/pkg/media"
+	mt "github.com/unstoppablemango/tdl/pkg/mediatype"
 	"github.com/unstoppablemango/tdl/pkg/tdl"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 	"google.golang.org/protobuf/proto"

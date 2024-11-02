@@ -1,4 +1,4 @@
-package media_test
+package mediatype_test
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestMedia(t *testing.T) {
+func TestMediaType(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Media Suite")
+	RunSpecs(t, "MediaType Suite")
 }
