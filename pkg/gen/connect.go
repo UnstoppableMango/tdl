@@ -7,8 +7,8 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/unstoppablemango/tdl/pkg/gen/memory"
+	"github.com/unstoppablemango/tdl/pkg/gen/pipe"
 	"github.com/unstoppablemango/tdl/pkg/tdl"
-	"github.com/unstoppablemango/tdl/pkg/tdl/pipe"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 	"github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1/tdlv1alpha1connect"
 )
@@ -16,7 +16,7 @@ import (
 type connectService struct {
 	tdlv1alpha1connect.UnimplementedGenServiceHandler
 
-	generator tdl.Gen
+	generator Func
 }
 
 func (svc *connectService) Gen(
@@ -40,7 +40,7 @@ func (svc *connectService) Gen(
 	return connect.NewResponse(res), nil
 }
 
-func NewHandler(generator tdl.Gen) tdlv1alpha1connect.GenServiceHandler {
+func NewHandler(generator tdl.GenFunc) tdlv1alpha1connect.GenServiceHandler {
 	return &connectService{generator: generator}
 }
 
