@@ -26,10 +26,11 @@ var Blacklist = []string{
 }
 
 type ListOptions struct {
-	Absolute   bool
-	Go         bool
-	Proto      bool
-	Typescript bool
+	Absolute     bool
+	ExcludeTests bool
+	Go           bool
+	Proto        bool
+	Typescript   bool
 }
 
 type printer struct {
@@ -62,25 +63,56 @@ func (o *ListOptions) printer(root string) *printer {
 }
 
 func (p *printer) shouldPrint(path string) bool {
+	// TODO: No sources provided && exclude tests
 	if len(p.Sources) == 0 {
 		return true
 	}
 
-	return slices.Contains(p.Sources, filepath.Ext(path))
+	ext := filepath.Ext(path)
+	if !slices.Contains(p.Sources, ext) {
+		return false
+	}
+
+	switch ext {
+	case ".go":
+		return p.shouldPrintGo(path)
+	case ".ts":
+		return p.shouldPrintTs(path)
+	}
+
+	return true
 }
 
-func (p *printer) handle(path string) error {
+func (p *printer) shouldPrintGo(path string) bool {
+	if strings.Contains(path, "_test.go") {
+		return !p.Opts.ExcludeTests
+	}
+
+	return true
+}
+
+func (p *printer) shouldPrintTs(path string) bool {
+	if strings.Contains(path, ".spec.ts") {
+		return !p.Opts.ExcludeTests
+	}
+
+	return true
+}
+
+func (p *printer) handle(path string) (err error) {
 	if !p.shouldPrint(path) {
 		return nil
 	}
 
-	rel, err := filepath.Rel(p.Root, path)
+	if !p.Opts.Absolute {
+		path, err = filepath.Rel(p.Root, path)
+	}
 	if err != nil {
 		return err
 	}
 
-	_, err = fmt.Println(rel)
-	return err
+	fmt.Println(path)
+	return nil
 }
 
 func NewList(options *ListOptions) *cobra.Command {
@@ -125,6 +157,7 @@ func NewList(options *ListOptions) *cobra.Command {
 	}
 
 	cmd.Flags().BoolVar(&options.Absolute, "absolute", false, "Print fully qualified paths rather than paths relative to the git root")
+	cmd.Flags().BoolVar(&options.ExcludeTests, "exclude-tests", false, "Exclude test files like *_test.go and *.spec.ts etc")
 	cmd.Flags().BoolVar(&options.Go, "go", false, "List Go sources")
 	cmd.Flags().BoolVar(&options.Typescript, "ts", false, "List TypeScript sources")
 	cmd.Flags().BoolVar(&options.Proto, "proto", false, "List protobuf sources")
