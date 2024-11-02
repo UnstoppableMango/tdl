@@ -24,7 +24,9 @@ func Lookup(tokenish string) (tdl.Generator, error) {
 	token := tdl.Token{Name: tokenish}
 
 	generator, err := Name(token)
-	if err != nil && !errors.Is(err, ErrNotFound) {
+	if err == nil {
+		return generator, nil
+	} else if !errors.Is(err, ErrNotFound) {
 		return nil, fmt.Errorf("lookup: %w", err)
 	}
 

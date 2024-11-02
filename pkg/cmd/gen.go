@@ -24,7 +24,7 @@ func NewGen() *cobra.Command {
 			target := args[0]
 			log := log.With("target", target)
 
-			log.Debug("lookup up pipeline")
+			log.Debug("lookup up generator")
 			gen, err := lookup.Lookup(target)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, err.Error())
