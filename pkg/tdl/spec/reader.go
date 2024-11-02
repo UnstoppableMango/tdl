@@ -6,8 +6,8 @@ import (
 	"io"
 
 	"github.com/unmango/go/option"
+	"github.com/unstoppablemango/tdl/pkg/media"
 	"github.com/unstoppablemango/tdl/pkg/tdl"
-	"github.com/unstoppablemango/tdl/pkg/tdl/media"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
 

@@ -2,8 +2,8 @@ package testing
 
 import (
 	"github.com/onsi/ginkgo/v2"
+	"github.com/unstoppablemango/tdl/pkg/media"
 	"github.com/unstoppablemango/tdl/pkg/tdl"
-	"github.com/unstoppablemango/tdl/pkg/tdl/media"
 )
 
 var MediaTypes = []tdl.MediaType{
