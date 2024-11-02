@@ -7,6 +7,8 @@ import (
 	"github.com/unstoppablemango/tdl/pkg/tdl"
 )
 
+type Option func() tdl.MediaType
+
 type MatchFunc[T any] func() (T, error)
 
 type Matcher[T any] struct {
