@@ -60,3 +60,12 @@ func WithMediaType(media tdl.MediaType) ReaderOption {
 		r.mediatype = media
 	}
 }
+
+func ReadAll(reader io.Reader) (*tdlv1alpha1.Spec, error) {
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	return FromMediaType(media.ApplicationProtobuf, data)
+}

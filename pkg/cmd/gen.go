@@ -2,35 +2,18 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 	"github.com/unstoppablemango/tdl/pkg/cmd/flags"
-	"github.com/unstoppablemango/tdl/pkg/gen/io"
+	genio "github.com/unstoppablemango/tdl/pkg/gen/io"
+	"github.com/unstoppablemango/tdl/pkg/gen/lookup"
+	"github.com/unstoppablemango/tdl/pkg/tdl/spec"
 )
 
-func NewGen(pipeline io.PipeFunc) *cobra.Command {
-	var conformanceTest bool
-
-	cmd := &cobra.Command{
-		Use:  "gen",
-		Args: cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
-			log.Debug("executing pipeline")
-			if err := pipeline(os.Stdin, os.Stdout); err != nil {
-				fmt.Fprintf(os.Stderr, err.Error())
-				os.Exit(1)
-			}
-		},
-	}
-
-	flags.ConformanceTest(cmd.Flags(), &conformanceTest)
-
-	return cmd
-}
-
-func NewGenFor(lookup io.LookupFunc) *cobra.Command {
+func NewGen() *cobra.Command {
 	var conformanceTest bool
 
 	cmd := &cobra.Command{
@@ -38,15 +21,26 @@ func NewGenFor(lookup io.LookupFunc) *cobra.Command {
 		Short: "Run code generation for TARGET",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			log.Debug("lookup up pipeline", "target", args[0])
-			pipeline, err := lookup(args[0])
+			target := args[0]
+			log := log.With("target", target)
+
+			log.Debug("lookup up pipeline")
+			gen, err := lookup.Lookup(target)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, err.Error())
 				os.Exit(1)
 			}
 
-			log.Debug("executing pipeline", "target", args[0])
-			if err := pipeline(os.Stdin, os.Stdout); err != nil {
+			data, err := io.ReadAll(os.Stdin)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err.Error())
+			}
+
+			spec, err := spec.FromProto(data)
+			sink := genio.NewSink(os.Stdout)
+
+			log.Debug("executing pipeline")
+			if err := gen.Execute(spec, sink); err != nil {
 				fmt.Fprintf(os.Stderr, err.Error())
 				os.Exit(1)
 			}
