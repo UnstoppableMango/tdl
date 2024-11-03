@@ -1,6 +1,6 @@
 package pipe
 
-import "github.com/unstoppablemango/tdl/pkg/tdl/constraint"
+import "github.com/unstoppablemango/tdl/pkg/constraint"
 
 // WTF am I doing
 

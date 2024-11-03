@@ -1,8 +1,8 @@
 package gen
 
 import (
+	"github.com/unstoppablemango/tdl/pkg/constraint"
 	"github.com/unstoppablemango/tdl/pkg/tdl"
-	"github.com/unstoppablemango/tdl/pkg/tdl/constraint"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
 
