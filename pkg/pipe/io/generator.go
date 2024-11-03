@@ -3,9 +3,7 @@ package io
 import (
 	"io"
 
-	"github.com/unstoppablemango/tdl/pkg/pipe"
 	"github.com/unstoppablemango/tdl/pkg/tdl"
-	"github.com/unstoppablemango/tdl/pkg/tdl/constraint"
 	"github.com/unstoppablemango/tdl/pkg/tdl/spec"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
@@ -25,12 +23,12 @@ func (p *SpecReader[T]) Execute(reader io.Reader, sink T) error {
 	return p.Pipeline.Execute(spec, sink)
 }
 
-func ReadSpec[T any, P constraint.SpecReader[T]](
-	pipeline P,
+func ReadSpec[T any](
+	pipeline tdl.Pipeline[*tdlv1alpha1.Spec, T],
 	options ...spec.ReaderOption,
 ) tdl.Pipeline[io.Reader, T] {
 	return &SpecReader[T]{
-		Pipeline: pipe.Lift(pipeline),
+		Pipeline: pipeline,
 		options:  options,
 	}
 }

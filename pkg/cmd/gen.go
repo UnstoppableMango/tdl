@@ -2,15 +2,14 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 	"github.com/unstoppablemango/tdl/pkg/cmd/flags"
 	"github.com/unstoppablemango/tdl/pkg/gen/lookup"
+	pipeio "github.com/unstoppablemango/tdl/pkg/pipe/io"
 	iosink "github.com/unstoppablemango/tdl/pkg/sink/io"
-	"github.com/unstoppablemango/tdl/pkg/tdl/spec"
 )
 
 func NewGen() *cobra.Command {
@@ -31,16 +30,11 @@ func NewGen() *cobra.Command {
 				os.Exit(1)
 			}
 
-			data, err := io.ReadAll(os.Stdin)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err.Error())
-			}
-
-			spec, err := spec.FromProto(data)
+			pipeline := pipeio.ReadSpec(gen)
 			sink := iosink.NewSink(os.Stdout)
 
 			log.Debug("executing pipeline")
-			if err := gen.Execute(spec, sink); err != nil {
+			if err := pipeline.Execute(os.Stdin, sink); err != nil {
 				fmt.Fprintf(os.Stderr, err.Error())
 				os.Exit(1)
 			}

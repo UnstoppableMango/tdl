@@ -13,7 +13,7 @@ type (
 	SpecReader[T any] Pipeline[*tdlv1alpha1.Spec, T]
 )
 
-type Gen Pipeline[*tdlv1alpha1.Spec, tdl.Sink]
+type Gen SpecReader[tdl.Sink]
 
 type Pipeline[T, V any] interface {
 	~func(T, V) error
