@@ -6,18 +6,19 @@ import (
 	"io"
 	"os/exec"
 
+	"github.com/unstoppablemango/tdl/pkg/gen"
 	"github.com/unstoppablemango/tdl/pkg/tdl"
 )
 
 func Execute(tokenish string, stdout io.Writer) error {
 	token := tdl.Token{Name: tokenish}
 
-	generator, err := Name(token)
-	if err != nil && !errors.Is(err, ErrNotFound) {
+	generator, err := gen.Name(token)
+	if err != nil && !errors.Is(err, gen.ErrNotFound) {
 		return fmt.Errorf("lookup: %w", err)
 	}
 
-	generator, err = FromPath(token)
+	generator, err = gen.FromPath(token)
 	if errors.Is(err, exec.ErrNotFound) {
 		fmt.Fprintf(stdout, "Not Found: %s\n", tokenish)
 	}

@@ -3,10 +3,19 @@ package io
 import (
 	"io"
 
+	"github.com/unmango/go/option"
+	"github.com/unstoppablemango/tdl/pkg/mediatype"
+	"github.com/unstoppablemango/tdl/pkg/pipe"
 	"github.com/unstoppablemango/tdl/pkg/tdl"
 	"github.com/unstoppablemango/tdl/pkg/tdl/spec"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
+
+type PipelineOptions struct {
+	MediaType mediatype.Option
+}
+
+type PipelineOption func(*PipelineOptions)
 
 type SpecReader[T any] struct {
 	tdl.Pipeline[*tdlv1alpha1.Spec, T]
@@ -30,5 +39,29 @@ func ReadSpec[T any](
 	return &SpecReader[T]{
 		Pipeline: pipeline,
 		options:  options,
+	}
+}
+
+func NewPipeline(
+	token tdl.Token,
+	input io.Reader,
+	output io.Writer,
+	options ...PipelineOption,
+) pipe.IO {
+	// opts := Options(options...)
+	panic("unimplemented")
+}
+
+func Options(options ...PipelineOption) PipelineOptions {
+	opts := DefaultOptions()
+	option.ApplyAll(&opts, options)
+	return opts
+}
+
+func DefaultOptions() PipelineOptions {
+	return PipelineOptions{
+		MediaType: func() tdl.MediaType {
+			return mediatype.ApplicationProtobuf
+		},
 	}
 }

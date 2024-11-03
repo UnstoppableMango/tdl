@@ -1,13 +1,27 @@
-package lookup
+package gen
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
 
+	"github.com/unstoppablemango/tdl/internal/util"
 	"github.com/unstoppablemango/tdl/pkg/tdl"
 )
 
 var ErrNotFound = errors.New("not found")
+
+func FromPath(token tdl.Token, options ...CliOption) (tdl.Generator, error) {
+	path, err := exec.LookPath(token.Name)
+	if err != nil {
+		return nil, fmt.Errorf("bin from path: %w", err)
+	}
+
+	return NewCli(path, options...), nil
+}
 
 func Name(token tdl.Token) (tdl.Generator, error) {
 	switch token.Name {
@@ -36,4 +50,18 @@ func Lookup(tokenish string) (tdl.Generator, error) {
 	}
 
 	return generator, nil
+}
+
+func localRepo(name string) (tdl.Generator, error) {
+	gitRoot, err := util.GitRoot(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	path := filepath.Join(gitRoot, "bin", name)
+	if _, err := os.Stat(path); err != nil {
+		return nil, err
+	}
+
+	return NewCli(path), nil
 }

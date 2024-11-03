@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/unstoppablemango/tdl/pkg/gen/lookup"
+	"github.com/unstoppablemango/tdl/pkg/gen"
 	"github.com/unstoppablemango/tdl/pkg/tdl"
 )
 
@@ -18,13 +18,13 @@ func NewWhich() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			token := tdl.Token{Name: args[0]}
 
-			generator, err := lookup.Name(token)
-			if !errors.Is(err, lookup.ErrNotFound) {
+			generator, err := gen.Name(token)
+			if !errors.Is(err, gen.ErrNotFound) {
 				fmt.Fprintln(os.Stderr, err.Error())
 				os.Exit(1)
 			}
 
-			generator, err = lookup.FromPath(token)
+			generator, err = gen.FromPath(token)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err.Error())
 				os.Exit(1)
