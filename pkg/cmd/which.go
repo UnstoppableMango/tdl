@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/gen"
-	"github.com/unstoppablemango/tdl/pkg/tdl"
 )
 
 func NewWhich() *cobra.Command {

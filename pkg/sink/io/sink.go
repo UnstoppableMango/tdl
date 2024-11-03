@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/unstoppablemango/tdl/pkg/tdl"
+	tdl "github.com/unstoppablemango/tdl/pkg"
 )
 
 // The io Sink discards unit names and writes all output

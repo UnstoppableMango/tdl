@@ -3,7 +3,7 @@ package constraint
 import (
 	"io"
 
-	"github.com/unstoppablemango/tdl/pkg/tdl"
+	tdl "github.com/unstoppablemango/tdl/pkg"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
 

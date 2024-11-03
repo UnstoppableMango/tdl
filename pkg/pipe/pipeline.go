@@ -3,8 +3,8 @@ package pipe
 import (
 	"io"
 
+	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/constraint"
-	"github.com/unstoppablemango/tdl/pkg/tdl"
 )
 
 type Func[T, V any] func(T, V) error

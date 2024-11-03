@@ -8,8 +8,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/gen"
-	"github.com/unstoppablemango/tdl/pkg/tdl"
 )
 
 var _ = Describe("Lookup", func() {

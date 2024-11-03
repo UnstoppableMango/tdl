@@ -8,8 +8,8 @@ import (
 	. "github.com/onsi/gomega"
 	"google.golang.org/protobuf/proto"
 
+	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/spec"
-	"github.com/unstoppablemango/tdl/pkg/tdl"
 	"github.com/unstoppablemango/tdl/pkg/testing"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )

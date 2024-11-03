@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/unstoppablemango/tdl/internal/util"
-	"github.com/unstoppablemango/tdl/pkg/tdl"
+	tdl "github.com/unstoppablemango/tdl/pkg"
 )
 
 var ErrNotFound = errors.New("not found")

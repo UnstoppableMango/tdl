@@ -3,7 +3,7 @@ package mediatype
 import (
 	"fmt"
 
-	"github.com/unstoppablemango/tdl/pkg/tdl"
+	tdl "github.com/unstoppablemango/tdl/pkg"
 )
 
 type Option func() tdl.MediaType
