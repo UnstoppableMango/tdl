@@ -7,7 +7,7 @@ import (
 	"iter"
 	"maps"
 
-	"github.com/unstoppablemango/tdl/pkg/tdl"
+	"github.com/unstoppablemango/tdl/pkg/sink"
 )
 
 type PorcelainPipe struct {
@@ -79,7 +79,7 @@ func (p *BufferedPipe) WriteUnit(unit string, reader io.Reader) error {
 	return nil
 }
 
-func NewPipe() tdl.Sink {
+func NewPipe() sink.Pipe {
 	return &PorcelainPipe{
 		units: make(map[string]io.Reader),
 	}

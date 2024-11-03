@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/unstoppablemango/tdl/pkg/gen"
-	"github.com/unstoppablemango/tdl/pkg/gen/memory"
+	"github.com/unstoppablemango/tdl/pkg/sink/memory"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
 

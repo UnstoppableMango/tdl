@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/unstoppablemango/tdl/pkg/cmd/flags"
 	"github.com/unstoppablemango/tdl/pkg/gen/lookup"
-	genio "github.com/unstoppablemango/tdl/pkg/pipe/io"
+	iosink "github.com/unstoppablemango/tdl/pkg/sink/io"
 	"github.com/unstoppablemango/tdl/pkg/tdl/spec"
 )
 
@@ -37,7 +37,7 @@ func NewGen() *cobra.Command {
 			}
 
 			spec, err := spec.FromProto(data)
-			sink := genio.NewSink(os.Stdout)
+			sink := iosink.NewSink(os.Stdout)
 
 			log.Debug("executing pipeline")
 			if err := gen.Execute(spec, sink); err != nil {

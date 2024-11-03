@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"iter"
 
 	"github.com/unstoppablemango/tdl/pkg/tdl"
 )
@@ -15,16 +14,6 @@ import (
 // to the provided io.Writer
 type Sink struct {
 	Writer io.Writer
-}
-
-// Reader implements tdl.Sink.
-func (s *Sink) Reader(string) (io.Reader, error) {
-	panic("unimplemented")
-}
-
-// Units implements tdl.Sink.
-func (s *Sink) Units() iter.Seq[string] {
-	panic("unimplemented")
 }
 
 // WriteUnit implements tdl.Sink.
