@@ -11,10 +11,24 @@ import (
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
 
+type readerOptions struct {
+	MediaType mediatype.Option
+}
+
 type reader struct {
-	spec      *tdlv1alpha1.Spec
-	mediatype tdl.MediaType
-	buffer    *bytes.Buffer
+	options *readerOptions
+	spec    *tdlv1alpha1.Spec
+	buffer  *bytes.Buffer
+}
+
+var defaultOptions = readerOptions{
+	MediaType: func() tdl.MediaType {
+		return mediatype.ApplicationProtobuf
+	},
+}
+
+func (r *reader) MediaType() tdl.MediaType {
+	return r.options.MediaType()
 }
 
 // Read implements io.Reader.
@@ -34,7 +48,7 @@ func (r *reader) ensure() error {
 		return nil
 	}
 
-	data, err := ToMediaType(r.mediatype, r.spec)
+	data, err := ToMediaType(r.MediaType(), r.spec)
 	if err != nil {
 		return fmt.Errorf("marshaling: %w", err)
 	}
@@ -43,29 +57,31 @@ func (r *reader) ensure() error {
 	return nil
 }
 
-type ReaderOption func(*reader)
+type ReaderOption func(*readerOptions)
 
 func NewReader(spec *tdlv1alpha1.Spec, options ...ReaderOption) io.Reader {
-	reader := &reader{
-		spec:      spec,
-		mediatype: mediatype.ApplicationProtobuf,
-	}
-	option.ApplyAll(reader, options)
+	opts := defaultOptions
+	option.ApplyAll(&opts, options)
 
-	return reader
+	return &reader{spec: spec, options: &opts}
 }
 
 func WithMediaType(media tdl.MediaType) ReaderOption {
-	return func(r *reader) {
-		r.mediatype = media
+	return func(o *readerOptions) {
+		o.MediaType = func() tdl.MediaType {
+			return media
+		}
 	}
 }
 
-func ReadAll(reader io.Reader) (*tdlv1alpha1.Spec, error) {
+func ReadAll(reader io.Reader, options ...ReaderOption) (*tdlv1alpha1.Spec, error) {
+	opts := defaultOptions
+	option.ApplyAll(&opts, options)
+
 	data, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
 
-	return FromMediaType(mediatype.ApplicationProtobuf, data)
+	return FromMediaType(opts.MediaType(), data)
 }
