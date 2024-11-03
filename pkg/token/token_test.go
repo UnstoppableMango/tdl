@@ -15,7 +15,7 @@ var _ = Describe("Token", func() {
 			fn := func(input string) bool {
 				token, err := token.Parse(input)
 
-				return err == nil && token.Name == input
+				return err == nil && token.Path == input
 			}
 
 			Expect(quick.Check(fn, nil)).To(Succeed())

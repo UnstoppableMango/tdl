@@ -15,14 +15,14 @@ import (
 var _ = Describe("Lookup", func() {
 	Describe("Name", func() {
 		It("should return tool from PATH", func() {
-			path, err := gen.FromPath(tdl.Token{Name: "go"})
+			path, err := gen.FromPath(tdl.Token{Path: "go"})
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(path).NotTo(Equal("go"))
 		})
 
 		It("should fail when tool is not on PATH", func() {
-			_, err := gen.FromPath(tdl.Token{Name: "fjdksfljdkfdlkfjsldfklsdlfksj"})
+			_, err := gen.FromPath(tdl.Token{Path: "fjdksfljdkfdlkfjsldfklsdlfksj"})
 
 			Expect(err).To(HaveOccurred())
 		})
@@ -56,7 +56,7 @@ var _ = Describe("Lookup", func() {
 		Describe("Name", func() {
 			It("should return generator for ts", func() {
 				expected := filepath.Join(gitRoot, "bin", "uml2ts")
-				token := tdl.Token{Name: "ts"}
+				token := tdl.Token{Path: "ts"}
 
 				res, err := gen.Name(token)
 
@@ -69,7 +69,7 @@ var _ = Describe("Lookup", func() {
 
 			It("should return generator for uml2ts", func() {
 				expected := filepath.Join(gitRoot, "bin", "uml2ts")
-				token := tdl.Token{Name: "uml2ts"}
+				token := tdl.Token{Path: "uml2ts"}
 
 				res, err := gen.Name(token)
 
@@ -82,7 +82,7 @@ var _ = Describe("Lookup", func() {
 
 			It("should return not found for other names", func() {
 				fn := func(name string) bool {
-					token := tdl.Token{Name: name}
+					token := tdl.Token{Path: name}
 
 					_, err := gen.Name(token)
 

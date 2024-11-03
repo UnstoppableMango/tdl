@@ -15,7 +15,7 @@ import (
 var ErrNotFound = errors.New("not found")
 
 func FromPath(token tdl.Token, options ...CliOption) (tdl.Generator, error) {
-	path, err := exec.LookPath(token.Name)
+	path, err := exec.LookPath(token.Path)
 	if err != nil {
 		return nil, fmt.Errorf("bin from path: %w", err)
 	}
@@ -24,18 +24,18 @@ func FromPath(token tdl.Token, options ...CliOption) (tdl.Generator, error) {
 }
 
 func Name(token tdl.Token) (tdl.Generator, error) {
-	switch token.Name {
+	switch token.Path {
 	case "ts":
 		fallthrough
 	case "uml2ts":
 		return localRepo("uml2ts")
 	}
 
-	return nil, fmt.Errorf("%w: %s", ErrNotFound, token.Name)
+	return nil, fmt.Errorf("%w: %s", ErrNotFound, token.Path)
 }
 
 func Lookup(tokenish string) (tdl.Generator, error) {
-	token := tdl.Token{Name: tokenish}
+	token := tdl.Token{Path: tokenish}
 
 	generator, err := Name(token)
 	if err == nil {

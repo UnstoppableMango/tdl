@@ -3,6 +3,7 @@ package tdl
 import (
 	"fmt"
 	"io"
+	"iter"
 
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
@@ -19,6 +20,10 @@ type Generator interface {
 	Pipeline[*tdlv1alpha1.Spec, Sink]
 }
 
+type Target interface {
+	Dependencies() iter.Seq[Target]
+}
+
 type MediaType string
 
 // String implements fmt.Stringer.
@@ -26,17 +31,14 @@ func (m MediaType) String() string {
 	return string(m)
 }
 
-func WithMediaType(media MediaType) func() MediaType {
-	return func() MediaType { return media }
-}
-
 type Token struct {
-	Name string
+	Path string
+	Url  string
 }
 
 // String implements fmt.Stringer.
 func (t Token) String() string {
-	return t.Name
+	return t.Path
 }
 
 var _ fmt.Stringer = Token{}
