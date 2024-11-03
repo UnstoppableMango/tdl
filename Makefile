@@ -43,6 +43,9 @@ clean:
 	bun run --cwd packages/tdl clean
 	bun run --cwd packages/ts clean
 
+test_all:
+	$(GINKGO) run -r ./
+
 ${GO_PB_SRC}: buf.gen.yaml ${PROTO_SRC} | bin/buf
 	$(BUF) generate
 
