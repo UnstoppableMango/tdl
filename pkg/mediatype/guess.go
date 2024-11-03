@@ -15,8 +15,6 @@ func Guess(token string) (tdl.MediaType, error) {
 		return ApplicationYaml, nil
 	case ".json":
 		return ApplicationJson, nil
-	case ".proto":
-		fallthrough
 	case ".pb":
 		return ApplicationProtobuf, nil
 	}
