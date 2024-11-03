@@ -25,7 +25,7 @@ GO_SUITES  ?= $(filter %_suite_test.go,${GO_SRC})
 GO_REPORTS ?= $(addsuffix report.json,$(dir ${GO_SUITES}))
 
 ifeq ($(CI),)
-TEST_FLAGS := --json-report report.json --keep-separate-reports
+TEST_FLAGS :=
 else
 TEST_FLAGS := --github-output --race --trace
 endif
@@ -42,6 +42,9 @@ clean:
 	find . -type f -name 'report.json' -delete
 	bun run --cwd packages/tdl clean
 	bun run --cwd packages/ts clean
+
+test_all:
+	$(GINKGO) run -r ./
 
 ${GO_PB_SRC}: buf.gen.yaml ${PROTO_SRC} | bin/buf
 	$(BUF) generate

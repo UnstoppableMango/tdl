@@ -4,9 +4,9 @@ import (
 	"os/exec"
 
 	"github.com/unmango/go/option"
-	"github.com/unstoppablemango/tdl/pkg/gen/io"
-	"github.com/unstoppablemango/tdl/pkg/tdl"
-	"github.com/unstoppablemango/tdl/pkg/tdl/spec"
+	tdl "github.com/unstoppablemango/tdl/pkg"
+	"github.com/unstoppablemango/tdl/pkg/sink/io"
+	"github.com/unstoppablemango/tdl/pkg/spec"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
 

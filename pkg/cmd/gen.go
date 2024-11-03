@@ -2,15 +2,14 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 	"github.com/unstoppablemango/tdl/pkg/cmd/flags"
-	genio "github.com/unstoppablemango/tdl/pkg/gen/io"
-	"github.com/unstoppablemango/tdl/pkg/gen/lookup"
-	"github.com/unstoppablemango/tdl/pkg/tdl/spec"
+	"github.com/unstoppablemango/tdl/pkg/gen"
+	pipeio "github.com/unstoppablemango/tdl/pkg/pipe/io"
+	iosink "github.com/unstoppablemango/tdl/pkg/sink/io"
 )
 
 func NewGen() *cobra.Command {
@@ -25,22 +24,17 @@ func NewGen() *cobra.Command {
 			log := log.With("target", target)
 
 			log.Debug("lookup up generator")
-			gen, err := lookup.Lookup(target)
+			gen, err := gen.Lookup(target)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, err.Error())
 				os.Exit(1)
 			}
 
-			data, err := io.ReadAll(os.Stdin)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err.Error())
-			}
-
-			spec, err := spec.FromProto(data)
-			sink := genio.NewSink(os.Stdout)
+			pipeline := pipeio.ReadSpec(gen)
+			sink := iosink.NewSink(os.Stdout)
 
 			log.Debug("executing pipeline")
-			if err := gen.Execute(spec, sink); err != nil {
+			if err := pipeline.Execute(os.Stdin, sink); err != nil {
 				fmt.Fprintf(os.Stderr, err.Error())
 				os.Exit(1)
 			}

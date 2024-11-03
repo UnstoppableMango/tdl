@@ -4,8 +4,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/mediatype"
-	"github.com/unstoppablemango/tdl/pkg/tdl"
 )
 
 var _ = Describe("Mediatype", func() {

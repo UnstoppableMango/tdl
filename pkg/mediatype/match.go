@@ -3,7 +3,7 @@ package mediatype
 import (
 	"errors"
 
-	"github.com/unstoppablemango/tdl/pkg/tdl"
+	tdl "github.com/unstoppablemango/tdl/pkg"
 )
 
 type MatchFunc[T any] func() (T, error)

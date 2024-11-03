@@ -3,8 +3,8 @@ package gen_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/gen"
-	"github.com/unstoppablemango/tdl/pkg/tdl"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
 

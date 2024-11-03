@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/unstoppablemango/tdl/pkg/tdl"
+	tdl "github.com/unstoppablemango/tdl/pkg"
 )
 
 func Guess(token string) (tdl.MediaType, error) {

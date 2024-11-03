@@ -3,7 +3,7 @@ package constraint
 import (
 	"io"
 
-	"github.com/unstoppablemango/tdl/pkg/tdl"
+	tdl "github.com/unstoppablemango/tdl/pkg"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
 
@@ -13,7 +13,7 @@ type (
 	SpecReader[T any] Pipeline[*tdlv1alpha1.Spec, T]
 )
 
-type Gen Pipeline[*tdlv1alpha1.Spec, tdl.Sink]
+type Gen SpecReader[tdl.Sink]
 
 type Pipeline[T, V any] interface {
 	~func(T, V) error

@@ -1,6 +1,8 @@
 package token
 
-import "github.com/unstoppablemango/tdl/pkg/tdl"
+import (
+	tdl "github.com/unstoppablemango/tdl/pkg"
+)
 
 func Parse(tokenish string) (tdl.Token, error) {
 	// This should eventually be more robust
