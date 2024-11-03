@@ -5,8 +5,8 @@ import (
 
 	"github.com/unmango/go/option"
 	"github.com/unstoppablemango/tdl/pkg/sink/io"
+	"github.com/unstoppablemango/tdl/pkg/spec"
 	"github.com/unstoppablemango/tdl/pkg/tdl"
-	"github.com/unstoppablemango/tdl/pkg/tdl/spec"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
 

@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/unstoppablemango/tdl/pkg/gen/token"
+	"github.com/unstoppablemango/tdl/pkg/token"
 )
 
 var _ = Describe("Token", func() {
