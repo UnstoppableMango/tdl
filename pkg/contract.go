@@ -20,8 +20,14 @@ type Generator interface {
 	Pipeline[*tdlv1alpha1.Spec, Sink]
 }
 
+type Plugin interface {
+	fmt.Stringer
+	Available() bool
+}
+
 type Target interface {
-	Dependencies() iter.Seq[Target]
+	fmt.Stringer
+	Plugins() (iter.Seq[Plugin], error)
 }
 
 type MediaType string
