@@ -8,8 +8,8 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 	"github.com/unstoppablemango/tdl/pkg/cmd/flags"
-	genio "github.com/unstoppablemango/tdl/pkg/gen/io"
 	"github.com/unstoppablemango/tdl/pkg/gen/lookup"
+	genio "github.com/unstoppablemango/tdl/pkg/pipe/io"
 	"github.com/unstoppablemango/tdl/pkg/tdl/spec"
 )
 

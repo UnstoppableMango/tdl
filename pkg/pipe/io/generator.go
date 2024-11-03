@@ -10,8 +10,6 @@ import (
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
 
-type reader[T any] constraint.Pipeline[*tdlv1alpha1.Spec, T]
-
 type SpecReader[T any] struct {
 	tdl.Pipeline[*tdlv1alpha1.Spec, T]
 	options []spec.ReaderOption
@@ -19,7 +17,7 @@ type SpecReader[T any] struct {
 
 // Execute implements tdl.Pipeline.
 func (p *SpecReader[T]) Execute(reader io.Reader, sink T) error {
-	spec, err := spec.ReadAll(reader)
+	spec, err := spec.ReadAll(reader, p.options...)
 	if err != nil {
 		return err
 	}
@@ -27,7 +25,7 @@ func (p *SpecReader[T]) Execute(reader io.Reader, sink T) error {
 	return p.Pipeline.Execute(spec, sink)
 }
 
-func ReadSpec[T any, P reader[T]](
+func ReadSpec[T any, P constraint.SpecReader[T]](
 	pipeline P,
 	options ...spec.ReaderOption,
 ) tdl.Pipeline[io.Reader, T] {

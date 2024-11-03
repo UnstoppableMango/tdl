@@ -18,7 +18,7 @@ type readerOptions struct {
 type ReaderOption func(*readerOptions)
 
 type reader struct {
-	options *readerOptions
+	options readerOptions
 	spec    *tdlv1alpha1.Spec
 	buffer  *bytes.Buffer
 }
@@ -60,10 +60,10 @@ func (r *reader) ensure() error {
 }
 
 func NewReader(spec *tdlv1alpha1.Spec, options ...ReaderOption) io.Reader {
-	opts := defaultOptions
-	option.ApplyAll(&opts, options)
-
-	return &reader{spec: spec, options: &opts}
+	return &reader{
+		spec:    spec,
+		options: Options(options...),
+	}
 }
 
 func WithMediaType(media tdl.MediaType) ReaderOption {
@@ -75,13 +75,17 @@ func WithMediaType(media tdl.MediaType) ReaderOption {
 }
 
 func ReadAll(reader io.Reader, options ...ReaderOption) (*tdlv1alpha1.Spec, error) {
-	opts := defaultOptions
-	option.ApplyAll(&opts, options)
-
+	opts := Options(options...)
 	data, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
 
 	return FromMediaType(opts.MediaType(), data)
+}
+
+func Options(options ...ReaderOption) readerOptions {
+	opts := defaultOptions
+	option.ApplyAll(&opts, options)
+	return opts
 }
