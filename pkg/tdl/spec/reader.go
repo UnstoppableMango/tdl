@@ -15,6 +15,8 @@ type readerOptions struct {
 	MediaType mediatype.Option
 }
 
+type ReaderOption func(*readerOptions)
+
 type reader struct {
 	options *readerOptions
 	spec    *tdlv1alpha1.Spec
@@ -56,8 +58,6 @@ func (r *reader) ensure() error {
 	r.buffer = bytes.NewBuffer(data)
 	return nil
 }
-
-type ReaderOption func(*readerOptions)
 
 func NewReader(spec *tdlv1alpha1.Spec, options ...ReaderOption) io.Reader {
 	opts := defaultOptions

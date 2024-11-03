@@ -27,3 +27,7 @@ type MediaType string
 func (m MediaType) String() string {
 	return string(m)
 }
+
+func WithMediaType(media MediaType) func() MediaType {
+	return func() MediaType { return media }
+}
