@@ -1,4 +1,4 @@
-package pipeline
+package pipe
 
 import "github.com/unstoppablemango/tdl/pkg/tdl/constraint"
 

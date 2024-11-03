@@ -2,19 +2,19 @@ package testing
 
 import (
 	"github.com/onsi/ginkgo/v2"
+	"github.com/unstoppablemango/tdl/pkg/mediatype"
 	"github.com/unstoppablemango/tdl/pkg/tdl"
-	"github.com/unstoppablemango/tdl/pkg/tdl/media"
 )
 
 var MediaTypes = []tdl.MediaType{
-	media.ApplicationGoogleProtobuf,
-	media.ApplicationJson,
-	media.ApplicationProtobuf,
-	media.ApplicationXProtobuf,
-	media.ApplicationXYaml,
-	media.ApplicationYaml,
-	media.TextJson,
-	media.TextYaml,
+	mediatype.ApplicationGoogleProtobuf,
+	mediatype.ApplicationJson,
+	mediatype.ApplicationProtobuf,
+	mediatype.ApplicationXProtobuf,
+	mediatype.ApplicationXYaml,
+	mediatype.ApplicationYaml,
+	mediatype.TextJson,
+	mediatype.TextYaml,
 }
 
 func MediaTypeEntries() []ginkgo.TableEntry {

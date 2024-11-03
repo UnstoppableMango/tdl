@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
+	"github.com/unstoppablemango/tdl/internal/util"
 )
 
 var Blacklist = []string{
@@ -123,16 +123,12 @@ func NewList(options *ListOptions) *cobra.Command {
 			ctx := cmd.Context()
 			log.Debug("running with options", "options", options)
 
-			log.Debug("looking up repo root")
-			revParse, err := exec.CommandContext(ctx,
-				"git", "rev-parse", "--show-toplevel",
-			).CombinedOutput()
+			root, err := util.GitRoot(ctx)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err.Error())
 				os.Exit(1)
 			}
 
-			root := strings.TrimSpace(string(revParse))
 			log.Debugf("walking root: %s", root)
 
 			printer := options.printer(root)

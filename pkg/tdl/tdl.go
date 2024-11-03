@@ -8,23 +8,17 @@ import (
 )
 
 type Sink interface {
+	Units() iter.Seq[string]
+	Reader(string) (io.Reader, error)
 	WriteUnit(string, io.Reader) error
 }
 
-type Source interface {
-	Units() iter.Seq[string]
-	Reader(string) (io.Reader, error)
+type Pipeline[T, V any] interface {
+	Execute(T, V) error
 }
-
-type Pipe interface {
-	Sink
-	Source
-}
-
-type Gen func(*tdlv1alpha1.Spec, Sink) error
 
 type Generator interface {
-	Execute(*tdlv1alpha1.Spec, Sink) error
+	Pipeline[*tdlv1alpha1.Spec, Sink]
 }
 
 type MediaType string
@@ -32,4 +26,8 @@ type MediaType string
 // String implements fmt.Stringer.
 func (m MediaType) String() string {
 	return string(m)
+}
+
+func WithMediaType(media MediaType) func() MediaType {
+	return func() MediaType { return media }
 }

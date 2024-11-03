@@ -79,7 +79,7 @@ func (p *BufferedPipe) WriteUnit(unit string, reader io.Reader) error {
 	return nil
 }
 
-func NewPipe() tdl.Pipe {
+func NewPipe() tdl.Sink {
 	return &PorcelainPipe{
 		units: make(map[string]io.Reader),
 	}
