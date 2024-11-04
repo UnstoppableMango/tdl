@@ -3,8 +3,9 @@ package github
 import (
 	"context"
 	"io"
+	"net/http"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v66/github"
 )
 
 const (
@@ -12,8 +13,12 @@ const (
 	Repo  = "tdl"
 )
 
+var DefaultClient = NewClient(
+	github.NewClient(http.DefaultClient),
+)
+
 type Client interface {
-	DownloadReleaseAsset(ctx context.Context, owner string, repo string, id int64) (io.ReadCloser, string, error)
+	DownloadReleaseAsset(ctx context.Context, owner string, repo string, id int64, followRedirectsClient *http.Client) (io.ReadCloser, string, error)
 	GetReleaseByTag(ctx context.Context, owner string, repo string, tag string) (*github.RepositoryRelease, *github.Response, error)
 }
 

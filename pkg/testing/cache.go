@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/spf13/afero"
-	"github.com/unstoppablemango/tdl/pkg/plugin"
+	"github.com/unstoppablemango/tdl/pkg/plugin/cache"
 )
 
 type CacheForT struct {
@@ -67,8 +67,8 @@ func (c *Cache) ensure() error {
 	return nil
 }
 
-var _ plugin.Cacher = &CacheForT{}
-var _ plugin.Cacher = &Cache{}
+var _ cache.Cacher = &CacheForT{}
+var _ cache.Cacher = &Cache{}
 
 func NewCacheForT(t *testing.T) *CacheForT {
 	return &CacheForT{t: t}

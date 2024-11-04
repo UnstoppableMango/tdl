@@ -1,4 +1,4 @@
-package plugin
+package cache
 
 import (
 	"fmt"
@@ -19,25 +19,25 @@ type userConfig struct {
 
 var XdgConfig = userConfig{xdg.ConfigHome}
 
-func (c userConfig) Cache(bin string, data []byte) error {
+func (c userConfig) Cache(name string, data []byte) error {
 	if err := c.ensure(); err != nil {
 		return fmt.Errorf("caching binary: %w", err)
 	}
 
 	return os.WriteFile(
-		c.name(bin),
+		c.name(name),
 		data,
 		os.ModePerm,
 	)
 }
 
-func CacheAll(cache Cacher, bin string, reader io.Reader) error {
+func All(cache Cacher, name string, reader io.Reader) error {
 	data, err := io.ReadAll(reader)
 	if err != nil {
 		return err
 	}
 
-	return cache.Cache(bin, data)
+	return cache.Cache(name, data)
 }
 
 func (c userConfig) ensure() error {

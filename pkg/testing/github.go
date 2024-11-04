@@ -3,7 +3,7 @@ package testing
 import (
 	"net/http"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v66/github"
 )
 
 func NewGitHubClient() *github.Client {
