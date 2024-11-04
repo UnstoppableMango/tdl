@@ -2,13 +2,14 @@ package plugin
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
 	"github.com/adrg/xdg"
 )
 
-type Config interface {
+type Cacher interface {
 	Cache(string, []byte) error
 }
 
@@ -28,6 +29,15 @@ func (c userConfig) Cache(bin string, data []byte) error {
 		data,
 		os.ModePerm,
 	)
+}
+
+func CacheAll(cache Cacher, bin string, reader io.Reader) error {
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		return err
+	}
+
+	return cache.Cache(bin, data)
 }
 
 func (c userConfig) ensure() error {
