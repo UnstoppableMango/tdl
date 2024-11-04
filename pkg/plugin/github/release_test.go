@@ -11,7 +11,7 @@ import (
 	"github.com/unstoppablemango/tdl/pkg/testing"
 )
 
-var _ = Describe("Github", func() {
+var _ = Describe("Github", Label("E2E"), func() {
 	var client github.Client
 	var cache *testing.Cache
 
