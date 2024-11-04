@@ -1,29 +1,25 @@
 package target
 
 import (
-	"context"
 	"iter"
+	"slices"
 
-	"github.com/unstoppablemango/tdl/internal/util"
 	tdl "github.com/unstoppablemango/tdl/pkg"
-	"github.com/unstoppablemango/tdl/pkg/plugin/repo"
+	"github.com/unstoppablemango/tdl/pkg/plugin"
 )
 
-type TypeScript struct{}
+type typescript string
 
 // Plugins implements tdl.Target.
-func (t *TypeScript) Plugins() (iter.Seq[tdl.Plugin], error) {
-	return func(yield func(tdl.Plugin) bool) {
-		ctx := context.Background()
-		if path, err := util.GitRoot(ctx); err != nil {
-			if !yield(repo.NewLocal(path, t)) {
-				return
-			}
-		}
-	}, nil
+func (t typescript) Plugins() iter.Seq[tdl.Plugin] {
+	return slices.Values([]tdl.Plugin{
+		plugin.Uml2Ts,
+	})
 }
 
 // String implements tdl.Target.
-func (t *TypeScript) String() string {
-	return "TypeScript"
+func (t typescript) String() string {
+	return string(t)
 }
+
+var TypeScript typescript = "TypeScript"

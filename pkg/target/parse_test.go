@@ -13,11 +13,12 @@ var _ = Describe("Parse", func() {
 		Entry(nil, "TS"),
 		Entry(nil, "typescript"),
 		Entry(nil, "tyPEsCrIpt"),
+		Entry(nil, "uml2ts"),
 		func(input string) {
 			result, err := target.Parse(input)
 
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result).To(BeAssignableToTypeOf(&target.TypeScript{}))
+			Expect(result).To(Equal(target.TypeScript))
 		},
 	)
 

@@ -22,12 +22,12 @@ type Generator interface {
 
 type Plugin interface {
 	fmt.Stringer
-	Available() bool
+	Generator(Target) (Generator, error)
 }
 
 type Target interface {
 	fmt.Stringer
-	Plugins() (iter.Seq[Plugin], error)
+	Plugins() iter.Seq[Plugin]
 }
 
 type MediaType string

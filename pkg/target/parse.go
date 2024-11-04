@@ -14,8 +14,10 @@ func Parse(target string) (tdl.Target, error) {
 	switch strings.ToLower(target) {
 	case "ts":
 		fallthrough
+	case "uml2ts":
+		fallthrough
 	case "typescript":
-		return &TypeScript{}, nil
+		return TypeScript, nil
 	default:
 		return nil, UnsupportedErr(target)
 	}

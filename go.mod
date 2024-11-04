@@ -4,7 +4,9 @@ go 1.23.2
 
 require (
 	connectrpc.com/connect v1.17.0
+	github.com/adrg/xdg v0.5.3
 	github.com/charmbracelet/log v0.4.0
+	github.com/google/go-github v17.0.0+incompatible
 	github.com/onsi/ginkgo/v2 v2.21.0
 	github.com/onsi/gomega v1.35.1
 	github.com/pulumi/pulumi/pkg/v3 v3.137.0
@@ -47,6 +49,7 @@ require (
 	github.com/golang/glog v1.2.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
+	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/pprof v0.0.0-20241029153458-d1b30febd7db // indirect
 	github.com/grpc-ecosystem/grpc-opentracing v0.0.0-20180507213350-8e809c8a8645 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
