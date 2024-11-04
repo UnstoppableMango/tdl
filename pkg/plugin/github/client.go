@@ -18,6 +18,7 @@ var DefaultClient = NewClient(
 )
 
 type Client interface {
+	BaseURL() string
 	DownloadReleaseAsset(ctx context.Context, owner string, repo string, id int64, followRedirectsClient *http.Client) (io.ReadCloser, string, error)
 	GetReleaseByTag(ctx context.Context, owner string, repo string, tag string) (*github.RepositoryRelease, *github.Response, error)
 }
@@ -29,8 +30,14 @@ type (
 
 type client struct {
 	*github.RepositoriesService
+	gh *github.Client
+}
+
+// BaseURL implements Client.
+func (c *client) BaseURL() string {
+	return c.gh.BaseURL.String()
 }
 
 func NewClient(github *github.Client) Client {
-	return &client{github.Repositories}
+	return &client{github.Repositories, github}
 }

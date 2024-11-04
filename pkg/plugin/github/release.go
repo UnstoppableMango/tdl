@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"slices"
 
@@ -45,7 +46,14 @@ func (g *release) Generator(tdl.Target) (tdl.Generator, error) {
 
 // String implements tdl.Plugin.
 func (g *release) String() string {
-	panic("unimplemented")
+	baseUrl := g.client.BaseURL()
+	url, err := url.JoinPath(baseUrl, "")
+	if err != nil {
+		log.Error(err)
+		return baseUrl
+	}
+
+	return url
 }
 
 func (g release) Cache(ctx context.Context) error {
