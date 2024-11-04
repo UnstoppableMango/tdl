@@ -6,7 +6,7 @@ require (
 	connectrpc.com/connect v1.17.0
 	github.com/adrg/xdg v0.5.3
 	github.com/charmbracelet/log v0.4.0
-	github.com/google/go-github v17.0.0+incompatible
+	github.com/google/go-github/v66 v66.0.0
 	github.com/onsi/ginkgo/v2 v2.21.0
 	github.com/onsi/gomega v1.35.1
 	github.com/pulumi/pulumi/pkg/v3 v3.137.0
