@@ -18,6 +18,7 @@ var testCacheForT *ttest.CacheForT
 func TestTesting(t *testing.T) {
 	log.SetLevel(log.FatalLevel)
 
+	// TODO: Test this outside of ginkgo so it doesn't fail the whole suite
 	testCacheForT = ttest.NewCacheForT(t)
 
 	RegisterFailHandler(Fail)

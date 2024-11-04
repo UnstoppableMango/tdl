@@ -34,4 +34,36 @@ var _ = Describe("Github", Label("E2E"), func() {
 		path := filepath.Join(dir, "tdl-linux-amd64.tar.gz")
 		Expect(path).To(BeAnExistingFile())
 	})
+
+	It("should cache uml2ts", func(ctx context.Context) {
+		release := github.NewRelease("tdl-linux-amd64.tar.gz", "0.0.29",
+			github.WithClient(client),
+			github.WithCache(cache),
+			github.WithArchiveContents("uml2ts"),
+		)
+
+		err := release.Cache(ctx)
+
+		Expect(err).NotTo(HaveOccurred())
+		dir, err := cache.Dir()
+		Expect(err).NotTo(HaveOccurred())
+		path := filepath.Join(dir, "uml2ts")
+		Expect(path).To(BeARegularFile())
+	})
+
+	It("should NOT cache unspecified artifacts", func(ctx context.Context) {
+		release := github.NewRelease("tdl-linux-amd64.tar.gz", "0.0.29",
+			github.WithClient(client),
+			github.WithCache(cache),
+			github.WithArchiveContents("uml2ts"),
+		)
+
+		err := release.Cache(ctx)
+
+		Expect(err).NotTo(HaveOccurred())
+		dir, err := cache.Dir()
+		Expect(err).NotTo(HaveOccurred())
+		path := filepath.Join(dir, "uml2go")
+		Expect(path).NotTo(BeARegularFile())
+	})
 })

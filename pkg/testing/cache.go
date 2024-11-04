@@ -1,6 +1,8 @@
 package testing
 
 import (
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -12,6 +14,11 @@ import (
 type CacheForT struct {
 	t   *testing.T
 	dir string
+}
+
+// Reader implements cache.Cacher.
+func (c *CacheForT) Reader(name string) (io.Reader, error) {
+	return os.Open(filepath.Join(c.Dir(), name))
 }
 
 // Cache implements plugin.Cacher.
@@ -34,14 +41,24 @@ type Cache struct {
 	dir string
 }
 
+// Reader implements cache.Cacher.
+func (c *Cache) Reader(name string) (io.Reader, error) {
+	dir, err := c.Dir()
+	if err != nil {
+		return nil, fmt.Errorf("reader for %s: %w", name, err)
+	}
+
+	return c.fs.Open(filepath.Join(dir, name))
+}
+
 // Cache implements plugin.Cacher.
-func (c *Cache) Cache(bin string, data []byte) error {
+func (c *Cache) Cache(name string, data []byte) error {
 	path, err := c.Dir()
 	if err != nil {
 		return err
 	}
 
-	binary := filepath.Join(path, bin)
+	binary := filepath.Join(path, name)
 	return afero.WriteFile(c.fs, binary, data, os.ModePerm)
 }
 

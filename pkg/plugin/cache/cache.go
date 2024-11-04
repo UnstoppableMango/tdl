@@ -11,10 +11,16 @@ import (
 
 type Cacher interface {
 	Cache(string, []byte) error
+	Reader(string) (io.Reader, error)
 }
 
 type userConfig struct {
 	root string
+}
+
+// Reader implements Cacher.
+func (c userConfig) Reader(name string) (io.Reader, error) {
+	return os.Open(c.name(name))
 }
 
 var XdgConfig = userConfig{xdg.ConfigHome}
@@ -60,3 +66,5 @@ func (c userConfig) binDir() string {
 func (c userConfig) name(name string) string {
 	return filepath.Join(c.binDir(), name)
 }
+
+var _ Cacher = &userConfig{}

@@ -1,11 +1,17 @@
 package github
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"path/filepath"
+	"slices"
 
+	"github.com/charmbracelet/log"
 	"github.com/unmango/go/option"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/plugin/cache"
@@ -18,10 +24,11 @@ type Release interface {
 }
 
 type release struct {
-	owner, repo   string
-	name, version string
-	cache         cache.Cacher
-	client        Client
+	owner, repo     string
+	name, version   string
+	cache           cache.Cacher
+	client          Client
+	archiveContents []string
 }
 
 type Option func(*release)
@@ -55,12 +62,46 @@ func (g release) Cache(ctx context.Context) error {
 		return fmt.Errorf("reader was nil")
 	}
 
-	return cache.All(g.cache, g.name, reader)
+	if len(g.archiveContents) == 0 {
+		return cache.All(g.cache, g.name, reader)
+	} else {
+		return g.extractArchive(reader)
+	}
 }
 
 func (g release) downloadReleaseAsset(ctx context.Context, id int64) (io.Reader, error) {
 	reader, _, err := g.client.DownloadReleaseAsset(ctx, g.owner, g.repo, id, http.DefaultClient)
 	return reader, err
+}
+
+func (g release) extractArchive(reader io.Reader) error {
+	if filepath.Ext(g.name) != ".gz" {
+		return fmt.Errorf("unsupported archive type: %s", g.name)
+	}
+
+	gz, err := gzip.NewReader(reader)
+	if err != nil {
+		return err
+	}
+
+	var name string
+	tar := tar.NewReader(gz)
+	header, err := tar.Next()
+	for (err == nil || errors.Is(err, io.EOF)) && header != nil {
+		name = header.Name
+		if !slices.Contains(g.archiveContents, name) {
+			log.Debug("skipping archive entry", "name", name)
+			continue
+		}
+
+		err = cache.All(g.cache, name, tar)
+		header, err = tar.Next()
+	}
+	if err != nil && !errors.Is(err, io.EOF) {
+		return fmt.Errorf("extracting %s: %w", name, err)
+	}
+
+	return nil
 }
 
 func (g release) getAsset(ctx context.Context) (asset *ReleaseAsset, err error) {
@@ -95,6 +136,8 @@ func NewRelease(name, version string, options ...Option) Release {
 		version: version,
 		cache:   cache.XdgConfig,
 		client:  DefaultClient,
+
+		archiveContents: []string{},
 	}
 	option.ApplyAll(r, options)
 
@@ -129,5 +172,11 @@ func WithRepository(owner, repo string) Option {
 	return func(r *release) {
 		r.owner = owner
 		r.repo = repo
+	}
+}
+
+func WithArchiveContents(path ...string) Option {
+	return func(r *release) {
+		r.archiveContents = append(r.archiveContents, path...)
 	}
 }
