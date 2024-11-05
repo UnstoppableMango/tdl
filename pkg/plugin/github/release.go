@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
+	"path"
 	"path/filepath"
 
-	"github.com/charmbracelet/log"
 	"github.com/unmango/go/option"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/plugin/cache"
@@ -16,7 +15,6 @@ import (
 
 type Release interface {
 	tdl.Plugin
-	Cached() bool
 	Cache(context.Context) error
 }
 
@@ -30,11 +28,6 @@ type release struct {
 
 type Option func(*release)
 
-// Cached implements Release.
-func (g *release) Cached() bool {
-	panic("unimplemented")
-}
-
 // Generator implements tdl.Plugin.
 func (g *release) Generator(tdl.Target) (tdl.Generator, error) {
 	panic("unimplemented")
@@ -42,14 +35,13 @@ func (g *release) Generator(tdl.Target) (tdl.Generator, error) {
 
 // String implements tdl.Plugin.
 func (g *release) String() string {
-	baseUrl := g.client.BaseURL()
-	url, err := url.JoinPath(baseUrl, "")
-	if err != nil {
-		log.Error(err)
-		return baseUrl
-	}
+	path := path.Join(
+		g.owner, g.repo,
+		"releases", "download",
+		g.prefixedVersion(), g.name,
+	)
 
-	return url
+	return fmt.Sprintf("https://github.com/%s", path)
 }
 
 func (g release) Cache(ctx context.Context) error {
