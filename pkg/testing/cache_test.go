@@ -11,7 +11,7 @@ var _ = Describe("Cache", func() {
 		cache := testing.NewCache(nil)
 		data := []byte("tdkfjdkhgsdl")
 
-		err := cache.Cache("test-bin", data)
+		err := cache.Write("test-bin", data)
 
 		Expect(err).NotTo(HaveOccurred())
 	})
@@ -20,7 +20,7 @@ var _ = Describe("Cache", func() {
 		It("should work", func() {
 			data := []byte("dkfjslkdfjksdlf")
 
-			err := testCacheForT.Cache("test-bin", data)
+			err := testCacheForT.Write("test-bin", data)
 
 			Expect(err).NotTo(HaveOccurred())
 		})
