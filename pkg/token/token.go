@@ -6,5 +6,5 @@ import (
 
 func Parse(tokenish string) (tdl.Token, error) {
 	// This should eventually be more robust
-	return tdl.Token{Name: tokenish}, nil
+	return tdl.Token{Path: tokenish}, nil
 }

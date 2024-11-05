@@ -25,7 +25,7 @@ GO_SUITES  ?= $(filter %_suite_test.go,${GO_SRC})
 GO_REPORTS ?= $(addsuffix report.json,$(dir ${GO_SUITES}))
 
 ifeq ($(CI),)
-TEST_FLAGS :=
+TEST_FLAGS := --label-filter '!E2E'
 else
 TEST_FLAGS := --github-output --race --trace
 endif
@@ -45,6 +45,8 @@ clean:
 
 test_all:
 	$(GINKGO) run -r ./
+
+e2e: .make/go_e2e_test
 
 ${GO_PB_SRC}: buf.gen.yaml ${PROTO_SRC} | bin/buf
 	$(BUF) generate
@@ -90,6 +92,10 @@ go.sum: go.mod ${GO_SRC}
 
 .make/go_test: ${GO_SRC} | bin/ginkgo bin/ux bin/uml2ts
 	$(GINKGO) run ${TEST_FLAGS} $(sort $(dir $?))
+	@touch $@
+
+.make/go_e2e_test: ${GO_SRC} | bin/ginkgo bin/ux bin/uml2ts
+	$(GINKGO) run --label-filter 'E2E' $(sort $(dir $?))
 	@touch $@
 
 .make/ts_test: ${TS_SRC}

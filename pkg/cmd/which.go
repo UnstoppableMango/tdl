@@ -16,7 +16,7 @@ func NewWhich() *cobra.Command {
 		Short: "Print the token for the closest matching generator",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			token := tdl.Token{Name: args[0]}
+			token := tdl.Token{Path: args[0]}
 
 			generator, err := gen.Name(token)
 			if !errors.Is(err, gen.ErrNotFound) {
