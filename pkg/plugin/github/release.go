@@ -59,7 +59,7 @@ func (g release) Cache(ctx context.Context) error {
 	}
 
 	if len(g.archiveContents) == 0 {
-		return cache.All(g.cache, g.name, reader)
+		return cache.WriteAll(g.cache, g.name, reader)
 	} else {
 		return g.extractArchive(reader)
 	}
@@ -108,7 +108,7 @@ func NewRelease(name, version string, options ...Option) Release {
 		repo:    Repo,
 		name:    name,
 		version: version,
-		cache:   cache.XdgConfig,
+		cache:   cache.XdgBinHome,
 		client:  DefaultClient,
 
 		archiveContents: []string{},

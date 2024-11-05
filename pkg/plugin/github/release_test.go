@@ -6,6 +6,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/spf13/afero"
 
 	"github.com/unstoppablemango/tdl/pkg/plugin/github"
 	"github.com/unstoppablemango/tdl/pkg/testing"
@@ -17,7 +18,7 @@ var _ = Describe("Github", func() {
 
 	BeforeEach(func() {
 		client = github.NewClient(testing.NewGitHubClient())
-		cache = testing.NewCache(nil)
+		cache = testing.NewCache(afero.NewOsFs())
 	})
 
 	It("should cache tdl-linux-amd64.tar.gz", Label("E2E"), func(ctx context.Context) {
@@ -29,8 +30,7 @@ var _ = Describe("Github", func() {
 		err := release.Cache(ctx)
 
 		Expect(err).NotTo(HaveOccurred())
-		dir, err := cache.Dir()
-		Expect(err).NotTo(HaveOccurred())
+		dir := cache.Dir()
 		path := filepath.Join(dir, "tdl-linux-amd64.tar.gz")
 		Expect(path).To(BeAnExistingFile())
 	})
@@ -45,8 +45,7 @@ var _ = Describe("Github", func() {
 		err := release.Cache(ctx)
 
 		Expect(err).NotTo(HaveOccurred())
-		dir, err := cache.Dir()
-		Expect(err).NotTo(HaveOccurred())
+		dir := cache.Dir()
 		path := filepath.Join(dir, "uml2ts")
 		Expect(path).To(BeARegularFile())
 	})
@@ -61,8 +60,7 @@ var _ = Describe("Github", func() {
 		err := release.Cache(ctx)
 
 		Expect(err).NotTo(HaveOccurred())
-		dir, err := cache.Dir()
-		Expect(err).NotTo(HaveOccurred())
+		dir := cache.Dir()
 		path := filepath.Join(dir, "uml2go")
 		Expect(path).NotTo(BeARegularFile())
 	})
