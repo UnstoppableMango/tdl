@@ -27,6 +27,7 @@ type Plugin interface {
 
 type Target interface {
 	fmt.Stringer
+	Choose([]Generator) (Generator, error)
 	Plugins() iter.Seq[Plugin]
 }
 

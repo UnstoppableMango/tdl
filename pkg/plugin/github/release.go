@@ -29,8 +29,8 @@ type release struct {
 type Option func(*release)
 
 // Generator implements tdl.Plugin.
-func (g *release) Generator(tdl.Target) (tdl.Generator, error) {
-	panic("unimplemented")
+func (g *release) Generator(target tdl.Target) (tdl.Generator, error) {
+	return target.Choose([]tdl.Generator{})
 }
 
 // String implements tdl.Plugin.
