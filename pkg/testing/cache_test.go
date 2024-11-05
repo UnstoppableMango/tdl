@@ -15,14 +15,4 @@ var _ = Describe("Cache", func() {
 
 		Expect(err).NotTo(HaveOccurred())
 	})
-
-	Describe("CacheForT", func() {
-		It("should work", func() {
-			data := []byte("dkfjslkdfjksdlf")
-
-			err := testCacheForT.Write("test-bin", data)
-
-			Expect(err).NotTo(HaveOccurred())
-		})
-	})
 })

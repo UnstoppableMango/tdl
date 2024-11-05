@@ -13,13 +13,17 @@ import (
 //go:embed testdata
 var testdata embed.FS
 
-var testCacheForT *ttest.CacheForT
+func TestCacheForT(t *testing.T) {
+	g := NewWithT(t)
+	cache := ttest.NewCacheForT(t)
+	data := []byte("dkfjslkdfjksdlf")
+
+	err := cache.Write("test-bin", data)
+	g.Expect(err).NotTo(HaveOccurred())
+}
 
 func TestTesting(t *testing.T) {
 	log.SetLevel(log.FatalLevel)
-
-	// TODO: Test this outside of ginkgo so it doesn't fail the whole suite
-	testCacheForT = ttest.NewCacheForT(t)
 
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Testing Suite")

@@ -95,3 +95,7 @@ func AtDirectory(path string) Directory {
 		path: path,
 	}
 }
+
+func NewDirectory(fsys afero.Fs, path string) Directory {
+	return &directory{fsys, path}
+}

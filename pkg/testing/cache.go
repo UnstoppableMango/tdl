@@ -1,6 +1,7 @@
 package testing
 
 import (
+	"io"
 	"testing"
 
 	"github.com/spf13/afero"
@@ -8,30 +9,44 @@ import (
 )
 
 type Cache struct {
-	cache.Directory
+	fs   afero.Fs
+	path string
+
+	base cache.Directory
 }
 
-func (c *Cache) ensure() error {
-	if c.dir != "" {
-		return nil
-	}
-
-	path, err := afero.TempDir(c.fs, "", "")
-	if err != nil {
-		return err
-	}
-
-	c.dir = path
-	return nil
+// List implements cache.Directory.
+func (c *Cache) List() ([]string, error) {
+	panic("unimplemented")
 }
 
-var _ cache.Cacher = &Cache{}
+// Reader implements cache.Cacher.
+func (c *Cache) Reader(string) (io.Reader, error) {
+	panic("unimplemented")
+}
+
+// Write implements cache.Cacher.
+func (c *Cache) Write(string, []byte) error {
+	panic("unimplemented")
+}
+
+func (c *Cache) Dir() string {
+	return c.path
+}
+
+var _ cache.Directory = &Cache{}
 
 func NewCacheForT(t *testing.T) *Cache {
-	return &Cache{cache.AtDirectory(t.TempDir())}
+	return &Cache{
+		fs:   afero.NewOsFs(),
+		path: t.TempDir(),
+	}
 }
 
 func NewCache(fsys afero.Fs) *Cache {
-	cache := cache.AtDirectory(path)
-	return &Cache{Directory: cache}
+	if fsys == nil {
+		fsys = afero.NewMemMapFs()
+	}
+
+	return &Cache{fs: fsys}
 }
