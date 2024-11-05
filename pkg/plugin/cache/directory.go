@@ -14,12 +14,19 @@ import (
 
 type Directory interface {
 	Cacher
+	JoinPath(...string) string
 	List() ([]string, error)
 }
 
 type directory struct {
 	fs   afero.Fs
 	path string
+}
+
+// JoinPath implements Directory.
+func (d *directory) JoinPath(elem ...string) string {
+	elem = append([]string{d.path}, elem...)
+	return filepath.Join(elem...)
 }
 
 // Write implements Cacher.

@@ -29,8 +29,7 @@ var _ = Describe("Github", func() {
 		err := release.Cache(ctx)
 
 		Expect(err).NotTo(HaveOccurred())
-		dir, err := cache.Dir()
-		Expect(err).NotTo(HaveOccurred())
+		dir := cache.Dir()
 		path := filepath.Join(dir, "tdl-linux-amd64.tar.gz")
 		Expect(path).To(BeAnExistingFile())
 	})
@@ -45,8 +44,7 @@ var _ = Describe("Github", func() {
 		err := release.Cache(ctx)
 
 		Expect(err).NotTo(HaveOccurred())
-		dir, err := cache.Dir()
-		Expect(err).NotTo(HaveOccurred())
+		dir := cache.Dir()
 		path := filepath.Join(dir, "uml2ts")
 		Expect(path).To(BeARegularFile())
 	})
@@ -61,8 +59,7 @@ var _ = Describe("Github", func() {
 		err := release.Cache(ctx)
 
 		Expect(err).NotTo(HaveOccurred())
-		dir, err := cache.Dir()
-		Expect(err).NotTo(HaveOccurred())
+		dir := cache.Dir()
 		path := filepath.Join(dir, "uml2go")
 		Expect(path).NotTo(BeARegularFile())
 	})
