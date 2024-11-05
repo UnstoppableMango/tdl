@@ -1,16 +1,12 @@
 package github
 
 import (
-	"archive/tar"
-	"compress/gzip"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"path/filepath"
-	"slices"
 
 	"github.com/charmbracelet/log"
 	"github.com/unmango/go/option"
@@ -87,29 +83,7 @@ func (g release) extractArchive(reader io.Reader) error {
 		return fmt.Errorf("unsupported archive type: %s", g.name)
 	}
 
-	gz, err := gzip.NewReader(reader)
-	if err != nil {
-		return err
-	}
-
-	var name string
-	tar := tar.NewReader(gz)
-	header, err := tar.Next()
-	for (err == nil || errors.Is(err, io.EOF)) && header != nil {
-		name = header.Name
-		if !slices.Contains(g.archiveContents, name) {
-			log.Debug("skipping archive entry", "name", name)
-			continue
-		}
-
-		err = cache.All(g.cache, name, tar)
-		header, err = tar.Next()
-	}
-	if err != nil && !errors.Is(err, io.EOF) {
-		return fmt.Errorf("extracting %s: %w", name, err)
-	}
-
-	return nil
+	return cache.TarGz(g.cache, reader, g.archiveContents...)
 }
 
 func (g release) getAsset(ctx context.Context) (asset *ReleaseAsset, err error) {
