@@ -4,16 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"iter"
-	"slices"
 
 	"github.com/charmbracelet/log"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 )
 
-type Ordered interface {
-	tdl.Plugin
-	Order() int
-}
+const UnwrapDepth = 3
 
 type Aggregate []tdl.Plugin
 
@@ -49,10 +45,8 @@ func (a Aggregate) sorted() []Ordered {
 func (a Aggregate) ordered() iter.Seq[Ordered] {
 	return func(yield func(Ordered) bool) {
 		for _, p := range a {
-			if o, ok := p.(Ordered); ok {
-				if !yield(o) {
-					return
-				}
+			if !yield(AsOrdered(p)) {
+				return
 			}
 		}
 	}
@@ -63,11 +57,3 @@ func NewAggregate(plugins ...tdl.Plugin) Aggregate {
 }
 
 var _ tdl.Plugin = Aggregate{}
-
-func Sorted[O Ordered](seq iter.Seq[O]) []O {
-	return slices.SortedFunc(seq, compare)
-}
-
-func compare[O Ordered](a O, b O) int {
-	return a.Order() - b.Order()
-}

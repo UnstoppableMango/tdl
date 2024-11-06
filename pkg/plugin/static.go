@@ -1,5 +1,7 @@
 package plugin
 
-var Uml2Ts = NewAggregate(
+import tdl "github.com/unstoppablemango/tdl/pkg"
+
+var Uml2Ts tdl.Plugin = NewAggregate(
 	fromPath{"uml2ts", 50},
 )
