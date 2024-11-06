@@ -7,6 +7,7 @@ import (
 	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/mediatype"
 	"github.com/unstoppablemango/tdl/pkg/pipe"
+	sinkio "github.com/unstoppablemango/tdl/pkg/sink/io"
 	"github.com/unstoppablemango/tdl/pkg/spec"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
@@ -23,13 +24,23 @@ type SpecReader[T any] struct {
 }
 
 // Execute implements tdl.Pipeline.
-func (p *SpecReader[T]) Execute(reader io.Reader, sink T) error {
+func (p *SpecReader[T]) Execute(reader io.Reader, output T) error {
 	spec, err := spec.ReadAll(reader, p.options...)
 	if err != nil {
 		return err
 	}
 
-	return p.Pipeline.Execute(spec, sink)
+	return p.Pipeline.Execute(spec, output)
+}
+
+type SinkWriter[T any] struct {
+	tdl.Pipeline[T, tdl.Sink]
+}
+
+// Execute implements tdl.Pipeline.
+func (s *SinkWriter[T]) Execute(input T, writer io.Writer) error {
+	sink := sinkio.NewSink(writer)
+	return s.Pipeline.Execute(input, sink)
 }
 
 func ReadSpec[T any](
@@ -39,6 +50,14 @@ func ReadSpec[T any](
 	return &SpecReader[T]{
 		Pipeline: pipeline,
 		options:  options,
+	}
+}
+
+func WriteSink[T any](
+	pipeline tdl.Pipeline[T, tdl.Sink],
+) tdl.Pipeline[T, io.Writer] {
+	return &SinkWriter[T]{
+		Pipeline: pipeline,
 	}
 }
 
