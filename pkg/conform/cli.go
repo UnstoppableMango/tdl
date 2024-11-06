@@ -8,18 +8,30 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	g "github.com/onsi/gomega"
+	"github.com/unmango/go/option"
+	"github.com/unstoppablemango/tdl/pkg/testing"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 	"google.golang.org/protobuf/proto"
 )
+
+type CliTestOptions struct {
+	ioSuite []*testing.Test
+	args    []string
+}
+
+type CliTestOption func(*CliTestOptions)
 
 // CliTests describes TDL conformace tests for binary runners.
 // The provided binary must exist and be executable.
 // Args can be provided if the codegen functionality is provided by a subcommand.
 // CliTests MUST be called within the Ginkgo test construction phase.
-func CliTests(binary string, args []string) {
+func CliTests(binary string, options ...CliTestOption) {
 	// Basically a naive check that the thing we're executing
 	// is at least semi-aware of conformance tests
-	execArgs := append(args, "--conformance-test")
+	options = append(options, WithArgs("--conformance-test"))
+
+	opts := &CliTestOptions{}
+	option.Apply(opts, options...)
 
 	ginkgo.It("should stat", func() {
 		_, err := os.Stat(binary)
@@ -28,7 +40,7 @@ func CliTests(binary string, args []string) {
 	})
 
 	ginkgo.It("should execute", func(ctx context.Context) {
-		cmd := exec.CommandContext(ctx, binary, execArgs...)
+		cmd := exec.CommandContext(ctx, binary, opts.args...)
 		out, err := cmd.CombinedOutput()
 
 		g.Expect(err).NotTo(g.HaveOccurred(), string(out))
@@ -40,10 +52,20 @@ func CliTests(binary string, args []string) {
 		data, err := proto.Marshal(&tdlv1alpha1.Spec{})
 		g.Expect(err).NotTo(g.HaveOccurred())
 
-		cmd := exec.CommandContext(ctx, binary, execArgs...)
+		cmd := exec.CommandContext(ctx, binary, opts.args...)
 		cmd.Stdin = bytes.NewReader(data)
 		out, err := cmd.CombinedOutput()
 
 		g.Expect(err).NotTo(g.HaveOccurred(), string(out))
 	})
+
+	if opts.ioSuite != nil {
+		IOSuite(opts.ioSuite, nil)
+	}
+}
+
+func WithArgs(args ...string) CliTestOption {
+	return func(cto *CliTestOptions) {
+		cto.args = append(cto.args, args...)
+	}
 }

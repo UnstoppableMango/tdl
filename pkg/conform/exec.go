@@ -2,6 +2,7 @@ package conform
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/charmbracelet/log"
 	"github.com/onsi/ginkgo/v2"
@@ -12,7 +13,8 @@ import (
 type fakeT struct{}
 
 func (t *fakeT) Fail() {
-	fmt.Println("fail")
+	fmt.Fprintln(os.Stderr, "fail")
+	os.Exit(1)
 }
 
 func Execute(fsys afero.Fs, endpoint string, args []string) error {
@@ -21,7 +23,7 @@ func Execute(fsys afero.Fs, endpoint string, args []string) error {
 	}
 
 	ginkgo.Describe("Conformance Tests", func() {
-		CliTests(endpoint, args)
+		CliTests(endpoint, WithArgs(args...))
 	})
 
 	gomega.RegisterFailHandler(ginkgo.Fail)
