@@ -3,6 +3,7 @@ package target
 import (
 	"errors"
 	"iter"
+	"path/filepath"
 	"slices"
 
 	tdl "github.com/unstoppablemango/tdl/pkg"
@@ -20,13 +21,16 @@ func (t typescript) Choose(available []tdl.Generator) (tdl.Generator, error) {
 		return nil, errors.New("no generators to choose from")
 	}
 
+	errs := []error{}
 	for _, g := range available {
-		if supported(g) {
+		if err := supported(g); err != nil {
+			errs = append(errs, err)
+		} else {
 			return g, nil
 		}
 	}
 
-	return nil, errors.New("no supported generators")
+	return nil, errors.Join(errs...)
 }
 
 // Plugins implements tdl.Target.
@@ -41,11 +45,16 @@ func (t typescript) String() string {
 	return string(t)
 }
 
-func supported(generator tdl.Generator) bool {
-	cli, ok := generator.(*gen.Cli)
+func supported(g tdl.Generator) error {
+	cli, ok := g.(*gen.Cli)
 	if !ok {
-		return false
+		return Reject(g, "not a CLI")
 	}
 
-	return cli.String() == "uml2ts"
+	name := filepath.Base(cli.String())
+	if name != "uml2ts" {
+		return Reject(g, "only uml2ts is supported")
+	}
+
+	return nil
 }

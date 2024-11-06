@@ -5,30 +5,30 @@ import (
 	. "github.com/onsi/gomega"
 
 	tdl "github.com/unstoppablemango/tdl/pkg"
-	"github.com/unstoppablemango/tdl/pkg/gen"
 	"github.com/unstoppablemango/tdl/pkg/plugin"
 	"github.com/unstoppablemango/tdl/pkg/testing"
 )
 
 var _ = Describe("Aggregate", func() {
 	It("should consist of the given plugins", func() {
-		result := plugin.NewAggregate(plugin.Uml2Ts)
+		p := testing.NewMockPlugin()
 
-		Expect(result).To(ConsistOf(plugin.Uml2Ts))
+		result := plugin.NewAggregate(p)
+
+		Expect(result).To(ConsistOf(p))
 	})
 
 	It("should pick the given generator", func() {
-		t := &testing.MockTarget{}
+		g := testing.NewMockGenerator()
 		p := testing.NewMockPlugin().
-			WithGenerator(func(t tdl.Target) (tdl.Generator, error) {
-				return nil, nil
+			WithGenerator(func(tdl.Target) (tdl.Generator, error) {
+				return g, nil
 			})
-
 		agg := plugin.NewAggregate(p)
 
-		result, err := agg.Generator(t)
+		result, err := agg.Generator(testing.NewMockTarget())
 
 		Expect(err).NotTo(HaveOccurred())
-		Expect(result).To(BeAssignableToTypeOf(&gen.Cli{}))
+		Expect(result).To(BeIdenticalTo(g))
 	})
 })

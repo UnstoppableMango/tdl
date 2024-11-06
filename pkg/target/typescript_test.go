@@ -9,6 +9,7 @@ import (
 	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/plugin"
 	"github.com/unstoppablemango/tdl/pkg/target"
+	"github.com/unstoppablemango/tdl/pkg/testing"
 )
 
 var _ = Describe("Typescript", func() {
@@ -29,6 +30,14 @@ var _ = Describe("Typescript", func() {
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(chosen).To(BeIdenticalTo(expected))
+		})
+
+		It("should ignore unsupported generators", func() {
+			g := testing.NewMockGenerator()
+
+			_, err := target.TypeScript.Choose([]tdl.Generator{g})
+
+			Expect(err).To(MatchError(ContainSubstring("not a CLI")))
 		})
 	})
 })

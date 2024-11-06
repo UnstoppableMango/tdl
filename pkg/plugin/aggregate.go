@@ -4,18 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"iter"
-	"slices"
 
 	"github.com/charmbracelet/log"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 )
 
 const UnwrapDepth = 3
-
-type Ordered interface {
-	tdl.Plugin
-	Order() int
-}
 
 type Aggregate []tdl.Plugin
 
@@ -51,10 +45,8 @@ func (a Aggregate) sorted() []Ordered {
 func (a Aggregate) ordered() iter.Seq[Ordered] {
 	return func(yield func(Ordered) bool) {
 		for _, p := range a {
-			if o, ok := p.(Ordered); ok {
-				if !yield(o) {
-					return
-				}
+			if !yield(AsOrdered(p)) {
+				return
 			}
 		}
 	}
@@ -65,45 +57,3 @@ func NewAggregate(plugins ...tdl.Plugin) Aggregate {
 }
 
 var _ tdl.Plugin = Aggregate{}
-
-func Sorted[O Ordered](seq iter.Seq[O]) []O {
-	return slices.SortedFunc(seq, compare)
-}
-
-func Unwrap(plugin tdl.Plugin) []tdl.Plugin {
-	return unwrapRec(plugin, 0)
-}
-
-func UnwrapAll(plugins []tdl.Plugin) []tdl.Plugin {
-	res := []tdl.Plugin{}
-	for _, p := range plugins {
-		res = append(res, Unwrap(p)...)
-	}
-
-	return res
-}
-
-func compare[O Ordered](a O, b O) int {
-	return a.Order() - b.Order()
-}
-
-// This is probably really inefficient, but we'll get there eventually
-// TODO: Ordering?
-
-func unwrapRec(plugin tdl.Plugin, depth int) []tdl.Plugin {
-	if depth >= UnwrapDepth {
-		return []tdl.Plugin{}
-	}
-
-	plugins, ok := plugin.(Aggregate)
-	if !ok {
-		return []tdl.Plugin{plugin}
-	}
-
-	acc := []tdl.Plugin{}
-	for _, p := range plugins {
-		acc = append(acc, unwrapRec(p, depth+1)...)
-	}
-
-	return acc
-}
