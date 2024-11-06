@@ -43,7 +43,6 @@ func ReadSpec[T any](
 }
 
 func NewPipeline(
-	token tdl.Token,
 	input io.Reader,
 	output io.Writer,
 	options ...PipelineOption,

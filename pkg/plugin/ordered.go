@@ -36,7 +36,13 @@ func AsOrdered(plugin tdl.Plugin) Ordered {
 }
 
 func WithPriority(plugin tdl.Plugin, priority int) Ordered {
-	return &ordered{plugin, priority}
+	if o, ok := plugin.(*ordered); ok {
+		// TODO: Don't mutate
+		o.order = priority
+		return o
+	} else {
+		return &ordered{plugin, priority}
+	}
 }
 
 func compare[O Ordered](a O, b O) int {

@@ -37,15 +37,3 @@ type MediaType string
 func (m MediaType) String() string {
 	return string(m)
 }
-
-type Token struct {
-	Path string
-	Url  string
-}
-
-// String implements fmt.Stringer.
-func (t Token) String() string {
-	return t.Path
-}
-
-var _ fmt.Stringer = Token{}

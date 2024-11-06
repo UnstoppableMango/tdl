@@ -31,3 +31,7 @@ func (f fromPath) String() string {
 func (f fromPath) Order() int {
 	return f.order
 }
+
+func FromPath(name string) tdl.Plugin {
+	return &fromPath{name, 69}
+}

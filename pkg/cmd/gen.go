@@ -7,9 +7,10 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 	"github.com/unstoppablemango/tdl/pkg/cmd/flags"
-	"github.com/unstoppablemango/tdl/pkg/gen"
 	pipeio "github.com/unstoppablemango/tdl/pkg/pipe/io"
+	"github.com/unstoppablemango/tdl/pkg/plugin"
 	iosink "github.com/unstoppablemango/tdl/pkg/sink/io"
+	"github.com/unstoppablemango/tdl/pkg/target"
 )
 
 func NewGen() *cobra.Command {
@@ -20,11 +21,21 @@ func NewGen() *cobra.Command {
 		Short: "Run code generation for TARGET",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			target := args[0]
-			log := log.With("target", target)
+			target, err := target.Parse(args[0])
+			if err != nil {
+				fmt.Fprintf(os.Stderr, err.Error())
+				os.Exit(1)
+			}
 
-			log.Debug("lookup up generator")
-			gen, err := gen.Lookup(target)
+			log := log.With("target", target)
+			log.Debug("searching for a plugin")
+			plugin, err := plugin.FirstAvailable(target)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, err.Error())
+				os.Exit(1)
+			}
+
+			gen, err := plugin.Generator(target)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, err.Error())
 				os.Exit(1)
