@@ -10,7 +10,6 @@ import (
 func main() {
 	rootCmd := cmd.NewUx()
 	rootCmd.AddCommand(
-		cmd.NewConform(),
 		cmd.NewTesting(),
 		cmd.NewGen(),
 		cmd.NewWhich(),

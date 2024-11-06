@@ -11,6 +11,7 @@ func NewTesting() *cobra.Command {
 		Short: "Commands for ux testing",
 	}
 	cmd.AddCommand(
+		testing.NewConform(),
 		testing.NewDiscover(),
 	)
 

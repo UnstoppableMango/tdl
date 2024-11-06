@@ -1,4 +1,4 @@
-package cmd
+package testing
 
 import (
 	"fmt"
@@ -15,7 +15,7 @@ func NewConform() *cobra.Command {
 		Short: "Run conformance tests against TARGET",
 		Long: `This command will attempt to identify the type of
 endpoint referred to by TARGET and perform the conformance
-tests against it. Currently only supports a path to binary
+tests against it. Currently only supports a path to a binary
 that communicates via stdin/stdout`,
 		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
