@@ -1,4 +1,4 @@
-package io
+package pipe
 
 import (
 	"io"
@@ -6,7 +6,6 @@ import (
 	"github.com/unmango/go/option"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/mediatype"
-	"github.com/unstoppablemango/tdl/pkg/pipe"
 	sinkio "github.com/unstoppablemango/tdl/pkg/sink"
 	"github.com/unstoppablemango/tdl/pkg/spec"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
@@ -65,7 +64,7 @@ func NewPipeline(
 	input io.Reader,
 	output io.Writer,
 	options ...PipelineOption,
-) pipe.IO {
+) IO {
 	// opts := Options(options...)
 	panic("unimplemented")
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 	"github.com/unstoppablemango/tdl/pkg/cmd/flags"
-	pipeio "github.com/unstoppablemango/tdl/pkg/pipe/io"
+	pipeio "github.com/unstoppablemango/tdl/pkg/pipe"
 	"github.com/unstoppablemango/tdl/pkg/plugin"
 	iosink "github.com/unstoppablemango/tdl/pkg/sink"
 	"github.com/unstoppablemango/tdl/pkg/target"
