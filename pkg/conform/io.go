@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/onsi/ginkgo/v2"
-	g "github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
 	"github.com/unstoppablemango/tdl/pkg/pipe"
 	"github.com/unstoppablemango/tdl/pkg/testing"
 )
@@ -22,7 +23,7 @@ func IOSuite(tests []*testing.Test, pipeline pipe.IO) {
 
 // IOTest asserts that given [test.Input] [generator] produces [test.Output]
 func IOTest(test *testing.Test, pipeline pipe.IO) bool {
-	return ginkgo.It(fmt.Sprintf("should pass: %s", test.Name), func() {
+	return It(fmt.Sprintf("should pass: %s", test.Name), func() {
 		expected := string(test.Output)
 		input := bytes.NewReader(test.Input)
 		output := &bytes.Buffer{}
@@ -30,7 +31,7 @@ func IOTest(test *testing.Test, pipeline pipe.IO) bool {
 		err := pipeline(input, output)
 		actual := output.String()
 
-		g.Expect(err).NotTo(g.HaveOccurred(), actual)
-		g.Expect(actual).To(g.Equal(expected))
+		Expect(err).NotTo(HaveOccurred(), actual)
+		Expect(actual).To(Equal(expected))
 	})
 }
