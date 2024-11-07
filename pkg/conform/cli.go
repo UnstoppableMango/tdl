@@ -6,8 +6,9 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/onsi/ginkgo/v2"
-	g "github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
 	"github.com/unmango/go/option"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/gen"
@@ -28,46 +29,41 @@ type CliTestOption func(*CliTestOptions)
 // Args can be provided if the codegen functionality is provided by a subcommand.
 // CliTests MUST be called within the Ginkgo test construction phase.
 func CliTests(binary string, options ...CliTestOption) {
-	// Basically a naive check that the thing we're executing
-	// is at least semi-aware of conformance tests
-	options = append(options, WithArgs("--conformance-test"))
-
 	opts := &CliTestOptions{}
 	option.Apply(opts, options...)
 
-	ginkgo.It("should stat", func() {
+	It("should stat", func() {
 		_, err := os.Stat(binary)
 
-		g.Expect(err).NotTo(g.HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 	})
 
-	ginkgo.It("should execute", func(ctx context.Context) {
+	It("should execute", func(ctx context.Context) {
 		cmd := exec.CommandContext(ctx, binary, opts.args...)
 		out, err := cmd.CombinedOutput()
 
-		g.Expect(err).NotTo(g.HaveOccurred(), string(out))
-		g.Expect(string(out)).To(g.BeEmpty())
+		Expect(err).NotTo(HaveOccurred(), string(out))
+		Expect(string(out)).To(BeEmpty())
 	})
 
-	ginkgo.Describe("Generator", func() {
+	Describe("Generator", func() {
 		var generator tdl.Generator
 
-		ginkgo.BeforeEach(func() {
+		BeforeEach(func() {
 			generator = gen.NewCli(binary,
 				gen.WithCliArgs(opts.args...),
 			)
 		})
 
-		ginkgo.It("should read conformance spec", func(ctx context.Context) {
-			ginkgo.By("Marshalling a TDL spec")
+		It("should read conformance spec", func(ctx context.Context) {
 			data, err := proto.Marshal(&tdlv1alpha1.Spec{})
-			g.Expect(err).NotTo(g.HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			cmd := exec.CommandContext(ctx, binary, opts.args...)
 			cmd.Stdin = bytes.NewReader(data)
 			out, err := cmd.CombinedOutput()
 
-			g.Expect(err).NotTo(g.HaveOccurred(), string(out))
+			Expect(err).NotTo(HaveOccurred(), string(out))
 		})
 
 		if opts.ioSuite != nil {
