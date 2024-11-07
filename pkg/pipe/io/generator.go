@@ -7,7 +7,7 @@ import (
 	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/mediatype"
 	"github.com/unstoppablemango/tdl/pkg/pipe"
-	sinkio "github.com/unstoppablemango/tdl/pkg/sink/io"
+	sinkio "github.com/unstoppablemango/tdl/pkg/sink"
 	"github.com/unstoppablemango/tdl/pkg/spec"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )

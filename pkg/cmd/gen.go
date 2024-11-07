@@ -9,7 +9,7 @@ import (
 	"github.com/unstoppablemango/tdl/pkg/cmd/flags"
 	pipeio "github.com/unstoppablemango/tdl/pkg/pipe/io"
 	"github.com/unstoppablemango/tdl/pkg/plugin"
-	iosink "github.com/unstoppablemango/tdl/pkg/sink/io"
+	iosink "github.com/unstoppablemango/tdl/pkg/sink"
 	"github.com/unstoppablemango/tdl/pkg/target"
 )
 
