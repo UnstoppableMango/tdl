@@ -9,6 +9,8 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	g "github.com/onsi/gomega"
 	"github.com/unmango/go/option"
+	tdl "github.com/unstoppablemango/tdl/pkg"
+	"github.com/unstoppablemango/tdl/pkg/gen"
 	"github.com/unstoppablemango/tdl/pkg/testing"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 	"google.golang.org/protobuf/proto"
@@ -47,21 +49,31 @@ func CliTests(binary string, options ...CliTestOption) {
 		g.Expect(string(out)).To(g.BeEmpty())
 	})
 
-	ginkgo.It("should read conformance spec", func(ctx context.Context) {
-		ginkgo.By("Marshalling a TDL spec")
-		data, err := proto.Marshal(&tdlv1alpha1.Spec{})
-		g.Expect(err).NotTo(g.HaveOccurred())
+	ginkgo.Describe("Generator", func() {
+		var generator tdl.Generator
 
-		cmd := exec.CommandContext(ctx, binary, opts.args...)
-		cmd.Stdin = bytes.NewReader(data)
-		out, err := cmd.CombinedOutput()
+		ginkgo.BeforeEach(func() {
+			generator = gen.NewCli(binary,
+				gen.WithCliArgs(opts.args...),
+			)
+		})
 
-		g.Expect(err).NotTo(g.HaveOccurred(), string(out))
+		ginkgo.It("should read conformance spec", func(ctx context.Context) {
+			ginkgo.By("Marshalling a TDL spec")
+			data, err := proto.Marshal(&tdlv1alpha1.Spec{})
+			g.Expect(err).NotTo(g.HaveOccurred())
+
+			cmd := exec.CommandContext(ctx, binary, opts.args...)
+			cmd.Stdin = bytes.NewReader(data)
+			out, err := cmd.CombinedOutput()
+
+			g.Expect(err).NotTo(g.HaveOccurred(), string(out))
+		})
+
+		if opts.ioSuite != nil {
+			IOSuite(opts.ioSuite, gen.PipeIO(generator))
+		}
 	})
-
-	if opts.ioSuite != nil {
-		IOSuite(opts.ioSuite, nil)
-	}
 }
 
 func WithArgs(args ...string) CliTestOption {
