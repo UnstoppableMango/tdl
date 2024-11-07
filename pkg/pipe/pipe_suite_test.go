@@ -1,4 +1,4 @@
-package io_test
+package pipe_test
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestIo(t *testing.T) {
+func TestPipe(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Io Suite")
+	RunSpecs(t, "Pipe Suite")
 }

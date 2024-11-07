@@ -1,4 +1,4 @@
-package memory
+package sink
 
 import (
 	"bytes"
@@ -7,8 +7,13 @@ import (
 	"iter"
 	"maps"
 
-	"github.com/unstoppablemango/tdl/pkg/sink"
+	tdl "github.com/unstoppablemango/tdl/pkg"
 )
+
+type Pipe interface {
+	Reader
+	tdl.Sink
+}
 
 type PorcelainPipe struct {
 	units map[string]io.Reader
@@ -79,7 +84,7 @@ func (p *BufferedPipe) WriteUnit(unit string, reader io.Reader) error {
 	return nil
 }
 
-func NewPipe() sink.Pipe {
+func NewPipe() Pipe {
 	return &PorcelainPipe{
 		units: make(map[string]io.Reader),
 	}

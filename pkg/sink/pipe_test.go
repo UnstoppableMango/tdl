@@ -1,4 +1,4 @@
-package memory_test
+package sink_test
 
 import (
 	"bytes"
@@ -7,15 +7,15 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/unstoppablemango/tdl/pkg/sink/memory"
+	"github.com/unstoppablemango/tdl/pkg/sink"
 )
 
 var _ = Describe("Pipe", func() {
 	Describe("PorcelainPipe", func() {
-		var pipe *memory.PorcelainPipe
+		var pipe *sink.PorcelainPipe
 
 		BeforeEach(func() {
-			pipe = &memory.PorcelainPipe{}
+			pipe = &sink.PorcelainPipe{}
 		})
 
 		It("should return the provided reader", func() {
@@ -62,10 +62,10 @@ var _ = Describe("Pipe", func() {
 	})
 
 	Describe("BufferedPipe", func() {
-		var pipe *memory.BufferedPipe
+		var pipe *sink.BufferedPipe
 
 		BeforeEach(func() {
-			pipe = &memory.BufferedPipe{}
+			pipe = &sink.BufferedPipe{}
 		})
 
 		It("should not return the provided reader", func() {

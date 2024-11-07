@@ -1,4 +1,4 @@
-package memory_test
+package sink_test
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestMemory(t *testing.T) {
+func TestSink(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Memory Suite")
+	RunSpecs(t, "Sink Suite")
 }
