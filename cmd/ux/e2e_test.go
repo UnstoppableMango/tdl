@@ -18,7 +18,9 @@ import (
 
 var _ = Describe("End to end", func() {
 	Describe("CLI Conformance", func() {
-		conform.CliTests(bin, conform.WithArgs("gen", "ts"))
+		conform.CliTests(bin,
+			conform.WithArgs("gen", "ts"),
+		)
 	})
 
 	Describe("TypeScript Conformance", FlakeAttempts(5), func() {

@@ -66,14 +66,20 @@ func CliTests(binary string, options ...CliTestOption) {
 			Expect(err).NotTo(HaveOccurred(), string(out))
 		})
 
-		if opts.ioSuite != nil {
+		if opts.ioSuite != nil && len(opts.ioSuite) > 0 {
 			IOSuite(opts.ioSuite, gen.PipeIO(generator))
 		}
 	})
 }
 
 func WithArgs(args ...string) CliTestOption {
-	return func(cto *CliTestOptions) {
-		cto.args = append(cto.args, args...)
+	return func(opts *CliTestOptions) {
+		opts.args = append(opts.args, args...)
+	}
+}
+
+func WithIOTests(tests ...*testing.Test) CliTestOption {
+	return func(opts *CliTestOptions) {
+		opts.ioSuite = tests
 	}
 }
