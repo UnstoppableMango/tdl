@@ -20,7 +20,7 @@ func PipeRead[
 			return fmt.Errorf("reading input: %w", err)
 		}
 
-		message := zero()
+		message := zero() // TODO: Will ProtoReflect().Type().Zero() work?
 		if err = Unmarshal(data, message, media); err != nil {
 			return fmt.Errorf("unmarshaling message: %w", err)
 		}
