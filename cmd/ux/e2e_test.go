@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"path/filepath"
 
@@ -29,6 +30,20 @@ var _ = Describe("End to end", func() {
 
 	It("should pass my excessive sanity check", func() {
 		Expect(bin).NotTo(BeEmpty())
+	})
+
+	Describe("gen", func() {
+		It("should read spec from yaml file", func(ctx context.Context) {
+			input := filepath.Join(tsSuiteRoot, "interface", "source.yml")
+			output, err := os.ReadFile(filepath.Join(tsSuiteRoot, "interface", "target.ts"))
+			Expect(err).NotTo(HaveOccurred())
+			cmd := UxCommand(ctx, "gen", "ts", input)
+
+			out, err := cmd.CombinedOutput()
+
+			Expect(err).NotTo(HaveOccurred(), string(out))
+			Expect(string(out)).To(Equal(string(output)))
+		})
 	})
 
 	Describe("which", func() {

@@ -15,8 +15,9 @@ import (
 )
 
 var (
-	gitRoot string
-	bin     string
+	gitRoot     string
+	bin         string
+	tsSuiteRoot string
 )
 
 var typescriptSuite []*Test
@@ -31,10 +32,8 @@ func TestUx(t *testing.T) {
 	bin = filepath.Join(gitRoot, "bin", "ux")
 	g.Expect(os.Stat(bin)).NotTo(BeNil())
 
-	typescriptSuite, err = Discover(
-		afero.NewOsFs(),
-		filepath.Join(gitRoot, "packages", "ts", "testdata"),
-	)
+	tsSuiteRoot = filepath.Join(gitRoot, "packages", "ts", "testdata")
+	typescriptSuite, err = Discover(afero.NewOsFs(), tsSuiteRoot)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(typescriptSuite).NotTo(BeEmpty())
 
