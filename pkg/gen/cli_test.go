@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/unstoppablemango/tdl/pkg/gen"
-	"github.com/unstoppablemango/tdl/pkg/sink/memory"
+	"github.com/unstoppablemango/tdl/pkg/sink"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
 
@@ -27,7 +27,7 @@ var _ = Describe("Cli", func() {
 	})
 
 	It("should write to sink", func() {
-		sink := memory.NewPipe()
+		sink := sink.NewPipe()
 		spec := &tdlv1alpha1.Spec{
 			Name: "testing",
 			Types: map[string]*tdlv1alpha1.Type{

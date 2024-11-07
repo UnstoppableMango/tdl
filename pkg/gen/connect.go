@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"connectrpc.com/connect"
-	"github.com/unstoppablemango/tdl/pkg/sink/memory"
+	"github.com/unstoppablemango/tdl/pkg/sink"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 	"github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1/tdlv1alpha1connect"
 )
@@ -21,7 +21,7 @@ func (svc *connectService) Gen(
 	ctx context.Context,
 	req *connect.Request[tdlv1alpha1.GenRequest],
 ) (*connect.Response[tdlv1alpha1.GenResponse], error) {
-	sink := memory.NewPipe()
+	sink := sink.NewPipe()
 	if err := svc.generator(req.Msg.Spec, sink); err != nil {
 		return nil, fmt.Errorf("invoking generator: %w", err)
 	}
