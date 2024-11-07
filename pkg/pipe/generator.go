@@ -17,13 +17,13 @@ type PipelineOptions struct {
 
 type PipelineOption func(*PipelineOptions)
 
-type SpecReader[T any] struct {
+type specReader[T any] struct {
 	tdl.Pipeline[*tdlv1alpha1.Spec, T]
 	options []spec.ReaderOption
 }
 
 // Execute implements tdl.Pipeline.
-func (p *SpecReader[T]) Execute(reader io.Reader, output T) error {
+func (p *specReader[T]) Execute(reader io.Reader, output T) error {
 	spec, err := spec.ReadAll(reader, p.options...)
 	if err != nil {
 		return err
@@ -46,7 +46,7 @@ func ReadSpec[T any](
 	pipeline tdl.Pipeline[*tdlv1alpha1.Spec, T],
 	options ...spec.ReaderOption,
 ) tdl.Pipeline[io.Reader, T] {
-	return &SpecReader[T]{
+	return &specReader[T]{
 		Pipeline: pipeline,
 		options:  options,
 	}
