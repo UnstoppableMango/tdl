@@ -10,14 +10,14 @@ import (
 	tdl "github.com/unstoppablemango/tdl/pkg"
 )
 
-// The io Sink discards unit names and writes all output
+// The io writerSink discards unit names and writes all output
 // to the provided io.Writer
-type Sink struct {
+type writerSink struct {
 	Writer io.Writer
 }
 
 // WriteUnit implements tdl.Sink.
-func (s *Sink) WriteUnit(_ string, reader io.Reader) error {
+func (s *writerSink) WriteUnit(_ string, reader io.Reader) error {
 	if _, err := io.Copy(s.Writer, reader); err != nil {
 		return fmt.Errorf("copying unit: %w", err)
 	}
@@ -25,12 +25,12 @@ func (s *Sink) WriteUnit(_ string, reader io.Reader) error {
 	return nil
 }
 
-type SinkWriter struct {
+type sinkWriter struct {
 	sink tdl.Sink
 }
 
 // Write implements io.Writer.
-func (s *SinkWriter) Write(p []byte) (n int, err error) {
+func (s *sinkWriter) Write(p []byte) (n int, err error) {
 	h := sha1.New()
 	n, err = h.Write(p)
 	if err != nil {
@@ -45,10 +45,10 @@ func (s *SinkWriter) Write(p []byte) (n int, err error) {
 	return n, nil
 }
 
-func NewSink(writer io.Writer) tdl.Sink {
-	return &Sink{Writer: writer}
+func WriteTo(writer io.Writer) tdl.Sink {
+	return &writerSink{writer}
 }
 
-func NewSinkWriter(sink tdl.Sink) io.Writer {
-	return &SinkWriter{sink}
+func NewWriter(sink tdl.Sink) io.Writer {
+	return &sinkWriter{sink}
 }

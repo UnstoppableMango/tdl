@@ -42,7 +42,7 @@ func NewGen() *cobra.Command {
 			}
 
 			pipeline := pipeio.ReadSpec(gen)
-			sink := iosink.NewSink(os.Stdout)
+			sink := iosink.WriteTo(os.Stdout)
 
 			log.Debug("executing pipeline")
 			if err := pipeline.Execute(os.Stdin, sink); err != nil {

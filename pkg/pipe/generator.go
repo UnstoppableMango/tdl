@@ -38,7 +38,7 @@ type SinkWriter[T any] struct {
 
 // Execute implements tdl.Pipeline.
 func (s *SinkWriter[T]) Execute(input T, writer io.Writer) error {
-	sink := sinkio.NewSink(writer)
+	sink := sinkio.WriteTo(writer)
 	return s.Pipeline.Execute(input, sink)
 }
 

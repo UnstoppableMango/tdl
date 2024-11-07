@@ -1,6 +1,14 @@
 package sink
 
-import "io"
+import (
+	"io"
+	"iter"
+)
+
+type Reader interface {
+	Units() iter.Seq[string]
+	Reader(string) (io.Reader, error)
+}
 
 // Readers creates a map of unit to [io.Reader]
 func Readers(sink Reader) (readers map[string]io.Reader, err error) {

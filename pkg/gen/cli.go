@@ -21,7 +21,7 @@ type CliOption func(*Cli)
 func (c *Cli) Execute(s *tdlv1alpha1.Spec, si tdl.Sink) error {
 	cmd := exec.Command(c.name, c.args...)
 	cmd.Stdin = spec.NewReader(s)
-	cmd.Stdout = sink.NewSinkWriter(si)
+	cmd.Stdout = sink.NewWriter(si)
 
 	return cmd.Run()
 }

@@ -6,7 +6,14 @@ import (
 	"io"
 	"iter"
 	"maps"
+
+	tdl "github.com/unstoppablemango/tdl/pkg"
 )
+
+type Pipe interface {
+	Reader
+	tdl.Sink
+}
 
 type PorcelainPipe struct {
 	units map[string]io.Reader
