@@ -15,6 +15,8 @@ type ioPipe struct {
 	output ToWriter
 }
 
+func NoOp(*tdlv1alpha1.Spec, tdl.Sink) error { return nil }
+
 func PipeFromReader(generator tdl.Generator, options ...spec.ReaderOption) FromReader {
 	return func(r io.Reader, s tdl.Sink) error {
 		if spec, err := spec.ReadAll(r, options...); err != nil {
