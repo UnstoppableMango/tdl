@@ -3,10 +3,10 @@ package main_test
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"os/exec"
+	"path/filepath"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -31,25 +31,37 @@ var _ = Describe("End to end", func() {
 		Expect(bin).NotTo(BeEmpty())
 	})
 
-	It("should execute", func(ctx context.Context) {
-		err := exec.CommandContext(ctx, bin).Run()
+	Describe("which", func() {
+		DescribeTable("uml2ts",
+			Entry(nil, "ts"),
+			Entry(nil, "typescript"),
+			Entry(nil, "uml2ts"),
+			Entry(nil, "TypeScript"),
+			Entry(nil, "tS"),
+			func(ctx context.Context, input string) {
+				expected := filepath.Join(gitRoot, "bin", "uml2ts")
+				cmd := UxCommand(ctx, "which", input)
 
-		Expect(err).NotTo(HaveOccurred())
+				out, err := cmd.CombinedOutput()
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(out)).To(Equal(expected + "\n"))
+			},
+		)
 	})
 })
 
 func ExecuteIO(input io.Reader, output io.Writer) error {
-	if bin == "" {
-		return errors.New("test has not been initialized: bin was empty")
-	}
 	data, err := io.ReadAll(input)
 	if err != nil {
 		return fmt.Errorf("reading input: %w", err)
 	}
+
 	var spec tdlv1alpha1.Spec
 	if err := yaml.Unmarshal(data, &spec); err != nil {
 		return fmt.Errorf("reading spec: %w", err)
 	}
+
 	protoInput, err := proto.Marshal(&spec)
 	if err != nil {
 		return fmt.Errorf("marshalling spec: %w", err)

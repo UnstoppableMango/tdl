@@ -3,6 +3,7 @@ package main_test
 import (
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -39,4 +40,8 @@ func TestUx(t *testing.T) {
 
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Ux Suite")
+}
+
+func UxCommand(ctx context.Context, args ...string) *exec.Cmd {
+	return exec.CommandContext(ctx, bin, args...)
 }
