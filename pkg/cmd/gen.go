@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -22,9 +23,9 @@ func NewGen() *cobra.Command {
 	var conformanceTest bool
 
 	cmd := &cobra.Command{
-		Use:   "gen [TARGET] [INPUT]",
+		Use:   "gen TARGET [INPUT] [OUTPUT]",
 		Short: "Run code generation for TARGET",
-		Args:  cobra.RangeArgs(1, 2),
+		Args:  cobra.RangeArgs(1, 3),
 		Run: func(cmd *cobra.Command, args []string) {
 			target, err := target.Parse(args[0])
 			if err != nil {
@@ -48,8 +49,9 @@ func NewGen() *cobra.Command {
 			}
 
 			var (
-				input io.Reader
-				media tdl.MediaType
+				input  io.Reader
+				output tdl.Sink
+				media  tdl.MediaType
 			)
 
 			fsys := afero.NewOsFs()
@@ -60,11 +62,6 @@ func NewGen() *cobra.Command {
 			} else {
 				log.Debug("choosing input file")
 				path := args[1]
-				media, err = mediatype.Guess(path)
-				if err != nil {
-					fmt.Fprintln(os.Stderr, err)
-					os.Exit(1)
-				}
 
 				log.Debug("opening input", "path", path)
 				input, err = fsys.Open(path)
@@ -72,18 +69,45 @@ func NewGen() *cobra.Command {
 					fmt.Fprintln(os.Stderr, err)
 					os.Exit(1)
 				}
+
+				log.Debug("guessing media type")
+				media, err = mediatype.Guess(path)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					os.Exit(1)
+				}
+			}
+
+			if len(args) == 3 {
+				path := args[2]
+				stat, err := fsys.Stat(path)
+				if err != nil && !errors.Is(err, os.ErrNotExist) {
+					fmt.Fprintln(os.Stderr, err)
+					os.Exit(1)
+				}
+				if errors.Is(err, os.ErrNotExist) || !stat.IsDir() {
+					file, err := fsys.Create(path)
+					if err != nil {
+						fmt.Fprintln(os.Stderr, err)
+						os.Exit(1)
+					}
+
+					output = sink.WriteTo(file)
+				} else {
+					output = sink.NewFs(fsys)
+				}
+			} else {
+				output = sink.WriteTo(os.Stdout)
 			}
 
 			log.Debug("creating pipeline")
-			pipeline := mediatype.PipeRead[gen.FromReader](
+			pipeline := spec.PipeRead[gen.FromReader](
 				generator.Execute,
 				media,
-				spec.Zero,
 			)
-			sink := sink.WriteTo(os.Stdout)
 
 			log.Debug("executing pipeline")
-			if err := pipeline(input, sink); err != nil {
+			if err := pipeline(input, output); err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
