@@ -6,7 +6,7 @@ import (
 	"github.com/unmango/go/option"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/mediatype"
-	sinkio "github.com/unstoppablemango/tdl/pkg/sink"
+	"github.com/unstoppablemango/tdl/pkg/sink"
 	"github.com/unstoppablemango/tdl/pkg/spec"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
@@ -38,7 +38,7 @@ type SinkWriter[T any] struct {
 
 // Execute implements tdl.Pipeline.
 func (s *SinkWriter[T]) Execute(input T, writer io.Writer) error {
-	sink := sinkio.WriteTo(writer)
+	sink := sink.WriteTo(writer)
 	return s.Pipeline.Execute(input, sink)
 }
 

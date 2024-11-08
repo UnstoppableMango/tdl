@@ -12,10 +12,10 @@ import (
 
 var _ = Describe("Pipe", func() {
 	Describe("PorcelainPipe", func() {
-		var pipe *sink.PorcelainPipe
+		var pipe *sink.Porcelain
 
 		BeforeEach(func() {
-			pipe = &sink.PorcelainPipe{}
+			pipe = &sink.Porcelain{}
 		})
 
 		It("should return the provided reader", func() {
@@ -62,10 +62,10 @@ var _ = Describe("Pipe", func() {
 	})
 
 	Describe("BufferedPipe", func() {
-		var pipe *sink.BufferedPipe
+		var pipe *sink.Buffered
 
 		BeforeEach(func() {
-			pipe = &sink.BufferedPipe{}
+			pipe = &sink.Buffered{}
 		})
 
 		It("should not return the provided reader", func() {

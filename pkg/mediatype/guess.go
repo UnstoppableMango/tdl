@@ -7,8 +7,8 @@ import (
 	tdl "github.com/unstoppablemango/tdl/pkg"
 )
 
-func Guess(token string) (tdl.MediaType, error) {
-	switch filepath.Ext(token) {
+func Guess(path string) (tdl.MediaType, error) {
+	switch filepath.Ext(path) {
 	case ".yaml":
 		fallthrough
 	case ".yml":
@@ -19,5 +19,5 @@ func Guess(token string) (tdl.MediaType, error) {
 		return ApplicationProtobuf, nil
 	}
 
-	return "", fmt.Errorf("unknown media type: %s", token)
+	return "", fmt.Errorf("no guess for media type: %s", path)
 }
