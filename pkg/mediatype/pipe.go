@@ -11,8 +11,8 @@ import (
 )
 
 func PipeRead[
-	I c.Pipeline[M, T],
 	O c.Pipeline[io.Reader, T],
+	I c.Pipeline[M, T],
 	M proto.Message, T any,
 ](pipeline I, media tdl.MediaType, zero func() M) O {
 	return func(r io.Reader, t T) error {

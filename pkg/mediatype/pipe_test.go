@@ -28,7 +28,7 @@ var _ = Describe("Pipe", func() {
 				reader := bytes.NewReader(data)
 				sink := sink.NewPipe()
 
-				pipeline := mediatype.PipeRead[gen.Func, gen.FromReader](gen.NoOp, media, spec.Zero)
+				pipeline := mediatype.PipeRead[gen.FromReader](gen.NoOp, media, spec.Zero)
 				err = pipeline(reader, sink)
 
 				Expect(err).NotTo(HaveOccurred())

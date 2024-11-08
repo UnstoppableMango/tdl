@@ -10,9 +10,9 @@ import (
 )
 
 func PipeRead[
-	I c.Pipeline[*tdlv1alpha1.Spec, T],
 	O c.Pipeline[io.Reader, T],
+	I c.Pipeline[*tdlv1alpha1.Spec, T],
 	T any,
 ](pipeline I, media tdl.MediaType) O {
-	return mediatype.PipeRead[I, O](pipeline, media, Zero)
+	return mediatype.PipeRead[O](pipeline, media, Zero)
 }

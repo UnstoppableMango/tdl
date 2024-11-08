@@ -33,7 +33,7 @@ var _ = Describe("End to end", func() {
 	})
 
 	Describe("gen", func() {
-		It("should read spec from yaml file", Pending, func(ctx context.Context) {
+		It("should read spec from yaml file", FlakeAttempts(5), func(ctx context.Context) {
 			input := filepath.Join(tsSuiteRoot, "interface", "source.yml")
 			output, err := os.ReadFile(filepath.Join(tsSuiteRoot, "interface", "target.ts"))
 			Expect(err).NotTo(HaveOccurred())
