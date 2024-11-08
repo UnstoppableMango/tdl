@@ -44,6 +44,34 @@ var _ = Describe("End to end", func() {
 			Expect(err).NotTo(HaveOccurred(), string(out))
 			Expect(string(out)).To(Equal(string(output)))
 		})
+
+		It("should error when input does not exist", func(ctx context.Context) {
+			input := filepath.Join("fkjdslfkdjlsf")
+			cmd := UxCommand(ctx, "gen", "ts", input)
+
+			out, err := cmd.CombinedOutput()
+
+			Expect(err).To(HaveOccurred())
+			Expect(string(out)).To(Equal("open fkjdslfkdjlsf: no such file or directory\n"))
+		})
+
+		It("should write to output file", func(ctx context.Context) {
+			input := filepath.Join(tsSuiteRoot, "interface", "source.yml")
+			tmp, err := os.MkdirTemp("", "")
+			Expect(err).NotTo(HaveOccurred())
+			output := filepath.Join(tmp, "index.ts")
+			expected, err := os.ReadFile(filepath.Join(tsSuiteRoot, "interface", "target.ts"))
+			Expect(err).NotTo(HaveOccurred())
+			cmd := UxCommand(ctx, "gen", "ts", input, output)
+
+			out, err := cmd.CombinedOutput()
+
+			Expect(err).NotTo(HaveOccurred(), string(out))
+			Expect(string(out)).To(Equal(""))
+			result, err := os.ReadFile(output)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(result)).To(Equal(string(expected)))
+		})
 	})
 
 	Describe("which", func() {
