@@ -3,14 +3,18 @@ package pipe
 import (
 	"io"
 
+	"github.com/spf13/afero"
 	tdl "github.com/unstoppablemango/tdl/pkg"
-	"github.com/unstoppablemango/tdl/pkg/constraint"
+	c "github.com/unstoppablemango/tdl/pkg/constraint"
 )
 
 type Func[T, V any] func(T, V) error
 
 type (
+	FromInput[T any]  Func[tdl.Input, T]
+	FromFs[T any]     Func[afero.Fs, T]
 	FromReader[T any] Func[io.Reader, T]
+	ToSink[T any]     Func[T, tdl.Sink]
 	ToWriter[T any]   Func[T, io.Writer]
 )
 
@@ -20,6 +24,9 @@ func (f Func[T, V]) Execute(source T, sink V) error {
 	return f(source, sink)
 }
 
-func Lift[T, V any, P constraint.Pipeline[T, V]](pipeline P) tdl.Pipeline[T, V] {
+func Lift[
+	P c.Pipeline[T, V],
+	T, V any,
+](pipeline P) tdl.Pipeline[T, V] {
 	return Func[T, V](pipeline)
 }

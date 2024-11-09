@@ -1,20 +1,17 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/cmd/flags"
 	"github.com/unstoppablemango/tdl/pkg/gen"
-	"github.com/unstoppablemango/tdl/pkg/mediatype"
+	"github.com/unstoppablemango/tdl/pkg/gen/input"
+	"github.com/unstoppablemango/tdl/pkg/gen/output"
 	"github.com/unstoppablemango/tdl/pkg/plugin"
-	"github.com/unstoppablemango/tdl/pkg/sink"
 	"github.com/unstoppablemango/tdl/pkg/spec"
 	"github.com/unstoppablemango/tdl/pkg/target"
 )
@@ -48,62 +45,22 @@ func NewGen() *cobra.Command {
 				os.Exit(1)
 			}
 
-			var (
-				input  io.Reader
-				output tdl.Sink
-				media  tdl.MediaType
-			)
-
 			fsys := afero.NewOsFs()
-			if len(args) == 1 {
-				log.Debug("choosing stdin")
-				input = os.Stdin
-				media = mediatype.ApplicationProtobuf
-			} else {
-				log.Debug("choosing input file")
-				path := args[1]
-
-				log.Debug("opening input", "path", path)
-				input, err = fsys.Open(path)
-				if err != nil {
-					fmt.Fprintln(os.Stderr, err)
-					os.Exit(1)
-				}
-
-				log.Debug("guessing media type")
-				media, err = mediatype.Guess(path)
-				if err != nil {
-					fmt.Fprintln(os.Stderr, err)
-					os.Exit(1)
-				}
+			input, err := input.ParseArgs(fsys, args[1:])
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
 			}
 
-			if len(args) == 3 {
-				path := args[2]
-				stat, err := fsys.Stat(path)
-				if err != nil && !errors.Is(err, os.ErrNotExist) {
-					fmt.Fprintln(os.Stderr, err)
-					os.Exit(1)
-				}
-				if errors.Is(err, os.ErrNotExist) || !stat.IsDir() {
-					file, err := fsys.Create(path)
-					if err != nil {
-						fmt.Fprintln(os.Stderr, err)
-						os.Exit(1)
-					}
-
-					output = sink.WriteTo(file)
-				} else {
-					output = sink.NewFs(fsys)
-				}
-			} else {
-				output = sink.WriteTo(os.Stdout)
+			output, err := output.ParseArgs(fsys, args[1:])
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
 			}
 
 			log.Debug("creating pipeline")
-			pipeline := spec.PipeRead[gen.FromReader](
+			pipeline := spec.PipeInput[gen.FromInput](
 				generator.Execute,
-				media,
 			)
 
 			log.Debug("executing pipeline")
@@ -117,17 +74,4 @@ func NewGen() *cobra.Command {
 	flags.ConformanceTest(cmd.Flags(), &conformanceTest)
 
 	return cmd
-}
-
-func openInput(fsys afero.Fs, paths []string) (files []afero.File, err error) {
-	var file afero.File
-	for _, path := range paths {
-		if file, err = fsys.Open(path); err != nil {
-			return nil, err
-		} else {
-			files = append(files, file)
-		}
-	}
-
-	return
 }
