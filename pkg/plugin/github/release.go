@@ -10,18 +10,18 @@ import (
 
 	"github.com/unmango/go/option"
 	tdl "github.com/unstoppablemango/tdl/pkg"
+	"github.com/unstoppablemango/tdl/pkg/gen"
 	"github.com/unstoppablemango/tdl/pkg/plugin/cache"
 )
 
 type Release interface {
 	tdl.Plugin
-	Cache(context.Context) error
+	cache.Cachable
 }
 
 type release struct {
 	owner, repo     string
 	name, version   string
-	cache           cache.Cacher
 	client          Client
 	archiveContents []string
 }
@@ -30,7 +30,9 @@ type Option func(*release)
 
 // Generator implements tdl.Plugin.
 func (g *release) Generator(target tdl.Target) (tdl.Generator, error) {
-	return target.Choose([]tdl.Generator{})
+	return target.Choose([]tdl.Generator{
+		gen.NewCli("uml2ts"),
+	})
 }
 
 // String implements tdl.Plugin.
@@ -44,7 +46,12 @@ func (g *release) String() string {
 	return fmt.Sprintf("https://github.com/%s", path)
 }
 
-func (g release) Cache(ctx context.Context) error {
+func (g release) Cached(c cache.Cacher) bool {
+	_, err := c.Reader("")
+	return err == nil
+}
+
+func (g release) Cache(ctx context.Context, c cache.Cacher) error {
 	asset, err := g.getAsset(ctx)
 	if err != nil {
 		return err
@@ -59,9 +66,9 @@ func (g release) Cache(ctx context.Context) error {
 	}
 
 	if len(g.archiveContents) == 0 {
-		return cache.WriteAll(g.cache, g.name, reader)
+		return cache.WriteAll(c, g.name, reader)
 	} else {
-		return g.extractArchive(reader)
+		return g.extractArchive(c, reader)
 	}
 }
 
@@ -70,12 +77,12 @@ func (g release) downloadReleaseAsset(ctx context.Context, id int64) (io.Reader,
 	return reader, err
 }
 
-func (g release) extractArchive(reader io.Reader) error {
+func (g release) extractArchive(c cache.Cacher, reader io.Reader) error {
 	if filepath.Ext(g.name) != ".gz" {
 		return fmt.Errorf("unsupported archive type: %s", g.name)
 	}
 
-	return cache.TarGz(g.cache, reader, g.archiveContents...)
+	return cache.TarGz(c, reader, g.archiveContents...)
 }
 
 func (g release) getAsset(ctx context.Context) (asset *ReleaseAsset, err error) {
@@ -108,7 +115,6 @@ func NewRelease(name, version string, options ...Option) Release {
 		repo:    Repo,
 		name:    name,
 		version: version,
-		cache:   cache.XdgBinHome,
 		client:  DefaultClient,
 
 		archiveContents: []string{},
@@ -116,12 +122,6 @@ func NewRelease(name, version string, options ...Option) Release {
 	option.ApplyAll(r, options)
 
 	return r
-}
-
-func WithCache(cache cache.Cacher) Option {
-	return func(r *release) {
-		r.cache = cache
-	}
 }
 
 func WithClient(client Client) Option {
