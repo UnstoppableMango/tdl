@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/google/go-github/v66/github"
+	tdl "github.com/unstoppablemango/tdl/pkg"
 )
 
 const (
@@ -40,4 +41,9 @@ func (c *client) BaseURL() string {
 
 func NewClient(github *github.Client) Client {
 	return &client{github.Repositories, github}
+}
+
+func NewUml2Ts(options ...Option) tdl.Plugin {
+	options = append(options, WithArchiveContents("uml2ts"))
+	return NewRelease("tdl-linux-amd64.tar.gz", "0.0.29", options...)
 }

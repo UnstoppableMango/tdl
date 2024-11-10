@@ -10,6 +10,8 @@ import (
 type Func func(*tdlv1alpha1.Spec, tdl.Sink) error
 
 type (
+	FromInput  pipe.FromInput[tdl.Sink]
+	FromFs     pipe.FromFs[tdl.Sink]
 	FromReader pipe.FromReader[tdl.Sink]
 	ToWriter   pipe.ToWriter[*tdlv1alpha1.Spec]
 )

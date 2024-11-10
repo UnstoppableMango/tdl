@@ -37,3 +37,8 @@ type MediaType string
 func (m MediaType) String() string {
 	return string(m)
 }
+
+type Input interface {
+	io.Reader
+	MediaType() MediaType
+}

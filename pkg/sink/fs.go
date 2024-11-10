@@ -45,6 +45,9 @@ func (f *fsSink) WriteUnit(path string, reader io.Reader) error {
 	return nil
 }
 
-func NewFs(fsys afero.Fs) Fs {
-	return &fsSink{fsys, []string{}}
+func NewFs(fsys afero.Fs, path string) Fs {
+	return &fsSink{
+		afero.NewBasePathFs(fsys, path),
+		[]string{},
+	}
 }

@@ -24,10 +24,9 @@ var _ = Describe("Github", func() {
 	It("should cache tdl-linux-amd64.tar.gz", Label("E2E"), func(ctx context.Context) {
 		release := github.NewRelease("tdl-linux-amd64.tar.gz", "0.0.29",
 			github.WithClient(client),
-			github.WithCache(cache),
 		)
 
-		err := release.Cache(ctx)
+		err := release.Cache(ctx, cache)
 
 		Expect(err).NotTo(HaveOccurred())
 		dir := cache.Dir()
@@ -38,26 +37,25 @@ var _ = Describe("Github", func() {
 	It("should cache uml2ts", Label("E2E"), func(ctx context.Context) {
 		release := github.NewRelease("tdl-linux-amd64.tar.gz", "0.0.29",
 			github.WithClient(client),
-			github.WithCache(cache),
 			github.WithArchiveContents("uml2ts"),
 		)
 
-		err := release.Cache(ctx)
+		err := release.Cache(ctx, cache)
 
 		Expect(err).NotTo(HaveOccurred())
 		dir := cache.Dir()
 		path := filepath.Join(dir, "uml2ts")
 		Expect(path).To(BeARegularFile())
+		Expect(release.Cached(cache)).To(BeTrueBecause("The bin was cached"))
 	})
 
 	It("should NOT cache unspecified artifacts", Label("E2E"), func(ctx context.Context) {
 		release := github.NewRelease("tdl-linux-amd64.tar.gz", "0.0.29",
 			github.WithClient(client),
-			github.WithCache(cache),
 			github.WithArchiveContents("uml2ts"),
 		)
 
-		err := release.Cache(ctx)
+		err := release.Cache(ctx, cache)
 
 		Expect(err).NotTo(HaveOccurred())
 		dir := cache.Dir()
@@ -69,7 +67,6 @@ var _ = Describe("Github", func() {
 		It("should return the url of the github release", func() {
 			release := github.NewRelease("tdl-linux-amd64.tar.gz", "0.0.29",
 				github.WithClient(client),
-				github.WithCache(cache),
 				github.WithArchiveContents("uml2ts"),
 			)
 
