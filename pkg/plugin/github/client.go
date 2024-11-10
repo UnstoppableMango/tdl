@@ -44,5 +44,6 @@ func NewClient(github *github.Client) Client {
 }
 
 func NewUml2Ts(options ...Option) tdl.Plugin {
+	options = append(options, WithArchiveContents("uml2ts"))
 	return NewRelease("tdl-linux-amd64.tar.gz", "0.0.29", options...)
 }

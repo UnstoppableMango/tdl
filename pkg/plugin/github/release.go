@@ -47,7 +47,7 @@ func (g *release) String() string {
 }
 
 func (g release) Cached(c cache.Cacher) bool {
-	_, err := c.Reader("")
+	_, err := c.Reader("uml2ts")
 	return err == nil
 }
 
