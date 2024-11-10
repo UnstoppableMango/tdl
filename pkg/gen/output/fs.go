@@ -19,7 +19,7 @@ func Fs(fsys afero.Fs, path string) (tdl.Sink, error) {
 		return nil, err
 	}
 	if stat.IsDir() {
-		return sink.NewFs(fsys), nil
+		return sink.NewFs(fsys, path), nil
 	}
 
 	return fsFile(fsys, path)
