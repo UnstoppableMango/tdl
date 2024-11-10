@@ -39,4 +39,25 @@ var _ = Describe("Fs", func() {
 		_, err = fsys.Stat("dir/thing.txt")
 		Expect(err).NotTo(HaveOccurred())
 	})
+
+	Describe("ParseArgs", func() {
+		It("should work", func() {
+			err := fsys.Mkdir("dir", os.ModeDir)
+			Expect(err).NotTo(HaveOccurred())
+
+			actual, err := output.ParseArgs(fsys, []string{"not important", "dir"})
+
+			Expect(err).NotTo(HaveOccurred())
+			err = actual.WriteUnit("thing.txt", bytes.NewBufferString("fkdjsfk"))
+			Expect(err).NotTo(HaveOccurred())
+			_, err = fsys.Stat("dir/thing.txt")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should not support three args", func() {
+			_, err := output.ParseArgs(fsys, []string{"fdh", "fdj", "fdkjs"})
+
+			Expect(err).To(HaveOccurred())
+		})
+	})
 })
