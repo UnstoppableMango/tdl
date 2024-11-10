@@ -27,6 +27,8 @@ func Fs(fsys afero.Fs, path string) (tdl.Sink, error) {
 
 func ParseArgs(fsys afero.Fs, args []string) (tdl.Sink, error) {
 	switch len(args) {
+	case 0:
+		fallthrough
 	case 1:
 		return sink.WriteTo(os.Stdout), nil
 	case 2:
