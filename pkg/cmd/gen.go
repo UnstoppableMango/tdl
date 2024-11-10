@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/unstoppablemango/tdl/pkg/cmd/flags"
-	"github.com/unstoppablemango/tdl/pkg/gen"
 	"github.com/unstoppablemango/tdl/pkg/gen/input"
 	"github.com/unstoppablemango/tdl/pkg/gen/output"
 	"github.com/unstoppablemango/tdl/pkg/plugin"
@@ -59,9 +58,7 @@ func NewGen() *cobra.Command {
 			}
 
 			log.Debug("creating pipeline")
-			pipeline := spec.PipeInput[gen.FromInput](
-				generator.Execute,
-			)
+			pipeline := spec.PipeInput(generator.Execute)
 
 			log.Debug("executing pipeline")
 			if err := pipeline(input, output); err != nil {
