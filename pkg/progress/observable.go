@@ -1,17 +1,11 @@
 package progress
 
 import (
-	"errors"
-
 	"github.com/unmango/go/rx"
 )
 
-var ErrCompleted = errors.New("done")
-
 // OnComplete implements rx.Observer.
-func (r ReportFunc) OnComplete() {
-	r(0, ErrCompleted)
-}
+func (r ReportFunc) OnComplete() {}
 
 // OnError implements rx.Observer.
 func (r ReportFunc) OnError(err error) {

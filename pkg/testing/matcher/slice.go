@@ -16,6 +16,9 @@ func (l lenGreaterThanZero) Match(actual interface{}) (success bool, err error) 
 	if s, ok := actual.([]int); ok {
 		return len(s) > 0, nil
 	}
+	if s, ok := actual.([]error); ok {
+		return len(s) > 0, nil
+	}
 
 	return false, fmt.Errorf("not a slice: %#v", actual)
 }

@@ -18,17 +18,22 @@ var _ = Describe("Reader", func() {
 	})
 
 	It("should work", func() {
-		var sentinel bool
+		values := []int{}
+		errors := []error{}
 		buf := bytes.NewBuffer(data)
 		r := progress.NewReader(buf)
 
 		s := progress.Subscribe(r, func(i int, err error) {
-			sentinel = true
+			values = append(values, i)
+			errors = append(errors, err)
 		})
 		defer s()
 
 		_, err := io.ReadAll(r)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(sentinel).To(BeTrueBecause("report was called"))
+		// I'm not sure why these values are used,
+		// but they seem to be pretty consistent
+		Expect(values).To(ConsistOf(512, 384, 128))
+		Expect(errors).To(ConsistOf(nil, nil, nil))
 	})
 })

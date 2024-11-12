@@ -57,6 +57,7 @@ func (o *observable) Write(name string, data []byte) error {
 		o.Subject.OnError(err)
 	} else {
 		o.Subject.OnNext(CacheEvent{name, len(data)})
+		o.Subject.OnComplete()
 	}
 
 	return err

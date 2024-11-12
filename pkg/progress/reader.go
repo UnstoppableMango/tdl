@@ -1,6 +1,7 @@
 package progress
 
 import (
+	"errors"
 	"io"
 
 	"github.com/unmango/go/rx"
@@ -26,6 +27,7 @@ func (r *reader) Close() (err error) {
 		r.Subject.OnError(err)
 	}
 
+	// TODO: Fix double OnComplete call
 	r.Subject.OnComplete()
 	return
 }
@@ -33,7 +35,9 @@ func (r *reader) Close() (err error) {
 // Read implements io.ReadCloser.
 func (r *reader) Read(p []byte) (n int, err error) {
 	n, err = r.reader.Read(p)
-	if err != nil {
+	if errors.Is(err, io.EOF) {
+		r.Subject.OnComplete()
+	} else if err != nil {
 		r.Subject.OnError(err)
 	} else {
 		r.Subject.OnNext(Event{n})
