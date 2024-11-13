@@ -228,6 +228,8 @@ github.com/unmango/go v0.0.7-alpha h1:sxpPkX3rpdog1le04YComPcA6X5NIDCR7HowQnT4eO
 github.com/unmango/go v0.0.7-alpha/go.mod h1:Ke1EzAOm2u3C4CpDj2eCwGrcGjFwjcVC7Xqf8ZIB460=
 github.com/unmango/go v0.0.10 h1:bY38OgPGdw59yxY72brM5ndi9VivdgruXAy5cWCJ4uU=
 github.com/unmango/go v0.0.10/go.mod h1:+6f2Rrtmo1vaCSdYA9391jWLpxcLp7eK216VyNsqzMM=
+github.com/unmango/go v0.0.11 h1:fdKrY8QX00wf/VljtjK5cDgs9Mf5TTbyw/BPTI98+1c=
+github.com/unmango/go v0.0.11/go.mod h1:JERfdhB0ncfnCAnYIBcoXi+uzI3GBkb+aA5ysYSBUAY=
 github.com/xanzy/ssh-agent v0.3.3 h1:+/15pJfg/RsTxqYcX6fHqOXZwwMP+2VyYWJeWM2qQFM=
 github.com/xanzy/ssh-agent v0.3.3/go.mod h1:6dzNDKs0J9rVPHPhaGCukekBHKqfl+L3KghI1Bc68Uw=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
