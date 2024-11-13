@@ -15,12 +15,17 @@ func NewCache() *cobra.Command {
 		Short: "Cache known plugins",
 		Run: func(cmd *cobra.Command, args []string) {
 			ctx := cmd.Context()
-			cache := cache.XdgBinHome
+			c := cache.Observe(cache.XdgBinHome)
+
+			sub := cache.Subscribe(c, func(s string, i int, err error) {
+				fmt.Println(i)
+			})
+			defer sub()
 
 			p := github.NewUml2Ts()
-			if p.Cached(cache) {
+			if p.Cached(c) {
 				fmt.Println("Cached: uml2ts")
-			} else if err := p.Cache(ctx, cache); err != nil {
+			} else if err := p.Cache(ctx, c); err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
