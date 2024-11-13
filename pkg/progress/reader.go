@@ -15,7 +15,9 @@ type Reader interface {
 
 type reader struct {
 	rx.Subject[Event]
-	reader io.Reader
+	reader  io.Reader
+	current int
+	total   int
 }
 
 // Close implements io.ReadCloser.
@@ -40,15 +42,18 @@ func (r *reader) Read(p []byte) (n int, err error) {
 	} else if err != nil {
 		r.Subject.OnError(err)
 	} else {
-		r.Subject.OnNext(Event{n})
+		r.current += n
+		p := float64(r.current) / float64(r.total)
+		r.Subject.OnNext(Event{p})
 	}
 
 	return
 }
 
-func NewReader(r io.Reader) Reader {
+func NewReader(r io.Reader, total int) Reader {
 	return &reader{
 		Subject: subject.New[Event](),
 		reader:  r,
+		total:   total,
 	}
 }

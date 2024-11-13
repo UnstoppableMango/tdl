@@ -14,7 +14,9 @@ type Writer interface {
 
 type writer struct {
 	rx.Subject[Event]
-	writer io.Writer
+	writer  io.Writer
+	current int
+	total   int
 }
 
 func (w *writer) Close() (err error) {
@@ -38,15 +40,18 @@ func (w *writer) Write(p []byte) (n int, err error) {
 	if err != nil {
 		w.OnError(err)
 	} else {
-		w.OnNext(Event{n})
+		w.current += n
+		p := float64(w.current) / float64(w.total)
+		w.OnNext(Event{p})
 	}
 
 	return
 }
 
-func NewWriter(w io.Writer) io.Writer {
+func NewWriter(w io.Writer, total int) io.Writer {
 	return &writer{
 		Subject: subject.New[Event](),
 		writer:  w,
+		total:   total,
 	}
 }

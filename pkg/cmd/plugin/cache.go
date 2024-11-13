@@ -17,8 +17,8 @@ func NewCache() *cobra.Command {
 			ctx := cmd.Context()
 			c := cache.Observe(cache.XdgBinHome)
 
-			sub := cache.Subscribe(c, func(s string, i int, err error) {
-				fmt.Println(i)
+			sub := cache.Subscribe(c, func(s string, percent float64, err error) {
+				fmt.Println(percent)
 			})
 			defer sub()
 

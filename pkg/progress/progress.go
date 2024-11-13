@@ -1,7 +1,7 @@
 package progress
 
 type Event struct {
-	N int
+	Percent float64
 }
 
-type ReportFunc func(int, error)
+type ReportFunc func(float64, error)

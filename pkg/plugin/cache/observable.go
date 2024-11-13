@@ -14,8 +14,8 @@ var (
 )
 
 type CacheEvent struct {
-	Name string
-	Len  int
+	Name    string
+	Percent float64
 }
 
 type Observable interface {
@@ -23,7 +23,7 @@ type Observable interface {
 	Cacher
 }
 
-type ObserveFunc func(string, int, error)
+type ObserveFunc func(string, float64, error)
 
 // OnComplete implements rx.Observer.
 func (o ObserveFunc) OnComplete() {
@@ -37,7 +37,7 @@ func (o ObserveFunc) OnError(err error) {
 
 // OnNext implements rx.Observer.
 func (o ObserveFunc) OnNext(e CacheEvent) {
-	o(e.Name, e.Len, nil)
+	o(e.Name, e.Percent, nil)
 }
 
 type observable struct {
@@ -56,7 +56,7 @@ func (o *observable) Write(name string, data []byte) error {
 	if err != nil {
 		o.Subject.OnError(err)
 	} else {
-		o.Subject.OnNext(CacheEvent{name, len(data)})
+		o.Subject.OnNext(CacheEvent{name, 100}) // TODO
 		o.Subject.OnComplete()
 	}
 
@@ -72,8 +72,8 @@ func Observe(cache Cacher) Observable {
 
 func Report(cache Cacher, report progress.ReportFunc) rx.Subscription {
 	return Subscribe(Observe(cache),
-		func(_ string, i int, err error) {
-			report(i, err)
+		func(_ string, percent float64, err error) {
+			report(percent, err)
 		},
 	)
 }

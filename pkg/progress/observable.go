@@ -14,7 +14,7 @@ func (r ReportFunc) OnError(err error) {
 
 // OnNext implements rx.Observer.
 func (r ReportFunc) OnNext(e Event) {
-	r(e.N, nil)
+	r(e.Percent, nil)
 }
 
 type Observable interface {

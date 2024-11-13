@@ -18,12 +18,12 @@ var _ = Describe("Reader", func() {
 	})
 
 	It("should work", func() {
-		values := []int{}
+		values := []float64{}
 		errors := []error{}
 		buf := bytes.NewBuffer(data)
-		r := progress.NewReader(buf)
+		r := progress.NewReader(buf, len(data))
 
-		s := progress.Subscribe(r, func(i int, err error) {
+		s := progress.Subscribe(r, func(i float64, err error) {
 			values = append(values, i)
 			errors = append(errors, err)
 		})
@@ -31,9 +31,7 @@ var _ = Describe("Reader", func() {
 
 		_, err := io.ReadAll(r)
 		Expect(err).NotTo(HaveOccurred())
-		// I'm not sure why these values are used,
-		// but they seem to be pretty consistent
-		Expect(values).To(ConsistOf(512, 384, 128))
+		Expect(values).To(ConsistOf(0.5, 0.875, 1.0))
 		Expect(errors).To(ConsistOf(nil, nil, nil))
 	})
 })
