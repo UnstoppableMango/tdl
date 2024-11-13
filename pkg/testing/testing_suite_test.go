@@ -1,6 +1,7 @@
 package testing_test
 
 import (
+	"bytes"
 	"embed"
 	"testing"
 
@@ -16,9 +17,9 @@ var testdata embed.FS
 func TestCacheForT(t *testing.T) {
 	g := NewWithT(t)
 	cache := ttest.NewCacheForT(t)
-	data := []byte("dkfjslkdfjksdlf")
+	data := bytes.NewBufferString("dkfjslkdfjksdlf")
 
-	err := cache.Write("test-bin", data)
+	err := cache.WriteAll("test-bin", data)
 	g.Expect(err).NotTo(HaveOccurred())
 }
 

@@ -51,8 +51,8 @@ func (o *observable) Reader(name string) (io.Reader, error) {
 }
 
 // Write implements Observable.
-func (o *observable) Write(name string, data []byte) error {
-	err := o.cache.Write(name, data)
+func (o *observable) WriteAll(name string, reader io.Reader) error {
+	err := o.cache.WriteAll(name, reader)
 	if err != nil {
 		o.Subject.OnError(err)
 	} else {

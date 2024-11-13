@@ -30,8 +30,13 @@ func (d *directory) JoinPath(elem ...string) string {
 }
 
 // Write implements Cacher.
-func (d *directory) Write(name string, data []byte) error {
+func (d *directory) WriteAll(name string, reader io.Reader) error {
 	if err := d.ensure(); err != nil {
+		return fmt.Errorf("caching binary: %w", err)
+	}
+
+	data, err := io.ReadAll(reader)
+	if err != nil {
 		return fmt.Errorf("caching binary: %w", err)
 	}
 

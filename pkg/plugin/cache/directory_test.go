@@ -1,6 +1,7 @@
 package cache_test
 
 import (
+	"bytes"
 	"io"
 	"os"
 	"path/filepath"
@@ -26,8 +27,9 @@ var _ = Describe("Directory", func() {
 
 	It("should cache a file", func() {
 		cache := cache.AtDirectory(root)
+		buf := bytes.NewBufferString("testing test")
 
-		err := cache.Write("thing", []byte("testing test"))
+		err := cache.WriteAll("thing", buf)
 
 		Expect(err).NotTo(HaveOccurred())
 		Expect(filepath.Join(root, "thing")).To(BeARegularFile())
@@ -36,8 +38,9 @@ var _ = Describe("Directory", func() {
 	It("should create the given path", func() {
 		expected := filepath.Join(root, "subdir")
 		cache := cache.AtDirectory(expected)
+		buf := bytes.NewBufferString("fjdkslfkd")
 
-		err := cache.Write("thing", []byte("fjdkslfkd"))
+		err := cache.WriteAll("thing", buf)
 
 		Expect(err).NotTo(HaveOccurred())
 		Expect(expected).To(BeADirectory())
@@ -54,8 +57,9 @@ var _ = Describe("Directory", func() {
 			name = "test-file"
 			contents = []byte("dfkdljsfkld")
 			stub = cache.AtDirectory(root)
+			buf := bytes.NewBuffer(contents)
 
-			Expect(stub.Write(name, contents)).To(Succeed())
+			Expect(stub.WriteAll(name, buf)).To(Succeed())
 		})
 
 		It("should read the contents", func() {

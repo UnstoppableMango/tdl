@@ -66,7 +66,7 @@ func (g release) Cache(ctx context.Context, c cache.Cacher) error {
 	}
 
 	if len(g.archiveContents) == 0 {
-		return cache.WriteAll(c, g.name, reader)
+		return c.WriteAll(g.name, reader)
 	} else {
 		return g.extractArchive(c, reader)
 	}

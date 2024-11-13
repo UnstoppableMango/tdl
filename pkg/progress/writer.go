@@ -48,7 +48,7 @@ func (w *writer) Write(p []byte) (n int, err error) {
 	return
 }
 
-func NewWriter(w io.Writer, total int) io.Writer {
+func NewWriter(w io.Writer, total int) Writer {
 	return &writer{
 		Subject: subject.New[Event](),
 		writer:  w,
