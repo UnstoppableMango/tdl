@@ -16,14 +16,24 @@ func NewCache() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			ctx := cmd.Context()
 			cache := cache.XdgBinHome
+			p := github.NewUml2Ts(
+				github.WithProgress(func(f float64, err error) {
+					fmt.Printf("%f\r", f*100)
+				}),
+			)
 
-			p := github.NewUml2Ts()
 			if p.Cached(cache) {
 				fmt.Println("Cached: uml2ts")
-			} else if err := p.Cache(ctx, cache); err != nil {
+				return
+			}
+
+			fmt.Println("Caching uml2ts")
+			if err := p.Cache(ctx, cache); err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
+
+			fmt.Printf("\nDone\n")
 		},
 	}
 

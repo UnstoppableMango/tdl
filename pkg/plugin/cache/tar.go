@@ -43,7 +43,7 @@ func TarEntries(cache Cacher, reader *tar.Reader, files []string) error {
 			continue
 		}
 
-		err = WriteAll(cache, name, reader)
+		err = cache.WriteAll(name, reader)
 		if err != nil {
 			return err
 		}

@@ -8,10 +8,12 @@ import (
 	"path"
 	"path/filepath"
 
+	"github.com/charmbracelet/log"
 	"github.com/unmango/go/option"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/gen"
 	"github.com/unstoppablemango/tdl/pkg/plugin/cache"
+	"github.com/unstoppablemango/tdl/pkg/progress"
 )
 
 type Release interface {
@@ -24,6 +26,7 @@ type release struct {
 	name, version   string
 	client          Client
 	archiveContents []string
+	progress        progress.ReportFunc
 }
 
 type Option func(*release)
@@ -61,12 +64,16 @@ func (g release) Cache(ctx context.Context, c cache.Cacher) error {
 	if err != nil {
 		return err
 	}
-	if reader == nil {
-		return fmt.Errorf("reader was nil")
+	if g.progress != nil {
+		log.Debug("reporting progress")
+		r := progress.NewReader(reader, asset.GetSize())
+		sub := r.Subscribe(g.progress)
+		defer sub()
+		reader = r
 	}
 
 	if len(g.archiveContents) == 0 {
-		return cache.WriteAll(c, g.name, reader)
+		return c.WriteAll(g.name, reader)
 	} else {
 		return g.extractArchive(c, reader)
 	}
@@ -152,5 +159,11 @@ func WithRepository(owner, repo string) Option {
 func WithArchiveContents(path ...string) Option {
 	return func(r *release) {
 		r.archiveContents = append(r.archiveContents, path...)
+	}
+}
+
+func WithProgress(report progress.ReportFunc) Option {
+	return func(r *release) {
+		r.progress = report
 	}
 }
