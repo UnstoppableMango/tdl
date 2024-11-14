@@ -69,7 +69,7 @@ runs:
 
     - name: Upload coverage reports to Codecov
       if: 'false' # Nothing to upload at the moment
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v5
       env:
         CODECOV_TOKEN: ${{ inputs.CODECOV_TOKEN }}
 
