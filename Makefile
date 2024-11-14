@@ -33,6 +33,7 @@ endif
 build: generate bin/ux bin/devops .make/buf_build packages/tdl/dist packages/ts/dist
 test: .make/go_test .make/ts_test
 generate: ${GO_PB_SRC}
+docker: .make/docker_ux .make/docker_uml2ts
 format: .make/dprint .make/go_fmt
 lint: .make/buf_lint
 tidy: go.sum
@@ -89,6 +90,14 @@ go.mod:
 
 go.sum: go.mod ${GO_SRC}
 	go mod tidy && touch $@
+
+.make/docker_ux: ${GO_SRC} $(wildcard docker/ux/*)
+	docker build -f docker/ux/Dockerfile -t ux ${WORKING_DIR}
+	@touch $@
+
+.make/docker_uml2ts: ${TS_SRC} $(wildcard docker/uml2ts/*)
+	docker build -f docker/uml2ts/Dockerfile -t uml2ts ${WORKING_DIR}
+	@touch $@
 
 .make/go_test: ${GO_SRC} | bin/ginkgo bin/ux bin/uml2ts
 	$(GINKGO) run ${TEST_FLAGS} $(sort $(dir $?))
