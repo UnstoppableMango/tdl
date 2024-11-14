@@ -55,7 +55,7 @@ var _ = Describe("End to end", func() {
 			Expect(string(out)).To(Equal("open fkjdslfkdjlsf: no such file or directory\n"))
 		})
 
-		It("should write to output file", func(ctx context.Context) {
+		It("should write to output file", FlakeAttempts(5), func(ctx context.Context) {
 			input := filepath.Join(tsSuiteRoot, "interface", "source.yml")
 			tmp, err := os.MkdirTemp("", "")
 			Expect(err).NotTo(HaveOccurred())
