@@ -15,20 +15,25 @@ func NewCache() *cobra.Command {
 		Short: "Cache known plugins",
 		Run: func(cmd *cobra.Command, args []string) {
 			ctx := cmd.Context()
-			c := cache.Observe(cache.XdgBinHome)
+			cache := cache.XdgBinHome
+			p := github.NewUml2Ts(
+				github.WithProgress(func(f float64, err error) {
+					fmt.Printf("%f\r", f*100)
+				}),
+			)
 
-			sub := cache.Subscribe(c, func(s string, percent float64, err error) {
-				fmt.Println(percent)
-			})
-			defer sub()
-
-			p := github.NewUml2Ts()
-			if p.Cached(c) {
+			if p.Cached(cache) {
 				fmt.Println("Cached: uml2ts")
-			} else if err := p.Cache(ctx, c); err != nil {
+				return
+			}
+
+			fmt.Println("Caching uml2ts")
+			if err := p.Cache(ctx, cache); err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
+
+			fmt.Printf("\nDone\n")
 		},
 	}
 
