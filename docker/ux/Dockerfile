@@ -6,25 +6,20 @@ ARG TARGETARCH
 
 FROM --platform=$BUILDPLATFORM base AS download
 WORKDIR /build
-COPY gen/go.mod gen/go.sum ./gen/
-COPY pkg/go.mod pkg/go.sum ./pkg/
-COPY cli/go.mod cli/go.sum ./cli/
-
-WORKDIR /build/cli
+COPY go.mod go.sum ./
 RUN go mod download
 
 FROM --platform=$BUILDPLATFORM download AS build
 WORKDIR /build
-COPY gen/ ./gen/
 COPY pkg/ ./pkg/
-COPY cli/ ./cli/
+COPY cmd/ ./cmd/
 
-WORKDIR /build/cli/uml2go
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /out/uml2go
+WORKDIR /build/cmd/ux
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /out/ux
 
 FROM --platform=$BUILDPLATFORM ubuntu:noble-20241011 AS test
-COPY --from=build /out/uml2go .
+COPY --from=build /out/ux .
 
 FROM --platform=$BUILDPLATFORM scratch
-COPY --from=build /out/uml2go /
-ENTRYPOINT ["/uml2go"]
+COPY --from=build /out/ux /bin/
+ENTRYPOINT ["/bin/ux"]
