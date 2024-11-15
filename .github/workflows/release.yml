@@ -10,6 +10,23 @@ on:
     tags: ['v*.*.*']
 
 jobs:
+  docker:
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tool:
+          - ux
+          - uml2ts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build-docker
+        with:
+          file: docker/${{ matrix.tool }}/Dockerfile
+          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.tool }}
+          push: ${{ github.event_name != 'pull_request' }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   bun:
     name: Compile Bun apps
     runs-on: ubuntu-latest
