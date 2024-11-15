@@ -30,7 +30,7 @@ func (c *Cli) String() string {
 	return c.name
 }
 
-var _ tdl.Generator = &Cli{}
+var _ tdl.SinkGenerator = &Cli{}
 
 func NewCli(name string, options ...CliOption) *Cli {
 	gen := &Cli{name: name}

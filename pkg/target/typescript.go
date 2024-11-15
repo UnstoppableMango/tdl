@@ -16,7 +16,7 @@ type typescript string
 var TypeScript typescript = "TypeScript"
 
 // Choose implements tdl.Target.
-func (t typescript) Choose(available []tdl.Generator) (tdl.Generator, error) {
+func (t typescript) Choose(available []tdl.SinkGenerator) (tdl.SinkGenerator, error) {
 	if len(available) == 0 {
 		return nil, errors.New("no generators to choose from")
 	}
@@ -45,7 +45,7 @@ func (t typescript) String() string {
 	return string(t)
 }
 
-func supported(g tdl.Generator) error {
+func supported(g tdl.SinkGenerator) error {
 	cli, ok := g.(*gen.Cli)
 	if !ok {
 		return Reject(g, "not a CLI")

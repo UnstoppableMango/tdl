@@ -16,18 +16,18 @@ type Pipeline[T, V any] interface {
 	Execute(T, V) error
 }
 
-type Generator interface {
+type SinkGenerator interface {
 	Pipeline[*tdlv1alpha1.Spec, Sink]
 }
 
 type Plugin interface {
 	fmt.Stringer
-	Generator(Target) (Generator, error)
+	Generator(Target) (SinkGenerator, error)
 }
 
 type Target interface {
 	fmt.Stringer
-	Choose([]Generator) (Generator, error)
+	Choose([]SinkGenerator) (SinkGenerator, error)
 	Plugins() iter.Seq[Plugin]
 }
 

@@ -26,7 +26,7 @@ var _ = Describe("Typescript", func() {
 			expected, err := plugin.Uml2Ts.Generator(target.TypeScript)
 			Expect(err).NotTo(HaveOccurred())
 
-			chosen, err := target.TypeScript.Choose([]tdl.Generator{expected})
+			chosen, err := target.TypeScript.Choose([]tdl.SinkGenerator{expected})
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(chosen).To(BeIdenticalTo(expected))
@@ -35,7 +35,7 @@ var _ = Describe("Typescript", func() {
 		It("should ignore unsupported generators", func() {
 			g := testing.NewMockGenerator()
 
-			_, err := target.TypeScript.Choose([]tdl.Generator{g})
+			_, err := target.TypeScript.Choose([]tdl.SinkGenerator{g})
 
 			Expect(err).To(MatchError(ContainSubstring("not a CLI")))
 		})

@@ -14,7 +14,7 @@ const UnwrapDepth = 3
 type Aggregate []tdl.Plugin
 
 // Generator implements tdl.Plugin.
-func (a Aggregate) Generator(t tdl.Target) (tdl.Generator, error) {
+func (a Aggregate) Generator(t tdl.Target) (tdl.SinkGenerator, error) {
 	if len(a) == 0 {
 		return nil, errors.New("empty aggregate plugin")
 	}

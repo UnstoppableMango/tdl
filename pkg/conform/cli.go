@@ -47,7 +47,7 @@ func CliTests(binary string, options ...CliTestOption) {
 	})
 
 	Describe("Generator", func() {
-		var generator tdl.Generator
+		var generator tdl.SinkGenerator
 
 		BeforeEach(func() {
 			generator = gen.NewCli(binary,

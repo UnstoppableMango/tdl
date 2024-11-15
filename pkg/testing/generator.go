@@ -41,7 +41,7 @@ func (m *MockGenerator) WithName(name string) *MockGeneratorStringer {
 	})
 }
 
-var _ tdl.Generator = &MockGenerator{}
+var _ tdl.SinkGenerator = &MockGenerator{}
 
 func NewMockGenerator() *MockGenerator {
 	return &MockGenerator{

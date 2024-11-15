@@ -5,12 +5,12 @@ import (
 )
 
 type MockPlugin struct {
-	GeneratorFunc func(tdl.Target) (tdl.Generator, error)
+	GeneratorFunc func(tdl.Target) (tdl.SinkGenerator, error)
 	StringFunc    func() string
 }
 
 // Generator implements tdl.Plugin.
-func (m *MockPlugin) Generator(t tdl.Target) (tdl.Generator, error) {
+func (m *MockPlugin) Generator(t tdl.Target) (tdl.SinkGenerator, error) {
 	return m.GeneratorFunc(t)
 }
 
@@ -20,7 +20,7 @@ func (m *MockPlugin) String() string {
 }
 
 func (m *MockPlugin) WithGenerator(
-	fn func(t tdl.Target) (tdl.Generator, error),
+	fn func(t tdl.Target) (tdl.SinkGenerator, error),
 ) *MockPlugin {
 	m.GeneratorFunc = fn
 	return m
@@ -37,7 +37,7 @@ var _ tdl.Plugin = &MockPlugin{}
 
 func NewMockPlugin() *MockPlugin {
 	return &MockPlugin{
-		GeneratorFunc: func(t tdl.Target) (tdl.Generator, error) {
+		GeneratorFunc: func(t tdl.Target) (tdl.SinkGenerator, error) {
 			panic("unimplemented")
 		},
 		StringFunc: func() string {
