@@ -7,17 +7,17 @@ import "unmango/dev/tdl/v1alpha1/spec.proto";
 option csharp_namespace = "UnMango.Tdl";
 
 service GenService {
-	rpc Gen(GenRequest) returns (GenResponse);
+  rpc Gen(GenRequest) returns (GenResponse);
 }
 
 message GenRequest {
-	Spec spec = 1;
+  Spec spec = 1;
 }
 
 message GenResponse {
-	map<string, Unit> output = 1;
+  map<string, Unit> output = 1;
 }
 
 message Unit {
-	bytes generated = 1;
+  bytes generated = 1;
 }

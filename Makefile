@@ -35,7 +35,7 @@ build: generate bin/ux bin/devops .make/buf_build packages/tdl/dist packages/ts/
 test: .make/go_test .make/ts_test
 generate: ${GO_PB_SRC}
 docker: .make/docker_ux .make/docker_uml2ts
-format: .make/dprint .make/go_fmt
+format: .make/dprint .make/go_fmt .make/buf_format
 lint: .make/buf_lint .make/go_lint
 tidy: go.sum
 
@@ -125,6 +125,10 @@ go.sum: go.mod ${GO_SRC}
 
 .make/buf_lint: buf.yaml ${PROTO_SRC} | bin/buf
 	$(BUF) lint
+	@touch $@
+
+.make/buf_format: buf.yaml ${PROTO_SRC} | bin/buf
+	$(BUF) format --write
 	@touch $@
 
 .make/dprint:
