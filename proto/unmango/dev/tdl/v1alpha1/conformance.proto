@@ -7,7 +7,7 @@ option csharp_namespace = "UnMango.Tdl";
 // Stubbing out the idea of running conformance tests via gRPC
 
 service ConformanceService {
-	rpc Test(TestRequest) returns (TestResponse);
+  rpc Test(TestRequest) returns (TestResponse);
 }
 
 message TestRequest {}

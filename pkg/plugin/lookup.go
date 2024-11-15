@@ -14,7 +14,8 @@ var static = []tdl.Plugin{
 }
 
 func FirstAvailable(target tdl.Target) (tdl.Plugin, error) {
-	for _, p := range static {
+	if len(static) > 0 {
+		p := static[0]
 		if err := tryCache(p); err != nil {
 			return nil, err
 		}

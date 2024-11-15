@@ -1,6 +1,12 @@
 {
 	"FSharp.autoRevealInExplorer": "sameAsFileExplorer",
 	"FSharp.showExplorerOnStartup": false,
+	"go.lintTool": "golangci-lint",
+	"go.lintFlags": [
+		"--fast"
+	],
+	"makefile.configureOnOpen": false,
+	"typescript.tsdk": "node_modules/typescript/lib",
 	"[dockerfile]": {
 		"editor.defaultFormatter": "dprint.dprint",
 		"editor.quickSuggestions": {
@@ -35,7 +41,5 @@
 	},
 	"[typescript]": {
 		"editor.defaultFormatter": "dprint.dprint"
-	},
-	"makefile.configureOnOpen": false,
-	"typescript.tsdk": "node_modules/typescript/lib"
+	}
 }

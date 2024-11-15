@@ -68,7 +68,7 @@ func NewGen() *cobra.Command {
 		},
 	}
 
-	flags.ConformanceTest(cmd.Flags(), &conformanceTest)
+	_ = flags.ConformanceTest(cmd.Flags(), &conformanceTest)
 
 	return cmd
 }
