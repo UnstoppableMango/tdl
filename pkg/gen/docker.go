@@ -111,15 +111,19 @@ func (d *Docker) ensure(ctx context.Context, client *client.Client) error {
 
 	log.Debug("pulling image")
 	r, err := client.ImagePull(ctx, d.image, image.PullOptions{})
-	defer r.Close()
+	if err != nil {
+		return err
+	}
 
-	return err
+	defer r.Close()
+	return nil
 }
 
 var _ tdl.Generator = &Docker{}
 
-func NewDocker(options ...client.Opt) *Docker {
+func NewDocker(image string, options ...client.Opt) *Docker {
 	return &Docker{
 		options: options,
+		image:   image,
 	}
 }
