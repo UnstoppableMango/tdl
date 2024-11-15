@@ -15,13 +15,9 @@ builds:
     goarch:
       - amd64
       - arm64
-    id: uml2go
-    dir: cli/uml2go
-    binary: uml2go
-  - <<: *cli
-    id: uml2pcl
-    dir: cli/uml2pcl
-    binary: uml2pcl
+    id: ux
+    dir: cmd/ux
+    binary: ux
 
 archives:
   - format: tar.gz

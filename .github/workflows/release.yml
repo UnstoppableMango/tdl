@@ -8,10 +8,6 @@ on:
       - .goreleaser.yaml
   push:
     tags: ['v*.*.*']
-    paths:
-      - .github/workflows/release.yml
-      - .goreleaser.yaml
-      - cli/**
 
 jobs:
   bun:
@@ -75,8 +71,8 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.work
-          cache-dependency-path: go.work.sum
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
 
       - name: GoReleaser Dry-run
         if: github.event_name == 'pull_request'
