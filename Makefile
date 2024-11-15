@@ -112,7 +112,8 @@ go.sum: go.mod ${GO_SRC}
 	@touch $@
 
 .make/go_lint: ${GO_SRC} | bin/golangci-lint
-	$(GOLANGCI) run
+	$(GOLANGCI) run $(sort $(dir $(filter %.go,$?)))
+	@touch $@
 
 .make/ts_test: ${TS_SRC}
 	bun test --cwd packages/ts

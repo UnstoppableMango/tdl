@@ -13,7 +13,7 @@ on:
 
 jobs:
   build:
-    name: Build the thing
+    name: Build and Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,8 +32,10 @@ jobs:
       - run: make bin/devops
       - run: make build
       - run: make test
+      - run: make lint
 
   docker:
+    name: Docker
     runs-on: ubuntu-latest
     strategy:
       matrix:
