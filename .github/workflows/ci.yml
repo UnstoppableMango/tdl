@@ -41,6 +41,7 @@ jobs:
           - ux
           - uml2ts
     steps:
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/build-docker
         with:
           file: docker/${{ matrix.tool }}/Dockerfile
