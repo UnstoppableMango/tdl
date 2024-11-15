@@ -89,7 +89,7 @@ jobs:
 
       - uses: bufbuild/buf-action@v1
         with:
-          version: v${{ env.VERSION }}
+          version: ${{ env.VERSION }}
           push: false
           breaking: false
 
