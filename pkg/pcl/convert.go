@@ -1,7 +1,6 @@
 package pcl
 
 import (
-	"errors"
 	"strings"
 
 	"github.com/pulumi/pulumi/pkg/v3/codegen/schema"
@@ -34,5 +33,5 @@ func FromPcl(pcl schema.PackageSpec) (*tdl.Spec, error) {
 }
 
 func FromType(typ schema.ComplexTypeSpec) (*tdl.Type, error) {
-	return nil, errors.New("TODO")
+	panic("unimplemented")
 }

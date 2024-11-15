@@ -20,7 +20,7 @@ func NewDiscover() *cobra.Command {
 				args[0],
 			)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, err.Error())
+				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
 

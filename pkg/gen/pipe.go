@@ -10,11 +10,6 @@ import (
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
 
-type ioPipe struct {
-	input  FromReader
-	output ToWriter
-}
-
 func NoOp(*tdlv1alpha1.Spec, tdl.Sink) error { return nil }
 
 func PipeFromReader(generator tdl.Generator, options ...spec.ReaderOption) FromReader {

@@ -13,6 +13,7 @@ LOCALBIN := ${WORKING_DIR}/bin
 DEVOPS   := ${LOCALBIN}/devops
 BUF      := ${LOCALBIN}/buf
 GINKGO   := ${LOCALBIN}/ginkgo
+GOLANGCI := ${LOCALBIN}/golangci-lint
 
 export PATH := ${LOCALBIN}:${PATH}
 
@@ -35,7 +36,7 @@ test: .make/go_test .make/ts_test
 generate: ${GO_PB_SRC}
 docker: .make/docker_ux .make/docker_uml2ts
 format: .make/dprint .make/go_fmt
-lint: .make/buf_lint
+lint: .make/buf_lint .make/go_lint
 tidy: go.sum
 
 clean:
@@ -76,6 +77,9 @@ bin/buf: .versions/buf
 bin/ginkgo: go.mod
 	GOBIN=${LOCALBIN} go install github.com/onsi/ginkgo/v2/ginkgo
 
+bin/golangci-lint: .versions/golangci-lint
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ${LOCALBIN} v$(shell cat $<)
+
 .envrc: hack/example.envrc
 	cp $< $@
 
@@ -106,6 +110,9 @@ go.sum: go.mod ${GO_SRC}
 .make/go_e2e_test: ${GO_SRC} | bin/ginkgo bin/ux bin/uml2ts
 	$(GINKGO) run --label-filter 'E2E' $(sort $(dir $?))
 	@touch $@
+
+.make/go_lint: ${GO_SRC} | bin/golangci-lint
+	$(GOLANGCI) run
 
 .make/ts_test: ${TS_SRC}
 	bun test --cwd packages/ts

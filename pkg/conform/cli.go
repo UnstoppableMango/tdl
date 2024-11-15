@@ -66,7 +66,7 @@ func CliTests(binary string, options ...CliTestOption) {
 			Expect(err).NotTo(HaveOccurred(), string(out))
 		})
 
-		if opts.ioSuite != nil && len(opts.ioSuite) > 0 {
+		if len(opts.ioSuite) > 0 {
 			IOSuite(opts.ioSuite, gen.PipeIO(generator))
 		}
 	})

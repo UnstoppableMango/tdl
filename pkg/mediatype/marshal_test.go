@@ -14,10 +14,6 @@ import (
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
 
-func nonZeroLen[S ~[]E, E any](s S) bool {
-	return len(s) > 0
-}
-
 var _ = Describe("Marshal", func() {
 	DescribeTable("JSON",
 		Entry(nil, mediatype.ApplicationJson),
