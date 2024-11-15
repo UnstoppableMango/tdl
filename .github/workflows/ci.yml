@@ -32,7 +32,6 @@ jobs:
       - run: make bin/devops
       - run: make build
       - run: make test
-      - run: make lint
 
   docker:
     name: Docker
@@ -60,6 +59,39 @@ jobs:
         with:
           version: latest
           args: check
+
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          cache-dependency-path: go.sum
+          go-version-file: go.mod
+
+      - run: |
+          echo "VERSION=$(cat .versions/golangci-lint)" >> "$GITHUB_ENV"
+
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: v${{ env.VERSION }}
+
+  buf:
+    name: Buf
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: |
+          echo "VERSION=$(cat .versions/buf)" >> "$GITHUB_ENV"
+
+      - uses: bufbuild/buf-action@v1
+        with:
+          version: v${{ env.VERSION }}
+          push: false
+          breaking: false
 
   bun:
     name: Bun Install
