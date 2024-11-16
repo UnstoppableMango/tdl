@@ -9,7 +9,6 @@ RUN mkdir -p gen/proto/{es,ts} packages/{ts,uml,uml2ts}
 
 # Need everything because the lockfile references everything
 COPY package.json .
-COPY packages/echo/package.json packages/echo/
 COPY packages/tdl/package.json packages/tdl/
 COPY packages/ts/package.json packages/ts/
 COPY packages/uml2ts/package.json packages/uml2ts/
