@@ -69,6 +69,9 @@ $(GO_SRC:%.go=%_test.go): %_test.go: | bin/ginkgo
 bin/ux: $(shell $(DEVOPS) list --go --exclude-tests)
 	go -C cmd/ux build -o ${WORKING_DIR}/$@
 
+bin/uml2uml: cmd/uml2uml/main.go
+	go -C cmd/uml2uml build -o ${WORKING_DIR}/$@
+
 bin/uml2ts: $(shell $(DEVOPS) list --ts --exclude-tests)
 	bun build --cwd packages/uml2ts index.ts --compile --outfile ${WORKING_DIR}/$@
 
@@ -114,11 +117,11 @@ go.sum: go.mod ${GO_SRC}
 	docker build -f docker/zod2uml/Dockerfile -t zod2uml ${WORKING_DIR}
 	@touch $@
 
-.make/go_test: ${GO_SRC} | bin/ginkgo bin/ux bin/uml2ts
+.make/go_test: ${GO_SRC} | bin/ginkgo bin/ux bin/uml2ts bin/uml2uml
 	$(GINKGO) run ${TEST_FLAGS} $(sort $(dir $?))
 	@touch $@
 
-.make/go_e2e_test: ${GO_SRC} | bin/ginkgo bin/ux bin/uml2ts
+.make/go_e2e_test: ${GO_SRC} | bin/ginkgo bin/ux bin/uml2ts bin/uml2uml
 	$(GINKGO) run --label-filter 'E2E' $(sort $(dir $?))
 	@touch $@
 
