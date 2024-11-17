@@ -20,10 +20,10 @@ func (f Func) Execute(spec *tdlv1alpha1.Spec, sink tdl.Sink) error {
 	return f(spec, sink)
 }
 
-func Lift[G constraint.Gen](fn G) tdl.Generator {
+func Lift[G constraint.Gen](fn G) tdl.SinkGenerator {
 	return Func(fn)
 }
 
-func New(gen Func) tdl.Generator {
+func New(gen Func) tdl.SinkGenerator {
 	return Lift(gen)
 }

@@ -12,7 +12,7 @@ import (
 
 func NoOp(*tdlv1alpha1.Spec, tdl.Sink) error { return nil }
 
-func PipeFromReader(generator tdl.Generator, options ...spec.ReaderOption) FromReader {
+func PipeFromReader(generator tdl.SinkGenerator, options ...spec.ReaderOption) FromReader {
 	return func(r io.Reader, s tdl.Sink) error {
 		if spec, err := spec.ReadAll(r, options...); err != nil {
 			return err
@@ -22,13 +22,13 @@ func PipeFromReader(generator tdl.Generator, options ...spec.ReaderOption) FromR
 	}
 }
 
-func PipeToWriter(generator tdl.Generator) ToWriter {
+func PipeToWriter(generator tdl.SinkGenerator) ToWriter {
 	return func(s *tdlv1alpha1.Spec, w io.Writer) error {
 		return generator.Execute(s, sink.WriteTo(w))
 	}
 }
 
-func PipeIO(generator tdl.Generator, options ...spec.ReaderOption) pipe.IO {
+func PipeIO(generator tdl.SinkGenerator, options ...spec.ReaderOption) pipe.IO {
 	return func(r io.Reader, w io.Writer) error {
 		spec, err := spec.ReadAll(r, options...)
 		if err != nil {

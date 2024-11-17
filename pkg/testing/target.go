@@ -7,13 +7,13 @@ import (
 )
 
 type MockTarget struct {
-	ChooseFunc  func([]tdl.Generator) (tdl.Generator, error)
+	ChooseFunc  func([]tdl.SinkGenerator) (tdl.SinkGenerator, error)
 	PluginsFunc func() iter.Seq[tdl.Plugin]
 	StringFunc  func() string
 }
 
 // Choose implements tdl.Target.
-func (m *MockTarget) Choose(available []tdl.Generator) (tdl.Generator, error) {
+func (m *MockTarget) Choose(available []tdl.SinkGenerator) (tdl.SinkGenerator, error) {
 	return m.ChooseFunc(available)
 }
 
@@ -28,7 +28,7 @@ func (m *MockTarget) String() string {
 }
 
 func (m *MockTarget) WithChoose(
-	fn func([]tdl.Generator) (tdl.Generator, error),
+	fn func([]tdl.SinkGenerator) (tdl.SinkGenerator, error),
 ) *MockTarget {
 	m.ChooseFunc = fn
 	return m
@@ -52,7 +52,7 @@ var _ tdl.Target = &MockTarget{}
 
 func NewMockTarget() *MockTarget {
 	return &MockTarget{
-		ChooseFunc: func(g []tdl.Generator) (tdl.Generator, error) {
+		ChooseFunc: func(g []tdl.SinkGenerator) (tdl.SinkGenerator, error) {
 			panic("unimplemented")
 		},
 		PluginsFunc: func() iter.Seq[tdl.Plugin] {

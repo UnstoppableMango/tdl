@@ -14,7 +14,7 @@ type fromPath struct {
 }
 
 // Generator implements tdl.Plugin.
-func (f fromPath) Generator(tdl.Target) (tdl.Generator, error) {
+func (f fromPath) Generator(tdl.Target) (tdl.SinkGenerator, error) {
 	path, err := exec.LookPath(f.name)
 	if err != nil {
 		return nil, fmt.Errorf("from path: %w", err)

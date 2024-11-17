@@ -21,7 +21,7 @@ var _ = Describe("Aggregate", func() {
 	It("should pick the given generator", func() {
 		g := testing.NewMockGenerator()
 		p := testing.NewMockPlugin().
-			WithGenerator(func(tdl.Target) (tdl.Generator, error) {
+			WithGenerator(func(tdl.Target) (tdl.SinkGenerator, error) {
 				return g, nil
 			})
 		agg := plugin.NewAggregate(p)
