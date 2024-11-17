@@ -11,6 +11,7 @@ import (
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/spf13/afero"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/mediatype"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
@@ -22,13 +23,16 @@ type Docker struct {
 }
 
 // Execute implements tdl.Generator.
-func (d *Docker) Execute(spec *tdlv1alpha1.Spec, sink tdl.Sink) error {
+func (d *Docker) Execute(
+	ctx context.Context,
+	spec *tdlv1alpha1.Spec,
+	fsys afero.Fs,
+) error {
 	client, err := client.NewClientWithOpts(d.options...)
 	if err != nil {
 		return err
 	}
 
-	ctx := context.TODO()
 	if err = d.ensure(ctx, client); err != nil {
 		return err
 	}
@@ -89,7 +93,7 @@ func (d *Docker) Execute(spec *tdlv1alpha1.Spec, sink tdl.Sink) error {
 	}
 
 	log.Debug("reading generator response")
-	return sink.WriteUnit("TODO", ctr.Conn)
+	return nil // TODO
 }
 
 func (d *Docker) ensure(ctx context.Context, client *client.Client) error {
