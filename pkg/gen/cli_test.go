@@ -1,6 +1,7 @@
 package gen_test
 
 import (
+	"context"
 	"os/exec"
 	"slices"
 
@@ -26,7 +27,7 @@ var _ = Describe("Cli", func() {
 		Expect(generator).NotTo(BeNil())
 	})
 
-	It("should write to sink", func() {
+	It("should write to sink", func(ctx context.Context) {
 		sink := sink.NewPipe()
 		spec := &tdlv1alpha1.Spec{
 			Name: "testing",
@@ -35,7 +36,7 @@ var _ = Describe("Cli", func() {
 			},
 		}
 
-		err := generator.Execute(spec, sink)
+		err := generator.Execute(ctx, spec, sink)
 
 		Expect(err).NotTo(HaveOccurred())
 		units := slices.Collect(sink.Units())

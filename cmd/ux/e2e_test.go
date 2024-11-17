@@ -94,7 +94,7 @@ var _ = Describe("End to end", func() {
 	})
 })
 
-func ExecuteIO(input io.Reader, output io.Writer) error {
+func ExecuteIO(ctx context.Context, input io.Reader, output io.Writer) error {
 	data, err := io.ReadAll(input)
 	if err != nil {
 		return fmt.Errorf("reading input: %w", err)
@@ -110,7 +110,7 @@ func ExecuteIO(input io.Reader, output io.Writer) error {
 		return fmt.Errorf("marshalling spec: %w", err)
 	}
 
-	cmd := exec.Command(bin, "gen", "ts")
+	cmd := exec.CommandContext(ctx, bin, "gen", "ts")
 	cmd.Stdin = bytes.NewReader(protoInput)
 	cmd.Stdout = output
 	cmd.Stderr = output

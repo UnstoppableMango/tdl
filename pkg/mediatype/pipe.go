@@ -1,6 +1,7 @@
 package mediatype
 
 import (
+	"context"
 	"fmt"
 	"io"
 
@@ -15,14 +16,14 @@ func PipeInput[
 	I c.Pipeline[M, T],
 	M proto.Message, T any,
 ](pipeline I, zero func() M) pipe.Func[tdl.Input, T] {
-	return func(i tdl.Input, t T) error {
+	return func(ctx context.Context, i tdl.Input, t T) error {
 		next := PipeRead(
 			pipeline,
 			i.MediaType(),
 			zero,
 		)
 
-		return next(i, t)
+		return next(ctx, i, t)
 	}
 }
 
@@ -30,7 +31,7 @@ func PipeFs[
 	I c.Pipeline[M, T],
 	M proto.Message, T any,
 ](pipeline I, path string, zero func() M) pipe.Func[afero.Fs, T] {
-	return func(fsys afero.Fs, t T) error {
+	return func(ctx context.Context, fsys afero.Fs, t T) error {
 		media, err := Guess(path)
 		if err != nil {
 			return fmt.Errorf("guessing media type: %w", err)
@@ -47,7 +48,7 @@ func PipeFs[
 			zero,
 		)
 
-		return next(file, t)
+		return next(ctx, file, t)
 	}
 }
 
@@ -55,7 +56,7 @@ func PipeRead[
 	I c.Pipeline[M, T],
 	M proto.Message, T any,
 ](pipeline I, media tdl.MediaType, zero func() M) pipe.Func[io.Reader, T] {
-	return func(r io.Reader, t T) error {
+	return func(ctx context.Context, r io.Reader, t T) error {
 		data, err := io.ReadAll(r)
 		if err != nil {
 			return fmt.Errorf("reading input: %w", err)
@@ -66,6 +67,6 @@ func PipeRead[
 			return fmt.Errorf("unmarshaling message: %w", err)
 		}
 
-		return pipeline(message, t)
+		return pipeline(ctx, message, t)
 	}
 }

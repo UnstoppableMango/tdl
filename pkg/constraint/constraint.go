@@ -1,6 +1,7 @@
 package constraint
 
 import (
+	"context"
 	"io"
 
 	tdl "github.com/unstoppablemango/tdl/pkg"
@@ -16,5 +17,5 @@ type (
 type Gen SpecReader[tdl.Sink]
 
 type Pipeline[T, V any] interface {
-	~func(T, V) error
+	~func(context.Context, T, V) error
 }

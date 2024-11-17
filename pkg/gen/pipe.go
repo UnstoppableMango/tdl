@@ -1,6 +1,7 @@
 package gen
 
 import (
+	"context"
 	"io"
 
 	tdl "github.com/unstoppablemango/tdl/pkg"
@@ -10,31 +11,31 @@ import (
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
 
-func NoOp(*tdlv1alpha1.Spec, tdl.Sink) error { return nil }
+func NoOp(context.Context, *tdlv1alpha1.Spec, tdl.Sink) error { return nil }
 
 func PipeFromReader(generator tdl.SinkGenerator, options ...spec.ReaderOption) FromReader {
-	return func(r io.Reader, s tdl.Sink) error {
+	return func(ctx context.Context, r io.Reader, s tdl.Sink) error {
 		if spec, err := spec.ReadAll(r, options...); err != nil {
 			return err
 		} else {
-			return generator.Execute(spec, s)
+			return generator.Execute(ctx, spec, s)
 		}
 	}
 }
 
 func PipeToWriter(generator tdl.SinkGenerator) ToWriter {
-	return func(s *tdlv1alpha1.Spec, w io.Writer) error {
-		return generator.Execute(s, sink.WriteTo(w))
+	return func(ctx context.Context, s *tdlv1alpha1.Spec, w io.Writer) error {
+		return generator.Execute(ctx, s, sink.WriteTo(w))
 	}
 }
 
 func PipeIO(generator tdl.SinkGenerator, options ...spec.ReaderOption) pipe.IO {
-	return func(r io.Reader, w io.Writer) error {
+	return func(ctx context.Context, r io.Reader, w io.Writer) error {
 		spec, err := spec.ReadAll(r, options...)
 		if err != nil {
 			return err
 		}
 
-		return generator.Execute(spec, sink.WriteTo(w))
+		return generator.Execute(ctx, spec, sink.WriteTo(w))
 	}
 }

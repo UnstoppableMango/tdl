@@ -1,6 +1,7 @@
 package gen
 
 import (
+	"context"
 	"os/exec"
 
 	"github.com/unmango/go/option"
@@ -19,7 +20,7 @@ type Cli struct {
 type CliOption func(*Cli)
 
 // Execute implements tdl.Generator.
-func (c *Cli) Execute(s *tdlv1alpha1.Spec, si tdl.Sink) error {
+func (c *Cli) Execute(ctx context.Context, s *tdlv1alpha1.Spec, si tdl.Sink) error {
 	var args []string
 	if len(c.args) > 0 {
 		args = append(args, c.args...)
@@ -27,7 +28,7 @@ func (c *Cli) Execute(s *tdlv1alpha1.Spec, si tdl.Sink) error {
 		args = []string{"generate"}
 	}
 
-	cmd := exec.Command(c.name, args...)
+	cmd := exec.CommandContext(ctx, c.name, args...)
 
 	cmd.Stdin = mediatype.NewReader(s, c.enc)
 	cmd.Stdout = sink.NewWriter(si)

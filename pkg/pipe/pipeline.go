@@ -1,6 +1,7 @@
 package pipe
 
 import (
+	"context"
 	"io"
 
 	"github.com/spf13/afero"
@@ -8,7 +9,7 @@ import (
 	c "github.com/unstoppablemango/tdl/pkg/constraint"
 )
 
-type Func[T, V any] func(T, V) error
+type Func[T, V any] func(context.Context, T, V) error
 
 type (
 	FromInput[T any]  Func[tdl.Input, T]
@@ -20,8 +21,8 @@ type (
 
 type IO Func[io.Reader, io.Writer]
 
-func (f Func[T, V]) Execute(source T, sink V) error {
-	return f(source, sink)
+func (f Func[T, V]) Execute(ctx context.Context, source T, sink V) error {
+	return f(ctx, source, sink)
 }
 
 func Lift[

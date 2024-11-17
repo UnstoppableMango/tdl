@@ -1,6 +1,8 @@
 package testing
 
 import (
+	"context"
+
 	tdl "github.com/unstoppablemango/tdl/pkg"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
@@ -15,7 +17,11 @@ type MockGeneratorStringer struct {
 }
 
 // Execute implements tdl.Generator.
-func (m *MockGenerator) Execute(spec *tdlv1alpha1.Spec, sink tdl.Sink) error {
+func (m *MockGenerator) Execute(
+	ctx context.Context,
+	spec *tdlv1alpha1.Spec,
+	sink tdl.Sink,
+) error {
 	return m.ExecuteFunc(spec, sink)
 }
 
