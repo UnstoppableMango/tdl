@@ -2,10 +2,10 @@ package testing
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
+	"github.com/unstoppablemango/tdl/internal/util"
 	"github.com/unstoppablemango/tdl/pkg/testing"
 )
 
@@ -20,8 +20,7 @@ func NewDiscover() *cobra.Command {
 				args[0],
 			)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				os.Exit(1)
+				util.Fail(err)
 			}
 
 			for _, t := range tests {

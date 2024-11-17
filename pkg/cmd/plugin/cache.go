@@ -2,9 +2,9 @@ package plugin
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/unstoppablemango/tdl/internal/util"
 	"github.com/unstoppablemango/tdl/pkg/plugin/cache"
 	"github.com/unstoppablemango/tdl/pkg/plugin/github"
 )
@@ -29,8 +29,7 @@ func NewCache() *cobra.Command {
 
 			fmt.Println("Caching uml2ts")
 			if err := p.Cache(ctx, cache); err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				os.Exit(1)
+				util.Fail(err)
 			}
 
 			fmt.Printf("\nDone\n")

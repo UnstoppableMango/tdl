@@ -2,9 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/unstoppablemango/tdl/internal/util"
 	"github.com/unstoppablemango/tdl/pkg/target"
 )
 
@@ -16,15 +16,13 @@ func NewWhich() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			t, err := target.Parse(args[0])
 			if err != nil {
-				fmt.Fprintln(os.Stderr, err.Error())
-				os.Exit(1)
+				util.Fail(err)
 			}
 
 			for p := range t.Plugins() {
 				g, err := p.Generator(t)
 				if err != nil {
-					fmt.Fprintln(os.Stderr, err.Error())
-					os.Exit(1)
+					util.Fail(err)
 				}
 
 				fmt.Println(g)

@@ -11,6 +11,7 @@ RUN go mod download
 
 FROM --platform=$BUILDPLATFORM download AS build
 WORKDIR /build
+COPY internal/ ./internal/
 COPY pkg/ ./pkg/
 COPY cmd/ ./cmd/
 
