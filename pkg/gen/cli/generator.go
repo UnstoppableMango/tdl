@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/fs"
 	"os"
 	"os/exec"
-	"path/filepath"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/afero"
@@ -26,11 +24,11 @@ type cli struct {
 type Option func(*cli)
 
 // Execute implements tdl.Generator.
-func (c cli) Execute(ctx context.Context, spec *tdlv1alpha1.Spec, output afero.Fs) error {
+func (c cli) Execute(ctx context.Context, spec *tdlv1alpha1.Spec) (afero.Fs, error) {
 	log.Debug("creating temp directory")
 	tmp, err := os.MkdirTemp("", "")
 	if err != nil {
-		return fmt.Errorf("creating exec context: %w", err)
+		return nil, fmt.Errorf("creating exec context: %w", err)
 	}
 
 	stderr := &bytes.Buffer{}
@@ -41,42 +39,14 @@ func (c cli) Execute(ctx context.Context, spec *tdlv1alpha1.Spec, output afero.F
 
 	log.Debug("executing command")
 	if err = cmd.Run(); err != nil {
-		return fmt.Errorf("executing generator: %w", err)
+		return nil, fmt.Errorf("executing generator: %w", err)
 	}
 	if stderr.Len() > 0 {
-		return fmt.Errorf("executing generator: %s", stderr)
+		return nil, fmt.Errorf("executing generator: %s", stderr)
 	}
 
-	log.Debug("walking output directory")
-	return afero.Walk(afero.NewOsFs(), tmp,
-		func(path string, info fs.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if info.IsDir() {
-				log.Debugf("creating directory: %s", path)
-				return output.Mkdir(path, os.ModeDir)
-			}
-
-			src, err := os.Open(path)
-			if err != nil {
-				return fmt.Errorf("opening output: %w", err)
-			}
-
-			rel, err := filepath.Rel(tmp, path)
-			if err != nil {
-				return fmt.Errorf("output path: %w", err)
-			}
-
-			err = afero.WriteReader(output, rel, src)
-			if err != nil {
-				return fmt.Errorf("writing output: %w", err)
-			}
-
-			log.Debugf("wrote %d bytes to %s", info.Size(), rel)
-			return nil
-		},
-	)
+	log.Debugf("returning a new BasePathFs at %s", tmp)
+	return afero.NewBasePathFs(afero.NewOsFs(), tmp), nil
 }
 
 // String implements fmt.Stringer

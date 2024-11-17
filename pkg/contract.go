@@ -24,7 +24,7 @@ type SinkGenerator interface {
 
 type Generator interface {
 	fmt.Stringer
-	Pipeline[*tdlv1alpha1.Spec, afero.Fs]
+	Execute(context.Context, *tdlv1alpha1.Spec) (afero.Fs, error)
 }
 
 type Plugin interface {
