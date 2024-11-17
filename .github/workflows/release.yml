@@ -34,6 +34,7 @@ jobs:
       matrix:
         tool:
           - uml2ts
+          - zod2uml
         target:
           - bun-linux-x64
           - bun-linux-arm64
