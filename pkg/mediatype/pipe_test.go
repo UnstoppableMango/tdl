@@ -2,6 +2,7 @@ package mediatype_test
 
 import (
 	"bytes"
+	"context"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -21,7 +22,7 @@ var _ = Describe("Pipe", func() {
 			Entry(nil, mediatype.ApplicationXYaml),
 			Entry(nil, mediatype.ApplicationYaml),
 			Entry(nil, mediatype.TextYaml),
-			func(media tdl.MediaType) {
+			func(ctx context.Context, media tdl.MediaType) {
 				s := &tdlv1alpha1.Spec{Name: "testing"}
 				data, err := yaml.Marshal(s)
 				Expect(err).NotTo(HaveOccurred())
@@ -29,7 +30,7 @@ var _ = Describe("Pipe", func() {
 				sink := sink.NewPipe()
 
 				pipeline := mediatype.PipeRead(gen.NoOp, media, spec.Zero)
-				err = pipeline(reader, sink)
+				err = pipeline(ctx, reader, sink)
 
 				Expect(err).NotTo(HaveOccurred())
 			},

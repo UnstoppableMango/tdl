@@ -2,6 +2,7 @@ package conform
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -23,12 +24,12 @@ func IOSuite(tests []*testing.Test, pipeline pipe.IO) {
 
 // IOTest asserts that given [test.Input] [generator] produces [test.Output]
 func IOTest(test *testing.Test, pipeline pipe.IO) bool {
-	return It(fmt.Sprintf("should pass: %s", test.Name), func() {
+	return It(fmt.Sprintf("should pass: %s", test.Name), func(ctx context.Context) {
 		expected := string(test.Output)
 		input := bytes.NewReader(test.Input)
 		output := &bytes.Buffer{}
 
-		err := pipeline(input, output)
+		err := pipeline(ctx, input, output)
 		actual := output.String()
 
 		Expect(err).NotTo(HaveOccurred(), actual)

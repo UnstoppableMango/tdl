@@ -23,6 +23,7 @@ func NewGen() *cobra.Command {
 		Short: "Run code generation for TARGET",
 		Args:  cobra.RangeArgs(1, 3),
 		Run: func(cmd *cobra.Command, args []string) {
+			ctx := cmd.Context()
 			target, err := target.Parse(args[0])
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
@@ -61,7 +62,7 @@ func NewGen() *cobra.Command {
 			pipeline := spec.PipeInput(generator.Execute)
 
 			log.Debug("executing pipeline")
-			if err := pipeline(input, output); err != nil {
+			if err := pipeline(ctx, input, output); err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}

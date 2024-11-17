@@ -1,6 +1,7 @@
 package tdl
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"iter"
@@ -14,7 +15,7 @@ type Sink interface {
 }
 
 type Pipeline[T, V any] interface {
-	Execute(T, V) error
+	Execute(context.Context, T, V) error
 }
 
 type SinkGenerator interface {

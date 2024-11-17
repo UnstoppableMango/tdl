@@ -22,7 +22,7 @@ func (svc *connectService) Gen(
 	req *connect.Request[tdlv1alpha1.GenRequest],
 ) (*connect.Response[tdlv1alpha1.GenResponse], error) {
 	sink := sink.NewPipe()
-	if err := svc.generator(req.Msg.Spec, sink); err != nil {
+	if err := svc.generator(ctx, req.Msg.Spec, sink); err != nil {
 		return nil, fmt.Errorf("invoking generator: %w", err)
 	}
 

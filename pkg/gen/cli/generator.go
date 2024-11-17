@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/fs"
 	"os"
@@ -25,7 +26,7 @@ type cli struct {
 type Option func(*cli)
 
 // Execute implements tdl.Generator.
-func (c cli) Execute(spec *tdlv1alpha1.Spec, output afero.Fs) error {
+func (c cli) Execute(ctx context.Context, spec *tdlv1alpha1.Spec, output afero.Fs) error {
 	log.Debug("creating temp directory")
 	tmp, err := os.MkdirTemp("", "")
 	if err != nil {
@@ -33,7 +34,7 @@ func (c cli) Execute(spec *tdlv1alpha1.Spec, output afero.Fs) error {
 	}
 
 	stderr := &bytes.Buffer{}
-	cmd := exec.Command(c.name, c.args...)
+	cmd := exec.CommandContext(ctx, c.name, c.args...)
 	cmd.Stdin = mediatype.NewReader(spec, c.enc)
 	cmd.Stderr = stderr
 	cmd.Dir = tmp
