@@ -1,0 +1,16 @@
+{
+  "name": "zod2uml",
+  "license": "GPL-3.0-only",
+  "module": "index.ts",
+  "type": "module",
+  "dependencies": {
+		"@unmango/2zod": "workspace:*",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+	"peerDependencies": {
+		"typescript": "^5.0.0"
+	}
+}

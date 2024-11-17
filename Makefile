@@ -31,10 +31,14 @@ else
 TEST_FLAGS := --github-output --race --trace
 endif
 
-build: generate bin/ux bin/devops .make/buf_build packages/tdl/dist packages/ts/dist
+build: generate .make/buf_build build_go build_ts
+
+build_go: bin/ux bin/devops
+build_ts: bin/uml2ts bin/zod2uml packages/tdl/dist packages/ts/dist
+
 test: .make/go_test .make/ts_test
 generate: ${GO_PB_SRC}
-docker: .make/docker_ux .make/docker_uml2ts
+docker: .make/docker_ux .make/docker_uml2ts .make/docker_zod2uml
 format: .make/dprint .make/go_fmt .make/buf_format
 lint: .make/buf_lint .make/go_lint
 tidy: go.sum
@@ -67,6 +71,9 @@ bin/ux: $(shell $(DEVOPS) list --go --exclude-tests)
 
 bin/uml2ts: $(shell $(DEVOPS) list --ts --exclude-tests)
 	bun build --cwd packages/uml2ts index.ts --compile --outfile ${WORKING_DIR}/$@
+
+bin/zod2uml: $(shell $(DEVOPS) list --ts --exclude-tests)
+	bun build --cwd packages/zod2uml index.ts --compile --outfile ${WORKING_DIR}/$@
 
 bin/devops: $(shell $(DEVOPS) list --go --exclude-tests)
 	go -C cmd/devops build -o ${WORKING_DIR}/$@
@@ -101,6 +108,10 @@ go.sum: go.mod ${GO_SRC}
 
 .make/docker_uml2ts: ${TS_SRC} $(wildcard docker/uml2ts/*)
 	docker build -f docker/uml2ts/Dockerfile -t uml2ts ${WORKING_DIR}
+	@touch $@
+
+.make/docker_zod2uml: ${TS_SRC} $(wildcard docker/zod2uml/*)
+	docker build -f docker/zod2uml/Dockerfile -t zod2uml ${WORKING_DIR}
 	@touch $@
 
 .make/go_test: ${GO_SRC} | bin/ginkgo bin/ux bin/uml2ts

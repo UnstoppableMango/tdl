@@ -41,6 +41,7 @@ jobs:
         tool:
           - ux
           - uml2ts
+          - zod2uml
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/build-docker

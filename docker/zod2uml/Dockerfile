@@ -22,18 +22,18 @@ FROM --platform=$BUILDPLATFORM install AS build
 COPY --from=install /build/node_modules .
 
 COPY packages/tdl/ packages/tdl/
-COPY packages/ts/ packages/ts/
-COPY packages/uml2ts/ .
+COPY packages/zod/ packages/zod/
+COPY packages/zod2uml/ .
 
 RUN bun build \
 	--compile \
 	--minify \
 	--sourcemap ./index.ts \
-	--outfile ./dist/uml2ts
+	--outfile ./dist/zod2uml
 
 FROM --platform=$BUILDPLATFORM ubuntu:noble-20241015 AS test
-COPY --from=build /build/dist/uml2ts .
+COPY --from=build /build/dist/zod2uml .
 
 FROM --platform=$BUILDPLATFORM oven/bun:1.1.34-distroless
-COPY --from=build /build/dist/uml2ts /bin/
-ENTRYPOINT ["/bin/uml2ts"]
+COPY --from=build /build/dist/zod2uml /bin/
+ENTRYPOINT ["/bin/zod2uml"]

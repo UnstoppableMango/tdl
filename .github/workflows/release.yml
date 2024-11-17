@@ -18,6 +18,7 @@ jobs:
         tool:
           - ux
           - uml2ts
+          - zod2uml
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/build-docker
@@ -34,6 +35,7 @@ jobs:
       matrix:
         tool:
           - uml2ts
+          - zod2uml
         target:
           - bun-linux-x64
           - bun-linux-arm64
