@@ -1,9 +1,7 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
+	"github.com/unstoppablemango/tdl/internal/util"
 	"github.com/unstoppablemango/tdl/pkg/cmd"
 )
 
@@ -17,7 +15,6 @@ func main() {
 	)
 
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err.Error())
-		os.Exit(1)
+		util.Fail(err)
 	}
 }

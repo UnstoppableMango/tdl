@@ -1,21 +1,20 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"os"
+
+	"github.com/unstoppablemango/tdl/internal/util"
 )
 
 func main() {
 	spec, err := io.ReadAll(os.Stdin)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		util.Fail(err)
 	}
 
 	err = os.WriteFile("out", spec, os.ModePerm)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		util.Fail(err)
 	}
 }

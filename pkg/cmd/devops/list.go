@@ -3,7 +3,6 @@ package devops
 import (
 	"fmt"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -125,8 +124,7 @@ func NewList(options *ListOptions) *cobra.Command {
 
 			root, err := util.GitRoot(ctx)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, err.Error())
-				os.Exit(1)
+				util.Fail(err)
 			}
 
 			log.Debugf("walking root: %s", root)
@@ -146,8 +144,7 @@ func NewList(options *ListOptions) *cobra.Command {
 				},
 			)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, err.Error())
-				os.Exit(1)
+				util.Fail(err)
 			}
 		},
 	}

@@ -1,11 +1,9 @@
 package testing
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
+	"github.com/unstoppablemango/tdl/internal/util"
 	"github.com/unstoppablemango/tdl/pkg/conform"
 )
 
@@ -21,8 +19,7 @@ that communicates via stdin/stdout`,
 		Run: func(cmd *cobra.Command, args []string) {
 			err := conform.Execute(afero.NewOsFs(), args[0], args[1:])
 			if err != nil {
-				fmt.Fprintln(os.Stderr, err.Error())
-				os.Exit(1)
+				util.Fail(err)
 			}
 		},
 	}

@@ -2,9 +2,9 @@ package plugin
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/unstoppablemango/tdl/internal/util"
 	"github.com/unstoppablemango/tdl/pkg/plugin"
 	"github.com/unstoppablemango/tdl/pkg/target"
 )
@@ -19,8 +19,7 @@ func NewList() *cobra.Command {
 			if len(args) > 0 {
 				t, err := target.Parse(args[0])
 				if err != nil {
-					fmt.Fprintln(os.Stderr, err)
-					os.Exit(1)
+					util.Fail(err)
 				}
 
 				for p := range t.Plugins() {

@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/charmbracelet/log"
+	"github.com/unstoppablemango/tdl/internal/util"
 	"github.com/unstoppablemango/tdl/pkg/cmd"
 	"github.com/unstoppablemango/tdl/pkg/cmd/devops"
 )
@@ -18,7 +16,6 @@ func main() {
 	)
 
 	if err := cmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err.Error())
-		os.Exit(1)
+		util.Fail(err)
 	}
 }
