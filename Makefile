@@ -68,6 +68,9 @@ bin/ux: $(shell $(DEVOPS) list --go --exclude-tests)
 bin/uml2ts: $(shell $(DEVOPS) list --ts --exclude-tests)
 	bun build --cwd packages/uml2ts index.ts --compile --outfile ${WORKING_DIR}/$@
 
+bin/zod2uml: $(shell $(DEVOPS) list --ts --exclude-tests)
+	bun build --cwd packages/zod2uml index.ts --compile --outfile ${WORKING_DIR}/$@
+
 bin/devops: $(shell $(DEVOPS) list --go --exclude-tests)
 	go -C cmd/devops build -o ${WORKING_DIR}/$@
 
