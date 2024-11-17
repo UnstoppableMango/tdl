@@ -31,7 +31,11 @@ else
 TEST_FLAGS := --github-output --race --trace
 endif
 
-build: generate bin/ux bin/devops .make/buf_build packages/tdl/dist packages/ts/dist
+build: generate .make/buf_build build_go build_ts
+
+build_go: bin/ux bin/devops
+build_ts: bin/uml2ts bin/zod2uml packages/tdl/dist packages/ts/dist
+
 test: .make/go_test .make/ts_test
 generate: ${GO_PB_SRC}
 docker: .make/docker_ux .make/docker_uml2ts
