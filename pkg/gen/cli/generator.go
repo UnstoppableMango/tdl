@@ -79,6 +79,11 @@ func (c cli) Execute(ctx context.Context, spec *tdlv1alpha1.Spec, output afero.F
 	)
 }
 
+// String implements fmt.Stringer
+func (c cli) String() string {
+	return c.name
+}
+
 func New(name string, options ...Option) tdl.Generator {
 	gen := cli{
 		name: name,
