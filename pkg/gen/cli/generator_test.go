@@ -43,4 +43,14 @@ var _ = Describe("Generator", func() {
 			Expect(fs).To(ContainFileWithBytes("out", expected))
 		},
 	)
+
+	It("should pass args", func() {
+		fs := afero.NewMemMapFs()
+		spec := &tdlv1alpha1.Spec{}
+		c := cli.New("echo", cli.WithArgs("blah"))
+
+		err := c.Execute(spec, fs)
+
+		Expect(err).NotTo(HaveOccurred())
+	})
 })

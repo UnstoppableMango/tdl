@@ -69,7 +69,7 @@ func (c cli) Execute(spec *tdlv1alpha1.Spec, output afero.Fs) error {
 
 			err = afero.WriteReader(output, rel, src)
 			if err != nil {
-				return fmt.Errorf("writing output output: %w", err)
+				return fmt.Errorf("writing output: %w", err)
 			}
 
 			log.Debugf("wrote %d bytes to %s", info.Size(), rel)
