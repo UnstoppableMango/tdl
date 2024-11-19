@@ -3,7 +3,6 @@ package gen_test
 import (
 	"context"
 
-	"github.com/charmbracelet/log"
 	"github.com/docker/docker/client"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -15,7 +14,6 @@ import (
 
 var _ = Describe("Docker", func() {
 	It("should work", func(ctx context.Context) {
-		log.SetLevel(log.DebugLevel)
 		g := gen.NewDocker("ghcr.io/unstoppablemango/uml2ts:latest",
 			client.WithAPIVersionNegotiation(),
 		)
