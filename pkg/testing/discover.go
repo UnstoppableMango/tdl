@@ -11,8 +11,8 @@ import (
 	"github.com/spf13/afero"
 )
 
-func Discover(fsys afero.Fs, root string) ([]*Test, error) {
-	tests := []*Test{}
+func Discover(fsys afero.Fs, root string) ([]*RawTest, error) {
+	tests := []*RawTest{}
 	log.Debug("walking filesystem", "root", root)
 	err := afero.Walk(fsys, root,
 		func(path string, info fs.FileInfo, err error) error {
