@@ -6,12 +6,7 @@ import (
 
 	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/plugin/cache"
-	"github.com/unstoppablemango/tdl/pkg/plugin/github"
 )
-
-var static = []tdl.Plugin{
-	github.NewUml2Ts(),
-}
 
 func FirstAvailable(target tdl.Target) (tdl.Plugin, error) {
 	if len(static) > 0 {
