@@ -16,7 +16,7 @@ import (
 var _ = Describe("Docker", func() {
 	It("should work", func(ctx context.Context) {
 		log.SetLevel(log.DebugLevel)
-		g := gen.NewDocker("ghcr.io/unstoppablemango/uml2ts",
+		g := gen.NewDocker("ghcr.io/unstoppablemango/uml2ts:latest",
 			client.WithAPIVersionNegotiation(),
 		)
 		spec := &tdlv1alpha1.Spec{}
@@ -24,6 +24,6 @@ var _ = Describe("Docker", func() {
 		fs, err := g.Execute(ctx, spec)
 
 		Expect(err).NotTo(HaveOccurred())
-		Expect(fs).To(ContainFileWithBytes("out", []byte{}))
+		Expect(fs).To(ContainFile("out"))
 	})
 })

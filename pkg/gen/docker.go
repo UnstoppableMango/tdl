@@ -41,7 +41,10 @@ func (d *Docker) Execute(
 			AttachStdin:  true,
 			AttachStdout: true,
 			AttachStderr: true,
-			Cmd:          []string{"uml2ts"},
+			Image:        d.image,
+			Labels: map[string]string{
+				"owner": "ux",
+			},
 		},
 		&container.HostConfig{
 			AutoRemove: true,
