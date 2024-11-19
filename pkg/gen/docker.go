@@ -2,6 +2,7 @@ package gen
 
 import (
 	"context"
+	"io"
 	"slices"
 
 	"github.com/charmbracelet/log"
@@ -69,10 +70,10 @@ func (d *Docker) Execute(
 			Stderr: true,
 		},
 	)
-	defer ctr.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer ctr.Close()
 
 	log.Debug("starting container")
 	err = client.ContainerStart(ctx,
@@ -127,9 +128,18 @@ func (d *Docker) ensure(ctx context.Context, client *client.Client) error {
 	if err != nil {
 		return err
 	}
+	defer r.Close()
 
-	log.Debug("closing image pull connection")
-	return r.Close()
+	log.Debug("reading response")
+	data, err := io.ReadAll(r)
+	if err != nil {
+		return err
+	}
+
+	// TODO: This contains a JSON stream
+	// we could use for reporting progress
+	log.Debug(string(data))
+	return nil
 }
 
 func (d *Docker) String() string {
