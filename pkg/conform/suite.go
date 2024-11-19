@@ -13,23 +13,20 @@ import (
 )
 
 type Suite interface {
-	Execute(tdl.Generator)
+	Describe(tdl.Generator)
 }
 
 type suite struct {
 	tests []*testing.Test
 }
 
-// Execute implements Suite.
-func (s *suite) Execute(generator tdl.Generator) {
-	for _, test := range s.tests {
-		It(fmt.Sprintf("should pass: %s", test.Name), func(ctx context.Context) {
-			output, err := generator.Execute(ctx, test.Spec)
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(output).To(BeEquivalentToFs(test.Expected))
-		})
-	}
+// Describe implements Suite.
+func (s *suite) Describe(generator tdl.Generator) {
+	Describe(fmt.Sprintf("%s Suite", generator), func() {
+		for _, test := range s.tests {
+			DescribeTest(test, generator)
+		}
+	})
 }
 
 func NewSuite(tests ...*testing.Test) Suite {
@@ -38,4 +35,13 @@ func NewSuite(tests ...*testing.Test) Suite {
 	}
 
 	return &suite{tests}
+}
+
+func DescribeTest(test *testing.Test, generator tdl.Generator) {
+	It(fmt.Sprintf("should pass: %s", test.Name), func(ctx context.Context) {
+		output, err := generator.Execute(ctx, test.Spec)
+
+		Expect(err).NotTo(HaveOccurred())
+		Expect(output).To(BeEquivalentToFs(test.Expected))
+	})
 }

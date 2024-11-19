@@ -10,10 +10,10 @@ import (
 	"github.com/spf13/afero"
 )
 
-// ReadTest attempts to read a valid Test from root.
+// ReadRawTest attempts to read a valid Test from root.
 // A valid test is defined as a directory that contains
 // an input.* file and a output.* file.
-func ReadTest(fsys afero.Fs, root string) (*RawTest, error) {
+func ReadRawTest(fsys afero.Fs, root string) (*RawTest, error) {
 	var test RawTest
 
 	log.Debug("reading test", "root", root)

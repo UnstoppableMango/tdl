@@ -35,7 +35,7 @@ func Discover(fsys afero.Fs, root string) ([]*RawTest, error) {
 				return nil
 			}
 
-			test, err := ReadTest(fsys, path)
+			test, err := ReadRawTest(fsys, path)
 			if err != nil {
 				log.Debug("skipping invalid test", "rel", relative, "err", err)
 				return filepath.SkipDir

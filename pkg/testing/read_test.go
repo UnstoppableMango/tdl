@@ -11,7 +11,7 @@ import (
 var _ = Describe("Read", func() {
 	It("should work", func() {
 		fsys := afero.FromIOFS{FS: testdata}
-		test, err := testing.ReadTest(fsys, "testdata/validroot/validtest")
+		test, err := testing.ReadRawTest(fsys, "testdata/validroot/validtest")
 
 		Expect(err).NotTo(HaveOccurred())
 		Expect(test).NotTo(BeNil())
@@ -22,7 +22,7 @@ var _ = Describe("Read", func() {
 
 	It("should read source and target inputs", func() {
 		fsys := afero.FromIOFS{FS: testdata}
-		test, err := testing.ReadTest(fsys, "testdata/validroot/source_target")
+		test, err := testing.ReadRawTest(fsys, "testdata/validroot/source_target")
 
 		Expect(err).NotTo(HaveOccurred())
 		Expect(test).NotTo(BeNil())
