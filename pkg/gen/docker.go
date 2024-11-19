@@ -2,7 +2,6 @@ package gen
 
 import (
 	"context"
-	"fmt"
 	"slices"
 
 	"github.com/charmbracelet/log"
@@ -26,15 +25,14 @@ type Docker struct {
 func (d *Docker) Execute(
 	ctx context.Context,
 	spec *tdlv1alpha1.Spec,
-	fsys afero.Fs,
-) error {
+) (afero.Fs, error) {
 	client, err := client.NewClientWithOpts(d.options...)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if err = d.ensure(ctx, client); err != nil {
-		return err
+		return nil, err
 	}
 
 	log.Debug("creating container")
@@ -43,16 +41,17 @@ func (d *Docker) Execute(
 			AttachStdin:  true,
 			AttachStdout: true,
 			AttachStderr: true,
+			Cmd:          []string{"uml2ts"},
 		},
 		&container.HostConfig{
 			AutoRemove: true,
 		},
 		&network.NetworkingConfig{},
 		&v1.Platform{},
-		fmt.Sprintf("tdl-gen-%s", "TODO"),
+		"",
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	for _, w := range res.Warnings {
 		log.Warn(w)
@@ -69,7 +68,7 @@ func (d *Docker) Execute(
 	)
 	defer ctr.Close()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	log.Debug("starting container")
@@ -78,22 +77,28 @@ func (d *Docker) Execute(
 		container.StartOptions{},
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	log.Debug("marshaling spec")
 	data, err := mediatype.Marshal(spec, mediatype.ApplicationProtobuf)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	log.Debug("writing spec to container")
 	if _, err = ctr.Conn.Write(data); err != nil {
-		return err
+		return nil, err
 	}
 
 	log.Debug("reading generator response")
-	return nil // TODO
+	fs := afero.NewMemMapFs()
+	err = afero.WriteReader(fs, "out", ctr.Reader)
+	if err != nil {
+		return nil, err
+	}
+
+	return fs, nil
 }
 
 func (d *Docker) ensure(ctx context.Context, client *client.Client) error {
@@ -109,6 +114,7 @@ func (d *Docker) ensure(ctx context.Context, client *client.Client) error {
 	)
 	for _, i := range images {
 		if slices.Contains(i.RepoTags, d.image) {
+			log.Debug("image exists")
 			return nil
 		}
 	}
@@ -119,8 +125,12 @@ func (d *Docker) ensure(ctx context.Context, client *client.Client) error {
 		return err
 	}
 
-	defer r.Close()
-	return nil
+	log.Debug("closing image pull connection")
+	return r.Close()
+}
+
+func (d *Docker) String() string {
+	return d.image
 }
 
 var _ tdl.Generator = &Docker{}
