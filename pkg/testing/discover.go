@@ -16,10 +16,11 @@ func Discover(fsys afero.Fs, root string) ([]*RawTest, error) {
 	log.Debug("walking filesystem", "root", root)
 	err := afero.Walk(fsys, root,
 		func(path string, info fs.FileInfo, err error) error {
-			log := log.With("path", path)
 			if err != nil {
 				return err
 			}
+
+			log := log.With("path", path)
 			if !info.IsDir() {
 				log.Debug("skipping file")
 				return nil
@@ -29,6 +30,7 @@ func Discover(fsys afero.Fs, root string) ([]*RawTest, error) {
 			if err != nil {
 				return err
 			}
+
 			depth := len(strings.Split(relative, string(filepath.Separator)))
 			if depth != 1 || relative == "." {
 				log.Debug("unsupported depth", "depth", depth, "rel", relative)
