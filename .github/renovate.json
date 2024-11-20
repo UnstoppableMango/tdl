@@ -30,7 +30,8 @@
 		{
 			"groupName": "bun",
 			"matchPackagePatterns": [
-				"oven-sh/bun"
+				"oven-sh/bun",
+				"oven/bun"
 			]
 		}
 	]
