@@ -1,36 +1,26 @@
-package testing
+package e2e
 
 import (
 	"path/filepath"
 	"regexp"
 
 	"github.com/spf13/afero"
-	"github.com/unmango/go/iter"
-	"github.com/unmango/go/iter/seqs"
 	"github.com/unstoppablemango/tdl/pkg/mediatype"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
 
-var outputRegex = regexp.MustCompile(".*/output.*")
+var OutputRegex = regexp.MustCompile(".*/output.*")
 
-func List(fsys afero.Fs, path string) (iter.Seq[*Test], error) {
-	dirs, err := afero.ReadDir(fsys, path)
-	if err != nil {
-		return nil, err
-	}
+type Test struct {
+	Name     string
+	Spec     *tdlv1alpha1.Spec
+	Expected afero.Fs
+}
 
-	seq := iter.Empty[*Test]()
-	for _, d := range dirs {
-		name := d.Name()
-		t, err := ReadTest(fsys, name, filepath.Join(path, name))
-		if err != nil {
-			return nil, err
-		}
-
-		seq = seqs.Append(seq, t)
-	}
-
-	return seq, nil
+type RawTest struct {
+	Name   string
+	Input  []byte
+	Output []byte
 }
 
 func ReadTest(fsys afero.Fs, name, path string) (*Test, error) {
@@ -71,6 +61,6 @@ func ReadTest(fsys afero.Fs, name, path string) (*Test, error) {
 	return &Test{
 		Name:     name,
 		Spec:     &spec,
-		Expected: afero.NewRegexpFs(fsys, outputRegex),
+		Expected: afero.NewRegexpFs(fsys, OutputRegex),
 	}, nil
 }
