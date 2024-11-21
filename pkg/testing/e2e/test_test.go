@@ -39,6 +39,19 @@ var _ = Describe("Test", func() {
 		},
 	)
 
+	Describe("ReadSuite", func() {
+		It("should work", func() {
+			path := filepath.Join("testdata", "list")
+
+			suite, err := e2e.ReadSuite(testfs, path)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(suite.Name()).To(Equal("list"))
+			actual := slices.Collect(suite.Tests())
+			Expect(actual).To(HaveLen(2))
+		})
+	})
+
 	Describe("ListTests", func() {
 		It("should work", func() {
 			path := filepath.Join("testdata", "list")

@@ -29,15 +29,45 @@ type RawTest struct {
 	Output []byte
 }
 
-func ListTests(fsys afero.Fs, path string) (iter.Seq[*Test], error) {
-	infos, err := afero.ReadDir(fsys, path)
+type Suite interface {
+	Name() string
+	Tests() iter.Seq[*Test]
+}
+
+type suite struct {
+	name  string
+	tests iter.Seq[*Test]
+}
+
+// Name implements Suite.
+func (s suite) Name() string {
+	return s.name
+}
+
+// Tests implements Suite.
+func (s suite) Tests() iter.Seq[*Test] {
+	return s.tests
+}
+
+func ReadSuite(fs afero.Fs, path string) (Suite, error) {
+	name := filepath.Base(path)
+	tests, err := ListTests(fs, path)
+	if err != nil {
+		return nil, err
+	}
+
+	return suite{name, tests}, nil
+}
+
+func ListTests(fs afero.Fs, path string) (iter.Seq[*Test], error) {
+	infos, err := afero.ReadDir(fs, path)
 	if err != nil {
 		return nil, err
 	}
 
 	seq := iter.Empty[*Test]()
 	for _, info := range infos {
-		test, err := ReadTest(fsys,
+		test, err := ReadTest(fs,
 			filepath.Join(path, info.Name()),
 		)
 		if err != nil {
@@ -50,8 +80,8 @@ func ListTests(fsys afero.Fs, path string) (iter.Seq[*Test], error) {
 	return seq, nil
 }
 
-func ReadTest(fsys afero.Fs, path string) (*Test, error) {
-	filename, err := FindInput(fsys, path)
+func ReadTest(fs afero.Fs, path string) (*Test, error) {
+	filename, err := FindInput(fs, path)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +92,7 @@ func ReadTest(fsys afero.Fs, path string) (*Test, error) {
 		return nil, err
 	}
 
-	data, err := afero.ReadFile(fsys, inputpath)
+	data, err := afero.ReadFile(fs, inputpath)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +104,7 @@ func ReadTest(fsys afero.Fs, path string) (*Test, error) {
 	}
 
 	expected := afero.NewRegexpFs(
-		afero.NewBasePathFs(fsys, path),
+		afero.NewBasePathFs(fs, path),
 		OutputRegex,
 	)
 	empty, err := afero.IsEmpty(expected, "")
