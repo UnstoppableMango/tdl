@@ -7,37 +7,41 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/unmango/go/iter"
+	"github.com/unmango/go/slices"
 	tdl "github.com/unstoppablemango/tdl/pkg"
-	"github.com/unstoppablemango/tdl/pkg/testing"
+	"github.com/unstoppablemango/tdl/pkg/testing/e2e"
 	. "github.com/unstoppablemango/tdl/pkg/testing/matcher"
 )
 
 type Suite interface {
-	Describe(tdl.Generator)
+	ConstructTestsFor(tdl.Generator)
 }
 
 type suite struct {
-	tests []*testing.Test
+	tests iter.Seq[*e2e.Test]
 }
 
-// Describe implements Suite.
-func (s *suite) Describe(generator tdl.Generator) {
-	Describe(fmt.Sprintf("%s Suite", generator), func() {
-		for _, test := range s.tests {
-			DescribeTest(test, generator)
-		}
-	})
+// ConstructTestsFor implements Suite.
+func (s *suite) ConstructTestsFor(generator tdl.Generator) {
+	for test := range s.tests {
+		ItShouldPass(generator, test)
+	}
 }
 
-func NewSuite(tests ...*testing.Test) Suite {
+func NewSuite(name string, tests ...*e2e.Test) Suite {
 	if len(tests) == 0 {
 		panic("no tests defined")
 	}
 
-	return &suite{tests}
+	return &suite{slices.Values(tests)}
 }
 
-func DescribeTest(test *testing.Test, generator tdl.Generator) {
+func IncludeTests(s e2e.Suite) Suite {
+	return &suite{s.Tests()}
+}
+
+func ItShouldPass(generator tdl.Generator, test *e2e.Test) {
 	It(fmt.Sprintf("should pass: %s", test.Name), func(ctx context.Context) {
 		output, err := generator.Execute(ctx, test.Spec)
 

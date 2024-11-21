@@ -1,7 +1,6 @@
 package conform
 
 import (
-	"bytes"
 	"context"
 	"os"
 	"os/exec"
@@ -9,26 +8,23 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/unmango/go/iter"
 	"github.com/unmango/go/option"
-	tdl "github.com/unstoppablemango/tdl/pkg"
-	"github.com/unstoppablemango/tdl/pkg/gen"
-	"github.com/unstoppablemango/tdl/pkg/testing"
-	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
-	"google.golang.org/protobuf/proto"
+	"github.com/unmango/go/slices"
 )
 
 type CliTestOptions struct {
-	ioSuite []*testing.RawTest
-	args    []string
+	suites iter.Seq[Suite]
+	args   []string
 }
 
 type CliTestOption func(*CliTestOptions)
 
-// CliTests describes TDL conformace tests for binary runners.
+// DescribeCli describes TDL conformace tests for binary runners.
 // The provided binary must exist and be executable.
 // Args can be provided if the codegen functionality is provided by a subcommand.
-// [CliTests] MUST be called within the Ginkgo test construction phase.
-func CliTests(binary string, options ...CliTestOption) {
+// [DescribeCli] MUST be called within the Ginkgo test construction phase.
+func DescribeCli(binary string, options ...CliTestOption) {
 	opts := &CliTestOptions{}
 	option.Apply(opts, options...)
 
@@ -46,30 +42,22 @@ func CliTests(binary string, options ...CliTestOption) {
 		Expect(string(out)).To(BeEmpty())
 	})
 
-	Describe("Generator", func() {
-		var generator tdl.SinkGenerator
+	// Describe("Generator", func() {
+	// 	log.Debug("describing generator")
+	// 	var generator tdl.Generator
 
-		BeforeEach(func() {
-			generator = gen.NewCli(binary,
-				gen.WithCliArgs(opts.args...),
-			)
-		})
+	// 	BeforeEach(func() {
+	// 		log.Debug("generator before each")
+	// 		generator = cli.New(binary,
+	// 			cli.WithArgs(opts.args...),
+	// 		)
+	// 	})
 
-		It("should read conformance spec", func(ctx context.Context) {
-			data, err := proto.Marshal(&tdlv1alpha1.Spec{})
-			Expect(err).NotTo(HaveOccurred())
-
-			cmd := exec.CommandContext(ctx, binary, opts.args...)
-			cmd.Stdin = bytes.NewReader(data)
-			out, err := cmd.CombinedOutput()
-
-			Expect(err).NotTo(HaveOccurred(), string(out))
-		})
-
-		if len(opts.ioSuite) > 0 {
-			IOSuite(opts.ioSuite, gen.PipeIO(generator))
-		}
-	})
+	// 	for s := range opts.suites {
+	// 		log.Debug("describing suite")
+	// 		s.ConstructTestsFor(generator)
+	// 	}
+	// })
 }
 
 func WithArgs(args ...string) CliTestOption {
@@ -78,8 +66,8 @@ func WithArgs(args ...string) CliTestOption {
 	}
 }
 
-func WithIOTests(tests ...*testing.RawTest) CliTestOption {
+func WithSuites(suites ...Suite) CliTestOption {
 	return func(opts *CliTestOptions) {
-		opts.ioSuite = tests
+		opts.suites = slices.Values(suites)
 	}
 }

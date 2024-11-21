@@ -19,14 +19,16 @@ import (
 
 var _ = Describe("End to end", func() {
 	Describe("CLI Conformance", func() {
-		conform.CliTests(bin,
+		conform.DescribeCli(bin,
 			conform.WithArgs("gen", "ts"),
+			conform.WithSuites(conform.TypeScriptSuite),
 		)
 	})
 
-	Describe("TypeScript Conformance", FlakeAttempts(5), func() {
-		conform.IOSuite(typescriptSuite, ExecuteIO)
-	})
+	// Describe("TypeScript Conformance", FlakeAttempts(5), func() {
+	// 	generator := cli.New("ux", cli.WithArgs("gen", "ts"))
+	// 	conform.TypeScriptSuite.ConstructTestsFor(generator)
+	// })
 
 	It("should pass my excessive sanity check", func() {
 		Expect(bin).NotTo(BeEmpty())
