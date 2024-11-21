@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/fs"
 	"reflect"
-	"slices"
 
 	"github.com/onsi/gomega/types"
 	"github.com/spf13/afero"
@@ -75,7 +74,7 @@ type beEquivalentToFs struct {
 
 // Match implements types.GomegaMatcher.
 func (e *beEquivalentToFs) Match(actual interface{}) (success bool, err error) {
-	fsys, ok := actual.(afero.Fs)
+	target, ok := actual.(afero.Fs)
 	if !ok {
 		return false, fmt.Errorf("exected an [afero.Fs] but got %s", reflect.TypeOf(actual))
 	}
@@ -86,21 +85,29 @@ func (e *beEquivalentToFs) Match(actual interface{}) (success bool, err error) {
 			if err != nil {
 				return err
 			}
+			if info.IsDir() {
+				exists, err := afero.DirExists(target, path)
+				if err != nil {
+					return err
+				}
+				if !exists {
+					failures = append(failures,
+						fmt.Errorf("expected dir to exist at %s", path),
+					)
+				}
 
-			a, err := fsys.Stat(path)
+				return nil
+			}
+
+			exists, err := afero.Exists(target, path)
 			if err != nil {
-				failures = append(failures, err)
-				return nil
+				return err
 			}
-			if a.IsDir() {
-				return nil
-			}
-
-			// TODO: How helpful is this really
-			if a != info {
+			if !exists {
 				failures = append(failures,
-					fmt.Errorf("expected %#v to match %#v", a.Name(), info.Name()),
+					fmt.Errorf("expected file to exist at %s", path),
 				)
+
 				return nil
 			}
 
@@ -109,21 +116,21 @@ func (e *beEquivalentToFs) Match(actual interface{}) (success bool, err error) {
 				return err
 			}
 
-			actualBytes, err := afero.ReadFile(fsys, path)
+			matched, err := afero.FileContainsBytes(target, path, expectedBytes)
 			if err != nil {
-				failures = append(failures,
-					fmt.Errorf("expected file at %s to be readable: %w", path, err),
-				)
-				return nil
+				return err
 			}
+			if !matched {
+				actualBytes, err := afero.ReadFile(target, path)
+				if err != nil {
+					return err
+				}
 
-			if !slices.Equal(expectedBytes, actualBytes) {
 				failures = append(failures,
-					fmt.Errorf("expected file at %s to match content:\n\texpected: %s\n\tactual: %s",
+					fmt.Errorf("expected file at %s to contain content:\n\t%s\nbut found\n\t%s",
 						path, string(expectedBytes), string(actualBytes),
 					),
 				)
-				return nil
 			}
 
 			return nil
