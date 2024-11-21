@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"errors"
 	"path/filepath"
 	"regexp"
 
@@ -9,7 +10,10 @@ import (
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
 
-var OutputRegex = regexp.MustCompile(".*/output.*")
+var (
+	InputRegex  = regexp.MustCompile("(input|source).*")
+	OutputRegex = regexp.MustCompile(".*/?(output|target).*")
+)
 
 type Test struct {
 	Name     string
@@ -23,31 +27,19 @@ type RawTest struct {
 	Output []byte
 }
 
-func ReadTest(fsys afero.Fs, name, path string) (*Test, error) {
-	files, err := afero.ReadDir(fsys, path)
+func ReadTest(fsys afero.Fs, path string) (*Test, error) {
+	filename, err := FindInput(fsys, path)
 	if err != nil {
 		return nil, err
 	}
 
-	var filename string
-	for _, f := range files {
-		match, err := filepath.Match("input.*", f.Name())
-		if err != nil {
-			panic(err)
-		}
-		if match {
-			filename = f.Name()
-			break
-		}
-	}
-
-	filepath := filepath.Join(path, filename)
-	media, err := mediatype.Guess(filepath)
+	inputpath := filepath.Join(path, filename)
+	media, err := mediatype.Guess(inputpath)
 	if err != nil {
 		return nil, err
 	}
 
-	data, err := afero.ReadFile(fsys, filepath)
+	data, err := afero.ReadFile(fsys, inputpath)
 	if err != nil {
 		return nil, err
 	}
@@ -59,8 +51,27 @@ func ReadTest(fsys afero.Fs, name, path string) (*Test, error) {
 	}
 
 	return &Test{
-		Name:     name,
-		Spec:     &spec,
-		Expected: afero.NewRegexpFs(fsys, OutputRegex),
+		Name: filepath.Base(path),
+		Spec: &spec,
+		Expected: afero.NewRegexpFs(
+			afero.NewBasePathFs(fsys, path),
+			OutputRegex,
+		),
 	}, nil
+}
+
+func FindInput(fs afero.Fs, path string) (string, error) {
+	files, err := afero.ReadDir(fs, path)
+	if err != nil {
+		return "", err
+	}
+
+	for _, f := range files {
+		name := f.Name()
+		if InputRegex.MatchString(name) {
+			return name, nil
+		}
+	}
+
+	return "", errors.New("no input file found")
 }
