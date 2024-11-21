@@ -7,6 +7,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/unstoppablemango/tdl/pkg/gen/cli"
 
 	"github.com/unmango/go/iter"
 	"github.com/unmango/go/option"
@@ -42,22 +43,15 @@ func DescribeCli(binary string, options ...CliTestOption) {
 		Expect(string(out)).To(BeEmpty())
 	})
 
-	// Describe("Generator", func() {
-	// 	log.Debug("describing generator")
-	// 	var generator tdl.Generator
+	Describe("Generator", func() {
+		generator := cli.New(binary,
+			cli.WithArgs(opts.args...),
+		)
 
-	// 	BeforeEach(func() {
-	// 		log.Debug("generator before each")
-	// 		generator = cli.New(binary,
-	// 			cli.WithArgs(opts.args...),
-	// 		)
-	// 	})
-
-	// 	for s := range opts.suites {
-	// 		log.Debug("describing suite")
-	// 		s.ConstructTestsFor(generator)
-	// 	}
-	// })
+		for s := range opts.suites {
+			s.ConstructTestsFor(generator)
+		}
+	})
 }
 
 func WithArgs(args ...string) CliTestOption {

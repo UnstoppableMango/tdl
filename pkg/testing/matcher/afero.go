@@ -92,11 +92,14 @@ func (e *beEquivalentToFs) Match(actual interface{}) (success bool, err error) {
 				failures = append(failures, err)
 				return nil
 			}
+			if a.IsDir() {
+				return nil
+			}
 
 			// TODO: How helpful is this really
 			if a != info {
 				failures = append(failures,
-					fmt.Errorf("expected %#v to match %#v", a, info),
+					fmt.Errorf("expected %#v to match %#v", a.Name(), info.Name()),
 				)
 				return nil
 			}

@@ -9,9 +9,10 @@ import (
 	"github.com/unstoppablemango/tdl/pkg/testing/e2e"
 )
 
-var (
-	TypeScriptSuite = RequireLocalSuite("typescript")
-)
+// TODO: Currently this is executing as the CLI runs, meaning it can execute outside of the repo and thus fail
+// var (
+// 	TypeScriptSuite = RequireLocalSuite("typescript")
+// )
 
 func ReadLocalSuite(ctx context.Context, fs afero.Fs, name string) (Suite, error) {
 	root, err := git.Root(ctx)

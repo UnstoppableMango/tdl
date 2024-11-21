@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/charmbracelet/log"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -43,6 +44,7 @@ func IncludeTests(s e2e.Suite) Suite {
 
 func ItShouldPass(generator tdl.Generator, test *e2e.Test) {
 	It(fmt.Sprintf("should pass: %s", test.Name), func(ctx context.Context) {
+		log.Error("executing", "generator", generator)
 		output, err := generator.Execute(ctx, test.Spec)
 
 		Expect(err).NotTo(HaveOccurred())

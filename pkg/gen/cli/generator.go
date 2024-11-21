@@ -39,7 +39,7 @@ func (c cli) Execute(ctx context.Context, spec *tdlv1alpha1.Spec) (afero.Fs, err
 
 	log.Debug("executing command")
 	if err = cmd.Run(); err != nil {
-		return nil, fmt.Errorf("executing generator: %w", err)
+		return nil, fmt.Errorf("executing generator: %w: %s", err, stderr)
 	}
 	if stderr.Len() > 0 {
 		return nil, fmt.Errorf("executing generator: %s", stderr)
