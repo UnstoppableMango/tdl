@@ -40,7 +40,7 @@ var _ = Describe("Test", func() {
 	)
 
 	Describe("ListTests", func() {
-		It("shoudl work", func() {
+		It("should work", func() {
 			path := filepath.Join("testdata", "list")
 
 			tests, err := e2e.ListTests(testfs, path)
@@ -59,8 +59,17 @@ var _ = Describe("Test", func() {
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(test.Name).To(Equal("test"))
-			Expect(test.Spec).NotTo(BeNil()) // TODO
+			Expect(test.Spec).NotTo(BeNil())
+			Expect(test.Spec.Name).To(Equal("ReadTest"))
 			Expect(test.Expected).To(ContainFile("output.fs"))
+		})
+
+		It("should fail when no output exists", func() {
+			path := filepath.Join("testdata", "no_output")
+
+			_, err := e2e.ReadTest(testfs, path)
+
+			Expect(err).To(HaveOccurred())
 		})
 	})
 

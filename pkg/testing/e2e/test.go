@@ -73,13 +73,22 @@ func ReadTest(fsys afero.Fs, path string) (*Test, error) {
 		return nil, err
 	}
 
+	expected := afero.NewRegexpFs(
+		afero.NewBasePathFs(fsys, path),
+		OutputRegex,
+	)
+	empty, err := afero.IsEmpty(expected, "")
+	if err != nil {
+		return nil, err
+	}
+	if empty {
+		return nil, errors.New("no output found")
+	}
+
 	return &Test{
-		Name: filepath.Base(path),
-		Spec: &spec,
-		Expected: afero.NewRegexpFs(
-			afero.NewBasePathFs(fsys, path),
-			OutputRegex,
-		),
+		Name:     filepath.Base(path),
+		Spec:     &spec,
+		Expected: expected,
 	}, nil
 }
 
