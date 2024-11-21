@@ -20,7 +20,7 @@ var (
 	tsSuiteRoot string
 )
 
-var typescriptSuite []*Test
+var typescriptSuite []*RawTest
 
 func TestUx(t *testing.T) {
 	g := NewWithT(t)

@@ -10,17 +10,11 @@ import (
 	"github.com/spf13/afero"
 )
 
-type Test struct {
-	Name   string
-	Input  []byte
-	Output []byte
-}
-
-// ReadTest attempts to read a valid Test from root.
+// ReadRawTest attempts to read a valid Test from root.
 // A valid test is defined as a directory that contains
 // an input.* file and a output.* file.
-func ReadTest(fsys afero.Fs, root string) (*Test, error) {
-	var test Test
+func ReadRawTest(fsys afero.Fs, root string) (*RawTest, error) {
+	var test RawTest
 
 	log.Debug("reading test", "root", root)
 	err := afero.Walk(fsys, root,
@@ -49,7 +43,7 @@ func ReadTest(fsys afero.Fs, root string) (*Test, error) {
 	return &test, nil
 }
 
-func readTestData(fsys afero.Fs, path string, test *Test) error {
+func readTestData(fsys afero.Fs, path string, test *RawTest) error {
 	data, err := afero.ReadFile(fsys, path)
 	if err != nil {
 		return fmt.Errorf("reading test input: %w", err)

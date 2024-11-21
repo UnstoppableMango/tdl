@@ -18,7 +18,7 @@ import (
 )
 
 type CliTestOptions struct {
-	ioSuite []*testing.Test
+	ioSuite []*testing.RawTest
 	args    []string
 }
 
@@ -27,7 +27,7 @@ type CliTestOption func(*CliTestOptions)
 // CliTests describes TDL conformace tests for binary runners.
 // The provided binary must exist and be executable.
 // Args can be provided if the codegen functionality is provided by a subcommand.
-// CliTests MUST be called within the Ginkgo test construction phase.
+// [CliTests] MUST be called within the Ginkgo test construction phase.
 func CliTests(binary string, options ...CliTestOption) {
 	opts := &CliTestOptions{}
 	option.Apply(opts, options...)
@@ -78,7 +78,7 @@ func WithArgs(args ...string) CliTestOption {
 	}
 }
 
-func WithIOTests(tests ...*testing.Test) CliTestOption {
+func WithIOTests(tests ...*testing.RawTest) CliTestOption {
 	return func(opts *CliTestOptions) {
 		opts.ioSuite = tests
 	}

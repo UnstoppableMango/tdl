@@ -1,8 +1,11 @@
 package matcher
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"reflect"
+	"slices"
 
 	"github.com/onsi/gomega/types"
 	"github.com/spf13/afero"
@@ -64,4 +67,90 @@ func (c *containFile) NegatedFailureMessage(actual interface{}) (message string)
 
 func ContainFile(path string) types.GomegaMatcher {
 	return &containFile{path}
+}
+
+type beEquivalentToFs struct {
+	expected afero.Fs
+}
+
+// Match implements types.GomegaMatcher.
+func (e *beEquivalentToFs) Match(actual interface{}) (success bool, err error) {
+	fsys, ok := actual.(afero.Fs)
+	if !ok {
+		return false, fmt.Errorf("exected an [afero.Fs] but got %s", reflect.TypeOf(actual))
+	}
+
+	failures := []error{}
+	err = afero.Walk(e.expected, "",
+		func(path string, info fs.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+
+			a, err := fsys.Stat(path)
+			if err != nil {
+				failures = append(failures, err)
+				return nil
+			}
+
+			// TODO: How helpful is this really
+			if a != info {
+				failures = append(failures,
+					fmt.Errorf("expected %#v to match %#v", a, info),
+				)
+				return nil
+			}
+
+			expectedBytes, err := afero.ReadFile(e.expected, path)
+			if err != nil {
+				return err
+			}
+
+			actualBytes, err := afero.ReadFile(fsys, path)
+			if err != nil {
+				failures = append(failures,
+					fmt.Errorf("expected file at %s to be readable: %w", path, err),
+				)
+				return nil
+			}
+
+			if !slices.Equal(expectedBytes, actualBytes) {
+				failures = append(failures,
+					fmt.Errorf("expected file at %s to match content:\n\texpected: %s\n\tactual: %s",
+						path, string(expectedBytes), string(actualBytes),
+					),
+				)
+				return nil
+			}
+
+			return nil
+		},
+	)
+	if err != nil {
+		return false, fmt.Errorf("walking expected filesystem: %w", err)
+	}
+
+	return len(failures) == 0, errors.Join(failures...)
+}
+
+// FailureMessage implements types.GomegaMatcher.
+func (e *beEquivalentToFs) FailureMessage(actual interface{}) (message string) {
+	return fmt.Sprintf(
+		"expected fs %s to match fs %s",
+		actual.(afero.Fs).Name(),
+		e.expected.Name(),
+	)
+}
+
+// NegatedFailureMessage implements types.GomegaMatcher.
+func (e *beEquivalentToFs) NegatedFailureMessage(actual interface{}) (message string) {
+	return fmt.Sprintf(
+		"expected fs %s not to match fs %s",
+		actual.(afero.Fs).Name(),
+		e.expected.Name(),
+	)
+}
+
+func BeEquivalentToFs(fs afero.Fs) types.GomegaMatcher {
+	return &beEquivalentToFs{fs}
 }

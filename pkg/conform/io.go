@@ -13,17 +13,17 @@ import (
 )
 
 // IOSuite is a helper function for defining IOTests.
-// It calls IOTest for each testing.Test in tests
+// It calls [IOTest] for each testing.Test in tests
 //
-// IOSuite MUST be called during the Ginkgo test construction phase
-func IOSuite(tests []*testing.Test, pipeline pipe.IO) {
+// [IOSuite] MUST be called during the Ginkgo test construction phase
+func IOSuite(tests []*testing.RawTest, pipeline pipe.IO) {
 	for _, test := range tests {
 		_ = IOTest(test, pipeline)
 	}
 }
 
 // IOTest asserts that given [test.Input] [generator] produces [test.Output]
-func IOTest(test *testing.Test, pipeline pipe.IO) bool {
+func IOTest(test *testing.RawTest, pipeline pipe.IO) bool {
 	return It(fmt.Sprintf("should pass: %s", test.Name), func(ctx context.Context) {
 		expected := string(test.Output)
 		input := bytes.NewReader(test.Input)

@@ -11,15 +11,16 @@ import (
 	"github.com/spf13/afero"
 )
 
-func Discover(fsys afero.Fs, root string) ([]*Test, error) {
-	tests := []*Test{}
+func Discover(fsys afero.Fs, root string) ([]*RawTest, error) {
+	tests := []*RawTest{}
 	log.Debug("walking filesystem", "root", root)
 	err := afero.Walk(fsys, root,
 		func(path string, info fs.FileInfo, err error) error {
-			log := log.With("path", path)
 			if err != nil {
 				return err
 			}
+
+			log := log.With("path", path)
 			if !info.IsDir() {
 				log.Debug("skipping file")
 				return nil
@@ -29,13 +30,14 @@ func Discover(fsys afero.Fs, root string) ([]*Test, error) {
 			if err != nil {
 				return err
 			}
+
 			depth := len(strings.Split(relative, string(filepath.Separator)))
 			if depth != 1 || relative == "." {
 				log.Debug("unsupported depth", "depth", depth, "rel", relative)
 				return nil
 			}
 
-			test, err := ReadTest(fsys, path)
+			test, err := ReadRawTest(fsys, path)
 			if err != nil {
 				log.Debug("skipping invalid test", "rel", relative, "err", err)
 				return filepath.SkipDir
