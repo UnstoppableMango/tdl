@@ -7,21 +7,12 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/unmango/go/slices"
 	"github.com/unstoppablemango/tdl/pkg/testing/e2e"
 	. "github.com/unstoppablemango/tdl/pkg/testing/matcher"
 )
 
 var _ = Describe("Test", func() {
-	It("should work", func() {
-		path := filepath.Join("testdata", "test")
-
-		test, err := e2e.ReadTest(testfs, path)
-
-		Expect(err).NotTo(HaveOccurred())
-		Expect(test.Name).To(Equal("test"))
-		Expect(test.Spec).NotTo(BeNil()) // TODO
-		Expect(test.Expected).To(ContainFile("output.fs"))
-	})
 
 	DescribeTable("InputRegex",
 		Entry(nil, "input.yml"),
@@ -47,6 +38,31 @@ var _ = Describe("Test", func() {
 			Expect(match).To(BeTrueBecause("the regex matches"))
 		},
 	)
+
+	Describe("ListTests", func() {
+		It("shoudl work", func() {
+			path := filepath.Join("testdata", "list")
+
+			tests, err := e2e.ListTests(testfs, path)
+
+			Expect(err).NotTo(HaveOccurred())
+			actual := slices.Collect(tests)
+			Expect(actual).To(HaveLen(2))
+		})
+	})
+
+	Describe("ReadTest", func() {
+		It("should work", func() {
+			path := filepath.Join("testdata", "test")
+
+			test, err := e2e.ReadTest(testfs, path)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(test.Name).To(Equal("test"))
+			Expect(test.Spec).NotTo(BeNil()) // TODO
+			Expect(test.Expected).To(ContainFile("output.fs"))
+		})
+	})
 
 	Describe("FindInput", func() {
 		DescribeTable("valid input",

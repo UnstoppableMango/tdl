@@ -6,6 +6,8 @@ import (
 	"regexp"
 
 	"github.com/spf13/afero"
+	"github.com/unmango/go/iter"
+	"github.com/unmango/go/iter/seqs"
 	"github.com/unstoppablemango/tdl/pkg/mediatype"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
@@ -25,6 +27,27 @@ type RawTest struct {
 	Name   string
 	Input  []byte
 	Output []byte
+}
+
+func ListTests(fsys afero.Fs, path string) (iter.Seq[*Test], error) {
+	infos, err := afero.ReadDir(fsys, path)
+	if err != nil {
+		return nil, err
+	}
+
+	seq := iter.Empty[*Test]()
+	for _, info := range infos {
+		test, err := ReadTest(fsys,
+			filepath.Join(path, info.Name()),
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		seq = seqs.Append(seq, test)
+	}
+
+	return seq, nil
 }
 
 func ReadTest(fsys afero.Fs, path string) (*Test, error) {
