@@ -50,7 +50,6 @@ func IncludeTests(s e2e.Suite) Suite {
 
 func ItShouldPass(generator tdl.Generator, test *e2e.Test, assertions ...e2e.Assertion) {
 	It(fmt.Sprintf("should pass: %s", test.Name), func(ctx context.Context) {
-		log.SetLevel(log.DebugLevel)
 		output, err := generator.Execute(ctx, test.Spec)
 
 		Expect(err).NotTo(HaveOccurred())
