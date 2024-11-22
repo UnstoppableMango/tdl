@@ -51,7 +51,7 @@ func DescribeCli(binary string, options ...CliTestOption) {
 		)
 
 		for s := range opts.suites {
-			s.ConstructTestsFor(generator)
+			s.ConstructTests(generator)
 		}
 	})
 }

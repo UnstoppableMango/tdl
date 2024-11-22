@@ -34,6 +34,8 @@ type Suite interface {
 	Tests() iter.Seq[*Test]
 }
 
+type Assertion func(*Test, afero.Fs)
+
 type suite struct {
 	name  string
 	tests iter.Seq[*Test]

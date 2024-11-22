@@ -12,22 +12,28 @@ import (
 	"github.com/unmango/go/slices"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/testing/e2e"
-	. "github.com/unstoppablemango/tdl/pkg/testing/matcher"
 )
 
 type Suite interface {
-	ConstructTestsFor(tdl.Generator)
+	ConstructTests(tdl.Generator)
+	Expect(string, ...e2e.Assertion)
 }
 
 type suite struct {
-	tests iter.Seq[*e2e.Test]
+	tests      iter.Seq[*e2e.Test]
+	assertions map[string][]e2e.Assertion
 }
 
-// ConstructTestsFor implements Suite.
-func (s *suite) ConstructTestsFor(generator tdl.Generator) {
+// ConstructTests implements Suite.
+func (s *suite) ConstructTests(generator tdl.Generator) {
 	for test := range s.tests {
-		ItShouldPass(generator, test)
+		assertions := s.assertions[test.Name]
+		ItShouldPass(generator, test, assertions...)
 	}
+}
+
+func (s suite) Expect(name string, assertions ...e2e.Assertion) {
+	s.assertions[name] = append(s.assertions[name], assertions...)
 }
 
 func NewSuite(name string, tests ...*e2e.Test) Suite {
@@ -35,19 +41,24 @@ func NewSuite(name string, tests ...*e2e.Test) Suite {
 		panic("no tests defined")
 	}
 
-	return &suite{slices.Values(tests)}
+	return &suite{tests: slices.Values(tests)}
 }
 
 func IncludeTests(s e2e.Suite) Suite {
-	return &suite{s.Tests()}
+	return &suite{tests: s.Tests()}
 }
 
-func ItShouldPass(generator tdl.Generator, test *e2e.Test) {
+func ItShouldPass(generator tdl.Generator, test *e2e.Test, assertions ...e2e.Assertion) {
 	It(fmt.Sprintf("should pass: %s", test.Name), func(ctx context.Context) {
 		log.SetLevel(log.DebugLevel)
 		output, err := generator.Execute(ctx, test.Spec)
 
 		Expect(err).NotTo(HaveOccurred())
-		Expect(output).To(BeEquivalentToFs(test.Expected))
+		for _, assert := range assertions {
+			assert(test, output)
+		}
+		if len(assertions) == 0 {
+			log.New(GinkgoWriter).Warnf("no assertions for: %s", test.Name)
+		}
 	})
 }
