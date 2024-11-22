@@ -21,6 +21,7 @@ var _ = Describe("End to end", func() {
 	Describe("CLI Conformance", func() {
 		conform.DescribeCli(bin,
 			conform.WithArgs("gen", "ts"),
+			conform.ExpectStdout,
 			conform.WithSuites(
 				conform.RequireLocalSuite("typescript"),
 			),

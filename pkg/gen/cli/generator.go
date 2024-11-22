@@ -16,9 +16,10 @@ import (
 )
 
 type cli struct {
-	name string
-	args []string
-	enc  tdl.MediaType
+	name   string
+	args   []string
+	enc    tdl.MediaType
+	stdout bool
 }
 
 type Option func(*cli)
@@ -46,8 +47,19 @@ func (c cli) Execute(ctx context.Context, spec *tdlv1alpha1.Spec) (afero.Fs, err
 		return nil, fmt.Errorf("executing generator: %s", stderr)
 	}
 
-	log.Debugf("returning a new BasePathFs at %s", tmp)
-	return afero.NewBasePathFs(afero.NewOsFs(), tmp), nil
+	if c.stdout {
+		log.Debug("reading stdout")
+		fs := afero.NewMemMapFs()
+		err = afero.WriteFile(fs, "stdout", stdout.Bytes(), os.ModePerm)
+		if err != nil {
+			return nil, err
+		}
+
+		return fs, nil
+	} else {
+		log.Debugf("returning a new BasePathFs at %s", tmp)
+		return afero.NewBasePathFs(afero.NewOsFs(), tmp), nil
+	}
 }
 
 // String implements fmt.Stringer
@@ -74,5 +86,15 @@ func WithArgs(args ...string) Option {
 func WithEncoding(media tdl.MediaType) Option {
 	return func(c *cli) {
 		c.enc = media
+	}
+}
+
+func ExpectStdout(cli *cli) {
+	cli.stdout = true
+}
+
+func WithExpectStdout(stdout bool) Option {
+	return func(c *cli) {
+		c.stdout = stdout
 	}
 }

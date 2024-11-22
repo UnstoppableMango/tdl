@@ -16,6 +16,18 @@ import (
 )
 
 var _ = Describe("Generator", func() {
+	It("should read from stout", func(ctx context.Context) {
+		spec := &tdlv1alpha1.Spec{Name: "CLI Generator Test"}
+		expected, err := mediatype.Marshal(spec, mediatype.ApplicationProtobuf)
+		Expect(err).NotTo(HaveOccurred())
+		c := cli.New(util.BinPath("uml2uml"), cli.ExpectStdout)
+
+		fs, err := c.Execute(ctx, spec)
+
+		Expect(err).NotTo(HaveOccurred())
+		Expect(fs).To(ContainFileWithBytes("stdout", expected))
+	})
+
 	It("should write protobuf to default path", func(ctx context.Context) {
 		spec := &tdlv1alpha1.Spec{Name: "CLI Generator Test"}
 		expected, err := mediatype.Marshal(spec, mediatype.ApplicationProtobuf)

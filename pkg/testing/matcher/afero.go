@@ -27,12 +27,12 @@ func (c *containFileWithBytes) Match(actual interface{}) (success bool, err erro
 
 // FailureMessage implements types.GomegaMatcher.
 func (c *containFileWithBytes) FailureMessage(actual interface{}) (message string) {
-	return fmt.Sprintf("expected file at %s to contain bytes %#v", c.path, c.bytes)
+	return fmt.Sprintf("expected file at %s to contain bytes %s", c.path, c.bytes)
 }
 
 // NegatedFailureMessage implements types.GomegaMatcher.
 func (c *containFileWithBytes) NegatedFailureMessage(actual interface{}) (message string) {
-	return fmt.Sprintf("expected file at %s not to contain bytes %#v", c.path, c.bytes)
+	return fmt.Sprintf("expected file at %s not to contain bytes %s", c.path, c.bytes)
 }
 
 func ContainFileWithBytes(path string, bytes []byte) types.GomegaMatcher {

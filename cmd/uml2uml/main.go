@@ -15,8 +15,8 @@ func main() {
 		util.Fail(err)
 	}
 
-	if len(os.Args) > 0 {
-		err = os.WriteFile(os.Args[0], spec, os.ModePerm)
+	if len(os.Args) > 1 {
+		err = os.WriteFile(os.Args[1], spec, os.ModePerm)
 	} else {
 		_, err = os.Stdout.Write(spec)
 	}

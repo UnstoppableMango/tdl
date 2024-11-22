@@ -17,6 +17,7 @@ import (
 type CliTestOptions struct {
 	suites iter.Seq[Suite]
 	args   []string
+	stdout bool
 }
 
 type CliTestOption func(*CliTestOptions)
@@ -46,6 +47,7 @@ func DescribeCli(binary string, options ...CliTestOption) {
 	Describe("Generator", func() {
 		generator := cli.New(binary,
 			cli.WithArgs(opts.args...),
+			cli.WithExpectStdout(opts.stdout),
 		)
 
 		for s := range opts.suites {
@@ -64,4 +66,8 @@ func WithSuites(suites ...Suite) CliTestOption {
 	return func(opts *CliTestOptions) {
 		opts.suites = slices.Values(suites)
 	}
+}
+
+func ExpectStdout(opts *CliTestOptions) {
+	opts.stdout = true
 }
