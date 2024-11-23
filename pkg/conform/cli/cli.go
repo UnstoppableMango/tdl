@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/unstoppablemango/tdl/pkg/gen/cli"
+	"github.com/unstoppablemango/tdl/pkg/testing/e2e"
 
 	"github.com/unmango/go/iter"
 	"github.com/unmango/go/option"

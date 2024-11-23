@@ -2,62 +2,63 @@ package conform
 
 import (
 	"context"
-	"fmt"
+	"path/filepath"
 
-	"github.com/charmbracelet/log"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/spf13/afero"
 
 	"github.com/unmango/go/iter"
 	"github.com/unmango/go/slices"
-	tdl "github.com/unstoppablemango/tdl/pkg"
+	"github.com/unmango/go/vcs/git"
 	"github.com/unstoppablemango/tdl/pkg/testing/e2e"
 )
 
-type Suite interface {
-	ConstructTests(tdl.Generator)
+type DumbSuite interface {
 	Expect(string, ...e2e.Assertion)
 }
 
-type suite struct {
+type builder struct {
 	tests      iter.Seq[*e2e.Test]
 	assertions map[string][]e2e.Assertion
 }
 
-// ConstructTests implements Suite.
-func (s *suite) ConstructTests(generator tdl.Generator) {
-	for test := range s.tests {
-		assertions := s.assertions[test.Name]
-		ItShouldPass(generator, test, assertions...)
+func (b *builder) Expect(name string, assertions ...e2e.Assertion) {
+	b.assertions[name] = assertions
+}
+
+type Suite interface {
+	GeneratorSuite
+}
+
+func NewSuite(tests ...*e2e.Test) DumbSuite {
+	return &builder{tests: slices.Values(tests)}
+}
+
+// func NewSuite(name string, tests ...*e2e.Test) Suite {
+// 	if len(tests) == 0 {
+// 		panic("no tests defined")
+// 	}
+
+// 	return &suite{tests: slices.Values(tests)}
+// }
+
+// func IncludeTests(s e2e.Suite) Suite {
+// 	return &suite{tests: s.Tests()}
+// }
+
+// TODO: Currently this is executing as the CLI runs, meaning it can execute outside of the repo and thus fail
+// var (
+// 	TypeScriptSuite = RequireLocalSuite("typescript")
+// )
+
+func ReadLocalSuite(ctx context.Context, fs afero.Fs, name string) (e2e.Suite, error) {
+	root, err := git.Root(ctx)
+	if err != nil {
+		return nil, err
 	}
-}
 
-func (s suite) Expect(name string, assertions ...e2e.Assertion) {
-	s.assertions[name] = append(s.assertions[name], assertions...)
-}
-
-func NewSuite(name string, tests ...*e2e.Test) Suite {
-	if len(tests) == 0 {
-		panic("no tests defined")
-	}
-
-	return &suite{tests: slices.Values(tests)}
-}
-
-func IncludeTests(s e2e.Suite) Suite {
-	return &suite{tests: s.Tests()}
-}
-
-func ItShouldPass(generator tdl.Generator, test *e2e.Test, assertions ...e2e.Assertion) {
-	It(fmt.Sprintf("should pass: %s", test.Name), func(ctx context.Context) {
-		output, err := generator.Execute(ctx, test.Spec)
-
-		Expect(err).NotTo(HaveOccurred())
-		for _, assert := range assertions {
-			assert(test, output)
-		}
-		if len(assertions) == 0 {
-			log.New(GinkgoWriter).Warnf("no assertions for: %s", test.Name)
-		}
-	})
+	return e2e.ReadSuite(fs,
+		filepath.Join(root, "conformance", name),
+	)
 }
