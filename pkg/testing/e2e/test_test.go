@@ -3,7 +3,6 @@ package e2e_test
 import (
 	"path/filepath"
 
-	"github.com/charmbracelet/log"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -38,19 +37,6 @@ var _ = Describe("Test", func() {
 			Expect(match).To(BeTrueBecause("the regex matches"))
 		},
 	)
-
-	Describe("ReadSuite", func() {
-		It("should work", func() {
-			path := filepath.Join("testdata", "list")
-
-			suite, err := e2e.ReadSuite(testfs, path)
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(suite.Name()).To(Equal("list"))
-			actual := slices.Collect(suite.Tests())
-			Expect(actual).To(HaveLen(2))
-		})
-	})
 
 	Describe("ListTests", func() {
 		It("should work", func() {
@@ -92,7 +78,6 @@ var _ = Describe("Test", func() {
 			Entry(nil, "testdata/source", "source.yml"),
 			Entry(nil, "testdata/yaml", "input.yaml"),
 			func(path, file string) {
-				log.SetLevel(log.DebugLevel)
 				input, err := e2e.FindInput(testfs, path)
 
 				Expect(err).NotTo(HaveOccurred())

@@ -13,15 +13,13 @@ import (
 )
 
 type GeneratorSuite interface {
-	DumbSuite
 	DescribeGenerator(tdl.Generator)
 }
 
-type generatorSuite struct{ builder }
+type generatorSuite struct{ e2e.Suite }
 
 func (s *generatorSuite) DescribeGenerator(generator tdl.Generator) {
-	for test := range s.tests {
-		assertions := s.assertions[test.Name]
+	for test, assertions := range s.Tests() {
 		ItShouldPass(generator, test, assertions...)
 	}
 }

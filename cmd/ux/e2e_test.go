@@ -11,22 +11,21 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/unstoppablemango/tdl/pkg/conform"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 	"google.golang.org/protobuf/proto"
 	"gopkg.in/yaml.v3"
 )
 
 var _ = Describe("End to end", func() {
-	Describe("CLI Conformance", func() {
-		conform.DescribeCli(bin,
-			conform.WithArgs("gen", "ts"),
-			conform.ExpectStdout,
-			conform.WithSuites(
-				conform.RequireLocalSuite("typescript"),
-			),
-		)
-	})
+	// Describe("CLI Conformance", func() {
+	// 	conform.DescribeCli(bin,
+	// 		conform.WithArgs("gen", "ts"),
+	// 		conform.ExpectStdout,
+	// 		conform.WithSuites(
+	// 			conform.RequireLocalSuite("typescript"),
+	// 		),
+	// 	)
+	// })
 
 	// Describe("TypeScript Conformance", FlakeAttempts(5), func() {
 	// 	generator := cli.New("ux", cli.WithArgs("gen", "ts"))

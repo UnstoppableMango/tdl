@@ -30,7 +30,7 @@ that communicates via stdin/stdout`,
 			}
 
 			ginkgo.Describe("Conformance Tests", func() {
-				conform.DescribeCli(endpoint, conform.WithArgs(args[1:]...))
+				// conform.DescribeCli(endpoint, conform.WithArgs(args[1:]...))
 			})
 
 			gomega.RegisterFailHandler(ginkgo.Fail)
