@@ -12,23 +12,13 @@ import (
 	"github.com/unstoppablemango/tdl/pkg/testing/e2e"
 )
 
-type GeneratorSuite interface {
-	DescribeGenerator(tdl.Generator)
-}
-
-type generatorSuite struct{ e2e.Suite }
-
-func (s *generatorSuite) DescribeGenerator(generator tdl.Generator) {
-	for test, assertions := range s.Tests() {
-		ItShouldPass(generator, test, assertions...)
-	}
-}
-
 func ItShouldPass(generator tdl.Generator, test *e2e.Test, assertions ...e2e.Assertion) {
 	It(fmt.Sprintf("should pass: %s", test.Name), func(ctx context.Context) {
+		By("executing the generator")
 		output, err := generator.Execute(ctx, test.Spec)
 
 		Expect(err).NotTo(HaveOccurred())
+		By("performing the given assertions")
 		for _, assert := range assertions {
 			assert(test, output)
 		}
@@ -36,4 +26,10 @@ func ItShouldPass(generator tdl.Generator, test *e2e.Test, assertions ...e2e.Ass
 			log.New(GinkgoWriter).Warnf("no assertions for: %s", test.Name)
 		}
 	})
+}
+
+func DescribeGenerator(suite e2e.Suite, generator tdl.Generator) {
+	for test, assertions := range suite.Tests() {
+		ItShouldPass(generator, test, assertions...)
+	}
 }

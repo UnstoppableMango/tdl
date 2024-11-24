@@ -1,36 +1,31 @@
 package main_test
 
 import (
-	"bytes"
 	"context"
-	"fmt"
-	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
-	"google.golang.org/protobuf/proto"
-	"gopkg.in/yaml.v3"
+	"github.com/unstoppablemango/tdl/pkg/conform"
+	"github.com/unstoppablemango/tdl/pkg/gen/cli"
 )
 
 var _ = Describe("End to end", func() {
-	// Describe("CLI Conformance", func() {
-	// 	conform.DescribeCli(bin,
-	// 		conform.WithArgs("gen", "ts"),
-	// 		conform.ExpectStdout,
-	// 		conform.WithSuites(
-	// 			conform.RequireLocalSuite("typescript"),
-	// 		),
-	// 	)
-	// })
+	Describe("TypeScript Conformance", FlakeAttempts(5), func() {
+		Describe("stdout", func() {
+			generator := cli.New("ux",
+				cli.WithArgs("gen", "ts"),
+				cli.ExpectStdout,
+			)
 
-	// Describe("TypeScript Conformance", FlakeAttempts(5), func() {
-	// 	generator := cli.New("ux", cli.WithArgs("gen", "ts"))
-	// 	conform.TypeScriptSuite.ConstructTestsFor(generator)
-	// })
+			for test := range typescriptSuite.Tests() {
+				conform.ItShouldPass(generator, test,
+					conform.AssertStdout,
+				)
+			}
+		})
+	})
 
 	It("should pass my excessive sanity check", func() {
 		Expect(bin).NotTo(BeEmpty())
@@ -38,8 +33,8 @@ var _ = Describe("End to end", func() {
 
 	Describe("gen", func() {
 		It("should read spec from yaml file", FlakeAttempts(5), func(ctx context.Context) {
-			input := filepath.Join(tsSuiteRoot, "interface", "source.yml")
-			output, err := os.ReadFile(filepath.Join(tsSuiteRoot, "interface", "target.ts"))
+			input := filepath.Join(tsSuitePath(), "interface", "source.yml")
+			output, err := os.ReadFile(filepath.Join(tsSuitePath(), "interface", "target.ts"))
 			Expect(err).NotTo(HaveOccurred())
 			cmd := UxCommand(ctx, "gen", "ts", input)
 
@@ -60,11 +55,11 @@ var _ = Describe("End to end", func() {
 		})
 
 		It("should write to output file", FlakeAttempts(5), func(ctx context.Context) {
-			input := filepath.Join(tsSuiteRoot, "interface", "source.yml")
+			input := filepath.Join(tsSuitePath(), "interface", "source.yml")
 			tmp, err := os.MkdirTemp("", "")
 			Expect(err).NotTo(HaveOccurred())
 			output := filepath.Join(tmp, "index.ts")
-			expected, err := os.ReadFile(filepath.Join(tsSuiteRoot, "interface", "target.ts"))
+			expected, err := os.ReadFile(filepath.Join(tsSuitePath(), "interface", "target.ts"))
 			Expect(err).NotTo(HaveOccurred())
 			cmd := UxCommand(ctx, "gen", "ts", input, output)
 
@@ -97,27 +92,3 @@ var _ = Describe("End to end", func() {
 		)
 	})
 })
-
-func ExecuteIO(ctx context.Context, input io.Reader, output io.Writer) error {
-	data, err := io.ReadAll(input)
-	if err != nil {
-		return fmt.Errorf("reading input: %w", err)
-	}
-
-	var spec tdlv1alpha1.Spec
-	if err := yaml.Unmarshal(data, &spec); err != nil {
-		return fmt.Errorf("reading spec: %w", err)
-	}
-
-	protoInput, err := proto.Marshal(&spec)
-	if err != nil {
-		return fmt.Errorf("marshalling spec: %w", err)
-	}
-
-	cmd := exec.CommandContext(ctx, bin, "gen", "ts")
-	cmd.Stdin = bytes.NewReader(protoInput)
-	cmd.Stdout = output
-	cmd.Stderr = output
-
-	return cmd.Run()
-}

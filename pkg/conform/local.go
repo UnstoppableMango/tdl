@@ -36,3 +36,7 @@ func ReadLocalGitTests(
 		assertions,
 	)
 }
+
+func ReadLocalTypeScriptSuite(ctx context.Context, fs afero.Fs) (e2e.Suite, error) {
+	return ReadLocalGitSuite(ctx, fs, "typescript")
+}

@@ -11,31 +11,31 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/spf13/afero"
 	"github.com/unstoppablemango/tdl/internal/util"
-	. "github.com/unstoppablemango/tdl/pkg/testing"
+	"github.com/unstoppablemango/tdl/pkg/conform"
+	"github.com/unstoppablemango/tdl/pkg/testing/e2e"
 )
 
 var (
-	gitRoot     string
-	bin         string
-	tsSuiteRoot string
+	gitRoot string
+	bin     string
 )
 
-var typescriptSuite []*RawTest
+var typescriptSuite e2e.Suite
 
 func TestUx(t *testing.T) {
 	g := NewWithT(t)
 
 	var err error
-	gitRoot, err = util.GitRoot(context.Background())
+	ctx := context.Background()
+	gitRoot, err = util.GitRoot(ctx)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	bin = filepath.Join(gitRoot, "bin", "ux")
 	g.Expect(os.Stat(bin)).NotTo(BeNil())
 
-	tsSuiteRoot = filepath.Join(gitRoot, "packages", "ts", "testdata")
-	typescriptSuite, err = Discover(afero.NewOsFs(), tsSuiteRoot)
+	fs := afero.NewOsFs()
+	typescriptSuite, err = conform.ReadLocalTypeScriptSuite(ctx, fs)
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(typescriptSuite).NotTo(BeEmpty())
 
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Ux Suite")
@@ -43,4 +43,8 @@ func TestUx(t *testing.T) {
 
 func UxCommand(ctx context.Context, args ...string) *exec.Cmd {
 	return exec.CommandContext(ctx, bin, args...)
+}
+
+func tsSuitePath() string {
+	return filepath.Join(gitRoot, "conformance", "typescript")
 }
