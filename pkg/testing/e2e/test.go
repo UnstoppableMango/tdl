@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"errors"
+	"fmt"
 	"path/filepath"
 	"regexp"
 
@@ -21,42 +22,6 @@ type Test struct {
 	Name     string
 	Spec     *tdlv1alpha1.Spec
 	Expected afero.Fs
-}
-
-type RawTest struct {
-	Name   string
-	Input  []byte
-	Output []byte
-}
-
-type Suite interface {
-	Name() string
-	Tests() iter.Seq[*Test]
-}
-
-type suite struct {
-	name  string
-	tests iter.Seq[*Test]
-}
-
-// Name implements Suite.
-func (s suite) Name() string {
-	return s.name
-}
-
-// Tests implements Suite.
-func (s suite) Tests() iter.Seq[*Test] {
-	return s.tests
-}
-
-func ReadSuite(fs afero.Fs, path string) (Suite, error) {
-	name := filepath.Base(path)
-	tests, err := ListTests(fs, path)
-	if err != nil {
-		return nil, err
-	}
-
-	return suite{name, tests}, nil
 }
 
 func ListTests(fs afero.Fs, path string) (iter.Seq[*Test], error) {
@@ -83,24 +48,24 @@ func ListTests(fs afero.Fs, path string) (iter.Seq[*Test], error) {
 func ReadTest(fs afero.Fs, path string) (*Test, error) {
 	filename, err := FindInput(fs, path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("reading test: %w", err)
 	}
 
 	inputpath := filepath.Join(path, filename)
 	media, err := mediatype.Guess(inputpath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("reading test: %w", err)
 	}
 
 	data, err := afero.ReadFile(fs, inputpath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("reading test: %w", err)
 	}
 
 	var spec tdlv1alpha1.Spec
 	err = mediatype.Unmarshal(data, &spec, media)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("reading test: %w", err)
 	}
 
 	expected := afero.NewRegexpFs(
@@ -109,7 +74,7 @@ func ReadTest(fs afero.Fs, path string) (*Test, error) {
 	)
 	empty, err := afero.IsEmpty(expected, "")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("reading test: %w", err)
 	}
 	if empty {
 		return nil, errors.New("no output found")
@@ -125,7 +90,7 @@ func ReadTest(fs afero.Fs, path string) (*Test, error) {
 func FindInput(fs afero.Fs, path string) (string, error) {
 	files, err := afero.ReadDir(fs, path)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("finding input: %w", err)
 	}
 
 	for _, f := range files {

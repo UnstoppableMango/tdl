@@ -2,43 +2,41 @@ package conform
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 
 	"github.com/spf13/afero"
 	"github.com/unmango/go/vcs/git"
-	tdl "github.com/unstoppablemango/tdl/pkg"
-	"github.com/unstoppablemango/tdl/pkg/testing"
+	"github.com/unstoppablemango/tdl/pkg/testing/e2e"
 )
 
-type localSuite struct {
-	fs    afero.Fs
-	suite string
-}
-
-// Describe implements Suite.
-func (l *localSuite) Describe(tdl.Generator) {
-	ctx := context.Background()
+func LocalGitPath(ctx context.Context) (string, error) {
 	root, err := git.Root(ctx)
 	if err != nil {
-		panic(err)
+		return "", fmt.Errorf("looking up local git path to conformance suites: %w", err)
 	}
 
-	path := filepath.Join(root, "conformance", l.suite)
-	raw, err := testing.Discover(l.fs, path)
-	if err != nil {
-		panic(err)
-	}
-
-	tests := make([]*testing.Test, len(raw))
-	for i, test := range raw {
-		tests[i] = &testing.Test{
-			Name: test.Name,
-		}
-	}
-
-	panic("unimplemented")
+	return filepath.Join(root, "conformance"), nil
 }
 
-func NewLocalSuite(fs afero.Fs, name string) Suite {
-	return &localSuite{fs, name}
+func ReadLocalGitSuite(ctx context.Context, fs afero.Fs, name string) (e2e.Suite, error) {
+	return e2e.ReadLocalGitSuite(ctx, fs,
+		filepath.Join("conformance", name),
+	)
+}
+
+func ReadLocalGitTests(
+	ctx context.Context,
+	fs afero.Fs,
+	name string,
+	assertions map[string][]e2e.Assertion,
+) (e2e.Suite, error) {
+	return e2e.ReadLocalGitTests(ctx, fs,
+		filepath.Join("conformance", name),
+		assertions,
+	)
+}
+
+func ReadLocalTypeScriptSuite(ctx context.Context, fs afero.Fs) (e2e.Suite, error) {
+	return ReadLocalGitSuite(ctx, fs, "typescript")
 }

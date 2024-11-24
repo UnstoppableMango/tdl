@@ -26,11 +26,12 @@ that communicates via stdin/stdout`,
 			endpoint := args[0]
 
 			if _, err := fs.Stat(endpoint); err != nil {
-				util.Fail(fmt.Errorf("only CLI tests are supported: %w", err))
+				util.Fail(fmt.Errorf("endpoint not found: %w", err))
 			}
 
+			// TODO
 			ginkgo.Describe("Conformance Tests", func() {
-				conform.CliTests(endpoint, conform.WithArgs(args[1:]...))
+				// conform.DescribeCli(endpoint, conform.WithArgs(args[1:]...))
 			})
 
 			gomega.RegisterFailHandler(ginkgo.Fail)

@@ -5,7 +5,6 @@ import (
 	"embed"
 	"testing"
 
-	"github.com/charmbracelet/log"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	ttest "github.com/unstoppablemango/tdl/pkg/testing"
@@ -24,8 +23,6 @@ func TestCacheForT(t *testing.T) {
 }
 
 func TestTesting(t *testing.T) {
-	log.SetLevel(log.FatalLevel)
-
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Testing Suite")
 }

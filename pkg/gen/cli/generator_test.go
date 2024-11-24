@@ -16,16 +16,28 @@ import (
 )
 
 var _ = Describe("Generator", func() {
-	It("should write protobuf to default path", func(ctx context.Context) {
+	It("should read from stout", func(ctx context.Context) {
 		spec := &tdlv1alpha1.Spec{Name: "CLI Generator Test"}
 		expected, err := mediatype.Marshal(spec, mediatype.ApplicationProtobuf)
 		Expect(err).NotTo(HaveOccurred())
-		c := cli.New(util.BinPath("uml2uml"))
+		c := cli.New(util.BinPath("uml2uml"), cli.ExpectStdout)
 
 		fs, err := c.Execute(ctx, spec)
 
 		Expect(err).NotTo(HaveOccurred())
-		Expect(fs).To(ContainFileWithBytes("out", expected))
+		Expect(fs).To(ContainFileWithBytes("stdout", expected))
+	})
+
+	It("should write protobuf to default path", func(ctx context.Context) {
+		spec := &tdlv1alpha1.Spec{Name: "CLI Generator Test"}
+		expected, err := mediatype.Marshal(spec, mediatype.ApplicationProtobuf)
+		Expect(err).NotTo(HaveOccurred())
+		c := cli.New(util.BinPath("uml2uml"), cli.WithArgs("output.pb"))
+
+		fs, err := c.Execute(ctx, spec)
+
+		Expect(err).NotTo(HaveOccurred())
+		Expect(fs).To(ContainFileWithBytes("output.pb", expected))
 	})
 
 	DescribeTable("Encoding",
@@ -34,21 +46,16 @@ var _ = Describe("Generator", func() {
 			spec := &tdlv1alpha1.Spec{Name: "CLI Generator Test"}
 			expected, err := mediatype.Marshal(spec, media)
 			Expect(err).NotTo(HaveOccurred())
-			c := cli.New(util.BinPath("uml2uml"), cli.WithEncoding(media))
+			c := cli.New(
+				util.BinPath("uml2uml"),
+				cli.WithEncoding(media),
+				cli.WithArgs("output.pb"),
+			)
 
 			fs, err := c.Execute(ctx, spec)
 
 			Expect(err).NotTo(HaveOccurred())
-			Expect(fs).To(ContainFileWithBytes("out", expected))
+			Expect(fs).To(ContainFileWithBytes("output.pb", expected))
 		},
 	)
-
-	It("should pass args", func(ctx context.Context) {
-		spec := &tdlv1alpha1.Spec{}
-		c := cli.New("echo", cli.WithArgs("blah"))
-
-		_, err := c.Execute(ctx, spec)
-
-		Expect(err).NotTo(HaveOccurred())
-	})
 })

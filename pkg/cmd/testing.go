@@ -13,6 +13,7 @@ func NewTesting() *cobra.Command {
 	cmd.AddCommand(
 		testing.NewConform(),
 		testing.NewDiscover(),
+		testing.NewList(),
 	)
 
 	return cmd
