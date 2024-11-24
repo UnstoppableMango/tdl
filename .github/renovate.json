@@ -23,15 +23,15 @@
 	"packageRules": [
 		{
 			"groupName": "tdl",
-			"matchPackagePatterns": [
-				"unstoppablemango/tdl"
+			"matchPackageNames": [
+				"/unstoppablemango/tdl/"
 			]
 		},
 		{
 			"groupName": "bun",
-			"matchPackagePatterns": [
-				"oven-sh/bun",
-				"oven/bun"
+			"matchPackageNames": [
+				"/oven-sh/bun/",
+				"/oven/bun/"
 			]
 		}
 	]
