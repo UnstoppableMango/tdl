@@ -28,6 +28,15 @@ var _ = Describe("End to end", func() {
 	})
 
 	Describe("gen", func() {
+		It("should error when input is not provided", func(ctx context.Context) {
+			cmd := UxCommand(ctx, "gen", "ts")
+
+			out, err := cmd.CombinedOutput()
+
+			Expect(err).To(HaveOccurred())
+			Expect(string(out)).To(Equal("no input file provided"))
+		})
+
 		It("should read spec from yaml file", FlakeAttempts(5), func(ctx context.Context) {
 			input := filepath.Join(tsSuitePath(), "interface", "source.yml")
 			output, err := os.ReadFile(filepath.Join(tsSuitePath(), "interface", "target.ts"))
