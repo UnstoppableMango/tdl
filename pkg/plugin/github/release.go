@@ -12,7 +12,7 @@ import (
 	"github.com/unmango/go/iter"
 	"github.com/unmango/go/option"
 	tdl "github.com/unstoppablemango/tdl/pkg"
-	"github.com/unstoppablemango/tdl/pkg/gen"
+	"github.com/unstoppablemango/tdl/pkg/gen/cli"
 	"github.com/unstoppablemango/tdl/pkg/plugin/cache"
 	"github.com/unstoppablemango/tdl/pkg/progress"
 )

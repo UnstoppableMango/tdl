@@ -3,30 +3,31 @@ package testing
 import (
 	"context"
 
+	"github.com/spf13/afero"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
 
 type MockGenerator struct {
-	ExecuteFunc func(*tdlv1alpha1.Spec, tdl.Sink) error
+	ExecuteFunc func(context.Context, *tdlv1alpha1.Spec) (afero.Fs, error)
+	StringFunc  func() string
 }
 
-type MockGeneratorStringer struct {
-	*MockGenerator
-	StringFunc func() string
+// String implements tdl.Generator.
+func (m *MockGenerator) String() string {
+	return m.StringFunc()
 }
 
 // Execute implements tdl.Generator.
 func (m *MockGenerator) Execute(
 	ctx context.Context,
 	spec *tdlv1alpha1.Spec,
-	sink tdl.Sink,
-) error {
-	return m.ExecuteFunc(spec, sink)
+) (afero.Fs, error) {
+	return m.ExecuteFunc(ctx, spec)
 }
 
 func (m *MockGenerator) WithExecute(
-	fn func(*tdlv1alpha1.Spec, tdl.Sink) error,
+	fn func(context.Context, *tdlv1alpha1.Spec) (afero.Fs, error),
 ) *MockGenerator {
 	m.ExecuteFunc = fn
 	return m
@@ -34,24 +35,22 @@ func (m *MockGenerator) WithExecute(
 
 func (m *MockGenerator) WithString(
 	fn func() string,
-) *MockGeneratorStringer {
-	return &MockGeneratorStringer{
-		MockGenerator: m,
-		StringFunc:    fn,
-	}
+) *MockGenerator {
+	m.StringFunc = fn
+	return m
 }
 
-func (m *MockGenerator) WithName(name string) *MockGeneratorStringer {
+func (m *MockGenerator) WithName(name string) *MockGenerator {
 	return m.WithString(func() string {
 		return name
 	})
 }
 
-var _ tdl.SinkGenerator = &MockGenerator{}
+var _ tdl.Generator = &MockGenerator{}
 
 func NewMockGenerator() *MockGenerator {
 	return &MockGenerator{
-		ExecuteFunc: func(*tdlv1alpha1.Spec, tdl.Sink) error {
+		ExecuteFunc: func(context.Context, *tdlv1alpha1.Spec) (afero.Fs, error) {
 			panic("unimplemented")
 		},
 	}

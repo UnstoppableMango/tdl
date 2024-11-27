@@ -49,7 +49,7 @@ func (m *MockTarget) String() string {
 }
 
 func (m *MockTarget) WithChoose(
-	fn func([]tdl.SinkGenerator) (tdl.SinkGenerator, error),
+	fn func([]tdl.Generator) (tdl.Generator, error),
 ) *MockTarget {
 	m.ChooseFunc = fn
 	return m

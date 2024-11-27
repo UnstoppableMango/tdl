@@ -36,7 +36,7 @@ func (m *MockPlugin) String() string {
 }
 
 func (m *MockPlugin) WithGenerator(
-	fn func(t tdl.Target) (tdl.SinkGenerator, error),
+	fn func(t tdl.Target) (tdl.Generator, error),
 ) *MockPlugin {
 	m.SinkGeneratorFunc = fn
 	return m

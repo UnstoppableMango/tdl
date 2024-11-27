@@ -7,7 +7,7 @@ import (
 )
 
 type RejectionErr struct {
-	Generator tdl.SinkGenerator
+	Generator tdl.Generator
 	Reason    string
 }
 
@@ -15,6 +15,6 @@ func (e RejectionErr) Error() string {
 	return fmt.Sprintf("rejected %s: %s", e.Generator, e.Reason)
 }
 
-func Reject(generator tdl.SinkGenerator, reason string) error {
+func Reject(generator tdl.Generator, reason string) error {
 	return &RejectionErr{generator, reason}
 }

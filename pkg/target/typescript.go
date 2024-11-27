@@ -8,7 +8,6 @@ import (
 	"github.com/unmango/go/iter"
 	"github.com/unmango/go/slices"
 	tdl "github.com/unstoppablemango/tdl/pkg"
-	"github.com/unstoppablemango/tdl/pkg/gen"
 	"github.com/unstoppablemango/tdl/pkg/plugin"
 )
 
@@ -28,7 +27,7 @@ func (t typescript) Generator(available iter.Seq[tdl.Plugin]) (tdl.Generator, er
 var TypeScript typescript = "TypeScript"
 
 // Choose implements tdl.Target.
-func (t typescript) Choose(available []tdl.SinkGenerator) (tdl.SinkGenerator, error) {
+func (t typescript) Choose(available []tdl.Generator) (tdl.Generator, error) {
 	if len(available) == 0 {
 		return nil, errors.New("no generators to choose from")
 	}
@@ -57,13 +56,8 @@ func (t typescript) String() string {
 	return string(t)
 }
 
-func supported(g tdl.SinkGenerator) error {
-	cli, ok := g.(*gen.Cli)
-	if !ok {
-		return Reject(g, "not a CLI")
-	}
-
-	name := filepath.Base(cli.String())
+func supported(g tdl.Generator) error {
+	name := filepath.Base(g.String())
 	if name != "uml2ts" {
 		return Reject(g, "only uml2ts is supported")
 	}
