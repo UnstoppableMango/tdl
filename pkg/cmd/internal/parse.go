@@ -40,6 +40,7 @@ func ParseInputArgs(os tdl.OS, args []string) ([]tdl.Input, error) {
 		if args[0] == "-" {
 			return collect(run.StdinInput(os.Stdin()))
 		}
+
 		fallthrough
 	case 2:
 		return collect(run.OpenFile(os.Fs(), args[0]))
