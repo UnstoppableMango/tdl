@@ -27,7 +27,7 @@ var _ = Describe("Path", func() {
 		It("should look up plugin from path", func() {
 			p := plugin.FromPath("uml2ts")
 
-			g, err := p.Generator(nil)
+			g, err := p.SinkGenerator(nil)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(g).To(BeAssignableToTypeOf(&gen.Cli{}))

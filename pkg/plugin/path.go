@@ -6,6 +6,7 @@ import (
 
 	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/gen"
+	"github.com/unstoppablemango/tdl/pkg/gen/cli"
 )
 
 type fromPath struct {
@@ -13,14 +14,24 @@ type fromPath struct {
 	order int
 }
 
-// Generator implements tdl.Plugin.
-func (f fromPath) Generator(tdl.Target) (tdl.SinkGenerator, error) {
+// SinkGenerator implements tdl.Plugin.
+func (f fromPath) SinkGenerator(tdl.Target) (tdl.SinkGenerator, error) {
 	path, err := exec.LookPath(f.name)
 	if err != nil {
 		return nil, fmt.Errorf("from path: %w", err)
 	}
 
 	return gen.NewCli(path), nil
+}
+
+// SinkGenerator implements tdl.Plugin.
+func (f fromPath) Generator(tdl.Target) (tdl.Generator, error) {
+	path, err := exec.LookPath(f.name)
+	if err != nil {
+		return nil, fmt.Errorf("from path: %w", err)
+	}
+
+	return cli.New(path), nil
 }
 
 // String implements tdl.Plugin.

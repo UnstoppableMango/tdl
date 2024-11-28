@@ -18,7 +18,7 @@ func FirstAvailable(target tdl.Target) (tdl.Plugin, error) {
 		return p, nil
 	}
 
-	for p := range target.Plugins() {
+	for _, p := range static {
 		return p, nil
 	}
 

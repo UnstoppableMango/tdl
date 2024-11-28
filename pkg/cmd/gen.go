@@ -35,7 +35,7 @@ func NewGen() *cobra.Command {
 			}
 
 			log.Debug("searching for a generator")
-			generator, err := plugin.Generator(target)
+			generator, err := plugin.SinkGenerator(target)
 			if err != nil {
 				util.Fail(err)
 			}

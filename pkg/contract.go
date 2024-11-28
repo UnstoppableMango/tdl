@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"iter"
 
 	"github.com/spf13/afero"
+	"github.com/unmango/go/iter"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
 
@@ -30,13 +30,14 @@ type Generator interface {
 
 type Plugin interface {
 	fmt.Stringer
-	Generator(Target) (SinkGenerator, error)
+	SinkGenerator(Target) (SinkGenerator, error)
+	Generator(Target) (Generator, error)
 }
 
 type Target interface {
 	fmt.Stringer
 	Choose([]SinkGenerator) (SinkGenerator, error)
-	Plugins() iter.Seq[Plugin]
+	Generator(iter.Seq[Plugin]) (Generator, error)
 }
 
 type MediaType string

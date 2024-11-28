@@ -12,3 +12,7 @@ var Uml2Ts tdl.Plugin = NewAggregate(
 )
 
 var static = []tdl.Plugin{Uml2Ts}
+
+func Static() []tdl.Plugin {
+	return static
+}
