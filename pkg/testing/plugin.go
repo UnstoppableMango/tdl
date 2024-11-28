@@ -7,9 +7,8 @@ import (
 )
 
 type MockPlugin struct {
-	GeneratorFunc     func(tdl.Target) (tdl.Generator, error)
-	SinkGeneratorFunc func(tdl.Target) (tdl.SinkGenerator, error)
-	StringFunc        func() string
+	GeneratorFunc func(tdl.Target) (tdl.Generator, error)
+	StringFunc    func() string
 }
 
 // Generator implements tdl.Plugin.
@@ -21,15 +20,6 @@ func (m *MockPlugin) Generator(ctx context.Context, t tdl.Target) (tdl.Generator
 	return m.GeneratorFunc(t)
 }
 
-// SinkGenerator implements tdl.Plugin.
-func (m *MockPlugin) SinkGenerator(t tdl.Target) (tdl.SinkGenerator, error) {
-	if m.SinkGeneratorFunc == nil {
-		panic("unimplemented")
-	}
-
-	return m.SinkGeneratorFunc(t)
-}
-
 // String implements tdl.Plugin.
 func (m *MockPlugin) String() string {
 	return m.StringFunc()
@@ -38,7 +28,7 @@ func (m *MockPlugin) String() string {
 func (m *MockPlugin) WithGenerator(
 	fn func(t tdl.Target) (tdl.Generator, error),
 ) *MockPlugin {
-	m.SinkGeneratorFunc = fn
+	m.GeneratorFunc = fn
 	return m
 }
 

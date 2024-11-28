@@ -21,12 +21,12 @@ var _ = Describe("Aggregate", func() {
 	It("should pick the given generator", func() {
 		g := testing.NewMockGenerator()
 		p := (&testing.MockPlugin{}).
-			WithGenerator(func(tdl.Target) (tdl.SinkGenerator, error) {
+			WithGenerator(func(tdl.Target) (tdl.Generator, error) {
 				return g, nil
 			})
 		agg := plugin.NewAggregate(p)
 
-		result, err := agg.SinkGenerator(&testing.MockTarget{})
+		result, err := agg.Generator(&testing.MockTarget{})
 
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(BeIdenticalTo(g))

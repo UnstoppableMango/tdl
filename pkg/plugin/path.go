@@ -23,7 +23,7 @@ func (f fromPath) SinkGenerator(tdl.Target) (tdl.SinkGenerator, error) {
 		return nil, fmt.Errorf("from path: %w", err)
 	}
 
-	return cli.New(path), nil
+	return gen.NewCli(path), nil
 }
 
 // Generator implements tdl.Plugin.

@@ -22,7 +22,7 @@ func NewGen() *cobra.Command {
 		Short: "Run code generation for TARGET",
 		Args:  cobra.RangeArgs(1, 3),
 		Run: func(cmd *cobra.Command, args []string) {
-			log.SetLevel(log.DebugLevel)
+			// log.SetLevel(log.DebugLevel)
 			ctx := cmd.Context()
 			config, err := run.ParseArgs(args)
 			if err != nil {

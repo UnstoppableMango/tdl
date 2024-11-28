@@ -27,7 +27,7 @@ var _ = Describe("End to end", func() {
 		Expect(bin).NotTo(BeEmpty())
 	})
 
-	Describe("gen", Pending, func() {
+	Describe("gen", func() {
 		It("should error when input is not provided", func(ctx context.Context) {
 			cmd := UxCommand(ctx, "gen", "ts")
 
