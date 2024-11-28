@@ -17,11 +17,11 @@ type typescript string
 func (t typescript) Generator(available iter.Seq[tdl.Plugin]) (tdl.Generator, error) {
 	for p := range available {
 		if p.String() == "uml2ts" {
-			// g, err := p.Generator(t)
+			return p.Generator(t)
 		}
 	}
 
-	return nil, errors.New("TODO")
+	return nil, errors.New("no suitable plugin")
 }
 
 var TypeScript typescript = "TypeScript"
