@@ -11,7 +11,7 @@ import (
 	"github.com/unstoppablemango/tdl/pkg/gen/cli"
 )
 
-var _ = Describe("End to end", Pending, func() {
+var _ = Describe("End to end", func() {
 	Describe("TypeScript Conformance", FlakeAttempts(5), func() {
 		Describe("stdout", func() {
 			generator := cli.New("ux",
@@ -27,7 +27,7 @@ var _ = Describe("End to end", Pending, func() {
 		Expect(bin).NotTo(BeEmpty())
 	})
 
-	Describe("gen", func() {
+	Describe("gen", Pending, func() {
 		It("should error when input is not provided", func(ctx context.Context) {
 			cmd := UxCommand(ctx, "gen", "ts")
 

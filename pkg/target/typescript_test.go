@@ -33,12 +33,14 @@ var _ = Describe("Typescript", func() {
 			Expect(chosen).To(Equal(expected))
 		})
 
-		It("should ignore unsupported generators", Pending, func() {
-			g := testing.NewMockGenerator()
+		It("should ignore unsupported generators", func() {
+			g := testing.NewMockGenerator().WithString(func() string {
+				return "test"
+			})
 
 			_, err := target.TypeScript.Choose([]tdl.Generator{g})
 
-			Expect(err).To(MatchError(ContainSubstring("not a CLI")))
+			Expect(err).To(MatchError(ContainSubstring("only uml2ts is supported")))
 		})
 	})
 })

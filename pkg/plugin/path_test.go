@@ -9,7 +9,7 @@ import (
 	"github.com/unstoppablemango/tdl/pkg/plugin"
 )
 
-var _ = Describe("Path", Pending, func() {
+var _ = Describe("Path", func() {
 	It("should use a default priority", func() {
 		p := plugin.FromPath("thing")
 
