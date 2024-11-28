@@ -13,8 +13,28 @@ const UnwrapDepth = 3
 
 type Aggregate []tdl.Plugin
 
-// Generator implements tdl.Plugin.
-func (a Aggregate) Generator(t tdl.Target) (tdl.SinkGenerator, error) {
+// SinkGenerator implements tdl.Plugin.
+func (a Aggregate) SinkGenerator(t tdl.Target) (tdl.SinkGenerator, error) {
+	if len(a) == 0 {
+		return nil, errors.New("empty aggregate plugin")
+	}
+
+	errs := []error{}
+	for _, p := range a.sorted() {
+		g, err := p.SinkGenerator(t)
+		if err == nil {
+			return g, nil
+		}
+
+		log.Error(err, "generator", g)
+		errs = append(errs, err)
+	}
+
+	return nil, errors.Join(errs...)
+}
+
+// SinkGenerator implements tdl.Plugin.
+func (a Aggregate) Generator(t tdl.Target) (tdl.Generator, error) {
 	if len(a) == 0 {
 		return nil, errors.New("empty aggregate plugin")
 	}

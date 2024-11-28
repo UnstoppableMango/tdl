@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/charmbracelet/log"
+	"github.com/unmango/go/iter"
 	"github.com/unmango/go/option"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/gen"
@@ -31,11 +32,16 @@ type release struct {
 
 type Option func(*release)
 
-// Generator implements tdl.Plugin.
-func (g *release) Generator(target tdl.Target) (tdl.SinkGenerator, error) {
+// SinkGenerator implements tdl.Plugin.
+func (g *release) SinkGenerator(target tdl.Target) (tdl.SinkGenerator, error) {
 	return target.Choose([]tdl.SinkGenerator{
 		gen.NewCli("uml2ts"),
 	})
+}
+
+// SinkGenerator implements tdl.Plugin.
+func (g *release) Generator(target tdl.Target) (tdl.Generator, error) {
+	return target.Generator(iter.Singleton[tdl.Plugin](g))
 }
 
 // String implements tdl.Plugin.

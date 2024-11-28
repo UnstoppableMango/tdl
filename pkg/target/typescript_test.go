@@ -1,11 +1,10 @@
 package target_test
 
 import (
-	"slices"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/unmango/go/slices"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/plugin"
 	"github.com/unstoppablemango/tdl/pkg/target"
@@ -23,7 +22,7 @@ var _ = Describe("Typescript", func() {
 
 	Describe("Choose", func() {
 		It("should choose uml2ts", func() {
-			expected, err := plugin.Uml2Ts.Generator(target.TypeScript)
+			expected, err := plugin.Uml2Ts.SinkGenerator(target.TypeScript)
 			Expect(err).NotTo(HaveOccurred())
 
 			chosen, err := target.TypeScript.Choose([]tdl.SinkGenerator{expected})

@@ -2,16 +2,27 @@ package target
 
 import (
 	"errors"
-	"iter"
 	"path/filepath"
-	"slices"
 
+	"github.com/unmango/go/iter"
+	"github.com/unmango/go/slices"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/gen"
 	"github.com/unstoppablemango/tdl/pkg/plugin"
 )
 
 type typescript string
+
+// Generator implements tdl.Target.
+func (t typescript) Generator(available iter.Seq[tdl.Plugin]) (tdl.Generator, error) {
+	for p := range available {
+		if p.String() == "uml2ts" {
+			return p.Generator(t)
+		}
+	}
+
+	return nil, errors.New("no suitable plugin")
+}
 
 var TypeScript typescript = "TypeScript"
 

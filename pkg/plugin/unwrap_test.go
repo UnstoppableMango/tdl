@@ -11,7 +11,7 @@ import (
 
 var _ = Describe("Unwrap", func() {
 	It("should ignore non-aggregate plugin", func() {
-		p := testing.NewMockPlugin()
+		p := &testing.MockPlugin{}
 
 		r := plugin.Unwrap(p)
 
@@ -19,7 +19,7 @@ var _ = Describe("Unwrap", func() {
 	})
 
 	It("should unwrap an aggregate plugin", func() {
-		p := testing.NewMockPlugin()
+		p := &testing.MockPlugin{}
 		agg := plugin.NewAggregate(p)
 
 		r := plugin.Unwrap(agg)
@@ -28,8 +28,8 @@ var _ = Describe("Unwrap", func() {
 	})
 
 	It("should unwrap multiple aggregate plugins", func() {
-		p1 := testing.NewMockPlugin()
-		p2 := testing.NewMockPlugin()
+		p1 := &testing.MockPlugin{}
+		p2 := &testing.MockPlugin{}
 		agg := plugin.NewAggregate(p1, p2)
 
 		r := plugin.Unwrap(agg)
@@ -38,7 +38,7 @@ var _ = Describe("Unwrap", func() {
 	})
 
 	It("should unwrap nested aggregate plugin", func() {
-		p := testing.NewMockPlugin()
+		p := &testing.MockPlugin{}
 		agg := plugin.NewAggregate(
 			plugin.NewAggregate(p),
 		)
@@ -49,7 +49,7 @@ var _ = Describe("Unwrap", func() {
 	})
 
 	It("should unwrap nested aggregate plugins up to max depth", func() {
-		p := testing.NewMockPlugin()
+		p := &testing.MockPlugin{}
 		agg := plugin.NewAggregate(p)
 		for i := 0; i < plugin.UnwrapDepth-1; i++ {
 			agg = plugin.NewAggregate(agg)
@@ -61,7 +61,7 @@ var _ = Describe("Unwrap", func() {
 	})
 
 	It("should stop unwrapping nested aggregate plugins after max depth", func() {
-		p := testing.NewMockPlugin()
+		p := &testing.MockPlugin{}
 		agg := plugin.NewAggregate(p)
 		for i := 0; i < plugin.UnwrapDepth; i++ {
 			agg = plugin.NewAggregate(agg)
@@ -74,8 +74,8 @@ var _ = Describe("Unwrap", func() {
 
 	Describe("UnwrapAll", func() {
 		It("should ignore all non-aggregate plugins", func() {
-			p1 := testing.NewMockPlugin()
-			p2 := testing.NewMockPlugin()
+			p1 := &testing.MockPlugin{}
+			p2 := &testing.MockPlugin{}
 
 			r := plugin.UnwrapAll([]tdl.Plugin{p1, p2})
 
@@ -83,8 +83,8 @@ var _ = Describe("Unwrap", func() {
 		})
 
 		It("should unwrap all aggregate plugins", func() {
-			p1 := testing.NewMockPlugin()
-			p2 := testing.NewMockPlugin()
+			p1 := &testing.MockPlugin{}
+			p2 := &testing.MockPlugin{}
 			agg := plugin.NewAggregate(p1, p2)
 
 			r := plugin.UnwrapAll(agg)
@@ -93,7 +93,7 @@ var _ = Describe("Unwrap", func() {
 		})
 
 		It("should unwrap all nested aggregate plugins up to max depth", func() {
-			p := testing.NewMockPlugin()
+			p := &testing.MockPlugin{}
 			agg := plugin.NewAggregate(p)
 			for i := 0; i < plugin.UnwrapDepth-1; i++ {
 				agg = plugin.NewAggregate(agg)
@@ -105,7 +105,7 @@ var _ = Describe("Unwrap", func() {
 		})
 
 		It("should stop unwrapping all nested aggregate plugins after max depth", func() {
-			p := testing.NewMockPlugin()
+			p := &testing.MockPlugin{}
 			agg := plugin.NewAggregate(p)
 			for i := 0; i < plugin.UnwrapDepth; i++ {
 				agg = plugin.NewAggregate(agg)
