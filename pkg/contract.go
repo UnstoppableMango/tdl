@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
 	"iter"
 
 	"github.com/spf13/afero"
@@ -48,4 +49,25 @@ func (m MediaType) String() string {
 type Input interface {
 	io.Reader
 	MediaType() MediaType
+}
+
+type Output interface {
+	Write(afero.Fs) error
+}
+
+type ParseResult struct {
+	Inputs []Input
+	Output Output
+}
+
+type Stdin interface {
+	io.Reader
+	Stat() (fs.FileInfo, error)
+}
+
+type OS interface {
+	Stdin() Stdin
+	Stdout() io.Writer
+	Stderr() io.Writer
+	Fs() afero.Fs
 }
