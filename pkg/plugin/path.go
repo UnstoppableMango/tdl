@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 
@@ -24,8 +25,8 @@ func (f fromPath) SinkGenerator(tdl.Target) (tdl.SinkGenerator, error) {
 	return gen.NewCli(path), nil
 }
 
-// SinkGenerator implements tdl.Plugin.
-func (f fromPath) Generator(tdl.Target) (tdl.Generator, error) {
+// Generator implements tdl.Plugin.
+func (f fromPath) Generator(context.Context, tdl.Target) (tdl.Generator, error) {
 	path, err := exec.LookPath(f.name)
 	if err != nil {
 		return nil, fmt.Errorf("from path: %w", err)

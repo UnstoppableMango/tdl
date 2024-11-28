@@ -1,6 +1,8 @@
 package docker
 
 import (
+	"context"
+
 	"github.com/docker/docker/client"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/gen"
@@ -17,7 +19,7 @@ func (p *plugin) SinkGenerator(tdl.Target) (tdl.SinkGenerator, error) {
 }
 
 // Generator implements tdl.Plugin.
-func (p *plugin) Generator(tdl.Target) (tdl.Generator, error) {
+func (p *plugin) Generator(context.Context, tdl.Target) (tdl.Generator, error) {
 	return gen.NewDocker(p.image), nil
 }
 

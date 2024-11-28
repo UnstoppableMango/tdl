@@ -1,6 +1,7 @@
 package target
 
 import (
+	"context"
 	"errors"
 	"path/filepath"
 
@@ -17,7 +18,7 @@ type typescript string
 func (t typescript) Generator(available iter.Seq[tdl.Plugin]) (tdl.Generator, error) {
 	for p := range available {
 		if p.String() == "uml2ts" {
-			return p.Generator(t)
+			return p.Generator(context.TODO(), t)
 		}
 	}
 

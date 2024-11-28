@@ -40,7 +40,7 @@ func (g *release) SinkGenerator(target tdl.Target) (tdl.SinkGenerator, error) {
 }
 
 // SinkGenerator implements tdl.Plugin.
-func (g *release) Generator(target tdl.Target) (tdl.Generator, error) {
+func (g *release) Generator(ctx context.Context, target tdl.Target) (tdl.Generator, error) {
 	return target.Generator(iter.Singleton[tdl.Plugin](g))
 }
 
