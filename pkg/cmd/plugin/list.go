@@ -14,7 +14,7 @@ func NewList() *cobra.Command {
 		Aliases: []string{"ls"},
 		Args:    cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			for _, p := range plugin.Static() {
+			for p := range plugin.Static() {
 				fmt.Println(plugin.Unwrap(p))
 			}
 		},
