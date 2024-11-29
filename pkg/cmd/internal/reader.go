@@ -34,11 +34,3 @@ func StdinInput(stdin tdl.Stdin) (tdl.Input, error) {
 
 	return &reader{stdin, mediatype.ApplicationProtobuf}, nil
 }
-
-func collect(i tdl.Input, err error) ([]tdl.Input, error) {
-	if err != nil {
-		return nil, err
-	} else {
-		return []tdl.Input{i}, nil
-	}
-}

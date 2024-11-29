@@ -46,3 +46,11 @@ func ParseInputArgs(os tdl.OS, args []string) ([]tdl.Input, error) {
 		return nil, fmt.Errorf("too many arguments: %#v", args)
 	}
 }
+
+func collect(i tdl.Input, err error) ([]tdl.Input, error) {
+	if err != nil {
+		return nil, err
+	} else {
+		return []tdl.Input{i}, nil
+	}
+}
