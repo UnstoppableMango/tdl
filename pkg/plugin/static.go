@@ -10,7 +10,7 @@ import (
 
 var Uml2Ts tdl.Plugin = NewAggregate(
 	fromPath{"uml2ts", 50},
-	github.NewRelease("tdl-linux-amd64.tar.gz", "v0.0.30",
+	github.NewRelease("tdl-linux-amd64.tar.gz", "0.0.30",
 		github.WithArchiveContents("uml2ts"),
 	),
 	docker.New(nil, "ghcr.io/unstoppablemango/uml2ts:v0.0.30"),
