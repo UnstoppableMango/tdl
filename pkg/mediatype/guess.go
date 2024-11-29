@@ -19,5 +19,5 @@ func Guess(path string) (tdl.MediaType, error) {
 		return ApplicationProtobuf, nil
 	}
 
-	return "", fmt.Errorf("no guess for media type: %s", path)
+	return "", fmt.Errorf("unable to guess media type: %s", path)
 }

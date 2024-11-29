@@ -2,6 +2,7 @@ package internal
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 
@@ -25,7 +26,7 @@ func OpenFile(fsys afero.Fs, path string) (tdl.Input, error) {
 		return nil, err
 	}
 	if stat.IsDir() {
-		return nil, errors.New("input was a directory")
+		return nil, fmt.Errorf("%s is a directory", path)
 	}
 
 	f, err := fsys.Open(path)
@@ -70,8 +71,8 @@ func (f *fsOutput) writeFile(output afero.Fs) error {
 	return WriterOutput(file).Write(output)
 }
 
-func FsOutput(destination afero.Fs, path string) tdl.Output {
-	return &fsOutput{destination, path}
+func FsOutput(dest afero.Fs, path string) tdl.Output {
+	return &fsOutput{dest, path}
 }
 
 func CopyFs(src, dest afero.Fs) error {

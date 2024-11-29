@@ -44,7 +44,7 @@ var _ = Describe("Parse", func() {
 
 				_, err = internal.ParseArgs(mockOs, []string{"input.txt"})
 
-				Expect(err).To(MatchError("no guess for media type: input.txt"))
+				Expect(err).To(MatchError("unable to guess media type: input.txt"))
 			})
 
 			It("should write to stdout", func() {
@@ -120,7 +120,7 @@ var _ = Describe("Parse", func() {
 			It("should error", func() {
 				_, err := internal.ParseArgs(mockOs, []string{"test"})
 
-				Expect(err).To(MatchError("input was a directory"))
+				Expect(err).To(MatchError("test is a directory"))
 			})
 		})
 

@@ -27,12 +27,25 @@ func (c *containFileWithBytes) Match(actual interface{}) (success bool, err erro
 
 // FailureMessage implements types.GomegaMatcher.
 func (c *containFileWithBytes) FailureMessage(actual interface{}) (message string) {
-	return fmt.Sprintf("expected file at\n\t%s\nto contain content:\n%s", c.path, c.bytes)
+	fs, ok := actual.(afero.Fs)
+	if !ok {
+		return fmt.Sprintf("expected an [afero.Fs] got %s", reflect.TypeOf(actual))
+	}
+
+	data, err := afero.ReadFile(fs, c.path)
+	if err != nil {
+		return err.Error()
+	}
+
+	return fmt.Sprintf(
+		"expected file at\n%s\n\tto contain content:\n%s\n\tbut instead had\n%s",
+		c.path, c.bytes, data,
+	)
 }
 
 // NegatedFailureMessage implements types.GomegaMatcher.
 func (c *containFileWithBytes) NegatedFailureMessage(actual interface{}) (message string) {
-	return fmt.Sprintf("expected file at\n\t%s not to contain content:\n%s", c.path, c.bytes)
+	return fmt.Sprintf("expected file at\n%s\n\tnot to contain content:\n%s", c.path, c.bytes)
 }
 
 func ContainFileWithBytes(path string, bytes []byte) types.GomegaMatcher {
