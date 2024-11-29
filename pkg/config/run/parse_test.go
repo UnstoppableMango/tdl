@@ -11,6 +11,7 @@ import (
 	"github.com/unstoppablemango/tdl/pkg/config/run"
 	"github.com/unstoppablemango/tdl/pkg/mediatype"
 	"github.com/unstoppablemango/tdl/pkg/testing"
+	. "github.com/unstoppablemango/tdl/pkg/testing/matcher"
 	uxv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/ux/v1alpha1"
 )
 
@@ -175,6 +176,46 @@ var _ = Describe("Parse", func() {
 					Expect(string(data)).To(Equal(expected))
 				})
 			})
+		})
+	})
+
+	Describe("ParseOutput", func() {
+		var os *testing.MockOs
+
+		BeforeEach(func() {
+			os = &testing.MockOs{}
+		})
+
+		It("should create stdout output", func() {
+			buf := &bytes.Buffer{}
+			os.StdoutValue = buf
+			output, err := run.ParseOutput(os, &uxv1alpha1.RunConfig{
+				Output: &uxv1alpha1.RunConfig_Stdout{Stdout: true},
+			})
+
+			Expect(err).NotTo(HaveOccurred())
+			fs := afero.NewMemMapFs()
+			err = afero.WriteFile(fs, "blah.output", []byte("testing"), 0o777)
+			Expect(err).NotTo(HaveOccurred())
+			err = output.Write(fs)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(buf.String()).To(Equal("testing"))
+		})
+
+		It("should create fs output", func() {
+			output, err := run.ParseOutput(os, &uxv1alpha1.RunConfig{
+				Output: &uxv1alpha1.RunConfig_Path{
+					Path: "blah.output",
+				},
+			})
+
+			Expect(err).NotTo(HaveOccurred())
+			fs := afero.NewMemMapFs()
+			err = afero.WriteFile(fs, "blah.output", []byte("testing"), 0o777)
+			Expect(err).NotTo(HaveOccurred())
+			err = output.Write(fs)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(os.Fs()).To(ContainFileWithBytes("blah.output", []byte("testing")))
 		})
 	})
 })
