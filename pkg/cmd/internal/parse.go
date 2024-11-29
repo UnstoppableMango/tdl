@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	tdl "github.com/unstoppablemango/tdl/pkg"
+	"github.com/unstoppablemango/tdl/pkg/config/run"
 )
 
 func ParseArgs(os tdl.OS, args []string) (res tdl.ParseResult, err error) {
@@ -23,9 +24,9 @@ func ParseOutputArgs(os tdl.OS, args []string) (tdl.Output, error) {
 	case 0:
 		return nil, errors.New("no input file provided")
 	case 1:
-		return WriterOutput(os.Stdout()), nil
+		return run.WriterOutput(os.Stdout()), nil
 	case 2:
-		return FsOutput(os.Fs(), args[1]), nil
+		return run.FsOutput(os.Fs(), args[1]), nil
 	default:
 		return nil, fmt.Errorf("too many arguments: %#v", args)
 	}
@@ -37,11 +38,11 @@ func ParseInputArgs(os tdl.OS, args []string) ([]tdl.Input, error) {
 		return nil, errors.New("no input file provided")
 	case 1:
 		if args[0] == "-" {
-			return collect(StdinInput(os.Stdin()))
+			return collect(run.StdinInput(os.Stdin()))
 		}
 		fallthrough
 	case 2:
-		return collect(OpenFile(os.Fs(), args[0]))
+		return collect(run.OpenFile(os.Fs(), args[0]))
 	default:
 		return nil, fmt.Errorf("too many arguments: %#v", args)
 	}
