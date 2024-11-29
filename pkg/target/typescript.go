@@ -3,12 +3,12 @@ package target
 import (
 	"context"
 	"errors"
+	"fmt"
 	"path/filepath"
 
 	"github.com/unmango/go/iter"
 	"github.com/unmango/go/slices"
 	tdl "github.com/unstoppablemango/tdl/pkg"
-	"github.com/unstoppablemango/tdl/pkg/gen"
 	"github.com/unstoppablemango/tdl/pkg/plugin"
 )
 
@@ -58,12 +58,12 @@ func (t typescript) String() string {
 }
 
 func supported(g tdl.SinkGenerator) error {
-	cli, ok := g.(*gen.Cli)
+	stringer, ok := g.(fmt.Stringer)
 	if !ok {
-		return Reject(g, "not a CLI")
+		return Reject(g, "unable to inspec generator")
 	}
 
-	name := filepath.Base(cli.String())
+	name := filepath.Base(stringer.String())
 	if name != "uml2ts" {
 		return Reject(g, "only uml2ts is supported")
 	}

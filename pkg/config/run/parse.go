@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	tdl "github.com/unstoppablemango/tdl/pkg"
+	"github.com/unstoppablemango/tdl/pkg/target"
 	uxv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/ux/v1alpha1"
 )
 
@@ -51,6 +52,10 @@ func ParseArgs(args []string) (*uxv1alpha1.RunConfig, error) {
 	}
 
 	return config, nil
+}
+
+func ParseTarget(config *uxv1alpha1.RunConfig) (tdl.Target, error) {
+	return target.Parse(config.Target)
 }
 
 func ParseInputs(os tdl.OS, config *uxv1alpha1.RunConfig) ([]tdl.Input, error) {
