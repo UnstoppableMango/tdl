@@ -24,3 +24,23 @@ message TargetOutput {
   string name = 1;
   map<string, unmango.dev.tdl.v1alpha1.Unit> output = 2;
 }
+
+message FileInput {
+  string path = 1;
+}
+
+message Input {
+  oneof value {
+    unmango.dev.tdl.v1alpha1.Spec inline = 1;
+    FileInput file = 2;
+    bool stdin = 3;
+  }
+}
+
+message RunConfig {
+  repeated Input inputs = 1;
+  oneof output {
+    bool stdout = 2;
+    string path = 3;
+  }
+}
