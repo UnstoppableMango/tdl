@@ -38,9 +38,10 @@ message Input {
 }
 
 message RunConfig {
-  repeated Input inputs = 1;
+  string target = 1;
+  repeated Input inputs = 2;
   oneof output {
-    bool stdout = 2;
-    string path = 3;
+    bool stdout = 3;
+    string path = 4;
   }
 }
