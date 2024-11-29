@@ -1,6 +1,8 @@
 package plugin_test
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -18,15 +20,15 @@ var _ = Describe("Aggregate", func() {
 		Expect(result).To(ConsistOf(p))
 	})
 
-	It("should pick the given generator", func() {
-		g := testing.NewMockGenerator()
+	It("should pick the given generator", func(ctx context.Context) {
+		g := &testing.MockGenerator{}
 		p := (&testing.MockPlugin{}).
 			WithGenerator(func(tdl.Target) (tdl.Generator, error) {
 				return g, nil
 			})
 		agg := plugin.NewAggregate(p)
 
-		result, err := agg.Generator(&testing.MockTarget{})
+		result, err := agg.Generator(ctx, &testing.MockTarget{})
 
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(BeIdenticalTo(g))

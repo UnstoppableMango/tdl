@@ -3,8 +3,8 @@ package target_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/unmango/go/iter"
 
+	"github.com/unmango/go/iter"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/plugin"
 	"github.com/unstoppablemango/tdl/pkg/target"
@@ -15,7 +15,7 @@ var _ = Describe("Typescript", func() {
 	Describe("Generator", func() {
 		It("should choose uml2ts", func() {
 			chosen, err := target.TypeScript.Generator(
-				iter.Singleton[tdl.Plugin](plugin.Uml2Ts),
+				iter.Singleton(plugin.Uml2Ts),
 			)
 
 			Expect(err).NotTo(HaveOccurred())
