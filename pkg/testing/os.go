@@ -28,16 +28,28 @@ func (m *MockOs) Fs() afero.Fs {
 
 // Stderr implements tdl.OS.
 func (m *MockOs) Stderr() io.Writer {
+	if m.StderrValue == nil {
+		panic("unimplemented")
+	}
+
 	return m.StderrValue
 }
 
 // Stdin implements tdl.OS.
 func (m *MockOs) Stdin() tdl.Stdin {
+	if m.StdinValue == nil {
+		panic("unimplemented")
+	}
+
 	return m.StdinValue
 }
 
 // Stdout implements tdl.OS.
 func (m *MockOs) Stdout() io.Writer {
+	if m.StdoutValue == nil {
+		panic("unimplemented")
+	}
+
 	return m.StdoutValue
 }
 
