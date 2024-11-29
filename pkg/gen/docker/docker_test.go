@@ -2,7 +2,9 @@ package docker_test
 
 import (
 	"context"
+	"io"
 
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -13,15 +15,36 @@ import (
 )
 
 var _ = Describe("Docker", func() {
-	It("should work", func(ctx context.Context) {
-		client, err := client.NewClientWithOpts(client.WithAPIVersionNegotiation())
-		Expect(err).NotTo(HaveOccurred())
-		g := docker.New(client, "ghcr.io/unstoppablemango/uml2ts:v0.0.30")
-		spec := &tdlv1alpha1.Spec{}
+	var testClient client.APIClient
 
-		fs, err := g.Execute(ctx, spec)
-
+	BeforeEach(func(ctx context.Context) {
+		var err error
+		testClient, err = client.NewClientWithOpts(
+			client.WithAPIVersionNegotiation(),
+		)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(fs).To(ContainFile("stdout"))
+	})
+
+	When("the image exists", Label("E2E"), func() {
+		BeforeEach(func(ctx context.Context) {
+			reader, err := testClient.ImagePull(ctx,
+				"ghcr.io/unstoppablemango/uml2ts:v0.0.30",
+				image.PullOptions{},
+			)
+			Expect(err).NotTo(HaveOccurred())
+			_, err = io.ReadAll(reader)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(reader.Close()).To(Succeed())
+		})
+
+		It("should work", func(ctx context.Context) {
+			g := docker.New(testClient, "ghcr.io/unstoppablemango/uml2ts:v0.0.30")
+			spec := &tdlv1alpha1.Spec{}
+
+			fs, err := g.Execute(ctx, spec)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(fs).To(ContainFile("stdout"))
+		})
 	})
 })
