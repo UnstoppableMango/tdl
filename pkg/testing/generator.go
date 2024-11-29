@@ -15,6 +15,10 @@ type MockGenerator struct {
 
 // String implements tdl.Generator.
 func (m *MockGenerator) String() string {
+	if m.StringFunc == nil {
+		panic("unimplemented")
+	}
+
 	return m.StringFunc()
 }
 
@@ -23,6 +27,10 @@ func (m *MockGenerator) Execute(
 	ctx context.Context,
 	spec *tdlv1alpha1.Spec,
 ) (afero.Fs, error) {
+	if m.ExecuteFunc == nil {
+		panic("unimplemented")
+	}
+
 	return m.ExecuteFunc(ctx, spec)
 }
 
@@ -47,11 +55,3 @@ func (m *MockGenerator) WithName(name string) *MockGenerator {
 }
 
 var _ tdl.Generator = &MockGenerator{}
-
-func NewMockGenerator() *MockGenerator {
-	return &MockGenerator{
-		ExecuteFunc: func(context.Context, *tdlv1alpha1.Spec) (afero.Fs, error) {
-			panic("unimplemented")
-		},
-	}
-}
