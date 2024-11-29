@@ -1,6 +1,8 @@
 package testing
 
 import (
+	"context"
+
 	tdl "github.com/unstoppablemango/tdl/pkg"
 )
 
@@ -11,7 +13,7 @@ type MockPlugin struct {
 }
 
 // Generator implements tdl.Plugin.
-func (m *MockPlugin) Generator(t tdl.Target) (tdl.Generator, error) {
+func (m *MockPlugin) Generator(ctx context.Context, t tdl.Target) (tdl.Generator, error) {
 	if m.GeneratorFunc == nil {
 		panic("unimplemented")
 	}

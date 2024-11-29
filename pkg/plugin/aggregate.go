@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"iter"
@@ -33,15 +34,15 @@ func (a Aggregate) SinkGenerator(t tdl.Target) (tdl.SinkGenerator, error) {
 	return nil, errors.Join(errs...)
 }
 
-// SinkGenerator implements tdl.Plugin.
-func (a Aggregate) Generator(t tdl.Target) (tdl.Generator, error) {
+// Generator implements tdl.Plugin.
+func (a Aggregate) Generator(ctx context.Context, t tdl.Target) (tdl.Generator, error) {
 	if len(a) == 0 {
 		return nil, errors.New("empty aggregate plugin")
 	}
 
 	errs := []error{}
 	for _, p := range a.sorted() {
-		g, err := p.Generator(t)
+		g, err := p.Generator(ctx, t)
 		if err == nil {
 			return g, nil
 		}

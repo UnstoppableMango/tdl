@@ -20,8 +20,8 @@ func NewWhich() *cobra.Command {
 				util.Fail(err)
 			}
 
-			for _, p := range plugin.Static() {
-				g, err := p.Generator(t)
+			for p := range plugin.Static() {
+				g, err := p.Generator(cmd.Context(), t)
 				if err != nil {
 					util.Fail(err)
 				}

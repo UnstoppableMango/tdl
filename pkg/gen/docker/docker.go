@@ -1,13 +1,10 @@
-package gen
+package docker
 
 import (
 	"context"
-	"io"
-	"slices"
 
 	"github.com/charmbracelet/log"
 	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -17,27 +14,18 @@ import (
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
 
-type Docker struct {
-	options []client.Opt
-	image   string
+type docker struct {
+	client client.APIClient
+	image  string
 }
 
 // Execute implements tdl.Generator.
-func (d *Docker) Execute(
+func (d *docker) Execute(
 	ctx context.Context,
 	spec *tdlv1alpha1.Spec,
 ) (afero.Fs, error) {
-	client, err := client.NewClientWithOpts(d.options...)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = d.ensure(ctx, client); err != nil {
-		return nil, err
-	}
-
 	log.Debug("creating container")
-	res, err := client.ContainerCreate(ctx,
+	res, err := d.client.ContainerCreate(ctx,
 		&container.Config{
 			AttachStdin:  true,
 			AttachStdout: true,
@@ -62,7 +50,7 @@ func (d *Docker) Execute(
 	}
 
 	log.Debug("attaching to container")
-	ctr, err := client.ContainerAttach(ctx,
+	ctr, err := d.client.ContainerAttach(ctx,
 		res.ID,
 		container.AttachOptions{
 			Stdin:  true,
@@ -76,7 +64,7 @@ func (d *Docker) Execute(
 	defer ctr.Close()
 
 	log.Debug("starting container")
-	err = client.ContainerStart(ctx,
+	err = d.client.ContainerStart(ctx,
 		res.ID,
 		container.StartOptions{},
 	)
@@ -97,7 +85,7 @@ func (d *Docker) Execute(
 
 	log.Debug("reading generator response")
 	fs := afero.NewMemMapFs()
-	err = afero.WriteReader(fs, "out", ctr.Reader)
+	err = afero.WriteReader(fs, "stdout", ctr.Reader)
 	if err != nil {
 		return nil, err
 	}
@@ -105,52 +93,15 @@ func (d *Docker) Execute(
 	return fs, nil
 }
 
-func (d *Docker) ensure(ctx context.Context, client *client.Client) error {
-	log.Debug("listing images")
-	images, err := client.ImageList(ctx, image.ListOptions{})
-	if err != nil {
-		return err
-	}
-
-	log.Debug("searching for existing image",
-		"images", len(images),
-		"image", d.image,
-	)
-	for _, i := range images {
-		if slices.Contains(i.RepoTags, d.image) {
-			log.Debug("image exists")
-			return nil
-		}
-	}
-
-	log.Debug("pulling image")
-	r, err := client.ImagePull(ctx, d.image, image.PullOptions{})
-	if err != nil {
-		return err
-	}
-	defer r.Close()
-
-	log.Debug("reading response")
-	data, err := io.ReadAll(r)
-	if err != nil {
-		return err
-	}
-
-	// TODO: This contains a JSON stream
-	// we could use for reporting progress
-	log.Debug(string(data))
-	return nil
-}
-
-func (d *Docker) String() string {
+func (d *docker) String() string {
 	return d.image
 }
 
-var _ tdl.Generator = &Docker{}
+var _ tdl.Generator = &docker{}
 
-func NewDocker(image string, options ...client.Opt) *Docker {
-	return &Docker{
-		options: options,
-		image:   image,
+func New(client client.APIClient, image string) tdl.Generator {
+	return &docker{
+		client: client,
+		image:  image,
 	}
 }

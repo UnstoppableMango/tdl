@@ -31,7 +31,7 @@ type Generator interface {
 type Plugin interface {
 	fmt.Stringer
 	SinkGenerator(Target) (SinkGenerator, error)
-	Generator(Target) (Generator, error)
+	Generator(context.Context, Target) (Generator, error)
 }
 
 type Target interface {
