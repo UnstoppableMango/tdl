@@ -11,7 +11,7 @@ import (
 	"github.com/unstoppablemango/tdl/pkg/plugin/docker"
 )
 
-var _ = Describe("Plugin", func() {
+var _ = Describe("Plugin", Serial, func() {
 	var testClient client.APIClient
 
 	BeforeEach(func() {
