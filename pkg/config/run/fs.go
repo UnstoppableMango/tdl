@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 
+	"github.com/charmbracelet/log"
 	"github.com/spf13/afero"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/mediatype"
@@ -14,6 +15,11 @@ import (
 type file struct {
 	afero.File
 	media tdl.MediaType
+}
+
+// String implements tdl.Input.
+func (f *file) String() string {
+	return fmt.Sprintf("file: %s %s", f.Name(), f.media)
 }
 
 func (f *file) MediaType() tdl.MediaType {
@@ -47,6 +53,11 @@ type fsOutput struct {
 	path string
 }
 
+// String implements tdl.Output.
+func (f *fsOutput) String() string {
+	return fmt.Sprintf("fs: %s %s", f.dest.Name(), f.path)
+}
+
 func (f *fsOutput) Write(output afero.Fs) error {
 	stat, err := f.dest.Stat(f.path)
 	if errors.Is(err, os.ErrNotExist) {
@@ -68,6 +79,7 @@ func (f *fsOutput) writeFile(output afero.Fs) error {
 		return err
 	}
 
+	log.Debugf("writing to file %s", file.Name())
 	return WriterOutput(file).Write(output)
 }
 
@@ -76,6 +88,7 @@ func FsOutput(dest afero.Fs, path string) tdl.Output {
 }
 
 func copyFs(src, dest afero.Fs) error {
+	log.Debugf("copying fs %s to fs %s", src.Name(), dest.Name())
 	return afero.Walk(src, "",
 		func(path string, info fs.FileInfo, err error) error {
 			if err != nil {

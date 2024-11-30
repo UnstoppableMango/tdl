@@ -48,11 +48,13 @@ func (m MediaType) String() string {
 }
 
 type Input interface {
+	fmt.Stringer
 	io.Reader
 	MediaType() MediaType
 }
 
 type Output interface {
+	fmt.Stringer
 	Write(afero.Fs) error
 }
 
