@@ -41,7 +41,7 @@ func (r *reader) buffer() (*bytes.Buffer, error) {
 	return bytes.NewBuffer(data), nil
 }
 
-func NewReader(message proto.Message, media tdl.MediaType) io.Reader {
+func ProtoReader(message proto.Message, media tdl.MediaType) io.Reader {
 	return &reader{
 		media:   media,
 		message: message,

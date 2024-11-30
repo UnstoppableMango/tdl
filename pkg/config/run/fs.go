@@ -1,4 +1,4 @@
-package internal
+package run
 
 import (
 	"errors"
@@ -56,7 +56,7 @@ func (f *fsOutput) Write(output afero.Fs) error {
 		return err
 	}
 	if stat.IsDir() {
-		return CopyFs(output, afero.NewBasePathFs(f.dest, f.path))
+		return copyFs(output, afero.NewBasePathFs(f.dest, f.path))
 	}
 
 	return f.writeFile(output)
@@ -75,7 +75,7 @@ func FsOutput(dest afero.Fs, path string) tdl.Output {
 	return &fsOutput{dest, path}
 }
 
-func CopyFs(src, dest afero.Fs) error {
+func copyFs(src, dest afero.Fs) error {
 	return afero.Walk(src, "",
 		func(path string, info fs.FileInfo, err error) error {
 			if err != nil {

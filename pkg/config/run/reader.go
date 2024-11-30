@@ -1,4 +1,4 @@
-package internal
+package run
 
 import (
 	"errors"
@@ -29,7 +29,7 @@ func StdinInput(stdin tdl.Stdin) (tdl.Input, error) {
 		return nil, fmt.Errorf("stat stdin: %w", err)
 	}
 	if (stat.Mode() & os.ModeCharDevice) != 0 {
-		return nil, errors.New("no input provided")
+		return nil, errors.New("nothing on stdin")
 	}
 
 	return &reader{stdin, mediatype.ApplicationProtobuf}, nil

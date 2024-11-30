@@ -30,7 +30,7 @@ func (c *Cli) Execute(ctx context.Context, s *tdlv1alpha1.Spec, si tdl.Sink) err
 
 	cmd := exec.CommandContext(ctx, c.name, args...)
 
-	cmd.Stdin = mediatype.NewReader(s, c.enc)
+	cmd.Stdin = mediatype.ProtoReader(s, c.enc)
 	cmd.Stdout = sink.NewWriter(si)
 
 	return cmd.Run()

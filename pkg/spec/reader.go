@@ -84,6 +84,10 @@ func ReadAll(reader io.Reader, options ...ReaderOption) (*tdlv1alpha1.Spec, erro
 	return FromMediaType(opts.MediaType(), data)
 }
 
+func ReadInput(input tdl.Input) (*tdlv1alpha1.Spec, error) {
+	return ReadAll(input, WithMediaType(input.MediaType()))
+}
+
 func Options(options ...ReaderOption) readerOptions {
 	opts := defaultOptions
 	option.ApplyAll(&opts, options)

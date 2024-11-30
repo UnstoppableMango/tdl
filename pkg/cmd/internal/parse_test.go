@@ -72,6 +72,7 @@ var _ = Describe("Parse", func() {
 
 		When("a dash is provided", func() {
 			It("should read from stdin", func() {
+				mockOs.StdoutValue = &bytes.Buffer{}
 				mockOs.StdinValue = testing.MockOsStdin(
 					bytes.NewBufferString("testing"),
 				)
@@ -92,7 +93,7 @@ var _ = Describe("Parse", func() {
 
 					_, err := internal.ParseArgs(mockOs, []string{"-"})
 
-					Expect(err).To(MatchError("no input provided"))
+					Expect(err).To(MatchError("nothing on stdin"))
 				})
 			})
 		})
@@ -104,6 +105,7 @@ var _ = Describe("Parse", func() {
 			})
 
 			It("should parse input file", func() {
+				mockOs.StdoutValue = &bytes.Buffer{}
 				res, err := internal.ParseArgs(mockOs, []string{"input.yaml"})
 
 				Expect(err).NotTo(HaveOccurred())

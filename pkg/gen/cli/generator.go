@@ -34,7 +34,7 @@ func (c cli) Execute(ctx context.Context, spec *tdlv1alpha1.Spec) (afero.Fs, err
 
 	stdout, stderr := &bytes.Buffer{}, &bytes.Buffer{}
 	cmd := exec.CommandContext(ctx, c.name, c.args...)
-	cmd.Stdin = mediatype.NewReader(spec, c.enc)
+	cmd.Stdin = mediatype.ProtoReader(spec, c.enc)
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	cmd.Dir = tmp

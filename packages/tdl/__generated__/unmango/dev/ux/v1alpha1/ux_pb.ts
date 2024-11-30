@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file unmango/dev/ux/v1alpha1/ux.proto.
  */
 export const file_unmango_dev_ux_v1alpha1_ux: GenFile = /*@__PURE__*/
-  fileDesc("CiB1bm1hbmdvL2Rldi91eC92MWFscGhhMS91eC5wcm90bxIXdW5tYW5nby5kZXYudXgudjFhbHBoYTEiSwoKR2VuUmVxdWVzdBIsCgRzcGVjGAEgASgLMh4udW5tYW5nby5kZXYudGRsLnYxYWxwaGExLlNwZWMSDwoHdGFyZ2V0cxgCIAMoCSKoAQoLR2VuUmVzcG9uc2USQgoHdGFyZ2V0cxgBIAMoCzIxLnVubWFuZ28uZGV2LnV4LnYxYWxwaGExLkdlblJlc3BvbnNlLlRhcmdldHNFbnRyeRpVCgxUYXJnZXRzRW50cnkSCwoDa2V5GAEgASgJEjQKBXZhbHVlGAIgASgLMiUudW5tYW5nby5kZXYudXgudjFhbHBoYTEuVGFyZ2V0T3V0cHV0OgI4ASKuAQoMVGFyZ2V0T3V0cHV0EgwKBG5hbWUYASABKAkSQQoGb3V0cHV0GAIgAygLMjEudW5tYW5nby5kZXYudXgudjFhbHBoYTEuVGFyZ2V0T3V0cHV0Lk91dHB1dEVudHJ5Gk0KC091dHB1dEVudHJ5EgsKA2tleRgBIAEoCRItCgV2YWx1ZRgCIAEoCzIeLnVubWFuZ28uZGV2LnRkbC52MWFscGhhMS5Vbml0OgI4ATJdCglVeFNlcnZpY2USUAoDR2VuEiMudW5tYW5nby5kZXYudXgudjFhbHBoYTEuR2VuUmVxdWVzdBokLnVubWFuZ28uZGV2LnV4LnYxYWxwaGExLkdlblJlc3BvbnNlQu0BChtjb20udW5tYW5nby5kZXYudXgudjFhbHBoYTFCB1V4UHJvdG9QAVpGZ2l0aHViLmNvbS91bnN0b3BwYWJsZW1hbmdvL3RkbC9wa2cvdW5tYW5nby9kZXYvdXgvdjFhbHBoYTE7dXh2MWFscGhhMaICA1VEVaoCF1VubWFuZ28uRGV2LlV4LlYxYWxwaGExygIXVW5tYW5nb1xEZXZcVXhcVjFhbHBoYTHiAiNVbm1hbmdvXERldlxVeFxWMWFscGhhMVxHUEJNZXRhZGF0YeoCGlVubWFuZ286OkRldjo6VXg6OlYxYWxwaGExYgZwcm90bzM", [file_unmango_dev_tdl_v1alpha1_gen, file_unmango_dev_tdl_v1alpha1_spec]);
+  fileDesc("CiB1bm1hbmdvL2Rldi91eC92MWFscGhhMS91eC5wcm90bxIXdW5tYW5nby5kZXYudXgudjFhbHBoYTEiSwoKR2VuUmVxdWVzdBIsCgRzcGVjGAEgASgLMh4udW5tYW5nby5kZXYudGRsLnYxYWxwaGExLlNwZWMSDwoHdGFyZ2V0cxgCIAMoCSKoAQoLR2VuUmVzcG9uc2USQgoHdGFyZ2V0cxgBIAMoCzIxLnVubWFuZ28uZGV2LnV4LnYxYWxwaGExLkdlblJlc3BvbnNlLlRhcmdldHNFbnRyeRpVCgxUYXJnZXRzRW50cnkSCwoDa2V5GAEgASgJEjQKBXZhbHVlGAIgASgLMiUudW5tYW5nby5kZXYudXgudjFhbHBoYTEuVGFyZ2V0T3V0cHV0OgI4ASKuAQoMVGFyZ2V0T3V0cHV0EgwKBG5hbWUYASABKAkSQQoGb3V0cHV0GAIgAygLMjEudW5tYW5nby5kZXYudXgudjFhbHBoYTEuVGFyZ2V0T3V0cHV0Lk91dHB1dEVudHJ5Gk0KC091dHB1dEVudHJ5EgsKA2tleRgBIAEoCRItCgV2YWx1ZRgCIAEoCzIeLnVubWFuZ28uZGV2LnRkbC52MWFscGhhMS5Vbml0OgI4ASIZCglGaWxlSW5wdXQSDAoEcGF0aBgBIAEoCSKHAQoFSW5wdXQSMAoGaW5saW5lGAEgASgLMh4udW5tYW5nby5kZXYudGRsLnYxYWxwaGExLlNwZWNIABIyCgRmaWxlGAIgASgLMiIudW5tYW5nby5kZXYudXgudjFhbHBoYTEuRmlsZUlucHV0SAASDwoFc3RkaW4YAyABKAhIAEIHCgV2YWx1ZSJ3CglSdW5Db25maWcSDgoGdGFyZ2V0GAEgASgJEi4KBmlucHV0cxgCIAMoCzIeLnVubWFuZ28uZGV2LnV4LnYxYWxwaGExLklucHV0EhAKBnN0ZG91dBgDIAEoCEgAEg4KBHBhdGgYBCABKAlIAEIICgZvdXRwdXQyXQoJVXhTZXJ2aWNlElAKA0dlbhIjLnVubWFuZ28uZGV2LnV4LnYxYWxwaGExLkdlblJlcXVlc3QaJC51bm1hbmdvLmRldi51eC52MWFscGhhMS5HZW5SZXNwb25zZULtAQobY29tLnVubWFuZ28uZGV2LnV4LnYxYWxwaGExQgdVeFByb3RvUAFaRmdpdGh1Yi5jb20vdW5zdG9wcGFibGVtYW5nby90ZGwvcGtnL3VubWFuZ28vZGV2L3V4L3YxYWxwaGExO3V4djFhbHBoYTGiAgNVRFWqAhdVbm1hbmdvLkRldi5VeC5WMWFscGhhMcoCF1VubWFuZ29cRGV2XFV4XFYxYWxwaGEx4gIjVW5tYW5nb1xEZXZcVXhcVjFhbHBoYTFcR1BCTWV0YWRhdGHqAhpVbm1hbmdvOjpEZXY6OlV4OjpWMWFscGhhMWIGcHJvdG8z", [file_unmango_dev_tdl_v1alpha1_gen, file_unmango_dev_tdl_v1alpha1_spec]);
 
 /**
  * @generated from message unmango.dev.ux.v1alpha1.GenRequest
@@ -76,6 +76,97 @@ export type TargetOutput = Message<"unmango.dev.ux.v1alpha1.TargetOutput"> & {
  */
 export const TargetOutputSchema: GenMessage<TargetOutput> = /*@__PURE__*/
   messageDesc(file_unmango_dev_ux_v1alpha1_ux, 2);
+
+/**
+ * @generated from message unmango.dev.ux.v1alpha1.FileInput
+ */
+export type FileInput = Message<"unmango.dev.ux.v1alpha1.FileInput"> & {
+  /**
+   * @generated from field: string path = 1;
+   */
+  path: string;
+};
+
+/**
+ * Describes the message unmango.dev.ux.v1alpha1.FileInput.
+ * Use `create(FileInputSchema)` to create a new message.
+ */
+export const FileInputSchema: GenMessage<FileInput> = /*@__PURE__*/
+  messageDesc(file_unmango_dev_ux_v1alpha1_ux, 3);
+
+/**
+ * @generated from message unmango.dev.ux.v1alpha1.Input
+ */
+export type Input = Message<"unmango.dev.ux.v1alpha1.Input"> & {
+  /**
+   * @generated from oneof unmango.dev.ux.v1alpha1.Input.value
+   */
+  value: {
+    /**
+     * @generated from field: unmango.dev.tdl.v1alpha1.Spec inline = 1;
+     */
+    value: Spec;
+    case: "inline";
+  } | {
+    /**
+     * @generated from field: unmango.dev.ux.v1alpha1.FileInput file = 2;
+     */
+    value: FileInput;
+    case: "file";
+  } | {
+    /**
+     * @generated from field: bool stdin = 3;
+     */
+    value: boolean;
+    case: "stdin";
+  } | { case: undefined; value?: undefined };
+};
+
+/**
+ * Describes the message unmango.dev.ux.v1alpha1.Input.
+ * Use `create(InputSchema)` to create a new message.
+ */
+export const InputSchema: GenMessage<Input> = /*@__PURE__*/
+  messageDesc(file_unmango_dev_ux_v1alpha1_ux, 4);
+
+/**
+ * @generated from message unmango.dev.ux.v1alpha1.RunConfig
+ */
+export type RunConfig = Message<"unmango.dev.ux.v1alpha1.RunConfig"> & {
+  /**
+   * @generated from field: string target = 1;
+   */
+  target: string;
+
+  /**
+   * @generated from field: repeated unmango.dev.ux.v1alpha1.Input inputs = 2;
+   */
+  inputs: Input[];
+
+  /**
+   * @generated from oneof unmango.dev.ux.v1alpha1.RunConfig.output
+   */
+  output: {
+    /**
+     * @generated from field: bool stdout = 3;
+     */
+    value: boolean;
+    case: "stdout";
+  } | {
+    /**
+     * @generated from field: string path = 4;
+     */
+    value: string;
+    case: "path";
+  } | { case: undefined; value?: undefined };
+};
+
+/**
+ * Describes the message unmango.dev.ux.v1alpha1.RunConfig.
+ * Use `create(RunConfigSchema)` to create a new message.
+ */
+export const RunConfigSchema: GenMessage<RunConfig> = /*@__PURE__*/
+  messageDesc(file_unmango_dev_ux_v1alpha1_ux, 5);
 
 /**
  * @generated from service unmango.dev.ux.v1alpha1.UxService

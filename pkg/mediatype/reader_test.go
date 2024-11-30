@@ -22,7 +22,7 @@ var _ = Describe("Reader", func() {
 		func(media tdl.MediaType) {
 			s := &tdlv1alpha1.Spec{Name: "testing"}
 
-			r := mediatype.NewReader(s, media)
+			r := mediatype.ProtoReader(s, media)
 
 			data, err := io.ReadAll(r)
 			Expect(err).NotTo(HaveOccurred())
@@ -40,7 +40,7 @@ var _ = Describe("Reader", func() {
 		func(media tdl.MediaType) {
 			s := &tdlv1alpha1.Spec{Name: "testing"}
 
-			r := mediatype.NewReader(s, media)
+			r := mediatype.ProtoReader(s, media)
 
 			data, err := io.ReadAll(r)
 			Expect(err).NotTo(HaveOccurred())
@@ -58,7 +58,7 @@ var _ = Describe("Reader", func() {
 		func(media tdl.MediaType) {
 			s := &tdlv1alpha1.Spec{Name: "testing"}
 
-			r := mediatype.NewReader(s, media)
+			r := mediatype.ProtoReader(s, media)
 
 			data, err := io.ReadAll(r)
 			Expect(err).NotTo(HaveOccurred())

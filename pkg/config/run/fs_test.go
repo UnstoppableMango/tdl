@@ -1,4 +1,4 @@
-package internal_test
+package run_test
 
 import (
 	"io"
@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/spf13/afero"
 
-	"github.com/unstoppablemango/tdl/pkg/cmd/internal"
+	"github.com/unstoppablemango/tdl/pkg/config/run"
 	"github.com/unstoppablemango/tdl/pkg/mediatype"
 	"github.com/unstoppablemango/tdl/pkg/spec"
 	. "github.com/unstoppablemango/tdl/pkg/testing/matcher"
@@ -20,7 +20,7 @@ var _ = Describe("Fs", func() {
 		It("should error when file does not exist", func() {
 			fs := afero.NewMemMapFs()
 
-			_, err := internal.OpenFile(fs, "blah")
+			_, err := run.OpenFile(fs, "blah")
 
 			Expect(err).To(MatchError("open blah: file does not exist"))
 		})
@@ -29,7 +29,7 @@ var _ = Describe("Fs", func() {
 			fs := afero.NewMemMapFs()
 			Expect(fs.Mkdir("blah", os.ModeDir)).To(Succeed())
 
-			_, err := internal.OpenFile(fs, "blah")
+			_, err := run.OpenFile(fs, "blah")
 
 			Expect(err).To(MatchError("blah is a directory"))
 		})
@@ -39,7 +39,7 @@ var _ = Describe("Fs", func() {
 			_, err := fs.Create("blah.txt")
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = internal.OpenFile(fs, "blah.txt")
+			_, err = run.OpenFile(fs, "blah.txt")
 
 			Expect(err).To(MatchError("unable to guess media type: blah.txt"))
 		})
@@ -49,7 +49,7 @@ var _ = Describe("Fs", func() {
 			_, err := fs.Create("blah.yaml")
 			Expect(err).NotTo(HaveOccurred())
 
-			input, err := internal.OpenFile(fs, "blah.yaml")
+			input, err := run.OpenFile(fs, "blah.yaml")
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(input.MediaType()).To(Equal(mediatype.ApplicationYaml))
@@ -64,7 +64,7 @@ var _ = Describe("Fs", func() {
 			err = afero.WriteFile(fs, "blah.yaml", data, os.ModePerm)
 			Expect(err).NotTo(HaveOccurred())
 
-			input, err := internal.OpenFile(fs, "blah.yaml")
+			input, err := run.OpenFile(fs, "blah.yaml")
 
 			Expect(err).NotTo(HaveOccurred())
 			actual, err := io.ReadAll(input)
@@ -88,7 +88,7 @@ var _ = Describe("Fs", func() {
 
 		It("should write to a file", func() {
 			fs := afero.NewMemMapFs()
-			output := internal.FsOutput(fs, "blah.output")
+			output := run.FsOutput(fs, "blah.output")
 
 			err := output.Write(data)
 

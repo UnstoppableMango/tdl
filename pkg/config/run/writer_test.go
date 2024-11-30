@@ -1,4 +1,4 @@
-package internal_test
+package run_test
 
 import (
 	"bytes"
@@ -7,8 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/spf13/afero"
-
-	"github.com/unstoppablemango/tdl/pkg/cmd/internal"
+	"github.com/unstoppablemango/tdl/pkg/config/run"
 )
 
 var _ = Describe("Writer", func() {
@@ -18,7 +17,7 @@ var _ = Describe("Writer", func() {
 			data := afero.NewMemMapFs()
 			err := afero.WriteFile(data, "output.txt", []byte("testing"), os.ModePerm)
 			Expect(err).NotTo(HaveOccurred())
-			output := internal.WriterOutput(buf)
+			output := run.WriterOutput(buf)
 
 			err = output.Write(data)
 
@@ -36,7 +35,7 @@ var _ = Describe("Writer", func() {
 				os.ModePerm,
 			)
 			Expect(err).NotTo(HaveOccurred())
-			output := internal.WriterOutput(buf)
+			output := run.WriterOutput(buf)
 
 			err = output.Write(data)
 
@@ -59,7 +58,7 @@ var _ = Describe("Writer", func() {
 				os.ModePerm,
 			)
 			Expect(err).NotTo(HaveOccurred())
-			output := internal.WriterOutput(buf)
+			output := run.WriterOutput(buf)
 
 			err = output.Write(data)
 

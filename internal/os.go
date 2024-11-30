@@ -1,11 +1,18 @@
 package internal
 
 import (
+	"context"
 	"io"
 	"os"
 
 	"github.com/spf13/afero"
 	tdl "github.com/unstoppablemango/tdl/pkg"
+)
+
+type key string
+
+var (
+	osKey key = "os"
 )
 
 type realos struct {
@@ -34,4 +41,16 @@ func (realos) Stdout() io.Writer {
 
 func RealOs() tdl.OS {
 	return realos{afero.NewOsFs()}
+}
+
+func GetOs(ctx context.Context) tdl.OS {
+	if v := ctx.Value(osKey); v != nil {
+		return v.(tdl.OS)
+	} else {
+		return RealOs()
+	}
+}
+
+func WithOs(parent context.Context, os tdl.OS) context.Context {
+	return context.WithValue(parent, osKey, os)
 }
