@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/charmbracelet/log"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -13,17 +12,18 @@ import (
 )
 
 func ItShouldPass(generator tdl.Generator, test *e2e.Test, assertions ...e2e.Assertion) {
+	if len(assertions) == 0 {
+		panic("test contained no assertions")
+	}
+
 	It(fmt.Sprintf("should pass: %s", test.Name), func(ctx context.Context) {
 		By("executing the generator")
 		output, err := generator.Execute(ctx, test.Spec)
 
-		Expect(err).NotTo(HaveOccurred())
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 		By("performing the given assertions")
 		for _, assert := range assertions {
 			assert(test, output)
-		}
-		if len(assertions) == 0 {
-			log.New(GinkgoWriter).Warnf("no assertions for: %s", test.Name)
 		}
 	})
 }
