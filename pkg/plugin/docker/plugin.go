@@ -38,21 +38,13 @@ func (p *plugin) String() string {
 }
 
 func (p *plugin) ensure(ctx context.Context) error {
-	log.Debug("listing images")
-	images, err := p.client.ImageList(ctx, image.ListOptions{})
+	exists, err := ImageExists(ctx, p.client, p.image)
 	if err != nil {
 		return err
 	}
-
-	log.Debug("searching for existing image",
-		"images", len(images),
-		"image", p.image,
-	)
-	for _, i := range images {
-		if slices.Contains(i.RepoTags, p.image) {
-			log.Debug("image exists")
-			return nil
-		}
+	if exists {
+		log.Debug("image exists")
+		return nil
 	}
 
 	log.Debug("pulling image")
@@ -76,4 +68,21 @@ func (p *plugin) ensure(ctx context.Context) error {
 
 func New(client client.APIClient, image string) tdl.Plugin {
 	return &plugin{client, image}
+}
+
+func ImageExists(ctx context.Context, c client.APIClient, name string) (bool, error) {
+	log.Debug("listing images")
+	images, err := c.ImageList(ctx, image.ListOptions{})
+	if err != nil {
+		return false, err
+	}
+
+	log.Debug("searching for existing image", "images", len(images), "name", name)
+	for _, i := range images {
+		if slices.Contains(i.RepoTags, name) {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

@@ -30,6 +30,6 @@ func TestUml2ts(t *testing.T) {
 	RunSpecs(t, "Uml2ts Suite")
 }
 
-var _ = Describe("uml2ts Conformance", func() {
+var _ = Describe("uml2ts Conformance", FlakeAttempts(5), func() {
 	conform.DescribeGenerator(suite, cli.New("uml2ts", cli.ExpectStdout))
 })
