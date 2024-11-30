@@ -49,7 +49,7 @@ clean:
 	bun run --cwd packages/tdl clean
 	bun run --cwd packages/ts clean
 
-test_all:
+test_all: bin/ux bin/uml2ts bin/uml2uml
 	$(GINKGO) run -r ./
 
 e2e: .make/go_e2e_test
