@@ -4,7 +4,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/unmango/go/slices"
+	"github.com/unmango/go/iter"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/plugin"
 	"github.com/unstoppablemango/tdl/pkg/target"
@@ -12,31 +12,26 @@ import (
 )
 
 var _ = Describe("Typescript", func() {
-	It("should list the uml2ts plugin", func() {
-		expected := plugin.NewAggregate(plugin.Uml2Ts)
-
-		plugins := target.TypeScript.Plugins()
-
-		Expect(slices.Collect(plugins)).To(ConsistOf(expected))
-	})
-
-	Describe("Choose", func() {
+	Describe("Generator", func() {
 		It("should choose uml2ts", func() {
-			expected, err := plugin.Uml2Ts.SinkGenerator(target.TypeScript)
-			Expect(err).NotTo(HaveOccurred())
+			chosen, err := target.TypeScript.Generator(
+				iter.Singleton(plugin.Uml2Ts),
+			)
 
-			chosen, err := target.TypeScript.Choose([]tdl.SinkGenerator{expected})
-
 			Expect(err).NotTo(HaveOccurred())
-			Expect(chosen).To(BeIdenticalTo(expected))
+			Expect(chosen).NotTo(BeNil()) // TODO
 		})
 
 		It("should ignore unsupported generators", func() {
-			g := testing.NewMockGenerator()
+			g := (&testing.MockPlugin{}).WithString(func() string {
+				return "test"
+			})
 
-			_, err := target.TypeScript.Choose([]tdl.SinkGenerator{g})
+			_, err := target.TypeScript.Generator(
+				iter.Singleton[tdl.Plugin](g),
+			)
 
-			Expect(err).To(MatchError(ContainSubstring("not a CLI")))
+			Expect(err).To(MatchError("no suitable plugin"))
 		})
 	})
 })

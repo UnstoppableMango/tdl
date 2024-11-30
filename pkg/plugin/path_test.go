@@ -21,7 +21,7 @@ var _ = Describe("Path", func() {
 	It("should stringify", func() {
 		p := plugin.FromPath("path-thing")
 
-		Expect(p.String()).To(Equal("PATH: path-thing"))
+		Expect(p.String()).To(Equal("path-thing"))
 	})
 
 	Describe("Generator", func() {

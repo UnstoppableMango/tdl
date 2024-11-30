@@ -40,7 +40,7 @@ func (f fromPath) Generator(context.Context, tdl.Target) (tdl.Generator, error) 
 
 // String implements tdl.Plugin.
 func (f fromPath) String() string {
-	return fmt.Sprintf("PATH: %s", f.name)
+	return f.name
 }
 
 func (f fromPath) Order() int {

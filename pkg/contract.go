@@ -30,13 +30,11 @@ type Generator interface {
 
 type Plugin interface {
 	fmt.Stringer
-	SinkGenerator(Target) (SinkGenerator, error)
 	Generator(context.Context, Target) (Generator, error)
 }
 
 type Target interface {
 	fmt.Stringer
-	Choose([]SinkGenerator) (SinkGenerator, error)
 	Generator(iter.Seq[Plugin]) (Generator, error)
 }
 

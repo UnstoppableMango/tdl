@@ -12,7 +12,6 @@ import (
 	"github.com/unmango/go/iter"
 	"github.com/unmango/go/option"
 	tdl "github.com/unstoppablemango/tdl/pkg"
-	"github.com/unstoppablemango/tdl/pkg/gen"
 	"github.com/unstoppablemango/tdl/pkg/plugin/cache"
 	"github.com/unstoppablemango/tdl/pkg/progress"
 )
@@ -32,14 +31,7 @@ type release struct {
 
 type Option func(*release)
 
-// SinkGenerator implements tdl.Plugin.
-func (g *release) SinkGenerator(target tdl.Target) (tdl.SinkGenerator, error) {
-	return target.Choose([]tdl.SinkGenerator{
-		gen.NewCli("uml2ts"),
-	})
-}
-
-// SinkGenerator implements tdl.Plugin.
+// Generator implements tdl.Plugin.
 func (g *release) Generator(ctx context.Context, target tdl.Target) (tdl.Generator, error) {
 	return target.Generator(iter.Singleton[tdl.Plugin](g))
 }

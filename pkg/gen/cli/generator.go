@@ -15,17 +15,17 @@ import (
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
 
-type cli struct {
+type generator struct {
 	name   string
 	args   []string
 	enc    tdl.MediaType
 	stdout bool
 }
 
-type Option func(*cli)
+type Option func(*generator)
 
 // Execute implements tdl.Generator.
-func (c cli) Execute(ctx context.Context, spec *tdlv1alpha1.Spec) (afero.Fs, error) {
+func (c generator) Execute(ctx context.Context, spec *tdlv1alpha1.Spec) (afero.Fs, error) {
 	log.Debug("creating temp directory")
 	tmp, err := os.MkdirTemp("", "")
 	if err != nil {
@@ -63,12 +63,12 @@ func (c cli) Execute(ctx context.Context, spec *tdlv1alpha1.Spec) (afero.Fs, err
 }
 
 // String implements fmt.Stringer
-func (c cli) String() string {
+func (c generator) String() string {
 	return c.name
 }
 
 func New(name string, options ...Option) tdl.Generator {
-	gen := cli{
+	gen := generator{
 		name: name,
 		enc:  mediatype.ApplicationProtobuf,
 	}
@@ -78,23 +78,23 @@ func New(name string, options ...Option) tdl.Generator {
 }
 
 func WithArgs(args ...string) Option {
-	return func(c *cli) {
+	return func(c *generator) {
 		c.args = args
 	}
 }
 
 func WithEncoding(media tdl.MediaType) Option {
-	return func(c *cli) {
+	return func(c *generator) {
 		c.enc = media
 	}
 }
 
-func ExpectStdout(cli *cli) {
+func ExpectStdout(cli *generator) {
 	cli.stdout = true
 }
 
 func WithExpectStdout(stdout bool) Option {
-	return func(c *cli) {
+	return func(c *generator) {
 		c.stdout = stdout
 	}
 }
