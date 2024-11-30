@@ -11,8 +11,9 @@ import (
 )
 
 type fromPath struct {
-	name  string
-	order int
+	name   string
+	stdout bool
+	order  int
 }
 
 // SinkGenerator implements tdl.Plugin.
@@ -32,7 +33,9 @@ func (f fromPath) Generator(context.Context, tdl.Target) (tdl.Generator, error) 
 		return nil, fmt.Errorf("from path: %w", err)
 	}
 
-	return cli.New(path), nil
+	return cli.New(path,
+		cli.WithExpectStdout(f.stdout),
+	), nil
 }
 
 // String implements tdl.Plugin.
@@ -45,5 +48,5 @@ func (f fromPath) Order() int {
 }
 
 func FromPath(name string) tdl.Plugin {
-	return &fromPath{name, 69}
+	return &fromPath{name, false, 69}
 }

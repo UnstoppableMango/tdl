@@ -15,6 +15,11 @@ type reader struct {
 	media tdl.MediaType
 }
 
+// String implements tdl.Input.
+func (r *reader) String() string {
+	return fmt.Sprintf("reader: %s", r.media)
+}
+
 func (r *reader) MediaType() tdl.MediaType {
 	return r.media
 }

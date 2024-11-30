@@ -34,7 +34,10 @@ func TestUx(t *testing.T) {
 	g.Expect(os.Stat(bin)).NotTo(BeNil())
 
 	fs := afero.NewOsFs()
-	typescriptSuite, err = conform.ReadLocalTypeScriptSuite(ctx, fs)
+	typescriptSuite, err = conform.ReadLocalGitTests(ctx, fs, "typescript", map[string][]e2e.Assertion{
+		"interface":        {conform.AssertStdout},
+		"nested_interface": {conform.AssertStdout},
+	})
 	g.Expect(err).NotTo(HaveOccurred())
 
 	RegisterFailHandler(Fail)

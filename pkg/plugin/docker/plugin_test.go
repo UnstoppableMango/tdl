@@ -40,20 +40,26 @@ var _ = Describe("Plugin", Serial, func() {
 
 	When("the image does not exist", Label("E2E"), func() {
 		BeforeEach(func(ctx context.Context) {
-			_, err := testClient.ImageRemove(ctx,
-				"ghcr.io/unstoppablemango/uml2ts:v0.0.30",
+			exists, err := docker.ImageExists(ctx, testClient, "ghcr.io/unstoppablemango/uml2ts:v0.0.31")
+			Expect(err).NotTo(HaveOccurred())
+			if !exists {
+				return
+			}
+
+			_, err = testClient.ImageRemove(ctx,
+				"ghcr.io/unstoppablemango/uml2ts:v0.0.31",
 				image.RemoveOptions{},
 			)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("should pull a fresh image", func(ctx context.Context) {
-			p := docker.New(testClient, "ghcr.io/unstoppablemango/uml2ts:v0.0.30")
+			p := docker.New(testClient, "ghcr.io/unstoppablemango/uml2ts:v0.0.31")
 
 			g, err := p.Generator(ctx, nil)
 
 			Expect(err).NotTo(HaveOccurred())
-			Expect(g.String()).To(Equal("ghcr.io/unstoppablemango/uml2ts:v0.0.30"))
+			Expect(g.String()).To(Equal("ghcr.io/unstoppablemango/uml2ts:v0.0.31"))
 		})
 	})
 })

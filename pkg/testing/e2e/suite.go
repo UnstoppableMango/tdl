@@ -41,8 +41,8 @@ func (s suite) Tests() iter.Seq2[*Test, []Assertion] {
 	return func(yield func(*Test, []Assertion) bool) {
 		for t := range s.tests {
 			assertions, ok := s.assertions[t.Name]
-			if !ok {
-				log.Debugf("no assertions for test: %s", t.Name)
+			if !ok || len(assertions) == 0 {
+				log.Warnf("no assertions for test: %s", t.Name)
 			}
 
 			if !yield(t, assertions) {

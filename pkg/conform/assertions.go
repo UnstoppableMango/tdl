@@ -15,25 +15,25 @@ import (
 func AssertStdout(test *e2e.Test, output afero.Fs) {
 	By("opening test output")
 	expected, err := aferox.OpenSingle(test.Expected, "")
-	Expect(err).NotTo(HaveOccurred())
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 	By("reading test output")
 	data, err := io.ReadAll(expected)
-	Expect(err).NotTo(HaveOccurred())
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-	Expect(output).To(ContainFileWithBytes("stdout", data))
+	ExpectWithOffset(1, output).To(ContainFileWithBytes("stdout", data))
 }
 
 func AssertFile(path string) e2e.Assertion {
 	return func(test *e2e.Test, output afero.Fs) {
 		By("opening test output")
 		expected, err := test.Expected.Open(path)
-		Expect(err).NotTo(HaveOccurred())
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 		By("reading test output")
 		data, err := io.ReadAll(expected)
-		Expect(err).NotTo(HaveOccurred())
+		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-		Expect(output).To(ContainFileWithBytes(path, data))
+		ExpectWithOffset(1, output).To(ContainFileWithBytes(path, data))
 	}
 }
