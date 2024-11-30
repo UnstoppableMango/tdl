@@ -34,7 +34,7 @@ var _ = Describe("End to end", func() {
 			out, err := cmd.CombinedOutput()
 
 			Expect(err).To(HaveOccurred())
-			Expect(string(out)).To(Equal("no input file provided\n"))
+			Expect(string(out)).To(Equal("no input specified\n"))
 		})
 
 		It("should read spec from yaml file", FlakeAttempts(5), func(ctx context.Context) {

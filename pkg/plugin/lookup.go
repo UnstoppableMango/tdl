@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/unmango/go/iter"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/plugin/cache"
 )
@@ -23,6 +24,18 @@ func FirstAvailable(target tdl.Target) (tdl.Plugin, error) {
 	}
 
 	return nil, errors.New("no plugins available")
+}
+
+func Find(plugins iter.Seq[tdl.Plugin], pred func(tdl.Plugin) bool) (tdl.Plugin, bool) {
+	for plugin := range plugins {
+		for _, nested := range Unwrap(plugin) {
+			if pred(nested) {
+				return nested, true
+			}
+		}
+	}
+
+	return nil, false
 }
 
 func tryCache(p tdl.Plugin) error {

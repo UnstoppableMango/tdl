@@ -4,21 +4,25 @@ import (
 	"context"
 	"errors"
 
+	"github.com/charmbracelet/log"
 	"github.com/unmango/go/iter"
 	tdl "github.com/unstoppablemango/tdl/pkg"
+	"github.com/unstoppablemango/tdl/pkg/plugin"
 )
 
 type typescript string
 
 // Generator implements tdl.Target.
 func (t typescript) Generator(available iter.Seq[tdl.Plugin]) (tdl.Generator, error) {
-	for p := range available {
-		if p.String() == "uml2ts" {
-			return p.Generator(context.TODO(), t)
-		}
+	plugin, ok := plugin.Find(available, func(p tdl.Plugin) bool {
+		log.Debugf("considering %s", p)
+		return p.String() == "uml2ts"
+	})
+	if !ok {
+		return nil, errors.New("no suitable plugin")
+	} else {
+		return plugin.Generator(context.TODO(), t)
 	}
-
-	return nil, errors.New("no suitable plugin")
 }
 
 var TypeScript typescript = "TypeScript"
