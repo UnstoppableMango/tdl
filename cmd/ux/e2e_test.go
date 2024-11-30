@@ -15,15 +15,11 @@ var _ = Describe("End to end", func() {
 	Describe("TypeScript Conformance", FlakeAttempts(5), func() {
 		Describe("stdout", func() {
 			generator := cli.New("ux",
-				cli.WithArgs("gen", "ts"),
+				cli.WithArgs("gen", "ts", "-"),
 				cli.ExpectStdout,
 			)
 
-			for test := range typescriptSuite.Tests() {
-				conform.ItShouldPass(generator, test,
-					conform.AssertStdout,
-				)
-			}
+			conform.DescribeGenerator(typescriptSuite, generator)
 		})
 	})
 
@@ -51,7 +47,7 @@ var _ = Describe("End to end", func() {
 			out, err := cmd.CombinedOutput()
 
 			Expect(err).To(HaveOccurred())
-			Expect(string(out)).To(Equal("open fkjdslfkdjlsf: no such file or directory\n"))
+			Expect(string(out)).To(Equal("parsing run config: stat fkjdslfkdjlsf: no such file or directory\n"))
 		})
 
 		It("should write to output file", FlakeAttempts(5), func(ctx context.Context) {
