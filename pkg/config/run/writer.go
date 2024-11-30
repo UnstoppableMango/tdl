@@ -1,7 +1,6 @@
 package run
 
 import (
-	"fmt"
 	"io"
 	"io/fs"
 
@@ -16,7 +15,7 @@ type writerOutput struct {
 
 // String implements tdl.Output.
 func (w *writerOutput) String() string {
-	return fmt.Sprintf("writer")
+	return "writer"
 }
 
 func (w *writerOutput) Write(output afero.Fs) error {
