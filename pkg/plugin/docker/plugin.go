@@ -18,11 +18,6 @@ type plugin struct {
 	image  string
 }
 
-// SinkGenerator implements tdl.Plugin.
-func (p *plugin) SinkGenerator(tdl.Target) (tdl.SinkGenerator, error) {
-	panic("unimplemented")
-}
-
 // Generator implements tdl.Plugin.
 func (p *plugin) Generator(ctx context.Context, t tdl.Target) (tdl.Generator, error) {
 	if err := p.ensure(ctx); err != nil {
