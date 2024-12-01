@@ -9,20 +9,19 @@ import (
 	c "github.com/unstoppablemango/tdl/pkg/constraint"
 )
 
-type Func[T, V any] func(context.Context, T, V) error
+type Func[T, V any] func(context.Context, T) (V, error)
 
 type (
 	FromInput[T any]  Func[tdl.Input, T]
 	FromFs[T any]     Func[afero.Fs, T]
 	FromReader[T any] Func[io.Reader, T]
-	ToSink[T any]     Func[T, tdl.Sink]
 	ToWriter[T any]   Func[T, io.Writer]
 )
 
 type IO Func[io.Reader, io.Writer]
 
-func (f Func[T, V]) Execute(ctx context.Context, source T, sink V) error {
-	return f(ctx, source, sink)
+func (f Func[T, V]) Execute(ctx context.Context, source T) (V, error) {
+	return f(ctx, source)
 }
 
 func Lift[
