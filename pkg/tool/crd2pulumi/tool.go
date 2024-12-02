@@ -4,13 +4,21 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io/fs"
 	"maps"
 	"os"
 	"os/exec"
+	"regexp"
 
 	"github.com/charmbracelet/log"
+	"github.com/dlclark/regexp2"
 	"github.com/spf13/afero"
 	tdl "github.com/unstoppablemango/tdl/pkg"
+)
+
+var (
+	crdRegex    = regexp.MustCompile(".*\\.ya?ml")
+	outputRegex = regexp2.MustCompile("(?!.*\\.ya?ml)", 0)
 )
 
 type LangOptions struct {
@@ -48,6 +56,7 @@ func (t tool) Execute(ctx context.Context, src afero.Fs) (afero.Fs, error) {
 		"java":   t.java,
 	}
 
+	output := []afero.Fs{}
 	args := []string{}
 	for k, v := range maps.All(langs) {
 		if v == nil {
@@ -56,6 +65,7 @@ func (t tool) Execute(ctx context.Context, src afero.Fs) (afero.Fs, error) {
 
 		if v.enabled {
 			args = append(args, "--"+k)
+			output = append(output, outputFs(v.path))
 		}
 		if v.name != "" {
 			args = append(args,
@@ -78,6 +88,37 @@ func (t tool) Execute(ctx context.Context, src afero.Fs) (afero.Fs, error) {
 		args = append(args, "--force")
 	}
 
+	tmpfs := afero.NewBasePathFs(afero.NewOsFs(), tmp)
+	crdfs := afero.NewReadOnlyFs(afero.NewRegexpFs(src, crdRegex))
+	err = afero.Walk(crdfs, "",
+		func(path string, info fs.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if path == "" {
+				return nil // skip root
+			}
+			if info.IsDir() {
+				return tmpfs.Mkdir(path, os.ModeDir)
+			}
+
+			f, err := crdfs.Open(path)
+			if err != nil {
+				return fmt.Errorf("copying to context: %w", err)
+			}
+
+			if err = afero.WriteReader(tmpfs, path, f); err != nil {
+				return fmt.Errorf("copying to context: %w", err)
+			}
+
+			args = append(args, path)
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("building args: %w", err)
+	}
+
 	stdout, stderr := &bytes.Buffer{}, &bytes.Buffer{}
 	cmd := exec.CommandContext(ctx, "crd2pulumi", args...)
 	cmd.Stdout = stdout
@@ -91,6 +132,9 @@ func (t tool) Execute(ctx context.Context, src afero.Fs) (afero.Fs, error) {
 	if stderr.Len() > 0 {
 		return nil, fmt.Errorf("executing tool: %s", stderr)
 	}
+	if stdout.Len() > 0 {
+		log.Errorf("executing tool: %s", stdout)
+	}
 
 	log.Debugf("returning a new BasePathFs at %s", tmp)
 	return afero.NewBasePathFs(afero.NewOsFs(), tmp), nil
@@ -98,4 +142,8 @@ func (t tool) Execute(ctx context.Context, src afero.Fs) (afero.Fs, error) {
 
 func New() tdl.Tool {
 	return tool{}
+}
+
+func outputFs(path string) afero.Fs {
+	return afero.NewBasePathFs(afero.NewOsFs(), path)
 }
