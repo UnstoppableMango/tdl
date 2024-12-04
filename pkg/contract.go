@@ -25,11 +25,6 @@ type Tool interface {
 	Execute(context.Context, afero.Fs) (afero.Fs, error)
 }
 
-type Parser interface {
-	fmt.Stringer
-	Execute(context.Context, afero.Fs) (*tdlv1alpha1.Spec, error)
-}
-
 type GeneratorPlugin interface {
 	Plugin
 	Generator(context.Context, Meta) (Generator, error)
