@@ -7,7 +7,6 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/spf13/afero"
 	"github.com/unmango/go/iter"
-	"github.com/unmango/go/iter/seqs"
 	"github.com/unmango/go/option"
 )
 
@@ -75,7 +74,7 @@ func ReadTests(fs afero.Fs, path string, assertions map[string][]Assertion) (Sui
 			return nil, fmt.Errorf("reading test %s: %w", name, err)
 		}
 
-		tests = seqs.Append(tests, test)
+		tests = iter.Append(tests, test)
 	}
 
 	return suite{
