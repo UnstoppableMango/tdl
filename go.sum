@@ -121,8 +121,6 @@ github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da/go.mod h1:cIg4er
 github.com/google/go-cmp v0.5.2/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
-github.com/google/go-github/v66 v66.0.0 h1:ADJsaXj9UotwdgK8/iFZtv7MLc8E8WBl62WLd/D/9+M=
-github.com/google/go-github/v66 v66.0.0/go.mod h1:+4SO9Zkuyf8ytMj0csN1NR/5OTR+MfqPp8P8dVlcvY4=
 github.com/google/go-github/v67 v67.0.0 h1:g11NDAmfaBaCO8qYdI9fsmbaRipHNWRIU/2YGvlh4rg=
 github.com/google/go-github/v67 v67.0.0/go.mod h1:zH3K7BxjFndr9QSeFibx4lTKkYS3K9nDanoI1NjaOtY=
 github.com/google/go-querystring v1.1.0 h1:AnCroh3fv4ZBgVIf1Iwtovgjaw/GiKJo8M8yD/fhyJ8=
@@ -297,14 +295,8 @@ github.com/uber/jaeger-client-go v2.30.0+incompatible h1:D6wyKGCecFaSRUpo8lCVbaO
 github.com/uber/jaeger-client-go v2.30.0+incompatible/go.mod h1:WVhlPFC8FDjOFMMWRy2pZqQJSXxYSwNYOkTr/Z6d3Kk=
 github.com/uber/jaeger-lib v2.4.1+incompatible h1:td4jdvLcExb4cBISKIpHuGoVXh+dVKhn2Um6rjCsSsg=
 github.com/uber/jaeger-lib v2.4.1+incompatible/go.mod h1:ComeNDZlWwrWnDv8aPp0Ba6+uUTzImX/AauajbLI56U=
-github.com/unmango/go v0.0.18 h1:Il7eMqS1qzAHIIsaiTuFcb/2X8e4FOm0wHUTyt2FSKo=
-github.com/unmango/go v0.0.18/go.mod h1:4mKxPy/DhWhR3DRI9N32KLw14FCycK7rIDB2n7vIcTc=
-github.com/unmango/go v0.0.19 h1:C/SPRT6XYfKTcs4zwnvq+JvOCPooFmmMUAR1Xou4NKM=
-github.com/unmango/go v0.0.19/go.mod h1:eImfiaTEZn1+AsOeXwY4pLQGfBehL8JSN7NUAhIj00g=
-github.com/unmango/go v0.0.20 h1:2PrKMAKUprnAeAW7TrdORJY6U5573a3CY0n8HS4PPAI=
-github.com/unmango/go v0.0.20/go.mod h1:eImfiaTEZn1+AsOeXwY4pLQGfBehL8JSN7NUAhIj00g=
-github.com/unmango/go v0.0.21 h1:o0vXWPhw9aouURSj+g1QUSjOd0SOBVEz4WOSCd5V0Ms=
-github.com/unmango/go v0.0.21/go.mod h1:eImfiaTEZn1+AsOeXwY4pLQGfBehL8JSN7NUAhIj00g=
+github.com/unmango/go v0.0.23 h1:Y8wnyhPNRoRZIyHLJZDedgo6rBS/OxAYlS9WlTl1Qfc=
+github.com/unmango/go v0.0.23/go.mod h1:eImfiaTEZn1+AsOeXwY4pLQGfBehL8JSN7NUAhIj00g=
 github.com/xanzy/ssh-agent v0.3.3 h1:+/15pJfg/RsTxqYcX6fHqOXZwwMP+2VyYWJeWM2qQFM=
 github.com/xanzy/ssh-agent v0.3.3/go.mod h1:6dzNDKs0J9rVPHPhaGCukekBHKqfl+L3KghI1Bc68Uw=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=

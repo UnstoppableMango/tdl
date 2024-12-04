@@ -8,7 +8,6 @@ import (
 
 	"github.com/spf13/afero"
 	"github.com/unmango/go/iter"
-	"github.com/unmango/go/iter/seqs"
 	"github.com/unstoppablemango/tdl/pkg/mediatype"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
@@ -39,7 +38,7 @@ func ListTests(fs afero.Fs, path string) (iter.Seq[*Test], error) {
 			return nil, err
 		}
 
-		seq = seqs.Append(seq, test)
+		seq = iter.Append(seq, test)
 	}
 
 	return seq, nil

@@ -6,7 +6,6 @@ import (
 
 	"github.com/spf13/afero"
 	"github.com/unmango/go/iter"
-	"github.com/unmango/go/iter/seqs"
 	"github.com/unstoppablemango/tdl/pkg/mediatype"
 	tdlv1alpha1 "github.com/unstoppablemango/tdl/pkg/unmango/dev/tdl/v1alpha1"
 )
@@ -27,7 +26,7 @@ func List(fsys afero.Fs, path string) (iter.Seq[*Test], error) {
 			return nil, err
 		}
 
-		seq = seqs.Append(seq, t)
+		seq = iter.Append(seq, t)
 	}
 
 	return seq, nil
