@@ -11,8 +11,8 @@ import (
 
 func NewWhich() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "which [NAMEISH]",
-		Short: "Print the name of the closest matching generator",
+		Use:   "which [TARGET]",
+		Short: "Print the name of the closest matching plugin",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			t, err := target.Parse(args[0])
@@ -20,14 +20,12 @@ func NewWhich() *cobra.Command {
 				util.Fail(err)
 			}
 
-			for p := range plugin.Static() {
-				g, err := p.Generator(cmd.Context(), t)
-				if err != nil {
-					util.Fail(err)
-				}
-
-				fmt.Println(g)
+			g, err := t.Choose(plugin.Static())
+			if err != nil {
+				util.Fail(err)
 			}
+
+			fmt.Println(g)
 		},
 	}
 

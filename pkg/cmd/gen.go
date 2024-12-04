@@ -30,19 +30,13 @@ func NewGen() *cobra.Command {
 			}
 
 			log.Debug("parsing target")
-			target, err := target.Parse(config.Target)
-			if err != nil {
-				util.Fail(err)
-			}
-
-			log.Debug("searching for a plugin")
-			plugin, err := plugin.FirstAvailable(target)
+			t, err := target.Parse(config.Target)
 			if err != nil {
 				util.Fail(err)
 			}
 
 			log.Debug("searching for a generator")
-			generator, err := plugin.Generator(ctx, target)
+			generator, err := target.Generator(ctx, t, plugin.Static())
 			if err != nil {
 				util.Fail(err)
 			}

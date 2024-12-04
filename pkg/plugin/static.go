@@ -16,7 +16,15 @@ var Uml2Ts tdl.Plugin = NewAggregate(
 	docker.New(nil, "ghcr.io/unstoppablemango/uml2ts:v0.0.30"),
 )
 
-var static = []tdl.Plugin{Uml2Ts}
+var Crd2Pulumi tdl.Plugin = NewAggregate(
+	github.NewRelease("crd2pulumi-v1.5.4-linux-amd64.tar.gz", "1.5.4",
+		github.WithOwner("pulumi"),
+		github.WithRepo("crd2pulumi"),
+		github.WithArchiveContents("crd2pulumi"),
+	),
+)
+
+var static = []tdl.Plugin{Uml2Ts, Crd2Pulumi}
 
 func Static() iter.Seq[tdl.Plugin] {
 	return slices.Values(static)

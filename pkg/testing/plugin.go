@@ -7,29 +7,53 @@ import (
 )
 
 type MockPlugin struct {
-	GeneratorFunc func(tdl.Target) (tdl.Generator, error)
+	GeneratorFunc func(context.Context, tdl.Meta) (tdl.Generator, error)
+	ToolFunc      func(context.Context, tdl.Meta) (tdl.Tool, error)
+	MetaValue     tdl.Meta
 	StringFunc    func() string
 }
 
-// Generator implements tdl.Plugin.
-func (m *MockPlugin) Generator(ctx context.Context, t tdl.Target) (tdl.Generator, error) {
-	if m.GeneratorFunc == nil {
+// Meta implements tdl.GeneratorPlugin.
+func (m *MockPlugin) Meta() tdl.Meta {
+	if m.MetaValue == nil {
 		panic("unimplemented")
 	}
 
-	return m.GeneratorFunc(t)
+	return m.MetaValue
+}
+
+// Tool implements tdl.ToolPlugin.
+func (p *MockPlugin) Tool(ctx context.Context, m tdl.Meta) (tdl.Tool, error) {
+	if p.ToolFunc == nil {
+		panic("unimplemented")
+	}
+
+	return p.ToolFunc(ctx, m)
+}
+
+// Generator implements tdl.Plugin.
+func (p *MockPlugin) Generator(ctx context.Context, m tdl.Meta) (tdl.Generator, error) {
+	if p.GeneratorFunc == nil {
+		panic("unimplemented")
+	}
+
+	return p.GeneratorFunc(ctx, m)
 }
 
 // String implements tdl.Plugin.
-func (m *MockPlugin) String() string {
-	return m.StringFunc()
+func (p *MockPlugin) String() string {
+	if p.StringFunc == nil {
+		panic("unimplemented")
+	}
+
+	return p.StringFunc()
 }
 
-func (m *MockPlugin) WithGenerator(
-	fn func(t tdl.Target) (tdl.Generator, error),
+func (p *MockPlugin) WithGenerator(
+	fn func(context.Context, tdl.Meta) (tdl.Generator, error),
 ) *MockPlugin {
-	m.GeneratorFunc = fn
-	return m
+	p.GeneratorFunc = fn
+	return p
 }
 
 func (m *MockPlugin) WithString(
@@ -39,4 +63,5 @@ func (m *MockPlugin) WithString(
 	return m
 }
 
-var _ tdl.Plugin = &MockPlugin{}
+var _ tdl.GeneratorPlugin = &MockPlugin{}
+var _ tdl.ToolPlugin = &MockPlugin{}

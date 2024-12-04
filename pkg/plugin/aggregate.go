@@ -1,12 +1,9 @@
 package plugin
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"iter"
 
-	"github.com/charmbracelet/log"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 )
 
@@ -14,29 +11,14 @@ const UnwrapDepth = 3
 
 type Aggregate []tdl.Plugin
 
-// Generator implements tdl.Plugin.
-func (a Aggregate) Generator(ctx context.Context, t tdl.Target) (tdl.Generator, error) {
-	if len(a) == 0 {
-		return nil, errors.New("empty aggregate plugin")
-	}
-
-	errs := []error{}
-	for _, p := range a.sorted() {
-		g, err := p.Generator(ctx, t)
-		if err == nil {
-			return g, nil
-		}
-
-		log.Error(err, "generator", g)
-		errs = append(errs, err)
-	}
-
-	return nil, errors.Join(errs...)
+// Meta implements tdl.Plugin.
+func (a Aggregate) Meta() tdl.Meta {
+	panic("unimplemented")
 }
 
 // String implements tdl.Plugin.
 func (a Aggregate) String() string {
-	return fmt.Sprintf("%#v", []tdl.Plugin(a))
+	return fmt.Sprintf("%v", []tdl.Plugin(a))
 }
 
 func (a Aggregate) sorted() []Ordered {

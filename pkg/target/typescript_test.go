@@ -14,7 +14,7 @@ import (
 var _ = Describe("Typescript", func() {
 	Describe("Generator", func() {
 		It("should choose uml2ts", func() {
-			chosen, err := target.TypeScript.Generator(
+			chosen, err := target.TypeScript.Choose(
 				iter.Singleton(plugin.Uml2Ts),
 			)
 
@@ -27,7 +27,7 @@ var _ = Describe("Typescript", func() {
 				return "test"
 			})
 
-			_, err := target.TypeScript.Generator(
+			_, err := target.TypeScript.Choose(
 				iter.Singleton[tdl.Plugin](g),
 			)
 

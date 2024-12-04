@@ -18,6 +18,8 @@ func Parse(target string) (tdl.Target, error) {
 		fallthrough
 	case "typescript":
 		return TypeScript, nil
+	case "crd2pulumi":
+		return tool{name: "crd2pulumi"}, nil
 	default:
 		return nil, UnsupportedErr(target)
 	}
