@@ -35,6 +35,11 @@ func (p *plugin) Generator(ctx context.Context, t tdl.Meta) (tdl.Generator, erro
 	return docker.New(p.client, p.image), nil
 }
 
+// Supports implements tdl.Target.
+func (g *plugin) Supports(target tdl.Target) bool {
+	return target.String() == "TypeScript" // TODO
+}
+
 // String implements tdl.Plugin.
 func (p *plugin) String() string {
 	return p.image

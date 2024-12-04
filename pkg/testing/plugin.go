@@ -9,6 +9,7 @@ import (
 type MockPlugin struct {
 	GeneratorFunc func(context.Context, tdl.Meta) (tdl.Generator, error)
 	ToolFunc      func(context.Context, tdl.Meta) (tdl.Tool, error)
+	SupportsFunc  func(tdl.Target) bool
 	MetaValue     tdl.Meta
 	StringFunc    func() string
 }
@@ -38,6 +39,14 @@ func (p *MockPlugin) Generator(ctx context.Context, m tdl.Meta) (tdl.Generator, 
 	}
 
 	return p.GeneratorFunc(ctx, m)
+}
+
+func (p *MockPlugin) Supports(target tdl.Target) bool {
+	if p.SupportsFunc == nil {
+		panic("unimplemented")
+	}
+
+	return p.SupportsFunc(target)
 }
 
 // String implements tdl.Plugin.

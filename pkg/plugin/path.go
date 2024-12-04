@@ -37,9 +37,17 @@ func (f fromPath) Generator(context.Context, tdl.Meta) (tdl.Generator, error) {
 	), nil
 }
 
+func (f fromPath) Supports(target tdl.Target) bool {
+	return target.String() == "TypeScript" // TODO
+}
+
 // String implements tdl.Plugin.
 func (f fromPath) String() string {
-	return f.name
+	if path, err := exec.LookPath(f.name); err != nil {
+		return f.name
+	} else {
+		return path
+	}
 }
 
 func (f fromPath) Order() int {

@@ -43,6 +43,7 @@ type ToolPlugin interface {
 type Plugin interface {
 	fmt.Stringer
 	Meta() Meta
+	Supports(Target) bool
 }
 
 type Meta interface {

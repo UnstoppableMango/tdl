@@ -124,6 +124,11 @@ func (g *release) Generator(
 	return nil, errors.New("TODO: some super awesome target matching logic")
 }
 
+// Supports implements tdl.Target.
+func (g *release) Supports(target tdl.Target) bool {
+	return target.String() == "TypeScript" // TODO
+}
+
 // String implements tdl.Plugin.
 func (g *release) String() string {
 	path := path.Join(

@@ -16,6 +16,17 @@ func (a Aggregate) Meta() tdl.Meta {
 	panic("unimplemented")
 }
 
+// Supports implements tdl.Plugin
+func (a Aggregate) Supports(target tdl.Target) bool {
+	for _, p := range a {
+		if p.Supports(target) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // String implements tdl.Plugin.
 func (a Aggregate) String() string {
 	return fmt.Sprintf("%v", []tdl.Plugin(a))
