@@ -12,7 +12,6 @@ import (
 )
 
 var _ = Describe("Test", func() {
-
 	DescribeTable("InputRegex",
 		Entry(nil, "input.yml"),
 		Entry(nil, "source.yml"),
