@@ -6,12 +6,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
-	"net/http"
 	"os/exec"
 	"path"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -31,7 +28,6 @@ import (
 
 type Release interface {
 	tdl.GeneratorPlugin
-	cache.Cachable
 }
 
 type release struct {
@@ -126,7 +122,10 @@ func (g *release) Generator(
 
 // Supports implements tdl.Target.
 func (g *release) Supports(target tdl.Target) bool {
-	return target.String() == "TypeScript" // TODO
+	return meta.HasValue(target.Meta(),
+		meta.WellKnown.Lang,
+		meta.Lang.TypeScript,
+	)
 }
 
 // String implements tdl.Plugin.
@@ -142,69 +141,6 @@ func (g *release) String() string {
 
 func (g *release) isArchive() bool {
 	return strings.HasSuffix(g.name, ".tar.gz")
-}
-
-func (g release) Cached(c cache.Cacher) bool {
-	_, err := c.Reader("uml2ts")
-	return err == nil
-}
-
-func (g release) Cache(ctx context.Context, c cache.Cacher) error {
-	asset, err := g.getAsset(ctx)
-	if err != nil {
-		return err
-	}
-
-	reader, err := g.downloadReleaseAsset(ctx, asset.GetID())
-	if err != nil {
-		return err
-	}
-	if g.progress != nil {
-		log.Debug("reporting progress")
-		r := progress.NewReader(reader, asset.GetSize())
-		sub := r.Subscribe(g.progress)
-		defer sub()
-		reader = r
-	}
-
-	if len(g.archiveContents) == 0 {
-		return c.WriteAll(g.name, reader)
-	} else {
-		return g.extractArchive(c, reader)
-	}
-}
-
-func (g release) downloadReleaseAsset(ctx context.Context, id int64) (io.Reader, error) {
-	reader, _, err := g.client.DownloadReleaseAsset(ctx, g.owner, g.repo, id, http.DefaultClient)
-	return reader, err
-}
-
-func (g release) extractArchive(c cache.Cacher, reader io.Reader) error {
-	if filepath.Ext(g.name) != ".gz" {
-		return fmt.Errorf("unsupported archive type: %s", g.name)
-	}
-
-	return cache.TarGz(c, reader, g.archiveContents...)
-}
-
-func (g release) getAsset(ctx context.Context) (asset *ReleaseAsset, err error) {
-	release, err := g.getReleaseByTag(ctx, g.prefixedVersion())
-	if err != nil {
-		return
-	}
-
-	for _, asset = range release.Assets {
-		if asset.GetName() == g.name {
-			return
-		}
-	}
-
-	return asset, fmt.Errorf("not found: %s", g.name)
-}
-
-func (g release) getReleaseByTag(ctx context.Context, tag string) (*RepositoryRelease, error) {
-	release, _, err := g.client.GetReleaseByTag(ctx, g.owner, g.repo, tag)
-	return release, err
 }
 
 func (g release) prefixedVersion() string {

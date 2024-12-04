@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/spf13/afero"
 
+	"github.com/unstoppablemango/tdl/pkg/meta"
 	"github.com/unstoppablemango/tdl/pkg/plugin/github"
 	"github.com/unstoppablemango/tdl/pkg/testing"
 )
@@ -26,7 +27,7 @@ var _ = Describe("Github", func() {
 			github.WithClient(client),
 		)
 
-		err := release.Cache(ctx, cache)
+		_, err := release.Generator(ctx, meta.Empty())
 
 		Expect(err).NotTo(HaveOccurred())
 		dir := cache.Dir()
@@ -40,13 +41,13 @@ var _ = Describe("Github", func() {
 			github.WithArchiveContents("uml2ts"),
 		)
 
-		err := release.Cache(ctx, cache)
+		_, err := release.Generator(ctx, meta.Empty())
 
 		Expect(err).NotTo(HaveOccurred())
 		dir := cache.Dir()
 		path := filepath.Join(dir, "uml2ts")
 		Expect(path).To(BeARegularFile())
-		Expect(release.Cached(cache)).To(BeTrueBecause("The bin was cached"))
+		// Expect(release.Cached(cache)).To(BeTrueBecause("The bin was cached"))
 	})
 
 	It("should NOT cache unspecified artifacts", Label("E2E"), func(ctx context.Context) {
@@ -55,7 +56,7 @@ var _ = Describe("Github", func() {
 			github.WithArchiveContents("uml2ts"),
 		)
 
-		err := release.Cache(ctx, cache)
+		_, err := release.Generator(ctx, meta.Empty())
 
 		Expect(err).NotTo(HaveOccurred())
 		dir := cache.Dir()
