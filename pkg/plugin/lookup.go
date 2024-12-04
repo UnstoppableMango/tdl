@@ -28,3 +28,9 @@ func OfType[T tdl.Plugin](seq iter.Seq[tdl.Plugin]) iter.Seq[T] {
 		}
 	}
 }
+
+func FilterSupported(seq iter.Seq[tdl.Plugin], target tdl.Target) iter.Seq[tdl.Plugin] {
+	return iter.Filter(seq, func(plugin tdl.Plugin) bool {
+		return plugin.Supports(target)
+	})
+}

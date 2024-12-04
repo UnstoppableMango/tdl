@@ -6,6 +6,7 @@ import (
 
 	"github.com/unmango/go/iter"
 	tdl "github.com/unstoppablemango/tdl/pkg"
+	"github.com/unstoppablemango/tdl/pkg/meta"
 	"github.com/unstoppablemango/tdl/pkg/plugin"
 	"github.com/unstoppablemango/tdl/pkg/target"
 	"github.com/unstoppablemango/tdl/pkg/testing"
@@ -23,8 +24,14 @@ var _ = Describe("Typescript", func() {
 		})
 
 		It("should ignore unsupported generators", func() {
-			g := (&testing.MockPlugin{}).WithString(func() string {
-				return "test"
+			g := (&testing.MockPlugin{
+				MetaValue: meta.Empty(),
+				StringFunc: func() string {
+					return "test"
+				},
+				SupportsFunc: func(t tdl.Target) bool {
+					return false
+				},
 			})
 
 			_, err := target.TypeScript.Choose(

@@ -18,6 +18,9 @@ var _ = Describe("Tool", func() {
 				StringFunc: func() string {
 					return "thing"
 				},
+				SupportsFunc: func(t tdl.Target) bool {
+					return true
+				},
 			})
 		})
 
@@ -32,6 +35,9 @@ var _ = Describe("Tool", func() {
 			yield(&testing.MockPlugin{
 				StringFunc: func() string {
 					return "blah"
+				},
+				SupportsFunc: func(t tdl.Target) bool {
+					return false
 				},
 			})
 		})

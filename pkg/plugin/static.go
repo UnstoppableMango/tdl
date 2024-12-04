@@ -9,7 +9,7 @@ import (
 )
 
 var Uml2Ts tdl.Plugin = NewAggregate(
-	fromPath{"uml2ts", true, 50},
+	fromPath{name: "uml2ts", stdout: true, order: 50},
 	github.NewRelease("tdl-linux-amd64.tar.gz", "0.0.30",
 		github.WithArchiveContents("uml2ts"),
 	),

@@ -12,6 +12,7 @@ import (
 
 type fromPath struct {
 	name   string
+	meta   meta.Map
 	stdout bool
 	order  int
 }
@@ -55,5 +56,5 @@ func (f fromPath) Order() int {
 }
 
 func FromPath(name string) tdl.GeneratorPlugin {
-	return &fromPath{name, false, 69}
+	return &fromPath{name, meta.Map{}, false, 69}
 }

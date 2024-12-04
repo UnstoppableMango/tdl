@@ -23,7 +23,7 @@ func (t tool) Meta() tdl.Meta {
 
 // Tool implements tdl.Target.
 func (t tool) Choose(available iter.Seq[tdl.Plugin]) (tdl.Plugin, error) {
-	plugin, ok := plugin.Find(available,
+	plugin, ok := plugin.Find(plugin.FilterSupported(available, t),
 		func(p tdl.ToolPlugin) bool {
 			return p.String() == t.name
 		},

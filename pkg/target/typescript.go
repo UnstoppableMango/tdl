@@ -16,7 +16,8 @@ var TypeScript typescript = "TypeScript"
 
 func (t typescript) Meta() tdl.Meta {
 	return meta.Map{
-		"name": string(t),
+		meta.WellKnown.Name: string(t),
+		meta.WellKnown.Lang: meta.Lang.TypeScript,
 	}
 }
 
@@ -24,7 +25,7 @@ func (t typescript) Meta() tdl.Meta {
 func (t typescript) Choose(available iter.Seq[tdl.Plugin]) (tdl.Plugin, error) {
 	plugin, ok := plugin.Find(available, func(p tdl.Plugin) bool {
 		log.Debugf("considering %s", p)
-		return p.String() == "uml2ts"
+		return plugin.MatchesName(p, "uml2ts")
 	})
 	if !ok {
 		return nil, errors.New("no suitable plugin")

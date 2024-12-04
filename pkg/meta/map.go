@@ -3,6 +3,7 @@ package meta
 import (
 	"github.com/unmango/go/iter"
 	"github.com/unmango/go/maps"
+	tdl "github.com/unstoppablemango/tdl/pkg"
 )
 
 type Map map[string]string
@@ -16,4 +17,8 @@ func (m Map) Value(key string) (string, bool) {
 // Values implements tdl.Meta.
 func (m Map) Values() iter.Seq2[string, string] {
 	return maps.All(m)
+}
+
+func Empty() tdl.Meta {
+	return Map{}
 }
