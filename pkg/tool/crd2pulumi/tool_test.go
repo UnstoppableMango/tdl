@@ -12,10 +12,22 @@ import (
 )
 
 var _ = Describe("Tool", func() {
+	var crdyaml []byte
+
+	BeforeEach(func() {
+		var err error
+		crdyaml, err = testdata.ReadFile("testdata/objectbucket.io_objectbucketclaims.yaml")
+		Expect(err).NotTo(HaveOccurred())
+	})
+
 	It("should execute", func(ctx context.Context) {
-		t := crd2pulumi.New()
+		t := crd2pulumi.Tool{
+			NodeJS: &crd2pulumi.LangOptions{
+				Enabled: true,
+			},
+		}
 		fs := afero.NewMemMapFs()
-		err := afero.WriteFile(fs, "blah.yaml", []byte("blah"), os.ModePerm)
+		err := afero.WriteFile(fs, "blah.yaml", crdyaml, os.ModePerm)
 		Expect(err).NotTo(HaveOccurred())
 
 		out, err := t.Execute(ctx, fs)
