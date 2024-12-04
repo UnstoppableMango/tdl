@@ -8,12 +8,12 @@ import (
 	"maps"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 
 	"github.com/charmbracelet/log"
 	"github.com/dlclark/regexp2"
 	"github.com/spf13/afero"
-	tdl "github.com/unstoppablemango/tdl/pkg"
 )
 
 var (
@@ -22,26 +22,46 @@ var (
 )
 
 type LangOptions struct {
-	enabled bool
-	name    string
-	path    string
+	Enabled bool
+	Name    string
+	Path    string
 }
 
-type tool struct {
-	nodejs  *LangOptions
-	python  *LangOptions
-	dotnet  *LangOptions
-	golang  *LangOptions
-	java    *LangOptions
-	force   bool
-	version string
+func (o *LangOptions) args(lang string) (args []string) {
+	if o.Enabled {
+		args = append(args, "--"+lang)
+	}
+	if o.Name != "" {
+		args = append(args,
+			fmt.Sprintf("--%sName", lang),
+			o.Name,
+		)
+	}
+	if o.Path != "" {
+		args = append(args,
+			fmt.Sprintf("--%sPath", lang),
+			o.Path,
+		)
+	}
+
+	return
 }
 
-func (t tool) String() string {
+type Tool struct {
+	NodeJS  *LangOptions
+	Python  *LangOptions
+	Dotnet  *LangOptions
+	Go      *LangOptions
+	Java    *LangOptions
+	Force   bool
+	Version string
+}
+
+func (t Tool) String() string {
 	return "crd2pulumi"
 }
 
-func (t tool) Execute(ctx context.Context, src afero.Fs) (afero.Fs, error) {
+func (t Tool) Execute(ctx context.Context, src afero.Fs) (afero.Fs, error) {
 	log.Debug("creating temp directory")
 	tmp, err := os.MkdirTemp("", "")
 	if err != nil {
@@ -49,42 +69,45 @@ func (t tool) Execute(ctx context.Context, src afero.Fs) (afero.Fs, error) {
 	}
 
 	langs := map[string]*LangOptions{
-		"nodejs": t.nodejs,
-		"python": t.python,
-		"dotnet": t.dotnet,
-		"golang": t.golang,
-		"java":   t.java,
+		"nodejs": t.NodeJS,
+		"python": t.Python,
+		"dotnet": t.Dotnet,
+		"golang": t.Go,
+		"java":   t.Java,
 	}
 
-	output := []afero.Fs{}
 	args := []string{}
 	for k, v := range maps.All(langs) {
 		if v == nil {
 			continue
 		}
 
-		if v.enabled {
+		if v.Enabled {
 			args = append(args, "--"+k)
-			output = append(output, outputFs(v.path))
 		}
-		if v.name != "" {
+		if v.Name != "" {
 			args = append(args,
 				fmt.Sprintf("--%sName", k),
-				v.name,
+				v.Name,
 			)
 		}
-		if v.path != "" {
+		if v.Path != "" {
 			args = append(args,
 				fmt.Sprintf("--%sPath", k),
-				v.path,
+				v.Path,
+			)
+		} else {
+			args = append(args,
+				fmt.Sprintf("--%sPath", k),
+				filepath.Join(tmp, k),
 			)
 		}
 	}
 
-	if t.version != "" {
-		args = append(args, "--version", t.version)
+	if t.Version != "" {
+		args = append(args, "--version", t.Version)
 	}
-	if t.force {
+	if t.Force {
 		args = append(args, "--force")
 	}
 
@@ -138,12 +161,4 @@ func (t tool) Execute(ctx context.Context, src afero.Fs) (afero.Fs, error) {
 
 	log.Debugf("returning a new BasePathFs at %s", tmp)
 	return afero.NewBasePathFs(afero.NewOsFs(), tmp), nil
-}
-
-func New() tdl.Tool {
-	return tool{}
-}
-
-func outputFs(path string) afero.Fs {
-	return afero.NewBasePathFs(afero.NewOsFs(), path)
 }
