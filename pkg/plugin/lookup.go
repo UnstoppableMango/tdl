@@ -1,49 +1,36 @@
 package plugin
 
 import (
-	"context"
-	"errors"
-
 	"github.com/unmango/go/iter"
 	tdl "github.com/unstoppablemango/tdl/pkg"
-	"github.com/unstoppablemango/tdl/pkg/plugin/cache"
 )
 
-func FirstAvailable(target tdl.Target) (tdl.Plugin, error) {
-	if len(static) > 0 {
-		p := static[0]
-		if err := tryCache(p); err != nil {
-			return nil, err
-		}
+type Predicate[T tdl.Plugin] func(T) bool
 
-		return p, nil
-	}
-
-	for _, p := range static {
-		return p, nil
-	}
-
-	return nil, errors.New("no plugins available")
-}
-
-func Find(plugins iter.Seq[tdl.Plugin], pred func(tdl.Plugin) bool) (tdl.Plugin, bool) {
+func Find[T tdl.Plugin](plugins iter.Seq[tdl.Plugin], pred Predicate[T]) (res T, found bool) {
 	for plugin := range plugins {
 		for _, nested := range Unwrap(plugin) {
-			if pred(nested) {
-				return nested, true
+			if n, ok := nested.(T); ok && pred(n) {
+				return n, true
 			}
 		}
 	}
 
-	return nil, false
+	return res, false
 }
 
-func tryCache(p tdl.Plugin) error {
-	c := cache.XdgBinHome
-	r, ok := p.(cache.Cachable)
-	if !ok || r.Cached(c) {
-		return nil
+func OfType[T tdl.Plugin](seq iter.Seq[tdl.Plugin]) iter.Seq[T] {
+	return func(yield func(T) bool) {
+		for p := range UnwrapEach(seq) {
+			if t, ok := p.(T); ok && !yield(t) {
+				break
+			}
+		}
 	}
+}
 
-	return r.Cache(context.Background(), c)
+func FilterSupported(seq iter.Seq[tdl.Plugin], target tdl.Target) iter.Seq[tdl.Plugin] {
+	return iter.Filter(seq, func(plugin tdl.Plugin) bool {
+		return plugin.Supports(target)
+	})
 }

@@ -3,6 +3,7 @@ package e2e_test
 import (
 	"path/filepath"
 
+	"github.com/charmbracelet/log"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -12,6 +13,7 @@ import (
 var _ = Describe("Suite", func() {
 	Describe("ReadSuite", func() {
 		It("should work", func() {
+			log.SetLevel(log.ErrorLevel) // Hide warnings, this is a test of a test
 			path := filepath.Join("testdata", "list")
 
 			suite, err := e2e.ReadSuite(testfs, path)

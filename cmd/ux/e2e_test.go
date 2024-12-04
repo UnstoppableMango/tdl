@@ -91,7 +91,7 @@ var _ = Describe("End to end", func() {
 
 				out, err := cmd.CombinedOutput()
 
-				Expect(err).NotTo(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred(), string(out))
 				Expect(string(out)).To(Equal(expected + "\n"))
 			},
 		)

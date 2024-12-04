@@ -11,6 +11,7 @@ import (
 	"github.com/docker/docker/client"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/gen/docker"
+	"github.com/unstoppablemango/tdl/pkg/meta"
 )
 
 type plugin struct {
@@ -18,13 +19,25 @@ type plugin struct {
 	image  string
 }
 
+// Meta implements tdl.GeneratorPlugin.
+func (p *plugin) Meta() tdl.Meta {
+	return meta.Map{
+		"image": p.image,
+	}
+}
+
 // Generator implements tdl.Plugin.
-func (p *plugin) Generator(ctx context.Context, t tdl.Target) (tdl.Generator, error) {
+func (p *plugin) Generator(ctx context.Context, t tdl.Meta) (tdl.Generator, error) {
 	if err := p.ensure(ctx); err != nil {
 		return nil, fmt.Errorf("pulling image: %w", err)
 	}
 
 	return docker.New(p.client, p.image), nil
+}
+
+// Supports implements tdl.Target.
+func (g *plugin) Supports(target tdl.Target) bool {
+	return target.String() == "TypeScript" // TODO
 }
 
 // String implements tdl.Plugin.
@@ -61,7 +74,7 @@ func (p *plugin) ensure(ctx context.Context) error {
 	return nil
 }
 
-func New(client client.APIClient, image string) tdl.Plugin {
+func New(client client.APIClient, image string) tdl.GeneratorPlugin {
 	return &plugin{client, image}
 }
 

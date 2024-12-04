@@ -1,12 +1,8 @@
 package plugin
 
 import (
-	"context"
-	"errors"
 	"fmt"
-	"iter"
 
-	"github.com/charmbracelet/log"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 )
 
@@ -14,43 +10,25 @@ const UnwrapDepth = 3
 
 type Aggregate []tdl.Plugin
 
-// Generator implements tdl.Plugin.
-func (a Aggregate) Generator(ctx context.Context, t tdl.Target) (tdl.Generator, error) {
-	if len(a) == 0 {
-		return nil, errors.New("empty aggregate plugin")
-	}
+// Meta implements tdl.Plugin.
+func (a Aggregate) Meta() tdl.Meta {
+	panic("unimplemented")
+}
 
-	errs := []error{}
-	for _, p := range a.sorted() {
-		g, err := p.Generator(ctx, t)
-		if err == nil {
-			return g, nil
+// Supports implements tdl.Plugin
+func (a Aggregate) Supports(target tdl.Target) bool {
+	for _, p := range a {
+		if p.Supports(target) {
+			return true
 		}
-
-		log.Error(err, "generator", g)
-		errs = append(errs, err)
 	}
 
-	return nil, errors.Join(errs...)
+	return false
 }
 
 // String implements tdl.Plugin.
 func (a Aggregate) String() string {
-	return fmt.Sprintf("%#v", []tdl.Plugin(a))
-}
-
-func (a Aggregate) sorted() []Ordered {
-	return Sorted(a.ordered())
-}
-
-func (a Aggregate) ordered() iter.Seq[Ordered] {
-	return func(yield func(Ordered) bool) {
-		for _, p := range a {
-			if !yield(AsOrdered(p)) {
-				return
-			}
-		}
-	}
+	return fmt.Sprintf("%v", []tdl.Plugin(a))
 }
 
 func NewAggregate(plugins ...tdl.Plugin) Aggregate {

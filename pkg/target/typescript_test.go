@@ -6,6 +6,7 @@ import (
 
 	"github.com/unmango/go/iter"
 	tdl "github.com/unstoppablemango/tdl/pkg"
+	"github.com/unstoppablemango/tdl/pkg/meta"
 	"github.com/unstoppablemango/tdl/pkg/plugin"
 	"github.com/unstoppablemango/tdl/pkg/target"
 	"github.com/unstoppablemango/tdl/pkg/testing"
@@ -14,7 +15,7 @@ import (
 var _ = Describe("Typescript", func() {
 	Describe("Generator", func() {
 		It("should choose uml2ts", func() {
-			chosen, err := target.TypeScript.Generator(
+			chosen, err := target.TypeScript.Choose(
 				iter.Singleton(plugin.Uml2Ts),
 			)
 
@@ -23,11 +24,17 @@ var _ = Describe("Typescript", func() {
 		})
 
 		It("should ignore unsupported generators", func() {
-			g := (&testing.MockPlugin{}).WithString(func() string {
-				return "test"
+			g := (&testing.MockPlugin{
+				MetaValue: meta.Empty(),
+				StringFunc: func() string {
+					return "test"
+				},
+				SupportsFunc: func(t tdl.Target) bool {
+					return false
+				},
 			})
 
-			_, err := target.TypeScript.Generator(
+			_, err := target.TypeScript.Choose(
 				iter.Singleton[tdl.Plugin](g),
 			)
 

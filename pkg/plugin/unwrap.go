@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"github.com/unmango/go/iter"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 )
 
@@ -13,6 +14,10 @@ func Unwrap(plugin tdl.Plugin) []tdl.Plugin {
 
 func UnwrapAll(plugins []tdl.Plugin) []tdl.Plugin {
 	return unwrapRec(NewAggregate(plugins...), -1)
+}
+
+func UnwrapEach(plugins iter.Seq[tdl.Plugin]) iter.Seq[tdl.Plugin] {
+	return unwrapEach(plugins, 0)
 }
 
 func unwrapRec(plugin tdl.Plugin, depth int) []tdl.Plugin {
@@ -30,4 +35,20 @@ func unwrapRec(plugin tdl.Plugin, depth int) []tdl.Plugin {
 	}
 
 	return acc
+}
+
+func unwrapEach(plugins iter.Seq[tdl.Plugin], depth int) iter.Seq[tdl.Plugin] {
+	if depth >= UnwrapDepth {
+		return plugins
+	}
+
+	return func(yield func(tdl.Plugin) bool) {
+		for plugin := range plugins {
+			for _, p := range unwrapRec(plugin, depth+1) {
+				if !yield(p) {
+					return
+				}
+			}
+		}
+	}
 }

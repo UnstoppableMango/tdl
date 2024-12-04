@@ -6,17 +6,27 @@ import (
 )
 
 type MockTarget struct {
-	GeneratorFunc func(iter.Seq[tdl.Plugin]) (tdl.Generator, error)
-	StringFunc    func() string
+	ChooseFunc func(iter.Seq[tdl.Plugin]) (tdl.Plugin, error)
+	MetaFunc   func() tdl.Meta
+	StringFunc func() string
 }
 
-// Generator implements tdl.Target.
-func (m *MockTarget) Generator(available iter.Seq[tdl.Plugin]) (tdl.Generator, error) {
-	if m.GeneratorFunc == nil {
+// Meta implements tdl.Target.
+func (m *MockTarget) Meta() tdl.Meta {
+	if m.MetaFunc == nil {
 		panic("unimplemented")
 	}
 
-	return m.GeneratorFunc(available)
+	return m.MetaFunc()
+}
+
+// Tool implements tdl.Target.
+func (m *MockTarget) Choose(available iter.Seq[tdl.Plugin]) (tdl.Plugin, error) {
+	if m.ChooseFunc == nil {
+		panic("unimplemented")
+	}
+
+	return m.ChooseFunc(available)
 }
 
 // String implements tdl.Target.
@@ -36,9 +46,9 @@ func (m *MockTarget) WithString(
 }
 
 func (m *MockTarget) WithGenerator(
-	fn func(iter.Seq[tdl.Plugin]) (tdl.Generator, error),
+	fn func(iter.Seq[tdl.Plugin]) (tdl.Plugin, error),
 ) *MockTarget {
-	m.GeneratorFunc = fn
+	m.ChooseFunc = fn
 	return m
 }
 

@@ -20,14 +20,36 @@ type Generator interface {
 	Execute(context.Context, *tdlv1alpha1.Spec) (afero.Fs, error)
 }
 
+type Tool interface {
+	fmt.Stringer
+	Execute(context.Context, afero.Fs) (afero.Fs, error)
+}
+
+type GeneratorPlugin interface {
+	Plugin
+	Generator(context.Context, Meta) (Generator, error)
+}
+
+type ToolPlugin interface {
+	Plugin
+	Tool(context.Context, Meta) (Tool, error)
+}
+
 type Plugin interface {
 	fmt.Stringer
-	Generator(context.Context, Target) (Generator, error)
+	Meta() Meta
+	Supports(Target) bool
+}
+
+type Meta interface {
+	Values() iter.Seq2[string, string]
+	Value(string) (string, bool)
 }
 
 type Target interface {
 	fmt.Stringer
-	Generator(iter.Seq[Plugin]) (Generator, error)
+	Meta() Meta
+	Choose(iter.Seq[Plugin]) (Plugin, error)
 }
 
 type MediaType string
