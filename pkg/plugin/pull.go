@@ -12,7 +12,7 @@ import (
 )
 
 type PullOptions struct {
-	progress progress.ReportFunc
+	progress progress.TotalFunc
 }
 
 func (o PullOptions) github() (opts []github.Option) {
@@ -46,7 +46,7 @@ func Pull(ctx context.Context, name string, options ...PullOption) error {
 	return fmt.Errorf("unsupported token: %s", name)
 }
 
-func WithProgress(progress progress.ReportFunc) PullOption {
+func WithProgress(progress progress.TotalFunc) PullOption {
 	return func(opts *PullOptions) {
 		opts.progress = progress
 	}

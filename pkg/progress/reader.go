@@ -3,9 +3,6 @@ package progress
 import (
 	"errors"
 	"io"
-
-	"github.com/unmango/go/rx"
-	"github.com/unmango/go/rx/subject"
 )
 
 type Reader interface {
@@ -14,10 +11,8 @@ type Reader interface {
 }
 
 type reader struct {
-	rx.Subject[Event]
-	reader  io.Reader
-	current int
-	total   int
+	*Subject
+	reader io.Reader
 }
 
 // Close implements io.ReadCloser.
@@ -30,7 +25,7 @@ func (r *reader) Close() (err error) {
 	}
 
 	// TODO: Fix double OnComplete call
-	r.Subject.OnComplete()
+	r.OnComplete()
 	return
 }
 
@@ -42,9 +37,8 @@ func (r *reader) Read(p []byte) (n int, err error) {
 	} else if err != nil {
 		r.Subject.OnError(err)
 	} else {
-		r.current += n
-		p := float64(r.current) / float64(r.total)
-		r.Subject.OnNext(Event{p})
+		e := r.Advance(n)
+		r.OnNext(e.event())
 	}
 
 	return
@@ -52,8 +46,7 @@ func (r *reader) Read(p []byte) (n int, err error) {
 
 func NewReader(r io.Reader, total int) Reader {
 	return &reader{
-		Subject: subject.New[Event](),
+		Subject: NewSubject(total),
 		reader:  r,
-		total:   total,
 	}
 }

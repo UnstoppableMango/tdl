@@ -23,7 +23,7 @@ var _ = Describe("Reader", func() {
 		buf := bytes.NewBuffer(data)
 		r := progress.NewReader(buf, len(data))
 
-		s := progress.Subscribe(r, func(i float64, err error) {
+		s := progress.SubscribeTotal(r, func(i float64, err error) {
 			values = append(values, i)
 			errors = append(errors, err)
 		})

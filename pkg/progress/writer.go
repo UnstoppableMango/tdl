@@ -2,9 +2,6 @@ package progress
 
 import (
 	"io"
-
-	"github.com/unmango/go/rx"
-	"github.com/unmango/go/rx/subject"
 )
 
 type Writer interface {
@@ -13,10 +10,8 @@ type Writer interface {
 }
 
 type writer struct {
-	rx.Subject[Event]
-	writer  io.Writer
-	current int
-	total   int
+	*Subject
+	writer io.Writer
 }
 
 func (w *writer) Close() (err error) {
@@ -40,9 +35,8 @@ func (w *writer) Write(p []byte) (n int, err error) {
 	if err != nil {
 		w.OnError(err)
 	} else {
-		w.current += n
-		p := float64(w.current) / float64(w.total)
-		w.OnNext(Event{p})
+		e := w.Advance(n)
+		w.OnNext(e.event())
 	}
 
 	return
@@ -50,8 +44,7 @@ func (w *writer) Write(p []byte) (n int, err error) {
 
 func NewWriter(w io.Writer, total int) Writer {
 	return &writer{
-		Subject: subject.New[Event](),
+		Subject: NewSubject(total),
 		writer:  w,
-		total:   total,
 	}
 }
