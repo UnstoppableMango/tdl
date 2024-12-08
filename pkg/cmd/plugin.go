@@ -11,7 +11,7 @@ func NewPlugin() *cobra.Command {
 		Short: "Commands for working with plugins",
 	}
 	cmd.AddCommand(
-		plugin.NewCache(),
+		plugin.NewPull(),
 		plugin.NewList(),
 	)
 

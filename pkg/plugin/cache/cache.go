@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/adrg/xdg"
+	"github.com/charmbracelet/log"
 	"github.com/spf13/afero"
 )
 
@@ -30,16 +31,17 @@ var XdgBinHome = &directory{
 func Fs() (afero.Fs, error) {
 	base := afero.NewOsFs()
 	path := filepath.Join(xdg.CacheHome, "ux")
-	info, err := base.Stat(path)
 
+	info, err := base.Stat(path)
+	if err == nil && !info.IsDir() {
+		return nil, fmt.Errorf("not a directory: %s", path)
+	}
 	if errors.Is(err, os.ErrNotExist) {
-		err = base.MkdirAll(path, os.ModeDir)
+		log.Debug("creating cache directory")
+		err = base.MkdirAll(path, 0o755)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("creating cache directory: %w", err)
-	}
-	if !info.IsDir() {
-		return nil, fmt.Errorf("not a directory: %s", path)
 	}
 
 	return afero.NewBasePathFs(base, path), nil
