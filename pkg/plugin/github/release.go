@@ -34,7 +34,6 @@ type Release interface {
 type Option func(*release)
 
 type release struct {
-	client          Client
 	gh              *github.Client
 	owner, repo     string
 	name, version   string
@@ -216,7 +215,6 @@ func NewRelease(name, version string, options ...Option) Release {
 		repo:    Repo,
 		name:    name,
 		version: version,
-		client:  DefaultClient,
 		gh:      github.NewClient(nil),
 
 		archiveContents: []string{},
@@ -224,12 +222,6 @@ func NewRelease(name, version string, options ...Option) Release {
 	option.ApplyAll(release, options)
 
 	return release
-}
-
-func WithClient(client Client) Option {
-	return func(r *release) {
-		r.client = client
-	}
 }
 
 func WithOwner(owner string) Option {

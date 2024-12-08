@@ -1,9 +1,8 @@
 package github
 
 import (
-	"context"
-	"io"
 	"net/http"
+	"os"
 
 	"github.com/google/go-github/v67/github"
 )
@@ -13,34 +12,18 @@ const (
 	Repo  = "tdl"
 )
 
-var DefaultClient = NewClient(
-	github.NewClient(http.DefaultClient),
-)
+var DefaultClient = github.NewClient(http.DefaultClient)
 
-type Client interface {
-	BaseURL() string
-	DownloadReleaseAsset(ctx context.Context, owner string, repo string, id int64, followRedirectsClient *http.Client) (io.ReadCloser, string, error)
-	GetReleaseByTag(ctx context.Context, owner string, repo string, tag string) (*github.RepositoryRelease, *github.Response, error)
+func init() {
+	if env, ok := os.LookupEnv("GITHUB_TOKEN"); ok {
+		DefaultClient = DefaultClient.WithAuthToken(env)
+	}
 }
 
 type (
 	ReleaseAsset      = github.ReleaseAsset
 	RepositoryRelease = github.RepositoryRelease
 )
-
-type client struct {
-	*github.RepositoriesService
-	gh *github.Client
-}
-
-// BaseURL implements Client.
-func (c *client) BaseURL() string {
-	return c.gh.BaseURL.String()
-}
-
-func NewClient(github *github.Client) Client {
-	return &client{github.Repositories, github}
-}
 
 func NewUml2Ts(options ...Option) Release {
 	options = append(options, WithArchiveContents("uml2ts"))

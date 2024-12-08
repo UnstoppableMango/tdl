@@ -14,18 +14,14 @@ import (
 )
 
 var _ = Describe("Github", func() {
-	var client github.Client
 	var cache *testing.DirCache
 
 	BeforeEach(func() {
-		client = github.NewClient(testing.NewGitHubClient())
 		cache = testing.NewCache(afero.NewOsFs())
 	})
 
 	It("should cache tdl-linux-amd64.tar.gz", Label("E2E"), func(ctx context.Context) {
-		release := github.NewRelease("tdl-linux-amd64.tar.gz", "0.0.29",
-			github.WithClient(client),
-		)
+		release := github.NewRelease("tdl-linux-amd64.tar.gz", "0.0.29")
 
 		_, err := release.Generator(ctx, meta.Empty())
 
@@ -37,7 +33,6 @@ var _ = Describe("Github", func() {
 
 	It("should cache uml2ts", Label("E2E"), func(ctx context.Context) {
 		release := github.NewRelease("tdl-linux-amd64.tar.gz", "0.0.29",
-			github.WithClient(client),
 			github.WithArchiveContents("uml2ts"),
 		)
 
@@ -52,7 +47,6 @@ var _ = Describe("Github", func() {
 
 	It("should NOT cache unspecified artifacts", Label("E2E"), func(ctx context.Context) {
 		release := github.NewRelease("tdl-linux-amd64.tar.gz", "0.0.29",
-			github.WithClient(client),
 			github.WithArchiveContents("uml2ts"),
 		)
 
@@ -67,7 +61,6 @@ var _ = Describe("Github", func() {
 	Describe("String", func() {
 		It("should return the url of the github release", func() {
 			release := github.NewRelease("tdl-linux-amd64.tar.gz", "0.0.29",
-				github.WithClient(client),
 				github.WithArchiveContents("uml2ts"),
 			)
 
