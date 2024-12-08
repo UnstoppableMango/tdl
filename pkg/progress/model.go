@@ -1,8 +1,6 @@
 package progress
 
 import (
-	"strings"
-
 	"github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -12,7 +10,7 @@ const (
 	maxWidth = 80
 )
 
-type tickMsg float64
+type ProgressMsg float64
 
 type Model struct {
 	progress progress.Model
@@ -32,9 +30,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.progress.Width > maxWidth {
 			m.progress.Width = maxWidth
 		}
-	case tickMsg:
-		m.percent += float64(msg)
-		if m.percent > 1.0 {
+	case ProgressMsg:
+		m.percent = float64(msg)
+		if m.percent >= 1.0 {
 			m.percent = 1.0
 			return m, tea.Quit
 		}
@@ -45,11 +43,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // View implements tea.Model.
 func (m *Model) View() string {
-	pad := strings.Repeat(" ", padding)
-	return "\n" +
-		pad + m.progress.ViewAs(m.percent) + "\n"
+	return m.progress.ViewAs(m.percent) + "\n"
 }
 
-func NewModel() (tea.Model, error) {
-	return &Model{}, nil
+func NewModel() tea.Model {
+	return &Model{
+		progress: progress.New(),
+	}
 }
