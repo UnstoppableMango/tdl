@@ -13,6 +13,7 @@ type Subject struct {
 	rx.Subject[Event]
 	State
 }
+
 type TotalObservable interface {
 	rx.Observable[float64]
 }
