@@ -5,6 +5,8 @@ go 1.23.2
 require (
 	connectrpc.com/connect v1.17.0
 	github.com/adrg/xdg v0.5.3
+	github.com/charmbracelet/bubbles v0.16.1
+	github.com/charmbracelet/bubbletea v0.25.0
 	github.com/charmbracelet/log v0.4.0
 	github.com/docker/docker v27.4.0+incompatible
 	github.com/google/go-github/v67 v67.0.0
@@ -34,8 +36,7 @@ require (
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
-	github.com/charmbracelet/bubbles v0.16.1 // indirect
-	github.com/charmbracelet/bubbletea v0.25.0 // indirect
+	github.com/charmbracelet/harmonica v0.2.0 // indirect
 	github.com/charmbracelet/lipgloss v0.10.0 // indirect
 	github.com/cheggaaa/pb v1.0.29 // indirect
 	github.com/cloudflare/circl v1.3.7 // indirect

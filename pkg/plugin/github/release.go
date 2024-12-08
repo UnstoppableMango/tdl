@@ -7,8 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"net/url"
 	"os/exec"
 	"path"
+	"slices"
 	"strings"
 	"time"
 
@@ -17,6 +19,7 @@ import (
 	"github.com/google/go-github/v67/github"
 	"github.com/spf13/afero"
 	"github.com/spf13/afero/tarfs"
+	"github.com/unmango/go/fs/github/ghpath"
 	"github.com/unmango/go/fs/github/repository/release/asset"
 	"github.com/unmango/go/option"
 	tdl "github.com/unstoppablemango/tdl/pkg"
@@ -26,9 +29,18 @@ import (
 	"github.com/unstoppablemango/tdl/pkg/progress"
 )
 
+var SupportedSchemes = []string{
+	"github",
+	"https",
+	"http",
+}
+
 type Release interface {
+	tdl.PreReq
 	tdl.GeneratorPlugin
 }
+
+type Option func(*release)
 
 type release struct {
 	client          Client
@@ -39,7 +51,63 @@ type release struct {
 	progress        progress.ReportFunc
 }
 
-type Option func(*release)
+// Ensure implements Release.
+func (g *release) Ensure(context.Context) error {
+	if g.isArchive() && len(g.archiveContents) == 1 {
+		if path, err := exec.LookPath(g.archiveContents[0]); err == nil {
+			log.Debug("bin found on $PATH", "path", path)
+			return nil
+		}
+	}
+
+	cache, err := cache.Fs()
+	if err != nil {
+		return fmt.Errorf("opening cache: %w", err)
+	}
+
+	assetfs := afero.NewCacheOnReadFs(
+		asset.NewFs(g.gh, g.owner, g.repo, g.prefixedVersion()),
+		cache, time.Hour*1, // Always cache
+	)
+	f, err := progress.Open(assetfs, g.name)
+	if err != nil {
+		return fmt.Errorf("opening release asset: %w", err)
+	}
+
+	if g.progress != nil {
+		sub := f.Subscribe(g.progress)
+		defer sub()
+	}
+
+	if !g.isArchive() {
+		log.Debug("not an archive: %s")
+		return nil
+	}
+
+	gz, err := gzip.NewReader(f)
+	if err != nil {
+		return fmt.Errorf("reading release asset: %w", err)
+	}
+
+	tar := tarfs.New(tar.NewReader(gz))
+	bin := afero.NewBasePathFs(afero.NewOsFs(), xdg.BinHome)
+	return afero.Walk(tar, "",
+		func(path string, info fs.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if path == "" || info.IsDir() {
+				return nil
+			}
+
+			if e, err := tar.Open(path); err != nil {
+				return err
+			} else {
+				return afero.WriteReader(bin, path, e)
+			}
+		},
+	)
+}
 
 // Meta implements Release.
 func (g *release) Meta() tdl.Meta {
@@ -144,22 +212,48 @@ func (g *release) isArchive() bool {
 }
 
 func (g release) prefixedVersion() string {
+	if strings.HasPrefix(g.version, "v") {
+		return g.version
+	}
+
 	return fmt.Sprintf("v%s", g.version)
 }
 
+func ParseUrl(url *url.URL, options ...Option) (Release, error) {
+	if !slices.Contains(SupportedSchemes, url.Scheme) {
+		return nil, fmt.Errorf("unsupported scheme: %s", url)
+	}
+
+	path, err := ghpath.ParseUrl(url.String())
+	if err != nil {
+		return nil, fmt.Errorf("ghpath: %w", err)
+	}
+
+	asset, err := ghpath.ParseAsset(path)
+	if err != nil {
+		return nil, fmt.Errorf("ghpath: %w", err)
+	}
+
+	return NewRelease(asset.Asset, asset.Release,
+		WithRepository(asset.Owner, asset.Repository),
+		WithOptions(options...),
+	), nil
+}
+
 func NewRelease(name, version string, options ...Option) Release {
-	r := &release{
+	release := &release{
 		owner:   Owner,
 		repo:    Repo,
 		name:    name,
 		version: version,
 		client:  DefaultClient,
+		gh:      github.NewClient(nil),
 
 		archiveContents: []string{},
 	}
-	option.ApplyAll(r, options)
+	option.ApplyAll(release, options)
 
-	return r
+	return release
 }
 
 func WithClient(client Client) Option {
@@ -196,5 +290,11 @@ func WithArchiveContents(path ...string) Option {
 func WithProgress(report progress.ReportFunc) Option {
 	return func(r *release) {
 		r.progress = report
+	}
+}
+
+func WithOptions(options ...Option) Option {
+	return func(r *release) {
+		option.ApplyAll(r, options)
 	}
 }
