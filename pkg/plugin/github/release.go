@@ -7,10 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"net/url"
 	"os/exec"
 	"path"
-	"slices"
 	"strings"
 	"time"
 
@@ -19,7 +17,6 @@ import (
 	"github.com/google/go-github/v67/github"
 	"github.com/spf13/afero"
 	"github.com/spf13/afero/tarfs"
-	"github.com/unmango/go/fs/github/ghpath"
 	"github.com/unmango/go/fs/github/repository/release/asset"
 	"github.com/unmango/go/option"
 	tdl "github.com/unstoppablemango/tdl/pkg"
@@ -28,12 +25,6 @@ import (
 	"github.com/unstoppablemango/tdl/pkg/plugin/cache"
 	"github.com/unstoppablemango/tdl/pkg/progress"
 )
-
-var SupportedSchemes = []string{
-	"github",
-	"https",
-	"http",
-}
 
 type Release interface {
 	tdl.PreReq
@@ -48,7 +39,7 @@ type release struct {
 	owner, repo     string
 	name, version   string
 	archiveContents []string
-	progress        progress.ReportFunc
+	progress        progress.TotalFunc
 }
 
 // Ensure implements Release.
@@ -219,27 +210,6 @@ func (g release) prefixedVersion() string {
 	return fmt.Sprintf("v%s", g.version)
 }
 
-func ParseUrl(url *url.URL, options ...Option) (Release, error) {
-	if !slices.Contains(SupportedSchemes, url.Scheme) {
-		return nil, fmt.Errorf("unsupported scheme: %s", url)
-	}
-
-	path, err := ghpath.ParseUrl(url.String())
-	if err != nil {
-		return nil, fmt.Errorf("ghpath: %w", err)
-	}
-
-	asset, err := ghpath.ParseAsset(path)
-	if err != nil {
-		return nil, fmt.Errorf("ghpath: %w", err)
-	}
-
-	return NewRelease(asset.Asset, asset.Release,
-		WithRepository(asset.Owner, asset.Repository),
-		WithOptions(options...),
-	), nil
-}
-
 func NewRelease(name, version string, options ...Option) Release {
 	release := &release{
 		owner:   Owner,
@@ -287,7 +257,7 @@ func WithArchiveContents(path ...string) Option {
 	}
 }
 
-func WithProgress(report progress.ReportFunc) Option {
+func WithProgress(report progress.TotalFunc) Option {
 	return func(r *release) {
 		r.progress = report
 	}
