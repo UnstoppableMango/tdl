@@ -36,20 +36,88 @@ type Option func(*release)
 type release struct {
 	gh              *github.Client
 	owner, repo     string
-	name, version   string
+	asset, release  string
 	archiveContents []string
 	progress        progress.TotalFunc
 }
 
+// String implements Release.
+func (g *release) String() string {
+	path := path.Join(
+		g.owner, g.repo,
+		"releases", "download",
+		g.prefixedVersion(), g.asset,
+	)
+
+	return fmt.Sprintf("https://github.com/%s", path)
+}
+
+// Meta implements Release.
+func (g *release) Meta() tdl.Meta {
+	return meta.Map{
+		"asset":   g.asset,
+		"owner":   g.owner,
+		"repo":    g.repo,
+		"release": g.release,
+	}
+}
+
 // Ensure implements Release.
 func (g *release) Ensure(context.Context) error {
-	if g.isArchive() && len(g.archiveContents) == 1 {
-		if path, err := exec.LookPath(g.archiveContents[0]); err == nil {
-			log.Debug("bin found on $PATH", "path", path)
-			return nil
-		}
+	if path, err := g.lookPath(); err == nil {
+		log.Debug("bin found on $PATH", "path", path)
+		return nil
+	} else {
+		return g.cache()
+	}
+}
+
+// Generator implements tdl.Plugin.
+func (g *release) Generator(ctx context.Context, target tdl.Meta) (tdl.Generator, error) {
+	if path, err := g.lookPath(); err == nil {
+		log.Debug("bin found on $PATH", "path", path)
+		return cli.New(path), nil
 	}
 
+	if err := g.cache(); err != nil {
+		return nil, fmt.Errorf("caching release: %w", err)
+	}
+
+	return nil, errors.New("TODO: some super awesome target matching logic")
+}
+
+// Supports implements tdl.Target.
+func (g *release) Supports(target tdl.Target) bool {
+	return meta.HasValue(target.Meta(),
+		meta.WellKnown.Lang,
+		meta.Lang.TypeScript,
+	)
+}
+
+func (g *release) isArchive() bool {
+	return strings.HasSuffix(g.asset, ".tar.gz")
+}
+
+func (g release) prefixedVersion() string {
+	if strings.HasPrefix(g.release, "v") {
+		return g.release
+	}
+
+	return fmt.Sprintf("v%s", g.release)
+}
+
+func (g release) lookPath() (string, error) {
+	if !g.isArchive() {
+		return exec.LookPath(g.asset)
+	}
+	if len(g.archiveContents) == 1 {
+		return exec.LookPath(g.archiveContents[0])
+	}
+
+	return "", errors.New("multiple archive targets")
+}
+
+func (g release) cache() error {
 	cache, err := cache.Fs()
 	if err != nil {
 		return fmt.Errorf("opening cache: %w", err)
@@ -59,7 +127,7 @@ func (g *release) Ensure(context.Context) error {
 		asset.NewFs(g.gh, g.owner, g.repo, g.prefixedVersion()),
 		cache, time.Hour*1, // Always cache
 	)
-	f, err := progress.Open(assetfs, g.name)
+	f, err := progress.Open(assetfs, g.asset)
 	if err != nil {
 		return fmt.Errorf("opening release asset: %w", err)
 	}
@@ -99,122 +167,12 @@ func (g *release) Ensure(context.Context) error {
 	)
 }
 
-// Meta implements Release.
-func (g *release) Meta() tdl.Meta {
-	return meta.Map{
-		"asset":   g.name,
-		"owner":   g.owner,
-		"repo":    g.repo,
-		"version": g.version,
-	}
-}
-
-// Generator implements tdl.Plugin.
-func (g *release) Generator(
-	ctx context.Context,
-	target tdl.Meta,
-) (tdl.Generator, error) {
-	if g.isArchive() && len(g.archiveContents) == 1 {
-		if path, err := exec.LookPath(g.archiveContents[0]); err == nil {
-			log.Debug("bin found on $PATH", "path", path)
-			return cli.New(path), nil
-		}
-	}
-
-	cache, err := cache.Fs()
-	if err != nil {
-		return nil, fmt.Errorf("opening cache: %w", err)
-	}
-
-	assetfs := afero.NewCacheOnReadFs(
-		asset.NewFs(g.gh, g.owner, g.repo, g.prefixedVersion()),
-		cache, time.Hour*1, // Always cache
-	)
-	f, err := progress.Open(assetfs, g.name)
-	if err != nil {
-		return nil, fmt.Errorf("opening release asset: %w", err)
-	}
-
-	if g.progress != nil {
-		sub := f.Subscribe(g.progress)
-		defer sub()
-	}
-
-	if !g.isArchive() {
-		return cli.New(g.name), nil
-	}
-
-	gz, err := gzip.NewReader(f)
-	if err != nil {
-		return nil, fmt.Errorf("reading release asset: %w", err)
-	}
-
-	tar := tarfs.New(tar.NewReader(gz))
-	bin := afero.NewBasePathFs(afero.NewOsFs(), xdg.BinHome)
-	err = afero.Walk(tar, "",
-		func(path string, info fs.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if path == "" || info.IsDir() {
-				return nil
-			}
-
-			if e, err := tar.Open(path); err != nil {
-				return err
-			} else {
-				return afero.WriteReader(bin, path, e)
-			}
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("writing binary")
-	}
-
-	if len(g.archiveContents) == 1 {
-		return cli.New(g.archiveContents[0]), nil
-	}
-
-	return nil, errors.New("TODO: some super awesome target matching logic")
-}
-
-// Supports implements tdl.Target.
-func (g *release) Supports(target tdl.Target) bool {
-	return meta.HasValue(target.Meta(),
-		meta.WellKnown.Lang,
-		meta.Lang.TypeScript,
-	)
-}
-
-// String implements tdl.Plugin.
-func (g *release) String() string {
-	path := path.Join(
-		g.owner, g.repo,
-		"releases", "download",
-		g.prefixedVersion(), g.name,
-	)
-
-	return fmt.Sprintf("https://github.com/%s", path)
-}
-
-func (g *release) isArchive() bool {
-	return strings.HasSuffix(g.name, ".tar.gz")
-}
-
-func (g release) prefixedVersion() string {
-	if strings.HasPrefix(g.version, "v") {
-		return g.version
-	}
-
-	return fmt.Sprintf("v%s", g.version)
-}
-
-func NewRelease(name, version string, options ...Option) Release {
+func NewRelease(asset, name string, options ...Option) Release {
 	release := &release{
 		owner:   Owner,
 		repo:    Repo,
-		name:    name,
-		version: version,
+		asset:   asset,
+		release: name,
 		gh:      github.NewClient(nil),
 
 		archiveContents: []string{},
