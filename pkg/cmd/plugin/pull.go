@@ -6,6 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
+	"github.com/unstoppablemango/tdl/internal"
 	"github.com/unstoppablemango/tdl/internal/util"
 	"github.com/unstoppablemango/tdl/pkg/plugin"
 	"github.com/unstoppablemango/tdl/pkg/progress"
@@ -17,8 +18,9 @@ func NewPull() *cobra.Command {
 		Short: "Pull the specified plugin",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			prog := tea.NewProgram(progress.NewModel())
+			internal.InitLogging()
 			ctx := cmd.Context()
+			prog := tea.NewProgram(progress.NewModel())
 			errs := make(chan error)
 
 			go pull(ctx, args[0], prog, errs)

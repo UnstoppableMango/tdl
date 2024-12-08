@@ -8,6 +8,7 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
+	"github.com/unstoppablemango/tdl/internal"
 	"github.com/unstoppablemango/tdl/internal/util"
 	"github.com/unstoppablemango/tdl/pkg/conform"
 )
@@ -22,6 +23,7 @@ tests against it. Currently only supports a path to a binary
 that communicates via stdin/stdout`,
 		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
+			internal.InitLogging()
 			fs := afero.NewOsFs()
 			endpoint := args[0]
 

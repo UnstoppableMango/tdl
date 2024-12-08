@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/unstoppablemango/tdl/internal"
 	"github.com/unstoppablemango/tdl/pkg/plugin"
 )
 
@@ -14,6 +15,7 @@ func NewList() *cobra.Command {
 		Aliases: []string{"ls"},
 		Args:    cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
+			internal.InitLogging()
 			for p := range plugin.Static() {
 				for _, pi := range plugin.Unwrap(p) {
 					fmt.Println(pi)
