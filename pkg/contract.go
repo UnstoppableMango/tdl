@@ -86,3 +86,17 @@ type OS interface {
 	Stderr() io.Writer
 	Fs() afero.Fs
 }
+
+type PreReq interface {
+	Ensure(context.Context) error
+}
+
+type CacheItem struct {
+	io.ReadCloser
+	Name string
+}
+
+type Cache interface {
+	Get(string) (*CacheItem, error)
+	Writer(string) (io.WriteCloser, error)
+}
