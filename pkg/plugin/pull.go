@@ -18,25 +18,6 @@ type PullOptions struct {
 
 type PullOption func(*PullOptions)
 
-func PullToken(ctx context.Context, name string, options ...PullOption) error {
-	url, err := url.Parse(name)
-	if err != nil {
-		return fmt.Errorf("matching plugin: %w", err)
-	}
-
-	opts := PullOptions{}
-	option.ApplyAll(&opts, options)
-
-	if release, err := github.ParseUrl(url); err == nil {
-		return Pull(ctx, release, options...)
-	} else {
-		log.Errorf("pulling GitHub release: %s", err)
-	}
-
-	log.Debug("unsupported", "url", url)
-	return fmt.Errorf("unsupported token: %s", name)
-}
-
 func Pull(ctx context.Context, plugin tdl.Plugin, options ...PullOption) error {
 	prereq, ok := plugin.(tdl.PreReq)
 	if !ok {
@@ -54,6 +35,25 @@ func Pull(ctx context.Context, plugin tdl.Plugin, options ...PullOption) error {
 	}
 
 	return prereq.Ensure(ctx)
+}
+
+func PullToken(ctx context.Context, name string, options ...PullOption) error {
+	url, err := url.Parse(name)
+	if err != nil {
+		return fmt.Errorf("matching plugin: %w", err)
+	}
+
+	opts := PullOptions{}
+	option.ApplyAll(&opts, options)
+
+	if release, err := github.ParseUrl(url); err == nil {
+		return Pull(ctx, release, options...)
+	} else {
+		log.Errorf("pulling GitHub release: %s", err)
+	}
+
+	log.Debug("unsupported", "url", url)
+	return fmt.Errorf("unsupported token: %s", name)
 }
 
 func WithProgress(progress progress.TotalFunc) PullOption {
