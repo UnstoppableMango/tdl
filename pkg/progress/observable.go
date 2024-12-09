@@ -9,7 +9,7 @@ type Observable interface {
 	rx.Observable[Event]
 }
 
-type Subject struct {
+type Subject interface {
 	rx.Subject[Event]
 	State
 }
@@ -20,6 +20,11 @@ type TotalObservable interface {
 
 type MessageObservable interface {
 	rx.Observable[string]
+}
+
+type stream struct {
+	rx.Subject[Event]
+	State
 }
 
 // OnComplete implements rx.Observer.
@@ -73,8 +78,8 @@ func (fn MessageFunc) SubscribeTo(obs Observable) rx.Subscription {
 	return obs.Subscribe(fn)
 }
 
-func NewSubject(total int) *Subject {
-	return &Subject{
+func NewSubject(total int) Subject {
+	return &stream{
 		Subject: subject.New[Event](),
 		State:   &state{total: total},
 	}

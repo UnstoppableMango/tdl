@@ -11,7 +11,7 @@ type Reader interface {
 }
 
 type reader struct {
-	*Subject
+	Subject
 	reader io.Reader
 }
 

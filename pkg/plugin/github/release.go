@@ -19,6 +19,8 @@ import (
 	"github.com/spf13/afero/tarfs"
 	"github.com/unmango/go/fs/github/repository/release/asset"
 	"github.com/unmango/go/option"
+	"github.com/unmango/go/rx"
+	"github.com/unmango/go/rx/subject"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/gen/cli"
 	"github.com/unstoppablemango/tdl/pkg/meta"
@@ -31,16 +33,17 @@ var ErrMulti = errors.New("multiple release targets specified")
 type Release interface {
 	tdl.PreReq
 	tdl.GeneratorPlugin
+	progress.Observable
 }
 
 type Option func(*release)
 
 type release struct {
+	rx.Subject[progress.Event]
 	gh              *github.Client
 	owner, repo     string
 	asset, release  string
 	archiveContents []string
-	progress        progress.TotalFunc
 }
 
 // String implements Release.
@@ -119,32 +122,43 @@ func (g release) lookPath() (string, error) {
 	return "", ErrMulti
 }
 
+func (g release) cached(fs afero.Fs) bool {
+	if stat, err := fs.Stat(g.asset); err != nil {
+		return false
+	} else {
+		return stat.Size() > 0
+	}
+}
+
 func (g release) cache() error {
 	cache, err := cache.Fs()
 	if err != nil {
 		return fmt.Errorf("opening cache: %w", err)
 	}
 
+	if g.cached(cache) {
+		log.Debug("already cached")
+		return nil
+	}
+
 	assetfs := afero.NewCacheOnReadFs(
 		asset.NewFs(g.gh, g.owner, g.repo, g.prefixedVersion()),
 		cache, time.Hour*1, // Always cache
 	)
-	f, err := progress.Open(assetfs, g.asset)
+	asset, err := progress.Open(assetfs, g.asset)
 	if err != nil {
 		return fmt.Errorf("opening release asset: %w", err)
 	}
 
-	if g.progress != nil {
-		sub := f.Subscribe(g.progress)
-		defer sub()
-	}
+	sub := asset.Subscribe(g)
+	defer sub()
 
 	if !g.isArchive() {
-		log.Debug("not an archive: %s")
+		log.Debug("not an archive, done")
 		return nil
 	}
 
-	gz, err := gzip.NewReader(f)
+	gz, err := gzip.NewReader(asset)
 	if err != nil {
 		return fmt.Errorf("reading release asset: %w", err)
 	}
@@ -171,6 +185,7 @@ func (g release) cache() error {
 
 func NewRelease(asset, name string, options ...Option) Release {
 	release := &release{
+		Subject: subject.New[progress.Event](),
 		owner:   Owner,
 		repo:    Repo,
 		asset:   asset,
@@ -206,12 +221,6 @@ func WithRepository(owner, repo string) Option {
 func WithArchiveContents(path ...string) Option {
 	return func(r *release) {
 		r.archiveContents = append(r.archiveContents, path...)
-	}
-}
-
-func WithProgress(report progress.TotalFunc) Option {
-	return func(r *release) {
-		r.progress = report
 	}
 }
 

@@ -10,7 +10,7 @@ type Writer interface {
 }
 
 type writer struct {
-	*Subject
+	Subject
 	writer io.Writer
 }
 
