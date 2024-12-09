@@ -26,6 +26,8 @@ import (
 	"github.com/unstoppablemango/tdl/pkg/progress"
 )
 
+var ErrMulti = errors.New("multiple release targets specified")
+
 type Release interface {
 	tdl.PreReq
 	tdl.GeneratorPlugin
@@ -114,7 +116,7 @@ func (g release) lookPath() (string, error) {
 		return exec.LookPath(g.archiveContents[0])
 	}
 
-	return "", errors.New("multiple archive targets")
+	return "", ErrMulti
 }
 
 func (g release) cache() error {
