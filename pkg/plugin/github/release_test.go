@@ -14,7 +14,7 @@ import (
 
 var _ = Describe("Github", func() {
 	var client github.Client
-	var cache *testing.Cache
+	var cache *testing.DirCache
 
 	BeforeEach(func() {
 		client = github.NewClient(testing.NewGitHubClient())

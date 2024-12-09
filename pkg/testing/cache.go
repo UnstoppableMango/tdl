@@ -8,16 +8,16 @@ import (
 	"github.com/unstoppablemango/tdl/pkg/plugin/cache"
 )
 
-type Cache struct{ cache.Directory }
+type DirCache struct{ cache.Directory }
 
-func (c *Cache) Dir() string {
+func (c *DirCache) Dir() string {
 	return c.JoinPath()
 }
 
-var _ cache.Directory = &Cache{}
+var _ cache.Directory = &DirCache{}
 
-func NewCacheForT(t *testing.T) *Cache {
-	return &Cache{
+func NewCacheForT(t *testing.T) *DirCache {
+	return &DirCache{
 		cache.AtDirectory(t.TempDir()),
 	}
 }
@@ -30,7 +30,7 @@ func NewCacheForT(t *testing.T) *Cache {
 // but I don't like the "gotcha" that it must be run in a
 // Ginkgo leaf node.
 
-func NewCache(fsys afero.Fs) *Cache {
+func NewCache(fsys afero.Fs) *DirCache {
 	if fsys == nil {
 		fsys = afero.NewMemMapFs()
 	}
@@ -38,5 +38,5 @@ func NewCache(fsys afero.Fs) *Cache {
 	path, err := afero.TempDir(fsys, "", "")
 	g.Expect(err).NotTo(g.HaveOccurred())
 
-	return &Cache{cache.NewDirectory(fsys, path)}
+	return &DirCache{cache.NewDirectory(fsys, path)}
 }
