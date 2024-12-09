@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 	"github.com/unstoppablemango/tdl/internal"
 	"github.com/unstoppablemango/tdl/internal/util"
@@ -25,6 +26,7 @@ func NewPull() *cobra.Command {
 
 			go pull(ctx, args[0], prog, errs)
 
+			log.Debug("starting tea app")
 			if _, err := prog.Run(); err != nil {
 				util.Fail(err)
 			}
@@ -42,6 +44,7 @@ func NewPull() *cobra.Command {
 }
 
 func pull(ctx context.Context, name string, prog *tea.Program, errs chan<- error) {
+	log.Debugf("pulling %s", name)
 	err := plugin.PullToken(ctx, name,
 		plugin.WithProgress(func(f float64, err error) {
 			if err != nil {

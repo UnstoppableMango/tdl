@@ -28,7 +28,7 @@ func PullToken(ctx context.Context, name string, options ...PullOption) error {
 	option.ApplyAll(&opts, options)
 
 	if release, err := github.ParseUrl(url); err == nil {
-		return release.Ensure(ctx)
+		return Pull(ctx, release, options...)
 	} else {
 		log.Errorf("pulling GitHub release: %s", err)
 	}
