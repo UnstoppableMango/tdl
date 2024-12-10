@@ -9,6 +9,7 @@ import (
 	"github.com/unstoppablemango/tdl/internal/util"
 	"github.com/unstoppablemango/tdl/pkg/cmd/flags"
 	"github.com/unstoppablemango/tdl/pkg/config/run"
+	"github.com/unstoppablemango/tdl/pkg/logging"
 	"github.com/unstoppablemango/tdl/pkg/plugin"
 	"github.com/unstoppablemango/tdl/pkg/spec"
 	"github.com/unstoppablemango/tdl/pkg/target"
@@ -22,7 +23,7 @@ func NewGen() *cobra.Command {
 		Short: "Run code generation for TARGET",
 		Args:  cobra.RangeArgs(1, 3),
 		Run: func(cmd *cobra.Command, args []string) {
-			internal.InitLogging()
+			logging.Init()
 			ctx := cmd.Context()
 			config, err := run.ParseArgs(args)
 			if err != nil {
