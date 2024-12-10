@@ -5,8 +5,8 @@ import (
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-	"github.com/unstoppablemango/tdl/internal"
 	"github.com/unstoppablemango/tdl/internal/util"
+	"github.com/unstoppablemango/tdl/pkg/logging"
 	"github.com/unstoppablemango/tdl/pkg/testing/e2e"
 )
 
@@ -16,7 +16,7 @@ func NewDiscover() *cobra.Command {
 		Short: "Search for tests at PATH",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			internal.InitLogging()
+			logging.Init()
 			tests, err := e2e.ListTests(afero.NewOsFs(), args[0])
 			if err != nil {
 				util.Fail(err)

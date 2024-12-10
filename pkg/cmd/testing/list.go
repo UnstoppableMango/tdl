@@ -5,9 +5,9 @@ import (
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-	"github.com/unstoppablemango/tdl/internal"
 	"github.com/unstoppablemango/tdl/internal/util"
 	"github.com/unstoppablemango/tdl/pkg/conform"
+	"github.com/unstoppablemango/tdl/pkg/logging"
 )
 
 func NewList() *cobra.Command {
@@ -16,7 +16,7 @@ func NewList() *cobra.Command {
 		Short: "List available test suites",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			internal.InitLogging()
+			logging.Init()
 			ctx := cmd.Context()
 			path, err := conform.LocalGitPath(ctx)
 			if err != nil {
