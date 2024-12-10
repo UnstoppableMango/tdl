@@ -31,15 +31,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.prog, cmd = m.prog.Update(msg)
 
-	switch msg.(type) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "ctrl+c":
+			return m, tea.Quit
+		}
+	case tea.QuitMsg:
+		return m, tea.Quit
 	case progress.ProgressMsg:
 		return m, tea.Batch(cmd, m.listen)
 	case ErrMsg:
 		log.Errorf("err: %s", msg)
 		return m, tea.Batch(cmd, m.listen)
-	default:
-		return m, cmd
 	}
+
+	return m, cmd
 }
 
 // View implements tea.Model.

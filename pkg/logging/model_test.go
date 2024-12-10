@@ -33,7 +33,7 @@ var _ = Describe("Model", func() {
 	})
 
 	It("should print messages above the content", func() {
-		m := logging.NewShell(contentStub("testing"))
+		var m tea.Model = logging.NewShell(contentStub("testing"))
 		m, _ = m.Update(logging.LogMsg([]byte("blah")))
 
 		view := m.View()
@@ -42,7 +42,7 @@ var _ = Describe("Model", func() {
 	})
 
 	It("should separate multiple messages with a newline", func() {
-		m := logging.NewShell(contentStub("testing"))
+		var m tea.Model = logging.NewShell(contentStub("testing"))
 		m, _ = m.Update(logging.LogMsg([]byte("blah1")))
 		m, _ = m.Update(logging.LogMsg([]byte("blah2")))
 
