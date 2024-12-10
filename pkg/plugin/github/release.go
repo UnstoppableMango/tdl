@@ -122,14 +122,6 @@ func (g release) lookPath() (string, error) {
 	return "", ErrMulti
 }
 
-func (g release) cached(fs afero.Fs) bool {
-	if stat, err := fs.Stat(g.asset); err != nil {
-		return false
-	} else {
-		return stat.Size() > 0
-	}
-}
-
 func (r release) cache() error {
 	xdgcache, err := config.XdgCache()
 	if err != nil {

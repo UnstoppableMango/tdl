@@ -12,39 +12,17 @@ import (
 	"regexp"
 
 	"github.com/charmbracelet/log"
-	"github.com/dlclark/regexp2"
 	"github.com/spf13/afero"
 )
 
 var (
-	crdRegex    = regexp.MustCompile(".*\\.ya?ml")
-	outputRegex = regexp2.MustCompile("(?!.*\\.ya?ml)", 0)
+	crdRegex = regexp.MustCompile(`.*\.ya?ml`)
 )
 
 type LangOptions struct {
 	Enabled bool
 	Name    string
 	Path    string
-}
-
-func (o *LangOptions) args(lang string) (args []string) {
-	if o.Enabled {
-		args = append(args, "--"+lang)
-	}
-	if o.Name != "" {
-		args = append(args,
-			fmt.Sprintf("--%sName", lang),
-			o.Name,
-		)
-	}
-	if o.Path != "" {
-		args = append(args,
-			fmt.Sprintf("--%sPath", lang),
-			o.Path,
-		)
-	}
-
-	return
 }
 
 type Tool struct {
