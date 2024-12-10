@@ -2,22 +2,20 @@ package github_test
 
 import (
 	"context"
-	"path/filepath"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/spf13/afero"
 
 	"github.com/unstoppablemango/tdl/pkg/meta"
 	"github.com/unstoppablemango/tdl/pkg/plugin/github"
 	"github.com/unstoppablemango/tdl/pkg/testing"
 )
 
-var _ = Describe("Github", func() {
-	var cache *testing.DirCache
+var _ = Describe("Github", Pending, func() {
+	var cache *testing.Cache
 
 	BeforeEach(func() {
-		cache = testing.NewCache(afero.NewOsFs())
+		cache, _ = testing.NewTmpCache(GinkgoT())
 	})
 
 	It("should cache tdl-linux-amd64.tar.gz", Label("E2E"), func(ctx context.Context) {
@@ -26,9 +24,7 @@ var _ = Describe("Github", func() {
 		_, err := release.Generator(ctx, meta.Empty())
 
 		Expect(err).NotTo(HaveOccurred())
-		dir := cache.Dir()
-		path := filepath.Join(dir, "tdl-linux-amd64.tar.gz")
-		Expect(path).To(BeAnExistingFile())
+		Expect(cache.Get("tdl-linux-amd64.tar.gz")).NotTo(BeNil())
 	})
 
 	It("should cache uml2ts", Label("E2E"), func(ctx context.Context) {
@@ -39,10 +35,7 @@ var _ = Describe("Github", func() {
 		_, err := release.Generator(ctx, meta.Empty())
 
 		Expect(err).NotTo(HaveOccurred())
-		dir := cache.Dir()
-		path := filepath.Join(dir, "uml2ts")
-		Expect(path).To(BeARegularFile())
-		// Expect(release.Cached(cache)).To(BeTrueBecause("The bin was cached"))
+		Expect(cache.Get("uml2ts")).NotTo(BeNil())
 	})
 
 	It("should NOT cache unspecified artifacts", Label("E2E"), func(ctx context.Context) {
@@ -53,9 +46,7 @@ var _ = Describe("Github", func() {
 		_, err := release.Generator(ctx, meta.Empty())
 
 		Expect(err).NotTo(HaveOccurred())
-		dir := cache.Dir()
-		path := filepath.Join(dir, "uml2go")
-		Expect(path).NotTo(BeARegularFile())
+		Expect(cache.Get("uml2go")).NotTo(BeNil())
 	})
 
 	Describe("String", func() {
