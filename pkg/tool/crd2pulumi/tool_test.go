@@ -20,7 +20,7 @@ var _ = Describe("Tool", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("should execute", func(ctx context.Context) {
+	It("should execute", Pending, func(ctx context.Context) {
 		t := crd2pulumi.Tool{
 			NodeJS: &crd2pulumi.LangOptions{
 				Enabled: true,

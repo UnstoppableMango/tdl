@@ -79,7 +79,7 @@ func ensure(fs afero.Fs, path string) error {
 	}
 	if os.IsNotExist(err) {
 		log.Debugf("creating cache directory: %s", path)
-		err = fs.MkdirAll(path, os.ModeDir)
+		err = fs.MkdirAll(path, os.ModePerm)
 	}
 
 	return err

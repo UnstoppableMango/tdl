@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 	"github.com/unstoppablemango/tdl/internal/util"
 	"github.com/unstoppablemango/tdl/pkg/cmd/plugin/pull"
@@ -24,11 +23,7 @@ func NewPull() *cobra.Command {
 				util.Fail(err)
 			}
 
-			shell := logging.NewShell(pull.NewModel(plugin),
-				logging.WithContext(cmd.Context()),
-				logging.WithLogger(log.Default()),
-			)
-			prog := tea.NewProgram(shell)
+			prog := tea.NewProgram(pull.NewModel(plugin))
 			if _, err := prog.Run(); err != nil {
 				util.Fail(err)
 			}
