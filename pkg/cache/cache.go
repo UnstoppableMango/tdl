@@ -17,6 +17,11 @@ func IsNotExist(err error) bool {
 
 type CreateFunc func() (io.ReadCloser, error)
 
+func Exists(cache tdl.Cache, key string) bool {
+	_, err := cache.Get(key)
+	return err == nil
+}
+
 func GetOrCreate(cache tdl.Cache, key string, create CreateFunc) (*tdl.CacheItem, error) {
 	if item, err := cache.Get(key); err == nil {
 		return item, nil

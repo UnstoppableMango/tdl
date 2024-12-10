@@ -9,10 +9,9 @@ import (
 	"io/fs"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strings"
-	"time"
 
-	"github.com/adrg/xdg"
 	"github.com/charmbracelet/log"
 	"github.com/google/go-github/v67/github"
 	"github.com/spf13/afero"
@@ -22,6 +21,7 @@ import (
 	"github.com/unmango/go/rx"
 	"github.com/unmango/go/rx/subject"
 	tdl "github.com/unstoppablemango/tdl/pkg"
+	"github.com/unstoppablemango/tdl/pkg/cache"
 	"github.com/unstoppablemango/tdl/pkg/config"
 	"github.com/unstoppablemango/tdl/pkg/gen/cli"
 	"github.com/unstoppablemango/tdl/pkg/meta"
@@ -130,41 +130,48 @@ func (g release) cached(fs afero.Fs) bool {
 	}
 }
 
-func (g release) cache() error {
-	cache, err := config.XdgCache()
+func (r release) cache() error {
+	xdgcache, err := config.XdgCache()
 	if err != nil {
 		return fmt.Errorf("opening cache: %w", err)
 	}
 
-	if g.cached(cache) {
+	if cache.Exists(xdgcache, r.asset) {
 		log.Debug("already cached")
 		return nil
 	}
 
-	assetfs := afero.NewCacheOnReadFs(
-		asset.NewFs(g.gh, g.owner, g.repo, g.prefixedVersion()),
-		cache, time.Hour*1, // Always cache
-	)
-	asset, err := progress.Open(assetfs, g.asset)
+	assetfs := asset.NewFs(r.gh, r.owner, r.repo, r.prefixedVersion())
+	asset, err := progress.Open(assetfs, r.asset)
 	if err != nil {
 		return fmt.Errorf("opening release asset: %w", err)
 	}
 
-	sub := asset.Subscribe(g)
+	sub := asset.Subscribe(r)
 	defer sub()
 
-	if !g.isArchive() {
-		log.Debug("not an archive, done")
-		return nil
+	if !r.isArchive() {
+		log.Debugf("not an archive: %s", r.asset)
+		if config.BinExists(r.asset) {
+			log.Debugf("asset is cached: %s", r.asset)
+			return nil
+		} else {
+			log.Debugf("writing bin: %s", r.asset)
+			return config.WriteBin(r.asset, asset)
+		}
 	}
 
-	gz, err := gzip.NewReader(asset)
+	reader, err := cache.Tee(xdgcache, r.asset, asset)
+	if err != nil {
+		return fmt.Errorf("writing archive to cache: %w", err)
+	}
+
+	gz, err := gzip.NewReader(reader)
 	if err != nil {
 		return fmt.Errorf("reading release asset: %w", err)
 	}
 
 	tar := tarfs.New(tar.NewReader(gz))
-	bin := afero.NewBasePathFs(afero.NewOsFs(), xdg.BinHome)
 	return afero.Walk(tar, "",
 		func(path string, info fs.FileInfo, err error) error {
 			if err != nil {
@@ -174,10 +181,17 @@ func (g release) cache() error {
 				return nil
 			}
 
+			name := filepath.Base(path)
+			if config.BinExists(name) {
+				log.Debugf("bin exists: %s", name)
+				return nil
+			}
+
 			if e, err := tar.Open(path); err != nil {
-				return err
+				return fmt.Errorf("opening tar entry: %w", err)
 			} else {
-				return afero.WriteReader(bin, path, e)
+				log.Debugf("writing bin: %s", name)
+				return config.WriteBin(name, e)
 			}
 		},
 	)

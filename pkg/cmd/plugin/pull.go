@@ -46,15 +46,11 @@ func NewPull() *cobra.Command {
 func pull(ctx context.Context, name string, prog *tea.Program, errs chan<- error) {
 	log.Debugf("pulling %s", name)
 	err := plugin.PullToken(ctx, name,
-		plugin.WithProgress(func(f float64, err error) {
-			if err != nil {
-				errs <- err
-			} else {
-				prog.Send(progress.ProgressMsg(f))
-			}
-		}),
+		plugin.WithProgress(),
 	)
 	if err != nil {
 		errs <- err
 	}
+
+	prog.Send(tea.Quit)
 }

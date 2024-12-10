@@ -2,7 +2,10 @@ package cache
 
 import (
 	"errors"
+	"fmt"
 	"io"
+
+	tdl "github.com/unstoppablemango/tdl/pkg"
 )
 
 type teeCloser struct {
@@ -16,6 +19,14 @@ func (tee *teeCloser) Close() (err error) {
 	}
 
 	return
+}
+
+func Tee(cache tdl.Cache, key string, reader io.Reader) (io.ReadCloser, error) {
+	if writer, err := cache.Writer(key); err != nil {
+		return nil, fmt.Errorf("opening cache: %w", err)
+	} else {
+		return newTeeCloser(reader, writer), nil
+	}
 }
 
 func newTeeCloser(r io.Reader, w io.Writer) io.ReadCloser {

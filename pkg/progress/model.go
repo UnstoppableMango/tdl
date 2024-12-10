@@ -18,12 +18,12 @@ type Model struct {
 }
 
 // Init implements tea.Model.
-func (m *Model) Init() tea.Cmd {
+func (m Model) Init() tea.Cmd {
 	return nil
 }
 
 // Update implements tea.Model.
-func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.progress.Width = msg.Width - padding*2 - 4
@@ -42,12 +42,16 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // View implements tea.Model.
-func (m *Model) View() string {
+func (m Model) View() string {
 	return m.progress.ViewAs(m.percent) + "\n"
 }
 
-func NewModel() tea.Model {
-	return &Model{
+func NewModel() Model {
+	return Model{
 		progress: progress.New(),
 	}
+}
+
+func ToMsg(e Event) ProgressMsg {
+	return ProgressMsg(e.Percent())
 }
