@@ -41,6 +41,10 @@ type Plugin interface {
 	Supports(Target) bool
 }
 
+type Parser[T any] interface {
+	Parse(string) (T, error)
+}
+
 type Meta interface {
 	Values() iter.Seq2[string, string]
 	Value(string) (string, bool)

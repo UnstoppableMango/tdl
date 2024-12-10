@@ -22,7 +22,7 @@ var _ = Describe("Writer", func() {
 		sink := bytes.NewBuffer(make([]byte, 512))
 		w := progress.NewWriter(sink, len(data))
 
-		s := progress.Subscribe(w, func(i float64, err error) {
+		s := progress.SubscribeTotal(w, func(i float64, err error) {
 			values = append(values, i)
 			errors = append(errors, err)
 		})

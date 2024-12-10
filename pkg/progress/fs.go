@@ -1,6 +1,7 @@
 package progress
 
 import (
+	"github.com/charmbracelet/log"
 	"github.com/spf13/afero"
 	"github.com/unmango/go/rx"
 )
@@ -36,6 +37,8 @@ func Open(fs afero.Fs, name string) (File, error) {
 		return nil, err
 	}
 
-	reader := NewReader(f, int(info.Size()))
+	size := int(info.Size())
+	log.Debugf("reading %d bytes from %s", size, name)
+	reader := NewReader(f, size)
 	return &file{File: f, r: reader}, nil
 }

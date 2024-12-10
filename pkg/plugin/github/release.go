@@ -6,12 +6,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
-	"net/http"
 	"os/exec"
 	"path"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -22,82 +19,153 @@ import (
 	"github.com/spf13/afero/tarfs"
 	"github.com/unmango/go/fs/github/repository/release/asset"
 	"github.com/unmango/go/option"
+	"github.com/unmango/go/rx"
+	"github.com/unmango/go/rx/subject"
 	tdl "github.com/unstoppablemango/tdl/pkg"
+	"github.com/unstoppablemango/tdl/pkg/cache"
 	"github.com/unstoppablemango/tdl/pkg/gen/cli"
 	"github.com/unstoppablemango/tdl/pkg/meta"
-	"github.com/unstoppablemango/tdl/pkg/plugin/cache"
 	"github.com/unstoppablemango/tdl/pkg/progress"
 )
 
-type Release interface {
-	tdl.GeneratorPlugin
-	cache.Cachable
-}
+var ErrMulti = errors.New("multiple release targets specified")
 
-type release struct {
-	client          Client
-	gh              *github.Client
-	owner, repo     string
-	name, version   string
-	archiveContents []string
-	progress        progress.ReportFunc
+type Release interface {
+	tdl.PreReq
+	tdl.GeneratorPlugin
+	progress.Observable
 }
 
 type Option func(*release)
 
+type release struct {
+	rx.Subject[progress.Event]
+	gh              *github.Client
+	owner, repo     string
+	asset, release  string
+	archiveContents []string
+}
+
+// String implements Release.
+func (g *release) String() string {
+	path := path.Join(
+		g.owner, g.repo,
+		"releases", "download",
+		g.prefixedVersion(), g.asset,
+	)
+
+	return fmt.Sprintf("https://github.com/%s", path)
+}
+
 // Meta implements Release.
 func (g *release) Meta() tdl.Meta {
 	return meta.Map{
-		"asset":   g.name,
+		"asset":   g.asset,
 		"owner":   g.owner,
 		"repo":    g.repo,
-		"version": g.version,
+		"release": g.release,
+	}
+}
+
+// Ensure implements Release.
+func (g *release) Ensure(context.Context) error {
+	if path, err := g.lookPath(); err == nil {
+		log.Debug("bin found on $PATH", "path", path)
+		return nil
+	} else {
+		return g.cache()
 	}
 }
 
 // Generator implements tdl.Plugin.
-func (g *release) Generator(
-	ctx context.Context,
-	target tdl.Meta,
-) (tdl.Generator, error) {
-	if g.isArchive() && len(g.archiveContents) == 1 {
-		if path, err := exec.LookPath(g.archiveContents[0]); err == nil {
-			log.Debug("bin found on $PATH", "path", path)
-			return cli.New(path), nil
-		}
+func (g *release) Generator(ctx context.Context, target tdl.Meta) (tdl.Generator, error) {
+	if path, err := g.lookPath(); err == nil {
+		log.Debug("bin found on $PATH", "path", path)
+		return cli.New(path), nil
 	}
 
-	cache, err := cache.Fs()
+	if err := g.cache(); err != nil {
+		return nil, fmt.Errorf("caching release: %w", err)
+	}
+
+	return nil, errors.New("TODO: some super awesome target matching logic")
+}
+
+// Supports implements tdl.Target.
+func (g *release) Supports(target tdl.Target) bool {
+	return meta.HasValue(target.Meta(),
+		meta.WellKnown.Lang,
+		meta.Lang.TypeScript,
+	)
+}
+
+func (g *release) isArchive() bool {
+	return strings.HasSuffix(g.asset, ".tar.gz")
+}
+
+func (g release) prefixedVersion() string {
+	if strings.HasPrefix(g.release, "v") {
+		return g.release
+	}
+
+	return fmt.Sprintf("v%s", g.release)
+}
+
+func (g release) lookPath() (string, error) {
+	if !g.isArchive() {
+		return exec.LookPath(g.asset)
+	}
+	if len(g.archiveContents) == 1 {
+		return exec.LookPath(g.archiveContents[0])
+	}
+
+	return "", ErrMulti
+}
+
+func (g release) cached(fs afero.Fs) bool {
+	if stat, err := fs.Stat(g.asset); err != nil {
+		return false
+	} else {
+		return stat.Size() > 0
+	}
+}
+
+func (g release) cache() error {
+	cache, err := cache.XdgHome()
 	if err != nil {
-		return nil, fmt.Errorf("opening cache: %w", err)
+		return fmt.Errorf("opening cache: %w", err)
+	}
+
+	if g.cached(cache) {
+		log.Debug("already cached")
+		return nil
 	}
 
 	assetfs := afero.NewCacheOnReadFs(
 		asset.NewFs(g.gh, g.owner, g.repo, g.prefixedVersion()),
 		cache, time.Hour*1, // Always cache
 	)
-	f, err := progress.Open(assetfs, g.name)
+	asset, err := progress.Open(assetfs, g.asset)
 	if err != nil {
-		return nil, fmt.Errorf("opening release asset: %w", err)
+		return fmt.Errorf("opening release asset: %w", err)
 	}
 
-	if g.progress != nil {
-		sub := f.Subscribe(g.progress)
-		defer sub()
-	}
+	sub := asset.Subscribe(g)
+	defer sub()
 
 	if !g.isArchive() {
-		return cli.New(g.name), nil
+		log.Debug("not an archive, done")
+		return nil
 	}
 
-	gz, err := gzip.NewReader(f)
+	gz, err := gzip.NewReader(asset)
 	if err != nil {
-		return nil, fmt.Errorf("reading release asset: %w", err)
+		return fmt.Errorf("reading release asset: %w", err)
 	}
 
 	tar := tarfs.New(tar.NewReader(gz))
 	bin := afero.NewBasePathFs(afero.NewOsFs(), xdg.BinHome)
-	err = afero.Walk(tar, "",
+	return afero.Walk(tar, "",
 		func(path string, info fs.FileInfo, err error) error {
 			if err != nil {
 				return err
@@ -113,123 +181,22 @@ func (g *release) Generator(
 			}
 		},
 	)
-	if err != nil {
-		return nil, fmt.Errorf("writing binary")
-	}
-
-	if len(g.archiveContents) == 1 {
-		return cli.New(g.archiveContents[0]), nil
-	}
-
-	return nil, errors.New("TODO: some super awesome target matching logic")
 }
 
-// Supports implements tdl.Target.
-func (g *release) Supports(target tdl.Target) bool {
-	return target.String() == "TypeScript" // TODO
-}
-
-// String implements tdl.Plugin.
-func (g *release) String() string {
-	path := path.Join(
-		g.owner, g.repo,
-		"releases", "download",
-		g.prefixedVersion(), g.name,
-	)
-
-	return fmt.Sprintf("https://github.com/%s", path)
-}
-
-func (g *release) isArchive() bool {
-	return strings.HasSuffix(g.name, ".tar.gz")
-}
-
-func (g release) Cached(c cache.Cacher) bool {
-	_, err := c.Reader("uml2ts")
-	return err == nil
-}
-
-func (g release) Cache(ctx context.Context, c cache.Cacher) error {
-	asset, err := g.getAsset(ctx)
-	if err != nil {
-		return err
-	}
-
-	reader, err := g.downloadReleaseAsset(ctx, asset.GetID())
-	if err != nil {
-		return err
-	}
-	if g.progress != nil {
-		log.Debug("reporting progress")
-		r := progress.NewReader(reader, asset.GetSize())
-		sub := r.Subscribe(g.progress)
-		defer sub()
-		reader = r
-	}
-
-	if len(g.archiveContents) == 0 {
-		return c.WriteAll(g.name, reader)
-	} else {
-		return g.extractArchive(c, reader)
-	}
-}
-
-func (g release) downloadReleaseAsset(ctx context.Context, id int64) (io.Reader, error) {
-	reader, _, err := g.client.DownloadReleaseAsset(ctx, g.owner, g.repo, id, http.DefaultClient)
-	return reader, err
-}
-
-func (g release) extractArchive(c cache.Cacher, reader io.Reader) error {
-	if filepath.Ext(g.name) != ".gz" {
-		return fmt.Errorf("unsupported archive type: %s", g.name)
-	}
-
-	return cache.TarGz(c, reader, g.archiveContents...)
-}
-
-func (g release) getAsset(ctx context.Context) (asset *ReleaseAsset, err error) {
-	release, err := g.getReleaseByTag(ctx, g.prefixedVersion())
-	if err != nil {
-		return
-	}
-
-	for _, asset = range release.Assets {
-		if asset.GetName() == g.name {
-			return
-		}
-	}
-
-	return asset, fmt.Errorf("not found: %s", g.name)
-}
-
-func (g release) getReleaseByTag(ctx context.Context, tag string) (*RepositoryRelease, error) {
-	release, _, err := g.client.GetReleaseByTag(ctx, g.owner, g.repo, tag)
-	return release, err
-}
-
-func (g release) prefixedVersion() string {
-	return fmt.Sprintf("v%s", g.version)
-}
-
-func NewRelease(name, version string, options ...Option) Release {
-	r := &release{
+func NewRelease(asset, name string, options ...Option) Release {
+	release := &release{
+		Subject: subject.New[progress.Event](),
 		owner:   Owner,
 		repo:    Repo,
-		name:    name,
-		version: version,
-		client:  DefaultClient,
+		asset:   asset,
+		release: name,
+		gh:      github.NewClient(nil),
 
 		archiveContents: []string{},
 	}
-	option.ApplyAll(r, options)
+	option.ApplyAll(release, options)
 
-	return r
-}
-
-func WithClient(client Client) Option {
-	return func(r *release) {
-		r.client = client
-	}
+	return release
 }
 
 func WithOwner(owner string) Option {
@@ -257,8 +224,8 @@ func WithArchiveContents(path ...string) Option {
 	}
 }
 
-func WithProgress(report progress.ReportFunc) Option {
+func WithOptions(options ...Option) Option {
 	return func(r *release) {
-		r.progress = report
+		option.ApplyAll(r, options)
 	}
 }
