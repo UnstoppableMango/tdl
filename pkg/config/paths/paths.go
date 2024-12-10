@@ -7,6 +7,6 @@ import (
 )
 
 var (
-	XdgBinHome   = filepath.Join(xdg.BinHome, "ux")
+	XdgBinHome   = xdg.BinHome
 	XdgCacheHome = filepath.Join(xdg.CacheHome, "ux")
 )

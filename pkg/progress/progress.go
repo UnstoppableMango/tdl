@@ -56,3 +56,13 @@ func Lift[F Func](fn F) HandlerFunc {
 		panic("invalid handler function")
 	}
 }
+
+func ChannelHandler(stream chan<- *Event, errs chan<- error) HandlerFunc {
+	return func(e *Event, err error) {
+		if err != nil {
+			errs <- err
+		} else {
+			stream <- e
+		}
+	}
+}

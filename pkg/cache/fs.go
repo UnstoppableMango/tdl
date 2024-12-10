@@ -8,7 +8,6 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/spf13/afero"
 	tdl "github.com/unstoppablemango/tdl/pkg"
-	"github.com/unstoppablemango/tdl/pkg/paths"
 )
 
 type Fs struct{ afero.Fs }
@@ -69,10 +68,6 @@ func NewTmpFs() (*Fs, error) {
 	return NewFsAt(fs, tmp)
 }
 
-func XdgHome() (*Fs, error) {
-	return NewFsAt(afero.NewOsFs(), paths.XdgCacheHome)
-}
-
 func ensure(fs afero.Fs, path string) error {
 	stat, err := fs.Stat(path)
 	if err == nil {
@@ -84,7 +79,7 @@ func ensure(fs afero.Fs, path string) error {
 	}
 	if os.IsNotExist(err) {
 		log.Debugf("creating cache directory: %s", path)
-		err = fs.MkdirAll(path, os.ModeDir)
+		err = fs.MkdirAll(path, os.ModePerm)
 	}
 
 	return err

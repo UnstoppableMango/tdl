@@ -7,13 +7,14 @@ import (
 
 	"github.com/charmbracelet/log"
 	"github.com/unmango/go/option"
+	"github.com/unmango/go/rx"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/plugin/github"
 	"github.com/unstoppablemango/tdl/pkg/progress"
 )
 
 type PullOptions struct {
-	progress progress.TotalFunc
+	progress rx.Observer[progress.Event]
 }
 
 type PullOption func(*PullOptions)
@@ -30,7 +31,7 @@ func Pull(ctx context.Context, plugin tdl.Plugin, options ...PullOption) error {
 
 	if opts.progress != nil {
 		log.Debug("subscribing to progress events")
-		sub := Subscribe(plugin, opts.progress)
+		sub := Observe(plugin).Subscribe(opts.progress)
 		defer sub()
 	}
 
@@ -56,7 +57,7 @@ func PullToken(ctx context.Context, name string, options ...PullOption) error {
 	return fmt.Errorf("unsupported token: %s", name)
 }
 
-func WithProgress(progress progress.TotalFunc) PullOption {
+func WithProgress(progress rx.Observer[progress.Event]) PullOption {
 	return func(opts *PullOptions) {
 		opts.progress = progress
 	}
