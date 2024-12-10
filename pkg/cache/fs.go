@@ -8,7 +8,6 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/spf13/afero"
 	tdl "github.com/unstoppablemango/tdl/pkg"
-	"github.com/unstoppablemango/tdl/pkg/paths"
 )
 
 type Fs struct{ afero.Fs }
@@ -67,10 +66,6 @@ func NewTmpFs() (*Fs, error) {
 
 	// TODO: Maybe implement io.Closer to delete the tmp dir
 	return NewFsAt(fs, tmp)
-}
-
-func XdgHome() (*Fs, error) {
-	return NewFsAt(afero.NewOsFs(), paths.XdgCacheHome)
 }
 
 func ensure(fs afero.Fs, path string) error {

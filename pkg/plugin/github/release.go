@@ -22,7 +22,7 @@ import (
 	"github.com/unmango/go/rx"
 	"github.com/unmango/go/rx/subject"
 	tdl "github.com/unstoppablemango/tdl/pkg"
-	"github.com/unstoppablemango/tdl/pkg/cache"
+	"github.com/unstoppablemango/tdl/pkg/config"
 	"github.com/unstoppablemango/tdl/pkg/gen/cli"
 	"github.com/unstoppablemango/tdl/pkg/meta"
 	"github.com/unstoppablemango/tdl/pkg/progress"
@@ -131,7 +131,7 @@ func (g release) cached(fs afero.Fs) bool {
 }
 
 func (g release) cache() error {
-	cache, err := cache.XdgHome()
+	cache, err := config.XdgCache()
 	if err != nil {
 		return fmt.Errorf("opening cache: %w", err)
 	}
