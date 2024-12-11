@@ -4,15 +4,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/fs"
-	"maps"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/afero"
+	aferox "github.com/unmango/go/fs"
 )
 
 var (
@@ -40,91 +38,30 @@ func (t Tool) String() string {
 }
 
 func (t Tool) Execute(ctx context.Context, src afero.Fs) (afero.Fs, error) {
-	log.Debug("creating temp directory")
-	tmp, err := os.MkdirTemp("", "")
+	base := afero.NewOsFs()
+	work, workfs, err := t.tmpfs(base)
 	if err != nil {
-		return nil, fmt.Errorf("creating exec context: %w", err)
+		return nil, fmt.Errorf("creating working directory: %w", err)
 	}
 
-	langs := map[string]*LangOptions{
-		"nodejs": t.NodeJS,
-		"python": t.Python,
-		"dotnet": t.Dotnet,
-		"golang": t.Go,
-		"java":   t.Java,
-	}
-
-	args := []string{}
-	for k, v := range maps.All(langs) {
-		if v == nil {
-			continue
-		}
-
-		if v.Enabled {
-			args = append(args, "--"+k)
-		}
-		if v.Name != "" {
-			args = append(args,
-				fmt.Sprintf("--%sName", k),
-				v.Name,
-			)
-		}
-		if v.Path != "" {
-			args = append(args,
-				fmt.Sprintf("--%sPath", k),
-				v.Path,
-			)
-		} else {
-			args = append(args,
-				fmt.Sprintf("--%sPath", k),
-				filepath.Join(tmp, k),
-			)
-		}
-	}
-
-	if t.Version != "" {
-		args = append(args, "--version", t.Version)
-	}
-	if t.Force {
-		args = append(args, "--force")
-	}
-
-	tmpfs := afero.NewBasePathFs(afero.NewOsFs(), tmp)
 	crdfs := afero.NewReadOnlyFs(afero.NewRegexpFs(src, crdRegex))
-	err = afero.Walk(crdfs, "",
-		func(path string, info fs.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if path == "" {
-				return nil // skip root
-			}
-			if info.IsDir() {
-				return tmpfs.Mkdir(path, os.ModeDir)
-			}
-
-			f, err := crdfs.Open(path)
-			if err != nil {
-				return fmt.Errorf("copying to context: %w", err)
-			}
-
-			if err = afero.WriteReader(tmpfs, path, f); err != nil {
-				return fmt.Errorf("copying to context: %w", err)
-			}
-
-			args = append(args, path)
-			return nil
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("building args: %w", err)
+	if err = aferox.Copy(crdfs, workfs); err != nil {
+		return nil, fmt.Errorf("copying source files: %w", err)
 	}
+
+	out, outfs, err := t.tmpfs(base)
+	if err != nil {
+		return nil, fmt.Errorf("creating output directory: %w", err)
+	}
+
+	paths := t.paths(out)
+	args := t.args(paths)
 
 	stdout, stderr := &bytes.Buffer{}, &bytes.Buffer{}
 	cmd := exec.CommandContext(ctx, "crd2pulumi", args...)
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
-	cmd.Dir = tmp
+	cmd.Dir = work
 
 	log.Debug("executing command")
 	if err = cmd.Run(); err != nil {
@@ -137,6 +74,68 @@ func (t Tool) Execute(ctx context.Context, src afero.Fs) (afero.Fs, error) {
 		log.Errorf("executing tool: %s", stdout)
 	}
 
-	log.Debugf("returning a new BasePathFs at %s", tmp)
-	return afero.NewBasePathFs(afero.NewOsFs(), tmp), nil
+	return outfs, nil
+}
+
+func (t Tool) tmpfs(fs afero.Fs) (string, afero.Fs, error) {
+	if name, err := afero.TempDir(fs, "", ""); err != nil {
+		return "", nil, err
+	} else {
+		return name, afero.NewBasePathFs(fs, name), nil
+	}
+}
+
+func (t Tool) langs() map[string]*LangOptions {
+	return map[string]*LangOptions{
+		"nodejs": t.NodeJS,
+		"python": t.Python,
+		"dotnet": t.Dotnet,
+		"golang": t.Go,
+		"java":   t.Java,
+	}
+}
+
+func (t Tool) paths(root string) map[string]string {
+	paths := map[string]string{}
+	for k, v := range t.langs() {
+		if v == nil {
+			continue
+		}
+
+		if v.Path != "" {
+			paths[k] = v.Path
+		} else {
+			paths[k] = filepath.Join(root, k)
+		}
+	}
+
+	return paths
+}
+
+func (t Tool) args(paths map[string]string) []string {
+	args := builder{}
+	for k, v := range t.langs() {
+		if v == nil {
+			continue
+		}
+
+		if v.Enabled {
+			args = args.langopt(k)
+		}
+		if v.Name != "" {
+			args = args.nameopt(k, v.Name)
+		}
+		if v.Enabled || v.Path != "" {
+			args = args.pathopt(k, paths[k])
+		}
+	}
+
+	if t.Version != "" {
+		args = args.versionopt(t.Version)
+	}
+	if t.Force {
+		args = args.forceopt()
+	}
+
+	return args
 }
