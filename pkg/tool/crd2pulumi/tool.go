@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io/fs"
 	"os/exec"
-	"path/filepath"
 	"regexp"
 
 	"github.com/charmbracelet/log"
@@ -17,20 +17,9 @@ var (
 	crdRegex = regexp.MustCompile(`.*\.ya?ml`)
 )
 
-type LangOptions struct {
-	Enabled bool
-	Name    string
-	Path    string
-}
-
 type Tool struct {
-	NodeJS  *LangOptions
-	Python  *LangOptions
-	Dotnet  *LangOptions
-	Go      *LangOptions
-	Java    *LangOptions
-	Force   bool
-	Version string
+	Options
+	Path string
 }
 
 func (t Tool) String() string {
@@ -39,29 +28,30 @@ func (t Tool) String() string {
 
 func (t Tool) Execute(ctx context.Context, src afero.Fs) (afero.Fs, error) {
 	base := afero.NewOsFs()
-	work, workfs, err := t.tmpfs(base)
-	if err != nil {
-		return nil, fmt.Errorf("creating working directory: %w", err)
-	}
-
 	crdfs := afero.NewReadOnlyFs(afero.NewRegexpFs(src, crdRegex))
-	if err = aferox.Copy(crdfs, workfs); err != nil {
-		return nil, fmt.Errorf("copying source files: %w", err)
+	inputs, err := aferox.Fold(crdfs, "",
+		func(path string, info fs.FileInfo, paths []string, err error) ([]string, error) {
+			return append(paths, path), err
+		},
+		[]string{},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("reading input paths: %w", err)
 	}
 
-	out, outfs, err := t.tmpfs(base)
+	workdir, workfs, err := t.tmpfs(base)
 	if err != nil {
 		return nil, fmt.Errorf("creating output directory: %w", err)
 	}
 
-	paths := t.Paths(out)
-	args := t.Args(paths)
+	paths := t.Paths(workdir)
+	args := append(t.Args(paths), inputs...)
 
 	stdout, stderr := &bytes.Buffer{}, &bytes.Buffer{}
-	cmd := exec.CommandContext(ctx, "crd2pulumi", args...)
+	cmd := exec.CommandContext(ctx, t.path(), args...)
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
-	cmd.Dir = work
+	cmd.Dir = workdir
 
 	log.Debug("executing command")
 	if err = cmd.Run(); err != nil {
@@ -74,7 +64,7 @@ func (t Tool) Execute(ctx context.Context, src afero.Fs) (afero.Fs, error) {
 		log.Errorf("executing tool: %s", stdout)
 	}
 
-	return outfs, nil
+	return workfs, nil
 }
 
 func (t Tool) tmpfs(fs afero.Fs) (string, afero.Fs, error) {
@@ -85,57 +75,10 @@ func (t Tool) tmpfs(fs afero.Fs) (string, afero.Fs, error) {
 	}
 }
 
-func (t Tool) langs() map[string]*LangOptions {
-	return map[string]*LangOptions{
-		"nodejs": t.NodeJS,
-		"python": t.Python,
-		"dotnet": t.Dotnet,
-		"golang": t.Go,
-		"java":   t.Java,
+func (t Tool) path() string {
+	if t.Path != "" {
+		return t.Path
+	} else {
+		return "crd2pulumi"
 	}
-}
-
-func (t Tool) Paths(root string) map[string]string {
-	paths := map[string]string{}
-	for k, v := range t.langs() {
-		if v == nil {
-			continue
-		}
-
-		if v.Path != "" {
-			paths[k] = v.Path
-		} else {
-			paths[k] = filepath.Join(root, k)
-		}
-	}
-
-	return paths
-}
-
-func (t Tool) Args(paths map[string]string) []string {
-	args := ArgBuilder{}
-	for k, v := range t.langs() {
-		if v == nil {
-			continue
-		}
-
-		if v.Enabled {
-			args = args.LangOpt(k)
-		}
-		if v.Name != "" {
-			args = args.NameOpt(k, v.Name)
-		}
-		if v.Enabled || v.Path != "" {
-			args = args.PathOpt(k, paths[k])
-		}
-	}
-
-	if t.Version != "" {
-		args = args.VersionOpt(t.Version)
-	}
-	if t.Force {
-		args = args.ForceOpt()
-	}
-
-	return args
 }
