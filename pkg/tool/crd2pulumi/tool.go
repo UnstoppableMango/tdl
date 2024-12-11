@@ -3,36 +3,24 @@ package crd2pulumi
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
-	"maps"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"regexp"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/afero"
+	aferox "github.com/unmango/go/fs"
 )
 
 var (
 	crdRegex = regexp.MustCompile(`.*\.ya?ml`)
 )
 
-type LangOptions struct {
-	Enabled bool
-	Name    string
-	Path    string
-}
-
 type Tool struct {
-	NodeJS  *LangOptions
-	Python  *LangOptions
-	Dotnet  *LangOptions
-	Go      *LangOptions
-	Java    *LangOptions
-	Force   bool
-	Version string
+	Options
+	Path string
 }
 
 func (t Tool) String() string {
@@ -40,91 +28,49 @@ func (t Tool) String() string {
 }
 
 func (t Tool) Execute(ctx context.Context, src afero.Fs) (afero.Fs, error) {
-	log.Debug("creating temp directory")
-	tmp, err := os.MkdirTemp("", "")
+	base := afero.NewOsFs()
+	workdir, workfs, err := t.tmpfs(base)
 	if err != nil {
-		return nil, fmt.Errorf("creating exec context: %w", err)
+		return nil, fmt.Errorf("creating working directory: %w", err)
 	}
 
-	langs := map[string]*LangOptions{
-		"nodejs": t.NodeJS,
-		"python": t.Python,
-		"dotnet": t.Dotnet,
-		"golang": t.Go,
-		"java":   t.Java,
+	// src may not necessarily exist on the local filesystem so
+	// we need to copy it to a place that crd2pulumi can find it
+	if err = aferox.Copy(src, workfs); err != nil {
+		return nil, fmt.Errorf("copying src to working directory: %w", err)
 	}
 
-	args := []string{}
-	for k, v := range maps.All(langs) {
-		if v == nil {
-			continue
-		}
-
-		if v.Enabled {
-			args = append(args, "--"+k)
-		}
-		if v.Name != "" {
-			args = append(args,
-				fmt.Sprintf("--%sName", k),
-				v.Name,
-			)
-		}
-		if v.Path != "" {
-			args = append(args,
-				fmt.Sprintf("--%sPath", k),
-				v.Path,
-			)
-		} else {
-			args = append(args,
-				fmt.Sprintf("--%sPath", k),
-				filepath.Join(tmp, k),
-			)
-		}
-	}
-
-	if t.Version != "" {
-		args = append(args, "--version", t.Version)
-	}
-	if t.Force {
-		args = append(args, "--force")
-	}
-
-	tmpfs := afero.NewBasePathFs(afero.NewOsFs(), tmp)
-	crdfs := afero.NewReadOnlyFs(afero.NewRegexpFs(src, crdRegex))
-	err = afero.Walk(crdfs, "",
-		func(path string, info fs.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
+	crdfs := afero.NewReadOnlyFs(afero.NewRegexpFs(workfs, crdRegex))
+	inputs, err := aferox.Fold(crdfs, "",
+		func(path string, info fs.FileInfo, paths []string, err error) ([]string, error) {
 			if path == "" {
-				return nil // skip root
-			}
-			if info.IsDir() {
-				return tmpfs.Mkdir(path, os.ModeDir)
+				return paths, nil
 			}
 
-			f, err := crdfs.Open(path)
-			if err != nil {
-				return fmt.Errorf("copying to context: %w", err)
-			}
-
-			if err = afero.WriteReader(tmpfs, path, f); err != nil {
-				return fmt.Errorf("copying to context: %w", err)
-			}
-
-			args = append(args, path)
-			return nil
+			return append(paths, path), err
 		},
+		[]string{},
 	)
 	if err != nil {
-		return nil, fmt.Errorf("building args: %w", err)
+		return nil, fmt.Errorf("reading input paths: %w", err)
+	}
+	if len(inputs) == 0 {
+		return nil, errors.New("no input files")
 	}
 
+	outdir, outfs, err := t.tmpfs(base)
+	if err != nil {
+		return nil, fmt.Errorf("creating output directory: %w", err)
+	}
+
+	paths := t.Paths(outdir)
+	args := append(t.Args(paths), inputs...)
+
 	stdout, stderr := &bytes.Buffer{}, &bytes.Buffer{}
-	cmd := exec.CommandContext(ctx, "crd2pulumi", args...)
+	cmd := exec.CommandContext(ctx, t.path(), args...)
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
-	cmd.Dir = tmp
+	cmd.Dir = workdir
 
 	log.Debug("executing command")
 	if err = cmd.Run(); err != nil {
@@ -134,9 +80,24 @@ func (t Tool) Execute(ctx context.Context, src afero.Fs) (afero.Fs, error) {
 		return nil, fmt.Errorf("executing tool: %s", stderr)
 	}
 	if stdout.Len() > 0 {
-		log.Errorf("executing tool: %s", stdout)
+		log.Info("tool output", "stdout", stdout)
 	}
 
-	log.Debugf("returning a new BasePathFs at %s", tmp)
-	return afero.NewBasePathFs(afero.NewOsFs(), tmp), nil
+	return outfs, nil
+}
+
+func (t Tool) tmpfs(fs afero.Fs) (string, afero.Fs, error) {
+	if name, err := afero.TempDir(fs, "", ""); err != nil {
+		return "", nil, err
+	} else {
+		return name, afero.NewBasePathFs(fs, name), nil
+	}
+}
+
+func (t Tool) path() string {
+	if t.Path != "" {
+		return t.Path
+	} else {
+		return "crd2pulumi"
+	}
 }

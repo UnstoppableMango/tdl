@@ -8,7 +8,6 @@ require (
 	github.com/charmbracelet/bubbles v0.20.0
 	github.com/charmbracelet/bubbletea v1.2.4
 	github.com/charmbracelet/log v0.4.0
-	github.com/dlclark/regexp2 v1.11.4
 	github.com/docker/docker v27.4.0+incompatible
 	github.com/google/go-github/v67 v67.0.0
 	github.com/onsi/ginkgo/v2 v2.22.0
