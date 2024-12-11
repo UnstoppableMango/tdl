@@ -20,9 +20,15 @@ func (f *Fs) Get(key string) (*tdl.CacheItem, error) {
 		return nil, keyDoesNotExist(key)
 	}
 
+	stat, err := file.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("reading cache file metadata: %w", err)
+	}
+
 	return &tdl.CacheItem{
 		ReadCloser: file,
 		Name:       key,
+		Size:       int(stat.Size()),
 	}, nil
 }
 

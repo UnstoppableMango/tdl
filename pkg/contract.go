@@ -85,6 +85,7 @@ type OS interface {
 type CacheItem struct {
 	io.ReadCloser
 	Name string
+	Size int
 }
 
 type Cache interface {
