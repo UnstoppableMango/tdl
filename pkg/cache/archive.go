@@ -14,17 +14,10 @@ import (
 	tdl "github.com/unstoppablemango/tdl/pkg"
 )
 
-func ExtractTar(cache tdl.Cache, bins tdl.Cache, key string, r io.Reader) error {
-	reader, err := Tee(cache, key, r)
-	if err != nil {
-		return fmt.Errorf("teeing archive to cache: %w", err)
-	}
-
-	defer reader.Close()
-
+func ExtractTar(bins tdl.Cache, key string, r io.Reader) (err error) {
 	gz, err := gzip.NewReader(r)
 	if err != nil {
-		return fmt.Errorf("reading release asset: %w", err)
+		return fmt.Errorf("reading archive: %w", err)
 	}
 
 	defer gz.Close()

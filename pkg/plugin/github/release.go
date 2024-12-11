@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os/exec"
 	"path"
 	"strings"
@@ -120,43 +121,50 @@ func (g release) lookPath() (string, error) {
 	return "", ErrMulti
 }
 
+func (rel release) open() (io.ReadCloser, error) {
+	return asset.NewFs(rel.gh,
+		rel.owner,
+		rel.repo,
+		rel.prefixedVersion(),
+	).Open(rel.asset)
+}
+
 func (rel release) cache() error {
 	xdgcache, err := config.XdgCache()
 	if err != nil {
 		return fmt.Errorf("opening cache: %w", err)
 	}
 
-	if cache.Exists(xdgcache, rel.asset) {
-		log.Debug("already cached")
-		return nil
-	}
-
-	assetfs := asset.NewFs(rel.gh, rel.owner, rel.repo, rel.prefixedVersion())
-	asset, err := progress.Open(assetfs, rel.asset)
+	reader, err := cache.GetOrCreate(xdgcache, rel.asset, rel.open)
 	if err != nil {
-		return fmt.Errorf("opening release asset: %w", err)
+		return fmt.Errorf("caching asset: %w", err)
 	}
 
+	asset := progress.NewReader(reader, reader.Size)
 	sub := asset.Subscribe(rel)
 	defer sub()
 
-	if !rel.isArchive() {
-		log.Debugf("not an archive: %s", rel.asset)
-		if config.BinExists(rel.asset) {
-			log.Debugf("asset is cached: %s", rel.asset)
-			return nil
-		} else {
-			log.Debugf("writing bin: %s", rel.asset)
-			return config.WriteBin(rel.asset, asset)
-		}
+	if rel.isArchive() {
+		return rel.extract(asset)
 	}
 
+	log.Debugf("not an archive: %s", rel.asset)
+	if config.BinExists(rel.asset) {
+		log.Debugf("asset is cached: %s", rel.asset)
+		return nil
+	}
+
+	log.Debugf("writing bin: %s", rel.asset)
+	return config.WriteBin(rel.asset, asset)
+}
+
+func (rel release) extract(r io.Reader) error {
 	xdgbin, err := config.XdgBin()
 	if err != nil {
 		return fmt.Errorf("opening bin cache: %w", err)
 	}
 
-	return cache.ExtractTar(xdgcache, xdgbin, rel.asset, asset)
+	return cache.ExtractTar(xdgbin, rel.asset, r)
 }
 
 func NewRelease(asset, name string, options ...Option) Release {
