@@ -1,21 +1,15 @@
 package github
 
 import (
-	"archive/tar"
-	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
-	"io/fs"
 	"os/exec"
 	"path"
-	"path/filepath"
 	"strings"
 
 	"github.com/charmbracelet/log"
 	"github.com/google/go-github/v67/github"
-	"github.com/spf13/afero"
-	"github.com/spf13/afero/tarfs"
 	"github.com/unmango/go/fs/github/repository/release/asset"
 	"github.com/unmango/go/option"
 	"github.com/unmango/go/rx"
@@ -126,71 +120,43 @@ func (g release) lookPath() (string, error) {
 	return "", ErrMulti
 }
 
-func (r release) cache() error {
+func (rel release) cache() error {
 	xdgcache, err := config.XdgCache()
 	if err != nil {
 		return fmt.Errorf("opening cache: %w", err)
 	}
 
-	if cache.Exists(xdgcache, r.asset) {
+	if cache.Exists(xdgcache, rel.asset) {
 		log.Debug("already cached")
 		return nil
 	}
 
-	assetfs := asset.NewFs(r.gh, r.owner, r.repo, r.prefixedVersion())
-	asset, err := progress.Open(assetfs, r.asset)
+	assetfs := asset.NewFs(rel.gh, rel.owner, rel.repo, rel.prefixedVersion())
+	asset, err := progress.Open(assetfs, rel.asset)
 	if err != nil {
 		return fmt.Errorf("opening release asset: %w", err)
 	}
 
-	sub := asset.Subscribe(r)
+	sub := asset.Subscribe(rel)
 	defer sub()
 
-	if !r.isArchive() {
-		log.Debugf("not an archive: %s", r.asset)
-		if config.BinExists(r.asset) {
-			log.Debugf("asset is cached: %s", r.asset)
+	if !rel.isArchive() {
+		log.Debugf("not an archive: %s", rel.asset)
+		if config.BinExists(rel.asset) {
+			log.Debugf("asset is cached: %s", rel.asset)
 			return nil
 		} else {
-			log.Debugf("writing bin: %s", r.asset)
-			return config.WriteBin(r.asset, asset)
+			log.Debugf("writing bin: %s", rel.asset)
+			return config.WriteBin(rel.asset, asset)
 		}
 	}
 
-	reader, err := cache.Tee(xdgcache, r.asset, asset)
+	xdgbin, err := config.XdgBin()
 	if err != nil {
-		return fmt.Errorf("writing archive to cache: %w", err)
+		return fmt.Errorf("opening bin cache: %w", err)
 	}
 
-	gz, err := gzip.NewReader(reader)
-	if err != nil {
-		return fmt.Errorf("reading release asset: %w", err)
-	}
-
-	tar := tarfs.New(tar.NewReader(gz))
-	return afero.Walk(tar, "",
-		func(path string, info fs.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if path == "" || info.IsDir() {
-				return nil
-			}
-
-			name := filepath.Base(path)
-			if config.BinExists(name) {
-				log.Debugf("bin exists: %s", name)
-				return nil
-			}
-
-			if e, err := tar.Open(path); err != nil {
-				return fmt.Errorf("opening tar entry: %w", err)
-			} else {
-				log.Debugf("writing bin: %s", name)
-				return config.WriteBin(name, e)
-			}
-		},
-	)
+	return cache.ExtractTar(xdgcache, xdgbin, rel.asset, asset)
 }
 
 func NewRelease(asset, name string, options ...Option) Release {
