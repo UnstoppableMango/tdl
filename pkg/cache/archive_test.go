@@ -20,13 +20,11 @@ var _ = Describe("Archive", func() {
 	})
 
 	It("should extract tar", func() {
-		c := cache.NewMemFs()
 		b := cache.NewMemFs()
 
-		err := cache.ExtractTar(c, b, "tdl-linux-amd64.tar.gz", archive)
+		err := cache.ExtractTar(b, "tdl-linux-amd64.tar.gz", archive)
 
 		Expect(err).NotTo(HaveOccurred())
-		Expect(c).To(ContainFile("tdl-linux-amd64.tar.gz"))
 		Expect(b).To(ContainFile("uml2ts"))
 		Expect(b).To(ContainFile("ux"))
 	})
