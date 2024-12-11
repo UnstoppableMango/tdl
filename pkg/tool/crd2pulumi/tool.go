@@ -54,8 +54,8 @@ func (t Tool) Execute(ctx context.Context, src afero.Fs) (afero.Fs, error) {
 		return nil, fmt.Errorf("creating output directory: %w", err)
 	}
 
-	paths := t.paths(out)
-	args := t.args(paths)
+	paths := t.Paths(out)
+	args := t.Args(paths)
 
 	stdout, stderr := &bytes.Buffer{}, &bytes.Buffer{}
 	cmd := exec.CommandContext(ctx, "crd2pulumi", args...)
@@ -95,7 +95,7 @@ func (t Tool) langs() map[string]*LangOptions {
 	}
 }
 
-func (t Tool) paths(root string) map[string]string {
+func (t Tool) Paths(root string) map[string]string {
 	paths := map[string]string{}
 	for k, v := range t.langs() {
 		if v == nil {
@@ -112,7 +112,7 @@ func (t Tool) paths(root string) map[string]string {
 	return paths
 }
 
-func (t Tool) args(paths map[string]string) []string {
+func (t Tool) Args(paths map[string]string) []string {
 	args := ArgBuilder{}
 	for k, v := range t.langs() {
 		if v == nil {
