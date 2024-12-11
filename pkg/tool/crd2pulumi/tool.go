@@ -113,28 +113,28 @@ func (t Tool) paths(root string) map[string]string {
 }
 
 func (t Tool) args(paths map[string]string) []string {
-	args := builder{}
+	args := ArgBuilder{}
 	for k, v := range t.langs() {
 		if v == nil {
 			continue
 		}
 
 		if v.Enabled {
-			args = args.langopt(k)
+			args = args.LangOpt(k)
 		}
 		if v.Name != "" {
-			args = args.nameopt(k, v.Name)
+			args = args.NameOpt(k, v.Name)
 		}
 		if v.Enabled || v.Path != "" {
-			args = args.pathopt(k, paths[k])
+			args = args.PathOpt(k, paths[k])
 		}
 	}
 
 	if t.Version != "" {
-		args = args.versionopt(t.Version)
+		args = args.VersionOpt(t.Version)
 	}
 	if t.Force {
-		args = args.forceopt()
+		args = args.ForceOpt()
 	}
 
 	return args

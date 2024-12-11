@@ -2,28 +2,28 @@ package crd2pulumi
 
 import "fmt"
 
-type builder []string
+type ArgBuilder []string
 
-func (b builder) append(args ...string) builder {
+func (b ArgBuilder) append(args ...string) ArgBuilder {
 	return append(b, args...)
 }
 
-func (b builder) forceopt() builder {
+func (b ArgBuilder) ForceOpt() ArgBuilder {
 	return b.append("--force")
 }
 
-func (b builder) langopt(lang string) builder {
+func (b ArgBuilder) LangOpt(lang string) ArgBuilder {
 	return b.append(fmt.Sprintf("--%s", lang))
 }
 
-func (b builder) nameopt(lang, name string) builder {
-	return b.append(fmt.Sprintf("--%s", lang), name)
+func (b ArgBuilder) NameOpt(lang, name string) ArgBuilder {
+	return b.append(fmt.Sprintf("--%sName", lang), name)
 }
 
-func (b builder) pathopt(lang, path string) builder {
+func (b ArgBuilder) PathOpt(lang, path string) ArgBuilder {
 	return b.append(fmt.Sprintf("--%sPath", lang), path)
 }
 
-func (b builder) versionopt(version string) builder {
+func (b ArgBuilder) VersionOpt(version string) ArgBuilder {
 	return b.append("--version", version)
 }

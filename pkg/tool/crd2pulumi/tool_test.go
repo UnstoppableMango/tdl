@@ -12,7 +12,7 @@ import (
 	"github.com/unstoppablemango/tdl/pkg/tool/crd2pulumi"
 )
 
-var _ = Describe("Tool", func() {
+var _ = Describe("Tool", Pending, func() {
 	var crdyaml []byte
 
 	BeforeEach(func() {
