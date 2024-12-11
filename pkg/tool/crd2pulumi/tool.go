@@ -3,6 +3,7 @@ package crd2pulumi
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os/exec"
@@ -28,9 +29,24 @@ func (t Tool) String() string {
 
 func (t Tool) Execute(ctx context.Context, src afero.Fs) (afero.Fs, error) {
 	base := afero.NewOsFs()
-	crdfs := afero.NewReadOnlyFs(afero.NewRegexpFs(src, crdRegex))
+	workdir, workfs, err := t.tmpfs(base)
+	if err != nil {
+		return nil, fmt.Errorf("creating working directory: %w", err)
+	}
+
+	// src may not necessarily exist on the local filesystem so
+	// we need to copy it to a place that crd2pulumi can find it
+	if err = aferox.Copy(src, workfs); err != nil {
+		return nil, fmt.Errorf("copying src to working directory: %w", err)
+	}
+
+	crdfs := afero.NewReadOnlyFs(afero.NewRegexpFs(workfs, crdRegex))
 	inputs, err := aferox.Fold(crdfs, "",
 		func(path string, info fs.FileInfo, paths []string, err error) ([]string, error) {
+			if path == "" {
+				return paths, nil
+			}
+
 			return append(paths, path), err
 		},
 		[]string{},
@@ -38,13 +54,16 @@ func (t Tool) Execute(ctx context.Context, src afero.Fs) (afero.Fs, error) {
 	if err != nil {
 		return nil, fmt.Errorf("reading input paths: %w", err)
 	}
+	if len(inputs) == 0 {
+		return nil, errors.New("no input files")
+	}
 
-	workdir, workfs, err := t.tmpfs(base)
+	outdir, outfs, err := t.tmpfs(base)
 	if err != nil {
 		return nil, fmt.Errorf("creating output directory: %w", err)
 	}
 
-	paths := t.Paths(workdir)
+	paths := t.Paths(outdir)
 	args := append(t.Args(paths), inputs...)
 
 	stdout, stderr := &bytes.Buffer{}, &bytes.Buffer{}
@@ -61,10 +80,10 @@ func (t Tool) Execute(ctx context.Context, src afero.Fs) (afero.Fs, error) {
 		return nil, fmt.Errorf("executing tool: %s", stderr)
 	}
 	if stdout.Len() > 0 {
-		log.Errorf("executing tool: %s", stdout)
+		log.Info("tool output", "stdout", stdout)
 	}
 
-	return workfs, nil
+	return outfs, nil
 }
 
 func (t Tool) tmpfs(fs afero.Fs) (string, afero.Fs, error) {
