@@ -55,6 +55,6 @@ func (f fromPath) Order() int {
 	return f.order
 }
 
-func FromPath(name string) tdl.GeneratorPlugin {
+func FromPath(name string) *fromPath {
 	return &fromPath{name, meta.Map{}, false, 69}
 }

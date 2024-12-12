@@ -31,8 +31,7 @@ import (
 var ErrMulti = errors.New("multiple release targets specified")
 
 type Release interface {
-	tdl.PreReq
-	tdl.GeneratorPlugin
+	tdl.Plugin
 	progress.Observable
 }
 

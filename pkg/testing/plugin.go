@@ -71,6 +71,3 @@ func (m *MockPlugin) WithString(
 	m.StringFunc = fn
 	return m
 }
-
-var _ tdl.GeneratorPlugin = &MockPlugin{}
-var _ tdl.ToolPlugin = &MockPlugin{}
