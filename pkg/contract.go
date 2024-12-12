@@ -25,16 +25,6 @@ type Tool interface {
 	Execute(context.Context, afero.Fs) (afero.Fs, error)
 }
 
-type GeneratorPlugin interface {
-	Plugin
-	Generator(context.Context, Meta) (Generator, error)
-}
-
-type ToolPlugin interface {
-	Plugin
-	Tool(context.Context, Meta) (Tool, error)
-}
-
 type Plugin interface {
 	fmt.Stringer
 	Meta() Meta
@@ -89,10 +79,6 @@ type OS interface {
 	Stdout() io.Writer
 	Stderr() io.Writer
 	Fs() afero.Fs
-}
-
-type PreReq interface {
-	Ensure(context.Context) error
 }
 
 type CacheItem struct {

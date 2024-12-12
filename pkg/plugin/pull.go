@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 
@@ -20,12 +21,6 @@ type PullOptions struct {
 type PullOption func(*PullOptions)
 
 func Pull(ctx context.Context, plugin tdl.Plugin, options ...PullOption) error {
-	prereq, ok := plugin.(tdl.PreReq)
-	if !ok {
-		log.Debug("no pre-reqs, nothing to do")
-		return nil
-	}
-
 	opts := PullOptions{}
 	option.ApplyAll(&opts, options)
 
@@ -35,7 +30,8 @@ func Pull(ctx context.Context, plugin tdl.Plugin, options ...PullOption) error {
 		defer sub()
 	}
 
-	return prereq.Ensure(ctx)
+	// return prereq.Ensure(ctx)
+	return errors.New("TODO: pull")
 }
 
 func PullToken(ctx context.Context, name string, options ...PullOption) error {

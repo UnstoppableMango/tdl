@@ -1,7 +1,6 @@
 package target
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/unmango/go/iter"
@@ -24,7 +23,7 @@ func (t tool) Meta() tdl.Meta {
 // Tool implements tdl.Target.
 func (t tool) Choose(available iter.Seq[tdl.Plugin]) (tdl.Plugin, error) {
 	plugin, ok := plugin.Find(plugin.FilterSupported(available, t),
-		func(p tdl.ToolPlugin) bool {
+		func(p tdl.Plugin) bool {
 			return p.String() == t.name
 		},
 	)
@@ -42,18 +41,4 @@ func (t tool) String() string {
 
 func NewTool(name string) tdl.Target {
 	return &tool{name}
-}
-
-func Tool(ctx context.Context, target tdl.Target, available iter.Seq[tdl.Plugin]) (tdl.Tool, error) {
-	plugin, err := target.Choose(available)
-	if err != nil {
-		return nil, fmt.Errorf("choosing plugin: %w", err)
-	}
-
-	tool, ok := plugin.(tdl.ToolPlugin)
-	if !ok {
-		return nil, fmt.Errorf("not a tool: %s", plugin)
-	}
-
-	return tool.Tool(ctx, target.Meta())
 }

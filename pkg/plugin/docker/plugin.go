@@ -74,7 +74,7 @@ func (p *plugin) ensure(ctx context.Context) error {
 	return nil
 }
 
-func New(client client.APIClient, image string) tdl.GeneratorPlugin {
+func New(client client.APIClient, image string) *plugin {
 	return &plugin{client, image}
 }
 

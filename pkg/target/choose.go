@@ -1,10 +1,12 @@
 package target
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/unmango/go/iter"
 	tdl "github.com/unstoppablemango/tdl/pkg"
+	"github.com/unstoppablemango/tdl/pkg/plugin"
 )
 
 type RejectionErr struct {
@@ -32,4 +34,22 @@ func Choose[T tdl.Plugin](target tdl.Target, available iter.Seq[tdl.Plugin]) (re
 	} else {
 		return res, fmt.Errorf("invalid type for: %s", plugin)
 	}
+}
+
+func Generator(ctx context.Context, target tdl.Target, available iter.Seq[tdl.Plugin]) (tdl.Generator, error) {
+	p, err := target.Choose(available)
+	if err != nil {
+		return nil, fmt.Errorf("choosing plugin: %w", err)
+	}
+
+	return plugin.Generator(ctx, p, target)
+}
+
+func Tool(ctx context.Context, target tdl.Target, available iter.Seq[tdl.Plugin]) (tdl.Tool, error) {
+	p, err := target.Choose(available)
+	if err != nil {
+		return nil, fmt.Errorf("choosing plugin: %w", err)
+	}
+
+	return plugin.Tool(ctx, p, target)
 }
