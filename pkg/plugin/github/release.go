@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os/exec"
 	"path"
 	"strings"
@@ -135,7 +136,7 @@ func (rel release) cache() error {
 		return fmt.Errorf("opening cache: %w", err)
 	}
 
-	reader, err := cache.GetOrCreate(xdgcache, rel.asset, rel.open)
+	asset, err := cache.GetOrCreate(xdgcache, r.asset, r.open)
 	if err != nil {
 		return fmt.Errorf("caching asset: %w", err)
 	}
