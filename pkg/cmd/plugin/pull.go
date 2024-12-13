@@ -27,6 +27,7 @@ func NewPull() *cobra.Command {
 				util.Fail(err)
 			}
 
+			// TODO: Only launch the TUI if the plugin isn't cached
 			if _, ok := os.LookupEnv("DISABLE_TUI"); ok {
 				err = pullTerm(cmd.Context(), p)
 			} else {
@@ -35,16 +36,12 @@ func NewPull() *cobra.Command {
 			if err != nil {
 				util.Fail(err)
 			}
-
-			fmt.Println("Done")
 		},
 	}
 }
 
 func pullTui(ctx context.Context, p tdl.Plugin) error {
 	prog := tea.NewProgram(pull.NewModel(p))
-	// logging.LogToProgram(prog)
-
 	sub := plugin.Subscribe(p, progress.TeaHandler(prog))
 	defer sub()
 
@@ -54,9 +51,11 @@ func pullTui(ctx context.Context, p tdl.Plugin) error {
 			prog.Println(err)
 		}
 
+		prog.Send(progress.Done())
 		prog.Send(tea.Quit())
 	}()
 
+	// logging.LogToProgram(prog)
 	if _, err := prog.Run(); err != nil {
 		return err
 	} else {
@@ -65,5 +64,10 @@ func pullTui(ctx context.Context, p tdl.Plugin) error {
 }
 
 func pullTerm(ctx context.Context, p tdl.Plugin) error {
-	return plugin.Pull(ctx, p) // TODO: Progress?
+	if err := plugin.Pull(ctx, p); err != nil {
+		return err
+	} else {
+		fmt.Println("Done")
+		return nil
+	}
 }
