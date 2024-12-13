@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"fmt"
+	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
@@ -18,13 +19,17 @@ func NewPull() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			logging.Init()
-			plugin, err := plugin.ParseToken(args[0])
+			p, err := plugin.ParseToken(args[0])
 			if err != nil {
 				util.Fail(err)
 			}
 
-			prog := tea.NewProgram(pull.NewModel(plugin))
-			if _, err := prog.Run(); err != nil {
+			if _, ok := os.LookupEnv("DISABLE_TUI"); ok {
+				err = plugin.Pull(cmd.Context(), p)
+			} else {
+				_, err = tea.NewProgram(pull.NewModel(p)).Run()
+			}
+			if err != nil {
 				util.Fail(err)
 			}
 
