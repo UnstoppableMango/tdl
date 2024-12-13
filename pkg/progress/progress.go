@@ -22,6 +22,10 @@ type Event struct {
 	TotalEvent
 }
 
+func (e Event) ProgressMsg() ProgressMsg {
+	return ProgressMsg(e.Percent())
+}
+
 type (
 	HandlerFunc func(*Event, error)
 	TotalFunc   func(float64, error)
@@ -29,7 +33,7 @@ type (
 )
 
 type Func interface {
-	HandlerFunc | TotalFunc | MessageFunc
+	~func(*Event, error) | ~func(float64, error) | ~func(string, error)
 }
 
 func (fn TotalFunc) Handler() HandlerFunc {

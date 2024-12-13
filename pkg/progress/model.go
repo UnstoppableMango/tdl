@@ -55,3 +55,9 @@ func NewModel() Model {
 func ToMsg(e *Event) ProgressMsg {
 	return ProgressMsg(e.Percent())
 }
+
+func TeaHandler(prog *tea.Program) HandlerFunc {
+	return func(e *Event, err error) {
+		prog.Send(e.ProgressMsg())
+	}
+}

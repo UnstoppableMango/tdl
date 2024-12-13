@@ -1,15 +1,18 @@
 package plugin
 
 import (
+	"context"
 	"fmt"
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 	"github.com/unstoppablemango/tdl/internal/util"
+	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/cmd/plugin/pull"
 	"github.com/unstoppablemango/tdl/pkg/logging"
 	"github.com/unstoppablemango/tdl/pkg/plugin"
+	"github.com/unstoppablemango/tdl/pkg/progress"
 )
 
 func NewPull() *cobra.Command {
@@ -25,9 +28,9 @@ func NewPull() *cobra.Command {
 			}
 
 			if _, ok := os.LookupEnv("DISABLE_TUI"); ok {
-				err = plugin.Pull(cmd.Context(), p)
+				err = pullTerm(cmd.Context(), p)
 			} else {
-				_, err = tea.NewProgram(pull.NewModel(p)).Run()
+				err = pullTui(cmd.Context(), p)
 			}
 			if err != nil {
 				util.Fail(err)
@@ -36,4 +39,31 @@ func NewPull() *cobra.Command {
 			fmt.Println("Done")
 		},
 	}
+}
+
+func pullTui(ctx context.Context, p tdl.Plugin) error {
+	prog := tea.NewProgram(pull.NewModel(p))
+	// logging.LogToProgram(prog)
+
+	sub := plugin.Subscribe(p, progress.TeaHandler(prog))
+	defer sub()
+
+	go func() {
+		err := plugin.Pull(ctx, p)
+		if err != nil {
+			prog.Println(err)
+		}
+
+		prog.Send(tea.Quit())
+	}()
+
+	if _, err := prog.Run(); err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
+
+func pullTerm(ctx context.Context, p tdl.Plugin) error {
+	return plugin.Pull(ctx, p) // TODO: Progress?
 }
