@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/url"
 
@@ -30,8 +29,7 @@ func Pull(ctx context.Context, plugin tdl.Plugin, options ...PullOption) error {
 		defer sub()
 	}
 
-	// return prereq.Ensure(ctx)
-	return errors.New("TODO: pull")
+	return plugin.Prepare(ctx)
 }
 
 func PullToken(ctx context.Context, name string, options ...PullOption) error {

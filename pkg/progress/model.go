@@ -10,7 +10,10 @@ const (
 	maxWidth = 80
 )
 
-type ProgressMsg float64
+type (
+	ProgressMsg float64
+	DoneMsg     struct{}
+)
 
 type Model struct {
 	progress progress.Model
@@ -36,6 +39,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.percent = 1.0
 			return m, tea.Quit
 		}
+	case DoneMsg:
+		m.percent = 1.0
+	case tea.QuitMsg:
+		m.percent = 1.0
+		return m, tea.Quit
 	}
 
 	return m, nil
@@ -54,4 +62,14 @@ func NewModel() Model {
 
 func ToMsg(e *Event) ProgressMsg {
 	return ProgressMsg(e.Percent())
+}
+
+func TeaHandler(prog *tea.Program) HandlerFunc {
+	return func(e *Event, err error) {
+		prog.Send(e.ProgressMsg())
+	}
+}
+
+func Done() tea.Msg {
+	return DoneMsg{}
 }

@@ -45,6 +45,11 @@ type release struct {
 	archiveContents []string
 }
 
+// Prepare implements Release.
+func (g *release) Prepare(ctx context.Context) error {
+	return g.Ensure(ctx)
+}
+
 // String implements Release.
 func (g *release) String() string {
 	path := path.Join(

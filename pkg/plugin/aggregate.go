@@ -1,18 +1,31 @@
 package plugin
 
 import (
+	"context"
 	"fmt"
 
 	tdl "github.com/unstoppablemango/tdl/pkg"
+	"github.com/unstoppablemango/tdl/pkg/meta"
 )
 
 const UnwrapDepth = 3
 
 type Aggregate []tdl.Plugin
 
+// Prepare implements tdl.Plugin.
+func (a Aggregate) Prepare(ctx context.Context) error {
+	for _, p := range a {
+		if err := p.Prepare(ctx); err != nil {
+			return fmt.Errorf("%s: %w", p, err)
+		}
+	}
+
+	return nil
+}
+
 // Meta implements tdl.Plugin.
 func (a Aggregate) Meta() tdl.Meta {
-	panic("unimplemented")
+	return meta.Map{}
 }
 
 // Supports implements tdl.Plugin

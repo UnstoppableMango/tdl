@@ -29,6 +29,7 @@ type Plugin interface {
 	fmt.Stringer
 	Meta() Meta
 	Supports(Target) bool
+	Prepare(context.Context) error
 }
 
 type Parser[T any] interface {
