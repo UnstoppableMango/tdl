@@ -19,6 +19,11 @@ type plugin struct {
 	image  string
 }
 
+// Prepare implements tdl.Plugin.
+func (p *plugin) Prepare(ctx context.Context) error {
+	return p.ensure(ctx)
+}
+
 // Meta implements tdl.GeneratorPlugin.
 func (p *plugin) Meta() tdl.Meta {
 	return meta.Map{

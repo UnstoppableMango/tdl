@@ -17,6 +17,11 @@ type fromPath struct {
 	order  int
 }
 
+// Prepare implements tdl.Plugin.
+func (f fromPath) Prepare(context.Context) error {
+	return nil
+}
+
 // Meta implements tdl.GeneratorPlugin.
 func (f fromPath) Meta() tdl.Meta {
 	return meta.Map{

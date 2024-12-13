@@ -12,6 +12,7 @@ type MockPlugin struct {
 	SupportsFunc  func(tdl.Target) bool
 	MetaValue     tdl.Meta
 	StringFunc    func() string
+	PrepareFunc   func(context.Context) error
 }
 
 // Meta implements tdl.GeneratorPlugin.
@@ -56,6 +57,15 @@ func (p *MockPlugin) String() string {
 	}
 
 	return p.StringFunc()
+}
+
+// String implements tdl.Plugin.
+func (p *MockPlugin) Prepare(ctx context.Context) error {
+	if p.PrepareFunc == nil {
+		panic("unimplemented")
+	}
+
+	return p.PrepareFunc(ctx)
 }
 
 func (p *MockPlugin) WithGenerator(
