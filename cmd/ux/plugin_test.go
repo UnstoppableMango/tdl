@@ -45,7 +45,7 @@ var _ = Describe("ux plugin", func() {
 
 			out, err := cmd.CombinedOutput()
 
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred(), string(out))
 			Expect(filepath.Join(cachePath, "ux", "tdl-linux-amd64.tar.gz")).To(BeARegularFile(), string(out))
 			Expect(filepath.Join(binPath, "uml2ts")).To(BeARegularFile(), string(out))
 			Expect(filepath.Join(binPath, "ux")).To(BeARegularFile(), string(out))
@@ -60,7 +60,7 @@ var _ = Describe("ux plugin", func() {
 
 			out, err := cmd.CombinedOutput()
 
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred(), string(out))
 			Expect(filepath.Join(cachePath, "ux", "tdl-linux-amd64.tar.gz")).To(BeARegularFile(), string(out))
 			Expect(filepath.Join(binPath, "uml2ts")).To(BeARegularFile(), string(out))
 			Expect(filepath.Join(binPath, "ux")).To(BeARegularFile(), string(out))
@@ -77,7 +77,7 @@ var _ = Describe("ux plugin", func() {
 
 			out, err := cmd.CombinedOutput()
 
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred(), string(out))
 			Expect(filepath.Join(cachePath, "ux", "tdl-linux-amd64.tar.gz")).To(BeARegularFile(), string(out))
 			Expect(filepath.Join(binPath, "uml2ts")).To(BeARegularFile(), string(out))
 			Expect(filepath.Join(binPath, "ux")).To(BeARegularFile(), string(out))
@@ -94,7 +94,7 @@ var _ = Describe("ux plugin", func() {
 
 			out, err := cmd.CombinedOutput()
 
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred(), string(out))
 			Expect(filepath.Join(cachePath, "ux", "tdl-linux-amd64.tar.gz")).To(BeARegularFile(), string(out))
 			Expect(filepath.Join(binPath, "uml2ts")).To(BeARegularFile(), string(out))
 			Expect(filepath.Join(binPath, "ux")).To(BeARegularFile(), string(out))
