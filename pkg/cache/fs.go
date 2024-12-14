@@ -1,8 +1,10 @@
 package cache
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 
 	"github.com/charmbracelet/log"
@@ -16,7 +18,10 @@ type Fs struct{ afero.Fs }
 func (f *Fs) Get(key string) (*tdl.CacheItem, error) {
 	file, err := f.Open(key)
 	if err != nil {
-		log.Debug("opening cache file", "err", err)
+		if !errors.Is(err, fs.ErrNotExist) {
+			log.Debug("opening cache file", "err", err)
+		}
+
 		return nil, keyDoesNotExist(key)
 	}
 
