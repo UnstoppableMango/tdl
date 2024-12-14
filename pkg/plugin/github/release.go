@@ -1,7 +1,6 @@
 package github
 
 import (
-	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
@@ -165,12 +164,7 @@ func (rel release) extract(r io.Reader) error {
 		return fmt.Errorf("opening bin cache: %w", err)
 	}
 
-	gz, err := gzip.NewReader(r)
-	if err != nil {
-		return fmt.Errorf("creating zip reader: %w", err)
-	}
-
-	return cache.ExtractTarGz(xdgbin, gz)
+	return cache.StoreTarGz(xdgbin, r)
 }
 
 func NewRelease(asset, name string, options ...Option) Release {

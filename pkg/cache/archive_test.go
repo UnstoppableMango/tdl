@@ -1,9 +1,7 @@
 package cache_test
 
 import (
-	"archive/tar"
-	"compress/gzip"
-	"io"
+	"io/fs"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -13,20 +11,18 @@ import (
 )
 
 var _ = Describe("Archive", func() {
-	var archive io.Reader
+	var archive fs.File
 
 	BeforeEach(func() {
 		var err error
 		archive, err = testdata.Open("testdata/tdl-linux-amd64.tar.gz")
-		Expect(err).NotTo(HaveOccurred())
-		archive, err = gzip.NewReader(archive)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("should extract tar", func() {
 		b := cache.NewMemFs()
 
-		err := cache.ExtractTar(b, tar.NewReader(archive))
+		err := cache.StoreTarGz(b, archive)
 
 		Expect(err).NotTo(HaveOccurred())
 		Expect(b).To(ContainFile("uml2ts"))

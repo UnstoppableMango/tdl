@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"fmt"
+	"io"
 	"io/fs"
 	"path/filepath"
 
@@ -13,15 +14,21 @@ import (
 	tdl "github.com/unstoppablemango/tdl/pkg"
 )
 
-func ExtractTarGz(bins tdl.Cache, gz *gzip.Reader) error {
-	return ExtractTar(bins, tar.NewReader(gz))
+func StoreTarGz(bins tdl.Cache, r io.Reader) error {
+	if gz, err := gzip.NewReader(r); err != nil {
+		return err
+	} else {
+		return StoreTar(bins, gz)
+	}
 }
 
-func ExtractTar(bins tdl.Cache, tar *tar.Reader) error {
-	return ExtractTarFs(bins, tarfs.New(tar))
+func StoreTar(bins tdl.Cache, r io.Reader) error {
+	return StoreTarFs(bins,
+		tarfs.New(tar.NewReader(r)),
+	)
 }
 
-func ExtractTarFs(bins tdl.Cache, tar *tarfs.Fs) (err error) {
+func StoreTarFs(bins tdl.Cache, tar *tarfs.Fs) (err error) {
 	return afero.Walk(tar, "",
 		func(path string, info fs.FileInfo, err error) error {
 			if err != nil {
