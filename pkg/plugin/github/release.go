@@ -135,12 +135,12 @@ func (rel release) cache() error {
 		return fmt.Errorf("opening cache: %w", err)
 	}
 
-	reader, err := cache.GetOrCreate(xdgcache, rel.asset, rel.open)
+	cached, err := cache.GetOrCreate(xdgcache, rel.asset, rel.open)
 	if err != nil {
 		return fmt.Errorf("caching asset: %w", err)
 	}
 
-	asset := progress.NewReader(reader, reader.Size)
+	asset := progress.NewReader(cached, cached.Size)
 	sub := asset.Subscribe(rel)
 	defer sub()
 

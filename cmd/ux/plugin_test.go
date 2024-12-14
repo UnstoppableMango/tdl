@@ -45,7 +45,7 @@ var _ = Describe("ux plugin", func() {
 
 			out, err := cmd.CombinedOutput()
 
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred(), string(out))
 			Expect(filepath.Join(cachePath, "ux", "tdl-linux-amd64.tar.gz")).To(BeARegularFile(), string(out))
 			Expect(filepath.Join(binPath, "uml2ts")).To(BeARegularFile(), string(out))
 			Expect(filepath.Join(binPath, "ux")).To(BeARegularFile(), string(out))
@@ -60,13 +60,46 @@ var _ = Describe("ux plugin", func() {
 
 			out, err := cmd.CombinedOutput()
 
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred(), string(out))
 			Expect(filepath.Join(cachePath, "ux", "tdl-linux-amd64.tar.gz")).To(BeARegularFile(), string(out))
 			Expect(filepath.Join(binPath, "uml2ts")).To(BeARegularFile(), string(out))
 			Expect(filepath.Join(binPath, "ux")).To(BeARegularFile(), string(out))
 			Expect(string(out)).To(ContainSubstring("bin exists: uml2ts"))
 			Expect(string(out)).To(ContainSubstring("bin exists: ux"))
 			Expect(string(out)).To(ContainSubstring("Done\n"))
+		})
+
+		It("should re-pull the archive if it has been removed", func(ctx context.Context) {
+			Expect(os.Remove(filepath.Join(cachePath, "ux", "tdl-linux-amd64.tar.gz"))).To(Succeed())
+			cmd := UxCommand(ctx, "plugin", "pull",
+				"https://github.com/UnstoppableMango/tdl/releases/tag/v0.0.32/tdl-linux-amd64.tar.gz",
+			)
+
+			out, err := cmd.CombinedOutput()
+
+			Expect(err).NotTo(HaveOccurred(), string(out))
+			Expect(filepath.Join(cachePath, "ux", "tdl-linux-amd64.tar.gz")).To(BeARegularFile(), string(out))
+			Expect(filepath.Join(binPath, "uml2ts")).To(BeARegularFile(), string(out))
+			Expect(filepath.Join(binPath, "ux")).To(BeARegularFile(), string(out))
+			Expect(string(out)).To(ContainSubstring("bin exists: uml2ts"))
+			Expect(string(out)).To(ContainSubstring("bin exists: ux"))
+			Expect(string(out)).To(ContainSubstring("Done"))
+		})
+
+		It("should re-extract bins if they have been removed", func(ctx context.Context) {
+			Expect(os.Remove(filepath.Join(binPath, "uml2ts"))).To(Succeed())
+			cmd := UxCommand(ctx, "plugin", "pull",
+				"https://github.com/UnstoppableMango/tdl/releases/tag/v0.0.32/tdl-linux-amd64.tar.gz",
+			)
+
+			out, err := cmd.CombinedOutput()
+
+			Expect(err).NotTo(HaveOccurred(), string(out))
+			Expect(filepath.Join(cachePath, "ux", "tdl-linux-amd64.tar.gz")).To(BeARegularFile(), string(out))
+			Expect(filepath.Join(binPath, "uml2ts")).To(BeARegularFile(), string(out))
+			Expect(filepath.Join(binPath, "ux")).To(BeARegularFile(), string(out))
+			Expect(string(out)).To(ContainSubstring("bin exists: ux"))
+			Expect(string(out)).To(ContainSubstring("Done"))
 		})
 	})
 })
