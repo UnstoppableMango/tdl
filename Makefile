@@ -33,7 +33,7 @@ endif
 
 build: generate .make/buf_build build_go build_ts
 
-build_go: bin/ux bin/devops
+build_go: bin/ux
 build_ts: bin/uml2ts bin/zod2uml packages/tdl/dist packages/ts/dist
 
 test: .make/go_test .make/ts_test
@@ -79,7 +79,7 @@ bin/zod2uml: $(shell $(DEVOPS) list --ts --exclude-tests)
 	bun build --cwd packages/zod2uml index.ts --compile --outfile ${WORKING_DIR}/$@
 
 bin/devops: $(shell $(DEVOPS) list --go --exclude-tests)
-	go -C cmd/devops build -o ${WORKING_DIR}/$@
+	GOBIN=${LOCALBIN} go install github.com/unmango/go/cmd/devops
 
 bin/buf: .versions/buf
 	GOBIN=${LOCALBIN} go install github.com/bufbuild/buf/cmd/buf@v$(shell cat $<)
