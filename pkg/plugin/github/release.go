@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os/exec"
 	"path"
 	"strings"
@@ -136,12 +135,12 @@ func (rel release) cache() error {
 		return fmt.Errorf("opening cache: %w", err)
 	}
 
-	asset, err := cache.GetOrCreate(xdgcache, r.asset, r.open)
+	cached, err := cache.GetOrCreate(xdgcache, rel.asset, rel.open)
 	if err != nil {
 		return fmt.Errorf("caching asset: %w", err)
 	}
 
-	asset := progress.NewReader(reader, reader.Size)
+	asset := progress.NewReader(cached, cached.Size)
 	sub := asset.Subscribe(rel)
 	defer sub()
 
