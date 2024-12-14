@@ -24,14 +24,17 @@ func Exists(cache tdl.Cache, key string) bool {
 
 func GetOrCreate(cache tdl.Cache, key string, create CreateFunc) (*tdl.CacheItem, error) {
 	if item, err := cache.Get(key); err == nil {
+		log.Debugf("cache hit for key: %s", key)
 		return item, nil
 	}
 
+	log.Debug("cache miss for key: %s", key)
 	writer, err := cache.Writer(key)
 	if err != nil {
 		return nil, fmt.Errorf("opening cache: %w", err)
 	}
 
+	log.Debugf("creating cache item for key: %s", key)
 	reader, err := create()
 	if err != nil {
 		return nil, fmt.Errorf("creating cache item: %w", err)
