@@ -139,6 +139,7 @@ func (rel release) cache() error {
 	if err != nil {
 		return fmt.Errorf("caching asset: %w", err)
 	}
+	defer cached.Close()
 
 	asset := progress.NewReader(cached, cached.Size)
 	sub := asset.Subscribe(rel)

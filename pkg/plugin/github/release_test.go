@@ -1,49 +1,60 @@
 package github_test
 
 import (
+	"context"
+	"os"
+	"path/filepath"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/unstoppablemango/tdl/pkg/plugin/github"
 )
 
-var _ = Describe("Github", Pending, func() {
-	// var cache *testing.Cache
+var _ = Describe("Github", func() {
+	Describe("Prepare", Label("E2E"), func() {
+		var workdir string
 
-	// BeforeEach(func() {
-	// 	cache, _ = testing.NewTmpCache(GinkgoT())
-	// })
+		BeforeEach(func() {
+			tmp, err := os.MkdirTemp("", "")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(os.Setenv("XDG_CACHE_HOME", tmp)).To(Succeed())
+			workdir = tmp
+		})
 
-	// It("should cache tdl-linux-amd64.tar.gz", Label("E2E"), func(ctx context.Context) {
-	// 	release := github.NewRelease("tdl-linux-amd64.tar.gz", "0.0.29")
+		AfterEach(func() {
+			Expect(os.Unsetenv("XDG_CACHE_HOME")).To(Succeed())
+		})
 
-	// 	_, err := release.Generator(ctx, meta.Empty())
+		It("should cache tdl-linux-amd64.tar.gz", func(ctx context.Context) {
+			release := github.NewRelease("tdl-linux-amd64.tar.gz", "0.0.29")
 
-	// 	Expect(err).NotTo(HaveOccurred())
-	// 	Expect(cache.Get("tdl-linux-amd64.tar.gz")).NotTo(BeNil())
-	// })
+			err := release.Prepare(ctx)
 
-	// It("should cache uml2ts", Label("E2E"), func(ctx context.Context) {
-	// 	release := github.NewRelease("tdl-linux-amd64.tar.gz", "0.0.29",
-	// 		github.WithArchiveContents("uml2ts"),
-	// 	)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(filepath.Join(workdir, "tdl-linux-amd64.tar.gz")).To(BeARegularFile())
+		})
 
-	// 	_, err := release.Generator(ctx, meta.Empty())
+		It("should cache uml2ts", func(ctx context.Context) {
+			release := github.NewRelease("tdl-linux-amd64.tar.gz", "0.0.29",
+				github.WithArchiveContents("uml2ts"),
+			)
 
-	// 	Expect(err).NotTo(HaveOccurred())
-	// 	Expect(cache.Get("uml2ts")).NotTo(BeNil())
-	// })
+			err := release.Prepare(ctx)
 
-	// It("should NOT cache unspecified artifacts", Label("E2E"), func(ctx context.Context) {
-	// 	release := github.NewRelease("tdl-linux-amd64.tar.gz", "0.0.29",
-	// 		github.WithArchiveContents("uml2ts"),
-	// 	)
+			Expect(err).NotTo(HaveOccurred())
+		})
 
-	// 	_, err := release.Generator(ctx, meta.Empty())
+		It("should NOT cache unspecified artifacts", func(ctx context.Context) {
+			release := github.NewRelease("tdl-linux-amd64.tar.gz", "0.0.29",
+				github.WithArchiveContents("uml2ts"),
+			)
 
-	// 	Expect(err).NotTo(HaveOccurred())
-	// 	Expect(cache.Get("uml2go")).NotTo(BeNil())
-	// })
+			err := release.Prepare(ctx)
+
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
 
 	Describe("String", func() {
 		It("should return the url of the github release", func() {
