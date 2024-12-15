@@ -12,8 +12,8 @@ func main() {
 		cmd.NewPlugin(),
 		cmd.NewTesting(),
 		cmd.NewWhich(),
+		cmd.NewTool(),
 	)
-
 	if err := rootCmd.Execute(); err != nil {
 		util.Fail(err)
 	}

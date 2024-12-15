@@ -9,14 +9,15 @@ import (
 )
 
 var Uml2Ts tdl.Plugin = NewAggregate(
-	fromPath{name: "uml2ts", stdout: true, order: 50},
-	github.NewRelease("tdl-linux-amd64.tar.gz", "0.0.30",
+	fromPath{name: "uml2ts", stdout: true},
+	github.NewRelease("tdl-linux-amd64.tar.gz", "0.0.32",
 		github.WithArchiveContents("uml2ts"),
 	),
-	docker.New(nil, "ghcr.io/unstoppablemango/uml2ts:v0.0.30"),
+	docker.New(nil, "ghcr.io/unstoppablemango/uml2ts:v0.0.32"),
 )
 
 var Crd2Pulumi tdl.Plugin = NewAggregate(
+	fromPath{name: "crd2pulumi", stdout: false},
 	github.NewRelease("crd2pulumi-v1.5.4-linux-amd64.tar.gz", "1.5.4",
 		github.WithOwner("pulumi"),
 		github.WithRepo("crd2pulumi"),

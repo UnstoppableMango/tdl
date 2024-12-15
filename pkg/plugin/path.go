@@ -12,9 +12,7 @@ import (
 
 type fromPath struct {
 	name   string
-	meta   meta.Map
 	stdout bool
-	order  int
 }
 
 // Prepare implements tdl.Plugin.
@@ -25,9 +23,7 @@ func (f fromPath) Prepare(context.Context) error {
 // Meta implements tdl.GeneratorPlugin.
 func (f fromPath) Meta() tdl.Meta {
 	return meta.Map{
-		"name":  f.name,
-		"stout": fmt.Sprint(f.stdout),
-		"order": fmt.Sprint(f.order),
+		"name": f.name,
 	}
 }
 
@@ -44,7 +40,7 @@ func (f fromPath) Generator(context.Context, tdl.Meta) (tdl.Generator, error) {
 }
 
 func (f fromPath) Supports(target tdl.Target) bool {
-	return target.String() == "TypeScript" // TODO
+	return meta.Supports(f.Meta(), target.Meta())
 }
 
 // String implements tdl.Plugin.
@@ -56,10 +52,6 @@ func (f fromPath) String() string {
 	}
 }
 
-func (f fromPath) Order() int {
-	return f.order
-}
-
 func FromPath(name string) *fromPath {
-	return &fromPath{name, meta.Map{}, false, 69}
+	return &fromPath{name, false}
 }
