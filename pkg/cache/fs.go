@@ -39,8 +39,10 @@ func (f *Fs) Get(key string) (*tdl.CacheItem, error) {
 
 // Writer implements tdl.Cache.
 func (f *Fs) Writer(key string) (io.WriteCloser, error) {
+	log.Debugf("fetching writer for %s", key)
 	file, err := f.Open(key)
 	if os.IsNotExist(err) {
+		log.Debugf("file does not exist")
 		file, err = f.Create(key)
 	}
 	if err != nil {
