@@ -22,6 +22,17 @@ var _ = Describe("Parse", func() {
 		},
 	)
 
+	DescribeTable("crd2pulumi",
+		Entry(nil, "crd2pulumi"),
+		Entry(nil, "Crd2Pulumi"),
+		func(input string) {
+			result, err := target.Parse(input)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.String()).To(Equal("crd2pulumi"))
+		},
+	)
+
 	DescribeTable("Unsupported",
 		Entry(nil, "dfkjsalkdfjksdl"),
 		func(input string) {

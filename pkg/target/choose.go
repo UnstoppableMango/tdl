@@ -55,6 +55,8 @@ func Tool(
 ) (tdl.Tool, error) {
 	if p, err := target.Choose(available); err != nil {
 		return nil, fmt.Errorf("choosing plugin: %w", err)
+	} else if err = p.Prepare(ctx); err != nil {
+		return nil, fmt.Errorf("preparing plugin: %w", err)
 	} else {
 		return plugin.Tool(ctx, p, target)
 	}

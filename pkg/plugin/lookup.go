@@ -6,6 +6,7 @@ import (
 
 	"github.com/unmango/go/iter"
 	tdl "github.com/unstoppablemango/tdl/pkg"
+	"github.com/unstoppablemango/tdl/pkg/meta"
 	"github.com/unstoppablemango/tdl/pkg/tool/crd2pulumi"
 )
 
@@ -69,7 +70,7 @@ func Tool(
 	plugin tdl.Plugin,
 	target tdl.Target,
 ) (tdl.Tool, error) {
-	if plugin.String() == "crd2pulumi" {
+	if meta.HasValue(plugin.Meta(), "name", "crd2pulumi") {
 		return &crd2pulumi.Tool{}, nil // TODO
 	}
 	if t, ok := plugin.(ToolPlugin); ok {

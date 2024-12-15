@@ -22,13 +22,13 @@ func (t tool) Meta() tdl.Meta {
 
 // Tool implements tdl.Target.
 func (t tool) Choose(available iter.Seq[tdl.Plugin]) (tdl.Plugin, error) {
-	plugin, ok := plugin.Find(plugin.FilterSupported(available, t),
+	plugin, ok := plugin.Find(available,
 		func(p tdl.Plugin) bool {
-			return p.String() == t.name
+			return meta.Supports(p.Meta(), t.Meta())
 		},
 	)
 	if !ok {
-		return nil, fmt.Errorf("plugin not found: %s", t.name)
+		return nil, fmt.Errorf("no match for target: %s", t.name)
 	}
 
 	return plugin, nil
