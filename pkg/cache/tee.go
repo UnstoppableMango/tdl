@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/charmbracelet/log"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 )
 
@@ -15,6 +16,7 @@ type teeCloser struct {
 
 func (tee *teeCloser) Close() (err error) {
 	for _, close := range tee.closers {
+		log.Debug("closing closer")
 		err = errors.Join(err, close.Close())
 	}
 
