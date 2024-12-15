@@ -5,6 +5,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	tdl "github.com/unstoppablemango/tdl/pkg"
+	"github.com/unstoppablemango/tdl/pkg/meta"
 	"github.com/unstoppablemango/tdl/pkg/target"
 	"github.com/unstoppablemango/tdl/pkg/testing"
 )
@@ -15,8 +16,8 @@ var _ = Describe("Tool", func() {
 
 		p, err := t.Choose(func(yield func(tdl.Plugin) bool) {
 			yield(&testing.MockPlugin{
-				StringFunc: func() string {
-					return "thing"
+				MetaValue: meta.Map{
+					"name": "thing",
 				},
 				SupportsFunc: func(t tdl.Target) bool {
 					return true
@@ -33,8 +34,8 @@ var _ = Describe("Tool", func() {
 
 		_, err := t.Choose(func(yield func(tdl.Plugin) bool) {
 			yield(&testing.MockPlugin{
-				StringFunc: func() string {
-					return "blah"
+				MetaValue: meta.Map{
+					"name": "blah",
 				},
 				SupportsFunc: func(t tdl.Target) bool {
 					return false
@@ -42,6 +43,6 @@ var _ = Describe("Tool", func() {
 			})
 		})
 
-		Expect(err).To(MatchError("plugin not found: thing"))
+		Expect(err).To(MatchError("no match for target: thing"))
 	})
 })

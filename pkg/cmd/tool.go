@@ -16,7 +16,7 @@ func NewTool() *cobra.Command {
 	return &cobra.Command{
 		Use:   "tool [NAME]",
 		Short: "Execute a tool",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			t, err := target.Parse(args[0])
 			if err != nil {

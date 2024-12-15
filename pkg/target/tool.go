@@ -28,7 +28,7 @@ func (t tool) Choose(available iter.Seq[tdl.Plugin]) (tdl.Plugin, error) {
 		},
 	)
 	if !ok {
-		return nil, fmt.Errorf("no match: %s", t.name)
+		return nil, fmt.Errorf("no match for target: %s", t.name)
 	}
 
 	return plugin, nil
