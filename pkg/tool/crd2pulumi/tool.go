@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	crdRegex = regexp.MustCompile(`.*\.ya?ml`)
+	CrdRegex = regexp.MustCompile(`.*\.ya?ml`)
 )
 
 type Tool struct {
@@ -35,12 +35,12 @@ func (t Tool) Execute(ctx context.Context, src afero.Fs) (afero.Fs, error) {
 	}
 
 	inputs := []string{}
-	err = afero.Walk(afero.NewRegexpFs(workfs, crdRegex), "",
+	err = afero.Walk(afero.NewRegexpFs(src, CrdRegex), "",
 		func(path string, info fs.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}
-			if path == "" || !crdRegex.MatchString(path) {
+			if path == "" || !CrdRegex.MatchString(path) {
 				log.Debugf("ignoring %s", path)
 				return nil
 			}

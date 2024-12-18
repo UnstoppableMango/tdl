@@ -27,7 +27,19 @@ var _ = Describe("Tool", func() {
 		log.SetLevel(log.InfoLevel)
 	})
 
-	It("should execute", Label("E2E"), func(ctx context.Context) {
+	DescribeTable("should match yaml files",
+		Entry(nil, "blah.yaml"),
+		Entry(nil, "path/blah.yaml"),
+		Entry(nil, "blah.yml"),
+		Entry(nil, "path/blah.yml"),
+		func(input string) {
+			match := crd2pulumi.CrdRegex.MatchString(input)
+
+			Expect(match).To(BeTrue())
+		},
+	)
+
+	FIt("should execute", Label("E2E"), func(ctx context.Context) {
 		t := crd2pulumi.Tool{
 			Path: toolPath,
 			Options: crd2pulumi.Options{
