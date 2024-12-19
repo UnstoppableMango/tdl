@@ -7,15 +7,15 @@ import (
 	"fmt"
 	"io/fs"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/afero"
-	aferox "github.com/unmango/go/fs"
 )
 
 var (
-	crdRegex = regexp.MustCompile(`.*\.ya?ml`)
+	CrdRegex = regexp.MustCompile(`.*\.ya?ml`)
 )
 
 type Tool struct {
@@ -34,22 +34,30 @@ func (t Tool) Execute(ctx context.Context, src afero.Fs) (afero.Fs, error) {
 		return nil, fmt.Errorf("creating working directory: %w", err)
 	}
 
-	// src may not necessarily exist on the local filesystem so
-	// we need to copy it to a place that crd2pulumi can find it
-	if err = aferox.Copy(src, workfs); err != nil {
-		return nil, fmt.Errorf("copying src to working directory: %w", err)
-	}
-
-	crdfs := afero.NewReadOnlyFs(afero.NewRegexpFs(workfs, crdRegex))
-	inputs, err := aferox.Fold(crdfs, "",
-		func(path string, info fs.FileInfo, paths []string, err error) ([]string, error) {
-			if path == "" {
-				return paths, nil
+	inputs := []string{}
+	err = afero.Walk(afero.NewRegexpFs(src, CrdRegex), "",
+		func(path string, info fs.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if path == "" || !CrdRegex.MatchString(path) {
+				log.Debugf("ignoring %s", path)
+				return nil
 			}
 
-			return append(paths, path), err
+			s, err := src.Open(path)
+			if err != nil {
+				return fmt.Errorf("opening %s: %w", path, err)
+			}
+
+			name := filepath.Base(path)
+			if err = afero.WriteReader(workfs, name, s); err != nil {
+				return fmt.Errorf("copying %s: %w", path, err)
+			}
+
+			inputs = append(inputs, name)
+			return nil
 		},
-		[]string{},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("reading input paths: %w", err)

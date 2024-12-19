@@ -1,16 +1,20 @@
 package cmd
 
 import (
-	"fmt"
-	"io/fs"
 	"os"
 
+	"github.com/charmbracelet/log"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
+	"github.com/unmango/go/fs/ignore"
 	"github.com/unstoppablemango/tdl/internal/util"
+	"github.com/unstoppablemango/tdl/pkg/cmd/internal"
 	"github.com/unstoppablemango/tdl/pkg/plugin"
 	"github.com/unstoppablemango/tdl/pkg/target"
+	"github.com/unstoppablemango/tdl/pkg/tool"
 )
+
+var DefaultIgnorePatterns = tool.DefaultIgnorePatterns
 
 func NewTool() *cobra.Command {
 	return &cobra.Command{
@@ -34,26 +38,20 @@ func NewTool() *cobra.Command {
 				util.Fail(err)
 			}
 
-			fsys := afero.NewBasePathFs(afero.NewOsFs(), work)
-			out, err := tool.Execute(ctx, fsys)
+			src := afero.NewBasePathFs(afero.NewOsFs(), work)
+			if i, err := internal.OpenGitIgnore(ctx); err != nil {
+				log.Info("not a git repo", "err", err)
+				src = ignore.NewFsFromGitIgnoreLines(src, DefaultIgnorePatterns...)
+			} else if src, err = ignore.NewFsFromGitIgnoreReader(src, i); err != nil {
+				util.Fail(err)
+			}
+
+			out, err := tool.Execute(ctx, src)
 			if err != nil {
 				util.Fail(err)
 			}
 
-			err = afero.Walk(out, "",
-				func(path string, info fs.FileInfo, err error) error {
-					if err != nil {
-						return err
-					}
-					if path == "" {
-						return nil
-					}
-
-					fmt.Println(path)
-					return nil
-				},
-			)
-			if err != nil {
+			if err = internal.PrintFs(out); err != nil {
 				util.Fail(err)
 			}
 		},
