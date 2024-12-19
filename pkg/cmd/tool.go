@@ -68,7 +68,7 @@ func NewTool() *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&cwd, "cwd", "C", "", "sets the working directory")
-	cmd.MarkFlagDirname("cwd")
+	_ = cmd.MarkFlagDirname("cwd")
 
 	return cmd
 }
