@@ -40,7 +40,7 @@ var _ = Describe("Tool", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		FIt("should execute", Label("E2E"), func(ctx context.Context) {
+		It("should execute", Label("E2E"), func(ctx context.Context) {
 			t := crd2pulumi.Tool{
 				Path: toolPath,
 				Options: crd2pulumi.Options{
