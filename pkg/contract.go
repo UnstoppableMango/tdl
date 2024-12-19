@@ -22,7 +22,7 @@ type Generator interface {
 
 type Tool interface {
 	fmt.Stringer
-	Execute(context.Context, afero.Fs) (afero.Fs, error)
+	Execute(context.Context, afero.Fs, []string) (afero.Fs, error)
 }
 
 type Plugin interface {
