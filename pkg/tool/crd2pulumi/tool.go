@@ -12,6 +12,7 @@ import (
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/afero"
+	"github.com/unmango/go/fs/filter"
 )
 
 var (
@@ -96,23 +97,7 @@ func (t Tool) Execute(ctx context.Context, src afero.Fs, args []string) (afero.F
 		log.Info("tool output", "stdout", stdout)
 	}
 
-	return outfs, nil
-
-	// WIP: The filter fs has a bug with directories
-	// return filter.NewFs(outfs, func(s string) bool {
-	// 	switch filepath.Ext(s) {
-	// 	case ".cs":
-	// 		return !t.Dotnet.IsZero()
-	// 	case ".go":
-	// 		return !t.Go.IsZero()
-	// 	case ".ts":
-	// 		return !t.NodeJS.IsZero()
-	// 	case ".py":
-	// 		return !t.Python.IsZero()
-	// 	default:
-	// 		return false
-	// 	}
-	// }), nil
+	return filter.NewFs(outfs, t.ShouldInclude), nil
 }
 
 func (t Tool) path() string {
