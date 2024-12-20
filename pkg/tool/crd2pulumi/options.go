@@ -26,6 +26,21 @@ type Options struct {
 	Version string
 }
 
+func (o Options) ShouldInclude(path string) bool {
+	switch filepath.Ext(path) {
+	case ".cs":
+		return !o.Dotnet.IsZero()
+	case ".go":
+		return !o.Go.IsZero()
+	case ".ts":
+		return !o.NodeJS.IsZero()
+	case ".py":
+		return !o.Python.IsZero()
+	default:
+		return false
+	}
+}
+
 func (o Options) langs() map[string]LangOptions {
 	return map[string]LangOptions{
 		"nodejs": o.NodeJS,
