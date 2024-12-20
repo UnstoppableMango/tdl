@@ -23,6 +23,7 @@ var _ = Describe("Tool", func() {
 		Entry(nil, "path/blah.yaml"),
 		Entry(nil, "blah.yml"),
 		Entry(nil, "path/blah.yml"),
+		Entry(nil, "blah.two-dots.yml"),
 		func(input string) {
 			match := crd2pulumi.CrdRegex.MatchString(input)
 
@@ -44,7 +45,7 @@ var _ = Describe("Tool", func() {
 			t := crd2pulumi.Tool{
 				Path: toolPath,
 				Options: crd2pulumi.Options{
-					NodeJS: &crd2pulumi.LangOptions{
+					NodeJS: crd2pulumi.LangOptions{
 						Enabled: true,
 					},
 				},
@@ -53,7 +54,7 @@ var _ = Describe("Tool", func() {
 			err := afero.WriteFile(fs, "blah.yaml", crdyaml, os.ModePerm)
 			Expect(err).NotTo(HaveOccurred())
 
-			out, err := t.Execute(ctx, fs)
+			out, err := t.Execute(ctx, fs, []string{})
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(afero.IsEmpty(out, "")).To(BeFalseBecause("the tool generated files"))

@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"os"
+	"fmt"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/afero"
@@ -9,6 +9,7 @@ import (
 	"github.com/unmango/go/fs/ignore"
 	"github.com/unstoppablemango/tdl/internal/util"
 	"github.com/unstoppablemango/tdl/pkg/cmd/internal"
+	"github.com/unstoppablemango/tdl/pkg/logging"
 	"github.com/unstoppablemango/tdl/pkg/plugin"
 	"github.com/unstoppablemango/tdl/pkg/target"
 	"github.com/unstoppablemango/tdl/pkg/tool"
@@ -17,11 +18,14 @@ import (
 var DefaultIgnorePatterns = tool.DefaultIgnorePatterns
 
 func NewTool() *cobra.Command {
-	return &cobra.Command{
+	var cwd string
+
+	cmd := &cobra.Command{
 		Use:   "tool [NAME]",
 		Short: "Execute a tool",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
+			logging.Init()
 			t, err := target.Parse(args[0])
 			if err != nil {
 				util.Fail(err)
@@ -33,12 +37,11 @@ func NewTool() *cobra.Command {
 				util.Fail(err)
 			}
 
-			work, err := os.Getwd()
-			if err != nil {
+			if cwd, err = internal.Cwd(cwd); err != nil {
 				util.Fail(err)
 			}
 
-			src := afero.NewBasePathFs(afero.NewOsFs(), work)
+			src := afero.NewBasePathFs(afero.NewOsFs(), cwd)
 			if i, err := internal.OpenGitIgnore(ctx); err != nil {
 				log.Info("not a git repo", "err", err)
 				src = ignore.NewFsFromGitIgnoreLines(src, DefaultIgnorePatterns...)
@@ -46,14 +49,26 @@ func NewTool() *cobra.Command {
 				util.Fail(err)
 			}
 
-			out, err := tool.Execute(ctx, src)
+			extraArgs := []string{}
+			if l := cmd.Flags().ArgsLenAtDash(); l > 0 {
+				extraArgs = args[l:]
+			}
+
+			log.Debug("executing", "tool", tool, "cwd", cwd, "args", extraArgs)
+			out, err := tool.Execute(ctx, src, extraArgs)
 			if err != nil {
 				util.Fail(err)
 			}
 
+			fmt.Println("successfully executed")
 			if err = internal.PrintFs(out); err != nil {
 				util.Fail(err)
 			}
 		},
 	}
+
+	cmd.Flags().StringVarP(&cwd, "cwd", "C", "", "sets the working directory")
+	_ = cmd.MarkFlagDirname("cwd")
+
+	return cmd
 }

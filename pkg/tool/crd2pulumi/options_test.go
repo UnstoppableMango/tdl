@@ -19,11 +19,11 @@ var _ = Describe("Options", func() {
 			func(key, value string) {
 				root := "blah"
 				t := crd2pulumi.Options{
-					NodeJS: &crd2pulumi.LangOptions{},
-					Python: &crd2pulumi.LangOptions{},
-					Dotnet: &crd2pulumi.LangOptions{},
-					Go:     &crd2pulumi.LangOptions{},
-					Java:   &crd2pulumi.LangOptions{},
+					NodeJS: crd2pulumi.LangOptions{},
+					Python: crd2pulumi.LangOptions{},
+					Dotnet: crd2pulumi.LangOptions{},
+					Go:     crd2pulumi.LangOptions{},
+					Java:   crd2pulumi.LangOptions{},
 				}
 
 				paths := t.Paths(root)
@@ -40,11 +40,11 @@ var _ = Describe("Options", func() {
 			Entry("java", "java", "blah/java"),
 			func(key, value string) {
 				t := crd2pulumi.Options{
-					NodeJS: &crd2pulumi.LangOptions{Path: value},
-					Python: &crd2pulumi.LangOptions{Path: value},
-					Dotnet: &crd2pulumi.LangOptions{Path: value},
-					Go:     &crd2pulumi.LangOptions{Path: value},
-					Java:   &crd2pulumi.LangOptions{Path: value},
+					NodeJS: crd2pulumi.LangOptions{Path: value},
+					Python: crd2pulumi.LangOptions{Path: value},
+					Dotnet: crd2pulumi.LangOptions{Path: value},
+					Go:     crd2pulumi.LangOptions{Path: value},
+					Java:   crd2pulumi.LangOptions{Path: value},
 				}
 
 				paths := t.Paths("doesn't matter")
@@ -53,31 +53,13 @@ var _ = Describe("Options", func() {
 			},
 		)
 
-		It("should exclude nil options", func() {
-			t := crd2pulumi.Options{
-				NodeJS: &crd2pulumi.LangOptions{},
-				Python: nil,
-				Dotnet: nil,
-				Go:     nil,
-				Java:   nil,
-			}
-
-			paths := t.Paths("doesn't matter")
-
-			Expect(paths).To(HaveKey("nodejs"))
-			Expect(paths).NotTo(HaveKey("python"))
-			Expect(paths).NotTo(HaveKey("dotnet"))
-			Expect(paths).NotTo(HaveKey("golang"))
-			Expect(paths).NotTo(HaveKey("java"))
-		})
-
 		It("should include a path when an option is enabled", func() {
 			t := crd2pulumi.Options{
-				NodeJS: &crd2pulumi.LangOptions{Enabled: true},
-				Python: nil,
-				Dotnet: nil,
-				Go:     nil,
-				Java:   nil,
+				NodeJS: crd2pulumi.LangOptions{Enabled: true},
+				Python: crd2pulumi.LangOptions{},
+				Dotnet: crd2pulumi.LangOptions{},
+				Go:     crd2pulumi.LangOptions{},
+				Java:   crd2pulumi.LangOptions{},
 			}
 
 			paths := t.Paths("/root")
@@ -89,11 +71,11 @@ var _ = Describe("Options", func() {
 	Describe("Args", func() {
 		It("should work", func() {
 			t := crd2pulumi.Options{
-				NodeJS:  &crd2pulumi.LangOptions{Path: "doesn't matter, the path is take from paths"},
-				Python:  &crd2pulumi.LangOptions{Name: "peethon"},
-				Dotnet:  &crd2pulumi.LangOptions{Enabled: true},
-				Go:      &crd2pulumi.LangOptions{},
-				Java:    &crd2pulumi.LangOptions{},
+				NodeJS:  crd2pulumi.LangOptions{Path: "doesn't matter, the path is take from paths"},
+				Python:  crd2pulumi.LangOptions{Name: "peethon"},
+				Dotnet:  crd2pulumi.LangOptions{Enabled: true},
+				Go:      crd2pulumi.LangOptions{},
+				Java:    crd2pulumi.LangOptions{},
 				Force:   true,
 				Version: "v420",
 			}
@@ -112,6 +94,57 @@ var _ = Describe("Options", func() {
 				"--force",
 				"--version", "v420",
 			))
+		})
+	})
+
+	Describe("Parse", func() {
+		It("should return empty options", func() {
+			o, err := crd2pulumi.Parse([]string{})
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(o.Dotnet.Enabled).To(BeFalse())
+			Expect(o.Dotnet.Name).To(BeEmpty())
+			Expect(o.Dotnet.Path).To(BeEmpty())
+			Expect(o.Go.Enabled).To(BeFalse())
+			Expect(o.Go.Name).To(BeEmpty())
+			Expect(o.Go.Path).To(BeEmpty())
+			Expect(o.NodeJS.Enabled).To(BeFalse())
+			Expect(o.NodeJS.Name).To(BeEmpty())
+			Expect(o.NodeJS.Path).To(BeEmpty())
+			Expect(o.Python.Enabled).To(BeFalse())
+			Expect(o.Python.Name).To(BeEmpty())
+			Expect(o.Python.Path).To(BeEmpty())
+			Expect(o.Force).To(BeFalse())
+			Expect(o.Version).To(BeEmpty())
+		})
+
+		It("should enable dotnet options", func() {
+			o, err := crd2pulumi.Parse([]string{
+				"--dotnet",
+				"--dotnetName", "bleh",
+				"--dotnetPath", "blah",
+			})
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(o.Dotnet.Enabled).To(BeTrue())
+			Expect(o.Dotnet.Name).To(Equal("bleh"))
+			Expect(o.Dotnet.Path).To(Equal("blah"))
+		})
+	})
+
+	Describe("Apply", func() {
+		It("should not overwrite existing options", func() {
+			o := &crd2pulumi.Options{
+				NodeJS: crd2pulumi.LangOptions{
+					Enabled: true,
+				},
+			}
+
+			err := o.Apply([]string{"--dotnet"})
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(o.NodeJS.Enabled).To(BeTrueBecause("existing options are not overwritten"))
+			Expect(o.Dotnet.Enabled).To(BeTrueBecause("the new option is applied"))
 		})
 	})
 })
