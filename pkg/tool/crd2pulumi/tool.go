@@ -51,7 +51,7 @@ func (t Tool) Execute(ctx context.Context, src afero.Fs, args []string) (afero.F
 			}
 
 			name := filepath.Base(path)
-			log.Debugf("copying %s to %s", path, name)
+			log.Debugf("copying %s to %s", path, filepath.Join(workdir, name))
 			if err = afero.WriteReader(workfs, name, s); err != nil {
 				return fmt.Errorf("copying %s: %w", path, err)
 			}
@@ -72,7 +72,7 @@ func (t Tool) Execute(ctx context.Context, src afero.Fs, args []string) (afero.F
 		return nil, fmt.Errorf("creating output directory: %w", err)
 	}
 
-	if err = t.apply(args); err != nil {
+	if err = t.Apply(args); err != nil {
 		return nil, fmt.Errorf("applying extra args: %w", err)
 	}
 

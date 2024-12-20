@@ -131,4 +131,19 @@ var _ = Describe("Options", func() {
 			Expect(o.Dotnet.Path).To(Equal("blah"))
 		})
 	})
+
+	Describe("Apply", func() {
+		It("should not overwrite existing options", func() {
+			o := &crd2pulumi.Options{
+				NodeJS: crd2pulumi.LangOptions{
+					Enabled: true,
+				},
+			}
+
+			o.Apply([]string{"--dotnet"})
+
+			Expect(o.NodeJS.Enabled).To(BeTrueBecause("existing options are not overwritten"))
+			Expect(o.Dotnet.Enabled).To(BeTrueBecause("the new option is applied"))
+		})
+	})
 })

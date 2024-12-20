@@ -73,32 +73,32 @@ func (o Options) Args(paths map[string]string) []string {
 	return args
 }
 
-func (t *Options) apply(args []string) error {
+func (t *Options) Apply(args []string) error {
 	f := pflag.NewFlagSet("crd2pulumi", pflag.ContinueOnError)
 
-	f.BoolVarP(&t.Dotnet.Enabled, "dotnet", "d", false, "")
-	f.StringVar(&t.Dotnet.Name, "dotnetName", "", "")
-	f.StringVar(&t.Dotnet.Path, "dotnetPath", "", "")
+	f.BoolVarP(&t.Dotnet.Enabled, "dotnet", "d", t.Dotnet.Enabled, "")
+	f.StringVar(&t.Dotnet.Name, "dotnetName", t.Dotnet.Name, "")
+	f.StringVar(&t.Dotnet.Path, "dotnetPath", t.Dotnet.Path, "")
 
-	f.BoolVarP(&t.Go.Enabled, "go", "g", false, "")
-	f.StringVar(&t.Go.Name, "goName", "", "")
-	f.StringVar(&t.Go.Path, "goPath", "", "")
+	f.BoolVarP(&t.Go.Enabled, "go", "g", t.Go.Enabled, "")
+	f.StringVar(&t.Go.Name, "goName", t.Go.Name, "")
+	f.StringVar(&t.Go.Path, "goPath", t.Go.Path, "")
 
-	f.BoolVarP(&t.NodeJS.Enabled, "nodejs", "n", false, "")
-	f.StringVar(&t.NodeJS.Name, "nodejsName", "", "")
-	f.StringVar(&t.NodeJS.Path, "nodejsPath", "", "")
+	f.BoolVarP(&t.NodeJS.Enabled, "nodejs", "n", t.NodeJS.Enabled, "")
+	f.StringVar(&t.NodeJS.Name, "nodejsName", t.NodeJS.Name, "")
+	f.StringVar(&t.NodeJS.Path, "nodejsPath", t.NodeJS.Path, "")
 
-	f.BoolVarP(&t.Python.Enabled, "python", "p", false, "")
-	f.StringVar(&t.Python.Name, "pythonName", "", "")
-	f.StringVar(&t.Python.Path, "pythonPath", "", "")
+	f.BoolVarP(&t.Python.Enabled, "python", "p", t.Python.Enabled, "")
+	f.StringVar(&t.Python.Name, "pythonName", t.Python.Name, "")
+	f.StringVar(&t.Python.Path, "pythonPath", t.Python.Path, "")
 
-	f.BoolVarP(&t.Force, "force", "f", false, "")
-	f.StringVarP(&t.Version, "version", "v", "", "")
+	f.BoolVarP(&t.Force, "force", "f", t.Force, "")
+	f.StringVarP(&t.Version, "version", "v", t.Version, "")
 
 	return f.Parse(args)
 }
 
 func Parse(args []string) (o Options, err error) {
-	err = o.apply(args)
+	err = o.Apply(args)
 	return
 }
