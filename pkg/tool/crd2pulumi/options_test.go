@@ -140,8 +140,9 @@ var _ = Describe("Options", func() {
 				},
 			}
 
-			o.Apply([]string{"--dotnet"})
+			err := o.Apply([]string{"--dotnet"})
 
+			Expect(err).NotTo(HaveOccurred())
 			Expect(o.NodeJS.Enabled).To(BeTrueBecause("existing options are not overwritten"))
 			Expect(o.Dotnet.Enabled).To(BeTrueBecause("the new option is applied"))
 		})
