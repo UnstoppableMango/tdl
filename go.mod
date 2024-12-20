@@ -10,7 +10,7 @@ require (
 	github.com/charmbracelet/log v0.4.0
 	github.com/docker/docker v27.4.1+incompatible
 	github.com/google/go-github/v67 v67.0.0
-	github.com/onsi/ginkgo/v2 v2.22.0
+	github.com/onsi/ginkgo/v2 v2.22.1
 	github.com/onsi/gomega v1.36.1
 	github.com/opencontainers/image-spec v1.1.0
 	github.com/pulumi/pulumi/pkg/v3 v3.143.0
