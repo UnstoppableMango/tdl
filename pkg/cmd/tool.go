@@ -44,13 +44,14 @@ func NewTool() *cobra.Command {
 				util.Fail(err)
 			}
 
-			src, err := internal.CwdFs(ctx, cwd)
+			cwdfs, err := internal.CwdFs(ctx, cwd)
 			if err != nil {
 				util.Fail(err)
 			}
 
+			inputfs := internal.FilterInput(cwdfs, cwd, args[1:])
 			log.Debug("executing", "tool", tool, "cwd", cwd, "args", extraArgs)
-			out, err := tool.Execute(ctx, src, extraArgs)
+			out, err := tool.Execute(ctx, inputfs, extraArgs)
 			if err != nil {
 				util.Fail(err)
 			}
