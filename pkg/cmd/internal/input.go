@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"regexp"
 
@@ -9,18 +10,25 @@ import (
 	"github.com/spf13/afero"
 	"github.com/unmango/go/fs/filter"
 	"github.com/unmango/go/fs/ignore"
+	"github.com/unstoppablemango/tdl/internal/util"
 	"github.com/unstoppablemango/tdl/pkg/tool"
 )
 
-var IgnorePatterns = tool.DefaultIgnorePatterns
-
 func CwdFs(ctx context.Context, cwd string) (afero.Fs, error) {
+	patterns := tool.DefaultIgnorePatterns
 	src := afero.NewBasePathFs(afero.NewOsFs(), cwd)
-	if i, err := OpenGitIgnore(ctx); err == nil {
-		return ignore.NewFsFromGitIgnoreReader(src, i)
+
+	r, err := OpenGitIgnore(ctx)
+	if err != nil {
+		return ignore.NewFsFromGitIgnoreLines(src, patterns...), nil
 	}
 
-	return ignore.NewFsFromGitIgnoreLines(src, IgnorePatterns...), nil
+	if lines, err := util.Lines(r); err != nil {
+		return nil, fmt.Errorf("scanning gitignore: %w", err)
+	} else {
+		patterns = append(patterns, lines...)
+		return ignore.NewFsFromGitIgnoreLines(src, patterns...), nil
+	}
 }
 
 func FilterInput(fs afero.Fs, cwd string, expressions []string) afero.Fs {
