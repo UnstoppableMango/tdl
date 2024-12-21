@@ -10,14 +10,11 @@ import (
 	"github.com/spf13/afero"
 	. "github.com/unmango/go/testing/matcher"
 
+	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/tool/crd2pulumi"
 )
 
 var _ = Describe("Tool", func() {
-	AfterEach(func() {
-		log.SetLevel(log.InfoLevel)
-	})
-
 	DescribeTable("should match yaml files",
 		Entry(nil, "blah.yaml"),
 		Entry(nil, "path/blah.yaml"),
@@ -41,6 +38,10 @@ var _ = Describe("Tool", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
+		AfterEach(func() {
+			log.SetLevel(log.InfoLevel)
+		})
+
 		It("should execute", Label("E2E"), func(ctx context.Context) {
 			t := crd2pulumi.Tool{
 				Path: toolPath,
@@ -54,7 +55,7 @@ var _ = Describe("Tool", func() {
 			err := afero.WriteFile(fs, "blah.yaml", crdyaml, os.ModePerm)
 			Expect(err).NotTo(HaveOccurred())
 
-			out, err := t.Execute(ctx, fs, []string{})
+			out, err := t.Execute(ctx, tdl.ToolConfig{Fs: fs})
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(afero.IsEmpty(out, "")).To(BeFalseBecause("the tool generated files"))

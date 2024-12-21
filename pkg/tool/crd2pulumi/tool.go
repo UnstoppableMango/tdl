@@ -13,6 +13,7 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/spf13/afero"
 	"github.com/unmango/go/fs/filter"
+	tdl "github.com/unstoppablemango/tdl/pkg"
 )
 
 var (
@@ -28,7 +29,7 @@ func (t Tool) String() string {
 	return "crd2pulumi"
 }
 
-func (t Tool) Execute(ctx context.Context, src afero.Fs, args []string) (afero.Fs, error) {
+func (t Tool) Execute(ctx context.Context, config tdl.ToolConfig) (afero.Fs, error) {
 	base := afero.NewOsFs()
 	workdir, workfs, err := tmpfs(base)
 	if err != nil {
@@ -36,7 +37,7 @@ func (t Tool) Execute(ctx context.Context, src afero.Fs, args []string) (afero.F
 	}
 
 	inputs := []string{}
-	err = afero.Walk(src, "",
+	err = afero.Walk(config.Fs, "",
 		func(path string, info fs.FileInfo, err error) error {
 			if err != nil {
 				return err
@@ -46,7 +47,7 @@ func (t Tool) Execute(ctx context.Context, src afero.Fs, args []string) (afero.F
 				return nil
 			}
 
-			s, err := src.Open(path)
+			s, err := config.Fs.Open(path)
 			if err != nil {
 				return fmt.Errorf("opening %s: %w", path, err)
 			}
@@ -73,15 +74,15 @@ func (t Tool) Execute(ctx context.Context, src afero.Fs, args []string) (afero.F
 		return nil, fmt.Errorf("creating output directory: %w", err)
 	}
 
-	if err = t.Apply(args); err != nil {
+	if err = t.Apply(config.Args); err != nil {
 		return nil, fmt.Errorf("applying extra args: %w", err)
 	}
 
 	paths := t.Paths(outdir)
-	args = append(t.Args(paths), inputs...)
+	args := append(t.Args(paths), inputs...)
 
 	stdout, stderr := &bytes.Buffer{}, &bytes.Buffer{}
-	cmd := exec.CommandContext(ctx, t.path(), args...)
+	cmd := exec.CommandContext(ctx, t.GetPath(), args...)
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	cmd.Dir = workdir
@@ -100,7 +101,7 @@ func (t Tool) Execute(ctx context.Context, src afero.Fs, args []string) (afero.F
 	return filter.NewFs(outfs, t.ShouldInclude), nil
 }
 
-func (t Tool) path() string {
+func (t Tool) GetPath() string {
 	if t.Path != "" {
 		return t.Path
 	} else {

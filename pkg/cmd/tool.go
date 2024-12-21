@@ -6,6 +6,7 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 	"github.com/unstoppablemango/tdl/internal/util"
+	tdl "github.com/unstoppablemango/tdl/pkg"
 	"github.com/unstoppablemango/tdl/pkg/cmd/internal"
 	"github.com/unstoppablemango/tdl/pkg/logging"
 	"github.com/unstoppablemango/tdl/pkg/plugin"
@@ -49,9 +50,12 @@ func NewTool() *cobra.Command {
 				util.Fail(err)
 			}
 
-			inputfs := internal.FilterInput(cwdfs, cwd, args[1:])
 			log.Debug("executing", "tool", tool, "cwd", cwd, "args", extraArgs)
-			out, err := tool.Execute(ctx, inputfs, extraArgs)
+			out, err := tool.Execute(ctx, tdl.ToolConfig{
+				Fs:     cwdfs,
+				Args:   extraArgs,
+				Inputs: args[1:],
+			})
 			if err != nil {
 				util.Fail(err)
 			}

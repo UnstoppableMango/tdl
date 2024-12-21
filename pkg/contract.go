@@ -20,9 +20,15 @@ type Generator interface {
 	Execute(context.Context, *tdlv1alpha1.Spec) (afero.Fs, error)
 }
 
+type ToolConfig struct {
+	Fs     afero.Fs
+	Args   []string
+	Inputs []string
+}
+
 type Tool interface {
 	fmt.Stringer
-	Execute(context.Context, afero.Fs, []string) (afero.Fs, error)
+	Execute(context.Context, ToolConfig) (afero.Fs, error)
 }
 
 type Plugin interface {
