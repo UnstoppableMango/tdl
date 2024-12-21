@@ -65,6 +65,11 @@ type Output interface {
 	Write(afero.Fs) error
 }
 
+type RunConfig interface {
+	Inputs() ([]Input, error)
+	Output() (Output, error)
+}
+
 type ParseResult struct {
 	Inputs []Input
 	Output Output

@@ -2,7 +2,6 @@ package run
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/charmbracelet/log"
 	tdl "github.com/unstoppablemango/tdl/pkg"
@@ -62,39 +61,4 @@ func ParseArgs(args []string) (*uxv1alpha1.RunConfig, error) {
 
 func ParseTarget(config *uxv1alpha1.RunConfig) (tdl.Target, error) {
 	return target.Parse(config.Target)
-}
-
-func ParseInputs(os tdl.OS, config *uxv1alpha1.RunConfig) ([]tdl.Input, error) {
-	inputs := []tdl.Input{}
-	for _, input := range config.Inputs {
-		if i, err := parseInput(os, input); err != nil {
-			return nil, fmt.Errorf("parsing run config: %w", err)
-		} else {
-			inputs = append(inputs, i)
-		}
-	}
-
-	return inputs, nil
-}
-
-func parseInput(os tdl.OS, input *uxv1alpha1.Input) (tdl.Input, error) {
-	switch {
-	case input.GetStdin():
-		return StdinInput(os.Stdin())
-	case input.GetFile() != nil:
-		return OpenFile(os.Fs(), input.GetFile().GetPath())
-	default:
-		return nil, fmt.Errorf("unsupported: %v", input)
-	}
-}
-
-func ParseOutput(os tdl.OS, config *uxv1alpha1.RunConfig) (tdl.Output, error) {
-	switch {
-	case config.GetPath() != "":
-		return FsOutput(os.Fs(), config.GetPath()), nil
-	case config.GetStdout():
-		fallthrough
-	default:
-		return WriterOutput(os.Stdout()), nil
-	}
 }

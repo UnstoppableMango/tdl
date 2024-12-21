@@ -44,7 +44,7 @@ func NewGen() *cobra.Command {
 
 			log.Debug("parsing inputs")
 			os := internal.RealOs()
-			inputs, err := run.ParseInputs(os, config)
+			inputs, err := run.Inputs(os, config)
 			if err != nil {
 				util.Fail(err)
 			}
@@ -65,7 +65,7 @@ func NewGen() *cobra.Command {
 			}
 
 			log.Debug("parsing output")
-			output, err := run.ParseOutput(os, config)
+			output, err := run.Output(os, config)
 			if err != nil {
 				util.Fail(err)
 			}
