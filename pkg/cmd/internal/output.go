@@ -1,7 +1,7 @@
 package internal
 
 import (
-	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/charmbracelet/log"
@@ -15,17 +15,19 @@ func CopyOutput(fs afero.Fs, path string) error {
 		return err
 	}
 
-	os := afero.NewOsFs()
-	dir, err := afero.IsDir(os, path)
+	outfs := afero.NewOsFs()
+	exists, err := afero.DirExists(outfs, path)
 	if err != nil {
 		return err
 	}
-	if !dir {
-		return fmt.Errorf("not a directory: %s", path)
+	if !exists {
+		if err = outfs.Mkdir(path, os.ModePerm); err != nil {
+			return err
+		}
 	}
 
 	log.Debugf("copying output to %s", path)
 	return aferox.Copy(fs,
-		afero.NewBasePathFs(os, path),
+		afero.NewBasePathFs(outfs, path),
 	)
 }
