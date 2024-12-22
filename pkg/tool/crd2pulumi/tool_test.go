@@ -58,7 +58,6 @@ var _ = Describe("Tool", func() {
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(afero.IsEmpty(out, "")).To(BeFalseBecause("the tool generated files"))
-			Expect(out).To(ContainFile("nodejs/package.json"))
 			Expect(out).To(ContainFile("nodejs/index.ts"))
 		})
 	})

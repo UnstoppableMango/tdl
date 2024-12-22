@@ -1,24 +1,22 @@
 package cmd
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/charmbracelet/log"
-	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-	"github.com/unmango/go/fs/ignore"
 	"github.com/unstoppablemango/tdl/internal/util"
 	"github.com/unstoppablemango/tdl/pkg/cmd/internal"
 	"github.com/unstoppablemango/tdl/pkg/logging"
 	"github.com/unstoppablemango/tdl/pkg/plugin"
 	"github.com/unstoppablemango/tdl/pkg/target"
-	"github.com/unstoppablemango/tdl/pkg/tool"
 )
 
-var DefaultIgnorePatterns = tool.DefaultIgnorePatterns
-
 func NewTool() *cobra.Command {
-	var cwd string
+	var (
+		cwd    string
+		output string
+	)
 
 	cmd := &cobra.Command{
 		Use:   "tool [NAME]",
@@ -26,6 +24,11 @@ func NewTool() *cobra.Command {
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			logging.Init()
+			args, extraArgs := internal.SplitAt(args, cmd.ArgsLenAtDash())
+			if len(args) <= 1 {
+				util.Fail(errors.New("no input specified"))
+			}
+
 			t, err := target.Parse(args[0])
 			if err != nil {
 				util.Fail(err)
@@ -41,27 +44,24 @@ func NewTool() *cobra.Command {
 				util.Fail(err)
 			}
 
-			src := afero.NewBasePathFs(afero.NewOsFs(), cwd)
-			if i, err := internal.OpenGitIgnore(ctx); err != nil {
-				log.Info("not a git repo", "err", err)
-				src = ignore.NewFsFromGitIgnoreLines(src, DefaultIgnorePatterns...)
-			} else if src, err = ignore.NewFsFromGitIgnoreReader(src, i); err != nil {
-				util.Fail(err)
-			}
-
-			extraArgs := []string{}
-			if l := cmd.Flags().ArgsLenAtDash(); l > 0 {
-				extraArgs = args[l:]
-			}
-
-			log.Debug("executing", "tool", tool, "cwd", cwd, "args", extraArgs)
-			out, err := tool.Execute(ctx, src, extraArgs)
+			src, err := internal.CwdFs(ctx, cwd)
 			if err != nil {
 				util.Fail(err)
 			}
 
-			fmt.Println("successfully executed")
-			if err = internal.PrintFs(out); err != nil {
+			toolArgs := append(args[1:], extraArgs...)
+			log.Debug("executing", "tool", tool, "cwd", cwd, "args", toolArgs)
+			out, err := tool.Execute(ctx, src, toolArgs)
+			if err != nil {
+				util.Fail(err)
+			}
+
+			if output != "" {
+				err = internal.CopyOutput(out, output)
+			} else {
+				err = internal.PrintFs(out)
+			}
+			if err != nil {
 				util.Fail(err)
 			}
 		},
@@ -69,6 +69,8 @@ func NewTool() *cobra.Command {
 
 	cmd.Flags().StringVarP(&cwd, "cwd", "C", "", "sets the working directory")
 	_ = cmd.MarkFlagDirname("cwd")
+	cmd.Flags().StringVarP(&output, "output", "o", "", "the directory to write generated code")
+	_ = cmd.MarkFlagDirname("output")
 
 	return cmd
 }
