@@ -10,7 +10,7 @@
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.1.1",
-		"dprint": "^0.47.0",
+		"dprint": "^0.48.0",
 		"eslint": "^9.1.1",
 		"markdownlint-cli2": "^0.16.0",
 		"typescript": "^5.6.3",
