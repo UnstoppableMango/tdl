@@ -35,32 +35,17 @@ func (t Tool) Execute(ctx context.Context, src afero.Fs, args []string) (afero.F
 		return nil, fmt.Errorf("creating working directory: %w", err)
 	}
 
-	inputs := []string{}
-	err = afero.Walk(src, "",
-		func(path string, info fs.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if path == "" || !CrdRegex.MatchString(path) {
-				log.Debugf("ignoring %s", path)
-				return nil
-			}
+	flags := t.NewFlagSet()
+	if err = flags.Parse(args); err != nil {
+		return nil, fmt.Errorf("applying extra args: %w", err)
+	}
 
-			s, err := src.Open(path)
-			if err != nil {
-				return fmt.Errorf("opening %s: %w", path, err)
-			}
-
-			name := filepath.Base(path)
-			log.Debugf("copying %s to %s", path, filepath.Join(workdir, name))
-			if err = afero.WriteReader(workfs, name, s); err != nil {
-				return fmt.Errorf("copying %s: %w", path, err)
-			}
-
-			inputs = append(inputs, name)
-			return nil
-		},
-	)
+	var inputs []string
+	if len(flags.Args()) > 0 {
+		inputs = flags.Args()
+	} else {
+		inputs, err = search(src)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("reading input paths: %w", err)
 	}
@@ -68,17 +53,28 @@ func (t Tool) Execute(ctx context.Context, src afero.Fs, args []string) (afero.F
 		return nil, errors.New("no input files")
 	}
 
+	relInputs := []string{}
+	for _, i := range inputs {
+		f, err := src.Open(i)
+		if err != nil {
+			return nil, fmt.Errorf("opening input: %w", err)
+		}
+
+		name := filepath.Base(i)
+		if err = afero.WriteReader(workfs, name, f); err != nil {
+			return nil, fmt.Errorf("copying input: %w", err)
+		}
+
+		relInputs = append(relInputs, name)
+	}
+
 	outdir, outfs, err := tmpfs(base)
 	if err != nil {
 		return nil, fmt.Errorf("creating output directory: %w", err)
 	}
 
-	if err = t.Apply(args); err != nil {
-		return nil, fmt.Errorf("applying extra args: %w", err)
-	}
-
 	paths := t.Paths(outdir)
-	args = append(t.Args(paths), inputs...)
+	args = append(t.Args(paths), relInputs...)
 
 	stdout, stderr := &bytes.Buffer{}, &bytes.Buffer{}
 	cmd := exec.CommandContext(ctx, t.path(), args...)
@@ -113,5 +109,36 @@ func tmpfs(fs afero.Fs) (string, afero.Fs, error) {
 		return "", nil, err
 	} else {
 		return name, afero.NewBasePathFs(fs, name), nil
+	}
+}
+
+func search(src afero.Fs) (inputs []string, err error) {
+	err = afero.Walk(src, "",
+		func(path string, info fs.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if path == "" {
+				return nil
+			}
+			switch info.Name() {
+			case ".git":
+				fallthrough
+			case ".idea":
+				return filepath.SkipDir
+			}
+			if !CrdRegex.MatchString(path) {
+				log.Debugf("ignoring %s", path)
+				return nil
+			}
+			name := filepath.Base(path)
+			inputs = append(inputs, name)
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, err
+	} else {
+		return
 	}
 }

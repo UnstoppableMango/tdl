@@ -88,7 +88,7 @@ func (o Options) Args(paths map[string]string) []string {
 	return args
 }
 
-func (t *Options) Apply(args []string) error {
+func (t *Options) NewFlagSet() *pflag.FlagSet {
 	f := pflag.NewFlagSet("crd2pulumi", pflag.ContinueOnError)
 
 	f.BoolVarP(&t.Dotnet.Enabled, "dotnet", "d", t.Dotnet.Enabled, "")
@@ -110,7 +110,11 @@ func (t *Options) Apply(args []string) error {
 	f.BoolVarP(&t.Force, "force", "f", t.Force, "")
 	f.StringVarP(&t.Version, "version", "v", t.Version, "")
 
-	return f.Parse(args)
+	return f
+}
+
+func (t *Options) Apply(args []string) error {
+	return t.NewFlagSet().Parse(args)
 }
 
 func Parse(args []string) (o Options, err error) {

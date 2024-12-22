@@ -49,8 +49,9 @@ func NewTool() *cobra.Command {
 				util.Fail(err)
 			}
 
-			log.Debug("executing", "tool", tool, "cwd", cwd, "args", extraArgs)
-			out, err := tool.Execute(ctx, src, extraArgs)
+			toolArgs := append(args[1:], extraArgs...)
+			log.Debug("executing", "tool", tool, "cwd", cwd, "args", toolArgs)
+			out, err := tool.Execute(ctx, src, toolArgs)
 			if err != nil {
 				util.Fail(err)
 			}
