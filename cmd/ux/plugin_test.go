@@ -7,6 +7,8 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("ux plugin", Label("E2E"), func() {
@@ -43,14 +45,15 @@ var _ = Describe("ux plugin", Label("E2E"), func() {
 				"https://github.com/UnstoppableMango/tdl/releases/tag/v0.0.32/tdl-linux-amd64.tar.gz",
 			)
 
-			out, err := cmd.CombinedOutput()
+			ses, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 
-			Expect(err).NotTo(HaveOccurred(), string(out))
-			Expect(filepath.Join(cachePath, "ux", "tdl-linux-amd64.tar.gz")).To(BeARegularFile(), string(out))
-			Expect(filepath.Join(binPath, "uml2ts")).To(BeARegularFile(), string(out))
-			Expect(filepath.Join(binPath, "ux")).To(BeARegularFile(), string(out))
-			Expect(string(out)).NotTo(ContainSubstring("already cached"))
-			Expect(string(out)).To(ContainSubstring("Done\n"))
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(filepath.Join).WithArguments(cachePath, "ux", "tdl-linux-amd64.tar.gz").Should(BeARegularFile())
+			Eventually(filepath.Join).WithArguments(binPath, "uml2ts").Should(BeARegularFile())
+			Eventually(filepath.Join).WithArguments(binPath, "ux").Should(BeARegularFile())
+			Eventually(ses.Out).Should(gbytes.Say("already cached"))
+			Eventually(ses.Out).Should(gbytes.Say("Done\n"))
+			Eventually(ses).Should(gexec.Exit(0))
 		})
 
 		It("should not pull the plugin once cached", func(ctx context.Context) {
@@ -58,15 +61,16 @@ var _ = Describe("ux plugin", Label("E2E"), func() {
 				"https://github.com/UnstoppableMango/tdl/releases/tag/v0.0.32/tdl-linux-amd64.tar.gz",
 			)
 
-			out, err := cmd.CombinedOutput()
+			ses, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 
-			Expect(err).NotTo(HaveOccurred(), string(out))
-			Expect(filepath.Join(cachePath, "ux", "tdl-linux-amd64.tar.gz")).To(BeARegularFile(), string(out))
-			Expect(filepath.Join(binPath, "uml2ts")).To(BeARegularFile(), string(out))
-			Expect(filepath.Join(binPath, "ux")).To(BeARegularFile(), string(out))
-			Expect(string(out)).To(ContainSubstring("bin exists: uml2ts"))
-			Expect(string(out)).To(ContainSubstring("bin exists: ux"))
-			Expect(string(out)).To(ContainSubstring("Done\n"))
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(filepath.Join).WithArguments(cachePath, "ux", "tdl-linux-amd64.tar.gz").Should(BeARegularFile())
+			Eventually(filepath.Join).WithArguments(binPath, "uml2ts").Should(BeARegularFile())
+			Eventually(filepath.Join).WithArguments(binPath, "ux").Should(BeARegularFile())
+			Eventually(ses.Out).Should(gbytes.Say("bin exists: uml2ts"))
+			Eventually(ses.Out).Should(gbytes.Say("bin exists: ux"))
+			Eventually(ses.Out).Should(gbytes.Say("Done\n"))
+			Eventually(ses).Should(gexec.Exit(0))
 		})
 
 		It("should re-pull the archive if it has been removed", func(ctx context.Context) {
@@ -75,15 +79,16 @@ var _ = Describe("ux plugin", Label("E2E"), func() {
 				"https://github.com/UnstoppableMango/tdl/releases/tag/v0.0.32/tdl-linux-amd64.tar.gz",
 			)
 
-			out, err := cmd.CombinedOutput()
+			ses, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 
-			Expect(err).NotTo(HaveOccurred(), string(out))
-			Expect(filepath.Join(cachePath, "ux", "tdl-linux-amd64.tar.gz")).To(BeARegularFile(), string(out))
-			Expect(filepath.Join(binPath, "uml2ts")).To(BeARegularFile(), string(out))
-			Expect(filepath.Join(binPath, "ux")).To(BeARegularFile(), string(out))
-			Expect(string(out)).To(ContainSubstring("bin exists: uml2ts"))
-			Expect(string(out)).To(ContainSubstring("bin exists: ux"))
-			Expect(string(out)).To(ContainSubstring("Done"))
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(filepath.Join).WithArguments(cachePath, "ux", "tdl-linux-amd64.tar.gz").Should(BeARegularFile())
+			Eventually(filepath.Join).WithArguments(binPath, "uml2ts").Should(BeARegularFile())
+			Eventually(filepath.Join).WithArguments(binPath, "ux").Should(BeARegularFile())
+			Eventually(ses.Out).Should(gbytes.Say("bin exists: uml2ts"))
+			Eventually(ses.Out).Should(gbytes.Say("bin exists: ux"))
+			Eventually(ses.Out).Should(gbytes.Say("Done\n"))
+			Eventually(ses).Should(gexec.Exit(0))
 		})
 
 		It("should re-extract bins if they have been removed", func(ctx context.Context) {
@@ -92,14 +97,15 @@ var _ = Describe("ux plugin", Label("E2E"), func() {
 				"https://github.com/UnstoppableMango/tdl/releases/tag/v0.0.32/tdl-linux-amd64.tar.gz",
 			)
 
-			out, err := cmd.CombinedOutput()
+			ses, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 
-			Expect(err).NotTo(HaveOccurred(), string(out))
-			Expect(filepath.Join(cachePath, "ux", "tdl-linux-amd64.tar.gz")).To(BeARegularFile(), string(out))
-			Expect(filepath.Join(binPath, "uml2ts")).To(BeARegularFile(), string(out))
-			Expect(filepath.Join(binPath, "ux")).To(BeARegularFile(), string(out))
-			Expect(string(out)).To(ContainSubstring("bin exists: ux"))
-			Expect(string(out)).To(ContainSubstring("Done"))
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(filepath.Join).WithArguments(cachePath, "ux", "tdl-linux-amd64.tar.gz").Should(BeARegularFile())
+			Eventually(filepath.Join).WithArguments(binPath, "uml2ts").Should(BeARegularFile())
+			Eventually(filepath.Join).WithArguments(binPath, "ux").Should(BeARegularFile())
+			Eventually(ses.Out).Should(gbytes.Say("bin exists: ux"))
+			Eventually(ses.Out).Should(gbytes.Say("Done\n"))
+			Eventually(ses).Should(gexec.Exit(0))
 		})
 	})
 })
