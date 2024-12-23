@@ -90,6 +90,9 @@ bin/ginkgo: go.mod
 bin/golangci-lint: .versions/golangci-lint
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ${LOCALBIN} v$(shell cat $<)
 
+bin/crd2pulumi: .versions/crd2pulumi
+	curl -sSL https://github.com/pulumi/crd2pulumi/releases/download/v$(shell cat $<)/crd2pulumi-v$(shell cat $<)-$(shell go env GOOS)-$(shell go env GOARCH).tar.gz | tar -zxv -C bin crd2pulumi
+
 .envrc: hack/example.envrc
 	cp $< $@
 
