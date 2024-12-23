@@ -28,7 +28,7 @@ func GetOrCreate(cache tdl.Cache, key string, create CreateFunc) (*tdl.CacheItem
 		return item, nil
 	}
 
-	log.Debug("cache miss for key: %s", key)
+	log.Debugf("cache miss for key: %s", key)
 	writer, err := cache.Writer(key)
 	if err != nil {
 		return nil, fmt.Errorf("opening cache: %w", err)
