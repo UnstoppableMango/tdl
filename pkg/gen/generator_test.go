@@ -21,7 +21,8 @@ var _ = Describe("Generator", func() {
 
 			gen := gen.Lift(fn)
 
-			Expect(gen.Execute(ctx, nil)).To(Succeed())
+			_, err := gen.Execute(ctx, nil)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(sentinel).To(BeTrueBecause("the generator function is invoked"))
 		})
 	})
@@ -36,7 +37,8 @@ var _ = Describe("Generator", func() {
 
 			gen := gen.New(fn)
 
-			Expect(gen.Execute(ctx, nil)).To(Succeed())
+			_, err := gen.Execute(ctx, nil)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(sentinel).To(BeTrueBecause("the generator function is invoked"))
 		})
 	})
