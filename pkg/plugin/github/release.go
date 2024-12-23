@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/log"
-	"github.com/google/go-github/v67/github"
+	"github.com/google/go-github/v68/github"
 	"github.com/unmango/go/fs/github/repository/release/asset"
 	"github.com/unmango/go/option"
 	"github.com/unmango/go/rx"
