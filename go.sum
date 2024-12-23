@@ -309,6 +309,8 @@ github.com/uber/jaeger-lib v2.4.1+incompatible h1:td4jdvLcExb4cBISKIpHuGoVXh+dVK
 github.com/uber/jaeger-lib v2.4.1+incompatible/go.mod h1:ComeNDZlWwrWnDv8aPp0Ba6+uUTzImX/AauajbLI56U=
 github.com/unmango/go v0.0.29 h1:ZBjJHFPKd4L0b0cez/4PfoszRLcNcGiCZELCYY5EJSE=
 github.com/unmango/go v0.0.29/go.mod h1:/qlvxBPfsiji2ugRHCIA0yMIwDo5fn0Ih8pL4B969Ec=
+github.com/unmango/go v0.0.30 h1:Ss0+ODTqDGiCBIM8aeQ+p5c48b9xyavQldfzxHFIh3g=
+github.com/unmango/go v0.0.30/go.mod h1:/qlvxBPfsiji2ugRHCIA0yMIwDo5fn0Ih8pL4B969Ec=
 github.com/xanzy/ssh-agent v0.3.3 h1:+/15pJfg/RsTxqYcX6fHqOXZwwMP+2VyYWJeWM2qQFM=
 github.com/xanzy/ssh-agent v0.3.3/go.mod h1:6dzNDKs0J9rVPHPhaGCukekBHKqfl+L3KghI1Bc68Uw=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
