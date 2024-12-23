@@ -18,7 +18,7 @@ var _ = Describe("Convert", func() {
 		}
 
 		spec, err := FromPcl(pcl)
-		Expect(err).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
 		Expect(spec).NotTo(BeNil())
 
 		Expect(spec.Name).NotTo(BeEmpty())

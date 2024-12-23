@@ -210,8 +210,6 @@ github.com/muesli/termenv v0.15.2 h1:GohcuySI0QmI3wN8Ok9PtKGkgkFIk7y6Vpb5PvrY+Wo
 github.com/muesli/termenv v0.15.2/go.mod h1:Epx+iuz8sNs7mNKhxzH4fWXGNpZwUaJKRS1noLXviQ8=
 github.com/natefinch/atomic v1.0.1 h1:ZPYKxkqQOx3KZ+RsbnP/YsgvxWQPGxjC0oBt2AhwV0A=
 github.com/natefinch/atomic v1.0.1/go.mod h1:N/D/ELrljoqDyT3rZrsUmtsuzvHkeB/wWjHV22AZRbM=
-github.com/onsi/ginkgo/v2 v2.22.0 h1:Yed107/8DjTr0lKCNt7Dn8yQ6ybuDRQoMGrNFKzMfHg=
-github.com/onsi/ginkgo/v2 v2.22.0/go.mod h1:7Du3c42kxCUegi0IImZ1wUQzMBVecgIHjR1C+NkhLQo=
 github.com/onsi/ginkgo/v2 v2.22.1 h1:QW7tbJAUDyVDVOM5dFa7qaybo+CRfR7bemlQUN6Z8aM=
 github.com/onsi/ginkgo/v2 v2.22.1/go.mod h1:S6aTpoRsSq2cZOd+pssHAlKW/Q/jZt6cPrPlnj4a1xM=
 github.com/onsi/gomega v1.36.1 h1:bJDPBO7ibjxcbHMgSCoo4Yj18UWbKDlLwX1x9sybDcw=
@@ -243,16 +241,8 @@ github.com/pulumi/appdash v0.0.0-20231130102222-75f619a67231 h1:vkHw5I/plNdTr435
 github.com/pulumi/appdash v0.0.0-20231130102222-75f619a67231/go.mod h1:murToZ2N9hNJzewjHBgfFdXhZKjY3z5cYC1VXk+lbFE=
 github.com/pulumi/esc v0.10.0 h1:jzBKzkLVW0mePeanDRfqSQoCJ5yrkux0jIwAkUxpRKE=
 github.com/pulumi/esc v0.10.0/go.mod h1:2Bfa+FWj/xl8CKqRTWbWgDX0SOD4opdQgvYSURTGK2c=
-github.com/pulumi/pulumi/pkg/v3 v3.143.0 h1:diAlaNVZSRc59ePqbMuvuf/AwecpZyjhh1pGvmLEUwg=
-github.com/pulumi/pulumi/pkg/v3 v3.143.0/go.mod h1:XzjN1uQI2HWXYolT2L4RIXzvLEnWTSOzFgFFIUfFEa8=
-github.com/pulumi/pulumi/pkg/v3 v3.144.0 h1:1Lx7wTKuyZO8Z83ZhiogIFjMbQoEeWq001uH7ChbYe8=
-github.com/pulumi/pulumi/pkg/v3 v3.144.0/go.mod h1:SuBmq1mC0zYmBFHP/6+oRV6yM7MXUEEDOf4GGhd2o48=
 github.com/pulumi/pulumi/pkg/v3 v3.144.1 h1:64mVLQDEZa2GN52rTKSyXlA3r+APoqDXrNdkzlASyvs=
 github.com/pulumi/pulumi/pkg/v3 v3.144.1/go.mod h1:q2wZOcwXVI/+OBtEXD6mLS7shhRMgsIGTo/uWfo0q04=
-github.com/pulumi/pulumi/sdk/v3 v3.143.0 h1:z1m8Fc6l723eU2J/bP7UHE5t6WbBu4iIDAl1WaalQk4=
-github.com/pulumi/pulumi/sdk/v3 v3.143.0/go.mod h1:OFpZabILGxrFqzcABFpMCksrHGVp4ymRM2BkKjlazDY=
-github.com/pulumi/pulumi/sdk/v3 v3.144.0 h1:5geCGWyhcrg9JoPbtPN70gHugKfAtri6vgbcCFRb8Ps=
-github.com/pulumi/pulumi/sdk/v3 v3.144.0/go.mod h1:/6gxU2XirnLlImBy5OoqV6I4HcjOf+IznNIZNZExZzo=
 github.com/pulumi/pulumi/sdk/v3 v3.144.1 h1:QQtCDERihhlfvcmRzqHeBmOER1Fg1VkFj9933Lxqv00=
 github.com/pulumi/pulumi/sdk/v3 v3.144.1/go.mod h1:/6gxU2XirnLlImBy5OoqV6I4HcjOf+IznNIZNZExZzo=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
@@ -307,8 +297,6 @@ github.com/uber/jaeger-client-go v2.30.0+incompatible h1:D6wyKGCecFaSRUpo8lCVbaO
 github.com/uber/jaeger-client-go v2.30.0+incompatible/go.mod h1:WVhlPFC8FDjOFMMWRy2pZqQJSXxYSwNYOkTr/Z6d3Kk=
 github.com/uber/jaeger-lib v2.4.1+incompatible h1:td4jdvLcExb4cBISKIpHuGoVXh+dVKhn2Um6rjCsSsg=
 github.com/uber/jaeger-lib v2.4.1+incompatible/go.mod h1:ComeNDZlWwrWnDv8aPp0Ba6+uUTzImX/AauajbLI56U=
-github.com/unmango/go v0.0.29 h1:ZBjJHFPKd4L0b0cez/4PfoszRLcNcGiCZELCYY5EJSE=
-github.com/unmango/go v0.0.29/go.mod h1:/qlvxBPfsiji2ugRHCIA0yMIwDo5fn0Ih8pL4B969Ec=
 github.com/unmango/go v0.0.30 h1:Ss0+ODTqDGiCBIM8aeQ+p5c48b9xyavQldfzxHFIh3g=
 github.com/unmango/go v0.0.30/go.mod h1:/qlvxBPfsiji2ugRHCIA0yMIwDo5fn0Ih8pL4B969Ec=
 github.com/xanzy/ssh-agent v0.3.3 h1:+/15pJfg/RsTxqYcX6fHqOXZwwMP+2VyYWJeWM2qQFM=
@@ -371,8 +359,6 @@ golang.org/x/net v0.0.0-20220722155237-a158d28d115b/go.mod h1:XRhObCWvk6IyKnWLug
 golang.org/x/net v0.2.0/go.mod h1:KqCZLdyyvdV855qA2rE3GC2aiw5xGR5TEjj8smXukLY=
 golang.org/x/net v0.6.0/go.mod h1:2Tu9+aMcznHK/AK1HMvgo6xiTLG5rD5rZLDS+rp2Bjs=
 golang.org/x/net v0.8.0/go.mod h1:QVkue5JL9kW//ek3r6jTKnTFis1tRmNAW2P1shuFdJc=
-golang.org/x/net v0.32.0 h1:ZqPmj8Kzc+Y6e0+skZsuACbx+wzMgo5MQsJh9Qd6aYI=
-golang.org/x/net v0.32.0/go.mod h1:CwU0IoeOlnQQWJ6ioyFrfRuomB8GKF6KbYXZVyeXNfs=
 golang.org/x/net v0.33.0 h1:74SYHlV8BIgHIFC/LrYkOGIwL19eTYXQ5wc6TBuO36I=
 golang.org/x/net v0.33.0/go.mod h1:HXLR5J+9DxmrqMwG9qjGCxZ+zKXxBru04zlTvWlWuN4=
 golang.org/x/sync v0.0.0-20190423024810-112230192c58/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
