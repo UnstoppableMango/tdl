@@ -7,6 +7,11 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
+	"github.com/spf13/afero"
+	. "github.com/unmango/go/testing/matcher"
+
 	"github.com/unstoppablemango/tdl/pkg/conform"
 	"github.com/unstoppablemango/tdl/pkg/gen/cli"
 )
@@ -31,10 +36,11 @@ var _ = Describe("End to end", Label("E2E"), func() {
 		It("should error when input is not provided", func(ctx context.Context) {
 			cmd := UxCommand(ctx, "gen", "ts")
 
-			out, err := cmd.CombinedOutput()
+			ses, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 
-			Expect(err).To(HaveOccurred())
-			Expect(string(out)).To(Equal("no input specified\n"))
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(ses.Err).Should(gbytes.Say("no input specified\n"))
+			Eventually(ses).Should(gexec.Exit(1))
 		})
 
 		It("should read spec from yaml file", FlakeAttempts(5), func(ctx context.Context) {
@@ -43,38 +49,37 @@ var _ = Describe("End to end", Label("E2E"), func() {
 			Expect(err).NotTo(HaveOccurred())
 			cmd := UxCommand(ctx, "gen", "ts", input)
 
-			out, err := cmd.CombinedOutput()
+			ses, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 
-			Expect(err).NotTo(HaveOccurred(), string(out))
-			Expect(string(out)).To(Equal(string(output)))
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(ses.Out).Should(gbytes.Say(string(output)))
+			Eventually(ses).Should(gexec.Exit(0))
 		})
 
 		It("should error when input does not exist", func(ctx context.Context) {
 			input := filepath.Join("fkjdslfkdjlsf")
 			cmd := UxCommand(ctx, "gen", "ts", input)
 
-			out, err := cmd.CombinedOutput()
+			ses, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 
-			Expect(err).To(HaveOccurred())
-			Expect(string(out)).To(Equal("parsing run config: stat fkjdslfkdjlsf: no such file or directory\n"))
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(ses.Err).Should(gbytes.Say("parsing run config: stat fkjdslfkdjlsf: no such file or directory\n"))
+			Eventually(ses).Should(gexec.Exit(1))
 		})
 
 		It("should write to output file", FlakeAttempts(5), func(ctx context.Context) {
 			input := filepath.Join(tsSuitePath(), "interface", "source.yml")
-			tmp, err := os.MkdirTemp("", "")
-			Expect(err).NotTo(HaveOccurred())
-			output := filepath.Join(tmp, "index.ts")
+			output := filepath.Join(GinkgoT().TempDir(), "index.ts")
 			expected, err := os.ReadFile(filepath.Join(tsSuitePath(), "interface", "target.ts"))
 			Expect(err).NotTo(HaveOccurred())
 			cmd := UxCommand(ctx, "gen", "ts", input, output)
 
-			out, err := cmd.CombinedOutput()
+			ses, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 
-			Expect(err).NotTo(HaveOccurred(), string(out))
-			Expect(string(out)).To(Equal(""))
-			result, err := os.ReadFile(output)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(string(result)).To(Equal(string(expected)))
+			Consistently(ses.Out).ShouldNot(gbytes.Say(".+"))
+			Eventually(afero.NewOsFs).Should(ContainFileWithBytes(output, expected))
+			Eventually(ses).Should(gexec.Exit(0))
 		})
 	})
 
@@ -89,10 +94,11 @@ var _ = Describe("End to end", Label("E2E"), func() {
 				expected := filepath.Join(gitRoot, "bin", "uml2ts")
 				cmd := UxCommand(ctx, "which", input)
 
-				out, err := cmd.CombinedOutput()
+				ses, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 
-				Expect(err).NotTo(HaveOccurred(), string(out))
-				Expect(string(out)).To(Equal(expected + "\n"))
+				Expect(err).NotTo(HaveOccurred())
+				Eventually(ses.Out).Should(gbytes.Say(expected + "\n"))
+				Eventually(ses).Should(gexec.Exit(0))
 			},
 		)
 	})
