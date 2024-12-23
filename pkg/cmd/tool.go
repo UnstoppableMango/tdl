@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"path/filepath"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
@@ -49,7 +50,12 @@ func NewTool() *cobra.Command {
 				util.Fail(err)
 			}
 
-			toolArgs := append(args[1:], extraArgs...)
+			paths, err := makeRel(args[1:], cwd)
+			if err != nil {
+				util.Fail(err)
+			}
+
+			toolArgs := append(paths, extraArgs...)
 			log.Debug("executing", "tool", tool, "cwd", cwd, "args", toolArgs)
 			out, err := tool.Execute(ctx, src, toolArgs)
 			if err != nil {
@@ -73,4 +79,18 @@ func NewTool() *cobra.Command {
 	_ = cmd.MarkFlagDirname("output")
 
 	return cmd
+}
+
+func makeRel(ps []string, wd string) (paths []string, err error) {
+	for _, p := range ps {
+		if filepath.IsAbs(p) {
+			if p, err = filepath.Rel(wd, p); err != nil {
+				return nil, err
+			}
+		}
+
+		paths = append(paths, p)
+	}
+
+	return
 }

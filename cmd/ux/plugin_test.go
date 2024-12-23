@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("ux plugin", func() {
+var _ = Describe("ux plugin", Label("E2E"), func() {
 	Describe("pull", Ordered, func() {
 		var (
 			cachePath string

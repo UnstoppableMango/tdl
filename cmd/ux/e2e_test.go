@@ -11,7 +11,7 @@ import (
 	"github.com/unstoppablemango/tdl/pkg/gen/cli"
 )
 
-var _ = Describe("End to end", func() {
+var _ = Describe("End to end", Label("E2E"), func() {
 	Describe("TypeScript Conformance", FlakeAttempts(5), func() {
 		Describe("stdout", func() {
 			generator := cli.New("ux",
