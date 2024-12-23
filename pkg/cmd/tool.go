@@ -2,10 +2,14 @@ package cmd
 
 import (
 	"errors"
+	"io"
+	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
+	"github.com/unmango/go/fs/github"
 	"github.com/unstoppablemango/tdl/internal/util"
 	"github.com/unstoppablemango/tdl/pkg/cmd/internal"
 	"github.com/unstoppablemango/tdl/pkg/logging"
@@ -50,7 +54,12 @@ func NewTool() *cobra.Command {
 				util.Fail(err)
 			}
 
-			paths, err := makeRel(args[1:], cwd)
+			paths, err := resolveGh(args[1:])
+			if err != nil {
+				util.Fail(err)
+			}
+
+			paths, err = makeRel(paths, cwd)
 			if err != nil {
 				util.Fail(err)
 			}
@@ -90,6 +99,35 @@ func makeRel(ps []string, wd string) (paths []string, err error) {
 		}
 
 		paths = append(paths, p)
+	}
+
+	return
+}
+
+func resolveGh(paths []string) (local []string, err error) {
+	fs := github.NewFs(github.NewClient(nil))
+	for _, p := range paths {
+		if !strings.HasPrefix(p, "github.com") {
+			local = append(local, p)
+			continue
+		}
+
+		f, err := fs.Open(p)
+		if err != nil {
+			return nil, err
+		}
+
+		t, err := os.CreateTemp("", "")
+		if err != nil {
+			return nil, err
+		}
+
+		log.Debug("copying", "github", f.Name(), "local", t.Name())
+		if _, err = io.Copy(t, f); err != nil {
+			return nil, err
+		}
+
+		local = append(local, t.Name())
 	}
 
 	return
