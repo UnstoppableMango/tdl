@@ -15,7 +15,10 @@ import (
 	"github.com/unstoppablemango/tdl/pkg/logging"
 	"github.com/unstoppablemango/tdl/pkg/plugin"
 	"github.com/unstoppablemango/tdl/pkg/target"
+	"github.com/unstoppablemango/tdl/pkg/work"
 )
+
+var ErrNoInput = errors.New("no input specified")
 
 func NewTool() *cobra.Command {
 	var (
@@ -31,7 +34,7 @@ func NewTool() *cobra.Command {
 			logging.Init()
 			args, extraArgs := internal.SplitAt(args, cmd.ArgsLenAtDash())
 			if len(args) <= 1 {
-				util.Fail(errors.New("no input specified"))
+				util.Fail(ErrNoInput)
 			}
 
 			t, err := target.Parse(args[0])
@@ -49,12 +52,22 @@ func NewTool() *cobra.Command {
 				util.Fail(err)
 			}
 
+			work := work.NewLocal(
+				work.WithDir(cwd),
+				work.WithStdin(os.Stdin),
+				work.WithGitHub(args[1:]),
+			)
 			src, err := internal.CwdFs(ctx, cwd)
 			if err != nil {
 				util.Fail(err)
 			}
 
-			paths, err := resolveGh(args[1:])
+			paths, err := resolveStdin(args[1:])
+			if err != nil {
+				util.Fail(err)
+			}
+
+			paths, err = resolveGh(paths)
 			if err != nil {
 				util.Fail(err)
 			}
@@ -64,6 +77,8 @@ func NewTool() *cobra.Command {
 				util.Fail(err)
 			}
 
+			// What a hilarious little dependency loop I've created here...
+			// Need to clean all this up
 			toolArgs := append(paths, extraArgs...)
 			log.Debug("executing", "tool", tool, "cwd", cwd, "args", toolArgs)
 			out, err := tool.Execute(ctx, src, toolArgs)
@@ -131,4 +146,23 @@ func resolveGh(paths []string) (local []string, err error) {
 	}
 
 	return
+}
+
+func resolveStdin(paths []string) ([]string, error) {
+	if len(paths) != 1 || paths[0] != "-" {
+		return paths, nil
+	}
+
+	f, err := os.CreateTemp("", "")
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	_, err = io.Copy(f, os.Stdin)
+	if err != nil {
+		return nil, err
+	} else {
+		return []string{f.Name()}, nil
+	}
 }

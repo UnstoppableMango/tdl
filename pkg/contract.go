@@ -92,3 +92,7 @@ type Cache interface {
 	Get(string) (*CacheItem, error)
 	Writer(string) (io.WriteCloser, error)
 }
+
+type Workspace interface {
+	Prepare(context.Context) (afero.Fs, error)
+}
