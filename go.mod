@@ -12,7 +12,7 @@ require (
 	github.com/google/go-github/v68 v68.0.0
 	github.com/google/go-github/v68 v68.0.0
 	github.com/onsi/ginkgo/v2 v2.22.1
-	github.com/onsi/gomega v1.36.1
+	github.com/onsi/gomega v1.36.2
 	github.com/opencontainers/image-spec v1.1.0
 	github.com/pulumi/pulumi/pkg/v3 v3.144.1
 	github.com/spf13/afero v1.11.0
