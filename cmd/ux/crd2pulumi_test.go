@@ -31,7 +31,7 @@ var _ = Describe("tool crd2pulumi", func() {
 		ses, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 
-		Eventually(ses.Out).Should(gbytes.Say("nodejs/index.ts"))
+		Eventually(ses.Out, "5s").Should(gbytes.Say("nodejs/index.ts"))
 		Eventually(ses.Out).Should(gbytes.Say("nodejs/types/index.ts"))
 		Eventually(ses.Out).Should(gbytes.Say("nodejs/types/input.ts"))
 		Eventually(ses.Out).Should(gbytes.Say("nodejs/types/output.ts"))
@@ -48,8 +48,8 @@ var _ = Describe("tool crd2pulumi", func() {
 
 		Eventually(ses).Should(gexec.Exit(0))
 		Expect(filepath.Join(out, "nodejs", "index.ts")).To(BeARegularFile())
-		Expect(filepath.Join(out, "nodejs", "types/index.ts")).To(BeARegularFile())
-		Expect(filepath.Join(out, "nodejs", "types/input.ts")).To(BeARegularFile())
-		Expect(filepath.Join(out, "nodejs", "types/output.ts")).To(BeARegularFile())
+		Expect(filepath.Join(out, "nodejs", "types", "index.ts")).To(BeARegularFile())
+		Expect(filepath.Join(out, "nodejs", "types", "input.ts")).To(BeARegularFile())
+		Expect(filepath.Join(out, "nodejs", "types", "output.ts")).To(BeARegularFile())
 	})
 })
