@@ -32,13 +32,11 @@ var _ = Describe("tool crd2pulumi", func() {
 		ses, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 
 		Expect(err).NotTo(HaveOccurred())
-		Eventually(ses.Out).Should(gbytes.Say("nodejs/index.ts"))
+		Eventually(ses).Should(gexec.Exit(0))
+		Eventually(ses.Out, "5s").Should(gbytes.Say("nodejs/index.ts"))
 		Eventually(ses.Out).Should(gbytes.Say("nodejs/types/index.ts"))
 		Eventually(ses.Out).Should(gbytes.Say("nodejs/types/input.ts"))
 		Eventually(ses.Out).Should(gbytes.Say("nodejs/types/output.ts"))
-
-		Eventually(ses.Out, "5s").Should(gbytes.Say("nodejs/index.ts"))
-		Eventually(ses).Should(gexec.Exit(0))
 	})
 
 	It("should print nodejs paths from stdin", func(ctx context.Context) {
@@ -50,12 +48,11 @@ var _ = Describe("tool crd2pulumi", func() {
 		ses, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 
 		Expect(err).NotTo(HaveOccurred())
+		Eventually(ses).Should(gexec.Exit(0))
 		Eventually(ses.Out).Should(gbytes.Say("nodejs/index.ts"))
 		Eventually(ses.Out).Should(gbytes.Say("nodejs/types/index.ts"))
 		Eventually(ses.Out).Should(gbytes.Say("nodejs/types/input.ts"))
 		Eventually(ses.Out).Should(gbytes.Say("nodejs/types/output.ts"))
-
-		Eventually(ses).Should(gexec.Exit(0))
 	})
 
 	It("should generate nodejs files", func(ctx context.Context) {
