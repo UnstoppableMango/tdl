@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM --platform=$BUILDPLATFORM oven/bun:1.1.42 AS base
+FROM --platform=$BUILDPLATFORM oven/bun:1.1.43 AS base
 ARG BUILDPLATFORM
 WORKDIR /build
 
@@ -34,6 +34,6 @@ RUN bun build \
 FROM --platform=$BUILDPLATFORM ubuntu:noble-20241015 AS test
 COPY --from=build /build/dist/zod2uml .
 
-FROM --platform=$BUILDPLATFORM oven/bun:1.1.42-distroless
+FROM --platform=$BUILDPLATFORM oven/bun:1.1.43-distroless
 COPY --from=build /build/dist/zod2uml /bin/
 ENTRYPOINT ["/bin/zod2uml"]
