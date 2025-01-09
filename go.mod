@@ -3,7 +3,7 @@ module github.com/unstoppablemango/tdl
 go 1.23.2
 
 require (
-	connectrpc.com/connect v1.18.0
+	connectrpc.com/connect v1.18.1
 	github.com/adrg/xdg v0.5.3
 	github.com/charmbracelet/bubbles v0.20.0
 	github.com/charmbracelet/bubbletea v1.2.4
