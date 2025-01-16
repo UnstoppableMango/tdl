@@ -10,16 +10,16 @@ FIND := gfind
 endif
 
 LOCALBIN := ${WORKING_DIR}/bin
-DEVOPS   := ${LOCALBIN}/devops
+DEVCTL   := ${LOCALBIN}/devctl
 BUF      := ${LOCALBIN}/buf
 GINKGO   := ${LOCALBIN}/ginkgo
 GOLANGCI := ${LOCALBIN}/golangci-lint
 
 export PATH := ${LOCALBIN}:${PATH}
 
-GO_SRC    := $(shell $(DEVOPS) list --go)
-TS_SRC    := $(shell $(DEVOPS) list --ts)
-PROTO_SRC := $(shell $(DEVOPS) list --proto)
+GO_SRC    := $(shell $(DEVCTL) list --go)
+TS_SRC    := $(shell $(DEVCTL) list --ts)
+PROTO_SRC := $(shell $(DEVCTL) list --proto)
 GO_PB_SRC ?= ${PROTO_SRC:proto/%.proto=pkg/%.pb.go}
 
 GO_SUITES  ?= $(filter %_suite_test.go,${GO_SRC})
@@ -66,20 +66,21 @@ packages/%/dist:
 $(GO_SRC:%.go=%_test.go): %_test.go: | bin/ginkgo
 	cd $(dir $@) && $(GINKGO) generate $(notdir $*)
 
-bin/ux: $(shell $(DEVOPS) list --go --exclude-tests)
+bin/ux: $(shell $(DEVCTL) list --go --exclude-tests)
 	go -C cmd/ux build -o ${WORKING_DIR}/$@
 
 bin/uml2uml: cmd/uml2uml/main.go
 	go -C cmd/uml2uml build -o ${WORKING_DIR}/$@
 
-bin/uml2ts: $(shell $(DEVOPS) list --ts --exclude-tests)
+bin/uml2ts: $(shell $(DEVCTL) list --ts --exclude-tests)
 	bun build --cwd packages/uml2ts index.ts --compile --outfile ${WORKING_DIR}/$@
 
-bin/zod2uml: $(shell $(DEVOPS) list --ts --exclude-tests)
+bin/zod2uml: $(shell $(DEVCTL) list --ts --exclude-tests)
 	bun build --cwd packages/zod2uml index.ts --compile --outfile ${WORKING_DIR}/$@
 
-bin/devops: $(shell $(DEVOPS) list --go --exclude-tests)
-	GOBIN=${LOCALBIN} go install github.com/unmango/go/cmd/devops
+bin/devctl: .versions/devctl $(shell $(DEVCTL) list --go --exclude-tests)
+	GOBIN=${LOCALBIN} go install github.com/unmango/devctl/cmd@$(shell $(DEVCTL) $<)
+	mv ${LOCALBIN}/cmd $@
 
 bin/buf: .versions/buf
 	GOBIN=${LOCALBIN} go install github.com/bufbuild/buf/cmd/buf@v$(shell cat $<)
