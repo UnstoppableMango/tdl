@@ -78,8 +78,8 @@ bin/uml2ts: $(shell $(DEVCTL) list --ts --exclude-tests)
 bin/zod2uml: $(shell $(DEVCTL) list --ts --exclude-tests)
 	bun build --cwd packages/zod2uml index.ts --compile --outfile ${WORKING_DIR}/$@
 
-bin/devctl: .versions/devctl $(shell $(DEVCTL) list --go --exclude-tests)
-	GOBIN=${LOCALBIN} go install github.com/unmango/devctl/cmd@$(shell $(DEVCTL) $<)
+bin/devctl: .versions/devctl
+	GOBIN=${LOCALBIN} go install github.com/unmango/devctl/cmd@v$(shell cat $<)
 	mv ${LOCALBIN}/cmd $@
 
 bin/buf: .versions/buf
