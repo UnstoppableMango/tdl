@@ -10,7 +10,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/spf13/afero"
-	. "github.com/unmango/go/testing/matcher"
+	. "github.com/unmango/aferox/testing/gfs"
 
 	"github.com/unstoppablemango/tdl/pkg/conform"
 	"github.com/unstoppablemango/tdl/pkg/gen/cli"
