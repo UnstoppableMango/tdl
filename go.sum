@@ -299,6 +299,8 @@ github.com/uber/jaeger-lib v2.4.1+incompatible h1:td4jdvLcExb4cBISKIpHuGoVXh+dVK
 github.com/uber/jaeger-lib v2.4.1+incompatible/go.mod h1:ComeNDZlWwrWnDv8aPp0Ba6+uUTzImX/AauajbLI56U=
 github.com/unmango/aferox v0.1.1 h1:hwEHTAqdTUAEHPhorgVmuN52hf4L/NGEaG2TVH4YQFo=
 github.com/unmango/aferox v0.1.1/go.mod h1:aBsdbbsm8yKSCONI6RfKTqnNaS23PvjrAsHb9eEulqM=
+github.com/unmango/aferox v0.1.2 h1:F93/tyrErnOQuC1dgtJhSqo5zeA3t0PxPYKuQKkw+YY=
+github.com/unmango/aferox v0.1.2/go.mod h1:0l2A/3BdVBTSnE8mSakYvXV+1FUc6Y93hSg2F+Tkqy0=
 github.com/unmango/go v0.2.2 h1:A5+uZjERHIPswHpku7xl9nGUtL+Eq1uwxEGPCeVJcrs=
 github.com/unmango/go v0.2.2/go.mod h1:rziorpSDVSIkybz7KksWqNr9c9aotZgjvytDAy+fe3s=
 github.com/xanzy/ssh-agent v0.3.3 h1:+/15pJfg/RsTxqYcX6fHqOXZwwMP+2VyYWJeWM2qQFM=

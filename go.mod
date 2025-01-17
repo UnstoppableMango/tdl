@@ -17,7 +17,7 @@ require (
 	github.com/spf13/afero v1.12.0
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
-	github.com/unmango/aferox v0.1.1
+	github.com/unmango/aferox v0.1.2
 	github.com/unmango/go v0.2.2
 	google.golang.org/protobuf v1.36.3
 	gopkg.in/yaml.v3 v3.0.1
