@@ -18,7 +18,7 @@ COPY cmd/ ./cmd/
 WORKDIR /build/cmd/ux
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /out/ux
 
-FROM --platform=$BUILDPLATFORM ubuntu:noble-20241015 AS test
+FROM --platform=$BUILDPLATFORM ubuntu:noble-20241118.1 AS test
 COPY --from=build /out/ux .
 
 FROM --platform=$BUILDPLATFORM scratch
