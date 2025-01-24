@@ -4,6 +4,10 @@
 		"config:recommended"
 	],
 	"automerge": true,
+	"schedule": [
+		"before 4am on the first day of the month"
+	],
+	"timezone": "America/Chicago",
 	"customManagers": [
 		{
 			"customType": "regex",
