@@ -7,12 +7,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Ast.fs" />
     <Compile Include="Parser.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="9.0.201" />
     <PackageReference Include="FParsec" Version="1.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Abstractions\UnMango.Tdl.Abstractions.csproj" />
   </ItemGroup>
 
 </Project>
