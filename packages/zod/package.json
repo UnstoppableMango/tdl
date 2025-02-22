@@ -1,15 +1,15 @@
 {
-  "name": "@unmango/2zod",
-  "module": "index.ts",
-  "type": "module",
-  "dependencies": {
+	"name": "@unmango/2zod",
+	"module": "index.ts",
+	"type": "module",
+	"dependencies": {
 		"@unmango/tdl": "workspace:*",
-    "zod": "^3.23.8"
-  },
-  "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
-  }
+		"zod": "^3.23.8"
+	},
+	"devDependencies": {
+		"@types/bun": "latest"
+	},
+	"peerDependencies": {
+		"typescript": "^5.0.0"
+	}
 }
