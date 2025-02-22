@@ -10,7 +10,7 @@ managed:
       value: github.com/unstoppablemango/tdl/pkg
 
 plugins:
-  - remote: buf.build/connectrpc/go:v1.17.0
+  - remote: buf.build/grpc/go:v1.5.1
     out: pkg
     opt:
       - paths=source_relative
