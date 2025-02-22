@@ -7,13 +7,13 @@ import "unmango/dev/tdl/v1alpha1/spec.proto";
 option csharp_namespace = "UnMango.Tdl";
 
 message ParseRequest {
-	string data = 1;
+  string data = 1;
 }
 
 message ParseResponse {
-	Spec result = 1;
+  Spec result = 1;
 }
 
 service Parser {
-	rpc Parse(ParseRequest) returns (ParseResponse);
+  rpc Parse(ParseRequest) returns (ParseResponse);
 }
