@@ -34,10 +34,11 @@ else
 TEST_FLAGS := --github-output --race --trace
 endif
 
-build: generate .make/buf_build build_go build_ts
+build: generate .make/buf_build build_go build_ts build_dotnet
 
 build_go: bin/ux
 build_ts: bin/uml2ts bin/zod2uml packages/tdl/dist packages/ts/dist
+build_dotnet: bin/lang-host
 
 test: .make/go_test .make/ts_test
 generate: ${GO_PB_SRC}
