@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package unmango.dev.tdl.v1alpha1;
+
+import "unmango/dev/tdl/v1alpha1/spec.proto";
+
+option csharp_namespace = "UnMango.Tdl";
+
+message ParseRequest {
+	string data = 1;
+}
+
+message ParseResponse {
+	Spec result = 1;
+}
+
+service Parser {
+	rpc Parse(ParseRequest) returns (ParseResponse);
+}

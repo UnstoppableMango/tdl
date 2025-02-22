@@ -2,7 +2,7 @@
 
 open FParsec
 open Swensen.Unquote
-open UnMango.Tdl.Parser
+open UnMango.Tdl.Lang.Parser
 open Xunit
 
 let success =

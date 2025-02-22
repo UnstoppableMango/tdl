@@ -34,16 +34,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{
 		.github\workflows\broker.yml = .github\workflows\broker.yml
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "proto", "proto", "{D33909C2-5104-4E7E-A0F1-FC98FF7B4C5A}"
-	ProjectSection(SolutionItems) = preProject
-		proto\buf.yaml = proto\buf.yaml
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "v1alpha1", "v1alpha1", "{748534DB-77B0-4CEF-83C1-C12855E2A79F}"
-	ProjectSection(SolutionItems) = preProject
-		proto\unmango\dev\tdl\v1alpha1\uml.proto = proto\unmango\dev\tdl\v1alpha1\uml.proto
-	EndProjectSection
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnMango.Tdl.Abstractions", "src\Abstractions\UnMango.Tdl.Abstractions.csproj", "{C91D0104-CD82-4A78-868C-B8F4B1ED459A}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "actions", "actions", "{5113428B-0798-4AED-87E4-2DC342D1FA4A}"
@@ -59,23 +49,13 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "UnMango.Tdl.FSharp", "src\F
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "UnMango.Tdl.FSharp.Tests", "src\FSharp.Tests\UnMango.Tdl.FSharp.Tests.fsproj", "{03D2F47F-3FBB-4581-BAF2-3E75C92A8AFD}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "packages", "packages", "{F28642F8-BE71-4A6B-BF1F-487EB205CBBC}"
-	ProjectSection(SolutionItems) = preProject
-		packages\Makefile = packages\Makefile
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "cli", "cli", "{E530B3E1-AD2B-43D6-A5BC-B605F6E17E35}"
-	ProjectSection(SolutionItems) = preProject
-		cli\Makefile = cli\Makefile
-		cli\go.mod = cli\go.mod
-		cli\go.sum = cli\go.sum
-	EndProjectSection
-EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "UnMango.Tdl.Testing.Tests", "src\Testing.Tests\UnMango.Tdl.Testing.Tests.fsproj", "{A5ED3F86-BC79-41B5-91D4-A3854314F310}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "UnMango.Tdl.Lang", "src\Lang\UnMango.Tdl.Lang.fsproj", "{4DDB19F0-06BE-4449-9A46-1798F49F334B}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "UnMango.Tdl.Lang.Tests", "src\Lang.Tests\UnMango.Tdl.Lang.Tests.fsproj", "{FB749D4D-1C43-41DA-BFBF-30323918BA95}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnMango.Tdl.Lang.Host", "src\Lang.Host\UnMango.Tdl.Lang.Host.csproj", "{19677EFF-DB62-4879-8658-757FF1AE42AE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -114,10 +94,13 @@ Global
 		{FB749D4D-1C43-41DA-BFBF-30323918BA95}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FB749D4D-1C43-41DA-BFBF-30323918BA95}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FB749D4D-1C43-41DA-BFBF-30323918BA95}.Release|Any CPU.Build.0 = Release|Any CPU
+		{19677EFF-DB62-4879-8658-757FF1AE42AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{19677EFF-DB62-4879-8658-757FF1AE42AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{19677EFF-DB62-4879-8658-757FF1AE42AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{19677EFF-DB62-4879-8658-757FF1AE42AE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{A019E942-34BF-4F88-AFA8-3AA445D409E6} = {B3AC8EAB-9388-4D81-AF13-DEC3F7C08EB0}
-		{748534DB-77B0-4CEF-83C1-C12855E2A79F} = {D33909C2-5104-4E7E-A0F1-FC98FF7B4C5A}
 		{C91D0104-CD82-4A78-868C-B8F4B1ED459A} = {4C2EFA7D-EC3E-4D68-8DC6-EC1418D2A36F}
 		{5113428B-0798-4AED-87E4-2DC342D1FA4A} = {B3AC8EAB-9388-4D81-AF13-DEC3F7C08EB0}
 		{7309D3E2-0898-4B28-9817-7E33417829D6} = {5113428B-0798-4AED-87E4-2DC342D1FA4A}
@@ -127,5 +110,6 @@ Global
 		{A5ED3F86-BC79-41B5-91D4-A3854314F310} = {4C2EFA7D-EC3E-4D68-8DC6-EC1418D2A36F}
 		{4DDB19F0-06BE-4449-9A46-1798F49F334B} = {4C2EFA7D-EC3E-4D68-8DC6-EC1418D2A36F}
 		{FB749D4D-1C43-41DA-BFBF-30323918BA95} = {4C2EFA7D-EC3E-4D68-8DC6-EC1418D2A36F}
+		{19677EFF-DB62-4879-8658-757FF1AE42AE} = {4C2EFA7D-EC3E-4D68-8DC6-EC1418D2A36F}
 	EndGlobalSection
 EndGlobal
