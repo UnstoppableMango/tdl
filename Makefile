@@ -25,6 +25,9 @@ GO_PB_SRC ?= ${PROTO_SRC:proto/%.proto=pkg/%.pb.go}
 GO_SUITES  ?= $(filter %_suite_test.go,${GO_SRC})
 GO_REPORTS ?= $(addsuffix report.json,$(dir ${GO_SUITES}))
 
+DOTNET_CONF := Debug
+DOTNET_TFM  := net9.0
+
 ifeq ($(CI),)
 TEST_FLAGS := --label-filter '!E2E'
 else
@@ -83,6 +86,12 @@ bin/golangci-lint: .versions/golangci-lint
 
 bin/crd2pulumi: .versions/crd2pulumi
 	curl -sSL https://github.com/pulumi/crd2pulumi/releases/download/v$(shell cat $<)/crd2pulumi-v$(shell cat $<)-$(shell go env GOOS)-$(shell go env GOARCH).tar.gz | tar -zxv -C bin crd2pulumi
+
+bin/lang-host: | src/Lang.Host/bin/${DOTNET_CONF}/${DOTNET_TFM}/UnMango.Tdl.Lang.Host
+	ln -s ${CURDIR}/$< ${CURDIR}/$@
+
+src/Lang.Host/bin/${DOTNET_CONF}/${DOTNET_TFM}/UnMango.Tdl.Lang.Host: $(shell $(DEVCTL) list --cs) | bin/devctl
+	dotnet build --configuration ${DOTNET_CONF}
 
 .envrc: hack/example.envrc
 	cp $< $@
