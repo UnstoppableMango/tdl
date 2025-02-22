@@ -1,6 +1,6 @@
-import type { Field, Spec, Type } from '@unmango/tdl/v1alpha1/tdl';
 import { create } from '@unmango/tdl/spec';
-import { ZodObject, ZodType, type ZodSchema } from 'zod';
+import type { Field, Spec, Type } from '@unmango/tdl/v1alpha1/tdl';
+import { ZodObject, type ZodSchema, ZodType } from 'zod';
 
 type Schema = Record<string, ZodSchema>;
 
