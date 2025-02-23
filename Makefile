@@ -89,7 +89,7 @@ bin/crd2pulumi: .versions/crd2pulumi
 	curl -sSL https://github.com/pulumi/crd2pulumi/releases/download/v$(shell cat $<)/crd2pulumi-v$(shell cat $<)-$(shell go env GOOS)-$(shell go env GOARCH).tar.gz | tar -zxv -C bin crd2pulumi
 
 bin/lang-host: | src/Lang.Host/bin/${DOTNET_CONF}/${DOTNET_TFM}/UnMango.Tdl.Lang.Host
-	ln -s ${CURDIR}/$< ${CURDIR}/$@
+	ln -s ${CURDIR}/$| ${CURDIR}/$@
 
 src/Lang.Host/bin/${DOTNET_CONF}/${DOTNET_TFM}/UnMango.Tdl.Lang.Host: $(shell $(DEVCTL) list --cs) | bin/devctl
 	dotnet build --configuration ${DOTNET_CONF}
@@ -121,7 +121,7 @@ go.sum: go.mod ${GO_SRC}
 	docker build -f docker/zod2uml/Dockerfile -t zod2uml ${WORKING_DIR}
 	@touch $@
 
-.make/go_test: ${GO_SRC} | bin/ux bin/uml2ts bin/uml2uml
+.make/go_test: ${GO_SRC} | bin/ux bin/uml2ts bin/uml2uml bin/lang-host
 	$(GINKGO) run ${TEST_FLAGS} $(sort $(dir $?))
 	@touch $@
 
