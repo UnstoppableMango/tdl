@@ -11,7 +11,6 @@ tool (
 )
 
 require (
-	connectrpc.com/connect v1.18.1
 	github.com/adrg/xdg v0.5.3
 	github.com/charmbracelet/bubbles v0.20.0
 	github.com/charmbracelet/bubbletea v1.2.4
