@@ -94,6 +94,10 @@ bin/crd2pulumi: .versions/crd2pulumi
 bin/lang-host: | src/Lang.Host/bin/${DOTNET_CONF}/${DOTNET_TFM}/UnMango.Tdl.Lang.Host
 	ln -s ${CURDIR}/$| ${CURDIR}/$@
 
+src/Lang.Host/bin/lang-host: $(shell $(DEVCTL) list --cs) | bin/devctl
+	dotnet publish src/Lang.Host -p:DebugSymbols=false \
+	--use-current-runtime --self-contained --configuration ${DOTNET_CONF} --output $(dir $@)
+
 src/Lang.Host/bin/${DOTNET_CONF}/${DOTNET_TFM}/UnMango.Tdl.Lang.Host: $(shell $(DEVCTL) list --cs) | bin/devctl
 	dotnet build --configuration ${DOTNET_CONF}
 
