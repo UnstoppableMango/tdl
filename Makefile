@@ -92,6 +92,9 @@ bin/buf: .versions/buf
 bin/ginkgo: go.mod
 	GOBIN=${LOCALBIN} go install github.com/onsi/ginkgo/v2/ginkgo
 
+bin/dotnet: | .make/dotnet
+	rm -f $@ && ln -s ${CURDIR}/.make/dotnet/dotnet $@
+
 bin/golangci-lint: .versions/golangci-lint
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ${LOCALBIN} v$(shell cat $<)
 
@@ -130,6 +133,12 @@ go.sum: go.mod ${GO_SRC}
 .make/docker_zod2uml: ${TS_SRC} $(wildcard docker/zod2uml/*)
 	docker build -f docker/zod2uml/Dockerfile -t zod2uml ${WORKING_DIR}
 	@touch $@
+
+.make/dotnet-install.sh: | .make
+	curl -fsSL https://dot.net/v1/dotnet-install.sh > $@ && chmod +x $@
+
+.make/dotnet: global.json | .make/dotnet-install.sh
+	.make/dotnet-install.sh --install-dir $@ --jsonfile $< --no-path
 
 .make/go_test: ${GO_SRC} | bin/ginkgo bin/ux bin/uml2ts bin/uml2uml bin/lang-host
 	$(GINKGO) run ${TEST_FLAGS} $(sort $(dir $?))
