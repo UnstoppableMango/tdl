@@ -48,10 +48,11 @@ lint: .make/buf_lint .make/go_lint
 tidy: go.sum
 
 clean:
-	rm -f bin/ux bin/uml2ts
+	rm -f bin/ux bin/uml2ts bin/lang-host
 	find . -type f -name 'report.json' -delete
 	bun run --cwd packages/tdl clean
 	bun run --cwd packages/ts clean
+	find src -type d -name 'bin' -o -name 'obj' -exec rm -r {} \;
 
 test_all: bin/ux bin/uml2ts bin/uml2uml
 	$(GINKGO) run -r ./
