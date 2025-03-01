@@ -21,7 +21,7 @@
 		<PackageReference Include="FSharp.Control.Reactive" Version="5.0.5"/>
 		<PackageReference Include="Grpc.Net.Client" Version="2.67.0" />
 		<PackageReference Include="MinVer" Version="6.0.0" PrivateAssets="all"/>
-		<PackageReference Include="UnMango.CliWrap.FSharp" Version="0.0.8"/>
+		<PackageReference Include="UnMango.CliWrap.FSharp" Version="0.0.10"/>
 	</ItemGroup>
 
 	<ItemGroup>
