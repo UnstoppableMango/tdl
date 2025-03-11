@@ -15,8 +15,6 @@ BUF      := go tool buf
 GINKGO   := go tool ginkgo
 GOLANGCI := ${LOCALBIN}/golangci-lint
 
-export PATH := ${LOCALBIN}:${PATH}
-
 GO_SRC    := $(shell $(DEVCTL) list --go)
 TS_SRC    := $(shell $(DEVCTL) list --ts)
 PROTO_SRC := $(shell $(DEVCTL) list --proto)
@@ -92,8 +90,8 @@ bin/golangci-lint: .versions/golangci-lint
 bin/crd2pulumi: .versions/crd2pulumi
 	curl -sSL https://github.com/pulumi/crd2pulumi/releases/download/v$(shell cat $<)/crd2pulumi-v$(shell cat $<)-$(shell go env GOOS)-$(shell go env GOARCH).tar.gz | tar -zxv -C bin crd2pulumi
 
-bin/lang-host: | src/Lang.Host/bin/${DOTNET_CONF}/${DOTNET_TFM}/UnMango.Tdl.Lang.Host
-	ln -s ${CURDIR}/$| ${CURDIR}/$@
+bin/lang-host: | src/Lang.Host/bin/lang-host
+	cp $| $@
 
 src/Lang.Host/bin/lang-host: $(shell $(DEVCTL) list --cs) | bin/devctl
 	dotnet publish src/Lang.Host -p:DebugSymbols=false \
