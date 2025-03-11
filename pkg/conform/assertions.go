@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/spf13/afero"
-	aferox "github.com/unmango/go/fs"
+	aferox "github.com/unmango/aferox"
 	"github.com/unstoppablemango/tdl/pkg/testing/e2e"
 	. "github.com/unstoppablemango/tdl/pkg/testing/matcher"
 )

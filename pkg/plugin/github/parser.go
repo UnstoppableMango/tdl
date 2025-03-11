@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"slices"
 
-	"github.com/unmango/go/fs/github/ghpath"
+	"github.com/unmango/aferox/github/ghpath"
 	tdl "github.com/unstoppablemango/tdl/pkg"
 )
 

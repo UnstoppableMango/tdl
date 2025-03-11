@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/spf13/afero"
-	"github.com/unmango/go/fs/ignore"
+	"github.com/unmango/aferox/ignore"
 	"github.com/unstoppablemango/tdl/pkg/tool"
 )
 

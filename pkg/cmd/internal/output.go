@@ -6,7 +6,7 @@ import (
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/afero"
-	aferox "github.com/unmango/go/fs"
+	aferox "github.com/unmango/aferox"
 )
 
 func CopyOutput(fs afero.Fs, path string) error {

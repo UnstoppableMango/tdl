@@ -12,7 +12,7 @@ import (
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/afero"
-	"github.com/unmango/go/fs/filter"
+	"github.com/unmango/aferox/filter"
 )
 
 var (

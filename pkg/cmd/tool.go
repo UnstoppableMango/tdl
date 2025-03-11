@@ -9,7 +9,7 @@ import (
 
 	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
-	"github.com/unmango/go/fs/github"
+	"github.com/unmango/aferox/github"
 	"github.com/unstoppablemango/tdl/internal/util"
 	"github.com/unstoppablemango/tdl/pkg/cmd/internal"
 	"github.com/unstoppablemango/tdl/pkg/logging"
