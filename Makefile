@@ -54,7 +54,7 @@ test_all: bin/ux bin/uml2ts bin/uml2uml
 
 e2e: .make/go_e2e_test
 
-${GO_PB_SRC}: buf.gen.yaml ${PROTO_SRC} | bin/buf
+${GO_PB_SRC}: buf.gen.yaml ${PROTO_SRC}
 	$(BUF) generate
 
 packages/%/dist:
