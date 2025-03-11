@@ -39,7 +39,6 @@ jobs:
           repo: pulumi/crd2pulumi
           tag: v1.5.4
 
-      - run: make bin/devctl
       - run: make build
       - run: make test
 
