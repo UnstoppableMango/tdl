@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/log"
-	"github.com/google/go-github/v68/github"
-	"github.com/unmango/go/fs/github/repository/release/asset"
+	"github.com/google/go-github/v69/github"
+	"github.com/unmango/aferox/github/repository/release/asset"
 	"github.com/unmango/go/option"
 	"github.com/unmango/go/rx"
 	"github.com/unmango/go/rx/subject"

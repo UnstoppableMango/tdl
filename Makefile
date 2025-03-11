@@ -10,9 +10,9 @@ FIND := gfind
 endif
 
 LOCALBIN := ${WORKING_DIR}/bin
-DEVCTL   := ${LOCALBIN}/devctl
-BUF      := ${LOCALBIN}/buf
-GINKGO   := ${LOCALBIN}/ginkgo
+DEVCTL   := go tool devctl
+BUF      := go tool buf
+GINKGO   := go tool ginkgo
 GOLANGCI := ${LOCALBIN}/golangci-lint
 
 export PATH := ${LOCALBIN}:${PATH}
@@ -54,16 +54,16 @@ test_all: bin/ux bin/uml2ts bin/uml2uml
 
 e2e: .make/go_e2e_test
 
-${GO_PB_SRC}: buf.gen.yaml ${PROTO_SRC} | bin/buf
+${GO_PB_SRC}: buf.gen.yaml ${PROTO_SRC}
 	$(BUF) generate
 
 packages/%/dist:
 	bun run --cwd $(dir $@) build
 
-%_suite_test.go: | bin/ginkgo
+%_suite_test.go:
 	cd $(dir $@) && $(GINKGO) bootstrap
 
-$(GO_SRC:%.go=%_test.go): %_test.go: | bin/ginkgo
+$(GO_SRC:%.go=%_test.go): %_test.go:
 	cd $(dir $@) && $(GINKGO) generate $(notdir $*)
 
 bin/ux: $(shell $(DEVCTL) list --go --exclude-tests)
@@ -78,16 +78,6 @@ bin/uml2ts: $(shell $(DEVCTL) list --ts --exclude-tests)
 bin/zod2uml: $(shell $(DEVCTL) list --ts --exclude-tests)
 	bun build --cwd packages/zod2uml index.ts --compile --outfile ${WORKING_DIR}/$@
 
-bin/devctl: .versions/devctl
-	GOBIN=${LOCALBIN} go install github.com/unmango/devctl/cmd@v$(shell cat $<)
-	mv ${LOCALBIN}/cmd $@
-
-bin/buf: .versions/buf
-	GOBIN=${LOCALBIN} go install github.com/bufbuild/buf/cmd/buf@v$(shell cat $<)
-
-bin/ginkgo: go.mod
-	GOBIN=${LOCALBIN} go install github.com/onsi/ginkgo/v2/ginkgo
-
 bin/golangci-lint: .versions/golangci-lint
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ${LOCALBIN} v$(shell cat $<)
 
@@ -97,10 +87,10 @@ bin/crd2pulumi: .versions/crd2pulumi
 .envrc: hack/example.envrc
 	cp $< $@
 
-buf.yaml: | bin/buf
+buf.yaml:
 	$(BUF) config init
 
-buf.lock: | bin/buf
+buf.lock:
 	$(BUF) dep update
 
 go.mod:
@@ -121,11 +111,11 @@ go.sum: go.mod ${GO_SRC}
 	docker build -f docker/zod2uml/Dockerfile -t zod2uml ${WORKING_DIR}
 	@touch $@
 
-.make/go_test: ${GO_SRC} | bin/ginkgo bin/ux bin/uml2ts bin/uml2uml
+.make/go_test: ${GO_SRC} | bin/ux bin/uml2ts bin/uml2uml
 	$(GINKGO) run ${TEST_FLAGS} $(sort $(dir $?))
 	@touch $@
 
-.make/go_e2e_test: ${GO_SRC} | bin/ginkgo bin/ux bin/uml2ts bin/uml2uml
+.make/go_e2e_test: ${GO_SRC} |  bin/ux bin/uml2ts bin/uml2uml
 	$(GINKGO) run --label-filter 'E2E' $(sort $(dir $?))
 	@touch $@
 
@@ -137,15 +127,15 @@ go.sum: go.mod ${GO_SRC}
 	bun test --cwd packages/ts
 	@touch $@
 
-.make/buf_build: buf.yaml ${PROTO_SRC} | bin/buf
+.make/buf_build: buf.yaml ${PROTO_SRC}
 	$(BUF) build
 	@touch $@
 
-.make/buf_lint: buf.yaml ${PROTO_SRC} | bin/buf
+.make/buf_lint: buf.yaml ${PROTO_SRC}
 	$(BUF) lint
 	@touch $@
 
-.make/buf_format: buf.yaml ${PROTO_SRC} | bin/buf
+.make/buf_format: buf.yaml ${PROTO_SRC}
 	$(BUF) format --write
 	@touch $@
 
