@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM --platform=$BUILDPLATFORM oven/bun:1.2.4 AS base
+FROM --platform=$BUILDPLATFORM oven/bun:1.2.8 AS base
 ARG BUILDPLATFORM
 WORKDIR /build
 
