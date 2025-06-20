@@ -66,14 +66,8 @@ packages/%/dist:
 $(GO_SRC:%.go=%_test.go): %_test.go:
 	cd $(dir $@) && $(GINKGO) generate $(notdir $*)
 
-bin/ux: $(shell $(DEVCTL) list --go --exclude-tests)
-	go -C cmd/ux build -o ${WORKING_DIR}/$@
-
 bin/uml2uml: cmd/uml2uml/main.go
 	go -C cmd/uml2uml build -o ${WORKING_DIR}/$@
-
-bin/uml2ts: $(shell $(DEVCTL) list --ts --exclude-tests)
-	bun build --cwd packages/uml2ts index.ts --compile --outfile ${WORKING_DIR}/$@
 
 bin/zod2uml: $(shell $(DEVCTL) list --ts --exclude-tests)
 	bun build --cwd packages/zod2uml index.ts --compile --outfile ${WORKING_DIR}/$@
@@ -98,10 +92,6 @@ go.mod:
 
 go.sum: go.mod ${GO_SRC}
 	go mod tidy && touch $@
-
-.make/docker_ux: ${GO_SRC} $(wildcard docker/ux/*)
-	docker build -f docker/ux/Dockerfile -t ux ${WORKING_DIR}
-	@touch $@
 
 .make/docker_uml2ts: ${TS_SRC} $(wildcard docker/uml2ts/*)
 	docker build -f docker/uml2ts/Dockerfile -t uml2ts ${WORKING_DIR}

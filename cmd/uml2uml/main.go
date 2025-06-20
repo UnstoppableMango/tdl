@@ -4,7 +4,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/unstoppablemango/tdl/internal/util"
+	"github.com/unmango/go/cli"
 )
 
 // This is primarily used for testing
@@ -12,7 +12,7 @@ import (
 func main() {
 	spec, err := io.ReadAll(os.Stdin)
 	if err != nil {
-		util.Fail(err)
+		cli.Fail(err)
 	}
 
 	if len(os.Args) > 1 {
@@ -21,6 +21,6 @@ func main() {
 		_, err = os.Stdout.Write(spec)
 	}
 	if err != nil {
-		util.Fail(err)
+		cli.Fail(err)
 	}
 }
