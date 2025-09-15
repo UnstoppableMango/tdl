@@ -39,4 +39,4 @@ runs:
 
     - name: Format
       if: github.event_name == 'pull_request'
-      uses: dprint/check@v2.2
+      uses: dprint/check@v2.3
