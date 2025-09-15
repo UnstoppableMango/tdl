@@ -34,7 +34,7 @@ jobs:
       - run: bun install --frozen-lockfile
 
       - name: Install crd2pulumi
-        uses: jaxxstorm/action-install-gh-release@v1.14.0
+        uses: jaxxstorm/action-install-gh-release@v2.1.0
         with:
           repo: pulumi/crd2pulumi
           tag: v1.5.4
