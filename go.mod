@@ -15,7 +15,7 @@ require (
 	github.com/adrg/xdg v0.5.3
 	github.com/charmbracelet/bubbles v0.20.0
 	github.com/charmbracelet/bubbletea v1.2.4
-	github.com/charmbracelet/log v0.4.0
+	github.com/charmbracelet/log v0.4.2
 	github.com/docker/docker v28.0.1+incompatible
 	github.com/google/go-github/v69 v69.2.0
 	github.com/onsi/ginkgo/v2 v2.23.0
@@ -60,9 +60,11 @@ require (
 	github.com/bufbuild/protocompile v0.14.1 // indirect
 	github.com/bufbuild/protoplugin v0.0.0-20250106231243-3a819552c9d9 // indirect
 	github.com/bufbuild/protovalidate-go v0.8.2 // indirect
+	github.com/charmbracelet/colorprofile v0.2.3-0.20250311203215-f60798e515dc // indirect
 	github.com/charmbracelet/harmonica v0.2.0 // indirect
-	github.com/charmbracelet/lipgloss v1.0.0 // indirect
+	github.com/charmbracelet/lipgloss v1.1.0 // indirect
 	github.com/charmbracelet/x/ansi v0.8.0 // indirect
+	github.com/charmbracelet/x/cellbuf v0.0.13-0.20250311204145-2c3ea96c31dd // indirect
 	github.com/charmbracelet/x/term v0.2.1 // indirect
 	github.com/cheggaaa/pb v1.0.29 // indirect
 	github.com/cloudflare/circl v1.3.7 // indirect
@@ -168,6 +170,7 @@ require (
 	github.com/unmango/devctl v0.1.6 // indirect
 	github.com/vbatts/tar-split v0.12.1 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
+	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/zclconf/go-cty v1.13.2 // indirect
 	go.lsp.dev/jsonrpc2 v0.10.0 // indirect
 	go.lsp.dev/pkg v0.0.0-20210717090340-384b27a52fb2 // indirect
