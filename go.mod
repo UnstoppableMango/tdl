@@ -13,8 +13,8 @@ tool (
 require (
 	connectrpc.com/connect v1.18.1
 	github.com/adrg/xdg v0.5.3
-	github.com/charmbracelet/bubbles v0.20.0
-	github.com/charmbracelet/bubbletea v1.2.4
+	github.com/charmbracelet/bubbles v0.21.0
+	github.com/charmbracelet/bubbletea v1.3.4
 	github.com/charmbracelet/log v0.4.2
 	github.com/docker/docker v28.0.1+incompatible
 	github.com/google/go-github/v69 v69.2.0
