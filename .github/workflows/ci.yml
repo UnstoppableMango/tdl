@@ -84,7 +84,7 @@ jobs:
       - run: |
           echo "VERSION=$(cat .versions/golangci-lint)" >> "$GITHUB_ENV"
 
-      - uses: golangci/golangci-lint-action@v6
+      - uses: golangci/golangci-lint-action@v8
         with:
           version: v${{ env.VERSION }}
 
