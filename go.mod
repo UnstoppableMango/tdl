@@ -18,6 +18,7 @@ require (
 	github.com/charmbracelet/log v0.4.2
 	github.com/docker/docker v28.0.1+incompatible
 	github.com/google/go-github/v69 v69.2.0
+	github.com/google/go-github/v74 v74.0.0
 	github.com/onsi/ginkgo/v2 v2.23.0
 	github.com/onsi/gomega v1.36.2
 	github.com/opencontainers/image-spec v1.1.1
