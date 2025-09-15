@@ -16,7 +16,7 @@ require (
 	github.com/charmbracelet/bubbles v0.21.0
 	github.com/charmbracelet/bubbletea v1.3.9
 	github.com/charmbracelet/log v0.4.2
-	github.com/docker/docker v28.0.1+incompatible
+	github.com/docker/docker v28.4.0+incompatible
 	github.com/google/go-github/v69 v69.2.0
 	github.com/google/go-github/v74 v74.0.0
 	github.com/onsi/ginkgo/v2 v2.25.3
@@ -70,6 +70,8 @@ require (
 	github.com/charmbracelet/x/term v0.2.1 // indirect
 	github.com/cheggaaa/pb v1.0.29 // indirect
 	github.com/cloudflare/circl v1.3.7 // indirect
+	github.com/containerd/errdefs v1.0.0 // indirect
+	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.16.3 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
