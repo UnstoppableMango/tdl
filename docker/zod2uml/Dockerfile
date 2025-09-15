@@ -31,7 +31,7 @@ RUN bun build \
 	--sourcemap ./index.ts \
 	--outfile ./dist/zod2uml
 
-FROM --platform=$BUILDPLATFORM ubuntu:noble-20241118.1 AS test
+FROM --platform=$BUILDPLATFORM ubuntu:noble-20250805 AS test
 COPY --from=build /build/dist/zod2uml .
 
 FROM --platform=$BUILDPLATFORM oven/bun:1.2.2-distroless
