@@ -24,7 +24,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/pulumi/pulumi/pkg/v3 v3.147.0
 	github.com/spf13/afero v1.15.0
-	github.com/spf13/cobra v1.9.1
+	github.com/spf13/cobra v1.10.1
 	github.com/spf13/pflag v1.0.10
 	github.com/unmango/aferox v0.1.3
 	github.com/unmango/go v0.3.0
