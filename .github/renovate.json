@@ -14,9 +14,9 @@
 			"customType": "regex",
 			"depNameTemplate": "oven-sh/bun",
 			"datasourceTemplate": "github-releases",
-			"fileMatch": [
-				"package.json",
-				".*\\/.*\\.ya?ml"
+			"managerFilePatterns": [
+				"/package.json/",
+				"/.*\\/.*\\.ya?ml/"
 			],
 			"extractVersionTemplate": "[Bb]un[- ]v(?<version>.*)",
 			"matchStrings": [
