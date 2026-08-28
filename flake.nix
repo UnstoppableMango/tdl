@@ -44,7 +44,7 @@
           devShells.default = pkgs.mkShellNoCC {
             packages = with pkgs; [
               direnv
-              go
+              go_1_27
               gomod2nix
               gopls
               golangci-lint
@@ -52,7 +52,7 @@
               nixfmt
             ];
 
-            GO = "${pkgs.go}/bin/go";
+            GO = "${pkgs.go_1_27}/bin/go";
             GOMOD2NIX = "${pkgs.gomod2nix}/bin/gomod2nix";
           };
 
