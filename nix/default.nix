@@ -1,13 +1,13 @@
 {
   buildGoApplication,
   lib,
+  go,
   version,
 }:
 buildGoApplication {
   pname = "tdl";
-  inherit version;
+  inherit version go;
 
-  pwd = ../.;
   src = lib.cleanSource ../.;
   modules = ./gomod2nix.toml;
 

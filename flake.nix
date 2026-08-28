@@ -32,6 +32,7 @@
         { pkgs, system, ... }:
         let
           version = "0.1.0";
+          go = pkgs.go_1_27;
         in
         {
           _module.args.pkgs = import inputs.nixpkgs {
@@ -39,20 +40,20 @@
             overlays = with inputs; [ gomod2nix.overlays.default ];
           };
 
-          packages.default = pkgs.callPackage ./nix { inherit version; };
+          packages.default = pkgs.callPackage ./nix { inherit version go; };
 
           devShells.default = pkgs.mkShellNoCC {
-            packages = with pkgs; [
-              direnv
-              go_1_27
-              gomod2nix
-              gopls
-              golangci-lint
-              gnumake
-              nixfmt
+            packages = [
+              pkgs.direnv
+              go
+              pkgs.gomod2nix
+              pkgs.gopls
+              pkgs.golangci-lint
+              pkgs.gnumake
+              pkgs.nixfmt
             ];
 
-            GO = "${pkgs.go_1_27}/bin/go";
+            GO = "${go}/bin/go";
             GOMOD2NIX = "${pkgs.gomod2nix}/bin/gomod2nix";
           };
 
