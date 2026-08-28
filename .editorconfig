@@ -10,25 +10,9 @@ max_line_length = 120
 [*.{yml,yaml}]
 indent_style = space
 
-[*.fs]
+[*.go]
+indent_style = tab
+
+[*.nix]
 indent_style = space
-max_line_length = 100
-fsharp_newline_before_multiline_computation_expression = false
-
-[*.cs]
-indent_size = 4
-
-# I'll die on this hill
-csharp_new_line_before_open_brace = namespace, types
-dotnet_sort_system_directives_first = true
-
-# We manually build a single service provider
-dotnet_diagnostic.asp0000.severity = none
-
-# ReSharper properties
-resharper_csharp_wrap_parameters_style = chop_if_long
-resharper_csharp_wrap_after_declaration_lpar = true
-csharp_indent_switch_labels = false
-
-[*Dockerfile]
-indent_size = 4
+indent_size = 2

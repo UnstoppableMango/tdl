@@ -1,0 +1,10 @@
+enum Role {
+  Admin = "admin"
+  Member = "member"
+  Guest = "guest"
+}
+
+type User {
+  name: string
+  role: Role = "member"
+}

@@ -1,0 +1,36 @@
+(* TDL grammar, EBNF appendix to spec.md.
+   Notation: '...' terminals, [ ] optional, { } zero-or-more, | alternation.
+   Reserved-but-unimplemented productions are marked (reserved). *)
+
+File       = [ PackageDecl ] { ImportDecl } { TopDecl } .
+TopDecl    = { Annotation } ( TypeDecl | EnumDecl ) .
+
+PackageDecl = "package" DottedIdent .
+DottedIdent = identifier { "." identifier } .
+
+ImportDecl = "import" string_lit "as" identifier .
+
+TypeDecl   = "type" identifier "{" { { Annotation } Field } "}" .
+Field      = identifier ":" TypeRef [ "?" ] [ "=" Literal ] .
+
+EnumDecl   = "enum" identifier "{" { { Annotation } EnumValue } "}" .
+EnumValue  = identifier [ "=" Literal ] .
+
+TypeRef    = ListType | MapType | NamedType .
+ListType   = "list" "<" TypeRef ">" .
+MapType    = "map" "<" TypeRef "," TypeRef ">" .
+NamedType  = identifier [ "." identifier ] .
+(* NamedType covers both primitive names (string, int32, ...) and
+   references to declared types; the grammar does not distinguish them —
+   that is a semantic check performed by the ir package, not the parser. *)
+
+Annotation = "@" identifier [ "(" AnnotationArg { "," AnnotationArg } ")" ] .
+AnnotationArg = identifier ":" Literal .
+
+Literal    = string_lit | int_lit | float_lit | bool_lit | ListLiteral .
+ListLiteral = "[" [ Literal { "," Literal } ] "]" .
+
+(* reserved, not implemented in M1 *)
+UnionDecl  = "union" identifier "{" { UnionVariant } "}" .        (* reserved *)
+UnionVariant = identifier ":" TypeRef .                            (* reserved *)
+GenericTypeDecl = "type" identifier "<" identifier { "," identifier } ">" "{" ... "}" . (* reserved *)

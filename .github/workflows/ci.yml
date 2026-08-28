@@ -3,13 +3,6 @@ name: CI
 on:
   pull_request:
     branches: [main]
-    paths-ignore:
-      - .idea
-      - .vscode
-      - .editorconfig
-      - .gitignore
-      - LICENSE
-      - README.md
 
 jobs:
   build:
@@ -18,59 +11,16 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - uses: actions/setup-go@v6
         with:
           cache-dependency-path: go.sum
           go-version-file: go.mod
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version-file: package.json
+      - run: go build ./...
+      - run: go vet ./...
+      - run: go test ./...
 
-      - run: bun install --frozen-lockfile
-
-      - name: Install crd2pulumi
-        uses: jaxxstorm/action-install-gh-release@v2.1.0
-        with:
-          repo: pulumi/crd2pulumi
-          tag: v1.5.4
-
-      - run: make build
-      - run: make test
-
-  docker:
-    name: Docker
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        tool:
-          - ux
-          - uml2ts
-          - zod2uml
-    steps:
-      - uses: actions/checkout@v5
-      - uses: ./.github/actions/build-docker
-        with:
-          file: docker/${{ matrix.tool }}/Dockerfile
-          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.tool }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-  goreleaser:
-    name: GoReleaser Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: goreleaser/goreleaser-action@v6
-        with:
-          version: ~> v2
-          args: check
-
-  golangci:
+  golangci-lint:
     name: golangci-lint
     runs-on: ubuntu-latest
     steps:
@@ -81,51 +31,11 @@ jobs:
           cache-dependency-path: go.sum
           go-version-file: go.mod
 
-      - run: |
-          echo "VERSION=$(cat .versions/golangci-lint)" >> "$GITHUB_ENV"
-
       - uses: golangci/golangci-lint-action@v6
-        with:
-          version: v${{ env.VERSION }}
 
-  buf:
-    name: Buf
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - run: |
-          echo "VERSION=$(cat .versions/buf)" >> "$GITHUB_ENV"
-
-      - uses: bufbuild/buf-action@v1
-        with:
-          version: ${{ env.VERSION }}
-          push: false
-          breaking: false
-
-  bun:
-    name: Bun Install
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version-file: package.json
-
-      - run: bun install --frozen-lockfile
-
-  md-lint:
+  markdown-lint:
     name: Markdown Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version-file: package.json
-
-      - run: bun install --frozen-lockfile
-      - run: bun lint:md
+      - uses: DavidAnson/markdownlint-cli2-action@v19
