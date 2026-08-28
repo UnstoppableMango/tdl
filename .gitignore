@@ -5,8 +5,8 @@ out/
 *.test
 
 # Nix
-result
-result-*
+/result*
+.direnv/
 
 # User specific
 .idea/

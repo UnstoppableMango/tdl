@@ -9,34 +9,14 @@
 		"before 4am on the first day of the month"
 	],
 	"timezone": "America/Chicago",
-	"customManagers": [
-		{
-			"customType": "regex",
-			"depNameTemplate": "oven-sh/bun",
-			"datasourceTemplate": "github-releases",
-			"managerFilePatterns": [
-				"/package.json/",
-				"/.*\\/.*\\.ya?ml/"
-			],
-			"extractVersionTemplate": "[Bb]un[- ]v(?<version>.*)",
-			"matchStrings": [
-				"\"packageManager\": \"bun@(?<currentValue>.*)\"",
-				"bun-version: (?<currentValue>.*)"
-			]
-		}
-	],
+	"nix": {
+		"enabled": true
+	},
 	"packageRules": [
 		{
 			"groupName": "tdl",
 			"matchPackageNames": [
 				"/unstoppablemango/tdl/"
-			]
-		},
-		{
-			"groupName": "bun",
-			"matchPackageNames": [
-				"/oven-sh/bun/",
-				"/oven/bun/"
 			]
 		}
 	]
