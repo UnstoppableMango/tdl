@@ -29,7 +29,7 @@ type ClassRef struct {
 	P         Position
 	Qualifier string
 	N         string
-	Args      []*TypeRef
+	Args      []*TypeArg
 }
 
 // NewtypeDecl is a `type Name: Base` declaration. A newtype is distinct
@@ -222,4 +222,37 @@ type AssocTypeBind struct {
 	P      Position
 	N      string
 	Target *TypeRef
+}
+
+// UnitDecl is a `unit kg` or `unit N = kg*m/s^2` declaration. A unit
+// without an expression is a base unit; one with an expression is derived
+// and reduces to base dimensions before comparison.
+type UnitDecl struct {
+	DeclHead
+	Expr *UnitExpr // nil for a base unit
+}
+
+// UnitExpr is a product and quotient of unit terms.
+type UnitExpr struct {
+	P     Position
+	Terms []*UnitTerm
+}
+
+// UnitTerm is one factor of a [UnitExpr].
+type UnitTerm struct {
+	P     Position
+	Op    string    // "" for the first term, otherwise "*" or "/"
+	N     string    // unit name; "" when Paren is set
+	Exp   int       // exponent; 1 when written without one
+	Paren *UnitExpr // set for a parenthesized sub-expression
+}
+
+// TypeArg is one argument in a `<...>` list. It is a type or a unit, and
+// the two are told apart by kind rather than by syntax: a bare name could
+// be either, so the parser records what was written and the resolver
+// decides against the declaration being applied.
+type TypeArg struct {
+	P    Position
+	Type *TypeRef  // set unless Unit is
+	Unit *UnitExpr // set only when operators made the argument unambiguous
 }

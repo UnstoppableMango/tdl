@@ -1,6 +1,7 @@
 package ast
 
 import (
+	"strconv"
 	"strings"
 )
 
@@ -86,6 +87,12 @@ func printDecl(decl Decl) string {
 	case *InstanceDecl:
 		return printInstance(d)
 
+	case *UnitDecl:
+		if d.Expr != nil {
+			return "unit " + d.N + " = " + printUnitExpr(d.Expr) + "\n"
+		}
+		return "unit " + d.N + "\n"
+
 	case *TargetDecl:
 		return "target " + d.N + " for " + d.For + printEntries(d.Entries, "")
 
@@ -128,13 +135,7 @@ func printClassRefs(refs []*ClassRef) string {
 		if r.Qualifier != "" {
 			parts[i] = r.Qualifier + "." + parts[i]
 		}
-		if len(r.Args) > 0 {
-			args := make([]string, len(r.Args))
-			for j, a := range r.Args {
-				args[j] = printTypeRef(a)
-			}
-			parts[i] += "<" + strings.Join(args, ", ") + ">"
-		}
+		parts[i] += printTypeArgs(r.Args)
 	}
 	return strings.Join(parts, ", ")
 }
@@ -402,6 +403,39 @@ func printKind(k *Kind) string {
 	return s
 }
 
+func printTypeArgs(args []*TypeArg) string {
+	if len(args) == 0 {
+		return ""
+	}
+	parts := make([]string, len(args))
+	for i, a := range args {
+		if a.Unit != nil {
+			parts[i] = printUnitExpr(a.Unit)
+		} else {
+			parts[i] = printTypeRef(a.Type)
+		}
+	}
+	return "<" + strings.Join(parts, ", ") + ">"
+}
+
+// printUnitExpr renders a unit expression without spaces around its
+// operators, the form the spec uses: `kg*m/s^2`.
+func printUnitExpr(e *UnitExpr) string {
+	var b strings.Builder
+	for _, t := range e.Terms {
+		b.WriteString(t.Op)
+		if t.Paren != nil {
+			b.WriteString("(" + printUnitExpr(t.Paren) + ")")
+		} else {
+			b.WriteString(t.N)
+		}
+		if t.Exp != 1 {
+			b.WriteString("^" + strconv.Itoa(t.Exp))
+		}
+	}
+	return b.String()
+}
+
 func printTypeRef(t *TypeRef) string {
 	if t == nil {
 		return ""
@@ -420,13 +454,7 @@ func printTypeRef(t *TypeRef) string {
 		if t.Qualifier != "" {
 			s = t.Qualifier + "." + s
 		}
-		if len(t.Args) > 0 {
-			args := make([]string, len(t.Args))
-			for i, a := range t.Args {
-				args[i] = printTypeRef(a)
-			}
-			s += "<" + strings.Join(args, ", ") + ">"
-		}
+		s += printTypeArgs(t.Args)
 	}
 
 	if t.Optional {

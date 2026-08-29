@@ -4,7 +4,7 @@ Starting points for playing with the language.
 They are not part of the conformance corpus, so edit them freely.
 
 All four parse.
-Units do not exist yet; see [../docs/design/parser-plan.md](../docs/design/parser-plan.md).
+They are written for reading rather than in canonical form: `tdl fmt` groups them differently and drops the `//` comments, which is a known gap.
 
 | File | What it shows |
 | --- | --- |

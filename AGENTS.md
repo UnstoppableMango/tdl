@@ -25,7 +25,9 @@ After changing `go.mod` or adding dependencies, run `make tidy` so `nix/gomod2ni
 
 TDL is a language for describing domain models: entities, values, enums, newtypes, classes, and collections. No expressions, no control flow, no runtime. This repo owns both the specification and the reference implementation.
 
-The specification is ahead of the implementation. `docs/spec.md` and the corpus describe the current grammar; the parser still reads the M1 grammar and cannot parse them. `docs/design/` holds the plans that close the gap, and `docs/design/parser-plan.md` is the head of the queue.
+The parser reads the whole grammar. What is missing is everything after it: name resolution, the `ir` model, and backends. `docs/design/ir-plan.md` is the head of the queue.
+
+`union` is the one grammar form the parser does not implement.
 
 Pipeline, one package per stage:
 
@@ -61,13 +63,13 @@ A reserved word followed by `:` is a field name: `value: T` is a field, and `inc
 
 A class may not declare key fields, so `key` inside a class body is always the requirement. A class says an implementor must have identity, never which field carries it.
 
+A `<...>` argument is a type or a unit. A bare name could be either, so it is recorded as a type reference and the resolver picks by kind; only an operator (`*`, `/`, `^`) or parentheses makes it unambiguously a unit.
+
 Inside a target block a directive name may be a reserved word, since the directive namespace belongs to the backend.
 
 Directive and constraint arguments are parenthesized and comma separated. Both sets are open, so the parser knows no name's arity and an unparenthesized `min 0 max 100` could not be split.
 
 Regex literals are ambiguous with unit division, so the parser calls `lex.RescanRegexAt` when it wants one. Nothing else in the lexer takes context.
-
-`union` is reserved in the grammar and unimplemented. Reserving it keeps its later addition additive.
 
 `tdl fmt` drops ordinary `//` comments: the lexer skips them and they never reach the AST. Doc comments (`///`) survive. Fixing this needs comment attachment in the parser and has no phase yet.
 

@@ -8,10 +8,10 @@ This repository owns the canonical [language specification](docs/spec.md) and it
 
 ## Status
 
-Early, incomplete, and mid-rewrite.
+Early and incomplete.
 
-The lexer and parser read most of the language: packages, imports, `primitive`, `alias`, newtypes, `entity`, `value`, `mixin`, `enum` with payload variants, type parameters, kinds, every type reference form, `deprecated`, and target blocks.
-Constraint blocks, classes, and instances are in too. Only units are still to come.
+The lexer and parser read the whole grammar, and `tdl check`, `tdl fmt`, `tdl ast`, and `tdl tokens` work across it.
+`union` is reserved and unimplemented; nothing else in [grammar.ebnf](docs/grammar.ebnf) is missing.
 
 The design is settled and written down:
 
@@ -19,13 +19,13 @@ The design is settled and written down:
 | --- | --- |
 | [spec.md](docs/spec.md) | The language. Canonical. |
 | [grammar.ebnf](docs/grammar.ebnf) | The formal grammar. |
-| [design/parser-plan.md](docs/design/parser-plan.md) | Rewriting the lexer and parser to match. |
+| [design/parser-plan.md](docs/design/parser-plan.md) | Rewriting the lexer and parser to match. Done. |
 | [design/ir.md](docs/design/ir.md) | The resolved model backends consume. |
 | [design/ir-plan.md](docs/design/ir-plan.md) | Implementing it. |
 | [design/plugins.md](docs/design/plugins.md) | The backend plugin protocol. |
 | [design/workflow.md](docs/design/workflow.md) | What a model author does with all of it. |
 
-There is no semantic resolution and there are no code-generation backends.
+There is no semantic resolution and there are no code-generation backends. `docs/design/ir-plan.md` is next.
 
 ## Example
 
