@@ -7,12 +7,18 @@ This is not a task list and does not estimate anything.
 ## Scope
 
 This plan builds `ir` and the lowering that produces it.
-It does not build backends, the plugin protocol, or the full grammar.
+It does not build backends or the plugin protocol.
 
-It does include one bite of parser work.
-The prelude is written in TDL and parsed like any other input, so lowering cannot run until the parser handles the constructs the prelude uses.
-That subset is phase 0.
-Everything the prelude does not need, `class`, `mixin`, `instance`, `where`, `unit`, target blocks, belongs to the separate parser plan and arrives before the phases that consume it.
+The parser is finished.
+[parser-plan.md](parser-plan.md) delivered the whole grammar apart from `union`, so every phase below starts from a complete `ast.File` and nothing here is blocked on front-end work.
+`prelude/std.tdl` exists and parses; it declares the primitives, collection constructors, `Option`, `Nullable`, the SI base units, and the `Entity` and `Value` classes.
+
+Seven grammar problems surfaced while writing the parser and were fixed in the spec.
+Three of them change what lowering receives and are worth stating here:
+
+- The constraint set is open. The compiler checks the arity and argument kinds of the standard names and passes every other name through, so `ir` carries constraints as name plus arguments rather than a closed enum.
+- A `<...>` argument is a type or a unit, and a bare name could be either. The parser records `ast.TypeArg` with `Type` set and leaves the decision to kind resolution.
+- Directive and constraint arguments are parenthesized, so a directive's arity is unambiguous in the tree.
 
 ## Layout
 
@@ -44,16 +50,12 @@ Two layers, both from phase 1 onward.
 Golden files extend the existing corpus: `testdata/conformance/*/ir.golden` beside the `source.tdl` already there.
 Plain text, so a non-Go implementation can check itself against the same expectations, which is why the corpus is not Go code today.
 
+A case directory holding a `pending` file is skipped, with the file's text as the reason.
+The parser rewrite used the marker to keep the suite green while the corpus ran ahead of the implementation, and lowering should use it the same way: write the `ir.golden` a case expects, mark it pending, and delete the marker in the phase that earns it.
+
 Go unit tests cover the rules whose edges are awkward to express as a whole-file golden: shadowing, recursion, satisfaction with overlapping instances.
 
 `testdata/invalid/` grows lowering cases alongside its parse cases, with the expected diagnostic in `error.golden`.
-
-## Phase 0: parser support for the prelude
-
-The prelude declares primitives, aliases, and parameterized types.
-The parser needs `primitive`, `alias`, `TypeParams`, and `Kind` before anything downstream can start.
-
-Done when the prelude source parses cleanly and round-trips through `tdl fmt` unchanged, with conformance cases for each new construct.
 
 ## Phase 1: the core schema and the type table
 
@@ -62,11 +64,14 @@ Done when the prelude source parses cleanly and round-trips through `tdl fmt` un
 
 `internal/sema` gains the type table: interning, and lowering of `[T]`, `{T}`, `{K -> V}`, `T?`, and `T | null` to prelude constructors with the syntactic form recorded.
 
-Done when a single-package model of `type` and `enum` declarations lowers to `ir`, every reference is an `ID` resolving to the right table entry, and lowering the same type twice yields the same interned entry.
+Done when a single-package model of newtypes, entities, values, and enums lowers to `ir`, every reference is an `ID` resolving to the right table entry, and lowering the same type twice yields the same interned entry.
 
 ## Phase 2: name resolution
 
 Scopes, declaration ordering, shadowing, and the recursion the spec permits in entities and values.
+
+Every declaration form the parser produces resolves here: newtypes, aliases, primitives, entities, values, mixins, enums and their variant payloads, classes, instances, and units.
+Kind resolution decides what a bare `<...>` argument names, which is the point at which an `ast.TypeArg` becomes a type argument or a unit argument.
 
 Single package only.
 An `import` is an error in this phase, which keeps scoping from being designed around a package loader that does not exist.
@@ -83,9 +88,9 @@ Done when `tdl ir` prints every conformance case, the text output is the golden 
 
 ## Phase 4: the real prelude
 
-Phase 1 lowers sugar to constructors that phase 0's parser can read, but nothing has yet loaded a prelude as a package.
+Phase 1 lowers sugar to constructors that the parser already reads, but nothing has yet loaded a prelude as a package.
 
-This phase makes the embedded prelude a real compilation unit: parsed, lowered, and merged into the model's scope, with `List`, `Set`, `Map`, `Option`, and `Nullable` as ordinary declarations rather than names lowering knows about.
+This phase makes `prelude/std.tdl` a real compilation unit: embedded, parsed, lowered, and merged into the model's scope, with `List`, `Set`, `Map`, `Option`, `Nullable`, `Entity`, and `Value` as ordinary declarations rather than names lowering knows about.
 
 Done when the sugar lowering in phase 1 resolves through the loaded prelude with no builtin names left in `internal/sema`, and pointing `prelude` at a replacement directory changes what `[T]` means.
 
@@ -99,28 +104,33 @@ Done when a two-package fixture lowers, a reference across the boundary carries 
 
 ## Phase 6: classes, mixins, instances
 
-Requires the parser plan to have delivered `class`, `mixin`, `instance`, `Conforms`, and `where`.
+Instance resolution, `requires` constraint checking, functional dependencies, and the computed satisfaction index behind `Model.Satisfying`.
 
-Instance resolution, where-clause constraint checking, functional dependencies, and the computed satisfaction index behind `Model.Satisfying`.
+`include` expansion belongs here too: a mixin's fields are copied into the including declaration, and the spec's rule that including a mixin is independent of satisfying a class has to survive the copy.
 
-Done when declared instances survive into `ir` unchanged, `Satisfying` answers correctly for the corpus including instances inherited through mixins and conformances, and an unsatisfied `where` constraint is a diagnostic pointing at the use site.
+The two instance forms mean the same thing, so lowering normalizes `instance C for T` to `instance C<T>` even though the tree keeps what was written.
 
-## Phase 7: constraints and deprecation
+Done when declared instances survive into `ir`, `Satisfying` answers correctly for the corpus including instances inherited through mixins and conformances, and an unsatisfied `requires` constraint is a diagnostic pointing at the use site.
 
-Constraints as name plus literal arguments, with arity and literal kind checked against the standard set from the spec and everything else passed through.
+## Phase 7: constraints, defaults, and deprecation
+
+Constraints as name plus arguments, with arity and argument kinds checked against the standard set from the spec and everything else passed through.
+Constraint accumulation down a chain of newtypes, which the spec requires and no backend should have to walk.
+
+Field defaults, including the name form that denotes an enum variant, which is checked against the field's type here rather than by the parser.
+
 Doc comments, deprecation state, and declaration order carried onto every node.
 
 Much of this is mechanical and could land earlier; it sits here because it is not on the critical path for anything above it.
 
-Done when every constraint in the corpus reaches `ir` with its arguments and position, a standard constraint with wrong arity is a diagnostic, and an unknown constraint lowers without complaint.
+Done when every constraint in the corpus reaches `ir` with its arguments and position, a standard constraint with the wrong arity is a diagnostic, an unknown constraint lowers without complaint, and a default naming a variant the field's type does not have is an error.
 
 ## Phase 8: target resolution
-
-Requires the parser plan to have delivered target blocks.
 
 Path resolution against the model, the specificity ladder, class-path expansion across satisfying types, root-over-dependency merging, and equal-specificity conflicts as errors.
 
 Directives attach to the nodes they apply to, resolved, so no backend performs a lookup.
+A directive's name may be a reserved word, since the namespace belongs to the backend; nothing about resolution should assume otherwise.
 
 Done when a target block's directives appear on the right `ir` nodes, a path naming nothing is an error with a position, a class path applies to every satisfying type, and two entries at equal specificity are reported rather than silently ordered.
 
@@ -132,6 +142,8 @@ At that point `ir` is complete enough for the plugin protocol, which is the next
 
 ## Not in this plan
 
-- Units. Deferred in ir.md; a model using them will not lower.
+- Units. `ir.md` defers them, but the parser produces `ast.UnitDecl` and unit-kinded arguments, so lowering has to say something. It rejects them with a diagnostic naming the deferral rather than dropping them silently, and the conformance corpus keeps its `units` case marked pending against `ir.golden` until they land.
+- `union`, which the grammar reserves and the parser does not implement.
 - Monomorphization. Parameters stay parameters; a backend that wants concrete types does that itself.
 - ir diffing, which incremental generation would need.
+- Comment preservation. `tdl fmt` drops ordinary `//` comments today, and fixing it is parser work with no phase in either plan.
