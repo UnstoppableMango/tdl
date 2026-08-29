@@ -21,11 +21,11 @@ The design is settled and written down:
 | [grammar.ebnf](docs/grammar.ebnf) | The formal grammar. |
 | [design/parser-plan.md](docs/design/parser-plan.md) | Rewriting the lexer and parser to match. Done. |
 | [design/ir.md](docs/design/ir.md) | The resolved model backends consume. |
-| [design/ir-plan.md](docs/design/ir-plan.md) | Implementing it. |
+| [design/ir-plan.md](docs/design/ir-plan.md) | Implementing it. Phase 1 of 8 done. |
 | [design/plugins.md](docs/design/plugins.md) | The backend plugin protocol. |
 | [design/workflow.md](docs/design/workflow.md) | What a model author does with all of it. |
 
-There is no semantic resolution and there are no code-generation backends. `docs/design/ir-plan.md` is next.
+Semantic resolution has started: the `ir` schema, the declaration table, and the interned type table are in, so a single-package model lowers with its sugar resolved to prelude types. Name resolution, imports, classes, constraints, and targets are still to come, and there are no code-generation backends.
 
 ## Example
 

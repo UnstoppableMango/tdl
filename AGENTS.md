@@ -15,6 +15,7 @@ command make play      # watch scratch.tdl; FILE=examples/nested.tdl VIEWS=all t
 command make lint      # nix flake check (golangci-lint + treefmt)
 command make fmt       # nix fmt (treefmt: gofmt, nixfmt, actionlint)
 command make tidy      # go mod tidy + regenerate nix/gomod2nix.toml
+command make generate  # buf generate: proto/ -> ir/ir.pb.go
 ```
 
 Prefix `make` with `command` (see the shell autoload note in the global instructions).
@@ -25,7 +26,7 @@ After changing `go.mod` or adding dependencies, run `make tidy` so `nix/gomod2ni
 
 TDL is a language for describing domain models: entities, values, enums, newtypes, classes, and collections. No expressions, no control flow, no runtime. This repo owns both the specification and the reference implementation.
 
-The parser reads the whole grammar. What is missing is everything after it: name resolution, the `ir` model, and backends. `docs/design/ir-plan.md` is the head of the queue.
+The parser reads the whole grammar. Lowering to `ir` has started; `docs/design/ir-plan.md` phase 1 is done, and phase 2 is name resolution.
 
 `union` is the one grammar form the parser does not implement.
 
@@ -35,7 +36,8 @@ Pipeline, one package per stage:
 - `parser` — recursive descent over the token stream, producing `*ast.File`. Errors accumulate in an `ErrorList` rather than aborting: `syncTop` resynchronizes at the next declaration so one bad line does not swallow the rest of the file.
 - `ast` — parse tree mirroring source 1:1, names left unresolved. `ast.Fprint` produces the canonical formatting used by `tdl fmt`.
 - `internal/cli` — cobra commands (`ast`, `check`, `fmt`, `play`, `tokens`, `version`) wired in `root.go`. `play` is a watch-mode playground that re-renders a file on save; `examples/` holds files to experiment with and is outside the conformance corpus.
-- `internal/sema` — ast to ir. Does not exist yet; see `docs/design/ir-plan.md`.
+- `ir` — the resolved model backends consume. `ir.pb.go` is generated from `proto/tdl/ir/v1/ir.proto` by `make generate` and committed; `model.go` holds the hand-written lookups. `proto/` and `ir/` are the public compatibility surface.
+- `internal/sema` — ast to ir: the declaration table, the interned type table, and sugar lowering. Private and free to change. See `docs/design/ir-plan.md` for what each phase adds.
 - `prelude/std.tdl` — the standard prelude, written in TDL. Nothing loads it yet; it is the target the parser is built against.
 - `cmd/tdl` — main.
 
@@ -50,6 +52,8 @@ An `ir` package (resolved semantic model consumed by backends) is designed in `d
 A case directory holding a `pending` file describes a construct the parser cannot read yet and is skipped, with the file's text as the skip reason. The phase that implements the construct deletes the marker. The corpus is the written-down target, not a record of what already works.
 
 `tdl fmt` must be idempotent: formatting canonical output is a no-op.
+
+After changing `proto/`, run `make generate` and commit `ir/ir.pb.go` with it. Field numbers are a compatibility guarantee to plugins: add fields, never renumber or reuse them.
 
 ## Conventions
 
