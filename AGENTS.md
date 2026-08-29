@@ -22,6 +22,8 @@ Prefix `make` with `command` (see the shell autoload note in the global instruct
 
 After changing `go.mod` or adding dependencies, run `make tidy` so `nix/gomod2nix.toml` stays in sync, otherwise `nix build` fails.
 
+Neither `gomod2nix` nor `protoc-gen-go` is on `PATH`. Run generators through the devShell: `nix develop --command gomod2nix --dir . --outdir nix`, and `buf generate` either inside `nix develop` or with `PATH="$(go env GOPATH)/bin:$PATH"`.
+
 ## Architecture
 
 TDL is a language for describing domain models: entities, values, enums, newtypes, classes, and collections. No expressions, no control flow, no runtime. This repo owns both the specification and the reference implementation.
@@ -57,6 +59,8 @@ A case directory holding a `pending` file describes a construct the parser canno
 
 `tdl fmt` must be idempotent: formatting canonical output is a no-op.
 
+Every `.tdl` file in `testdata/conformance/` and `prelude/` is stored in canonical form: `tdl fmt <file>` must print it back byte for byte. `examples/*.tdl` deliberately are not, because they carry `//` comments.
+
 After changing `proto/`, run `make generate` and commit `ir/ir.pb.go` with it. Field numbers are a compatibility guarantee to plugins: add fields, never renumber or reuse them.
 
 ## Conventions
@@ -79,6 +83,6 @@ Directive and constraint arguments are parenthesized and comma separated. Both s
 
 Regex literals are ambiguous with unit division, so the parser calls `lex.RescanRegexAt` when it wants one. Nothing else in the lexer takes context.
 
-`tdl fmt` drops ordinary `//` comments: the lexer skips them and they never reach the AST. Doc comments (`///`) survive. Fixing this needs comment attachment in the parser and has no phase yet.
+`tdl fmt` drops ordinary `//` comments: the lexer skips them and they never reach the AST. Doc comments (`///`) survive. Fixing this needs comment attachment in the parser and has no phase yet. Never run `tdl fmt` over `examples/*.tdl`: it silently deletes their explanatory headers.
 
 `toolVersion` and `specVersion` are hardcoded constants in `internal/cli/version.go`.
