@@ -114,11 +114,18 @@ TargetDecl  = "target" identifier "for" DottedIdent "{" { TargetEntry } "}" .
 TargetEntry = Path "{" { TargetEntry } "}"
             | Path "=>" Directive
             | Directive .
-Directive   = identifier { DirectiveArg } .
-DirectiveArg = Literal | Path .
+Directive   = identifier [ "(" [ DirectiveArg { "," DirectiveArg } ] ")" ] .
+DirectiveArg = Literal .
 Path        = identifier { "." identifier } .
+(* Arguments are parenthesized.  Without a delimiter, `table snake_case`
+   followed by another entry cannot be told from `table` applied to three
+   arguments, since whitespace is insignificant. *)
 
 (* ---- literals ----------------------------------------------------------- *)
 
-Literal     = string_lit | int_lit | float_lit | bool_lit | ListLiteral .
+Literal     = string_lit | int_lit | float_lit | bool_lit | ListLiteral
+            | DottedIdent .
 ListLiteral = "[" [ Literal { "," Literal } ] "]" .
+(* A DottedIdent literal names an enum variant, as in `status: Status =
+   Draft`.  The parser records the name; the resolver checks it against the
+   field's type. *)

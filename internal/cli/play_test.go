@@ -76,7 +76,7 @@ func TestRenderStatsCountsShape(t *testing.T) {
 	var out bytes.Buffer
 	render(&out, "t.tdl", scratchTemplate, []string{"stats"})
 
-	for _, want := range []string{"declarations   5", "primitives     2", "aliases        3", "parameters     1", "doc lines      1"} {
+	for _, want := range []string{"declarations   7", "primitives     3", "entities       1", "enums          1", "fields         5"} {
 		if !strings.Contains(out.String(), want) {
 			t.Errorf("stats missing %q:\n%s", want, out.String())
 		}

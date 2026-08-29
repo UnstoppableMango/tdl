@@ -7,5 +7,4 @@ enum Payment {
 }
 
 enum CardBrand { Visa Mastercard Amex }
-
 enum Inline { A B C }

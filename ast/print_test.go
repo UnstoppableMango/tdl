@@ -26,16 +26,55 @@ import "common.tdl" as common
 primitive string
 
 primitive Map: type -> type -> type
-
 primitive Higher: (type -> type) -> type
-
 alias Applied<f: type -> type, T> = f<T>
-
 alias Handler = {string -> [Event]}
-
 alias Both = LineItem? | null
-
 alias Qualified = Map<string, common.Address>
+
+/// A distinct type over another.
+type Email: string
+
+entity Order {
+  key id: OrderId
+  customer: Customer
+  items: [LineItem] owned
+  status: Status = Draft
+  deprecated legacy: string
+}
+
+value Money {
+  amount: decimal
+  currency: Currency
+}
+
+mixin Timestamps {
+  include Auditable
+  createdAt: instant
+}
+
+enum Status { Draft Placed Shipped }
+
+enum Payment {
+  Card { last4: string brand: CardBrand }
+  Credit
+}
+
+deprecated("use Contact")
+entity LegacyContact {
+  key id: string
+}
+
+target go for example.aliases {
+  out("./gen/go")
+  package("github.com/acme/x")
+  Order {
+    name("PurchaseOrder")
+    customer => tag("json:buyer")
+  }
+  Order.items => slice
+  Money => foreign("github.com/shopspring/decimal", "Decimal")
+}
 `
 
 	got := ast.Fprint(mustParse(t, src))
@@ -51,6 +90,9 @@ func TestFprintIdempotent(t *testing.T) {
 primitive string primitive int
 alias   A=[  T ]
 alias B = { K->V }
+entity  E{key id:string
+  tags:{string}=[]}
+enum Big { AlphaVariant BetaVariant GammaVariant DeltaVariant EpsilonVariant ZetaVariant }
 `
 
 	once := ast.Fprint(mustParse(t, messy))

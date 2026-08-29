@@ -24,14 +24,25 @@ import (
 const scratchTemplate = `package scratch
 
 primitive string
-primitive Map: type -> type -> type
+primitive int
+primitive instant
 
-/// A handler table, keyed by event name.
-alias Handler = {string -> [Event]}
+type Email: string
 
-alias Pair<T> = Map<string, T>
+entity User {
+  key id: string
+  email: Email
+  name: string?
+  tags: {string}
+  role: Role = Member
+}
 
-alias Maybe = Event? | null
+enum Role { Member Admin }
+
+target go for scratch {
+  out("./gen/go")
+  User.email => tag("json:email")
+}
 `
 
 // playViews are the panes tdl play can render, in the order they appear.
@@ -252,15 +263,49 @@ func annotateErrors(src string, err error) string {
 // stats summarizes the shape of a parsed file: enough numbers to feel the
 // difference between two ways of modelling the same data.
 func stats(file *ast.File) string {
-	var primitives, aliases, params, docs int
+	var primitives, entities, values, enums, newtypes, aliases, targets int
+	var fields, optional, keys, variants int
+
+	countFields := func(fs []*ast.Field) {
+		for _, f := range fs {
+			fields++
+			if f.Key {
+				keys++
+			}
+			if f.Type != nil && f.Type.Optional {
+				optional++
+			}
+		}
+	}
+
 	for _, decl := range file.Decls {
-		docs += len(ast.Doc(decl))
 		switch d := decl.(type) {
 		case *ast.PrimitiveDecl:
 			primitives++
 		case *ast.AliasDecl:
 			aliases++
-			params += len(d.Params)
+		case *ast.NewtypeDecl:
+			newtypes++
+		case *ast.TargetDecl:
+			targets++
+		case *ast.EnumDecl:
+			enums++
+			variants += len(d.Variants)
+			for _, v := range d.Variants {
+				countFields(v.Fields)
+			}
+		case *ast.StructDecl:
+			switch d.Keyword {
+			case "entity":
+				entities++
+			case "value":
+				values++
+			}
+			for _, m := range d.Members {
+				if f, ok := m.(*ast.Field); ok {
+					countFields([]*ast.Field{f})
+				}
+			}
 		}
 	}
 
@@ -269,8 +314,15 @@ func stats(file *ast.File) string {
 	row("imports", len(file.Imports))
 	row("declarations", len(file.Decls))
 	row("primitives", primitives)
+	row("entities", entities)
+	row("values", values)
+	row("enums", enums)
+	row("newtypes", newtypes)
 	row("aliases", aliases)
-	row("parameters", params)
-	row("doc lines", docs)
+	row("targets", targets)
+	row("fields", fields)
+	row("keys", keys)
+	row("optional", optional)
+	row("variants", variants)
 	return b.String()
 }
