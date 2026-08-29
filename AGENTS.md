@@ -11,6 +11,7 @@ go build ./...
 
 command make build     # nix build .#
 command make test      # go test ./...
+command make play      # watch scratch.tdl; FILE=examples/nested.tdl VIEWS=all to override
 command make lint      # nix flake check (golangci-lint + treefmt)
 command make fmt       # nix fmt (treefmt: gofmt, nixfmt, actionlint)
 command make tidy      # go mod tidy + regenerate nix/gomod2nix.toml
@@ -29,7 +30,7 @@ Pipeline, one package per stage:
 - `lex` — hand-written lexer. `lex.Kind` covers idents, literals, keywords, and punctuation; `LookupIdent` turns an identifier into a keyword kind. Positions originate here and flow through the AST as `ast.Position` (a type alias).
 - `parser` — recursive descent over the token stream, producing `*ast.File`. Errors accumulate in an `ErrorList` rather than aborting: `syncTop` and `syncField` resynchronize at declaration and field boundaries so one bad line does not swallow the rest of the file.
 - `ast` — parse tree mirroring source 1:1, names left unresolved. `ast.Fprint` produces the canonical formatting used by `tdl fmt`.
-- `internal/cli` — cobra commands (`check`, `fmt`, `version`) wired in `root.go`.
+- `internal/cli` — cobra commands (`ast`, `check`, `fmt`, `play`, `tokens`, `version`) wired in `root.go`. `play` is a watch-mode playground that re-renders a file on save; `examples/` holds files to experiment with and is outside the conformance corpus.
 - `cmd/tdl` — main.
 
 An `ir` package (resolved semantic model consumed by backends) is referenced in doc comments but does not exist yet. There are no code-generation backends.

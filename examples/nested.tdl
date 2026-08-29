@@ -1,0 +1,38 @@
+// The same domain as flat.tdl, split into records. Parallel lists become
+// a list of a record, and the address group becomes one optional field
+// instead of five.
+package shop.nested.v1
+
+type Order {
+  id: string
+  customer: Customer
+  shipping: Address?
+  items: list<LineItem>
+  status: Status = "draft"
+  total_cents: int64 = 0
+}
+
+type Customer {
+  email: string
+  name: string?
+}
+
+type Address {
+  line1: string
+  line2: string?
+  city: string
+  postcode: string
+  country: string
+}
+
+type LineItem {
+  sku: string
+  quantity: int32 = 1
+}
+
+enum Status {
+  draft
+  placed
+  shipped
+  cancelled
+}

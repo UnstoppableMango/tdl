@@ -43,10 +43,28 @@ enum Role {
 ## Usage
 
 ```shell
-tdl check ./types.tdl   # parse and report syntax errors
+tdl check ./types.tdl    # parse and report syntax errors
 tdl fmt ./types.tdl      # print canonical formatting; -w to write in place
-tdl version               # tool and spec versions
+tdl ast ./types.tdl      # print the parse tree
+tdl tokens ./types.tdl   # print the token stream
+tdl version              # tool and spec versions
 ```
+
+### Playground
+
+`tdl play` watches a file and re-renders it on every save.
+
+```shell
+tdl play                              # scratch.tdl, created from a template if missing
+tdl play ./types.tdl --views all      # source, fmt, ast, tokens, stats
+tdl play ./types.tdl --views fmt      # one pane
+tdl play ./types.tdl --once           # render and exit
+```
+
+Views are `source`, `fmt`, `ast`, `tokens`, `stats`, or `all`; the default is `fmt,ast`.
+Parse errors render below the panes with a caret at the reported column.
+
+[`examples/`](examples/README.md) holds files to start from: the same domain modelled flat, nested, and annotated.
 
 ## Development
 

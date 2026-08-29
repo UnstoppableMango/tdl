@@ -11,8 +11,11 @@ func Execute() error {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
+	root.AddCommand(newAstCmd())
 	root.AddCommand(newCheckCmd())
 	root.AddCommand(newFmtCmd())
+	root.AddCommand(newPlayCmd())
+	root.AddCommand(newTokensCmd())
 	root.AddCommand(newVersionCmd())
 	return root.Execute()
 }

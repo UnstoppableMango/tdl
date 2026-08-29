@@ -8,6 +8,9 @@ out/
 /result*
 .direnv/
 
+# Playground scratch files
+scratch.tdl
+
 # User specific
 .idea/
 .vscode/
