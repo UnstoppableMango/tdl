@@ -78,6 +78,14 @@ func printDecl(decl Decl) string {
 			printConforms(d.Conforms) + printRequires(d.Requires)
 		return head + printVariants(d.Variants)
 
+	case *ClassDecl:
+		head := "class " + d.N + printParams(d.Params) + printFunDeps(d.FunDeps) +
+			printConforms(d.Conforms) + printRequires(d.Requires)
+		return head + printMembers(d.Members)
+
+	case *InstanceDecl:
+		return printInstance(d)
+
 	case *TargetDecl:
 		return "target " + d.N + " for " + d.For + printEntries(d.Entries, "")
 
@@ -131,6 +139,44 @@ func printClassRefs(refs []*ClassRef) string {
 	return strings.Join(parts, ", ")
 }
 
+func printFunDeps(deps []*FunDep) string {
+	if len(deps) == 0 {
+		return ""
+	}
+	parts := make([]string, len(deps))
+	for i, d := range deps {
+		parts[i] = strings.Join(d.From, " ") + " -> " + strings.Join(d.To, " ")
+	}
+	return " | " + strings.Join(parts, ", ")
+}
+
+// printInstance keeps the form that was written. `instance C for T` is
+// sugar for `instance C<T>`, and rewriting one into the other would lose
+// what the author chose to say.
+func printInstance(d *InstanceDecl) string {
+	s := "instance "
+	if len(d.Params) > 0 {
+		s += printParams(d.Params) + " "
+	}
+	s += printClassRefs([]*ClassRef{d.Class})
+	if d.For != nil {
+		s += " for " + printTypeRef(d.For)
+	}
+	s += printRequires(d.Requires)
+
+	if len(d.Binds) == 0 {
+		return s + "\n"
+	}
+
+	var b strings.Builder
+	b.WriteString(s + " {\n")
+	for _, bind := range d.Binds {
+		b.WriteString("  type " + bind.N + " = " + printTypeRef(bind.Target) + "\n")
+	}
+	b.WriteString("}\n")
+	return b.String()
+}
+
 func printMembers(members []Member) string {
 	if len(members) == 0 {
 		return " { }\n"
@@ -142,6 +188,15 @@ func printMembers(members []Member) string {
 		switch n := m.(type) {
 		case *Include:
 			b.WriteString("  include " + printClassRefs([]*ClassRef{n.Type}) + "\n")
+		case *KeyRequirement:
+			b.WriteString("  key\n")
+		case *AssocTypeReq:
+			writeDoc(&b, "  ", n.Doc)
+			b.WriteString("  type " + n.N)
+			if n.Kind != nil {
+				b.WriteString(": " + printKind(n.Kind))
+			}
+			b.WriteString("\n")
 		case *Field:
 			writeDoc(&b, "  ", n.Doc)
 			b.WriteString("  " + printField(n) + "\n")

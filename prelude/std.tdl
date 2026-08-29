@@ -35,3 +35,11 @@ enum Nullable<T> {
   Present { value: T }
   Null
 }
+
+/// Anything with identity that survives changes to its contents.
+class Entity {
+  key
+}
+
+/// Anything defined entirely by its contents.
+class Value { }

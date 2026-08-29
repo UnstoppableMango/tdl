@@ -536,3 +536,128 @@ func TestUnterminatedRegex(t *testing.T) {
 		t.Errorf("error = %s", msg)
 	}
 }
+
+func TestClassDecl(t *testing.T) {
+	file := parse(t, `class Auditable: Timestamped requires Ord<T> {
+  key
+  type Cursor: type
+  createdAt: instant
+}`)
+
+	d := file.Decls[0].(*ast.ClassDecl)
+	if len(d.Conforms) != 1 || len(d.Requires) != 1 {
+		t.Errorf("conforms %d, requires %d", len(d.Conforms), len(d.Requires))
+	}
+	if len(d.Members) != 3 {
+		t.Fatalf("got %d members, want 3", len(d.Members))
+	}
+	if _, ok := d.Members[0].(*ast.KeyRequirement); !ok {
+		t.Errorf("first member is %T, want a key requirement", d.Members[0])
+	}
+	req, ok := d.Members[1].(*ast.AssocTypeReq)
+	if !ok {
+		t.Fatalf("second member is %T, want an associated type", d.Members[1])
+	}
+	if req.N != "Cursor" || req.Kind == nil {
+		t.Errorf("assoc type = %+v", req)
+	}
+	if _, ok := d.Members[2].(*ast.Field); !ok {
+		t.Errorf("third member is %T, want a field", d.Members[2])
+	}
+}
+
+// A class may not declare key fields, so a bare `key` before a field is the
+// requirement and not a modifier on that field.
+func TestClassKeyIsARequirement(t *testing.T) {
+	file := parse(t, `class Tenanted {
+  key
+  tenant: string
+}`)
+
+	members := file.Decls[0].(*ast.ClassDecl).Members
+	if len(members) != 2 {
+		t.Fatalf("got %d members, want 2", len(members))
+	}
+	if _, ok := members[0].(*ast.KeyRequirement); !ok {
+		t.Errorf("first member is %T, want a key requirement", members[0])
+	}
+	if f := members[1].(*ast.Field); f.N != "tenant" || f.Key {
+		t.Errorf("second member = %+v", f)
+	}
+}
+
+// A field named `key` or `type` still works inside a class.
+func TestClassKeywordFields(t *testing.T) {
+	file := parse(t, `class C {
+  key: string
+  type: string
+}`)
+
+	members := file.Decls[0].(*ast.ClassDecl).Members
+	for i, want := range []string{"key", "type"} {
+		f, ok := members[i].(*ast.Field)
+		if !ok {
+			t.Fatalf("member %d is %T, want a field", i, members[i])
+		}
+		if f.N != want {
+			t.Errorf("member %d = %q, want %q", i, f.N, want)
+		}
+	}
+}
+
+func TestFunDeps(t *testing.T) {
+	file := parse(t, `class Projection<from, to, extra> | from -> to, from to -> extra { }`)
+
+	deps := file.Decls[0].(*ast.ClassDecl).FunDeps
+	if len(deps) != 2 {
+		t.Fatalf("got %d fundeps, want 2", len(deps))
+	}
+	if len(deps[0].From) != 1 || deps[0].To[0] != "to" {
+		t.Errorf("first fundep = %+v", deps[0])
+	}
+	if len(deps[1].From) != 2 || deps[1].To[0] != "extra" {
+		t.Errorf("second fundep = %+v", deps[1])
+	}
+}
+
+func TestInstanceForms(t *testing.T) {
+	file := parse(t, `
+instance Auditable<shipping.Address>
+instance Auditable for shipping.Address
+instance Paged for OrderList {
+  type Cursor = OrderCursor
+}
+instance <T> Auditable<Page<T>> requires Auditable<T>
+`)
+
+	if len(file.Decls) != 4 {
+		t.Fatalf("got %d decls, want 4", len(file.Decls))
+	}
+
+	// `instance C<T>` and `instance C for T` mean the same thing, and the
+	// tree records which was written.
+	args := file.Decls[0].(*ast.InstanceDecl)
+	if args.For != nil || len(args.Class.Args) != 1 {
+		t.Errorf("argument form = %+v", args)
+	}
+	sugar := file.Decls[1].(*ast.InstanceDecl)
+	if sugar.For == nil || sugar.For.Qualifier != "shipping" {
+		t.Errorf("for form = %+v", sugar)
+	}
+
+	binds := file.Decls[2].(*ast.InstanceDecl).Binds
+	if len(binds) != 1 || binds[0].N != "Cursor" || binds[0].Target.N != "OrderCursor" {
+		t.Errorf("binds = %+v", binds)
+	}
+
+	conditional := file.Decls[3].(*ast.InstanceDecl)
+	if len(conditional.Params) != 1 || len(conditional.Requires) != 1 {
+		t.Errorf("conditional instance = %+v", conditional)
+	}
+}
+
+func TestInstanceNeedsSubject(t *testing.T) {
+	if msg := parseErr(t, "instance Auditable"); !strings.Contains(msg, "expected type arguments or 'for'") {
+		t.Errorf("error = %s", msg)
+	}
+}

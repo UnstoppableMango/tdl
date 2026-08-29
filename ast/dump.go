@@ -59,14 +59,7 @@ func Dump(file *File) string {
 				for _, r := range n.Conforms {
 					kids = append(kids, child{"Conforms " + r.N, r.P})
 				}
-				for _, m := range n.Members {
-					switch mem := m.(type) {
-					case *Include:
-						kids = append(kids, child{"Include " + mem.Type.N, mem.P})
-					case *Field:
-						kids = append(kids, child{"Field " + fieldSummary(mem), mem.P})
-					}
-				}
+				kids = append(kids, memberChildren(n.Members)...)
 				writeChildren(&b, prefix, kids)
 			}})
 
@@ -79,6 +72,32 @@ func Dump(file *File) string {
 						desc += fmt.Sprintf(" (%d fields)", len(v.Fields))
 					}
 					kids = append(kids, child{desc, v.P})
+				}
+				writeChildren(&b, prefix, kids)
+			}})
+
+		case *ClassDecl:
+			entries = append(entries, entry{"Class " + n.N, n.P, func(prefix string) {
+				kids := params(n.Params)
+				for _, d := range n.FunDeps {
+					kids = append(kids, child{"FunDep " + strings.Join(d.From, " ") + " -> " + strings.Join(d.To, " "), d.P})
+				}
+				for _, r := range n.Conforms {
+					kids = append(kids, child{"Requires " + r.N, r.P})
+				}
+				kids = append(kids, memberChildren(n.Members)...)
+				writeChildren(&b, prefix, kids)
+			}})
+
+		case *InstanceDecl:
+			desc := "Instance " + n.Class.N
+			if n.For != nil {
+				desc += " for " + printTypeRef(n.For)
+			}
+			entries = append(entries, entry{desc, n.P, func(prefix string) {
+				kids := params(n.Params)
+				for _, bind := range n.Binds {
+					kids = append(kids, child{"Bind " + bind.N + " = " + printTypeRef(bind.Target), bind.P})
 				}
 				writeChildren(&b, prefix, kids)
 			}})
@@ -117,6 +136,27 @@ func fieldSummary(f *Field) string {
 type child struct {
 	desc string
 	pos  Position
+}
+
+func memberChildren(members []Member) []child {
+	var kids []child
+	for _, m := range members {
+		switch mem := m.(type) {
+		case *Include:
+			kids = append(kids, child{"Include " + mem.Type.N, mem.P})
+		case *KeyRequirement:
+			kids = append(kids, child{"KeyRequirement", mem.P})
+		case *AssocTypeReq:
+			desc := "AssocType " + mem.N
+			if mem.Kind != nil {
+				desc += ": " + printKind(mem.Kind)
+			}
+			kids = append(kids, child{desc, mem.P})
+		case *Field:
+			kids = append(kids, child{"Field " + fieldSummary(mem), mem.P})
+		}
+	}
+	return kids
 }
 
 func constraints(cs []*Constraint) []child {

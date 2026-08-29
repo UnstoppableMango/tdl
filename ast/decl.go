@@ -164,3 +164,62 @@ type Constraint struct {
 }
 
 func (h *DeclHead) deprecation() *Deprecation { return h.Dep }
+
+// ClassDecl is a contract. It declares nothing into the types that satisfy
+// it; conformance is nominal and always declared.
+type ClassDecl struct {
+	DeclHead
+	Params   []*TypeParam
+	FunDeps  []*FunDep
+	Conforms []*ClassRef // classes this one requires
+	Requires []*ClassRef
+	Members  []Member
+}
+
+// FunDep states that some parameters determine others, which makes a
+// multi-parameter class a function rather than a table.
+type FunDep struct {
+	P    Position
+	From []string
+	To   []string
+}
+
+// KeyRequirement is a bare `key` in a class body: an implementor must have
+// some key, without the class saying which.
+type KeyRequirement struct {
+	P Position
+}
+
+func (k *KeyRequirement) MemberPos() Position { return k.P }
+
+// AssocTypeReq is a `type Cursor` requirement: an implementor supplies a
+// type, and an instance binds it.
+type AssocTypeReq struct {
+	Doc  []string
+	P    Position
+	N    string
+	Kind *Kind
+}
+
+func (a *AssocTypeReq) MemberPos() Position { return a.P }
+
+// InstanceDecl declares that a type satisfies a class.
+//
+// `instance C for T` is sugar for `instance C<T>`, available when the class
+// takes one parameter. The parser records which was written.
+type InstanceDecl struct {
+	DeclHead // N is the class name
+	Params   []*TypeParam
+	Class    *ClassRef
+	For      *TypeRef // set when written with `for`, nil when written with type arguments
+	Requires []*ClassRef
+	Binds    []*AssocTypeBind
+}
+
+// AssocTypeBind supplies a type for one of a class's associated type
+// requirements.
+type AssocTypeBind struct {
+	P      Position
+	N      string
+	Target *TypeRef
+}

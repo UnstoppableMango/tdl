@@ -59,6 +59,22 @@ mixin Timestamps {
   createdAt: instant
 }
 
+class Auditable: Timestamped requires Ord<T> {
+  key
+  type Cursor: type
+  createdAt: instant
+}
+
+class Container<f: type -> type> { }
+class Projection<from, to> | from -> to { }
+instance Auditable<shipping.Address>
+instance Auditable for shipping.Address
+instance <T> Auditable<Page<T>> requires Auditable<T>
+
+instance Paged for OrderList {
+  type Cursor = OrderCursor
+}
+
 enum Status { Draft Placed Shipped }
 
 enum Payment {

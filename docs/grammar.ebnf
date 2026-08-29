@@ -71,6 +71,9 @@ ClassDecl   = "class" identifier [ TypeParams ] [ FunDeps ] [ Conforms ]
               [ RequiresClause ] "{" { ClassMember } "}" .
 ClassMember = Field | KeyRequirement | AssocTypeReq .
 KeyRequirement = "key" .
+(* A class may not declare key fields, so a Field in a class body carries no
+   "key" modifier.  Whitespace is insignificant, so a bare KeyRequirement
+   followed by a field would otherwise read as one key field. *)
 AssocTypeReq   = "type" identifier [ ":" Kind ] .
 
 FunDeps = "|" FunDep { "," FunDep } .

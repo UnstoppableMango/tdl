@@ -7,6 +7,12 @@
 // the entry that follows it.
 package shop.nested
 
+/// Anything carrying creation and update timestamps.
+class Auditable {
+  createdAt: instant
+  updatedAt: instant
+}
+
 target go for shop.nested {
   out("./gen/go")
   package("github.com/acme/shop")
