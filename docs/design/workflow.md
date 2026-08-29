@@ -46,9 +46,6 @@ name = "billing"
 sources = ["."]
 prelude = "std"
 
-[gen]
-default = ["go", "sql"]
-
 [deps]
 acme = { path = "../vendor/acme" }
 
@@ -57,7 +54,6 @@ sql = { command = "tdl-gen-sql" }
 ```
 
 `sources` lists package roots and globs.
-`default` under `[gen]` names the targets `tdl gen` runs with no `--target`.
 `prelude` selects the prelude; omitting it uses the built-in one.
 `[deps]` maps an import prefix to a location.
 `[plugins]` declares external backends.
@@ -82,13 +78,19 @@ Cross-repo sharing today is a submodule, a vendor directory, or Nix.
 ## Generating
 
 ```shell
-tdl gen                       # every target in the default set
+tdl gen                       # every target block in the project
 tdl gen --target go           # one target
 tdl gen --target go --watch   # regenerate on save
-tdl gen --check               # exit non-zero if output would change
+tdl gen --verify              # exit non-zero if output would change
 tdl gen --clean               # remove previously generated files first
 tdl gen --target go -o ./out  # override the target block's output path
 ```
+
+Every target block in the project runs by default.
+There is no list of enabled targets anywhere: a target block exists, so it generates.
+`--target` narrows a run to one backend for the inner loop.
+
+The drift check is `--verify`, not `--check`, so that `check` means "validate the model" everywhere it appears.
 
 Output paths live in the target block:
 
@@ -115,8 +117,11 @@ A consumer who needs a different layout needs a different backend.
 ### Stale output
 
 `tdl gen` only writes.
-Deleting a type leaves its generated file on disk until `tdl gen --clean` removes the files a previous run wrote.
-Cleaning is opt-in because output directories are not always exclusively owned by tdl.
+Deleting a type leaves its generated file on disk until `tdl gen --clean` removes it.
+
+`--clean` refuses to run unless the output directory is tdl-owned.
+Ownership is a marker file: the first `tdl gen` into a directory writes `.tdl-output` alongside its output, and `--clean` deletes only inside directories carrying that marker.
+A directory with files but no marker is someone else's, and cleaning it is an error rather than a judgment call.
 
 ## Backends
 
@@ -155,7 +160,7 @@ Both workflows are supported and neither is the default.
 Committed:
 
 ```yaml
-- run: tdl gen --check
+- run: tdl gen --verify
 ```
 
 Generated code is reviewed in diffs, and consumers of the repo do not need `tdl` installed.
@@ -170,9 +175,15 @@ gen/
 The output directory is gitignored and generation is a build step.
 Drift is impossible, no generated code appears in review, and every consumer needs `tdl` and any plugins available.
 
-## Open questions
+## Targets from dependencies
 
-- Whether `tdl gen --check` and `tdl check` sharing a name is confusing enough to rename one.
-- What `tdl gen --clean` uses to know what it wrote: a lock file in the output directory, a header comment, or re-deriving the file set from the model.
-- Whether `[gen] default` belongs in the manifest at all, given target blocks already declare which targets exist.
-- How a target block in a dependency interacts with one in the consuming project.
+A dependency may ship its own target blocks, so a package of shared money types can say how it wants to appear in Go without every consumer restating it.
+Those entries merge with the root project's.
+
+Origin outranks specificity.
+Any entry in the root project beats any entry from a dependency, whatever the spec's field-over-type-over-class ladder would otherwise say.
+A vague root rule wins against a precise dependency rule.
+The ladder still decides among entries of the same origin.
+
+This trades one property away deliberately: a dependency author cannot rely on a narrow rule surviving.
+In exchange, a consumer never has to reason about a dependency reaching past them, and "my file wins" needs no qualification.
