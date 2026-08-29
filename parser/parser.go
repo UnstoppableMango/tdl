@@ -3,9 +3,8 @@
 // it finds in one pass rather than stopping at the first, so tooling like
 // `tdl check` can report a complete list of problems.
 //
-// The parser covers phases 1 and 2 of docs/design/parser-plan.md.
-// `class` and `instance` declarations, constraint blocks, and unit
-// expressions are still to come.
+// The parser covers phases 1 through 4 of docs/design/parser-plan.md.
+// Unit expressions are still to come.
 package parser
 
 import (
@@ -126,6 +125,10 @@ func (p *parser) parseFile() *ast.File {
 			file.Decls = append(file.Decls, p.parseStructDecl(head))
 		case lex.ENUM:
 			file.Decls = append(file.Decls, p.parseEnumDecl(head))
+		case lex.CLASS:
+			file.Decls = append(file.Decls, p.parseClassDecl(head))
+		case lex.INSTANCE:
+			file.Decls = append(file.Decls, p.parseInstanceDecl(head))
 		case lex.TARGET:
 			file.Decls = append(file.Decls, p.parseTargetDecl(head))
 		case lex.PACKAGE:

@@ -19,7 +19,6 @@ class Paged {
 }
 
 class Container<f: type -> type> { }
-
 class Projection<from, to> | from -> to { }
 
 value Page<f, T> requires Container<f> {

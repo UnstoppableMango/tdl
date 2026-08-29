@@ -59,6 +59,8 @@ Declaration keywords are reserved. Modifiers and constraint names (`key`, `owned
 
 A reserved word followed by `:` is a field name: `value: T` is a field, and `include Foo` is still an include while `include: Foo` is a field. A contextual modifier followed by `:` is likewise a name, not a modifier.
 
+A class may not declare key fields, so `key` inside a class body is always the requirement. A class says an implementor must have identity, never which field carries it.
+
 Inside a target block a directive name may be a reserved word, since the directive namespace belongs to the backend.
 
 Directive and constraint arguments are parenthesized and comma separated. Both sets are open, so the parser knows no name's arity and an unparenthesized `min 0 max 100` could not be split.

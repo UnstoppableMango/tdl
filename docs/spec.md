@@ -247,6 +247,9 @@ class Auditable {
 
 A class may require a field, a key, or an associated type.
 
+A class may not declare key fields.
+`key` inside a class body is the requirement itself: an implementor must have identity, and which field carries it is the implementor's business.
+
 ```tdl
 class Tenanted {
   key                  // an implementor must have some key

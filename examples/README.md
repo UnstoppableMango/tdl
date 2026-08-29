@@ -4,14 +4,14 @@ Starting points for playing with the language.
 They are not part of the conformance corpus, so edit them freely.
 
 All four parse.
-Classes and units do not exist yet; see [../docs/design/parser-plan.md](../docs/design/parser-plan.md).
+Units do not exist yet; see [../docs/design/parser-plan.md](../docs/design/parser-plan.md).
 
 | File | What it shows |
 | --- | --- |
 | `flat.tdl` | One entity, parallel lists, optionality doing the modelling work |
 | `nested.tdl` | The same domain split into entities, values, and enums |
 | `collections.tdl` | Nested collections, every optionality form, qualified references |
-| `targets.tdl` | `nested.tdl` plus the backend mapping that stays out of the model |
+| `targets.tdl` | `nested.tdl` plus a class and the backend mapping that stays out of the model |
 
 ## Twisting them
 

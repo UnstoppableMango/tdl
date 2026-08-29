@@ -11,7 +11,7 @@ This repository owns the canonical [language specification](docs/spec.md) and it
 Early, incomplete, and mid-rewrite.
 
 The lexer and parser read most of the language: packages, imports, `primitive`, `alias`, newtypes, `entity`, `value`, `mixin`, `enum` with payload variants, type parameters, kinds, every type reference form, `deprecated`, and target blocks.
-Constraint blocks are in too. `class`, `instance`, and units are still to come.
+Constraint blocks, classes, and instances are in too. Only units are still to come.
 
 The design is settled and written down:
 
