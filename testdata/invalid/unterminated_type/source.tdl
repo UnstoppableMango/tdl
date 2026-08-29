@@ -1,2 +1,2 @@
-type Broken {
+entity Broken {
   id: string

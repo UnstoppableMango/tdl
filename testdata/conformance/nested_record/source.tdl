@@ -1,7 +1,0 @@
-type NestedType {
-  field: string
-}
-
-type TestType {
-  nested: NestedType
-}

@@ -1,0 +1,36 @@
+package billing
+
+entity User {
+  key id: string
+  email: string
+  name: string
+}
+
+entity Order {
+  key id: string
+  items: [string] owned
+  tags: {string}
+}
+
+class Auditable {
+  createdAt: instant
+}
+
+target go for billing {
+  out "./gen/go"
+  package "github.com/acme/billing"
+
+  User {
+    name "Account"
+    email => tag "json:\"email_address\""
+  }
+
+  Order.items => slice
+  Order.tags => set
+
+  Auditable => embed "audit.Fields"
+}
+
+target sql for billing {
+  Auditable => trigger "set_updated_at"
+}

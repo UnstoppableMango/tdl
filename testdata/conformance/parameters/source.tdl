@@ -1,0 +1,14 @@
+package example.parameters
+
+value Page<T> {
+  items: [T]
+  next: Cursor?
+}
+
+value Collection<f: type -> type, T: type> {
+  items: f<T>
+}
+
+value Cursor {
+  token: string
+}

@@ -1,0 +1,32 @@
+package example.classes
+
+class Timestamped {
+  createdAt: instant
+}
+
+class Auditable: Timestamped {
+  updatedAt: instant
+}
+
+class Tenanted {
+  key
+  tenant: string
+}
+
+class Paged {
+  type Cursor
+  pageSize: int
+}
+
+class Container<f: type -> type> { }
+
+class Projection<from, to> | from -> to { }
+
+value Page<f, T> requires Container<f> {
+  items: f<T>
+}
+
+value Envelope<T> requires Auditable<T> {
+  body: T
+  receivedAt: instant
+}

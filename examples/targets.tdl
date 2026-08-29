@@ -1,0 +1,33 @@
+// nested.tdl with backend mapping attached. The model is unchanged;
+// everything a generator needs lives here instead.
+//
+// A path may name a class, which applies a directive to every type
+// satisfying it. That is the practical payoff of classes: the rule is
+// written once rather than repeated per type.
+package shop.nested
+
+class Auditable {
+  createdAt: instant
+}
+
+target go for shop.nested {
+  out "./gen/go"
+  package "github.com/acme/shop"
+
+  Order {
+    name "PurchaseOrder"
+    customer => tag "json:\"buyer\""
+  }
+
+  Order.items => slice
+  Money => foreign "github.com/shopspring/decimal" "Decimal"
+
+  Auditable => embed "audit.Fields"
+}
+
+target sql for shop.nested {
+  out "./gen/sql"
+
+  Order => table "orders"
+  Auditable => trigger "set_updated_at"
+}

@@ -2,7 +2,12 @@
    Notation: '...' terminals, [ ] optional, { } zero-or-more, | alternation.
 
    Doc comments ('///' to end of line) are lexical.  They attach to the
-   declaration, field, or variant that follows and are omitted below. *)
+   declaration, field, or variant that follows and are omitted below.
+
+   Whitespace is insignificant and there are no separator rules: an item
+   ends where the next begins.  Commas appear only where written below,
+   inside '<...>', conformance lists, and list literals, and are required
+   there.  They are not permitted inside '{ }' blocks. *)
 
 File     = { [ Deprecated ] Decl } .
 Decl     = PackageDecl | ImportDecl | PrimitiveDecl | UnitDecl
@@ -28,20 +33,20 @@ TypeParam  = identifier [ ":" Kind ] .
 Kind       = KindAtom { "->" KindAtom } .
 KindAtom   = "type" | "unit" | "(" Kind ")" .
 
-WhereClause = "where" ClassRef { "," ClassRef } .
-ClassRef    = DottedIdent [ TypeArgs ] .
+RequiresClause = "requires" ClassRef { "," ClassRef } .
+ClassRef       = DottedIdent [ TypeArgs ] .
 
 (* ---- declarations ------------------------------------------------------- *)
 
 AliasDecl  = "alias" identifier [ TypeParams ] "=" TypeRef .
 
 TypeDecl   = "type" identifier [ TypeParams ] ":" TypeRef
-             [ WhereClause ] [ ConstraintBlock ] .
+             [ RequiresClause ] [ ConstraintBlock ] .
 
-ValueDecl  = "value"  identifier [ TypeParams ] [ Conforms ] [ WhereClause ] Body .
-EntityDecl = "entity" identifier [ TypeParams ] [ Conforms ] [ WhereClause ] Body .
-MixinDecl  = "mixin"  identifier [ TypeParams ] [ Conforms ] [ WhereClause ] Body .
-EnumDecl   = "enum"   identifier [ TypeParams ] [ Conforms ] [ WhereClause ]
+ValueDecl  = "value"  identifier [ TypeParams ] [ Conforms ] [ RequiresClause ] Body .
+EntityDecl = "entity" identifier [ TypeParams ] [ Conforms ] [ RequiresClause ] Body .
+MixinDecl  = "mixin"  identifier [ TypeParams ] [ Conforms ] [ RequiresClause ] Body .
+EnumDecl   = "enum"   identifier [ TypeParams ] [ Conforms ] [ RequiresClause ]
              "{" { Variant } "}" .
 
 Conforms = ":" ClassRef { "," ClassRef } .
@@ -50,7 +55,7 @@ Body    = "{" { Member } "}" .
 Member  = Include | Field .
 Include = "include" NamedType .
 
-Variant = [ Deprecated ] identifier [ "{" [ Field { "," Field } ] "}" ] .
+Variant = [ Deprecated ] identifier [ "{" { Field } "}" ] .
 
 Field    = { FieldMod } identifier ":" TypeRef { FieldRel }
            [ ConstraintBlock ] [ "=" Literal ] .
@@ -63,7 +68,7 @@ Deprecated = "deprecated" [ "(" string_lit ")" ] .
 (* ---- classes and instances ---------------------------------------------- *)
 
 ClassDecl   = "class" identifier [ TypeParams ] [ FunDeps ] [ Conforms ]
-              [ WhereClause ] "{" { ClassMember } "}" .
+              [ RequiresClause ] "{" { ClassMember } "}" .
 ClassMember = Field | KeyRequirement | AssocTypeReq .
 KeyRequirement = "key" .
 AssocTypeReq   = "type" identifier [ ":" Kind ] .
@@ -73,7 +78,7 @@ FunDep  = identifier { identifier } "->" identifier { identifier } .
 
 InstanceDecl  = "instance" [ TypeParams ] DottedIdent
                 ( TypeArgs | "for" NamedType )
-                [ WhereClause ] [ "{" { AssocTypeBind } "}" ] .
+                [ RequiresClause ] [ "{" { AssocTypeBind } "}" ] .
 AssocTypeBind = "type" identifier "=" TypeRef .
 (* "instance C for T" is sugar for "instance C<T>". *)
 
@@ -94,7 +99,7 @@ TypeArg  = UnitExpr | TypeRef .
 
 (* ---- constraints -------------------------------------------------------- *)
 
-ConstraintBlock = "{" [ Constraint { [ "," ] Constraint } ] "}" .
+ConstraintBlock = "where" "{" { Constraint } "}" .
 Constraint = "min" Literal
            | "max" Literal
            | "length" Range

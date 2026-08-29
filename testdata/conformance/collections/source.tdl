@@ -1,0 +1,18 @@
+package example.collections
+
+value Catalog {
+  bySku: {string -> LineItem}
+  tagIndex: {string -> [string]}
+  matrix: [[int]]
+  regions: [{string -> string}]
+  skus: {string}
+  explicit: List<LineItem>
+  maybe: LineItem?
+  nullable: LineItem | null
+  both: LineItem? | null
+}
+
+value LineItem {
+  sku: string
+  quantity: int
+}

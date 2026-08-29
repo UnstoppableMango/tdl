@@ -1,0 +1,17 @@
+package example.deprecation
+
+deprecated("use billingEmail")
+entity LegacyContact {
+  key id: string
+}
+
+entity User {
+  key id: string
+  deprecated email: string
+  billingEmail: string
+}
+
+enum Status {
+  Active
+  deprecated("no longer issued") Provisional
+}
