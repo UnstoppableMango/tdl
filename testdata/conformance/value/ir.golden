@@ -1,0 +1,12 @@
+Model shop.money
+├── Decls
+│   ├── [0] value Money  source.tdl:3:1
+│   │   ├── field amount: types[0] decimal  source.tdl:4:3
+│   │   └── field currency: types[1] Currency  source.tdl:5:3
+│   └── [1] enum Currency  source.tdl:8:1
+│       ├── variant USD  source.tdl:8:17
+│       ├── variant EUR  source.tdl:8:21
+│       └── variant GBP  source.tdl:8:25
+└── Types
+    ├── [0] decimal  named  -> unresolved  source.tdl:4:11
+    └── [1] Currency  named  -> decls[1]  source.tdl:5:13

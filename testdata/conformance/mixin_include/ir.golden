@@ -1,0 +1,14 @@
+Model example.mixins
+├── Decls
+│   ├── [0] mixin Timestamps  source.tdl:3:1
+│   │   ├── field createdAt: types[0] instant  source.tdl:4:3
+│   │   └── field updatedAt: types[0] instant  source.tdl:5:3
+│   ├── [1] mixin Named  source.tdl:8:1
+│   │   └── field name: types[1] string  source.tdl:9:3
+│   ├── [2] entity User  source.tdl:12:1
+│   │   ├── field key id: types[1] string  source.tdl:13:7
+│   │   └── field email: types[1] string  source.tdl:16:3
+│   └── [3] value Snapshot  source.tdl:19:1
+└── Types
+    ├── [0] instant  named  -> unresolved  source.tdl:4:14
+    └── [1] string  named  -> unresolved  source.tdl:9:9

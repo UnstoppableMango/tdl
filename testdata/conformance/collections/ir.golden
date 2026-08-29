@@ -1,0 +1,49 @@
+Model example.collections
+├── Decls
+│   ├── [0] alias BySku  source.tdl:3:1
+│   │   └── target types[2] Map<string, LineItem>
+│   ├── [1] alias TagIndex  source.tdl:4:1
+│   │   └── target types[4] Map<string, List<string>>
+│   ├── [2] alias Matrix  source.tdl:5:1
+│   │   └── target types[7] List<List<int>>
+│   ├── [3] alias Regions  source.tdl:6:1
+│   │   └── target types[9] List<Map<string, string>>
+│   ├── [4] alias SeenSkus  source.tdl:7:1
+│   │   └── target types[10] Set<string>
+│   ├── [5] alias ExplicitList  source.tdl:8:1
+│   │   └── target types[11] List<LineItem>
+│   ├── [6] alias ExplicitSet  source.tdl:9:1
+│   │   └── target types[12] Set<LineItem>
+│   ├── [7] alias ExplicitMap  source.tdl:10:1
+│   │   └── target types[13] Map<string, string>
+│   ├── [8] alias Optional  source.tdl:11:1
+│   │   └── target types[14] Option<LineItem>
+│   ├── [9] alias OrNull  source.tdl:12:1
+│   │   └── target types[15] Nullable<LineItem>
+│   ├── [10] alias Both  source.tdl:13:1
+│   │   └── target types[16] Nullable<Option<LineItem>>
+│   ├── [11] alias NestedOptional  source.tdl:14:1
+│   │   └── target types[17] List<Option<LineItem>>
+│   └── [12] alias QualifiedArg  source.tdl:15:1
+│       └── target types[19] Map<string, common.Address>
+└── Types
+    ├── [0] string  named  -> unresolved  source.tdl:3:16
+    ├── [1] LineItem  named  -> unresolved  source.tdl:3:26
+    ├── [2] Map<string, LineItem>  {K -> V}  -> unresolved  source.tdl:3:15
+    ├── [3] List<string>  [T]  -> unresolved  source.tdl:4:29
+    ├── [4] Map<string, List<string>>  {K -> V}  -> unresolved  source.tdl:4:18
+    ├── [5] int  named  -> unresolved  source.tdl:5:18
+    ├── [6] List<int>  [T]  -> unresolved  source.tdl:5:17
+    ├── [7] List<List<int>>  [T]  -> unresolved  source.tdl:5:16
+    ├── [8] Map<string, string>  {K -> V}  -> unresolved  source.tdl:6:18
+    ├── [9] List<Map<string, string>>  [T]  -> unresolved  source.tdl:6:17
+    ├── [10] Set<string>  {T}  -> unresolved  source.tdl:7:18
+    ├── [11] List<LineItem>  named  -> unresolved  source.tdl:8:22
+    ├── [12] Set<LineItem>  named  -> unresolved  source.tdl:9:21
+    ├── [13] Map<string, string>  named  -> unresolved  source.tdl:10:21
+    ├── [14] Option<LineItem>  T?  -> unresolved  source.tdl:11:18
+    ├── [15] Nullable<LineItem>  T | null  -> unresolved  source.tdl:12:16
+    ├── [16] Nullable<Option<LineItem>>  T | null  -> unresolved  source.tdl:13:14
+    ├── [17] List<Option<LineItem>>  [T]  -> unresolved  source.tdl:14:24
+    ├── [18] common.Address  named  -> unresolved  source.tdl:15:34
+    └── [19] Map<string, common.Address>  named  -> unresolved  source.tdl:15:22

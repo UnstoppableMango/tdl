@@ -447,3 +447,45 @@ target go for p { out("./gen") }
 		}
 	}
 }
+
+// A type ID's name is what a person reads; the interning key is what
+// separates entries. `[T]` and `List<T>` are two entries with one name.
+func TestTypeIDNameIsReadable(t *testing.T) {
+	model := lower(t, `
+alias A = [string]
+alias B = List<string>
+alias C = {string -> [string]}
+`)
+
+	da, _, _ := model.FindDecl("A")
+	db, _, _ := model.FindDecl("B")
+	if got := da.GetAlias().GetTarget().GetName(); got != "List<string>" {
+		t.Errorf("[string] is named %q", got)
+	}
+	if got := db.GetAlias().GetTarget().GetName(); got != "List<string>" {
+		t.Errorf("List<string> is named %q", got)
+	}
+	if da.GetAlias().GetTarget().GetIndex() == db.GetAlias().GetTarget().GetIndex() {
+		t.Error("the two forms share an entry")
+	}
+
+	dc, _, _ := model.FindDecl("C")
+	if got := dc.GetAlias().GetTarget().GetName(); got != "Map<string, List<string>>" {
+		t.Errorf("nested name = %q", got)
+	}
+}
+
+// Interning keys use argument indices, so two types that differ only in an
+// argument's written form stay apart.
+func TestInterningDistinguishesArgumentForms(t *testing.T) {
+	model := lower(t, `
+alias A = Set<[string]>
+alias B = Set<List<string>>
+`)
+
+	da, _, _ := model.FindDecl("A")
+	db, _, _ := model.FindDecl("B")
+	if da.GetAlias().GetTarget().GetIndex() == db.GetAlias().GetTarget().GetIndex() {
+		t.Error("Set<[string]> and Set<List<string>> share an entry")
+	}
+}

@@ -1,0 +1,13 @@
+Model example.deprecation
+├── Decls
+│   ├── [0] entity LegacyContact  deprecated(use billingEmail)  source.tdl:4:1
+│   │   └── field key id: types[0] string  source.tdl:5:7
+│   ├── [1] entity User  source.tdl:8:1
+│   │   ├── field key id: types[0] string  source.tdl:9:7
+│   │   ├── field email: types[0] string  deprecated  source.tdl:10:14
+│   │   └── field billingEmail: types[0] string  source.tdl:11:3
+│   └── [2] enum Status  source.tdl:14:1
+│       ├── variant Active  source.tdl:15:3
+│       └── variant Provisional  deprecated(no longer issued)  source.tdl:16:34
+└── Types
+    └── [0] string  named  -> unresolved  source.tdl:5:11

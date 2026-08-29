@@ -1,14 +1,24 @@
 package sema
 
 import (
+	"flag"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
 
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
+
+	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/parser"
 )
+
+// update rewrites the ir.golden files instead of checking them:
+//
+//	go test ./internal/sema -update
+var update = flag.Bool("update", false, "rewrite ir.golden files")
 
 // deferred maps a diagnostic to the phase that will stop producing it.
 // Anything a corpus case reports that is not on this list is a bug in
@@ -58,13 +68,49 @@ func TestCorpusLowers(t *testing.T) {
 				t.Fatalf("unexpected parse error: %v", err)
 			}
 
-			_, diags := Lower(file)
+			model, diags := Lower(file)
 			for _, d := range diags {
 				if _, ok := deferralFor(d.Msg); !ok {
 					t.Errorf("unexpected diagnostic: %s", d.Error())
 				}
 			}
+
+			checkGolden(t, filepath.Join(dir, "ir.golden"), ir.Dump(model))
+
+			// What a plugin receives has to survive the trip.
+			data, merr := protojson.Marshal(model)
+			if merr != nil {
+				t.Fatalf("marshalling: %v", merr)
+			}
+			var back ir.Model
+			if err := protojson.Unmarshal(data, &back); err != nil {
+				t.Fatalf("unmarshalling: %v", err)
+			}
+			if !proto.Equal(model, &back) {
+				t.Error("the model did not survive a JSON round trip")
+			}
 		})
+	}
+}
+
+// checkGolden compares got against the file at path, or rewrites it under
+// -update.
+func checkGolden(t *testing.T, path, got string) {
+	t.Helper()
+
+	if *update {
+		if err := os.WriteFile(path, []byte(got), 0o644); err != nil {
+			t.Fatalf("writing %s: %v", path, err)
+		}
+		return
+	}
+
+	want, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading %s: %v (run `go test ./internal/sema -update`)", path, err)
+	}
+	if got != string(want) {
+		t.Errorf("%s is out of date:\n--- got ---\n%s\n--- want ---\n%s", path, got, want)
 	}
 }
 

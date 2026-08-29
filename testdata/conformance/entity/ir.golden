@@ -1,0 +1,31 @@
+Model shop.orders
+├── Decls
+│   ├── [0] entity Order  source.tdl:5:1
+│   │   ├── field key id: types[0] OrderId  source.tdl:6:7
+│   │   ├── field customer: types[1] User  source.tdl:7:3
+│   │   ├── field shipping: types[3] Option<common.Address>  source.tdl:8:3
+│   │   ├── field owned items: types[5] List<LineItem>  source.tdl:9:3
+│   │   └── field status: types[6] Status  source.tdl:10:3
+│   ├── [1] entity LineItem  source.tdl:13:1
+│   │   ├── field key order: types[7] Order  source.tdl:14:7
+│   │   ├── field key sku: types[8] string  source.tdl:15:7
+│   │   └── field quantity: types[9] int  source.tdl:16:3
+│   ├── [2] entity User  source.tdl:19:1
+│   │   └── field key id: types[8] string  source.tdl:20:7
+│   ├── [3] newtype OrderId  source.tdl:23:1
+│   │   └── base types[8] string
+│   └── [4] enum Status  source.tdl:24:1
+│       ├── variant Draft  source.tdl:24:15
+│       ├── variant Placed  source.tdl:24:21
+│       └── variant Shipped  source.tdl:24:28
+└── Types
+    ├── [0] OrderId  named  -> decls[3]  source.tdl:6:11
+    ├── [1] User  named  -> decls[2]  source.tdl:7:13
+    ├── [2] common.Address  named  -> unresolved  source.tdl:8:13
+    ├── [3] Option<common.Address>  T?  -> unresolved  source.tdl:8:13
+    ├── [4] LineItem  named  -> decls[1]  source.tdl:9:11
+    ├── [5] List<LineItem>  [T]  -> unresolved  source.tdl:9:10
+    ├── [6] Status  named  -> decls[4]  source.tdl:10:11
+    ├── [7] Order  named  -> decls[0]  source.tdl:14:14
+    ├── [8] string  named  -> unresolved  source.tdl:15:12
+    └── [9] int  named  -> unresolved  source.tdl:16:13

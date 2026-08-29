@@ -1,0 +1,14 @@
+Model billing
+├── Decls
+│   ├── [0] entity User  source.tdl:3:1
+│   │   ├── field key id: types[0] string  source.tdl:4:7
+│   │   ├── field email: types[0] string  source.tdl:5:3
+│   │   └── field name: types[0] string  source.tdl:6:3
+│   └── [1] entity Order  source.tdl:9:1
+│       ├── field key id: types[0] string  source.tdl:10:7
+│       ├── field owned items: types[1] List<string>  source.tdl:11:3
+│       └── field tags: types[2] Set<string>  source.tdl:12:3
+└── Types
+    ├── [0] string  named  -> unresolved  source.tdl:4:11
+    ├── [1] List<string>  [T]  -> unresolved  source.tdl:11:10
+    └── [2] Set<string>  {T}  -> unresolved  source.tdl:12:9

@@ -1,0 +1,21 @@
+Model shop.payment
+├── Decls
+│   ├── [0] enum Payment  source.tdl:3:1
+│   │   ├── variant Card  source.tdl:4:3
+│   │   │   ├── field last4: types[0] string  source.tdl:4:10
+│   │   │   └── field brand: types[1] CardBrand  source.tdl:4:24
+│   │   ├── variant Bank  source.tdl:5:3
+│   │   │   ├── field routing: types[0] string  source.tdl:5:10
+│   │   │   └── field account: types[0] string  source.tdl:5:26
+│   │   └── variant Credit  source.tdl:6:3
+│   ├── [1] enum CardBrand  source.tdl:9:1
+│   │   ├── variant Visa  source.tdl:9:18
+│   │   ├── variant Mastercard  source.tdl:9:23
+│   │   └── variant Amex  source.tdl:9:34
+│   └── [2] enum Inline  source.tdl:10:1
+│       ├── variant A  source.tdl:10:15
+│       ├── variant B  source.tdl:10:17
+│       └── variant C  source.tdl:10:19
+└── Types
+    ├── [0] string  named  -> unresolved  source.tdl:4:17
+    └── [1] CardBrand  named  -> decls[1]  source.tdl:4:31

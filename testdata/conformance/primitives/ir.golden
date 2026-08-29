@@ -1,0 +1,12 @@
+Model prelude.roots
+└── Decls
+    ├── [0] primitive string  source.tdl:4:1
+    ├── [1] primitive int  source.tdl:6:1
+    ├── [2] primitive bool  source.tdl:7:1
+    ├── [3] primitive bytes  source.tdl:8:1
+    ├── [4] primitive: type -> type List  source.tdl:9:1
+    ├── [5] primitive: type -> type Set  source.tdl:10:1
+    ├── [6] primitive: type -> type -> type Map  source.tdl:11:1
+    ├── [7] primitive: unit -> type Measured  source.tdl:12:1
+    └── [8] primitive: (type -> type) -> type Higher  source.tdl:13:1
+└── Types
