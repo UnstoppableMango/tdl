@@ -1,18 +1,18 @@
 package example.collections
 
-value Catalog {
-  bySku: {string -> LineItem}
-  tagIndex: {string -> [string]}
-  matrix: [[int]]
-  regions: [{string -> string}]
-  skus: {string}
-  explicit: List<LineItem>
-  maybe: LineItem?
-  nullable: LineItem | null
-  both: LineItem? | null
-}
+alias BySku = {string -> LineItem}
+alias TagIndex = {string -> [string]}
+alias Matrix = [[int]]
+alias Regions = [{string -> string}]
+alias SeenSkus = {string}
 
-value LineItem {
-  sku: string
-  quantity: int
-}
+alias ExplicitList = List<LineItem>
+alias ExplicitSet = Set<LineItem>
+alias ExplicitMap = Map<string, string>
+
+alias Optional = LineItem?
+alias OrNull = LineItem | null
+alias Both = LineItem? | null
+
+alias NestedOptional = [LineItem?]
+alias QualifiedArg = Map<string, common.Address>

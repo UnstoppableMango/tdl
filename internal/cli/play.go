@@ -20,23 +20,18 @@ import (
 )
 
 // scratchTemplate seeds a new playground file with one of everything the
-// grammar supports, so there is something to twist immediately.
-const scratchTemplate = `package scratch.v1
+// parser reads today, so there is something to twist immediately.
+const scratchTemplate = `package scratch
 
-type User {
-  id: string
-  name: string?
-  tags: list<string>
-  labels: map<string, string>
+primitive string
+primitive Map: type -> type -> type
 
-  @go(tag: "json:\"role\"")
-  role: Role = "member"
-}
+/// A handler table, keyed by event name.
+alias Handler = {string -> [Event]}
 
-enum Role {
-  member
-  admin = 1
-}
+alias Pair<T> = Map<string, T>
+
+alias Maybe = Event? | null
 `
 
 // playViews are the panes tdl play can render, in the order they appear.
@@ -257,37 +252,25 @@ func annotateErrors(src string, err error) string {
 // stats summarizes the shape of a parsed file: enough numbers to feel the
 // difference between two ways of modelling the same data.
 func stats(file *ast.File) string {
-	var fields, optional, defaults, annotations, variants int
-	for _, ty := range file.Types {
-		annotations += len(ty.Annotations)
-		fields += len(ty.Fields)
-		for _, f := range ty.Fields {
-			annotations += len(f.Annotations)
-			if f.Optional {
-				optional++
-			}
-			if f.Default != nil {
-				defaults++
-			}
-		}
-	}
-	for _, en := range file.Enums {
-		annotations += len(en.Annotations)
-		variants += len(en.Values)
-		for _, v := range en.Values {
-			annotations += len(v.Annotations)
+	var primitives, aliases, params, docs int
+	for _, decl := range file.Decls {
+		docs += len(ast.Doc(decl))
+		switch d := decl.(type) {
+		case *ast.PrimitiveDecl:
+			primitives++
+		case *ast.AliasDecl:
+			aliases++
+			params += len(d.Params)
 		}
 	}
 
 	var b strings.Builder
 	row := func(name string, n int) { fmt.Fprintf(&b, "%-14s %d\n", name, n) }
 	row("imports", len(file.Imports))
-	row("types", len(file.Types))
-	row("fields", fields)
-	row("optional", optional)
-	row("defaults", defaults)
-	row("enums", len(file.Enums))
-	row("variants", variants)
-	row("annotations", annotations)
+	row("declarations", len(file.Decls))
+	row("primitives", primitives)
+	row("aliases", aliases)
+	row("parameters", params)
+	row("doc lines", docs)
 	return b.String()
 }

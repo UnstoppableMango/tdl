@@ -3,6 +3,9 @@
 Starting points for playing with the language.
 They are not part of the conformance corpus, so edit them freely.
 
+They are written in the current grammar, which the parser does not read yet: everything here needs `entity`, `value`, and `enum` from phase 2 of [../docs/design/parser-plan.md](../docs/design/parser-plan.md).
+`scratch.tdl` and `prelude/std.tdl` are what parses today.
+
 | File | What it shows |
 | --- | --- |
 | `flat.tdl` | One entity, parallel lists, optionality doing the modelling work |

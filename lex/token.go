@@ -12,19 +12,37 @@ const (
 	EOF
 
 	IDENT  // identifiers and keywords share a scanning path; Kind distinguishes them
+	DOC    // /// doc comment, text only
 	STRING // "..."
 	INT    // 123
 	FLOAT  // 1.23
+	REGEX  // /.../, scanned only on demand; see [Lexer.RescanRegexAt]
 
-	// Keywords
+	// Reserved keywords. Declaration keywords are reserved; modifiers and
+	// constraint names (key, owned, deprecated, min, length, ...) are
+	// contextual and lex as IDENT.
 	PACKAGE
 	IMPORT
 	AS
+	PRIMITIVE
+	UNIT
+	ALIAS
 	TYPE
+	VALUE
+	ENTITY
 	ENUM
-	UNION // reserved, not yet implemented by the parser
+	CLASS
+	MIXIN
+	INSTANCE
+	TARGET
+	FOR
+	REQUIRES
+	WHERE
+	INCLUDE
+	NULL
 	TRUE
 	FALSE
+	UNION // reserved, not yet implemented by the parser
 
 	// Punctuation
 	LBRACE   // {
@@ -40,22 +58,80 @@ const (
 	EQUAL    // =
 	QUESTION // ?
 	DOT      // .
-	AT       // @
+	PIPE     // |
+	ARROW    // ->
+	RANGE    // ..
+	CARET    // ^
+	STAR     // *
+	SLASH    // /
+	FATARROW // =>
 )
 
 var keywords = map[string]Kind{
-	"package": PACKAGE,
-	"import":  IMPORT,
-	"as":      AS,
-	"type":    TYPE,
-	"enum":    ENUM,
-	"union":   UNION,
-	"true":    TRUE,
-	"false":   FALSE,
+	"package":   PACKAGE,
+	"import":    IMPORT,
+	"as":        AS,
+	"primitive": PRIMITIVE,
+	"unit":      UNIT,
+	"alias":     ALIAS,
+	"type":      TYPE,
+	"value":     VALUE,
+	"entity":    ENTITY,
+	"enum":      ENUM,
+	"class":     CLASS,
+	"mixin":     MIXIN,
+	"instance":  INSTANCE,
+	"target":    TARGET,
+	"for":       FOR,
+	"requires":  REQUIRES,
+	"where":     WHERE,
+	"include":   INCLUDE,
+	"null":      NULL,
+	"true":      TRUE,
+	"false":     FALSE,
+	"union":     UNION,
+}
+
+var kindNames = map[Kind]string{
+	ILLEGAL: "ILLEGAL",
+	EOF:     "EOF",
+	IDENT:   "IDENT",
+	DOC:     "DOC",
+	STRING:  "STRING",
+	INT:     "INT",
+	FLOAT:   "FLOAT",
+	REGEX:   "REGEX",
+
+	LBRACE:   "{",
+	RBRACE:   "}",
+	LPAREN:   "(",
+	RPAREN:   ")",
+	LBRACK:   "[",
+	RBRACK:   "]",
+	LT:       "<",
+	GT:       ">",
+	COLON:    ":",
+	COMMA:    ",",
+	EQUAL:    "=",
+	QUESTION: "?",
+	DOT:      ".",
+	PIPE:     "|",
+	ARROW:    "->",
+	RANGE:    "..",
+	CARET:    "^",
+	STAR:     "*",
+	SLASH:    "/",
+	FATARROW: "=>",
+}
+
+func init() {
+	for text, kind := range keywords {
+		kindNames[kind] = text
+	}
 }
 
 // LookupIdent returns the keyword Kind for ident, or IDENT if ident is not a
-// keyword.
+// reserved keyword.
 func LookupIdent(ident string) Kind {
 	if kind, ok := keywords[ident]; ok {
 		return kind
@@ -63,67 +139,17 @@ func LookupIdent(ident string) Kind {
 	return IDENT
 }
 
+// IsKeyword reports whether text is a reserved keyword.
+func IsKeyword(text string) bool {
+	_, ok := keywords[text]
+	return ok
+}
+
 func (k Kind) String() string {
-	switch k {
-	case ILLEGAL:
-		return "ILLEGAL"
-	case EOF:
-		return "EOF"
-	case IDENT:
-		return "IDENT"
-	case STRING:
-		return "STRING"
-	case INT:
-		return "INT"
-	case FLOAT:
-		return "FLOAT"
-	case PACKAGE:
-		return "package"
-	case IMPORT:
-		return "import"
-	case AS:
-		return "as"
-	case TYPE:
-		return "type"
-	case ENUM:
-		return "enum"
-	case UNION:
-		return "union"
-	case TRUE:
-		return "true"
-	case FALSE:
-		return "false"
-	case LBRACE:
-		return "{"
-	case RBRACE:
-		return "}"
-	case LPAREN:
-		return "("
-	case RPAREN:
-		return ")"
-	case LBRACK:
-		return "["
-	case RBRACK:
-		return "]"
-	case LT:
-		return "<"
-	case GT:
-		return ">"
-	case COLON:
-		return ":"
-	case COMMA:
-		return ","
-	case EQUAL:
-		return "="
-	case QUESTION:
-		return "?"
-	case DOT:
-		return "."
-	case AT:
-		return "@"
-	default:
-		return fmt.Sprintf("Kind(%d)", int(k))
+	if name, ok := kindNames[k]; ok {
+		return name
 	}
+	return fmt.Sprintf("Kind(%d)", int(k))
 }
 
 // Position identifies a location in a source file.
@@ -144,6 +170,6 @@ func (p Position) String() string {
 // Token is a single lexical token.
 type Token struct {
 	Kind Kind
-	Text string // literal source text; for STRING, the decoded value
+	Text string // literal source text; decoded for STRING, body only for DOC and REGEX
 	Pos  Position
 }

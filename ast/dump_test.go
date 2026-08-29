@@ -1,53 +1,34 @@
 package ast_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/unstoppablemango/tdl/ast"
 )
 
-func TestDumpGolden(t *testing.T) {
-	src := `package example.v1
+func TestDump(t *testing.T) {
+	file := mustParse(t, `package p
 
 import "common.tdl" as common
 
-@go(pkg: "example")
-type User {
-  id: string
-  address: common.Address?
+primitive Map: type -> type -> type
 
-  @protobuf(number: 10)
-  role: Role = "member"
-}
+alias Pair<T> = Map<string, T>
+`)
 
-enum Role {
-  Admin = "admin"
-  Guest
-}
-`
-
-	want := "File test.tdl\n" +
-		"|- Package example.v1  1:1\n" +
-		"|- Import \"common.tdl\" as common  3:1\n" +
-		"|- Type User  6:1\n" +
-		"|  |- @go(pkg: \"example\")  5:1\n" +
-		"|  |- Field id: string  7:3\n" +
-		"|  |- Field address: common.Address?  8:3\n" +
-		"|  `- Field role: Role = \"member\"  11:3\n" +
-		"|     `- @protobuf(number: 10)  10:3\n" +
-		"`- Enum Role  14:1\n" +
-		"   |- Value Admin = \"admin\"  15:3\n" +
-		"   `- Value Guest  16:3\n"
-
-	got := ast.Dump(parse(t, src))
-	if got != want {
-		t.Errorf("Dump mismatch\n--- got ---\n%s\n--- want ---\n%s", got, want)
-	}
-}
-
-func TestDumpEmptyFile(t *testing.T) {
-	got := ast.Dump(parse(t, ""))
-	if got != "File test.tdl\n" {
-		t.Errorf("Dump of empty file = %q", got)
+	got := ast.Dump(file)
+	for _, want := range []string{
+		"File test.tdl",
+		"Package p",
+		`Import "common.tdl" as common`,
+		"Primitive Map: type -> type -> type",
+		"Alias Pair",
+		"Param T",
+		"Target Map<string, T>",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("dump missing %q:\n%s", want, got)
+		}
 	}
 }

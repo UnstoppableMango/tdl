@@ -8,7 +8,7 @@ import (
 	"github.com/unstoppablemango/tdl/parser"
 )
 
-func mustParse(t *testing.T, src string) *ast.File {
+func parse(t *testing.T, src string) *ast.File {
 	t.Helper()
 	file, err := parser.Parse("test.tdl", strings.NewReader(src))
 	if err != nil {
@@ -17,158 +17,188 @@ func mustParse(t *testing.T, src string) *ast.File {
 	return file
 }
 
-func TestParsePackageAndImport(t *testing.T) {
-	file := mustParse(t, `
-package example.v1
+func parseErr(t *testing.T, src string) string {
+	t.Helper()
+	_, err := parser.Parse("test.tdl", strings.NewReader(src))
+	if err == nil {
+		t.Fatal("expected a parse error, got none")
+	}
+	return err.Error()
+}
+
+func TestPackageAndImports(t *testing.T) {
+	file := parse(t, `
+package shop.orders
 
 import "common.tdl" as common
+import "std/prelude" as _
 `)
-	if file.Package == nil || file.Package.Name != "example.v1" {
-		t.Fatalf("got package %+v, want example.v1", file.Package)
+
+	if file.Package == nil || file.Package.Path != "shop.orders" {
+		t.Fatalf("package = %+v, want shop.orders", file.Package)
 	}
-	if len(file.Imports) != 1 || file.Imports[0].Path != "common.tdl" || file.Imports[0].Alias != "common" {
-		t.Fatalf("got imports %+v", file.Imports)
+	if len(file.Imports) != 2 {
+		t.Fatalf("got %d imports, want 2", len(file.Imports))
+	}
+	if got := file.Imports[1].Alias; got != "_" {
+		t.Errorf("second import alias = %q, want _", got)
 	}
 }
 
-func TestParseRecord(t *testing.T) {
-	file := mustParse(t, `
-type User {
-  id: string
-  name: string?
-  tags: list<string>
-  metadata: map<string, string>
-  address: common.Address?
-  role: Role = "member"
-}
+func TestPrimitiveKinds(t *testing.T) {
+	file := parse(t, `
+primitive string
+primitive Map: type -> type -> type
+primitive Higher: (type -> type) -> type
+primitive Measured: unit -> type
 `)
-	if len(file.Types) != 1 {
-		t.Fatalf("got %d types, want 1", len(file.Types))
-	}
-	ty := file.Types[0]
-	if ty.Name != "User" {
-		t.Fatalf("got name %q, want User", ty.Name)
-	}
-	if len(ty.Fields) != 6 {
-		t.Fatalf("got %d fields, want 6", len(ty.Fields))
+
+	if len(file.Decls) != 4 {
+		t.Fatalf("got %d decls, want 4", len(file.Decls))
 	}
 
-	id := ty.Fields[0]
-	if id.Name != "id" || id.Type.Name != "string" || id.Optional {
-		t.Fatalf("id field: %+v", id)
+	if p := file.Decls[0].(*ast.PrimitiveDecl); p.Kind != nil {
+		t.Errorf("string kind = %+v, want nil", p.Kind)
 	}
 
-	name := ty.Fields[1]
-	if name.Name != "name" || !name.Optional {
-		t.Fatalf("name field: %+v", name)
+	// `type -> type -> type` associates to the right.
+	m := file.Decls[1].(*ast.PrimitiveDecl)
+	if m.Kind.N != "type" || m.Kind.Arrow == nil || m.Kind.Arrow.Arrow == nil {
+		t.Fatalf("Map kind did not associate right: %+v", m.Kind)
+	}
+	if m.Kind.Arrow.Arrow.Arrow != nil {
+		t.Error("Map kind has a fourth atom")
 	}
 
-	tags := ty.Fields[2]
-	if tags.Type.List == nil || tags.Type.List.Name != "string" {
-		t.Fatalf("tags field type: %+v", tags.Type)
+	// A parenthesized kind is the left operand, not the right.
+	h := file.Decls[2].(*ast.PrimitiveDecl)
+	if h.Kind.Paren == nil {
+		t.Fatalf("Higher kind lost its parentheses: %+v", h.Kind)
 	}
-
-	metadata := ty.Fields[3]
-	if metadata.Type.MapKey == nil || metadata.Type.MapKey.Name != "string" ||
-		metadata.Type.MapValue == nil || metadata.Type.MapValue.Name != "string" {
-		t.Fatalf("metadata field type: %+v", metadata.Type)
-	}
-
-	address := ty.Fields[4]
-	if address.Type.Qualifier != "common" || address.Type.Name != "Address" || !address.Optional {
-		t.Fatalf("address field: %+v", address)
-	}
-
-	role := ty.Fields[5]
-	if role.Default == nil || role.Default.Kind != ast.LitString || role.Default.Str != "member" {
-		t.Fatalf("role field default: %+v", role.Default)
+	if h.Kind.Paren.Arrow == nil || h.Kind.Arrow == nil {
+		t.Errorf("Higher kind = %+v", h.Kind)
 	}
 }
 
-func TestParseEnum(t *testing.T) {
-	file := mustParse(t, `
-enum Role {
-  Admin = "admin"
-  Member = "member"
-  Guest = "guest"
+func TestAliasParameters(t *testing.T) {
+	file := parse(t, `alias Applied<f: type -> type, T> = f<T>`)
+
+	a := file.Decls[0].(*ast.AliasDecl)
+	if len(a.Params) != 2 {
+		t.Fatalf("got %d params, want 2", len(a.Params))
+	}
+	if a.Params[0].Kind == nil {
+		t.Error("first param lost its kind annotation")
+	}
+	if a.Params[1].Kind != nil {
+		t.Error("second param gained a kind annotation")
+	}
+	if a.Target.N != "f" || len(a.Target.Args) != 1 {
+		t.Errorf("target = %+v", a.Target)
+	}
 }
+
+func TestTypeRefForms(t *testing.T) {
+	tests := []struct {
+		src   string
+		check func(*testing.T, *ast.TypeRef)
+	}{
+		{"[T]", func(t *testing.T, r *ast.TypeRef) {
+			if r.List == nil || r.List.N != "T" {
+				t.Errorf("list = %+v", r)
+			}
+		}},
+		{"{T}", func(t *testing.T, r *ast.TypeRef) {
+			if r.Set == nil || r.Set.N != "T" {
+				t.Errorf("set = %+v", r)
+			}
+		}},
+		{"{K -> V}", func(t *testing.T, r *ast.TypeRef) {
+			if r.MapKey == nil || r.MapValue == nil {
+				t.Errorf("map = %+v", r)
+			}
+		}},
+		{"T?", func(t *testing.T, r *ast.TypeRef) {
+			if !r.Optional || r.Nullable {
+				t.Errorf("optional = %+v", r)
+			}
+		}},
+		{"T | null", func(t *testing.T, r *ast.TypeRef) {
+			if r.Optional || !r.Nullable {
+				t.Errorf("nullable = %+v", r)
+			}
+		}},
+		{"T? | null", func(t *testing.T, r *ast.TypeRef) {
+			if !r.Optional || !r.Nullable {
+				t.Errorf("both = %+v", r)
+			}
+		}},
+		{"common.Address", func(t *testing.T, r *ast.TypeRef) {
+			if r.Qualifier != "common" || r.N != "Address" {
+				t.Errorf("qualified = %+v", r)
+			}
+		}},
+		{"Map<string, [T]>", func(t *testing.T, r *ast.TypeRef) {
+			if len(r.Args) != 2 || r.Args[1].List == nil {
+				t.Errorf("args = %+v", r)
+			}
+		}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.src, func(t *testing.T) {
+			file := parse(t, "alias X = "+tt.src)
+			tt.check(t, file.Decls[0].(*ast.AliasDecl).Target)
+		})
+	}
+}
+
+func TestDocComments(t *testing.T) {
+	file := parse(t, `
+/// A handler table.
+/// Keyed by event name.
+alias Handler = {string -> [Event]}
 `)
-	if len(file.Enums) != 1 {
-		t.Fatalf("got %d enums, want 1", len(file.Enums))
-	}
-	e := file.Enums[0]
-	if e.Name != "Role" || len(e.Values) != 3 {
-		t.Fatalf("got %+v", e)
-	}
-	if e.Values[0].Name != "Admin" || e.Values[0].Value.Str != "admin" {
-		t.Fatalf("got %+v", e.Values[0])
+
+	doc := ast.Doc(file.Decls[0])
+	if len(doc) != 2 || doc[0] != "A handler table." {
+		t.Errorf("doc = %q", doc)
 	}
 }
 
-func TestParseAnnotations(t *testing.T) {
-	file := mustParse(t, `
-@go(pkg: "example")
-type User {
-  @go(tag: "json:\"full_name,omitempty\"")
-  @protobuf(number: 10)
-  name: string
+// Whitespace is insignificant: a declaration ends where the next begins.
+func TestWhitespaceInsignificant(t *testing.T) {
+	oneLine := parse(t, `primitive string primitive int alias A = string`)
+	if len(oneLine.Decls) != 3 {
+		t.Fatalf("got %d decls on one line, want 3", len(oneLine.Decls))
+	}
 }
+
+func TestErrorsAccumulate(t *testing.T) {
+	msg := parseErr(t, `
+import "a.tdl"
+alias Broken =
 `)
-	ty := file.Types[0]
-	if len(ty.Annotations) != 1 || ty.Annotations[0].Namespace != "go" {
-		t.Fatalf("type annotations: %+v", ty.Annotations)
-	}
-	if ty.Annotations[0].Args[0].Name != "pkg" || ty.Annotations[0].Args[0].Value.Str != "example" {
-		t.Fatalf("type annotation arg: %+v", ty.Annotations[0].Args[0])
-	}
-
-	field := ty.Fields[0]
-	if len(field.Annotations) != 2 {
-		t.Fatalf("got %d field annotations, want 2", len(field.Annotations))
-	}
-	if field.Annotations[1].Namespace != "protobuf" || field.Annotations[1].Args[0].Value.Int != 10 {
-		t.Fatalf("protobuf annotation: %+v", field.Annotations[1])
+	if !strings.Contains(msg, "expected as") {
+		t.Errorf("error missing the import problem: %s", msg)
 	}
 }
 
-func TestParseAnnotationListValue(t *testing.T) {
-	file := mustParse(t, `
-@validate(oneOf: ["a", "b", "c"])
-type T {
-  f: string
-}
-`)
-	arg := file.Types[0].Annotations[0].Args[0]
-	if arg.Value.Kind != ast.LitList || len(arg.Value.List) != 3 || arg.Value.List[1].Str != "b" {
-		t.Fatalf("got %+v", arg.Value)
+func TestReservedKeywordsCannotName(t *testing.T) {
+	if msg := parseErr(t, `alias entity = string`); !strings.Contains(msg, "expected identifier") {
+		t.Errorf("error = %s", msg)
 	}
 }
 
-func TestParseErrorsCollectMultiple(t *testing.T) {
-	_, err := parser.Parse("test.tdl", strings.NewReader(`
-type User {
-  id string
-  name:
-}
-
-enum {
-}
-`))
-	if err == nil {
-		t.Fatal("expected a parse error")
-	}
-	errs, ok := err.(parser.ErrorList)
-	if !ok {
-		t.Fatalf("expected parser.ErrorList, got %T", err)
-	}
-	if len(errs) < 2 {
-		t.Fatalf("expected multiple collected errors, got %d: %v", len(errs), errs)
-	}
-}
-
-func TestParseUnterminatedType(t *testing.T) {
-	_, err := parser.Parse("test.tdl", strings.NewReader(`type User {`))
-	if err == nil {
-		t.Fatal("expected a parse error")
+// Modifier and constraint names are contextual, so they stay usable as
+// ordinary identifiers.
+func TestContextualKeywordsAreIdentifiers(t *testing.T) {
+	for _, name := range []string{"key", "owned", "deprecated", "min", "max", "length", "matches", "oneOf", "unique"} {
+		t.Run(name, func(t *testing.T) {
+			file := parse(t, "alias "+name+" = string")
+			if got := file.Decls[0].Name(); got != name {
+				t.Errorf("name = %q, want %q", got, name)
+			}
+		})
 	}
 }
