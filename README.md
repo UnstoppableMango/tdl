@@ -10,8 +10,8 @@ This repository owns the canonical [language specification](docs/spec.md) and it
 
 Early, incomplete, and mid-rewrite.
 
-The lexer, parser, and `tdl check` / `tdl fmt` commands work for the M1 grammar, which the specification has moved past.
-The corpus, examples, and documentation are written in the current grammar; the parser cannot read them yet.
+The lexer and parser read most of the language: packages, imports, `primitive`, `alias`, newtypes, `entity`, `value`, `mixin`, `enum` with payload variants, type parameters, kinds, every type reference form, `deprecated`, and target blocks.
+Constraint blocks, `class`, `instance`, and units are still to come.
 
 The design is settled and written down:
 
@@ -61,10 +61,7 @@ value Money {
 
 type OrderId: uuid
 
-type Email: string where {
-  matches /^[^@]+@[^@]+$/
-  length 3..254
-}
+type Email: string
 
 enum Currency { USD EUR GBP }
 

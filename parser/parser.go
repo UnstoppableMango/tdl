@@ -3,9 +3,9 @@
 // it finds in one pass rather than stopping at the first, so tooling like
 // `tdl check` can report a complete list of problems.
 //
-// The parser covers phase 1 of docs/design/parser-plan.md: packages,
-// imports, `primitive`, `alias`, type parameters, kinds, and type
-// references. Declarations with bodies arrive in phase 2.
+// The parser covers phases 1 and 2 of docs/design/parser-plan.md.
+// `class` and `instance` declarations, constraint blocks, and unit
+// expressions are still to come.
 package parser
 
 import (
@@ -108,15 +108,26 @@ func (p *parser) parseFile() *ast.File {
 	}
 
 	for !p.at(lex.EOF) {
-		doc := p.parseDoc()
+		head := ast.DeclHead{Doc: p.parseDoc()}
+		if p.atContextual("deprecated") {
+			head.Dep = p.parseDeprecated()
+		}
 
 		switch p.cur.Kind {
 		case lex.IMPORT:
-			file.Imports = append(file.Imports, p.parseImportDecl(doc))
+			file.Imports = append(file.Imports, p.parseImportDecl(head.Doc))
 		case lex.PRIMITIVE:
-			file.Decls = append(file.Decls, p.parsePrimitiveDecl(doc))
+			file.Decls = append(file.Decls, p.parsePrimitiveDecl(head))
 		case lex.ALIAS:
-			file.Decls = append(file.Decls, p.parseAliasDecl(doc))
+			file.Decls = append(file.Decls, p.parseAliasDecl(head))
+		case lex.TYPE:
+			file.Decls = append(file.Decls, p.parseNewtypeDecl(head))
+		case lex.ENTITY, lex.VALUE, lex.MIXIN:
+			file.Decls = append(file.Decls, p.parseStructDecl(head))
+		case lex.ENUM:
+			file.Decls = append(file.Decls, p.parseEnumDecl(head))
+		case lex.TARGET:
+			file.Decls = append(file.Decls, p.parseTargetDecl(head))
 		case lex.PACKAGE:
 			p.errs.add(p.cur.Pos, "unexpected second 'package' declaration")
 			p.parsePackageDecl()
@@ -179,22 +190,24 @@ func (p *parser) parseImportDecl(doc []string) *ast.ImportDecl {
 	return imp
 }
 
-func (p *parser) parsePrimitiveDecl(doc []string) *ast.PrimitiveDecl {
-	pos := p.cur.Pos
+func (p *parser) parsePrimitiveDecl(head ast.DeclHead) *ast.PrimitiveDecl {
+	head.P = p.cur.Pos
 	p.next() // 'primitive'
 
-	d := &ast.PrimitiveDecl{Doc: doc, P: pos, N: p.expectIdent()}
+	d := &ast.PrimitiveDecl{DeclHead: head}
+	d.N = p.expectIdent()
 	if p.accept(lex.COLON) {
 		d.Kind = p.parseKind()
 	}
 	return d
 }
 
-func (p *parser) parseAliasDecl(doc []string) *ast.AliasDecl {
-	pos := p.cur.Pos
+func (p *parser) parseAliasDecl(head ast.DeclHead) *ast.AliasDecl {
+	head.P = p.cur.Pos
 	p.next() // 'alias'
 
-	d := &ast.AliasDecl{Doc: doc, P: pos, N: p.expectIdent()}
+	d := &ast.AliasDecl{DeclHead: head}
+	d.N = p.expectIdent()
 	if p.at(lex.LT) {
 		d.Params = p.parseTypeParams()
 	}

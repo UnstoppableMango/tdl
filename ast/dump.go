@@ -35,16 +35,56 @@ func Dump(file *File) string {
 			entries = append(entries, entry{desc, n.P, nil})
 		case *AliasDecl:
 			entries = append(entries, entry{"Alias " + n.N, n.P, func(prefix string) {
-				for i, p := range n.Params {
-					desc := "Param " + p.N
-					if p.Kind != nil {
-						desc += ": " + printKind(p.Kind)
-					}
-					leaf(&b, prefix, i == len(n.Params)-1 && n.Target == nil, desc, p.P)
-				}
+				kids := params(n.Params)
 				if n.Target != nil {
-					leaf(&b, prefix, true, "Target "+printTypeRef(n.Target), n.Target.P)
+					kids = append(kids, child{"Target " + printTypeRef(n.Target), n.Target.P})
 				}
+				writeChildren(&b, prefix, kids)
+			}})
+
+		case *NewtypeDecl:
+			entries = append(entries, entry{"Newtype " + n.N, n.P, func(prefix string) {
+				kids := params(n.Params)
+				if n.Base != nil {
+					kids = append(kids, child{"Base " + printTypeRef(n.Base), n.Base.P})
+				}
+				writeChildren(&b, prefix, kids)
+			}})
+
+		case *StructDecl:
+			desc := strings.ToUpper(n.Keyword[:1]) + n.Keyword[1:] + " " + n.N
+			entries = append(entries, entry{desc, n.P, func(prefix string) {
+				kids := params(n.Params)
+				for _, r := range n.Conforms {
+					kids = append(kids, child{"Conforms " + r.N, r.P})
+				}
+				for _, m := range n.Members {
+					switch mem := m.(type) {
+					case *Include:
+						kids = append(kids, child{"Include " + mem.Type.N, mem.P})
+					case *Field:
+						kids = append(kids, child{"Field " + printField(mem), mem.P})
+					}
+				}
+				writeChildren(&b, prefix, kids)
+			}})
+
+		case *EnumDecl:
+			entries = append(entries, entry{"Enum " + n.N, n.P, func(prefix string) {
+				kids := params(n.Params)
+				for _, v := range n.Variants {
+					desc := "Variant " + v.N
+					if len(v.Fields) > 0 {
+						desc += fmt.Sprintf(" (%d fields)", len(v.Fields))
+					}
+					kids = append(kids, child{desc, v.P})
+				}
+				writeChildren(&b, prefix, kids)
+			}})
+
+		case *TargetDecl:
+			entries = append(entries, entry{"Target " + n.N + " for " + n.For, n.P, func(prefix string) {
+				writeChildren(&b, prefix, targetChildren(n.Entries))
 			}})
 		}
 	}
@@ -58,6 +98,48 @@ func Dump(file *File) string {
 	}
 
 	return b.String()
+}
+
+type child struct {
+	desc string
+	pos  Position
+}
+
+func params(ps []*TypeParam) []child {
+	kids := make([]child, 0, len(ps))
+	for _, p := range ps {
+		desc := "Param " + p.N
+		if p.Kind != nil {
+			desc += ": " + printKind(p.Kind)
+		}
+		kids = append(kids, child{desc, p.P})
+	}
+	return kids
+}
+
+// targetChildren flattens nested entries onto one level, prefixing each with
+// the path that scopes it, so the dump stays one node per line.
+func targetChildren(entries []*TargetEntry) []child {
+	var kids []child
+	for _, e := range entries {
+		switch {
+		case e.Entries != nil:
+			for _, k := range targetChildren(e.Entries) {
+				kids = append(kids, child{e.Path + "." + strings.TrimPrefix(k.desc, "Entry "), k.pos})
+			}
+		case e.Path != "":
+			kids = append(kids, child{"Entry " + e.Path + " => " + printDirective(e.Directive), e.P})
+		default:
+			kids = append(kids, child{"Entry " + printDirective(e.Directive), e.P})
+		}
+	}
+	return kids
+}
+
+func writeChildren(b *strings.Builder, prefix string, kids []child) {
+	for i, k := range kids {
+		leaf(b, prefix, i == len(kids)-1, k.desc, k.pos)
+	}
 }
 
 func leaf(b *strings.Builder, prefix string, last bool, desc string, pos Position) {

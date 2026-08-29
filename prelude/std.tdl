@@ -4,9 +4,7 @@ package std
 primitive string
 
 primitive int
-
 primitive bool
-
 primitive bytes
 
 /// An ordered collection, duplicates allowed. `[T]` is sugar for `List<T>`.
@@ -22,9 +20,18 @@ primitive Map: type -> type -> type
 primitive decimal
 
 primitive uuid
-
 primitive instant
-
 primitive date
-
 primitive duration
+
+/// Absence. `T?` is sugar for `Option<T>`.
+enum Option<T> {
+  Some { value: T }
+  None
+}
+
+/// Presence with a null value. `T | null` is sugar for `Nullable<T>`.
+enum Nullable<T> {
+  Present { value: T }
+  Null
+}

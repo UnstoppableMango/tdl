@@ -5,13 +5,17 @@ mixin Timestamps {
   updatedAt: instant
 }
 
+mixin Named {
+  name: string
+}
+
 entity User: Auditable {
   key id: string
   include Timestamps
+  include Named
   email: string
 }
 
-class Auditable {
-  createdAt: instant
-  updatedAt: instant
+value Snapshot {
+  include Timestamps
 }

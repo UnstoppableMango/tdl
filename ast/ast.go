@@ -16,13 +16,13 @@ type File struct {
 	Decls    []Decl
 }
 
-// Decl is a top-level declaration. The parser currently produces
-// [PrimitiveDecl] and [AliasDecl]; the remaining forms arrive with phase 2
-// of docs/design/parser-plan.md.
+// Decl is a top-level declaration. `class` and `instance` arrive with
+// phase 4 of docs/design/parser-plan.md; every other form is here.
 type Decl interface {
 	Pos() Position
 	Name() string
 	docLines() []string
+	deprecation() *Deprecation
 }
 
 // PackageDecl is a `package <dotted.ident>` declaration.
@@ -42,30 +42,18 @@ type ImportDecl struct {
 // PrimitiveDecl is a `primitive Name` or `primitive Name: Kind` declaration.
 // It introduces an opaque, irreducible root type.
 type PrimitiveDecl struct {
-	Doc  []string
-	P    Position
-	N    string
+	DeclHead
 	Kind *Kind // nil when the kind is left to inference
 }
-
-func (d *PrimitiveDecl) Pos() Position      { return d.P }
-func (d *PrimitiveDecl) Name() string       { return d.N }
-func (d *PrimitiveDecl) docLines() []string { return d.Doc }
 
 // AliasDecl is an `alias Name = TypeRef` declaration, optionally
 // parameterized. An alias is transparent: it is expanded rather than
 // referenced.
 type AliasDecl struct {
-	Doc    []string
-	P      Position
-	N      string
+	DeclHead
 	Params []*TypeParam
 	Target *TypeRef
 }
-
-func (d *AliasDecl) Pos() Position      { return d.P }
-func (d *AliasDecl) Name() string       { return d.N }
-func (d *AliasDecl) docLines() []string { return d.Doc }
 
 // Doc returns the doc comment lines attached to a declaration.
 func Doc(d Decl) []string { return d.docLines() }

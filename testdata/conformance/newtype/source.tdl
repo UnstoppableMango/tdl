@@ -1,7 +1,5 @@
 package example.newtypes
 
 type Email: string
-
 type UserId: uuid
-
 type WorkEmail: Email

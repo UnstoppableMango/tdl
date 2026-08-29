@@ -57,6 +57,10 @@ Whitespace is insignificant and there are no separator rules: an item ends where
 
 Declaration keywords are reserved. Modifiers and constraint names (`key`, `owned`, `deprecated`, `min`, `max`, `length`, `matches`, `oneOf`, `unique`) are contextual and remain usable as field names.
 
+A reserved word followed by `:` is a field name: `value: T` is a field, and `include Foo` is still an include while `include: Foo` is a field. A contextual modifier followed by `:` is likewise a name, not a modifier.
+
+Inside a target block a directive name may be a reserved word, since the directive namespace belongs to the backend. Directive arguments are parenthesized and comma separated.
+
 `union` is reserved in the grammar and unimplemented. Reserving it keeps its later addition additive.
 
 `tdl fmt` drops ordinary `//` comments: the lexer skips them and they never reach the AST. Doc comments (`///`) survive. Fixing this needs comment attachment in the parser and has no phase yet.

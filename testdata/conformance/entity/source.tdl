@@ -21,5 +21,4 @@ entity User {
 }
 
 type OrderId: string
-
 enum Status { Draft Placed Shipped }

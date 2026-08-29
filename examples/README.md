@@ -3,8 +3,8 @@
 Starting points for playing with the language.
 They are not part of the conformance corpus, so edit them freely.
 
-They are written in the current grammar, which the parser does not read yet: everything here needs `entity`, `value`, and `enum` from phase 2 of [../docs/design/parser-plan.md](../docs/design/parser-plan.md).
-`scratch.tdl` and `prelude/std.tdl` are what parses today.
+All four parse.
+Constraint blocks, classes, and units do not exist yet; see [../docs/design/parser-plan.md](../docs/design/parser-plan.md).
 
 | File | What it shows |
 | --- | --- |
@@ -31,4 +31,5 @@ Things to try:
 - Replace `customer: Customer` with the five inlined fields from `flat.tdl` and compare `stats`.
 - Break a line on purpose. The `errors` view points a caret at the column, and parsing continues past it to the next declaration.
 - Put a comma between two fields. Whitespace is insignificant and commas are not block separators, so it is a syntax error.
+- Name a field `value` or `type`. A reserved word followed by `:` is a field name.
 - Write `union Foo { ... }`. It is reserved in the grammar and unimplemented.

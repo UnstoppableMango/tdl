@@ -21,6 +21,8 @@ Almost everything that looks like a type system is library code written in TDL a
 ## Lexical structure
 
 Identifiers are letters, digits, and underscore, not starting with a digit.
+Declaration keywords are reserved; modifiers and constraint names are not, so `key`, `owned`, `length`, and `min` remain usable as field names.
+A reserved word followed by `:` is a field name, which is why the prelude's `Option<T>` can have a field called `value`.
 Comments run from `//` to end of line.
 A comment beginning `///` is a doc comment: it attaches to the declaration, field, or variant that follows, is carried through to the model, and is available to every target.
 Literals are strings (`"..."`), integers, floats, booleans, regexes (`/.../`), and bracketed lists.
@@ -510,7 +512,10 @@ entity Order {
 ```
 
 A default is part of the model rather than a backend setting, because it states something about the domain: what this field means when nothing said otherwise.
-A default must be a literal; there are no expressions, so `now` and `uuid()` are not defaults but backend directives.
+
+A default is a literal or a name.
+A name denotes an enum variant, and may be qualified when the reference is ambiguous to a reader.
+There are no expressions, so `now` and `uuid()` are not defaults but backend directives.
 
 ## Deprecation
 
@@ -540,28 +545,31 @@ target go for billing {
   package "github.com/acme/billing"
 
   User {
-    name "Account"
-    email => tag "json:\"email_address\""
+    name("Account")
+    email => tag("json:\"email_address\"")
   }
 
   Order.items => slice
   Order.tags  => set
 
-  Money   => foreign "github.com/acme/money" "Money"
-  decimal => foreign "github.com/shopspring/decimal" "Decimal"
+  Money   => foreign("github.com/acme/money", "Money")
+  decimal => foreign("github.com/shopspring/decimal", "Decimal")
 }
 ```
 
 A target block names a generator and the package it applies to.
 Entries are either a path into the model followed by `=>` and a directive, a nested block scoping a path, or a bare directive applying to the enclosing scope.
 
+A directive's arguments are parenthesized, and a directive taking none omits the parentheses.
+Whitespace is insignificant, so without a delimiter `table snake_case` followed by another entry could not be told from `table` applied to three arguments.
+
 A path may name a class, which applies the directive to every type satisfying it.
 This is the main practical payoff of classes: a rule is written once rather than repeated per type.
 
 ```tdl
 target sql for billing {
-  Auditable => trigger "set_updated_at"
-  Entity    => table snake_case
+  Auditable => trigger("set_updated_at")
+  Entity    => table(snake_case)
 }
 ```
 

@@ -12,25 +12,19 @@ entity Order {
   tags: {string}
 }
 
-class Auditable {
-  createdAt: instant
-}
-
 target go for billing {
-  out "./gen/go"
-  package "github.com/acme/billing"
-
+  out("./gen/go")
+  package("github.com/acme/billing")
   User {
-    name "Account"
-    email => tag "json:\"email_address\""
+    name("Account")
+    email => tag("json:\"email_address\"")
   }
-
   Order.items => slice
   Order.tags => set
-
-  Auditable => embed "audit.Fields"
+  Auditable => embed("audit.Fields")
 }
 
 target sql for billing {
-  Auditable => trigger "set_updated_at"
+  Order => table("orders")
+  Auditable => trigger("set_updated_at")
 }

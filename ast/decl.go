@@ -1,0 +1,149 @@
+package ast
+
+// DeclHead is the part every declaration shares: its doc comment, its
+// position, its name, and whether it is deprecated.
+type DeclHead struct {
+	Doc []string
+	P   Position
+	N   string
+	Dep *Deprecation
+}
+
+func (h *DeclHead) Pos() Position      { return h.P }
+func (h *DeclHead) Name() string       { return h.N }
+func (h *DeclHead) docLines() []string { return h.Doc }
+
+// Deprecated returns the deprecation attached to a declaration, or nil.
+func Deprecated(d Decl) *Deprecation { return d.deprecation() }
+
+// Deprecation marks a declaration, field, or variant as on its way out.
+type Deprecation struct {
+	P      Position
+	Reason string // "" when written without a reason
+}
+
+// ClassRef names a class, optionally qualified and applied to arguments.
+// It is syntactically a named type reference, but the two are different
+// kinds of thing and the tree keeps them apart.
+type ClassRef struct {
+	P         Position
+	Qualifier string
+	N         string
+	Args      []*TypeRef
+}
+
+// NewtypeDecl is a `type Name: Base` declaration. A newtype is distinct
+// from the type it is built on.
+type NewtypeDecl struct {
+	DeclHead
+	Params   []*TypeParam
+	Base     *TypeRef
+	Requires []*ClassRef
+}
+
+// StructDecl is a declaration with a body of members: `entity`, `value`, or
+// `mixin`. The three share a shape and differ in meaning, so the keyword is
+// recorded rather than split across three identical node types.
+type StructDecl struct {
+	DeclHead
+	Keyword  string // "entity", "value", or "mixin"
+	Params   []*TypeParam
+	Conforms []*ClassRef
+	Requires []*ClassRef
+	Members  []Member
+}
+
+// EnumDecl is a closed set of variants. A variant may carry fields, which
+// makes enum the language's sum type.
+type EnumDecl struct {
+	DeclHead
+	Params   []*TypeParam
+	Conforms []*ClassRef
+	Requires []*ClassRef
+	Variants []*Variant
+}
+
+// TargetDecl is a `target go for billing { ... }` block. Everything a code
+// generator needs lives here rather than in the model.
+type TargetDecl struct {
+	DeclHead
+	For     string // the dotted package name the target applies to
+	Entries []*TargetEntry
+}
+
+// Member is one item in a [StructDecl] body: a [Field] or an [Include].
+type Member interface {
+	MemberPos() Position
+}
+
+// Field is a named, typed member.
+type Field struct {
+	Doc     []string
+	P       Position
+	N       string
+	Key     bool // part of the entity's identity
+	Owned   bool // composition rather than reference
+	Dep     *Deprecation
+	Type    *TypeRef
+	Default *Literal
+}
+
+func (f *Field) MemberPos() Position { return f.P }
+
+// Include copies a mixin's fields into the including declaration.
+type Include struct {
+	P    Position
+	Type *ClassRef
+}
+
+func (i *Include) MemberPos() Position { return i.P }
+
+// Variant is one alternative in an [EnumDecl].
+type Variant struct {
+	Doc    []string
+	P      Position
+	N      string
+	Dep    *Deprecation
+	Fields []*Field // nil for a variant without a payload
+}
+
+// TargetEntry is one entry in a [TargetDecl]: a path scoping a nested
+// block, a path mapped to a directive, or a bare directive applying to the
+// enclosing scope.
+type TargetEntry struct {
+	P         Position
+	Path      string         // "" for a bare directive
+	Directive *Directive     // nil when Entries is set
+	Entries   []*TargetEntry // nil when Directive is set
+}
+
+// Directive is an opaque instruction to a backend. The compiler checks its
+// shape and hands it over; what it means is the backend's business.
+type Directive struct {
+	P    Position
+	N    string
+	Args []*Literal
+}
+
+// LiteralKind identifies which form a [Literal] takes.
+type LiteralKind int
+
+const (
+	LitString LiteralKind = iota
+	LitInt
+	LitFloat
+	LitBool
+	LitList
+	LitName // a dotted name, denoting an enum variant
+)
+
+// Literal is a literal value: a field default, a constraint argument, or a
+// directive argument.
+type Literal struct {
+	P     Position
+	Kind  LiteralKind
+	Text  string     // decoded for LitString, source text otherwise
+	Items []*Literal // set for LitList
+}
+
+func (h *DeclHead) deprecation() *Deprecation { return h.Dep }
