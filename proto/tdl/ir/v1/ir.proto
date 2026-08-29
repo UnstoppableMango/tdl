@@ -170,13 +170,26 @@ enum SyntacticForm {
   SYNTACTIC_FORM_OR_NULL = 6;   // T | null
 }
 
-// Type is one interned type reference: a constructor applied to arguments.
+// Type is one interned type reference: a constructor applied to arguments,
+// or a reference to a type parameter.
 //
 // Lowering interns, so two occurrences of the same type share an entry and
 // an ID comparison is a type comparison.
 message Type {
-  ID ctor = 1;          // indexes Model.decls
+  ID ctor = 1;          // indexes Model.decls; unset when param is set
   repeated ID args = 2; // indexes Model.types
   SyntacticForm wrote = 3;
   Position position = 4;
+  ParamRef param = 5; // set instead of ctor for a type parameter
+}
+
+// ParamRef is a use of a type parameter.
+//
+// Parameters survive rather than being monomorphized away, so a backend
+// with native generics emits them and one without instantiates on its own
+// terms.
+message ParamRef {
+  string name = 1;
+  int32 index = 2; // into the declaring node's params
+  ID owner = 3;    // the declaration that declares it
 }

@@ -5,10 +5,10 @@
 // It is private and free to change. `ir` and `proto` are the compatibility
 // surface, not this.
 //
-// See docs/design/ir-plan.md. This is phase 1: the declaration table and
-// the interned type table. Scopes, shadowing, and the diagnostics for an
-// unresolved name are phase 2, so a name that matches nothing lowers to an
-// ID carrying the name and [ir.Unresolved].
+// See docs/design/ir-plan.md. Phases 1 and 2 are done: the declaration
+// table, the interned type table, scopes, shadowing, recursion rules, and
+// diagnostics for names that resolve to nothing. Imports, classes,
+// instances, constraints, and targets are still to come.
 package sema
 
 import (
@@ -34,14 +34,22 @@ func Lower(file *ast.File) (*ir.Model, Diagnostics) {
 		model:  &ir.Model{},
 		byName: map[string]int32{},
 		types:  map[string]int32{},
+		units:  map[string]bool{},
 	}
+	l.file = newScope(nil)
+	l.scope = l.file
 	if file.Package != nil {
 		l.model.Package = file.Package.Path
+	}
+
+	for _, imp := range file.Imports {
+		l.diags.add(imp.P, "imports are not resolved yet: %q", imp.Path)
 	}
 
 	// Declarations are collected before anything is lowered, so a reference
 	// to a declaration further down the file resolves like one above it.
 	l.collect(file)
+	l.checkRecursion(file)
 	l.lower(file)
 	return l.model, l.diags
 }
@@ -50,31 +58,91 @@ type lowerer struct {
 	model  *ir.Model
 	byName map[string]int32 // declaration name to index
 	types  map[string]int32 // interning key to index
+	units  map[string]bool  // declaration names that are units
+	file   *scope           // the file's declarations
+	scope  *scope           // the scope a type reference resolves against
 	diags  Diagnostics
 }
 
 // collect fills the declaration table with an empty entry per declaration,
 // so every name in the file is known before any type reference is resolved.
+//
+// Only declarations that introduce a type name are bound. An instance is
+// not named, it names the class it is about, and a target block names a
+// backend rather than a type; both live in tables of their own and neither
+// belongs in the type namespace.
 func (l *lowerer) collect(file *ast.File) {
 	for i, decl := range file.Decls {
-		name := decl.Name()
-		if _, dup := l.byName[name]; dup {
-			l.diags.add(decl.Pos(), "%s is declared twice", name)
+		if !namesAType(decl) {
+			l.diags.add(decl.Pos(), "%s is not lowered yet", declKind(decl))
 			continue
 		}
-		l.byName[name] = int32(len(l.model.Decls))
+		name := decl.Name()
+		idx := int32(len(l.model.Decls))
+		if prev, ok := l.file.bind(name, binding{
+			kind: bindDecl,
+			id:   &ir.ID{Index: idx, Name: name},
+			pos:  decl.Pos(),
+		}); !ok {
+			l.diags.add(decl.Pos(), "%s is declared twice, first at %s", name, prev.pos)
+			continue
+		}
+		l.byName[name] = idx
+		if _, isUnit := decl.(*ast.UnitDecl); isUnit {
+			l.units[name] = true
+		}
 		l.model.Decls = append(l.model.Decls, &ir.Decl{Meta: meta(decl, i)})
 	}
 }
 
+// namesAType reports whether a declaration introduces a name other
+// declarations can refer to.
+func namesAType(decl ast.Decl) bool {
+	switch decl.(type) {
+	case *ast.InstanceDecl, *ast.TargetDecl:
+		return false
+	}
+	return true
+}
+
+// declKind names a declaration for a diagnostic about the declaration
+// itself rather than about a name in it.
+func declKind(decl ast.Decl) string {
+	switch d := decl.(type) {
+	case *ast.InstanceDecl:
+		return "instance " + d.Class.N
+	case *ast.TargetDecl:
+		return "target " + d.N
+	}
+	return decl.Name()
+}
+
 func (l *lowerer) lower(file *ast.File) {
 	for _, decl := range file.Decls {
+		if !namesAType(decl) {
+			continue
+		}
 		idx, ok := l.byName[decl.Name()]
 		if !ok {
 			continue // a duplicate, already reported
 		}
 		l.setNode(l.model.Decls[idx], decl)
 	}
+}
+
+// declID returns the ID of a declaration by name, for use as a parameter's
+// owner. Every name here has already been collected.
+func (l *lowerer) declID(name string) *ir.ID {
+	return &ir.ID{Index: l.byName[name], Name: name}
+}
+
+// inScope lowers within a scope and restores the previous one, so a
+// declaration's type parameters are visible in its body and nowhere else.
+func (l *lowerer) inScope(s *scope, f func()) {
+	prev := l.scope
+	l.scope = s
+	f()
+	l.scope = prev
 }
 
 // setNode fills in the oneof. The generated interface behind it is
@@ -85,33 +153,41 @@ func (l *lowerer) setNode(out *ir.Decl, decl ast.Decl) {
 		out.Node = &ir.Decl_Primitive{Primitive: &ir.Primitive{Kind: kind(d.Kind)}}
 
 	case *ast.AliasDecl:
-		out.Node = &ir.Decl_Alias{Alias: &ir.Alias{
-			Params: l.params(d.Params),
-			Target: l.typeRef(d.Target),
-		}}
+		l.inScope(l.paramScope(l.declID(d.N), d.Params), func() {
+			out.Node = &ir.Decl_Alias{Alias: &ir.Alias{
+				Params: l.params(d.Params),
+				Target: l.typeRef(d.Target),
+			}}
+		})
 
 	case *ast.NewtypeDecl:
-		out.Node = &ir.Decl_Newtype{Newtype: &ir.Newtype{
-			Params: l.params(d.Params),
-			Base:   l.typeRef(d.Base),
-		}}
+		l.inScope(l.paramScope(l.declID(d.N), d.Params), func() {
+			out.Node = &ir.Decl_Newtype{Newtype: &ir.Newtype{
+				Params: l.params(d.Params),
+				Base:   l.typeRef(d.Base),
+			}}
+		})
 
 	case *ast.StructDecl:
-		out.Node = &ir.Decl_Structure{Structure: &ir.Struct{
-			Kind:   structKind(d.Keyword),
-			Params: l.params(d.Params),
-			Fields: l.fields(d.Members),
-		}}
+		l.inScope(l.paramScope(l.declID(d.N), d.Params), func() {
+			out.Node = &ir.Decl_Structure{Structure: &ir.Struct{
+				Kind:   structKind(d.Keyword),
+				Params: l.params(d.Params),
+				Fields: l.fields(d.Members),
+			}}
+		})
 
 	case *ast.EnumDecl:
-		e := &ir.Enum{Params: l.params(d.Params)}
-		for i, v := range d.Variants {
-			e.Variants = append(e.Variants, &ir.Variant{
-				Meta:   metaOf(v.N, v.Doc, v.P, v.Dep, i),
-				Fields: l.variantFields(v.Fields),
-			})
-		}
-		out.Node = &ir.Decl_Enumeration{Enumeration: e}
+		l.inScope(l.paramScope(l.declID(d.N), d.Params), func() {
+			e := &ir.Enum{Params: l.params(d.Params)}
+			for i, v := range d.Variants {
+				e.Variants = append(e.Variants, &ir.Variant{
+					Meta:   metaOf(v.N, v.Doc, v.P, v.Dep, i),
+					Fields: l.variantFields(v.Fields),
+				})
+			}
+			out.Node = &ir.Decl_Enumeration{Enumeration: e}
+		})
 
 	default:
 		// Classes, instances, units, and targets arrive in later phases.
@@ -132,21 +208,28 @@ func structKind(keyword string) ir.StructKind {
 }
 
 func (l *lowerer) fields(members []ast.Member) []*ir.Field {
-	var fields []*ir.Field
-	for i, m := range members {
-		f, ok := m.(*ast.Field)
-		if !ok {
-			// `include` is expanded in phase 6, alongside class satisfaction.
-			continue
+	var in []*ast.Field
+	for _, m := range members {
+		if f, ok := m.(*ast.Field); ok {
+			in = append(in, f)
 		}
-		fields = append(fields, l.field(f, i))
+		// `include` is expanded in phase 6, alongside class satisfaction.
 	}
-	return fields
+	return l.variantFields(in)
 }
 
+// variantFields lowers a field list, reporting a name used twice. Field
+// names share one namespace per body, so the check is the same wherever
+// fields appear.
 func (l *lowerer) variantFields(in []*ast.Field) []*ir.Field {
+	seen := map[string]ast.Position{}
 	var fields []*ir.Field
 	for i, f := range in {
+		if prev, dup := seen[f.N]; dup {
+			l.diags.add(f.P, "field %s is declared twice, first at %s", f.N, prev)
+			continue
+		}
+		seen[f.N] = f.P
 		fields = append(fields, l.field(f, i))
 	}
 	return fields

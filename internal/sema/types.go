@@ -70,42 +70,92 @@ func (l *lowerer) coreType(t *ast.TypeRef) *ir.ID {
 		})
 	}
 
-	name := t.N
 	if t.Qualifier != "" {
-		name = t.Qualifier + "." + t.N
+		// Cross-package references need the package loader, which is phase 5.
+		l.diags.add(t.P, "qualified name %s.%s is not resolved yet", t.Qualifier, t.N)
+		return l.intern(&ir.Type{
+			Ctor:     &ir.ID{Index: ir.Unresolved, Name: t.Qualifier + "." + t.N},
+			Args:     l.typeArgs(t.Args),
+			Wrote:    ir.SyntacticForm_SYNTACTIC_FORM_NAMED,
+			Position: position(t.P),
+		})
 	}
+
+	// A type parameter shadows a declaration of the same name inside the
+	// declaration that declares it, so the scope is consulted before the
+	// declaration table.
+	if b, ok := l.scope.lookup(t.N); ok && b.kind == bindParam {
+		if len(t.Args) > 0 {
+			// A higher-kinded parameter applied to arguments, as in `f<T>`.
+			return l.intern(&ir.Type{
+				Param:    &ir.ParamRef{Name: t.N, Index: b.index, Owner: b.owner},
+				Args:     l.typeArgs(t.Args),
+				Wrote:    ir.SyntacticForm_SYNTACTIC_FORM_NAMED,
+				Position: position(t.P),
+			})
+		}
+		return l.intern(&ir.Type{
+			Param:    &ir.ParamRef{Name: t.N, Index: b.index, Owner: b.owner},
+			Wrote:    ir.SyntacticForm_SYNTACTIC_FORM_NAMED,
+			Position: position(t.P),
+		})
+	}
+
 	return l.intern(&ir.Type{
-		Ctor:     l.ctor(name, t.P),
+		Ctor:     l.ctor(t.N, t.P),
 		Args:     l.typeArgs(t.Args),
 		Wrote:    ir.SyntacticForm_SYNTACTIC_FORM_NAMED,
 		Position: position(t.P),
 	})
 }
 
+// typeArgs lowers a `<...>` argument list.
+//
+// A bare name could be a type or a unit and the parser cannot tell them
+// apart, so this is where the question is settled: an argument naming a
+// unit declaration is a unit argument. Units are deferred, so that is a
+// diagnostic rather than a lowering, which is what ir.md asks for now that
+// the parser produces them.
 func (l *lowerer) typeArgs(args []*ast.TypeArg) []*ir.ID {
 	var out []*ir.ID
 	for _, a := range args {
-		if a.Unit != nil {
-			// Units are deferred; ir.md says so and says lowering should say
-			// so rather than dropping them.
+		switch {
+		case a.Unit != nil:
 			l.diags.add(a.P, "unit arguments are not lowered yet")
 			out = append(out, &ir.ID{Index: ir.Unresolved})
-			continue
+		case a.Type != nil && l.namesAUnit(a.Type):
+			l.diags.add(a.P, "unit arguments are not lowered yet")
+			out = append(out, &ir.ID{Index: ir.Unresolved})
+		default:
+			out = append(out, l.typeRef(a.Type))
 		}
-		out = append(out, l.typeRef(a.Type))
 	}
 	return out
 }
 
-// ctor resolves a constructor name against the declaration table.
-//
-// A name that matches nothing keeps its text and carries [ir.Unresolved].
-// Turning that into a diagnostic is phase 2's job, along with scopes and
-// shadowing; until then the tree records what was written.
-func (l *lowerer) ctor(name string, _ ast.Position) *ir.ID {
-	if idx, ok := l.byName[name]; ok {
-		return &ir.ID{Index: idx, Name: name}
+// namesAUnit reports whether a bare argument resolves to a unit
+// declaration, which is what makes it a unit argument rather than a type
+// argument.
+func (l *lowerer) namesAUnit(t *ast.TypeRef) bool {
+	if t.N == "" || t.Qualifier != "" || len(t.Args) > 0 {
+		return false
 	}
+	if b, ok := l.scope.lookup(t.N); !ok || b.kind != bindDecl {
+		return false
+	}
+	return l.units[t.N]
+}
+
+// ctor resolves a constructor name against the enclosing scope.
+//
+// A name that matches nothing is a diagnostic, and the ID still keeps the
+// text so the rest of the pass has something to carry and later output can
+// say what was written.
+func (l *lowerer) ctor(name string, pos ast.Position) *ir.ID {
+	if b, ok := l.scope.lookup(name); ok && b.kind == bindDecl {
+		return b.id
+	}
+	l.diags.add(pos, "undefined: %s", name)
 	return &ir.ID{Index: ir.Unresolved, Name: name}
 }
 

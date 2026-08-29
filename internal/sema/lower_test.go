@@ -8,9 +8,23 @@ import (
 	"github.com/unstoppablemango/tdl/parser"
 )
 
+// preamble declares the prelude names sugar lowers to. Phase 4 loads
+// prelude/std.tdl for real; until then a file that uses `[T]` has to
+// declare `List` itself, which is what "no type is built in" means.
+const preamble = `primitive string
+primitive T
+primitive K
+primitive V
+primitive List: type -> type
+primitive Set: type -> type
+primitive Map: type -> type -> type
+primitive Option: type -> type
+primitive Nullable: type -> type
+`
+
 func lower(t *testing.T, src string) *ir.Model {
 	t.Helper()
-	file, err := parser.Parse("test.tdl", strings.NewReader(src))
+	file, err := parser.Parse("test.tdl", strings.NewReader(preamble+src))
 	if err != nil {
 		t.Fatalf("unexpected parse error: %v", err)
 	}
@@ -23,7 +37,7 @@ func lower(t *testing.T, src string) *ir.Model {
 
 func lowerDiags(t *testing.T, src string) Diagnostics {
 	t.Helper()
-	file, err := parser.Parse("test.tdl", strings.NewReader(src))
+	file, err := parser.Parse("test.tdl", strings.NewReader(preamble+src))
 	if err != nil {
 		t.Fatalf("unexpected parse error: %v", err)
 	}
@@ -34,11 +48,11 @@ func lowerDiags(t *testing.T, src string) Diagnostics {
 	return diags
 }
 
+// declCount is how many declarations the preamble contributes.
+const declCount = 9
+
 func TestDeclarationTable(t *testing.T) {
 	model := lower(t, `
-package shop
-
-primitive string
 alias Names = [string]
 type Email: string
 
@@ -54,11 +68,8 @@ mixin Timestamps { createdAt: string }
 enum Status { Draft Placed }
 `)
 
-	if model.GetPackage() != "shop" {
-		t.Errorf("package = %q", model.GetPackage())
-	}
-	if got := len(model.GetDecls()); got != 7 {
-		t.Fatalf("got %d decls, want 7", got)
+	if got := len(model.GetDecls()); got != declCount+6 {
+		t.Fatalf("got %d decls, want %d", got, declCount+6)
 	}
 
 	order, id, ok := model.FindDecl("Order")
@@ -128,7 +139,8 @@ func TestSugarLowering(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.src, func(t *testing.T) {
 			model := lower(t, "alias X = "+tt.src)
-			target := model.GetDecls()[0].GetAlias().GetTarget()
+			x, _, _ := model.FindDecl("X")
+			target := x.GetAlias().GetTarget()
 			ty := model.Type(target)
 			if got := ty.GetCtor().GetName(); got != tt.ctor {
 				t.Errorf("ctor = %q, want %q", got, tt.ctor)
@@ -149,8 +161,10 @@ alias A = [T]
 alias B = List<T>
 `)
 
-	a := model.GetDecls()[0].GetAlias().GetTarget()
-	b := model.GetDecls()[1].GetAlias().GetTarget()
+	da, _, _ := model.FindDecl("A")
+	db, _, _ := model.FindDecl("B")
+	a := da.GetAlias().GetTarget()
+	b := db.GetAlias().GetTarget()
 	if a.GetIndex() == b.GetIndex() {
 		t.Error("the bracket and named forms share an entry")
 	}
@@ -163,7 +177,8 @@ alias B = List<T>
 func TestOptionalAndNullable(t *testing.T) {
 	model := lower(t, `alias X = T? | null`)
 
-	outer := model.Type(model.GetDecls()[0].GetAlias().GetTarget())
+	x, _, _ := model.FindDecl("X")
+	outer := model.Type(x.GetAlias().GetTarget())
 	if outer.GetCtor().GetName() != "Nullable" {
 		t.Fatalf("outer ctor = %q", outer.GetCtor().GetName())
 	}
@@ -184,29 +199,27 @@ value A { x: [string] }
 value B { y: [string] }
 `)
 
-	a := model.GetDecls()[0].Fields()[0].GetType()
-	b := model.GetDecls()[1].Fields()[0].GetType()
+	da, _, _ := model.FindDecl("A")
+	db, _, _ := model.FindDecl("B")
+	a := da.Fields()[0].GetType()
+	b := db.Fields()[0].GetType()
 	if a.GetIndex() != b.GetIndex() {
 		t.Errorf("the same type interned twice: %d and %d", a.GetIndex(), b.GetIndex())
 	}
 
-	// [string] is List<string>, so string is in the table too.
+	// [string] is List<string>, so string is in the table too, and nothing
+	// else is.
 	if got := len(model.GetTypes()); got != 2 {
 		t.Errorf("type table holds %d entries, want 2", got)
 	}
 }
 
-// An unresolved name keeps its text and carries ir.Unresolved. Turning that
-// into a diagnostic is phase 2.
-func TestUnresolvedNameIsRecorded(t *testing.T) {
-	model := lower(t, `value A { x: Missing }`)
-
-	ctor := model.Type(model.GetDecls()[0].Fields()[0].GetType()).GetCtor()
-	if ctor.Resolved() {
-		t.Error("a name that matches nothing resolved")
-	}
-	if ctor.GetName() != "Missing" {
-		t.Errorf("name = %q, want Missing", ctor.GetName())
+// An unresolved name is a diagnostic, and the ID keeps the text so later
+// output can say what was written.
+func TestUndefinedName(t *testing.T) {
+	diags := lowerDiags(t, `value A { x: Missing }`)
+	if !strings.Contains(diags.Error(), "undefined: Missing") {
+		t.Errorf("diagnostics = %v", diags)
 	}
 }
 
@@ -221,7 +234,7 @@ entity Order {
 }
 `)
 
-	order := model.GetDecls()[0]
+	order, _, _ := model.FindDecl("Order")
 	m := order.GetMeta()
 	if len(m.GetDoc()) != 1 || m.GetDoc()[0] != "An order someone placed." {
 		t.Errorf("doc = %q", m.GetDoc())
@@ -231,7 +244,7 @@ entity Order {
 	}
 	// The position is the declaration keyword, not the doc comment or the
 	// deprecation that precede it.
-	if m.GetPosition().GetLine() != 4 {
+	if m.GetPosition().GetLine() != declCount+4 {
 		t.Errorf("position = %+v", m.GetPosition())
 	}
 
@@ -259,7 +272,12 @@ value A { y: string }
 
 // Units are deferred, and lowering says so rather than dropping them.
 func TestUnitArgumentsAreRejected(t *testing.T) {
-	diags := lowerDiags(t, `value W { net: decimal<kg*m/s^2> }`)
+	diags := lowerDiags(t, `
+primitive decimal
+unit kg
+unit m
+unit s
+value W { net: decimal<kg*m/s^2> }`)
 	if !strings.Contains(diags.Error(), "unit arguments are not lowered yet") {
 		t.Errorf("diagnostics = %v", diags)
 	}
@@ -269,5 +287,163 @@ func TestUnloweredDeclarations(t *testing.T) {
 	diags := lowerDiags(t, `class Auditable { createdAt: string }`)
 	if !strings.Contains(diags.Error(), "not lowered yet") {
 		t.Errorf("diagnostics = %v", diags)
+	}
+}
+
+// A type parameter shadows a declaration of the same name, inside the
+// declaration that declares it and nowhere else.
+func TestTypeParameterShadowing(t *testing.T) {
+	model := lower(t, `
+value Box<string> { held: string }
+value Plain { held: string }
+`)
+
+	box, _, _ := model.FindDecl("Box")
+	held := model.Type(box.Fields()[0].GetType())
+	if held.GetParam() == nil {
+		t.Fatalf("inside Box, string is not the parameter: %+v", held)
+	}
+	if held.GetParam().GetName() != "string" || held.GetParam().GetOwner().GetName() != "Box" {
+		t.Errorf("param = %+v", held.GetParam())
+	}
+
+	plain, _, _ := model.FindDecl("Plain")
+	outside := model.Type(plain.Fields()[0].GetType())
+	if outside.GetParam() != nil {
+		t.Error("the parameter escaped the declaration that declares it")
+	}
+	if outside.GetCtor().GetName() != "string" {
+		t.Errorf("outside Box, string = %+v", outside.GetCtor())
+	}
+}
+
+func TestHigherKindedParameterApplied(t *testing.T) {
+	model := lower(t, `value Collection<f, E> { items: f<E> }`)
+
+	c, _, _ := model.FindDecl("Collection")
+	items := model.Type(c.Fields()[0].GetType())
+	if items.GetParam().GetName() != "f" {
+		t.Fatalf("ctor = %+v", items)
+	}
+	if len(items.GetArgs()) != 1 {
+		t.Fatalf("got %d args, want 1", len(items.GetArgs()))
+	}
+	if arg := model.Type(items.GetArgs()[0]); arg.GetParam().GetName() != "E" {
+		t.Errorf("argument = %+v", arg)
+	}
+}
+
+func TestDuplicateTypeParameter(t *testing.T) {
+	diags := lowerDiags(t, `value Holder<P, P> { x: P }`)
+	if !strings.Contains(diags.Error(), "type parameter P is declared twice") {
+		t.Errorf("diagnostics = %v", diags)
+	}
+}
+
+func TestDuplicateField(t *testing.T) {
+	diags := lowerDiags(t, `value Holder { x: string x: string }`)
+	if !strings.Contains(diags.Error(), "field x is declared twice") {
+		t.Errorf("diagnostics = %v", diags)
+	}
+}
+
+// Entities may be mutually recursive without restriction: a cycle between
+// them is a graph of references, which every backend can represent.
+func TestEntityRecursionAllowed(t *testing.T) {
+	lower(t, `
+entity Order { items: [LineItem] owned self: Order }
+entity LineItem { order: Order }
+`)
+}
+
+// A value may reach itself only through a collection or an optional.
+func TestValueRecursion(t *testing.T) {
+	lower(t, `
+value Ok { next: Ok? children: [Ok] byName: {string -> Ok} }
+`)
+
+	for _, src := range []string{
+		`value Node { next: Node }`,
+		`value A { b: B }
+value B { a: A }`,
+		`enum Tree { Branch { left: Tree } }`,
+	} {
+		t.Run(src, func(t *testing.T) {
+			diags := lowerDiags(t, src)
+			if !strings.Contains(diags.Error(), "contain") {
+				t.Errorf("diagnostics = %v", diags)
+			}
+		})
+	}
+}
+
+// Aliases are expanded rather than referenced, so no cycle terminates,
+// not even one through a collection.
+func TestAliasRecursion(t *testing.T) {
+	for _, src := range []string{
+		`alias A = A`,
+		`alias A = [A]`,
+		`alias A = B
+alias B = A`,
+	} {
+		t.Run(src, func(t *testing.T) {
+			diags := lowerDiags(t, src)
+			if !strings.Contains(diags.Error(), "contain") {
+				t.Errorf("diagnostics = %v", diags)
+			}
+		})
+	}
+}
+
+func TestImportsNotResolvedYet(t *testing.T) {
+	diags := lowerDiags(t, `import "common.tdl" as common`)
+	if !strings.Contains(diags.Error(), "imports are not resolved yet") {
+		t.Errorf("diagnostics = %v", diags)
+	}
+}
+
+func TestQualifiedNameNotResolvedYet(t *testing.T) {
+	diags := lowerDiags(t, `value Holder { a: common.Address }`)
+	if !strings.Contains(diags.Error(), "not resolved yet") {
+		t.Errorf("diagnostics = %v", diags)
+	}
+}
+
+// Every diagnostic in a pass is reported, not just the first.
+func TestDiagnosticsAccumulate(t *testing.T) {
+	diags := lowerDiags(t, `value Holder { a: Missing b: AlsoMissing }`)
+	if len(diags) != 2 {
+		t.Errorf("got %d diagnostics, want 2: %v", len(diags), diags)
+	}
+}
+
+// An instance names the class it is about, not itself, so several
+// instances of one class do not collide and none collides with the class.
+func TestInstancesAreNotTypeNames(t *testing.T) {
+	diags := lowerDiags(t, `
+class Auditable { createdAt: string }
+instance Auditable for A
+instance Auditable for B
+value A { x: string }
+value B { x: string }
+`)
+
+	for _, d := range diags {
+		if strings.Contains(d.Msg, "declared twice") {
+			t.Errorf("instances collided in the type namespace: %s", d.Error())
+		}
+	}
+}
+
+func TestTargetsAreNotTypeNames(t *testing.T) {
+	diags := lowerDiags(t, `
+value go { x: string }
+target go for p { out("./gen") }
+`)
+
+	for _, d := range diags {
+		if strings.Contains(d.Msg, "declared twice") {
+			t.Errorf("a target collided with a type: %s", d.Error())
+		}
 	}
 }

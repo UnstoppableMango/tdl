@@ -1174,16 +1174,18 @@ func (x *Kind) GetArrow() *Kind {
 	return nil
 }
 
-// Type is one interned type reference: a constructor applied to arguments.
+// Type is one interned type reference: a constructor applied to arguments,
+// or a reference to a type parameter.
 //
 // Lowering interns, so two occurrences of the same type share an entry and
 // an ID comparison is a type comparison.
 type Type struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ctor          *ID                    `protobuf:"bytes,1,opt,name=ctor,proto3" json:"ctor,omitempty"` // indexes Model.decls
+	Ctor          *ID                    `protobuf:"bytes,1,opt,name=ctor,proto3" json:"ctor,omitempty"` // indexes Model.decls; unset when param is set
 	Args          []*ID                  `protobuf:"bytes,2,rep,name=args,proto3" json:"args,omitempty"` // indexes Model.types
 	Wrote         SyntacticForm          `protobuf:"varint,3,opt,name=wrote,proto3,enum=tdl.ir.v1.SyntacticForm" json:"wrote,omitempty"`
 	Position      *Position              `protobuf:"bytes,4,opt,name=position,proto3" json:"position,omitempty"`
+	Param         *ParamRef              `protobuf:"bytes,5,opt,name=param,proto3" json:"param,omitempty"` // set instead of ctor for a type parameter
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1242,6 +1244,78 @@ func (x *Type) GetWrote() SyntacticForm {
 func (x *Type) GetPosition() *Position {
 	if x != nil {
 		return x.Position
+	}
+	return nil
+}
+
+func (x *Type) GetParam() *ParamRef {
+	if x != nil {
+		return x.Param
+	}
+	return nil
+}
+
+// ParamRef is a use of a type parameter.
+//
+// Parameters survive rather than being monomorphized away, so a backend
+// with native generics emits them and one without instantiates on its own
+// terms.
+type ParamRef struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Index         int32                  `protobuf:"varint,2,opt,name=index,proto3" json:"index,omitempty"` // into the declaring node's params
+	Owner         *ID                    `protobuf:"bytes,3,opt,name=owner,proto3" json:"owner,omitempty"`  // the declaration that declares it
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ParamRef) Reset() {
+	*x = ParamRef{}
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ParamRef) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ParamRef) ProtoMessage() {}
+
+func (x *ParamRef) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ParamRef.ProtoReflect.Descriptor instead.
+func (*ParamRef) Descriptor() ([]byte, []int) {
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *ParamRef) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *ParamRef) GetIndex() int32 {
+	if x != nil {
+		return x.Index
+	}
+	return 0
+}
+
+func (x *ParamRef) GetOwner() *ID {
+	if x != nil {
+		return x.Owner
 	}
 	return nil
 }
@@ -1311,12 +1385,17 @@ const file_tdl_ir_v1_ir_proto_rawDesc = "" +
 	"\x04Kind\x12'\n" +
 	"\x04atom\x18\x01 \x01(\x0e2\x13.tdl.ir.v1.KindAtomR\x04atom\x12%\n" +
 	"\x05paren\x18\x02 \x01(\v2\x0f.tdl.ir.v1.KindR\x05paren\x12%\n" +
-	"\x05arrow\x18\x03 \x01(\v2\x0f.tdl.ir.v1.KindR\x05arrow\"\xad\x01\n" +
+	"\x05arrow\x18\x03 \x01(\v2\x0f.tdl.ir.v1.KindR\x05arrow\"\xd8\x01\n" +
 	"\x04Type\x12!\n" +
 	"\x04ctor\x18\x01 \x01(\v2\r.tdl.ir.v1.IDR\x04ctor\x12!\n" +
 	"\x04args\x18\x02 \x03(\v2\r.tdl.ir.v1.IDR\x04args\x12.\n" +
 	"\x05wrote\x18\x03 \x01(\x0e2\x18.tdl.ir.v1.SyntacticFormR\x05wrote\x12/\n" +
-	"\bposition\x18\x04 \x01(\v2\x13.tdl.ir.v1.PositionR\bposition*o\n" +
+	"\bposition\x18\x04 \x01(\v2\x13.tdl.ir.v1.PositionR\bposition\x12)\n" +
+	"\x05param\x18\x05 \x01(\v2\x13.tdl.ir.v1.ParamRefR\x05param\"Y\n" +
+	"\bParamRef\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05index\x18\x02 \x01(\x05R\x05index\x12#\n" +
+	"\x05owner\x18\x03 \x01(\v2\r.tdl.ir.v1.IDR\x05owner*o\n" +
 	"\n" +
 	"StructKind\x12\x1b\n" +
 	"\x17STRUCT_KIND_UNSPECIFIED\x10\x00\x12\x16\n" +
@@ -1349,7 +1428,7 @@ func file_tdl_ir_v1_ir_proto_rawDescGZIP() []byte {
 }
 
 var file_tdl_ir_v1_ir_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_tdl_ir_v1_ir_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_tdl_ir_v1_ir_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_tdl_ir_v1_ir_proto_goTypes = []any{
 	(StructKind)(0),     // 0: tdl.ir.v1.StructKind
 	(KindAtom)(0),       // 1: tdl.ir.v1.KindAtom
@@ -1370,6 +1449,7 @@ var file_tdl_ir_v1_ir_proto_goTypes = []any{
 	(*Param)(nil),       // 16: tdl.ir.v1.Param
 	(*Kind)(nil),        // 17: tdl.ir.v1.Kind
 	(*Type)(nil),        // 18: tdl.ir.v1.Type
+	(*ParamRef)(nil),    // 19: tdl.ir.v1.ParamRef
 }
 var file_tdl_ir_v1_ir_proto_depIdxs = []int32{
 	4,  // 0: tdl.ir.v1.Deprecation.position:type_name -> tdl.ir.v1.Position
@@ -1406,11 +1486,13 @@ var file_tdl_ir_v1_ir_proto_depIdxs = []int32{
 	3,  // 31: tdl.ir.v1.Type.args:type_name -> tdl.ir.v1.ID
 	2,  // 32: tdl.ir.v1.Type.wrote:type_name -> tdl.ir.v1.SyntacticForm
 	4,  // 33: tdl.ir.v1.Type.position:type_name -> tdl.ir.v1.Position
-	34, // [34:34] is the sub-list for method output_type
-	34, // [34:34] is the sub-list for method input_type
-	34, // [34:34] is the sub-list for extension type_name
-	34, // [34:34] is the sub-list for extension extendee
-	0,  // [0:34] is the sub-list for field type_name
+	19, // 34: tdl.ir.v1.Type.param:type_name -> tdl.ir.v1.ParamRef
+	3,  // 35: tdl.ir.v1.ParamRef.owner:type_name -> tdl.ir.v1.ID
+	36, // [36:36] is the sub-list for method output_type
+	36, // [36:36] is the sub-list for method input_type
+	36, // [36:36] is the sub-list for extension type_name
+	36, // [36:36] is the sub-list for extension extendee
+	0,  // [0:36] is the sub-list for field type_name
 }
 
 func init() { file_tdl_ir_v1_ir_proto_init() }
@@ -1431,7 +1513,7 @@ func file_tdl_ir_v1_ir_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tdl_ir_v1_ir_proto_rawDesc), len(file_tdl_ir_v1_ir_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   16,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
