@@ -1,14 +1,11 @@
 package example.parameters
 
-value Page<T> {
-  items: [T]
-  next: Cursor?
-}
+alias Applied<f: type -> type, T: type> = f<T>
 
-value Collection<f: type -> type, T: type> {
-  items: f<T>
-}
+alias Inferred<f, T> = f<T>
 
-value Cursor {
-  token: string
-}
+alias Curried<f: type -> type -> type, A, B> = f<A, B>
+
+alias Parenthesized<f: (type -> type) -> type, g> = f<g>
+
+alias Measured<T, u: unit> = T<u>

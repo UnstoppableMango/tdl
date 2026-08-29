@@ -13,9 +13,14 @@ import (
 // every source.tdl parses without error. This corpus is plain text data,
 // not Go code, so a future non-Go TDL implementation can run the same
 // check against the same files (see docs/spec.md).
+//
+// A case directory containing a `pending` file describes a construct the
+// parser cannot read yet and is skipped. The phase that implements the
+// construct deletes the marker; see docs/design/parser-plan.md.
 func TestConformanceCorpusParses(t *testing.T) {
 	for _, dir := range subdirs(t, "../testdata/conformance") {
 		t.Run(filepath.Base(dir), func(t *testing.T) {
+			skipPending(t, dir)
 			data, err := os.ReadFile(filepath.Join(dir, "source.tdl"))
 			if err != nil {
 				t.Fatalf("reading source.tdl: %v", err)
@@ -33,6 +38,7 @@ func TestConformanceCorpusParses(t *testing.T) {
 func TestInvalidCorpusFails(t *testing.T) {
 	for _, dir := range subdirs(t, "../testdata/invalid") {
 		t.Run(filepath.Base(dir), func(t *testing.T) {
+			skipPending(t, dir)
 			data, err := os.ReadFile(filepath.Join(dir, "source.tdl"))
 			if err != nil {
 				t.Fatalf("reading source.tdl: %v", err)
@@ -51,6 +57,17 @@ func TestInvalidCorpusFails(t *testing.T) {
 			}
 		})
 	}
+}
+
+// skipPending skips a corpus case whose directory holds a `pending` file,
+// reporting the reason it records.
+func skipPending(t *testing.T, dir string) {
+	t.Helper()
+	reason, err := os.ReadFile(filepath.Join(dir, "pending"))
+	if err != nil {
+		return
+	}
+	t.Skip(strings.TrimSpace(string(reason)))
 }
 
 func subdirs(t *testing.T, root string) []string {

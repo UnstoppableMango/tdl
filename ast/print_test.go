@@ -8,7 +8,7 @@ import (
 	"github.com/unstoppablemango/tdl/parser"
 )
 
-func parse(t *testing.T, src string) *ast.File {
+func mustParse(t *testing.T, src string) *ast.File {
 	t.Helper()
 	file, err := parser.Parse("test.tdl", strings.NewReader(src))
 	if err != nil {
@@ -17,43 +17,45 @@ func parse(t *testing.T, src string) *ast.File {
 	return file
 }
 
-func TestFprintGolden(t *testing.T) {
-	src := `package example.v1
+func TestFprintCanonical(t *testing.T) {
+	src := `package example.aliases
 
 import "common.tdl" as common
 
-@go(pkg: "example")
-type User {
-  id: string
-  name: string?
-  tags: list<string>
-  metadata: map<string, string>
-  address: common.Address?
-  role: Role = "member"
-}
+/// A handler table.
+primitive string
 
-enum Role {
-  Admin = "admin"
-  Member = "member"
-  Guest = "guest"
-}
+primitive Map: type -> type -> type
+
+primitive Higher: (type -> type) -> type
+
+alias Applied<f: type -> type, T> = f<T>
+
+alias Handler = {string -> [Event]}
+
+alias Both = LineItem? | null
+
+alias Qualified = Map<string, common.Address>
 `
-	got := ast.Fprint(parse(t, src))
+
+	got := ast.Fprint(mustParse(t, src))
 	if got != src {
-		t.Fatalf("Fprint mismatch:\n--- got ---\n%s\n--- want ---\n%s", got, src)
+		t.Errorf("Fprint mismatch\n--- got ---\n%s\n--- want ---\n%s", got, src)
 	}
 }
 
-func TestFprintIsIdempotent(t *testing.T) {
-	src := `
-type   User    {
-id:string
-  name : string ?
-}
+// Formatting canonical output must change nothing, and formatting anything
+// else must reach canonical output in one pass.
+func TestFprintIdempotent(t *testing.T) {
+	messy := `package   p
+primitive string primitive int
+alias   A=[  T ]
+alias B = { K->V }
 `
-	once := ast.Fprint(parse(t, src))
-	twice := ast.Fprint(parse(t, once))
+
+	once := ast.Fprint(mustParse(t, messy))
+	twice := ast.Fprint(mustParse(t, once))
 	if once != twice {
-		t.Fatalf("formatting is not idempotent:\n--- once ---\n%s\n--- twice ---\n%s", once, twice)
+		t.Errorf("not idempotent\n--- once ---\n%s\n--- twice ---\n%s", once, twice)
 	}
 }

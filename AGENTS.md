@@ -29,11 +29,12 @@ The specification is ahead of the implementation. `docs/spec.md` and the corpus 
 
 Pipeline, one package per stage:
 
-- `lex` — hand-written lexer. `lex.Kind` covers idents, literals, keywords, and punctuation; `LookupIdent` turns an identifier into a keyword kind. Positions originate here and flow through the AST as `ast.Position` (a type alias).
-- `parser` — recursive descent over the token stream, producing `*ast.File`. Errors accumulate in an `ErrorList` rather than aborting: `syncTop` and `syncField` resynchronize at declaration and field boundaries so one bad line does not swallow the rest of the file.
+- `lex` — hand-written lexer. `lex.Kind` covers idents, literals, keywords, and punctuation; `LookupIdent` turns an identifier into a keyword kind. Positions originate here and flow through the AST as `ast.Position` (a type alias). Regex literals are scanned only on request via `RescanRegexAt`, because `/` is also division in a unit expression.
+- `parser` — recursive descent over the token stream, producing `*ast.File`. Errors accumulate in an `ErrorList` rather than aborting: `syncTop` resynchronizes at the next declaration so one bad line does not swallow the rest of the file.
 - `ast` — parse tree mirroring source 1:1, names left unresolved. `ast.Fprint` produces the canonical formatting used by `tdl fmt`.
 - `internal/cli` — cobra commands (`ast`, `check`, `fmt`, `play`, `tokens`, `version`) wired in `root.go`. `play` is a watch-mode playground that re-renders a file on save; `examples/` holds files to experiment with and is outside the conformance corpus.
 - `internal/sema` — ast to ir. Does not exist yet; see `docs/design/ir-plan.md`.
+- `prelude/std.tdl` — the standard prelude, written in TDL. Nothing loads it yet; it is the target the parser is built against.
 - `cmd/tdl` — main.
 
 An `ir` package (resolved semantic model consumed by backends) is designed in `docs/design/ir.md` but does not exist yet. There are no code-generation backends.
@@ -43,6 +44,8 @@ An `ir` package (resolved semantic model consumed by backends) is designed in `d
 `docs/spec.md` is canonical; `docs/grammar.ebnf` holds the formal grammar. Both must be updated alongside any grammar or lexer change.
 
 `testdata/conformance/*/source.tdl` must parse cleanly; `testdata/invalid/*/source.tdl` must fail with an error containing the text in the sibling `error.golden`. Both corpora are plain text, deliberately not Go code, so a non-Go implementation can run the same checks. `parser/conformance_test.go` walks them automatically, so adding a directory is enough to add a case.
+
+A case directory holding a `pending` file describes a construct the parser cannot read yet and is skipped, with the file's text as the skip reason. The phase that implements the construct deletes the marker. The corpus is the written-down target, not a record of what already works.
 
 `tdl fmt` must be idempotent: formatting canonical output is a no-op.
 
@@ -55,5 +58,7 @@ Whitespace is insignificant and there are no separator rules: an item ends where
 Declaration keywords are reserved. Modifiers and constraint names (`key`, `owned`, `deprecated`, `min`, `max`, `length`, `matches`, `oneOf`, `unique`) are contextual and remain usable as field names.
 
 `union` is reserved in the grammar and unimplemented. Reserving it keeps its later addition additive.
+
+`tdl fmt` drops ordinary `//` comments: the lexer skips them and they never reach the AST. Doc comments (`///`) survive. Fixing this needs comment attachment in the parser and has no phase yet.
 
 `toolVersion` and `specVersion` are hardcoded constants in `internal/cli/version.go`.

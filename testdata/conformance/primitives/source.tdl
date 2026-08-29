@@ -1,5 +1,6 @@
 package prelude.roots
 
+/// An opaque, irreducible root type.
 primitive string
 primitive int
 primitive bool
@@ -8,3 +9,5 @@ primitive bytes
 primitive List: type -> type
 primitive Set: type -> type
 primitive Map: type -> type -> type
+primitive Measured: unit -> type
+primitive Higher: (type -> type) -> type

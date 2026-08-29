@@ -1,136 +1,141 @@
 package ast
 
 import (
-	"fmt"
-	"strconv"
 	"strings"
 )
 
-// Fprint writes canonical TDL source text for file to a string. This is
-// the single source of truth for what `tdl fmt` produces: formatting is
-// deterministic and depends only on the parsed tree, never on the
-// original source's whitespace.
+// Fprint renders file as canonical TDL source, the formatting produced by
+// `tdl fmt`. It is idempotent: formatting canonical output changes nothing.
+//
+// Whitespace is insignificant in TDL, so the formatter owns layout
+// entirely. Its decisions depend only on the tree, never on how the input
+// was written, which is what makes idempotence hold.
 func Fprint(file *File) string {
 	var b strings.Builder
 
 	if file.Package != nil {
-		fmt.Fprintf(&b, "package %s\n\n", file.Package.Name)
+		b.WriteString("package " + file.Package.Path + "\n")
 	}
 
 	if len(file.Imports) > 0 {
+		if b.Len() > 0 {
+			b.WriteString("\n")
+		}
 		for _, imp := range file.Imports {
-			fmt.Fprintf(&b, "import %q as %s\n", imp.Path, imp.Alias)
+			for _, line := range imp.Doc {
+				b.WriteString(strings.TrimRight("/// "+line, " ") + "\n")
+			}
+			b.WriteString("import " + quote(imp.Path) + " as " + imp.Alias + "\n")
 		}
-		b.WriteByte('\n')
 	}
 
-	first := true
-	sep := func() {
-		if !first {
-			b.WriteByte('\n')
+	for _, decl := range file.Decls {
+		if b.Len() > 0 {
+			b.WriteString("\n")
 		}
-		first = false
-	}
-
-	for _, ty := range file.Types {
-		sep()
-		printAnnotations(&b, ty.Annotations, "")
-		fmt.Fprintf(&b, "type %s {\n", ty.Name)
-		for _, f := range ty.Fields {
-			printAnnotations(&b, f.Annotations, "  ")
-			b.WriteString("  ")
-			b.WriteString(f.Name)
-			b.WriteString(": ")
-			b.WriteString(printTypeRef(f.Type))
-			if f.Optional {
-				b.WriteByte('?')
-			}
-			if f.Default != nil {
-				b.WriteString(" = ")
-				b.WriteString(printLiteral(f.Default))
-			}
-			b.WriteByte('\n')
+		for _, line := range Doc(decl) {
+			b.WriteString(strings.TrimRight("/// "+line, " ") + "\n")
 		}
-		b.WriteString("}\n")
-	}
-
-	for _, e := range file.Enums {
-		sep()
-		printAnnotations(&b, e.Annotations, "")
-		fmt.Fprintf(&b, "enum %s {\n", e.Name)
-		for _, v := range e.Values {
-			printAnnotations(&b, v.Annotations, "  ")
-			b.WriteString("  ")
-			b.WriteString(v.Name)
-			if v.Value != nil {
-				b.WriteString(" = ")
-				b.WriteString(printLiteral(v.Value))
-			}
-			b.WriteByte('\n')
-		}
-		b.WriteString("}\n")
+		b.WriteString(printDecl(decl))
 	}
 
 	return b.String()
 }
 
-func printAnnotations(b *strings.Builder, anns []*Annotation, indent string) {
-	for _, ann := range anns {
-		b.WriteString(indent)
-		b.WriteByte('@')
-		b.WriteString(ann.Namespace)
-		if len(ann.Args) > 0 {
-			b.WriteByte('(')
-			for i, arg := range ann.Args {
-				if i > 0 {
-					b.WriteString(", ")
-				}
-				b.WriteString(arg.Name)
-				b.WriteString(": ")
-				b.WriteString(printLiteral(arg.Value))
-			}
-			b.WriteByte(')')
+func printDecl(decl Decl) string {
+	switch d := decl.(type) {
+	case *PrimitiveDecl:
+		if d.Kind != nil {
+			return "primitive " + d.N + ": " + printKind(d.Kind) + "\n"
 		}
-		b.WriteByte('\n')
+		return "primitive " + d.N + "\n"
+	case *AliasDecl:
+		return "alias " + d.N + printParams(d.Params) + " = " + printTypeRef(d.Target) + "\n"
+	default:
+		return ""
 	}
 }
 
-func printTypeRef(t TypeRef) string {
+func printParams(params []*TypeParam) string {
+	if len(params) == 0 {
+		return ""
+	}
+	parts := make([]string, len(params))
+	for i, p := range params {
+		parts[i] = p.N
+		if p.Kind != nil {
+			parts[i] += ": " + printKind(p.Kind)
+		}
+	}
+	return "<" + strings.Join(parts, ", ") + ">"
+}
+
+func printKind(k *Kind) string {
+	var s string
+	if k.Paren != nil {
+		s = "(" + printKind(k.Paren) + ")"
+	} else {
+		s = k.N
+	}
+	if k.Arrow != nil {
+		s += " -> " + printKind(k.Arrow)
+	}
+	return s
+}
+
+func printTypeRef(t *TypeRef) string {
+	if t == nil {
+		return ""
+	}
+
+	var s string
 	switch {
 	case t.List != nil:
-		return "list<" + printTypeRef(*t.List) + ">"
+		s = "[" + printTypeRef(t.List) + "]"
+	case t.Set != nil:
+		s = "{" + printTypeRef(t.Set) + "}"
 	case t.MapKey != nil:
-		return "map<" + printTypeRef(*t.MapKey) + ", " + printTypeRef(*t.MapValue) + ">"
-	case t.Qualifier != "":
-		return t.Qualifier + "." + t.Name
+		s = "{" + printTypeRef(t.MapKey) + " -> " + printTypeRef(t.MapValue) + "}"
 	default:
-		return t.Name
+		s = t.N
+		if t.Qualifier != "" {
+			s = t.Qualifier + "." + s
+		}
+		if len(t.Args) > 0 {
+			args := make([]string, len(t.Args))
+			for i, a := range t.Args {
+				args[i] = printTypeRef(a)
+			}
+			s += "<" + strings.Join(args, ", ") + ">"
+		}
 	}
+
+	if t.Optional {
+		s += "?"
+	}
+	if t.Nullable {
+		s += " | null"
+	}
+	return s
 }
 
-func printLiteral(l *Literal) string {
-	if l == nil {
-		return ""
-	}
-	switch l.Kind {
-	case LitString:
-		return strconv.Quote(l.Str)
-	case LitInt:
-		return strconv.FormatInt(l.Int, 10)
-	case LitFloat:
-		return strconv.FormatFloat(l.Float, 'g', -1, 64)
-	case LitBool:
-		if l.Bool {
-			return "true"
+func quote(s string) string {
+	var b strings.Builder
+	b.WriteByte('"')
+	for _, r := range s {
+		switch r {
+		case '"':
+			b.WriteString("\\\"")
+		case '\\':
+			b.WriteString("\\\\")
+		case '\n':
+			b.WriteString("\\n")
+		case '\t':
+			b.WriteString("\\t")
+		default:
+			b.WriteRune(r)
 		}
-		return "false"
-	case LitList:
-		parts := make([]string, len(l.List))
-		for i, e := range l.List {
-			parts[i] = printLiteral(e)
-		}
-		return "[" + strings.Join(parts, ", ") + "]"
-	default:
-		return ""
 	}
+	b.WriteByte('"')
+	return b.String()
 }
