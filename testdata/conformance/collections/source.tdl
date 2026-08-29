@@ -13,3 +13,8 @@ alias OrNull = LineItem | null
 alias Both = LineItem? | null
 alias NestedOptional = [LineItem?]
 alias QualifiedArg = Map<string, common.Address>
+
+value LineItem {
+  sku: string
+  quantity: int
+}

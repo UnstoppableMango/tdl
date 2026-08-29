@@ -1,49 +1,81 @@
 Model example.collections
 ├── Decls
-│   ├── [0] alias BySku  source.tdl:3:1
-│   │   └── target types[2] Map<string, LineItem>
-│   ├── [1] alias TagIndex  source.tdl:4:1
-│   │   └── target types[4] Map<string, List<string>>
-│   ├── [2] alias Matrix  source.tdl:5:1
-│   │   └── target types[7] List<List<int>>
-│   ├── [3] alias Regions  source.tdl:6:1
-│   │   └── target types[9] List<Map<string, string>>
-│   ├── [4] alias SeenSkus  source.tdl:7:1
-│   │   └── target types[10] Set<string>
-│   ├── [5] alias ExplicitList  source.tdl:8:1
-│   │   └── target types[11] List<LineItem>
-│   ├── [6] alias ExplicitSet  source.tdl:9:1
-│   │   └── target types[12] Set<LineItem>
-│   ├── [7] alias ExplicitMap  source.tdl:10:1
-│   │   └── target types[13] Map<string, string>
-│   ├── [8] alias Optional  source.tdl:11:1
-│   │   └── target types[14] Option<LineItem>
-│   ├── [9] alias OrNull  source.tdl:12:1
-│   │   └── target types[15] Nullable<LineItem>
-│   ├── [10] alias Both  source.tdl:13:1
-│   │   └── target types[16] Nullable<Option<LineItem>>
-│   ├── [11] alias NestedOptional  source.tdl:14:1
-│   │   └── target types[17] List<Option<LineItem>>
-│   └── [12] alias QualifiedArg  source.tdl:15:1
-│       └── target types[19] Map<string, common.Address>
+│   ├── [0] primitive string  std.tdl:4:1
+│   ├── [1] primitive int  std.tdl:6:1
+│   ├── [2] primitive bool  std.tdl:7:1
+│   ├── [3] primitive bytes  std.tdl:8:1
+│   ├── [4] primitive List: type -> type  std.tdl:11:1
+│   ├── [5] primitive Set: type -> type  std.tdl:14:1
+│   ├── [6] primitive Map: type -> type -> type  std.tdl:17:1
+│   ├── [7] primitive decimal  std.tdl:20:1
+│   ├── [8] primitive uuid  std.tdl:22:1
+│   ├── [9] primitive instant  std.tdl:23:1
+│   ├── [10] primitive date  std.tdl:24:1
+│   ├── [11] primitive duration  std.tdl:25:1
+│   ├── [12] unlowered s  std.tdl:28:1
+│   ├── [13] unlowered m  std.tdl:30:1
+│   ├── [14] unlowered kg  std.tdl:31:1
+│   ├── [15] enum Option  std.tdl:34:1
+│   │   ├── param T  std.tdl:34:14
+│   │   ├── variant Some  std.tdl:35:3
+│   │   │   └── field value: types[0] T  std.tdl:35:10
+│   │   └── variant None  std.tdl:36:3
+│   ├── [16] enum Nullable  std.tdl:40:1
+│   │   ├── param T  std.tdl:40:16
+│   │   ├── variant Present  std.tdl:41:3
+│   │   │   └── field value: types[1] T  std.tdl:41:13
+│   │   └── variant Null  std.tdl:42:3
+│   ├── [17] unlowered Entity  std.tdl:46:1
+│   ├── [18] unlowered Value  std.tdl:51:1
+│   ├── [19] alias BySku  source.tdl:3:1
+│   │   └── target types[4] Map<string, LineItem>
+│   ├── [20] alias TagIndex  source.tdl:4:1
+│   │   └── target types[6] Map<string, List<string>>
+│   ├── [21] alias Matrix  source.tdl:5:1
+│   │   └── target types[9] List<List<int>>
+│   ├── [22] alias Regions  source.tdl:6:1
+│   │   └── target types[11] List<Map<string, string>>
+│   ├── [23] alias SeenSkus  source.tdl:7:1
+│   │   └── target types[12] Set<string>
+│   ├── [24] alias ExplicitList  source.tdl:8:1
+│   │   └── target types[13] List<LineItem>
+│   ├── [25] alias ExplicitSet  source.tdl:9:1
+│   │   └── target types[14] Set<LineItem>
+│   ├── [26] alias ExplicitMap  source.tdl:10:1
+│   │   └── target types[15] Map<string, string>
+│   ├── [27] alias Optional  source.tdl:11:1
+│   │   └── target types[16] Option<LineItem>
+│   ├── [28] alias OrNull  source.tdl:12:1
+│   │   └── target types[17] Nullable<LineItem>
+│   ├── [29] alias Both  source.tdl:13:1
+│   │   └── target types[18] Nullable<Option<LineItem>>
+│   ├── [30] alias NestedOptional  source.tdl:14:1
+│   │   └── target types[19] List<Option<LineItem>>
+│   ├── [31] alias QualifiedArg  source.tdl:15:1
+│   │   └── target types[21] Map<string, common.Address>
+│   └── [32] value LineItem  source.tdl:17:1
+│       ├── field sku: types[2] string  source.tdl:18:3
+│       └── field quantity: types[7] int  source.tdl:19:3
 └── Types
-    ├── [0] string  named  -> unresolved  source.tdl:3:16
-    ├── [1] LineItem  named  -> unresolved  source.tdl:3:26
-    ├── [2] Map<string, LineItem>  {K -> V}  -> unresolved  source.tdl:3:15
-    ├── [3] List<string>  [T]  -> unresolved  source.tdl:4:29
-    ├── [4] Map<string, List<string>>  {K -> V}  -> unresolved  source.tdl:4:18
-    ├── [5] int  named  -> unresolved  source.tdl:5:18
-    ├── [6] List<int>  [T]  -> unresolved  source.tdl:5:17
-    ├── [7] List<List<int>>  [T]  -> unresolved  source.tdl:5:16
-    ├── [8] Map<string, string>  {K -> V}  -> unresolved  source.tdl:6:18
-    ├── [9] List<Map<string, string>>  [T]  -> unresolved  source.tdl:6:17
-    ├── [10] Set<string>  {T}  -> unresolved  source.tdl:7:18
-    ├── [11] List<LineItem>  named  -> unresolved  source.tdl:8:22
-    ├── [12] Set<LineItem>  named  -> unresolved  source.tdl:9:21
-    ├── [13] Map<string, string>  named  -> unresolved  source.tdl:10:21
-    ├── [14] Option<LineItem>  T?  -> unresolved  source.tdl:11:18
-    ├── [15] Nullable<LineItem>  T | null  -> unresolved  source.tdl:12:16
-    ├── [16] Nullable<Option<LineItem>>  T | null  -> unresolved  source.tdl:13:14
-    ├── [17] List<Option<LineItem>>  [T]  -> unresolved  source.tdl:14:24
-    ├── [18] common.Address  named  -> unresolved  source.tdl:15:34
-    └── [19] Map<string, common.Address>  named  -> unresolved  source.tdl:15:22
+    ├── [0] T  named  -> param Option.T  std.tdl:35:17
+    ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
+    ├── [2] string  named  -> decls[0]  source.tdl:3:16
+    ├── [3] LineItem  named  -> decls[32]  source.tdl:3:26
+    ├── [4] Map<string, LineItem>  {K -> V}  -> decls[6]  source.tdl:3:15
+    ├── [5] List<string>  [T]  -> decls[4]  source.tdl:4:29
+    ├── [6] Map<string, List<string>>  {K -> V}  -> decls[6]  source.tdl:4:18
+    ├── [7] int  named  -> decls[1]  source.tdl:5:18
+    ├── [8] List<int>  [T]  -> decls[4]  source.tdl:5:17
+    ├── [9] List<List<int>>  [T]  -> decls[4]  source.tdl:5:16
+    ├── [10] Map<string, string>  {K -> V}  -> decls[6]  source.tdl:6:18
+    ├── [11] List<Map<string, string>>  [T]  -> decls[4]  source.tdl:6:17
+    ├── [12] Set<string>  {T}  -> decls[5]  source.tdl:7:18
+    ├── [13] List<LineItem>  named  -> decls[4]  source.tdl:8:22
+    ├── [14] Set<LineItem>  named  -> decls[5]  source.tdl:9:21
+    ├── [15] Map<string, string>  named  -> decls[6]  source.tdl:10:21
+    ├── [16] Option<LineItem>  T?  -> decls[15]  source.tdl:11:18
+    ├── [17] Nullable<LineItem>  T | null  -> decls[16]  source.tdl:12:16
+    ├── [18] Nullable<Option<LineItem>>  T | null  -> decls[16]  source.tdl:13:14
+    ├── [19] List<Option<LineItem>>  [T]  -> decls[4]  source.tdl:14:24
+    ├── [20] common.Address  named  -> unresolved  source.tdl:15:34
+    └── [21] Map<string, common.Address>  named  -> decls[6]  source.tdl:15:22

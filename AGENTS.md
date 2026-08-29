@@ -26,7 +26,7 @@ After changing `go.mod` or adding dependencies, run `make tidy` so `nix/gomod2ni
 
 TDL is a language for describing domain models: entities, values, enums, newtypes, classes, and collections. No expressions, no control flow, no runtime. This repo owns both the specification and the reference implementation.
 
-The parser reads the whole grammar. Lowering to `ir` has started; `docs/design/ir-plan.md` phases 1 through 3 are done, and phase 4 loads the prelude.
+The parser reads the whole grammar. Lowering to `ir` has started; `docs/design/ir-plan.md` phases 1 through 4 are done, and phase 5 is imports.
 
 `union` is the one grammar form the parser does not implement.
 
@@ -42,7 +42,7 @@ Pipeline, one package per stage:
 Regenerate the ir goldens with `go test ./internal/sema -update` after any change to lowering or to `ir.Dump`, and read the diff rather than trusting it.
 
 `internal/sema/corpus_test.go` holds a `deferred` list: every diagnostic lowering is still expected to produce, with the phase that will stop producing it. A corpus case reporting anything else fails the test. Delete entries as phases land; when the list empties, the test becomes a plain assertion that the corpus lowers clean.
-- `prelude/std.tdl` — the standard prelude, written in TDL. Nothing loads it yet; it is the target the parser is built against.
+- `prelude` — the standard prelude, written in TDL and embedded with `go:embed`. `sema` loads it into an outer scope beneath every file and merges its declarations into the model untagged. Lowering knows the sugar's spellings (`List`, `Option`, ...) but nothing about what they mean, which is what makes the prelude replaceable.
 - `cmd/tdl` — main.
 
 An `ir` package (resolved semantic model consumed by backends) is designed in `docs/design/ir.md` but does not exist yet. There are no code-generation backends.

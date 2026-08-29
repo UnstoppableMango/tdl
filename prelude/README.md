@@ -5,5 +5,8 @@ No type is built in.
 
 The collection and optionality sugar resolves through these names: `[T]` is `List<T>`, `{T}` is `Set<T>`, `{K -> V}` is `Map<K, V>`, `T?` is `Option<T>`, and `T | null` is `Nullable<T>`.
 
-Nothing loads this file yet.
-Making it a real compilation unit is phase 4 of [../docs/design/ir-plan.md](../docs/design/ir-plan.md); until then it is the target the parser is built against.
+`std.tdl` is embedded in the binary and loaded into an outer scope beneath every file, so a file may declare a name the prelude already has and its own wins.
+Its declarations are merged into the model untagged: to a backend they are declarations like any other, which is what lets a replacement change what a collection is without any backend learning about it.
+
+`tdl ir --prelude other.tdl` lowers against a different one, and `sema.WithPrelude` and `sema.WithoutPrelude` are the library equivalents.
+Nothing in the compiler knows what `List` means; it knows only that `[T]` is spelled `List<T>`.

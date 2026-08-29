@@ -28,11 +28,13 @@ var update = flag.Bool("update", false, "rewrite ir.golden files")
 // test tightens with it: when the last entry goes, this becomes a plain
 // assertion that the corpus lowers clean.
 var deferred = []struct{ prefix, phase string }{
-	{"undefined: ", "phase 4, when the prelude is loaded"},
 	{"imports are not resolved yet", "phase 5"},
 	{"qualified name ", "phase 5"},
+	{"class ", "phase 6"},
+	{"instance ", "phase 6"},
+	{"target ", "phase 8"},
+	{"unit ", "deferred in ir.md"},
 	{"unit arguments are not lowered yet", "deferred in ir.md"},
-	{" is not lowered yet", "phases 6 and 8"},
 }
 
 func deferralFor(msg string) (string, bool) {

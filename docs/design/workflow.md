@@ -55,6 +55,7 @@ sql = { command = "tdl-gen-sql" }
 
 `sources` lists package roots and globs.
 `prelude` selects the prelude; omitting it uses the built-in one.
+`--prelude` overrides it for one invocation, the way `-o` overrides `out`.
 `[deps]` maps an import prefix to a location.
 `[plugins]` declares external backends.
 
