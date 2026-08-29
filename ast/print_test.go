@@ -27,6 +27,11 @@ primitive string
 
 primitive Map: type -> type -> type
 primitive Higher: (type -> type) -> type
+unit kg
+unit m
+unit s
+unit N = kg*m/s^2
+unit Complex = (kg*m)/(s^2*m)
 alias Applied<f: type -> type, T> = f<T>
 alias Handler = {string -> [Event]}
 alias Both = LineItem? | null
@@ -52,6 +57,12 @@ entity Order {
 value Money {
   amount: decimal
   currency: Currency
+}
+
+value Weight {
+  net: decimal<kg>
+  force: decimal<kg*m/s^2>
+  cubed: decimal<m^3>
 }
 
 mixin Timestamps {

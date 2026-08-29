@@ -139,7 +139,7 @@ func TestTypeRefForms(t *testing.T) {
 			}
 		}},
 		{"Map<string, [T]>", func(t *testing.T, r *ast.TypeRef) {
-			if len(r.Args) != 2 || r.Args[1].List == nil {
+			if len(r.Args) != 2 || r.Args[1].Type == nil || r.Args[1].Type.List == nil {
 				t.Errorf("args = %+v", r)
 			}
 		}},
@@ -658,6 +658,76 @@ instance <T> Auditable<Page<T>> requires Auditable<T>
 
 func TestInstanceNeedsSubject(t *testing.T) {
 	if msg := parseErr(t, "instance Auditable"); !strings.Contains(msg, "expected type arguments or 'for'") {
+		t.Errorf("error = %s", msg)
+	}
+}
+
+func TestUnitDecls(t *testing.T) {
+	file := parse(t, `
+unit kg
+unit N = kg*m/s^2
+unit Hz = s^-1
+unit Complex = (kg*m)/(s^2*m)
+`)
+
+	if len(file.Decls) != 4 {
+		t.Fatalf("got %d decls, want 4", len(file.Decls))
+	}
+
+	if base := file.Decls[0].(*ast.UnitDecl); base.Expr != nil {
+		t.Errorf("base unit gained an expression: %+v", base.Expr)
+	}
+
+	// `*` and `/` associate left with equal precedence, so the expression is
+	// a flat sequence of terms carrying their own operator.
+	n := file.Decls[1].(*ast.UnitDecl).Expr
+	if len(n.Terms) != 3 {
+		t.Fatalf("N has %d terms, want 3", len(n.Terms))
+	}
+	if n.Terms[0].Op != "" || n.Terms[1].Op != "*" || n.Terms[2].Op != "/" {
+		t.Errorf("operators = %q %q %q", n.Terms[0].Op, n.Terms[1].Op, n.Terms[2].Op)
+	}
+	if n.Terms[0].Exp != 1 || n.Terms[2].Exp != 2 {
+		t.Errorf("exponents = %d %d", n.Terms[0].Exp, n.Terms[2].Exp)
+	}
+
+	if exp := file.Decls[2].(*ast.UnitDecl).Expr.Terms[0].Exp; exp != -1 {
+		t.Errorf("Hz exponent = %d, want -1", exp)
+	}
+
+	compound := file.Decls[3].(*ast.UnitDecl).Expr
+	if compound.Terms[0].Paren == nil || compound.Terms[1].Paren == nil {
+		t.Errorf("parenthesized terms lost: %+v", compound.Terms)
+	}
+}
+
+// A bare name in `<...>` could be a type or a unit, so it is recorded as a
+// type reference and the resolver picks by kind. Operators settle it.
+func TestUnitVersusTypeArguments(t *testing.T) {
+	tests := []struct {
+		src    string
+		isUnit bool
+	}{
+		{"decimal<kg>", false},
+		{"decimal<kg*m/s^2>", true},
+		{"decimal<m^3>", true},
+		{"decimal<(kg*m)/s>", true},
+		{"Map<string, int>", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.src, func(t *testing.T) {
+			file := parse(t, "alias X = "+tt.src)
+			arg := file.Decls[0].(*ast.AliasDecl).Target.Args[0]
+			if (arg.Unit != nil) != tt.isUnit {
+				t.Errorf("unit = %v, want %v (arg %+v)", arg.Unit != nil, tt.isUnit, arg)
+			}
+		})
+	}
+}
+
+func TestUnitExponentMustBeInteger(t *testing.T) {
+	if msg := parseErr(t, "unit Bad = kg^x"); !strings.Contains(msg, "expected a unit exponent") {
 		t.Errorf("error = %s", msg)
 	}
 }

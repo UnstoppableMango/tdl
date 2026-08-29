@@ -87,7 +87,7 @@ type TypeRef struct {
 	// Named form: an optionally qualified name with optional arguments.
 	Qualifier string // "" if unqualified; set for "alias.Type"
 	N         string // "" for the collection forms below
-	Args      []*TypeRef
+	Args      []*TypeArg
 
 	List *TypeRef // [T]
 	Set  *TypeRef // {T}

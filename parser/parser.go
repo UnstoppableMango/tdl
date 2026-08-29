@@ -3,8 +3,8 @@
 // it finds in one pass rather than stopping at the first, so tooling like
 // `tdl check` can report a complete list of problems.
 //
-// The parser covers phases 1 through 4 of docs/design/parser-plan.md.
-// Unit expressions are still to come.
+// The parser covers the whole grammar in docs/grammar.ebnf apart from
+// `union`, which is reserved and unimplemented.
 package parser
 
 import (
@@ -119,6 +119,8 @@ func (p *parser) parseFile() *ast.File {
 			file.Decls = append(file.Decls, p.parsePrimitiveDecl(head))
 		case lex.ALIAS:
 			file.Decls = append(file.Decls, p.parseAliasDecl(head))
+		case lex.UNIT:
+			file.Decls = append(file.Decls, p.parseUnitDecl(head))
 		case lex.TYPE:
 			file.Decls = append(file.Decls, p.parseNewtypeDecl(head))
 		case lex.ENTITY, lex.VALUE, lex.MIXIN:
@@ -315,18 +317,4 @@ func (p *parser) parseCoreType() *ast.TypeRef {
 		t.Args = p.parseTypeArgs()
 	}
 	return t
-}
-
-func (p *parser) parseTypeArgs() []*ast.TypeRef {
-	p.next() // '<'
-
-	var args []*ast.TypeRef
-	for {
-		args = append(args, p.parseTypeRef())
-		if !p.accept(lex.COMMA) {
-			break
-		}
-	}
-	p.expect(lex.GT)
-	return args
 }

@@ -102,6 +102,13 @@ func Dump(file *File) string {
 				writeChildren(&b, prefix, kids)
 			}})
 
+		case *UnitDecl:
+			desc := "Unit " + n.N
+			if n.Expr != nil {
+				desc += " = " + printUnitExpr(n.Expr)
+			}
+			entries = append(entries, entry{desc, n.P, nil})
+
 		case *TargetDecl:
 			entries = append(entries, entry{"Target " + n.N + " for " + n.For, n.P, func(prefix string) {
 				writeChildren(&b, prefix, targetChildren(n.Entries))
