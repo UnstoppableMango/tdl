@@ -33,13 +33,19 @@ alias Both = LineItem? | null
 alias Qualified = Map<string, common.Address>
 
 /// A distinct type over another.
-type Email: string
+type Email: string where {
+  matches(/^[^@]+@[^@]+$/)
+  length(3..254)
+}
+
+type Slug: string where { length(1..64) }
 
 entity Order {
   key id: OrderId
   customer: Customer
   items: [LineItem] owned
   status: Status = Draft
+  quantity: int where { min(1) }
   deprecated legacy: string
 }
 
@@ -91,7 +97,8 @@ primitive string primitive int
 alias   A=[  T ]
 alias B = { K->V }
 entity  E{key id:string
-  tags:{string}=[]}
+  tags:{string}=[]
+  n:int where{min(0) max(10)}}
 enum Big { AlphaVariant BetaVariant GammaVariant DeltaVariant EpsilonVariant ZetaVariant }
 `
 

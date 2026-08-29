@@ -100,13 +100,16 @@ TypeArg  = UnitExpr | TypeRef .
 (* ---- constraints -------------------------------------------------------- *)
 
 ConstraintBlock = "where" "{" { Constraint } "}" .
-Constraint = "min" Literal
-           | "max" Literal
-           | "length" Range
-           | "matches" regex_lit
-           | "oneOf" ListLiteral
-           | "unique" .
-Range = [ int_lit ] ".." [ int_lit ] | int_lit .
+Constraint      = identifier [ "(" [ ConstraintArg { "," ConstraintArg } ] ")" ] .
+ConstraintArg   = Range | regex_lit | Literal .
+Range           = [ int_lit ] ".." [ int_lit ] .
+(* Arguments are parenthesized, as for a directive, and for the same
+   reason: the constraint set is open, so the parser does not know any
+   name's arity and `min 0 max 100` would otherwise be ambiguous.
+
+   The standard set is min, max, length, matches, oneOf, and unique.  The
+   compiler checks their arity and argument kinds and passes every other
+   name through untouched. *)
 
 (* ---- targets ------------------------------------------------------------ *)
 

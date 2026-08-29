@@ -47,6 +47,9 @@ func (p *parser) parseNewtypeDecl(head ast.DeclHead) *ast.NewtypeDecl {
 	if p.at(lex.REQUIRES) {
 		d.Requires = p.parseClassRefs()
 	}
+	if p.at(lex.WHERE) {
+		d.Constraints = p.parseConstraintBlock()
+	}
 	return d
 }
 
@@ -232,6 +235,9 @@ func (p *parser) parseField() *ast.Field {
 	if p.atContextual("owned") && p.peek.Kind != lex.COLON {
 		f.Owned = true
 		p.next()
+	}
+	if p.at(lex.WHERE) {
+		f.Constraints = p.parseConstraintBlock()
 	}
 	if p.accept(lex.EQUAL) {
 		f.Default = p.parseLiteral()

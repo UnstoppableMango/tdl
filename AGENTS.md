@@ -59,7 +59,11 @@ Declaration keywords are reserved. Modifiers and constraint names (`key`, `owned
 
 A reserved word followed by `:` is a field name: `value: T` is a field, and `include Foo` is still an include while `include: Foo` is a field. A contextual modifier followed by `:` is likewise a name, not a modifier.
 
-Inside a target block a directive name may be a reserved word, since the directive namespace belongs to the backend. Directive arguments are parenthesized and comma separated.
+Inside a target block a directive name may be a reserved word, since the directive namespace belongs to the backend.
+
+Directive and constraint arguments are parenthesized and comma separated. Both sets are open, so the parser knows no name's arity and an unparenthesized `min 0 max 100` could not be split.
+
+Regex literals are ambiguous with unit division, so the parser calls `lex.RescanRegexAt` when it wants one. Nothing else in the lexer takes context.
 
 `union` is reserved in the grammar and unimplemented. Reserving it keeps its later addition additive.
 

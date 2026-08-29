@@ -91,8 +91,8 @@ The compiler has no opinion about which types exist.
 
 ```tdl
 type Email: string where {
-  matches /^[^@]+@[^@]+$/
-  length 3..254
+  matches(/^[^@]+@[^@]+$/)
+  length(3..254)
 }
 
 type UserId: uuid
@@ -144,7 +144,7 @@ entity Order {
 entity LineItem {
   key order: Order
   key sku: SKU
-  quantity: int where { min 1 }
+  quantity: int where { min(1) }
 }
 ```
 
@@ -386,7 +386,7 @@ Collections are prelude types, not built-ins, and the bracket forms are sugar.
 This is what allows `List` and `Set` to be passed to a higher-kinded parameter, and what allows a replacement prelude to change what a collection is.
 
 Cardinality is not separate syntax.
-It falls out of the collection form, optionality, and the `length` constraint: `items: [LineItem] where { length 1.. }` is one-or-more.
+It falls out of the collection form, optionality, and the `length` constraint: `items: [LineItem] where { length(1..) }` is one-or-more.
 
 ### Optional and nullable
 
@@ -464,10 +464,10 @@ There is no inverse declaration; a backend that needs the reverse direction infe
 A constraint block may follow a type declaration or a field, introduced by `where`.
 
 ```tdl
-type Email: string where { length 3..254 }
+type Email: string where { length(3..254) }
 
 entity User {
-  age: int where { min 0 }
+  age: int where { min(0) }
 }
 ```
 
@@ -477,23 +477,27 @@ Without it, `email: {string} { length 3..254 }` would open a set type and a cons
 The compiler checks that constraints are well formed and that any names they mention resolve.
 It does not check that they are satisfiable, consistent, or meaningful for the type they are attached to.
 
+A constraint's arguments are parenthesized, and a constraint taking none omits the parentheses.
+This is the rule directives follow, for the same reason: the set of constraint names is open, so nothing tells the parser how many arguments `min` takes, and `min 0 max 100` would be ambiguous.
+
 | Constraint | Form |
 | --- | --- |
-| `min` | `min 1` |
-| `max` | `max 100` |
-| `length` | `length 3..254`, `length 1..`, `length 16` |
-| `matches` | `matches /^[a-z]+$/` |
-| `oneOf` | `oneOf ["a", "b"]` |
+| `min` | `min(1)` |
+| `max` | `max(100)` |
+| `length` | `length(3..254)`, `length(1..)`, `length(16)` |
+| `matches` | `matches(/^[a-z]+$/)` |
+| `oneOf` | `oneOf("a", "b")` |
 | `unique` | `unique` |
 
-The set is closed.
-Opening it to arbitrary backend-defined constraints is a later, additive change.
+The set is open.
+The compiler checks the arity and argument kinds of the standard names above and passes every other name through to backends untouched, which is what "constraints are syntax, not semantics" means in practice.
+A backend that understands a constraint TDL has never heard of needs no change to the compiler.
 
 Constraints accumulate down a chain of newtypes.
 
 ```tdl
-type Email: string where { length 3..254 }
-type WorkEmail: Email where { matches /@acme\.com$/ }
+type Email: string where { length(3..254) }
+type WorkEmail: Email where { matches(/@acme\.com$/) }
 ```
 
 `WorkEmail` carries both constraints.

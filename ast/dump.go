@@ -48,6 +48,7 @@ func Dump(file *File) string {
 				if n.Base != nil {
 					kids = append(kids, child{"Base " + printTypeRef(n.Base), n.Base.P})
 				}
+				kids = append(kids, constraints(n.Constraints)...)
 				writeChildren(&b, prefix, kids)
 			}})
 
@@ -63,7 +64,7 @@ func Dump(file *File) string {
 					case *Include:
 						kids = append(kids, child{"Include " + mem.Type.N, mem.P})
 					case *Field:
-						kids = append(kids, child{"Field " + printField(mem), mem.P})
+						kids = append(kids, child{"Field " + fieldSummary(mem), mem.P})
 					}
 				}
 				writeChildren(&b, prefix, kids)
@@ -100,9 +101,30 @@ func Dump(file *File) string {
 	return b.String()
 }
 
+// fieldSummary renders a field on one line, counting its constraints
+// rather than expanding them.
+func fieldSummary(f *Field) string {
+	s := printFieldHead(f)
+	if n := len(f.Constraints); n > 0 {
+		s += fmt.Sprintf(" (%d constraints)", n)
+	}
+	if f.Default != nil {
+		s += " = " + printLiteral(f.Default)
+	}
+	return s
+}
+
 type child struct {
 	desc string
 	pos  Position
+}
+
+func constraints(cs []*Constraint) []child {
+	kids := make([]child, 0, len(cs))
+	for _, c := range cs {
+		kids = append(kids, child{"Constraint " + printConstraint(c), c.P})
+	}
+	return kids
 }
 
 func params(ps []*TypeParam) []child {
