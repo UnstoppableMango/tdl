@@ -1,0 +1,13 @@
+package example.units
+
+unit kg
+unit m
+unit s
+unit N = kg*m/s^2
+unit Pa = N/m^2
+
+value Weight {
+  net: decimal<kg>
+  force: decimal<N>
+  plain: decimal
+}

@@ -23,7 +23,9 @@ After changing `go.mod` or adding dependencies, run `make tidy` so `nix/gomod2ni
 
 ## Architecture
 
-TDL is a type description language: records, enums, primitives, collections. No expressions, no control flow, no runtime. This repo owns both the specification and the reference implementation.
+TDL is a language for describing domain models: entities, values, enums, newtypes, classes, and collections. No expressions, no control flow, no runtime. This repo owns both the specification and the reference implementation.
+
+The specification is ahead of the implementation. `docs/spec.md` and the corpus describe the current grammar; the parser still reads the M1 grammar and cannot parse them. `docs/design/` holds the plans that close the gap, and `docs/design/parser-plan.md` is the head of the queue.
 
 Pipeline, one package per stage:
 
@@ -31,9 +33,10 @@ Pipeline, one package per stage:
 - `parser` — recursive descent over the token stream, producing `*ast.File`. Errors accumulate in an `ErrorList` rather than aborting: `syncTop` and `syncField` resynchronize at declaration and field boundaries so one bad line does not swallow the rest of the file.
 - `ast` — parse tree mirroring source 1:1, names left unresolved. `ast.Fprint` produces the canonical formatting used by `tdl fmt`.
 - `internal/cli` — cobra commands (`ast`, `check`, `fmt`, `play`, `tokens`, `version`) wired in `root.go`. `play` is a watch-mode playground that re-renders a file on save; `examples/` holds files to experiment with and is outside the conformance corpus.
+- `internal/sema` — ast to ir. Does not exist yet; see `docs/design/ir-plan.md`.
 - `cmd/tdl` — main.
 
-An `ir` package (resolved semantic model consumed by backends) is referenced in doc comments but does not exist yet. There are no code-generation backends.
+An `ir` package (resolved semantic model consumed by backends) is designed in `docs/design/ir.md` but does not exist yet. There are no code-generation backends.
 
 ## Specification and conformance
 
@@ -45,6 +48,12 @@ An `ir` package (resolved semantic model consumed by backends) is referenced in 
 
 ## Conventions
 
-The spec documents deliberate M1 simplifications, not bugs. Notably: keywords are rejected as annotation argument names (`@go(package: "x")` is a syntax error), and `union` plus generic type parameters are reserved in the grammar but unimplemented. Reserving them keeps their later addition additive.
+Whitespace is insignificant and there are no separator rules: an item ends where the next begins. Commas are required inside `<...>`, conformance lists, and list literals, and are not permitted inside `{ }` blocks.
+
+`where` introduces a constraint block; `requires` introduces class constraints on parameters. Both readings of `{` would otherwise collide.
+
+Declaration keywords are reserved. Modifiers and constraint names (`key`, `owned`, `deprecated`, `min`, `max`, `length`, `matches`, `oneOf`, `unique`) are contextual and remain usable as field names.
+
+`union` is reserved in the grammar and unimplemented. Reserving it keeps its later addition additive.
 
 `toolVersion` and `specVersion` are hardcoded constants in `internal/cli/version.go`.

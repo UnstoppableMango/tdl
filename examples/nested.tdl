@@ -1,23 +1,26 @@
-// The same domain as flat.tdl, split into records. Parallel lists become
-// a list of a record, and the address group becomes one optional field
-// instead of five.
-package shop.nested.v1
+// The same domain as flat.tdl, split into declarations. Parallel lists
+// become a list of a value, and the address group becomes one optional
+// field instead of five.
+//
+// `entity` and `value` is the modelling decision: an Order has identity
+// that survives its contents changing, an Address does not.
+package shop.nested
 
-type Order {
-  id: string
+entity Order {
+  key id: string
   customer: Customer
   shipping: Address?
-  items: list<LineItem>
-  status: Status = "draft"
-  total_cents: int64 = 0
+  items: [LineItem] owned
+  status: Status = Draft
+  total: Money
 }
 
-type Customer {
-  email: string
+entity Customer {
+  key email: string
   name: string?
 }
 
-type Address {
+value Address {
   line1: string
   line2: string?
   city: string
@@ -25,14 +28,21 @@ type Address {
   country: string
 }
 
-type LineItem {
+value LineItem {
   sku: string
-  quantity: int32 = 1
+  quantity: int = 1
 }
 
+value Money {
+  amount: decimal
+  currency: Currency
+}
+
+enum Currency { USD EUR GBP }
+
 enum Status {
-  draft
-  placed
-  shipped
-  cancelled
+  Draft
+  Placed
+  Shipped
+  Cancelled
 }

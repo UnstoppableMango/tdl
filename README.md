@@ -1,44 +1,78 @@
 # tdl
 
-TDL (Type Description Language) describes data types — records, enums, primitives, and collections — and compiles them into equivalent type definitions in other structured formats.
-It is not a general-purpose programming language: no expressions, no control flow, no runtime.
+TDL is a language for describing domain models.
+It says what things are, what identifies them, how they relate, and what values they may hold, and compiles them into equivalent definitions in other structured formats.
+It describes no behavior and has no expressions, control flow, or runtime.
 
 This repository owns the canonical [language specification](docs/spec.md) and its reference implementation, written in Go.
 
 ## Status
 
-Early and incomplete.
-The lexer, parser, and `tdl check` / `tdl fmt` commands work for the M1 grammar subset: records, primitives, fields with optionality and defaults, `list`/`map` collections, type references, enums, and annotation syntax.
-There is no semantic resolution (`ir`) and no code-generation backends yet — see [`docs/notes.md`](docs/notes.md) for the roadmap.
+Early, incomplete, and mid-rewrite.
+
+The lexer, parser, and `tdl check` / `tdl fmt` commands work for the M1 grammar, which the specification has moved past.
+The corpus, examples, and documentation are written in the current grammar; the parser cannot read them yet.
+
+The design is settled and written down:
+
+| Document | What it covers |
+| --- | --- |
+| [spec.md](docs/spec.md) | The language. Canonical. |
+| [grammar.ebnf](docs/grammar.ebnf) | The formal grammar. |
+| [design/parser-plan.md](docs/design/parser-plan.md) | Rewriting the lexer and parser to match. |
+| [design/ir.md](docs/design/ir.md) | The resolved model backends consume. |
+| [design/ir-plan.md](docs/design/ir-plan.md) | Implementing it. |
+| [design/plugins.md](docs/design/plugins.md) | The backend plugin protocol. |
+| [design/workflow.md](docs/design/workflow.md) | What a model author does with all of it. |
+
+There is no semantic resolution and there are no code-generation backends.
 
 ## Example
 
 ```tdl
-package example.v1
+package shop
 
-import "common.tdl" as common
+entity Order {
+  key id: OrderId
+  customer: Customer
+  shipping: Address?
+  items: [LineItem] owned
+  status: Status = Draft
+  total: Money
+}
 
-@go(pkg: "example")
-type User {
-  id: string
-
-  @go(tag: "json:\"full_name,omitempty\"")
+entity Customer {
+  key email: Email
   name: string?
-
-  tags: list<string>
-  metadata: map<string, string>
-  address: common.Address?
-
-  @protobuf(number: 10)
-  role: Role = "member"
 }
 
-enum Role {
-  Admin = "admin"
-  Member = "member"
-  Guest = "guest"
+value Address {
+  line1: string
+  line2: string?
+  city: string
+  postcode: string
+  country: string
 }
+
+value Money {
+  amount: decimal
+  currency: Currency
+}
+
+type OrderId: uuid
+
+type Email: string where {
+  matches /^[^@]+@[^@]+$/
+  length 3..254
+}
+
+enum Currency { USD EUR GBP }
+
+enum Status { Draft Placed Shipped Cancelled }
 ```
+
+`entity` and `value` is the modelling decision: an `Order` has identity that survives its contents changing, an `Address` does not.
+Everything a code generator needs lives in a separate `target` block, never in the model.
 
 ## Usage
 
@@ -64,23 +98,23 @@ tdl play ./types.tdl --once           # render and exit
 Views are `source`, `fmt`, `ast`, `tokens`, `stats`, or `all`; the default is `fmt,ast`.
 Parse errors render below the panes with a caret at the reported column.
 
-[`examples/`](examples/README.md) holds files to start from: the same domain modelled flat, nested, and annotated.
+[`examples/`](examples/README.md) holds files to start from: the same domain modelled flat and nested, plus collections and target blocks.
 
 ## Development
 
-Requires Go 1.24+.
-
 ```shell
-go build ./...
-go test ./...
+command make build   # nix build .#
+command make test    # go test ./...
+command make lint    # nix flake check
+command make fmt     # nix fmt
 ```
 
-A `flake.nix` (package + devShell) is planned for a later milestone.
+`go build ./...` and `go test ./...` work directly for anyone not using Nix.
 
 ## Design philosophy
 
-- A small, strict grammar with its own hand-written lexer and parser — no parser generator, no YAML/JSON stand-in syntax.
-- One canonical Go implementation; the spec and the `testdata/conformance` / `testdata/invalid` corpora are the contract any other implementation would need to satisfy.
-- A generic `@namespace(key: value, ...)` annotation mechanism carries target-specific intrinsics (Go struct tags, C# attributes, protobuf field numbers, ...) without the core language needing to know about any particular target ahead of time.
-- One static binary, no subprocess plugins or IPC.
-  See [`docs/notes.md`](docs/notes.md) for why: an earlier version of this repository tried a multi-process, multi-language architecture and it didn't work.
+- The language core is small. Almost everything that looks like a type system is library code written in TDL and shipped in a replaceable prelude.
+- Identity is first class, and the model is pure: a `.tdl` file describes the domain, and everything a backend needs lives in a `target` block.
+- Constraints are syntax, not semantics. The compiler parses and resolves them; backends decide what they mean.
+- A small, strict grammar with a hand-written lexer and parser. No parser generator, no YAML or JSON stand-in syntax.
+- One canonical Go implementation. The spec and the `testdata/conformance` and `testdata/invalid` corpora are the contract another implementation would satisfy, which is why they are plain text rather than Go tests.

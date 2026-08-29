@@ -1,0 +1,8 @@
+package example.aliases
+
+alias Handler = {string -> [Event]}
+alias Pair<T> = Map<string, T>
+
+value Event {
+  name: string
+}

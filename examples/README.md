@@ -5,10 +5,10 @@ They are not part of the conformance corpus, so edit them freely.
 
 | File | What it shows |
 | --- | --- |
-| `flat.tdl` | One record, parallel lists, optionality doing the modelling work |
-| `nested.tdl` | The same domain split into records and an enum |
-| `annotated.tdl` | `nested.tdl` plus backend mapping annotations |
-| `collections.tdl` | Nested `list`/`map`, qualified references, every literal kind |
+| `flat.tdl` | One entity, parallel lists, optionality doing the modelling work |
+| `nested.tdl` | The same domain split into entities, values, and enums |
+| `collections.tdl` | Nested collections, every optionality form, qualified references |
+| `targets.tdl` | `nested.tdl` plus the backend mapping that stays out of the model |
 
 ## Twisting them
 
@@ -23,8 +23,9 @@ tdl fmt examples/flat.tdl                  # canonical formatting
 
 Things to try:
 
+- Change an `entity` to a `value` and ask whether the thing it describes still makes sense without identity.
 - Delete a `?` and watch the `optional` count in the `stats` view move.
 - Replace `customer: Customer` with the five inlined fields from `flat.tdl` and compare `stats`.
 - Break a line on purpose. The `errors` view points a caret at the column, and parsing continues past it to the next declaration.
-- Rename an annotation argument to a keyword (`enum:`, `type:`). M1 rejects keywords there.
-- Write `union Foo { ... }` or `type Box<T> { ... }`. Both are reserved in the grammar and unimplemented, so both are syntax errors.
+- Put a comma between two fields. Whitespace is insignificant and commas are not block separators, so it is a syntax error.
+- Write `union Foo { ... }`. It is reserved in the grammar and unimplemented.

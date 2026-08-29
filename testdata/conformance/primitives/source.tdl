@@ -1,0 +1,10 @@
+package prelude.roots
+
+primitive string
+primitive int
+primitive bool
+primitive bytes
+
+primitive List: type -> type
+primitive Set: type -> type
+primitive Map: type -> type -> type

@@ -1,19 +1,28 @@
-// Every collection shape the grammar allows, in one place: nesting,
-// qualified references, defaults, and list literals as annotation
-// arguments.
-package shop.collections.v1
+// Every collection and optionality form in one place: nesting, qualified
+// references, the explicit prelude spellings, and defaults.
+//
+// The bracket forms are sugar. `[T]` is `List<T>`, `{T}` is `Set<T>`,
+// `{K -> V}` is `Map<K, V>`, `T?` is `Option<T>`, and `T | null` is
+// `Nullable<T>`. All five are ordinary prelude types.
+package shop.collections
 
 import "nested.tdl" as nested
 
-type Catalog {
-  by_sku: map<string, nested.LineItem>
-  tag_index: map<string, list<string>>
-  matrix: list<list<int32>>
-  regions: list<map<string, string>>
+value Catalog {
+  bySku: {string -> nested.LineItem}
+  tagIndex: {string -> [string]}
+  matrix: [[int]]
+  regions: [{string -> string}]
+  seenSkus: {string}
 
-  @index(keys: ["sku", "region"])
-  primary_region: string = "us-east"
+  explicitList: List<nested.LineItem>
+  explicitMap: Map<string, string>
 
-  ratio: float64 = 0.5
+  optional: nested.Address?
+  nullable: nested.Address | null
+  both: nested.Address? | null
+
+  primaryRegion: string = "us-east"
+  ratio: decimal = 0.5
   active: bool = true
 }

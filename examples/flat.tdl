@@ -1,22 +1,23 @@
-// One record, everything inline. Optionality carries the modelling:
+// One entity, everything inline. Optionality carries the modelling:
 // a shipped order and a draft order are the same type, distinguished by
 // which fields happen to be set.
-package shop.flat.v1
+package shop.flat
 
-type Order {
-  id: string
-  customer_email: string
-  customer_name: string?
+entity Order {
+  key id: string
 
-  ship_line1: string?
-  ship_line2: string?
-  ship_city: string?
-  ship_postcode: string?
-  ship_country: string?
+  customerEmail: string
+  customerName: string?
 
-  item_skus: list<string>
-  item_quantities: list<int32>
+  shipLine1: string?
+  shipLine2: string?
+  shipCity: string?
+  shipPostcode: string?
+  shipCountry: string?
+
+  itemSkus: [string]
+  itemQuantities: [int]
 
   status: string = "draft"
-  total_cents: int64 = 0
+  totalCents: int = 0
 }
