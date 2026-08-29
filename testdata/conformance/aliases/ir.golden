@@ -1,0 +1,33 @@
+Model example.aliases
+├── Decls
+│   ├── [0] alias Handler  source.tdl:4:1
+│   │   └── target types[3] Map<string, List<Event>>
+│   ├── [1] alias Pair  source.tdl:6:1
+│   │   ├── param T  source.tdl:6:13
+│   │   └── target types[5] Map<string, T>
+│   ├── [2] alias Maybe  source.tdl:7:1
+│   │   ├── param T  source.tdl:7:14
+│   │   └── target types[7] Option<T>
+│   ├── [3] alias Nullable2  source.tdl:8:1
+│   │   ├── param T  source.tdl:8:18
+│   │   └── target types[9] Nullable<T>
+│   ├── [4] alias Both  source.tdl:9:1
+│   │   ├── param T  source.tdl:9:13
+│   │   └── target types[12] Nullable<Option<T>>
+│   └── [5] alias Qualified  source.tdl:10:1
+│       └── target types[13] common.Address
+└── Types
+    ├── [0] string  named  -> unresolved  source.tdl:4:18
+    ├── [1] Event  named  -> unresolved  source.tdl:4:29
+    ├── [2] List<Event>  [T]  -> unresolved  source.tdl:4:28
+    ├── [3] Map<string, List<Event>>  {K -> V}  -> unresolved  source.tdl:4:17
+    ├── [4] T  named  -> param Pair.T  source.tdl:6:29
+    ├── [5] Map<string, T>  named  -> unresolved  source.tdl:6:17
+    ├── [6] T  named  -> param Maybe.T  source.tdl:7:18
+    ├── [7] Option<T>  T?  -> unresolved  source.tdl:7:18
+    ├── [8] T  named  -> param Nullable2.T  source.tdl:8:22
+    ├── [9] Nullable<T>  T | null  -> unresolved  source.tdl:8:22
+    ├── [10] T  named  -> param Both.T  source.tdl:9:17
+    ├── [11] Option<T>  T?  -> unresolved  source.tdl:9:17
+    ├── [12] Nullable<Option<T>>  T | null  -> unresolved  source.tdl:9:17
+    └── [13] common.Address  named  -> unresolved  source.tdl:10:19

@@ -1,0 +1,24 @@
+Model example.constraints
+├── Decls
+│   ├── [0] primitive string  source.tdl:3:1
+│   ├── [1] primitive int  source.tdl:4:1
+│   ├── [2] newtype Email  source.tdl:6:1
+│   │   └── base types[0] string
+│   ├── [3] newtype Slug  source.tdl:11:1
+│   │   └── base types[0] string
+│   ├── [4] newtype Short  source.tdl:12:1
+│   │   └── base types[0] string
+│   ├── [5] newtype Open  source.tdl:13:1
+│   │   └── base types[0] string
+│   ├── [6] newtype Capped  source.tdl:14:1
+│   │   └── base types[0] string
+│   └── [7] entity Order  source.tdl:16:1
+│       ├── field key id: types[0] string  source.tdl:17:7
+│       ├── field quantity: types[1] int  source.tdl:18:3
+│       ├── field items: types[2] List<string>  source.tdl:22:3
+│       ├── field region: types[0] string  source.tdl:26:3
+│       └── field ratio: types[1] int  source.tdl:27:3
+└── Types
+    ├── [0] string  named  -> decls[0]  source.tdl:6:13
+    ├── [1] int  named  -> decls[1]  source.tdl:18:13
+    └── [2] List<string>  [T]  -> unresolved  source.tdl:22:10

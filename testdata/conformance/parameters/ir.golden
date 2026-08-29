@@ -1,0 +1,35 @@
+Model example.parameters
+├── Decls
+│   ├── [0] alias Applied  source.tdl:3:1
+│   │   ├── param f: type -> type  source.tdl:3:16
+│   │   ├── param T: type  source.tdl:3:33
+│   │   └── target types[1] f<T>
+│   ├── [1] alias Inferred  source.tdl:4:1
+│   │   ├── param f  source.tdl:4:17
+│   │   ├── param T  source.tdl:4:20
+│   │   └── target types[3] f<T>
+│   ├── [2] alias Curried  source.tdl:5:1
+│   │   ├── param f: type -> type -> type  source.tdl:5:16
+│   │   ├── param A  source.tdl:5:41
+│   │   ├── param B  source.tdl:5:44
+│   │   └── target types[6] f<A, B>
+│   ├── [3] alias Parenthesized  source.tdl:6:1
+│   │   ├── param f: (type -> type) -> type  source.tdl:6:22
+│   │   ├── param g  source.tdl:6:49
+│   │   └── target types[8] f<g>
+│   └── [4] alias Measured  source.tdl:7:1
+│       ├── param T  source.tdl:7:17
+│       ├── param u: unit  source.tdl:7:20
+│       └── target types[10] T<u>
+└── Types
+    ├── [0] T  named  -> param Applied.T  source.tdl:3:45
+    ├── [1] f<T>  named  -> param Applied.f  source.tdl:3:43
+    ├── [2] T  named  -> param Inferred.T  source.tdl:4:26
+    ├── [3] f<T>  named  -> param Inferred.f  source.tdl:4:24
+    ├── [4] A  named  -> param Curried.A  source.tdl:5:50
+    ├── [5] B  named  -> param Curried.B  source.tdl:5:53
+    ├── [6] f<A, B>  named  -> param Curried.f  source.tdl:5:48
+    ├── [7] g  named  -> param Parenthesized.g  source.tdl:6:55
+    ├── [8] f<g>  named  -> param Parenthesized.f  source.tdl:6:53
+    ├── [9] u  named  -> param Measured.u  source.tdl:7:32
+    └── [10] T<u>  named  -> param Measured.T  source.tdl:7:30

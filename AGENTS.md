@@ -26,7 +26,7 @@ After changing `go.mod` or adding dependencies, run `make tidy` so `nix/gomod2ni
 
 TDL is a language for describing domain models: entities, values, enums, newtypes, classes, and collections. No expressions, no control flow, no runtime. This repo owns both the specification and the reference implementation.
 
-The parser reads the whole grammar. Lowering to `ir` has started; `docs/design/ir-plan.md` phases 1 and 2 are done, and phase 3 is a `tdl ir` command.
+The parser reads the whole grammar. Lowering to `ir` has started; `docs/design/ir-plan.md` phases 1 through 3 are done, and phase 4 loads the prelude.
 
 `union` is the one grammar form the parser does not implement.
 
@@ -35,9 +35,11 @@ Pipeline, one package per stage:
 - `lex` — hand-written lexer. `lex.Kind` covers idents, literals, keywords, and punctuation; `LookupIdent` turns an identifier into a keyword kind. Positions originate here and flow through the AST as `ast.Position` (a type alias). Regex literals are scanned only on request via `RescanRegexAt`, because `/` is also division in a unit expression.
 - `parser` — recursive descent over the token stream, producing `*ast.File`. Errors accumulate in an `ErrorList` rather than aborting: `syncTop` resynchronizes at the next declaration so one bad line does not swallow the rest of the file.
 - `ast` — parse tree mirroring source 1:1, names left unresolved. `ast.Fprint` produces the canonical formatting used by `tdl fmt`.
-- `internal/cli` — cobra commands (`ast`, `check`, `fmt`, `play`, `tokens`, `version`) wired in `root.go`. `play` is a watch-mode playground that re-renders a file on save; `examples/` holds files to experiment with and is outside the conformance corpus.
+- `internal/cli` — cobra commands (`ast`, `check`, `fmt`, `ir`, `play`, `tokens`, `version`) wired in `root.go`. `play` is a watch-mode playground that re-renders a file on save; `examples/` holds files to experiment with and is outside the conformance corpus.
 - `ir` — the resolved model backends consume. `ir.pb.go` is generated from `proto/tdl/ir/v1/ir.proto` by `make generate` and committed; `model.go` holds the hand-written lookups. `proto/` and `ir/` are the public compatibility surface.
 - `internal/sema` — ast to ir: the declaration table, the interned type table, sugar lowering, scopes, and the spec's recursion rules. Private and free to change. See `docs/design/ir-plan.md` for what each phase adds.
+
+Regenerate the ir goldens with `go test ./internal/sema -update` after any change to lowering or to `ir.Dump`, and read the diff rather than trusting it.
 
 `internal/sema/corpus_test.go` holds a `deferred` list: every diagnostic lowering is still expected to produce, with the phase that will stop producing it. A corpus case reporting anything else fails the test. Delete entries as phases land; when the list empties, the test becomes a plain assertion that the corpus lowers clean.
 - `prelude/std.tdl` — the standard prelude, written in TDL. Nothing loads it yet; it is the target the parser is built against.
@@ -49,7 +51,7 @@ An `ir` package (resolved semantic model consumed by backends) is designed in `d
 
 `docs/spec.md` is canonical; `docs/grammar.ebnf` holds the formal grammar. Both must be updated alongside any grammar or lexer change.
 
-`testdata/conformance/*/source.tdl` must parse cleanly; `testdata/invalid/*/source.tdl` must fail with an error containing the text in the sibling `error.golden`. Both corpora are plain text, deliberately not Go code, so a non-Go implementation can run the same checks. `parser/conformance_test.go` walks them automatically, so adding a directory is enough to add a case.
+`testdata/conformance/*/source.tdl` must parse cleanly and lower to the tree in the sibling `ir.golden`; `testdata/invalid/*/source.tdl` must fail with an error containing the text in the sibling `error.golden`. Both corpora are plain text, deliberately not Go code, so a non-Go implementation can run the same checks. `parser/conformance_test.go` walks them automatically, so adding a directory is enough to add a case.
 
 A case directory holding a `pending` file describes a construct the parser cannot read yet and is skipped, with the file's text as the skip reason. The phase that implements the construct deletes the marker. The corpus is the written-down target, not a record of what already works.
 

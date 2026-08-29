@@ -164,16 +164,52 @@ func (l *lowerer) ctor(name string, pos ast.Position) *ir.ID {
 //
 // Interning is what makes an ID comparison a type comparison, and it is why
 // lowering the same type twice yields one entry.
+//
+// The key and the name are different things. The key separates `[T]` from
+// `List<T>`, which are the same type written two ways and must stay two
+// entries. The name is what a person reads in a diagnostic or a dump, so
+// both of those entries are called `List<T>`.
 func (l *lowerer) intern(t *ir.Type) *ir.ID {
 	key := internKey(t)
+	name := typeName(t)
+
 	if idx, ok := l.types[key]; ok {
-		return &ir.ID{Index: idx, Name: key}
+		return &ir.ID{Index: idx, Name: name}
 	}
 
 	idx := int32(len(l.model.Types))
 	l.types[key] = idx
 	l.model.Types = append(l.model.Types, t)
-	return &ir.ID{Index: idx, Name: key}
+	return &ir.ID{Index: idx, Name: name}
+}
+
+// typeName renders a type the way it is written after lowering: the
+// constructor applied to its arguments, which already carry their own
+// rendered names.
+func typeName(t *ir.Type) string {
+	name := t.GetCtor().GetName()
+	if p := t.GetParam(); p != nil {
+		name = p.GetName()
+	}
+	if len(t.GetArgs()) == 0 {
+		return name
+	}
+
+	var b strings.Builder
+	b.WriteString(name)
+	b.WriteByte('<')
+	for i, a := range t.GetArgs() {
+		if i > 0 {
+			b.WriteString(", ")
+		}
+		if a.GetName() == "" {
+			b.WriteByte('?')
+			continue
+		}
+		b.WriteString(a.GetName())
+	}
+	b.WriteByte('>')
+	return b.String()
 }
 
 // internKey is the identity of a type: its constructor, its arguments, and
@@ -185,13 +221,16 @@ func (l *lowerer) intern(t *ir.Type) *ir.ID {
 func internKey(t *ir.Type) string {
 	var b strings.Builder
 	b.WriteString(t.GetCtor().GetName())
+	if p := t.GetParam(); p != nil {
+		b.WriteString("param:" + p.GetOwner().GetName() + "." + p.GetName())
+	}
 	if len(t.GetArgs()) > 0 {
 		b.WriteByte('<')
 		for i, a := range t.GetArgs() {
 			if i > 0 {
 				b.WriteByte(',')
 			}
-			b.WriteString(a.GetName())
+			b.WriteString(strconv.Itoa(int(a.GetIndex())))
 		}
 		b.WriteByte('>')
 	}

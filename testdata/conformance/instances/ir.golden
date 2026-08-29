@@ -1,0 +1,14 @@
+Model example.instances
+├── Decls
+│   ├── [0] unlowered Auditable  source.tdl:5:1
+│   ├── [1] unlowered Paged  source.tdl:9:1
+│   ├── [2] value OrderList  source.tdl:22:1
+│   ├── [3] value OrderCursor  source.tdl:24:1
+│   │   └── field token: types[0] string  source.tdl:25:3
+│   └── [4] value Page  source.tdl:28:1
+│       ├── param T  source.tdl:28:13
+│       └── field items: types[2] List<T>  source.tdl:29:3
+└── Types
+    ├── [0] string  named  -> unresolved  source.tdl:25:10
+    ├── [1] T  named  -> param Page.T  source.tdl:29:11
+    └── [2] List<T>  [T]  -> unresolved  source.tdl:29:10

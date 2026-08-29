@@ -1,0 +1,12 @@
+Model example.newtypes
+├── Decls
+│   ├── [0] newtype Email  source.tdl:3:1
+│   │   └── base types[0] string
+│   ├── [1] newtype UserId  source.tdl:4:1
+│   │   └── base types[1] uuid
+│   └── [2] newtype WorkEmail  source.tdl:5:1
+│       └── base types[2] Email
+└── Types
+    ├── [0] string  named  -> unresolved  source.tdl:3:13
+    ├── [1] uuid  named  -> unresolved  source.tdl:4:14
+    └── [2] Email  named  -> decls[0]  source.tdl:5:17
