@@ -52,9 +52,6 @@
               pkgs.gnumake
               pkgs.nixfmt
             ];
-
-            GO = "${go}/bin/go";
-            GOMOD2NIX = "${pkgs.gomod2nix}/bin/gomod2nix";
           };
 
           treefmt.programs = {
