@@ -14,7 +14,10 @@ import (
 )
 
 func newIrCmd() *cobra.Command {
-	var format string
+	var (
+		format      string
+		preludePath string
+	)
 
 	cmd := &cobra.Command{
 		Use:   "ir <file>",
@@ -25,7 +28,9 @@ func newIrCmd() *cobra.Command {
 			"see the shape they will be handed.\n\n" +
 			"Problems found while lowering go to stderr and set a non-zero exit\n" +
 			"status, and the model is still printed: an incomplete model is\n" +
-			"worth looking at when the diagnostics are what you are debugging.",
+			"worth looking at when the diagnostics are what you are debugging.\n\n" +
+			"--prelude lowers against a different prelude, so `[T]` means\n" +
+			"whatever that file says List is.",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			path := args[0]
@@ -40,7 +45,12 @@ func newIrCmd() *cobra.Command {
 				return err
 			}
 
-			model, diags := sema.Lower(file)
+			opts, err := preludeOptions(preludePath)
+			if err != nil {
+				return err
+			}
+
+			model, diags := sema.Lower(file, opts...)
 
 			out, err := renderModel(model, format)
 			if err != nil {
@@ -57,7 +67,24 @@ func newIrCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
+	cmd.Flags().StringVar(&preludePath, "prelude", "", "lower against this prelude instead of the built-in one")
 	return cmd
+}
+
+// preludeOptions turns a --prelude path into lowering options.
+//
+// The prelude is replaceable, so `[T]` means whatever the loaded prelude
+// says `List` is. Passing the empty string uses the embedded one.
+func preludeOptions(path string) ([]sema.Option, error) {
+	if path == "" {
+		return nil, nil
+	}
+
+	src, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	return []sema.Option{sema.WithPrelude(path, string(src))}, nil
 }
 
 func renderModel(model *ir.Model, format string) (string, error) {

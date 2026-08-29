@@ -1,12 +1,41 @@
 Model shop.money
 ├── Decls
-│   ├── [0] value Money  source.tdl:3:1
-│   │   ├── field amount: types[0] decimal  source.tdl:4:3
-│   │   └── field currency: types[1] Currency  source.tdl:5:3
-│   └── [1] enum Currency  source.tdl:8:1
+│   ├── [0] primitive string  std.tdl:4:1
+│   ├── [1] primitive int  std.tdl:6:1
+│   ├── [2] primitive bool  std.tdl:7:1
+│   ├── [3] primitive bytes  std.tdl:8:1
+│   ├── [4] primitive List: type -> type  std.tdl:11:1
+│   ├── [5] primitive Set: type -> type  std.tdl:14:1
+│   ├── [6] primitive Map: type -> type -> type  std.tdl:17:1
+│   ├── [7] primitive decimal  std.tdl:20:1
+│   ├── [8] primitive uuid  std.tdl:22:1
+│   ├── [9] primitive instant  std.tdl:23:1
+│   ├── [10] primitive date  std.tdl:24:1
+│   ├── [11] primitive duration  std.tdl:25:1
+│   ├── [12] unlowered s  std.tdl:28:1
+│   ├── [13] unlowered m  std.tdl:30:1
+│   ├── [14] unlowered kg  std.tdl:31:1
+│   ├── [15] enum Option  std.tdl:34:1
+│   │   ├── param T  std.tdl:34:14
+│   │   ├── variant Some  std.tdl:35:3
+│   │   │   └── field value: types[0] T  std.tdl:35:10
+│   │   └── variant None  std.tdl:36:3
+│   ├── [16] enum Nullable  std.tdl:40:1
+│   │   ├── param T  std.tdl:40:16
+│   │   ├── variant Present  std.tdl:41:3
+│   │   │   └── field value: types[1] T  std.tdl:41:13
+│   │   └── variant Null  std.tdl:42:3
+│   ├── [17] unlowered Entity  std.tdl:46:1
+│   ├── [18] unlowered Value  std.tdl:51:1
+│   ├── [19] value Money  source.tdl:3:1
+│   │   ├── field amount: types[2] decimal  source.tdl:4:3
+│   │   └── field currency: types[3] Currency  source.tdl:5:3
+│   └── [20] enum Currency  source.tdl:8:1
 │       ├── variant USD  source.tdl:8:17
 │       ├── variant EUR  source.tdl:8:21
 │       └── variant GBP  source.tdl:8:25
 └── Types
-    ├── [0] decimal  named  -> unresolved  source.tdl:4:11
-    └── [1] Currency  named  -> decls[1]  source.tdl:5:13
+    ├── [0] T  named  -> param Option.T  std.tdl:35:17
+    ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
+    ├── [2] decimal  named  -> decls[7]  source.tdl:4:11
+    └── [3] Currency  named  -> decls[20]  source.tdl:5:13

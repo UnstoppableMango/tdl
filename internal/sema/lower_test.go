@@ -8,19 +8,17 @@ import (
 	"github.com/unstoppablemango/tdl/parser"
 )
 
-// preamble declares the prelude names sugar lowers to. Phase 4 loads
-// prelude/std.tdl for real; until then a file that uses `[T]` has to
-// declare `List` itself, which is what "no type is built in" means.
-const preamble = `primitive string
-primitive T
+// preamble declares the placeholder names these tests use as stand-in
+// types. The prelude supplies everything else: `string`, `List`, `Option`,
+// and the rest are loaded, not declared here.
+const preamble = `primitive T
 primitive K
 primitive V
-primitive List: type -> type
-primitive Set: type -> type
-primitive Map: type -> type -> type
-primitive Option: type -> type
-primitive Nullable: type -> type
+primitive E
 `
+
+// preambleLines is how many lines the preamble adds before a test's source.
+const preambleLines = 4
 
 func lower(t *testing.T, src string) *ir.Model {
 	t.Helper()
@@ -48,9 +46,6 @@ func lowerDiags(t *testing.T, src string) Diagnostics {
 	return diags
 }
 
-// declCount is how many declarations the preamble contributes.
-const declCount = 9
-
 func TestDeclarationTable(t *testing.T) {
 	model := lower(t, `
 alias Names = [string]
@@ -68,8 +63,10 @@ mixin Timestamps { createdAt: string }
 enum Status { Draft Placed }
 `)
 
-	if got := len(model.GetDecls()); got != declCount+6 {
-		t.Fatalf("got %d decls, want %d", got, declCount+6)
+	for _, name := range []string{"Names", "Email", "Order", "Money", "Timestamps", "Status"} {
+		if _, _, ok := model.FindDecl(name); !ok {
+			t.Errorf("%s is missing from the table", name)
+		}
 	}
 
 	order, id, ok := model.FindDecl("Order")
@@ -207,10 +204,15 @@ value B { y: [string] }
 		t.Errorf("the same type interned twice: %d and %d", a.GetIndex(), b.GetIndex())
 	}
 
-	// [string] is List<string>, so string is in the table too, and nothing
-	// else is.
-	if got := len(model.GetTypes()); got != 2 {
-		t.Errorf("type table holds %d entries, want 2", got)
+	// One entry, however many times it was written.
+	var listOfString int
+	for _, ty := range model.GetTypes() {
+		if ty.GetCtor().GetName() == "List" {
+			listOfString++
+		}
+	}
+	if listOfString != 1 {
+		t.Errorf("List<string> has %d entries, want 1", listOfString)
 	}
 }
 
@@ -244,7 +246,7 @@ entity Order {
 	}
 	// The position is the declaration keyword, not the doc comment or the
 	// deprecation that precede it.
-	if m.GetPosition().GetLine() != declCount+4 {
+	if m.GetPosition().GetLine() != preambleLines+4 {
 		t.Errorf("position = %+v", m.GetPosition())
 	}
 
@@ -487,5 +489,65 @@ alias B = Set<List<string>>
 	db, _, _ := model.FindDecl("B")
 	if da.GetAlias().GetTarget().GetIndex() == db.GetAlias().GetTarget().GetIndex() {
 		t.Error("Set<[string]> and Set<List<string>> share an entry")
+	}
+}
+
+// The prelude is replaceable: `[T]` means whatever the loaded prelude says
+// `List` is, and nothing in lowering knows more than the spelling.
+func TestPreludeIsReplaceable(t *testing.T) {
+	file, err := parser.Parse("test.tdl", strings.NewReader(`value V { items: [string] }`))
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+
+	replacement := `package other
+primitive string
+primitive List: type -> type
+primitive Set: type -> type
+primitive Map: type -> type -> type
+primitive Option: type -> type
+primitive Nullable: type -> type
+`
+	model, diags := Lower(file, WithPrelude("other.tdl", replacement))
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+
+	v, _, _ := model.FindDecl("V")
+	items := model.Type(v.Fields()[0].GetType())
+	ctor := model.Decl(items.GetCtor())
+	if ctor == nil {
+		t.Fatal("List did not resolve through the replacement prelude")
+	}
+	if got := ctor.GetMeta().GetPosition().GetFilename(); got != "other.tdl" {
+		t.Errorf("List came from %q, want other.tdl", got)
+	}
+}
+
+// A file may declare a name the prelude already has, and its own wins.
+func TestFileShadowsPrelude(t *testing.T) {
+	model := lower(t, `
+primitive string
+value Shadowed { s: string }
+`)
+
+	v, _, _ := model.FindDecl("Shadowed")
+	ctor := model.Decl(model.Type(v.Fields()[0].GetType()).GetCtor())
+	if got := ctor.GetMeta().GetPosition().GetFilename(); got != "test.tdl" {
+		t.Errorf("string resolved to %q, want the file's own", got)
+	}
+}
+
+// Compiling a prelude means having no prelude, and then nothing resolves
+// that the file does not declare.
+func TestWithoutPrelude(t *testing.T) {
+	file, err := parser.Parse("test.tdl", strings.NewReader(`value V { s: string }`))
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+
+	_, diags := Lower(file, WithoutPrelude())
+	if !strings.Contains(diags.Error(), "undefined: string") {
+		t.Errorf("diagnostics = %v", diags)
 	}
 }

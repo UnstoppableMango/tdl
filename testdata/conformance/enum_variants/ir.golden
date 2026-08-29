@@ -1,21 +1,50 @@
 Model shop.payment
 ├── Decls
-│   ├── [0] enum Payment  source.tdl:3:1
+│   ├── [0] primitive string  std.tdl:4:1
+│   ├── [1] primitive int  std.tdl:6:1
+│   ├── [2] primitive bool  std.tdl:7:1
+│   ├── [3] primitive bytes  std.tdl:8:1
+│   ├── [4] primitive List: type -> type  std.tdl:11:1
+│   ├── [5] primitive Set: type -> type  std.tdl:14:1
+│   ├── [6] primitive Map: type -> type -> type  std.tdl:17:1
+│   ├── [7] primitive decimal  std.tdl:20:1
+│   ├── [8] primitive uuid  std.tdl:22:1
+│   ├── [9] primitive instant  std.tdl:23:1
+│   ├── [10] primitive date  std.tdl:24:1
+│   ├── [11] primitive duration  std.tdl:25:1
+│   ├── [12] unlowered s  std.tdl:28:1
+│   ├── [13] unlowered m  std.tdl:30:1
+│   ├── [14] unlowered kg  std.tdl:31:1
+│   ├── [15] enum Option  std.tdl:34:1
+│   │   ├── param T  std.tdl:34:14
+│   │   ├── variant Some  std.tdl:35:3
+│   │   │   └── field value: types[0] T  std.tdl:35:10
+│   │   └── variant None  std.tdl:36:3
+│   ├── [16] enum Nullable  std.tdl:40:1
+│   │   ├── param T  std.tdl:40:16
+│   │   ├── variant Present  std.tdl:41:3
+│   │   │   └── field value: types[1] T  std.tdl:41:13
+│   │   └── variant Null  std.tdl:42:3
+│   ├── [17] unlowered Entity  std.tdl:46:1
+│   ├── [18] unlowered Value  std.tdl:51:1
+│   ├── [19] enum Payment  source.tdl:3:1
 │   │   ├── variant Card  source.tdl:4:3
-│   │   │   ├── field last4: types[0] string  source.tdl:4:10
-│   │   │   └── field brand: types[1] CardBrand  source.tdl:4:24
+│   │   │   ├── field last4: types[2] string  source.tdl:4:10
+│   │   │   └── field brand: types[3] CardBrand  source.tdl:4:24
 │   │   ├── variant Bank  source.tdl:5:3
-│   │   │   ├── field routing: types[0] string  source.tdl:5:10
-│   │   │   └── field account: types[0] string  source.tdl:5:26
+│   │   │   ├── field routing: types[2] string  source.tdl:5:10
+│   │   │   └── field account: types[2] string  source.tdl:5:26
 │   │   └── variant Credit  source.tdl:6:3
-│   ├── [1] enum CardBrand  source.tdl:9:1
+│   ├── [20] enum CardBrand  source.tdl:9:1
 │   │   ├── variant Visa  source.tdl:9:18
 │   │   ├── variant Mastercard  source.tdl:9:23
 │   │   └── variant Amex  source.tdl:9:34
-│   └── [2] enum Inline  source.tdl:10:1
+│   └── [21] enum Inline  source.tdl:10:1
 │       ├── variant A  source.tdl:10:15
 │       ├── variant B  source.tdl:10:17
 │       └── variant C  source.tdl:10:19
 └── Types
-    ├── [0] string  named  -> unresolved  source.tdl:4:17
-    └── [1] CardBrand  named  -> decls[1]  source.tdl:4:31
+    ├── [0] T  named  -> param Option.T  std.tdl:35:17
+    ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
+    ├── [2] string  named  -> decls[0]  source.tdl:4:17
+    └── [3] CardBrand  named  -> decls[20]  source.tdl:4:31

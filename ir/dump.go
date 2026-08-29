@@ -81,7 +81,7 @@ func declLine(decl *Decl) string {
 	var kind string
 	switch {
 	case decl.GetPrimitive() != nil:
-		kind = "primitive" + kindSuffix(decl.GetPrimitive().GetKind())
+		return "primitive " + name + kindSuffix(decl.GetPrimitive().GetKind()) + deprecatedSuffix(decl.GetMeta())
 	case decl.GetAlias() != nil:
 		kind = "alias"
 	case decl.GetNewtype() != nil:

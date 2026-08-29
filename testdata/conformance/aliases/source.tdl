@@ -8,3 +8,7 @@ alias Maybe<T> = T?
 alias Nullable2<T> = T | null
 alias Both<T> = T? | null
 alias Qualified = common.Address
+
+value Event {
+  name: string
+}
