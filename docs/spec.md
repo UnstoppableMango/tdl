@@ -1,195 +1,264 @@
-# TDL Language Specification — v0.1.0 (draft)
+# TDL Specification
 
-TDL (Type Description Language) describes data types: records, enums, primitives, and collections.
-It is not a general-purpose programming language and has no expressions, control flow, or runtime semantics.
-A TDL file only describes the shape of data.
+TDL is a language for describing domain models.
+It says what things are, what identifies them, how they relate, and what values they may hold.
+It does not describe behavior, and it has no expressions, control flow, or runtime.
 
-This document is the canonical specification.
-`github.com/unstoppablemango/tdl` owns the reference implementation.
-The corpus at `testdata/conformance/` and `testdata/invalid/` in this repository is plain text, not Go code, so any independent implementation can check itself against the same fixtures.
+The formal grammar is in [grammar.ebnf](grammar.ebnf).
+This document is canonical where the two disagree.
 
-This draft covers the M1 subset of the language: lexical structure, grammar, and the type system.
-Annotation *semantics* (what a given namespace like `@go` or `@protobuf` means to a backend) are out of scope here, since no backends exist yet.
-Annotations are defined syntactically and parsed, but uninterpreted.
+## Design commitments
 
-## 1. Lexical structure
+The language core is small.
+Almost everything that looks like a type system is library code written in TDL and shipped in a replaceable prelude.
 
-A TDL source file is UTF-8 text with the extension `.tdl`.
+1. **Identity is first class.** An `entity` has identity that persists across changes to its contents. A `value` is defined entirely by its contents.
+2. **The model is pure.** A `.tdl` file describes the domain. Everything a code generator needs lives in a separate `target` block.
+3. **Constraints are syntax, not semantics.** The compiler parses and resolves constraints. It does not evaluate or interpret them. Backends decide what a constraint means.
+4. **Behavior belongs to backends.** `owned` says a child is part of its parent. It does not say what happens on delete.
 
-### 1.1 Comments
+## Lexical structure
 
-A `//` starts a line comment that runs to the end of the line.
-There are no block comments.
+Identifiers are letters, digits, and underscore, not starting with a digit.
+Comments run from `//` to end of line.
+Literals are strings (`"..."`), integers, floats, booleans, regexes (`/.../`), and bracketed lists.
 
-### 1.2 Identifiers
+Declarations are newline separated.
+Commas are permitted but never required as separators inside blocks.
 
-```
-identifier = letter { letter | digit }
-letter     = "a"…"z" | "A"…"Z" | "_"
-digit      = "0"…"9"
-```
-
-### 1.3 Keywords
-
-The following identifiers are reserved and cannot be used as a type, field, enum, or enum-value name:
-
-```
-package  import  as  type  enum  union  true  false
-```
-
-`union` is reserved for a future generic sum-type declaration.
-It is not implemented by the M1 parser.
-
-Keywords also cannot currently be used as annotation argument names (`@go(package: "x")` is a syntax error — use a non-keyword name such as `pkg`).
-This is a known M1 simplification, not a permanent restriction.
-
-### 1.4 Literals
-
-```
-string_lit = '"' { unescaped_char | escape_sequence } '"'
-escape_sequence = '\' ( 'n' | 't' | '"' | '\' )
-int_lit    = digit { digit }
-float_lit  = digit { digit } "." digit { digit }
-bool_lit   = "true" | "false"
-```
-
-### 1.5 Punctuation
-
-```
-{ } ( ) [ ] < > : , = ? . @
-```
-
-## 2. Grammar
-
-The formal grammar is in [`grammar.ebnf`](./grammar.ebnf).
-This section walks through it with examples.
-
-### 2.1 File structure
+## Packages and imports
 
 ```tdl
-package example.v1
+package billing
 
-import "common.tdl" as common
-
-type User {
-  id: string
-  name: string?
-  tags: list<string>
-  metadata: map<string, string>
-  address: common.Address?
-  role: Role = "member"
-}
-
-enum Role {
-  Admin = "admin"
-  Member = "member"
-  Guest = "guest"
-}
+import "std/prelude" as _
+import "std/si" as si
 ```
 
-A file has an optional `package` declaration (at most one, first in the file), followed by zero or more `import` declarations, followed by zero or more `type` and `enum` declarations in any order.
+A file declares at most one package.
+An import binds a path to a local name; `_` merges the imported names into the current scope without a qualifier.
 
-`import "path.tdl" as alias` is resolved relative to the importing file.
-**In M1, imports are parsed but not resolved.**
-`tdl check` validates a single file's syntax only.
-It does not verify that an imported file exists or that a qualified reference like `common.Address` resolves to a real declaration.
-Cross-file resolution is deferred to the `ir` package in a later milestone.
+There is no version syntax.
+Versioning a schema is the job of the repository that holds it.
 
-### 2.2 Type declarations
+## Roots and the prelude
 
-```
-type Name {
-  field1: Type
-  field2: Type?
-  field3: Type = default
-}
-```
-
-Each field is `name: Type`, optionally suffixed with `?` to mark it optional, optionally followed by `= <literal>` to give it a default value.
-Fields are separated by newlines.
-There is no comma or semicolon between fields.
-
-### 2.3 Primitive types
-
-| Name      | Description                    |
-|-----------|---------------------------------|
-| `string`  | UTF-8 text                      |
-| `bool`    | boolean                         |
-| `int8`    | 8-bit signed integer            |
-| `int16`   | 16-bit signed integer           |
-| `int32`   | 32-bit signed integer           |
-| `int64`   | 64-bit signed integer           |
-| `uint8`   | 8-bit unsigned integer          |
-| `uint16`  | 16-bit unsigned integer         |
-| `uint32`  | 32-bit unsigned integer         |
-| `uint64`  | 64-bit unsigned integer         |
-| `float32` | 32-bit floating point           |
-| `float64` | 64-bit floating point           |
-| `bytes`   | arbitrary binary data           |
-
-This set is deliberately small, chosen to map cleanly onto the primitive type systems of the initial target formats (JSON Schema, Go, TypeScript, Protobuf) with no ambiguous or lossy conversions.
-
-### 2.4 Collections
-
-- `list<T>` — an ordered sequence of `T`.
-- `map<K, V>` — a mapping from `K` to `V`.
-  `K` must be `string` or an integer primitive (`int8`…`uint64`).
-  This matches both JSON object-key and Protobuf map-key constraints, so no target backend needs a fallback or error path for an unsupported key type.
-
-### 2.5 References
-
-A field or collection element may reference another declared type: either bare (`Address`, resolved within the same file/package) or qualified (`common.Address`, resolved through an import alias).
-
-### 2.6 Enums
-
-```
-enum Name {
-  Variant1 = "literal-or-int"
-  Variant2
-}
-```
-
-Each variant may carry an explicit literal (string or integer).
-A variant with no explicit literal has no assigned value in M1.
-A later milestone defines the default representation (likely the variant name as a string) once a backend needs one.
-
-### 2.7 Annotations
-
-```
-annotation ::= '@' identifier [ '(' arg (',' arg)* ')' ]
-arg        ::= identifier ':' literal
-```
-
-Annotations attach target-specific extension data to a `type`, `field`, or `enum`/enum-value declaration:
+No type is built in.
+A root type is introduced with `primitive`, which tells the compiler only that the type is opaque and irreducible.
 
 ```tdl
-@go(pkg: "example")
-type User {
-  @go(tag: "json:\"full_name,omitempty\"")
-  @protobuf(number: 10)
-  name: string
+primitive string
+primitive int
+primitive bool
+primitive bytes
+```
+
+The standard prelude declares these roots and the ordinary types built on them (`decimal`, `uuid`, `instant`, `date`, `duration`).
+A project may import a different prelude.
+The compiler has no opinion about which types exist.
+
+## Types
+
+### Newtypes
+
+`type` declares a distinct type over another type, optionally constrained.
+
+```tdl
+type Email: string {
+  matches /^[^@]+@[^@]+$/
+  length 3..254
+}
+
+type UserId: uuid
+```
+
+A newtype is not interchangeable with the type it is built on.
+`UserId` and `OrderId` are different types even though both are `uuid`.
+
+### Values
+
+A `value` is defined by its contents.
+Two values with equal fields are the same value.
+
+```tdl
+value Money {
+  amount: decimal
+  currency: Currency
 }
 ```
 
-The `identifier` right after `@` is a **namespace**, conventionally matching a backend's name (`go`, `csharp`, `protobuf`, `jsonschema`, ...).
-The core grammar places no restriction on which namespaces exist.
-This is intentional.
-A backend that doesn't recognize a namespace simply ignores it.
-A backend that does recognize one interprets its arguments however it needs to (see the forthcoming `ir` package documentation for how backends consume annotations once they exist).
+### Entities
 
-Multiple annotations may precede the same declaration, including two annotations with the same namespace.
+An `entity` has identity.
+Fields marked `key` form its identity; repeating `key` gives a composite identity.
 
-### 2.8 Reserved but unimplemented
+```tdl
+entity Order {
+  key id: OrderId
+  customer: User
+  items: [LineItem] owned
+  total: Money
+}
 
-The `union` keyword and generic type-parameter syntax on `type` declarations are reserved by the grammar but rejected/unsupported by the M1 parser.
-Reserving them now means their eventual addition is additive to the grammar, not a breaking change to existing `.tdl` source.
+entity LineItem {
+  key order: Order
+  key sku: SKU
+  quantity: int { min 1 }
+}
+```
 
-## 3. Conformance
+`key` is optional.
+An entity without a declared key still has identity; the backend supplies it.
 
-A conforming implementation must:
+### Enums
 
-1. Accept every file in `testdata/conformance/` without a syntax error.
-2. Reject every file in `testdata/invalid/` with a syntax error.
-3. Format via `tdl fmt` deterministically and idempotently: formatting already-canonical output must be a no-op.
+An enum is a closed set of variants.
+A variant may carry fields, which makes `enum` the language's sum type.
+Variants without fields are the degenerate case.
 
-Golden per-target output files (`*.golden`) will be added to the conformance corpus once backends exist, at which point conformance also requires matching that output exactly.
+```tdl
+enum Payment {
+  Card { last4: string, brand: CardBrand }
+  Bank { routing: string, account: string }
+  Credit
+}
+
+enum Currency { USD, EUR, GBP }
+```
+
+### Generics
+
+Any declaration may take type parameters.
+
+```tdl
+value Page<T> {
+  items: [T]
+  next: Cursor? | null
+}
+```
+
+## Type references
+
+### Collections
+
+| Form | Meaning |
+| --- | --- |
+| `[T]` | ordered, duplicates allowed |
+| `{T}` | unordered set |
+| `{K -> V}` | map |
+
+Cardinality is not separate syntax.
+It falls out of the collection form, optionality, and the `length` constraint: `items: [LineItem] { length 1.. }` is one-or-more.
+
+### Optional and nullable
+
+These are different questions and get different syntax.
+
+| Form | Meaning |
+| --- | --- |
+| `T` | required, present |
+| `T?` | may be absent |
+| `T \| null` | present, may be null |
+| `T? \| null` | may be absent, and may be null when present |
+
+The distinction matters for partial updates and for formats that can express both, and is preserved through to backends.
+
+### Units of measure
+
+Units are declared, may be derived, and participate in dimensional algebra.
+
+```tdl
+unit kg
+unit m
+unit s
+unit N = kg*m/s^2
+```
+
+A unit is applied as a type argument.
+
+```tdl
+value Weight {
+  net: decimal<kg>
+  force: decimal<N>
+}
+```
+
+Unit expressions are normalized to base dimensions before comparison, so `decimal<N>` and `decimal<kg*m/s^2>` are the same type.
+`decimal<kg>`, `decimal<m>`, and `decimal` are three different types.
+
+Units may be applied to any type.
+The compiler cannot know which types are numeric, because the prelude is replaceable, so it does not try.
+
+`<...>` is a single syntactic form covering both type arguments and unit arguments.
+The parser does not distinguish them; the resolver does, against the declaration being applied.
+
+## Relationships
+
+A field whose type is an entity is a reference.
+Cardinality comes from the collection form.
+
+`owned` marks composition: the referenced value is part of this one rather than an independent participant.
+
+```tdl
+entity Order {
+  items: [LineItem] owned   // composition
+  customer: User            // reference
+  coupon: Coupon?           // optional reference
+}
+```
+
+Relationships are one-directional as written.
+There is no inverse declaration; a backend that needs the reverse direction infers it from the model.
+
+## Constraints
+
+A constraint block may follow a type declaration or a field.
+The compiler checks that constraints are well formed and that any names they mention resolve.
+It does not check that they are satisfiable, consistent, or meaningful for the type they are attached to.
+
+| Constraint | Form |
+| --- | --- |
+| `min` | `min 1` |
+| `max` | `max 100` |
+| `length` | `length 3..254`, `length 1..`, `length 16` |
+| `matches` | `matches /^[a-z]+$/` |
+| `oneOf` | `oneOf ["a", "b"]` |
+| `unique` | `unique` |
+
+The set is closed.
+Opening it to arbitrary backend-defined constraints is a later, additive change.
+
+## Targets
+
+Everything a code generator needs lives in a `target` block, never in the model.
+
+```tdl
+target go for billing {
+  package "github.com/acme/billing"
+
+  User {
+    name "Account"
+    email => tag "json:\"email_address\""
+  }
+
+  Order.items => slice
+  Order.tags  => set
+
+  Money   => foreign "github.com/acme/money" "Money"
+  decimal => foreign "github.com/shopspring/decimal" "Decimal"
+}
+```
+
+A target block names a generator and the package it applies to.
+Entries are either a path into the model followed by `=>` and a directive, a nested block scoping a path, or a bare directive applying to the enclosing scope.
+
+The compiler resolves every path against the model.
+A path that names nothing is an error.
+Directives themselves are opaque: the compiler checks their shape and hands them to the backend.
+
+Target blocks may appear in a `.tdl` file or in a separate file.
+The standard library ships a target for each supported language, and a project may replace any of them.
+
+## Formatting
+
+`tdl fmt` produces canonical output and is idempotent: formatting canonical output changes nothing.

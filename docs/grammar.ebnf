@@ -1,36 +1,73 @@
 (* TDL grammar, EBNF appendix to spec.md.
-   Notation: '...' terminals, [ ] optional, { } zero-or-more, | alternation.
-   Reserved-but-unimplemented productions are marked (reserved). *)
+   Notation: '...' terminals, [ ] optional, { } zero-or-more, | alternation. *)
 
-File       = [ PackageDecl ] { ImportDecl } { TopDecl } .
-TopDecl    = { Annotation } ( TypeDecl | EnumDecl ) .
+File     = { Decl } .
+Decl     = PackageDecl | ImportDecl | PrimitiveDecl | UnitDecl
+         | TypeDecl | ValueDecl | EntityDecl | EnumDecl | TargetDecl .
 
 PackageDecl = "package" DottedIdent .
+ImportDecl  = "import" string_lit "as" ( identifier | "_" ) .
 DottedIdent = identifier { "." identifier } .
 
-ImportDecl = "import" string_lit "as" identifier .
+(* ---- roots and units ---------------------------------------------------- *)
 
-TypeDecl   = "type" identifier "{" { { Annotation } Field } "}" .
-Field      = identifier ":" TypeRef [ "?" ] [ "=" Literal ] .
+PrimitiveDecl = "primitive" identifier .
 
-EnumDecl   = "enum" identifier "{" { { Annotation } EnumValue } "}" .
-EnumValue  = identifier [ "=" Literal ] .
+UnitDecl = "unit" identifier [ "=" UnitExpr ] .
+UnitExpr = UnitTerm { ( "*" | "/" ) UnitTerm } .
+UnitTerm = identifier [ "^" int_lit ] | "(" UnitExpr ")" .
 
-TypeRef    = ListType | MapType | NamedType .
-ListType   = "list" "<" TypeRef ">" .
-MapType    = "map" "<" TypeRef "," TypeRef ">" .
-NamedType  = identifier [ "." identifier ] .
-(* NamedType covers both primitive names (string, int32, ...) and
-   references to declared types; the grammar does not distinguish them —
-   that is a semantic check performed by the ir package, not the parser. *)
+(* ---- declarations ------------------------------------------------------- *)
 
-Annotation = "@" identifier [ "(" AnnotationArg { "," AnnotationArg } ")" ] .
-AnnotationArg = identifier ":" Literal .
+TypeDecl   = "type" identifier [ TypeParams ] ":" TypeRef [ ConstraintBlock ] .
+ValueDecl  = "value" identifier [ TypeParams ] "{" { Field } "}" .
+EntityDecl = "entity" identifier [ TypeParams ] "{" { Field } "}" .
+EnumDecl   = "enum" identifier [ TypeParams ] "{" { Variant } "}" .
 
-Literal    = string_lit | int_lit | float_lit | bool_lit | ListLiteral .
+Variant    = identifier [ "{" [ Field { "," Field } ] "}" ] .
+TypeParams = "<" identifier { "," identifier } ">" .
+
+Field    = { FieldMod } identifier ":" TypeRef { FieldRel }
+           [ ConstraintBlock ] [ "=" Literal ] .
+FieldMod = "key" .
+FieldRel = "owned" .
+
+(* ---- type references ---------------------------------------------------- *)
+
+TypeRef   = CoreType [ "?" ] [ "|" "null" ] .
+CoreType  = ListType | SetOrMapType | NamedType .
+ListType  = "[" TypeRef "]" .
+SetOrMapType = "{" TypeRef [ "->" TypeRef ] "}" .
+NamedType = DottedIdent [ TypeArgs ] .
+
+TypeArgs = "<" TypeArg { "," TypeArg } ">" .
+TypeArg  = UnitExpr | TypeRef .
+(* TypeArg is ambiguous by design: a bare identifier may name a type or a
+   unit.  The parser records the syntactic form; the resolver decides which
+   kind each argument is, against the declaration being applied. *)
+
+(* ---- constraints -------------------------------------------------------- *)
+
+ConstraintBlock = "{" [ Constraint { [ "," ] Constraint } ] "}" .
+Constraint = "min" Literal
+           | "max" Literal
+           | "length" Range
+           | "matches" regex_lit
+           | "oneOf" ListLiteral
+           | "unique" .
+Range = [ int_lit ] ".." [ int_lit ] | int_lit .
+
+(* ---- targets ------------------------------------------------------------ *)
+
+TargetDecl  = "target" identifier "for" DottedIdent "{" { TargetEntry } "}" .
+TargetEntry = Path "{" { TargetEntry } "}"
+            | Path "=>" Directive
+            | Directive .
+Directive   = identifier { DirectiveArg } .
+DirectiveArg = Literal | Path .
+Path        = identifier { "." identifier } .
+
+(* ---- literals ----------------------------------------------------------- *)
+
+Literal     = string_lit | int_lit | float_lit | bool_lit | ListLiteral .
 ListLiteral = "[" [ Literal { "," Literal } ] "]" .
-
-(* reserved, not implemented in M1 *)
-UnionDecl  = "union" identifier "{" { UnionVariant } "}" .        (* reserved *)
-UnionVariant = identifier ":" TypeRef .                            (* reserved *)
-GenericTypeDecl = "type" identifier "<" identifier { "," identifier } ">" "{" ... "}" . (* reserved *)
