@@ -36,9 +36,10 @@ type ClassRef struct {
 // from the type it is built on.
 type NewtypeDecl struct {
 	DeclHead
-	Params   []*TypeParam
-	Base     *TypeRef
-	Requires []*ClassRef
+	Params      []*TypeParam
+	Base        *TypeRef
+	Requires    []*ClassRef
+	Constraints []*Constraint
 }
 
 // StructDecl is a declaration with a body of members: `entity`, `value`, or
@@ -78,14 +79,15 @@ type Member interface {
 
 // Field is a named, typed member.
 type Field struct {
-	Doc     []string
-	P       Position
-	N       string
-	Key     bool // part of the entity's identity
-	Owned   bool // composition rather than reference
-	Dep     *Deprecation
-	Type    *TypeRef
-	Default *Literal
+	Doc         []string
+	P           Position
+	N           string
+	Key         bool // part of the entity's identity
+	Owned       bool // composition rather than reference
+	Dep         *Deprecation
+	Type        *TypeRef
+	Constraints []*Constraint
+	Default     *Literal
 }
 
 func (f *Field) MemberPos() Position { return f.P }
@@ -134,7 +136,9 @@ const (
 	LitFloat
 	LitBool
 	LitList
-	LitName // a dotted name, denoting an enum variant
+	LitName  // a dotted name, denoting an enum variant
+	LitRegex // /.../, a constraint argument
+	LitRange // 3..254, 1.., ..254
 )
 
 // Literal is a literal value: a field default, a constraint argument, or a
@@ -142,8 +146,21 @@ const (
 type Literal struct {
 	P     Position
 	Kind  LiteralKind
-	Text  string     // decoded for LitString, source text otherwise
+	Text  string     // decoded for LitString, pattern body for LitRegex, source text otherwise
 	Items []*Literal // set for LitList
+	Lo    *Literal   // set for LitRange; nil when the range is open below
+	Hi    *Literal   // set for LitRange; nil when the range is open above
+}
+
+// Constraint is one entry in a `where { ... }` block.
+//
+// The set of names is open. The compiler checks the arity and argument
+// kinds of the standard names and passes everything else through, so a
+// backend may understand a constraint the compiler has never heard of.
+type Constraint struct {
+	P    Position
+	N    string
+	Args []*Literal
 }
 
 func (h *DeclHead) deprecation() *Deprecation { return h.Dep }

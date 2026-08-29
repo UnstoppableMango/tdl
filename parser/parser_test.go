@@ -426,3 +426,113 @@ func TestIncludeStillParses(t *testing.T) {
 		t.Error("include parsed as something else")
 	}
 }
+
+func TestConstraints(t *testing.T) {
+	file := parse(t, `type Email: string where {
+  matches(/^[^@]+@[^@]+$/)
+  length(3..254)
+  unique
+}`)
+
+	cs := file.Decls[0].(*ast.NewtypeDecl).Constraints
+	if len(cs) != 3 {
+		t.Fatalf("got %d constraints, want 3", len(cs))
+	}
+
+	if cs[0].N != "matches" || cs[0].Args[0].Kind != ast.LitRegex {
+		t.Errorf("matches = %+v", cs[0])
+	}
+	if got := cs[0].Args[0].Text; got != "^[^@]+@[^@]+$" {
+		t.Errorf("regex body = %q", got)
+	}
+	if cs[1].Args[0].Kind != ast.LitRange {
+		t.Fatalf("length arg = %+v", cs[1].Args[0])
+	}
+	if r := cs[1].Args[0]; r.Lo.Text != "3" || r.Hi.Text != "254" {
+		t.Errorf("range = %+v", r)
+	}
+	if len(cs[2].Args) != 0 {
+		t.Errorf("unique took arguments: %+v", cs[2])
+	}
+}
+
+func TestRangeForms(t *testing.T) {
+	tests := []struct {
+		src    string
+		lo, hi string
+	}{
+		{"3..254", "3", "254"},
+		{"1..", "1", ""},
+		{"..64", "", "64"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.src, func(t *testing.T) {
+			file := parse(t, "type T: string where { length("+tt.src+") }")
+			arg := file.Decls[0].(*ast.NewtypeDecl).Constraints[0].Args[0]
+			if arg.Kind != ast.LitRange {
+				t.Fatalf("kind = %v", arg.Kind)
+			}
+			var lo, hi string
+			if arg.Lo != nil {
+				lo = arg.Lo.Text
+			}
+			if arg.Hi != nil {
+				hi = arg.Hi.Text
+			}
+			if lo != tt.lo || hi != tt.hi {
+				t.Errorf("got %q..%q, want %q..%q", lo, hi, tt.lo, tt.hi)
+			}
+		})
+	}
+}
+
+// The constraint set is open: the parser recognizes no name in particular.
+func TestUnknownConstraintParses(t *testing.T) {
+	file := parse(t, `entity E { x: int where { between(0, 100) } }`)
+
+	f := file.Decls[0].(*ast.StructDecl).Members[0].(*ast.Field)
+	if len(f.Constraints) != 1 || f.Constraints[0].N != "between" {
+		t.Fatalf("constraints = %+v", f.Constraints)
+	}
+	if len(f.Constraints[0].Args) != 2 {
+		t.Errorf("got %d args, want 2", len(f.Constraints[0].Args))
+	}
+}
+
+func TestFieldConstraintsThenDefault(t *testing.T) {
+	file := parse(t, `entity E { status: Status where { unique } = Draft }`)
+
+	f := file.Decls[0].(*ast.StructDecl).Members[0].(*ast.Field)
+	if len(f.Constraints) != 1 {
+		t.Errorf("constraints = %+v", f.Constraints)
+	}
+	if f.Default == nil || f.Default.Text != "Draft" {
+		t.Errorf("default = %+v", f.Default)
+	}
+}
+
+// A constraint block must be introduced by `where`, so `{` after a type
+// reference is never a constraint block.
+func TestConstraintBlockNeedsWhere(t *testing.T) {
+	if msg := parseErr(t, "type Email: string {\n  length(3..254)\n}"); !strings.Contains(msg, "expected a declaration") {
+		t.Errorf("error = %s", msg)
+	}
+}
+
+// `/` is division in a unit expression and a regex delimiter in a
+// constraint. Nothing before it says which, so the parser asks.
+func TestRegexVersusDivision(t *testing.T) {
+	file := parse(t, `type Path: string where { matches(/a\/b/) }`)
+
+	arg := file.Decls[0].(*ast.NewtypeDecl).Constraints[0].Args[0]
+	if arg.Kind != ast.LitRegex || arg.Text != `a\/b` {
+		t.Errorf("regex = %v %q", arg.Kind, arg.Text)
+	}
+}
+
+func TestUnterminatedRegex(t *testing.T) {
+	if msg := parseErr(t, "type T: string where { matches(/nope) }"); !strings.Contains(msg, "unterminated regex") {
+		t.Errorf("error = %s", msg)
+	}
+}

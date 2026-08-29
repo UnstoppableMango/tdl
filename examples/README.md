@@ -4,7 +4,7 @@ Starting points for playing with the language.
 They are not part of the conformance corpus, so edit them freely.
 
 All four parse.
-Constraint blocks, classes, and units do not exist yet; see [../docs/design/parser-plan.md](../docs/design/parser-plan.md).
+Classes and units do not exist yet; see [../docs/design/parser-plan.md](../docs/design/parser-plan.md).
 
 | File | What it shows |
 | --- | --- |
@@ -32,4 +32,5 @@ Things to try:
 - Break a line on purpose. The `errors` view points a caret at the column, and parsing continues past it to the next declaration.
 - Put a comma between two fields. Whitespace is insignificant and commas are not block separators, so it is a syntax error.
 - Name a field `value` or `type`. A reserved word followed by `:` is a field name.
+- Invent a constraint: `where { between(0, 100) }`. The set is open, so the parser takes any name.
 - Write `union Foo { ... }`. It is reserved in the grammar and unimplemented.

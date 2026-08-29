@@ -10,13 +10,13 @@ entity Order {
   key id: string
   customer: Customer
   shipping: Address?
-  items: [LineItem] owned
+  items: [LineItem] owned where { length(1..) }
   status: Status = Draft
   total: Money
 }
 
 entity Customer {
-  key email: string
+  key email: string where { matches(/^[^@]+@[^@]+$/) }
   name: string?
 }
 
@@ -30,7 +30,7 @@ value Address {
 
 value LineItem {
   sku: string
-  quantity: int = 1
+  quantity: int where { min(1) } = 1
 }
 
 value Money {

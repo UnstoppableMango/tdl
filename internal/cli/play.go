@@ -27,12 +27,15 @@ primitive string
 primitive int
 primitive instant
 
-type Email: string
+type Email: string where {
+  matches(/^[^@]+@[^@]+$/)
+  length(3..254)
+}
 
 entity User {
   key id: string
   email: Email
-  name: string?
+  name: string? where { length(1..120) }
   tags: {string}
   role: Role = Member
 }

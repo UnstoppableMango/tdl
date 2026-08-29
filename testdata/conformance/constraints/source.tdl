@@ -1,18 +1,28 @@
 package example.constraints
 
+primitive string
+primitive int
+
 type Email: string where {
-  matches /^[^@]+@[^@]+$/
-  length 3..254
+  matches(/^[^@]+@[^@]+$/)
+  length(3..254)
 }
 
-type Slug: string where {
-  matches /^[a-z-]+$/
-  length 16
-}
+type Slug: string where { matches(/^[a-z-]+$/) }
+type Short: string where { length(16) }
+type Open: string where { length(1..) }
+type Capped: string where { length(..64) }
 
 entity Order {
   key id: string
-  quantity: int where { min 1 max 100 }
-  items: [string] where { length 1.. unique }
-  region: string where { oneOf ["us-east", "eu-west"] }
+  quantity: int where {
+    min(1)
+    max(100)
+  }
+  items: [string] where {
+    length(1..)
+    unique
+  }
+  region: string where { oneOf("us-east", "eu-west") }
+  ratio: int where { between(0, 100) }
 }

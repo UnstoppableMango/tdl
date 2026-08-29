@@ -11,7 +11,7 @@ This repository owns the canonical [language specification](docs/spec.md) and it
 Early, incomplete, and mid-rewrite.
 
 The lexer and parser read most of the language: packages, imports, `primitive`, `alias`, newtypes, `entity`, `value`, `mixin`, `enum` with payload variants, type parameters, kinds, every type reference form, `deprecated`, and target blocks.
-Constraint blocks, `class`, `instance`, and units are still to come.
+Constraint blocks are in too. `class`, `instance`, and units are still to come.
 
 The design is settled and written down:
 
@@ -36,7 +36,7 @@ entity Order {
   key id: OrderId
   customer: Customer
   shipping: Address?
-  items: [LineItem] owned
+  items: [LineItem] owned where { length(1..) }
   status: Status = Draft
   total: Money
 }
@@ -61,7 +61,10 @@ value Money {
 
 type OrderId: uuid
 
-type Email: string
+type Email: string where {
+  matches(/^[^@]+@[^@]+$/)
+  length(3..254)
+}
 
 enum Currency { USD EUR GBP }
 

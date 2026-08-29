@@ -66,7 +66,7 @@ func printDecl(decl Decl) string {
 
 	case *NewtypeDecl:
 		return "type " + d.N + printParams(d.Params) + ": " + printTypeRef(d.Base) +
-			printRequires(d.Requires) + "\n"
+			printRequires(d.Requires) + printConstraints(d.Constraints, "") + "\n"
 
 	case *StructDecl:
 		head := d.Keyword + " " + d.N + printParams(d.Params) +
@@ -152,6 +152,16 @@ func printMembers(members []Member) string {
 }
 
 func printField(f *Field) string {
+	s := printFieldHead(f) + printConstraints(f.Constraints, "  ")
+	if f.Default != nil {
+		s += " = " + printLiteral(f.Default)
+	}
+	return s
+}
+
+// printFieldHead renders everything up to the constraint block. [Dump] uses
+// it so a field stays one line even when its constraints do not.
+func printFieldHead(f *Field) string {
 	var s string
 	if f.Key {
 		s += "key "
@@ -162,9 +172,6 @@ func printField(f *Field) string {
 	s += f.N + ": " + printTypeRef(f.Type)
 	if f.Owned {
 		s += " owned"
-	}
-	if f.Default != nil {
-		s += " = " + printLiteral(f.Default)
 	}
 	return s
 }
@@ -258,9 +265,56 @@ func printLiteral(l *Literal) string {
 			items[i] = printLiteral(it)
 		}
 		return "[" + strings.Join(items, ", ") + "]"
+	case LitRegex:
+		return "/" + l.Text + "/"
+	case LitRange:
+		var lo, hi string
+		if l.Lo != nil {
+			lo = l.Lo.Text
+		}
+		if l.Hi != nil {
+			hi = l.Hi.Text
+		}
+		return lo + ".." + hi
 	default:
 		return l.Text
 	}
+}
+
+// printConstraints renders a `where { ... }` block.
+//
+// A single constraint stays on one line when it fits the column limit; two
+// or more always expand. One constraint is an aside on the thing it
+// qualifies, several are a specification of it, and the layout says which.
+func printConstraints(cs []*Constraint, indent string) string {
+	if len(cs) == 0 {
+		return ""
+	}
+
+	if len(cs) == 1 {
+		if line := " where { " + printConstraint(cs[0]) + " }"; len(indent)+len(line) <= columnLimit {
+			return line
+		}
+	}
+
+	var b strings.Builder
+	b.WriteString(" where {\n")
+	for _, c := range cs {
+		b.WriteString(indent + "  " + printConstraint(c) + "\n")
+	}
+	b.WriteString(indent + "}")
+	return b.String()
+}
+
+func printConstraint(c *Constraint) string {
+	if len(c.Args) == 0 {
+		return c.N
+	}
+	args := make([]string, len(c.Args))
+	for i, a := range c.Args {
+		args[i] = printLiteral(a)
+	}
+	return c.N + "(" + strings.Join(args, ", ") + ")"
 }
 
 // columnLimit is the width a block must fit within to stay on one line.
