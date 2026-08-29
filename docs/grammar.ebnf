@@ -1,9 +1,13 @@
 (* TDL grammar, EBNF appendix to spec.md.
-   Notation: '...' terminals, [ ] optional, { } zero-or-more, | alternation. *)
+   Notation: '...' terminals, [ ] optional, { } zero-or-more, | alternation.
 
-File     = { Decl } .
+   Doc comments ('///' to end of line) are lexical.  They attach to the
+   declaration, field, or variant that follows and are omitted below. *)
+
+File     = { [ Deprecated ] Decl } .
 Decl     = PackageDecl | ImportDecl | PrimitiveDecl | UnitDecl
-         | TypeDecl | ValueDecl | EntityDecl | EnumDecl | TargetDecl .
+         | AliasDecl | TypeDecl | ValueDecl | EntityDecl | EnumDecl
+         | ClassDecl | MixinDecl | InstanceDecl | TargetDecl .
 
 PackageDecl = "package" DottedIdent .
 ImportDecl  = "import" string_lit "as" ( identifier | "_" ) .
@@ -11,26 +15,67 @@ DottedIdent = identifier { "." identifier } .
 
 (* ---- roots and units ---------------------------------------------------- *)
 
-PrimitiveDecl = "primitive" identifier .
+PrimitiveDecl = "primitive" identifier [ ":" Kind ] .
 
 UnitDecl = "unit" identifier [ "=" UnitExpr ] .
 UnitExpr = UnitTerm { ( "*" | "/" ) UnitTerm } .
 UnitTerm = identifier [ "^" int_lit ] | "(" UnitExpr ")" .
 
+(* ---- parameters, kinds, constraints ------------------------------------- *)
+
+TypeParams = "<" TypeParam { "," TypeParam } ">" .
+TypeParam  = identifier [ ":" Kind ] .
+Kind       = KindAtom { "->" KindAtom } .
+KindAtom   = "type" | "unit" | "(" Kind ")" .
+
+WhereClause = "where" ClassRef { "," ClassRef } .
+ClassRef    = DottedIdent [ TypeArgs ] .
+
 (* ---- declarations ------------------------------------------------------- *)
 
-TypeDecl   = "type" identifier [ TypeParams ] ":" TypeRef [ ConstraintBlock ] .
-ValueDecl  = "value" identifier [ TypeParams ] "{" { Field } "}" .
-EntityDecl = "entity" identifier [ TypeParams ] "{" { Field } "}" .
-EnumDecl   = "enum" identifier [ TypeParams ] "{" { Variant } "}" .
+AliasDecl  = "alias" identifier [ TypeParams ] "=" TypeRef .
 
-Variant    = identifier [ "{" [ Field { "," Field } ] "}" ] .
-TypeParams = "<" identifier { "," identifier } ">" .
+TypeDecl   = "type" identifier [ TypeParams ] ":" TypeRef
+             [ WhereClause ] [ ConstraintBlock ] .
+
+ValueDecl  = "value"  identifier [ TypeParams ] [ Conforms ] [ WhereClause ] Body .
+EntityDecl = "entity" identifier [ TypeParams ] [ Conforms ] [ WhereClause ] Body .
+MixinDecl  = "mixin"  identifier [ TypeParams ] [ Conforms ] [ WhereClause ] Body .
+EnumDecl   = "enum"   identifier [ TypeParams ] [ Conforms ] [ WhereClause ]
+             "{" { Variant } "}" .
+
+Conforms = ":" ClassRef { "," ClassRef } .
+
+Body    = "{" { Member } "}" .
+Member  = Include | Field .
+Include = "include" NamedType .
+
+Variant = [ Deprecated ] identifier [ "{" [ Field { "," Field } ] "}" ] .
 
 Field    = { FieldMod } identifier ":" TypeRef { FieldRel }
            [ ConstraintBlock ] [ "=" Literal ] .
-FieldMod = "key" .
+FieldMod = "key" | Deprecated .
 FieldRel = "owned" .
+
+Deprecated = "deprecated" [ "(" string_lit ")" ] .
+(* Deprecated may also precede any Decl and any Variant. *)
+
+(* ---- classes and instances ---------------------------------------------- *)
+
+ClassDecl   = "class" identifier [ TypeParams ] [ FunDeps ] [ Conforms ]
+              [ WhereClause ] "{" { ClassMember } "}" .
+ClassMember = Field | KeyRequirement | AssocTypeReq .
+KeyRequirement = "key" .
+AssocTypeReq   = "type" identifier [ ":" Kind ] .
+
+FunDeps = "|" FunDep { "," FunDep } .
+FunDep  = identifier { identifier } "->" identifier { identifier } .
+
+InstanceDecl  = "instance" [ TypeParams ] DottedIdent
+                ( TypeArgs | "for" NamedType )
+                [ WhereClause ] [ "{" { AssocTypeBind } "}" ] .
+AssocTypeBind = "type" identifier "=" TypeRef .
+(* "instance C for T" is sugar for "instance C<T>". *)
 
 (* ---- type references ---------------------------------------------------- *)
 
@@ -39,12 +84,13 @@ CoreType  = ListType | SetOrMapType | NamedType .
 ListType  = "[" TypeRef "]" .
 SetOrMapType = "{" TypeRef [ "->" TypeRef ] "}" .
 NamedType = DottedIdent [ TypeArgs ] .
+(* Collection forms are sugar: [T] is List<T>, {T} is Set<T>,
+   {K -> V} is Map<K, V>, T? is Option<T>, T | null is Nullable<T>. *)
 
 TypeArgs = "<" TypeArg { "," TypeArg } ">" .
 TypeArg  = UnitExpr | TypeRef .
-(* TypeArg is ambiguous by design: a bare identifier may name a type or a
-   unit.  The parser records the syntactic form; the resolver decides which
-   kind each argument is, against the declaration being applied. *)
+(* A bare identifier may name a type or a unit.  The parser records the
+   syntactic form; the resolver picks by kind. *)
 
 (* ---- constraints -------------------------------------------------------- *)
 
