@@ -1,5 +1,11 @@
 # tdl
 
+[![CI](https://github.com/UnstoppableMango/tdl/actions/workflows/ci.yml/badge.svg)](https://github.com/UnstoppableMango/tdl/actions/workflows/ci.yml)
+[![Built with Nix](https://img.shields.io/badge/Built%20with-Nix-5277C3?logo=nixos&logoColor=white)](https://nixos.org)
+[![Go Reference](https://pkg.go.dev/badge/github.com/unstoppablemango/tdl.svg)](https://pkg.go.dev/github.com/unstoppablemango/tdl)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
+[![Last commit](https://img.shields.io/github/last-commit/UnstoppableMango/tdl)](https://github.com/UnstoppableMango/tdl/commits/main)
+
 TDL is a language for describing domain models.
 It says what things are, what identifies them, how they relate, and what values they may hold, and compiles them into equivalent definitions in other structured formats.
 It describes no behavior and has no expressions, control flow, or runtime.
@@ -8,10 +14,22 @@ This repository owns the canonical [language specification](docs/spec.md) and it
 
 ## Status
 
-Early and incomplete.
+Early and incomplete, and moving.
 
-The lexer and parser read the whole grammar, and `tdl check`, `tdl fmt`, `tdl ast`, and `tdl tokens` work across it.
+**The front end is done.** The lexer and parser read the whole grammar, and `tdl check`, `tdl fmt`, `tdl ast`, and `tdl tokens` work across it.
 `union` is reserved and unimplemented; nothing else in [grammar.ebnf](docs/grammar.ebnf) is missing.
+
+**The middle is most of the way there.** `tdl ir` prints a resolved model:
+
+- Names resolve, with scopes, shadowing, and the spec's recursion rules.
+- Sugar lowers to prelude types, and the prelude is TDL source rather than something built in, so `[T]` means whatever the loaded prelude says `List` is.
+- Imports resolve across packages without inlining the dependency.
+- Mixins expand, and the class satisfaction index answers both for declarations and for types made to satisfy a class by a conditional instance.
+- Constraints accumulate down newtype chains, and defaults resolve against their field's type.
+- Target directives resolve against the model and attach to the nodes they apply to.
+
+**The back end does not exist.** There are no code generators yet, and nothing speaks the plugin protocol.
+Units, and merging a dependency's target blocks, are the two pieces of resolution still outstanding.
 
 The design is settled and written down:
 
@@ -24,8 +42,6 @@ The design is settled and written down:
 | [design/ir-plan.md](docs/design/ir-plan.md) | Implementing it. Phases 1 to 8 of 10 done. |
 | [design/plugins.md](docs/design/plugins.md) | The backend plugin protocol. |
 | [design/workflow.md](docs/design/workflow.md) | What a model author does with all of it. |
-
-Semantic resolution has started: the `ir` schema, the declaration table, the interned type table, name resolution, and the spec's recursion rules are in, so a single-package model lowers with its sugar resolved to prelude types and its names bound. The prelude is loaded from TDL source rather than built in, so `[T]` means whatever the loaded prelude says `List` is. `tdl ir` prints the result. Imports resolve across packages without inlining the dependency, mixins expand, and the class satisfaction index answers for declarations and for types made to satisfy a class by a conditional instance. Constraints accumulate down newtype chains and defaults resolve against their field's type. Target directives resolve against the model and attach to the nodes they apply to. What is left is merging a dependency's target blocks, units, and the backends themselves.
 
 ## Example
 
@@ -106,7 +122,7 @@ Parse errors render below the panes with a caret at the reported column.
 ```shell
 command make build   # nix build .#
 command make test    # go test ./...
-command make lint    # nix flake check
+command make lint    # nix flake check + buf lint
 command make fmt     # nix fmt
 ```
 
