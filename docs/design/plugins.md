@@ -2,7 +2,9 @@
 
 Design document.
 Nothing here is implemented.
-It depends on [ir.md](ir.md), which is also unimplemented.
+
+It depends on [ir.md](ir.md), which now is: `ir` resolves names, imports, classes, constraints, and target directives, and `tdl ir --format json` prints exactly what a plugin would receive.
+This document has been revised against that implementation; the sections that changed are marked where it matters.
 
 A backend turns a resolved model into files.
 `go`, `ts`, and `sql` ship with `tdl`; any other target name resolves to `tdl-gen-<name>` on `PATH`.
@@ -35,6 +37,8 @@ A future `tdl` can offer gRPC, an old plugin can decline, and both continue on l
 - ir schema version
 - whether this is a watch session
 
+The ir schema version is the protobuf package: `tdl.ir.v1` today. Within a version, field numbers are never reused and new fields are additive, so a plugin built against an older `v1` keeps working. A version it cannot read is what the refusal below is for.
+
 The plugin replies:
 
 - accept, or refuse with the version it needs
@@ -48,6 +52,7 @@ The alternative, a plugin silently ignoring protobuf fields it was compiled befo
 ### Directive declarations
 
 The plugin declares directives by name, arity, and literal kind: `tag` takes one string, `slice` takes none.
+The kinds are `ir.LiteralKind`, the same closed set a constraint argument uses: string, int, float, bool, name, regex, list, and range.
 
 `tdl` checks every declared directive in the target block against that shape and reports `tag 42` with the position in the `.tdl` file, before generating anything.
 
@@ -61,12 +66,23 @@ One message carries everything:
 
 - the target name being served
 - the resolved model, one package, per [ir.md](ir.md)
-- resolved directives, already attached to the nodes they apply to
 - the output path
 - a dry-run flag
 
 Nothing travels in argv or environment variables.
 A single versioned message is one thing to keep compatible, and a plugin never has to reconcile two channels that disagree.
+
+### What the model actually contains
+
+Three things about it surprise people, and all three are consequences of decisions made while building `ir` rather than of this protocol.
+
+**The prelude is in there.** It is merged into the declaration table untagged, because that is what lets a replacement prelude change what a collection is without any backend learning about it. A model whose source declares two things arrives with twenty-one declarations, nineteen of them `string`, `List`, `Option`, `Entity`, and the rest of `prelude/std.tdl`. A backend that emits one file per declaration will emit nineteen files nobody asked for. Filter by the filename in each declaration's position, or by which names the target block mentions.
+
+**Directives are tagged, not filtered.** They are attached to the nodes they apply to, resolved, with the specificity ladder already applied. They are attached for *every* target block in the model, not only the one being served, and each carries the name of the block it came from. A plugin reads the directives on a node and keeps the ones whose target matches the name in its request.
+
+**A directive expanded from a class names the class.** `Auditable => trigger("touch")` reaches every declaration satisfying `Auditable` with `from_class` set, so a backend can say why a rule is there rather than only that it is.
+
+Run `tdl ir --format json` over a model to see all of this before writing any code against it.
 
 ## Response
 
@@ -120,9 +136,9 @@ A plugin that ignores the flag entirely is correct, only slower.
 
 ## Diagnostics
 
-The response carries structured diagnostics: a message, a severity, and the `ir` node ID it concerns.
+The response carries structured diagnostics: a message, a severity, and a source position.
 
-`tdl` maps the node back to its source position and prints it in the same format as its own errors, so `--format json` covers plugin errors without the plugin implementing anything.
+An earlier draft said a diagnostic carries the `ir` node ID it concerns and that `tdl` maps that back to a position. That does not work: `ir` has three ID spaces, into declarations, types, and externs, and an ID alone does not say which. Every `ir` node carries its own `Position` already, so a plugin copies the one it is complaining about and `tdl` prints it in the same format as its own errors. `--format json` then covers plugin errors without the plugin implementing anything.
 
 If a plugin exits non-zero or dies before sending a response, `tdl` relays its stderr verbatim and names the plugin.
 Structured is the contract; stderr is what is left when the contract could not be met.
@@ -147,6 +163,16 @@ sql = { command = "tdl-gen-sql", timeout = "5m" }
 
 A legitimately slow backend raises its own timeout.
 The default exists so a hung plugin in CI fails with a diagnosis rather than consuming the job's entire time budget and reporting nothing.
+
+## What a plugin will not see
+
+Not deferrals in this protocol, but limits in the model it is handed. A backend author should know them before designing around something that will not arrive.
+
+**Units.** `ir` defers them, and lowering rejects a model that uses one rather than dropping it silently, so a plugin never receives a unit-typed field. See ir-plan.md.
+
+**A dependency's target blocks.** Merging them needs the dependency lowered, which nothing does yet, so the directives in a request come from the root package only. See ir-plan.md phase 8b.
+
+**Class-scoped directives on instantiated types.** A class path expands across the declarations satisfying the class. It does not expand across types that satisfy it only through a conditional instance: given `instance <T> Auditable<Page<T>>`, a directive on `Auditable` reaches `Audited` and not `Page<Audited>`. The model has the answer, in `SatisfyingTypes`, and target resolution does not use it yet.
 
 ## Deferred
 
