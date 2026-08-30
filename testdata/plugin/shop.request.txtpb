@@ -1,0 +1,507 @@
+target: "debug"
+model: {
+  package: "shop"
+  decls: {
+    meta: {
+      name: "string"
+      doc: "An opaque, irreducible root type. Every other type is built from these."
+      position: {
+        filename: "std.tdl"
+        line: 4
+        column: 1
+      }
+    }
+    primitive: {}
+  }
+  decls: {
+    meta: {
+      name: "int"
+      position: {
+        filename: "std.tdl"
+        line: 6
+        column: 1
+      }
+      order: 1
+    }
+    primitive: {}
+  }
+  decls: {
+    meta: {
+      name: "bool"
+      position: {
+        filename: "std.tdl"
+        line: 7
+        column: 1
+      }
+      order: 2
+    }
+    primitive: {}
+  }
+  decls: {
+    meta: {
+      name: "bytes"
+      position: {
+        filename: "std.tdl"
+        line: 8
+        column: 1
+      }
+      order: 3
+    }
+    primitive: {}
+  }
+  decls: {
+    meta: {
+      name: "List"
+      doc: "An ordered collection, duplicates allowed. `[T]` is sugar for `List<T>`."
+      position: {
+        filename: "std.tdl"
+        line: 11
+        column: 1
+      }
+      order: 4
+    }
+    primitive: {
+      kind: {
+        atom: KIND_ATOM_TYPE
+        arrow: {
+          atom: KIND_ATOM_TYPE
+        }
+      }
+    }
+  }
+  decls: {
+    meta: {
+      name: "Set"
+      doc: "An unordered collection of distinct elements. `{T}` is sugar for `Set<T>`."
+      position: {
+        filename: "std.tdl"
+        line: 14
+        column: 1
+      }
+      order: 5
+    }
+    primitive: {
+      kind: {
+        atom: KIND_ATOM_TYPE
+        arrow: {
+          atom: KIND_ATOM_TYPE
+        }
+      }
+    }
+  }
+  decls: {
+    meta: {
+      name: "Map"
+      doc: "A mapping from keys to values. `{K -> V}` is sugar for `Map<K, V>`."
+      position: {
+        filename: "std.tdl"
+        line: 17
+        column: 1
+      }
+      order: 6
+    }
+    primitive: {
+      kind: {
+        atom: KIND_ATOM_TYPE
+        arrow: {
+          atom: KIND_ATOM_TYPE
+          arrow: {
+            atom: KIND_ATOM_TYPE
+          }
+        }
+      }
+    }
+  }
+  decls: {
+    meta: {
+      name: "decimal"
+      doc: "Arbitrary-precision decimal."
+      position: {
+        filename: "std.tdl"
+        line: 20
+        column: 1
+      }
+      order: 7
+    }
+    primitive: {}
+  }
+  decls: {
+    meta: {
+      name: "uuid"
+      position: {
+        filename: "std.tdl"
+        line: 22
+        column: 1
+      }
+      order: 8
+    }
+    primitive: {}
+  }
+  decls: {
+    meta: {
+      name: "instant"
+      position: {
+        filename: "std.tdl"
+        line: 23
+        column: 1
+      }
+      order: 9
+    }
+    primitive: {}
+  }
+  decls: {
+    meta: {
+      name: "date"
+      position: {
+        filename: "std.tdl"
+        line: 24
+        column: 1
+      }
+      order: 10
+    }
+    primitive: {}
+  }
+  decls: {
+    meta: {
+      name: "duration"
+      position: {
+        filename: "std.tdl"
+        line: 25
+        column: 1
+      }
+      order: 11
+    }
+    primitive: {}
+  }
+  decls: {
+    meta: {
+      name: "s"
+      doc: "Base units of the SI system. A project may declare its own."
+      position: {
+        filename: "std.tdl"
+        line: 28
+        column: 1
+      }
+      order: 12
+    }
+  }
+  decls: {
+    meta: {
+      name: "m"
+      position: {
+        filename: "std.tdl"
+        line: 30
+        column: 1
+      }
+      order: 13
+    }
+  }
+  decls: {
+    meta: {
+      name: "kg"
+      position: {
+        filename: "std.tdl"
+        line: 31
+        column: 1
+      }
+      order: 14
+    }
+  }
+  decls: {
+    meta: {
+      name: "Option"
+      doc: "Absence. `T?` is sugar for `Option<T>`."
+      position: {
+        filename: "std.tdl"
+        line: 34
+        column: 1
+      }
+      order: 15
+    }
+    enumeration: {
+      params: {
+        name: "T"
+        position: {
+          filename: "std.tdl"
+          line: 34
+          column: 14
+        }
+      }
+      variants: {
+        meta: {
+          name: "Some"
+          position: {
+            filename: "std.tdl"
+            line: 35
+            column: 3
+          }
+        }
+        fields: {
+          meta: {
+            name: "value"
+            position: {
+              filename: "std.tdl"
+              line: 35
+              column: 10
+            }
+          }
+          type: {
+            name: "T"
+          }
+        }
+      }
+      variants: {
+        meta: {
+          name: "None"
+          position: {
+            filename: "std.tdl"
+            line: 36
+            column: 3
+          }
+          order: 1
+        }
+      }
+    }
+  }
+  decls: {
+    meta: {
+      name: "Nullable"
+      doc: "Presence with a null value. `T | null` is sugar for `Nullable<T>`."
+      position: {
+        filename: "std.tdl"
+        line: 40
+        column: 1
+      }
+      order: 16
+    }
+    enumeration: {
+      params: {
+        name: "T"
+        position: {
+          filename: "std.tdl"
+          line: 40
+          column: 16
+        }
+      }
+      variants: {
+        meta: {
+          name: "Present"
+          position: {
+            filename: "std.tdl"
+            line: 41
+            column: 3
+          }
+        }
+        fields: {
+          meta: {
+            name: "value"
+            position: {
+              filename: "std.tdl"
+              line: 41
+              column: 13
+            }
+          }
+          type: {
+            index: 1
+            name: "T"
+          }
+        }
+      }
+      variants: {
+        meta: {
+          name: "Null"
+          position: {
+            filename: "std.tdl"
+            line: 42
+            column: 3
+          }
+          order: 1
+        }
+      }
+    }
+  }
+  decls: {
+    meta: {
+      name: "Entity"
+      doc: "Anything with identity that survives changes to its contents."
+      position: {
+        filename: "std.tdl"
+        line: 46
+        column: 1
+      }
+      order: 17
+    }
+    class: {
+      requires_key: true
+    }
+  }
+  decls: {
+    meta: {
+      name: "Value"
+      doc: "Anything defined entirely by its contents."
+      position: {
+        filename: "std.tdl"
+        line: 51
+        column: 1
+      }
+      order: 18
+    }
+    class: {}
+  }
+  decls: {
+    meta: {
+      name: "Order"
+      position: {
+        filename: "shop.tdl"
+        line: 3
+        column: 1
+      }
+    }
+    directives: {
+      name: "note"
+      args: {
+        kind: LITERAL_KIND_STRING
+        text: "the interesting one"
+        position: {
+          filename: "shop.tdl"
+          line: 11
+          column: 17
+        }
+      }
+      position: {
+        filename: "shop.tdl"
+        line: 11
+        column: 12
+      }
+      target: "debug"
+    }
+    structure: {
+      kind: STRUCT_KIND_ENTITY
+      fields: {
+        meta: {
+          name: "id"
+          position: {
+            filename: "shop.tdl"
+            line: 4
+            column: 7
+          }
+        }
+        type: {
+          index: 2
+          name: "string"
+        }
+        key: true
+      }
+      fields: {
+        meta: {
+          name: "total"
+          position: {
+            filename: "shop.tdl"
+            line: 5
+            column: 3
+          }
+          order: 1
+        }
+        type: {
+          index: 3
+          name: "int"
+        }
+      }
+    }
+  }
+  types: {
+    wrote: SYNTACTIC_FORM_NAMED
+    position: {
+      filename: "std.tdl"
+      line: 35
+      column: 17
+    }
+    param: {
+      name: "T"
+      owner: {
+        index: 15
+        name: "Option"
+      }
+    }
+  }
+  types: {
+    wrote: SYNTACTIC_FORM_NAMED
+    position: {
+      filename: "std.tdl"
+      line: 41
+      column: 20
+    }
+    param: {
+      name: "T"
+      owner: {
+        index: 16
+        name: "Nullable"
+      }
+    }
+  }
+  types: {
+    ctor: {
+      name: "string"
+    }
+    wrote: SYNTACTIC_FORM_NAMED
+    position: {
+      filename: "shop.tdl"
+      line: 4
+      column: 11
+    }
+  }
+  types: {
+    ctor: {
+      index: 1
+      name: "int"
+    }
+    wrote: SYNTACTIC_FORM_NAMED
+    position: {
+      filename: "shop.tdl"
+      line: 5
+      column: 10
+    }
+  }
+  satisfies: {
+    class: {
+      index: 17
+      name: "Entity"
+    }
+  }
+  satisfies: {
+    class: {
+      index: 18
+      name: "Value"
+    }
+  }
+  targets: {
+    meta: {
+      name: "debug"
+      position: {
+        filename: "shop.tdl"
+        line: 8
+        column: 1
+      }
+    }
+    for_package: "shop"
+    directives: {
+      name: "out"
+      args: {
+        kind: LITERAL_KIND_STRING
+        text: "./gen"
+        position: {
+          filename: "shop.tdl"
+          line: 9
+          column: 7
+        }
+      }
+      position: {
+        filename: "shop.tdl"
+        line: 9
+        column: 3
+      }
+      target: "debug"
+    }
+  }
+}
+out: "gen"

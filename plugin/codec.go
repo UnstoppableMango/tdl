@@ -1,11 +1,3 @@
-// Package plugin is the wire protocol a TDL backend speaks, and the SDK
-// for writing one.
-//
-// The messages are generated from proto/tdl/plugin/v1/plugin.proto. A
-// backend author imports this package; it is a compatibility surface like
-// ir, and internal/gen is the compiler side that changes freely.
-//
-// See docs/design/plugins.md.
 package plugin
 
 import (

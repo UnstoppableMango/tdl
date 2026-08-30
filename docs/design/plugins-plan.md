@@ -98,6 +98,8 @@ Done when the `debug` backend compiled as `tdl-gen-debug` produces byte-identica
 
 Done when someone can write a backend from the package documentation alone, and the recorded pairs replay against a non-Go implementation.
 
+**Done, except the last clause.** There is no non-Go implementation to replay against yet, so what the recorded pairs prove today is that the Go one is stable. They are written in a form that does not need this repository to interpret, which is the part that had to be got right now.
+
 ## Phase 7: directive declarations and diagnostics
 
 The handshake's directive list, checked against the target blocks before generating: a declared directive used with the wrong arity or argument kind is an error with the position in the `.tdl` file, and an undeclared one is a warning that passes through.
@@ -135,6 +137,11 @@ implementation of the protocol and expensive afterwards.
   the user with a position. Nothing enforces the distinction, and a
   backend that returns an error for a bad model still fails usefully, just
   without a position.
+- **A recorded exchange is compared by parsing rather than byte for byte.**
+  `prototext` output is deliberately unstable across builds, so a byte
+  comparison would fail on a toolchain bump. That makes the files less
+  useful as a fixture for a parser that does not have protobuf text
+  support.
 - **An empty output directory is adopted rather than refused.** There is
   nothing in it that could belong to anyone else. A directory that exists,
   is empty, and is meant to stay that way has no way to say so.
