@@ -99,4 +99,14 @@ Regex literals are ambiguous with unit division, so the parser calls `lex.Rescan
 
 `tdl fmt` drops ordinary `//` comments: the lexer skips them and they never reach the AST. Doc comments (`///`) survive. Fixing this needs comment attachment in the parser and has no phase yet. Never run `tdl fmt` over `examples/*.tdl`: it silently deletes their explanatory headers.
 
-`toolVersion` and `specVersion` are hardcoded constants in `internal/cli/version.go`.
+## Releases
+
+release-please owns the version. Never hand-edit `toolVersion` in `internal/cli/version.go`, `version` in `flake.nix`, or `CHANGELOG.md`; each release PR rewrites them. Both version strings carry an `x-release-please-version` annotation, which is what makes them update rather than drift.
+
+`specVersion` is not release-please's and must not be given the annotation. It tracks `docs/spec.md`, which moves on its own schedule, and a release that changed no spec text should not claim to have changed the spec.
+
+`CHANGELOG.md` is excluded from treefmt and from markdownlint, because a generated file that a formatter rewrites is a file the next release will fight over.
+
+The manifest starts at `0.0.34`, the last release the legacy implementation made, and the first release is `0.1.0`. That is computed rather than forced: `feat!: rewrite the lexer and parser` is a breaking change, and `bump-minor-pre-major` turns a breaking change on a `0.x` version into a minor bump. Nothing carries a `release-as` override, so nothing has to be removed afterwards.
+
+`release-please` warns that `version.txt` does not exist on every run. The `simple` release type looks for one by default; this repository states its version in the files that read it instead, and the warning is harmless.

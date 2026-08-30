@@ -7,6 +7,9 @@ globs:
 ignores:
   # Nix build cache, not ours.
   - ".direnv"
+  # Written by release-please. Linting a generated file means editing it
+  # by hand, which the next release would overwrite.
+  - "CHANGELOG.md"
   # Pointers at AGENTS.md rather than prose. A file whose whole content is
   # an import directive has no heading to lint.
   - "CLAUDE.md"
