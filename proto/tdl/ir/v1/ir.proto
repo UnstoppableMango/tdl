@@ -191,8 +191,59 @@ message Alias {
 // Newtype is a distinct type over another, not interchangeable with it.
 message Newtype {
   repeated Param params = 1;
-  ID base = 2;                       // indexes Model.types
-  repeated ClassRef constraints = 3; // the `requires` clause on its parameters
+  ID base = 2;                             // indexes Model.types
+  repeated ClassRef constraints = 3;       // the `requires` clause on its parameters
+  repeated Constraint value_constraints = 4; // the `where` block, accumulated down the chain
+}
+
+// LiteralKind identifies which form a Literal takes.
+enum LiteralKind {
+  LITERAL_KIND_UNSPECIFIED = 0;
+  LITERAL_KIND_STRING = 1;
+  LITERAL_KIND_INT = 2;
+  LITERAL_KIND_FLOAT = 3;
+  LITERAL_KIND_BOOL = 4;
+  LITERAL_KIND_NAME = 5;  // a name denoting an enum variant
+  LITERAL_KIND_REGEX = 6;
+  LITERAL_KIND_LIST = 7;
+  LITERAL_KIND_RANGE = 8;
+}
+
+// Literal is a value written in the source: a field default, a constraint
+// argument, or a directive argument.
+message Literal {
+  LiteralKind kind = 1;
+  string text = 2;            // decoded for STRING, the pattern for REGEX, the name for NAME
+  repeated Literal items = 3; // set for LIST
+  Range range = 4;            // set for RANGE
+  Position position = 5;
+
+  // variant names the enum variant a NAME literal resolves to, checked
+  // against the field's type. Unset when it did not resolve.
+  ID variant = 6;
+}
+
+// Range is a bound with either end optional: `3..254`, `1..`, `..64`.
+message Range {
+  optional int64 low = 1;
+  optional int64 high = 2;
+}
+
+// Constraint is one entry in a `where { ... }` block.
+//
+// The set of names is open. The compiler checks the arity and argument
+// kinds of the standard names and passes everything else through, so a
+// backend may understand a constraint the compiler has never heard of.
+message Constraint {
+  string name = 1;
+  repeated Literal args = 2;
+  Position position = 3;
+
+  // from names the newtype a constraint was inherited from, unset for one
+  // written on this declaration. A newtype narrows its parent and never
+  // replaces it, so the accumulated set is what a backend needs and the
+  // origin is what it needs to explain itself.
+  ID from = 4; // indexes Model.decls
 }
 
 // StructKind distinguishes the three declarations that share a body.
@@ -233,6 +284,8 @@ message Field {
   ID type = 2;    // indexes Model.types
   bool key = 3;   // part of the entity's identity
   bool owned = 4; // composition rather than reference
+  repeated Constraint constraints = 6;
+  Literal default_value = 7; // unset when the field has no default
 
   // included_from names the mixin a field was copied from, so a backend
   // that can express the grouping does not have to reconstruct it. Unset

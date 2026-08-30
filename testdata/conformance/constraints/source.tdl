@@ -12,6 +12,7 @@ type Slug: string where { matches(/^[a-z-]+$/) }
 type Short: string where { length(16) }
 type Open: string where { length(1..) }
 type Capped: string where { length(..64) }
+type WorkEmail: Email where { matches(/@acme\.com$/) }
 
 entity Order {
   key id: string
@@ -25,4 +26,7 @@ entity Order {
   }
   region: string where { oneOf("us-east", "eu-west") }
   ratio: int where { between(0, 100) }
+  status: Status = Draft
 }
+
+enum Status { Draft Placed }
