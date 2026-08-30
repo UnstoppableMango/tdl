@@ -121,6 +121,12 @@ Parse errors render below the panes with a caret at the reported column.
 
 [`examples/`](examples/README.md) holds files to start from: the same domain modelled flat and nested, plus collections and target blocks.
 
+## Releases
+
+Versions come from [release-please](https://github.com/googleapis/release-please): a release pull request accumulates conventional commits and, when merged, tags a release and writes `CHANGELOG.md`.
+
+Nothing about a version is edited by hand. `toolVersion` and the Nix package version carry annotations that the release PR rewrites.
+
 ## Development
 
 ```shell
