@@ -251,7 +251,7 @@ func (p *parser) parseField() *ast.Field {
 // `value`. One token of lookahead settles it: `include Foo` is an include,
 // `include: Foo` is a field.
 func (p *parser) expectFieldName() string {
-	if p.cur.Kind != lex.IDENT && !(lex.IsKeyword(p.cur.Text) && p.peek.Kind == lex.COLON) {
+	if p.cur.Kind != lex.IDENT && (!lex.IsKeyword(p.cur.Text) || p.peek.Kind != lex.COLON) {
 		p.errs.add(p.cur.Pos, "expected a field name, got %s", p.cur.Kind)
 		return ""
 	}
