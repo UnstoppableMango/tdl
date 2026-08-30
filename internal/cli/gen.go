@@ -27,6 +27,8 @@ func newGenCmd() *cobra.Command {
 		Long: "Generate code from a TDL file.\n\n" +
 			"Every target block in the file runs. A target block exists, so it\n" +
 			"generates; --target narrows a run to one backend.\n\n" +
+			"A target tdl has no backend for resolves to tdl-gen-<name> on\n" +
+			"PATH. Both kinds speak the same protocol.\n\n" +
 			"Where output goes comes from the block's own `out` directive, and\n" +
 			"-o overrides it for one invocation.\n\n" +
 			"--verify generates and compares against disk without writing,\n" +
@@ -75,9 +77,9 @@ func newGenCmd() *cobra.Command {
 					continue
 				}
 
-				backend, ok := gen.Builtin(t.Name)
-				if !ok {
-					return fmt.Errorf("no backend named %s; compiled in: %v", t.Name, gen.BuiltinNames())
+				backend, err := gen.Resolve(t.Name)
+				if err != nil {
+					return fmt.Errorf("%w; compiled in: %v", err, gen.BuiltinNames())
 				}
 
 				result, err := gen.Run(cmd.Context(), backend, t, model, mode)

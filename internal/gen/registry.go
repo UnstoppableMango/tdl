@@ -27,6 +27,19 @@ func Builtin(name string) (plugin.Backend, bool) {
 	return b, ok
 }
 
+// Resolve returns the backend serving a target: the compiled-in one if
+// there is one, otherwise tdl-gen-<name> on PATH.
+//
+// Both speak the same protocol, so everything above this treats them the
+// same. Preferring the built-in means a name tdl ships cannot be shadowed
+// by whatever happens to be on PATH.
+func Resolve(name string) (plugin.Backend, error) {
+	if b, ok := Builtin(name); ok {
+		return b, nil
+	}
+	return Find(name)
+}
+
 // BuiltinNames lists the compiled-in backends, sorted.
 func BuiltinNames() []string {
 	names := make([]string, 0, len(builtin))

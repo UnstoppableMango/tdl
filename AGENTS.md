@@ -43,6 +43,7 @@ Pipeline, one package per stage:
 - `ast` — parse tree mirroring source 1:1, names left unresolved. `ast.Fprint` produces the canonical formatting used by `tdl fmt`.
 - `internal/cli` — cobra commands (`ast`, `check`, `fmt`, `gen`, `ir`, `play`, `tokens`, `version`) wired in `root.go`. The root silences cobra's error printing so a diagnostic list renders as itself; `cmd/tdl` prints whatever a command returns, so a command should return an error rather than print it. `play` is a watch-mode playground that re-renders a file on save; `examples/` holds files to experiment with and is outside the conformance corpus.
 - `ir` — the resolved model backends consume. `ir.pb.go` is generated from `proto/tdl/ir/v1/ir.proto` by `make generate` and committed; `model.go` holds the hand-written lookups. `proto/` and `ir/` are the public compatibility surface.
+- `cmd/tdl-gen-debug` — the debug backend as a plugin. The same value the registry holds, served over a connection, which is what makes the two hosts testable against each other.
 - `plugin` — the wire protocol a backend speaks, generated from `proto/tdl/plugin/v1/plugin.proto`, plus the framing codec. Public, like `ir`.
 - `internal/gen` — the compiler side of the plugin protocol: which backends exist, how a request is built, and what happens to the files that come back. Private.
 - `backend/debug` — a backend that describes the model it was given. Useless on purpose: it exercises the protocol without anyone agreeing what generated code should look like.
