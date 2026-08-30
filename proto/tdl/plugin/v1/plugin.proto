@@ -1,0 +1,141 @@
+// The TDL plugin protocol: the messages a backend exchanges with tdl,
+// whether it is compiled in or run as a subprocess.
+//
+// See docs/design/plugins.md for the protocol and
+// docs/design/plugins-plan.md for what is implemented so far.
+syntax = "proto3";
+
+package tdl.plugin.v1;
+
+import "tdl/ir/v1/ir.proto";
+
+option go_package = "github.com/unstoppablemango/tdl/plugin;plugin";
+
+// Handshake is what tdl sends first, before any request.
+//
+// A plugin that cannot read what is coming refuses here rather than
+// silently ignoring fields it was compiled before and emitting subtly
+// wrong code with no diagnostic anywhere.
+message Handshake {
+  // framing_version is the wire framing this connection uses. Version 1 is
+  // a varint length prefix followed by an encoded message, in both
+  // directions. It exists so a later version can offer something else and
+  // an older plugin can decline.
+  int32 framing_version = 1;
+
+  // ir_version is the protobuf package the model is encoded with, such as
+  // "tdl.ir.v1". Within a version, field numbers are never reused and new
+  // fields are additive.
+  string ir_version = 2;
+
+  // watch says this connection may serve more than one request, which a
+  // plugin declaring reuse should expect.
+  bool watch = 3;
+}
+
+// HandshakeReply is the plugin's answer.
+message HandshakeReply {
+  bool accepted = 1;
+
+  // refusal says what the plugin needed, when accepted is false. A
+  // refusal naming both versions is the point of the handshake.
+  string refusal = 2;
+
+  string name = 3;
+  string version = 4;
+
+  // directives are what this backend understands. tdl checks the target
+  // block against them before generating; see DirectiveSpec.
+  repeated DirectiveSpec directives = 5;
+
+  Features features = 6;
+}
+
+// DirectiveSpec is the shape of one directive a backend accepts.
+//
+// A directive tdl finds in a target block and does not find here is a
+// warning and is passed through anyway: under-declaring is a plugin bug
+// that should not break a working project.
+message DirectiveSpec {
+  string name = 1;
+  int32 min_args = 2;
+
+  // max_args is the largest number of arguments accepted, or -1 for any
+  // number.
+  int32 max_args = 3;
+
+  // arg_kinds constrains each argument by position. An empty list accepts
+  // any kind, and a list shorter than the argument count constrains only
+  // the arguments it covers.
+  repeated tdl.ir.v1.LiteralKind arg_kinds = 4;
+}
+
+// Features are the optional parts of the protocol a backend supports.
+message Features {
+  // reuse says the plugin can serve more than one request on a
+  // connection. It must treat each as independent.
+  bool reuse = 1;
+}
+
+// Request is everything a backend needs for one generation. Nothing
+// travels in argv or environment variables.
+message Request {
+  // target names the block being served. The model carries directives for
+  // every target block in it, each tagged with the block it came from, so
+  // a backend keeps the ones matching this name.
+  string target = 1;
+
+  // model is one package, with the prelude's declarations merged into it.
+  // See docs/design/plugins.md for what that means for a backend.
+  tdl.ir.v1.Model model = 2;
+
+  // out is the directory the response's paths are relative to.
+  string out = 3;
+
+  // dry_run says tdl will diff the response against disk rather than
+  // write it. A backend that would do expensive work it knows cannot
+  // affect the answer may skip it; one that ignores the flag is correct,
+  // only slower.
+  bool dry_run = 4;
+}
+
+// Response is what a backend returns. It returns file contents rather
+// than writing files, which is what lets tdl enforce path confinement,
+// --verify, and --clean rather than asking every backend to honour them.
+message Response {
+  repeated File files = 1;
+
+  // post names commands to run over the written files, by name only. The
+  // project decides what a name maps to; a name it has not declared is
+  // skipped with a warning.
+  repeated string post = 2;
+
+  repeated Diagnostic diagnostics = 3;
+}
+
+// File is one generated file, with a path relative to Request.out. An
+// absolute path, or one containing "..", is an error and nothing is
+// written.
+message File {
+  string path = 1;
+  bytes content = 2;
+}
+
+// Severity is how much a diagnostic matters.
+enum Severity {
+  SEVERITY_UNSPECIFIED = 0;
+  SEVERITY_ERROR = 1;
+  SEVERITY_WARNING = 2;
+}
+
+// Diagnostic is a problem a backend found.
+//
+// It carries a position rather than a node ID: ir has three ID spaces,
+// into declarations, types, and externs, and an ID alone does not say
+// which. Every ir node carries its own position, so a backend copies the
+// one it is complaining about.
+message Diagnostic {
+  Severity severity = 1;
+  string message = 2;
+  tdl.ir.v1.Position position = 3;
+}

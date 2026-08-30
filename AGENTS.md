@@ -43,6 +43,7 @@ Pipeline, one package per stage:
 - `ast` — parse tree mirroring source 1:1, names left unresolved. `ast.Fprint` produces the canonical formatting used by `tdl fmt`.
 - `internal/cli` — cobra commands (`ast`, `check`, `fmt`, `ir`, `play`, `tokens`, `version`) wired in `root.go`. `play` is a watch-mode playground that re-renders a file on save; `examples/` holds files to experiment with and is outside the conformance corpus.
 - `ir` — the resolved model backends consume. `ir.pb.go` is generated from `proto/tdl/ir/v1/ir.proto` by `make generate` and committed; `model.go` holds the hand-written lookups. `proto/` and `ir/` are the public compatibility surface.
+- `plugin` — the wire protocol a backend speaks, generated from `proto/tdl/plugin/v1/plugin.proto`, plus the framing codec. Public, like `ir`.
 - `internal/sema` — ast to ir: the declaration table, the interned type table, sugar lowering, scopes, the spec's recursion rules, and the import graph. It touches no filesystem: a `Loader` supplies imported sources, with `FSLoader` for real files and `MapLoader` for tests. Private and free to change. See `docs/design/ir-plan.md` for what each phase adds.
 - `prelude` — the standard prelude, written in TDL and embedded with `go:embed`. `sema` loads it into an outer scope beneath every file and merges its declarations into the model untagged. Lowering knows the sugar's spellings (`List`, `Option`, ...) but nothing about what they mean, which is what makes the prelude replaceable.
 - `cmd/tdl` — main.
