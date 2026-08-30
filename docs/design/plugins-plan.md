@@ -145,8 +145,9 @@ implementation of the protocol and expensive afterwards.
   move is wire-compatible, and `buf breaking` with WIRE_JSON passes clean,
   but at FILE level it reports the syntax change, the `go_package` move
   into managed mode, and twenty-one fields whose C++ string default became
-  VIEW. The strict category stays, so the conversion costs one red Buf
-  check on the pull request that makes it.
+  VIEW. The strict category stays, and the pull request that makes the
+  change carries the `buf skip breaking` label instead, which is the
+  escape hatch bufbuild/buf-action provides for exactly this.
 - **Watching polls once a second rather than using an OS notification
   API.** No dependency, same behaviour everywhere, and fast enough for a
   person saving a file. It also means a poll can land mid-save: an editor

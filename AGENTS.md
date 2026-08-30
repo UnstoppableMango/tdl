@@ -75,6 +75,8 @@ The protos are Protobuf Editions 2024. Editions default every field to explicit 
 
 After changing `proto/`, run `make generate` and commit `ir/ir.pb.go` with it. Field numbers are a compatibility guarantee to plugins: add fields, never renumber or reuse them. CI enforces that with `buf breaking` against the pull request's base, alongside `buf lint` and `buf format`; `make fmt` formats the protos and `make lint` checks them.
 
+A pull request that has to break the schema carries the `buf skip breaking` label, which is what `bufbuild/buf-action` reads. The workflow only re-runs on push, so label first and then push, or the run will still be working from a payload without it.
+
 ## Conventions
 
 Whitespace is insignificant and there are no separator rules: an item ends where the next begins. Commas are required inside `<...>`, conformance lists, and list literals, and are not permitted inside `{ }` blocks.
