@@ -38,9 +38,17 @@ Model example.instances
 │   ├── [21] value OrderList  source.tdl:22:1
 │   ├── [22] value OrderCursor  source.tdl:24:1
 │   │   └── field token: types[9] string  source.tdl:25:3
-│   └── [23] value Page  source.tdl:28:1
-│       ├── param T  source.tdl:28:13
-│       └── field items: types[11] List<T>  source.tdl:29:3
+│   ├── [23] value Page  source.tdl:28:1
+│   │   ├── param T  source.tdl:28:13
+│   │   └── field items: types[11] List<T>  source.tdl:29:3
+│   ├── [24] value Audited  source.tdl:32:1
+│   │   ├── conforms Auditable  source.tdl:32:26
+│   │   └── field createdAt: types[2] instant  source.tdl:33:3
+│   ├── [25] value Plain  source.tdl:36:1
+│   │   └── field x: types[9] string  source.tdl:37:3
+│   └── [26] value Uses  source.tdl:40:1
+│       ├── field applies: types[13] Page<Audited>  source.tdl:41:3
+│       └── field doesNot: types[15] Page<Plain>  source.tdl:42:3
 ├── Instances
 │   ├── instance Auditable<shop.shipping.Address>  source.tdl:14:1
 │   ├── instance Auditable<shop.shipping.Address>  source.tdl:15:1
@@ -48,9 +56,9 @@ Model example.instances
 │   │   └── type Cursor = types[6] OrderCursor  source.tdl:18:3
 │   └── instance <T> Auditable<Page<T>> requires Auditable<T>  source.tdl:21:1
 ├── Satisfies
-│   ├── Entity: 
-│   ├── Value: 
-│   ├── Auditable: 
+│   ├── Entity: nothing
+│   ├── Value: nothing
+│   ├── Auditable: Audited, Page<Audited>
 │   └── Paged: OrderList
 ├── Types
 │   ├── [0] T  named  -> param Option.T  std.tdl:35:17
@@ -64,6 +72,10 @@ Model example.instances
 │   ├── [8] Page<T>  named  -> decls[23]  source.tdl:21:24
 │   ├── [9] string  named  -> decls[0]  source.tdl:25:10
 │   ├── [10] T  named  -> param Page.T  source.tdl:29:11
-│   └── [11] List<T>  [T]  -> decls[4]  source.tdl:29:10
+│   ├── [11] List<T>  [T]  -> decls[4]  source.tdl:29:10
+│   ├── [12] Audited  named  -> decls[24]  source.tdl:41:17
+│   ├── [13] Page<Audited>  named  -> decls[23]  source.tdl:41:12
+│   ├── [14] Plain  named  -> decls[25]  source.tdl:42:17
+│   └── [15] Page<Plain>  named  -> decls[23]  source.tdl:42:12
 └── Externs
     └── shop.shipping.Address  source.tdl:14:20

@@ -265,7 +265,10 @@ func (l *lowerer) checkConstraint(use *ir.Type, params []*ir.Param, want *ir.Cla
 		if subject == nil {
 			continue // a parameter, or something that did not resolve
 		}
-		if l.satisfies(want.GetClass(), subject) {
+
+		// A concrete argument answers from the ground index; an instantiated
+		// one, as in `Envelope<Page<Order>>`, needs the search.
+		if l.satisfiesType(want.GetClass(), subject, 0) {
 			continue
 		}
 		l.diags.add(positionOf(use.GetPosition()), "%s does not satisfy %s, required by %s",
@@ -274,7 +277,8 @@ func (l *lowerer) checkConstraint(use *ir.Type, params []*ir.Param, want *ir.Cla
 }
 
 // substitute maps a constraint argument through an instantiation: given
-// `Envelope<Order>` and the constraint argument `T`, it returns `Order`.
+// `Envelope<Order>` and the constraint argument `T`, it returns the type ID
+// standing in for `T`.
 func (l *lowerer) substitute(use *ir.Type, params []*ir.Param, arg *ir.ID) *ir.ID {
 	ty := l.model.Type(arg)
 	if ty == nil {
@@ -283,19 +287,17 @@ func (l *lowerer) substitute(use *ir.Type, params []*ir.Param, arg *ir.ID) *ir.I
 
 	ref := ty.GetParam()
 	if ref == nil {
-		// A concrete argument in the constraint itself, as in `requires
-		// Auditable<Order>`. Check it directly.
-		return ty.GetCtor()
+		return arg // a concrete argument in the constraint itself
 	}
 	if int(ref.GetIndex()) >= len(params) || int(ref.GetIndex()) >= len(use.GetArgs()) {
 		return nil
 	}
 
-	actual := l.model.Type(use.GetArgs()[ref.GetIndex()])
-	if actual == nil || actual.GetParam() != nil {
+	actual := use.GetArgs()[ref.GetIndex()]
+	if l.model.Type(actual).GetParam() != nil {
 		return nil // still a parameter: the outer instantiation decides
 	}
-	return actual.GetCtor()
+	return actual
 }
 
 // satisfies reports whether a declaration satisfies a class, reading the

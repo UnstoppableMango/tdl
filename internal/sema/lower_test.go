@@ -888,3 +888,106 @@ func contains(names []string, want string) bool {
 	}
 	return false
 }
+
+// A conditional instance makes an instantiated type satisfy a class, which
+// a declaration cannot stand in for: `Page` satisfies nothing on its own.
+func TestConditionalInstanceSearch(t *testing.T) {
+	model := lower(t, `
+class Auditable { createdAt: string }
+value Page<P> { items: [P] }
+value Audited: Auditable { createdAt: string }
+value Plain { x: string }
+
+instance <P> Auditable<Page<P>> requires Auditable<P>
+
+value Uses {
+  good: Page<Audited>
+  bad: Page<Plain>
+}
+`)
+
+	_, auditable, _ := model.FindDecl("Auditable")
+
+	var names []string
+	for _, id := range model.SatisfyingTypes(auditable) {
+		names = append(names, id.GetName())
+	}
+	if !contains(names, "Page<Audited>") {
+		t.Errorf("Page<Audited> is not satisfying: %v", names)
+	}
+	if contains(names, "Page<Plain>") {
+		t.Errorf("Page<Plain> satisfies Auditable: %v", names)
+	}
+}
+
+// The search recurses: a page of pages of auditable things is auditable.
+func TestConditionalInstanceNests(t *testing.T) {
+	model := lower(t, `
+class Auditable { createdAt: string }
+value Page<P> { items: [P] }
+value Audited: Auditable { createdAt: string }
+
+instance <P> Auditable<Page<P>> requires Auditable<P>
+
+value Uses { nested: Page<Page<Audited>> }
+`)
+
+	_, auditable, _ := model.FindDecl("Auditable")
+	var names []string
+	for _, id := range model.SatisfyingTypes(auditable) {
+		names = append(names, id.GetName())
+	}
+	if !contains(names, "Page<Page<Audited>>") {
+		t.Errorf("the search did not recurse: %v", names)
+	}
+}
+
+// A `requires` clause is discharged through the search, so an instantiated
+// argument satisfies it.
+func TestRequiresThroughConditionalInstance(t *testing.T) {
+	lower(t, `
+class Auditable { createdAt: string }
+value Page<P> { items: [P] }
+value Audited: Auditable { createdAt: string }
+value Envelope<P> requires Auditable<P> { body: P }
+
+instance <P> Auditable<Page<P>> requires Auditable<P>
+
+value Holder { e: Envelope<Page<Audited>> }
+`)
+}
+
+// The spec's two rules are checked where the instance is written, not
+// where it is used.
+func TestInstanceHeadMustBeAConstructor(t *testing.T) {
+	diags := lowerDiags(t, `
+class Auditable { createdAt: string }
+instance <P> Auditable<P>
+`)
+	if !strings.Contains(diags.Error(), "must be a type constructor") {
+		t.Errorf("diagnostics = %v", diags)
+	}
+}
+
+func TestInstanceHeadParametersMustBeDistinct(t *testing.T) {
+	diags := lowerDiags(t, `
+class Rel<a, b> { }
+value Pair<a, b> { x: a y: b }
+instance <P> Rel<Pair<P, P>>
+`)
+	if !strings.Contains(diags.Error(), "repeats the parameter") {
+		t.Errorf("diagnostics = %v", diags)
+	}
+}
+
+func TestInstanceConditionMustBeSmaller(t *testing.T) {
+	diags := lowerDiags(t, `
+class Auditable { createdAt: string }
+value Page<P> { items: [P] }
+
+instance <P> Auditable<Page<P>> requires Auditable<Page<P>>
+`)
+	if !strings.Contains(diags.Error(), "would not terminate") {
+		t.Errorf("diagnostics = %v", diags)
+	}
+}

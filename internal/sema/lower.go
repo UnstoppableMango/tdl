@@ -100,7 +100,9 @@ func Lower(file *ast.File, opts ...Option) (*ir.Model, Diagnostics) {
 	l.checkRecursion(file)
 	l.lower(file)
 	l.expandIncludes(file)
+	l.validateInstances()
 	l.buildSatisfaction()
+	l.searchSatisfaction()
 	l.checkConstraints()
 	return l.model, l.diags
 }

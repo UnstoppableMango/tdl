@@ -103,8 +103,16 @@ message ClassRef {
 // reasons about instances. The declared instances are still in the model
 // for one that wants them.
 message Satisfaction {
-  ID class = 1;         // indexes Model.decls
+  ID class = 1;          // indexes Model.decls
   repeated ID decls = 2; // indexes Model.decls
+
+  // types lists instantiated types that satisfy the class through a
+  // conditional instance, as in `Page<Order>` given
+  // `instance <T> Auditable<Page<T>> requires Auditable<T>`.
+  //
+  // A declaration cannot stand in for these: `Page` satisfies nothing on
+  // its own, and `Page<Order>` is a type rather than a declaration.
+  repeated ID types = 3; // indexes Model.types
 }
 
 // Import is one `import "path" as alias` in the file.

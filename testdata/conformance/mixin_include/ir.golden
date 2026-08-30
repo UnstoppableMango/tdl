@@ -47,8 +47,8 @@ Model example.mixins
 │       ├── field createdAt: types[2] instant  (from Timestamps)  source.tdl:9:3
 │       └── field updatedAt: types[2] instant  (from Timestamps)  source.tdl:10:3
 ├── Satisfies
-│   ├── Entity: 
-│   ├── Value: 
+│   ├── Entity: nothing
+│   ├── Value: nothing
 │   └── Auditable: User
 └── Types
     ├── [0] T  named  -> param Option.T  std.tdl:35:17

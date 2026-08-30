@@ -51,14 +51,14 @@ Model example.classes
 │       ├── field body: types[8] T  source.tdl:29:3
 │       └── field receivedAt: types[2] instant  source.tdl:30:3
 ├── Satisfies
-│   ├── Entity: 
-│   ├── Value: 
-│   ├── Timestamped: 
-│   ├── Auditable: 
-│   ├── Tenanted: 
-│   ├── Paged: 
-│   ├── Container: 
-│   └── Projection: 
+│   ├── Entity: nothing
+│   ├── Value: nothing
+│   ├── Timestamped: nothing
+│   ├── Auditable: nothing
+│   ├── Tenanted: nothing
+│   ├── Paged: nothing
+│   ├── Container: nothing
+│   └── Projection: nothing
 └── Types
     ├── [0] T  named  -> param Option.T  std.tdl:35:17
     ├── [1] T  named  -> param Nullable.T  std.tdl:41:20

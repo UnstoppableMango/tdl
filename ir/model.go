@@ -86,3 +86,18 @@ func (x *Model) Satisfying(class *ID) []*ID {
 	}
 	return nil
 }
+
+// SatisfyingTypes returns the instantiated types that satisfy a class
+// through a conditional instance, such as `Page<Order>` given
+// `instance <T> Auditable<Page<T>> requires Auditable<T>`.
+//
+// These cannot appear in [Model.Satisfying] because they are types rather
+// than declarations: `Page` satisfies nothing on its own.
+func (x *Model) SatisfyingTypes(class *ID) []*ID {
+	for _, sat := range x.GetSatisfies() {
+		if sat.GetClass().GetIndex() == class.GetIndex() {
+			return sat.GetTypes()
+		}
+	}
+	return nil
+}

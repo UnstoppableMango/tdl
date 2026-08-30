@@ -60,8 +60,8 @@ Model example.collections
 │       ├── field sku: types[2] string  source.tdl:20:3
 │       └── field quantity: types[7] int  source.tdl:21:3
 ├── Satisfies
-│   ├── Entity: 
-│   └── Value: 
+│   ├── Entity: nothing
+│   └── Value: nothing
 ├── Types
 │   ├── [0] T  named  -> param Option.T  std.tdl:35:17
 │   ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
