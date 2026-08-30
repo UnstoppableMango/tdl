@@ -772,9 +772,16 @@ func (x *ClassRef) GetPosition() *Position {
 // reasons about instances. The declared instances are still in the model
 // for one that wants them.
 type Satisfaction struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Class         *ID                    `protobuf:"bytes,1,opt,name=class,proto3" json:"class,omitempty"` // indexes Model.decls
-	Decls         []*ID                  `protobuf:"bytes,2,rep,name=decls,proto3" json:"decls,omitempty"` // indexes Model.decls
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Class *ID                    `protobuf:"bytes,1,opt,name=class,proto3" json:"class,omitempty"` // indexes Model.decls
+	Decls []*ID                  `protobuf:"bytes,2,rep,name=decls,proto3" json:"decls,omitempty"` // indexes Model.decls
+	// types lists instantiated types that satisfy the class through a
+	// conditional instance, as in `Page<Order>` given
+	// `instance <T> Auditable<Page<T>> requires Auditable<T>`.
+	//
+	// A declaration cannot stand in for these: `Page` satisfies nothing on
+	// its own, and `Page<Order>` is a type rather than a declaration.
+	Types         []*ID `protobuf:"bytes,3,rep,name=types,proto3" json:"types,omitempty"` // indexes Model.types
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -819,6 +826,13 @@ func (x *Satisfaction) GetClass() *ID {
 func (x *Satisfaction) GetDecls() []*ID {
 	if x != nil {
 		return x.Decls
+	}
+	return nil
+}
+
+func (x *Satisfaction) GetTypes() []*ID {
+	if x != nil {
+		return x.Types
 	}
 	return nil
 }
@@ -2085,10 +2099,11 @@ const file_tdl_ir_v1_ir_proto_rawDesc = "" +
 	"\x05class\x18\x01 \x01(\v2\r.tdl.ir.v1.IDR\x05class\x12%\n" +
 	"\x06extern\x18\x02 \x01(\v2\r.tdl.ir.v1.IDR\x06extern\x12!\n" +
 	"\x04args\x18\x03 \x03(\v2\r.tdl.ir.v1.IDR\x04args\x12/\n" +
-	"\bposition\x18\x04 \x01(\v2\x13.tdl.ir.v1.PositionR\bposition\"X\n" +
+	"\bposition\x18\x04 \x01(\v2\x13.tdl.ir.v1.PositionR\bposition\"}\n" +
 	"\fSatisfaction\x12#\n" +
 	"\x05class\x18\x01 \x01(\v2\r.tdl.ir.v1.IDR\x05class\x12#\n" +
-	"\x05decls\x18\x02 \x03(\v2\r.tdl.ir.v1.IDR\x05decls\"}\n" +
+	"\x05decls\x18\x02 \x03(\v2\r.tdl.ir.v1.IDR\x05decls\x12#\n" +
+	"\x05types\x18\x03 \x03(\v2\r.tdl.ir.v1.IDR\x05types\"}\n" +
 	"\x06Import\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x14\n" +
 	"\x05alias\x18\x02 \x01(\tR\x05alias\x12\x18\n" +
@@ -2258,61 +2273,62 @@ var file_tdl_ir_v1_ir_proto_depIdxs = []int32{
 	4,  // 19: tdl.ir.v1.ClassRef.position:type_name -> tdl.ir.v1.Position
 	3,  // 20: tdl.ir.v1.Satisfaction.class:type_name -> tdl.ir.v1.ID
 	3,  // 21: tdl.ir.v1.Satisfaction.decls:type_name -> tdl.ir.v1.ID
-	4,  // 22: tdl.ir.v1.Import.position:type_name -> tdl.ir.v1.Position
-	4,  // 23: tdl.ir.v1.Extern.position:type_name -> tdl.ir.v1.Position
-	6,  // 24: tdl.ir.v1.Decl.meta:type_name -> tdl.ir.v1.Meta
-	18, // 25: tdl.ir.v1.Decl.primitive:type_name -> tdl.ir.v1.Primitive
-	19, // 26: tdl.ir.v1.Decl.alias:type_name -> tdl.ir.v1.Alias
-	20, // 27: tdl.ir.v1.Decl.newtype:type_name -> tdl.ir.v1.Newtype
-	21, // 28: tdl.ir.v1.Decl.structure:type_name -> tdl.ir.v1.Struct
-	22, // 29: tdl.ir.v1.Decl.enumeration:type_name -> tdl.ir.v1.Enum
-	15, // 30: tdl.ir.v1.Decl.class:type_name -> tdl.ir.v1.Class
-	25, // 31: tdl.ir.v1.Class.params:type_name -> tdl.ir.v1.Param
-	16, // 32: tdl.ir.v1.Class.fun_deps:type_name -> tdl.ir.v1.FunDep
-	10, // 33: tdl.ir.v1.Class.requires_classes:type_name -> tdl.ir.v1.ClassRef
-	10, // 34: tdl.ir.v1.Class.constraints:type_name -> tdl.ir.v1.ClassRef
-	24, // 35: tdl.ir.v1.Class.fields:type_name -> tdl.ir.v1.Field
-	17, // 36: tdl.ir.v1.Class.assoc_types:type_name -> tdl.ir.v1.AssocType
-	4,  // 37: tdl.ir.v1.FunDep.position:type_name -> tdl.ir.v1.Position
-	6,  // 38: tdl.ir.v1.AssocType.meta:type_name -> tdl.ir.v1.Meta
-	26, // 39: tdl.ir.v1.AssocType.kind:type_name -> tdl.ir.v1.Kind
-	26, // 40: tdl.ir.v1.Primitive.kind:type_name -> tdl.ir.v1.Kind
-	25, // 41: tdl.ir.v1.Alias.params:type_name -> tdl.ir.v1.Param
-	3,  // 42: tdl.ir.v1.Alias.target:type_name -> tdl.ir.v1.ID
-	25, // 43: tdl.ir.v1.Newtype.params:type_name -> tdl.ir.v1.Param
-	3,  // 44: tdl.ir.v1.Newtype.base:type_name -> tdl.ir.v1.ID
-	10, // 45: tdl.ir.v1.Newtype.constraints:type_name -> tdl.ir.v1.ClassRef
-	0,  // 46: tdl.ir.v1.Struct.kind:type_name -> tdl.ir.v1.StructKind
-	25, // 47: tdl.ir.v1.Struct.params:type_name -> tdl.ir.v1.Param
-	24, // 48: tdl.ir.v1.Struct.fields:type_name -> tdl.ir.v1.Field
-	10, // 49: tdl.ir.v1.Struct.conforms:type_name -> tdl.ir.v1.ClassRef
-	10, // 50: tdl.ir.v1.Struct.constraints:type_name -> tdl.ir.v1.ClassRef
-	25, // 51: tdl.ir.v1.Enum.params:type_name -> tdl.ir.v1.Param
-	23, // 52: tdl.ir.v1.Enum.variants:type_name -> tdl.ir.v1.Variant
-	10, // 53: tdl.ir.v1.Enum.conforms:type_name -> tdl.ir.v1.ClassRef
-	10, // 54: tdl.ir.v1.Enum.constraints:type_name -> tdl.ir.v1.ClassRef
-	6,  // 55: tdl.ir.v1.Variant.meta:type_name -> tdl.ir.v1.Meta
-	24, // 56: tdl.ir.v1.Variant.fields:type_name -> tdl.ir.v1.Field
-	6,  // 57: tdl.ir.v1.Field.meta:type_name -> tdl.ir.v1.Meta
-	3,  // 58: tdl.ir.v1.Field.type:type_name -> tdl.ir.v1.ID
-	3,  // 59: tdl.ir.v1.Field.included_from:type_name -> tdl.ir.v1.ID
-	26, // 60: tdl.ir.v1.Param.kind:type_name -> tdl.ir.v1.Kind
-	4,  // 61: tdl.ir.v1.Param.position:type_name -> tdl.ir.v1.Position
-	1,  // 62: tdl.ir.v1.Kind.atom:type_name -> tdl.ir.v1.KindAtom
-	26, // 63: tdl.ir.v1.Kind.paren:type_name -> tdl.ir.v1.Kind
-	26, // 64: tdl.ir.v1.Kind.arrow:type_name -> tdl.ir.v1.Kind
-	3,  // 65: tdl.ir.v1.Type.ctor:type_name -> tdl.ir.v1.ID
-	3,  // 66: tdl.ir.v1.Type.args:type_name -> tdl.ir.v1.ID
-	2,  // 67: tdl.ir.v1.Type.wrote:type_name -> tdl.ir.v1.SyntacticForm
-	4,  // 68: tdl.ir.v1.Type.position:type_name -> tdl.ir.v1.Position
-	28, // 69: tdl.ir.v1.Type.param:type_name -> tdl.ir.v1.ParamRef
-	3,  // 70: tdl.ir.v1.Type.extern:type_name -> tdl.ir.v1.ID
-	3,  // 71: tdl.ir.v1.ParamRef.owner:type_name -> tdl.ir.v1.ID
-	72, // [72:72] is the sub-list for method output_type
-	72, // [72:72] is the sub-list for method input_type
-	72, // [72:72] is the sub-list for extension type_name
-	72, // [72:72] is the sub-list for extension extendee
-	0,  // [0:72] is the sub-list for field type_name
+	3,  // 22: tdl.ir.v1.Satisfaction.types:type_name -> tdl.ir.v1.ID
+	4,  // 23: tdl.ir.v1.Import.position:type_name -> tdl.ir.v1.Position
+	4,  // 24: tdl.ir.v1.Extern.position:type_name -> tdl.ir.v1.Position
+	6,  // 25: tdl.ir.v1.Decl.meta:type_name -> tdl.ir.v1.Meta
+	18, // 26: tdl.ir.v1.Decl.primitive:type_name -> tdl.ir.v1.Primitive
+	19, // 27: tdl.ir.v1.Decl.alias:type_name -> tdl.ir.v1.Alias
+	20, // 28: tdl.ir.v1.Decl.newtype:type_name -> tdl.ir.v1.Newtype
+	21, // 29: tdl.ir.v1.Decl.structure:type_name -> tdl.ir.v1.Struct
+	22, // 30: tdl.ir.v1.Decl.enumeration:type_name -> tdl.ir.v1.Enum
+	15, // 31: tdl.ir.v1.Decl.class:type_name -> tdl.ir.v1.Class
+	25, // 32: tdl.ir.v1.Class.params:type_name -> tdl.ir.v1.Param
+	16, // 33: tdl.ir.v1.Class.fun_deps:type_name -> tdl.ir.v1.FunDep
+	10, // 34: tdl.ir.v1.Class.requires_classes:type_name -> tdl.ir.v1.ClassRef
+	10, // 35: tdl.ir.v1.Class.constraints:type_name -> tdl.ir.v1.ClassRef
+	24, // 36: tdl.ir.v1.Class.fields:type_name -> tdl.ir.v1.Field
+	17, // 37: tdl.ir.v1.Class.assoc_types:type_name -> tdl.ir.v1.AssocType
+	4,  // 38: tdl.ir.v1.FunDep.position:type_name -> tdl.ir.v1.Position
+	6,  // 39: tdl.ir.v1.AssocType.meta:type_name -> tdl.ir.v1.Meta
+	26, // 40: tdl.ir.v1.AssocType.kind:type_name -> tdl.ir.v1.Kind
+	26, // 41: tdl.ir.v1.Primitive.kind:type_name -> tdl.ir.v1.Kind
+	25, // 42: tdl.ir.v1.Alias.params:type_name -> tdl.ir.v1.Param
+	3,  // 43: tdl.ir.v1.Alias.target:type_name -> tdl.ir.v1.ID
+	25, // 44: tdl.ir.v1.Newtype.params:type_name -> tdl.ir.v1.Param
+	3,  // 45: tdl.ir.v1.Newtype.base:type_name -> tdl.ir.v1.ID
+	10, // 46: tdl.ir.v1.Newtype.constraints:type_name -> tdl.ir.v1.ClassRef
+	0,  // 47: tdl.ir.v1.Struct.kind:type_name -> tdl.ir.v1.StructKind
+	25, // 48: tdl.ir.v1.Struct.params:type_name -> tdl.ir.v1.Param
+	24, // 49: tdl.ir.v1.Struct.fields:type_name -> tdl.ir.v1.Field
+	10, // 50: tdl.ir.v1.Struct.conforms:type_name -> tdl.ir.v1.ClassRef
+	10, // 51: tdl.ir.v1.Struct.constraints:type_name -> tdl.ir.v1.ClassRef
+	25, // 52: tdl.ir.v1.Enum.params:type_name -> tdl.ir.v1.Param
+	23, // 53: tdl.ir.v1.Enum.variants:type_name -> tdl.ir.v1.Variant
+	10, // 54: tdl.ir.v1.Enum.conforms:type_name -> tdl.ir.v1.ClassRef
+	10, // 55: tdl.ir.v1.Enum.constraints:type_name -> tdl.ir.v1.ClassRef
+	6,  // 56: tdl.ir.v1.Variant.meta:type_name -> tdl.ir.v1.Meta
+	24, // 57: tdl.ir.v1.Variant.fields:type_name -> tdl.ir.v1.Field
+	6,  // 58: tdl.ir.v1.Field.meta:type_name -> tdl.ir.v1.Meta
+	3,  // 59: tdl.ir.v1.Field.type:type_name -> tdl.ir.v1.ID
+	3,  // 60: tdl.ir.v1.Field.included_from:type_name -> tdl.ir.v1.ID
+	26, // 61: tdl.ir.v1.Param.kind:type_name -> tdl.ir.v1.Kind
+	4,  // 62: tdl.ir.v1.Param.position:type_name -> tdl.ir.v1.Position
+	1,  // 63: tdl.ir.v1.Kind.atom:type_name -> tdl.ir.v1.KindAtom
+	26, // 64: tdl.ir.v1.Kind.paren:type_name -> tdl.ir.v1.Kind
+	26, // 65: tdl.ir.v1.Kind.arrow:type_name -> tdl.ir.v1.Kind
+	3,  // 66: tdl.ir.v1.Type.ctor:type_name -> tdl.ir.v1.ID
+	3,  // 67: tdl.ir.v1.Type.args:type_name -> tdl.ir.v1.ID
+	2,  // 68: tdl.ir.v1.Type.wrote:type_name -> tdl.ir.v1.SyntacticForm
+	4,  // 69: tdl.ir.v1.Type.position:type_name -> tdl.ir.v1.Position
+	28, // 70: tdl.ir.v1.Type.param:type_name -> tdl.ir.v1.ParamRef
+	3,  // 71: tdl.ir.v1.Type.extern:type_name -> tdl.ir.v1.ID
+	3,  // 72: tdl.ir.v1.ParamRef.owner:type_name -> tdl.ir.v1.ID
+	73, // [73:73] is the sub-list for method output_type
+	73, // [73:73] is the sub-list for method input_type
+	73, // [73:73] is the sub-list for extension type_name
+	73, // [73:73] is the sub-list for extension extendee
+	0,  // [0:73] is the sub-list for field type_name
 }
 
 func init() { file_tdl_ir_v1_ir_proto_init() }

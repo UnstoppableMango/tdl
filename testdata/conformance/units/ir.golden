@@ -44,8 +44,8 @@ Model example.units
 │       ├── field exponent: types[2] decimal<?>  source.tdl:17:3
 │       └── field mapped: types[5] Map<string, decimal<?>>  source.tdl:18:3
 ├── Satisfies
-│   ├── Entity: 
-│   └── Value: 
+│   ├── Entity: nothing
+│   └── Value: nothing
 └── Types
     ├── [0] T  named  -> param Option.T  std.tdl:35:17
     ├── [1] T  named  -> param Nullable.T  std.tdl:41:20

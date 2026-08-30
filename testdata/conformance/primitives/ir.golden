@@ -38,8 +38,8 @@ Model prelude.roots
 │   ├── [26] primitive Measured: unit -> type  source.tdl:12:1
 │   └── [27] primitive Higher: (type -> type) -> type  source.tdl:13:1
 ├── Satisfies
-│   ├── Entity: 
-│   └── Value: 
+│   ├── Entity: nothing
+│   └── Value: nothing
 └── Types
     ├── [0] T  named  -> param Option.T  std.tdl:35:17
     └── [1] T  named  -> param Nullable.T  std.tdl:41:20

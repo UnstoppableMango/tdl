@@ -46,12 +46,18 @@ func Dump(m *Model) string {
 	if len(m.GetSatisfies()) > 0 {
 		d.section("Satisfies", true, func(prefix string) {
 			for i, sat := range m.GetSatisfies() {
-				names := make([]string, len(sat.GetDecls()))
-				for j, id := range sat.GetDecls() {
-					names[j] = id.GetName()
+				names := make([]string, 0, len(sat.GetDecls())+len(sat.GetTypes()))
+				for _, id := range sat.GetDecls() {
+					names = append(names, id.GetName())
 				}
-				d.leaf(prefix, i == len(m.GetSatisfies())-1,
-					sat.GetClass().GetName()+": "+strings.Join(names, ", "), nil)
+				for _, id := range sat.GetTypes() {
+					names = append(names, id.GetName())
+				}
+				line := sat.GetClass().GetName() + ": nothing"
+				if len(names) > 0 {
+					line = sat.GetClass().GetName() + ": " + strings.Join(names, ", ")
+				}
+				d.leaf(prefix, i == len(m.GetSatisfies())-1, line, nil)
 			}
 		})
 	}

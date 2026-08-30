@@ -49,8 +49,8 @@ Model example.aliases
 │   └── [25] value Event  source.tdl:14:1
 │       └── field name: types[2] string  source.tdl:15:3
 ├── Satisfies
-│   ├── Entity: 
-│   └── Value: 
+│   ├── Entity: nothing
+│   └── Value: nothing
 ├── Types
 │   ├── [0] T  named  -> param Option.T  std.tdl:35:17
 │   ├── [1] T  named  -> param Nullable.T  std.tdl:41:20

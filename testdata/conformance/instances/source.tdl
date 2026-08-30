@@ -28,3 +28,16 @@ value OrderCursor {
 value Page<T> {
   items: [T]
 }
+
+value Audited: Auditable {
+  createdAt: instant
+}
+
+value Plain {
+  x: string
+}
+
+value Uses {
+  applies: Page<Audited>
+  doesNot: Page<Plain>
+}

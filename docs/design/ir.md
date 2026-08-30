@@ -112,9 +112,15 @@ func (m *Model) Satisfying(class ID) []ID
 A plugin that only needs "which types are `Auditable`" for a class-scoped target directive reads the index and never implements instance resolution.
 A backend doing something more involved has the declarations.
 
-The index answers from ground facts: a declaration that says it conforms, and an instance with concrete arguments, closed over the classes a class requires.
-Conditional instances are in the model and are not expanded into it, so a generic type made auditable by `instance <T> Auditable<Page<T>>` is not listed until the search lands.
-Nor is a foreign type: an entry names a declaration by ID, and a dependency's declarations are not in this table.
+The index has two halves, because the question has two shapes.
+
+`Satisfying` answers about declarations, from ground facts: a declaration that says it conforms, and an instance with concrete arguments, closed over the classes a class requires.
+
+`SatisfyingTypes` answers about instantiated types, from the conditional instance search.
+A declaration cannot stand in for these: given `instance <T> Auditable<Page<T>> requires Auditable<T>`, `Page` satisfies nothing on its own and `Page<Order>` is a type rather than a declaration.
+The search matches an instance head against a type and discharges the conditions under the binding, and the spec's two rules on an instance are checked where it is written so the search terminates.
+
+Neither half lists a foreign type: an entry names something by ID, and a dependency's declarations are not in this table.
 
 ## Aliases
 
