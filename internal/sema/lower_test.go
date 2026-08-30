@@ -11,14 +11,16 @@ import (
 // preamble declares the placeholder names these tests use as stand-in
 // types. The prelude supplies everything else: `string`, `List`, `Option`,
 // and the rest are loaded, not declared here.
-const preamble = `primitive T
+const preamble = `package p
+
+primitive T
 primitive K
 primitive V
 primitive E
 `
 
 // preambleLines is how many lines the preamble adds before a test's source.
-const preambleLines = 4
+const preambleLines = 6
 
 func lower(t *testing.T, src string) *ir.Model {
 	t.Helper()
@@ -285,9 +287,10 @@ value W { net: decimal<kg*m/s^2> }`)
 	}
 }
 
+// Units are deferred, and lowering says so rather than dropping them.
 func TestUnloweredDeclarations(t *testing.T) {
-	diags := lowerDiags(t, `target go for p { out("./gen") }`)
-	if !strings.Contains(diags.Error(), "not lowered yet") {
+	diags := lowerDiags(t, `unit kg`)
+	if !strings.Contains(diags.Error(), "unit kg is not lowered yet") {
 		t.Errorf("diagnostics = %v", diags)
 	}
 }
@@ -437,16 +440,19 @@ value B { x: string }
 	}
 }
 
+// A target block names a backend, not a type, so it does not collide with
+// a declaration of the same name.
 func TestTargetsAreNotTypeNames(t *testing.T) {
-	diags := lowerDiags(t, `
+	model := lower(t, `
 value go { x: string }
 target go for p { out("./gen") }
 `)
 
-	for _, d := range diags {
-		if strings.Contains(d.Msg, "declared twice") {
-			t.Errorf("a target collided with a type: %s", d.Error())
-		}
+	if _, _, ok := model.FindDecl("go"); !ok {
+		t.Error("the value named go is missing")
+	}
+	if got := len(model.GetTargets()); got != 1 {
+		t.Errorf("got %d target blocks, want 1", got)
 	}
 }
 
@@ -1137,5 +1143,156 @@ func TestLiteralDefaults(t *testing.T) {
 		if got := v.Fields()[i].GetDefaultValue().GetKind(); got != want {
 			t.Errorf("field %d default kind = %v, want %v", i, got, want)
 		}
+	}
+}
+
+func TestTargetDirectivesAttach(t *testing.T) {
+	model := lower(t, `
+value Money { amount: string }
+
+entity Order {
+  key id: string
+  items: [string]
+}
+
+target go for p {
+  out("./gen/go")
+
+  Order {
+    name("PurchaseOrder")
+    items => slice
+  }
+
+  Money => foreign("x", "Money")
+}
+`)
+
+	block := model.GetTargets()[0]
+	if got := len(block.GetDirectives()); got != 1 || block.GetDirectives()[0].GetName() != "out" {
+		t.Errorf("package-level directives = %+v", block.GetDirectives())
+	}
+
+	order, _, _ := model.FindDecl("Order")
+	if got := len(order.GetDirectives()); got != 1 || order.GetDirectives()[0].GetName() != "name" {
+		t.Errorf("Order directives = %+v", order.GetDirectives())
+	}
+
+	// A bare directive inside a nested block applies to the path it is under.
+	var items *ir.Field
+	for _, f := range order.Fields() {
+		if f.GetMeta().GetName() == "items" {
+			items = f
+		}
+	}
+	if got := len(items.GetDirectives()); got != 1 || items.GetDirectives()[0].GetName() != "slice" {
+		t.Errorf("items directives = %+v", items.GetDirectives())
+	}
+
+	money, _, _ := model.FindDecl("Money")
+	if got := len(money.GetDirectives()); got != 1 {
+		t.Errorf("Money directives = %+v", money.GetDirectives())
+	}
+}
+
+// A path naming a class applies to everything satisfying it, which is what
+// lets a rule be written once rather than repeated per type.
+func TestClassPathExpands(t *testing.T) {
+	model := lower(t, `
+class Auditable { createdAt: string }
+entity A: Auditable { key id: string createdAt: string }
+entity B: Auditable { key id: string createdAt: string }
+entity C { key id: string }
+
+target sql for p {
+  Auditable => trigger("touch")
+}
+`)
+
+	for _, name := range []string{"A", "B"} {
+		decl, _, _ := model.FindDecl(name)
+		if len(decl.GetDirectives()) != 1 {
+			t.Errorf("%s got %d directives, want 1", name, len(decl.GetDirectives()))
+			continue
+		}
+		if decl.GetDirectives()[0].GetFromClass() == nil {
+			t.Errorf("%s directive does not record the class it came from", name)
+		}
+	}
+
+	c, _, _ := model.FindDecl("C")
+	if len(c.GetDirectives()) != 0 {
+		t.Errorf("C satisfies nothing but got %+v", c.GetDirectives())
+	}
+}
+
+// The ladder: a directive on a field beats one on its type, and a subclass
+// beats a class it requires.
+func TestSpecificityLadder(t *testing.T) {
+	model := lower(t, `
+class Base { x: string }
+class Derived: Base { y: string }
+entity Ent: Derived { key id: string x: string y: string }
+
+target go for p {
+  Base => rule("base")
+  Derived => rule("derived")
+}
+`)
+
+	e, _, _ := model.FindDecl("Ent")
+	if got := len(e.GetDirectives()); got != 1 {
+		t.Fatalf("got %d directives, want the closer class to win: %+v", got, e.GetDirectives())
+	}
+	if got := e.GetDirectives()[0].GetArgs()[0].GetText(); got != "derived" {
+		t.Errorf("winner = %q, want derived", got)
+	}
+}
+
+func TestEqualSpecificityIsAnError(t *testing.T) {
+	diags := lowerDiags(t, `
+class One { x: string }
+class Two { y: string }
+entity Ent: One, Two { key id: string x: string y: string }
+
+target go for p {
+  One => rule("a")
+  Two => rule("b")
+}
+`)
+	if !strings.Contains(diags.Error(), "same specificity") {
+		t.Errorf("diagnostics = %v", diags)
+	}
+}
+
+func TestTargetPathNamesNothing(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{"target go for p { Missing => rule }", "target path Missing names nothing"},
+		{"value V2 { x: string }\ntarget go for p { V2.nope => rule }", "V2 has no field nope"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.want, func(t *testing.T) {
+			diags := lowerDiags(t, tt.src)
+			if !strings.Contains(diags.Error(), tt.want) {
+				t.Errorf("diagnostics = %v", diags)
+			}
+		})
+	}
+}
+
+func TestTargetForAnotherPackage(t *testing.T) {
+	diags := lowerDiags(t, `target go for elsewhere { out("./gen") }`)
+	if !strings.Contains(diags.Error(), "is for package elsewhere") {
+		t.Errorf("diagnostics = %v", diags)
+	}
+}
+
+// A directive name may be a reserved word: the namespace belongs to the
+// backend.
+func TestDirectiveNameMayBeAKeyword(t *testing.T) {
+	model := lower(t, `target go for p { package("github.com/acme/x") }`)
+
+	if got := model.GetTargets()[0].GetDirectives()[0].GetName(); got != "package" {
+		t.Errorf("directive = %q", got)
 	}
 }

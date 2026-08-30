@@ -166,7 +166,9 @@ This is what makes separate compilation possible, and it matches what generated 
 
 Resolved directives attach to the nodes they apply to.
 
-By the time a backend runs, the specificity ladder has been applied, dependency and root target blocks have been merged with root winning, class-scoped directives have been expanded across every satisfying type, and equal-specificity conflicts have already been reported as errors.
+By the time a backend runs, the specificity ladder has been applied, class-scoped directives have been expanded across every satisfying type, and equal-specificity conflicts have already been reported as errors.
+
+Merging a dependency's target blocks is not done: it needs the dependency lowered, and nothing else does. See ir-plan.md phase 8b.
 
 An `Entity` carries its directives; so does each `Field`.
 A backend reads one field on the node in front of it, and never does a lookup or a precedence computation.
