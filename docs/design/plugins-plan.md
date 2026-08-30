@@ -116,6 +116,8 @@ A plugin that declares reuse stays alive across regenerations and receives anoth
 
 Done when a reused plugin serves two requests on one connection, a plugin that does not declare reuse gets a fresh process per generation, and replacing the binary under `--watch` picks up the new one.
 
+**Done.** Watching compares contents rather than modification times, so a save that rewrites the same bytes is ignored.
+
 ## Decisions deferred
 
 Points where the implementation picked something reasonable rather than
@@ -139,6 +141,16 @@ implementation of the protocol and expensive afterwards.
   the user with a position. Nothing enforces the distinction, and a
   backend that returns an error for a bad model still fails usefully, just
   without a position.
+- **Watching polls once a second rather than using an OS notification
+  API.** No dependency, same behaviour everywhere, and fast enough for a
+  person saving a file. It also means a poll can land mid-save: an editor
+  that truncates before writing briefly presents an empty file, which
+  reads as a change and fails to parse until the next poll. Editors that
+  save by renaming never show it.
+- **A restart is detected by the binary's modification time.** Rebuilding
+  to an identical binary with a new timestamp restarts the plugin for
+  nothing, which is cheap and the wrong way round from missing a real
+  change.
 - **`out` is the only directive tdl reads itself.** More may follow, and
   the exemption list is a map in `internal/gen/check.go` rather than
   anything the protocol states. A backend cannot find out which names are
