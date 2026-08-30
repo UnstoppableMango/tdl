@@ -23,6 +23,7 @@ update:
 
 check lint:
 	nix flake check
+	golangci-lint run ./...
 	buf lint
 	buf format --diff --exit-code
 	markdownlint-cli2

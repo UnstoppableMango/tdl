@@ -63,12 +63,12 @@ func CheckDirectives(target string, model *ir.Model, desc plugin.Description) []
 			})
 			continue
 		}
-		problems = append(problems, checkOne(target, d, spec)...)
+		problems = append(problems, checkOne(d, spec)...)
 	}
 	return problems
 }
 
-func checkOne(target string, d *ir.Directive, spec *plugin.DirectiveSpec) []Problem {
+func checkOne(d *ir.Directive, spec *plugin.DirectiveSpec) []Problem {
 	var problems []Problem
 	n := int32(len(d.GetArgs()))
 
