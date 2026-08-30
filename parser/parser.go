@@ -49,13 +49,12 @@ func (p *parser) next() {
 	p.peek = p.lx.Next()
 }
 
-func (p *parser) expect(kind lex.Kind) bool {
+func (p *parser) expect(kind lex.Kind) {
 	if p.cur.Kind != kind {
 		p.errs.add(p.cur.Pos, "expected %s, got %s", kind, p.cur.Kind)
-		return false
+		return
 	}
 	p.next()
-	return true
 }
 
 func (p *parser) expectIdent() string {
