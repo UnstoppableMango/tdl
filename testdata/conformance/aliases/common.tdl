@@ -1,0 +1,5 @@
+package example.common
+
+value Address {
+  line1: string
+}

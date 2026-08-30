@@ -1,4 +1,6 @@
 Model example.instances
+├── Imports
+│   └── shipping.tdl as shipping  (shop.shipping)  source.tdl:3:1
 ├── Decls
 │   ├── [0] primitive string  std.tdl:4:1
 │   ├── [1] primitive int  std.tdl:6:1

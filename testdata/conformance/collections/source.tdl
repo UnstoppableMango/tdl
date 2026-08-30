@@ -1,5 +1,7 @@
 package example.collections
 
+import "common.tdl" as common
+
 alias BySku = {string -> LineItem}
 alias TagIndex = {string -> [string]}
 alias Matrix = [[int]]

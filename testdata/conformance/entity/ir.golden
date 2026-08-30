@@ -1,4 +1,6 @@
 Model shop.orders
+├── Imports
+│   └── common.tdl as common  (shop.common)  source.tdl:3:1
 ├── Decls
 │   ├── [0] primitive string  std.tdl:4:1
 │   ├── [1] primitive int  std.tdl:6:1
@@ -30,7 +32,7 @@ Model shop.orders
 │   ├── [19] entity Order  source.tdl:5:1
 │   │   ├── field key id: types[2] OrderId  source.tdl:6:7
 │   │   ├── field customer: types[3] User  source.tdl:7:3
-│   │   ├── field shipping: types[5] Option<common.Address>  source.tdl:8:3
+│   │   ├── field shipping: types[5] Option<shop.common.Address>  source.tdl:8:3
 │   │   ├── field owned items: types[7] List<LineItem>  source.tdl:9:3
 │   │   └── field status: types[8] Status  source.tdl:10:3
 │   ├── [20] entity LineItem  source.tdl:13:1
@@ -45,16 +47,18 @@ Model shop.orders
 │       ├── variant Draft  source.tdl:24:15
 │       ├── variant Placed  source.tdl:24:21
 │       └── variant Shipped  source.tdl:24:28
-└── Types
-    ├── [0] T  named  -> param Option.T  std.tdl:35:17
-    ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
-    ├── [2] OrderId  named  -> decls[22]  source.tdl:6:11
-    ├── [3] User  named  -> decls[21]  source.tdl:7:13
-    ├── [4] common.Address  named  -> unresolved  source.tdl:8:13
-    ├── [5] Option<common.Address>  T?  -> decls[15]  source.tdl:8:13
-    ├── [6] LineItem  named  -> decls[20]  source.tdl:9:11
-    ├── [7] List<LineItem>  [T]  -> decls[4]  source.tdl:9:10
-    ├── [8] Status  named  -> decls[23]  source.tdl:10:11
-    ├── [9] Order  named  -> decls[19]  source.tdl:14:14
-    ├── [10] string  named  -> decls[0]  source.tdl:15:12
-    └── [11] int  named  -> decls[1]  source.tdl:16:13
+├── Types
+│   ├── [0] T  named  -> param Option.T  std.tdl:35:17
+│   ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
+│   ├── [2] OrderId  named  -> decls[22]  source.tdl:6:11
+│   ├── [3] User  named  -> decls[21]  source.tdl:7:13
+│   ├── [4] shop.common.Address  named  -> externs[0]  source.tdl:8:13
+│   ├── [5] Option<shop.common.Address>  T?  -> decls[15]  source.tdl:8:13
+│   ├── [6] LineItem  named  -> decls[20]  source.tdl:9:11
+│   ├── [7] List<LineItem>  [T]  -> decls[4]  source.tdl:9:10
+│   ├── [8] Status  named  -> decls[23]  source.tdl:10:11
+│   ├── [9] Order  named  -> decls[19]  source.tdl:14:14
+│   ├── [10] string  named  -> decls[0]  source.tdl:15:12
+│   └── [11] int  named  -> decls[1]  source.tdl:16:13
+└── Externs
+    └── shop.common.Address  source.tdl:8:13
