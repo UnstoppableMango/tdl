@@ -41,7 +41,6 @@ func newIrCmd() *cobra.Command {
 
 			file, err := parser.Parse(path, bytes.NewReader(data))
 			if err != nil {
-				fmt.Fprintln(cmd.ErrOrStderr(), err)
 				return err
 			}
 
@@ -60,7 +59,6 @@ func newIrCmd() *cobra.Command {
 			fmt.Fprint(cmd.OutOrStdout(), out)
 
 			if len(diags) > 0 {
-				fmt.Fprintln(cmd.ErrOrStderr(), diags)
 				return diags
 			}
 			return nil

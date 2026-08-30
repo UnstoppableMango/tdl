@@ -17,6 +17,8 @@ func newGenCmd() *cobra.Command {
 	var (
 		target string
 		out    string
+		verify bool
+		clean  bool
 	)
 
 	cmd := &cobra.Command{
@@ -26,7 +28,10 @@ func newGenCmd() *cobra.Command {
 			"Every target block in the file runs. A target block exists, so it\n" +
 			"generates; --target narrows a run to one backend.\n\n" +
 			"Where output goes comes from the block's own `out` directive, and\n" +
-			"-o overrides it for one invocation.",
+			"-o overrides it for one invocation.\n\n" +
+			"--verify generates and compares against disk without writing,\n" +
+			"exiting non-zero when they differ. --clean empties the output\n" +
+			"directory first, and refuses one tdl did not write.",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			path := args[0]
@@ -37,13 +42,11 @@ func newGenCmd() *cobra.Command {
 
 			file, err := parser.Parse(path, bytes.NewReader(data))
 			if err != nil {
-				fmt.Fprintln(cmd.ErrOrStderr(), err)
 				return err
 			}
 
 			model, diags := sema.Lower(file, sema.WithLoader(sema.FSLoader{}))
 			if len(diags) > 0 {
-				fmt.Fprintln(cmd.ErrOrStderr(), diags)
 				return diags
 			}
 
@@ -55,7 +58,18 @@ func newGenCmd() *cobra.Command {
 				return fmt.Errorf("%s declares no target blocks", path)
 			}
 
-			ran := 0
+			if verify && clean {
+				return fmt.Errorf("--verify writes nothing, so it cannot be combined with --clean")
+			}
+			mode := gen.ModeWrite
+			switch {
+			case verify:
+				mode = gen.ModeVerify
+			case clean:
+				mode = gen.ModeClean
+			}
+
+			ran, stale := 0, 0
 			for _, t := range targets {
 				if target != "" && t.Name != target {
 					continue
@@ -66,19 +80,29 @@ func newGenCmd() *cobra.Command {
 					return fmt.Errorf("no backend named %s; compiled in: %v", t.Name, gen.BuiltinNames())
 				}
 
-				result, err := gen.Run(cmd.Context(), backend, t, model, false)
+				result, err := gen.Run(cmd.Context(), backend, t, model, mode)
 				reportDiagnostics(cmd, result)
 				if err != nil {
 					return err
 				}
+				for _, r := range result.Removed {
+					fmt.Fprintln(cmd.OutOrStdout(), "removed "+r)
+				}
 				for _, w := range result.Written {
 					fmt.Fprintln(cmd.OutOrStdout(), w)
 				}
+				for _, s := range result.Stale {
+					fmt.Fprintf(cmd.ErrOrStderr(), "%s: %s\n", s.Path, s.Reason)
+				}
+				stale += len(result.Stale)
 				ran++
 			}
 
 			if ran == 0 {
 				return fmt.Errorf("no target named %s in %s", target, path)
+			}
+			if stale > 0 {
+				return fmt.Errorf("%d file(s) would change; run without --verify to update them", stale)
 			}
 			return nil
 		},
@@ -86,6 +110,8 @@ func newGenCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&target, "target", "", "generate only this target")
 	cmd.Flags().StringVarP(&out, "out", "o", "", "write here instead of the target block's out directive")
+	cmd.Flags().BoolVar(&verify, "verify", false, "generate and compare against disk without writing")
+	cmd.Flags().BoolVar(&clean, "clean", false, "empty the output directory before writing")
 	return cmd
 }
 

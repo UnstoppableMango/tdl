@@ -50,20 +50,34 @@ func outOf(block *ir.TargetBlock) string {
 	return ""
 }
 
+// Mode is what a run does with the files a backend returns.
+type Mode int
+
+const (
+	// ModeWrite writes them.
+	ModeWrite Mode = iota
+	// ModeVerify compares them against disk and writes nothing.
+	ModeVerify
+	// ModeClean empties the output directory first, then writes.
+	ModeClean
+)
+
 // Result is what one target produced.
 type Result struct {
 	Target      string
 	Written     []string
+	Removed     []string
+	Stale       []Stale
 	Diagnostics []*plugin.Diagnostic
 }
 
-// Run generates one target and writes what comes back.
-func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.Model, dryRun bool) (Result, error) {
+// Run generates one target and does what mode says with the result.
+func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.Model, mode Mode) (Result, error) {
 	resp, err := backend.Generate(ctx, &plugin.Request{
 		Target: target.Name,
 		Model:  model,
 		Out:    target.Out,
-		DryRun: dryRun,
+		DryRun: mode == ModeVerify,
 	})
 	if err != nil {
 		return Result{Target: target.Name}, fmt.Errorf("target %s: %w", target.Name, err)
@@ -73,8 +87,28 @@ func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.M
 	if fatal(resp.GetDiagnostics()) {
 		return result, fmt.Errorf("target %s reported errors", target.Name)
 	}
-	if dryRun {
+
+	if mode == ModeVerify {
+		stale, err := Verify(target.Out, resp.GetFiles())
+		result.Stale = stale
+		if err != nil {
+			return result, fmt.Errorf("target %s: %w", target.Name, err)
+		}
 		return result, nil
+	}
+
+	if mode == ModeClean {
+		removed, err := Clean(target.Out)
+		result.Removed = removed
+		if err != nil {
+			return result, fmt.Errorf("target %s: %w", target.Name, err)
+		}
+	}
+
+	// The marker goes down before the files, so a directory tdl wrote is
+	// recognisable even if writing fails part way through.
+	if err := Mark(target.Out); err != nil {
+		return result, fmt.Errorf("target %s: %w", target.Name, err)
 	}
 
 	written, err := Write(target.Out, resp.GetFiles())
