@@ -17,6 +17,7 @@ package ir
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	_ "google.golang.org/protobuf/types/gofeaturespb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -278,8 +279,8 @@ func (SyntacticForm) EnumDescriptor() ([]byte, []int) {
 // into a diagnostic; until then it records what was written.
 type ID struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Index         int32                  `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Index         int32                  `protobuf:"varint,1,opt,name=index" json:"index,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -331,9 +332,9 @@ func (x *ID) GetName() string {
 // Position is a location in a source file.
 type Position struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Filename      string                 `protobuf:"bytes,1,opt,name=filename,proto3" json:"filename,omitempty"`
-	Line          int32                  `protobuf:"varint,2,opt,name=line,proto3" json:"line,omitempty"`
-	Column        int32                  `protobuf:"varint,3,opt,name=column,proto3" json:"column,omitempty"`
+	Filename      string                 `protobuf:"bytes,1,opt,name=filename" json:"filename,omitempty"`
+	Line          int32                  `protobuf:"varint,2,opt,name=line" json:"line,omitempty"`
+	Column        int32                  `protobuf:"varint,3,opt,name=column" json:"column,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -392,8 +393,8 @@ func (x *Position) GetColumn() int32 {
 // Deprecation marks a node as on its way out.
 type Deprecation struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Reason        string                 `protobuf:"bytes,1,opt,name=reason,proto3" json:"reason,omitempty"` // empty when written without one
-	Position      *Position              `protobuf:"bytes,2,opt,name=position,proto3" json:"position,omitempty"`
+	Reason        string                 `protobuf:"bytes,1,opt,name=reason" json:"reason,omitempty"` // empty when written without one
+	Position      *Position              `protobuf:"bytes,2,opt,name=position" json:"position,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -449,11 +450,11 @@ func (x *Deprecation) GetPosition() *Position {
 // Declaration order is kept so generated output is stable and diffable.
 type Meta struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"` // fully qualified for a declaration, bare for a member
-	Doc           []string               `protobuf:"bytes,2,rep,name=doc,proto3" json:"doc,omitempty"`
-	Position      *Position              `protobuf:"bytes,3,opt,name=position,proto3" json:"position,omitempty"`
-	Deprecated    *Deprecation           `protobuf:"bytes,4,opt,name=deprecated,proto3" json:"deprecated,omitempty"` // unset when not deprecated
-	Order         int32                  `protobuf:"varint,5,opt,name=order,proto3" json:"order,omitempty"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"` // fully qualified for a declaration, bare for a member
+	Doc           []string               `protobuf:"bytes,2,rep,name=doc" json:"doc,omitempty"`
+	Position      *Position              `protobuf:"bytes,3,opt,name=position" json:"position,omitempty"`
+	Deprecated    *Deprecation           `protobuf:"bytes,4,opt,name=deprecated" json:"deprecated,omitempty"` // unset when not deprecated
+	Order         int32                  `protobuf:"varint,5,opt,name=order" json:"order,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -531,14 +532,14 @@ func (x *Meta) GetOrder() int32 {
 // that package.
 type Model struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Package       string                 `protobuf:"bytes,1,opt,name=package,proto3" json:"package,omitempty"`
-	Decls         []*Decl                `protobuf:"bytes,2,rep,name=decls,proto3" json:"decls,omitempty"`
-	Types         []*Type                `protobuf:"bytes,3,rep,name=types,proto3" json:"types,omitempty"`
-	Imports       []*Import              `protobuf:"bytes,4,rep,name=imports,proto3" json:"imports,omitempty"`
-	Externs       []*Extern              `protobuf:"bytes,5,rep,name=externs,proto3" json:"externs,omitempty"`
-	Instances     []*Instance            `protobuf:"bytes,6,rep,name=instances,proto3" json:"instances,omitempty"`
-	Satisfies     []*Satisfaction        `protobuf:"bytes,7,rep,name=satisfies,proto3" json:"satisfies,omitempty"`
-	Targets       []*TargetBlock         `protobuf:"bytes,8,rep,name=targets,proto3" json:"targets,omitempty"`
+	Package       string                 `protobuf:"bytes,1,opt,name=package" json:"package,omitempty"`
+	Decls         []*Decl                `protobuf:"bytes,2,rep,name=decls" json:"decls,omitempty"`
+	Types         []*Type                `protobuf:"bytes,3,rep,name=types" json:"types,omitempty"`
+	Imports       []*Import              `protobuf:"bytes,4,rep,name=imports" json:"imports,omitempty"`
+	Externs       []*Extern              `protobuf:"bytes,5,rep,name=externs" json:"externs,omitempty"`
+	Instances     []*Instance            `protobuf:"bytes,6,rep,name=instances" json:"instances,omitempty"`
+	Satisfies     []*Satisfaction        `protobuf:"bytes,7,rep,name=satisfies" json:"satisfies,omitempty"`
+	Targets       []*TargetBlock         `protobuf:"bytes,8,rep,name=targets" json:"targets,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -637,9 +638,9 @@ func (x *Model) GetTargets() []*TargetBlock {
 // it.
 type TargetBlock struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Meta          *Meta                  `protobuf:"bytes,1,opt,name=meta,proto3" json:"meta,omitempty"` // name is the target name, such as "go"
-	ForPackage    string                 `protobuf:"bytes,2,opt,name=for_package,json=forPackage,proto3" json:"for_package,omitempty"`
-	Directives    []*Directive           `protobuf:"bytes,3,rep,name=directives,proto3" json:"directives,omitempty"`
+	Meta          *Meta                  `protobuf:"bytes,1,opt,name=meta" json:"meta,omitempty"` // name is the target name, such as "go"
+	ForPackage    string                 `protobuf:"bytes,2,opt,name=for_package,json=forPackage" json:"for_package,omitempty"`
+	Directives    []*Directive           `protobuf:"bytes,3,rep,name=directives" json:"directives,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -700,16 +701,16 @@ func (x *TargetBlock) GetDirectives() []*Directive {
 // it means is the backend's business.
 type Directive struct {
 	state    protoimpl.MessageState `protogen:"open.v1"`
-	Name     string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Args     []*Literal             `protobuf:"bytes,2,rep,name=args,proto3" json:"args,omitempty"`
-	Position *Position              `protobuf:"bytes,3,opt,name=position,proto3" json:"position,omitempty"`
+	Name     string                 `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Args     []*Literal             `protobuf:"bytes,2,rep,name=args" json:"args,omitempty"`
+	Position *Position              `protobuf:"bytes,3,opt,name=position" json:"position,omitempty"`
 	// target names the block this came from, since a model may carry
 	// directives for several backends at once.
-	Target string `protobuf:"bytes,4,opt,name=target,proto3" json:"target,omitempty"`
+	Target string `protobuf:"bytes,4,opt,name=target" json:"target,omitempty"`
 	// from_class is set when the directive was written against a class and
 	// expanded onto everything satisfying it, which is what makes a rule
 	// written once apply to many types.
-	FromClass     *ID `protobuf:"bytes,5,opt,name=from_class,json=fromClass,proto3" json:"from_class,omitempty"` // indexes Model.decls
+	FromClass     *ID `protobuf:"bytes,5,opt,name=from_class,json=fromClass" json:"from_class,omitempty"` // indexes Model.decls
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -786,11 +787,11 @@ func (x *Directive) GetFromClass() *ID {
 // lives in its own table rather than among the declarations.
 type Instance struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Meta          *Meta                  `protobuf:"bytes,1,opt,name=meta,proto3" json:"meta,omitempty"`
-	Params        []*Param               `protobuf:"bytes,2,rep,name=params,proto3" json:"params,omitempty"`
-	Class         *ClassRef              `protobuf:"bytes,3,opt,name=class,proto3" json:"class,omitempty"`
-	Requires      []*ClassRef            `protobuf:"bytes,4,rep,name=requires,proto3" json:"requires,omitempty"` // conditions on this instance
-	Binds         []*AssocBind           `protobuf:"bytes,5,rep,name=binds,proto3" json:"binds,omitempty"`
+	Meta          *Meta                  `protobuf:"bytes,1,opt,name=meta" json:"meta,omitempty"`
+	Params        []*Param               `protobuf:"bytes,2,rep,name=params" json:"params,omitempty"`
+	Class         *ClassRef              `protobuf:"bytes,3,opt,name=class" json:"class,omitempty"`
+	Requires      []*ClassRef            `protobuf:"bytes,4,rep,name=requires" json:"requires,omitempty"` // conditions on this instance
+	Binds         []*AssocBind           `protobuf:"bytes,5,rep,name=binds" json:"binds,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -864,9 +865,9 @@ func (x *Instance) GetBinds() []*AssocBind {
 // requirements.
 type AssocBind struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Type          *ID                    `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"` // indexes Model.types
-	Position      *Position              `protobuf:"bytes,3,opt,name=position,proto3" json:"position,omitempty"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Type          *ID                    `protobuf:"bytes,2,opt,name=type" json:"type,omitempty"` // indexes Model.types
+	Position      *Position              `protobuf:"bytes,3,opt,name=position" json:"position,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -925,10 +926,10 @@ func (x *AssocBind) GetPosition() *Position {
 // ClassRef names a class, applied to arguments.
 type ClassRef struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Class         *ID                    `protobuf:"bytes,1,opt,name=class,proto3" json:"class,omitempty"`   // indexes Model.decls; unset when extern is set
-	Extern        *ID                    `protobuf:"bytes,2,opt,name=extern,proto3" json:"extern,omitempty"` // indexes Model.externs
-	Args          []*ID                  `protobuf:"bytes,3,rep,name=args,proto3" json:"args,omitempty"`     // indexes Model.types
-	Position      *Position              `protobuf:"bytes,4,opt,name=position,proto3" json:"position,omitempty"`
+	Class         *ID                    `protobuf:"bytes,1,opt,name=class" json:"class,omitempty"`   // indexes Model.decls; unset when extern is set
+	Extern        *ID                    `protobuf:"bytes,2,opt,name=extern" json:"extern,omitempty"` // indexes Model.externs
+	Args          []*ID                  `protobuf:"bytes,3,rep,name=args" json:"args,omitempty"`     // indexes Model.types
+	Position      *Position              `protobuf:"bytes,4,opt,name=position" json:"position,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -999,15 +1000,15 @@ func (x *ClassRef) GetPosition() *Position {
 // for one that wants them.
 type Satisfaction struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	Class *ID                    `protobuf:"bytes,1,opt,name=class,proto3" json:"class,omitempty"` // indexes Model.decls
-	Decls []*ID                  `protobuf:"bytes,2,rep,name=decls,proto3" json:"decls,omitempty"` // indexes Model.decls
+	Class *ID                    `protobuf:"bytes,1,opt,name=class" json:"class,omitempty"` // indexes Model.decls
+	Decls []*ID                  `protobuf:"bytes,2,rep,name=decls" json:"decls,omitempty"` // indexes Model.decls
 	// types lists instantiated types that satisfy the class through a
 	// conditional instance, as in `Page<Order>` given
 	// `instance <T> Auditable<Page<T>> requires Auditable<T>`.
 	//
 	// A declaration cannot stand in for these: `Page` satisfies nothing on
 	// its own, and `Page<Order>` is a type rather than a declaration.
-	Types         []*ID `protobuf:"bytes,3,rep,name=types,proto3" json:"types,omitempty"` // indexes Model.types
+	Types         []*ID `protobuf:"bytes,3,rep,name=types" json:"types,omitempty"` // indexes Model.types
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1066,10 +1067,10 @@ func (x *Satisfaction) GetTypes() []*ID {
 // Import is one `import "path" as alias` in the file.
 type Import struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`       // as written
-	Alias         string                 `protobuf:"bytes,2,opt,name=alias,proto3" json:"alias,omitempty"`     // "_" merges the imported names into this scope
-	Package       string                 `protobuf:"bytes,3,opt,name=package,proto3" json:"package,omitempty"` // the package the imported file declares
-	Position      *Position              `protobuf:"bytes,4,opt,name=position,proto3" json:"position,omitempty"`
+	Path          string                 `protobuf:"bytes,1,opt,name=path" json:"path,omitempty"`       // as written
+	Alias         string                 `protobuf:"bytes,2,opt,name=alias" json:"alias,omitempty"`     // "_" merges the imported names into this scope
+	Package       string                 `protobuf:"bytes,3,opt,name=package" json:"package,omitempty"` // the package the imported file declares
+	Position      *Position              `protobuf:"bytes,4,opt,name=position" json:"position,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1139,9 +1140,9 @@ func (x *Import) GetPosition() *Position {
 // foreign and maps it with a target directive.
 type Extern struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Package       string                 `protobuf:"bytes,1,opt,name=package,proto3" json:"package,omitempty"`   // the declaring package
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`         // the declaration's name within it
-	Position      *Position              `protobuf:"bytes,3,opt,name=position,proto3" json:"position,omitempty"` // where this model first referred to it
+	Package       string                 `protobuf:"bytes,1,opt,name=package" json:"package,omitempty"`   // the declaring package
+	Name          string                 `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`         // the declaration's name within it
+	Position      *Position              `protobuf:"bytes,3,opt,name=position" json:"position,omitempty"` // where this model first referred to it
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1203,8 +1204,8 @@ func (x *Extern) GetPosition() *Position {
 // the machinery for them.
 type Decl struct {
 	state      protoimpl.MessageState `protogen:"open.v1"`
-	Meta       *Meta                  `protobuf:"bytes,1,opt,name=meta,proto3" json:"meta,omitempty"`
-	Directives []*Directive           `protobuf:"bytes,8,rep,name=directives,proto3" json:"directives,omitempty"`
+	Meta       *Meta                  `protobuf:"bytes,1,opt,name=meta" json:"meta,omitempty"`
+	Directives []*Directive           `protobuf:"bytes,8,rep,name=directives" json:"directives,omitempty"`
 	// Types that are valid to be assigned to Node:
 	//
 	//	*Decl_Primitive
@@ -1328,27 +1329,27 @@ type isDecl_Node interface {
 }
 
 type Decl_Primitive struct {
-	Primitive *Primitive `protobuf:"bytes,2,opt,name=primitive,proto3,oneof"`
+	Primitive *Primitive `protobuf:"bytes,2,opt,name=primitive,oneof"`
 }
 
 type Decl_Alias struct {
-	Alias *Alias `protobuf:"bytes,3,opt,name=alias,proto3,oneof"`
+	Alias *Alias `protobuf:"bytes,3,opt,name=alias,oneof"`
 }
 
 type Decl_Newtype struct {
-	Newtype *Newtype `protobuf:"bytes,4,opt,name=newtype,proto3,oneof"`
+	Newtype *Newtype `protobuf:"bytes,4,opt,name=newtype,oneof"`
 }
 
 type Decl_Structure struct {
-	Structure *Struct `protobuf:"bytes,5,opt,name=structure,proto3,oneof"`
+	Structure *Struct `protobuf:"bytes,5,opt,name=structure,oneof"`
 }
 
 type Decl_Enumeration struct {
-	Enumeration *Enum `protobuf:"bytes,6,opt,name=enumeration,proto3,oneof"`
+	Enumeration *Enum `protobuf:"bytes,6,opt,name=enumeration,oneof"`
 }
 
 type Decl_Class struct {
-	Class *Class `protobuf:"bytes,7,opt,name=class,proto3,oneof"`
+	Class *Class `protobuf:"bytes,7,opt,name=class,oneof"`
 }
 
 func (*Decl_Primitive) isDecl_Node() {}
@@ -1367,13 +1368,13 @@ func (*Decl_Class) isDecl_Node() {}
 // conformance is nominal and always declared.
 type Class struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
-	Params          []*Param               `protobuf:"bytes,1,rep,name=params,proto3" json:"params,omitempty"`
-	FunDeps         []*FunDep              `protobuf:"bytes,2,rep,name=fun_deps,json=funDeps,proto3" json:"fun_deps,omitempty"`
-	RequiresClasses []*ClassRef            `protobuf:"bytes,3,rep,name=requires_classes,json=requiresClasses,proto3" json:"requires_classes,omitempty"` // classes an implementor must also satisfy
-	Constraints     []*ClassRef            `protobuf:"bytes,4,rep,name=constraints,proto3" json:"constraints,omitempty"`                                // the `requires` clause on this class's parameters
-	Fields          []*Field               `protobuf:"bytes,5,rep,name=fields,proto3" json:"fields,omitempty"`
-	RequiresKey     bool                   `protobuf:"varint,6,opt,name=requires_key,json=requiresKey,proto3" json:"requires_key,omitempty"` // a bare `key` in the body
-	AssocTypes      []*AssocType           `protobuf:"bytes,7,rep,name=assoc_types,json=assocTypes,proto3" json:"assoc_types,omitempty"`
+	Params          []*Param               `protobuf:"bytes,1,rep,name=params" json:"params,omitempty"`
+	FunDeps         []*FunDep              `protobuf:"bytes,2,rep,name=fun_deps,json=funDeps" json:"fun_deps,omitempty"`
+	RequiresClasses []*ClassRef            `protobuf:"bytes,3,rep,name=requires_classes,json=requiresClasses" json:"requires_classes,omitempty"` // classes an implementor must also satisfy
+	Constraints     []*ClassRef            `protobuf:"bytes,4,rep,name=constraints" json:"constraints,omitempty"`                                // the `requires` clause on this class's parameters
+	Fields          []*Field               `protobuf:"bytes,5,rep,name=fields" json:"fields,omitempty"`
+	RequiresKey     bool                   `protobuf:"varint,6,opt,name=requires_key,json=requiresKey" json:"requires_key,omitempty"` // a bare `key` in the body
+	AssocTypes      []*AssocType           `protobuf:"bytes,7,rep,name=assoc_types,json=assocTypes" json:"assoc_types,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -1461,9 +1462,9 @@ func (x *Class) GetAssocTypes() []*AssocType {
 // multi-parameter class a function rather than a table.
 type FunDep struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	From          []string               `protobuf:"bytes,1,rep,name=from,proto3" json:"from,omitempty"`
-	To            []string               `protobuf:"bytes,2,rep,name=to,proto3" json:"to,omitempty"`
-	Position      *Position              `protobuf:"bytes,3,opt,name=position,proto3" json:"position,omitempty"`
+	From          []string               `protobuf:"bytes,1,rep,name=from" json:"from,omitempty"`
+	To            []string               `protobuf:"bytes,2,rep,name=to" json:"to,omitempty"`
+	Position      *Position              `protobuf:"bytes,3,opt,name=position" json:"position,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1522,8 +1523,8 @@ func (x *FunDep) GetPosition() *Position {
 // AssocType is a type an implementor must supply and an instance binds.
 type AssocType struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Meta          *Meta                  `protobuf:"bytes,1,opt,name=meta,proto3" json:"meta,omitempty"`
-	Kind          *Kind                  `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
+	Meta          *Meta                  `protobuf:"bytes,1,opt,name=meta" json:"meta,omitempty"`
+	Kind          *Kind                  `protobuf:"bytes,2,opt,name=kind" json:"kind,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1575,7 +1576,7 @@ func (x *AssocType) GetKind() *Kind {
 // Primitive is an opaque, irreducible root type.
 type Primitive struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Kind          *Kind                  `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"` // unset when the kind is left to inference
+	Kind          *Kind                  `protobuf:"bytes,1,opt,name=kind" json:"kind,omitempty"` // unset when the kind is left to inference
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1620,8 +1621,8 @@ func (x *Primitive) GetKind() *Kind {
 // Alias is a transparent abbreviation, expanded rather than referenced.
 type Alias struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Params        []*Param               `protobuf:"bytes,1,rep,name=params,proto3" json:"params,omitempty"`
-	Target        *ID                    `protobuf:"bytes,2,opt,name=target,proto3" json:"target,omitempty"` // indexes Model.types
+	Params        []*Param               `protobuf:"bytes,1,rep,name=params" json:"params,omitempty"`
+	Target        *ID                    `protobuf:"bytes,2,opt,name=target" json:"target,omitempty"` // indexes Model.types
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1673,10 +1674,10 @@ func (x *Alias) GetTarget() *ID {
 // Newtype is a distinct type over another, not interchangeable with it.
 type Newtype struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
-	Params           []*Param               `protobuf:"bytes,1,rep,name=params,proto3" json:"params,omitempty"`
-	Base             *ID                    `protobuf:"bytes,2,opt,name=base,proto3" json:"base,omitempty"`                                                 // indexes Model.types
-	Constraints      []*ClassRef            `protobuf:"bytes,3,rep,name=constraints,proto3" json:"constraints,omitempty"`                                   // the `requires` clause on its parameters
-	ValueConstraints []*Constraint          `protobuf:"bytes,4,rep,name=value_constraints,json=valueConstraints,proto3" json:"value_constraints,omitempty"` // the `where` block, accumulated down the chain
+	Params           []*Param               `protobuf:"bytes,1,rep,name=params" json:"params,omitempty"`
+	Base             *ID                    `protobuf:"bytes,2,opt,name=base" json:"base,omitempty"`                                                 // indexes Model.types
+	Constraints      []*ClassRef            `protobuf:"bytes,3,rep,name=constraints" json:"constraints,omitempty"`                                   // the `requires` clause on its parameters
+	ValueConstraints []*Constraint          `protobuf:"bytes,4,rep,name=value_constraints,json=valueConstraints" json:"value_constraints,omitempty"` // the `where` block, accumulated down the chain
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -1743,14 +1744,14 @@ func (x *Newtype) GetValueConstraints() []*Constraint {
 // argument, or a directive argument.
 type Literal struct {
 	state    protoimpl.MessageState `protogen:"open.v1"`
-	Kind     LiteralKind            `protobuf:"varint,1,opt,name=kind,proto3,enum=tdl.ir.v1.LiteralKind" json:"kind,omitempty"`
-	Text     string                 `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`   // decoded for STRING, the pattern for REGEX, the name for NAME
-	Items    []*Literal             `protobuf:"bytes,3,rep,name=items,proto3" json:"items,omitempty"` // set for LIST
-	Range    *Range                 `protobuf:"bytes,4,opt,name=range,proto3" json:"range,omitempty"` // set for RANGE
-	Position *Position              `protobuf:"bytes,5,opt,name=position,proto3" json:"position,omitempty"`
+	Kind     LiteralKind            `protobuf:"varint,1,opt,name=kind,enum=tdl.ir.v1.LiteralKind" json:"kind,omitempty"`
+	Text     string                 `protobuf:"bytes,2,opt,name=text" json:"text,omitempty"`   // decoded for STRING, the pattern for REGEX, the name for NAME
+	Items    []*Literal             `protobuf:"bytes,3,rep,name=items" json:"items,omitempty"` // set for LIST
+	Range    *Range                 `protobuf:"bytes,4,opt,name=range" json:"range,omitempty"` // set for RANGE
+	Position *Position              `protobuf:"bytes,5,opt,name=position" json:"position,omitempty"`
 	// variant names the enum variant a NAME literal resolves to, checked
 	// against the field's type. Unset when it did not resolve.
-	Variant       *ID `protobuf:"bytes,6,opt,name=variant,proto3" json:"variant,omitempty"`
+	Variant       *ID `protobuf:"bytes,6,opt,name=variant" json:"variant,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1830,8 +1831,8 @@ func (x *Literal) GetVariant() *ID {
 // Range is a bound with either end optional: `3..254`, `1..`, `..64`.
 type Range struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Low           *int64                 `protobuf:"varint,1,opt,name=low,proto3,oneof" json:"low,omitempty"`
-	High          *int64                 `protobuf:"varint,2,opt,name=high,proto3,oneof" json:"high,omitempty"`
+	Low           *int64                 `protobuf:"varint,1,opt,name=low" json:"low,omitempty"`
+	High          *int64                 `protobuf:"varint,2,opt,name=high" json:"high,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1887,14 +1888,14 @@ func (x *Range) GetHigh() int64 {
 // backend may understand a constraint the compiler has never heard of.
 type Constraint struct {
 	state    protoimpl.MessageState `protogen:"open.v1"`
-	Name     string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Args     []*Literal             `protobuf:"bytes,2,rep,name=args,proto3" json:"args,omitempty"`
-	Position *Position              `protobuf:"bytes,3,opt,name=position,proto3" json:"position,omitempty"`
+	Name     string                 `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Args     []*Literal             `protobuf:"bytes,2,rep,name=args" json:"args,omitempty"`
+	Position *Position              `protobuf:"bytes,3,opt,name=position" json:"position,omitempty"`
 	// from names the newtype a constraint was inherited from, unset for one
 	// written on this declaration. A newtype narrows its parent and never
 	// replaces it, so the accumulated set is what a backend needs and the
 	// origin is what it needs to explain itself.
-	From          *ID `protobuf:"bytes,4,opt,name=from,proto3" json:"from,omitempty"` // indexes Model.decls
+	From          *ID `protobuf:"bytes,4,opt,name=from" json:"from,omitempty"` // indexes Model.decls
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1960,11 +1961,11 @@ func (x *Constraint) GetFrom() *ID {
 // Struct is an entity, a value, or a mixin.
 type Struct struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Kind          StructKind             `protobuf:"varint,1,opt,name=kind,proto3,enum=tdl.ir.v1.StructKind" json:"kind,omitempty"`
-	Params        []*Param               `protobuf:"bytes,2,rep,name=params,proto3" json:"params,omitempty"`
-	Fields        []*Field               `protobuf:"bytes,3,rep,name=fields,proto3" json:"fields,omitempty"`
-	Conforms      []*ClassRef            `protobuf:"bytes,4,rep,name=conforms,proto3" json:"conforms,omitempty"`       // classes this declaration says it satisfies
-	Constraints   []*ClassRef            `protobuf:"bytes,5,rep,name=constraints,proto3" json:"constraints,omitempty"` // the `requires` clause on its parameters
+	Kind          StructKind             `protobuf:"varint,1,opt,name=kind,enum=tdl.ir.v1.StructKind" json:"kind,omitempty"`
+	Params        []*Param               `protobuf:"bytes,2,rep,name=params" json:"params,omitempty"`
+	Fields        []*Field               `protobuf:"bytes,3,rep,name=fields" json:"fields,omitempty"`
+	Conforms      []*ClassRef            `protobuf:"bytes,4,rep,name=conforms" json:"conforms,omitempty"`       // classes this declaration says it satisfies
+	Constraints   []*ClassRef            `protobuf:"bytes,5,rep,name=constraints" json:"constraints,omitempty"` // the `requires` clause on its parameters
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2038,10 +2039,10 @@ func (x *Struct) GetConstraints() []*ClassRef {
 // enum the language's sum type.
 type Enum struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Params        []*Param               `protobuf:"bytes,1,rep,name=params,proto3" json:"params,omitempty"`
-	Variants      []*Variant             `protobuf:"bytes,2,rep,name=variants,proto3" json:"variants,omitempty"`
-	Conforms      []*ClassRef            `protobuf:"bytes,3,rep,name=conforms,proto3" json:"conforms,omitempty"`
-	Constraints   []*ClassRef            `protobuf:"bytes,4,rep,name=constraints,proto3" json:"constraints,omitempty"`
+	Params        []*Param               `protobuf:"bytes,1,rep,name=params" json:"params,omitempty"`
+	Variants      []*Variant             `protobuf:"bytes,2,rep,name=variants" json:"variants,omitempty"`
+	Conforms      []*ClassRef            `protobuf:"bytes,3,rep,name=conforms" json:"conforms,omitempty"`
+	Constraints   []*ClassRef            `protobuf:"bytes,4,rep,name=constraints" json:"constraints,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2107,8 +2108,8 @@ func (x *Enum) GetConstraints() []*ClassRef {
 // Variant is one alternative in an Enum.
 type Variant struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Meta          *Meta                  `protobuf:"bytes,1,opt,name=meta,proto3" json:"meta,omitempty"`
-	Fields        []*Field               `protobuf:"bytes,2,rep,name=fields,proto3" json:"fields,omitempty"`
+	Meta          *Meta                  `protobuf:"bytes,1,opt,name=meta" json:"meta,omitempty"`
+	Fields        []*Field               `protobuf:"bytes,2,rep,name=fields" json:"fields,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2160,17 +2161,17 @@ func (x *Variant) GetFields() []*Field {
 // Field is a named, typed member.
 type Field struct {
 	state        protoimpl.MessageState `protogen:"open.v1"`
-	Meta         *Meta                  `protobuf:"bytes,1,opt,name=meta,proto3" json:"meta,omitempty"`
-	Type         *ID                    `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`    // indexes Model.types
-	Key          bool                   `protobuf:"varint,3,opt,name=key,proto3" json:"key,omitempty"`     // part of the entity's identity
-	Owned        bool                   `protobuf:"varint,4,opt,name=owned,proto3" json:"owned,omitempty"` // composition rather than reference
-	Constraints  []*Constraint          `protobuf:"bytes,6,rep,name=constraints,proto3" json:"constraints,omitempty"`
-	DefaultValue *Literal               `protobuf:"bytes,7,opt,name=default_value,json=defaultValue,proto3" json:"default_value,omitempty"` // unset when the field has no default
-	Directives   []*Directive           `protobuf:"bytes,8,rep,name=directives,proto3" json:"directives,omitempty"`
+	Meta         *Meta                  `protobuf:"bytes,1,opt,name=meta" json:"meta,omitempty"`
+	Type         *ID                    `protobuf:"bytes,2,opt,name=type" json:"type,omitempty"`    // indexes Model.types
+	Key          bool                   `protobuf:"varint,3,opt,name=key" json:"key,omitempty"`     // part of the entity's identity
+	Owned        bool                   `protobuf:"varint,4,opt,name=owned" json:"owned,omitempty"` // composition rather than reference
+	Constraints  []*Constraint          `protobuf:"bytes,6,rep,name=constraints" json:"constraints,omitempty"`
+	DefaultValue *Literal               `protobuf:"bytes,7,opt,name=default_value,json=defaultValue" json:"default_value,omitempty"` // unset when the field has no default
+	Directives   []*Directive           `protobuf:"bytes,8,rep,name=directives" json:"directives,omitempty"`
 	// included_from names the mixin a field was copied from, so a backend
 	// that can express the grouping does not have to reconstruct it. Unset
 	// for a field the declaration wrote itself.
-	IncludedFrom  *ID `protobuf:"bytes,5,opt,name=included_from,json=includedFrom,proto3" json:"included_from,omitempty"` // indexes Model.decls
+	IncludedFrom  *ID `protobuf:"bytes,5,opt,name=included_from,json=includedFrom" json:"included_from,omitempty"` // indexes Model.decls
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2264,9 +2265,9 @@ func (x *Field) GetIncludedFrom() *ID {
 // Param is one type parameter.
 type Param struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Kind          *Kind                  `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"` // unset when inferred from use
-	Position      *Position              `protobuf:"bytes,3,opt,name=position,proto3" json:"position,omitempty"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Kind          *Kind                  `protobuf:"bytes,2,opt,name=kind" json:"kind,omitempty"` // unset when inferred from use
+	Position      *Position              `protobuf:"bytes,3,opt,name=position" json:"position,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2326,9 +2327,9 @@ func (x *Param) GetPosition() *Position {
 // those followed by an arrow. Arrows associate to the right.
 type Kind struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Atom          KindAtom               `protobuf:"varint,1,opt,name=atom,proto3,enum=tdl.ir.v1.KindAtom" json:"atom,omitempty"` // unset when paren is set
-	Paren         *Kind                  `protobuf:"bytes,2,opt,name=paren,proto3" json:"paren,omitempty"`
-	Arrow         *Kind                  `protobuf:"bytes,3,opt,name=arrow,proto3" json:"arrow,omitempty"` // unset for a bare atom
+	Atom          KindAtom               `protobuf:"varint,1,opt,name=atom,enum=tdl.ir.v1.KindAtom" json:"atom,omitempty"` // unset when paren is set
+	Paren         *Kind                  `protobuf:"bytes,2,opt,name=paren" json:"paren,omitempty"`
+	Arrow         *Kind                  `protobuf:"bytes,3,opt,name=arrow" json:"arrow,omitempty"` // unset for a bare atom
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2391,12 +2392,12 @@ func (x *Kind) GetArrow() *Kind {
 // an ID comparison is a type comparison.
 type Type struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ctor          *ID                    `protobuf:"bytes,1,opt,name=ctor,proto3" json:"ctor,omitempty"` // indexes Model.decls; unset when param or extern is set
-	Args          []*ID                  `protobuf:"bytes,2,rep,name=args,proto3" json:"args,omitempty"` // indexes Model.types
-	Wrote         SyntacticForm          `protobuf:"varint,3,opt,name=wrote,proto3,enum=tdl.ir.v1.SyntacticForm" json:"wrote,omitempty"`
-	Position      *Position              `protobuf:"bytes,4,opt,name=position,proto3" json:"position,omitempty"`
-	Param         *ParamRef              `protobuf:"bytes,5,opt,name=param,proto3" json:"param,omitempty"`   // set instead of ctor for a type parameter
-	Extern        *ID                    `protobuf:"bytes,6,opt,name=extern,proto3" json:"extern,omitempty"` // set instead of ctor; indexes Model.externs
+	Ctor          *ID                    `protobuf:"bytes,1,opt,name=ctor" json:"ctor,omitempty"` // indexes Model.decls; unset when param or extern is set
+	Args          []*ID                  `protobuf:"bytes,2,rep,name=args" json:"args,omitempty"` // indexes Model.types
+	Wrote         SyntacticForm          `protobuf:"varint,3,opt,name=wrote,enum=tdl.ir.v1.SyntacticForm" json:"wrote,omitempty"`
+	Position      *Position              `protobuf:"bytes,4,opt,name=position" json:"position,omitempty"`
+	Param         *ParamRef              `protobuf:"bytes,5,opt,name=param" json:"param,omitempty"`   // set instead of ctor for a type parameter
+	Extern        *ID                    `protobuf:"bytes,6,opt,name=extern" json:"extern,omitempty"` // set instead of ctor; indexes Model.externs
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2480,9 +2481,9 @@ func (x *Type) GetExtern() *ID {
 // terms.
 type ParamRef struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Index         int32                  `protobuf:"varint,2,opt,name=index,proto3" json:"index,omitempty"` // into the declaring node's params
-	Owner         *ID                    `protobuf:"bytes,3,opt,name=owner,proto3" json:"owner,omitempty"`  // the declaration that declares it
+	Name          string                 `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Index         int32                  `protobuf:"varint,2,opt,name=index" json:"index,omitempty"` // into the declaring node's params
+	Owner         *ID                    `protobuf:"bytes,3,opt,name=owner" json:"owner,omitempty"`  // the declaration that declares it
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2542,7 +2543,7 @@ var File_tdl_ir_v1_ir_proto protoreflect.FileDescriptor
 
 const file_tdl_ir_v1_ir_proto_rawDesc = "" +
 	"\n" +
-	"\x12tdl/ir/v1/ir.proto\x12\ttdl.ir.v1\".\n" +
+	"\x12tdl/ir/v1/ir.proto\x12\ttdl.ir.v1\x1a!google/protobuf/go_features.proto\".\n" +
 	"\x02ID\x12\x14\n" +
 	"\x05index\x18\x01 \x01(\x05R\x05index\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\"R\n" +
@@ -2656,12 +2657,10 @@ const file_tdl_ir_v1_ir_proto_rawDesc = "" +
 	"\x05items\x18\x03 \x03(\v2\x12.tdl.ir.v1.LiteralR\x05items\x12&\n" +
 	"\x05range\x18\x04 \x01(\v2\x10.tdl.ir.v1.RangeR\x05range\x12/\n" +
 	"\bposition\x18\x05 \x01(\v2\x13.tdl.ir.v1.PositionR\bposition\x12'\n" +
-	"\avariant\x18\x06 \x01(\v2\r.tdl.ir.v1.IDR\avariant\"H\n" +
-	"\x05Range\x12\x15\n" +
-	"\x03low\x18\x01 \x01(\x03H\x00R\x03low\x88\x01\x01\x12\x17\n" +
-	"\x04high\x18\x02 \x01(\x03H\x01R\x04high\x88\x01\x01B\x06\n" +
-	"\x04_lowB\a\n" +
-	"\x05_high\"\x9c\x01\n" +
+	"\avariant\x18\x06 \x01(\v2\r.tdl.ir.v1.IDR\avariant\";\n" +
+	"\x05Range\x12\x17\n" +
+	"\x03low\x18\x01 \x01(\x03B\x05\xaa\x01\x02\b\x01R\x03low\x12\x19\n" +
+	"\x04high\x18\x02 \x01(\x03B\x05\xaa\x01\x02\b\x01R\x04high\"\x9c\x01\n" +
 	"\n" +
 	"Constraint\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12&\n" +
@@ -2739,7 +2738,8 @@ const file_tdl_ir_v1_ir_proto_rawDesc = "" +
 	"\x15SYNTACTIC_FORM_BRACES\x10\x03\x12\x18\n" +
 	"\x14SYNTACTIC_FORM_ARROW\x10\x04\x12\x1b\n" +
 	"\x17SYNTACTIC_FORM_QUESTION\x10\x05\x12\x1a\n" +
-	"\x16SYNTACTIC_FORM_OR_NULL\x10\x06B'Z%github.com/unstoppablemango/tdl/ir;irb\x06proto3"
+	"\x16SYNTACTIC_FORM_OR_NULL\x10\x06B\x8c\x01\n" +
+	"\rcom.tdl.ir.v1B\aIrProtoP\x01Z\"github.com/unstoppablemango/tdl/ir\xa2\x02\x03TIX\xaa\x02\tTdl.Ir.V1\xca\x02\tTdl\\Ir\\V1\xe2\x02\x15Tdl\\Ir\\V1\\GPBMetadata\xea\x02\vTdl::Ir::V1\x92\x03\a\xd2>\x02\x10\x01\b\x02b\beditionsp\xe9\a"
 
 var (
 	file_tdl_ir_v1_ir_proto_rawDescOnce sync.Once
@@ -2905,7 +2905,6 @@ func file_tdl_ir_v1_ir_proto_init() {
 		(*Decl_Enumeration)(nil),
 		(*Decl_Class)(nil),
 	}
-	file_tdl_ir_v1_ir_proto_msgTypes[21].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

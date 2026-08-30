@@ -16,6 +16,7 @@ import (
 	ir "github.com/unstoppablemango/tdl/ir"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	_ "google.golang.org/protobuf/types/gofeaturespb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -89,14 +90,14 @@ type Handshake struct {
 	// a varint length prefix followed by an encoded message, in both
 	// directions. It exists so a later version can offer something else and
 	// an older plugin can decline.
-	FramingVersion int32 `protobuf:"varint,1,opt,name=framing_version,json=framingVersion,proto3" json:"framing_version,omitempty"`
+	FramingVersion int32 `protobuf:"varint,1,opt,name=framing_version,json=framingVersion" json:"framing_version,omitempty"`
 	// ir_version is the protobuf package the model is encoded with, such as
 	// "tdl.ir.v1". Within a version, field numbers are never reused and new
 	// fields are additive.
-	IrVersion string `protobuf:"bytes,2,opt,name=ir_version,json=irVersion,proto3" json:"ir_version,omitempty"`
+	IrVersion string `protobuf:"bytes,2,opt,name=ir_version,json=irVersion" json:"ir_version,omitempty"`
 	// watch says this connection may serve more than one request, which a
 	// plugin declaring reuse should expect.
-	Watch         bool `protobuf:"varint,3,opt,name=watch,proto3" json:"watch,omitempty"`
+	Watch         bool `protobuf:"varint,3,opt,name=watch" json:"watch,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -155,16 +156,16 @@ func (x *Handshake) GetWatch() bool {
 // HandshakeReply is the plugin's answer.
 type HandshakeReply struct {
 	state    protoimpl.MessageState `protogen:"open.v1"`
-	Accepted bool                   `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	Accepted bool                   `protobuf:"varint,1,opt,name=accepted" json:"accepted,omitempty"`
 	// refusal says what the plugin needed, when accepted is false. A
 	// refusal naming both versions is the point of the handshake.
-	Refusal string `protobuf:"bytes,2,opt,name=refusal,proto3" json:"refusal,omitempty"`
-	Name    string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Version string `protobuf:"bytes,4,opt,name=version,proto3" json:"version,omitempty"`
+	Refusal string `protobuf:"bytes,2,opt,name=refusal" json:"refusal,omitempty"`
+	Name    string `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
+	Version string `protobuf:"bytes,4,opt,name=version" json:"version,omitempty"`
 	// directives are what this backend understands. tdl checks the target
 	// block against them before generating; see DirectiveSpec.
-	Directives    []*DirectiveSpec `protobuf:"bytes,5,rep,name=directives,proto3" json:"directives,omitempty"`
-	Features      *Features        `protobuf:"bytes,6,opt,name=features,proto3" json:"features,omitempty"`
+	Directives    []*DirectiveSpec `protobuf:"bytes,5,rep,name=directives" json:"directives,omitempty"`
+	Features      *Features        `protobuf:"bytes,6,opt,name=features" json:"features,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -248,15 +249,15 @@ func (x *HandshakeReply) GetFeatures() *Features {
 // that should not break a working project.
 type DirectiveSpec struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
-	Name    string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	MinArgs int32                  `protobuf:"varint,2,opt,name=min_args,json=minArgs,proto3" json:"min_args,omitempty"`
+	Name    string                 `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	MinArgs int32                  `protobuf:"varint,2,opt,name=min_args,json=minArgs" json:"min_args,omitempty"`
 	// max_args is the largest number of arguments accepted, or -1 for any
 	// number.
-	MaxArgs int32 `protobuf:"varint,3,opt,name=max_args,json=maxArgs,proto3" json:"max_args,omitempty"`
+	MaxArgs int32 `protobuf:"varint,3,opt,name=max_args,json=maxArgs" json:"max_args,omitempty"`
 	// arg_kinds constrains each argument by position. An empty list accepts
 	// any kind, and a list shorter than the argument count constrains only
 	// the arguments it covers.
-	ArgKinds      []ir.LiteralKind `protobuf:"varint,4,rep,packed,name=arg_kinds,json=argKinds,proto3,enum=tdl.ir.v1.LiteralKind" json:"arg_kinds,omitempty"`
+	ArgKinds      []ir.LiteralKind `protobuf:"varint,4,rep,packed,name=arg_kinds,json=argKinds,enum=tdl.ir.v1.LiteralKind" json:"arg_kinds,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -324,7 +325,7 @@ type Features struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// reuse says the plugin can serve more than one request on a
 	// connection. It must treat each as independent.
-	Reuse         bool `protobuf:"varint,1,opt,name=reuse,proto3" json:"reuse,omitempty"`
+	Reuse         bool `protobuf:"varint,1,opt,name=reuse" json:"reuse,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -373,17 +374,17 @@ type Request struct {
 	// target names the block being served. The model carries directives for
 	// every target block in it, each tagged with the block it came from, so
 	// a backend keeps the ones matching this name.
-	Target string `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
+	Target string `protobuf:"bytes,1,opt,name=target" json:"target,omitempty"`
 	// model is one package, with the prelude's declarations merged into it.
 	// See docs/design/plugins.md for what that means for a backend.
-	Model *ir.Model `protobuf:"bytes,2,opt,name=model,proto3" json:"model,omitempty"`
+	Model *ir.Model `protobuf:"bytes,2,opt,name=model" json:"model,omitempty"`
 	// out is the directory the response's paths are relative to.
-	Out string `protobuf:"bytes,3,opt,name=out,proto3" json:"out,omitempty"`
+	Out string `protobuf:"bytes,3,opt,name=out" json:"out,omitempty"`
 	// dry_run says tdl will diff the response against disk rather than
 	// write it. A backend that would do expensive work it knows cannot
 	// affect the answer may skip it; one that ignores the flag is correct,
 	// only slower.
-	DryRun        bool `protobuf:"varint,4,opt,name=dry_run,json=dryRun,proto3" json:"dry_run,omitempty"`
+	DryRun        bool `protobuf:"varint,4,opt,name=dry_run,json=dryRun" json:"dry_run,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -451,12 +452,12 @@ func (x *Request) GetDryRun() bool {
 // --verify, and --clean rather than asking every backend to honour them.
 type Response struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	Files []*File                `protobuf:"bytes,1,rep,name=files,proto3" json:"files,omitempty"`
+	Files []*File                `protobuf:"bytes,1,rep,name=files" json:"files,omitempty"`
 	// post names commands to run over the written files, by name only. The
 	// project decides what a name maps to; a name it has not declared is
 	// skipped with a warning.
-	Post          []string      `protobuf:"bytes,2,rep,name=post,proto3" json:"post,omitempty"`
-	Diagnostics   []*Diagnostic `protobuf:"bytes,3,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
+	Post          []string      `protobuf:"bytes,2,rep,name=post" json:"post,omitempty"`
+	Diagnostics   []*Diagnostic `protobuf:"bytes,3,rep,name=diagnostics" json:"diagnostics,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -517,8 +518,8 @@ func (x *Response) GetDiagnostics() []*Diagnostic {
 // written.
 type File struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	Content       []byte                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	Path          string                 `protobuf:"bytes,1,opt,name=path" json:"path,omitempty"`
+	Content       []byte                 `protobuf:"bytes,2,opt,name=content" json:"content,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -575,9 +576,9 @@ func (x *File) GetContent() []byte {
 // one it is complaining about.
 type Diagnostic struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Severity      Severity               `protobuf:"varint,1,opt,name=severity,proto3,enum=tdl.plugin.v1.Severity" json:"severity,omitempty"`
-	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	Position      *ir.Position           `protobuf:"bytes,3,opt,name=position,proto3" json:"position,omitempty"`
+	Severity      Severity               `protobuf:"varint,1,opt,name=severity,enum=tdl.plugin.v1.Severity" json:"severity,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message" json:"message,omitempty"`
+	Position      *ir.Position           `protobuf:"bytes,3,opt,name=position" json:"position,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -637,7 +638,7 @@ var File_tdl_plugin_v1_plugin_proto protoreflect.FileDescriptor
 
 const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
 	"\n" +
-	"\x1atdl/plugin/v1/plugin.proto\x12\rtdl.plugin.v1\x1a\x12tdl/ir/v1/ir.proto\"i\n" +
+	"\x1atdl/plugin/v1/plugin.proto\x12\rtdl.plugin.v1\x1a!google/protobuf/go_features.proto\x1a\x12tdl/ir/v1/ir.proto\"i\n" +
 	"\tHandshake\x12'\n" +
 	"\x0fframing_version\x18\x01 \x01(\x05R\x0eframingVersion\x12\x1d\n" +
 	"\n" +
@@ -679,7 +680,8 @@ const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
 	"\bSeverity\x12\x18\n" +
 	"\x14SEVERITY_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eSEVERITY_ERROR\x10\x01\x12\x14\n" +
-	"\x10SEVERITY_WARNING\x10\x02B/Z-github.com/unstoppablemango/tdl/plugin;pluginb\x06proto3"
+	"\x10SEVERITY_WARNING\x10\x02B\xa8\x01\n" +
+	"\x11com.tdl.plugin.v1B\vPluginProtoP\x01Z&github.com/unstoppablemango/tdl/plugin\xa2\x02\x03TPX\xaa\x02\rTdl.Plugin.V1\xca\x02\rTdl\\Plugin\\V1\xe2\x02\x19Tdl\\Plugin\\V1\\GPBMetadata\xea\x02\x0fTdl::Plugin::V1\x92\x03\a\xd2>\x02\x10\x01\b\x02b\beditionsp\xe9\a"
 
 var (
 	file_tdl_plugin_v1_plugin_proto_rawDescOnce sync.Once

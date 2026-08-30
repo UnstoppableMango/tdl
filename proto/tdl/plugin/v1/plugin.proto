@@ -3,13 +3,21 @@
 //
 // See docs/design/plugins.md for the protocol and
 // docs/design/plugins-plan.md for what is implemented so far.
-syntax = "proto3";
+edition = "2024";
 
 package tdl.plugin.v1;
 
+import "google/protobuf/go_features.proto";
 import "tdl/ir/v1/ir.proto";
 
-option go_package = "github.com/unstoppablemango/tdl/plugin;plugin";
+// Editions default the generated Go to the opaque API, where every field
+// is reached through a builder. These types are constructed directly here
+// and by any backend, so they keep the open API they were published with.
+option features.(pb.go).api_level = API_OPEN;
+// Editions default to explicit presence, which would give every scalar
+// field a pointer in the generated code. Implicit presence is what
+// proto3 meant, and what this schema was written against.
+option features.field_presence = IMPLICIT;
 
 // Handshake is what tdl sends first, before any request.
 //
