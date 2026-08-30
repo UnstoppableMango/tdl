@@ -56,10 +56,48 @@
             ];
           };
 
-          treefmt.programs = {
-            actionlint.enable = true;
-            nixfmt.enable = true;
-            gofmt.enable = true;
+          treefmt = {
+            programs = {
+              actionlint.enable = true;
+              buf.enable = true;
+              gofmt.enable = true;
+              jsonfmt.enable = true;
+              mdformat = {
+                enable = true;
+                # Keep 1. 2. 3. rather than rewriting every item to `1.`, and
+                # keep the line breaks the author chose: prose here is one
+                # sentence per line so diffs stay readable.
+                settings.number = true;
+                settings.wrap = "keep";
+              };
+              nixfmt.enable = true;
+              taplo.enable = true;
+              yamlfmt = {
+                enable = true;
+                # Blank lines between workflow steps are how a job stays
+                # readable; the default drops all of them.
+                settings.formatter.retain_line_breaks_single = true;
+              };
+            };
+
+            # .editorconfig asks for tabs everywhere except yaml and nix, and
+            # jsonfmt indents with spaces unless told otherwise.
+            settings.formatter.jsonfmt.options = [
+              "--indent"
+              "\t"
+            ];
+
+            settings.global.excludes = [
+              # Agent skills are authored prose with their own conventions.
+              ".claude/**"
+              # Generated: `go test ./internal/sema -update` writes these.
+              "*.golden"
+              # Generated: gomod2nix and nix own these.
+              "nix/gomod2nix.toml"
+              "flake.lock"
+              # `tdl fmt` formats these; wiring it in is a later change.
+              "*.tdl"
+            ];
           };
         };
     };
