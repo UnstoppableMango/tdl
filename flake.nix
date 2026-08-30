@@ -95,7 +95,7 @@
               # Generated: gomod2nix and nix own these.
               "nix/gomod2nix.toml"
               "flake.lock"
-              # `tdl fmt` formats these; wiring it in is a later change.
+              # `tdl fmt` formats these; wiring it in is in docs/backlog.md.
               "*.tdl"
             ];
           };
