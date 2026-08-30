@@ -82,6 +82,18 @@ func newGenCmd() *cobra.Command {
 					return fmt.Errorf("%w; compiled in: %v", err, gen.BuiltinNames())
 				}
 
+				// What a backend understands is checked against the target
+				// block before anything runs, so a mistyped directive fails
+				// with a position rather than half way through writing files.
+				failed := false
+				for _, p := range gen.CheckDirectives(t.Name, model, backend.Describe()) {
+					fmt.Fprintln(cmd.ErrOrStderr(), p)
+					failed = failed || !p.Warning
+				}
+				if failed {
+					return fmt.Errorf("target %s uses a directive incorrectly", t.Name)
+				}
+
 				result, err := gen.Run(cmd.Context(), backend, t, model, mode)
 				reportDiagnostics(cmd, result)
 				if err != nil {

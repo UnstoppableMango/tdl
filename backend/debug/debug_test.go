@@ -80,3 +80,45 @@ func TestGenerate(t *testing.T) {
 		t.Errorf("another target's directive leaked through:\n%s", out)
 	}
 }
+
+// A backend says what it cannot handle in a diagnostic rather than by
+// returning an error, because a diagnostic reaches the user with a
+// position attached and does not stop the run.
+func TestDiagnostics(t *testing.T) {
+	model := &ir.Model{
+		Package: "shop",
+		Decls: []*ir.Decl{
+			{
+				Meta: &ir.Meta{Name: "Empty", Position: &ir.Position{Filename: "shop.tdl", Line: 3}},
+				Node: &ir.Decl_Structure{Structure: &ir.Struct{}},
+			},
+			{
+				Meta: &ir.Meta{Name: "Full", Position: &ir.Position{Filename: "shop.tdl", Line: 7}},
+				Node: &ir.Decl_Structure{Structure: &ir.Struct{
+					Fields: []*ir.Field{{Meta: &ir.Meta{Name: "id"}, Type: &ir.ID{Name: "string"}}},
+				}},
+			},
+		},
+	}
+
+	resp, err := debug.Backend{}.Generate(context.Background(), &plugin.Request{Target: "debug", Model: model})
+	if err != nil {
+		t.Fatalf("generate: %v", err)
+	}
+	if len(resp.GetDiagnostics()) != 1 {
+		t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+
+	d := resp.GetDiagnostics()[0]
+	if d.GetSeverity() != plugin.Severity_SEVERITY_WARNING {
+		t.Errorf("severity = %v", d.GetSeverity())
+	}
+	if d.GetPosition().GetLine() != 3 {
+		t.Errorf("position = %+v", d.GetPosition())
+	}
+
+	// A warning does not stop a run, so the file is still there.
+	if len(resp.GetFiles()) != 1 {
+		t.Error("a warning suppressed the output")
+	}
+}

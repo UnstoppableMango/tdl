@@ -108,6 +108,8 @@ Response diagnostics carry a position and print in `tdl`'s own format, so `--for
 
 Done when a target block calling `tag(42)` fails before any backend runs, an undeclared directive warns and still reaches the backend, and a diagnostic from a plugin is indistinguishable in output from one the compiler raised.
 
+**Done.** `out` turned out to need exempting: it is tdl's own directive, read before a backend is involved, so asking a backend to declare it would have made every target block warn.
+
 ## Phase 8: reuse and watch
 
 A plugin that declares reuse stays alive across regenerations and receives another request on the same stream. `tdl gen --watch` regenerates on save, and restarts a reused plugin when its binary changes.
@@ -137,6 +139,10 @@ implementation of the protocol and expensive afterwards.
   the user with a position. Nothing enforces the distinction, and a
   backend that returns an error for a bad model still fails usefully, just
   without a position.
+- **`out` is the only directive tdl reads itself.** More may follow, and
+  the exemption list is a map in `internal/gen/check.go` rather than
+  anything the protocol states. A backend cannot find out which names are
+  reserved.
 - **A recorded exchange is compared by parsing rather than byte for byte.**
   `prototext` output is deliberately unstable across builds, so a byte
   comparison would fail on a toolchain bump. That makes the files less
