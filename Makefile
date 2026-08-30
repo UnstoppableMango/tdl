@@ -24,9 +24,11 @@ update:
 check lint:
 	nix flake check
 	buf lint
+	buf format --diff --exit-code
 
 format fmt:
 	nix fmt
+	buf format -w
 
 tidy: go.sum nix/gomod2nix.toml
 
