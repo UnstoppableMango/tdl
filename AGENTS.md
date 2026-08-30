@@ -13,12 +13,14 @@ command make build     # nix build .#
 command make test      # go test ./...
 command make play      # watch scratch.tdl; FILE=examples/nested.tdl VIEWS=all to override
 command make lint      # nix flake check (golangci-lint + treefmt)
-command make fmt       # nix fmt (treefmt: gofmt, nixfmt, actionlint)
+command make fmt       # nix fmt (treefmt) + buf format
 command make tidy      # go mod tidy + regenerate nix/gomod2nix.toml
 command make generate  # buf generate: proto/ -> ir/ir.pb.go
 ```
 
 Prefix `make` with `command` (see the shell autoload note in the global instructions).
+
+`nix fmt` formats Go, Nix, YAML, JSON, TOML, Markdown, and protobuf; `nix flake check` fails when anything is unformatted. Three files have no formatter: `Makefile`, `.editorconfig`, and `docs/grammar.ebnf`. Deliberately excluded: `*.tdl` (until `tdl fmt` is wired in), `*.golden` and `nix/gomod2nix.toml` and `flake.lock` (generated), and `.claude/` (agent skills).
 
 After changing `go.mod` or adding dependencies, run `make tidy` so `nix/gomod2nix.toml` stays in sync, otherwise `nix build` fails.
 
