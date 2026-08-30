@@ -107,4 +107,6 @@ release-please owns the version. Never hand-edit `toolVersion` in `internal/cli/
 
 `CHANGELOG.md` is excluded from treefmt and from markdownlint, because a generated file that a formatter rewrites is a file the next release will fight over.
 
-The manifest starts at `0.0.34`, the last release the legacy implementation made. The first release PR after this lands will bump from there over every conventional commit since.
+The manifest starts at `0.0.34`, the last release the legacy implementation made, and the first release is `0.1.0`. That is computed rather than forced: `feat!: rewrite the lexer and parser` is a breaking change, and `bump-minor-pre-major` turns a breaking change on a `0.x` version into a minor bump. Nothing carries a `release-as` override, so nothing has to be removed afterwards.
+
+`release-please` warns that `version.txt` does not exist on every run. The `simple` release type looks for one by default; this repository states its version in the files that read it instead, and the warning is harmless.
