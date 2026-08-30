@@ -100,6 +100,8 @@ func Lower(file *ast.File, opts ...Option) (*ir.Model, Diagnostics) {
 	l.checkRecursion(file)
 	l.lower(file)
 	l.expandIncludes(file)
+	l.accumulateConstraints()
+	l.checkDefaults()
 	l.validateInstances()
 	l.buildSatisfaction()
 	l.searchSatisfaction()
@@ -266,9 +268,10 @@ func (l *lowerer) setNode(out *ir.Decl, decl ast.Decl) {
 	case *ast.NewtypeDecl:
 		l.inScope(l.paramScope(l.declID(d.N), d.Params), func() {
 			out.Node = &ir.Decl_Newtype{Newtype: &ir.Newtype{
-				Params:      l.params(d.Params),
-				Base:        l.typeRef(d.Base),
-				Constraints: l.classRefs(d.Requires),
+				Params:           l.params(d.Params),
+				Base:             l.typeRef(d.Base),
+				Constraints:      l.classRefs(d.Requires),
+				ValueConstraints: l.constraints(d.Constraints),
 			}}
 		})
 
@@ -361,10 +364,12 @@ func (l *lowerer) variantFields(in []*ast.Field) []*ir.Field {
 
 func (l *lowerer) field(f *ast.Field, order int) *ir.Field {
 	return &ir.Field{
-		Meta:  metaOf(f.N, f.Doc, f.P, f.Dep, order),
-		Type:  l.typeRef(f.Type),
-		Key:   f.Key,
-		Owned: f.Owned,
+		Meta:         metaOf(f.N, f.Doc, f.P, f.Dep, order),
+		Type:         l.typeRef(f.Type),
+		Key:          f.Key,
+		Owned:        f.Owned,
+		Constraints:  l.constraints(f.Constraints),
+		DefaultValue: l.literal(f.Default),
 	}
 }
 

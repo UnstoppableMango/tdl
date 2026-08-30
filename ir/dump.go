@@ -2,6 +2,7 @@ package ir
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -102,8 +103,11 @@ func (d *dumper) decl(prefix string, last bool, index int, decl *Decl) {
 		id := decl.GetAlias().GetTarget()
 		kids = append(kids, func(l bool) { d.leaf(inner, l, "target "+d.ref(id), nil) })
 	case decl.GetNewtype() != nil:
-		id := decl.GetNewtype().GetBase()
-		kids = append(kids, func(l bool) { d.leaf(inner, l, "base "+d.ref(id), nil) })
+		n := decl.GetNewtype()
+		kids = append(kids, func(l bool) { d.leaf(inner, l, "base "+d.ref(n.GetBase()), nil) })
+		for _, c := range n.GetValueConstraints() {
+			kids = append(kids, func(l bool) { d.leaf(inner, l, constraintText(c), c.GetPosition()) })
+		}
 	case decl.GetStructure() != nil:
 		for _, r := range decl.GetStructure().GetConforms() {
 			kids = append(kids, func(l bool) { d.leaf(inner, l, "conforms "+d.classRef(r), r.GetPosition()) })
@@ -191,6 +195,12 @@ func (d *dumper) fieldLine(f *Field) string {
 		mods += "owned "
 	}
 	line := "field " + mods + f.GetMeta().GetName() + ": " + d.ref(f.GetType())
+	for _, c := range f.GetConstraints() {
+		line += "  " + constraintText(c)
+	}
+	if def := f.GetDefaultValue(); def != nil {
+		line += " = " + literalText(def)
+	}
 	if from := f.GetIncludedFrom(); from != nil {
 		line += "  (from " + from.GetName() + ")"
 	}
@@ -287,6 +297,53 @@ func (d *dumper) render(t *Type) string {
 		args[i] = d.render(d.model.Type(a))
 	}
 	return name + "<" + strings.Join(args, ", ") + ">"
+}
+
+// constraintText renders a constraint, noting the newtype it came from
+// when it was inherited rather than written here.
+func constraintText(c *Constraint) string {
+	text := c.GetName()
+	if len(c.GetArgs()) > 0 {
+		args := make([]string, len(c.GetArgs()))
+		for i, a := range c.GetArgs() {
+			args[i] = literalText(a)
+		}
+		text += "(" + strings.Join(args, ", ") + ")"
+	}
+	if from := c.GetFrom(); from != nil {
+		text += " (from " + from.GetName() + ")"
+	}
+	return text
+}
+
+func literalText(l *Literal) string {
+	switch l.GetKind() {
+	case LiteralKind_LITERAL_KIND_STRING:
+		return strconv.Quote(l.GetText())
+	case LiteralKind_LITERAL_KIND_REGEX:
+		return "/" + l.GetText() + "/"
+	case LiteralKind_LITERAL_KIND_LIST:
+		items := make([]string, len(l.GetItems()))
+		for i, item := range l.GetItems() {
+			items[i] = literalText(item)
+		}
+		return "[" + strings.Join(items, ", ") + "]"
+	case LiteralKind_LITERAL_KIND_RANGE:
+		var lo, hi string
+		if l.GetRange().Low != nil {
+			lo = strconv.FormatInt(l.GetRange().GetLow(), 10)
+		}
+		if l.GetRange().High != nil {
+			hi = strconv.FormatInt(l.GetRange().GetHigh(), 10)
+		}
+		return lo + ".." + hi
+	case LiteralKind_LITERAL_KIND_NAME:
+		if v := l.GetVariant(); v != nil {
+			return l.GetText()
+		}
+		return l.GetText() + " (unresolved)"
+	}
+	return l.GetText()
 }
 
 func form(f SyntacticForm) string {

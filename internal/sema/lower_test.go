@@ -991,3 +991,151 @@ instance <P> Auditable<Page<P>> requires Auditable<Page<P>>
 		t.Errorf("diagnostics = %v", diags)
 	}
 }
+
+func TestConstraintsLower(t *testing.T) {
+	model := lower(t, `
+type Email: string where {
+  matches(/^[^@]+@[^@]+$/)
+  length(3..254)
+  unique
+}
+
+value Holder {
+  region: string where { oneOf("us-east", "eu-west") }
+  ratio: int where { between(0, 100) }
+}
+`)
+
+	email, _, _ := model.FindDecl("Email")
+	cs := email.GetNewtype().GetValueConstraints()
+	if len(cs) != 3 {
+		t.Fatalf("got %d constraints, want 3", len(cs))
+	}
+	if cs[0].GetArgs()[0].GetKind() != ir.LiteralKind_LITERAL_KIND_REGEX {
+		t.Errorf("matches argument = %v", cs[0].GetArgs()[0].GetKind())
+	}
+	if r := cs[1].GetArgs()[0].GetRange(); r.GetLow() != 3 || r.GetHigh() != 254 {
+		t.Errorf("range = %+v", r)
+	}
+	if cs[0].GetPosition().GetLine() == 0 {
+		t.Error("a constraint lost its position")
+	}
+
+	// The set is open: an unknown name lowers without complaint.
+	v, _, _ := model.FindDecl("Holder")
+	if got := v.Fields()[1].GetConstraints()[0].GetName(); got != "between" {
+		t.Errorf("unknown constraint = %q", got)
+	}
+}
+
+func TestOpenRanges(t *testing.T) {
+	model := lower(t, `
+type Open: string where { length(1..) }
+type Capped: string where { length(..64) }
+`)
+
+	open, _, _ := model.FindDecl("Open")
+	if r := open.GetNewtype().GetValueConstraints()[0].GetArgs()[0].GetRange(); r.Low == nil || r.High != nil {
+		t.Errorf("1.. = %+v", r)
+	}
+	capped, _, _ := model.FindDecl("Capped")
+	if r := capped.GetNewtype().GetValueConstraints()[0].GetArgs()[0].GetRange(); r.Low != nil || r.High == nil {
+		t.Errorf("..64 = %+v", r)
+	}
+}
+
+// The standard names are checked; everything else is passed through.
+func TestStandardConstraintChecking(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{`type T: string where { unique(1) }`, "unique takes 0 arguments"},
+		{`type T: string where { min(1, 2) }`, "min takes 1 argument"},
+		{`type T: string where { matches("nope") }`, "matches does not take a string"},
+		{`type T: string where { min("nope") }`, "min does not take a string"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.want, func(t *testing.T) {
+			diags := lowerDiags(t, tt.src)
+			if !strings.Contains(diags.Error(), tt.want) {
+				t.Errorf("diagnostics = %v", diags)
+			}
+		})
+	}
+}
+
+// A newtype narrows its parent and never replaces it, so the accumulated
+// set is what a backend reads and the origin is what explains it.
+func TestConstraintAccumulation(t *testing.T) {
+	model := lower(t, `
+type Email: string where { length(3..254) }
+type WorkEmail: Email where { matches(/@acme/) }
+type SeniorEmail: WorkEmail where { unique }
+`)
+
+	senior, _, _ := model.FindDecl("SeniorEmail")
+	cs := senior.GetNewtype().GetValueConstraints()
+	if len(cs) != 3 {
+		t.Fatalf("SeniorEmail has %d constraints, want 3", len(cs))
+	}
+
+	origin := map[string]string{}
+	for _, c := range cs {
+		origin[c.GetName()] = c.GetFrom().GetName()
+	}
+	if origin["unique"] != "" {
+		t.Errorf("a constraint written here records an origin: %q", origin["unique"])
+	}
+	if origin["matches"] != "WorkEmail" || origin["length"] != "Email" {
+		t.Errorf("origins = %v", origin)
+	}
+}
+
+// A name default denotes an enum variant, and which enum is the field's
+// type, so nothing before now could check it.
+func TestNameDefaults(t *testing.T) {
+	model := lower(t, `
+enum Status { Draft Placed }
+value Holder { status: Status = Draft optional: Status? = Placed }
+`)
+
+	v, _, _ := model.FindDecl("Holder")
+	for _, f := range v.Fields() {
+		def := f.GetDefaultValue()
+		if def.GetVariant() == nil {
+			t.Errorf("%s default did not resolve: %+v", f.GetMeta().GetName(), def)
+		}
+	}
+}
+
+func TestBadNameDefaults(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{"enum Status { Draft }\nvalue Holder { s: Status = Missing }", "Status has no variant Missing"},
+		{"value Other { x: string }\nvalue Holder { s: Other = Draft }", "Other is not an enum"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.want, func(t *testing.T) {
+			diags := lowerDiags(t, tt.src)
+			if !strings.Contains(diags.Error(), tt.want) {
+				t.Errorf("diagnostics = %v", diags)
+			}
+		})
+	}
+}
+
+func TestLiteralDefaults(t *testing.T) {
+	model := lower(t, `value Holder { n: int = 3 s: string = "x" b: bool = true xs: [string] = [] }`)
+
+	v, _, _ := model.FindDecl("Holder")
+	kinds := []ir.LiteralKind{
+		ir.LiteralKind_LITERAL_KIND_INT,
+		ir.LiteralKind_LITERAL_KIND_STRING,
+		ir.LiteralKind_LITERAL_KIND_BOOL,
+		ir.LiteralKind_LITERAL_KIND_LIST,
+	}
+	for i, want := range kinds {
+		if got := v.Fields()[i].GetDefaultValue().GetKind(); got != want {
+			t.Errorf("field %d default kind = %v, want %v", i, got, want)
+		}
+	}
+}

@@ -35,7 +35,7 @@ Model shop.orders
 │   │   ├── field customer: types[3] User  source.tdl:7:3
 │   │   ├── field shipping: types[5] Option<shop.common.Address>  source.tdl:8:3
 │   │   ├── field owned items: types[7] List<LineItem>  source.tdl:9:3
-│   │   └── field status: types[8] Status  source.tdl:10:3
+│   │   └── field status: types[8] Status = Draft  source.tdl:10:3
 │   ├── [20] entity LineItem  source.tdl:13:1
 │   │   ├── field key order: types[9] Order  source.tdl:14:7
 │   │   ├── field key sku: types[10] string  source.tdl:15:7
