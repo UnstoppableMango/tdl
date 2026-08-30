@@ -15,16 +15,34 @@ func Dump(m *Model) string {
 	fmt.Fprintf(&b, "Model %s\n", m.GetPackage())
 
 	d := &dumper{model: m, b: &b}
-	d.section("Decls", len(m.GetTypes()) > 0, func(prefix string) {
+	if len(m.GetImports()) > 0 {
+		d.section("Imports", true, func(prefix string) {
+			for i, imp := range m.GetImports() {
+				desc := imp.GetPath() + " as " + imp.GetAlias()
+				if pkg := imp.GetPackage(); pkg != "" {
+					desc += "  (" + pkg + ")"
+				}
+				d.leaf(prefix, i == len(m.GetImports())-1, desc, imp.GetPosition())
+			}
+		})
+	}
+	d.section("Decls", len(m.GetTypes()) > 0 || len(m.GetExterns()) > 0, func(prefix string) {
 		for i, decl := range m.GetDecls() {
 			d.decl(prefix, i == len(m.GetDecls())-1, i, decl)
 		}
 	})
-	d.section("Types", false, func(prefix string) {
+	d.section("Types", len(m.GetExterns()) > 0, func(prefix string) {
 		for i, t := range m.GetTypes() {
 			d.leaf(prefix, i == len(m.GetTypes())-1, d.typeLine(i, t), t.GetPosition())
 		}
 	})
+	if len(m.GetExterns()) > 0 {
+		d.section("Externs", false, func(prefix string) {
+			for i, e := range m.GetExterns() {
+				d.leaf(prefix, i == len(m.GetExterns())-1, e.GetPackage()+"."+e.GetName(), e.GetPosition())
+			}
+		})
+	}
 	return b.String()
 }
 
@@ -121,6 +139,8 @@ func (d *dumper) typeLine(index int, t *Type) string {
 	switch {
 	case t.GetParam() != nil:
 		origin = "-> param " + t.GetParam().GetOwner().GetName() + "." + t.GetParam().GetName()
+	case t.GetExtern() != nil:
+		origin = "-> externs[" + itoa(int(t.GetExtern().GetIndex())) + "]"
 	case !t.GetCtor().Resolved():
 		origin = "-> unresolved"
 	}
@@ -146,6 +166,9 @@ func (d *dumper) render(t *Type) string {
 	name := t.GetCtor().GetName()
 	if p := t.GetParam(); p != nil {
 		name = p.GetName()
+	}
+	if e := t.GetExtern(); e != nil {
+		name = e.GetName()
 	}
 	if name == "" {
 		name = "?"

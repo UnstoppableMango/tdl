@@ -71,10 +71,19 @@ func (l *lowerer) coreType(t *ast.TypeRef) *ir.ID {
 	}
 
 	if t.Qualifier != "" {
-		// Cross-package references need the package loader, which is phase 5.
-		l.diags.add(t.P, "qualified name %s.%s is not resolved yet", t.Qualifier, t.N)
 		return l.intern(&ir.Type{
-			Ctor:     &ir.ID{Index: ir.Unresolved, Name: t.Qualifier + "." + t.N},
+			Extern:   l.qualified(t),
+			Args:     l.typeArgs(t.Args),
+			Wrote:    ir.SyntacticForm_SYNTACTIC_FORM_NAMED,
+			Position: position(t.P),
+		})
+	}
+
+	// A `_` import merges a dependency's exported names into this scope, and
+	// a reference to one is an extern rather than a local declaration.
+	if b, ok := l.scope.lookup(t.N); ok && b.kind == bindExtern {
+		return l.intern(&ir.Type{
+			Extern:   b.id,
 			Args:     l.typeArgs(t.Args),
 			Wrote:    ir.SyntacticForm_SYNTACTIC_FORM_NAMED,
 			Position: position(t.P),
@@ -146,6 +155,20 @@ func (l *lowerer) namesAUnit(t *ast.TypeRef) bool {
 	return l.units[t.N]
 }
 
+// qualified resolves `alias.Name` to an extern.
+//
+// Whether the dependency declares that name is not checked: the reference
+// carries the dependency's package to the backend, which either resolves
+// it through the import table or maps it with a target directive.
+func (l *lowerer) qualified(t *ast.TypeRef) *ir.ID {
+	pkg, ok := l.aliases[t.Qualifier]
+	if !ok {
+		l.diags.add(t.P, "undefined import alias: %s", t.Qualifier)
+		return &ir.ID{Index: ir.Unresolved, Name: t.Qualifier + "." + t.N}
+	}
+	return l.extern(pkg, t.N, t.P)
+}
+
 // ctor resolves a constructor name against the enclosing scope.
 //
 // A name that matches nothing is a diagnostic, and the ID still keeps the
@@ -191,6 +214,9 @@ func typeName(t *ir.Type) string {
 	if p := t.GetParam(); p != nil {
 		name = p.GetName()
 	}
+	if e := t.GetExtern(); e != nil {
+		name = e.GetName()
+	}
 	if len(t.GetArgs()) == 0 {
 		return name
 	}
@@ -223,6 +249,9 @@ func internKey(t *ir.Type) string {
 	b.WriteString(t.GetCtor().GetName())
 	if p := t.GetParam(); p != nil {
 		b.WriteString("param:" + p.GetOwner().GetName() + "." + p.GetName())
+	}
+	if e := t.GetExtern(); e != nil {
+		b.WriteString("extern:" + e.GetName())
 	}
 	if len(t.GetArgs()) > 0 {
 		b.WriteByte('<')

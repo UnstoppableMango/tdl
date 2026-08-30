@@ -1,5 +1,7 @@
 package example.aliases
 
+import "common.tdl" as common
+
 /// A handler table, keyed by event name.
 alias Handler = {string -> [Event]}
 

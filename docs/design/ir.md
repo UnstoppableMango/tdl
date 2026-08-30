@@ -144,7 +144,11 @@ The compiler checks arity and literal kind against the spec and passes everythin
 A backend receives one package.
 
 Declarations from imported packages are not inlined.
-A reference into a dependency is an `ID` whose name is qualified with the dependency's package, which a backend either resolves through the model's import table or treats as foreign and maps with a `foreign` directive.
+A reference into a dependency is an `ID` into an `externs` table, one entry per foreign declaration this model mentions, carrying the declaring package and the name.
+A backend either resolves that through the model's import table or treats it as foreign and maps it with a `foreign` directive.
+
+Whether the dependency actually declares that name is not checked.
+Doing so would mean resolving every reachable package to lower one file, and the reference carries enough for a backend to resolve or reject it.
 
 This is what makes separate compilation possible, and it matches what generated code usually wants: an import, not a copy.
 

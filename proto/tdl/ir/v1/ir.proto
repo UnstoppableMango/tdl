@@ -61,6 +61,27 @@ message Model {
   string package = 1;
   repeated Decl decls = 2;
   repeated Type types = 3;
+  repeated Import imports = 4;
+  repeated Extern externs = 5;
+}
+
+// Import is one `import "path" as alias` in the file.
+message Import {
+  string path = 1;    // as written
+  string alias = 2;   // "_" merges the imported names into this scope
+  string package = 3; // the package the imported file declares
+  Position position = 4;
+}
+
+// Extern is a declaration in another package that this one refers to.
+//
+// Dependencies are not inlined: a backend either resolves an extern
+// through the import table and generates a reference, or treats it as
+// foreign and maps it with a target directive.
+message Extern {
+  string package = 1; // the declaring package
+  string name = 2;    // the declaration's name within it
+  Position position = 3; // where this model first referred to it
 }
 
 // Decl is one declaration. The forms split by nature rather than
@@ -176,11 +197,12 @@ enum SyntacticForm {
 // Lowering interns, so two occurrences of the same type share an entry and
 // an ID comparison is a type comparison.
 message Type {
-  ID ctor = 1;          // indexes Model.decls; unset when param is set
+  ID ctor = 1;          // indexes Model.decls; unset when param or extern is set
   repeated ID args = 2; // indexes Model.types
   SyntacticForm wrote = 3;
   Position position = 4;
   ParamRef param = 5; // set instead of ctor for a type parameter
+  ID extern = 6;      // set instead of ctor; indexes Model.externs
 }
 
 // ParamRef is a use of a type parameter.

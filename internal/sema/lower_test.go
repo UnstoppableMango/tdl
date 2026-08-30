@@ -397,16 +397,18 @@ alias B = A`,
 	}
 }
 
-func TestImportsNotResolvedYet(t *testing.T) {
+// Without a loader, an import is a diagnostic rather than a filesystem
+// read nobody asked for.
+func TestImportNeedsALoader(t *testing.T) {
 	diags := lowerDiags(t, `import "common.tdl" as common`)
-	if !strings.Contains(diags.Error(), "imports are not resolved yet") {
+	if !strings.Contains(diags.Error(), "imports need a loader") {
 		t.Errorf("diagnostics = %v", diags)
 	}
 }
 
-func TestQualifiedNameNotResolvedYet(t *testing.T) {
+func TestUndefinedImportAlias(t *testing.T) {
 	diags := lowerDiags(t, `value Holder { a: common.Address }`)
-	if !strings.Contains(diags.Error(), "not resolved yet") {
+	if !strings.Contains(diags.Error(), "undefined import alias: common") {
 		t.Errorf("diagnostics = %v", diags)
 	}
 }
@@ -549,5 +551,127 @@ func TestWithoutPrelude(t *testing.T) {
 	_, diags := Lower(file, WithoutPrelude())
 	if !strings.Contains(diags.Error(), "undefined: string") {
 		t.Errorf("diagnostics = %v", diags)
+	}
+}
+
+// A qualified reference carries the dependency's package, and the
+// declaration is not inlined.
+func TestCrossPackageReference(t *testing.T) {
+	file, err := parser.Parse("main.tdl", strings.NewReader(`
+package shop
+
+import "common.tdl" as common
+
+value Order { ship: common.Address }
+`))
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+
+	model, diags := Lower(file, WithLoader(MapLoader{
+		"common.tdl": "package shop.common\nvalue Address { line1: string }\n",
+	}))
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+
+	if got := len(model.GetImports()); got != 1 {
+		t.Fatalf("got %d imports, want 1", got)
+	}
+	if got := model.GetImports()[0].GetPackage(); got != "shop.common" {
+		t.Errorf("import package = %q", got)
+	}
+
+	order, _, _ := model.FindDecl("Order")
+	ship := model.Type(order.Fields()[0].GetType())
+	if ship.GetExtern() == nil {
+		t.Fatalf("the reference is not an extern: %+v", ship)
+	}
+	ext := model.GetExterns()[ship.GetExtern().GetIndex()]
+	if ext.GetPackage() != "shop.common" || ext.GetName() != "Address" {
+		t.Errorf("extern = %+v", ext)
+	}
+
+	// Not inlined: the dependency's declaration is not in this table.
+	if _, _, ok := model.FindDecl("Address"); ok {
+		t.Error("the dependency's declaration was inlined")
+	}
+}
+
+// A `_` import merges the dependency's exported names, so it has to know
+// what they are. Package-private names are not merged.
+func TestUnderscoreImportMerges(t *testing.T) {
+	file, err := parser.Parse("main.tdl", strings.NewReader(`
+import "common.tdl" as _
+
+value Order { ship: Address }
+`))
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+
+	model, diags := Lower(file, WithLoader(MapLoader{
+		"common.tdl": "package shop.common\nvalue Address { line1: string }\nvalue internal { x: string }\n",
+	}))
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+
+	order, _, _ := model.FindDecl("Order")
+	if model.Type(order.Fields()[0].GetType()).GetExtern() == nil {
+		t.Error("the merged name did not become an extern")
+	}
+
+	for _, e := range model.GetExterns() {
+		if e.GetName() == "internal" {
+			t.Error("a package-private name was merged")
+		}
+	}
+}
+
+func TestImportCycle(t *testing.T) {
+	file, err := parser.Parse("a.tdl", strings.NewReader(`import "b.tdl" as b`))
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+
+	_, diags := Lower(file, WithLoader(MapLoader{
+		"b.tdl": `import "c.tdl" as c`,
+		"c.tdl": `import "b.tdl" as b`,
+	}))
+	if !strings.Contains(diags.Error(), "import cycle") {
+		t.Errorf("diagnostics = %v", diags)
+	}
+}
+
+func TestMissingImport(t *testing.T) {
+	file, err := parser.Parse("a.tdl", strings.NewReader(`import "gone.tdl" as gone`))
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+
+	_, diags := Lower(file, WithLoader(MapLoader{}))
+	if !strings.Contains(diags.Error(), "cannot read import") {
+		t.Errorf("diagnostics = %v", diags)
+	}
+}
+
+// Two occurrences of one foreign declaration share an extern entry.
+func TestExternsAreInterned(t *testing.T) {
+	file, err := parser.Parse("main.tdl", strings.NewReader(`
+import "common.tdl" as common
+
+value A { x: common.Address }
+value B { y: common.Address }
+`))
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+
+	model, _ := Lower(file, WithLoader(MapLoader{
+		"common.tdl": "package shop.common\nvalue Address { line1: string }\n",
+	}))
+	if got := len(model.GetExterns()); got != 1 {
+		t.Errorf("got %d externs, want 1", got)
 	}
 }
