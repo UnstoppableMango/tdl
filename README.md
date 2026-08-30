@@ -1,138 +1,86 @@
-# UnstoppableMango's Type Description Language
+# tdl
 
-Language for generating code and mapping types between languages.
+TDL (Type Description Language) describes data types — records, enums, primitives, and collections — and compiles them into equivalent type definitions in other structured formats.
+It is not a general-purpose programming language: no expressions, no control flow, no runtime.
 
-## Usage
+This repository owns the canonical [language specification](docs/spec.md) and its reference implementation, written in Go.
 
-Nothing currently works, but this is how it works in my head.
+## Status
 
-## Generating
+Early and incomplete.
+The lexer, parser, and `tdl check` / `tdl fmt` commands work for the M1 grammar subset: records, primitives, fields with optionality and defaults, `list`/`map` collections, type references, enums, and annotation syntax.
+There is no semantic resolution (`ir`) and no code-generation backends yet — see [`docs/notes.md`](docs/notes.md) for the roadmap.
 
-```yaml
-# myTypes.uml
-# It looks like yaml now, it might not later. idk
-name: MyTypes
-types:
-  someType:
-    type: object
-    fields:
-      someField:
-        type: string
-```
+## Example
 
-```shell
-$ ux gen ts myTypes.uml
-Wrote 69B to ./myTypes.ts
-```
+```tdl
+package example.v1
 
-```ts
-// myTypes.ts
-export interface SomeType {
-	someField: string;
+import "common.tdl" as common
+
+@go(pkg: "example")
+type User {
+  id: string
+
+  @go(tag: "json:\"full_name,omitempty\"")
+  name: string?
+
+  tags: list<string>
+  metadata: map<string, string>
+  address: common.Address?
+
+  @protobuf(number: 10)
+  role: Role = "member"
+}
+
+enum Role {
+  Admin = "admin"
+  Member = "member"
+  Guest = "guest"
 }
 ```
 
+## Usage
+
+```shell
+tdl check ./types.tdl    # parse and report syntax errors
+tdl fmt ./types.tdl      # print canonical formatting; -w to write in place
+tdl ast ./types.tdl      # print the parse tree
+tdl tokens ./types.tdl   # print the token stream
+tdl version              # tool and spec versions
+```
+
+### Playground
+
+`tdl play` watches a file and re-renders it on every save.
+
+```shell
+tdl play                              # scratch.tdl, created from a template if missing
+tdl play ./types.tdl --views all      # source, fmt, ast, tokens, stats
+tdl play ./types.tdl --views fmt      # one pane
+tdl play ./types.tdl --once           # render and exit
+```
+
+Views are `source`, `fmt`, `ast`, `tokens`, `stats`, or `all`; the default is `fmt,ast`.
+Parse errors render below the panes with a caret at the reported column.
+
+[`examples/`](examples/README.md) holds files to start from: the same domain modelled flat, nested, and annotated.
+
 ## Development
 
-`make` kinda builds everything, or at least its supposed to.
-If you run `make` or `make build` everything should build, hopefully.
-If it doesn't, make sure you have the stuff listed below.
+Requires Go 1.24+.
 
-### Prerequisites
+```shell
+go build ./...
+go test ./...
+```
 
-Probably put some links here to install docs.
+A `flake.nix` (package + devShell) is planned for a later milestone.
 
-- `buf`
-- `bun`
-- `docker`
-- `dotnet`
-- `go`
-- `make`
-- `dprint`
+## Design philosophy
 
-Probably good to have but not needed
-
-- `goreleaser`
-- `node`
-- `nvm`
-
-### Setup
-
-Run `make .envrc` to configure a local `.envrc` based on `hack/example.envrc`.
-
-### Building
-
-Run `make generate` to perform any codegen required by the project.
-
-Run `make build` to build everything.
-
-🚧 Work in progress 🚧
-
-~~Run `make docker` to build all docker images.~~
-
-### Testing
-
-Run `make test` to run all test suites.
-
-### Workflow
-
-Run `make lint` to lint everything.
-
-Run `make clean` to remove local artifacts such as `/.make` targets.
-
-### Repository Structure
-
-|            Directory | Description                                                     |
-| -------------------: | :-------------------------------------------------------------- |
-|           `/.config` | Just `dotnet` tools at the moment                               |
-|           `/.github` | GitHub configuration files                                      |
-|   `/.github/actions` | GitHub actions                                                  |
-| `/.github/workflows` | GitHub workflows                                                |
-|             `/.idea` | JetBrains IDE configuration (I check in some of this, fight me) |
-|             `/.make` | Local `make` sentinel target files                              |
-|              `/.run` | JetBrains IDE run configurations                                |
-|         `/.versions` | Version files for dependency pinning                            |
-|           `/.vscode` | VSCode configuration                                            |
-|               `/bin` | Binaries                                                        |
-|               `/cmd` | Go CLI applications                                             |
-|            `/docker` | Dockerfiles                                                     |
-|              `/docs` | Any documentation too large for the README                      |
-|              `/hack` | Any files that help with hacking on the project such as scripts |
-|          `/packages` | Node-ish ecosystem packages and applications                    |
-|               `/pkg` | Go packages                                                     |
-|             `/proto` | Protobuf definitions                                            |
-|               `/src` | .NET ecosystem libraries and applications                       |
-
-## Design Philosophy
-
-- Codegen everything on the path of least resistance.
-- Integrate existing tools before writing new ones. i.e. `protoc`, `graphql-codegen`, etc.
-- Tools can have overlapping responsibilities. i.e. Two generators can output TypeScript code.
-- Developer productivity and ease of use takes priority.
-- Output the least amount code to accomplish a task. i.e. Don't generate a `package.json` in a TypeScript generator.
-
-## Architecture
-
-The primary entrypoint is the `ux` CLI.
-This tool doesn't perform any codegen on it's own and instead orchestrates codegen pipelines.
-Codegen pipelines are primarily composed of generator applications.
-A generator application receives a protobuf encoded specification (`Spec`) via stdin and writes its output to stdout.
-The `ux` CLI can perform conformance tests on a generator application with `ux conform` to ensure the generator is compatible with `ux`.
-
-The intent behind this design is to allow generators to be written in the language that is most convenient for performing its task.
-For example, when generating TypeScript code the `typescript` package contains all of the tools required for reading, manipulating, and writing TypeScript code.
-While it would be possible to generate TypeScript in i.e. Go, it is much easier to simply write the generator in a language compatible with `npm` packages.
-Additionally, this design should allow for integrating existing codegen tools without needing to compile them into the source language of `ux`, which is currently Go.
-
-### Thoughts from when I started this project
-
-I've got a dozen conflicting ideas but the current path I'm working towards is a primary CLI `um` calling a "runner" CLI `um2something` and communicating between stdin and stdout.
-
-The reason for the binary separation is so that the conversion/generation logic can be written as close to the ecosystem as possible (i.e. we write the typescript converter in TS/JS so we have easy programatic access to the `typescript` package).
-
-I'm aware of gRPC being used for IPC on unix sockets so I thought it could be fun and at least semi-correct to have the two processes communicate this way.
-As fun as that might be, I'm worried I might be pushing the limits of "how over-engineered does this _really_ need to be".
-
-CLI tools should be really snappy so the overhead of setting up a gRPC server might be ridiculous. If it's not though... I might do that. It sounds really cool "the user CLI communicates with the runner CLI via gRPC on a unix domain socket".
-
-If we want to REALLY over-engineer everything I was thinking we could have a little broker do-dad that hangs out in the background and loads up plugins that the user CLI can call to convert things. It would be fun and ridiculous.
+- A small, strict grammar with its own hand-written lexer and parser — no parser generator, no YAML/JSON stand-in syntax.
+- One canonical Go implementation; the spec and the `testdata/conformance` / `testdata/invalid` corpora are the contract any other implementation would need to satisfy.
+- A generic `@namespace(key: value, ...)` annotation mechanism carries target-specific intrinsics (Go struct tags, C# attributes, protobuf field numbers, ...) without the core language needing to know about any particular target ahead of time.
+- One static binary, no subprocess plugins or IPC.
+  See [`docs/notes.md`](docs/notes.md) for why: an earlier version of this repository tried a multi-process, multi-language architecture and it didn't work.

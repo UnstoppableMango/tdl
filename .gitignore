@@ -1,18 +1,18 @@
-# Build Artifacts
+# Build artifacts
 bin/
-obj/
 dist/
 out/
-.make/
-.fake/
-report.json
 *.test
 
-# Packages
-node_modules/
+# Nix
+/result*
+.direnv/
+
+# Playground scratch files
+scratch.tdl
 
 # User specific
-.idea/**/workspace.xml
-discord.xml
+.idea/
+.vscode/
 *.user
 .envrc

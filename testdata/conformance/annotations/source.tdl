@@ -1,0 +1,18 @@
+package example.v1
+
+import "common.tdl" as common
+
+@go(pkg: "example")
+type User {
+  id: string
+
+  @go(tag: "json:\"full_name,omitempty\"")
+  name: string?
+
+  tags: list<string>
+  metadata: map<string, string>
+  address: common.Address?
+
+  @protobuf(number: 10)
+  role: Role = "member"
+}

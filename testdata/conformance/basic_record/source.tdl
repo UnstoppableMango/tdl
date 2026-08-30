@@ -1,0 +1,5 @@
+type TestType {
+  stringField: string
+  numberField: int32
+  booleanField: bool
+}

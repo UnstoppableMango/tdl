@@ -1,0 +1,19 @@
+// Every collection shape the grammar allows, in one place: nesting,
+// qualified references, defaults, and list literals as annotation
+// arguments.
+package shop.collections.v1
+
+import "nested.tdl" as nested
+
+type Catalog {
+  by_sku: map<string, nested.LineItem>
+  tag_index: map<string, list<string>>
+  matrix: list<list<int32>>
+  regions: list<map<string, string>>
+
+  @index(keys: ["sku", "region"])
+  primary_region: string = "us-east"
+
+  ratio: float64 = 0.5
+  active: bool = true
+}
