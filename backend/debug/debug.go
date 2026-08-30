@@ -74,7 +74,26 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 			Path:    "model.txt",
 			Content: []byte(b.String()),
 		}},
+		Diagnostics: notes(own),
 	}, nil
+}
+
+// notes reports something about the model, so the diagnostic path has a
+// user. A backend says what it cannot handle here rather than returning an
+// error, because this reaches the user with a position attached.
+func notes(own []*ir.Decl) []*plugin.Diagnostic {
+	var diags []*plugin.Diagnostic
+	for _, d := range own {
+		if len(d.Fields()) > 0 || d.GetEnumeration() != nil {
+			continue
+		}
+		diags = append(diags, &plugin.Diagnostic{
+			Severity: plugin.Severity_SEVERITY_WARNING,
+			Message:  d.GetMeta().GetName() + " has no fields, so there is nothing to generate for it",
+			Position: d.GetMeta().GetPosition(),
+		})
+	}
+	return diags
 }
 
 // partition splits declarations by whether they came from the file being

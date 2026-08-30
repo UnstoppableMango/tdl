@@ -1,4 +1,4 @@
-files: {
-  path: "model.txt"
-  content: "package shop\ntarget debug\n\ndeclarations: 1 own, 19 from the prelude\ntypes: 4\nexterns: 0\ninstances: 0\n\nOrder\n  directive note\n  field id: string\n  field total: int\n"
+files:  {
+  path:  "model.txt"
+  content:  "package shop\ntarget debug\n\ndeclarations: 1 own, 19 from the prelude\ntypes: 4\nexterns: 0\ninstances: 0\n\nOrder\n  directive note\n  field id: string\n  field total: int\n"
 }

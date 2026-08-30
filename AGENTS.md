@@ -12,7 +12,7 @@ go build ./...
 command make build     # nix build .#
 command make test      # go test ./...
 command make play      # watch scratch.tdl; FILE=examples/nested.tdl VIEWS=all to override
-command make lint      # nix flake check + buf + markdownlint
+command make lint      # nix flake check + golangci-lint + buf + markdownlint
 command make fmt       # nix fmt (treefmt) + buf format
 command make tidy      # go mod tidy + regenerate nix/gomod2nix.toml
 command make generate  # buf generate: proto/ -> ir/ir.pb.go
