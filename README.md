@@ -98,6 +98,7 @@ Everything a code generator needs lives in a separate `target` block, never in t
 tdl check ./types.tdl    # parse and report syntax errors
 tdl fmt ./types.tdl      # print canonical formatting; -w to write in place
 tdl ast ./types.tdl      # print the parse tree
+tdl gen ./types.tdl      # run every target block; --target narrows, -o overrides
 tdl ir ./types.tdl       # print the resolved model; --format json for the plugin view
 tdl tokens ./types.tdl   # print the token stream
 tdl version              # tool and spec versions
