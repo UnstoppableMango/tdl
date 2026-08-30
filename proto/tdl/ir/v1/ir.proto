@@ -61,6 +61,108 @@ message Model {
   string package = 1;
   repeated Decl decls = 2;
   repeated Type types = 3;
+  repeated Import imports = 4;
+  repeated Extern externs = 5;
+  repeated Instance instances = 6;
+  repeated Satisfaction satisfies = 7;
+  repeated TargetBlock targets = 8;
+}
+
+// TargetBlock is one `target go for billing { ... }` block.
+//
+// Its resolved directives are attached to the nodes they apply to, so a
+// backend never performs a lookup. What is left here is the block itself
+// and the directives that apply to the package rather than to anything in
+// it.
+message TargetBlock {
+  Meta meta = 1;         // name is the target name, such as "go"
+  string for_package = 2;
+  repeated Directive directives = 3;
+}
+
+// Directive is an opaque instruction to a backend. The compiler checks its
+// shape, resolves the path it was written against, and hands it over; what
+// it means is the backend's business.
+message Directive {
+  string name = 1;
+  repeated Literal args = 2;
+  Position position = 3;
+
+  // target names the block this came from, since a model may carry
+  // directives for several backends at once.
+  string target = 4;
+
+  // from_class is set when the directive was written against a class and
+  // expanded onto everything satisfying it, which is what makes a rule
+  // written once apply to many types.
+  ID from_class = 5; // indexes Model.decls
+}
+
+// Instance declares that a type satisfies a class.
+//
+// `instance C for T` is sugar for `instance C<T>`, and lowering normalizes
+// it: by here there is one form. An instance is not a type name, so it
+// lives in its own table rather than among the declarations.
+message Instance {
+  Meta meta = 1;
+  repeated Param params = 2;
+  ClassRef class = 3;
+  repeated ClassRef requires = 4; // conditions on this instance
+  repeated AssocBind binds = 5;
+}
+
+// AssocBind supplies a type for one of a class's associated type
+// requirements.
+message AssocBind {
+  string name = 1;
+  ID type = 2; // indexes Model.types
+  Position position = 3;
+}
+
+// ClassRef names a class, applied to arguments.
+message ClassRef {
+  ID class = 1;         // indexes Model.decls; unset when extern is set
+  ID extern = 2;        // indexes Model.externs
+  repeated ID args = 3; // indexes Model.types
+  Position position = 4;
+}
+
+// Satisfaction is the computed answer to "what satisfies this class",
+// closed over the classes a class requires.
+//
+// A backend applying a class-scoped target directive reads this and never
+// reasons about instances. The declared instances are still in the model
+// for one that wants them.
+message Satisfaction {
+  ID class = 1;          // indexes Model.decls
+  repeated ID decls = 2; // indexes Model.decls
+
+  // types lists instantiated types that satisfy the class through a
+  // conditional instance, as in `Page<Order>` given
+  // `instance <T> Auditable<Page<T>> requires Auditable<T>`.
+  //
+  // A declaration cannot stand in for these: `Page` satisfies nothing on
+  // its own, and `Page<Order>` is a type rather than a declaration.
+  repeated ID types = 3; // indexes Model.types
+}
+
+// Import is one `import "path" as alias` in the file.
+message Import {
+  string path = 1;    // as written
+  string alias = 2;   // "_" merges the imported names into this scope
+  string package = 3; // the package the imported file declares
+  Position position = 4;
+}
+
+// Extern is a declaration in another package that this one refers to.
+//
+// Dependencies are not inlined: a backend either resolves an extern
+// through the import table and generates a reference, or treats it as
+// foreign and maps it with a target directive.
+message Extern {
+  string package = 1; // the declaring package
+  string name = 2;    // the declaration's name within it
+  Position position = 3; // where this model first referred to it
 }
 
 // Decl is one declaration. The forms split by nature rather than
@@ -69,6 +171,7 @@ message Model {
 // the machinery for them.
 message Decl {
   Meta meta = 1;
+  repeated Directive directives = 8;
 
   oneof node {
     Primitive primitive = 2;
@@ -76,7 +179,34 @@ message Decl {
     Newtype newtype = 4;
     Struct structure = 5;
     Enum enumeration = 6;
+    Class class = 7;
   }
+}
+
+// Class is a contract. It declares nothing into the types that satisfy it;
+// conformance is nominal and always declared.
+message Class {
+  repeated Param params = 1;
+  repeated FunDep fun_deps = 2;
+  repeated ClassRef requires_classes = 3; // classes an implementor must also satisfy
+  repeated ClassRef constraints = 4;      // the `requires` clause on this class's parameters
+  repeated Field fields = 5;
+  bool requires_key = 6;                  // a bare `key` in the body
+  repeated AssocType assoc_types = 7;
+}
+
+// FunDep states that some parameters determine others, which makes a
+// multi-parameter class a function rather than a table.
+message FunDep {
+  repeated string from = 1;
+  repeated string to = 2;
+  Position position = 3;
+}
+
+// AssocType is a type an implementor must supply and an instance binds.
+message AssocType {
+  Meta meta = 1;
+  Kind kind = 2;
 }
 
 // Primitive is an opaque, irreducible root type.
@@ -93,7 +223,59 @@ message Alias {
 // Newtype is a distinct type over another, not interchangeable with it.
 message Newtype {
   repeated Param params = 1;
-  ID base = 2; // indexes Model.types
+  ID base = 2;                             // indexes Model.types
+  repeated ClassRef constraints = 3;       // the `requires` clause on its parameters
+  repeated Constraint value_constraints = 4; // the `where` block, accumulated down the chain
+}
+
+// LiteralKind identifies which form a Literal takes.
+enum LiteralKind {
+  LITERAL_KIND_UNSPECIFIED = 0;
+  LITERAL_KIND_STRING = 1;
+  LITERAL_KIND_INT = 2;
+  LITERAL_KIND_FLOAT = 3;
+  LITERAL_KIND_BOOL = 4;
+  LITERAL_KIND_NAME = 5;  // a name denoting an enum variant
+  LITERAL_KIND_REGEX = 6;
+  LITERAL_KIND_LIST = 7;
+  LITERAL_KIND_RANGE = 8;
+}
+
+// Literal is a value written in the source: a field default, a constraint
+// argument, or a directive argument.
+message Literal {
+  LiteralKind kind = 1;
+  string text = 2;            // decoded for STRING, the pattern for REGEX, the name for NAME
+  repeated Literal items = 3; // set for LIST
+  Range range = 4;            // set for RANGE
+  Position position = 5;
+
+  // variant names the enum variant a NAME literal resolves to, checked
+  // against the field's type. Unset when it did not resolve.
+  ID variant = 6;
+}
+
+// Range is a bound with either end optional: `3..254`, `1..`, `..64`.
+message Range {
+  optional int64 low = 1;
+  optional int64 high = 2;
+}
+
+// Constraint is one entry in a `where { ... }` block.
+//
+// The set of names is open. The compiler checks the arity and argument
+// kinds of the standard names and passes everything else through, so a
+// backend may understand a constraint the compiler has never heard of.
+message Constraint {
+  string name = 1;
+  repeated Literal args = 2;
+  Position position = 3;
+
+  // from names the newtype a constraint was inherited from, unset for one
+  // written on this declaration. A newtype narrows its parent and never
+  // replaces it, so the accumulated set is what a backend needs and the
+  // origin is what it needs to explain itself.
+  ID from = 4; // indexes Model.decls
 }
 
 // StructKind distinguishes the three declarations that share a body.
@@ -109,6 +291,8 @@ message Struct {
   StructKind kind = 1;
   repeated Param params = 2;
   repeated Field fields = 3;
+  repeated ClassRef conforms = 4;    // classes this declaration says it satisfies
+  repeated ClassRef constraints = 5; // the `requires` clause on its parameters
 }
 
 // Enum is a closed set of variants. A variant may carry fields, which makes
@@ -116,6 +300,8 @@ message Struct {
 message Enum {
   repeated Param params = 1;
   repeated Variant variants = 2;
+  repeated ClassRef conforms = 3;
+  repeated ClassRef constraints = 4;
 }
 
 // Variant is one alternative in an Enum.
@@ -127,9 +313,17 @@ message Variant {
 // Field is a named, typed member.
 message Field {
   Meta meta = 1;
-  ID type = 2;   // indexes Model.types
-  bool key = 3;  // part of the entity's identity
+  ID type = 2;    // indexes Model.types
+  bool key = 3;   // part of the entity's identity
   bool owned = 4; // composition rather than reference
+  repeated Constraint constraints = 6;
+  Literal default_value = 7; // unset when the field has no default
+  repeated Directive directives = 8;
+
+  // included_from names the mixin a field was copied from, so a backend
+  // that can express the grouping does not have to reconstruct it. Unset
+  // for a field the declaration wrote itself.
+  ID included_from = 5; // indexes Model.decls
 }
 
 // Param is one type parameter.
@@ -176,11 +370,12 @@ enum SyntacticForm {
 // Lowering interns, so two occurrences of the same type share an entry and
 // an ID comparison is a type comparison.
 message Type {
-  ID ctor = 1;          // indexes Model.decls; unset when param is set
+  ID ctor = 1;          // indexes Model.decls; unset when param or extern is set
   repeated ID args = 2; // indexes Model.types
   SyntacticForm wrote = 3;
   Position position = 4;
   ParamRef param = 5; // set instead of ctor for a type parameter
+  ID extern = 6;      // set instead of ctor; indexes Model.externs
 }
 
 // ParamRef is a use of a type parameter.

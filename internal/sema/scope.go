@@ -9,8 +9,9 @@ import (
 type bindingKind int
 
 const (
-	bindDecl  bindingKind = iota // a file-level declaration
-	bindParam                    // a type parameter of the enclosing declaration
+	bindDecl   bindingKind = iota // a file-level declaration
+	bindParam                     // a type parameter of the enclosing declaration
+	bindExtern                    // a declaration merged in by a `_` import
 )
 
 type binding struct {

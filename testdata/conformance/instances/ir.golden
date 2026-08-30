@@ -1,4 +1,6 @@
 Model example.instances
+├── Imports
+│   └── shipping.tdl as shipping  (shop.shipping)  source.tdl:3:1
 ├── Decls
 │   ├── [0] primitive string  std.tdl:4:1
 │   ├── [1] primitive int  std.tdl:6:1
@@ -25,19 +27,55 @@ Model example.instances
 │   │   ├── variant Present  std.tdl:41:3
 │   │   │   └── field value: types[1] T  std.tdl:41:13
 │   │   └── variant Null  std.tdl:42:3
-│   ├── [17] unlowered Entity  std.tdl:46:1
-│   ├── [18] unlowered Value  std.tdl:51:1
-│   ├── [19] unlowered Auditable  source.tdl:5:1
-│   ├── [20] unlowered Paged  source.tdl:9:1
+│   ├── [17] class Entity  std.tdl:46:1
+│   │   └── requires key
+│   ├── [18] class Value  std.tdl:51:1
+│   ├── [19] class Auditable  source.tdl:5:1
+│   │   └── field createdAt: types[2] instant  source.tdl:6:3
+│   ├── [20] class Paged  source.tdl:9:1
+│   │   ├── type Cursor  source.tdl:10:3
+│   │   └── field pageSize: types[3] int  source.tdl:11:3
 │   ├── [21] value OrderList  source.tdl:22:1
 │   ├── [22] value OrderCursor  source.tdl:24:1
-│   │   └── field token: types[2] string  source.tdl:25:3
-│   └── [23] value Page  source.tdl:28:1
-│       ├── param T  source.tdl:28:13
-│       └── field items: types[4] List<T>  source.tdl:29:3
-└── Types
-    ├── [0] T  named  -> param Option.T  std.tdl:35:17
-    ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
-    ├── [2] string  named  -> decls[0]  source.tdl:25:10
-    ├── [3] T  named  -> param Page.T  source.tdl:29:11
-    └── [4] List<T>  [T]  -> decls[4]  source.tdl:29:10
+│   │   └── field token: types[9] string  source.tdl:25:3
+│   ├── [23] value Page  source.tdl:28:1
+│   │   ├── param T  source.tdl:28:13
+│   │   └── field items: types[11] List<T>  source.tdl:29:3
+│   ├── [24] value Audited  source.tdl:32:1
+│   │   ├── conforms Auditable  source.tdl:32:26
+│   │   └── field createdAt: types[2] instant  source.tdl:33:3
+│   ├── [25] value Plain  source.tdl:36:1
+│   │   └── field x: types[9] string  source.tdl:37:3
+│   └── [26] value Uses  source.tdl:40:1
+│       ├── field applies: types[13] Page<Audited>  source.tdl:41:3
+│       └── field doesNot: types[15] Page<Plain>  source.tdl:42:3
+├── Instances
+│   ├── instance Auditable<shop.shipping.Address>  source.tdl:14:1
+│   ├── instance Auditable<shop.shipping.Address>  source.tdl:15:1
+│   ├── instance Paged<OrderList>  source.tdl:17:1
+│   │   └── type Cursor = types[6] OrderCursor  source.tdl:18:3
+│   └── instance <T> Auditable<Page<T>> requires Auditable<T>  source.tdl:21:1
+├── Satisfies
+│   ├── Entity: nothing
+│   ├── Value: nothing
+│   ├── Auditable: Audited, Page<Audited>
+│   └── Paged: OrderList
+├── Types
+│   ├── [0] T  named  -> param Option.T  std.tdl:35:17
+│   ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
+│   ├── [2] instant  named  -> decls[9]  source.tdl:6:14
+│   ├── [3] int  named  -> decls[1]  source.tdl:11:13
+│   ├── [4] shop.shipping.Address  named  -> externs[0]  source.tdl:14:20
+│   ├── [5] OrderList  named  -> decls[21]  source.tdl:17:20
+│   ├── [6] OrderCursor  named  -> decls[22]  source.tdl:18:17
+│   ├── [7] T  named  -> param .T  source.tdl:21:29
+│   ├── [8] Page<T>  named  -> decls[23]  source.tdl:21:24
+│   ├── [9] string  named  -> decls[0]  source.tdl:25:10
+│   ├── [10] T  named  -> param Page.T  source.tdl:29:11
+│   ├── [11] List<T>  [T]  -> decls[4]  source.tdl:29:10
+│   ├── [12] Audited  named  -> decls[24]  source.tdl:41:17
+│   ├── [13] Page<Audited>  named  -> decls[23]  source.tdl:41:12
+│   ├── [14] Plain  named  -> decls[25]  source.tdl:42:17
+│   └── [15] Page<Plain>  named  -> decls[23]  source.tdl:42:12
+└── Externs
+    └── shop.shipping.Address  source.tdl:14:20

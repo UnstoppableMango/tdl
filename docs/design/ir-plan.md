@@ -110,7 +110,19 @@ Instance resolution, `requires` constraint checking, functional dependencies, an
 
 The two instance forms mean the same thing, so lowering normalizes `instance C for T` to `instance C<T>` even though the tree keeps what was written.
 
-Done when declared instances survive into `ir`, `Satisfying` answers correctly for the corpus including instances inherited through mixins and conformances, and an unsatisfied `requires` constraint is a diagnostic pointing at the use site.
+The index answers from ground facts only: a declaration that says it conforms, and an instance with concrete arguments, closed over the classes a class requires.
+Conditional instances reach `ir` intact and are not expanded.
+
+Done when declared instances survive into `ir`, `Satisfying` answers correctly for the corpus, and an unsatisfied `requires` constraint is a diagnostic pointing at the use site.
+
+## Phase 6b: conditional instance search
+
+`instance <T> Auditable<Page<T>> requires Auditable<T>` says a page of auditable things is auditable, and answering `Satisfying(Auditable)` for `Page<Order>` means matching the head and discharging the condition.
+
+That is a unification engine, and the spec's two termination rules, an instance head applied to distinct parameters and every constraint structurally smaller than the head, are what keep the search finite.
+It is scheduled here rather than folded into phase 6 because it is most of a phase on its own, and because everything downstream works without it.
+
+Done when the index answers for an instantiated generic type, a search that would not terminate is rejected at the instance rather than at the use, and the corpus covers a conditional instance that does apply and one that does not.
 
 ## Phase 7: constraints, defaults, and deprecation
 
@@ -127,12 +139,25 @@ Done when every constraint in the corpus reaches `ir` with its arguments and pos
 
 ## Phase 8: target resolution
 
-Path resolution against the model, the specificity ladder, class-path expansion across satisfying types, root-over-dependency merging, and equal-specificity conflicts as errors.
+Path resolution against the model, the specificity ladder, class-path expansion across satisfying types, and equal-specificity conflicts as errors.
 
 Directives attach to the nodes they apply to, resolved, so no backend performs a lookup.
 A directive's name may be a reserved word, since the namespace belongs to the backend; nothing about resolution should assume otherwise.
 
+Root-over-dependency merging is not here.
+It needs a dependency's target blocks, and phase 5 decided not to lower dependencies: a qualified reference records the package and stops.
+Merging is a phase of its own once there is a reason to load a dependency far enough to read its blocks.
+
 Done when a target block's directives appear on the right `ir` nodes, a path naming nothing is an error with a position, a class path applies to every satisfying type, and two entries at equal specificity are reported rather than silently ordered.
+
+## Phase 8b: dependency target merging
+
+A dependency ships target blocks so its own types appear sensibly in Go without every consumer restating it.
+Merging them means loading and lowering the dependency, which nothing else needs, so it waits until something does.
+
+Origin outranks specificity, per [workflow.md](workflow.md): any entry in the root project beats any entry from a dependency, whatever the ladder would otherwise say, and the ladder decides among entries of the same origin.
+
+Done when a dependency's directives reach the root model's nodes, a root entry beats a dependency entry at any specificity, and a conflict between two dependencies is reported.
 
 ## After
 

@@ -29,6 +29,74 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// LiteralKind identifies which form a Literal takes.
+type LiteralKind int32
+
+const (
+	LiteralKind_LITERAL_KIND_UNSPECIFIED LiteralKind = 0
+	LiteralKind_LITERAL_KIND_STRING      LiteralKind = 1
+	LiteralKind_LITERAL_KIND_INT         LiteralKind = 2
+	LiteralKind_LITERAL_KIND_FLOAT       LiteralKind = 3
+	LiteralKind_LITERAL_KIND_BOOL        LiteralKind = 4
+	LiteralKind_LITERAL_KIND_NAME        LiteralKind = 5 // a name denoting an enum variant
+	LiteralKind_LITERAL_KIND_REGEX       LiteralKind = 6
+	LiteralKind_LITERAL_KIND_LIST        LiteralKind = 7
+	LiteralKind_LITERAL_KIND_RANGE       LiteralKind = 8
+)
+
+// Enum value maps for LiteralKind.
+var (
+	LiteralKind_name = map[int32]string{
+		0: "LITERAL_KIND_UNSPECIFIED",
+		1: "LITERAL_KIND_STRING",
+		2: "LITERAL_KIND_INT",
+		3: "LITERAL_KIND_FLOAT",
+		4: "LITERAL_KIND_BOOL",
+		5: "LITERAL_KIND_NAME",
+		6: "LITERAL_KIND_REGEX",
+		7: "LITERAL_KIND_LIST",
+		8: "LITERAL_KIND_RANGE",
+	}
+	LiteralKind_value = map[string]int32{
+		"LITERAL_KIND_UNSPECIFIED": 0,
+		"LITERAL_KIND_STRING":      1,
+		"LITERAL_KIND_INT":         2,
+		"LITERAL_KIND_FLOAT":       3,
+		"LITERAL_KIND_BOOL":        4,
+		"LITERAL_KIND_NAME":        5,
+		"LITERAL_KIND_REGEX":       6,
+		"LITERAL_KIND_LIST":        7,
+		"LITERAL_KIND_RANGE":       8,
+	}
+)
+
+func (x LiteralKind) Enum() *LiteralKind {
+	p := new(LiteralKind)
+	*p = x
+	return p
+}
+
+func (x LiteralKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (LiteralKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_tdl_ir_v1_ir_proto_enumTypes[0].Descriptor()
+}
+
+func (LiteralKind) Type() protoreflect.EnumType {
+	return &file_tdl_ir_v1_ir_proto_enumTypes[0]
+}
+
+func (x LiteralKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use LiteralKind.Descriptor instead.
+func (LiteralKind) EnumDescriptor() ([]byte, []int) {
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{0}
+}
+
 // StructKind distinguishes the three declarations that share a body.
 type StructKind int32
 
@@ -66,11 +134,11 @@ func (x StructKind) String() string {
 }
 
 func (StructKind) Descriptor() protoreflect.EnumDescriptor {
-	return file_tdl_ir_v1_ir_proto_enumTypes[0].Descriptor()
+	return file_tdl_ir_v1_ir_proto_enumTypes[1].Descriptor()
 }
 
 func (StructKind) Type() protoreflect.EnumType {
-	return &file_tdl_ir_v1_ir_proto_enumTypes[0]
+	return &file_tdl_ir_v1_ir_proto_enumTypes[1]
 }
 
 func (x StructKind) Number() protoreflect.EnumNumber {
@@ -79,7 +147,7 @@ func (x StructKind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use StructKind.Descriptor instead.
 func (StructKind) EnumDescriptor() ([]byte, []int) {
-	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{0}
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{1}
 }
 
 // KindAtom is a base kind.
@@ -116,11 +184,11 @@ func (x KindAtom) String() string {
 }
 
 func (KindAtom) Descriptor() protoreflect.EnumDescriptor {
-	return file_tdl_ir_v1_ir_proto_enumTypes[1].Descriptor()
+	return file_tdl_ir_v1_ir_proto_enumTypes[2].Descriptor()
 }
 
 func (KindAtom) Type() protoreflect.EnumType {
-	return &file_tdl_ir_v1_ir_proto_enumTypes[1]
+	return &file_tdl_ir_v1_ir_proto_enumTypes[2]
 }
 
 func (x KindAtom) Number() protoreflect.EnumNumber {
@@ -129,7 +197,7 @@ func (x KindAtom) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use KindAtom.Descriptor instead.
 func (KindAtom) EnumDescriptor() ([]byte, []int) {
-	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{1}
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{2}
 }
 
 // SyntacticForm records how a type reference was written.
@@ -183,11 +251,11 @@ func (x SyntacticForm) String() string {
 }
 
 func (SyntacticForm) Descriptor() protoreflect.EnumDescriptor {
-	return file_tdl_ir_v1_ir_proto_enumTypes[2].Descriptor()
+	return file_tdl_ir_v1_ir_proto_enumTypes[3].Descriptor()
 }
 
 func (SyntacticForm) Type() protoreflect.EnumType {
-	return &file_tdl_ir_v1_ir_proto_enumTypes[2]
+	return &file_tdl_ir_v1_ir_proto_enumTypes[3]
 }
 
 func (x SyntacticForm) Number() protoreflect.EnumNumber {
@@ -196,7 +264,7 @@ func (x SyntacticForm) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use SyntacticForm.Descriptor instead.
 func (SyntacticForm) EnumDescriptor() ([]byte, []int) {
-	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{2}
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{3}
 }
 
 // ID references a node by its index into a table and by its fully qualified
@@ -466,6 +534,11 @@ type Model struct {
 	Package       string                 `protobuf:"bytes,1,opt,name=package,proto3" json:"package,omitempty"`
 	Decls         []*Decl                `protobuf:"bytes,2,rep,name=decls,proto3" json:"decls,omitempty"`
 	Types         []*Type                `protobuf:"bytes,3,rep,name=types,proto3" json:"types,omitempty"`
+	Imports       []*Import              `protobuf:"bytes,4,rep,name=imports,proto3" json:"imports,omitempty"`
+	Externs       []*Extern              `protobuf:"bytes,5,rep,name=externs,proto3" json:"externs,omitempty"`
+	Instances     []*Instance            `protobuf:"bytes,6,rep,name=instances,proto3" json:"instances,omitempty"`
+	Satisfies     []*Satisfaction        `protobuf:"bytes,7,rep,name=satisfies,proto3" json:"satisfies,omitempty"`
+	Targets       []*TargetBlock         `protobuf:"bytes,8,rep,name=targets,proto3" json:"targets,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -521,13 +594,617 @@ func (x *Model) GetTypes() []*Type {
 	return nil
 }
 
+func (x *Model) GetImports() []*Import {
+	if x != nil {
+		return x.Imports
+	}
+	return nil
+}
+
+func (x *Model) GetExterns() []*Extern {
+	if x != nil {
+		return x.Externs
+	}
+	return nil
+}
+
+func (x *Model) GetInstances() []*Instance {
+	if x != nil {
+		return x.Instances
+	}
+	return nil
+}
+
+func (x *Model) GetSatisfies() []*Satisfaction {
+	if x != nil {
+		return x.Satisfies
+	}
+	return nil
+}
+
+func (x *Model) GetTargets() []*TargetBlock {
+	if x != nil {
+		return x.Targets
+	}
+	return nil
+}
+
+// TargetBlock is one `target go for billing { ... }` block.
+//
+// Its resolved directives are attached to the nodes they apply to, so a
+// backend never performs a lookup. What is left here is the block itself
+// and the directives that apply to the package rather than to anything in
+// it.
+type TargetBlock struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Meta          *Meta                  `protobuf:"bytes,1,opt,name=meta,proto3" json:"meta,omitempty"` // name is the target name, such as "go"
+	ForPackage    string                 `protobuf:"bytes,2,opt,name=for_package,json=forPackage,proto3" json:"for_package,omitempty"`
+	Directives    []*Directive           `protobuf:"bytes,3,rep,name=directives,proto3" json:"directives,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TargetBlock) Reset() {
+	*x = TargetBlock{}
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TargetBlock) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TargetBlock) ProtoMessage() {}
+
+func (x *TargetBlock) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TargetBlock.ProtoReflect.Descriptor instead.
+func (*TargetBlock) Descriptor() ([]byte, []int) {
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *TargetBlock) GetMeta() *Meta {
+	if x != nil {
+		return x.Meta
+	}
+	return nil
+}
+
+func (x *TargetBlock) GetForPackage() string {
+	if x != nil {
+		return x.ForPackage
+	}
+	return ""
+}
+
+func (x *TargetBlock) GetDirectives() []*Directive {
+	if x != nil {
+		return x.Directives
+	}
+	return nil
+}
+
+// Directive is an opaque instruction to a backend. The compiler checks its
+// shape, resolves the path it was written against, and hands it over; what
+// it means is the backend's business.
+type Directive struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Name     string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Args     []*Literal             `protobuf:"bytes,2,rep,name=args,proto3" json:"args,omitempty"`
+	Position *Position              `protobuf:"bytes,3,opt,name=position,proto3" json:"position,omitempty"`
+	// target names the block this came from, since a model may carry
+	// directives for several backends at once.
+	Target string `protobuf:"bytes,4,opt,name=target,proto3" json:"target,omitempty"`
+	// from_class is set when the directive was written against a class and
+	// expanded onto everything satisfying it, which is what makes a rule
+	// written once apply to many types.
+	FromClass     *ID `protobuf:"bytes,5,opt,name=from_class,json=fromClass,proto3" json:"from_class,omitempty"` // indexes Model.decls
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Directive) Reset() {
+	*x = Directive{}
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Directive) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Directive) ProtoMessage() {}
+
+func (x *Directive) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Directive.ProtoReflect.Descriptor instead.
+func (*Directive) Descriptor() ([]byte, []int) {
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *Directive) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Directive) GetArgs() []*Literal {
+	if x != nil {
+		return x.Args
+	}
+	return nil
+}
+
+func (x *Directive) GetPosition() *Position {
+	if x != nil {
+		return x.Position
+	}
+	return nil
+}
+
+func (x *Directive) GetTarget() string {
+	if x != nil {
+		return x.Target
+	}
+	return ""
+}
+
+func (x *Directive) GetFromClass() *ID {
+	if x != nil {
+		return x.FromClass
+	}
+	return nil
+}
+
+// Instance declares that a type satisfies a class.
+//
+// `instance C for T` is sugar for `instance C<T>`, and lowering normalizes
+// it: by here there is one form. An instance is not a type name, so it
+// lives in its own table rather than among the declarations.
+type Instance struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Meta          *Meta                  `protobuf:"bytes,1,opt,name=meta,proto3" json:"meta,omitempty"`
+	Params        []*Param               `protobuf:"bytes,2,rep,name=params,proto3" json:"params,omitempty"`
+	Class         *ClassRef              `protobuf:"bytes,3,opt,name=class,proto3" json:"class,omitempty"`
+	Requires      []*ClassRef            `protobuf:"bytes,4,rep,name=requires,proto3" json:"requires,omitempty"` // conditions on this instance
+	Binds         []*AssocBind           `protobuf:"bytes,5,rep,name=binds,proto3" json:"binds,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Instance) Reset() {
+	*x = Instance{}
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Instance) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Instance) ProtoMessage() {}
+
+func (x *Instance) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Instance.ProtoReflect.Descriptor instead.
+func (*Instance) Descriptor() ([]byte, []int) {
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *Instance) GetMeta() *Meta {
+	if x != nil {
+		return x.Meta
+	}
+	return nil
+}
+
+func (x *Instance) GetParams() []*Param {
+	if x != nil {
+		return x.Params
+	}
+	return nil
+}
+
+func (x *Instance) GetClass() *ClassRef {
+	if x != nil {
+		return x.Class
+	}
+	return nil
+}
+
+func (x *Instance) GetRequires() []*ClassRef {
+	if x != nil {
+		return x.Requires
+	}
+	return nil
+}
+
+func (x *Instance) GetBinds() []*AssocBind {
+	if x != nil {
+		return x.Binds
+	}
+	return nil
+}
+
+// AssocBind supplies a type for one of a class's associated type
+// requirements.
+type AssocBind struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Type          *ID                    `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"` // indexes Model.types
+	Position      *Position              `protobuf:"bytes,3,opt,name=position,proto3" json:"position,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AssocBind) Reset() {
+	*x = AssocBind{}
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AssocBind) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AssocBind) ProtoMessage() {}
+
+func (x *AssocBind) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AssocBind.ProtoReflect.Descriptor instead.
+func (*AssocBind) Descriptor() ([]byte, []int) {
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *AssocBind) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *AssocBind) GetType() *ID {
+	if x != nil {
+		return x.Type
+	}
+	return nil
+}
+
+func (x *AssocBind) GetPosition() *Position {
+	if x != nil {
+		return x.Position
+	}
+	return nil
+}
+
+// ClassRef names a class, applied to arguments.
+type ClassRef struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Class         *ID                    `protobuf:"bytes,1,opt,name=class,proto3" json:"class,omitempty"`   // indexes Model.decls; unset when extern is set
+	Extern        *ID                    `protobuf:"bytes,2,opt,name=extern,proto3" json:"extern,omitempty"` // indexes Model.externs
+	Args          []*ID                  `protobuf:"bytes,3,rep,name=args,proto3" json:"args,omitempty"`     // indexes Model.types
+	Position      *Position              `protobuf:"bytes,4,opt,name=position,proto3" json:"position,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ClassRef) Reset() {
+	*x = ClassRef{}
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ClassRef) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ClassRef) ProtoMessage() {}
+
+func (x *ClassRef) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ClassRef.ProtoReflect.Descriptor instead.
+func (*ClassRef) Descriptor() ([]byte, []int) {
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ClassRef) GetClass() *ID {
+	if x != nil {
+		return x.Class
+	}
+	return nil
+}
+
+func (x *ClassRef) GetExtern() *ID {
+	if x != nil {
+		return x.Extern
+	}
+	return nil
+}
+
+func (x *ClassRef) GetArgs() []*ID {
+	if x != nil {
+		return x.Args
+	}
+	return nil
+}
+
+func (x *ClassRef) GetPosition() *Position {
+	if x != nil {
+		return x.Position
+	}
+	return nil
+}
+
+// Satisfaction is the computed answer to "what satisfies this class",
+// closed over the classes a class requires.
+//
+// A backend applying a class-scoped target directive reads this and never
+// reasons about instances. The declared instances are still in the model
+// for one that wants them.
+type Satisfaction struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Class *ID                    `protobuf:"bytes,1,opt,name=class,proto3" json:"class,omitempty"` // indexes Model.decls
+	Decls []*ID                  `protobuf:"bytes,2,rep,name=decls,proto3" json:"decls,omitempty"` // indexes Model.decls
+	// types lists instantiated types that satisfy the class through a
+	// conditional instance, as in `Page<Order>` given
+	// `instance <T> Auditable<Page<T>> requires Auditable<T>`.
+	//
+	// A declaration cannot stand in for these: `Page` satisfies nothing on
+	// its own, and `Page<Order>` is a type rather than a declaration.
+	Types         []*ID `protobuf:"bytes,3,rep,name=types,proto3" json:"types,omitempty"` // indexes Model.types
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Satisfaction) Reset() {
+	*x = Satisfaction{}
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Satisfaction) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Satisfaction) ProtoMessage() {}
+
+func (x *Satisfaction) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Satisfaction.ProtoReflect.Descriptor instead.
+func (*Satisfaction) Descriptor() ([]byte, []int) {
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *Satisfaction) GetClass() *ID {
+	if x != nil {
+		return x.Class
+	}
+	return nil
+}
+
+func (x *Satisfaction) GetDecls() []*ID {
+	if x != nil {
+		return x.Decls
+	}
+	return nil
+}
+
+func (x *Satisfaction) GetTypes() []*ID {
+	if x != nil {
+		return x.Types
+	}
+	return nil
+}
+
+// Import is one `import "path" as alias` in the file.
+type Import struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`       // as written
+	Alias         string                 `protobuf:"bytes,2,opt,name=alias,proto3" json:"alias,omitempty"`     // "_" merges the imported names into this scope
+	Package       string                 `protobuf:"bytes,3,opt,name=package,proto3" json:"package,omitempty"` // the package the imported file declares
+	Position      *Position              `protobuf:"bytes,4,opt,name=position,proto3" json:"position,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Import) Reset() {
+	*x = Import{}
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Import) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Import) ProtoMessage() {}
+
+func (x *Import) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Import.ProtoReflect.Descriptor instead.
+func (*Import) Descriptor() ([]byte, []int) {
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *Import) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *Import) GetAlias() string {
+	if x != nil {
+		return x.Alias
+	}
+	return ""
+}
+
+func (x *Import) GetPackage() string {
+	if x != nil {
+		return x.Package
+	}
+	return ""
+}
+
+func (x *Import) GetPosition() *Position {
+	if x != nil {
+		return x.Position
+	}
+	return nil
+}
+
+// Extern is a declaration in another package that this one refers to.
+//
+// Dependencies are not inlined: a backend either resolves an extern
+// through the import table and generates a reference, or treats it as
+// foreign and maps it with a target directive.
+type Extern struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Package       string                 `protobuf:"bytes,1,opt,name=package,proto3" json:"package,omitempty"`   // the declaring package
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`         // the declaration's name within it
+	Position      *Position              `protobuf:"bytes,3,opt,name=position,proto3" json:"position,omitempty"` // where this model first referred to it
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Extern) Reset() {
+	*x = Extern{}
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Extern) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Extern) ProtoMessage() {}
+
+func (x *Extern) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Extern.ProtoReflect.Descriptor instead.
+func (*Extern) Descriptor() ([]byte, []int) {
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *Extern) GetPackage() string {
+	if x != nil {
+		return x.Package
+	}
+	return ""
+}
+
+func (x *Extern) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Extern) GetPosition() *Position {
+	if x != nil {
+		return x.Position
+	}
+	return nil
+}
+
 // Decl is one declaration. The forms split by nature rather than
 // collapsing into one tagged message or fragmenting into eight: everything
 // with fields shares a shape, and a form that has no fields does not carry
 // the machinery for them.
 type Decl struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	Meta  *Meta                  `protobuf:"bytes,1,opt,name=meta,proto3" json:"meta,omitempty"`
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Meta       *Meta                  `protobuf:"bytes,1,opt,name=meta,proto3" json:"meta,omitempty"`
+	Directives []*Directive           `protobuf:"bytes,8,rep,name=directives,proto3" json:"directives,omitempty"`
 	// Types that are valid to be assigned to Node:
 	//
 	//	*Decl_Primitive
@@ -535,6 +1212,7 @@ type Decl struct {
 	//	*Decl_Newtype
 	//	*Decl_Structure
 	//	*Decl_Enumeration
+	//	*Decl_Class
 	Node          isDecl_Node `protobuf_oneof:"node"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -542,7 +1220,7 @@ type Decl struct {
 
 func (x *Decl) Reset() {
 	*x = Decl{}
-	mi := &file_tdl_ir_v1_ir_proto_msgTypes[5]
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -554,7 +1232,7 @@ func (x *Decl) String() string {
 func (*Decl) ProtoMessage() {}
 
 func (x *Decl) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_ir_v1_ir_proto_msgTypes[5]
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -567,12 +1245,19 @@ func (x *Decl) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Decl.ProtoReflect.Descriptor instead.
 func (*Decl) Descriptor() ([]byte, []int) {
-	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{5}
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *Decl) GetMeta() *Meta {
 	if x != nil {
 		return x.Meta
+	}
+	return nil
+}
+
+func (x *Decl) GetDirectives() []*Directive {
+	if x != nil {
+		return x.Directives
 	}
 	return nil
 }
@@ -629,6 +1314,15 @@ func (x *Decl) GetEnumeration() *Enum {
 	return nil
 }
 
+func (x *Decl) GetClass() *Class {
+	if x != nil {
+		if x, ok := x.Node.(*Decl_Class); ok {
+			return x.Class
+		}
+	}
+	return nil
+}
+
 type isDecl_Node interface {
 	isDecl_Node()
 }
@@ -653,6 +1347,10 @@ type Decl_Enumeration struct {
 	Enumeration *Enum `protobuf:"bytes,6,opt,name=enumeration,proto3,oneof"`
 }
 
+type Decl_Class struct {
+	Class *Class `protobuf:"bytes,7,opt,name=class,proto3,oneof"`
+}
+
 func (*Decl_Primitive) isDecl_Node() {}
 
 func (*Decl_Alias) isDecl_Node() {}
@@ -662,6 +1360,217 @@ func (*Decl_Newtype) isDecl_Node() {}
 func (*Decl_Structure) isDecl_Node() {}
 
 func (*Decl_Enumeration) isDecl_Node() {}
+
+func (*Decl_Class) isDecl_Node() {}
+
+// Class is a contract. It declares nothing into the types that satisfy it;
+// conformance is nominal and always declared.
+type Class struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Params          []*Param               `protobuf:"bytes,1,rep,name=params,proto3" json:"params,omitempty"`
+	FunDeps         []*FunDep              `protobuf:"bytes,2,rep,name=fun_deps,json=funDeps,proto3" json:"fun_deps,omitempty"`
+	RequiresClasses []*ClassRef            `protobuf:"bytes,3,rep,name=requires_classes,json=requiresClasses,proto3" json:"requires_classes,omitempty"` // classes an implementor must also satisfy
+	Constraints     []*ClassRef            `protobuf:"bytes,4,rep,name=constraints,proto3" json:"constraints,omitempty"`                                // the `requires` clause on this class's parameters
+	Fields          []*Field               `protobuf:"bytes,5,rep,name=fields,proto3" json:"fields,omitempty"`
+	RequiresKey     bool                   `protobuf:"varint,6,opt,name=requires_key,json=requiresKey,proto3" json:"requires_key,omitempty"` // a bare `key` in the body
+	AssocTypes      []*AssocType           `protobuf:"bytes,7,rep,name=assoc_types,json=assocTypes,proto3" json:"assoc_types,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *Class) Reset() {
+	*x = Class{}
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Class) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Class) ProtoMessage() {}
+
+func (x *Class) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Class.ProtoReflect.Descriptor instead.
+func (*Class) Descriptor() ([]byte, []int) {
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *Class) GetParams() []*Param {
+	if x != nil {
+		return x.Params
+	}
+	return nil
+}
+
+func (x *Class) GetFunDeps() []*FunDep {
+	if x != nil {
+		return x.FunDeps
+	}
+	return nil
+}
+
+func (x *Class) GetRequiresClasses() []*ClassRef {
+	if x != nil {
+		return x.RequiresClasses
+	}
+	return nil
+}
+
+func (x *Class) GetConstraints() []*ClassRef {
+	if x != nil {
+		return x.Constraints
+	}
+	return nil
+}
+
+func (x *Class) GetFields() []*Field {
+	if x != nil {
+		return x.Fields
+	}
+	return nil
+}
+
+func (x *Class) GetRequiresKey() bool {
+	if x != nil {
+		return x.RequiresKey
+	}
+	return false
+}
+
+func (x *Class) GetAssocTypes() []*AssocType {
+	if x != nil {
+		return x.AssocTypes
+	}
+	return nil
+}
+
+// FunDep states that some parameters determine others, which makes a
+// multi-parameter class a function rather than a table.
+type FunDep struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	From          []string               `protobuf:"bytes,1,rep,name=from,proto3" json:"from,omitempty"`
+	To            []string               `protobuf:"bytes,2,rep,name=to,proto3" json:"to,omitempty"`
+	Position      *Position              `protobuf:"bytes,3,opt,name=position,proto3" json:"position,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FunDep) Reset() {
+	*x = FunDep{}
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FunDep) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FunDep) ProtoMessage() {}
+
+func (x *FunDep) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FunDep.ProtoReflect.Descriptor instead.
+func (*FunDep) Descriptor() ([]byte, []int) {
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *FunDep) GetFrom() []string {
+	if x != nil {
+		return x.From
+	}
+	return nil
+}
+
+func (x *FunDep) GetTo() []string {
+	if x != nil {
+		return x.To
+	}
+	return nil
+}
+
+func (x *FunDep) GetPosition() *Position {
+	if x != nil {
+		return x.Position
+	}
+	return nil
+}
+
+// AssocType is a type an implementor must supply and an instance binds.
+type AssocType struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Meta          *Meta                  `protobuf:"bytes,1,opt,name=meta,proto3" json:"meta,omitempty"`
+	Kind          *Kind                  `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AssocType) Reset() {
+	*x = AssocType{}
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AssocType) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AssocType) ProtoMessage() {}
+
+func (x *AssocType) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AssocType.ProtoReflect.Descriptor instead.
+func (*AssocType) Descriptor() ([]byte, []int) {
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *AssocType) GetMeta() *Meta {
+	if x != nil {
+		return x.Meta
+	}
+	return nil
+}
+
+func (x *AssocType) GetKind() *Kind {
+	if x != nil {
+		return x.Kind
+	}
+	return nil
+}
 
 // Primitive is an opaque, irreducible root type.
 type Primitive struct {
@@ -673,7 +1582,7 @@ type Primitive struct {
 
 func (x *Primitive) Reset() {
 	*x = Primitive{}
-	mi := &file_tdl_ir_v1_ir_proto_msgTypes[6]
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -685,7 +1594,7 @@ func (x *Primitive) String() string {
 func (*Primitive) ProtoMessage() {}
 
 func (x *Primitive) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_ir_v1_ir_proto_msgTypes[6]
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -698,7 +1607,7 @@ func (x *Primitive) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Primitive.ProtoReflect.Descriptor instead.
 func (*Primitive) Descriptor() ([]byte, []int) {
-	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{6}
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *Primitive) GetKind() *Kind {
@@ -719,7 +1628,7 @@ type Alias struct {
 
 func (x *Alias) Reset() {
 	*x = Alias{}
-	mi := &file_tdl_ir_v1_ir_proto_msgTypes[7]
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -731,7 +1640,7 @@ func (x *Alias) String() string {
 func (*Alias) ProtoMessage() {}
 
 func (x *Alias) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_ir_v1_ir_proto_msgTypes[7]
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -744,7 +1653,7 @@ func (x *Alias) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Alias.ProtoReflect.Descriptor instead.
 func (*Alias) Descriptor() ([]byte, []int) {
-	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{7}
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *Alias) GetParams() []*Param {
@@ -763,16 +1672,18 @@ func (x *Alias) GetTarget() *ID {
 
 // Newtype is a distinct type over another, not interchangeable with it.
 type Newtype struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Params        []*Param               `protobuf:"bytes,1,rep,name=params,proto3" json:"params,omitempty"`
-	Base          *ID                    `protobuf:"bytes,2,opt,name=base,proto3" json:"base,omitempty"` // indexes Model.types
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Params           []*Param               `protobuf:"bytes,1,rep,name=params,proto3" json:"params,omitempty"`
+	Base             *ID                    `protobuf:"bytes,2,opt,name=base,proto3" json:"base,omitempty"`                                                 // indexes Model.types
+	Constraints      []*ClassRef            `protobuf:"bytes,3,rep,name=constraints,proto3" json:"constraints,omitempty"`                                   // the `requires` clause on its parameters
+	ValueConstraints []*Constraint          `protobuf:"bytes,4,rep,name=value_constraints,json=valueConstraints,proto3" json:"value_constraints,omitempty"` // the `where` block, accumulated down the chain
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *Newtype) Reset() {
 	*x = Newtype{}
-	mi := &file_tdl_ir_v1_ir_proto_msgTypes[8]
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -784,7 +1695,7 @@ func (x *Newtype) String() string {
 func (*Newtype) ProtoMessage() {}
 
 func (x *Newtype) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_ir_v1_ir_proto_msgTypes[8]
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -797,7 +1708,7 @@ func (x *Newtype) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Newtype.ProtoReflect.Descriptor instead.
 func (*Newtype) Descriptor() ([]byte, []int) {
-	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{8}
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *Newtype) GetParams() []*Param {
@@ -814,19 +1725,253 @@ func (x *Newtype) GetBase() *ID {
 	return nil
 }
 
+func (x *Newtype) GetConstraints() []*ClassRef {
+	if x != nil {
+		return x.Constraints
+	}
+	return nil
+}
+
+func (x *Newtype) GetValueConstraints() []*Constraint {
+	if x != nil {
+		return x.ValueConstraints
+	}
+	return nil
+}
+
+// Literal is a value written in the source: a field default, a constraint
+// argument, or a directive argument.
+type Literal struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Kind     LiteralKind            `protobuf:"varint,1,opt,name=kind,proto3,enum=tdl.ir.v1.LiteralKind" json:"kind,omitempty"`
+	Text     string                 `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`   // decoded for STRING, the pattern for REGEX, the name for NAME
+	Items    []*Literal             `protobuf:"bytes,3,rep,name=items,proto3" json:"items,omitempty"` // set for LIST
+	Range    *Range                 `protobuf:"bytes,4,opt,name=range,proto3" json:"range,omitempty"` // set for RANGE
+	Position *Position              `protobuf:"bytes,5,opt,name=position,proto3" json:"position,omitempty"`
+	// variant names the enum variant a NAME literal resolves to, checked
+	// against the field's type. Unset when it did not resolve.
+	Variant       *ID `protobuf:"bytes,6,opt,name=variant,proto3" json:"variant,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Literal) Reset() {
+	*x = Literal{}
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Literal) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Literal) ProtoMessage() {}
+
+func (x *Literal) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Literal.ProtoReflect.Descriptor instead.
+func (*Literal) Descriptor() ([]byte, []int) {
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *Literal) GetKind() LiteralKind {
+	if x != nil {
+		return x.Kind
+	}
+	return LiteralKind_LITERAL_KIND_UNSPECIFIED
+}
+
+func (x *Literal) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
+func (x *Literal) GetItems() []*Literal {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+func (x *Literal) GetRange() *Range {
+	if x != nil {
+		return x.Range
+	}
+	return nil
+}
+
+func (x *Literal) GetPosition() *Position {
+	if x != nil {
+		return x.Position
+	}
+	return nil
+}
+
+func (x *Literal) GetVariant() *ID {
+	if x != nil {
+		return x.Variant
+	}
+	return nil
+}
+
+// Range is a bound with either end optional: `3..254`, `1..`, `..64`.
+type Range struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Low           *int64                 `protobuf:"varint,1,opt,name=low,proto3,oneof" json:"low,omitempty"`
+	High          *int64                 `protobuf:"varint,2,opt,name=high,proto3,oneof" json:"high,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Range) Reset() {
+	*x = Range{}
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Range) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Range) ProtoMessage() {}
+
+func (x *Range) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Range.ProtoReflect.Descriptor instead.
+func (*Range) Descriptor() ([]byte, []int) {
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *Range) GetLow() int64 {
+	if x != nil && x.Low != nil {
+		return *x.Low
+	}
+	return 0
+}
+
+func (x *Range) GetHigh() int64 {
+	if x != nil && x.High != nil {
+		return *x.High
+	}
+	return 0
+}
+
+// Constraint is one entry in a `where { ... }` block.
+//
+// The set of names is open. The compiler checks the arity and argument
+// kinds of the standard names and passes everything else through, so a
+// backend may understand a constraint the compiler has never heard of.
+type Constraint struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Name     string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Args     []*Literal             `protobuf:"bytes,2,rep,name=args,proto3" json:"args,omitempty"`
+	Position *Position              `protobuf:"bytes,3,opt,name=position,proto3" json:"position,omitempty"`
+	// from names the newtype a constraint was inherited from, unset for one
+	// written on this declaration. A newtype narrows its parent and never
+	// replaces it, so the accumulated set is what a backend needs and the
+	// origin is what it needs to explain itself.
+	From          *ID `protobuf:"bytes,4,opt,name=from,proto3" json:"from,omitempty"` // indexes Model.decls
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Constraint) Reset() {
+	*x = Constraint{}
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Constraint) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Constraint) ProtoMessage() {}
+
+func (x *Constraint) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Constraint.ProtoReflect.Descriptor instead.
+func (*Constraint) Descriptor() ([]byte, []int) {
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *Constraint) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Constraint) GetArgs() []*Literal {
+	if x != nil {
+		return x.Args
+	}
+	return nil
+}
+
+func (x *Constraint) GetPosition() *Position {
+	if x != nil {
+		return x.Position
+	}
+	return nil
+}
+
+func (x *Constraint) GetFrom() *ID {
+	if x != nil {
+		return x.From
+	}
+	return nil
+}
+
 // Struct is an entity, a value, or a mixin.
 type Struct struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Kind          StructKind             `protobuf:"varint,1,opt,name=kind,proto3,enum=tdl.ir.v1.StructKind" json:"kind,omitempty"`
 	Params        []*Param               `protobuf:"bytes,2,rep,name=params,proto3" json:"params,omitempty"`
 	Fields        []*Field               `protobuf:"bytes,3,rep,name=fields,proto3" json:"fields,omitempty"`
+	Conforms      []*ClassRef            `protobuf:"bytes,4,rep,name=conforms,proto3" json:"conforms,omitempty"`       // classes this declaration says it satisfies
+	Constraints   []*ClassRef            `protobuf:"bytes,5,rep,name=constraints,proto3" json:"constraints,omitempty"` // the `requires` clause on its parameters
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Struct) Reset() {
 	*x = Struct{}
-	mi := &file_tdl_ir_v1_ir_proto_msgTypes[9]
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -838,7 +1983,7 @@ func (x *Struct) String() string {
 func (*Struct) ProtoMessage() {}
 
 func (x *Struct) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_ir_v1_ir_proto_msgTypes[9]
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -851,7 +1996,7 @@ func (x *Struct) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Struct.ProtoReflect.Descriptor instead.
 func (*Struct) Descriptor() ([]byte, []int) {
-	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{9}
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *Struct) GetKind() StructKind {
@@ -875,19 +2020,35 @@ func (x *Struct) GetFields() []*Field {
 	return nil
 }
 
+func (x *Struct) GetConforms() []*ClassRef {
+	if x != nil {
+		return x.Conforms
+	}
+	return nil
+}
+
+func (x *Struct) GetConstraints() []*ClassRef {
+	if x != nil {
+		return x.Constraints
+	}
+	return nil
+}
+
 // Enum is a closed set of variants. A variant may carry fields, which makes
 // enum the language's sum type.
 type Enum struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Params        []*Param               `protobuf:"bytes,1,rep,name=params,proto3" json:"params,omitempty"`
 	Variants      []*Variant             `protobuf:"bytes,2,rep,name=variants,proto3" json:"variants,omitempty"`
+	Conforms      []*ClassRef            `protobuf:"bytes,3,rep,name=conforms,proto3" json:"conforms,omitempty"`
+	Constraints   []*ClassRef            `protobuf:"bytes,4,rep,name=constraints,proto3" json:"constraints,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Enum) Reset() {
 	*x = Enum{}
-	mi := &file_tdl_ir_v1_ir_proto_msgTypes[10]
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -899,7 +2060,7 @@ func (x *Enum) String() string {
 func (*Enum) ProtoMessage() {}
 
 func (x *Enum) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_ir_v1_ir_proto_msgTypes[10]
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -912,7 +2073,7 @@ func (x *Enum) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Enum.ProtoReflect.Descriptor instead.
 func (*Enum) Descriptor() ([]byte, []int) {
-	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{10}
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *Enum) GetParams() []*Param {
@@ -929,6 +2090,20 @@ func (x *Enum) GetVariants() []*Variant {
 	return nil
 }
 
+func (x *Enum) GetConforms() []*ClassRef {
+	if x != nil {
+		return x.Conforms
+	}
+	return nil
+}
+
+func (x *Enum) GetConstraints() []*ClassRef {
+	if x != nil {
+		return x.Constraints
+	}
+	return nil
+}
+
 // Variant is one alternative in an Enum.
 type Variant struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -940,7 +2115,7 @@ type Variant struct {
 
 func (x *Variant) Reset() {
 	*x = Variant{}
-	mi := &file_tdl_ir_v1_ir_proto_msgTypes[11]
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -952,7 +2127,7 @@ func (x *Variant) String() string {
 func (*Variant) ProtoMessage() {}
 
 func (x *Variant) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_ir_v1_ir_proto_msgTypes[11]
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -965,7 +2140,7 @@ func (x *Variant) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Variant.ProtoReflect.Descriptor instead.
 func (*Variant) Descriptor() ([]byte, []int) {
-	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{11}
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *Variant) GetMeta() *Meta {
@@ -984,18 +2159,25 @@ func (x *Variant) GetFields() []*Field {
 
 // Field is a named, typed member.
 type Field struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Meta          *Meta                  `protobuf:"bytes,1,opt,name=meta,proto3" json:"meta,omitempty"`
-	Type          *ID                    `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`    // indexes Model.types
-	Key           bool                   `protobuf:"varint,3,opt,name=key,proto3" json:"key,omitempty"`     // part of the entity's identity
-	Owned         bool                   `protobuf:"varint,4,opt,name=owned,proto3" json:"owned,omitempty"` // composition rather than reference
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	Meta         *Meta                  `protobuf:"bytes,1,opt,name=meta,proto3" json:"meta,omitempty"`
+	Type         *ID                    `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`    // indexes Model.types
+	Key          bool                   `protobuf:"varint,3,opt,name=key,proto3" json:"key,omitempty"`     // part of the entity's identity
+	Owned        bool                   `protobuf:"varint,4,opt,name=owned,proto3" json:"owned,omitempty"` // composition rather than reference
+	Constraints  []*Constraint          `protobuf:"bytes,6,rep,name=constraints,proto3" json:"constraints,omitempty"`
+	DefaultValue *Literal               `protobuf:"bytes,7,opt,name=default_value,json=defaultValue,proto3" json:"default_value,omitempty"` // unset when the field has no default
+	Directives   []*Directive           `protobuf:"bytes,8,rep,name=directives,proto3" json:"directives,omitempty"`
+	// included_from names the mixin a field was copied from, so a backend
+	// that can express the grouping does not have to reconstruct it. Unset
+	// for a field the declaration wrote itself.
+	IncludedFrom  *ID `protobuf:"bytes,5,opt,name=included_from,json=includedFrom,proto3" json:"included_from,omitempty"` // indexes Model.decls
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Field) Reset() {
 	*x = Field{}
-	mi := &file_tdl_ir_v1_ir_proto_msgTypes[12]
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1007,7 +2189,7 @@ func (x *Field) String() string {
 func (*Field) ProtoMessage() {}
 
 func (x *Field) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_ir_v1_ir_proto_msgTypes[12]
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1020,7 +2202,7 @@ func (x *Field) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Field.ProtoReflect.Descriptor instead.
 func (*Field) Descriptor() ([]byte, []int) {
-	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{12}
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *Field) GetMeta() *Meta {
@@ -1051,6 +2233,34 @@ func (x *Field) GetOwned() bool {
 	return false
 }
 
+func (x *Field) GetConstraints() []*Constraint {
+	if x != nil {
+		return x.Constraints
+	}
+	return nil
+}
+
+func (x *Field) GetDefaultValue() *Literal {
+	if x != nil {
+		return x.DefaultValue
+	}
+	return nil
+}
+
+func (x *Field) GetDirectives() []*Directive {
+	if x != nil {
+		return x.Directives
+	}
+	return nil
+}
+
+func (x *Field) GetIncludedFrom() *ID {
+	if x != nil {
+		return x.IncludedFrom
+	}
+	return nil
+}
+
 // Param is one type parameter.
 type Param struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -1063,7 +2273,7 @@ type Param struct {
 
 func (x *Param) Reset() {
 	*x = Param{}
-	mi := &file_tdl_ir_v1_ir_proto_msgTypes[13]
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1075,7 +2285,7 @@ func (x *Param) String() string {
 func (*Param) ProtoMessage() {}
 
 func (x *Param) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_ir_v1_ir_proto_msgTypes[13]
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1088,7 +2298,7 @@ func (x *Param) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Param.ProtoReflect.Descriptor instead.
 func (*Param) Descriptor() ([]byte, []int) {
-	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{13}
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *Param) GetName() string {
@@ -1125,7 +2335,7 @@ type Kind struct {
 
 func (x *Kind) Reset() {
 	*x = Kind{}
-	mi := &file_tdl_ir_v1_ir_proto_msgTypes[14]
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1137,7 +2347,7 @@ func (x *Kind) String() string {
 func (*Kind) ProtoMessage() {}
 
 func (x *Kind) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_ir_v1_ir_proto_msgTypes[14]
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1150,7 +2360,7 @@ func (x *Kind) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Kind.ProtoReflect.Descriptor instead.
 func (*Kind) Descriptor() ([]byte, []int) {
-	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{14}
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *Kind) GetAtom() KindAtom {
@@ -1181,18 +2391,19 @@ func (x *Kind) GetArrow() *Kind {
 // an ID comparison is a type comparison.
 type Type struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ctor          *ID                    `protobuf:"bytes,1,opt,name=ctor,proto3" json:"ctor,omitempty"` // indexes Model.decls; unset when param is set
+	Ctor          *ID                    `protobuf:"bytes,1,opt,name=ctor,proto3" json:"ctor,omitempty"` // indexes Model.decls; unset when param or extern is set
 	Args          []*ID                  `protobuf:"bytes,2,rep,name=args,proto3" json:"args,omitempty"` // indexes Model.types
 	Wrote         SyntacticForm          `protobuf:"varint,3,opt,name=wrote,proto3,enum=tdl.ir.v1.SyntacticForm" json:"wrote,omitempty"`
 	Position      *Position              `protobuf:"bytes,4,opt,name=position,proto3" json:"position,omitempty"`
-	Param         *ParamRef              `protobuf:"bytes,5,opt,name=param,proto3" json:"param,omitempty"` // set instead of ctor for a type parameter
+	Param         *ParamRef              `protobuf:"bytes,5,opt,name=param,proto3" json:"param,omitempty"`   // set instead of ctor for a type parameter
+	Extern        *ID                    `protobuf:"bytes,6,opt,name=extern,proto3" json:"extern,omitempty"` // set instead of ctor; indexes Model.externs
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Type) Reset() {
 	*x = Type{}
-	mi := &file_tdl_ir_v1_ir_proto_msgTypes[15]
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1204,7 +2415,7 @@ func (x *Type) String() string {
 func (*Type) ProtoMessage() {}
 
 func (x *Type) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_ir_v1_ir_proto_msgTypes[15]
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1217,7 +2428,7 @@ func (x *Type) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Type.ProtoReflect.Descriptor instead.
 func (*Type) Descriptor() ([]byte, []int) {
-	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{15}
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *Type) GetCtor() *ID {
@@ -1255,6 +2466,13 @@ func (x *Type) GetParam() *ParamRef {
 	return nil
 }
 
+func (x *Type) GetExtern() *ID {
+	if x != nil {
+		return x.Extern
+	}
+	return nil
+}
+
 // ParamRef is a use of a type parameter.
 //
 // Parameters survive rather than being monomorphized away, so a backend
@@ -1271,7 +2489,7 @@ type ParamRef struct {
 
 func (x *ParamRef) Reset() {
 	*x = ParamRef{}
-	mi := &file_tdl_ir_v1_ir_proto_msgTypes[16]
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1283,7 +2501,7 @@ func (x *ParamRef) String() string {
 func (*ParamRef) ProtoMessage() {}
 
 func (x *ParamRef) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_ir_v1_ir_proto_msgTypes[16]
+	mi := &file_tdl_ir_v1_ir_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1296,7 +2514,7 @@ func (x *ParamRef) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ParamRef.ProtoReflect.Descriptor instead.
 func (*ParamRef) Descriptor() ([]byte, []int) {
-	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{16}
+	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *ParamRef) GetName() string {
@@ -1342,42 +2560,139 @@ const file_tdl_ir_v1_ir_proto_rawDesc = "" +
 	"\n" +
 	"deprecated\x18\x04 \x01(\v2\x16.tdl.ir.v1.DeprecationR\n" +
 	"deprecated\x12\x14\n" +
-	"\x05order\x18\x05 \x01(\x05R\x05order\"o\n" +
+	"\x05order\x18\x05 \x01(\x05R\x05order\"\xe5\x02\n" +
 	"\x05Model\x12\x18\n" +
 	"\apackage\x18\x01 \x01(\tR\apackage\x12%\n" +
 	"\x05decls\x18\x02 \x03(\v2\x0f.tdl.ir.v1.DeclR\x05decls\x12%\n" +
-	"\x05types\x18\x03 \x03(\v2\x0f.tdl.ir.v1.TypeR\x05types\"\xab\x02\n" +
+	"\x05types\x18\x03 \x03(\v2\x0f.tdl.ir.v1.TypeR\x05types\x12+\n" +
+	"\aimports\x18\x04 \x03(\v2\x11.tdl.ir.v1.ImportR\aimports\x12+\n" +
+	"\aexterns\x18\x05 \x03(\v2\x11.tdl.ir.v1.ExternR\aexterns\x121\n" +
+	"\tinstances\x18\x06 \x03(\v2\x13.tdl.ir.v1.InstanceR\tinstances\x125\n" +
+	"\tsatisfies\x18\a \x03(\v2\x17.tdl.ir.v1.SatisfactionR\tsatisfies\x120\n" +
+	"\atargets\x18\b \x03(\v2\x16.tdl.ir.v1.TargetBlockR\atargets\"\x89\x01\n" +
+	"\vTargetBlock\x12#\n" +
+	"\x04meta\x18\x01 \x01(\v2\x0f.tdl.ir.v1.MetaR\x04meta\x12\x1f\n" +
+	"\vfor_package\x18\x02 \x01(\tR\n" +
+	"forPackage\x124\n" +
+	"\n" +
+	"directives\x18\x03 \x03(\v2\x14.tdl.ir.v1.DirectiveR\n" +
+	"directives\"\xbe\x01\n" +
+	"\tDirective\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12&\n" +
+	"\x04args\x18\x02 \x03(\v2\x12.tdl.ir.v1.LiteralR\x04args\x12/\n" +
+	"\bposition\x18\x03 \x01(\v2\x13.tdl.ir.v1.PositionR\bposition\x12\x16\n" +
+	"\x06target\x18\x04 \x01(\tR\x06target\x12,\n" +
+	"\n" +
+	"from_class\x18\x05 \x01(\v2\r.tdl.ir.v1.IDR\tfromClass\"\xe1\x01\n" +
+	"\bInstance\x12#\n" +
+	"\x04meta\x18\x01 \x01(\v2\x0f.tdl.ir.v1.MetaR\x04meta\x12(\n" +
+	"\x06params\x18\x02 \x03(\v2\x10.tdl.ir.v1.ParamR\x06params\x12)\n" +
+	"\x05class\x18\x03 \x01(\v2\x13.tdl.ir.v1.ClassRefR\x05class\x12/\n" +
+	"\brequires\x18\x04 \x03(\v2\x13.tdl.ir.v1.ClassRefR\brequires\x12*\n" +
+	"\x05binds\x18\x05 \x03(\v2\x14.tdl.ir.v1.AssocBindR\x05binds\"s\n" +
+	"\tAssocBind\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
+	"\x04type\x18\x02 \x01(\v2\r.tdl.ir.v1.IDR\x04type\x12/\n" +
+	"\bposition\x18\x03 \x01(\v2\x13.tdl.ir.v1.PositionR\bposition\"\xaa\x01\n" +
+	"\bClassRef\x12#\n" +
+	"\x05class\x18\x01 \x01(\v2\r.tdl.ir.v1.IDR\x05class\x12%\n" +
+	"\x06extern\x18\x02 \x01(\v2\r.tdl.ir.v1.IDR\x06extern\x12!\n" +
+	"\x04args\x18\x03 \x03(\v2\r.tdl.ir.v1.IDR\x04args\x12/\n" +
+	"\bposition\x18\x04 \x01(\v2\x13.tdl.ir.v1.PositionR\bposition\"}\n" +
+	"\fSatisfaction\x12#\n" +
+	"\x05class\x18\x01 \x01(\v2\r.tdl.ir.v1.IDR\x05class\x12#\n" +
+	"\x05decls\x18\x02 \x03(\v2\r.tdl.ir.v1.IDR\x05decls\x12#\n" +
+	"\x05types\x18\x03 \x03(\v2\r.tdl.ir.v1.IDR\x05types\"}\n" +
+	"\x06Import\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12\x14\n" +
+	"\x05alias\x18\x02 \x01(\tR\x05alias\x12\x18\n" +
+	"\apackage\x18\x03 \x01(\tR\apackage\x12/\n" +
+	"\bposition\x18\x04 \x01(\v2\x13.tdl.ir.v1.PositionR\bposition\"g\n" +
+	"\x06Extern\x12\x18\n" +
+	"\apackage\x18\x01 \x01(\tR\apackage\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12/\n" +
+	"\bposition\x18\x03 \x01(\v2\x13.tdl.ir.v1.PositionR\bposition\"\x8b\x03\n" +
 	"\x04Decl\x12#\n" +
 	"\x04meta\x18\x01 \x01(\v2\x0f.tdl.ir.v1.MetaR\x04meta\x124\n" +
+	"\n" +
+	"directives\x18\b \x03(\v2\x14.tdl.ir.v1.DirectiveR\n" +
+	"directives\x124\n" +
 	"\tprimitive\x18\x02 \x01(\v2\x14.tdl.ir.v1.PrimitiveH\x00R\tprimitive\x12(\n" +
 	"\x05alias\x18\x03 \x01(\v2\x10.tdl.ir.v1.AliasH\x00R\x05alias\x12.\n" +
 	"\anewtype\x18\x04 \x01(\v2\x12.tdl.ir.v1.NewtypeH\x00R\anewtype\x121\n" +
 	"\tstructure\x18\x05 \x01(\v2\x11.tdl.ir.v1.StructH\x00R\tstructure\x123\n" +
-	"\venumeration\x18\x06 \x01(\v2\x0f.tdl.ir.v1.EnumH\x00R\venumerationB\x06\n" +
-	"\x04node\"0\n" +
+	"\venumeration\x18\x06 \x01(\v2\x0f.tdl.ir.v1.EnumH\x00R\venumeration\x12(\n" +
+	"\x05class\x18\a \x01(\v2\x10.tdl.ir.v1.ClassH\x00R\x05classB\x06\n" +
+	"\x04node\"\xda\x02\n" +
+	"\x05Class\x12(\n" +
+	"\x06params\x18\x01 \x03(\v2\x10.tdl.ir.v1.ParamR\x06params\x12,\n" +
+	"\bfun_deps\x18\x02 \x03(\v2\x11.tdl.ir.v1.FunDepR\afunDeps\x12>\n" +
+	"\x10requires_classes\x18\x03 \x03(\v2\x13.tdl.ir.v1.ClassRefR\x0frequiresClasses\x125\n" +
+	"\vconstraints\x18\x04 \x03(\v2\x13.tdl.ir.v1.ClassRefR\vconstraints\x12(\n" +
+	"\x06fields\x18\x05 \x03(\v2\x10.tdl.ir.v1.FieldR\x06fields\x12!\n" +
+	"\frequires_key\x18\x06 \x01(\bR\vrequiresKey\x125\n" +
+	"\vassoc_types\x18\a \x03(\v2\x14.tdl.ir.v1.AssocTypeR\n" +
+	"assocTypes\"]\n" +
+	"\x06FunDep\x12\x12\n" +
+	"\x04from\x18\x01 \x03(\tR\x04from\x12\x0e\n" +
+	"\x02to\x18\x02 \x03(\tR\x02to\x12/\n" +
+	"\bposition\x18\x03 \x01(\v2\x13.tdl.ir.v1.PositionR\bposition\"U\n" +
+	"\tAssocType\x12#\n" +
+	"\x04meta\x18\x01 \x01(\v2\x0f.tdl.ir.v1.MetaR\x04meta\x12#\n" +
+	"\x04kind\x18\x02 \x01(\v2\x0f.tdl.ir.v1.KindR\x04kind\"0\n" +
 	"\tPrimitive\x12#\n" +
 	"\x04kind\x18\x01 \x01(\v2\x0f.tdl.ir.v1.KindR\x04kind\"X\n" +
 	"\x05Alias\x12(\n" +
 	"\x06params\x18\x01 \x03(\v2\x10.tdl.ir.v1.ParamR\x06params\x12%\n" +
-	"\x06target\x18\x02 \x01(\v2\r.tdl.ir.v1.IDR\x06target\"V\n" +
+	"\x06target\x18\x02 \x01(\v2\r.tdl.ir.v1.IDR\x06target\"\xd1\x01\n" +
 	"\aNewtype\x12(\n" +
 	"\x06params\x18\x01 \x03(\v2\x10.tdl.ir.v1.ParamR\x06params\x12!\n" +
-	"\x04base\x18\x02 \x01(\v2\r.tdl.ir.v1.IDR\x04base\"\x87\x01\n" +
+	"\x04base\x18\x02 \x01(\v2\r.tdl.ir.v1.IDR\x04base\x125\n" +
+	"\vconstraints\x18\x03 \x03(\v2\x13.tdl.ir.v1.ClassRefR\vconstraints\x12B\n" +
+	"\x11value_constraints\x18\x04 \x03(\v2\x15.tdl.ir.v1.ConstraintR\x10valueConstraints\"\xf5\x01\n" +
+	"\aLiteral\x12*\n" +
+	"\x04kind\x18\x01 \x01(\x0e2\x16.tdl.ir.v1.LiteralKindR\x04kind\x12\x12\n" +
+	"\x04text\x18\x02 \x01(\tR\x04text\x12(\n" +
+	"\x05items\x18\x03 \x03(\v2\x12.tdl.ir.v1.LiteralR\x05items\x12&\n" +
+	"\x05range\x18\x04 \x01(\v2\x10.tdl.ir.v1.RangeR\x05range\x12/\n" +
+	"\bposition\x18\x05 \x01(\v2\x13.tdl.ir.v1.PositionR\bposition\x12'\n" +
+	"\avariant\x18\x06 \x01(\v2\r.tdl.ir.v1.IDR\avariant\"H\n" +
+	"\x05Range\x12\x15\n" +
+	"\x03low\x18\x01 \x01(\x03H\x00R\x03low\x88\x01\x01\x12\x17\n" +
+	"\x04high\x18\x02 \x01(\x03H\x01R\x04high\x88\x01\x01B\x06\n" +
+	"\x04_lowB\a\n" +
+	"\x05_high\"\x9c\x01\n" +
+	"\n" +
+	"Constraint\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12&\n" +
+	"\x04args\x18\x02 \x03(\v2\x12.tdl.ir.v1.LiteralR\x04args\x12/\n" +
+	"\bposition\x18\x03 \x01(\v2\x13.tdl.ir.v1.PositionR\bposition\x12!\n" +
+	"\x04from\x18\x04 \x01(\v2\r.tdl.ir.v1.IDR\x04from\"\xef\x01\n" +
 	"\x06Struct\x12)\n" +
 	"\x04kind\x18\x01 \x01(\x0e2\x15.tdl.ir.v1.StructKindR\x04kind\x12(\n" +
 	"\x06params\x18\x02 \x03(\v2\x10.tdl.ir.v1.ParamR\x06params\x12(\n" +
-	"\x06fields\x18\x03 \x03(\v2\x10.tdl.ir.v1.FieldR\x06fields\"`\n" +
+	"\x06fields\x18\x03 \x03(\v2\x10.tdl.ir.v1.FieldR\x06fields\x12/\n" +
+	"\bconforms\x18\x04 \x03(\v2\x13.tdl.ir.v1.ClassRefR\bconforms\x125\n" +
+	"\vconstraints\x18\x05 \x03(\v2\x13.tdl.ir.v1.ClassRefR\vconstraints\"\xc8\x01\n" +
 	"\x04Enum\x12(\n" +
 	"\x06params\x18\x01 \x03(\v2\x10.tdl.ir.v1.ParamR\x06params\x12.\n" +
-	"\bvariants\x18\x02 \x03(\v2\x12.tdl.ir.v1.VariantR\bvariants\"X\n" +
+	"\bvariants\x18\x02 \x03(\v2\x12.tdl.ir.v1.VariantR\bvariants\x12/\n" +
+	"\bconforms\x18\x03 \x03(\v2\x13.tdl.ir.v1.ClassRefR\bconforms\x125\n" +
+	"\vconstraints\x18\x04 \x03(\v2\x13.tdl.ir.v1.ClassRefR\vconstraints\"X\n" +
 	"\aVariant\x12#\n" +
 	"\x04meta\x18\x01 \x01(\v2\x0f.tdl.ir.v1.MetaR\x04meta\x12(\n" +
-	"\x06fields\x18\x02 \x03(\v2\x10.tdl.ir.v1.FieldR\x06fields\"w\n" +
+	"\x06fields\x18\x02 \x03(\v2\x10.tdl.ir.v1.FieldR\x06fields\"\xd3\x02\n" +
 	"\x05Field\x12#\n" +
 	"\x04meta\x18\x01 \x01(\v2\x0f.tdl.ir.v1.MetaR\x04meta\x12!\n" +
 	"\x04type\x18\x02 \x01(\v2\r.tdl.ir.v1.IDR\x04type\x12\x10\n" +
 	"\x03key\x18\x03 \x01(\bR\x03key\x12\x14\n" +
-	"\x05owned\x18\x04 \x01(\bR\x05owned\"q\n" +
+	"\x05owned\x18\x04 \x01(\bR\x05owned\x127\n" +
+	"\vconstraints\x18\x06 \x03(\v2\x15.tdl.ir.v1.ConstraintR\vconstraints\x127\n" +
+	"\rdefault_value\x18\a \x01(\v2\x12.tdl.ir.v1.LiteralR\fdefaultValue\x124\n" +
+	"\n" +
+	"directives\x18\b \x03(\v2\x14.tdl.ir.v1.DirectiveR\n" +
+	"directives\x122\n" +
+	"\rincluded_from\x18\x05 \x01(\v2\r.tdl.ir.v1.IDR\fincludedFrom\"q\n" +
 	"\x05Param\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12#\n" +
 	"\x04kind\x18\x02 \x01(\v2\x0f.tdl.ir.v1.KindR\x04kind\x12/\n" +
@@ -1385,17 +2700,28 @@ const file_tdl_ir_v1_ir_proto_rawDesc = "" +
 	"\x04Kind\x12'\n" +
 	"\x04atom\x18\x01 \x01(\x0e2\x13.tdl.ir.v1.KindAtomR\x04atom\x12%\n" +
 	"\x05paren\x18\x02 \x01(\v2\x0f.tdl.ir.v1.KindR\x05paren\x12%\n" +
-	"\x05arrow\x18\x03 \x01(\v2\x0f.tdl.ir.v1.KindR\x05arrow\"\xd8\x01\n" +
+	"\x05arrow\x18\x03 \x01(\v2\x0f.tdl.ir.v1.KindR\x05arrow\"\xff\x01\n" +
 	"\x04Type\x12!\n" +
 	"\x04ctor\x18\x01 \x01(\v2\r.tdl.ir.v1.IDR\x04ctor\x12!\n" +
 	"\x04args\x18\x02 \x03(\v2\r.tdl.ir.v1.IDR\x04args\x12.\n" +
 	"\x05wrote\x18\x03 \x01(\x0e2\x18.tdl.ir.v1.SyntacticFormR\x05wrote\x12/\n" +
 	"\bposition\x18\x04 \x01(\v2\x13.tdl.ir.v1.PositionR\bposition\x12)\n" +
-	"\x05param\x18\x05 \x01(\v2\x13.tdl.ir.v1.ParamRefR\x05param\"Y\n" +
+	"\x05param\x18\x05 \x01(\v2\x13.tdl.ir.v1.ParamRefR\x05param\x12%\n" +
+	"\x06extern\x18\x06 \x01(\v2\r.tdl.ir.v1.IDR\x06extern\"Y\n" +
 	"\bParamRef\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05index\x18\x02 \x01(\x05R\x05index\x12#\n" +
-	"\x05owner\x18\x03 \x01(\v2\r.tdl.ir.v1.IDR\x05owner*o\n" +
+	"\x05owner\x18\x03 \x01(\v2\r.tdl.ir.v1.IDR\x05owner*\xe7\x01\n" +
+	"\vLiteralKind\x12\x1c\n" +
+	"\x18LITERAL_KIND_UNSPECIFIED\x10\x00\x12\x17\n" +
+	"\x13LITERAL_KIND_STRING\x10\x01\x12\x14\n" +
+	"\x10LITERAL_KIND_INT\x10\x02\x12\x16\n" +
+	"\x12LITERAL_KIND_FLOAT\x10\x03\x12\x15\n" +
+	"\x11LITERAL_KIND_BOOL\x10\x04\x12\x15\n" +
+	"\x11LITERAL_KIND_NAME\x10\x05\x12\x16\n" +
+	"\x12LITERAL_KIND_REGEX\x10\x06\x12\x15\n" +
+	"\x11LITERAL_KIND_LIST\x10\a\x12\x16\n" +
+	"\x12LITERAL_KIND_RANGE\x10\b*o\n" +
 	"\n" +
 	"StructKind\x12\x1b\n" +
 	"\x17STRUCT_KIND_UNSPECIFIED\x10\x00\x12\x16\n" +
@@ -1427,72 +2753,143 @@ func file_tdl_ir_v1_ir_proto_rawDescGZIP() []byte {
 	return file_tdl_ir_v1_ir_proto_rawDescData
 }
 
-var file_tdl_ir_v1_ir_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_tdl_ir_v1_ir_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_tdl_ir_v1_ir_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_tdl_ir_v1_ir_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
 var file_tdl_ir_v1_ir_proto_goTypes = []any{
-	(StructKind)(0),     // 0: tdl.ir.v1.StructKind
-	(KindAtom)(0),       // 1: tdl.ir.v1.KindAtom
-	(SyntacticForm)(0),  // 2: tdl.ir.v1.SyntacticForm
-	(*ID)(nil),          // 3: tdl.ir.v1.ID
-	(*Position)(nil),    // 4: tdl.ir.v1.Position
-	(*Deprecation)(nil), // 5: tdl.ir.v1.Deprecation
-	(*Meta)(nil),        // 6: tdl.ir.v1.Meta
-	(*Model)(nil),       // 7: tdl.ir.v1.Model
-	(*Decl)(nil),        // 8: tdl.ir.v1.Decl
-	(*Primitive)(nil),   // 9: tdl.ir.v1.Primitive
-	(*Alias)(nil),       // 10: tdl.ir.v1.Alias
-	(*Newtype)(nil),     // 11: tdl.ir.v1.Newtype
-	(*Struct)(nil),      // 12: tdl.ir.v1.Struct
-	(*Enum)(nil),        // 13: tdl.ir.v1.Enum
-	(*Variant)(nil),     // 14: tdl.ir.v1.Variant
-	(*Field)(nil),       // 15: tdl.ir.v1.Field
-	(*Param)(nil),       // 16: tdl.ir.v1.Param
-	(*Kind)(nil),        // 17: tdl.ir.v1.Kind
-	(*Type)(nil),        // 18: tdl.ir.v1.Type
-	(*ParamRef)(nil),    // 19: tdl.ir.v1.ParamRef
+	(LiteralKind)(0),     // 0: tdl.ir.v1.LiteralKind
+	(StructKind)(0),      // 1: tdl.ir.v1.StructKind
+	(KindAtom)(0),        // 2: tdl.ir.v1.KindAtom
+	(SyntacticForm)(0),   // 3: tdl.ir.v1.SyntacticForm
+	(*ID)(nil),           // 4: tdl.ir.v1.ID
+	(*Position)(nil),     // 5: tdl.ir.v1.Position
+	(*Deprecation)(nil),  // 6: tdl.ir.v1.Deprecation
+	(*Meta)(nil),         // 7: tdl.ir.v1.Meta
+	(*Model)(nil),        // 8: tdl.ir.v1.Model
+	(*TargetBlock)(nil),  // 9: tdl.ir.v1.TargetBlock
+	(*Directive)(nil),    // 10: tdl.ir.v1.Directive
+	(*Instance)(nil),     // 11: tdl.ir.v1.Instance
+	(*AssocBind)(nil),    // 12: tdl.ir.v1.AssocBind
+	(*ClassRef)(nil),     // 13: tdl.ir.v1.ClassRef
+	(*Satisfaction)(nil), // 14: tdl.ir.v1.Satisfaction
+	(*Import)(nil),       // 15: tdl.ir.v1.Import
+	(*Extern)(nil),       // 16: tdl.ir.v1.Extern
+	(*Decl)(nil),         // 17: tdl.ir.v1.Decl
+	(*Class)(nil),        // 18: tdl.ir.v1.Class
+	(*FunDep)(nil),       // 19: tdl.ir.v1.FunDep
+	(*AssocType)(nil),    // 20: tdl.ir.v1.AssocType
+	(*Primitive)(nil),    // 21: tdl.ir.v1.Primitive
+	(*Alias)(nil),        // 22: tdl.ir.v1.Alias
+	(*Newtype)(nil),      // 23: tdl.ir.v1.Newtype
+	(*Literal)(nil),      // 24: tdl.ir.v1.Literal
+	(*Range)(nil),        // 25: tdl.ir.v1.Range
+	(*Constraint)(nil),   // 26: tdl.ir.v1.Constraint
+	(*Struct)(nil),       // 27: tdl.ir.v1.Struct
+	(*Enum)(nil),         // 28: tdl.ir.v1.Enum
+	(*Variant)(nil),      // 29: tdl.ir.v1.Variant
+	(*Field)(nil),        // 30: tdl.ir.v1.Field
+	(*Param)(nil),        // 31: tdl.ir.v1.Param
+	(*Kind)(nil),         // 32: tdl.ir.v1.Kind
+	(*Type)(nil),         // 33: tdl.ir.v1.Type
+	(*ParamRef)(nil),     // 34: tdl.ir.v1.ParamRef
 }
 var file_tdl_ir_v1_ir_proto_depIdxs = []int32{
-	4,  // 0: tdl.ir.v1.Deprecation.position:type_name -> tdl.ir.v1.Position
-	4,  // 1: tdl.ir.v1.Meta.position:type_name -> tdl.ir.v1.Position
-	5,  // 2: tdl.ir.v1.Meta.deprecated:type_name -> tdl.ir.v1.Deprecation
-	8,  // 3: tdl.ir.v1.Model.decls:type_name -> tdl.ir.v1.Decl
-	18, // 4: tdl.ir.v1.Model.types:type_name -> tdl.ir.v1.Type
-	6,  // 5: tdl.ir.v1.Decl.meta:type_name -> tdl.ir.v1.Meta
-	9,  // 6: tdl.ir.v1.Decl.primitive:type_name -> tdl.ir.v1.Primitive
-	10, // 7: tdl.ir.v1.Decl.alias:type_name -> tdl.ir.v1.Alias
-	11, // 8: tdl.ir.v1.Decl.newtype:type_name -> tdl.ir.v1.Newtype
-	12, // 9: tdl.ir.v1.Decl.structure:type_name -> tdl.ir.v1.Struct
-	13, // 10: tdl.ir.v1.Decl.enumeration:type_name -> tdl.ir.v1.Enum
-	17, // 11: tdl.ir.v1.Primitive.kind:type_name -> tdl.ir.v1.Kind
-	16, // 12: tdl.ir.v1.Alias.params:type_name -> tdl.ir.v1.Param
-	3,  // 13: tdl.ir.v1.Alias.target:type_name -> tdl.ir.v1.ID
-	16, // 14: tdl.ir.v1.Newtype.params:type_name -> tdl.ir.v1.Param
-	3,  // 15: tdl.ir.v1.Newtype.base:type_name -> tdl.ir.v1.ID
-	0,  // 16: tdl.ir.v1.Struct.kind:type_name -> tdl.ir.v1.StructKind
-	16, // 17: tdl.ir.v1.Struct.params:type_name -> tdl.ir.v1.Param
-	15, // 18: tdl.ir.v1.Struct.fields:type_name -> tdl.ir.v1.Field
-	16, // 19: tdl.ir.v1.Enum.params:type_name -> tdl.ir.v1.Param
-	14, // 20: tdl.ir.v1.Enum.variants:type_name -> tdl.ir.v1.Variant
-	6,  // 21: tdl.ir.v1.Variant.meta:type_name -> tdl.ir.v1.Meta
-	15, // 22: tdl.ir.v1.Variant.fields:type_name -> tdl.ir.v1.Field
-	6,  // 23: tdl.ir.v1.Field.meta:type_name -> tdl.ir.v1.Meta
-	3,  // 24: tdl.ir.v1.Field.type:type_name -> tdl.ir.v1.ID
-	17, // 25: tdl.ir.v1.Param.kind:type_name -> tdl.ir.v1.Kind
-	4,  // 26: tdl.ir.v1.Param.position:type_name -> tdl.ir.v1.Position
-	1,  // 27: tdl.ir.v1.Kind.atom:type_name -> tdl.ir.v1.KindAtom
-	17, // 28: tdl.ir.v1.Kind.paren:type_name -> tdl.ir.v1.Kind
-	17, // 29: tdl.ir.v1.Kind.arrow:type_name -> tdl.ir.v1.Kind
-	3,  // 30: tdl.ir.v1.Type.ctor:type_name -> tdl.ir.v1.ID
-	3,  // 31: tdl.ir.v1.Type.args:type_name -> tdl.ir.v1.ID
-	2,  // 32: tdl.ir.v1.Type.wrote:type_name -> tdl.ir.v1.SyntacticForm
-	4,  // 33: tdl.ir.v1.Type.position:type_name -> tdl.ir.v1.Position
-	19, // 34: tdl.ir.v1.Type.param:type_name -> tdl.ir.v1.ParamRef
-	3,  // 35: tdl.ir.v1.ParamRef.owner:type_name -> tdl.ir.v1.ID
-	36, // [36:36] is the sub-list for method output_type
-	36, // [36:36] is the sub-list for method input_type
-	36, // [36:36] is the sub-list for extension type_name
-	36, // [36:36] is the sub-list for extension extendee
-	0,  // [0:36] is the sub-list for field type_name
+	5,  // 0: tdl.ir.v1.Deprecation.position:type_name -> tdl.ir.v1.Position
+	5,  // 1: tdl.ir.v1.Meta.position:type_name -> tdl.ir.v1.Position
+	6,  // 2: tdl.ir.v1.Meta.deprecated:type_name -> tdl.ir.v1.Deprecation
+	17, // 3: tdl.ir.v1.Model.decls:type_name -> tdl.ir.v1.Decl
+	33, // 4: tdl.ir.v1.Model.types:type_name -> tdl.ir.v1.Type
+	15, // 5: tdl.ir.v1.Model.imports:type_name -> tdl.ir.v1.Import
+	16, // 6: tdl.ir.v1.Model.externs:type_name -> tdl.ir.v1.Extern
+	11, // 7: tdl.ir.v1.Model.instances:type_name -> tdl.ir.v1.Instance
+	14, // 8: tdl.ir.v1.Model.satisfies:type_name -> tdl.ir.v1.Satisfaction
+	9,  // 9: tdl.ir.v1.Model.targets:type_name -> tdl.ir.v1.TargetBlock
+	7,  // 10: tdl.ir.v1.TargetBlock.meta:type_name -> tdl.ir.v1.Meta
+	10, // 11: tdl.ir.v1.TargetBlock.directives:type_name -> tdl.ir.v1.Directive
+	24, // 12: tdl.ir.v1.Directive.args:type_name -> tdl.ir.v1.Literal
+	5,  // 13: tdl.ir.v1.Directive.position:type_name -> tdl.ir.v1.Position
+	4,  // 14: tdl.ir.v1.Directive.from_class:type_name -> tdl.ir.v1.ID
+	7,  // 15: tdl.ir.v1.Instance.meta:type_name -> tdl.ir.v1.Meta
+	31, // 16: tdl.ir.v1.Instance.params:type_name -> tdl.ir.v1.Param
+	13, // 17: tdl.ir.v1.Instance.class:type_name -> tdl.ir.v1.ClassRef
+	13, // 18: tdl.ir.v1.Instance.requires:type_name -> tdl.ir.v1.ClassRef
+	12, // 19: tdl.ir.v1.Instance.binds:type_name -> tdl.ir.v1.AssocBind
+	4,  // 20: tdl.ir.v1.AssocBind.type:type_name -> tdl.ir.v1.ID
+	5,  // 21: tdl.ir.v1.AssocBind.position:type_name -> tdl.ir.v1.Position
+	4,  // 22: tdl.ir.v1.ClassRef.class:type_name -> tdl.ir.v1.ID
+	4,  // 23: tdl.ir.v1.ClassRef.extern:type_name -> tdl.ir.v1.ID
+	4,  // 24: tdl.ir.v1.ClassRef.args:type_name -> tdl.ir.v1.ID
+	5,  // 25: tdl.ir.v1.ClassRef.position:type_name -> tdl.ir.v1.Position
+	4,  // 26: tdl.ir.v1.Satisfaction.class:type_name -> tdl.ir.v1.ID
+	4,  // 27: tdl.ir.v1.Satisfaction.decls:type_name -> tdl.ir.v1.ID
+	4,  // 28: tdl.ir.v1.Satisfaction.types:type_name -> tdl.ir.v1.ID
+	5,  // 29: tdl.ir.v1.Import.position:type_name -> tdl.ir.v1.Position
+	5,  // 30: tdl.ir.v1.Extern.position:type_name -> tdl.ir.v1.Position
+	7,  // 31: tdl.ir.v1.Decl.meta:type_name -> tdl.ir.v1.Meta
+	10, // 32: tdl.ir.v1.Decl.directives:type_name -> tdl.ir.v1.Directive
+	21, // 33: tdl.ir.v1.Decl.primitive:type_name -> tdl.ir.v1.Primitive
+	22, // 34: tdl.ir.v1.Decl.alias:type_name -> tdl.ir.v1.Alias
+	23, // 35: tdl.ir.v1.Decl.newtype:type_name -> tdl.ir.v1.Newtype
+	27, // 36: tdl.ir.v1.Decl.structure:type_name -> tdl.ir.v1.Struct
+	28, // 37: tdl.ir.v1.Decl.enumeration:type_name -> tdl.ir.v1.Enum
+	18, // 38: tdl.ir.v1.Decl.class:type_name -> tdl.ir.v1.Class
+	31, // 39: tdl.ir.v1.Class.params:type_name -> tdl.ir.v1.Param
+	19, // 40: tdl.ir.v1.Class.fun_deps:type_name -> tdl.ir.v1.FunDep
+	13, // 41: tdl.ir.v1.Class.requires_classes:type_name -> tdl.ir.v1.ClassRef
+	13, // 42: tdl.ir.v1.Class.constraints:type_name -> tdl.ir.v1.ClassRef
+	30, // 43: tdl.ir.v1.Class.fields:type_name -> tdl.ir.v1.Field
+	20, // 44: tdl.ir.v1.Class.assoc_types:type_name -> tdl.ir.v1.AssocType
+	5,  // 45: tdl.ir.v1.FunDep.position:type_name -> tdl.ir.v1.Position
+	7,  // 46: tdl.ir.v1.AssocType.meta:type_name -> tdl.ir.v1.Meta
+	32, // 47: tdl.ir.v1.AssocType.kind:type_name -> tdl.ir.v1.Kind
+	32, // 48: tdl.ir.v1.Primitive.kind:type_name -> tdl.ir.v1.Kind
+	31, // 49: tdl.ir.v1.Alias.params:type_name -> tdl.ir.v1.Param
+	4,  // 50: tdl.ir.v1.Alias.target:type_name -> tdl.ir.v1.ID
+	31, // 51: tdl.ir.v1.Newtype.params:type_name -> tdl.ir.v1.Param
+	4,  // 52: tdl.ir.v1.Newtype.base:type_name -> tdl.ir.v1.ID
+	13, // 53: tdl.ir.v1.Newtype.constraints:type_name -> tdl.ir.v1.ClassRef
+	26, // 54: tdl.ir.v1.Newtype.value_constraints:type_name -> tdl.ir.v1.Constraint
+	0,  // 55: tdl.ir.v1.Literal.kind:type_name -> tdl.ir.v1.LiteralKind
+	24, // 56: tdl.ir.v1.Literal.items:type_name -> tdl.ir.v1.Literal
+	25, // 57: tdl.ir.v1.Literal.range:type_name -> tdl.ir.v1.Range
+	5,  // 58: tdl.ir.v1.Literal.position:type_name -> tdl.ir.v1.Position
+	4,  // 59: tdl.ir.v1.Literal.variant:type_name -> tdl.ir.v1.ID
+	24, // 60: tdl.ir.v1.Constraint.args:type_name -> tdl.ir.v1.Literal
+	5,  // 61: tdl.ir.v1.Constraint.position:type_name -> tdl.ir.v1.Position
+	4,  // 62: tdl.ir.v1.Constraint.from:type_name -> tdl.ir.v1.ID
+	1,  // 63: tdl.ir.v1.Struct.kind:type_name -> tdl.ir.v1.StructKind
+	31, // 64: tdl.ir.v1.Struct.params:type_name -> tdl.ir.v1.Param
+	30, // 65: tdl.ir.v1.Struct.fields:type_name -> tdl.ir.v1.Field
+	13, // 66: tdl.ir.v1.Struct.conforms:type_name -> tdl.ir.v1.ClassRef
+	13, // 67: tdl.ir.v1.Struct.constraints:type_name -> tdl.ir.v1.ClassRef
+	31, // 68: tdl.ir.v1.Enum.params:type_name -> tdl.ir.v1.Param
+	29, // 69: tdl.ir.v1.Enum.variants:type_name -> tdl.ir.v1.Variant
+	13, // 70: tdl.ir.v1.Enum.conforms:type_name -> tdl.ir.v1.ClassRef
+	13, // 71: tdl.ir.v1.Enum.constraints:type_name -> tdl.ir.v1.ClassRef
+	7,  // 72: tdl.ir.v1.Variant.meta:type_name -> tdl.ir.v1.Meta
+	30, // 73: tdl.ir.v1.Variant.fields:type_name -> tdl.ir.v1.Field
+	7,  // 74: tdl.ir.v1.Field.meta:type_name -> tdl.ir.v1.Meta
+	4,  // 75: tdl.ir.v1.Field.type:type_name -> tdl.ir.v1.ID
+	26, // 76: tdl.ir.v1.Field.constraints:type_name -> tdl.ir.v1.Constraint
+	24, // 77: tdl.ir.v1.Field.default_value:type_name -> tdl.ir.v1.Literal
+	10, // 78: tdl.ir.v1.Field.directives:type_name -> tdl.ir.v1.Directive
+	4,  // 79: tdl.ir.v1.Field.included_from:type_name -> tdl.ir.v1.ID
+	32, // 80: tdl.ir.v1.Param.kind:type_name -> tdl.ir.v1.Kind
+	5,  // 81: tdl.ir.v1.Param.position:type_name -> tdl.ir.v1.Position
+	2,  // 82: tdl.ir.v1.Kind.atom:type_name -> tdl.ir.v1.KindAtom
+	32, // 83: tdl.ir.v1.Kind.paren:type_name -> tdl.ir.v1.Kind
+	32, // 84: tdl.ir.v1.Kind.arrow:type_name -> tdl.ir.v1.Kind
+	4,  // 85: tdl.ir.v1.Type.ctor:type_name -> tdl.ir.v1.ID
+	4,  // 86: tdl.ir.v1.Type.args:type_name -> tdl.ir.v1.ID
+	3,  // 87: tdl.ir.v1.Type.wrote:type_name -> tdl.ir.v1.SyntacticForm
+	5,  // 88: tdl.ir.v1.Type.position:type_name -> tdl.ir.v1.Position
+	34, // 89: tdl.ir.v1.Type.param:type_name -> tdl.ir.v1.ParamRef
+	4,  // 90: tdl.ir.v1.Type.extern:type_name -> tdl.ir.v1.ID
+	4,  // 91: tdl.ir.v1.ParamRef.owner:type_name -> tdl.ir.v1.ID
+	92, // [92:92] is the sub-list for method output_type
+	92, // [92:92] is the sub-list for method input_type
+	92, // [92:92] is the sub-list for extension type_name
+	92, // [92:92] is the sub-list for extension extendee
+	0,  // [0:92] is the sub-list for field type_name
 }
 
 func init() { file_tdl_ir_v1_ir_proto_init() }
@@ -1500,20 +2897,22 @@ func file_tdl_ir_v1_ir_proto_init() {
 	if File_tdl_ir_v1_ir_proto != nil {
 		return
 	}
-	file_tdl_ir_v1_ir_proto_msgTypes[5].OneofWrappers = []any{
+	file_tdl_ir_v1_ir_proto_msgTypes[13].OneofWrappers = []any{
 		(*Decl_Primitive)(nil),
 		(*Decl_Alias)(nil),
 		(*Decl_Newtype)(nil),
 		(*Decl_Structure)(nil),
 		(*Decl_Enumeration)(nil),
+		(*Decl_Class)(nil),
 	}
+	file_tdl_ir_v1_ir_proto_msgTypes[21].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tdl_ir_v1_ir_proto_rawDesc), len(file_tdl_ir_v1_ir_proto_rawDesc)),
-			NumEnums:      3,
-			NumMessages:   17,
+			NumEnums:      4,
+			NumMessages:   31,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

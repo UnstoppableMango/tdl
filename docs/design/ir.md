@@ -112,6 +112,16 @@ func (m *Model) Satisfying(class ID) []ID
 A plugin that only needs "which types are `Auditable`" for a class-scoped target directive reads the index and never implements instance resolution.
 A backend doing something more involved has the declarations.
 
+The index has two halves, because the question has two shapes.
+
+`Satisfying` answers about declarations, from ground facts: a declaration that says it conforms, and an instance with concrete arguments, closed over the classes a class requires.
+
+`SatisfyingTypes` answers about instantiated types, from the conditional instance search.
+A declaration cannot stand in for these: given `instance <T> Auditable<Page<T>> requires Auditable<T>`, `Page` satisfies nothing on its own and `Page<Order>` is a type rather than a declaration.
+The search matches an instance head against a type and discharges the conditions under the binding, and the spec's two rules on an instance are checked where it is written so the search terminates.
+
+Neither half lists a foreign type: an entry names something by ID, and a dependency's declarations are not in this table.
+
 ## Aliases
 
 Aliases are preserved, and every reference to one carries the resolved underlying type too.
@@ -144,7 +154,11 @@ The compiler checks arity and literal kind against the spec and passes everythin
 A backend receives one package.
 
 Declarations from imported packages are not inlined.
-A reference into a dependency is an `ID` whose name is qualified with the dependency's package, which a backend either resolves through the model's import table or treats as foreign and maps with a `foreign` directive.
+A reference into a dependency is an `ID` into an `externs` table, one entry per foreign declaration this model mentions, carrying the declaring package and the name.
+A backend either resolves that through the model's import table or treats it as foreign and maps it with a `foreign` directive.
+
+Whether the dependency actually declares that name is not checked.
+Doing so would mean resolving every reachable package to lower one file, and the reference carries enough for a backend to resolve or reject it.
 
 This is what makes separate compilation possible, and it matches what generated code usually wants: an import, not a copy.
 
@@ -152,7 +166,9 @@ This is what makes separate compilation possible, and it matches what generated 
 
 Resolved directives attach to the nodes they apply to.
 
-By the time a backend runs, the specificity ladder has been applied, dependency and root target blocks have been merged with root winning, class-scoped directives have been expanded across every satisfying type, and equal-specificity conflicts have already been reported as errors.
+By the time a backend runs, the specificity ladder has been applied, class-scoped directives have been expanded across every satisfying type, and equal-specificity conflicts have already been reported as errors.
+
+Merging a dependency's target blocks is not done: it needs the dependency lowered, and nothing else does. See ir-plan.md phase 8b.
 
 An `Entity` carries its directives; so does each `Field`.
 A backend reads one field on the node in front of it, and never does a lookup or a precedence computation.

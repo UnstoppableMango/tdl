@@ -24,15 +24,9 @@ var update = flag.Bool("update", false, "rewrite ir.golden files")
 // Anything a corpus case reports that is not on this list is a bug in
 // lowering, not a gap in it.
 //
-// The list shrinks as docs/design/ir-plan.md is worked through, and the
-// test tightens with it: when the last entry goes, this becomes a plain
-// assertion that the corpus lowers clean.
+// Only units are left. When they land this becomes a plain assertion that
+// the corpus lowers clean, and the list and this comment go with it.
 var deferred = []struct{ prefix, phase string }{
-	{"imports are not resolved yet", "phase 5"},
-	{"qualified name ", "phase 5"},
-	{"class ", "phase 6"},
-	{"instance ", "phase 6"},
-	{"target ", "phase 8"},
 	{"unit ", "deferred in ir.md"},
 	{"unit arguments are not lowered yet", "deferred in ir.md"},
 }
@@ -70,7 +64,7 @@ func TestCorpusLowers(t *testing.T) {
 				t.Fatalf("unexpected parse error: %v", err)
 			}
 
-			model, diags := Lower(file)
+			model, diags := Lower(file, WithLoader(caseLoader(t, dir)))
 			for _, d := range diags {
 				phase, ok := deferralFor(d.Msg)
 				if !ok {
@@ -96,6 +90,31 @@ func TestCorpusLowers(t *testing.T) {
 			}
 		})
 	}
+}
+
+// caseLoader serves the other .tdl files in a case directory by their base
+// name, so the corpus can exercise imports while the goldens stay free of
+// machine-specific paths.
+func caseLoader(t *testing.T, dir string) MapLoader {
+	t.Helper()
+
+	paths, err := filepath.Glob(filepath.Join(dir, "*.tdl"))
+	if err != nil {
+		t.Fatalf("globbing %s: %v", dir, err)
+	}
+
+	m := MapLoader{}
+	for _, p := range paths {
+		if filepath.Base(p) == "source.tdl" {
+			continue
+		}
+		src, err := os.ReadFile(p)
+		if err != nil {
+			t.Fatalf("reading %s: %v", p, err)
+		}
+		m[filepath.Base(p)] = string(src)
+	}
+	return m
 }
 
 // checkGolden compares got against the file at path, or rewrites it under

@@ -25,29 +25,50 @@ Model example.constraints
 │   │   ├── variant Present  std.tdl:41:3
 │   │   │   └── field value: types[1] T  std.tdl:41:13
 │   │   └── variant Null  std.tdl:42:3
-│   ├── [17] unlowered Entity  std.tdl:46:1
-│   ├── [18] unlowered Value  std.tdl:51:1
+│   ├── [17] class Entity  std.tdl:46:1
+│   │   └── requires key
+│   ├── [18] class Value  std.tdl:51:1
 │   ├── [19] primitive string  source.tdl:3:1
 │   ├── [20] primitive int  source.tdl:4:1
 │   ├── [21] newtype Email  source.tdl:6:1
-│   │   └── base types[2] string
+│   │   ├── base types[2] string
+│   │   ├── matches(/^[^@]+@[^@]+$/)  source.tdl:7:10
+│   │   └── length(3..254)  source.tdl:8:9
 │   ├── [22] newtype Slug  source.tdl:11:1
-│   │   └── base types[2] string
+│   │   ├── base types[2] string
+│   │   └── matches(/^[a-z-]+$/)  source.tdl:11:34
 │   ├── [23] newtype Short  source.tdl:12:1
-│   │   └── base types[2] string
+│   │   ├── base types[2] string
+│   │   └── length(16)  source.tdl:12:34
 │   ├── [24] newtype Open  source.tdl:13:1
-│   │   └── base types[2] string
+│   │   ├── base types[2] string
+│   │   └── length(1..)  source.tdl:13:33
 │   ├── [25] newtype Capped  source.tdl:14:1
-│   │   └── base types[2] string
-│   └── [26] entity Order  source.tdl:16:1
-│       ├── field key id: types[2] string  source.tdl:17:7
-│       ├── field quantity: types[3] int  source.tdl:18:3
-│       ├── field items: types[4] List<string>  source.tdl:22:3
-│       ├── field region: types[2] string  source.tdl:26:3
-│       └── field ratio: types[3] int  source.tdl:27:3
+│   │   ├── base types[2] string
+│   │   └── length(..64)  source.tdl:14:35
+│   ├── [26] newtype WorkEmail  source.tdl:15:1
+│   │   ├── base types[3] Email
+│   │   ├── matches(/@acme\.com$/)  source.tdl:15:38
+│   │   ├── matches(/^[^@]+@[^@]+$/) (from Email)  source.tdl:7:10
+│   │   └── length(3..254) (from Email)  source.tdl:8:9
+│   ├── [27] entity Order  source.tdl:17:1
+│   │   ├── field key id: types[2] string  source.tdl:18:7
+│   │   ├── field quantity: types[4] int  min(1)  max(100)  source.tdl:19:3
+│   │   ├── field items: types[5] List<string>  length(1..)  unique  source.tdl:23:3
+│   │   ├── field region: types[2] string  oneOf("us-east", "eu-west")  source.tdl:27:3
+│   │   ├── field ratio: types[4] int  between(0, 100)  source.tdl:28:3
+│   │   └── field status: types[6] Status = Draft  source.tdl:29:3
+│   └── [28] enum Status  source.tdl:32:1
+│       ├── variant Draft  source.tdl:32:15
+│       └── variant Placed  source.tdl:32:21
+├── Satisfies
+│   ├── Entity: nothing
+│   └── Value: nothing
 └── Types
     ├── [0] T  named  -> param Option.T  std.tdl:35:17
     ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
     ├── [2] string  named  -> decls[19]  source.tdl:6:13
-    ├── [3] int  named  -> decls[20]  source.tdl:18:13
-    └── [4] List<string>  [T]  -> decls[4]  source.tdl:22:10
+    ├── [3] Email  named  -> decls[21]  source.tdl:15:17
+    ├── [4] int  named  -> decls[20]  source.tdl:19:13
+    ├── [5] List<string>  [T]  -> decls[4]  source.tdl:23:10
+    └── [6] Status  named  -> decls[28]  source.tdl:29:11

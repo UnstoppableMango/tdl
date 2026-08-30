@@ -49,6 +49,7 @@ func newIrCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			opts = append(opts, sema.WithLoader(sema.FSLoader{}))
 
 			model, diags := sema.Lower(file, opts...)
 

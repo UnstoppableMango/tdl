@@ -1,13 +1,22 @@
 package billing
 
-entity User {
+primitive string
+primitive instant
+
+class Auditable {
+  createdAt: instant
+}
+
+entity User: Auditable {
   key id: string
+  createdAt: instant
   email: string
   name: string
 }
 
-entity Order {
+entity Order: Auditable {
   key id: string
+  createdAt: instant
   items: [string] owned
   tags: {string}
 }

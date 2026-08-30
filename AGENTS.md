@@ -28,7 +28,7 @@ Neither `gomod2nix` nor `protoc-gen-go` is on `PATH`. Run generators through the
 
 TDL is a language for describing domain models: entities, values, enums, newtypes, classes, and collections. No expressions, no control flow, no runtime. This repo owns both the specification and the reference implementation.
 
-The parser reads the whole grammar. Lowering to `ir` has started; `docs/design/ir-plan.md` phases 1 through 4 are done, and phase 5 is imports.
+The parser reads the whole grammar. Lowering to `ir` has started; `docs/design/ir-plan.md` phases 1 through 8 are done. What is left is phase 8b, merging a dependency's target blocks, and units, which `ir.md` defers. After that comes the plugin protocol in `docs/design/plugins.md`.
 
 `union` is the one grammar form the parser does not implement.
 
@@ -39,7 +39,7 @@ Pipeline, one package per stage:
 - `ast` — parse tree mirroring source 1:1, names left unresolved. `ast.Fprint` produces the canonical formatting used by `tdl fmt`.
 - `internal/cli` — cobra commands (`ast`, `check`, `fmt`, `ir`, `play`, `tokens`, `version`) wired in `root.go`. `play` is a watch-mode playground that re-renders a file on save; `examples/` holds files to experiment with and is outside the conformance corpus.
 - `ir` — the resolved model backends consume. `ir.pb.go` is generated from `proto/tdl/ir/v1/ir.proto` by `make generate` and committed; `model.go` holds the hand-written lookups. `proto/` and `ir/` are the public compatibility surface.
-- `internal/sema` — ast to ir: the declaration table, the interned type table, sugar lowering, scopes, and the spec's recursion rules. Private and free to change. See `docs/design/ir-plan.md` for what each phase adds.
+- `internal/sema` — ast to ir: the declaration table, the interned type table, sugar lowering, scopes, the spec's recursion rules, and the import graph. It touches no filesystem: a `Loader` supplies imported sources, with `FSLoader` for real files and `MapLoader` for tests. Private and free to change. See `docs/design/ir-plan.md` for what each phase adds.
 - `prelude` — the standard prelude, written in TDL and embedded with `go:embed`. `sema` loads it into an outer scope beneath every file and merges its declarations into the model untagged. Lowering knows the sugar's spellings (`List`, `Option`, ...) but nothing about what they mean, which is what makes the prelude replaceable.
 - `cmd/tdl` — main.
 

@@ -25,8 +25,9 @@ Model shop.money
 │   │   ├── variant Present  std.tdl:41:3
 │   │   │   └── field value: types[1] T  std.tdl:41:13
 │   │   └── variant Null  std.tdl:42:3
-│   ├── [17] unlowered Entity  std.tdl:46:1
-│   ├── [18] unlowered Value  std.tdl:51:1
+│   ├── [17] class Entity  std.tdl:46:1
+│   │   └── requires key
+│   ├── [18] class Value  std.tdl:51:1
 │   ├── [19] value Money  source.tdl:3:1
 │   │   ├── field amount: types[2] decimal  source.tdl:4:3
 │   │   └── field currency: types[3] Currency  source.tdl:5:3
@@ -34,6 +35,9 @@ Model shop.money
 │       ├── variant USD  source.tdl:8:17
 │       ├── variant EUR  source.tdl:8:21
 │       └── variant GBP  source.tdl:8:25
+├── Satisfies
+│   ├── Entity: nothing
+│   └── Value: nothing
 └── Types
     ├── [0] T  named  -> param Option.T  std.tdl:35:17
     ├── [1] T  named  -> param Nullable.T  std.tdl:41:20

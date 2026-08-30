@@ -2,6 +2,7 @@ package ir
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -15,16 +16,75 @@ func Dump(m *Model) string {
 	fmt.Fprintf(&b, "Model %s\n", m.GetPackage())
 
 	d := &dumper{model: m, b: &b}
-	d.section("Decls", len(m.GetTypes()) > 0, func(prefix string) {
+	if len(m.GetImports()) > 0 {
+		d.section("Imports", true, func(prefix string) {
+			for i, imp := range m.GetImports() {
+				desc := imp.GetPath() + " as " + imp.GetAlias()
+				if pkg := imp.GetPackage(); pkg != "" {
+					desc += "  (" + pkg + ")"
+				}
+				d.leaf(prefix, i == len(m.GetImports())-1, desc, imp.GetPosition())
+			}
+		})
+	}
+	d.section("Decls", len(m.GetTypes()) > 0 || len(m.GetExterns()) > 0, func(prefix string) {
 		for i, decl := range m.GetDecls() {
 			d.decl(prefix, i == len(m.GetDecls())-1, i, decl)
 		}
 	})
-	d.section("Types", false, func(prefix string) {
+	if len(m.GetInstances()) > 0 {
+		d.section("Instances", true, func(prefix string) {
+			for i, inst := range m.GetInstances() {
+				last := i == len(m.GetInstances())-1
+				d.leaf(prefix, last, d.instanceLine(inst), inst.GetMeta().GetPosition())
+				for j, b := range inst.GetBinds() {
+					d.leaf(prefix+pad(last), j == len(inst.GetBinds())-1,
+						"type "+b.GetName()+" = "+d.ref(b.GetType()), b.GetPosition())
+				}
+			}
+		})
+	}
+	if len(m.GetTargets()) > 0 {
+		d.section("Targets", true, func(prefix string) {
+			for i, tb := range m.GetTargets() {
+				last := i == len(m.GetTargets())-1
+				d.leaf(prefix, last, tb.GetMeta().GetName()+" for "+tb.GetForPackage(), tb.GetMeta().GetPosition())
+				for j, dir := range tb.GetDirectives() {
+					d.leaf(prefix+pad(last), j == len(tb.GetDirectives())-1, directiveText(dir), dir.GetPosition())
+				}
+			}
+		})
+	}
+	if len(m.GetSatisfies()) > 0 {
+		d.section("Satisfies", true, func(prefix string) {
+			for i, sat := range m.GetSatisfies() {
+				names := make([]string, 0, len(sat.GetDecls())+len(sat.GetTypes()))
+				for _, id := range sat.GetDecls() {
+					names = append(names, id.GetName())
+				}
+				for _, id := range sat.GetTypes() {
+					names = append(names, id.GetName())
+				}
+				line := sat.GetClass().GetName() + ": nothing"
+				if len(names) > 0 {
+					line = sat.GetClass().GetName() + ": " + strings.Join(names, ", ")
+				}
+				d.leaf(prefix, i == len(m.GetSatisfies())-1, line, nil)
+			}
+		})
+	}
+	d.section("Types", len(m.GetExterns()) > 0, func(prefix string) {
 		for i, t := range m.GetTypes() {
 			d.leaf(prefix, i == len(m.GetTypes())-1, d.typeLine(i, t), t.GetPosition())
 		}
 	})
+	if len(m.GetExterns()) > 0 {
+		d.section("Externs", false, func(prefix string) {
+			for i, e := range m.GetExterns() {
+				d.leaf(prefix, i == len(m.GetExterns())-1, e.GetPackage()+"."+e.GetName(), e.GetPosition())
+			}
+		})
+	}
 	return b.String()
 }
 
@@ -54,12 +114,40 @@ func (d *dumper) decl(prefix string, last bool, index int, decl *Decl) {
 		id := decl.GetAlias().GetTarget()
 		kids = append(kids, func(l bool) { d.leaf(inner, l, "target "+d.ref(id), nil) })
 	case decl.GetNewtype() != nil:
-		id := decl.GetNewtype().GetBase()
-		kids = append(kids, func(l bool) { d.leaf(inner, l, "base "+d.ref(id), nil) })
+		n := decl.GetNewtype()
+		kids = append(kids, func(l bool) { d.leaf(inner, l, "base "+d.ref(n.GetBase()), nil) })
+		for _, c := range n.GetValueConstraints() {
+			kids = append(kids, func(l bool) { d.leaf(inner, l, constraintText(c), c.GetPosition()) })
+		}
 	case decl.GetStructure() != nil:
+		for _, r := range decl.GetStructure().GetConforms() {
+			kids = append(kids, func(l bool) { d.leaf(inner, l, "conforms "+d.classRef(r), r.GetPosition()) })
+		}
 		for _, f := range decl.GetStructure().GetFields() {
 			kids = append(kids, func(l bool) { d.leaf(inner, l, d.fieldLine(f), f.GetMeta().GetPosition()) })
 		}
+	case decl.GetClass() != nil:
+		c := decl.GetClass()
+		for _, r := range c.GetRequiresClasses() {
+			kids = append(kids, func(l bool) { d.leaf(inner, l, "requires "+d.classRef(r), r.GetPosition()) })
+		}
+		for _, fd := range c.GetFunDeps() {
+			kids = append(kids, func(l bool) {
+				d.leaf(inner, l, "fundep "+strings.Join(fd.GetFrom(), " ")+" -> "+strings.Join(fd.GetTo(), " "), fd.GetPosition())
+			})
+		}
+		if c.GetRequiresKey() {
+			kids = append(kids, func(l bool) { d.leaf(inner, l, "requires key", nil) })
+		}
+		for _, at := range c.GetAssocTypes() {
+			kids = append(kids, func(l bool) {
+				d.leaf(inner, l, "type "+at.GetMeta().GetName()+kindSuffix(at.GetKind()), at.GetMeta().GetPosition())
+			})
+		}
+		for _, f := range c.GetFields() {
+			kids = append(kids, func(l bool) { d.leaf(inner, l, d.fieldLine(f), f.GetMeta().GetPosition()) })
+		}
+
 	case decl.GetEnumeration() != nil:
 		for _, v := range decl.GetEnumeration().GetVariants() {
 			kids = append(kids, func(l bool) {
@@ -88,6 +176,10 @@ func declLine(decl *Decl) string {
 		kind = "newtype"
 	case decl.GetEnumeration() != nil:
 		kind = "enum"
+	case decl.GetClass() != nil:
+		kind = "class"
+	case decl.GetClass() != nil:
+		kind = "class"
 	case decl.GetStructure() != nil:
 		switch decl.GetStructure().GetKind() {
 		case StructKind_STRUCT_KIND_ENTITY:
@@ -102,7 +194,28 @@ func declLine(decl *Decl) string {
 	default:
 		kind = "unlowered"
 	}
-	return kind + " " + name + deprecatedSuffix(decl.GetMeta())
+	line := kind + " " + name
+	for _, dir := range decl.GetDirectives() {
+		line += "  " + directiveText(dir)
+	}
+	return line + deprecatedSuffix(decl.GetMeta())
+}
+
+// directiveText renders a directive, naming the target it belongs to and
+// the class it was expanded from when it did not come from a direct path.
+func directiveText(d *Directive) string {
+	text := "@" + d.GetTarget() + ":" + d.GetName()
+	if len(d.GetArgs()) > 0 {
+		args := make([]string, len(d.GetArgs()))
+		for i, a := range d.GetArgs() {
+			args[i] = literalText(a)
+		}
+		text += "(" + strings.Join(args, ", ") + ")"
+	}
+	if from := d.GetFromClass(); from != nil {
+		text += " (via " + from.GetName() + ")"
+	}
+	return text
 }
 
 func (d *dumper) fieldLine(f *Field) string {
@@ -113,7 +226,58 @@ func (d *dumper) fieldLine(f *Field) string {
 	if f.GetOwned() {
 		mods += "owned "
 	}
-	return "field " + mods + f.GetMeta().GetName() + ": " + d.ref(f.GetType()) + deprecatedSuffix(f.GetMeta())
+	line := "field " + mods + f.GetMeta().GetName() + ": " + d.ref(f.GetType())
+	for _, dir := range f.GetDirectives() {
+		line += "  " + directiveText(dir)
+	}
+	for _, c := range f.GetConstraints() {
+		line += "  " + constraintText(c)
+	}
+	if def := f.GetDefaultValue(); def != nil {
+		line += " = " + literalText(def)
+	}
+	if from := f.GetIncludedFrom(); from != nil {
+		line += "  (from " + from.GetName() + ")"
+	}
+	return line + deprecatedSuffix(f.GetMeta())
+}
+
+func (d *dumper) instanceLine(inst *Instance) string {
+	line := "instance " + d.classRef(inst.GetClass())
+	if len(inst.GetParams()) > 0 {
+		names := make([]string, len(inst.GetParams()))
+		for i, p := range inst.GetParams() {
+			names[i] = p.GetName()
+		}
+		line = "instance <" + strings.Join(names, ", ") + "> " + d.classRef(inst.GetClass())
+	}
+	if len(inst.GetRequires()) > 0 {
+		reqs := make([]string, len(inst.GetRequires()))
+		for i, r := range inst.GetRequires() {
+			reqs[i] = d.classRef(r)
+		}
+		line += " requires " + strings.Join(reqs, ", ")
+	}
+	return line
+}
+
+func (d *dumper) classRef(r *ClassRef) string {
+	name := r.GetClass().GetName()
+	if e := r.GetExtern(); e != nil {
+		name = e.GetName()
+	}
+	if len(r.GetArgs()) == 0 {
+		return name
+	}
+	args := make([]string, len(r.GetArgs()))
+	for i, a := range r.GetArgs() {
+		if !a.Resolved() {
+			args[i] = "?"
+			continue
+		}
+		args[i] = d.render(d.model.Type(a))
+	}
+	return name + "<" + strings.Join(args, ", ") + ">"
 }
 
 func (d *dumper) typeLine(index int, t *Type) string {
@@ -121,6 +285,8 @@ func (d *dumper) typeLine(index int, t *Type) string {
 	switch {
 	case t.GetParam() != nil:
 		origin = "-> param " + t.GetParam().GetOwner().GetName() + "." + t.GetParam().GetName()
+	case t.GetExtern() != nil:
+		origin = "-> externs[" + itoa(int(t.GetExtern().GetIndex())) + "]"
 	case !t.GetCtor().Resolved():
 		origin = "-> unresolved"
 	}
@@ -147,6 +313,9 @@ func (d *dumper) render(t *Type) string {
 	if p := t.GetParam(); p != nil {
 		name = p.GetName()
 	}
+	if e := t.GetExtern(); e != nil {
+		name = e.GetName()
+	}
 	if name == "" {
 		name = "?"
 	}
@@ -163,6 +332,53 @@ func (d *dumper) render(t *Type) string {
 		args[i] = d.render(d.model.Type(a))
 	}
 	return name + "<" + strings.Join(args, ", ") + ">"
+}
+
+// constraintText renders a constraint, noting the newtype it came from
+// when it was inherited rather than written here.
+func constraintText(c *Constraint) string {
+	text := c.GetName()
+	if len(c.GetArgs()) > 0 {
+		args := make([]string, len(c.GetArgs()))
+		for i, a := range c.GetArgs() {
+			args[i] = literalText(a)
+		}
+		text += "(" + strings.Join(args, ", ") + ")"
+	}
+	if from := c.GetFrom(); from != nil {
+		text += " (from " + from.GetName() + ")"
+	}
+	return text
+}
+
+func literalText(l *Literal) string {
+	switch l.GetKind() {
+	case LiteralKind_LITERAL_KIND_STRING:
+		return strconv.Quote(l.GetText())
+	case LiteralKind_LITERAL_KIND_REGEX:
+		return "/" + l.GetText() + "/"
+	case LiteralKind_LITERAL_KIND_LIST:
+		items := make([]string, len(l.GetItems()))
+		for i, item := range l.GetItems() {
+			items[i] = literalText(item)
+		}
+		return "[" + strings.Join(items, ", ") + "]"
+	case LiteralKind_LITERAL_KIND_RANGE:
+		var lo, hi string
+		if l.GetRange().Low != nil {
+			lo = strconv.FormatInt(l.GetRange().GetLow(), 10)
+		}
+		if l.GetRange().High != nil {
+			hi = strconv.FormatInt(l.GetRange().GetHigh(), 10)
+		}
+		return lo + ".." + hi
+	case LiteralKind_LITERAL_KIND_NAME:
+		if v := l.GetVariant(); v != nil {
+			return l.GetText()
+		}
+		return l.GetText() + " (unresolved)"
+	}
+	return l.GetText()
 }
 
 func form(f SyntacticForm) string {

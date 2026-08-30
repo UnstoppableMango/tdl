@@ -25,19 +25,33 @@ Model example.mixins
 │   │   ├── variant Present  std.tdl:41:3
 │   │   │   └── field value: types[1] T  std.tdl:41:13
 │   │   └── variant Null  std.tdl:42:3
-│   ├── [17] unlowered Entity  std.tdl:46:1
-│   ├── [18] unlowered Value  std.tdl:51:1
-│   ├── [19] mixin Timestamps  source.tdl:3:1
+│   ├── [17] class Entity  std.tdl:46:1
+│   │   └── requires key
+│   ├── [18] class Value  std.tdl:51:1
+│   ├── [19] class Auditable  source.tdl:3:1
 │   │   ├── field createdAt: types[2] instant  source.tdl:4:3
 │   │   └── field updatedAt: types[2] instant  source.tdl:5:3
-│   ├── [20] mixin Named  source.tdl:8:1
-│   │   └── field name: types[3] string  source.tdl:9:3
-│   ├── [21] entity User  source.tdl:12:1
-│   │   ├── field key id: types[3] string  source.tdl:13:7
-│   │   └── field email: types[3] string  source.tdl:16:3
-│   └── [22] value Snapshot  source.tdl:19:1
+│   ├── [20] mixin Timestamps  source.tdl:8:1
+│   │   ├── field createdAt: types[2] instant  source.tdl:9:3
+│   │   └── field updatedAt: types[2] instant  source.tdl:10:3
+│   ├── [21] mixin Named  source.tdl:13:1
+│   │   └── field name: types[3] string  source.tdl:14:3
+│   ├── [22] entity User  source.tdl:17:1
+│   │   ├── conforms Auditable  source.tdl:17:24
+│   │   ├── field key id: types[3] string  source.tdl:18:7
+│   │   ├── field email: types[3] string  source.tdl:21:3
+│   │   ├── field createdAt: types[2] instant  (from Timestamps)  source.tdl:9:3
+│   │   ├── field updatedAt: types[2] instant  (from Timestamps)  source.tdl:10:3
+│   │   └── field name: types[3] string  (from Named)  source.tdl:14:3
+│   └── [23] value Snapshot  source.tdl:24:1
+│       ├── field createdAt: types[2] instant  (from Timestamps)  source.tdl:9:3
+│       └── field updatedAt: types[2] instant  (from Timestamps)  source.tdl:10:3
+├── Satisfies
+│   ├── Entity: nothing
+│   ├── Value: nothing
+│   └── Auditable: User
 └── Types
     ├── [0] T  named  -> param Option.T  std.tdl:35:17
     ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
     ├── [2] instant  named  -> decls[9]  source.tdl:4:14
-    └── [3] string  named  -> decls[0]  source.tdl:9:9
+    └── [3] string  named  -> decls[0]  source.tdl:14:9

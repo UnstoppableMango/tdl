@@ -1,5 +1,10 @@
 package example.mixins
 
+class Auditable {
+  createdAt: instant
+  updatedAt: instant
+}
+
 mixin Timestamps {
   createdAt: instant
   updatedAt: instant

@@ -38,6 +38,7 @@ type config struct {
 	preludeName string
 	preludeSrc  string
 	noPrelude   bool
+	loader      Loader
 }
 
 // WithPrelude lowers against the given prelude source instead of the
@@ -55,6 +56,13 @@ func WithoutPrelude() Option {
 	return func(c *config) { c.noPrelude = true }
 }
 
+// WithLoader supplies the [Loader] that reads imported files. Without one,
+// a file that imports anything is a diagnostic rather than a filesystem
+// read nobody asked for.
+func WithLoader(l Loader) Option {
+	return func(c *config) { c.loader = l }
+}
+
 // Lower turns a parsed file into a model. It returns the model and every
 // diagnostic the pass produced; a non-empty diagnostic list means the model
 // is incomplete and no later pass should run against it.
@@ -68,10 +76,13 @@ func Lower(file *ast.File, opts ...Option) (*ir.Model, Diagnostics) {
 	}
 
 	l := &lowerer{
-		model:  &ir.Model{},
-		byName: map[string]int32{},
-		types:  map[string]int32{},
-		units:  map[string]bool{},
+		model:   &ir.Model{},
+		byName:  map[string]int32{},
+		types:   map[string]int32{},
+		units:   map[string]bool{},
+		aliases: map[string]string{},
+		externs: map[string]int32{},
+		loader:  cfg.loader,
 	}
 	l.file = newScope(l.loadPrelude(cfg))
 	l.scope = l.file
@@ -79,15 +90,23 @@ func Lower(file *ast.File, opts ...Option) (*ir.Model, Diagnostics) {
 		l.model.Package = file.Package.Path
 	}
 
-	for _, imp := range file.Imports {
-		l.diags.add(imp.P, "imports are not resolved yet: %q", imp.Path)
-	}
+	// Imports are walked before the file's own declarations, so a `_`
+	// import's names are in scope by the time anything refers to them.
+	l.loadImports(file)
 
 	// Declarations are collected before anything is lowered, so a reference
 	// to a declaration further down the file resolves like one above it.
 	l.collect(file)
 	l.checkRecursion(file)
 	l.lower(file)
+	l.expandIncludes(file)
+	l.accumulateConstraints()
+	l.checkDefaults()
+	l.validateInstances()
+	l.buildSatisfaction()
+	l.searchSatisfaction()
+	l.checkConstraints()
+	l.lowerTargets(file)
 	return l.model, l.diags
 }
 
@@ -119,10 +138,13 @@ func (l *lowerer) loadPrelude(cfg config) *scope {
 }
 
 type lowerer struct {
-	model  *ir.Model
-	byName map[string]int32 // declaration name to index
-	types  map[string]int32 // interning key to index
-	units  map[string]bool  // declaration names that are units
+	model   *ir.Model
+	byName  map[string]int32  // declaration name to index
+	types   map[string]int32  // interning key to index
+	units   map[string]bool   // declaration names that are units
+	aliases map[string]string // import alias to package name
+	externs map[string]int32  // "pkg.Name" to index
+	loader  Loader
 	// inPrelude suppresses the diagnostics that say a declaration form is
 	// not lowered yet. The prelude is the compiler's own input, so telling a
 	// user that `class Entity` is unimplemented on every file is noise they
@@ -143,8 +165,7 @@ type lowerer struct {
 func (l *lowerer) collect(file *ast.File) {
 	for i, decl := range file.Decls {
 		if !namesAType(decl) {
-			l.deferral(decl.Pos(), "%s is not lowered yet", declLabel(decl))
-			continue
+			continue // instances and targets have tables of their own
 		}
 		name := decl.Name()
 		idx := int32(len(l.model.Decls))
@@ -165,7 +186,9 @@ func (l *lowerer) collect(file *ast.File) {
 }
 
 // namesAType reports whether a declaration introduces a name other
-// declarations can refer to.
+// declarations can refer to. An instance names the class it is about and a
+// target block names a backend; neither belongs in the type namespace, and
+// both have tables of their own.
 func namesAType(decl ast.Decl) bool {
 	switch decl.(type) {
 	case *ast.InstanceDecl, *ast.TargetDecl:
@@ -193,7 +216,11 @@ func declLabel(decl ast.Decl) string {
 }
 
 func (l *lowerer) lower(file *ast.File) {
-	for _, decl := range file.Decls {
+	for i, decl := range file.Decls {
+		if inst, ok := decl.(*ast.InstanceDecl); ok {
+			l.model.Instances = append(l.model.Instances, l.instance(inst, i))
+			continue
+		}
 		if !namesAType(decl) {
 			continue
 		}
@@ -238,23 +265,36 @@ func (l *lowerer) setNode(out *ir.Decl, decl ast.Decl) {
 	case *ast.NewtypeDecl:
 		l.inScope(l.paramScope(l.declID(d.N), d.Params), func() {
 			out.Node = &ir.Decl_Newtype{Newtype: &ir.Newtype{
-				Params: l.params(d.Params),
-				Base:   l.typeRef(d.Base),
+				Params:           l.params(d.Params),
+				Base:             l.typeRef(d.Base),
+				Constraints:      l.classRefs(d.Requires),
+				ValueConstraints: l.constraints(d.Constraints),
 			}}
 		})
 
 	case *ast.StructDecl:
 		l.inScope(l.paramScope(l.declID(d.N), d.Params), func() {
 			out.Node = &ir.Decl_Structure{Structure: &ir.Struct{
-				Kind:   structKind(d.Keyword),
-				Params: l.params(d.Params),
-				Fields: l.fields(d.Members),
+				Kind:        structKind(d.Keyword),
+				Params:      l.params(d.Params),
+				Fields:      l.fields(d.Members),
+				Conforms:    l.classRefs(d.Conforms),
+				Constraints: l.classRefs(d.Requires),
 			}}
+		})
+
+	case *ast.ClassDecl:
+		l.inScope(l.paramScope(l.declID(d.N), d.Params), func() {
+			out.Node = &ir.Decl_Class{Class: l.classNode(d)}
 		})
 
 	case *ast.EnumDecl:
 		l.inScope(l.paramScope(l.declID(d.N), d.Params), func() {
-			e := &ir.Enum{Params: l.params(d.Params)}
+			e := &ir.Enum{
+				Params:      l.params(d.Params),
+				Conforms:    l.classRefs(d.Conforms),
+				Constraints: l.classRefs(d.Requires),
+			}
 			for i, v := range d.Variants {
 				e.Variants = append(e.Variants, &ir.Variant{
 					Meta:   metaOf(v.N, v.Doc, v.P, v.Dep, i),
@@ -265,7 +305,8 @@ func (l *lowerer) setNode(out *ir.Decl, decl ast.Decl) {
 		})
 
 	default:
-		// Classes, instances, units, and targets arrive in later phases.
+		// Units are deferred in ir.md. The parser produces them, so lowering
+		// says so rather than dropping them silently.
 		l.deferral(decl.Pos(), "%s is not lowered yet", declLabel(decl))
 	}
 }
@@ -321,10 +362,12 @@ func (l *lowerer) variantFields(in []*ast.Field) []*ir.Field {
 
 func (l *lowerer) field(f *ast.Field, order int) *ir.Field {
 	return &ir.Field{
-		Meta:  metaOf(f.N, f.Doc, f.P, f.Dep, order),
-		Type:  l.typeRef(f.Type),
-		Key:   f.Key,
-		Owned: f.Owned,
+		Meta:         metaOf(f.N, f.Doc, f.P, f.Dep, order),
+		Type:         l.typeRef(f.Type),
+		Key:          f.Key,
+		Owned:        f.Owned,
+		Constraints:  l.constraints(f.Constraints),
+		DefaultValue: l.literal(f.Default),
 	}
 }
 

@@ -70,3 +70,34 @@ func (d *Decl) Params() []*Param {
 
 // IsDeprecated reports whether the node is marked deprecated.
 func (m *Meta) IsDeprecated() bool { return m.GetDeprecated() != nil }
+
+// Satisfying returns the declarations satisfying a class, closed over the
+// classes that class requires.
+//
+// A backend applying a class-scoped target directive reads this and never
+// reasons about instances. The index covers declarations in this model:
+// a foreign type made to satisfy a local class is in the instance table but
+// not here, because there is no local ID to name it by.
+func (x *Model) Satisfying(class *ID) []*ID {
+	for _, sat := range x.GetSatisfies() {
+		if sat.GetClass().GetIndex() == class.GetIndex() {
+			return sat.GetDecls()
+		}
+	}
+	return nil
+}
+
+// SatisfyingTypes returns the instantiated types that satisfy a class
+// through a conditional instance, such as `Page<Order>` given
+// `instance <T> Auditable<Page<T>> requires Auditable<T>`.
+//
+// These cannot appear in [Model.Satisfying] because they are types rather
+// than declarations: `Page` satisfies nothing on its own.
+func (x *Model) SatisfyingTypes(class *ID) []*ID {
+	for _, sat := range x.GetSatisfies() {
+		if sat.GetClass().GetIndex() == class.GetIndex() {
+			return sat.GetTypes()
+		}
+	}
+	return nil
+}
