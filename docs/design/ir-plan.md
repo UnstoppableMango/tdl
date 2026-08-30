@@ -139,12 +139,25 @@ Done when every constraint in the corpus reaches `ir` with its arguments and pos
 
 ## Phase 8: target resolution
 
-Path resolution against the model, the specificity ladder, class-path expansion across satisfying types, root-over-dependency merging, and equal-specificity conflicts as errors.
+Path resolution against the model, the specificity ladder, class-path expansion across satisfying types, and equal-specificity conflicts as errors.
 
 Directives attach to the nodes they apply to, resolved, so no backend performs a lookup.
 A directive's name may be a reserved word, since the namespace belongs to the backend; nothing about resolution should assume otherwise.
 
+Root-over-dependency merging is not here.
+It needs a dependency's target blocks, and phase 5 decided not to lower dependencies: a qualified reference records the package and stops.
+Merging is a phase of its own once there is a reason to load a dependency far enough to read its blocks.
+
 Done when a target block's directives appear on the right `ir` nodes, a path naming nothing is an error with a position, a class path applies to every satisfying type, and two entries at equal specificity are reported rather than silently ordered.
+
+## Phase 8b: dependency target merging
+
+A dependency ships target blocks so its own types appear sensibly in Go without every consumer restating it.
+Merging them means loading and lowering the dependency, which nothing else needs, so it waits until something does.
+
+Origin outranks specificity, per [workflow.md](workflow.md): any entry in the root project beats any entry from a dependency, whatever the ladder would otherwise say, and the ladder decides among entries of the same origin.
+
+Done when a dependency's directives reach the root model's nodes, a root entry beats a dependency entry at any specificity, and a conflict between two dependencies is reported.
 
 ## After
 

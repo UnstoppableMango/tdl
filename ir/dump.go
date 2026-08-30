@@ -44,6 +44,17 @@ func Dump(m *Model) string {
 			}
 		})
 	}
+	if len(m.GetTargets()) > 0 {
+		d.section("Targets", true, func(prefix string) {
+			for i, tb := range m.GetTargets() {
+				last := i == len(m.GetTargets())-1
+				d.leaf(prefix, last, tb.GetMeta().GetName()+" for "+tb.GetForPackage(), tb.GetMeta().GetPosition())
+				for j, dir := range tb.GetDirectives() {
+					d.leaf(prefix+pad(last), j == len(tb.GetDirectives())-1, directiveText(dir), dir.GetPosition())
+				}
+			}
+		})
+	}
 	if len(m.GetSatisfies()) > 0 {
 		d.section("Satisfies", true, func(prefix string) {
 			for i, sat := range m.GetSatisfies() {
@@ -183,7 +194,28 @@ func declLine(decl *Decl) string {
 	default:
 		kind = "unlowered"
 	}
-	return kind + " " + name + deprecatedSuffix(decl.GetMeta())
+	line := kind + " " + name
+	for _, dir := range decl.GetDirectives() {
+		line += "  " + directiveText(dir)
+	}
+	return line + deprecatedSuffix(decl.GetMeta())
+}
+
+// directiveText renders a directive, naming the target it belongs to and
+// the class it was expanded from when it did not come from a direct path.
+func directiveText(d *Directive) string {
+	text := "@" + d.GetTarget() + ":" + d.GetName()
+	if len(d.GetArgs()) > 0 {
+		args := make([]string, len(d.GetArgs()))
+		for i, a := range d.GetArgs() {
+			args[i] = literalText(a)
+		}
+		text += "(" + strings.Join(args, ", ") + ")"
+	}
+	if from := d.GetFromClass(); from != nil {
+		text += " (via " + from.GetName() + ")"
+	}
+	return text
 }
 
 func (d *dumper) fieldLine(f *Field) string {
@@ -195,6 +227,9 @@ func (d *dumper) fieldLine(f *Field) string {
 		mods += "owned "
 	}
 	line := "field " + mods + f.GetMeta().GetName() + ": " + d.ref(f.GetType())
+	for _, dir := range f.GetDirectives() {
+		line += "  " + directiveText(dir)
+	}
 	for _, c := range f.GetConstraints() {
 		line += "  " + constraintText(c)
 	}

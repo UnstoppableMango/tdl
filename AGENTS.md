@@ -28,7 +28,7 @@ Neither `gomod2nix` nor `protoc-gen-go` is on `PATH`. Run generators through the
 
 TDL is a language for describing domain models: entities, values, enums, newtypes, classes, and collections. No expressions, no control flow, no runtime. This repo owns both the specification and the reference implementation.
 
-The parser reads the whole grammar. Lowering to `ir` has started; `docs/design/ir-plan.md` phases 1 through 7 are done. Phase 8, target resolution, is the last one.
+The parser reads the whole grammar. Lowering to `ir` has started; `docs/design/ir-plan.md` phases 1 through 8 are done. What is left is phase 8b, merging a dependency's target blocks, and units, which `ir.md` defers. After that comes the plugin protocol in `docs/design/plugins.md`.
 
 `union` is the one grammar form the parser does not implement.
 

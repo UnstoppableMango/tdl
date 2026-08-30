@@ -24,11 +24,9 @@ var update = flag.Bool("update", false, "rewrite ir.golden files")
 // Anything a corpus case reports that is not on this list is a bug in
 // lowering, not a gap in it.
 //
-// The list shrinks as docs/design/ir-plan.md is worked through, and the
-// test tightens with it: when the last entry goes, this becomes a plain
-// assertion that the corpus lowers clean.
+// Only units are left. When they land this becomes a plain assertion that
+// the corpus lowers clean, and the list and this comment go with it.
 var deferred = []struct{ prefix, phase string }{
-	{"target ", "phase 8"},
 	{"unit ", "deferred in ir.md"},
 	{"unit arguments are not lowered yet", "deferred in ir.md"},
 }

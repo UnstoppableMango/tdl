@@ -106,6 +106,7 @@ func Lower(file *ast.File, opts ...Option) (*ir.Model, Diagnostics) {
 	l.buildSatisfaction()
 	l.searchSatisfaction()
 	l.checkConstraints()
+	l.lowerTargets(file)
 	return l.model, l.diags
 }
 
@@ -163,12 +164,8 @@ type lowerer struct {
 // belongs in the type namespace.
 func (l *lowerer) collect(file *ast.File) {
 	for i, decl := range file.Decls {
-		if _, isInstance := decl.(*ast.InstanceDecl); isInstance {
-			continue // instances have their own table, filled while lowering
-		}
 		if !namesAType(decl) {
-			l.deferral(decl.Pos(), "%s is not lowered yet", declLabel(decl))
-			continue
+			continue // instances and targets have tables of their own
 		}
 		name := decl.Name()
 		idx := int32(len(l.model.Decls))
@@ -308,7 +305,8 @@ func (l *lowerer) setNode(out *ir.Decl, decl ast.Decl) {
 		})
 
 	default:
-		// Classes, instances, units, and targets arrive in later phases.
+		// Units are deferred in ir.md. The parser produces them, so lowering
+		// says so rather than dropping them silently.
 		l.deferral(decl.Pos(), "%s is not lowered yet", declLabel(decl))
 	}
 }

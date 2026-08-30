@@ -21,11 +21,11 @@ The design is settled and written down:
 | [grammar.ebnf](docs/grammar.ebnf) | The formal grammar. |
 | [design/parser-plan.md](docs/design/parser-plan.md) | Rewriting the lexer and parser to match. Done. |
 | [design/ir.md](docs/design/ir.md) | The resolved model backends consume. |
-| [design/ir-plan.md](docs/design/ir-plan.md) | Implementing it. Phases 1 to 7 of 9 done. |
+| [design/ir-plan.md](docs/design/ir-plan.md) | Implementing it. Phases 1 to 8 of 10 done. |
 | [design/plugins.md](docs/design/plugins.md) | The backend plugin protocol. |
 | [design/workflow.md](docs/design/workflow.md) | What a model author does with all of it. |
 
-Semantic resolution has started: the `ir` schema, the declaration table, the interned type table, name resolution, and the spec's recursion rules are in, so a single-package model lowers with its sugar resolved to prelude types and its names bound. The prelude is loaded from TDL source rather than built in, so `[T]` means whatever the loaded prelude says `List` is. `tdl ir` prints the result. Imports resolve across packages without inlining the dependency, mixins expand, and the class satisfaction index answers for declarations and for types made to satisfy a class by a conditional instance. Constraints accumulate down newtype chains and defaults resolve against their field's type. Target resolution is the last phase, and there are no code-generation backends.
+Semantic resolution has started: the `ir` schema, the declaration table, the interned type table, name resolution, and the spec's recursion rules are in, so a single-package model lowers with its sugar resolved to prelude types and its names bound. The prelude is loaded from TDL source rather than built in, so `[T]` means whatever the loaded prelude says `List` is. `tdl ir` prints the result. Imports resolve across packages without inlining the dependency, mixins expand, and the class satisfaction index answers for declarations and for types made to satisfy a class by a conditional instance. Constraints accumulate down newtype chains and defaults resolve against their field's type. Target directives resolve against the model and attach to the nodes they apply to. What is left is merging a dependency's target blocks, units, and the backends themselves.
 
 ## Example
 

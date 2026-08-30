@@ -65,6 +65,37 @@ message Model {
   repeated Extern externs = 5;
   repeated Instance instances = 6;
   repeated Satisfaction satisfies = 7;
+  repeated TargetBlock targets = 8;
+}
+
+// TargetBlock is one `target go for billing { ... }` block.
+//
+// Its resolved directives are attached to the nodes they apply to, so a
+// backend never performs a lookup. What is left here is the block itself
+// and the directives that apply to the package rather than to anything in
+// it.
+message TargetBlock {
+  Meta meta = 1;         // name is the target name, such as "go"
+  string for_package = 2;
+  repeated Directive directives = 3;
+}
+
+// Directive is an opaque instruction to a backend. The compiler checks its
+// shape, resolves the path it was written against, and hands it over; what
+// it means is the backend's business.
+message Directive {
+  string name = 1;
+  repeated Literal args = 2;
+  Position position = 3;
+
+  // target names the block this came from, since a model may carry
+  // directives for several backends at once.
+  string target = 4;
+
+  // from_class is set when the directive was written against a class and
+  // expanded onto everything satisfying it, which is what makes a rule
+  // written once apply to many types.
+  ID from_class = 5; // indexes Model.decls
 }
 
 // Instance declares that a type satisfies a class.
@@ -140,6 +171,7 @@ message Extern {
 // the machinery for them.
 message Decl {
   Meta meta = 1;
+  repeated Directive directives = 8;
 
   oneof node {
     Primitive primitive = 2;
@@ -286,6 +318,7 @@ message Field {
   bool owned = 4; // composition rather than reference
   repeated Constraint constraints = 6;
   Literal default_value = 7; // unset when the field has no default
+  repeated Directive directives = 8;
 
   // included_from names the mixin a field was copied from, so a backend
   // that can express the grouping does not have to reconstruct it. Unset

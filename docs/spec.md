@@ -549,7 +549,7 @@ Everything a code generator needs lives in a `target` block, never in the model.
 
 ```tdl
 target go for billing {
-  package "github.com/acme/billing"
+  package("github.com/acme/billing")
 
   User {
     name("Account")
