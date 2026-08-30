@@ -1,0 +1,60 @@
+Model shop.orders
+├── Decls
+│   ├── [0] primitive string  std.tdl:4:1
+│   ├── [1] primitive int  std.tdl:6:1
+│   ├── [2] primitive bool  std.tdl:7:1
+│   ├── [3] primitive bytes  std.tdl:8:1
+│   ├── [4] primitive List: type -> type  std.tdl:11:1
+│   ├── [5] primitive Set: type -> type  std.tdl:14:1
+│   ├── [6] primitive Map: type -> type -> type  std.tdl:17:1
+│   ├── [7] primitive decimal  std.tdl:20:1
+│   ├── [8] primitive uuid  std.tdl:22:1
+│   ├── [9] primitive instant  std.tdl:23:1
+│   ├── [10] primitive date  std.tdl:24:1
+│   ├── [11] primitive duration  std.tdl:25:1
+│   ├── [12] unlowered s  std.tdl:28:1
+│   ├── [13] unlowered m  std.tdl:30:1
+│   ├── [14] unlowered kg  std.tdl:31:1
+│   ├── [15] enum Option  std.tdl:34:1
+│   │   ├── param T  std.tdl:34:14
+│   │   ├── variant Some  std.tdl:35:3
+│   │   │   └── field value: types[0] T  std.tdl:35:10
+│   │   └── variant None  std.tdl:36:3
+│   ├── [16] enum Nullable  std.tdl:40:1
+│   │   ├── param T  std.tdl:40:16
+│   │   ├── variant Present  std.tdl:41:3
+│   │   │   └── field value: types[1] T  std.tdl:41:13
+│   │   └── variant Null  std.tdl:42:3
+│   ├── [17] unlowered Entity  std.tdl:46:1
+│   ├── [18] unlowered Value  std.tdl:51:1
+│   ├── [19] entity Order  source.tdl:5:1
+│   │   ├── field key id: types[2] OrderId  source.tdl:6:7
+│   │   ├── field customer: types[3] User  source.tdl:7:3
+│   │   ├── field shipping: types[5] Option<common.Address>  source.tdl:8:3
+│   │   ├── field owned items: types[7] List<LineItem>  source.tdl:9:3
+│   │   └── field status: types[8] Status  source.tdl:10:3
+│   ├── [20] entity LineItem  source.tdl:13:1
+│   │   ├── field key order: types[9] Order  source.tdl:14:7
+│   │   ├── field key sku: types[10] string  source.tdl:15:7
+│   │   └── field quantity: types[11] int  source.tdl:16:3
+│   ├── [21] entity User  source.tdl:19:1
+│   │   └── field key id: types[10] string  source.tdl:20:7
+│   ├── [22] newtype OrderId  source.tdl:23:1
+│   │   └── base types[10] string
+│   └── [23] enum Status  source.tdl:24:1
+│       ├── variant Draft  source.tdl:24:15
+│       ├── variant Placed  source.tdl:24:21
+│       └── variant Shipped  source.tdl:24:28
+└── Types
+    ├── [0] T  named  -> param Option.T  std.tdl:35:17
+    ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
+    ├── [2] OrderId  named  -> decls[22]  source.tdl:6:11
+    ├── [3] User  named  -> decls[21]  source.tdl:7:13
+    ├── [4] common.Address  named  -> unresolved  source.tdl:8:13
+    ├── [5] Option<common.Address>  T?  -> decls[15]  source.tdl:8:13
+    ├── [6] LineItem  named  -> decls[20]  source.tdl:9:11
+    ├── [7] List<LineItem>  [T]  -> decls[4]  source.tdl:9:10
+    ├── [8] Status  named  -> decls[23]  source.tdl:10:11
+    ├── [9] Order  named  -> decls[19]  source.tdl:14:14
+    ├── [10] string  named  -> decls[0]  source.tdl:15:12
+    └── [11] int  named  -> decls[1]  source.tdl:16:13

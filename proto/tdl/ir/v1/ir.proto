@@ -1,0 +1,195 @@
+// The TDL intermediate representation: the resolved semantic model that
+// backends consume, in-process and over the plugin protocol.
+//
+// See docs/design/ir.md for the decisions this schema encodes and
+// docs/design/ir-plan.md for what is implemented so far. The schema grows
+// one phase at a time; constraints, defaults, classes, instances, imports,
+// and target directives are not here yet.
+syntax = "proto3";
+
+package tdl.ir.v1;
+
+option go_package = "github.com/unstoppablemango/tdl/ir;ir";
+
+// ID references a node by its index into a table and by its fully qualified
+// name.
+//
+// The index is what lookups use. The name is what appears in diagnostics,
+// in dumps, and in target paths, and it is stable across edits in a way the
+// index is not. Which table an ID indexes is fixed by the field holding it.
+//
+// An index of -1 means the name did not resolve. Name resolution turns that
+// into a diagnostic; until then it records what was written.
+message ID {
+  int32 index = 1;
+  string name = 2;
+}
+
+// Position is a location in a source file.
+message Position {
+  string filename = 1;
+  int32 line = 2;
+  int32 column = 3;
+}
+
+// Deprecation marks a node as on its way out.
+message Deprecation {
+  string reason = 1; // empty when written without one
+  Position position = 2;
+}
+
+// Meta is the source fidelity every node carries: what it is called, what
+// was written about it, where it came from, whether it is deprecated, and
+// where it sat among its siblings.
+//
+// Declaration order is kept so generated output is stable and diffable.
+message Meta {
+  string name = 1; // fully qualified for a declaration, bare for a member
+  repeated string doc = 2;
+  Position position = 3;
+  Deprecation deprecated = 4; // unset when not deprecated
+  int32 order = 5;
+}
+
+// Model is one package: every declaration in it, and every type reference
+// those declarations use.
+//
+// Two flat tables, two ID spaces. Declarations from imported packages are
+// not inlined; a reference into a dependency is an ID whose name carries
+// that package.
+message Model {
+  string package = 1;
+  repeated Decl decls = 2;
+  repeated Type types = 3;
+}
+
+// Decl is one declaration. The forms split by nature rather than
+// collapsing into one tagged message or fragmenting into eight: everything
+// with fields shares a shape, and a form that has no fields does not carry
+// the machinery for them.
+message Decl {
+  Meta meta = 1;
+
+  oneof node {
+    Primitive primitive = 2;
+    Alias alias = 3;
+    Newtype newtype = 4;
+    Struct structure = 5;
+    Enum enumeration = 6;
+  }
+}
+
+// Primitive is an opaque, irreducible root type.
+message Primitive {
+  Kind kind = 1; // unset when the kind is left to inference
+}
+
+// Alias is a transparent abbreviation, expanded rather than referenced.
+message Alias {
+  repeated Param params = 1;
+  ID target = 2; // indexes Model.types
+}
+
+// Newtype is a distinct type over another, not interchangeable with it.
+message Newtype {
+  repeated Param params = 1;
+  ID base = 2; // indexes Model.types
+}
+
+// StructKind distinguishes the three declarations that share a body.
+enum StructKind {
+  STRUCT_KIND_UNSPECIFIED = 0;
+  STRUCT_KIND_ENTITY = 1; // identity that survives changes to its contents
+  STRUCT_KIND_VALUE = 2;  // defined entirely by its contents
+  STRUCT_KIND_MIXIN = 3;  // reuse, copied into the including declaration
+}
+
+// Struct is an entity, a value, or a mixin.
+message Struct {
+  StructKind kind = 1;
+  repeated Param params = 2;
+  repeated Field fields = 3;
+}
+
+// Enum is a closed set of variants. A variant may carry fields, which makes
+// enum the language's sum type.
+message Enum {
+  repeated Param params = 1;
+  repeated Variant variants = 2;
+}
+
+// Variant is one alternative in an Enum.
+message Variant {
+  Meta meta = 1;
+  repeated Field fields = 2;
+}
+
+// Field is a named, typed member.
+message Field {
+  Meta meta = 1;
+  ID type = 2;   // indexes Model.types
+  bool key = 3;  // part of the entity's identity
+  bool owned = 4; // composition rather than reference
+}
+
+// Param is one type parameter.
+message Param {
+  string name = 1;
+  Kind kind = 2; // unset when inferred from use
+  Position position = 3;
+}
+
+// KindAtom is a base kind.
+enum KindAtom {
+  KIND_ATOM_UNSPECIFIED = 0;
+  KIND_ATOM_TYPE = 1;
+  KIND_ATOM_UNIT = 2;
+}
+
+// Kind is a kind expression: an atom, a parenthesized kind, or either of
+// those followed by an arrow. Arrows associate to the right.
+message Kind {
+  KindAtom atom = 1; // unset when paren is set
+  Kind paren = 2;
+  Kind arrow = 3; // unset for a bare atom
+}
+
+// SyntacticForm records how a type reference was written.
+//
+// Lowering is authoritative: `[T]` is `List<T>` and `T?` is `Option<T>`
+// whatever this says. The form is advisory, for a backend that wants `*T`
+// for `T?` and a wrapper for an explicit `Option<T>`. A backend that treats
+// them alike ignores it.
+enum SyntacticForm {
+  SYNTACTIC_FORM_UNSPECIFIED = 0;
+  SYNTACTIC_FORM_NAMED = 1;     // User, List<T>
+  SYNTACTIC_FORM_BRACKETS = 2;  // [T]
+  SYNTACTIC_FORM_BRACES = 3;    // {T}
+  SYNTACTIC_FORM_ARROW = 4;     // {K -> V}
+  SYNTACTIC_FORM_QUESTION = 5;  // T?
+  SYNTACTIC_FORM_OR_NULL = 6;   // T | null
+}
+
+// Type is one interned type reference: a constructor applied to arguments,
+// or a reference to a type parameter.
+//
+// Lowering interns, so two occurrences of the same type share an entry and
+// an ID comparison is a type comparison.
+message Type {
+  ID ctor = 1;          // indexes Model.decls; unset when param is set
+  repeated ID args = 2; // indexes Model.types
+  SyntacticForm wrote = 3;
+  Position position = 4;
+  ParamRef param = 5; // set instead of ctor for a type parameter
+}
+
+// ParamRef is a use of a type parameter.
+//
+// Parameters survive rather than being monomorphized away, so a backend
+// with native generics emits them and one without instantiates on its own
+// terms.
+message ParamRef {
+  string name = 1;
+  int32 index = 2; // into the declaring node's params
+  ID owner = 3;    // the declaration that declares it
+}

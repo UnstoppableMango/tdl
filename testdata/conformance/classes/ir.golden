@@ -1,0 +1,50 @@
+Model example.classes
+├── Decls
+│   ├── [0] primitive string  std.tdl:4:1
+│   ├── [1] primitive int  std.tdl:6:1
+│   ├── [2] primitive bool  std.tdl:7:1
+│   ├── [3] primitive bytes  std.tdl:8:1
+│   ├── [4] primitive List: type -> type  std.tdl:11:1
+│   ├── [5] primitive Set: type -> type  std.tdl:14:1
+│   ├── [6] primitive Map: type -> type -> type  std.tdl:17:1
+│   ├── [7] primitive decimal  std.tdl:20:1
+│   ├── [8] primitive uuid  std.tdl:22:1
+│   ├── [9] primitive instant  std.tdl:23:1
+│   ├── [10] primitive date  std.tdl:24:1
+│   ├── [11] primitive duration  std.tdl:25:1
+│   ├── [12] unlowered s  std.tdl:28:1
+│   ├── [13] unlowered m  std.tdl:30:1
+│   ├── [14] unlowered kg  std.tdl:31:1
+│   ├── [15] enum Option  std.tdl:34:1
+│   │   ├── param T  std.tdl:34:14
+│   │   ├── variant Some  std.tdl:35:3
+│   │   │   └── field value: types[0] T  std.tdl:35:10
+│   │   └── variant None  std.tdl:36:3
+│   ├── [16] enum Nullable  std.tdl:40:1
+│   │   ├── param T  std.tdl:40:16
+│   │   ├── variant Present  std.tdl:41:3
+│   │   │   └── field value: types[1] T  std.tdl:41:13
+│   │   └── variant Null  std.tdl:42:3
+│   ├── [17] unlowered Entity  std.tdl:46:1
+│   ├── [18] unlowered Value  std.tdl:51:1
+│   ├── [19] unlowered Timestamped  source.tdl:3:1
+│   ├── [20] unlowered Auditable  source.tdl:7:1
+│   ├── [21] unlowered Tenanted  source.tdl:11:1
+│   ├── [22] unlowered Paged  source.tdl:16:1
+│   ├── [23] unlowered Container  source.tdl:21:1
+│   ├── [24] unlowered Projection  source.tdl:22:1
+│   ├── [25] value Page  source.tdl:24:1
+│   │   ├── param f  source.tdl:24:13
+│   │   ├── param T  source.tdl:24:16
+│   │   └── field items: types[3] f<T>  source.tdl:25:3
+│   └── [26] value Envelope  source.tdl:28:1
+│       ├── param T  source.tdl:28:17
+│       ├── field body: types[4] T  source.tdl:29:3
+│       └── field receivedAt: types[5] instant  source.tdl:30:3
+└── Types
+    ├── [0] T  named  -> param Option.T  std.tdl:35:17
+    ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
+    ├── [2] T  named  -> param Page.T  source.tdl:25:12
+    ├── [3] f<T>  named  -> param Page.f  source.tdl:25:10
+    ├── [4] T  named  -> param Envelope.T  source.tdl:29:9
+    └── [5] instant  named  -> decls[9]  source.tdl:30:15

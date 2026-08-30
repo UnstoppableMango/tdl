@@ -21,11 +21,11 @@ The design is settled and written down:
 | [grammar.ebnf](docs/grammar.ebnf) | The formal grammar. |
 | [design/parser-plan.md](docs/design/parser-plan.md) | Rewriting the lexer and parser to match. Done. |
 | [design/ir.md](docs/design/ir.md) | The resolved model backends consume. |
-| [design/ir-plan.md](docs/design/ir-plan.md) | Implementing it. |
+| [design/ir-plan.md](docs/design/ir-plan.md) | Implementing it. Phases 1 to 4 of 8 done. |
 | [design/plugins.md](docs/design/plugins.md) | The backend plugin protocol. |
 | [design/workflow.md](docs/design/workflow.md) | What a model author does with all of it. |
 
-There is no semantic resolution and there are no code-generation backends. `docs/design/ir-plan.md` is next.
+Semantic resolution has started: the `ir` schema, the declaration table, the interned type table, name resolution, and the spec's recursion rules are in, so a single-package model lowers with its sugar resolved to prelude types and its names bound. The prelude is loaded from TDL source rather than built in, so `[T]` means whatever the loaded prelude says `List` is. `tdl ir` prints the result. Imports, classes, constraints, and targets are still to come, and there are no code-generation backends.
 
 ## Example
 
@@ -80,6 +80,7 @@ Everything a code generator needs lives in a separate `target` block, never in t
 tdl check ./types.tdl    # parse and report syntax errors
 tdl fmt ./types.tdl      # print canonical formatting; -w to write in place
 tdl ast ./types.tdl      # print the parse tree
+tdl ir ./types.tdl       # print the resolved model; --format json for the plugin view
 tdl tokens ./types.tdl   # print the token stream
 tdl version              # tool and spec versions
 ```

@@ -13,11 +13,17 @@ VIEWS ?= fmt,ast,stats
 play:
 	go run ./cmd/tdl play ${FILE} --views ${VIEWS}
 
+# Regenerate ir/ir.pb.go from proto/. The generated file is committed, so
+# this only runs when the schema changes.
+generate:
+	buf generate
+
 update:
 	nix flake update
 
 check lint:
 	nix flake check
+	buf lint
 
 format fmt:
 	nix fmt

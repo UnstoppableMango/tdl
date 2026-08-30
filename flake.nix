@@ -51,6 +51,8 @@
               pkgs.golangci-lint
               pkgs.gnumake
               pkgs.nixfmt
+              pkgs.buf
+              pkgs.protoc-gen-go
             ];
           };
 

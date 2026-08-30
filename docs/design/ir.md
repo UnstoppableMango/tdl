@@ -25,16 +25,14 @@ Flat tables with integer IDs, not a pointer graph.
 
 ```go
 type Model struct {
-    Entities   []Entity
-    Values     []Value
-    Enums      []Enum
-    Aliases    []Alias
-    Primitives []Primitive
-    Classes    []Class
-    Mixins     []Mixin
-    Types      []Type   // type references, interned
+    Decls []Decl // every declaration, in source order
+    Types []Type // type references, interned
 }
 ```
+
+Two tables, two ID spaces.
+One declaration table rather than one per kind, because an index has to say which table it indexes and a single space needs no discriminator.
+The by-nature split lives inside `Decl`, whose node is a `oneof`.
 
 Every reference is an `ID`, an integer index paired with the node's fully qualified name:
 
@@ -44,6 +42,9 @@ type ID struct {
     Name  string // "billing.User.email"
 }
 ```
+
+An index of `-1` means the name did not resolve.
+The name is kept regardless, so a diagnostic can say what was written.
 
 The index is what lookups use.
 The name is what appears in diagnostics, in ir dumps, and in target paths, and it is stable across edits in a way the index is not.
@@ -55,9 +56,12 @@ Flat tables serialize with no cycle handling and survive the recursion the spec 
 
 Declarations split by nature rather than collapsing into one tagged message or fragmenting into eight:
 
-- `Entity`, `Value`, `Mixin`, and `Class` share a structured shape: parameters, conformances, members, doc, position.
+- `Struct` covers `entity`, `value`, and `mixin`, which share a shape and differ in meaning. A `StructKind` records which was written.
+- `Class` shares that shape and adds what only a contract has.
 - `Enum` is its own message: variants, each with optional payload fields.
-- `Alias`, `Primitive` are their own, being neither structured nor enumerated.
+- `Alias`, `Newtype`, and `Primitive` are their own, being neither structured nor enumerated.
+
+The shared source fidelity, name, doc, position, deprecation, and declaration order, lives in a `Meta` every node carries.
 
 A backend iterating "everything with fields" iterates one shape.
 A backend that only handles enums never touches a field that doesn't apply to enums.
@@ -78,11 +82,14 @@ The syntactic form is recorded alongside:
 
 ```go
 type Type struct {
-    Ctor ID       // List, Option, User
-    Args []ID
-    Wrote SyntacticForm // WroteBrackets, WroteQuestion, WroteNamed, ...
+    Ctor  ID  // indexes Decls: List, Option, User
+    Args  []ID // indexes Types
+    Wrote SyntacticForm // Brackets, Question, Named, ...
 }
 ```
+
+The written form is part of a type's identity for interning.
+`[T]` and `List<T>` mean the same type and stay separate entries, because folding them would throw the distinction away the moment a model used both.
 
 A backend that treats all optionality identically ignores `Wrote`.
 A Go backend that wants `*T` for `T?` and a wrapper for an explicit `Option<T>` reads it.
