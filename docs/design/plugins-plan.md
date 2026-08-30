@@ -72,6 +72,8 @@ Writing is where the rules from plugins.md land: paths are relative to the outpu
 
 Done when `tdl gen` runs `debug` over a corpus model and writes the file, a path escaping the output directory is refused with a diagnostic, and `--target` narrows a run.
 
+**Done.** Writing checks every path before writing any file, so a response with one bad path writes nothing rather than half of itself.
+
 ## Phase 4: `--verify` and `--clean`
 
 The dry-run flag in the request, the diff against disk, and the `.tdl-output` marker that makes `--clean` refuse a directory it does not own.
