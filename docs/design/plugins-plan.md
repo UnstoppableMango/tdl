@@ -52,6 +52,8 @@ Diagnostics and failure paths get the same treatment as the happy path: a plugin
 
 Done when a message survives a round trip through the codec, a truncated stream is an error rather than a hang, and a message larger than a sensible cap is refused rather than allocated.
 
+**Done.** `plugin.Conn` carries several messages on one connection, distinguishes a stream that ends between messages from one cut part way through, and checks a length prefix before trusting it.
+
 ## Phase 2: the backend contract and a first backend
 
 The Go type a backend implements: request in, response out, plus whatever the handshake needs it to declare.
@@ -103,6 +105,25 @@ Done when a target block calling `tag(42)` fails before any backend runs, an und
 A plugin that declares reuse stays alive across regenerations and receives another request on the same stream. `tdl gen --watch` regenerates on save, and restarts a reused plugin when its binary changes.
 
 Done when a reused plugin serves two requests on one connection, a plugin that does not declare reuse gets a fresh process per generation, and replacing the binary under `--watch` picks up the new one.
+
+## Decisions deferred
+
+Points where the implementation picked something reasonable rather than
+stopping to settle it. Each is cheap to change while there is one
+implementation of the protocol and expensive afterwards.
+
+- **Framing version is an integer.** A string would carry more meaning and
+  invites parsing. One is enough until there is a second framing.
+- **`MaxMessageSize` is 64 MiB and not configurable.** It bounds the
+  length prefix, which is read from a stream before anything is known
+  about it. A real model that exceeds it is the signal to revisit.
+- **`DirectiveSpec.arg_kinds` constrains by position, and an empty list
+  accepts anything.** A directive whose third argument may be one of two
+  kinds cannot say so. A repeated-kinds-per-position shape would, at the
+  cost of a message nobody needs yet.
+- **`Response.post` is a list of names with no arguments.** The project
+  decides what a name maps to. Whether a backend should be able to pass
+  arguments is a question for whoever implements the allowlist.
 
 ## Deferred
 
