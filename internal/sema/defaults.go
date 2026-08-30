@@ -98,7 +98,7 @@ func (l *lowerer) checkDefault(f *ir.Field) {
 
 	// Look through the optionality sugar: `status: Status? = Draft` names a
 	// variant of Status.
-	for len(ty.GetArgs()) == 1 && isOptionLike(l.model, ty) {
+	for len(ty.GetArgs()) == 1 && isOptionLike(ty) {
 		ty = l.model.Type(ty.GetArgs()[0])
 		if ty == nil {
 			return
@@ -129,7 +129,7 @@ func (l *lowerer) checkDefault(f *ir.Field) {
 
 // isOptionLike reports whether a type is the sugar for absence or null,
 // which a default looks through.
-func isOptionLike(m *ir.Model, ty *ir.Type) bool {
+func isOptionLike(ty *ir.Type) bool {
 	switch ty.GetWrote() {
 	case ir.SyntacticForm_SYNTACTIC_FORM_QUESTION, ir.SyntacticForm_SYNTACTIC_FORM_OR_NULL:
 		return true

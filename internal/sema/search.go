@@ -27,15 +27,10 @@ func (l *lowerer) validateInstances() {
 			continue // a ground instance matches itself and asks nothing
 		}
 
-		params := map[string]bool{}
-		for _, p := range inst.GetParams() {
-			params[p.GetName()] = true
-		}
-
 		headSize := 0
 		for _, arg := range inst.GetClass().GetArgs() {
 			headSize += l.typeSize(arg)
-			l.checkHeadShape(inst, arg, params)
+			l.checkHeadShape(inst, arg)
 		}
 
 		for _, req := range inst.GetRequires() {
@@ -54,7 +49,7 @@ func (l *lowerer) validateInstances() {
 
 // checkHeadShape reports a head argument that is not a constructor applied
 // to distinct parameters.
-func (l *lowerer) checkHeadShape(inst *ir.Instance, arg *ir.ID, params map[string]bool) {
+func (l *lowerer) checkHeadShape(inst *ir.Instance, arg *ir.ID) {
 	ty := l.model.Type(arg)
 	if ty == nil {
 		return

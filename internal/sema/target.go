@@ -97,17 +97,17 @@ func (l *lowerer) walkEntries(block *ast.TargetDecl, scope string, entries []*as
 				out.Directives = append(out.Directives, d)
 				continue
 			}
-			l.attach(block, scope, entry.P, d, byDecl, byField)
+			l.attach(scope, entry.P, d, byDecl, byField)
 
 		default:
-			l.attach(block, path, entry.P, l.directive(block.N, entry.Directive), byDecl, byField)
+			l.attach(path, entry.P, l.directive(block.N, entry.Directive), byDecl, byField)
 		}
 	}
 }
 
 // attach resolves a path and records the directive as a candidate for every
 // node it reaches.
-func (l *lowerer) attach(block *ast.TargetDecl, path string, pos ast.Position, d *ir.Directive, byDecl map[int32][]candidate, byField map[fieldKey][]candidate) {
+func (l *lowerer) attach(path string, pos ast.Position, d *ir.Directive, byDecl map[int32][]candidate, byField map[fieldKey][]candidate) {
 	head, member := split(path)
 
 	b, ok := l.scope.lookup(head)
