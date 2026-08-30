@@ -55,6 +55,10 @@ func NewConn(r io.Reader, w io.Writer) *Conn {
 	return &Conn{r: bufio.NewReader(r), w: w}
 }
 
+// Writer returns the underlying writer, so a caller holding a pipe can
+// close it to tell the other end there is nothing more coming.
+func (c *Conn) Writer() io.Writer { return c.w }
+
 // Send encodes m and writes it with its length prefix.
 func (c *Conn) Send(m proto.Message) error {
 	body, err := proto.Marshal(m)

@@ -90,13 +90,13 @@ This is where the protocol first has two hosts, so it is where the parity tests 
 
 Done when the `debug` backend compiled as `tdl-gen-debug` produces byte-identical output to the built-in through `tdl gen`, a version mismatch is a readable refusal naming both versions, and a plugin that never answers is killed with a diagnostic naming it.
 
-## Phase 6: the SDK
+**Done, and it absorbed phase 6.** A host cannot be tested without something serving the other end, so `plugin.Serve` and `cmd/tdl-gen-debug` arrived here rather than after. Phase 6 is left holding what it should have been about: making the SDK worth handing to someone.
 
-The other side of the wire: a `plugin.Serve(backend)` that reads the handshake, replies with what the backend declares, serves requests, and exits.
+## Phase 6: the SDK, documented
 
-Without this, "anyone can ship a backend" means "anyone can reimplement the framing", and the protocol has no second implementation to keep it honest.
+`plugin.Serve` and `cmd/tdl-gen-debug` landed in phase 5, because a host with nothing on the other end cannot be tested. What is left is what makes the package worth handing to someone: a written example of a backend, the recorded request and response pairs in `testdata/plugin/`, and the failure paths a plugin author will hit spelled out rather than discovered.
 
-Done when `tdl-gen-debug` is a `main` calling `Serve` with the same backend value the built-in registry holds, and the parity tests still pass.
+Done when someone can write a backend from the package documentation alone, and the recorded pairs replay against a non-Go implementation.
 
 ## Phase 7: directive declarations and diagnostics
 
