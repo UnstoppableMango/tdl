@@ -71,6 +71,8 @@ A case directory holding a `pending` file describes a construct the parser canno
 
 Every `.tdl` file in `testdata/conformance/` and `prelude/` is stored in canonical form: `tdl fmt <file>` must print it back byte for byte. `examples/*.tdl` deliberately are not, because they carry `//` comments.
 
+The protos are Protobuf Editions 2024. Editions default every field to explicit presence and the generated Go to the opaque API, so each file sets `features.field_presence = IMPLICIT` (what proto3 meant) and `features.(pb.go).api_level = API_OPEN` (the API these types were published with). A field wanting presence says so itself, as `Range.low` does. `go_package` lives in `buf.gen.yaml` under managed mode, not in the files.
+
 After changing `proto/`, run `make generate` and commit `ir/ir.pb.go` with it. Field numbers are a compatibility guarantee to plugins: add fields, never renumber or reuse them. CI enforces that with `buf breaking` against the pull request's base, alongside `buf lint` and `buf format`; `make fmt` formats the protos and `make lint` checks them.
 
 ## Conventions

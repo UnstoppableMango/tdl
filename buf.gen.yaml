@@ -1,6 +1,22 @@
 version: v2
+
+# The go_package option lives here rather than in each .proto. A file
+# should say what it describes, not where one language's generated code
+# happens to go; managed mode is where that belongs.
+#
+# The default would be the prefix joined to the file's path, giving
+# tdl/ir/v1 under the module. These packages are imported by name from
+# every backend, so they keep the short paths they were published with.
 managed:
-  enabled: false
+  enabled: true
+  override:
+    - file_option: go_package
+      path: tdl/ir/v1/ir.proto
+      value: github.com/unstoppablemango/tdl/ir
+    - file_option: go_package
+      path: tdl/plugin/v1/plugin.proto
+      value: github.com/unstoppablemango/tdl/plugin
+
 plugins:
   - local: protoc-gen-go
     out: .

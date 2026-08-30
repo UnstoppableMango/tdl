@@ -5,11 +5,20 @@
 // docs/design/ir-plan.md for what is implemented so far. The schema grows
 // one phase at a time; constraints, defaults, classes, instances, imports,
 // and target directives are not here yet.
-syntax = "proto3";
+edition = "2024";
 
 package tdl.ir.v1;
 
-option go_package = "github.com/unstoppablemango/tdl/ir;ir";
+import "google/protobuf/go_features.proto";
+
+// Editions default the generated Go to the opaque API, where every field
+// is reached through a builder. These types are constructed directly here
+// and by any backend, so they keep the open API they were published with.
+option features.(pb.go).api_level = API_OPEN;
+// Editions default to explicit presence, which would give every scalar
+// field a pointer in the generated code. Implicit presence is what
+// proto3 meant, and what this schema was written against.
+option features.field_presence = IMPLICIT;
 
 // ID references a node by its index into a table and by its fully qualified
 // name.
@@ -257,8 +266,8 @@ message Literal {
 
 // Range is a bound with either end optional: `3..254`, `1..`, `..64`.
 message Range {
-  optional int64 low = 1;
-  optional int64 high = 2;
+  int64 low = 1 [features.field_presence = EXPLICIT];
+  int64 high = 2 [features.field_presence = EXPLICIT];
 }
 
 // Constraint is one entry in a `where { ... }` block.
