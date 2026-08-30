@@ -27,6 +27,9 @@ func (Backend) Describe() plugin.Description {
 	return plugin.Description{
 		Name:    Name,
 		Version: "0.1.0",
+		// Each request is answered from the request alone, so serving
+		// several on one connection is safe.
+		Reuse: true,
 		Directives: []*plugin.DirectiveSpec{
 			// `note("...")` gives a target block something to say that this
 			// backend can echo, so directive plumbing has a user.
