@@ -12,7 +12,7 @@ go build ./...
 command make build     # nix build .#
 command make test      # go test ./...
 command make play      # watch scratch.tdl; FILE=examples/nested.tdl VIEWS=all to override
-command make lint      # nix flake check (golangci-lint + treefmt)
+command make lint      # nix flake check + buf + markdownlint
 command make fmt       # nix fmt (treefmt) + buf format
 command make tidy      # go mod tidy + regenerate nix/gomod2nix.toml
 command make generate  # buf generate: proto/ -> ir/ir.pb.go
@@ -20,7 +20,9 @@ command make generate  # buf generate: proto/ -> ir/ir.pb.go
 
 Prefix `make` with `command` (see the shell autoload note in the global instructions).
 
-`nix fmt` formats Go, Nix, YAML, JSON, TOML, Markdown, and protobuf; `nix flake check` fails when anything is unformatted. Three files have no formatter: `Makefile`, `.editorconfig`, and `docs/grammar.ebnf`. Deliberately excluded: `*.tdl` (until `tdl fmt` is wired in, see `docs/backlog.md`), `*.golden` and `nix/gomod2nix.toml` and `flake.lock` (generated), and `.claude/` (agent skills).
+`nix fmt` formats Go, Nix, YAML, JSON, TOML, Markdown, and protobuf; `nix flake check` fails when anything is unformatted.
+
+Which markdown files are linted lives in `.markdownlint-cli2.yaml`, so a bare `markdownlint-cli2` locally checks what CI checks. `CLAUDE.md` and `.github/copilot-instructions.md` are ignored: their whole content is an import pointing at this file, and a file that is one directive has no heading to lint. Three files have no formatter: `Makefile`, `.editorconfig`, and `docs/grammar.ebnf`. Deliberately excluded: `*.tdl` (until `tdl fmt` is wired in, see `docs/backlog.md`), `*.golden` and `nix/gomod2nix.toml` and `flake.lock` (generated), and `.claude/` (agent skills).
 
 After changing `go.mod` or adding dependencies, run `make tidy` so `nix/gomod2nix.toml` stays in sync, otherwise `nix build` fails.
 

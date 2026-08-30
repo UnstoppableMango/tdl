@@ -1,0 +1,13 @@
+# Which files to lint. The workflow runs the action without a globs input
+# so this is the only definition, and a bare `markdownlint-cli2` locally
+# checks exactly what CI checks.
+globs:
+  - "**/*.{md,markdown}"
+
+ignores:
+  # Nix build cache, not ours.
+  - ".direnv"
+  # Pointers at AGENTS.md rather than prose. A file whose whole content is
+  # an import directive has no heading to lint.
+  - "CLAUDE.md"
+  - ".github/copilot-instructions.md"

@@ -52,6 +52,7 @@
               pkgs.gnumake
               pkgs.nixfmt
               pkgs.buf
+              pkgs.markdownlint-cli2
               pkgs.protoc-gen-go
             ];
           };

@@ -22,7 +22,7 @@ Three of them change what lowering receives and are worth stating here:
 
 ## Layout
 
-```
+```text
 proto/          # ir schema, public
 ir/             # generated Go plus helpers, public
 internal/sema/  # ast to ir, private

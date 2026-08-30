@@ -41,6 +41,7 @@ The design is settled and written down:
 | [design/ir.md](docs/design/ir.md) | The resolved model backends consume. |
 | [design/ir-plan.md](docs/design/ir-plan.md) | Implementing it. Phases 1 to 8 of 10 done. |
 | [design/plugins.md](docs/design/plugins.md) | The backend plugin protocol. |
+| [design/plugins-plan.md](docs/design/plugins-plan.md) | Implementing it. Not started. |
 | [design/workflow.md](docs/design/workflow.md) | What a model author does with all of it. |
 | [backlog.md](docs/backlog.md) | Wanted, unscheduled: tree-sitter, an LSP, editor support, an MCP server. |
 

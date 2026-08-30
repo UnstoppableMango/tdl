@@ -193,7 +193,7 @@ Field-number discipline still applies; the handshake is for the cases discipline
 
 ## Placement
 
-```
+```text
 proto/     # the schema, public API
 ir/        # generated Go plus helpers, public API
 ```

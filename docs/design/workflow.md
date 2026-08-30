@@ -9,7 +9,7 @@ Backend authors and prelude authors are different audiences with different docum
 
 ## The shape of a project
 
-```
+```text
 billing/
   tdl.toml
   billing.tdl
@@ -147,7 +147,7 @@ Play's token, AST, and formatted views become flags on the existing debug comman
 
 ## Diagnostics
 
-```
+```text
 billing.tdl:14:3: unknown type "Momey"
 billing.tdl:31:1: target path "User.emial" names nothing
 ```
@@ -169,7 +169,7 @@ CI fails when someone edits a model without regenerating.
 
 Build-time:
 
-```
+```text
 gen/
 ```
 
