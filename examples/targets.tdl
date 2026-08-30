@@ -1,0 +1,36 @@
+// nested.tdl with backend mapping attached. The model is unchanged;
+// everything a generator needs lives here instead.
+//
+// A directive's arguments are parenthesized, and a directive taking none
+// omits the parentheses. Whitespace is insignificant, so without a
+// delimiter `table snake_case` could not be told from `table` applied to
+// the entry that follows it.
+package shop.nested
+
+/// Anything carrying creation and update timestamps.
+class Auditable {
+  createdAt: instant
+  updatedAt: instant
+}
+
+target go for shop.nested {
+  out("./gen/go")
+  package("github.com/acme/shop")
+
+  Order {
+    name("PurchaseOrder")
+    customer => tag("json:\"buyer\"")
+  }
+
+  Order.items => slice
+  Money => foreign("github.com/shopspring/decimal", "Decimal")
+
+  Auditable => embed("audit.Fields")
+}
+
+target sql for shop.nested {
+  out("./gen/sql")
+
+  Order => table("orders")
+  Auditable => trigger("set_updated_at")
+}

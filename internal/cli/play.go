@@ -20,22 +20,31 @@ import (
 )
 
 // scratchTemplate seeds a new playground file with one of everything the
-// grammar supports, so there is something to twist immediately.
-const scratchTemplate = `package scratch.v1
+// parser reads today, so there is something to twist immediately.
+const scratchTemplate = `package scratch
 
-type User {
-  id: string
-  name: string?
-  tags: list<string>
-  labels: map<string, string>
+primitive string
+primitive int
+primitive instant
 
-  @go(tag: "json:\"role\"")
-  role: Role = "member"
+type Email: string where {
+  matches(/^[^@]+@[^@]+$/)
+  length(3..254)
 }
 
-enum Role {
-  member
-  admin = 1
+entity User {
+  key id: string
+  email: Email
+  name: string? where { length(1..120) }
+  tags: {string}
+  role: Role = Member
+}
+
+enum Role { Member Admin }
+
+target go for scratch {
+  out("./gen/go")
+  User.email => tag("json:email")
 }
 `
 
@@ -257,37 +266,66 @@ func annotateErrors(src string, err error) string {
 // stats summarizes the shape of a parsed file: enough numbers to feel the
 // difference between two ways of modelling the same data.
 func stats(file *ast.File) string {
-	var fields, optional, defaults, annotations, variants int
-	for _, ty := range file.Types {
-		annotations += len(ty.Annotations)
-		fields += len(ty.Fields)
-		for _, f := range ty.Fields {
-			annotations += len(f.Annotations)
-			if f.Optional {
-				optional++
+	var primitives, entities, values, enums, newtypes, aliases, targets int
+	var fields, optional, keys, variants int
+
+	countFields := func(fs []*ast.Field) {
+		for _, f := range fs {
+			fields++
+			if f.Key {
+				keys++
 			}
-			if f.Default != nil {
-				defaults++
+			if f.Type != nil && f.Type.Optional {
+				optional++
 			}
 		}
 	}
-	for _, en := range file.Enums {
-		annotations += len(en.Annotations)
-		variants += len(en.Values)
-		for _, v := range en.Values {
-			annotations += len(v.Annotations)
+
+	for _, decl := range file.Decls {
+		switch d := decl.(type) {
+		case *ast.PrimitiveDecl:
+			primitives++
+		case *ast.AliasDecl:
+			aliases++
+		case *ast.NewtypeDecl:
+			newtypes++
+		case *ast.TargetDecl:
+			targets++
+		case *ast.EnumDecl:
+			enums++
+			variants += len(d.Variants)
+			for _, v := range d.Variants {
+				countFields(v.Fields)
+			}
+		case *ast.StructDecl:
+			switch d.Keyword {
+			case "entity":
+				entities++
+			case "value":
+				values++
+			}
+			for _, m := range d.Members {
+				if f, ok := m.(*ast.Field); ok {
+					countFields([]*ast.Field{f})
+				}
+			}
 		}
 	}
 
 	var b strings.Builder
 	row := func(name string, n int) { fmt.Fprintf(&b, "%-14s %d\n", name, n) }
 	row("imports", len(file.Imports))
-	row("types", len(file.Types))
+	row("declarations", len(file.Decls))
+	row("primitives", primitives)
+	row("entities", entities)
+	row("values", values)
+	row("enums", enums)
+	row("newtypes", newtypes)
+	row("aliases", aliases)
+	row("targets", targets)
 	row("fields", fields)
+	row("keys", keys)
 	row("optional", optional)
-	row("defaults", defaults)
-	row("enums", len(file.Enums))
 	row("variants", variants)
-	row("annotations", annotations)
 	return b.String()
 }

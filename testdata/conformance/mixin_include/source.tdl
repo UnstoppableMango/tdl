@@ -1,0 +1,21 @@
+package example.mixins
+
+mixin Timestamps {
+  createdAt: instant
+  updatedAt: instant
+}
+
+mixin Named {
+  name: string
+}
+
+entity User: Auditable {
+  key id: string
+  include Timestamps
+  include Named
+  email: string
+}
+
+value Snapshot {
+  include Timestamps
+}

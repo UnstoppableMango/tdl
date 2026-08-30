@@ -1,5 +1,5 @@
 // Package ast defines the TDL abstract syntax tree: a parse tree that
-// mirrors source text 1:1, with names left unresolved. See the ir package
+// mirrors source text 1:1, with names left unresolved. See docs/design/ir.md
 // for the resolved semantic model backends consume.
 package ast
 
@@ -13,68 +13,88 @@ type File struct {
 	Filename string
 	Package  *PackageDecl // nil if omitted
 	Imports  []*ImportDecl
-	Types    []*TypeDecl
-	Enums    []*EnumDecl
+	Decls    []Decl
+}
+
+// Decl is a top-level declaration. `class` and `instance` arrive with
+// phase 4 of docs/design/parser-plan.md; every other form is here.
+type Decl interface {
+	Pos() Position
+	Name() string
+	docLines() []string
+	deprecation() *Deprecation
 }
 
 // PackageDecl is a `package <dotted.ident>` declaration.
 type PackageDecl struct {
-	Pos  Position
-	Name string // dotted, e.g. "example.v1"
+	P    Position
+	Path string // dotted, e.g. "shop.orders"
 }
 
 // ImportDecl is an `import "path.tdl" as alias` declaration.
 type ImportDecl struct {
-	Pos   Position
+	Doc   []string
+	P     Position
 	Path  string
-	Alias string
+	Alias string // "_" merges the imported names into the current scope
 }
 
-// TypeDecl is a `type Name { ... }` record declaration.
-type TypeDecl struct {
-	Pos         Position
-	Name        string
-	Fields      []*Field
-	Annotations []*Annotation
+// PrimitiveDecl is a `primitive Name` or `primitive Name: Kind` declaration.
+// It introduces an opaque, irreducible root type.
+type PrimitiveDecl struct {
+	DeclHead
+	Kind *Kind // nil when the kind is left to inference
 }
 
-// Field is a single field within a TypeDecl.
-type Field struct {
-	Pos         Position
-	Name        string
-	Type        TypeRef
-	Optional    bool // trailing '?'
-	Default     *Literal
-	Annotations []*Annotation
+// AliasDecl is an `alias Name = TypeRef` declaration, optionally
+// parameterized. An alias is transparent: it is expanded rather than
+// referenced.
+type AliasDecl struct {
+	DeclHead
+	Params []*TypeParam
+	Target *TypeRef
 }
 
-// EnumDecl is an `enum Name { ... }` declaration.
-type EnumDecl struct {
-	Pos         Position
-	Name        string
-	Values      []*EnumValue
-	Annotations []*Annotation
+// Doc returns the doc comment lines attached to a declaration.
+func Doc(d Decl) []string { return d.docLines() }
+
+// TypeParam is one parameter in a `<...>` parameter list, with an optional
+// kind annotation.
+type TypeParam struct {
+	P    Position
+	N    string
+	Kind *Kind // nil when inferred from use
 }
 
-// EnumValue is a single variant within an EnumDecl.
-type EnumValue struct {
-	Pos         Position
-	Name        string
-	Value       *Literal // nil if the variant has no explicit literal
-	Annotations []*Annotation
+// Kind is a kind expression. Name is "type" or "unit" for an atom, or Paren
+// holds a parenthesized kind; Arrow is set when this kind is the left side
+// of an arrow, which associates to the right.
+type Kind struct {
+	P     Position
+	N     string // "type" or "unit"; empty when Paren is set
+	Paren *Kind
+	Arrow *Kind // `left -> Arrow`; nil for a bare atom
 }
 
-// TypeRef is a reference to a type: a primitive/named type, or a list/map
-// of other TypeRefs. Exactly one of Name (with optional Qualifier), List,
-// or (MapKey and MapValue) is set.
+// TypeRef is a reference to a type.
+//
+// The collection and optionality forms are sugar for prelude types, and the
+// parser records the form as written: lowering to List, Set, Map, Option,
+// and Nullable is the resolver's job.
 type TypeRef struct {
-	Pos Position
+	P Position
 
-	Qualifier string // "" if unqualified; set for "alias.Type" references
-	Name      string // primitive or named type identifier; "" for List/Map
+	// Named form: an optionally qualified name with optional arguments.
+	Qualifier string // "" if unqualified; set for "alias.Type"
+	N         string // "" for the collection forms below
+	Args      []*TypeArg
 
-	List *TypeRef // set for list<T>
+	List *TypeRef // [T]
+	Set  *TypeRef // {T}
 
-	MapKey   *TypeRef // set for map<K, V>
+	MapKey   *TypeRef // {K -> V}
 	MapValue *TypeRef
+
+	Optional bool // trailing ?
+	Nullable bool // trailing | null
 }

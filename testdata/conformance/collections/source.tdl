@@ -1,0 +1,15 @@
+package example.collections
+
+alias BySku = {string -> LineItem}
+alias TagIndex = {string -> [string]}
+alias Matrix = [[int]]
+alias Regions = [{string -> string}]
+alias SeenSkus = {string}
+alias ExplicitList = List<LineItem>
+alias ExplicitSet = Set<LineItem>
+alias ExplicitMap = Map<string, string>
+alias Optional = LineItem?
+alias OrNull = LineItem | null
+alias Both = LineItem? | null
+alias NestedOptional = [LineItem?]
+alias QualifiedArg = Map<string, common.Address>

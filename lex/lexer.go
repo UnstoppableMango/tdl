@@ -7,6 +7,10 @@ import (
 )
 
 // Lexer scans TDL source text into a stream of [Token]s.
+//
+// Whitespace is insignificant in TDL: the lexer emits no newline tokens
+// and the parser has no separator rules. An item ends where the next
+// begins.
 type Lexer struct {
 	filename string
 	src      string
@@ -21,11 +25,7 @@ type Lexer struct {
 
 // New returns a Lexer over src, reporting positions against filename.
 func New(filename, src string) *Lexer {
-	l := &Lexer{
-		filename: filename,
-		src:      src,
-		line:     1,
-	}
+	l := &Lexer{filename: filename, src: src, line: 1}
 	l.next()
 	return l
 }
@@ -75,71 +75,97 @@ func isDigit(ch rune) bool {
 // Next scans and returns the next token. It returns an EOF token forever
 // once the end of input is reached.
 func (l *Lexer) Next() Token {
-	l.skipWhitespaceAndComments()
+	for {
+		l.skipSpace()
 
-	pos := l.pos()
+		pos := l.pos()
 
-	switch ch := l.ch; {
-	case ch == eof:
-		return Token{Kind: EOF, Pos: pos}
-	case isLetter(ch):
-		return l.scanIdent(pos)
-	case isDigit(ch):
-		return l.scanNumber(pos)
-	case ch == '"':
-		return l.scanString(pos)
+		switch ch := l.ch; {
+		case ch == eof:
+			return Token{Kind: EOF, Pos: pos}
+		case isLetter(ch):
+			return l.scanIdent(pos)
+		case isDigit(ch):
+			return l.scanNumber(pos, false)
+		case ch == '"':
+			return l.scanString(pos)
+		case ch == '/' && l.peekByte() == '/':
+			tok, isDoc := l.scanComment(pos)
+			if isDoc {
+				return tok
+			}
+			continue // ordinary comment: skip and keep going
+		}
+
+		return l.scanOperator()
 	}
+}
 
+func (l *Lexer) skipSpace() {
+	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
+		l.next()
+	}
+}
+
+// scanComment consumes a `//` comment. A comment beginning `///` is a doc
+// comment and produces a DOC token holding the text after the slashes with
+// one leading space removed; anything else is skipped.
+func (l *Lexer) scanComment(pos Position) (Token, bool) {
+	l.next() // first /
+	l.next() // second /
+	doc := l.ch == '/'
+	if doc {
+		l.next()
+	}
+	start := l.offset
+	for l.ch != '\n' && l.ch != eof {
+		l.next()
+	}
+	if !doc {
+		return Token{}, false
+	}
+	return Token{Kind: DOC, Text: strings.TrimPrefix(l.src[start:l.offset], " "), Pos: pos}, true
+}
+
+func (l *Lexer) scanOperator() Token {
+	pos := l.pos()
 	ch := l.ch
 	l.next()
 
 	switch ch {
-	case '{':
-		return Token{Kind: LBRACE, Text: "{", Pos: pos}
-	case '}':
-		return Token{Kind: RBRACE, Text: "}", Pos: pos}
-	case '(':
-		return Token{Kind: LPAREN, Text: "(", Pos: pos}
-	case ')':
-		return Token{Kind: RPAREN, Text: ")", Pos: pos}
-	case '[':
-		return Token{Kind: LBRACK, Text: "[", Pos: pos}
-	case ']':
-		return Token{Kind: RBRACK, Text: "]", Pos: pos}
-	case '<':
-		return Token{Kind: LT, Text: "<", Pos: pos}
-	case '>':
-		return Token{Kind: GT, Text: ">", Pos: pos}
-	case ':':
-		return Token{Kind: COLON, Text: ":", Pos: pos}
-	case ',':
-		return Token{Kind: COMMA, Text: ",", Pos: pos}
-	case '=':
-		return Token{Kind: EQUAL, Text: "=", Pos: pos}
-	case '?':
-		return Token{Kind: QUESTION, Text: "?", Pos: pos}
-	case '.':
-		return Token{Kind: DOT, Text: ".", Pos: pos}
-	case '@':
-		return Token{Kind: AT, Text: "@", Pos: pos}
-	default:
-		return Token{Kind: ILLEGAL, Text: string(ch), Pos: pos}
-	}
-}
-
-func (l *Lexer) skipWhitespaceAndComments() {
-	for {
-		for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
+	case '-':
+		if l.ch == '>' {
 			l.next()
+			return Token{Kind: ARROW, Text: "->", Pos: pos}
 		}
-		if l.ch == '/' && l.peekByte() == '/' {
-			for l.ch != '\n' && l.ch != eof {
-				l.next()
-			}
-			continue
+		if isDigit(l.ch) {
+			return l.scanNumber(pos, true)
 		}
-		break
+		return Token{Kind: ILLEGAL, Text: "-", Pos: pos}
+	case '=':
+		if l.ch == '>' {
+			l.next()
+			return Token{Kind: FATARROW, Text: "=>", Pos: pos}
+		}
+		return Token{Kind: EQUAL, Text: "=", Pos: pos}
+	case '.':
+		if l.ch == '.' {
+			l.next()
+			return Token{Kind: RANGE, Text: "..", Pos: pos}
+		}
+		return Token{Kind: DOT, Text: ".", Pos: pos}
 	}
+
+	simple := map[rune]Kind{
+		'{': LBRACE, '}': RBRACE, '(': LPAREN, ')': RPAREN,
+		'[': LBRACK, ']': RBRACK, '<': LT, '>': GT,
+		':': COLON, ',': COMMA, '?': QUESTION, '|': PIPE,
+		'^': CARET, '*': STAR, '/': SLASH,
+	}
+	if kind, ok := simple[ch]; ok {
+		return Token{Kind: kind, Text: string(ch), Pos: pos}
+	}
+	return Token{Kind: ILLEGAL, Text: string(ch), Pos: pos}
 }
 
 func (l *Lexer) scanIdent(pos Position) Token {
@@ -151,15 +177,21 @@ func (l *Lexer) scanIdent(pos Position) Token {
 	return Token{Kind: LookupIdent(text), Text: text, Pos: pos}
 }
 
-func (l *Lexer) scanNumber(pos Position) Token {
-	start := l.offset
+// scanNumber scans an integer or float. `1..2` is an integer followed by a
+// range operator, not a malformed float, so a '.' only continues the number
+// when a digit follows it.
+func (l *Lexer) scanNumber(pos Position, negative bool) Token {
+	start := pos.Offset
+	if !negative {
+		start = l.offset
+	}
 	for isDigit(l.ch) {
 		l.next()
 	}
 	kind := INT
-	if l.ch == '.' && isDigit(l.peekRuneAfterDot()) {
+	if l.ch == '.' && isDigit(l.peekRune()) {
 		kind = FLOAT
-		l.next() // consume '.'
+		l.next()
 		for isDigit(l.ch) {
 			l.next()
 		}
@@ -167,7 +199,7 @@ func (l *Lexer) scanNumber(pos Position) Token {
 	return Token{Kind: kind, Text: l.src[start:l.offset], Pos: pos}
 }
 
-func (l *Lexer) peekRuneAfterDot() rune {
+func (l *Lexer) peekRune() rune {
 	if l.rdOffset < len(l.src) {
 		r, _ := utf8.DecodeRuneInString(l.src[l.rdOffset:])
 		return r
@@ -176,7 +208,7 @@ func (l *Lexer) peekRuneAfterDot() rune {
 }
 
 func (l *Lexer) scanString(pos Position) Token {
-	l.next() // consume opening quote
+	l.next() // opening quote
 	var b strings.Builder
 	for l.ch != '"' {
 		if l.ch == eof || l.ch == '\n' {
@@ -202,6 +234,48 @@ func (l *Lexer) scanString(pos Position) Token {
 		b.WriteRune(l.ch)
 		l.next()
 	}
-	l.next() // consume closing quote
+	l.next() // closing quote
 	return Token{Kind: STRING, Text: b.String(), Pos: pos}
+}
+
+// RescanRegexAt rescans the input from pos as a regex literal and leaves the
+// lexer positioned after it.
+//
+// `/` is division in a unit expression and the delimiter of a regex literal,
+// and nothing local to the token tells them apart: `matches` is a contextual
+// keyword, so the preceding token is an ordinary identifier either way. The
+// parser knows which it wants, so it asks. Every other token is scanned by
+// [Lexer.Next] without context.
+func (l *Lexer) RescanRegexAt(pos Position) Token {
+	l.reset(pos)
+	if l.ch != '/' {
+		return Token{Kind: ILLEGAL, Text: string(l.ch), Pos: pos}
+	}
+	l.next() // opening slash
+	var b strings.Builder
+	for l.ch != '/' {
+		if l.ch == eof || l.ch == '\n' {
+			return Token{Kind: ILLEGAL, Text: fmt.Sprintf("unterminated regex starting at %s", pos), Pos: pos}
+		}
+		if l.ch == '\\' {
+			b.WriteRune(l.ch)
+			l.next()
+			if l.ch == eof || l.ch == '\n' {
+				return Token{Kind: ILLEGAL, Text: fmt.Sprintf("unterminated regex starting at %s", pos), Pos: pos}
+			}
+		}
+		b.WriteRune(l.ch)
+		l.next()
+	}
+	l.next() // closing slash
+	return Token{Kind: REGEX, Text: b.String(), Pos: pos}
+}
+
+func (l *Lexer) reset(pos Position) {
+	l.offset = pos.Offset
+	l.rdOffset = pos.Offset
+	l.line = pos.Line
+	l.lineStart = pos.Offset - pos.Col + 1
+	l.ch = 0 // not '\n', so next() does not advance the line counter
+	l.next()
 }

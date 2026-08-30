@@ -2,7 +2,12 @@
    Notation: '...' terminals, [ ] optional, { } zero-or-more, | alternation.
 
    Doc comments ('///' to end of line) are lexical.  They attach to the
-   declaration, field, or variant that follows and are omitted below. *)
+   declaration, field, or variant that follows and are omitted below.
+
+   Whitespace is insignificant and there are no separator rules: an item
+   ends where the next begins.  Commas appear only where written below,
+   inside '<...>', conformance lists, and list literals, and are required
+   there.  They are not permitted inside '{ }' blocks. *)
 
 File     = { [ Deprecated ] Decl } .
 Decl     = PackageDecl | ImportDecl | PrimitiveDecl | UnitDecl
@@ -28,20 +33,20 @@ TypeParam  = identifier [ ":" Kind ] .
 Kind       = KindAtom { "->" KindAtom } .
 KindAtom   = "type" | "unit" | "(" Kind ")" .
 
-WhereClause = "where" ClassRef { "," ClassRef } .
-ClassRef    = DottedIdent [ TypeArgs ] .
+RequiresClause = "requires" ClassRef { "," ClassRef } .
+ClassRef       = DottedIdent [ TypeArgs ] .
 
 (* ---- declarations ------------------------------------------------------- *)
 
 AliasDecl  = "alias" identifier [ TypeParams ] "=" TypeRef .
 
 TypeDecl   = "type" identifier [ TypeParams ] ":" TypeRef
-             [ WhereClause ] [ ConstraintBlock ] .
+             [ RequiresClause ] [ ConstraintBlock ] .
 
-ValueDecl  = "value"  identifier [ TypeParams ] [ Conforms ] [ WhereClause ] Body .
-EntityDecl = "entity" identifier [ TypeParams ] [ Conforms ] [ WhereClause ] Body .
-MixinDecl  = "mixin"  identifier [ TypeParams ] [ Conforms ] [ WhereClause ] Body .
-EnumDecl   = "enum"   identifier [ TypeParams ] [ Conforms ] [ WhereClause ]
+ValueDecl  = "value"  identifier [ TypeParams ] [ Conforms ] [ RequiresClause ] Body .
+EntityDecl = "entity" identifier [ TypeParams ] [ Conforms ] [ RequiresClause ] Body .
+MixinDecl  = "mixin"  identifier [ TypeParams ] [ Conforms ] [ RequiresClause ] Body .
+EnumDecl   = "enum"   identifier [ TypeParams ] [ Conforms ] [ RequiresClause ]
              "{" { Variant } "}" .
 
 Conforms = ":" ClassRef { "," ClassRef } .
@@ -50,7 +55,7 @@ Body    = "{" { Member } "}" .
 Member  = Include | Field .
 Include = "include" NamedType .
 
-Variant = [ Deprecated ] identifier [ "{" [ Field { "," Field } ] "}" ] .
+Variant = [ Deprecated ] identifier [ "{" { Field } "}" ] .
 
 Field    = { FieldMod } identifier ":" TypeRef { FieldRel }
            [ ConstraintBlock ] [ "=" Literal ] .
@@ -63,9 +68,12 @@ Deprecated = "deprecated" [ "(" string_lit ")" ] .
 (* ---- classes and instances ---------------------------------------------- *)
 
 ClassDecl   = "class" identifier [ TypeParams ] [ FunDeps ] [ Conforms ]
-              [ WhereClause ] "{" { ClassMember } "}" .
+              [ RequiresClause ] "{" { ClassMember } "}" .
 ClassMember = Field | KeyRequirement | AssocTypeReq .
 KeyRequirement = "key" .
+(* A class may not declare key fields, so a Field in a class body carries no
+   "key" modifier.  Whitespace is insignificant, so a bare KeyRequirement
+   followed by a field would otherwise read as one key field. *)
 AssocTypeReq   = "type" identifier [ ":" Kind ] .
 
 FunDeps = "|" FunDep { "," FunDep } .
@@ -73,7 +81,7 @@ FunDep  = identifier { identifier } "->" identifier { identifier } .
 
 InstanceDecl  = "instance" [ TypeParams ] DottedIdent
                 ( TypeArgs | "for" NamedType )
-                [ WhereClause ] [ "{" { AssocTypeBind } "}" ] .
+                [ RequiresClause ] [ "{" { AssocTypeBind } "}" ] .
 AssocTypeBind = "type" identifier "=" TypeRef .
 (* "instance C for T" is sugar for "instance C<T>". *)
 
@@ -94,14 +102,17 @@ TypeArg  = UnitExpr | TypeRef .
 
 (* ---- constraints -------------------------------------------------------- *)
 
-ConstraintBlock = "{" [ Constraint { [ "," ] Constraint } ] "}" .
-Constraint = "min" Literal
-           | "max" Literal
-           | "length" Range
-           | "matches" regex_lit
-           | "oneOf" ListLiteral
-           | "unique" .
-Range = [ int_lit ] ".." [ int_lit ] | int_lit .
+ConstraintBlock = "where" "{" { Constraint } "}" .
+Constraint      = identifier [ "(" [ ConstraintArg { "," ConstraintArg } ] ")" ] .
+ConstraintArg   = Range | regex_lit | Literal .
+Range           = [ int_lit ] ".." [ int_lit ] .
+(* Arguments are parenthesized, as for a directive, and for the same
+   reason: the constraint set is open, so the parser does not know any
+   name's arity and `min 0 max 100` would otherwise be ambiguous.
+
+   The standard set is min, max, length, matches, oneOf, and unique.  The
+   compiler checks their arity and argument kinds and passes every other
+   name through untouched. *)
 
 (* ---- targets ------------------------------------------------------------ *)
 
@@ -109,11 +120,18 @@ TargetDecl  = "target" identifier "for" DottedIdent "{" { TargetEntry } "}" .
 TargetEntry = Path "{" { TargetEntry } "}"
             | Path "=>" Directive
             | Directive .
-Directive   = identifier { DirectiveArg } .
-DirectiveArg = Literal | Path .
+Directive   = identifier [ "(" [ DirectiveArg { "," DirectiveArg } ] ")" ] .
+DirectiveArg = Literal .
 Path        = identifier { "." identifier } .
+(* Arguments are parenthesized.  Without a delimiter, `table snake_case`
+   followed by another entry cannot be told from `table` applied to three
+   arguments, since whitespace is insignificant. *)
 
 (* ---- literals ----------------------------------------------------------- *)
 
-Literal     = string_lit | int_lit | float_lit | bool_lit | ListLiteral .
+Literal     = string_lit | int_lit | float_lit | bool_lit | ListLiteral
+            | DottedIdent .
 ListLiteral = "[" [ Literal { "," Literal } ] "]" .
+(* A DottedIdent literal names an enum variant, as in `status: Status =
+   Draft`.  The parser records the name; the resolver checks it against the
+   field's type. *)

@@ -61,14 +61,14 @@ func TestSeedScratchRejectsMissingExplicitFile(t *testing.T) {
 
 func TestRenderReportsErrorsWithCaret(t *testing.T) {
 	var out bytes.Buffer
-	render(&out, "bad.tdl", "type Bad {\n  id string\n}\n", []string{"fmt"})
+	render(&out, "bad.tdl", "primitive string\nalias Broken = \n", []string{"fmt"})
 
 	got := out.String()
-	if !strings.Contains(got, "2:6: expected :, got IDENT") {
+	if !strings.Contains(got, "2:17: expected identifier, got EOF") {
 		t.Errorf("missing error line in output:\n%s", got)
 	}
-	if !strings.Contains(got, "\n       ^\n") {
-		t.Errorf("missing caret under column 6:\n%s", got)
+	if !strings.Contains(got, "\n                  ^\n") {
+		t.Errorf("missing caret under column 17:\n%s", got)
 	}
 }
 
@@ -76,7 +76,7 @@ func TestRenderStatsCountsShape(t *testing.T) {
 	var out bytes.Buffer
 	render(&out, "t.tdl", scratchTemplate, []string{"stats"})
 
-	for _, want := range []string{"types          1", "fields         5", "optional       1", "variants       2"} {
+	for _, want := range []string{"declarations   7", "primitives     3", "entities       1", "enums          1", "fields         5"} {
 		if !strings.Contains(out.String(), want) {
 			t.Errorf("stats missing %q:\n%s", want, out.String())
 		}

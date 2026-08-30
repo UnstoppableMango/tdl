@@ -21,12 +21,17 @@ Almost everything that looks like a type system is library code written in TDL a
 ## Lexical structure
 
 Identifiers are letters, digits, and underscore, not starting with a digit.
+Declaration keywords are reserved; modifiers and constraint names are not, so `key`, `owned`, `length`, and `min` remain usable as field names.
+A reserved word followed by `:` is a field name, which is why the prelude's `Option<T>` can have a field called `value`.
 Comments run from `//` to end of line.
 A comment beginning `///` is a doc comment: it attaches to the declaration, field, or variant that follows, is carried through to the model, and is available to every target.
 Literals are strings (`"..."`), integers, floats, booleans, regexes (`/.../`), and bracketed lists.
 
-Declarations are newline separated.
-Commas are permitted but never required as separators inside blocks.
+Whitespace is insignificant.
+A declaration, field, or variant ends where the next one begins, so line breaks carry no meaning and `enum Role { admin member guest }` is as valid as the expanded form.
+
+Commas separate items inside `<...>`, conformance lists, and list literals, where they are required.
+They are not separators inside `{ ... }` blocks and are not permitted there.
 
 ## Packages and imports
 
@@ -85,9 +90,9 @@ The compiler has no opinion about which types exist.
 `type` declares a distinct type over another type, optionally constrained.
 
 ```tdl
-type Email: string {
-  matches /^[^@]+@[^@]+$/
-  length 3..254
+type Email: string where {
+  matches(/^[^@]+@[^@]+$/)
+  length(3..254)
 }
 
 type UserId: uuid
@@ -139,7 +144,7 @@ entity Order {
 entity LineItem {
   key order: Order
   key sku: SKU
-  quantity: int { min 1 }
+  quantity: int where { min(1) }
 }
 ```
 
@@ -154,12 +159,12 @@ Variants without fields are the degenerate case.
 
 ```tdl
 enum Payment {
-  Card { last4: string, brand: CardBrand }
-  Bank { routing: string, account: string }
+  Card { last4: string brand: CardBrand }
+  Bank { routing: string account: string }
   Credit
 }
 
-enum Currency { USD, EUR, GBP }
+enum Currency { USD EUR GBP }
 ```
 
 Enums are sealed.
@@ -242,6 +247,9 @@ class Auditable {
 
 A class may require a field, a key, or an associated type.
 
+A class may not declare key fields.
+`key` inside a class body is the requirement itself: an implementor must have identity, and which field carries it is the implementor's business.
+
 ```tdl
 class Tenanted {
   key                  // an implementor must have some key
@@ -265,7 +273,7 @@ A class may take parameters, including higher-kinded ones, which lets a target d
 ```tdl
 class Container<f: type -> type> { }
 
-value Page<f, T> where Container<f> {
+value Page<f, T> requires Container<f> {
   items: f<T>
 }
 ```
@@ -291,11 +299,11 @@ With that dependency, `Projection<Order, OrderSummary>` and `Projection<Order, O
 
 ### Constraints on parameters
 
-A `where` clause constrains parameters.
+A `requires` clause constrains parameters.
 It applies to any declaration that takes parameters.
 
 ```tdl
-value Envelope<T> where Auditable<T> {
+value Envelope<T> requires Auditable<T> {
   body: T
   receivedAt: instant
 }
@@ -356,12 +364,12 @@ instance Paged for OrderList {
 An instance may itself be parameterized and conditional, which is how generic types participate in classes.
 
 ```tdl
-instance <T> Auditable<Page<T>> where Auditable<T>
+instance <T> Auditable<Page<T>> requires Auditable<T>
 ```
 
 That reads: a page of auditable things is auditable.
 Resolving a conditional instance is a search, so two rules keep it finite.
-An instance head must be a type constructor applied to distinct parameters, and every constraint in the `where` clause must be structurally smaller than the head.
+An instance head must be a type constructor applied to distinct parameters, and every constraint in the `requires` clause must be structurally smaller than the head.
 An instance that would require unbounded search is rejected at the point of declaration rather than at use.
 
 A separate instance is legal only in the package that declares the class or the package that declares the type.
@@ -381,7 +389,7 @@ Collections are prelude types, not built-ins, and the bracket forms are sugar.
 This is what allows `List` and `Set` to be passed to a higher-kinded parameter, and what allows a replacement prelude to change what a collection is.
 
 Cardinality is not separate syntax.
-It falls out of the collection form, optionality, and the `length` constraint: `items: [LineItem] { length 1.. }` is one-or-more.
+It falls out of the collection form, optionality, and the `length` constraint: `items: [LineItem] where { length(1..) }` is one-or-more.
 
 ### Optional and nullable
 
@@ -400,8 +408,8 @@ Neither is primitive.
 The prelude declares them as ordinary types, and the syntax is sugar:
 
 ```tdl
-enum Option<T>   { Some { value: T }, None }
-enum Nullable<T> { Present { value: T }, Null }
+enum Option<T>   { Some { value: T } None }
+enum Nullable<T> { Present { value: T } Null }
 ```
 
 `T?` is `Option<T>` and `T | null` is `Nullable<T>`.
@@ -456,27 +464,43 @@ There is no inverse declaration; a backend that needs the reverse direction infe
 
 ## Constraints
 
-A constraint block may follow a type declaration or a field.
+A constraint block may follow a type declaration or a field, introduced by `where`.
+
+```tdl
+type Email: string where { length(3..254) }
+
+entity User {
+  age: int where { min(0) }
+}
+```
+
+The prefix is what keeps `{` unambiguous.
+Without it, `email: {string} { length 3..254 }` would open a set type and a constraint block with the same token in the same position.
+
 The compiler checks that constraints are well formed and that any names they mention resolve.
 It does not check that they are satisfiable, consistent, or meaningful for the type they are attached to.
 
+A constraint's arguments are parenthesized, and a constraint taking none omits the parentheses.
+This is the rule directives follow, for the same reason: the set of constraint names is open, so nothing tells the parser how many arguments `min` takes, and `min 0 max 100` would be ambiguous.
+
 | Constraint | Form |
 | --- | --- |
-| `min` | `min 1` |
-| `max` | `max 100` |
-| `length` | `length 3..254`, `length 1..`, `length 16` |
-| `matches` | `matches /^[a-z]+$/` |
-| `oneOf` | `oneOf ["a", "b"]` |
+| `min` | `min(1)` |
+| `max` | `max(100)` |
+| `length` | `length(3..254)`, `length(1..)`, `length(16)` |
+| `matches` | `matches(/^[a-z]+$/)` |
+| `oneOf` | `oneOf("a", "b")` |
 | `unique` | `unique` |
 
-The set is closed.
-Opening it to arbitrary backend-defined constraints is a later, additive change.
+The set is open.
+The compiler checks the arity and argument kinds of the standard names above and passes every other name through to backends untouched, which is what "constraints are syntax, not semantics" means in practice.
+A backend that understands a constraint TDL has never heard of needs no change to the compiler.
 
 Constraints accumulate down a chain of newtypes.
 
 ```tdl
-type Email: string { length 3..254 }
-type WorkEmail: Email { matches /@acme\.com$/ }
+type Email: string where { length(3..254) }
+type WorkEmail: Email where { matches(/@acme\.com$/) }
 ```
 
 `WorkEmail` carries both constraints.
@@ -495,7 +519,10 @@ entity Order {
 ```
 
 A default is part of the model rather than a backend setting, because it states something about the domain: what this field means when nothing said otherwise.
-A default must be a literal; there are no expressions, so `now` and `uuid()` are not defaults but backend directives.
+
+A default is a literal or a name.
+A name denotes an enum variant, and may be qualified when the reference is ambiguous to a reader.
+There are no expressions, so `now` and `uuid()` are not defaults but backend directives.
 
 ## Deprecation
 
@@ -525,28 +552,31 @@ target go for billing {
   package "github.com/acme/billing"
 
   User {
-    name "Account"
-    email => tag "json:\"email_address\""
+    name("Account")
+    email => tag("json:\"email_address\"")
   }
 
   Order.items => slice
   Order.tags  => set
 
-  Money   => foreign "github.com/acme/money" "Money"
-  decimal => foreign "github.com/shopspring/decimal" "Decimal"
+  Money   => foreign("github.com/acme/money", "Money")
+  decimal => foreign("github.com/shopspring/decimal", "Decimal")
 }
 ```
 
 A target block names a generator and the package it applies to.
 Entries are either a path into the model followed by `=>` and a directive, a nested block scoping a path, or a bare directive applying to the enclosing scope.
 
+A directive's arguments are parenthesized, and a directive taking none omits the parentheses.
+Whitespace is insignificant, so without a delimiter `table snake_case` followed by another entry could not be told from `table` applied to three arguments.
+
 A path may name a class, which applies the directive to every type satisfying it.
 This is the main practical payoff of classes: a rule is written once rather than repeated per type.
 
 ```tdl
 target sql for billing {
-  Auditable => trigger "set_updated_at"
-  Entity    => table snake_case
+  Auditable => trigger("set_updated_at")
+  Entity    => table(snake_case)
 }
 ```
 
@@ -564,3 +594,7 @@ The standard library ships a target for each supported language, and a project m
 ## Formatting
 
 `tdl fmt` produces canonical output and is idempotent: formatting canonical output changes nothing.
+
+Because whitespace is insignificant, the formatter owns layout entirely.
+A block stays on one line when it fits within the column limit and expands to one member per line when it does not.
+The decision depends only on content, never on how the input was written, which is what makes it idempotent.

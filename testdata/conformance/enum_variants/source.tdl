@@ -1,0 +1,10 @@
+package shop.payment
+
+enum Payment {
+  Card { last4: string brand: CardBrand }
+  Bank { routing: string account: string }
+  Credit
+}
+
+enum CardBrand { Visa Mastercard Amex }
+enum Inline { A B C }

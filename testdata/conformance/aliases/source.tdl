@@ -1,0 +1,10 @@
+package example.aliases
+
+/// A handler table, keyed by event name.
+alias Handler = {string -> [Event]}
+
+alias Pair<T> = Map<string, T>
+alias Maybe<T> = T?
+alias Nullable2<T> = T | null
+alias Both<T> = T? | null
+alias Qualified = common.Address

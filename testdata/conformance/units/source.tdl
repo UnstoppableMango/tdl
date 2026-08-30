@@ -1,0 +1,19 @@
+package example.units
+
+unit kg
+unit m
+unit s
+unit N = kg*m/s^2
+unit Pa = N/m^2
+unit Hz = s^-1
+unit Complex = (kg*m)/(s^2*m)
+
+value Weight {
+  net: decimal<kg>
+  force: decimal<N>
+  plain: decimal
+  derived: decimal<kg*m/s^2>
+  parenthesized: decimal<(kg*m)/s^2>
+  exponent: decimal<m^3>
+  mapped: {string -> decimal<kg>}
+}
