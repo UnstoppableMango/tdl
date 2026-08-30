@@ -55,6 +55,8 @@ There are no code-generation backends. `docs/design/plugins.md` describes the pr
 
 Regenerate the ir goldens with `go test ./internal/sema -update` after any change to lowering or to `ir.Dump`, and read the diff rather than trusting it.
 
+`testdata/plugin/` holds recorded protocol exchanges as protobuf text, regenerated with `go test ./internal/gen -record`. They exist for an implementation in another language to replay.
+
 `internal/sema/corpus_test.go` holds a `deferred` list: every diagnostic lowering is still expected to produce, with the phase that will stop producing it. A corpus case reporting anything else fails the test. Delete entries as phases land; when the list empties, the test becomes a plain assertion that the corpus lowers clean.
 
 ## Specification and conformance

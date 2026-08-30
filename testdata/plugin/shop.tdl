@@ -1,0 +1,12 @@
+package shop
+
+entity Order {
+  key id: string
+  total: int
+}
+
+target debug for shop {
+  out("./gen")
+
+  Order => note("the interesting one")
+}
