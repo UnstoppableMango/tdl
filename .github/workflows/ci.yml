@@ -57,9 +57,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      # The default glob is root-level only, which left docs/ unchecked.
+      # Which files to lint lives in .markdownlint-cli2.yaml, so a bare
+      # `markdownlint-cli2` locally checks exactly what this checks.
       - uses: DavidAnson/markdownlint-cli2-action@21c1be1b93ad9ed58fa840aacc3f279cde2a72ff # v24.2.0
-        with:
-          globs: |
-            **/*.{md,markdown}
-            !.direnv
