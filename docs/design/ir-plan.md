@@ -150,6 +150,10 @@ Merging is a phase of its own once there is a reason to load a dependency far en
 
 Done when a target block's directives appear on the right `ir` nodes, a path naming nothing is an error with a position, a class path applies to every satisfying type, and two entries at equal specificity are reported rather than silently ordered.
 
+A class path expands across `Satisfying`, which answers about declarations.
+It does not expand across `SatisfyingTypes`, so a directive on `Auditable` reaches `Audited` and not the `Page<Audited>` that satisfies the class through a conditional instance.
+The model has the answer and target resolution does not read it; closing that is small and belongs with 6b, since both are about the search producing something nothing consumes.
+
 ## Phase 8b: dependency target merging
 
 A dependency ships target blocks so its own types appear sensibly in Go without every consumer restating it.
