@@ -25,7 +25,6 @@ func newAstCmd() *cobra.Command {
 
 			file, err := parser.Parse(path, bytes.NewReader(data))
 			if err != nil {
-				fmt.Fprintln(cmd.ErrOrStderr(), err)
 				return err
 			}
 

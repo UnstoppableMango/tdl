@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -23,7 +22,6 @@ func newCheckCmd() *cobra.Command {
 			defer f.Close()
 
 			if _, err := parser.Parse(path, f); err != nil {
-				fmt.Fprintln(cmd.ErrOrStderr(), err)
 				return err
 			}
 			return nil

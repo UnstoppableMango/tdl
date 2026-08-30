@@ -80,6 +80,8 @@ The dry-run flag in the request, the diff against disk, and the `.tdl-output` ma
 
 Done when `--verify` exits non-zero on a stale output directory and writes nothing, `--clean` removes what a previous run wrote, and `--clean` on a directory without the marker is an error rather than a deletion.
 
+**Done.** `--verify` also reports a file tdl wrote and would no longer write, which is what catches a deleted declaration, and only inside a directory carrying the marker: without one there is no way to tell a stale file from a file that was never tdl's.
+
 ## Phase 5: the subprocess host
 
 Exec `tdl-gen-<name>` from `PATH`, exchange the handshake, send the request, read the response, and surface a non-zero exit with the plugin's stderr attached.
@@ -133,6 +135,12 @@ implementation of the protocol and expensive afterwards.
   the user with a position. Nothing enforces the distinction, and a
   backend that returns an error for a bad model still fails usefully, just
   without a position.
+- **An empty output directory is adopted rather than refused.** There is
+  nothing in it that could belong to anyone else. A directory that exists,
+  is empty, and is meant to stay that way has no way to say so.
+- **`--verify` and `--clean` cannot be combined.** One writes nothing and
+  the other deletes, so together they would mean "delete and then check
+  what I deleted". The command refuses rather than picking.
 - **`debug` finds the prelude by looking for a file named `std.tdl`.** A
   model does not say which of its declarations were merged in from a
   prelude. Every backend that generates per declaration needs to know, so
