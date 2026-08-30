@@ -25,26 +25,47 @@ Model example.classes
 │   │   ├── variant Present  std.tdl:41:3
 │   │   │   └── field value: types[1] T  std.tdl:41:13
 │   │   └── variant Null  std.tdl:42:3
-│   ├── [17] unlowered Entity  std.tdl:46:1
-│   ├── [18] unlowered Value  std.tdl:51:1
-│   ├── [19] unlowered Timestamped  source.tdl:3:1
-│   ├── [20] unlowered Auditable  source.tdl:7:1
-│   ├── [21] unlowered Tenanted  source.tdl:11:1
-│   ├── [22] unlowered Paged  source.tdl:16:1
-│   ├── [23] unlowered Container  source.tdl:21:1
-│   ├── [24] unlowered Projection  source.tdl:22:1
+│   ├── [17] class Entity  std.tdl:46:1
+│   │   └── requires key
+│   ├── [18] class Value  std.tdl:51:1
+│   ├── [19] class Timestamped  source.tdl:3:1
+│   │   └── field createdAt: types[2] instant  source.tdl:4:3
+│   ├── [20] class Auditable  source.tdl:7:1
+│   │   ├── requires Timestamped  source.tdl:7:30
+│   │   └── field updatedAt: types[2] instant  source.tdl:8:3
+│   ├── [21] class Tenanted  source.tdl:11:1
+│   │   ├── requires key
+│   │   └── field tenant: types[3] string  source.tdl:13:3
+│   ├── [22] class Paged  source.tdl:16:1
+│   │   ├── type Cursor  source.tdl:17:3
+│   │   └── field pageSize: types[4] int  source.tdl:18:3
+│   ├── [23] class Container  source.tdl:21:1
+│   ├── [24] class Projection  source.tdl:22:1
+│   │   └── fundep from -> to  source.tdl:22:30
 │   ├── [25] value Page  source.tdl:24:1
 │   │   ├── param f  source.tdl:24:13
 │   │   ├── param T  source.tdl:24:16
-│   │   └── field items: types[3] f<T>  source.tdl:25:3
+│   │   └── field items: types[6] f<T>  source.tdl:25:3
 │   └── [26] value Envelope  source.tdl:28:1
 │       ├── param T  source.tdl:28:17
-│       ├── field body: types[4] T  source.tdl:29:3
-│       └── field receivedAt: types[5] instant  source.tdl:30:3
+│       ├── field body: types[8] T  source.tdl:29:3
+│       └── field receivedAt: types[2] instant  source.tdl:30:3
+├── Satisfies
+│   ├── Entity: 
+│   ├── Value: 
+│   ├── Timestamped: 
+│   ├── Auditable: 
+│   ├── Tenanted: 
+│   ├── Paged: 
+│   ├── Container: 
+│   └── Projection: 
 └── Types
     ├── [0] T  named  -> param Option.T  std.tdl:35:17
     ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
-    ├── [2] T  named  -> param Page.T  source.tdl:25:12
-    ├── [3] f<T>  named  -> param Page.f  source.tdl:25:10
-    ├── [4] T  named  -> param Envelope.T  source.tdl:29:9
-    └── [5] instant  named  -> decls[9]  source.tdl:30:15
+    ├── [2] instant  named  -> decls[9]  source.tdl:4:14
+    ├── [3] string  named  -> decls[0]  source.tdl:13:11
+    ├── [4] int  named  -> decls[1]  source.tdl:18:13
+    ├── [5] T  named  -> param Page.T  source.tdl:25:12
+    ├── [6] f<T>  named  -> param Page.f  source.tdl:25:10
+    ├── [7] f  named  -> param Page.f  source.tdl:24:37
+    └── [8] T  named  -> param Envelope.T  source.tdl:29:9

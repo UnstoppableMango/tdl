@@ -99,6 +99,9 @@ func Lower(file *ast.File, opts ...Option) (*ir.Model, Diagnostics) {
 	l.collect(file)
 	l.checkRecursion(file)
 	l.lower(file)
+	l.expandIncludes(file)
+	l.buildSatisfaction()
+	l.checkConstraints()
 	return l.model, l.diags
 }
 
@@ -156,6 +159,9 @@ type lowerer struct {
 // belongs in the type namespace.
 func (l *lowerer) collect(file *ast.File) {
 	for i, decl := range file.Decls {
+		if _, isInstance := decl.(*ast.InstanceDecl); isInstance {
+			continue // instances have their own table, filled while lowering
+		}
 		if !namesAType(decl) {
 			l.deferral(decl.Pos(), "%s is not lowered yet", declLabel(decl))
 			continue
@@ -179,7 +185,9 @@ func (l *lowerer) collect(file *ast.File) {
 }
 
 // namesAType reports whether a declaration introduces a name other
-// declarations can refer to.
+// declarations can refer to. An instance names the class it is about and a
+// target block names a backend; neither belongs in the type namespace, and
+// both have tables of their own.
 func namesAType(decl ast.Decl) bool {
 	switch decl.(type) {
 	case *ast.InstanceDecl, *ast.TargetDecl:
@@ -207,7 +215,11 @@ func declLabel(decl ast.Decl) string {
 }
 
 func (l *lowerer) lower(file *ast.File) {
-	for _, decl := range file.Decls {
+	for i, decl := range file.Decls {
+		if inst, ok := decl.(*ast.InstanceDecl); ok {
+			l.model.Instances = append(l.model.Instances, l.instance(inst, i))
+			continue
+		}
 		if !namesAType(decl) {
 			continue
 		}
@@ -252,23 +264,35 @@ func (l *lowerer) setNode(out *ir.Decl, decl ast.Decl) {
 	case *ast.NewtypeDecl:
 		l.inScope(l.paramScope(l.declID(d.N), d.Params), func() {
 			out.Node = &ir.Decl_Newtype{Newtype: &ir.Newtype{
-				Params: l.params(d.Params),
-				Base:   l.typeRef(d.Base),
+				Params:      l.params(d.Params),
+				Base:        l.typeRef(d.Base),
+				Constraints: l.classRefs(d.Requires),
 			}}
 		})
 
 	case *ast.StructDecl:
 		l.inScope(l.paramScope(l.declID(d.N), d.Params), func() {
 			out.Node = &ir.Decl_Structure{Structure: &ir.Struct{
-				Kind:   structKind(d.Keyword),
-				Params: l.params(d.Params),
-				Fields: l.fields(d.Members),
+				Kind:        structKind(d.Keyword),
+				Params:      l.params(d.Params),
+				Fields:      l.fields(d.Members),
+				Conforms:    l.classRefs(d.Conforms),
+				Constraints: l.classRefs(d.Requires),
 			}}
+		})
+
+	case *ast.ClassDecl:
+		l.inScope(l.paramScope(l.declID(d.N), d.Params), func() {
+			out.Node = &ir.Decl_Class{Class: l.classNode(d)}
 		})
 
 	case *ast.EnumDecl:
 		l.inScope(l.paramScope(l.declID(d.N), d.Params), func() {
-			e := &ir.Enum{Params: l.params(d.Params)}
+			e := &ir.Enum{
+				Params:      l.params(d.Params),
+				Conforms:    l.classRefs(d.Conforms),
+				Constraints: l.classRefs(d.Requires),
+			}
 			for i, v := range d.Variants {
 				e.Variants = append(e.Variants, &ir.Variant{
 					Meta:   metaOf(v.N, v.Doc, v.P, v.Dep, i),

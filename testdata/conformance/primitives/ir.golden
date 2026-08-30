@@ -25,8 +25,9 @@ Model prelude.roots
 │   │   ├── variant Present  std.tdl:41:3
 │   │   │   └── field value: types[1] T  std.tdl:41:13
 │   │   └── variant Null  std.tdl:42:3
-│   ├── [17] unlowered Entity  std.tdl:46:1
-│   ├── [18] unlowered Value  std.tdl:51:1
+│   ├── [17] class Entity  std.tdl:46:1
+│   │   └── requires key
+│   ├── [18] class Value  std.tdl:51:1
 │   ├── [19] primitive string  source.tdl:4:1
 │   ├── [20] primitive int  source.tdl:6:1
 │   ├── [21] primitive bool  source.tdl:7:1
@@ -36,6 +37,9 @@ Model prelude.roots
 │   ├── [25] primitive Map: type -> type -> type  source.tdl:11:1
 │   ├── [26] primitive Measured: unit -> type  source.tdl:12:1
 │   └── [27] primitive Higher: (type -> type) -> type  source.tdl:13:1
+├── Satisfies
+│   ├── Entity: 
+│   └── Value: 
 └── Types
     ├── [0] T  named  -> param Option.T  std.tdl:35:17
     └── [1] T  named  -> param Nullable.T  std.tdl:41:20

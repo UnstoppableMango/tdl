@@ -286,7 +286,7 @@ value W { net: decimal<kg*m/s^2> }`)
 }
 
 func TestUnloweredDeclarations(t *testing.T) {
-	diags := lowerDiags(t, `class Auditable { createdAt: string }`)
+	diags := lowerDiags(t, `target go for p { out("./gen") }`)
 	if !strings.Contains(diags.Error(), "not lowered yet") {
 		t.Errorf("diagnostics = %v", diags)
 	}
@@ -424,7 +424,7 @@ func TestDiagnosticsAccumulate(t *testing.T) {
 // An instance names the class it is about, not itself, so several
 // instances of one class do not collide and none collides with the class.
 func TestInstancesAreNotTypeNames(t *testing.T) {
-	diags := lowerDiags(t, `
+	model := lower(t, `
 class Auditable { createdAt: string }
 instance Auditable for A
 instance Auditable for B
@@ -432,10 +432,8 @@ value A { x: string }
 value B { x: string }
 `)
 
-	for _, d := range diags {
-		if strings.Contains(d.Msg, "declared twice") {
-			t.Errorf("instances collided in the type namespace: %s", d.Error())
-		}
+	if got := len(model.GetInstances()); got != 2 {
+		t.Errorf("got %d instances, want 2", got)
 	}
 }
 
@@ -674,4 +672,219 @@ value B { y: common.Address }
 	if got := len(model.GetExterns()); got != 1 {
 		t.Errorf("got %d externs, want 1", got)
 	}
+}
+
+func TestClassLowering(t *testing.T) {
+	model := lower(t, `
+class Timestamped { createdAt: string }
+
+class Auditable: Timestamped {
+  key
+  type Cursor: type
+  updatedAt: string
+}
+
+class Projection<from, to> | from -> to { }
+`)
+
+	auditable, _, _ := model.FindDecl("Auditable")
+	c := auditable.GetClass()
+	if len(c.GetRequiresClasses()) != 1 {
+		t.Errorf("Auditable requires %d classes, want 1", len(c.GetRequiresClasses()))
+	}
+	if !c.GetRequiresKey() {
+		t.Error("the key requirement was lost")
+	}
+	if len(c.GetAssocTypes()) != 1 || c.GetAssocTypes()[0].GetMeta().GetName() != "Cursor" {
+		t.Errorf("assoc types = %+v", c.GetAssocTypes())
+	}
+	if len(c.GetFields()) != 1 {
+		t.Errorf("Auditable has %d fields, want 1", len(c.GetFields()))
+	}
+
+	proj, _, _ := model.FindDecl("Projection")
+	deps := proj.GetClass().GetFunDeps()
+	if len(deps) != 1 || deps[0].GetFrom()[0] != "from" || deps[0].GetTo()[0] != "to" {
+		t.Errorf("fundeps = %+v", deps)
+	}
+}
+
+// `instance C for T` is sugar for `instance C<T>`, so lowering normalizes
+// it and there is one form from here on.
+func TestInstanceFormsNormalize(t *testing.T) {
+	model := lower(t, `
+class Auditable { createdAt: string }
+value A { x: string }
+
+instance Auditable<A>
+instance Auditable for A
+`)
+
+	if got := len(model.GetInstances()); got != 2 {
+		t.Fatalf("got %d instances, want 2", got)
+	}
+	for i, inst := range model.GetInstances() {
+		if got := len(inst.GetClass().GetArgs()); got != 1 {
+			t.Errorf("instance %d has %d arguments, want 1", i, got)
+		}
+	}
+}
+
+// Satisfaction comes from declared conformance and ground instances, and
+// closes over the classes a class requires.
+func TestSatisfaction(t *testing.T) {
+	model := lower(t, `
+class Timestamped { createdAt: string }
+class Auditable: Timestamped { updatedAt: string }
+
+entity Declared: Auditable { key id: string }
+value ByInstance { x: string }
+value Neither { x: string }
+
+instance Auditable<ByInstance>
+`)
+
+	_, auditable, _ := model.FindDecl("Auditable")
+	names := satisfyingNames(model, auditable)
+	if !contains(names, "Declared") || !contains(names, "ByInstance") {
+		t.Errorf("Auditable is satisfied by %v", names)
+	}
+	if contains(names, "Neither") {
+		t.Errorf("Neither satisfies Auditable: %v", names)
+	}
+
+	// Auditable requires Timestamped, so satisfying one satisfies the other.
+	_, timestamped, _ := model.FindDecl("Timestamped")
+	if names := satisfyingNames(model, timestamped); !contains(names, "Declared") {
+		t.Errorf("Timestamped is satisfied by %v, want Declared among them", names)
+	}
+}
+
+// Including a mixin does not confer conformance: the spec says the two are
+// independent and conformance is nominal.
+func TestIncludeDoesNotConfer(t *testing.T) {
+	model := lower(t, `
+class Auditable { createdAt: string }
+mixin Stamps: Auditable { createdAt: string }
+value Uses { include Stamps }
+`)
+
+	_, auditable, _ := model.FindDecl("Auditable")
+	if names := satisfyingNames(model, auditable); contains(names, "Uses") {
+		t.Errorf("including a mixin conferred conformance: %v", names)
+	}
+}
+
+// A conditional instance stands for a family of types rather than one, so
+// it is recorded but does not name a satisfying declaration.
+func TestConditionalInstanceNotIndexed(t *testing.T) {
+	model := lower(t, `
+class Auditable { createdAt: string }
+value Page<T> { items: [T] }
+
+instance <T> Auditable<Page<T>> requires Auditable<T>
+`)
+
+	if got := len(model.GetInstances()); got != 1 {
+		t.Fatalf("got %d instances, want 1", got)
+	}
+	_, auditable, _ := model.FindDecl("Auditable")
+	if names := satisfyingNames(model, auditable); len(names) != 0 {
+		t.Errorf("a conditional instance was indexed: %v", names)
+	}
+}
+
+func TestIncludeExpansion(t *testing.T) {
+	model := lower(t, `
+mixin Inner { a: string }
+mixin Outer { include Inner b: string }
+value Uses { include Outer c: string }
+`)
+
+	uses, _, _ := model.FindDecl("Uses")
+	var names []string
+	for _, f := range uses.Fields() {
+		names = append(names, f.GetMeta().GetName())
+	}
+	if len(names) != 3 {
+		t.Fatalf("fields = %v, want three", names)
+	}
+
+	for _, f := range uses.Fields() {
+		switch f.GetMeta().GetName() {
+		case "c":
+			if f.GetIncludedFrom() != nil {
+				t.Error("a field the declaration wrote records a mixin")
+			}
+		case "a":
+			// A field copied through two mixins records where it started.
+			if got := f.GetIncludedFrom().GetName(); got != "Inner" {
+				t.Errorf("a came from %q, want Inner", got)
+			}
+		case "b":
+			if got := f.GetIncludedFrom().GetName(); got != "Outer" {
+				t.Errorf("b came from %q, want Outer", got)
+			}
+		}
+	}
+}
+
+func TestIncludeOfNonMixin(t *testing.T) {
+	diags := lowerDiags(t, `
+value NotAMixin { x: string }
+value Uses { include NotAMixin }
+`)
+	if !strings.Contains(diags.Error(), "is not a mixin") {
+		t.Errorf("diagnostics = %v", diags)
+	}
+}
+
+// A `requires` clause says nothing checkable until a type is instantiated,
+// so the diagnostic points at the use site.
+func TestRequiresCheckedAtUse(t *testing.T) {
+	diags := lowerDiags(t, `
+class Auditable { createdAt: string }
+value Envelope<P> requires Auditable<P> { body: P }
+value Plain { x: string }
+value Holder { e: Envelope<Plain> }
+`)
+	if !strings.Contains(diags.Error(), "Plain does not satisfy Auditable") {
+		t.Errorf("diagnostics = %v", diags)
+	}
+}
+
+func TestRequiresSatisfied(t *testing.T) {
+	lower(t, `
+class Auditable { createdAt: string }
+value Envelope<P> requires Auditable<P> { body: P }
+value Audited: Auditable { createdAt: string }
+value Holder { e: Envelope<Audited> }
+`)
+}
+
+// An argument that is still a parameter is not checked here: whether it
+// satisfies anything is the outer instantiation's business.
+func TestRequiresDefersToOuterInstantiation(t *testing.T) {
+	lower(t, `
+class Auditable { createdAt: string }
+value Envelope<P> requires Auditable<P> { body: P }
+value Outer<P> requires Auditable<P> { e: Envelope<P> }
+`)
+}
+
+func satisfyingNames(model *ir.Model, class *ir.ID) []string {
+	var names []string
+	for _, id := range model.Satisfying(class) {
+		names = append(names, id.GetName())
+	}
+	return names
+}
+
+func contains(names []string, want string) bool {
+	for _, n := range names {
+		if n == want {
+			return true
+		}
+	}
+	return false
 }

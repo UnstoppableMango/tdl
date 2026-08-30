@@ -63,6 +63,48 @@ message Model {
   repeated Type types = 3;
   repeated Import imports = 4;
   repeated Extern externs = 5;
+  repeated Instance instances = 6;
+  repeated Satisfaction satisfies = 7;
+}
+
+// Instance declares that a type satisfies a class.
+//
+// `instance C for T` is sugar for `instance C<T>`, and lowering normalizes
+// it: by here there is one form. An instance is not a type name, so it
+// lives in its own table rather than among the declarations.
+message Instance {
+  Meta meta = 1;
+  repeated Param params = 2;
+  ClassRef class = 3;
+  repeated ClassRef requires = 4; // conditions on this instance
+  repeated AssocBind binds = 5;
+}
+
+// AssocBind supplies a type for one of a class's associated type
+// requirements.
+message AssocBind {
+  string name = 1;
+  ID type = 2; // indexes Model.types
+  Position position = 3;
+}
+
+// ClassRef names a class, applied to arguments.
+message ClassRef {
+  ID class = 1;         // indexes Model.decls; unset when extern is set
+  ID extern = 2;        // indexes Model.externs
+  repeated ID args = 3; // indexes Model.types
+  Position position = 4;
+}
+
+// Satisfaction is the computed answer to "what satisfies this class",
+// closed over the classes a class requires.
+//
+// A backend applying a class-scoped target directive reads this and never
+// reasons about instances. The declared instances are still in the model
+// for one that wants them.
+message Satisfaction {
+  ID class = 1;         // indexes Model.decls
+  repeated ID decls = 2; // indexes Model.decls
 }
 
 // Import is one `import "path" as alias` in the file.
@@ -97,7 +139,34 @@ message Decl {
     Newtype newtype = 4;
     Struct structure = 5;
     Enum enumeration = 6;
+    Class class = 7;
   }
+}
+
+// Class is a contract. It declares nothing into the types that satisfy it;
+// conformance is nominal and always declared.
+message Class {
+  repeated Param params = 1;
+  repeated FunDep fun_deps = 2;
+  repeated ClassRef requires_classes = 3; // classes an implementor must also satisfy
+  repeated ClassRef constraints = 4;      // the `requires` clause on this class's parameters
+  repeated Field fields = 5;
+  bool requires_key = 6;                  // a bare `key` in the body
+  repeated AssocType assoc_types = 7;
+}
+
+// FunDep states that some parameters determine others, which makes a
+// multi-parameter class a function rather than a table.
+message FunDep {
+  repeated string from = 1;
+  repeated string to = 2;
+  Position position = 3;
+}
+
+// AssocType is a type an implementor must supply and an instance binds.
+message AssocType {
+  Meta meta = 1;
+  Kind kind = 2;
 }
 
 // Primitive is an opaque, irreducible root type.
@@ -114,7 +183,8 @@ message Alias {
 // Newtype is a distinct type over another, not interchangeable with it.
 message Newtype {
   repeated Param params = 1;
-  ID base = 2; // indexes Model.types
+  ID base = 2;                       // indexes Model.types
+  repeated ClassRef constraints = 3; // the `requires` clause on its parameters
 }
 
 // StructKind distinguishes the three declarations that share a body.
@@ -130,6 +200,8 @@ message Struct {
   StructKind kind = 1;
   repeated Param params = 2;
   repeated Field fields = 3;
+  repeated ClassRef conforms = 4;    // classes this declaration says it satisfies
+  repeated ClassRef constraints = 5; // the `requires` clause on its parameters
 }
 
 // Enum is a closed set of variants. A variant may carry fields, which makes
@@ -137,6 +209,8 @@ message Struct {
 message Enum {
   repeated Param params = 1;
   repeated Variant variants = 2;
+  repeated ClassRef conforms = 3;
+  repeated ClassRef constraints = 4;
 }
 
 // Variant is one alternative in an Enum.
@@ -148,9 +222,14 @@ message Variant {
 // Field is a named, typed member.
 message Field {
   Meta meta = 1;
-  ID type = 2;   // indexes Model.types
-  bool key = 3;  // part of the entity's identity
+  ID type = 2;    // indexes Model.types
+  bool key = 3;   // part of the entity's identity
   bool owned = 4; // composition rather than reference
+
+  // included_from names the mixin a field was copied from, so a backend
+  // that can express the grouping does not have to reconstruct it. Unset
+  // for a field the declaration wrote itself.
+  ID included_from = 5; // indexes Model.decls
 }
 
 // Param is one type parameter.
