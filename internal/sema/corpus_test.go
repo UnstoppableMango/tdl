@@ -72,9 +72,12 @@ func TestCorpusLowers(t *testing.T) {
 
 			model, diags := Lower(file)
 			for _, d := range diags {
-				if _, ok := deferralFor(d.Msg); !ok {
+				phase, ok := deferralFor(d.Msg)
+				if !ok {
 					t.Errorf("unexpected diagnostic: %s", d.Error())
+					continue
 				}
+				t.Logf("deferred to %s: %s", phase, d.Error())
 			}
 
 			checkGolden(t, filepath.Join(dir, "ir.golden"), ir.Dump(model))
@@ -130,8 +133,11 @@ func TestPreludeLowers(t *testing.T) {
 
 	_, diags := Lower(file)
 	for _, d := range diags {
-		if _, ok := deferralFor(d.Msg); !ok {
+		phase, ok := deferralFor(d.Msg)
+		if !ok {
 			t.Errorf("unexpected diagnostic: %s", d.Error())
+			continue
 		}
+		t.Logf("deferred to %s: %s", phase, d.Error())
 	}
 }
