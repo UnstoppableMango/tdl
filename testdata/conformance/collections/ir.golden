@@ -27,8 +27,9 @@ Model example.collections
 │   │   ├── variant Present  std.tdl:41:3
 │   │   │   └── field value: types[1] T  std.tdl:41:13
 │   │   └── variant Null  std.tdl:42:3
-│   ├── [17] unlowered Entity  std.tdl:46:1
-│   ├── [18] unlowered Value  std.tdl:51:1
+│   ├── [17] class Entity  std.tdl:46:1
+│   │   └── requires key
+│   ├── [18] class Value  std.tdl:51:1
 │   ├── [19] alias BySku  source.tdl:5:1
 │   │   └── target types[4] Map<string, LineItem>
 │   ├── [20] alias TagIndex  source.tdl:6:1
@@ -58,6 +59,9 @@ Model example.collections
 │   └── [32] value LineItem  source.tdl:19:1
 │       ├── field sku: types[2] string  source.tdl:20:3
 │       └── field quantity: types[7] int  source.tdl:21:3
+├── Satisfies
+│   ├── Entity: 
+│   └── Value: 
 ├── Types
 │   ├── [0] T  named  -> param Option.T  std.tdl:35:17
 │   ├── [1] T  named  -> param Nullable.T  std.tdl:41:20

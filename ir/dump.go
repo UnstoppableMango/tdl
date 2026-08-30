@@ -31,6 +31,30 @@ func Dump(m *Model) string {
 			d.decl(prefix, i == len(m.GetDecls())-1, i, decl)
 		}
 	})
+	if len(m.GetInstances()) > 0 {
+		d.section("Instances", true, func(prefix string) {
+			for i, inst := range m.GetInstances() {
+				last := i == len(m.GetInstances())-1
+				d.leaf(prefix, last, d.instanceLine(inst), inst.GetMeta().GetPosition())
+				for j, b := range inst.GetBinds() {
+					d.leaf(prefix+pad(last), j == len(inst.GetBinds())-1,
+						"type "+b.GetName()+" = "+d.ref(b.GetType()), b.GetPosition())
+				}
+			}
+		})
+	}
+	if len(m.GetSatisfies()) > 0 {
+		d.section("Satisfies", true, func(prefix string) {
+			for i, sat := range m.GetSatisfies() {
+				names := make([]string, len(sat.GetDecls()))
+				for j, id := range sat.GetDecls() {
+					names[j] = id.GetName()
+				}
+				d.leaf(prefix, i == len(m.GetSatisfies())-1,
+					sat.GetClass().GetName()+": "+strings.Join(names, ", "), nil)
+			}
+		})
+	}
 	d.section("Types", len(m.GetExterns()) > 0, func(prefix string) {
 		for i, t := range m.GetTypes() {
 			d.leaf(prefix, i == len(m.GetTypes())-1, d.typeLine(i, t), t.GetPosition())
@@ -75,9 +99,34 @@ func (d *dumper) decl(prefix string, last bool, index int, decl *Decl) {
 		id := decl.GetNewtype().GetBase()
 		kids = append(kids, func(l bool) { d.leaf(inner, l, "base "+d.ref(id), nil) })
 	case decl.GetStructure() != nil:
+		for _, r := range decl.GetStructure().GetConforms() {
+			kids = append(kids, func(l bool) { d.leaf(inner, l, "conforms "+d.classRef(r), r.GetPosition()) })
+		}
 		for _, f := range decl.GetStructure().GetFields() {
 			kids = append(kids, func(l bool) { d.leaf(inner, l, d.fieldLine(f), f.GetMeta().GetPosition()) })
 		}
+	case decl.GetClass() != nil:
+		c := decl.GetClass()
+		for _, r := range c.GetRequiresClasses() {
+			kids = append(kids, func(l bool) { d.leaf(inner, l, "requires "+d.classRef(r), r.GetPosition()) })
+		}
+		for _, fd := range c.GetFunDeps() {
+			kids = append(kids, func(l bool) {
+				d.leaf(inner, l, "fundep "+strings.Join(fd.GetFrom(), " ")+" -> "+strings.Join(fd.GetTo(), " "), fd.GetPosition())
+			})
+		}
+		if c.GetRequiresKey() {
+			kids = append(kids, func(l bool) { d.leaf(inner, l, "requires key", nil) })
+		}
+		for _, at := range c.GetAssocTypes() {
+			kids = append(kids, func(l bool) {
+				d.leaf(inner, l, "type "+at.GetMeta().GetName()+kindSuffix(at.GetKind()), at.GetMeta().GetPosition())
+			})
+		}
+		for _, f := range c.GetFields() {
+			kids = append(kids, func(l bool) { d.leaf(inner, l, d.fieldLine(f), f.GetMeta().GetPosition()) })
+		}
+
 	case decl.GetEnumeration() != nil:
 		for _, v := range decl.GetEnumeration().GetVariants() {
 			kids = append(kids, func(l bool) {
@@ -106,6 +155,10 @@ func declLine(decl *Decl) string {
 		kind = "newtype"
 	case decl.GetEnumeration() != nil:
 		kind = "enum"
+	case decl.GetClass() != nil:
+		kind = "class"
+	case decl.GetClass() != nil:
+		kind = "class"
 	case decl.GetStructure() != nil:
 		switch decl.GetStructure().GetKind() {
 		case StructKind_STRUCT_KIND_ENTITY:
@@ -131,7 +184,49 @@ func (d *dumper) fieldLine(f *Field) string {
 	if f.GetOwned() {
 		mods += "owned "
 	}
-	return "field " + mods + f.GetMeta().GetName() + ": " + d.ref(f.GetType()) + deprecatedSuffix(f.GetMeta())
+	line := "field " + mods + f.GetMeta().GetName() + ": " + d.ref(f.GetType())
+	if from := f.GetIncludedFrom(); from != nil {
+		line += "  (from " + from.GetName() + ")"
+	}
+	return line + deprecatedSuffix(f.GetMeta())
+}
+
+func (d *dumper) instanceLine(inst *Instance) string {
+	line := "instance " + d.classRef(inst.GetClass())
+	if len(inst.GetParams()) > 0 {
+		names := make([]string, len(inst.GetParams()))
+		for i, p := range inst.GetParams() {
+			names[i] = p.GetName()
+		}
+		line = "instance <" + strings.Join(names, ", ") + "> " + d.classRef(inst.GetClass())
+	}
+	if len(inst.GetRequires()) > 0 {
+		reqs := make([]string, len(inst.GetRequires()))
+		for i, r := range inst.GetRequires() {
+			reqs[i] = d.classRef(r)
+		}
+		line += " requires " + strings.Join(reqs, ", ")
+	}
+	return line
+}
+
+func (d *dumper) classRef(r *ClassRef) string {
+	name := r.GetClass().GetName()
+	if e := r.GetExtern(); e != nil {
+		name = e.GetName()
+	}
+	if len(r.GetArgs()) == 0 {
+		return name
+	}
+	args := make([]string, len(r.GetArgs()))
+	for i, a := range r.GetArgs() {
+		if !a.Resolved() {
+			args[i] = "?"
+			continue
+		}
+		args[i] = d.render(d.model.Type(a))
+	}
+	return name + "<" + strings.Join(args, ", ") + ">"
 }
 
 func (d *dumper) typeLine(index int, t *Type) string {

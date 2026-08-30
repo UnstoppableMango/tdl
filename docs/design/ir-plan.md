@@ -110,7 +110,19 @@ Instance resolution, `requires` constraint checking, functional dependencies, an
 
 The two instance forms mean the same thing, so lowering normalizes `instance C for T` to `instance C<T>` even though the tree keeps what was written.
 
-Done when declared instances survive into `ir`, `Satisfying` answers correctly for the corpus including instances inherited through mixins and conformances, and an unsatisfied `requires` constraint is a diagnostic pointing at the use site.
+The index answers from ground facts only: a declaration that says it conforms, and an instance with concrete arguments, closed over the classes a class requires.
+Conditional instances reach `ir` intact and are not expanded.
+
+Done when declared instances survive into `ir`, `Satisfying` answers correctly for the corpus, and an unsatisfied `requires` constraint is a diagnostic pointing at the use site.
+
+## Phase 6b: conditional instance search
+
+`instance <T> Auditable<Page<T>> requires Auditable<T>` says a page of auditable things is auditable, and answering `Satisfying(Auditable)` for `Page<Order>` means matching the head and discharging the condition.
+
+That is a unification engine, and the spec's two termination rules, an instance head applied to distinct parameters and every constraint structurally smaller than the head, are what keep the search finite.
+It is scheduled here rather than folded into phase 6 because it is most of a phase on its own, and because everything downstream works without it.
+
+Done when the index answers for an instantiated generic type, a search that would not terminate is rejected at the instance rather than at the use, and the corpus covers a conditional instance that does apply and one that does not.
 
 ## Phase 7: constraints, defaults, and deprecation
 

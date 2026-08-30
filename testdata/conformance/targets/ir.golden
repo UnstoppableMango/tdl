@@ -25,8 +25,9 @@ Model billing
 │   │   ├── variant Present  std.tdl:41:3
 │   │   │   └── field value: types[1] T  std.tdl:41:13
 │   │   └── variant Null  std.tdl:42:3
-│   ├── [17] unlowered Entity  std.tdl:46:1
-│   ├── [18] unlowered Value  std.tdl:51:1
+│   ├── [17] class Entity  std.tdl:46:1
+│   │   └── requires key
+│   ├── [18] class Value  std.tdl:51:1
 │   ├── [19] entity User  source.tdl:3:1
 │   │   ├── field key id: types[2] string  source.tdl:4:7
 │   │   ├── field email: types[2] string  source.tdl:5:3
@@ -35,6 +36,9 @@ Model billing
 │       ├── field key id: types[2] string  source.tdl:10:7
 │       ├── field owned items: types[3] List<string>  source.tdl:11:3
 │       └── field tags: types[4] Set<string>  source.tdl:12:3
+├── Satisfies
+│   ├── Entity: 
+│   └── Value: 
 └── Types
     ├── [0] T  named  -> param Option.T  std.tdl:35:17
     ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
