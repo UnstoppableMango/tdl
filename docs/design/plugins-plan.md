@@ -62,6 +62,8 @@ The first backend is `debug`, which emits one file describing the model it was g
 
 Done when `debug` produces a response from a lowered model, and the same backend value satisfies the interface the host will call and the SDK will serve.
 
+**Done.** `plugin.Backend` is two methods, `Describe` and `Generate`, and `backend/debug` implements them. `plugin.Directives` filters a node's directives by target, since a model carries every block's.
+
 ## Phase 3: `tdl gen`, in-process
 
 The command, wired to the built-in registry only. It lowers, picks the target blocks to run, calls each backend, and writes what comes back.
@@ -124,6 +126,15 @@ implementation of the protocol and expensive afterwards.
 - **`Response.post` is a list of names with no arguments.** The project
   decides what a name maps to. Whether a backend should be able to pass
   arguments is a question for whoever implements the allowlist.
+- **A backend returns an error only when it cannot produce a response.** A
+  problem with the model goes in `Response.diagnostics`, where it reaches
+  the user with a position. Nothing enforces the distinction, and a
+  backend that returns an error for a bad model still fails usefully, just
+  without a position.
+- **`debug` finds the prelude by looking for a file named `std.tdl`.** A
+  model does not say which of its declarations were merged in from a
+  prelude. Every backend that generates per declaration needs to know, so
+  this is a gap in `ir` that a string match is papering over.
 
 ## Deferred
 
