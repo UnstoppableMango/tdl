@@ -145,7 +145,6 @@ func newGenCmd() *cobra.Command {
 				}
 			})
 			return nil
-			return nil
 		},
 	}
 
