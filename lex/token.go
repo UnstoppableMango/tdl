@@ -44,7 +44,9 @@ const (
 	FALSE
 	UNION // reserved, not yet implemented by the parser
 
-	// Punctuation
+	// Punctuation. The sentinels bound the range so [Punctuation] does not
+	// restate the list; a new operator declared between them is picked up.
+	punctBeg
 	LBRACE   // {
 	RBRACE   // }
 	LPAREN   // (
@@ -65,6 +67,7 @@ const (
 	STAR     // *
 	SLASH    // /
 	FATARROW // =>
+	punctEnd
 )
 
 var keywords = map[string]Kind{
