@@ -1,0 +1,14 @@
+# Generated protobuf bindings are not hand-written and are not tested directly.
+ignore:
+  - "**/*.pb.go"
+
+coverage:
+  status:
+    project:
+      default:
+        target: 70%
+        threshold: 3%
+    patch:
+      default:
+        target: 60%
+        threshold: 10%
