@@ -6,6 +6,15 @@ build:
 test:
 	go test ./...
 
+cover: cover.profile
+	go tool cover -func=$<
+
+cover.profile: ${GO_SRC}
+	go test -coverprofile=$@ ./...
+
+validate_codecov: codecov.yml
+	curl -X POST --data-binary @codecov.yml https://codecov.io/validate
+
 # Watch a TDL file and re-render it on every save.
 # Override the target: make play FILE=examples/nested.tdl VIEWS=all
 FILE ?= examples/nested.tdl
