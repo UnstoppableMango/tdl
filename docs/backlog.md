@@ -12,15 +12,6 @@ Ordered roughly by what unblocks what, not by priority.
 
 The awkward part is bootstrapping: formatting the repository would depend on building the thing the repository is.
 
-## Tree-sitter grammar
-
-A tree-sitter grammar gives syntax highlighting, structural selection, and folding to every editor that speaks it, which is most of them now.
-
-It is a second parser, and a second parser is a second thing to keep in step with `docs/grammar.ebnf`.
-The conformance corpus is the obvious way to hold them together: a tree-sitter grammar that parses `testdata/conformance/*/source.tdl` and rejects `testdata/invalid/*/source.tdl` agrees with the reference implementation by construction.
-
-This is the dependency for most of the editor work below.
-
 ## Language server
 
 `tdl lsp` is already described in [design/workflow.md](design/workflow.md) as the editor-facing half of the inner loop.
@@ -34,6 +25,7 @@ Completion needs scope information the resolver already computes.
 ## Editor support
 
 Each of these wants the tree-sitter grammar for highlighting and the language server for everything else, so neither is worth starting before those exist.
+The grammar has a plan of its own in [design/treesitter-plan.md](design/treesitter-plan.md).
 
 - **Vim and Neovim.** Filetype detection, a tree-sitter parser registration, and an `lspconfig` entry. The smallest of the four.
 - **VS Code.** An extension bundling the language server, plus a grammar for highlighting before the server starts.

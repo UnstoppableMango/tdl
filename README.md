@@ -44,8 +44,10 @@ The design is settled and written down:
 | [design/ir-plan.md](docs/design/ir-plan.md) | Implementing it. Phases 1 to 8 of 10 done. |
 | [design/plugins.md](docs/design/plugins.md) | The backend plugin protocol. |
 | [design/plugins-plan.md](docs/design/plugins-plan.md) | Implementing it. Phases 1 to 8 of 8 done. |
+| [design/treesitter.md](docs/design/treesitter.md) | Deriving the tree-sitter grammar from the EBNF. |
+| [design/treesitter-plan.md](docs/design/treesitter-plan.md) | Implementing it. Phase 1 of 7 done. |
 | [design/workflow.md](docs/design/workflow.md) | What a model author does with all of it. |
-| [backlog.md](docs/backlog.md) | Wanted, unscheduled: tree-sitter, an LSP, editor support, an MCP server. |
+| [backlog.md](docs/backlog.md) | Wanted, unscheduled: an LSP, editor support, an MCP server. |
 
 ## Support matrix
 

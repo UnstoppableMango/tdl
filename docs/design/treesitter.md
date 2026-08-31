@@ -1,0 +1,136 @@
+# Deriving the tree-sitter grammar
+
+Design document.
+`lex/table.go` exists; nothing else here does.
+
+A tree-sitter grammar gives syntax highlighting, structural selection, and folding to every editor that speaks it, and is the dependency for the editor work in [backlog.md](../backlog.md).
+It is also a second parser, and a second parser is a second thing to keep in step with [grammar.ebnf](../grammar.ebnf).
+
+This document says how to have the second parser without maintaining it by hand.
+
+## Why derive it
+
+The obvious way to hold two parsers together is the conformance corpus: a grammar that parses `testdata/conformance/*/source.tdl` and rejects `testdata/invalid/*/source.tdl` agrees with the reference implementation on those files.
+
+That is a real check and it stays.
+What it cannot catch is a production that reaches `grammar.ebnf` and never reaches the second parser, because no corpus file exercises it yet.
+The corpus is the written-down target rather than a record of what works, so the gap is not hypothetical.
+
+Deriving closes it from the other side.
+A rule that exists in one file and not the other is a diff, and a diff fails a build.
+
+## What is already single-sourced
+
+`lex` states the lexical facts for a program in `table.go`.
+
+`Keywords` and `Punctuation` list every fixed spelling, `Lookup` maps one back to the kind the lexer produces, and `Pattern` gives a regular expression for each of the six classes scanned by shape.
+The first three read the tables `Lexer.Next` dispatches on, so they cannot drift.
+The patterns are declared, because `scanIdent`, `scanNumber`, `scanString`, and `RescanRegexAt` are loops rather than regexes, and a test holds them to the lexer over the corpus.
+
+The grammar's quoted terminals are therefore checkable rather than merely copyable.
+Every `"package"` and `"->"` in the EBNF must be a spelling `lex.Lookup` knows, and a keyword `lex` reserves that the grammar never uses is worth reporting: `union` is exactly that today.
+
+## What the EBNF does not say
+
+The grammar is written for a reader, and four things it leaves to prose are things a generator needs.
+
+- The six terminals it names but never defines. `identifier`, `string_lit`, `int_lit`, `float_lit`, `bool_lit`, and `regex_lit` are the lexer's business, which is why they are absent.
+- Whitespace and comments. The header says doc comments are lexical and omits them.
+- The ambiguities it resolves in prose. Its own comments name them: `key` as a bare requirement against `key` as a field modifier, a `<...>` argument that is a type or a unit, `{ }` as both a declaration body and a set or map type, and `/` as both unit division and a regex delimiter.
+- Which productions are structure worth a node and which are plumbing. `CoreType`, `Member`, and `FieldMod` exist to make the notation readable and would only clutter a tree.
+
+Prose is the right form for a reader, and the file explains each of these where it happens.
+The annotations below make the same statements machine-readable without moving them somewhere else.
+
+## Annotations
+
+Annotations live in EBNF comments, opened `(*@` instead of `(*`.
+A reader who ignores them loses nothing, and the file keeps a formatter-free plain-text shape.
+
+File-level directives come first, before any production.
+
+```ebnf
+(*@ token identifier = IDENT *)
+(*@ token string_lit = STRING *)
+(*@ word identifier *)
+(*@ extra doc_comment line_comment *)
+(*@ conflict Body SetOrMapType *)
+```
+
+`token` binds an undefined terminal to a `lex.Kind`, which is what turns `lex.Pattern` into a tree-sitter rule.
+`word` names the token tree-sitter extracts keywords from, which it needs to keep a keyword from matching a prefix of an identifier.
+`extra` lists what may appear between any two tokens.
+`conflict` emits an entry in the grammar's `conflicts` array, one per pair the GLR parser cannot decide locally.
+
+Production annotations precede the production they describe.
+
+```ebnf
+(*@ hidden *)
+CoreType = ListType | SetOrMapType | NamedType .
+
+(*@ prec.left 1 *)
+UnitExpr = UnitTerm { ( "*" | "/" ) UnitTerm } .
+
+(*@ external *)
+regex_lit = .
+```
+
+`hidden` emits the rule with a leading underscore, so it structures the grammar without appearing in the tree.
+`inline` substitutes the rule into its callers instead.
+`prec`, `prec.left`, and `prec.right` carry the associativity the notation cannot state.
+`external` marks a terminal the scanner in `scanner.c` produces, which `regex_lit` needs because its `/` is also an operator.
+
+The set is deliberately small.
+An annotation earns its place by describing something `grammar.ebnf` already explains in prose to a reader.
+
+## The generator
+
+A Go program in `tools/treesitter`, in this module, so it imports `lex` directly.
+It reads `docs/grammar.ebnf` and writes `tree-sitter/grammar.js`.
+
+Two packages, split at the seam that matters.
+`internal/ebnf` reads the notation and the annotations into a grammar model and knows nothing about tree-sitter.
+`internal/treesitter` turns that model into `grammar.js`.
+
+The reader is a hand-written recursive descent parser over one notation, the way `parser` is over TDL.
+It is the third parser in this repository and the smallest: `grammar.ebnf` has 56 productions and one form of grouping.
+
+Errors are the point of the exercise, so they are specific.
+A quoted terminal `lex.Lookup` does not know, an undefined nonterminal, a terminal with no `token` binding, and an annotation naming a production that does not exist are each reported with the line that caused them.
+
+## What it does not emit
+
+`queries/highlights.scm` is a judgment about what should be colored, not a fact about the grammar, and is written and maintained by hand.
+The same holds for `folds.scm`, `indents.scm`, and injections.
+
+`scanner.c` is hand-written too.
+The generator emits the `externals` array naming its tokens and nothing else.
+
+## Where it lives
+
+`tree-sitter/` in this repository, rather than a separate `tree-sitter-tdl`.
+
+One repository is what makes the regeneration check a single CI job, and the grammar has no reason to version independently of the language it describes.
+Editors that expect a repository per grammar can be pointed at a subdirectory, and extracting one later is a move, not a rewrite.
+
+## How it is held together
+
+Three checks, each catching what the others cannot.
+
+`command make generate-treesitter` regenerates `grammar.js`, and CI runs it followed by `git diff --exit-code`.
+A production added to the EBNF without a regeneration fails the build.
+This is the check the corpus cannot make.
+
+The corpus stays.
+`tree-sitter parse` over `testdata/conformance/*/source.tdl` must produce no ERROR node, and over `testdata/invalid/*/source.tdl` must produce one.
+This catches the generator being wrong, which a clean diff would not.
+
+`lex`'s own tests hold the patterns to the lexer.
+This catches the terminals, which neither of the others touches.
+
+## Deferred
+
+- Supertypes. Tagging `Decl` and `TypeRef` as tree-sitter supertypes would give editors a coarser handle on the tree, and it is additive once the grammar exists.
+- `union`. The grammar reserves it and the parser does not implement it, so there is nothing to derive.
+- Comment attachment. `tdl fmt` drops `//` comments and the tree-sitter grammar keeps them as extras, which is a difference the corpus check does not see and does not need to.
+- Emitting anything but `grammar.js`. The annotated grammar could drive a railroad diagram or an LSP's semantic token legend, and neither is worth a second output format before the first one works.
