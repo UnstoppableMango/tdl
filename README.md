@@ -28,7 +28,8 @@ Early and incomplete, and moving.
 - Constraints accumulate down newtype chains, and defaults resolve against their field's type.
 - Target directives resolve against the model and attach to the nodes they apply to.
 
-**The back end does not exist.** There are no code generators yet, and nothing speaks the plugin protocol.
+**The back end runs, with nothing behind it yet.** `tdl gen` resolves a target's backend to a built-in or to `tdl-gen-<name>` on PATH, sends it the resolved model, and writes back the files it returns.
+The only backend is `debug`, which prints what it was given, so nothing generates real code yet.
 Units, and merging a dependency's target blocks, are the two pieces of resolution still outstanding.
 
 The design is settled and written down:
@@ -41,9 +42,43 @@ The design is settled and written down:
 | [design/ir.md](docs/design/ir.md) | The resolved model backends consume. |
 | [design/ir-plan.md](docs/design/ir-plan.md) | Implementing it. Phases 1 to 8 of 10 done. |
 | [design/plugins.md](docs/design/plugins.md) | The backend plugin protocol. |
-| [design/plugins-plan.md](docs/design/plugins-plan.md) | Implementing it. Not started. |
+| [design/plugins-plan.md](docs/design/plugins-plan.md) | Implementing it. Phases 1 to 8 of 8 done. |
 | [design/workflow.md](docs/design/workflow.md) | What a model author does with all of it. |
 | [backlog.md](docs/backlog.md) | Wanted, unscheduled: tree-sitter, an LSP, editor support, an MCP server. |
+
+## Support matrix
+
+What each part of the language reaches today.
+`Front end` is the lexer, parser, and `tdl fmt`; `IR` is `tdl ir`, the resolved model a backend consumes.
+
+| Construct | Front end | IR |
+| --- | --- | --- |
+| `package`, `import` | Yes | Yes, resolved across packages without inlining |
+| `primitive` | Yes | Yes |
+| `alias` | Yes | Yes |
+| `type` (newtype chains) | Yes | Yes, constraints accumulate down the chain |
+| `value`, `entity` | Yes | Yes |
+| `mixin`, `include` | Yes | Yes, expanded |
+| `enum`, variants with fields | Yes | Yes |
+| `class`, functional dependencies, associated types | Yes | Yes |
+| `instance`, including conditional instances | Yes | Yes, satisfaction answers for both |
+| Type parameters and kinds | Yes | Yes, parameters stay parameters |
+| Collection and option sugar (`[T]`, `{T}`, `{K -> V}`, `T?`, `T \| null`) | Yes | Yes, lowered to whatever the prelude declares |
+| `where` constraints | Yes | Yes, open set: standard names checked, others passed through |
+| Field defaults | Yes | Yes, resolved against the field's type |
+| `deprecated` | Yes | Yes |
+| `target` blocks | Yes | Partial: resolved and attached, dependency blocks not merged |
+| `unit` | Yes | No: declarations pass through unlowered, unit arguments are an error |
+| `union` | No: reserved | No |
+
+`tdl fmt` drops ordinary `//` comments; `///` doc comments survive, since they attach to the declaration that follows.
+
+Backends:
+
+| Backend | Kind | Status |
+| --- | --- | --- |
+| `debug` | Built in, also shipped as `tdl-gen-debug` | Prints the model it was given |
+| Anything else | `tdl-gen-<name>` on PATH | The protocol is stable, none written |
 
 ## Example
 
