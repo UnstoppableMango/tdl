@@ -4,7 +4,10 @@
    Doc comments ('///' to end of line) are lexical.  They attach to the
    declaration, field, or variant that follows and are omitted below.
 
-   `reserved_word` is any of the keywords this grammar quotes; see Name.
+   `reserved_word` is a word the lexer reserves, the set lex.Keywords
+   returns.  It is narrower than the words this grammar quotes: `key`,
+   `owned`, and `deprecated` are contextual and lex as `identifier`,
+   so they are already legal names and Name is not what admits them.
 
    Whitespace is insignificant and there are no separator rules: an item
    ends where the next begins.  Commas appear only where written below,
