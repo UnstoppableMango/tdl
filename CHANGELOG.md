@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.1.1](https://github.com/UnstoppableMango/tdl/compare/v0.1.0...v0.1.1) (2026-09-01)
+
+
+### Features
+
+* **ebnf:** formalize the notation and lint the grammar ([#709](https://github.com/UnstoppableMango/tdl/issues/709)) ([7caa49a](https://github.com/UnstoppableMango/tdl/commit/7caa49a2c8f343018a736adc6e30e7dab44e349c))
+* **lex:** describe the lexer to a program ([#703](https://github.com/UnstoppableMango/tdl/issues/703)) ([12e00f2](https://github.com/UnstoppableMango/tdl/commit/12e00f251872c7b0059f7dfc25d67e78f9f45b57))
+
+
+### Bug Fixes
+
+* **parser:** stop a field named where from being the previous field's constraints ([#707](https://github.com/UnstoppableMango/tdl/issues/707)) ([545a946](https://github.com/UnstoppableMango/tdl/commit/545a946857a87e32514740ebd62d8553a32dfe82))
+
+
+### Documentation
+
+* add a support matrix ([#702](https://github.com/UnstoppableMango/tdl/issues/702)) ([6425f95](https://github.com/UnstoppableMango/tdl/commit/6425f95c3b972cf0584f12a0272dc495b17fa26b))
+* **design:** derive the tree-sitter grammar from the ebnf ([#704](https://github.com/UnstoppableMango/tdl/issues/704)) ([a90e306](https://github.com/UnstoppableMango/tdl/commit/a90e3063f55586d5561dcf49484c81dac894f904))
+* state where a name may be a reserved word ([#708](https://github.com/UnstoppableMango/tdl/issues/708)) ([503d3c3](https://github.com/UnstoppableMango/tdl/commit/503d3c3269985eb9384b5afc0bf1da637eee9e96))
+
+
+### Continuous Integration
+
+* upload coverage to Codecov ([#700](https://github.com/UnstoppableMango/tdl/issues/700)) ([5fbef4e](https://github.com/UnstoppableMango/tdl/commit/5fbef4ea5cfb37a18bfc6cf46d28a2c5d384b179))
+
 ## [0.1.0](https://github.com/UnstoppableMango/tdl/compare/v0.0.34...v0.1.0) (2026-08-30)
 
 
