@@ -1,7 +1,8 @@
 # Deriving the tree-sitter grammar
 
 Design document.
-`lex/table.go` exists; nothing else here does.
+Of what it describes, only the lexical tables in `lex/table.go` are built; the annotations, the generator, and the grammar are not.
+[treesitter-plan.md](treesitter-plan.md) tracks which phase has landed.
 
 A tree-sitter grammar gives syntax highlighting, structural selection, and folding to every editor that speaks it, and is the dependency for the editor work in [backlog.md](../backlog.md).
 It is also a second parser, and a second parser is a second thing to keep in step with [grammar.ebnf](../grammar.ebnf).
