@@ -61,6 +61,10 @@ Scanning them separately and attaching each to the production or the file it bel
 
 Done when every annotation in phase 2 is readable from Go, and an annotation naming a production that does not exist, or a terminal with no `token` binding, is reported with the line that caused it.
 
+Done.
+`ebnf.Read` returns the grammar and an `Annotations` beside it; `Lint` is the same call with the grammar thrown away.
+A `token` binding resolves to the pattern rather than the symbol name, so a caller never has to know `lex` to use one.
+
 ## Phase 4: the emitter
 
 `internal/treesitter` walks the model and writes `grammar.js`: `seq`, `choice`, `optional`, `repeat`, the `extras`, `conflicts`, `externals`, `inline`, and `word` entries, and a rule per terminal built from `lex.Pattern` or from the spelling.
