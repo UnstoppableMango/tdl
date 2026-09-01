@@ -53,14 +53,18 @@ Model example.constraints
 │   │   └── length(3..254) (from Email)  source.tdl:8:9
 │   ├── [27] entity Order  source.tdl:17:1
 │   │   ├── field key id: types[2] string  source.tdl:18:7
-│   │   ├── field quantity: types[4] int  min(1)  max(100)  source.tdl:19:3
-│   │   ├── field items: types[5] List<string>  length(1..)  unique  source.tdl:23:3
-│   │   ├── field region: types[2] string  oneOf("us-east", "eu-west")  source.tdl:27:3
-│   │   ├── field ratio: types[4] int  between(0, 100)  source.tdl:28:3
-│   │   └── field status: types[6] Status = Draft  source.tdl:29:3
-│   └── [28] enum Status  source.tdl:32:1
-│       ├── variant Draft  source.tdl:32:15
-│       └── variant Placed  source.tdl:32:21
+│   │   ├── field where: types[2] string  source.tdl:19:3
+│   │   ├── field quantity: types[4] int  min(1)  max(100)  source.tdl:20:3
+│   │   ├── field items: types[5] List<string>  length(1..)  unique  source.tdl:24:3
+│   │   ├── field region: types[2] string  oneOf("us-east", "eu-west")  source.tdl:28:3
+│   │   ├── field ratio: types[4] int  between(0, 100)  source.tdl:29:3
+│   │   └── field status: types[6] Status = Draft  source.tdl:30:3
+│   ├── [28] value Clause  source.tdl:33:1
+│   │   ├── field where: types[4] int  min(0)  source.tdl:34:3
+│   │   └── field after: types[2] string  source.tdl:35:3
+│   └── [29] enum Status  source.tdl:38:1
+│       ├── variant Draft  source.tdl:38:15
+│       └── variant Placed  source.tdl:38:21
 ├── Satisfies
 │   ├── Entity: nothing
 │   └── Value: nothing
@@ -69,6 +73,6 @@ Model example.constraints
     ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
     ├── [2] string  named  -> decls[19]  source.tdl:6:13
     ├── [3] Email  named  -> decls[21]  source.tdl:15:17
-    ├── [4] int  named  -> decls[20]  source.tdl:19:13
-    ├── [5] List<string>  [T]  -> decls[4]  source.tdl:23:10
-    └── [6] Status  named  -> decls[28]  source.tdl:29:11
+    ├── [4] int  named  -> decls[20]  source.tdl:20:13
+    ├── [5] List<string>  [T]  -> decls[4]  source.tdl:24:10
+    └── [6] Status  named  -> decls[29]  source.tdl:30:11

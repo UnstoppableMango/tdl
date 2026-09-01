@@ -236,7 +236,10 @@ func (p *parser) parseField() *ast.Field {
 		f.Owned = true
 		p.next()
 	}
-	if p.at(lex.WHERE) {
+	// `where` is reserved, but a reserved word before a colon is a field
+	// name, so a following field named `where` is not this field's
+	// constraint block. The modifiers above take the same lookahead.
+	if p.at(lex.WHERE) && p.peek.Kind != lex.COLON {
 		f.Constraints = p.parseConstraintBlock()
 	}
 	if p.accept(lex.EQUAL) {

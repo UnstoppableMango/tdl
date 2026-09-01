@@ -402,13 +402,14 @@ func TestKeywordFieldNames(t *testing.T) {
   unit: string
   target: string
   include: string
+  where: string
 }`)
 
 	members := file.Decls[0].(*ast.StructDecl).Members
-	if len(members) != 5 {
-		t.Fatalf("got %d members, want 5", len(members))
+	if len(members) != 6 {
+		t.Fatalf("got %d members, want 6", len(members))
 	}
-	for i, want := range []string{"value", "type", "unit", "target", "include"} {
+	for i, want := range []string{"value", "type", "unit", "target", "include", "where"} {
 		f, ok := members[i].(*ast.Field)
 		if !ok {
 			t.Fatalf("member %d is %T, want a field", i, members[i])
@@ -416,6 +417,34 @@ func TestKeywordFieldNames(t *testing.T) {
 		if f.N != want {
 			t.Errorf("member %d = %q, want %q", i, f.N, want)
 		}
+	}
+}
+
+// A field named `where` follows a field, which is exactly where the
+// previous field looks for a constraint block. One token of lookahead
+// separates the two, the way it does for the contextual modifiers.
+func TestWhereFieldNameAfterAField(t *testing.T) {
+	file := parse(t, `value V {
+  a: string
+  where: int where { min(0) }
+  b: string
+}`)
+
+	members := file.Decls[0].(*ast.StructDecl).Members
+	if len(members) != 3 {
+		t.Fatalf("got %d members, want 3", len(members))
+	}
+
+	if a := members[0].(*ast.Field); len(a.Constraints) != 0 {
+		t.Errorf("field a took %d constraints, want none", len(a.Constraints))
+	}
+
+	w := members[1].(*ast.Field)
+	if w.N != "where" {
+		t.Errorf("second field = %q, want \"where\"", w.N)
+	}
+	if len(w.Constraints) != 1 || w.Constraints[0].N != "min" {
+		t.Errorf("field where constraints = %+v, want min", w.Constraints)
 	}
 }
 
