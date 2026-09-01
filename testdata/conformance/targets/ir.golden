@@ -37,18 +37,19 @@ Model billing
 │   │   ├── field key id: types[3] string  source.tdl:11:7
 │   │   ├── field createdAt: types[2] instant  source.tdl:12:3
 │   │   ├── field email: types[3] string  @go:tag("json:\"email_address\"")  source.tdl:13:3
-│   │   └── field name: types[3] string  source.tdl:14:3
-│   └── [23] entity Order  @go:embed("audit.Fields") (via Auditable)  @sql:table("orders")  @sql:trigger("set_updated_at") (via Auditable)  source.tdl:17:1
-│       ├── conforms Auditable  source.tdl:17:25
-│       ├── field key id: types[3] string  source.tdl:18:7
-│       ├── field createdAt: types[2] instant  source.tdl:19:3
-│       ├── field owned items: types[4] List<string>  @go:slice  source.tdl:20:3
-│       └── field tags: types[5] Set<string>  @go:set  source.tdl:21:3
+│   │   ├── field name: types[3] string  source.tdl:14:3
+│   │   └── field type: types[3] string  @go:tag("json:\"kind\"")  source.tdl:15:3
+│   └── [23] entity Order  @go:embed("audit.Fields") (via Auditable)  @sql:table("orders")  @sql:trigger("set_updated_at") (via Auditable)  source.tdl:18:1
+│       ├── conforms Auditable  source.tdl:18:25
+│       ├── field key id: types[3] string  source.tdl:19:7
+│       ├── field createdAt: types[2] instant  source.tdl:20:3
+│       ├── field owned items: types[4] List<string>  @go:slice  source.tdl:21:3
+│       └── field tags: types[5] Set<string>  @go:set  source.tdl:22:3
 ├── Targets
-│   ├── go for billing  source.tdl:24:1
-│   │   ├── @go:out("./gen/go")  source.tdl:25:3
-│   │   └── @go:package("github.com/acme/billing")  source.tdl:26:3
-│   └── sql for billing  source.tdl:36:1
+│   ├── go for billing  source.tdl:25:1
+│   │   ├── @go:out("./gen/go")  source.tdl:26:3
+│   │   └── @go:package("github.com/acme/billing")  source.tdl:27:3
+│   └── sql for billing  source.tdl:38:1
 ├── Satisfies
 │   ├── Entity: nothing
 │   ├── Value: nothing
@@ -58,5 +59,5 @@ Model billing
     ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
     ├── [2] instant  named  -> decls[20]  source.tdl:7:14
     ├── [3] string  named  -> decls[19]  source.tdl:11:11
-    ├── [4] List<string>  [T]  -> decls[4]  source.tdl:20:10
-    └── [5] Set<string>  {T}  -> decls[5]  source.tdl:21:9
+    ├── [4] List<string>  [T]  -> decls[4]  source.tdl:21:10
+    └── [5] Set<string>  {T}  -> decls[5]  source.tdl:22:9

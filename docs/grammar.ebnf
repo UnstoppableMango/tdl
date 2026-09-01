@@ -4,6 +4,11 @@
    Doc comments ('///' to end of line) are lexical.  They attach to the
    declaration, field, or variant that follows and are omitted below.
 
+   `reserved_word` is a word the lexer reserves, the set lex.Keywords
+   returns.  It is narrower than the words this grammar quotes: `key`,
+   `owned`, and `deprecated` are contextual and lex as `identifier`,
+   so they are already legal names and Name is not what admits them.
+
    Whitespace is insignificant and there are no separator rules: an item
    ends where the next begins.  Commas appear only where written below,
    inside '<...>', conformance lists, and list literals, and are required
@@ -17,6 +22,16 @@ Decl     = PackageDecl | ImportDecl | PrimitiveDecl | UnitDecl
 PackageDecl = "package" DottedIdent .
 ImportDecl  = "import" string_lit "as" ( identifier | "_" ) .
 DottedIdent = identifier { "." identifier } .
+
+Name = identifier | reserved_word .
+(* A name may be spelled with a reserved word only where what surrounds it
+   says which reading is meant.  A field name is followed by ':', so
+   `include Foo` is an include and `include: Foo` is a field.  A directive
+   name and a target path segment need no such test, because that
+   namespace belongs to the backend.
+
+   Every other name is a plain identifier, so `value value`, `enum type`,
+   `import "x" as type`, and `x: value` are each errors. *)
 
 (* ---- roots and units ---------------------------------------------------- *)
 
@@ -57,7 +72,7 @@ Include = "include" NamedType .
 
 Variant = [ Deprecated ] identifier [ "{" { Field } "}" ] .
 
-Field    = { FieldMod } identifier ":" TypeRef { FieldRel }
+Field    = { FieldMod } Name ":" TypeRef { FieldRel }
            [ ConstraintBlock ] [ "=" Literal ] .
 FieldMod = "key" | Deprecated .
 FieldRel = "owned" .
@@ -120,9 +135,9 @@ TargetDecl  = "target" identifier "for" DottedIdent "{" { TargetEntry } "}" .
 TargetEntry = Path "{" { TargetEntry } "}"
             | Path "=>" Directive
             | Directive .
-Directive   = identifier [ "(" [ DirectiveArg { "," DirectiveArg } ] ")" ] .
+Directive   = Name [ "(" [ DirectiveArg { "," DirectiveArg } ] ")" ] .
 DirectiveArg = Literal .
-Path        = identifier { "." identifier } .
+Path        = Name { "." Name } .
 (* Arguments are parenthesized.  Without a delimiter, `table snake_case`
    followed by another entry cannot be told from `table` applied to three
    arguments, since whitespace is insignificant. *)
