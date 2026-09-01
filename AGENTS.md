@@ -27,7 +27,7 @@ Which markdown files are linted lives in `.markdownlint-cli2.yaml`, so a bare `m
 
 After changing `go.mod` or adding dependencies, run `make tidy` so `nix/gomod2nix.toml` stays in sync, otherwise `nix build` fails.
 
-Neither `gomod2nix` nor `protoc-gen-go` is on `PATH`. Run generators through the devShell: `nix develop --command gomod2nix --dir . --outdir nix`, and `buf generate` either inside `nix develop` or with `PATH="$(go env GOPATH)/bin:$PATH"`.
+Neither `gomod2nix` nor `protoc-gen-go` is on `PATH`. Run generators through the devShell: `nix develop --command make tidy`, or `gomod2nix --dir . --outdir nix` directly, and `buf generate` either inside `nix develop` or with `PATH="$(go env GOPATH)/bin:$PATH"`.
 
 ## Architecture
 
