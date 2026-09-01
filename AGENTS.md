@@ -6,6 +6,7 @@ This file provides guidance to coding agents when working with code in this repo
 
 ```shell
 go test ./...                      # all tests
+go test -race ./...                # what CI runs; the plugin subprocess needs it
 go test ./parser -run TestConformanceCorpusParses   # a single test
 go build ./...
 
