@@ -14,7 +14,7 @@ import (
 // docs/spec.md, which moves on its own schedule. A release that changes no
 // spec text should not claim to have changed the spec.
 const (
-	toolVersion = "0.1.0" // x-release-please-version
+	toolVersion = "0.1.1" // x-release-please-version
 	specVersion = "0.1.0-draft"
 )
 
