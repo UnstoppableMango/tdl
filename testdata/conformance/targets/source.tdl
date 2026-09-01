@@ -12,6 +12,7 @@ entity User: Auditable {
   createdAt: instant
   email: string
   name: string
+  type: string
 }
 
 entity Order: Auditable {
@@ -27,6 +28,7 @@ target go for billing {
   User {
     name("Account")
     email => tag("json:\"email_address\"")
+    type => tag("json:\"kind\"")
   }
   Order.items => slice
   Order.tags => set
