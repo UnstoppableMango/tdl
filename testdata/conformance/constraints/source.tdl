@@ -16,6 +16,7 @@ type WorkEmail: Email where { matches(/@acme\.com$/) }
 
 entity Order {
   key id: string
+  where: string
   quantity: int where {
     min(1)
     max(100)
@@ -27,6 +28,11 @@ entity Order {
   region: string where { oneOf("us-east", "eu-west") }
   ratio: int where { between(0, 100) }
   status: Status = Draft
+}
+
+value Clause {
+  where: int where { min(0) }
+  after: string
 }
 
 enum Status { Draft Placed }
