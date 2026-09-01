@@ -1,5 +1,9 @@
-(* TDL grammar, EBNF appendix to spec.md.
-   Notation: '...' terminals, [ ] optional, { } zero-or-more, | alternation.
+/* TDL grammar, EBNF appendix to spec.md.
+
+   Wirth syntax notation, described in notation.ebnf: "..." terminals,
+   [ ] optional, { } zero-or-more, | alternation, and a '.' ending each
+   production.  golang.org/x/exp/ebnf parses this dialect, which is what
+   internal/ebnf reads it with.
 
    Doc comments ('///' to end of line) are lexical.  They attach to the
    declaration, field, or variant that follows and are omitted below.
@@ -8,11 +12,12 @@
    returns.  It is narrower than the words this grammar quotes: `key`,
    `owned`, and `deprecated` are contextual and lex as `identifier`,
    so they are already legal names and Name is not what admits them.
+   It and the other lexical names are declared at the end.
 
    Whitespace is insignificant and there are no separator rules: an item
    ends where the next begins.  Commas appear only where written below,
    inside '<...>', conformance lists, and list literals, and are required
-   there.  They are not permitted inside '{ }' blocks. *)
+   there.  They are not permitted inside '{ }' blocks. */
 
 File     = { [ Deprecated ] Decl } .
 Decl     = PackageDecl | ImportDecl | PrimitiveDecl | UnitDecl
@@ -24,16 +29,16 @@ ImportDecl  = "import" string_lit "as" ( identifier | "_" ) .
 DottedIdent = identifier { "." identifier } .
 
 Name = identifier | reserved_word .
-(* A name may be spelled with a reserved word only where what surrounds it
+/* A name may be spelled with a reserved word only where what surrounds it
    says which reading is meant.  A field name is followed by ':', so
    `include Foo` is an include and `include: Foo` is a field.  A directive
    name and a target path segment need no such test, because that
    namespace belongs to the backend.
 
    Every other name is a plain identifier, so `value value`, `enum type`,
-   `import "x" as type`, and `x: value` are each errors. *)
+   `import "x" as type`, and `x: value` are each errors. */
 
-(* ---- roots and units ---------------------------------------------------- *)
+/* ---- roots and units ---------------------------------------------------- */
 
 PrimitiveDecl = "primitive" identifier [ ":" Kind ] .
 
@@ -41,7 +46,7 @@ UnitDecl = "unit" identifier [ "=" UnitExpr ] .
 UnitExpr = UnitTerm { ( "*" | "/" ) UnitTerm } .
 UnitTerm = identifier [ "^" int_lit ] | "(" UnitExpr ")" .
 
-(* ---- parameters, kinds, constraints ------------------------------------- *)
+/* ---- parameters, kinds, constraints ------------------------------------- */
 
 TypeParams = "<" TypeParam { "," TypeParam } ">" .
 TypeParam  = identifier [ ":" Kind ] .
@@ -51,7 +56,7 @@ KindAtom   = "type" | "unit" | "(" Kind ")" .
 RequiresClause = "requires" ClassRef { "," ClassRef } .
 ClassRef       = DottedIdent [ TypeArgs ] .
 
-(* ---- declarations ------------------------------------------------------- *)
+/* ---- declarations ------------------------------------------------------- */
 
 AliasDecl  = "alias" identifier [ TypeParams ] "=" TypeRef .
 
@@ -78,17 +83,17 @@ FieldMod = "key" | Deprecated .
 FieldRel = "owned" .
 
 Deprecated = "deprecated" [ "(" string_lit ")" ] .
-(* Deprecated may also precede any Decl and any Variant. *)
+/* Deprecated may also precede any Decl and any Variant. */
 
-(* ---- classes and instances ---------------------------------------------- *)
+/* ---- classes and instances ---------------------------------------------- */
 
 ClassDecl   = "class" identifier [ TypeParams ] [ FunDeps ] [ Conforms ]
               [ RequiresClause ] "{" { ClassMember } "}" .
 ClassMember = Field | KeyRequirement | AssocTypeReq .
 KeyRequirement = "key" .
-(* A class may not declare key fields, so a Field in a class body carries no
+/* A class may not declare key fields, so a Field in a class body carries no
    "key" modifier.  Whitespace is insignificant, so a bare KeyRequirement
-   followed by a field would otherwise read as one key field. *)
+   followed by a field would otherwise read as one key field. */
 AssocTypeReq   = "type" identifier [ ":" Kind ] .
 
 FunDeps = "|" FunDep { "," FunDep } .
@@ -98,38 +103,38 @@ InstanceDecl  = "instance" [ TypeParams ] DottedIdent
                 ( TypeArgs | "for" NamedType )
                 [ RequiresClause ] [ "{" { AssocTypeBind } "}" ] .
 AssocTypeBind = "type" identifier "=" TypeRef .
-(* "instance C for T" is sugar for "instance C<T>". *)
+/* "instance C for T" is sugar for "instance C<T>". */
 
-(* ---- type references ---------------------------------------------------- *)
+/* ---- type references ---------------------------------------------------- */
 
 TypeRef   = CoreType [ "?" ] [ "|" "null" ] .
 CoreType  = ListType | SetOrMapType | NamedType .
 ListType  = "[" TypeRef "]" .
 SetOrMapType = "{" TypeRef [ "->" TypeRef ] "}" .
 NamedType = DottedIdent [ TypeArgs ] .
-(* Collection forms are sugar: [T] is List<T>, {T} is Set<T>,
-   {K -> V} is Map<K, V>, T? is Option<T>, T | null is Nullable<T>. *)
+/* Collection forms are sugar: [T] is List<T>, {T} is Set<T>,
+   {K -> V} is Map<K, V>, T? is Option<T>, T | null is Nullable<T>. */
 
 TypeArgs = "<" TypeArg { "," TypeArg } ">" .
 TypeArg  = UnitExpr | TypeRef .
-(* A bare identifier may name a type or a unit.  The parser records the
-   syntactic form; the resolver picks by kind. *)
+/* A bare identifier may name a type or a unit.  The parser records the
+   syntactic form; the resolver picks by kind. */
 
-(* ---- constraints -------------------------------------------------------- *)
+/* ---- constraints -------------------------------------------------------- */
 
 ConstraintBlock = "where" "{" { Constraint } "}" .
 Constraint      = identifier [ "(" [ ConstraintArg { "," ConstraintArg } ] ")" ] .
 ConstraintArg   = Range | regex_lit | Literal .
 Range           = [ int_lit ] ".." [ int_lit ] .
-(* Arguments are parenthesized, as for a directive, and for the same
+/* Arguments are parenthesized, as for a directive, and for the same
    reason: the constraint set is open, so the parser does not know any
    name's arity and `min 0 max 100` would otherwise be ambiguous.
 
    The standard set is min, max, length, matches, oneOf, and unique.  The
    compiler checks their arity and argument kinds and passes every other
-   name through untouched. *)
+   name through untouched. */
 
-(* ---- targets ------------------------------------------------------------ *)
+/* ---- targets ------------------------------------------------------------ */
 
 TargetDecl  = "target" identifier "for" DottedIdent "{" { TargetEntry } "}" .
 TargetEntry = Path "{" { TargetEntry } "}"
@@ -138,15 +143,29 @@ TargetEntry = Path "{" { TargetEntry } "}"
 Directive   = Name [ "(" [ DirectiveArg { "," DirectiveArg } ] ")" ] .
 DirectiveArg = Literal .
 Path        = Name { "." Name } .
-(* Arguments are parenthesized.  Without a delimiter, `table snake_case`
+/* Arguments are parenthesized.  Without a delimiter, `table snake_case`
    followed by another entry cannot be told from `table` applied to three
-   arguments, since whitespace is insignificant. *)
+   arguments, since whitespace is insignificant. */
 
-(* ---- literals ----------------------------------------------------------- *)
+/* ---- literals ----------------------------------------------------------- */
 
 Literal     = string_lit | int_lit | float_lit | bool_lit | ListLiteral
             | DottedIdent .
 ListLiteral = "[" [ Literal { "," Literal } ] "]" .
-(* A DottedIdent literal names an enum variant, as in `status: Status =
+/* A DottedIdent literal names an enum variant, as in `status: Status =
    Draft`.  The parser records the name; the resolver checks it against the
-   field's type. *)
+   field's type. */
+
+/* ---- lexical productions ------------------------------------------------ */
+
+/* The lexer's, not the grammar's.  A production with no expression names
+   something defined elsewhere, which is how this notation says so; lex
+   scans each of these and lex.Pattern gives its shape. */
+
+identifier    = .
+string_lit    = .
+int_lit       = .
+float_lit     = .
+bool_lit      = .
+regex_lit     = .
+reserved_word = .

@@ -9,25 +9,18 @@ import (
 	"github.com/unstoppablemango/tdl/internal/ebnf"
 )
 
-// notationOptions lint docs/notation.ebnf, which is a grammar of the
-// notation rather than of TDL, so its terminals are its own and its
-// quoted terminals are not TDL tokens.
-var notationOptions = ebnf.Options{
-	Terminals: []string{"nonterminal", "terminal", "quoted"},
-}
-
-func lint(t *testing.T, src string) []string {
-	t.Helper()
+func lint(src string) []string {
 	var out []string
-	for _, d := range ebnf.Lint(src, ebnf.GrammarOptions) {
-		out = append(out, d.String())
+	for _, err := range ebnf.Lint("test.ebnf", src, ebnf.GrammarOptions) {
+		out = append(out, err.Error())
 	}
 	return out
 }
 
 func TestCleanGrammar(t *testing.T) {
-	if got := lint(t, `File = { Decl } .
+	if got := lint(`File = { Decl } .
 Decl = "package" identifier "." .
+identifier = .
 `); len(got) != 0 {
 		t.Errorf("got %v, want none", got)
 	}
@@ -39,24 +32,22 @@ func TestDiagnostics(t *testing.T) {
 		src  string
 		want string
 	}{
-		{"undefined nonterminal", `File = Decl .`, "never defined"},
-		{"defined twice", "File = Decl .\nDecl = \"package\" .\nDecl = \"import\" .", "defined again"},
-		{"never used", "File = \"package\" .\nDecl = \"import\" .", "never used"},
-		{"unknown terminal", `File = mystery .`, "unknown terminal"},
+		{"undefined nonterminal", `File = Decl .`, "missing production"},
+		{"never reached", "File = \"package\" .\nDecl = \"import\" .", "unreachable"},
+		{"missing terminator", `File = "package"`, "expected"},
+		{"unbalanced bracket", `File = [ "package" .`, "expected"},
+		{"stray close", `File = ] .`, "expected"},
+		{"unterminated comment", "/* open\nFile = \"package\" .", "not terminated"},
+		{"unterminated quote", "File = \"package .", "string not terminated"},
+
+		// The check the library does not make.
 		{"invented spelling", `File = "notakeyword!" .`, "not text the lexer produces"},
-		{"missing terminator", "File = \"package\"\nDecl = \"import\" .", "missing the closing"},
-		{"unbalanced bracket", "File = [ \"package\" .\nDecl = \"import\" .", "unbalanced"},
-		{"stray close", `File = ] .`, "unmatched"},
-		// A later opening bracket must not cancel an earlier stray
-		// close back to a balanced-looking depth.
-		{"stray close then open", `File = "package" ] [ "import" .`, "unmatched"},
-		{"unterminated comment", "(* open\nFile = \"package\" .", "unterminated comment"},
-		{"unterminated quote", "File = \"package .", "unterminated quoted"},
+		{"spelling with trailing text", `File = "package x" .`, "not text the lexer produces"},
 	}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got := lint(t, c.src)
+			got := lint(c.src)
 			for _, d := range got {
 				if strings.Contains(d, c.want) {
 					return
@@ -67,28 +58,40 @@ func TestDiagnostics(t *testing.T) {
 	}
 }
 
-// A `"."` terminal is not the end of a production, and a comment holding
-// an `=` is not the start of one.
-func TestPunctuationInsideAProduction(t *testing.T) {
-	if got := lint(t, `File = { "." } (* a = b *) .`); len(got) != 0 {
+// `_` is a terminal the lexer scans as an identifier rather than as a
+// fixed spelling, so lex.Lookup alone would reject a grammar that is
+// right. ImportDecl depends on it.
+func TestUnderscoreIsALegalTerminal(t *testing.T) {
+	if got := lint(`File = "import" ( identifier | "_" ) .
+identifier = .
+`); len(got) != 0 {
+		t.Errorf("got %v, want none", got)
+	}
+}
+
+// A lexical production carries no expression: the name is the lexer's and
+// the grammar only says it exists.
+func TestLexicalProductionsNeedNoBody(t *testing.T) {
+	if got := lint("File = identifier .\nidentifier = .\n"); len(got) != 0 {
 		t.Errorf("got %v, want none", got)
 	}
 }
 
 func TestDocsAreClean(t *testing.T) {
 	for _, c := range []struct {
-		path string
+		name string
 		opts ebnf.Options
 	}{
-		{filepath.Join("..", "..", "docs", "grammar.ebnf"), ebnf.GrammarOptions},
-		{filepath.Join("..", "..", "docs", "notation.ebnf"), notationOptions},
+		{"grammar.ebnf", ebnf.GrammarOptions},
+		{"notation.ebnf", ebnf.NotationOptions},
 	} {
-		b, err := os.ReadFile(c.path)
+		path := filepath.Join("..", "..", "docs", c.name)
+		b, err := os.ReadFile(path)
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, d := range ebnf.Lint(string(b), c.opts) {
-			t.Errorf("%s:%s", filepath.Base(c.path), d)
+		for _, d := range ebnf.Lint(c.name, string(b), c.opts) {
+			t.Errorf("%v", d)
 		}
 	}
 }

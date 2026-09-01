@@ -1,276 +1,150 @@
-// Package ebnf reads the notation docs/grammar.ebnf is written in.
+// Package ebnf lints the grammar files under docs/.
 //
-// That notation is Wirth syntax notation rather than ISO 14977, so no
-// off-the-shelf tool reads the file: an ISO parser fails on its first
-// production. docs/notation.ebnf describes the dialect, in itself.
+// They are Wirth syntax notation rather than ISO 14977, so no ISO tool
+// reads them. golang.org/x/exp/ebnf does: it documents this exact dialect,
+// including the convention that an upper-case name is a nonterminal and a
+// lower-case one is lexical. Parsing and reachability come from there.
 //
-// What is here is the scanner and the checks a scanner can make, which is
-// most of what goes wrong in a grammar file: a name used and never
-// defined, a name defined and never used, a bracket left open or closed
-// with nothing to close, a
-// production missing its terminator, and a quoted terminal the lexer
-// never produces. The last one is why this package imports lex rather
-// than restating the token set.
+// What is here is the check no library makes. A quoted terminal has to be
+// text lex turns into exactly one token, so a spelling the grammar invents
+// is an error rather than a rule that could never match.
 package ebnf
 
 import (
 	"fmt"
 	"sort"
 	"strings"
-	"unicode"
+
+	"golang.org/x/exp/ebnf"
 
 	"github.com/unstoppablemango/tdl/lex"
 )
 
-// Options say what a grammar file is allowed to leave undefined and how
-// hard to hold it to the lexer.
+// Options say how to read one grammar file.
 type Options struct {
-	// Terminals are the lower-case names the file uses and does not
-	// define. Any other one is a typo.
-	Terminals []string
+	// Start is the production everything must be reachable from.
+	Start string
 
 	// LexSpellings requires every quoted terminal to be text lex turns
-	// into exactly one token, which is what makes a spelling the grammar
-	// invents an error rather than a rule that can never match. It holds
-	// for a grammar of TDL and not for a grammar of anything else.
+	// into exactly one token. It holds for a grammar of TDL and not for a
+	// grammar of anything else.
 	LexSpellings bool
 }
 
-// GrammarOptions lints docs/grammar.ebnf: the six token classes lex scans
-// by shape, plus the reserved words Name admits.
-var GrammarOptions = Options{
-	Terminals: []string{
-		"identifier",
-		"string_lit",
-		"int_lit",
-		"float_lit",
-		"bool_lit",
-		"regex_lit",
-		"reserved_word",
-	},
-	LexSpellings: true,
+// GrammarOptions reads docs/grammar.ebnf.
+var GrammarOptions = Options{Start: "File", LexSpellings: true}
+
+// NotationOptions reads docs/notation.ebnf, which describes the notation
+// rather than TDL, so its quoted terminals are not TDL tokens.
+var NotationOptions = Options{Start: "Grammar"}
+
+// Lint reports every problem it finds.
+//
+// A parse error is returned alone: a file that did not parse produces
+// nothing worth saying about its contents.
+func Lint(filename, src string, opts Options) []error {
+	// Before the library, because it hands its scanner no error handler:
+	// text/scanner then prints an unterminated comment or string to
+	// stderr and the parser reports whatever the damage looks like
+	// downstream. Saying it here keeps the diagnostic and the noise out.
+	if errs := checkLexical(filename, src); len(errs) > 0 {
+		return errs
+	}
+
+	grammar, err := ebnf.Parse(filename, strings.NewReader(src))
+	if err != nil {
+		return flatten(err)
+	}
+
+	errs := flatten(ebnf.Verify(grammar, opts.Start))
+	if opts.LexSpellings {
+		errs = append(errs, checkSpellings(grammar)...)
+	}
+	sort.SliceStable(errs, func(i, j int) bool { return errs[i].Error() < errs[j].Error() })
+	return errs
 }
 
-// A Diagnostic is one problem with a grammar file.
-type Diagnostic struct {
-	Line int
-	Msg  string
-}
-
-func (d Diagnostic) String() string {
-	return fmt.Sprintf("%d: %s", d.Line, d.Msg)
-}
-
-type tokenKind int
-
-const (
-	name tokenKind = iota
-	quoted
-	punct
-)
-
-type token struct {
-	kind tokenKind
-	text string
-	line int
-}
-
-// Lint reports every problem it finds, in source order.
-func Lint(src string, opts Options) []Diagnostic {
-	toks, diags := scan(src)
-	prods, more := split(toks)
-	diags = append(diags, more...)
-	diags = append(diags, checkNames(prods)...)
-	diags = append(diags, checkTerminals(prods, opts)...)
-	sort.SliceStable(diags, func(i, j int) bool { return diags[i].Line < diags[j].Line })
-	return diags
-}
-
-func scan(src string) ([]token, []Diagnostic) {
-	var toks []token
-	var diags []Diagnostic
-	line := 1
+// checkLexical reports what the library's scanner would print rather
+// than return. A Go string cannot span a line, so an unterminated one is
+// a quote with no closing quote before the newline.
+func checkLexical(filename, src string) []error {
+	line, lineStart := 1, 0
+	at := func(i int) string {
+		return fmt.Sprintf("%s:%d:%d", filename, line, i-lineStart+1)
+	}
 
 	for i := 0; i < len(src); {
-		switch c := src[i]; {
-		case c == '\n':
+		switch {
+		case src[i] == '\n':
 			line++
 			i++
-		case c == ' ' || c == '\t' || c == '\r':
-			i++
-		case strings.HasPrefix(src[i:], "(*"):
-			end := strings.Index(src[i+2:], "*)")
+			lineStart = i
+		case strings.HasPrefix(src[i:], "/*"):
+			end := strings.Index(src[i+2:], "*/")
 			if end < 0 {
-				diags = append(diags, Diagnostic{line, "unterminated comment"})
-				return toks, diags
+				return []error{fmt.Errorf("%s: comment not terminated", at(i))}
 			}
-			line += strings.Count(src[i:i+2+end+2], "\n")
+			for _, c := range src[i : i+2+end+2] {
+				if c == '\n' {
+					line++
+				}
+			}
 			i += 2 + end + 2
-		case c == '"':
-			end := strings.IndexByte(src[i+1:], '"')
-			if end < 0 {
-				diags = append(diags, Diagnostic{line, "unterminated quoted terminal"})
-				return toks, diags
+			lineStart = i
+		case strings.HasPrefix(src[i:], "//"):
+			for i < len(src) && src[i] != '\n' {
+				i++
 			}
-			toks = append(toks, token{quoted, src[i+1 : i+1+end], line})
-			i += 1 + end + 1
-		case isNameByte(c):
-			j := i
-			for j < len(src) && isNameByte(src[j]) {
+		case src[i] == '"':
+			j := i + 1
+			for j < len(src) && src[j] != '"' && src[j] != '\n' {
+				if src[j] == '\\' {
+					j++
+				}
 				j++
 			}
-			toks = append(toks, token{name, src[i:j], line})
-			i = j
+			if j >= len(src) || src[j] != '"' {
+				return []error{fmt.Errorf("%s: string not terminated", at(i))}
+			}
+			i = j + 1
 		default:
-			toks = append(toks, token{punct, string(c), line})
 			i++
 		}
 	}
-	return toks, diags
+	return nil
 }
 
-func isNameByte(c byte) bool {
-	return c == '_' || c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9'
+// flatten turns the library's joined error back into its parts, since a
+// list of positions reads better than one string and tests better too.
+func flatten(err error) []error {
+	if err == nil {
+		return nil
+	}
+	if list, ok := err.(interface{ Unwrap() []error }); ok {
+		return list.Unwrap()
+	}
+	return []error{err}
 }
 
-// A production is one `Name = ... .` rule.
-type production struct {
-	lhs  string
-	line int
-	body []token
-}
-
-// split groups the token stream into productions. A production runs from
-// a name followed by `=` to the next `.` outside any bracket, so a `"."`
-// terminal in the body cannot end it.
-func split(toks []token) ([]production, []Diagnostic) {
-	var prods []production
-	var diags []Diagnostic
-
-	for i := 0; i < len(toks); {
-		if toks[i].kind != name || i+1 >= len(toks) || !isPunct(toks[i+1], "=") {
-			diags = append(diags, Diagnostic{toks[i].line, fmt.Sprintf("expected a production, got %q", toks[i].text)})
-			i++
-			continue
-		}
-
-		p := production{lhs: toks[i].text, line: toks[i].line}
-		depth, closed := 0, false
-		j := i + 2
-		for ; j < len(toks); j++ {
-			t := toks[j]
-			// The next production starting is how a missing terminator
-			// shows up, and stopping here keeps it from being reported as
-			// an undefined name in this one.
-			if depth == 0 && t.kind == name && j+1 < len(toks) && isPunct(toks[j+1], "=") {
-				break
+// checkSpellings holds the grammar to the lexer.
+func checkSpellings(grammar ebnf.Grammar) []error {
+	var errs []error
+	for _, name := range sorted(grammar) {
+		walk(grammar[name].Expr, func(expr ebnf.Expression) {
+			tok, ok := expr.(*ebnf.Token)
+			if !ok || lexesAsOneToken(tok.String) {
+				return
 			}
-			if t.kind == punct {
-				switch t.text {
-				case "(", "[", "{":
-					depth++
-				case ")", "]", "}":
-					// Reported here rather than counted, because a
-					// negative depth a later opening bracket cancels out
-					// would leave `] [` looking balanced.
-					if depth == 0 {
-						diags = append(diags, Diagnostic{t.line, fmt.Sprintf("%s: unmatched %q", p.lhs, t.text)})
-					} else {
-						depth--
-					}
-				case ".":
-					if depth == 0 {
-						closed = true
-						j++
-					}
-				}
-			}
-			if closed {
-				break
-			}
-			p.body = append(p.body, t)
-		}
-
-		if depth != 0 {
-			diags = append(diags, Diagnostic{p.line, fmt.Sprintf("%s: unbalanced brackets", p.lhs)})
-		} else if !closed {
-			diags = append(diags, Diagnostic{p.line, fmt.Sprintf("%s: missing the closing '.'", p.lhs)})
-		}
-		prods = append(prods, p)
-		i = j
+			errs = append(errs, fmt.Errorf("%s: %q in %s is not text the lexer produces",
+				tok.Pos(), tok.String, name))
+		})
 	}
-	return prods, diags
+	return errs
 }
 
-func isPunct(t token, text string) bool {
-	return t.kind == punct && t.text == text
-}
-
-// checkNames reports a nonterminal used and never defined, one defined
-// twice, and one defined and never used. The first production is the
-// start symbol, so nothing referring to it is not a problem.
-func checkNames(prods []production) []Diagnostic {
-	var diags []Diagnostic
-	defined := map[string]int{}
-	for _, p := range prods {
-		if prev, ok := defined[p.lhs]; ok {
-			diags = append(diags, Diagnostic{p.line, fmt.Sprintf("%s: defined again, first at line %d", p.lhs, prev)})
-			continue
-		}
-		defined[p.lhs] = p.line
-	}
-
-	used := map[string]bool{}
-	for _, p := range prods {
-		for _, t := range p.body {
-			if t.kind != name || !isNonterminal(t.text) {
-				continue
-			}
-			used[t.text] = true
-			if _, ok := defined[t.text]; !ok {
-				diags = append(diags, Diagnostic{t.line, fmt.Sprintf("%s: used in %s and never defined", t.text, p.lhs)})
-			}
-		}
-	}
-
-	start := ""
-	if len(prods) > 0 {
-		start = prods[0].lhs
-	}
-	for _, p := range prods {
-		if p.lhs != start && !used[p.lhs] {
-			diags = append(diags, Diagnostic{p.line, fmt.Sprintf("%s: defined and never used", p.lhs)})
-		}
-	}
-	return diags
-}
-
-// checkTerminals holds the grammar to the lexer. A lower-case name must
-// be a token class this package knows, and a quoted terminal must be text
-// the lexer turns into exactly one token, so a spelling the grammar
-// invents is a rule that could never match.
-func checkTerminals(prods []production, opts Options) []Diagnostic {
-	known := make(map[string]bool, len(opts.Terminals))
-	for _, t := range opts.Terminals {
-		known[t] = true
-	}
-
-	var diags []Diagnostic
-	for _, p := range prods {
-		for _, t := range p.body {
-			switch {
-			case t.kind == name && !isNonterminal(t.text) && !known[t.text]:
-				diags = append(diags, Diagnostic{t.line, fmt.Sprintf("%s: unknown terminal in %s", t.text, p.lhs)})
-			case t.kind == quoted && opts.LexSpellings:
-				if !lexesAsOneToken(t.text) {
-					diags = append(diags, Diagnostic{t.line, fmt.Sprintf("%q in %s is not text the lexer produces", t.text, p.lhs)})
-				}
-			}
-		}
-	}
-	return diags
-}
-
+// lexesAsOneToken reports whether text is the whole of exactly one token.
+// It is not lex.Lookup, because "_" is a legal terminal the lexer scans as
+// an identifier rather than as a fixed spelling.
 func lexesAsOneToken(text string) bool {
 	l := lex.New("grammar.ebnf", text)
 	first := l.Next()
@@ -280,6 +154,37 @@ func lexesAsOneToken(text string) bool {
 	return l.Next().Kind == lex.EOF
 }
 
-func isNonterminal(s string) bool {
-	return s != "" && unicode.IsUpper(rune(s[0]))
+func walk(expr ebnf.Expression, fn func(ebnf.Expression)) {
+	if expr == nil {
+		return
+	}
+	fn(expr)
+	switch e := expr.(type) {
+	case ebnf.Alternative:
+		for _, x := range e {
+			walk(x, fn)
+		}
+	case ebnf.Sequence:
+		for _, x := range e {
+			walk(x, fn)
+		}
+	case *ebnf.Group:
+		walk(e.Body, fn)
+	case *ebnf.Option:
+		walk(e.Body, fn)
+	case *ebnf.Repetition:
+		walk(e.Body, fn)
+	case *ebnf.Range:
+		walk(e.Begin, fn)
+		walk(e.End, fn)
+	}
+}
+
+func sorted(grammar ebnf.Grammar) []string {
+	names := make([]string, 0, len(grammar))
+	for name := range grammar {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }

@@ -4,6 +4,7 @@ go 1.27
 
 require (
 	github.com/spf13/cobra v1.10.2
+	golang.org/x/exp v0.0.0-20260824195058-e88cd73687aa
 	google.golang.org/protobuf v1.36.12
 )
 

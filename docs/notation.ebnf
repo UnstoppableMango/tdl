@@ -1,4 +1,4 @@
-(* The notation grammar.ebnf is written in, described in itself.
+/* The notation grammar.ebnf is written in, described in itself.
 
    It is Wirth syntax notation, the dialect the Go and Oberon reports use,
    not ISO 14977.  The difference is worth stating because tools assume
@@ -11,9 +11,11 @@
    letter is a terminal the lexer produces and the grammar does not
    define; lex/table.go says what each one accepts.
 
-   A comment opens with an open parenthesis and a star, closes with the
-   two reversed, does not nest, and may appear wherever whitespace may.
-   Naming the closing pair here would end this comment. *)
+   Comments follow Go's rules, so this one is a block comment and `//`
+   runs to the end of a line.  They may appear wherever whitespace may.
+
+   golang.org/x/exp/ebnf parses this notation, which is why the comment
+   form is Go's rather than the ISO family's. */
 
 Grammar    = { Production } .
 Production = nonterminal "=" Expression "." .
@@ -26,11 +28,15 @@ Group      = "(" Expression ")" .
 Option     = "[" Expression "]" .
 Repetition = "{" Expression "}" .
 
-(* nonterminal is a name beginning with an upper-case letter, terminal a
+/* nonterminal is a name beginning with an upper-case letter, terminal a
    name beginning with a lower-case one, and quoted a double-quoted
    literal naming the exact source text of one token.
 
    An Option matches its contents once or not at all, and a Repetition
    zero or more times.  Neither is a separator rule: a list written
    `A { "," A }` says the commas are required, and nothing is implied
-   between the items of a Sequence. *)
+   between the items of a Sequence. */
+
+nonterminal = .
+terminal    = .
+quoted      = .
