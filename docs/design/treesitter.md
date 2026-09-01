@@ -84,7 +84,7 @@ regex_lit = .
 `token` on a lexical production names the `lex` symbol that defines it, so the production's own name does not have to be repeated.
 
 Some things are better spelled out than annotated.
-`bool_lit` is `"true" | "false"`, and `reserved_word` lists the twenty-two keywords, because both are grammar rather than lexical shape.
+`bool_lit` is `"true" | "false"`, and `reserved_word` lists the keywords one by one, because both are grammar rather than lexical shape.
 `internal/ebnf` checks that list against `lex.Keywords`, so it cannot drift.
 
 The set is deliberately small.
