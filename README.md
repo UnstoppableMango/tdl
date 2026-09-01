@@ -18,7 +18,7 @@ This repository owns the canonical [language specification](docs/spec.md) and it
 Early and incomplete, and moving.
 
 **The front end is done.** The lexer and parser read the whole grammar, and `tdl check`, `tdl fmt`, `tdl ast`, and `tdl tokens` work across it.
-`union` is reserved and unimplemented; nothing else in [grammar.ebnf](docs/grammar.ebnf) is missing.
+Nothing in [grammar.ebnf](docs/grammar.ebnf) is missing.
 
 **The middle is most of the way there.** `tdl ir` prints a resolved model:
 
@@ -72,7 +72,6 @@ What each part of the language reaches today.
 | `deprecated` | Yes | Yes |
 | `target` blocks | Yes | Partial: resolved and attached, dependency blocks not merged |
 | `unit` | Yes | No: declarations pass through unlowered, unit arguments are an error |
-| `union` | No: reserved | No |
 
 `tdl fmt` drops ordinary `//` comments; `///` doc comments survive, since they attach to the declaration that follows.
 

@@ -139,6 +139,5 @@ Every phase's exit criteria include idempotent formatting, because a construct t
 
 ## Not in this plan
 
-- `union`, reserved in the grammar and unimplemented.
 - Generic parameters on anything the spec does not yet permit them on.
 - Error recovery quality beyond what M1 has. Resynchronization is preserved; making it better is separate work.

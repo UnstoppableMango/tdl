@@ -10,7 +10,7 @@ This plan builds `ir` and the lowering that produces it.
 It does not build backends or the plugin protocol.
 
 The parser is finished.
-[parser-plan.md](parser-plan.md) delivered the whole grammar apart from `union`, so every phase below starts from a complete `ast.File` and nothing here is blocked on front-end work.
+[parser-plan.md](parser-plan.md) delivered the whole grammar, so every phase below starts from a complete `ast.File` and nothing here is blocked on front-end work.
 `prelude/std.tdl` exists and parses; it declares the primitives, collection constructors, `Option`, `Nullable`, the SI base units, and the `Entity` and `Value` classes.
 
 Seven grammar problems surfaced while writing the parser and were fixed in the spec.
@@ -172,7 +172,6 @@ At that point `ir` is complete enough for the plugin protocol, which is the next
 ## Not in this plan
 
 - Units. `ir.md` defers them, but the parser produces `ast.UnitDecl` and unit-kinded arguments, so lowering has to say something. It rejects them with a diagnostic naming the deferral rather than dropping them silently, and the conformance corpus keeps its `units` case marked pending against `ir.golden` until they land.
-- `union`, which the grammar reserves and the parser does not implement.
 - Monomorphization. Parameters stay parameters; a backend that wants concrete types does that itself.
 - ir diffing, which incremental generation would need.
 - Comment preservation. `tdl fmt` drops ordinary `//` comments today, and fixing it is parser work with no phase in either plan.

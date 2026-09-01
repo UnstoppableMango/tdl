@@ -220,4 +220,4 @@ bool_lit = "true" | "false" .
 reserved_word = "package" | "import" | "as" | "primitive" | "unit"
               | "alias" | "type" | "value" | "entity" | "enum" | "class"
               | "mixin" | "instance" | "target" | "for" | "requires"
-              | "where" | "include" | "null" | "true" | "false" | "union" .
+              | "where" | "include" | "null" | "true" | "false" .
