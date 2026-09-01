@@ -17,3 +17,5 @@ scratch.tdl
 .vscode/
 *.user
 .envrc
+.claude/*
+!.claude/skills/
