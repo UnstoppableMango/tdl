@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.2](https://github.com/UnstoppableMango/tdl/compare/v0.1.1...v0.1.2) (2026-09-01)
+
+
+### Features
+
+* **ebnf:** annotate the grammar ([#713](https://github.com/UnstoppableMango/tdl/issues/713)) ([5bfba57](https://github.com/UnstoppableMango/tdl/commit/5bfba57273c69b6c981270737bbb75b3a462aef4))
+
+
+### Bug Fixes
+
+* **gen:** stop racing a plugin's stderr, and run CI with -race ([#715](https://github.com/UnstoppableMango/tdl/issues/715)) ([c63257e](https://github.com/UnstoppableMango/tdl/commit/c63257e00cec53891e586cd7b228a70dfc7dbcb3))
+* run gomod2nix from the tidy recipe ([#712](https://github.com/UnstoppableMango/tdl/issues/712)) ([49423f3](https://github.com/UnstoppableMango/tdl/commit/49423f3b9a002ffdaec29ba01ea5a63251295b20)), closes [#711](https://github.com/UnstoppableMango/tdl/issues/711)
+
 ## [0.1.1](https://github.com/UnstoppableMango/tdl/compare/v0.1.0...v0.1.1) (2026-09-01)
 
 
