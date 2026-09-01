@@ -47,4 +47,4 @@ go.sum: go.mod ${GO_SRC}
 	go mod tidy
 
 nix/gomod2nix.toml: go.sum ${GO_SRC}
-	go generate --dir ${CURDIR} --outdir ${@D}
+	gomod2nix --dir ${CURDIR} --outdir ${@D}
