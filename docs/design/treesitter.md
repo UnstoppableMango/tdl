@@ -45,17 +45,18 @@ The annotations below make the same statements machine-readable without moving t
 
 ## Annotations
 
-Annotations live in EBNF comments, opened `(*@` instead of `(*`.
+Annotations live in comments, opened `/*@` instead of `/*`.
 A reader who ignores them loses nothing, and the file keeps a formatter-free plain-text shape.
+`golang.org/x/exp/ebnf` drops comments rather than reporting them, so the annotations are scanned separately and attached by position.
 
 File-level directives come first, before any production.
 
 ```ebnf
-(*@ token identifier = IDENT *)
-(*@ token string_lit = STRING *)
-(*@ word identifier *)
-(*@ extra doc_comment line_comment *)
-(*@ conflict Body SetOrMapType *)
+/*@ token identifier = IDENT */
+/*@ token string_lit = STRING */
+/*@ word identifier */
+/*@ extra doc_comment line_comment */
+/*@ conflict Body SetOrMapType */
 ```
 
 `token` binds an undefined terminal to a `lex.Kind`, which is what turns `lex.Pattern` into a tree-sitter rule.
@@ -66,13 +67,13 @@ File-level directives come first, before any production.
 Production annotations precede the production they describe.
 
 ```ebnf
-(*@ hidden *)
+/*@ hidden */
 CoreType = ListType | SetOrMapType | NamedType .
 
-(*@ prec.left 1 *)
+/*@ prec.left 1 */
 UnitExpr = UnitTerm { ( "*" | "/" ) UnitTerm } .
 
-(*@ external *)
+/*@ external */
 regex_lit = .
 ```
 
@@ -90,14 +91,18 @@ A Go program in `tools/treesitter`, in this module, so it imports `lex` directly
 It reads `docs/grammar.ebnf` and writes `tree-sitter/grammar.js`.
 
 Two packages, split at the seam that matters.
-`internal/ebnf` reads the notation and the annotations into a grammar model and knows nothing about tree-sitter.
-`internal/treesitter` turns that model into `grammar.js`.
+`internal/ebnf` reads the notation and the annotations and knows nothing about tree-sitter.
+`internal/treesitter` turns what it produces into `grammar.js`.
 
-The reader is a hand-written recursive descent parser over one notation, the way `parser` is over TDL.
-It is the third parser in this repository and the smallest: `grammar.ebnf` has 56 productions and one form of grouping.
+There is no third parser in this repository.
+`golang.org/x/exp/ebnf` documents this dialect exactly, upper-case nonterminals and lower-case lexical names included, and returns a walkable tree with positions.
+`internal/ebnf` reads `grammar.ebnf` with it today, adds the checks it does not make, and grows the annotation scanner rather than a parser.
+
+The library is experimental and carries no compatibility promise.
+It is 456 lines under a BSD licence and unchanged since 2009, so vendoring it is a real fallback rather than a hypothetical one.
 
 Errors are the point of the exercise, so they are specific.
-A quoted terminal `lex.Lookup` does not know, an undefined nonterminal, a terminal with no `token` binding, and an annotation naming a production that does not exist are each reported with the line that caused them.
+A quoted terminal the lexer never produces, an undefined nonterminal, a terminal with no `token` binding, and an annotation naming a production that does not exist are each reported with the line that caused them.
 
 ## What it does not emit
 

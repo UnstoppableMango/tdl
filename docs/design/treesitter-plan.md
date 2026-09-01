@@ -18,7 +18,7 @@ It does not touch the reference implementation.
 
 ```text
 docs/grammar.ebnf     # annotated, still the canonical grammar
-internal/ebnf/        # the notation and the annotations, private
+internal/ebnf/        # golang.org/x/exp/ebnf plus the annotations, private
 internal/treesitter/  # model to grammar.js, private
 tools/treesitter/     # main, run with go run
 tree-sitter/          # grammar.js, package.json, queries, generated src
@@ -38,6 +38,8 @@ The grammar gets the corpus, run by `tree-sitter parse` rather than by Go, so a 
 
 `lex` states its own facts: `Keywords`, `Punctuation`, `Lookup`, `Spelling`, and `Pattern`, with tests holding the patterns to the lexer over table cases and the whole corpus.
 
+`docs/notation.ebnf` describes the notation in itself, and `internal/ebnf` lints both grammar files against it.
+
 Done.
 
 ## Phase 2: annotate the grammar
@@ -47,13 +49,14 @@ No generator reads them yet, so this phase is checked by reading: the file still
 
 Done when every terminal has a `token` binding, every ambiguity the file describes in prose has a `conflict` or a `prec`, and the plumbing productions carry `hidden` or `inline`.
 
-## Phase 3: the reader
+## Phase 3: the annotations reach the reader
 
-`internal/ebnf` parses the notation into a grammar model: productions, sequences, alternations, repetition, option, grouping, terminals, and the annotations attached to each.
+`internal/ebnf` already reads `docs/grammar.ebnf`: `golang.org/x/exp/ebnf` parses the notation and checks reachability, and the package adds the check no library makes, that a quoted terminal is text `lex` turns into exactly one token.
 
-Recursive descent over one notation, reporting every error in a pass with the line that caused it, the way `parser` does.
+What is missing is the annotations, which the library drops with the rest of the comments.
+Scanning them separately and attaching each to the production or the file it belongs to is the whole of this phase.
 
-Done when it reads `docs/grammar.ebnf` into 56 productions, resolves every nonterminal reference, resolves every quoted terminal through `lex.Lookup`, and rejects a grammar with an undefined name, an unbound terminal, or an annotation naming a production that does not exist.
+Done when every annotation in phase 2 is readable from Go, and an annotation naming a production that does not exist, or a terminal with no `token` binding, is reported with the line that caused it.
 
 ## Phase 4: the emitter
 
