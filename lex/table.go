@@ -24,6 +24,16 @@ const (
 	StringPattern = `"([^"\\\n]|\\["\\nt])*"`
 	DocPattern    = `///[^\n]*`
 	RegexPattern  = `/([^/\\\n]|\\[^\n])*/`
+
+	// LineCommentPattern is the shape scanComment consumes and discards.
+	// It has no Kind, since the lexer never emits one, but it is a fact
+	// about the language a second parser has to know: tree-sitter keeps
+	// comments as extras where this one drops them.
+	//
+	// It also matches a doc comment, because `///` begins with `//`, so a
+	// consumer tries DocPattern first. Three slashes or more is a doc
+	// comment.
+	LineCommentPattern = `//[^\n]*`
 )
 
 var patterns = map[Kind]string{

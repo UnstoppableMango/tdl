@@ -49,6 +49,9 @@ No generator reads them yet, so this phase is checked by reading: the file still
 
 Done when every terminal has a `token` binding, every ambiguity the file describes in prose has a `conflict` or a `prec`, and the plumbing productions carry `hidden` or `inline`.
 
+Done.
+The `conflict` and `prec` entries are the file's prose read as annotations and are provisional until phase 5 generates a parser that agrees or does not.
+
 ## Phase 3: the annotations reach the reader
 
 `internal/ebnf` already reads `docs/grammar.ebnf`: `golang.org/x/exp/ebnf` parses the notation and checks reachability, and the package adds the check no library makes, that a quoted terminal is text `lex` turns into exactly one token.

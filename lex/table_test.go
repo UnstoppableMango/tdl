@@ -71,6 +71,30 @@ func anchored(t *testing.T, k lex.Kind) *regexp.Regexp {
 
 // The patterns say what the lexer accepts, so each one must match exactly
 // the text the lexer took for that kind, and reject what it would not.
+// A line comment produces no token, so the pattern is held to the lexer
+// the other way round: what it matches must leave the token stream alone.
+func TestLineCommentPatternIsSkipped(t *testing.T) {
+	re := regexp.MustCompile(`^(?:` + lex.LineCommentPattern + `)`)
+
+	for _, src := range []string{"// a comment", "//", "//x"} {
+		if match := re.FindString(src); match != src {
+			t.Errorf("match of %q = %q, want the whole input", src, match)
+		}
+		if got := kinds(src); len(got) != 1 || got[0] != lex.EOF {
+			t.Errorf("%q produced %v, want only EOF", src, got)
+		}
+	}
+
+	// The pattern also matches a doc comment, since `///` begins with
+	// `//`, so a consumer has to try DocPattern first. Three slashes or
+	// more is a doc comment, which is what the lexer does.
+	for _, src := range []string{"/// doc", "//// four"} {
+		if got := kinds(src); len(got) != 2 || got[0] != lex.DOC {
+			t.Errorf("%q produced %v, want [DOC EOF]", src, got)
+		}
+	}
+}
+
 func TestPatternsMatchTheLexer(t *testing.T) {
 	cases := []struct {
 		kind   lex.Kind

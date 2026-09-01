@@ -52,16 +52,15 @@ A reader who ignores them loses nothing, and the file keeps a formatter-free pla
 File-level directives come first, before any production.
 
 ```ebnf
-/*@ token identifier = IDENT */
-/*@ token string_lit = STRING */
 /*@ word identifier */
 /*@ extra doc_comment line_comment */
-/*@ conflict Body SetOrMapType */
+/*@ token doc_comment = DocPattern */
+/*@ conflict Field KeyRequirement */
 ```
 
-`token` binds an undefined terminal to a `lex.Kind`, which is what turns `lex.Pattern` into a tree-sitter rule.
 `word` names the token tree-sitter extracts keywords from, which it needs to keep a keyword from matching a prefix of an identifier.
 `extra` lists what may appear between any two tokens.
+`token` binds a name to the `lex` symbol that defines it, which is what turns a pattern into a tree-sitter rule. It is file-level only for a name with no production, as `doc_comment` and `line_comment` are: the lexer skips ordinary comments and the grammar never mentions them.
 `conflict` emits an entry in the grammar's `conflicts` array, one per pair the GLR parser cannot decide locally.
 
 Production annotations precede the production they describe.
@@ -73,6 +72,7 @@ CoreType = ListType | SetOrMapType | NamedType .
 /*@ prec.left 1 */
 UnitExpr = UnitTerm { ( "*" | "/" ) UnitTerm } .
 
+/*@ token RegexPattern */
 /*@ external */
 regex_lit = .
 ```
@@ -81,6 +81,11 @@ regex_lit = .
 `inline` substitutes the rule into its callers instead.
 `prec`, `prec.left`, and `prec.right` carry the associativity the notation cannot state.
 `external` marks a terminal the scanner in `scanner.c` produces, which `regex_lit` needs because its `/` is also an operator.
+`token` on a lexical production names the `lex` symbol that defines it, so the production's own name does not have to be repeated.
+
+Some things are better spelled out than annotated.
+`bool_lit` is `"true" | "false"`, and `reserved_word` lists the twenty-two keywords, because both are grammar rather than lexical shape.
+`internal/ebnf` checks that list against `lex.Keywords`, so it cannot drift.
 
 The set is deliberately small.
 An annotation earns its place by describing something `grammar.ebnf` already explains in prose to a reader.
