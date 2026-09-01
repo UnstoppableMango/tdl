@@ -42,16 +42,17 @@ func want(t *testing.T, src string, expected ...lex.Kind) {
 }
 
 func TestKeywordsAndIdents(t *testing.T) {
-	want(t, "package import as primitive unit alias type value entity enum class mixin instance target for requires where include null true false union",
+	want(t, "package import as primitive unit alias type value entity enum class mixin instance target for requires where include null true false",
 		lex.PACKAGE, lex.IMPORT, lex.AS, lex.PRIMITIVE, lex.UNIT, lex.ALIAS,
 		lex.TYPE, lex.VALUE, lex.ENTITY, lex.ENUM, lex.CLASS, lex.MIXIN,
 		lex.INSTANCE, lex.TARGET, lex.FOR, lex.REQUIRES, lex.WHERE,
-		lex.INCLUDE, lex.NULL, lex.TRUE, lex.FALSE, lex.UNION)
+		lex.INCLUDE, lex.NULL, lex.TRUE, lex.FALSE)
 
-	// Modifiers and constraint names are contextual, not reserved.
-	want(t, "key owned deprecated min max length matches oneOf unique",
+	// Modifiers and constraint names are contextual, not reserved. So is
+	// `union`, which nothing in the language claims.
+	want(t, "key owned deprecated min max length matches oneOf unique union",
 		lex.IDENT, lex.IDENT, lex.IDENT, lex.IDENT, lex.IDENT,
-		lex.IDENT, lex.IDENT, lex.IDENT, lex.IDENT)
+		lex.IDENT, lex.IDENT, lex.IDENT, lex.IDENT, lex.IDENT)
 }
 
 func TestOperators(t *testing.T) {

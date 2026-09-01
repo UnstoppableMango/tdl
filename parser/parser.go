@@ -3,8 +3,7 @@
 // it finds in one pass rather than stopping at the first, so tooling like
 // `tdl check` can report a complete list of problems.
 //
-// The parser covers the whole grammar in docs/grammar.ebnf apart from
-// `union`, which is reserved and unimplemented.
+// The parser covers the whole grammar in docs/grammar.ebnf.
 package parser
 
 import (

@@ -98,5 +98,4 @@ Done when a production added to `docs/grammar.ebnf` without regenerating fails C
 
 - Editor packaging. Vim, VS Code, JetBrains, and Emacs stay in the backlog, and each wants the language server more than it wants this.
 - The language server. Separate work with its own dependencies, and nothing here blocks it.
-- `union`. Reserved by the lexer, unimplemented by the parser, and there is nothing to derive until that changes.
 - Publishing to npm or to a grammar registry, which is a distribution question and not a correctness one.

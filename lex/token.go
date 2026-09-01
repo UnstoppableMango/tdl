@@ -42,7 +42,6 @@ const (
 	NULL
 	TRUE
 	FALSE
-	UNION // reserved, not yet implemented by the parser
 
 	// Punctuation. The sentinels bound the range so [Punctuation] does not
 	// restate the list; a new operator declared between them is picked up.
@@ -92,7 +91,6 @@ var keywords = map[string]Kind{
 	"null":      NULL,
 	"true":      TRUE,
 	"false":     FALSE,
-	"union":     UNION,
 }
 
 var kindNames = map[Kind]string{

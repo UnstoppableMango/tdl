@@ -36,8 +36,6 @@ TDL is a language for describing domain models: entities, values, enums, newtype
 
 The parser reads the whole grammar. Lowering to `ir` has started; `docs/design/ir-plan.md` phases 1 through 8 are done. What is left is phase 8b, merging a dependency's target blocks, and units, which `ir.md` defers. After that comes the plugin protocol in `docs/design/plugins.md`.
 
-`union` is the one grammar form the parser does not implement.
-
 Pipeline, one package per stage:
 
 - `lex` — hand-written lexer. `lex.Kind` covers idents, literals, keywords, and punctuation; `LookupIdent` turns an identifier into a keyword kind. Positions originate here and flow through the AST as `ast.Position` (a type alias). Regex literals are scanned only on request via `RescanRegexAt`, because `/` is also division in a unit expression. `table.go` states the same lexical facts for a program rather than a person: `Keywords`, `Punctuation`, `Lookup`, `Spelling`, and `Pattern`, so a tool deriving a second parser from `docs/grammar.ebnf` reads what the lexer accepts instead of restating it.

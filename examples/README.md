@@ -33,4 +33,3 @@ Things to try:
 - Put a comma between two fields. Whitespace is insignificant and commas are not block separators, so it is a syntax error.
 - Name a field `value` or `type`. A reserved word followed by `:` is a field name.
 - Invent a constraint: `where { between(0, 100) }`. The set is open, so the parser takes any name.
-- Write `union Foo { ... }`. It is reserved in the grammar and unimplemented.

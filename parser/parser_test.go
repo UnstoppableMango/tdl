@@ -458,6 +458,26 @@ func TestWhereFieldNameAfterAField(t *testing.T) {
 	}
 }
 
+// `union` names nothing in this language, so it is an ordinary identifier
+// and usable everywhere one is: a declaration name, a type reference, and
+// a type parameter, none of which admit a reserved word.
+func TestUnionIsAnOrdinaryIdentifier(t *testing.T) {
+	file := parse(t, `value union { x: string }
+value W<union> { u: union }`)
+
+	if got := file.Decls[0].(*ast.StructDecl).N; got != "union" {
+		t.Errorf("declaration name = %q, want \"union\"", got)
+	}
+
+	w := file.Decls[1].(*ast.StructDecl)
+	if len(w.Params) != 1 || w.Params[0].N != "union" {
+		t.Errorf("type params = %+v, want one named union", w.Params)
+	}
+	if got := w.Members[0].(*ast.Field).Type.N; got != "union" {
+		t.Errorf("field type = %q, want \"union\"", got)
+	}
+}
+
 // `include Foo` is still an include, not a field named include.
 func TestIncludeStillParses(t *testing.T) {
 	file := parse(t, `value V { include Timestamps }`)

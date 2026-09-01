@@ -29,7 +29,7 @@ The first three read the tables `Lexer.Next` dispatches on, so they cannot drift
 The patterns are declared, because `scanIdent`, `scanNumber`, `scanString`, and `RescanRegexAt` are loops rather than regexes, and a test holds them to the lexer over the corpus.
 
 The grammar's quoted terminals are therefore checkable rather than merely copyable.
-Every `"package"` and `"->"` in the EBNF must be a spelling `lex.Lookup` knows, and a keyword `lex` reserves that the grammar never uses is worth reporting: `union` is exactly that today.
+Every `"package"` and `"->"` in the EBNF must be a spelling `lex.Lookup` knows, and the `reserved_word` production is checked against `lex.Keywords` in both directions, so neither side can gain a word the other lacks.
 
 ## What the EBNF does not say
 
@@ -84,7 +84,7 @@ regex_lit = .
 `token` on a lexical production names the `lex` symbol that defines it, so the production's own name does not have to be repeated.
 
 Some things are better spelled out than annotated.
-`bool_lit` is `"true" | "false"`, and `reserved_word` lists the twenty-two keywords, because both are grammar rather than lexical shape.
+`bool_lit` is `"true" | "false"`, and `reserved_word` lists the keywords one by one, because both are grammar rather than lexical shape.
 `internal/ebnf` checks that list against `lex.Keywords`, so it cannot drift.
 
 The set is deliberately small.
@@ -142,6 +142,5 @@ This catches the terminals, which neither of the others touches.
 ## Deferred
 
 - Supertypes. Tagging `Decl` and `TypeRef` as tree-sitter supertypes would give editors a coarser handle on the tree, and it is additive once the grammar exists.
-- `union`. The grammar reserves it and the parser does not implement it, so there is nothing to derive.
 - Comment attachment. `tdl fmt` drops `//` comments and the tree-sitter grammar keeps them as extras, which is a difference the corpus check does not see and does not need to.
 - Emitting anything but `grammar.js`. The annotated grammar could drive a railroad diagram or an LSP's semantic token legend, and neither is worth a second output format before the first one works.
