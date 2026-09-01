@@ -21,9 +21,8 @@
 
 /* Annotations open `/*@` and describe this grammar to the generator that
    derives a tree-sitter parser from it; design/treesitter.md defines
-   them.  Nothing reads them yet: internal/ebnf lints the productions and
-   the library it uses drops comments, so picking them back out is phase
-   3 of design/treesitter-plan.md.
+   them.  internal/ebnf reads them and checks them; nothing generates a
+   parser from them yet.
 
    A reader who ignores them loses nothing.  Each one states something the
    prose below already explains to a person.

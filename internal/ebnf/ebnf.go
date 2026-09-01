@@ -29,31 +29,50 @@ type Options struct {
 	// into exactly one token. It holds for a grammar of TDL and not for a
 	// grammar of anything else.
 	LexSpellings bool
+
+	// Annotated reads the `/*@ ... */` comments and holds the file to
+	// them: every production with no expression needs a token binding,
+	// and every name an annotation mentions has to exist. A grammar
+	// carrying no annotations is not one of these.
+	Annotated bool
+}
+
+// A File is a grammar and what its annotations say about it.
+type File struct {
+	Grammar     ebnf.Grammar
+	Annotations Annotations
 }
 
 // GrammarOptions reads docs/grammar.ebnf.
-var GrammarOptions = Options{Start: "File", LexSpellings: true}
+var GrammarOptions = Options{Start: "File", LexSpellings: true, Annotated: true}
 
 // NotationOptions reads docs/notation.ebnf, which describes the notation
 // rather than TDL, so its quoted terminals are not TDL tokens.
 var NotationOptions = Options{Start: "Grammar"}
 
 // Lint reports every problem it finds.
-//
-// A parse error is returned alone: a file that did not parse produces
-// nothing worth saying about its contents.
 func Lint(filename, src string, opts Options) []error {
+	_, errs := Read(filename, src, opts)
+	return errs
+}
+
+// Read parses a grammar and its annotations, reporting every problem it
+// finds along the way.
+//
+// A file that did not parse returns no grammar and its parse errors
+// alone, since nothing about its contents would be worth saying.
+func Read(filename, src string, opts Options) (*File, []error) {
 	// Before the library, because it hands its scanner no error handler:
 	// text/scanner then prints an unterminated comment or string to
 	// stderr and the parser reports whatever the damage looks like
 	// downstream. Saying it here keeps the diagnostic and the noise out.
 	if errs := checkLexical(filename, src); len(errs) > 0 {
-		return errs
+		return nil, errs
 	}
 
 	grammar, err := ebnf.Parse(filename, strings.NewReader(src))
 	if err != nil {
-		return flatten(err)
+		return nil, flatten(err)
 	}
 
 	errs := flatten(ebnf.Verify(grammar, opts.Start))
@@ -61,8 +80,16 @@ func Lint(filename, src string, opts Options) []error {
 		errs = append(errs, checkSpellings(grammar)...)
 		errs = append(errs, checkReservedWords(grammar)...)
 	}
+
+	file := &File{Grammar: grammar}
+	if opts.Annotated {
+		annotations, more := readAnnotations(filename, src, grammar)
+		file.Annotations = annotations
+		errs = append(errs, more...)
+	}
+
 	sort.SliceStable(errs, func(i, j int) bool { return errs[i].Error() < errs[j].Error() })
-	return errs
+	return file, errs
 }
 
 // checkLexical reports what the library's scanner would print rather

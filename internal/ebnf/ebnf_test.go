@@ -31,6 +31,7 @@ func lint(src string) []string {
 func TestCleanGrammar(t *testing.T) {
 	if got := lint(`File = { Decl } .
 Decl = "package" identifier "." .
+/*@ token IdentPattern */
 identifier = .
 `); len(got) != 0 {
 		t.Errorf("got %v, want none", got)
@@ -44,6 +45,7 @@ func TestDiagnostics(t *testing.T) {
 		want string
 	}{
 		{"undefined nonterminal", `File = Decl .`, "missing production"},
+		{"lexical production with no binding", "File = identifier .\nidentifier = .\n", "no token annotation"},
 		{"never reached", "File = \"package\" .\nDecl = \"import\" .", "unreachable"},
 		{"missing terminator", `File = "package"`, "expected"},
 		{"unbalanced bracket", `File = [ "package" .`, "expected"},
@@ -74,6 +76,7 @@ func TestDiagnostics(t *testing.T) {
 // right. ImportDecl depends on it.
 func TestUnderscoreIsALegalTerminal(t *testing.T) {
 	if got := lint(`File = "import" ( identifier | "_" ) .
+/*@ token IdentPattern */
 identifier = .
 `); len(got) != 0 {
 		t.Errorf("got %v, want none", got)
@@ -83,7 +86,7 @@ identifier = .
 // A lexical production carries no expression: the name is the lexer's and
 // the grammar only says it exists.
 func TestLexicalProductionsNeedNoBody(t *testing.T) {
-	if got := lint("File = identifier .\nidentifier = .\n"); len(got) != 0 {
+	if got := lint("File = identifier .\n/*@ token IdentPattern */\nidentifier = .\n"); len(got) != 0 {
 		t.Errorf("got %v, want none", got)
 	}
 }
