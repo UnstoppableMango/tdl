@@ -10,7 +10,7 @@ cover: cover.profile
 	go tool cover -func=$<
 
 cover.profile: ${GO_SRC}
-	go test -coverprofile=$@ ./...
+	go test -race -coverprofile=$@ ./...
 
 validate_codecov: codecov.yml
 	curl -X POST --data-binary @codecov.yml https://codecov.io/validate

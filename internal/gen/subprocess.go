@@ -1,12 +1,14 @@
 package gen
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/unstoppablemango/tdl/plugin"
@@ -119,8 +121,48 @@ type session struct {
 	name   string
 	cmd    *exec.Cmd
 	conn   *plugin.Conn
-	stderr *strings.Builder
+	stderr *safeBuffer
 	ctx    context.Context
+
+	// waitOnce guards cmd.Wait, which both wrap and close need and
+	// neither may call twice.
+	waitOnce sync.Once
+}
+
+// wait reaps the child. os/exec finishes copying its stderr before Wait
+// returns, so calling this is what makes the buffer complete rather than
+// whatever had arrived by then.
+//
+// Only safe once every read from the stdout pipe has finished, which is
+// why wrap calls it on the path where the plugin is already gone and
+// close calls it after shutting stdin.
+func (s *session) wait() {
+	s.waitOnce.Do(func() { _ = s.cmd.Wait() })
+}
+
+// safeBuffer collects a plugin's stderr.
+//
+// os/exec copies the child's stderr from a goroutine it owns, and wrap
+// reads it from whichever goroutine hit the error, so the two need a
+// lock between them. On the path where the plugin has died, wrap reaps
+// it first and the copy is complete; on any other, reading gives
+// whatever has arrived, because a diagnostic that blocks behind a live
+// plugin is worse than a partial one.
+type safeBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *safeBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *safeBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
 }
 
 func (s *Subprocess) start(ctx context.Context) (*session, error) {
@@ -135,7 +177,7 @@ func (s *Subprocess) start(ctx context.Context) (*session, error) {
 		return nil, fmt.Errorf("%s: %w", s.Name, err)
 	}
 
-	var stderr strings.Builder
+	var stderr safeBuffer
 	cmd.Stderr = &stderr
 
 	if err := cmd.Start(); err != nil {
@@ -186,6 +228,12 @@ func (s *session) wrap(err error) error {
 	msg := fmt.Sprintf("%s: %v", s.name, err)
 	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
 		msg = fmt.Sprintf("%s stopped before answering", s.name)
+		// The plugin is gone and nothing else will read its stdout, so
+		// its stderr is finite and worth waiting for. Reading without
+		// this gives whatever the copy had reached, and losing it
+		// defeats the point of the message. Bounded by the context,
+		// since CommandContext kills the child at the deadline.
+		s.wait()
 	}
 	if out := strings.TrimSpace(s.stderr.String()); out != "" {
 		msg += "\n" + indent(out)
@@ -205,5 +253,5 @@ func (s *session) close() {
 	if p, ok := s.conn.Writer().(io.Closer); ok {
 		_ = p.Close()
 	}
-	_ = s.cmd.Wait()
+	s.wait()
 }

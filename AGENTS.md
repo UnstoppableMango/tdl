@@ -6,12 +6,13 @@ This file provides guidance to coding agents when working with code in this repo
 
 ```shell
 go test ./...                      # all tests
+go test -race ./...                # what CI runs; the plugin subprocess needs it
 go test ./parser -run TestConformanceCorpusParses   # a single test
 go build ./...
 
 command make build     # nix build .#
 command make test      # go test ./...
-command make cover     # go test -coverprofile=cover.profile ./... + go tool cover -func
+command make cover     # go test -race -coverprofile=cover.profile ./... + go tool cover -func
 command make play      # watch scratch.tdl; FILE=examples/nested.tdl VIEWS=all to override
 command make lint      # nix flake check + golangci-lint + buf + markdownlint
 command make fmt       # nix fmt (treefmt) + buf format
