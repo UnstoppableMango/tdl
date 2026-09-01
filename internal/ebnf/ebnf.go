@@ -59,6 +59,7 @@ func Lint(filename, src string, opts Options) []error {
 	errs := flatten(ebnf.Verify(grammar, opts.Start))
 	if opts.LexSpellings {
 		errs = append(errs, checkSpellings(grammar)...)
+		errs = append(errs, checkReservedWords(grammar)...)
 	}
 	sort.SliceStable(errs, func(i, j int) bool { return errs[i].Error() < errs[j].Error() })
 	return errs
@@ -142,6 +143,41 @@ func checkSpellings(grammar ebnf.Grammar) []error {
 	return errs
 }
 
+// checkReservedWords holds the reserved_word production to lex.Keywords.
+// The grammar spells the set out rather than naming it, so a keyword added
+// to lex and not to the grammar, or the other way round, is an error here
+// rather than a difference nobody notices.
+//
+// A grammar without the production is not checked: not every grammar in
+// this notation is about TDL declarations.
+func checkReservedWords(grammar ebnf.Grammar) []error {
+	prod, ok := grammar["reserved_word"]
+	if !ok {
+		return nil
+	}
+
+	spelled := map[string]bool{}
+	walk(prod.Expr, func(expr ebnf.Expression) {
+		if tok, ok := expr.(*ebnf.Token); ok {
+			spelled[tok.String] = true
+		}
+	})
+
+	var errs []error
+	for _, kw := range lex.Keywords() {
+		if !spelled[kw] {
+			errs = append(errs, fmt.Errorf("%s: reserved_word is missing %q, which lex reserves",
+				prod.Pos(), kw))
+		}
+		delete(spelled, kw)
+	}
+	for _, extra := range sortedSet(spelled) {
+		errs = append(errs, fmt.Errorf("%s: reserved_word has %q, which lex does not reserve",
+			prod.Pos(), extra))
+	}
+	return errs
+}
+
 // lexesAsOneToken reports whether text is the whole of exactly one token.
 // It is not lex.Lookup, because "_" is a legal terminal the lexer scans as
 // an identifier rather than as a fixed spelling.
@@ -178,6 +214,15 @@ func walk(expr ebnf.Expression, fn func(ebnf.Expression)) {
 		walk(e.Begin, fn)
 		walk(e.End, fn)
 	}
+}
+
+func sortedSet(set map[string]bool) []string {
+	out := make([]string, 0, len(set))
+	for k := range set {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
 }
 
 func sorted(grammar ebnf.Grammar) []string {

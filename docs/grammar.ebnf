@@ -19,7 +19,28 @@
    inside '<...>', conformance lists, and list literals, and are required
    there.  They are not permitted inside '{ }' blocks. */
 
+/* Annotations open `/*@` and describe this grammar to the generator that
+   derives a tree-sitter parser from it; design/treesitter.md defines
+   them.  Nothing reads them yet: internal/ebnf lints the productions and
+   the library it uses drops comments, so picking them back out is phase
+   3 of design/treesitter-plan.md.
+
+   A reader who ignores them loses nothing.  Each one states something the
+   prose below already explains to a person.
+
+   The file-level ones come first. */
+
+/*@ word identifier */
+/*@ extra doc_comment line_comment */
+/*@ token doc_comment = DocPattern */
+/*@ token line_comment = LineCommentPattern */
+
+/*@ conflict Field KeyRequirement */
+/*@ conflict UnitExpr TypeRef */
+/*@ conflict Path Directive */
+
 File     = { [ Deprecated ] Decl } .
+/*@ hidden */
 Decl     = PackageDecl | ImportDecl | PrimitiveDecl | UnitDecl
          | AliasDecl | TypeDecl | ValueDecl | EntityDecl | EnumDecl
          | ClassDecl | MixinDecl | InstanceDecl | TargetDecl .
@@ -43,6 +64,7 @@ Name = identifier | reserved_word .
 PrimitiveDecl = "primitive" identifier [ ":" Kind ] .
 
 UnitDecl = "unit" identifier [ "=" UnitExpr ] .
+/*@ prec.left 1 */
 UnitExpr = UnitTerm { ( "*" | "/" ) UnitTerm } .
 UnitTerm = identifier [ "^" int_lit ] | "(" UnitExpr ")" .
 
@@ -50,6 +72,7 @@ UnitTerm = identifier [ "^" int_lit ] | "(" UnitExpr ")" .
 
 TypeParams = "<" TypeParam { "," TypeParam } ">" .
 TypeParam  = identifier [ ":" Kind ] .
+/*@ prec.right 1 */
 Kind       = KindAtom { "->" KindAtom } .
 KindAtom   = "type" | "unit" | "(" Kind ")" .
 
@@ -72,6 +95,7 @@ EnumDecl   = "enum"   identifier [ TypeParams ] [ Conforms ] [ RequiresClause ]
 Conforms = ":" ClassRef { "," ClassRef } .
 
 Body    = "{" { Member } "}" .
+/*@ hidden */
 Member  = Include | Field .
 Include = "include" NamedType .
 
@@ -79,7 +103,9 @@ Variant = [ Deprecated ] identifier [ "{" { Field } "}" ] .
 
 Field    = { FieldMod } Name ":" TypeRef { FieldRel }
            [ ConstraintBlock ] [ "=" Literal ] .
+/*@ hidden */
 FieldMod = "key" | Deprecated .
+/*@ inline */
 FieldRel = "owned" .
 
 Deprecated = "deprecated" [ "(" string_lit ")" ] .
@@ -89,6 +115,7 @@ Deprecated = "deprecated" [ "(" string_lit ")" ] .
 
 ClassDecl   = "class" identifier [ TypeParams ] [ FunDeps ] [ Conforms ]
               [ RequiresClause ] "{" { ClassMember } "}" .
+/*@ hidden */
 ClassMember = Field | KeyRequirement | AssocTypeReq .
 KeyRequirement = "key" .
 /* A class may not declare key fields, so a Field in a class body carries no
@@ -108,6 +135,7 @@ AssocTypeBind = "type" identifier "=" TypeRef .
 /* ---- type references ---------------------------------------------------- */
 
 TypeRef   = CoreType [ "?" ] [ "|" "null" ] .
+/*@ hidden */
 CoreType  = ListType | SetOrMapType | NamedType .
 ListType  = "[" TypeRef "]" .
 SetOrMapType = "{" TypeRef [ "->" TypeRef ] "}" .
@@ -116,6 +144,7 @@ NamedType = DottedIdent [ TypeArgs ] .
    {K -> V} is Map<K, V>, T? is Option<T>, T | null is Nullable<T>. */
 
 TypeArgs = "<" TypeArg { "," TypeArg } ">" .
+/*@ hidden */
 TypeArg  = UnitExpr | TypeRef .
 /* A bare identifier may name a type or a unit.  The parser records the
    syntactic form; the resolver picks by kind. */
@@ -124,6 +153,7 @@ TypeArg  = UnitExpr | TypeRef .
 
 ConstraintBlock = "where" "{" { Constraint } "}" .
 Constraint      = identifier [ "(" [ ConstraintArg { "," ConstraintArg } ] ")" ] .
+/*@ hidden */
 ConstraintArg   = Range | regex_lit | Literal .
 Range           = [ int_lit ] ".." [ int_lit ] .
 /* Arguments are parenthesized, as for a directive, and for the same
@@ -141,6 +171,7 @@ TargetEntry = Path "{" { TargetEntry } "}"
             | Path "=>" Directive
             | Directive .
 Directive   = Name [ "(" [ DirectiveArg { "," DirectiveArg } ] ")" ] .
+/*@ hidden */
 DirectiveArg = Literal .
 Path        = Name { "." Name } .
 /* Arguments are parenthesized.  Without a delimiter, `table snake_case`
@@ -149,6 +180,7 @@ Path        = Name { "." Name } .
 
 /* ---- literals ----------------------------------------------------------- */
 
+/*@ hidden */
 Literal     = string_lit | int_lit | float_lit | bool_lit | ListLiteral
             | DottedIdent .
 ListLiteral = "[" [ Literal { "," Literal } ] "]" .
@@ -159,13 +191,33 @@ ListLiteral = "[" [ Literal { "," Literal } ] "]" .
 /* ---- lexical productions ------------------------------------------------ */
 
 /* The lexer's, not the grammar's.  A production with no expression names
-   something defined elsewhere, which is how this notation says so; lex
-   scans each of these and lex.Pattern gives its shape. */
+   something defined elsewhere, which is how this notation says so, and
+   the `token` annotation says which lex symbol defines it. */
 
-identifier    = .
-string_lit    = .
-int_lit       = .
-float_lit     = .
-bool_lit      = .
-regex_lit     = .
-reserved_word = .
+/*@ token IdentPattern */
+identifier = .
+/*@ token StringPattern */
+string_lit = .
+/*@ token IntPattern */
+int_lit    = .
+/*@ token FloatPattern */
+float_lit  = .
+
+/* `/` opens a regex and divides a unit expression, and no token-local
+   rule separates them.  The reference lexer scans a regex only when the
+   parser asks, via RescanRegexAt; tree-sitter needs an external scanner
+   for the same reason. */
+/*@ token RegexPattern */
+/*@ external */
+regex_lit = .
+
+/* Spelled out rather than annotated: these are keywords, and the lexer
+   already produces each one.  internal/ebnf checks reserved_word against
+   lex.Keywords, so a keyword added there and not here is an error. */
+
+bool_lit = "true" | "false" .
+
+reserved_word = "package" | "import" | "as" | "primitive" | "unit"
+              | "alias" | "type" | "value" | "entity" | "enum" | "class"
+              | "mixin" | "instance" | "target" | "for" | "requires"
+              | "where" | "include" | "null" | "true" | "false" | "union" .
