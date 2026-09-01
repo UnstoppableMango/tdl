@@ -19,9 +19,14 @@
    inside '<...>', conformance lists, and list literals, and are required
    there.  They are not permitted inside '{ }' blocks. */
 
-/* Annotations open `/*@` and are read by internal/ebnf; see
-   design/treesitter.md.  A reader who ignores them loses nothing, and
-   each one states something the prose below already explains.
+/* Annotations open `/*@` and describe this grammar to the generator that
+   derives a tree-sitter parser from it; design/treesitter.md defines
+   them.  Nothing reads them yet: internal/ebnf lints the productions and
+   the library it uses drops comments, so picking them back out is phase
+   3 of design/treesitter-plan.md.
+
+   A reader who ignores them loses nothing.  Each one states something the
+   prose below already explains to a person.
 
    The file-level ones come first. */
 
