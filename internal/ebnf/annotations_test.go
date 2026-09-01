@@ -105,6 +105,15 @@ func TestAnnotationDiagnostics(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			_, got := read(t, c.src)
+
+			// Every one of these has to say where, which is the whole
+			// difference between a diagnostic and a complaint.
+			for _, d := range got {
+				if !strings.HasPrefix(d, "test.ebnf:") {
+					t.Errorf("%q carries no position", d)
+				}
+			}
+
 			for _, d := range got {
 				if strings.Contains(d, c.want) {
 					return

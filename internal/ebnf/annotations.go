@@ -36,6 +36,10 @@ type Annotations struct {
 
 	// Prods holds what is said about each production, by name.
 	Prods map[string]ProdAnnotations
+
+	// extraPos remembers where each extra was named, since whether one
+	// is bound cannot be known until the whole file has been read.
+	extraPos map[string]string
 }
 
 // ProdAnnotations are the annotations on one production.
@@ -127,8 +131,9 @@ func scanAnnotations(filename, src string) []annotation {
 // comments have been dropped and only line numbers are left.
 func readAnnotations(filename, src string, grammar ebnf.Grammar) (Annotations, []error) {
 	a := Annotations{
-		Tokens: map[string]string{},
-		Prods:  map[string]ProdAnnotations{},
+		Tokens:   map[string]string{},
+		Prods:    map[string]ProdAnnotations{},
+		extraPos: map[string]string{},
 	}
 	var errs []error
 
@@ -141,12 +146,12 @@ func readAnnotations(filename, src string, grammar ebnf.Grammar) (Annotations, [
 		keyword, args := ann.fields[0], ann.fields[1:]
 		switch keyword {
 		case "word", "extra", "conflict":
-			errs = append(errs, a.file(ann, keyword, args)...)
+			errs = append(errs, a.file(ann, keyword, args, grammar)...)
 		case "token":
 			// `token name = Symbol` binds a name with no production;
 			// `token Symbol` binds the production it precedes.
 			if len(args) == 3 && args[1] == "=" {
-				errs = append(errs, a.file(ann, keyword, args)...)
+				errs = append(errs, a.file(ann, keyword, args, grammar)...)
 				continue
 			}
 			fallthrough
@@ -165,7 +170,8 @@ func readAnnotations(filename, src string, grammar ebnf.Grammar) (Annotations, [
 	return a, append(errs, a.check(grammar)...)
 }
 
-func (a *Annotations) file(ann annotation, keyword string, args []string) []error {
+func (a *Annotations) file(ann annotation, keyword string, args []string, grammar ebnf.Grammar) []error {
+	var errs []error
 	switch keyword {
 	case "word":
 		if len(args) != 1 {
@@ -174,15 +180,26 @@ func (a *Annotations) file(ann annotation, keyword string, args []string) []erro
 		if a.Word != "" {
 			return []error{fmt.Errorf("%s: word is already %q", ann.pos, a.Word)}
 		}
+		if _, ok := grammar[args[0]]; !ok {
+			errs = append(errs, fmt.Errorf("%s: word names %s, which is not a production", ann.pos, args[0]))
+		}
 		a.Word = args[0]
 	case "extra":
 		if len(args) == 0 {
 			return []error{fmt.Errorf("%s: extra takes at least one name", ann.pos)}
 		}
+		for _, name := range args {
+			a.extraPos[name] = ann.pos
+		}
 		a.Extras = append(a.Extras, args...)
 	case "conflict":
 		if len(args) < 2 {
 			return []error{fmt.Errorf("%s: conflict takes at least two productions", ann.pos)}
+		}
+		for _, name := range args {
+			if _, ok := grammar[name]; !ok {
+				errs = append(errs, fmt.Errorf("%s: conflict names %s, which is not a production", ann.pos, name))
+			}
 		}
 		a.Conflicts = append(a.Conflicts, args)
 	case "token":
@@ -192,7 +209,7 @@ func (a *Annotations) file(ann annotation, keyword string, args []string) []erro
 		}
 		a.Tokens[args[0]] = pattern
 	}
-	return nil
+	return errs
 }
 
 func (a *Annotations) prod(ann annotation, name, keyword string, args []string) []error {
@@ -205,11 +222,17 @@ func (a *Annotations) prod(ann annotation, name, keyword string, args []string) 
 			return []error{fmt.Errorf("%s: hidden takes no arguments", ann.pos)}
 		}
 		p.Hidden = true
+		if p.Inline {
+			return []error{fmt.Errorf("%s: %s is both hidden and inline", ann.pos, name)}
+		}
 	case "inline":
 		if len(args) != 0 {
 			return []error{fmt.Errorf("%s: inline takes no arguments", ann.pos)}
 		}
 		p.Inline = true
+		if p.Hidden {
+			return []error{fmt.Errorf("%s: %s is both hidden and inline", ann.pos, name)}
+		}
 	case "external":
 		if len(args) != 0 {
 			return []error{fmt.Errorf("%s: external takes no arguments", ann.pos)}
@@ -254,38 +277,24 @@ func nextProduction(ann annotation, grammar ebnf.Grammar) (string, error) {
 	return best, nil
 }
 
-// check reports what only the finished set can say.
+// check reports what only the finished file can say. Everything a single
+// annotation can get wrong is reported where it is written; what is left
+// is a binding that may not have been read yet, and a production the
+// annotations never reached.
 func (a *Annotations) check(grammar ebnf.Grammar) []error {
 	var errs []error
 
-	if a.Word != "" {
-		if _, ok := grammar[a.Word]; !ok {
-			errs = append(errs, fmt.Errorf("word names %s, which is not a production", a.Word))
-		}
-	}
-
 	for _, extra := range a.Extras {
 		if _, ok := a.Tokens[extra]; !ok {
-			errs = append(errs, fmt.Errorf("extra names %s, which no token annotation binds", extra))
+			errs = append(errs, fmt.Errorf("%s: extra names %s, which no token annotation binds",
+				a.extraPos[extra], extra))
 		}
 	}
 
-	for _, pair := range a.Conflicts {
-		for _, name := range pair {
-			if _, ok := grammar[name]; !ok {
-				errs = append(errs, fmt.Errorf("conflict names %s, which is not a production", name))
-			}
-		}
-	}
-
+	// A production with no expression is the lexer's, and the token
+	// annotation is the only thing saying which part of the lexer.
 	for _, name := range sorted(grammar) {
-		p := a.Prods[name]
-		if p.Hidden && p.Inline {
-			errs = append(errs, fmt.Errorf("%s is both hidden and inline", name))
-		}
-		// A production with no expression is the lexer's, and the token
-		// annotation is the only thing saying which part of the lexer.
-		if grammar[name].Expr == nil && p.Token == "" {
+		if grammar[name].Expr == nil && a.Prods[name].Token == "" {
 			errs = append(errs, fmt.Errorf("%s: %s has no expression and no token annotation",
 				grammar[name].Pos(), name))
 		}
