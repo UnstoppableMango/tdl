@@ -46,6 +46,10 @@ func TestDiagnostics(t *testing.T) {
 		{"invented spelling", `File = "notakeyword!" .`, "not text the lexer produces"},
 		{"missing terminator", "File = \"package\"\nDecl = \"import\" .", "missing the closing"},
 		{"unbalanced bracket", "File = [ \"package\" .\nDecl = \"import\" .", "unbalanced"},
+		{"stray close", `File = ] .`, "unmatched"},
+		// A later opening bracket must not cancel an earlier stray
+		// close back to a balanced-looking depth.
+		{"stray close then open", `File = "package" ] [ "import" .`, "unmatched"},
 		{"unterminated comment", "(* open\nFile = \"package\" .", "unterminated comment"},
 		{"unterminated quote", "File = \"package .", "unterminated quoted"},
 	}

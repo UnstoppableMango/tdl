@@ -6,7 +6,8 @@
 //
 // What is here is the scanner and the checks a scanner can make, which is
 // most of what goes wrong in a grammar file: a name used and never
-// defined, a name defined and never used, a bracket left open, a
+// defined, a name defined and never used, a bracket left open or closed
+// with nothing to close, a
 // production missing its terminator, and a quoted terminal the lexer
 // never produces. The last one is why this package imports lex rather
 // than restating the token set.
@@ -169,7 +170,14 @@ func split(toks []token) ([]production, []Diagnostic) {
 				case "(", "[", "{":
 					depth++
 				case ")", "]", "}":
-					depth--
+					// Reported here rather than counted, because a
+					// negative depth a later opening bracket cancels out
+					// would leave `] [` looking balanced.
+					if depth == 0 {
+						diags = append(diags, Diagnostic{t.line, fmt.Sprintf("%s: unmatched %q", p.lhs, t.text)})
+					} else {
+						depth--
+					}
 				case ".":
 					if depth == 0 {
 						closed = true
