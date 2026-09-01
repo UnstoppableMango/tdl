@@ -23,7 +23,7 @@ Prefix `make` with `command` (see the shell autoload note in the global instruct
 
 `nix fmt` formats Go, Nix, YAML, JSON, TOML, Markdown, and protobuf; `nix flake check` fails when anything is unformatted.
 
-Which markdown files are linted lives in `.markdownlint-cli2.yaml`, so a bare `markdownlint-cli2` locally checks what CI checks. `CLAUDE.md` and `.github/copilot-instructions.md` are ignored: their whole content is an import pointing at this file, and a file that is one directive has no heading to lint. Three files have no formatter: `Makefile`, `.editorconfig`, and `docs/grammar.ebnf`. Deliberately excluded: `*.tdl` (until `tdl fmt` is wired in, see `docs/backlog.md`), `*.golden` and `nix/gomod2nix.toml` and `flake.lock` (generated), and `.claude/` (agent skills).
+Which markdown files are linted lives in `.markdownlint-cli2.yaml`, so a bare `markdownlint-cli2` locally checks what CI checks. `CLAUDE.md` and `.github/copilot-instructions.md` are ignored: their whole content is an import pointing at this file, and a file that is one directive has no heading to lint. Four files have no formatter: `Makefile`, `.editorconfig`, `docs/grammar.ebnf`, and `docs/notation.ebnf`. The two grammars have no published formatter, and their column alignment is chosen per section for reading. `internal/ebnf` lints them instead. Deliberately excluded: `*.tdl` (until `tdl fmt` is wired in, see `docs/backlog.md`), `*.golden` and `nix/gomod2nix.toml` and `flake.lock` (generated), and `.claude/` (agent skills).
 
 After changing `go.mod` or adding dependencies, run `make tidy` so `nix/gomod2nix.toml` stays in sync, otherwise `nix build` fails.
 
@@ -40,6 +40,7 @@ The parser reads the whole grammar. Lowering to `ir` has started; `docs/design/i
 Pipeline, one package per stage:
 
 - `lex` — hand-written lexer. `lex.Kind` covers idents, literals, keywords, and punctuation; `LookupIdent` turns an identifier into a keyword kind. Positions originate here and flow through the AST as `ast.Position` (a type alias). Regex literals are scanned only on request via `RescanRegexAt`, because `/` is also division in a unit expression. `table.go` states the same lexical facts for a program rather than a person: `Keywords`, `Punctuation`, `Lookup`, `Spelling`, and `Pattern`, so a tool deriving a second parser from `docs/grammar.ebnf` reads what the lexer accepts instead of restating it.
+- `internal/ebnf` — the linter for `docs/grammar.ebnf` and `docs/notation.ebnf`. Parsing and reachability come from `golang.org/x/exp/ebnf`, which documents this exact dialect; what is local is the check no library makes, holding every quoted terminal to `lex` so a spelling the grammar invents is an error rather than a rule that can never match. It also reports an unterminated comment or string itself, because the library hands its scanner no error handler and `text/scanner` prints those to stderr. `Options` carries the start symbol; `GrammarOptions` and `NotationOptions` are the two files. Private.
 - `parser` — recursive descent over the token stream, producing `*ast.File`. Errors accumulate in an `ErrorList` rather than aborting: `syncTop` resynchronizes at the next declaration so one bad line does not swallow the rest of the file.
 - `ast` — parse tree mirroring source 1:1, names left unresolved. `ast.Fprint` produces the canonical formatting used by `tdl fmt`.
 - `internal/cli` — cobra commands (`ast`, `check`, `fmt`, `gen`, `ir`, `play`, `tokens`, `version`) wired in `root.go`. The root silences cobra's error printing so a diagnostic list renders as itself; `cmd/tdl` prints whatever a command returns, so a command should return an error rather than print it. `play` is a watch-mode playground that re-renders a file on save; `examples/` holds files to experiment with and is outside the conformance corpus.
@@ -63,6 +64,8 @@ Regenerate the ir goldens with `go test ./internal/sema -update` after any chang
 ## Specification and conformance
 
 `docs/spec.md` is canonical; `docs/grammar.ebnf` holds the formal grammar. Both must be updated alongside any grammar or lexer change.
+
+The grammar is written in Wirth syntax notation, the dialect the Go and Oberon reports use, not ISO 14977: a production ends with `.` rather than `;`, and items in a sequence are juxtaposed rather than separated by `,`. `docs/notation.ebnf` describes that notation in itself, and `golang.org/x/exp/ebnf` parses it, which is what `internal/ebnf` reads both files with. Comments are Go's `/* */` and `//` for that reason, not the ISO family's `(* *)`. An ISO EBNF tool reads either file as an error from its first production, so VS Code is pointed at `igochkov.vscode-ebnf` for highlighting alone. A lexical name the lexer owns is declared as a production with no expression, which is how this notation says the name is defined elsewhere. `TestDocsAreClean` fails the build when either file stops linting clean.
 
 `testdata/conformance/*/source.tdl` must parse cleanly and lower to the tree in the sibling `ir.golden`; `testdata/invalid/*/source.tdl` must fail with an error containing the text in the sibling `error.golden`. Both corpora are plain text, deliberately not Go code, so a non-Go implementation can run the same checks. `parser/conformance_test.go` walks them automatically, so adding a directory is enough to add a case.
 
@@ -92,7 +95,7 @@ A class may not declare key fields, so `key` inside a class body is always the r
 
 A `<...>` argument is a type or a unit. A bare name could be either, so it is recorded as a type reference and the resolver picks by kind; only an operator (`*`, `/`, `^`) or parentheses makes it unambiguously a unit.
 
-Inside a target block a directive name may be a reserved word, since the directive namespace belongs to the backend.
+Inside a target block a directive name and a path segment may be reserved words, since that namespace belongs to the backend. `Name` in `docs/grammar.ebnf` is the production for a name that may be spelled with one; every other name is a plain `identifier`.
 
 Directive and constraint arguments are parenthesized and comma separated. Both sets are open, so the parser knows no name's arity and an unparenthesized `min 0 max 100` could not be split.
 

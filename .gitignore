@@ -14,7 +14,9 @@ scratch.tdl
 
 # User specific
 .idea/
-.vscode/
+# extensions.json is a shared recommendation rather than a personal setting.
+.vscode/*
+!.vscode/extensions.json
 *.user
 .envrc
 .claude/*

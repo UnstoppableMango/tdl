@@ -13,6 +13,10 @@ schema = 3
     version = 'v1.0.9'
     hash = 'sha256-YAjyYpq5BXCosVJtvYLWFG1t4gma2ylzc7ILLoj/hD8='
 
+  [mod.'golang.org/x/exp']
+    version = 'v0.0.0-20260824195058-e88cd73687aa'
+    hash = 'sha256-8aABAHGuW6uSooqzXprNBLgbu+RrIpvYS/CXaGjDC4k='
+
   [mod.'google.golang.org/protobuf']
     version = 'v1.36.12'
     hash = 'sha256-MKd0AdkWEe2A79mGPzOY5I76nMqTsGJKQNPJOKyOwkQ='
