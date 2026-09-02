@@ -163,15 +163,31 @@ Origin outranks specificity, per [workflow.md](workflow.md): any entry in the ro
 
 Done when a dependency's directives reach the root model's nodes, a root entry beats a dependency entry at any specificity, and a conflict between two dependencies is reported.
 
+## Phase 9: units
+
+`ir.md` deferred units and called the addition additive: a `Unit` table and a unit-typed argument in `Type.Args`.
+That is what this is, and it is the last thing lowering says it cannot do.
+
+A base unit is the dimension of itself and a derived one reduces to bases, which is what lets the spec's claim that `decimal<N>` and `decimal<kg*m/s^2>` are the same type be an index comparison rather than a walk.
+
+Done when the conformance corpus lowers with no diagnostic at all, and the `deferred` list in `internal/sema/corpus_test.go` is deleted rather than emptied.
+
+Done.
+Resolution runs before the rest of lowering and on demand rather than in file order, because a unit may be written after the unit deriving from it, and because a type argument naming a unit needs the answer already computed.
+The lowered node is the memo, which is also what makes a cycle reportable at the declaration that closes it.
+
+The `testdata/invalid` corpus was not the place for the new diagnostics.
+It is a parse corpus, checked by `parser/conformance_test.go` and by the tree-sitter grammar, and a unit cycle parses cleanly.
+They are Go tests in `internal/sema` instead.
+
 ## After
 
 `tdl check` becomes parse plus full lowering, with `--parse-only` for editors that want the fast path on every keystroke.
 
-At that point `ir` is complete enough for the plugin protocol, which is the next document to implement.
+The plugin protocol used to be what came after this, and it arrived first: `docs/design/plugins-plan.md` is complete.
 
 ## Not in this plan
 
-- Units. `ir.md` defers them, but the parser produces `ast.UnitDecl` and unit-kinded arguments, so lowering has to say something. It rejects them with a diagnostic naming the deferral rather than dropping them silently, and the conformance corpus keeps its `units` case marked pending against `ir.golden` until they land.
 - Monomorphization. Parameters stay parameters; a backend that wants concrete types does that itself.
 - ir diffing, which incremental generation would need.
 - Comment preservation. `tdl fmt` drops ordinary `//` comments today, and fixing it is parser work with no phase in either plan.

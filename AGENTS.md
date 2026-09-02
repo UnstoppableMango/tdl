@@ -36,7 +36,7 @@ Neither `gomod2nix` nor `protoc-gen-go` is on `PATH`. Run generators through the
 
 TDL is a language for describing domain models: entities, values, enums, newtypes, classes, and collections. No expressions, no control flow, no runtime. This repo owns both the specification and the reference implementation.
 
-The parser reads the whole grammar. Lowering to `ir` has started; `docs/design/ir-plan.md` phases 1 through 8 are done. What is left is phase 8b, merging a dependency's target blocks, and units, which `ir.md` defers. After that comes the plugin protocol in `docs/design/plugins.md`.
+The parser reads the whole grammar, and lowering to `ir` reads all of it: `docs/design/ir-plan.md` phases 1 through 9 are done, and the conformance corpus lowers with no diagnostic. What is left is phase 8b, merging a dependency's target blocks, which the plan gates on something needing a dependency's blocks. The plugin protocol in `docs/design/plugins.md` is complete.
 
 Pipeline, one package per stage:
 
@@ -46,12 +46,12 @@ Pipeline, one package per stage:
 - `parser` — recursive descent over the token stream, producing `*ast.File`. Errors accumulate in an `ErrorList` rather than aborting: `syncTop` resynchronizes at the next declaration so one bad line does not swallow the rest of the file.
 - `ast` — parse tree mirroring source 1:1, names left unresolved. `ast.Fprint` produces the canonical formatting used by `tdl fmt`.
 - `internal/cli` — cobra commands (`ast`, `check`, `fmt`, `gen`, `ir`, `play`, `tokens`, `version`) wired in `root.go`. The root silences cobra's error printing so a diagnostic list renders as itself; `cmd/tdl` prints whatever a command returns, so a command should return an error rather than print it. `play` is a watch-mode playground that re-renders a file on save; `examples/` holds files to experiment with and is outside the conformance corpus.
-- `ir` — the resolved model backends consume. `ir.pb.go` is generated from `proto/tdl/ir/v1/ir.proto` by `make generate` and committed; `model.go` holds the hand-written lookups. `proto/` and `ir/` are the public compatibility surface.
+- `ir` — the resolved model backends consume. `ir.pb.go` is generated from `proto/tdl/ir/v1/ir.proto` by `make generate` and committed; `model.go` holds the hand-written lookups. Three interned tables: `Decls`, `Types`, and `Units`, each its own ID space. A unit is a quantity reduced to base dimensions and interned on them, so `decimal<N>` and `decimal<kg*m/s^2>` are one entry in `Types`; `UnitDef` is the declaration and `Unit` is what it measures. `proto/` and `ir/` are the public compatibility surface.
 - `cmd/tdl-gen-debug` — the debug backend as a plugin. The same value the registry holds, served over a connection, which is what makes the two hosts testable against each other.
 - `plugin` — the wire protocol a backend speaks, generated from `proto/tdl/plugin/v1/plugin.proto`, plus the framing codec. Public, like `ir`.
 - `internal/gen` — the compiler side of the plugin protocol: which backends exist, how a request is built, and what happens to the files that come back. Private.
 - `backend/debug` — a backend that describes the model it was given. Useless on purpose: it exercises the protocol without anyone agreeing what generated code should look like.
-- `internal/sema` — ast to ir: the declaration table, the interned type table, sugar lowering, scopes, the spec's recursion rules, and the import graph. It touches no filesystem: a `Loader` supplies imported sources, with `FSLoader` for real files and `MapLoader` for tests. Private and free to change. See `docs/design/ir-plan.md` for what each phase adds.
+- `internal/sema` — ast to ir: the declaration table, the interned type and unit tables, sugar lowering, scopes, the spec's recursion rules, and the import graph. `units.go` runs before the rest of lowering, because a unit may be written after the unit deriving from it and because a type argument naming a unit needs its reduction already computed. It touches no filesystem: a `Loader` supplies imported sources, with `FSLoader` for real files and `MapLoader` for tests. Private and free to change. See `docs/design/ir-plan.md` for what each phase adds.
 - `prelude` — the standard prelude, written in TDL and embedded with `go:embed`. `sema` loads it into an outer scope beneath every file and merges its declarations into the model untagged. Lowering knows the sugar's spellings (`List`, `Option`, ...) but nothing about what they mean, which is what makes the prelude replaceable.
 - `cmd/tdl` — main.
 
@@ -61,7 +61,7 @@ Regenerate the ir goldens with `go test ./internal/sema -update` after any chang
 
 `testdata/plugin/` holds recorded protocol exchanges as protobuf text, regenerated with `go test ./internal/gen -record`. They exist for an implementation in another language to replay.
 
-`internal/sema/corpus_test.go` holds a `deferred` list: every diagnostic lowering is still expected to produce, with the phase that will stop producing it. A corpus case reporting anything else fails the test. Delete entries as phases land; when the list empties, the test becomes a plain assertion that the corpus lowers clean.
+`internal/sema/corpus_test.go` asserts the conformance corpus lowers with no diagnostic at all. It used to carry a `deferred` list naming the phase that would stop producing each one; units were the last entry, so the list is gone.
 
 ## Specification and conformance
 

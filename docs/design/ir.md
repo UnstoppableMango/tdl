@@ -27,10 +27,11 @@ Flat tables with integer IDs, not a pointer graph.
 type Model struct {
     Decls []Decl // every declaration, in source order
     Types []Type // type references, interned
+    Units []Unit // quantities, interned on their reduced dimensions
 }
 ```
 
-Two tables, two ID spaces.
+Three tables, three ID spaces.
 One declaration table rather than one per kind, because an index has to say which table it indexes and a single space needs no discriminator.
 The by-nature split lives inside `Decl`, whose node is a `oneof`.
 
@@ -51,6 +52,26 @@ The name is what appears in diagnostics, in ir dumps, and in target paths, and i
 Carrying both means a dump is readable and a hot loop is still an array index.
 
 Flat tables serialize with no cycle handling and survive the recursion the spec permits in entities and values.
+
+## Units
+
+A third table, and the reason `Type` has a fourth alternative to `ctor`.
+
+A unit is a quantity reduced to base dimensions: a list of base units and their exponents, sorted, with cancelled dimensions dropped.
+A base unit is the dimension of itself, and a derived one reduces to the bases it was written over.
+
+Reduction is what makes the table worth having.
+The spec says `decimal<N>` and `decimal<kg*m/s^2>` are the same type, so a unit is interned on its dimensions and nothing else, and every spelling of one quantity reaches one entry.
+Interning is already what makes an ID comparison a type comparison, and this is that rule applied one level down.
+
+A unit's declaration and what it measures are separate nodes, the way a newtype is separate from its base.
+`UnitDef` is the name the source gave; `Unit` is the quantity, and two declarations of the same quantity share one.
+The unit records the first spelling that reached it, so a dump can print `kg/m/s^2 (N/m^2)` rather than making a reader reduce it, but the spelling takes no part in identity.
+
+A unit argument is an entry in the type table with `unit` set where a named type sets `ctor`, so `Type.Args` needed no change: a unit argument is an ordinary argument.
+
+`<...>` is one syntactic form covering type and unit arguments, and the parser does not tell them apart.
+Lowering does, against the declaration each name resolves to.
 
 ### Declaration shapes
 
@@ -203,7 +224,5 @@ The lowering from `ast` is not: it lives elsewhere and changes freely.
 
 ## Deferred
 
-Units.
-`unit` declarations and unit expressions are in the grammar and the spec, and `ir` does not model them yet.
-A model using units will not lower until it does.
-Adding them later is additive: a `Unit` table and a unit-typed argument in `Type.Args`.
+Nothing.
+Units were the last entry here; [the units section](#units) says what landed.
