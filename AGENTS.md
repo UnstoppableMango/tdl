@@ -24,7 +24,7 @@ Prefix `make` with `command` (see the shell autoload note in the global instruct
 
 `nix fmt` formats Go, Nix, YAML, JSON, TOML, Markdown, and protobuf; `nix flake check` fails when anything is unformatted.
 
-Which markdown files are linted lives in `.markdownlint-cli2.yaml`, so a bare `markdownlint-cli2` locally checks what CI checks. `CLAUDE.md` and `.github/copilot-instructions.md` are ignored: their whole content is an import pointing at this file, and a file that is one directive has no heading to lint. Four files have no formatter: `Makefile`, `.editorconfig`, `docs/grammar.ebnf`, and `docs/notation.ebnf`. The two grammars have no published formatter, and their column alignment is chosen per section for reading. `internal/ebnf` lints them instead. Deliberately excluded: `*.tdl` (until `tdl fmt` is wired in, see `docs/backlog.md`), `*.golden` and `nix/gomod2nix.toml` and `flake.lock` (generated), and `.claude/` (agent skills).
+Which markdown files are linted lives in `.markdownlint-cli2.yaml`, so a bare `markdownlint-cli2` locally checks what CI checks. `CLAUDE.md` is ignored: its whole content is an import pointing at this file, and a file that is one directive has no heading to lint. `.github/copilot-instructions.md` and `.github/skills/` are prose and are linted, because they say things this file does not. Five files have no formatter: `Makefile`, `.editorconfig`, `docs/grammar.ebnf`, `docs/notation.ebnf`, and `.github/skills/code-review/SKILL.md`, whose YAML frontmatter mdformat rewrites into a thematic break. The two grammars have no published formatter, and their column alignment is chosen per section for reading. `internal/ebnf` lints them instead. Deliberately excluded: `*.tdl` (until `tdl fmt` is wired in, see `docs/backlog.md`), `*.golden` and `nix/gomod2nix.toml` and `flake.lock` (generated), and `.claude/` (agent skills).
 
 After changing `go.mod` or adding dependencies, run `make tidy` so `nix/gomod2nix.toml` stays in sync, otherwise `nix build` fails.
 
@@ -79,6 +79,18 @@ The protos are Protobuf Editions 2024. Editions default every field to explicit 
 After changing `proto/`, run `make generate` and commit `ir/ir.pb.go` with it. Field numbers are a compatibility guarantee to plugins: add fields, never renumber or reuse them. CI enforces that with `buf breaking` against the pull request's base, alongside `buf lint` and `buf format`; `make fmt` formats the protos and `make lint` checks them.
 
 A pull request that has to break the schema carries the `buf skip breaking` label, which is what `bufbuild/buf-action` reads. The workflow only re-runs on push, so label first and then push, or the run will still be working from a payload without it.
+
+## Copilot
+
+Copilot code review reads this file directly on github.com, so architecture is already covered and is not what the other two places are for.
+
+`.github/skills/code-review/` is an agent skill: `SKILL.md` plus reference files Copilot picks up alongside it, loaded when its description matches the work. It holds the review procedure and the per-area invariants, and `do-not-review.md` is the part that matters most, because the default failure is comments on things CI already enforces. Copilot's own review comments recommend this path.
+
+`.github/copilot-instructions.md` is always loaded and stays short: orientation, a pointer at the skill, and the two conventions that look like defects.
+
+The leading `@../AGENTS.md` there is a file reference Copilot CLI expands, and which code review does not need because it reads this file anyway. References are not expanded inside a skill file, so `SKILL.md` and its siblings stand alone.
+
+Keep all of it short. It earns its place by saying what a reviewer would otherwise get wrong, not by describing the repository.
 
 ## Conventions
 
