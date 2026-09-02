@@ -101,6 +101,9 @@
               "flake.lock"
               # `tdl fmt` formats these; wiring it in is in docs/backlog.md.
               "*.tdl"
+              # mdformat rewrites YAML frontmatter as a thematic break, and
+              # the frontmatter is how Copilot decides when to load a skill.
+              ".github/skills/**/SKILL.md"
             ];
           };
         };
