@@ -184,6 +184,12 @@ model:  {
       }
       order:  12
     }
+    unit:  {
+      unit:  {
+        name:  "s"
+      }
+      base:  true
+    }
   }
   decls:  {
     meta:  {
@@ -195,6 +201,13 @@ model:  {
       }
       order:  13
     }
+    unit:  {
+      unit:  {
+        index:  1
+        name:  "m"
+      }
+      base:  true
+    }
   }
   decls:  {
     meta:  {
@@ -205,6 +218,13 @@ model:  {
         column:  1
       }
       order:  14
+    }
+    unit:  {
+      unit:  {
+        index:  2
+        name:  "kg"
+      }
+      base:  true
     }
   }
   decls:  {
@@ -501,6 +521,51 @@ model:  {
         column:  3
       }
       target:  "debug"
+    }
+  }
+  units:  {
+    dims:  {
+      base:  {
+        index:  12
+        name:  "s"
+      }
+      exponent:  1
+    }
+    wrote:  "s"
+    position:  {
+      filename:  "std.tdl"
+      line:  28
+      column:  1
+    }
+  }
+  units:  {
+    dims:  {
+      base:  {
+        index:  13
+        name:  "m"
+      }
+      exponent:  1
+    }
+    wrote:  "m"
+    position:  {
+      filename:  "std.tdl"
+      line:  30
+      column:  1
+    }
+  }
+  units:  {
+    dims:  {
+      base:  {
+        index:  14
+        name:  "kg"
+      }
+      exponent:  1
+    }
+    wrote:  "kg"
+    position:  {
+      filename:  "std.tdl"
+      line:  31
+      column:  1
     }
   }
 }
