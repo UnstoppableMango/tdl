@@ -1,7 +1,7 @@
 # Deriving the tree-sitter grammar
 
 Design document.
-Of what it describes, the lexical tables in `lex/table.go`, the annotations, the generator, and the generated parser are built; the external scanner is a stub and the wiring is not.
+Of what it describes, the lexical tables in `lex/table.go`, the annotations, the generator, the generated parser, and the external scanner are built; the wiring is not.
 [treesitter-plan.md](treesitter-plan.md) tracks which phase has landed.
 
 A tree-sitter grammar gives syntax highlighting, structural selection, and folding to every editor that speaks it, and is the dependency for the editor work in [backlog.md](../backlog.md).
