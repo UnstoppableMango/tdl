@@ -52,13 +52,11 @@ Completion needs scope information the resolver already computes.
 
 ## Editor support
 
-Each of these wants the tree-sitter grammar for highlighting and the language server for everything else, so neither is worth starting before those exist.
-The grammar has a plan of its own in [design/treesitter-plan.md](design/treesitter-plan.md).
+Highlighting for Neovim, VS Code, Zed, and GitHub has a design of its own in [design/editors.md](design/editors.md).
+Two remain here, because both want the language server more than they want highlighting and neither is close to the other four in shape.
 
-- **Vim and Neovim.** Filetype detection, a tree-sitter parser registration, and an `lspconfig` entry. The smallest of the four.
-- **VS Code.** An extension bundling the language server, plus a grammar for highlighting before the server starts.
-- **JetBrains.** A plugin. The platform has its own PSI model, so this is the most work of the four; the LSP API narrows it.
-- **Emacs.** A major mode deriving from `prog-mode`, `treesit` integration, and an `eglot` entry.
+- **JetBrains.** A plugin. The platform has its own PSI model, so this is the most work of the six; the LSP API narrows it.
+- **Emacs.** A major mode deriving from `prog-mode`, `treesit` integration, and an `eglot` entry. Close to Neovim once `treesit` has the grammar.
 
 ## MCP server
 
