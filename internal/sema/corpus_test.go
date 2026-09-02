@@ -20,32 +20,13 @@ import (
 //	go test ./internal/sema -update
 var update = flag.Bool("update", false, "rewrite ir.golden files")
 
-// deferred maps a diagnostic to the phase that will stop producing it.
-// Anything a corpus case reports that is not on this list is a bug in
-// lowering, not a gap in it.
+// TestCorpusLowers walks the conformance corpus and checks that it lowers
+// clean.
 //
-// Only units are left. When they land this becomes a plain assertion that
-// the corpus lowers clean, and the list and this comment go with it.
-var deferred = []struct{ prefix, phase string }{
-	{"unit ", "deferred in ir.md"},
-	{"unit arguments are not lowered yet", "deferred in ir.md"},
-}
-
-func deferralFor(msg string) (string, bool) {
-	for _, d := range deferred {
-		if strings.HasPrefix(msg, d.prefix) || strings.Contains(msg, d.prefix) {
-			return d.phase, true
-		}
-	}
-	return "", false
-}
-
-// TestCorpusLowers walks the conformance corpus and checks that every
-// diagnostic lowering produces is a known deferral.
-//
-// The corpus is the written-down target, so it runs ahead of the
-// implementation on purpose. What this guards is that it runs ahead in
-// exactly the ways the plan says and no others.
+// It used to carry a list of diagnostics lowering was still expected to
+// produce, each naming the phase that would stop producing it. Units were
+// the last entry, so the list is gone and this is the plain assertion it
+// was always going to become.
 func TestCorpusLowers(t *testing.T) {
 	dirs, err := filepath.Glob("../../testdata/conformance/*")
 	if err != nil || len(dirs) == 0 {
@@ -66,12 +47,7 @@ func TestCorpusLowers(t *testing.T) {
 
 			model, diags := Lower(file, WithLoader(caseLoader(t, dir)))
 			for _, d := range diags {
-				phase, ok := deferralFor(d.Msg)
-				if !ok {
-					t.Errorf("unexpected diagnostic: %s", d.Error())
-					continue
-				}
-				t.Logf("deferred to %s: %s", phase, d.Error())
+				t.Errorf("unexpected diagnostic: %s", d.Error())
 			}
 
 			checkGolden(t, filepath.Join(dir, "ir.golden"), ir.Dump(model))
@@ -152,11 +128,6 @@ func TestPreludeLowers(t *testing.T) {
 
 	_, diags := Lower(file)
 	for _, d := range diags {
-		phase, ok := deferralFor(d.Msg)
-		if !ok {
-			t.Errorf("unexpected diagnostic: %s", d.Error())
-			continue
-		}
-		t.Logf("deferred to %s: %s", phase, d.Error())
+		t.Errorf("unexpected diagnostic: %s", d.Error())
 	}
 }
