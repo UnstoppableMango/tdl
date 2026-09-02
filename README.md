@@ -43,39 +43,6 @@ The design is settled and written down:
 | [design/workflow.md](docs/design/workflow.md) | What a model author does with all of it. |
 | [backlog.md](docs/backlog.md) | Wanted, unscheduled: a `treefmt` formatter, an LSP, editor support, an MCP server. |
 
-## Support matrix
-
-What each part of the language reaches today.
-`Front end` is the lexer, parser, and `tdl fmt`; `IR` is `tdl ir`, the resolved model a backend consumes.
-
-| Construct | Front end | IR |
-| --- | --- | --- |
-| `package`, `import` | Yes | Yes, resolved across packages without inlining |
-| `primitive` | Yes | Yes |
-| `alias` | Yes | Yes |
-| `type` (newtype chains) | Yes | Yes, constraints accumulate down the chain |
-| `value`, `entity` | Yes | Yes |
-| `mixin`, `include` | Yes | Yes, expanded |
-| `enum`, variants with fields | Yes | Yes |
-| `class`, functional dependencies, associated types | Yes | Yes |
-| `instance`, including conditional instances | Yes | Yes, satisfaction answers for both |
-| Type parameters and kinds | Yes | Yes, parameters stay parameters |
-| Collection and option sugar (`[T]`, `{T}`, `{K -> V}`, `T?`, `T \| null`) | Yes | Yes, lowered to whatever the prelude declares |
-| `where` constraints | Yes | Yes, open set: standard names checked, others passed through |
-| Field defaults | Yes | Yes, resolved against the field's type |
-| `deprecated` | Yes | Yes |
-| `target` blocks | Yes | Partial: resolved and attached, dependency blocks not merged |
-| `unit` | Yes | No: declarations pass through unlowered, unit arguments are an error |
-
-`tdl fmt` drops ordinary `//` comments; `///` doc comments survive, since they attach to the declaration that follows.
-
-Backends:
-
-| Backend | Kind | Status |
-| --- | --- | --- |
-| `debug` | Built in, also shipped as `tdl-gen-debug` | Prints the model it was given |
-| Anything else | `tdl-gen-<name>` on PATH | The protocol is stable, none written |
-
 ## Example
 
 ```tdl
@@ -151,6 +118,39 @@ Views are `source`, `fmt`, `ast`, `tokens`, `stats`, or `all`; the default is `f
 Parse errors render below the panes with a caret at the reported column.
 
 [`examples/`](examples/README.md) holds files to start from: the same domain modelled flat and nested, plus collections and target blocks.
+
+## Support matrix
+
+What each part of the language reaches today.
+`Front end` is the lexer, parser, and `tdl fmt`; `IR` is `tdl ir`, the resolved model a backend consumes.
+
+| Construct | Front end | IR |
+| --- | --- | --- |
+| `package`, `import` | Yes | Yes, resolved across packages without inlining |
+| `primitive` | Yes | Yes |
+| `alias` | Yes | Yes |
+| `type` (newtype chains) | Yes | Yes, constraints accumulate down the chain |
+| `value`, `entity` | Yes | Yes |
+| `mixin`, `include` | Yes | Yes, expanded |
+| `enum`, variants with fields | Yes | Yes |
+| `class`, functional dependencies, associated types | Yes | Yes |
+| `instance`, including conditional instances | Yes | Yes, satisfaction answers for both |
+| Type parameters and kinds | Yes | Yes, parameters stay parameters |
+| Collection and option sugar (`[T]`, `{T}`, `{K -> V}`, `T?`, `T \| null`) | Yes | Yes, lowered to whatever the prelude declares |
+| `where` constraints | Yes | Yes, open set: standard names checked, others passed through |
+| Field defaults | Yes | Yes, resolved against the field's type |
+| `deprecated` | Yes | Yes |
+| `target` blocks | Yes | Partial: resolved and attached, dependency blocks not merged |
+| `unit` | Yes | No: declarations pass through unlowered, unit arguments are an error |
+
+`tdl fmt` drops ordinary `//` comments; `///` doc comments survive, since they attach to the declaration that follows.
+
+Backends:
+
+| Backend | Kind | Status |
+| --- | --- | --- |
+| `debug` | Built in, also shipped as `tdl-gen-debug` | Prints the model it was given |
+| Anything else | `tdl-gen-<name>` on PATH | The protocol is stable, none written |
 
 ## Releases
 
