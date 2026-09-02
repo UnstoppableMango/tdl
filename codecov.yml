@@ -1,6 +1,13 @@
-# Generated protobuf bindings are not hand-written and are not tested directly.
 ignore:
+  # Generated protobuf bindings are not hand-written and are not tested
+  # directly.
   - "**/*.pb.go"
+  # Build tools rather than something shipped, which is why they are not
+  # under cmd/. `tools/treesitter` is checked by what it produces:
+  # `go test ./internal/treesitter` holds the committed grammar.js to
+  # docs/grammar.ebnf, and CI regenerates and diffs it. Coverage of the
+  # main that calls the emitter would say nothing that check does not.
+  - "tools/**"
 
 coverage:
   status:
