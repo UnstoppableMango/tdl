@@ -121,6 +121,8 @@ Regex literals are ambiguous with unit division, so the parser calls `lex.Rescan
 
 release-please owns the version. Never hand-edit `toolVersion` in `internal/cli/version.go`, `version` in `flake.nix`, or `CHANGELOG.md`; each release PR rewrites them. Both version strings carry an `x-release-please-version` annotation, which is what makes them update rather than drift.
 
+`metadata.version` in `tree-sitter/tree-sitter.json` is not release-please's either, and for a harder reason than `specVersion`'s. `tree-sitter generate` embeds it in `tree-sitter/src/parser.c` as `patch_version`, so a bump release-please writes is a bump nothing regenerates, and the next `make treesitter` produces a diff that fails CI on every pull request until someone notices. It is the grammar's own version, bumped by hand alongside a regeneration; the mirror repository in `docs/design/editors.md` stamps the release version into its copy.
+
 `specVersion` is not release-please's and must not be given the annotation. It tracks `docs/spec.md`, which moves on its own schedule, and a release that changed no spec text should not claim to have changed the spec.
 
 `CHANGELOG.md` is excluded from treefmt and from markdownlint, because a generated file that a formatter rewrites is a file the next release will fight over.
