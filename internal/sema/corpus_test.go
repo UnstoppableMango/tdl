@@ -46,8 +46,14 @@ func TestCorpusLowers(t *testing.T) {
 			}
 
 			model, diags := Lower(file, WithLoader(caseLoader(t, dir)))
-			for _, d := range diags {
-				t.Errorf("unexpected diagnostic: %s", d.Error())
+			if len(diags) > 0 {
+				// Lower says a model that produced diagnostics is
+				// incomplete, so the golden and the round-trip below would
+				// be reporting on something nobody claimed was right.
+				for _, d := range diags {
+					t.Errorf("unexpected diagnostic: %s", d.Error())
+				}
+				return
 			}
 
 			checkGolden(t, filepath.Join(dir, "ir.golden"), ir.Dump(model))
