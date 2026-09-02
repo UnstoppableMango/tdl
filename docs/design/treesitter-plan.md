@@ -121,6 +121,21 @@ The reference implementation solves this with `RescanRegexAt`, and the shape of 
 
 Done when the constraint cases parse, `matches(/^[^@]+@[^@]+$/)` and `unit N = kg * m / s^2` both read correctly, `testdata/invalid/*/source.tdl` each produce an ERROR node, and `tree-sitter/corpus.sh` has an empty deferred list.
 
+Done.
+`valid_symbols` is `RescanRegexAt` asked from the other side, so the scan itself is the reference loop read across: a slash, then anything but a slash, a backslash, or a newline, with a backslash taking the character after it.
+End of line and end of file are both unterminated, and the scanner returns false rather than reporting, which leaves the slash to the built-in lexer and makes the file an ERROR instead of a literal running to the end of it.
+
+The two readings coexist in one file: `unit N = kg * m / s^2` beside `matches(/^[^@]+@[^@]+$/)` gives a `unit_expr` and a `regex_lit` and no ERROR.
+`corpus.sh` lost the deferred list rather than emptying it, and gained the invalid half, which checks for an ERROR node and not for the message.
+`error.golden` is the reference implementation's wording, and a second parser agreeing on the diagnosis is a different promise from agreeing that the file is bad.
+
+`testdata/invalid/unterminated_regex` is new, since an unterminated regex is the failure the scanner introduces and no case covered it.
+Both parsers reject it.
+
+One thing is deferred rather than solved.
+tree-sitter consults an external scanner during error recovery with every symbol marked valid, so a stray slash in an already-broken file can be read as the start of a regex.
+The usual answer is a second, unused external token as a sentinel, which the annotations have no way to express; nothing in either corpus shows the behaviour, so it waits for a case that does.
+
 ## Phase 7: wiring
 
 `command make generate-treesitter`, a CI job running it followed by `git diff --exit-code`, and a first `queries/highlights.scm`.

@@ -4,7 +4,13 @@
 # The corpus is the one parser/conformance_test.go walks, run here by
 # tree-sitter rather than by Go, so a check the reference implementation
 # passes is one the derived parser has to pass in the same terms.
-# docs/design/treesitter-plan.md says why.
+# docs/design/treesitter.md says why.
+#
+# testdata/conformance must parse with no ERROR node, and testdata/invalid
+# must produce one. The invalid half checks the ERROR and not the message:
+# error.golden is the reference implementation's wording, and a second
+# parser agreeing on the diagnosis is a different promise from agreeing
+# that the file is bad.
 #
 #	command make test-treesitter
 
@@ -19,35 +25,38 @@ config=$(mktemp -d)
 trap 'rm -rf "$config"' EXIT
 printf '{"parser-directories":["%s"]}\n' "$PWD/.." >"$config/config.json"
 
-# Cases the derived parser is not expected to read yet, each naming the
-# phase that deletes the entry. A deferred case that parses clean fails
-# too, so nothing here outlives the phase that owns it.
-deferred() {
-	case "$1" in
-	constraints) echo "regex literals need the external scanner: phase 6" ;;
-	esac
-}
-
 status=0
 
-for source in ../testdata/conformance/*/source.tdl; do
+# parse runs one case and reports whether the outcome was the wanted one.
+# tree-sitter parse already exits nonzero on an ERROR node, so the exit
+# code is the whole result.
+parse() {
+	local want=$1 source=$2
+	local name out
 	name=$(basename "$(dirname "$source")")
-	reason=$(deferred "$name")
 
 	if out=$(tree-sitter parse --quiet --config-path "$config/config.json" "$source" 2>&1); then
-		if [ -n "$reason" ]; then
-			echo "FAIL  $name parses clean, delete the deferred entry ($reason)"
-			status=1
-		else
+		if [ "$want" = clean ]; then
 			echo "ok    $name"
+		else
+			echo "FAIL  $name parses clean, and should not"
+			status=1
 		fi
-	elif [ -n "$reason" ]; then
-		echo "defer $name $reason"
+	elif [ "$want" = error ]; then
+		echo "ok    $name rejected"
 	else
 		echo "FAIL  $name"
 		echo "$out" | sed 's/^/      /'
 		status=1
 	fi
+}
+
+for source in ../testdata/conformance/*/source.tdl; do
+	parse clean "$source"
+done
+
+for source in ../testdata/invalid/*/source.tdl; do
+	parse error "$source"
 done
 
 exit $status
