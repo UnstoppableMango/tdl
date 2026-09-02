@@ -17,9 +17,10 @@ type dims map[int32]int32
 //
 // It runs before the rest of lowering rather than as part of it, for two
 // reasons. A unit may be written after the unit that derives from it, so
-// file order is not resolution order. And a type argument naming a unit
-// needs the answer already computed, since `decimal<N>` interns on what N
-// reduces to.
+// file order is not resolution order. And a unit's reduction has to exist
+// before anything can refer to it: a type argument naming a unit interns
+// on what that unit reduces to, so the answer is computed once here rather
+// than at each use.
 //
 // Resolution is on demand with a seen set, which is also what makes a cycle
 // reportable at the declaration that closes it.
@@ -81,9 +82,10 @@ func (l *lowerer) resolveUnit(u *ast.UnitDecl, decls map[string]*ast.UnitDecl, s
 
 // reduce accumulates a unit expression into acc.
 //
-// `sign` carries whether the expression sits under a division, so `/` flips
-// it and a parenthesized sub-expression inherits it: the `m` in
-// `kg/(s*m)` is negative because the group is.
+// `sign` is the exponent every term in the expression is under, so a
+// parenthesized sub-expression inherits it: the `m` in `kg/(s*m)` is
+// negative because the group is divided, and both factors of `(kg*m)^2`
+// are squared because the group is.
 func (l *lowerer) reduce(e *ast.UnitExpr, sign int32, acc dims, decls map[string]*ast.UnitDecl, seen map[string]bool) bool {
 	ok := true
 	for _, t := range e.Terms {
@@ -92,8 +94,10 @@ func (l *lowerer) reduce(e *ast.UnitExpr, sign int32, acc dims, decls map[string
 			s = -sign
 		}
 
+		// An exponent applies to whichever form the term took, so a group
+		// carries it the way a name does: `(kg*m)^2` is kg^2*m^2.
 		if t.Paren != nil {
-			if !l.reduce(t.Paren, s, acc, decls, seen) {
+			if !l.reduce(t.Paren, s*int32(t.Exp), acc, decls, seen) {
 				ok = false
 			}
 			continue

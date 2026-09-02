@@ -40,6 +40,17 @@ The fix is a production: the shared tail of `Field` becomes its own hidden and i
 That deletes the conflict annotation and costs a `class_field` node distinct from `field`, which the highlight queries then have to name.
 It changes `docs/grammar.ebnf` and `docs/spec.md` rather than any code, which is why it is here and not in [design/treesitter-plan.md](design/treesitter-plan.md).
 
+## An exponent on a parenthesized unit term
+
+`docs/grammar.ebnf` says `UnitTerm = identifier [ "^" int_lit ] | "(" UnitExpr ")" .`, which gives an exponent to a name and not to a group.
+`parser.parseUnitTerm` reads the `^` after either form, so `(kg*m)^2` parses and lowers to `kg^2*m^2`.
+
+The parser is the one that is right.
+A unit expression is dimensional algebra, and a group is a term like any other; the notation reads as though the restriction were deliberate, and nothing in [spec.md](spec.md) says it is.
+
+The change is `UnitTerm = ( identifier | "(" UnitExpr ")" ) [ "^" int_lit ] .`, a sentence in the spec's units section, and a regenerated tree-sitter grammar.
+It is here rather than in a plan because it touches `docs/grammar.ebnf`, and a grammar change and the tree-sitter derivation have to land together.
+
 ## Language server
 
 `tdl lsp` is already described in [design/workflow.md](design/workflow.md) as the editor-facing half of the inner loop.

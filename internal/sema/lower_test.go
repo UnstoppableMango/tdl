@@ -322,6 +322,29 @@ unit s`)
 	}
 }
 
+// An exponent applies to whichever form the term took, so a parenthesized
+// group carries it the way a name does.
+func TestParenthesizedUnitExponent(t *testing.T) {
+	model := lower(t, `
+unit kg
+unit m
+unit s
+unit Squared = (kg*m)^2
+unit Nested = (kg*m^2)^3/s
+unit Twice = ((kg/m)^2)^2`)
+
+	for _, c := range []struct{ name, want string }{
+		{"Squared", "kg^2 m^2"},
+		{"Nested", "kg^3 m^6 s^-1"},
+		{"Twice", "kg^4 m^-4"},
+	} {
+		decl, _, _ := model.FindDecl(c.name)
+		if got := dimsText(t, model, decl); got != c.want {
+			t.Errorf("%s = %s, want %s", c.name, got, c.want)
+		}
+	}
+}
+
 // A unit that reaches itself has no reduction, so it is an error at the
 // declaration that closes the cycle.
 func TestUnitCycleIsAnError(t *testing.T) {
