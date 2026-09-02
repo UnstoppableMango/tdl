@@ -12,6 +12,22 @@ Ordered roughly by what unblocks what, not by priority.
 
 The awkward part is bootstrapping: formatting the repository would depend on building the thing the repository is.
 
+## Anonymous union types
+
+A field wants to say `A | B` without a declaration standing behind it.
+`enum` covers the nominal case, since a variant may carry fields, but every alternative has to be named and declared in one place.
+
+The syntax is already half there.
+`TypeRef = CoreType [ "?" ] [ "|" "null" ]` admits a single `|`, and `T | null` lowers to the prelude's `Nullable<T>`, so `|` is sugar for a named generic rather than a form of its own.
+The general case is that same rule with the right-hand side opened up.
+
+The open question is arity.
+`A | B | C` wants a variadic `Union<A, B, C>`, and kinds are `type`, `unit`, and arrows between them, with nothing variadic.
+Nesting instead gives `Either<A, Either<B, C>>`, which makes one written form into two types depending on how it associates, and makes `A | B` and `B | A` distinct.
+Answering that decides whether this needs a kind-system change, which is what would earn it a plan of its own.
+
+Downstream of the answer: whether a union may appear anywhere a `TypeRef` may, what a backend receives in `ir`, and whether the recursion rules in [spec.md](spec.md) treat reaching yourself through a union the way they treat a collection or an optional.
+
 ## Language server
 
 `tdl lsp` is already described in [design/workflow.md](design/workflow.md) as the editor-facing half of the inner loop.

@@ -20,18 +20,12 @@ Early and incomplete, and moving.
 **The front end is done.** The lexer and parser read the whole grammar, and `tdl check`, `tdl fmt`, `tdl ast`, and `tdl tokens` work across it.
 Nothing in [grammar.ebnf](docs/grammar.ebnf) is missing.
 
-**The middle is most of the way there.** `tdl ir` prints a resolved model:
-
-- Names resolve, with scopes, shadowing, and the spec's recursion rules.
-- Sugar lowers to prelude types, and the prelude is TDL source rather than something built in, so `[T]` means whatever the loaded prelude says `List` is.
-- Imports resolve across packages without inlining the dependency.
-- Mixins expand, and the class satisfaction index answers both for declarations and for types made to satisfy a class by a conditional instance.
-- Constraints accumulate down newtype chains, and defaults resolve against their field's type.
-- Target directives resolve against the model and attach to the nodes they apply to.
+**The middle is most of the way there.** `tdl ir` prints a resolved model: names, imports, mixins, class satisfaction, constraints, defaults, and target directives, all resolved.
+The support matrix below says what each construct reaches.
+Units, and merging a dependency's target blocks, are the two pieces still outstanding.
 
 **The back end runs, with nothing behind it yet.** `tdl gen` resolves a target's backend to a built-in or to `tdl-gen-<name>` on PATH, sends it the resolved model, and writes back the files it returns.
 The only backend is `debug`, which prints what it was given, so nothing generates real code yet.
-Units, and merging a dependency's target blocks, are the two pieces of resolution still outstanding.
 
 The design is settled and written down:
 
@@ -41,46 +35,13 @@ The design is settled and written down:
 | [grammar.ebnf](docs/grammar.ebnf) | The formal grammar. |
 | [design/parser-plan.md](docs/design/parser-plan.md) | Rewriting the lexer and parser to match. Done. |
 | [design/ir.md](docs/design/ir.md) | The resolved model backends consume. |
-| [design/ir-plan.md](docs/design/ir-plan.md) | Implementing it. Phases 1 to 8 of 10 done. |
+| [design/ir-plan.md](docs/design/ir-plan.md) | Implementing it. Everything but dependency target merging. Units are out of its scope. |
 | [design/plugins.md](docs/design/plugins.md) | The backend plugin protocol. |
-| [design/plugins-plan.md](docs/design/plugins-plan.md) | Implementing it. Phases 1 to 8 of 8 done. |
+| [design/plugins-plan.md](docs/design/plugins-plan.md) | Implementing it. Done, but for replaying the recorded exchanges against a non-Go implementation. |
 | [design/treesitter.md](docs/design/treesitter.md) | Deriving the tree-sitter grammar from the EBNF. |
 | [design/treesitter-plan.md](docs/design/treesitter-plan.md) | Implementing it. Phases 1 to 3 of 7 done. |
 | [design/workflow.md](docs/design/workflow.md) | What a model author does with all of it. |
-| [backlog.md](docs/backlog.md) | Wanted, unscheduled: an LSP, editor support, an MCP server. |
-
-## Support matrix
-
-What each part of the language reaches today.
-`Front end` is the lexer, parser, and `tdl fmt`; `IR` is `tdl ir`, the resolved model a backend consumes.
-
-| Construct | Front end | IR |
-| --- | --- | --- |
-| `package`, `import` | Yes | Yes, resolved across packages without inlining |
-| `primitive` | Yes | Yes |
-| `alias` | Yes | Yes |
-| `type` (newtype chains) | Yes | Yes, constraints accumulate down the chain |
-| `value`, `entity` | Yes | Yes |
-| `mixin`, `include` | Yes | Yes, expanded |
-| `enum`, variants with fields | Yes | Yes |
-| `class`, functional dependencies, associated types | Yes | Yes |
-| `instance`, including conditional instances | Yes | Yes, satisfaction answers for both |
-| Type parameters and kinds | Yes | Yes, parameters stay parameters |
-| Collection and option sugar (`[T]`, `{T}`, `{K -> V}`, `T?`, `T \| null`) | Yes | Yes, lowered to whatever the prelude declares |
-| `where` constraints | Yes | Yes, open set: standard names checked, others passed through |
-| Field defaults | Yes | Yes, resolved against the field's type |
-| `deprecated` | Yes | Yes |
-| `target` blocks | Yes | Partial: resolved and attached, dependency blocks not merged |
-| `unit` | Yes | No: declarations pass through unlowered, unit arguments are an error |
-
-`tdl fmt` drops ordinary `//` comments; `///` doc comments survive, since they attach to the declaration that follows.
-
-Backends:
-
-| Backend | Kind | Status |
-| --- | --- | --- |
-| `debug` | Built in, also shipped as `tdl-gen-debug` | Prints the model it was given |
-| Anything else | `tdl-gen-<name>` on PATH | The protocol is stable, none written |
+| [backlog.md](docs/backlog.md) | Wanted, unscheduled: `tdl fmt` as a `treefmt` formatter, an LSP, editor support, an MCP server. |
 
 ## Example
 
@@ -138,6 +99,7 @@ tdl ast ./types.tdl      # print the parse tree
 tdl gen ./types.tdl      # run every target block; --target narrows, -o overrides
                          # --verify checks, --clean empties first, --watch reruns
 tdl ir ./types.tdl       # print the resolved model; --format json for the plugin view
+                         # --prelude lowers against a replacement prelude
 tdl tokens ./types.tdl   # print the token stream
 tdl version              # tool and spec versions
 ```
@@ -149,7 +111,6 @@ tdl version              # tool and spec versions
 ```shell
 tdl play                              # scratch.tdl, created from a template if missing
 tdl play ./types.tdl --views all      # source, fmt, ast, tokens, stats
-tdl play ./types.tdl --views fmt      # one pane
 tdl play ./types.tdl --once           # render and exit
 ```
 
@@ -158,19 +119,51 @@ Parse errors render below the panes with a caret at the reported column.
 
 [`examples/`](examples/README.md) holds files to start from: the same domain modelled flat and nested, plus collections and target blocks.
 
+## Support matrix
+
+What each part of the language reaches today.
+`Front end` is the lexer, parser, and `tdl fmt`; `IR` is `tdl ir`, the resolved model a backend consumes.
+
+| Construct | Front end | IR |
+| --- | --- | --- |
+| `package`, `import` | Yes | Yes, resolved across packages without inlining |
+| `primitive` | Yes | Yes |
+| `alias` | Yes | Yes |
+| `type` (newtype chains) | Yes | Yes, constraints accumulate down the chain |
+| `value`, `entity` | Yes | Yes |
+| `mixin`, `include` | Yes | Yes, expanded |
+| `enum`, variants with fields | Yes | Yes |
+| `class`, functional dependencies, associated types | Yes | Yes |
+| `instance`, including conditional instances | Yes | Yes, satisfaction answers for both |
+| Type parameters and kinds | Yes | Yes, parameters stay parameters |
+| Collection and option sugar (`[T]`, `{T}`, `{K -> V}`, `T?`, `T \| null`) | Yes | Yes, lowered to whatever the prelude declares |
+| `where` constraints | Yes | Yes, open set: standard names checked, others passed through |
+| Field defaults | Yes | Yes, resolved against the field's type |
+| `deprecated` | Yes | Yes |
+| `target` blocks | Yes | Partial: resolved and attached, dependency blocks not merged |
+| `unit` | Yes | No: declarations pass through unlowered, unit arguments are an error |
+
+`tdl fmt` drops ordinary `//` comments; `///` doc comments survive, since they attach to the declaration that follows.
+
+Backends:
+
+| Backend | Kind | Status |
+| --- | --- | --- |
+| `debug` | Built in, also shipped as `tdl-gen-debug` | Prints the model it was given |
+| Anything else | `tdl-gen-<name>` on PATH | The protocol is stable, none written |
+
 ## Releases
 
 Versions come from [release-please](https://github.com/googleapis/release-please): a release pull request accumulates conventional commits and, when merged, tags a release and writes `CHANGELOG.md`.
-
-Nothing about a version is edited by hand. `toolVersion` and the Nix package version carry annotations that the release PR rewrites.
+Nothing about a version is edited by hand; `toolVersion` and the Nix package version carry annotations that the release PR rewrites.
 
 ## Development
 
 ```shell
 command make build   # nix build .#
 command make test    # go test ./...
-command make lint    # nix flake check + buf lint
-command make fmt     # nix fmt
+command make lint    # nix flake check + golangci-lint + buf + markdownlint
+command make fmt     # nix fmt + buf format
 ```
 
 `go build ./...` and `go test ./...` work directly for anyone not using Nix.
