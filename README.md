@@ -35,13 +35,13 @@ The design is settled and written down:
 | [grammar.ebnf](docs/grammar.ebnf) | The formal grammar. |
 | [design/parser-plan.md](docs/design/parser-plan.md) | Rewriting the lexer and parser to match. Done. |
 | [design/ir.md](docs/design/ir.md) | The resolved model backends consume. |
-| [design/ir-plan.md](docs/design/ir-plan.md) | Implementing it. Everything but dependency target merging. |
+| [design/ir-plan.md](docs/design/ir-plan.md) | Implementing it. Everything but dependency target merging. Units are out of its scope. |
 | [design/plugins.md](docs/design/plugins.md) | The backend plugin protocol. |
-| [design/plugins-plan.md](docs/design/plugins-plan.md) | Implementing it. Done. |
+| [design/plugins-plan.md](docs/design/plugins-plan.md) | Implementing it. Done, but for replaying the recorded exchanges against a non-Go implementation. |
 | [design/treesitter.md](docs/design/treesitter.md) | Deriving the tree-sitter grammar from the EBNF. |
 | [design/treesitter-plan.md](docs/design/treesitter-plan.md) | Implementing it. Phases 1 to 3 of 7 done. |
 | [design/workflow.md](docs/design/workflow.md) | What a model author does with all of it. |
-| [backlog.md](docs/backlog.md) | Wanted, unscheduled: a `treefmt` formatter, an LSP, editor support, an MCP server. |
+| [backlog.md](docs/backlog.md) | Wanted, unscheduled: `tdl fmt` as a `treefmt` formatter, an LSP, editor support, an MCP server. |
 
 ## Example
 
