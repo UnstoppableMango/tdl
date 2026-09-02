@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.3](https://github.com/UnstoppableMango/tdl/compare/v0.1.2...v0.1.3) (2026-09-01)
+
+
+### Features
+
+* drop the union keyword ([#717](https://github.com/UnstoppableMango/tdl/issues/717)) ([75f3373](https://github.com/UnstoppableMango/tdl/commit/75f3373ff0a5c5bef5a1c74755a7cec68668cd0c))
+* **ebnf:** read the grammar's annotations ([#719](https://github.com/UnstoppableMango/tdl/issues/719)) ([272a11f](https://github.com/UnstoppableMango/tdl/commit/272a11f98f96d6dd8aca5ad6f4e8087381632f2c))
+
 ## [0.1.2](https://github.com/UnstoppableMango/tdl/compare/v0.1.1...v0.1.2) (2026-09-01)
 
 
