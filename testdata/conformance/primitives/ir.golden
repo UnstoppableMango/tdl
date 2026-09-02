@@ -12,9 +12,12 @@ Model prelude.roots
 │   ├── [9] primitive instant  std.tdl:23:1
 │   ├── [10] primitive date  std.tdl:24:1
 │   ├── [11] primitive duration  std.tdl:25:1
-│   ├── [12] unlowered s  std.tdl:28:1
-│   ├── [13] unlowered m  std.tdl:30:1
-│   ├── [14] unlowered kg  std.tdl:31:1
+│   ├── [12] unit s  std.tdl:28:1
+│   │   └── measures units[0] s
+│   ├── [13] unit m  std.tdl:30:1
+│   │   └── measures units[1] m
+│   ├── [14] unit kg  std.tdl:31:1
+│   │   └── measures units[2] kg
 │   ├── [15] enum Option  std.tdl:34:1
 │   │   ├── param T  std.tdl:34:14
 │   │   ├── variant Some  std.tdl:35:3
@@ -40,6 +43,10 @@ Model prelude.roots
 ├── Satisfies
 │   ├── Entity: nothing
 │   └── Value: nothing
+├── Units
+│   ├── [0] s  std.tdl:28:1
+│   ├── [1] m  std.tdl:30:1
+│   └── [2] kg  std.tdl:31:1
 └── Types
     ├── [0] T  named  -> param Option.T  std.tdl:35:17
     └── [1] T  named  -> param Nullable.T  std.tdl:41:20

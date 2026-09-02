@@ -1,6 +1,7 @@
 package sema
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -287,12 +288,77 @@ value W { net: decimal<kg*m/s^2> }`)
 	}
 }
 
-// Units are deferred, and lowering says so rather than dropping them.
-func TestUnloweredDeclarations(t *testing.T) {
-	diags := lowerDiags(t, `unit kg`)
-	if !strings.Contains(diags.Error(), "unit kg is not lowered yet") {
+// A base unit measures itself, which is the dimension every derived unit
+// reduces to.
+func TestBaseUnitMeasuresItself(t *testing.T) {
+	model := lower(t, `unit kg`)
+
+	decl, _, ok := model.FindDecl("kg")
+	if !ok || decl.GetUnit() == nil {
+		t.Fatalf("kg did not lower to a unit: %v", decl)
+	}
+	if !decl.GetUnit().GetBase() {
+		t.Error("kg is not marked a base unit")
+	}
+
+	dims := model.Unit(decl.GetUnit().GetUnit()).GetDims()
+	if len(dims) != 1 || dims[0].GetBase().GetName() != "kg" || dims[0].GetExponent() != 1 {
+		t.Errorf("dims = %v", dims)
+	}
+}
+
+// File order is not resolution order: a unit may derive from one written
+// after it.
+func TestDerivedUnitResolvesForward(t *testing.T) {
+	model := lower(t, `
+unit N = kg*m/s^2
+unit kg
+unit m
+unit s`)
+
+	decl, _, _ := model.FindDecl("N")
+	if got := dimsText(t, model, decl); got != "kg^1 m^1 s^-2" {
+		t.Errorf("N = %s", got)
+	}
+}
+
+// A unit that reaches itself has no reduction, so it is an error at the
+// declaration that closes the cycle.
+func TestUnitCycleIsAnError(t *testing.T) {
+	diags := lowerDiags(t, `
+unit m
+unit A = B*m
+unit B = A/m`)
+	if !strings.Contains(diags.Error(), "defined in terms of itself") {
 		t.Errorf("diagnostics = %v", diags)
 	}
+}
+
+// A unit expression names units and nothing else.
+func TestUnitExpressionNamingANonUnit(t *testing.T) {
+	diags := lowerDiags(t, `
+primitive string
+unit A = string`)
+	if !strings.Contains(diags.Error(), "string is not a unit") {
+		t.Errorf("diagnostics = %v", diags)
+	}
+}
+
+func TestUndefinedUnit(t *testing.T) {
+	diags := lowerDiags(t, `unit A = nope`)
+	if !strings.Contains(diags.Error(), "undefined unit: nope") {
+		t.Errorf("diagnostics = %v", diags)
+	}
+}
+
+// dimsText renders a declaration's dimensions for a test failure message.
+func dimsText(t *testing.T, model *ir.Model, decl *ir.Decl) string {
+	t.Helper()
+	var parts []string
+	for _, d := range model.Unit(decl.GetUnit().GetUnit()).GetDims() {
+		parts = append(parts, fmt.Sprintf("%s^%d", d.GetBase().GetName(), d.GetExponent()))
+	}
+	return strings.Join(parts, " ")
 }
 
 // A type parameter shadows a declaration of the same name, inside the

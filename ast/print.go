@@ -418,6 +418,15 @@ func printTypeArgs(args []*TypeArg) string {
 	return "<" + strings.Join(parts, ", ") + ">"
 }
 
+// PrintUnitExpr renders a unit expression the way `tdl fmt` writes it.
+//
+// Exported because lowering records what a unit was written as beside what
+// it reduces to, and reconstructing the text there would be a second
+// printer to keep in step with this one.
+func PrintUnitExpr(e *UnitExpr) string {
+	return printUnitExpr(e)
+}
+
 // printUnitExpr renders a unit expression without spaces around its
 // operators, the form the spec uses: `kg*m/s^2`.
 func printUnitExpr(e *UnitExpr) string {

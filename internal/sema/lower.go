@@ -76,13 +76,14 @@ func Lower(file *ast.File, opts ...Option) (*ir.Model, Diagnostics) {
 	}
 
 	l := &lowerer{
-		model:   &ir.Model{},
-		byName:  map[string]int32{},
-		types:   map[string]int32{},
-		units:   map[string]bool{},
-		aliases: map[string]string{},
-		externs: map[string]int32{},
-		loader:  cfg.loader,
+		model:    &ir.Model{},
+		byName:   map[string]int32{},
+		types:    map[string]int32{},
+		units:    map[string]bool{},
+		unitKeys: map[string]int32{},
+		aliases:  map[string]string{},
+		externs:  map[string]int32{},
+		loader:   cfg.loader,
 	}
 	l.file = newScope(l.loadPrelude(cfg))
 	l.scope = l.file
@@ -98,6 +99,7 @@ func Lower(file *ast.File, opts ...Option) (*ir.Model, Diagnostics) {
 	// to a declaration further down the file resolves like one above it.
 	l.collect(file)
 	l.checkRecursion(file)
+	l.lowerUnits(file)
 	l.lower(file)
 	l.expandIncludes(file)
 	l.accumulateConstraints()
@@ -132,19 +134,21 @@ func (l *lowerer) loadPrelude(cfg config) *scope {
 	l.file, l.scope = outer, outer
 	l.inPrelude = true
 	l.collect(file)
+	l.lowerUnits(file)
 	l.lower(file)
 	l.inPrelude = false
 	return outer
 }
 
 type lowerer struct {
-	model   *ir.Model
-	byName  map[string]int32  // declaration name to index
-	types   map[string]int32  // interning key to index
-	units   map[string]bool   // declaration names that are units
-	aliases map[string]string // import alias to package name
-	externs map[string]int32  // "pkg.Name" to index
-	loader  Loader
+	model    *ir.Model
+	byName   map[string]int32  // declaration name to index
+	types    map[string]int32  // interning key to index
+	units    map[string]bool   // declaration names that are units
+	unitKeys map[string]int32  // reduced dimensions to Model.units index
+	aliases  map[string]string // import alias to package name
+	externs  map[string]int32  // "pkg.Name" to index
+	loader   Loader
 	// inPrelude suppresses the diagnostics that say a declaration form is
 	// not lowered yet. The prelude is the compiler's own input, so telling a
 	// user that `class Entity` is unimplemented on every file is noise they
@@ -304,9 +308,11 @@ func (l *lowerer) setNode(out *ir.Decl, decl ast.Decl) {
 			out.Node = &ir.Decl_Enumeration{Enumeration: e}
 		})
 
+	case *ast.UnitDecl:
+		// Already lowered by lowerUnits, which runs first because file order
+		// is not resolution order for units.
+
 	default:
-		// Units are deferred in ir.md. The parser produces them, so lowering
-		// says so rather than dropping them silently.
 		l.deferral(decl.Pos(), "%s is not lowered yet", declLabel(decl))
 	}
 }
