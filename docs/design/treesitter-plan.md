@@ -138,11 +138,28 @@ The usual answer is a second, unused external token as a sentinel, which the ann
 
 ## Phase 7: wiring
 
-`command make generate-treesitter`, a CI job running it followed by `git diff --exit-code`, and a first `queries/highlights.scm`.
+`command make treesitter`, a CI job running it followed by `git diff --exit-code`, and a first `queries/highlights.scm`.
 
 `AGENTS.md` gains the derivation, and `docs/backlog.md` loses the tree-sitter entry it had before this plan existed.
 
 Done when a production added to `docs/grammar.ebnf` without regenerating fails CI.
+
+Done.
+The job runs through `nix develop` rather than `tree-sitter/setup-action`, since the regeneration diff is only stable against a pinned CLI and `flake.lock` is what pins it.
+`parser.c` carries no timestamp, so the output is deterministic given that version.
+
+Both halves of the done-condition were proved rather than assumed: a production added to `docs/grammar.ebnf` leaves a diff after `make treesitter`, and a spelling deleted from `highlights.scm` fails `go test ./internal/treesitter`.
+
+The query is hand-written, as [treesitter.md](treesitter.md) says it must be, and two checks hold it to the language anyway.
+`tree-sitter query` compiles it against the corpus, so a node name the grammar no longer has is an error rather than something quietly left uncolored.
+`TestHighlightsCoverKeywords` checks every spelling in `lex.Keywords()` appears in it, because a keyword is an anonymous token and no tree carries its name, which is the check `internal/ebnf` already makes in the other direction.
+
+Neither is a judgment about what should be colored, which is the line the design document draws and this does not cross.
+
+Two of the phase's items were already true.
+`AGENTS.md` gained the derivation in phases 5 and 6, and `docs/backlog.md` has no standalone tree-sitter entry left: its "Editor support" section points at this plan instead, which is what losing the entry meant.
+
+The plan named `generate-treesitter`; the target is `treesitter`, matched with `test-treesitter`, and this text is corrected rather than the Makefile.
 
 ## Not in this plan
 

@@ -59,4 +59,18 @@ for source in ../testdata/invalid/*/source.tdl; do
 	parse error "$source"
 done
 
+# queries/highlights.scm is hand-written, so nothing regenerates it when a
+# production is renamed. Compiling it is what catches that: a node name the
+# grammar no longer has is an error rather than something quietly left
+# uncolored. TestHighlightsCoverKeywords checks the other half, the
+# anonymous tokens no tree carries the name of.
+if out=$(tree-sitter query --quiet --config-path "$config/config.json" \
+	queries/highlights.scm ../testdata/conformance/*/source.tdl 2>&1); then
+	echo "ok    highlights.scm"
+else
+	echo "FAIL  highlights.scm"
+	echo "$out" | sed 's/^/      /'
+	status=1
+fi
+
 exit $status
