@@ -1,7 +1,7 @@
 # Deriving the tree-sitter grammar
 
 Design document.
-Of what it describes, only the lexical tables in `lex/table.go` are built; the annotations, the generator, and the grammar are not.
+Of what it describes, the lexical tables in `lex/table.go`, the annotations, and the generator are built; the generated parser, the external scanner, and the wiring are not.
 [treesitter-plan.md](treesitter-plan.md) tracks which phase has landed.
 
 A tree-sitter grammar gives syntax highlighting, structural selection, and folding to every editor that speaks it, and is the dependency for the editor work in [backlog.md](../backlog.md).
@@ -55,13 +55,14 @@ File-level directives come first, before any production.
 /*@ word identifier */
 /*@ extra doc_comment line_comment */
 /*@ token doc_comment = DocPattern */
-/*@ conflict Field KeyRequirement */
+/*@ conflict FieldMod KeyRequirement */
 ```
 
 `word` names the token tree-sitter extracts keywords from, which it needs to keep a keyword from matching a prefix of an identifier.
 `extra` lists what may appear between any two tokens.
 `token` binds a name to the `lex` symbol that defines it, which is what turns a pattern into a tree-sitter rule. It is file-level only for a name with no production, as `doc_comment` and `line_comment` are: the lexer skips ordinary comments and the grammar never mentions them.
-`conflict` emits an entry in the grammar's `conflicts` array, one per pair the GLR parser cannot decide locally.
+`conflict` emits an entry in the grammar's `conflicts` array, one per set of productions the GLR parser cannot decide locally.
+A set of one is a production that cannot be decided against its own other readings, which is what a field followed by `where` is.
 
 Production annotations precede the production they describe.
 
@@ -79,6 +80,7 @@ regex_lit = .
 
 `hidden` emits the rule with a leading underscore, so it structures the grammar without appearing in the tree.
 `inline` substitutes the rule into its callers instead.
+The generator does the substitution rather than emitting tree-sitter's `inline` array, which refuses a rule that is a single token, as `FieldRel` is.
 `prec`, `prec.left`, and `prec.right` carry the associativity the notation cannot state.
 `external` marks a terminal the scanner in `scanner.c` produces, which `regex_lit` needs because its `/` is also an operator.
 `token` on a lexical production names the `lex` symbol that defines it, so the production's own name does not have to be repeated.

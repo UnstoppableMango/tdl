@@ -54,6 +54,7 @@
               pkgs.buf
               pkgs.markdownlint-cli2
               pkgs.protoc-gen-go
+              pkgs.tree-sitter
             ];
           };
 

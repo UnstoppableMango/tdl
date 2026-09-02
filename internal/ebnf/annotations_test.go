@@ -92,7 +92,7 @@ func TestAnnotationDiagnostics(t *testing.T) {
 		{"word names nothing", "/*@ word Nope */\n" + prelude, "not a production"},
 		{"two words", "/*@ word identifier */\n/*@ word File */\n" + prelude, "already"},
 		{"conflict names nothing", "/*@ conflict File Nope */\n" + prelude, "not a production"},
-		{"conflict needs two", "/*@ conflict File */\n" + prelude, "at least two"},
+		{"conflict needs a name", "/*@ conflict */\n" + prelude, "at least one"},
 		{"extra with no binding", "/*@ extra ghost */\n" + prelude, "no token annotation binds"},
 		{"unknown lex symbol", "/*@ token doc = Nope */\n" + prelude, "not a lex symbol"},
 		{"prec without a level", "File = identifier .\n/*@ prec.left */\n/*@ token IdentPattern */\nidentifier = .\n", "takes one level"},

@@ -73,6 +73,18 @@ Output is deterministic, since a nondeterministic generator makes the regenerati
 
 Done when `tools/treesitter` writes a `grammar.js` that `tree-sitter generate` accepts, and running it twice produces the same bytes.
 
+Done.
+Rule names are snake_case, the spelling every published tree-sitter grammar uses, and a hidden production gains the leading underscore; two productions that would claim one rule name are an error naming both.
+Rules are emitted in the order the productions are written, so the diff against `docs/grammar.ebnf` is readable; nothing iterates the `Grammar` map.
+The emitter substitutes an `inline` production itself rather than emitting tree-sitter's `inline` array, which refuses a rule that is a single token, as `FieldRel` is.
+A character range and a bad node are errors rather than a guess, since the notation admits both and this grammar uses neither.
+
+Generating a parser is what settled the provisional annotations of phase 2, one phase earlier than expected: `conflict Field KeyRequirement` is really `FieldMod KeyRequirement`, `conflict UnitExpr TypeRef` is really `DottedIdent UnitTerm`, `conflict Path Directive` is a conflict the generator resolves on its own and is gone, and a field followed by `where` needs `conflict Field`, a set of one, which `internal/ebnf` did not accept before.
+`prec.left` on `UnitExpr` and `prec.right` on `Kind` were right.
+
+The generated parser is not committed and `tree-sitter/.gitignore` says so, because whether it should be is a question for the phase that runs it.
+`tree-sitter generate` warns that there is no `tree-sitter.json` and falls back to ABI 14; the manifest arrives with `package.json` in phase 5.
+
 ## Phase 5: the conformance corpus
 
 `tree-sitter/package.json`, the generated parser, and the corpus run.

@@ -193,8 +193,11 @@ func (a *Annotations) file(ann annotation, keyword string, args []string, gramma
 		}
 		a.Extras = append(a.Extras, args...)
 	case "conflict":
-		if len(args) < 2 {
-			return []error{fmt.Errorf("%s: conflict takes at least two productions", ann.pos)}
+		// One name is a real entry: it says a rule cannot be decided
+		// against its own other readings, which is what a field followed
+		// by `where` is.
+		if len(args) == 0 {
+			return []error{fmt.Errorf("%s: conflict takes at least one production", ann.pos)}
 		}
 		for _, name := range args {
 			if _, ok := grammar[name]; !ok {
