@@ -7,6 +7,8 @@ Nothing here is built.
 The goal is syntax highlighting in Neovim, VS Code, Zed, and on GitHub, for TDL files.
 Everything past highlighting wants the language server, which is separate work and is not in this document.
 
+[editors-plan.md](editors-plan.md) tracks which phase has landed.
+
 ## What each editor actually reads
 
 The tree-sitter grammar is not universal.
@@ -91,19 +93,21 @@ It also gives the grammar a home an editor that expects one can use, which is th
 
 ## GitHub
 
-Per project, with `.gitattributes`, rather than through Linguist.
+Through Linguist, when the numbers are there, and not before.
 
-Linguist wants at least 2000 files per extension indexed in the last year across many repositories, and a TextMate grammar vendored into its tree.
-The grammar this document derives satisfies the second half.
-The first is adoption, and adoption is not something to build.
+Linguist wants a TextMate grammar vendored into its tree, and at least 2000 files per extension indexed in the last year across many repositories.
+The grammar this document derives satisfies the first.
+The second is adoption, and adoption is not something to build.
 
-`*.tdl linguist-language=X` in a repository's `.gitattributes` gives that repository's TDL files the highlighting of an existing language.
-The candidate is chosen by eye rather than argued: what matters is that `name: Type`, the declaration keywords, and the string and comment forms all land somewhere sensible, and Kotlin, Swift, and Thrift are each close enough to be worth looking at.
+There is a way to have colour sooner.
+`*.tdl linguist-language=X` in a repository's `.gitattributes` gives that repository's TDL files the highlighting of an existing language, and Kotlin, Swift, and Thrift are each close enough to be legible.
 
-The cost is that the override also classifies, so the repository's language bar will name whatever was chosen.
-Combining it with `linguist-detectable=false` should keep the files out of the statistics while still colouring them, which is not documented and has to be tried.
+It is not worth it.
+The override classifies as well as colours, so every repository doing it reports itself as written in a language it is not, in the language bar and in the API behind it.
+A language young enough to need the trick is exactly the one that cannot afford to be counted as something else.
 
-Submitting TDL to Linguist stays possible and stays out of this document until the numbers are real.
+So GitHub waits.
+The derived grammar means the waiting is on usage rather than on work, which is the right thing to be blocked on.
 
 ## Not in this document
 
