@@ -275,16 +275,53 @@ value A { y: string }
 	}
 }
 
-// Units are deferred, and lowering says so rather than dropping them.
-func TestUnitArgumentsAreRejected(t *testing.T) {
-	diags := lowerDiags(t, `
+// The spec says decimal<N> and decimal<kg*m/s^2> are the same type, and
+// interning is what makes an ID comparison answer that. Every spelling of
+// one quantity reaches one entry in the type table.
+func TestUnitSpellingsInternTogether(t *testing.T) {
+	model := lower(t, `
 primitive decimal
 unit kg
 unit m
 unit s
-value W { net: decimal<kg*m/s^2> }`)
-	if !strings.Contains(diags.Error(), "unit arguments are not lowered yet") {
-		t.Errorf("diagnostics = %v", diags)
+unit N = kg*m/s^2
+value W {
+  named: decimal<N>
+  written: decimal<kg*m/s^2>
+  parenthesized: decimal<(kg*m)/s^2>
+  cancelled: decimal<kg*m/(s^2*m)*m>
+  other: decimal<kg>
+}`)
+
+	decl, _, _ := model.FindDecl("W")
+	fields := decl.GetStructure().GetFields()
+	first := fields[0].GetType().GetIndex()
+	for _, f := range fields[:4] {
+		if got := f.GetType().GetIndex(); got != first {
+			t.Errorf("%s = types[%d], want types[%d]", f.GetMeta().GetName(), got, first)
+		}
+	}
+	if got := fields[4].GetType().GetIndex(); got == first {
+		t.Errorf("decimal<kg> interned with decimal<N> at types[%d]", got)
+	}
+}
+
+// A unit argument is an ordinary entry in the type table, with `unit` set
+// where a named type would set `ctor`.
+func TestUnitArgumentIsAType(t *testing.T) {
+	model := lower(t, `
+primitive decimal
+unit kg
+value W { net: decimal<kg> }`)
+
+	decl, _, _ := model.FindDecl("W")
+	arg := model.Type(decl.GetStructure().GetFields()[0].GetType()).GetArgs()[0]
+	unit := model.Type(arg).GetUnit()
+	if unit == nil {
+		t.Fatalf("argument is not a unit: %v", model.Type(arg))
+	}
+	if got := model.Unit(unit).GetDims(); len(got) != 1 || got[0].GetBase().GetName() != "kg" {
+		t.Errorf("dims = %v", got)
 	}
 }
 
