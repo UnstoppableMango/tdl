@@ -73,6 +73,18 @@ func Dump(m *Model) string {
 			}
 		})
 	}
+	if len(m.GetUnits()) > 0 {
+		d.section("Units", true, func(prefix string) {
+			for i, u := range m.GetUnits() {
+				dims := dimsText(u)
+				line := fmt.Sprintf("[%d] %s", i, dims)
+				if wrote := u.GetWrote(); wrote != "" && wrote != dims {
+					line += "  (" + wrote + ")"
+				}
+				d.leaf(prefix, i == len(m.GetUnits())-1, line, u.GetPosition())
+			}
+		})
+	}
 	d.section("Types", len(m.GetExterns()) > 0, func(prefix string) {
 		for i, t := range m.GetTypes() {
 			d.leaf(prefix, i == len(m.GetTypes())-1, d.typeLine(i, t), t.GetPosition())
@@ -110,6 +122,9 @@ func (d *dumper) decl(prefix string, last bool, index int, decl *Decl) {
 		})
 	}
 	switch {
+	case decl.GetUnit() != nil:
+		u := decl.GetUnit()
+		kids = append(kids, func(l bool) { d.leaf(inner, l, "measures "+d.unitRef(u.GetUnit()), nil) })
 	case decl.GetAlias() != nil:
 		id := decl.GetAlias().GetTarget()
 		kids = append(kids, func(l bool) { d.leaf(inner, l, "target "+d.ref(id), nil) })
@@ -178,8 +193,8 @@ func declLine(decl *Decl) string {
 		kind = "enum"
 	case decl.GetClass() != nil:
 		kind = "class"
-	case decl.GetClass() != nil:
-		kind = "class"
+	case decl.GetUnit() != nil:
+		kind = "unit"
 	case decl.GetStructure() != nil:
 		switch decl.GetStructure().GetKind() {
 		case StructKind_STRUCT_KIND_ENTITY:
@@ -287,6 +302,8 @@ func (d *dumper) typeLine(index int, t *Type) string {
 		origin = "-> param " + t.GetParam().GetOwner().GetName() + "." + t.GetParam().GetName()
 	case t.GetExtern() != nil:
 		origin = "-> externs[" + itoa(int(t.GetExtern().GetIndex())) + "]"
+	case t.GetUnit() != nil:
+		origin = "-> units[" + itoa(int(t.GetUnit().GetIndex())) + "]"
 	case !t.GetCtor().Resolved():
 		origin = "-> unresolved"
 	}
@@ -302,6 +319,15 @@ func (d *dumper) ref(id *ID) string {
 	return fmt.Sprintf("types[%d] %s", id.GetIndex(), d.render(d.model.Type(id)))
 }
 
+// unitRef renders a unit by index and by what it reduces to, so a line
+// reads without chasing the table. It is `ref` for the other one.
+func (d *dumper) unitRef(id *ID) string {
+	if !id.Resolved() {
+		return "?"
+	}
+	return fmt.Sprintf("units[%d] %s", id.GetIndex(), dimsText(d.model.Unit(id)))
+}
+
 // render expands a type through the table. Arguments are always interned
 // before the type that holds them, so the walk terminates.
 func (d *dumper) render(t *Type) string {
@@ -315,6 +341,9 @@ func (d *dumper) render(t *Type) string {
 	}
 	if e := t.GetExtern(); e != nil {
 		name = e.GetName()
+	}
+	if u := t.GetUnit(); u != nil {
+		name = dimsText(d.model.Unit(u))
 	}
 	if name == "" {
 		name = "?"
@@ -454,3 +483,48 @@ func pad(last bool) string {
 }
 
 func itoa(n int) string { return fmt.Sprintf("%d", n) }
+
+// dimsText renders reduced dimensions as a product, `kg*m/s^2` written the
+// way the source would have written it: positive exponents first, negative
+// ones after a slash, and an exponent of one left off.
+func dimsText(u *Unit) string {
+	if u == nil {
+		return "?"
+	}
+	if len(u.GetDims()) == 0 {
+		return "1"
+	}
+
+	var num, den []string
+	for _, dim := range u.GetDims() {
+		exp := int(dim.GetExponent())
+		// An ID carries a name for exactly this: something to print. A
+		// hand-built model may leave it out, and `?^2` reads as a gap
+		// where a bare `^2` reads as a bug in the renderer.
+		name := dim.GetBase().GetName()
+		if name == "" {
+			name = "?"
+		}
+		if exp < 0 {
+			den = append(den, factor(name, -exp))
+			continue
+		}
+		num = append(num, factor(name, exp))
+	}
+
+	text := "1"
+	if len(num) > 0 {
+		text = strings.Join(num, "*")
+	}
+	if len(den) > 0 {
+		text += "/" + strings.Join(den, "/")
+	}
+	return text
+}
+
+func factor(name string, exp int) string {
+	if exp == 1 {
+		return name
+	}
+	return name + "^" + itoa(exp)
+}

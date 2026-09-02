@@ -3,8 +3,7 @@
 //
 // See docs/design/ir.md for the decisions this schema encodes and
 // docs/design/ir-plan.md for what is implemented so far. The schema grows
-// one phase at a time; constraints, defaults, classes, instances, imports,
-// and target directives are not here yet.
+// one phase at a time.
 edition = "2024";
 
 package tdl.ir.v1;
@@ -75,6 +74,7 @@ message Model {
   repeated Instance instances = 6;
   repeated Satisfaction satisfies = 7;
   repeated TargetBlock targets = 8;
+  repeated Unit units = 9; // the interned unit table
 }
 
 // TargetBlock is one `target go for billing { ... }` block.
@@ -189,6 +189,7 @@ message Decl {
     Struct structure = 5;
     Enum enumeration = 6;
     Class class = 7;
+    UnitDef unit = 9;
   }
 }
 
@@ -221,6 +222,40 @@ message AssocType {
 // Primitive is an opaque, irreducible root type.
 message Primitive {
   Kind kind = 1; // unset when the kind is left to inference
+}
+
+// UnitDef is a `unit kg` or `unit N = kg*m/s^2` declaration.
+//
+// The declaration and the unit are separate: this is the name the source
+// gave, and `unit` points at the entry in Model.units that says what it
+// measures. A base unit and the dimension of itself are one entry apart
+// for the same reason a newtype and its base are.
+message UnitDef {
+  ID unit = 1; // indexes Model.units
+  bool base = 2; // written without an expression
+}
+
+// Dimension is one base unit raised to a power.
+message Dimension {
+  ID base = 1; // indexes Model.decls at a base UnitDef
+  int32 exponent = 2; // never zero; a cancelled dimension is dropped
+}
+
+// Unit is a quantity reduced to base dimensions.
+//
+// Reduction is what makes the table meaningful: the spec says decimal<N>
+// and decimal<kg*m/s^2> are the same type, so a unit is interned on `dims`
+// and nothing else, and both spellings reach one entry. `decl` and `wrote`
+// record where that entry came from first, for a reader and a diagnostic;
+// neither participates in identity.
+//
+// `dims` is sorted by base index with zero exponents removed, so equal
+// quantities have equal vectors however they were written.
+message Unit {
+  repeated Dimension dims = 1;
+  ID decl = 2; // the UnitDef first naming this quantity; unset for a bare expression
+  string wrote = 3; // the source text, as written
+  Position position = 4;
 }
 
 // Alias is a transparent abbreviation, expanded rather than referenced.
@@ -385,6 +420,7 @@ message Type {
   Position position = 4;
   ParamRef param = 5; // set instead of ctor for a type parameter
   ID extern = 6; // set instead of ctor; indexes Model.externs
+  ID unit = 7; // set instead of ctor; indexes Model.units
 }
 
 // ParamRef is a use of a type parameter.

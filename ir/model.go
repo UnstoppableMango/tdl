@@ -87,6 +87,15 @@ func (x *Model) Satisfying(class *ID) []*ID {
 	return nil
 }
 
+// Unit returns the unit an [ID] indexes, or nil when the ID did not
+// resolve.
+func (x *Model) Unit(id *ID) *Unit {
+	if !id.Resolved() || int(id.GetIndex()) >= len(x.GetUnits()) {
+		return nil
+	}
+	return x.GetUnits()[id.GetIndex()]
+}
+
 // SatisfyingTypes returns the instantiated types that satisfy a class
 // through a conditional instance, such as `Page<Order>` given
 // `instance <T> Auditable<Page<T>> requires Auditable<T>`.
