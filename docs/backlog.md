@@ -28,6 +28,18 @@ Answering that decides whether this needs a kind-system change, which is what wo
 
 Downstream of the answer: whether a union may appear anywhere a `TypeRef` may, what a backend receives in `ir`, and whether the recursion rules in [spec.md](spec.md) treat reaching yourself through a union the way they treat a collection or an optional.
 
+## A class body's `key` in the grammar
+
+`Field = { FieldMod } Name ":" TypeRef ...` admits a `key` modifier everywhere, and only the prose beside `ClassMember` says a class may not declare key fields.
+`parser/class.go` implements the prose, so the reference implementation is right and the grammar is the file that is short.
+
+A derived parser has nothing but the grammar, and reads `key` on its own line as a modifier on the field below it rather than as a `KeyRequirement`.
+`/*@ conflict FieldMod KeyRequirement */` tells a GLR parser both readings are legal, which is true of the grammar as written and is the wrong thing to say.
+
+The fix is a production: the shared tail of `Field` becomes its own hidden and inlined rule, and a class body's field takes `Deprecated` alone.
+That deletes the conflict annotation and costs a `class_field` node distinct from `field`, which the highlight queries then have to name.
+It changes `docs/grammar.ebnf` and `docs/spec.md` rather than any code, which is why it is here and not in [design/treesitter-plan.md](design/treesitter-plan.md).
+
 ## Language server
 
 `tdl lsp` is already described in [design/workflow.md](design/workflow.md) as the editor-facing half of the inner loop.

@@ -1,4 +1,0 @@
-# What `tree-sitter generate` writes from grammar.js. Whether the generated
-# parser is committed is a question for the phase that runs the corpus; see
-# docs/design/treesitter-plan.md.
-src/

@@ -9,7 +9,12 @@
 			"include-component-in-tag": false,
 			"extra-files": [
 				"internal/cli/version.go",
-				"flake.nix"
+				"flake.nix",
+				{
+					"type": "json",
+					"path": "tree-sitter/tree-sitter.json",
+					"jsonpath": "$.metadata.version"
+				}
 			],
 			"changelog-sections": [
 				{

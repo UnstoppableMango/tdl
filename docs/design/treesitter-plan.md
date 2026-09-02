@@ -94,13 +94,32 @@ This is where the ambiguities become real, and where the `conflict` and `prec` a
 
 Done when the whole conformance corpus parses clean.
 
+Done.
+`tree-sitter.json` is the manifest rather than `package.json`: the CLI reads the former, and npm packaging is not in this plan.
+The generated parser is committed, the way `ir/ir.pb.go` is, so an editor or a `tree-sitter parse` gets a buildable grammar without the CLI, and the regeneration diff of phase 7 covers `parser.c` as well as `grammar.js`.
+
+`tree-sitter/corpus.sh` runs the corpus, and `command make test-treesitter` runs the script; `command make treesitter` regenerates both committed artifacts.
+The script carries a deferred list, one case with the phase that deletes it, the shape `internal/sema/corpus_test.go` already uses.
+A deferred case that parses clean fails too, so an entry cannot outlive its phase.
+
+Fourteen of the fifteen conformance cases parse clean as generated, and no `conflict` or `prec` annotation needed revising: phase 4 had already settled them by generating a parser.
+The fifteenth is `constraints`, which is regex literals and therefore phase 6, and it is the whole of the deferred list.
+`externals` means `parser.c` calls a scanner whether or not one produces anything, so `tree-sitter/src/scanner.c` arrives here as a stub that scans nothing.
+It is hand-written and lives beside the generated files, which is where every tree-sitter grammar puts it.
+
+The devShell is `mkShell` rather than `mkShellNoCC`, because `tree-sitter parse` builds the parser with a C compiler even though Go needs none.
+
+Reading the trees rather than the exit codes turned up one disagreement the corpus check cannot see, since it is a wrong tree and not an ERROR node: a bare `key` in a class body reads as a modifier on the field after it.
+That is `docs/grammar.ebnf` saying less than the prose beside it does, rather than anything the derivation got wrong, so it is in [backlog.md](../backlog.md) as its own change to the canonical grammar.
+
 ## Phase 6: the external scanner
 
 `scanner.c` for `regex_lit`, which the built-in lexer cannot separate from unit division without knowing what the parser wants.
+Phase 5 left the file as a stub, so this phase writes the scan rather than the plumbing.
 
 The reference implementation solves this with `RescanRegexAt`, and the shape of the problem carries over: the scanner produces a regex only where the grammar allows one.
 
-Done when the constraint cases parse, `matches(/^[^@]+@[^@]+$/)` and `unit N = kg * m / s^2` both read correctly, and `testdata/invalid/*/source.tdl` each produce an ERROR node.
+Done when the constraint cases parse, `matches(/^[^@]+@[^@]+$/)` and `unit N = kg * m / s^2` both read correctly, `testdata/invalid/*/source.tdl` each produce an ERROR node, and `tree-sitter/corpus.sh` has an empty deferred list.
 
 ## Phase 7: wiring
 

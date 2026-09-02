@@ -27,6 +27,17 @@ play:
 generate:
 	buf generate
 
+# Regenerate tree-sitter/grammar.js from docs/grammar.ebnf and the parser
+# from grammar.js. Both are committed, so this only runs when the grammar
+# changes; read the diff rather than trusting it.
+treesitter:
+	go test ./internal/treesitter -update
+	cd tree-sitter && tree-sitter generate
+
+# The conformance corpus, run by tree-sitter rather than by Go.
+test-treesitter:
+	./tree-sitter/corpus.sh
+
 update:
 	nix flake update
 
