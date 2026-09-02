@@ -76,8 +76,9 @@ func Dump(m *Model) string {
 	if len(m.GetUnits()) > 0 {
 		d.section("Units", true, func(prefix string) {
 			for i, u := range m.GetUnits() {
-				line := fmt.Sprintf("[%d] %s", i, dimsText(u))
-				if wrote := u.GetWrote(); wrote != "" && wrote != dimsText(u) {
+				dims := dimsText(u)
+				line := fmt.Sprintf("[%d] %s", i, dims)
+				if wrote := u.GetWrote(); wrote != "" && wrote != dims {
 					line += "  (" + wrote + ")"
 				}
 				d.leaf(prefix, i == len(m.GetUnits())-1, line, u.GetPosition())
@@ -497,7 +498,13 @@ func dimsText(u *Unit) string {
 	var num, den []string
 	for _, dim := range u.GetDims() {
 		exp := int(dim.GetExponent())
+		// An ID carries a name for exactly this: something to print. A
+		// hand-built model may leave it out, and `?^2` reads as a gap
+		// where a bare `^2` reads as a bug in the renderer.
 		name := dim.GetBase().GetName()
+		if name == "" {
+			name = "?"
+		}
 		if exp < 0 {
 			den = append(den, factor(name, -exp))
 			continue
