@@ -77,15 +77,7 @@ func (l *lowerer) classRefs(refs []*ast.ClassRef) []*ir.ClassRef {
 // classRef resolves a class name. A class is a declaration like any other,
 // so it resolves through the same scope; a qualified one is an extern.
 func (l *lowerer) classRef(r *ast.ClassRef) *ir.ClassRef {
-	out := &ir.ClassRef{Position: position(r.P)}
-	for _, a := range r.Args {
-		if a.Unit != nil {
-			l.diags.add(a.P, "unit arguments are not lowered yet")
-			out.Args = append(out.Args, &ir.ID{Index: ir.Unresolved})
-			continue
-		}
-		out.Args = append(out.Args, l.typeRef(a.Type))
-	}
+	out := &ir.ClassRef{Position: position(r.P), Args: l.typeArgs(r.Args)}
 
 	if r.Qualifier != "" {
 		pkg, ok := l.aliases[r.Qualifier]

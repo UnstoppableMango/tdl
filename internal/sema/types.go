@@ -122,24 +122,59 @@ func (l *lowerer) coreType(t *ast.TypeRef) *ir.ID {
 //
 // A bare name could be a type or a unit and the parser cannot tell them
 // apart, so this is where the question is settled: an argument naming a
-// unit declaration is a unit argument. Units are deferred, so that is a
-// diagnostic rather than a lowering, which is what ir.md asks for now that
-// the parser produces them.
+// unit declaration is a unit argument, and one written with an operator
+// already is.
 func (l *lowerer) typeArgs(args []*ast.TypeArg) []*ir.ID {
 	var out []*ir.ID
 	for _, a := range args {
 		switch {
 		case a.Unit != nil:
-			l.diags.add(a.P, "unit arguments are not lowered yet")
-			out = append(out, &ir.ID{Index: ir.Unresolved})
+			out = append(out, l.unitArg(a.Unit, a.P))
 		case a.Type != nil && l.namesAUnit(a.Type):
-			l.diags.add(a.P, "unit arguments are not lowered yet")
-			out = append(out, &ir.ID{Index: ir.Unresolved})
+			out = append(out, l.namedUnitArg(a.Type))
 		default:
 			out = append(out, l.typeRef(a.Type))
 		}
 	}
 	return out
+}
+
+// unitArg interns a unit expression written in an argument list, such as
+// the `kg*m/s^2` in `decimal<kg*m/s^2>`.
+//
+// The expression is reduced by the same walk a `unit` declaration uses, so
+// an argument and a declaration of the same quantity reach one entry.
+func (l *lowerer) unitArg(e *ast.UnitExpr, pos ast.Position) *ir.ID {
+	acc := dims{}
+	if !l.reduce(e, 1, acc, nil, map[string]bool{}) {
+		return &ir.ID{Index: ir.Unresolved}
+	}
+	return l.unitType(l.internUnit(acc, ast.PrintUnitExpr(e), pos), pos)
+}
+
+// namedUnitArg interns a bare name that resolved to a unit declaration.
+// The declaration already carries what it measures, so there is nothing to
+// reduce.
+func (l *lowerer) namedUnitArg(t *ast.TypeRef) *ir.ID {
+	b, ok := l.scope.lookup(t.N)
+	if !ok {
+		return &ir.ID{Index: ir.Unresolved}
+	}
+	def := l.model.Decls[b.id.GetIndex()].GetUnit()
+	if def == nil || !def.GetUnit().Resolved() {
+		return &ir.ID{Index: ir.Unresolved}
+	}
+	return l.unitType(def.GetUnit(), t.P)
+}
+
+// unitType wraps a unit in a type-table entry, which is what makes a unit
+// argument an ordinary member of Type.args.
+func (l *lowerer) unitType(unit *ir.ID, pos ast.Position) *ir.ID {
+	return l.intern(&ir.Type{
+		Unit:     unit,
+		Wrote:    ir.SyntacticForm_SYNTACTIC_FORM_NAMED,
+		Position: position(pos),
+	})
 }
 
 // namesAUnit reports whether a bare argument resolves to a unit
@@ -217,6 +252,9 @@ func typeName(t *ir.Type) string {
 	if e := t.GetExtern(); e != nil {
 		name = e.GetName()
 	}
+	if u := t.GetUnit(); u != nil {
+		name = u.GetName()
+	}
 	if len(t.GetArgs()) == 0 {
 		return name
 	}
@@ -252,6 +290,12 @@ func internKey(t *ir.Type) string {
 	}
 	if e := t.GetExtern(); e != nil {
 		b.WriteString("extern:" + e.GetName())
+	}
+	if u := t.GetUnit(); u != nil {
+		// The index, not the spelling: units are interned on their reduced
+		// dimensions, so `decimal<N>` and `decimal<kg*m/s^2>` arrive here
+		// with one index and become one type.
+		b.WriteString("unit:" + strconv.Itoa(int(u.GetIndex())))
 	}
 	if len(t.GetArgs()) > 0 {
 		b.WriteByte('<')
