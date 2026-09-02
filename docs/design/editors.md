@@ -2,7 +2,7 @@
 
 Design document.
 Nothing here is built.
-[treesitter.md](treesitter.md) describes the grammar this depends on, which is.
+The tree-sitter grammar it all leans on is built already, and [treesitter.md](treesitter.md) describes it.
 
 The goal is syntax highlighting in Neovim, VS Code, Zed, and on GitHub, for TDL files.
 Everything past highlighting wants the language server, which is separate work and is not in this document.
@@ -29,7 +29,7 @@ That is the problem [treesitter.md](treesitter.md) already answered once.
 
 ## The TextMate grammar is derived too
 
-`internal/textmate` reads the same annotated grammar `internal/treesitter` reads, and writes `tdl.tmLanguage.json`.
+`internal/textmate` reads the same annotated grammar `internal/treesitter` reads, and writes `editors/vscode/syntaxes/tdl.tmLanguage.json`.
 `tools/textmate` is the `main` that runs it, beside `tools/treesitter`.
 
 TextMate is regular expressions over lines and cannot express the grammar's structure, so the derived file is a lexical approximation where the tree-sitter one is exact.
@@ -42,7 +42,7 @@ What it does not colour is anything needing a parse, and a declaration name read
 Deriving it is what makes that acceptable.
 A hand-written approximation rots the first time a keyword is added; a derived one fails the regeneration check instead.
 
-`tdl.tmLanguage.json` is committed and checked the way `tree-sitter/grammar.js` is, by a Go test that rewrites it under `-update`.
+The generated file is committed and checked the way `tree-sitter/grammar.js` is, by a Go test that rewrites it under `-update`.
 
 ## Neovim
 

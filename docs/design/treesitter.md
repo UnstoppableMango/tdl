@@ -124,7 +124,7 @@ The generator emits the `externals` array naming its tokens and nothing else.
 `tree-sitter/` in this repository, rather than a separate `tree-sitter-tdl`.
 
 One repository is what makes the regeneration check a single CI job, and the grammar has no reason to version independently of the language it describes.
-Zed reads a grammar from a repository and a revision with no key for a subdirectory, so it needs one of its own; [editors.md](editors.md) generates that repository from this one rather than moving the grammar out of it.
+Zed reads a grammar from a repository and a revision with no key for a subdirectory, so it needs one of its own. [editors.md](editors.md) describes generating that repository from this one on a release rather than moving the grammar out of it.
 
 ## How it is held together
 

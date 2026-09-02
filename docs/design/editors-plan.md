@@ -35,7 +35,7 @@ Zed's `[grammars]` block does not, which is the whole reason the last repository
 
 The emitter is Go and gets Go tests.
 
-`tdl.tmLanguage.json` is committed and regenerated, and the diff is read rather than trusted, the same way `tree-sitter/grammar.js` and `ir/ir.pb.go` are.
+`editors/vscode/syntaxes/tdl.tmLanguage.json` is committed and regenerated, and the diff is read rather than trusted, the same way `tree-sitter/grammar.js` and `ir/ir.pb.go` are.
 
 Each editor is checked by opening a file in it.
 Nothing else answers whether the colours arrived, and a plan that pretends otherwise is checking the wrong thing.
