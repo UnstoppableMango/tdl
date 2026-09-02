@@ -197,6 +197,13 @@ func TestEmitDiagnostics(t *testing.T) {
 			"File = Other .\n/*@ inline */\nOther = identifier Other .\n" + ident,
 			"Other is inline and refers to itself",
 		},
+		{
+			// A lexical production has no body to substitute, so inlining
+			// one is a question with no answer rather than an empty rule.
+			"inlining a production with no expression",
+			"File = identifier .\n/*@ token IdentPattern */\n/*@ inline */\nidentifier = .\n",
+			"identifier is inline and has no expression",
+		},
 	}
 
 	for _, c := range cases {

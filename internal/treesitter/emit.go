@@ -257,7 +257,15 @@ func (e *emitter) substitute(n *xebnf.Name) (expr, error) {
 	e.inlining[n.String] = true
 	defer delete(e.inlining, n.String)
 
-	return e.convert(e.file.Grammar[n.String].Expr)
+	// A production with no expression is a name the lexer defines, and it
+	// has no body to put anywhere. Saying so beats convert reaching through
+	// a nil expression for a position to report.
+	body := e.file.Grammar[n.String].Expr
+	if body == nil {
+		return nil, fmt.Errorf("%s: %s is inline and has no expression", n.Pos(), n.String)
+	}
+
+	return e.convert(body)
 }
 
 func (e *emitter) combinator(fn string, parts []xebnf.Expression) (expr, error) {
