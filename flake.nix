@@ -42,7 +42,9 @@
 
           packages.default = pkgs.callPackage ./nix { inherit version go; };
 
-          devShells.default = pkgs.mkShellNoCC {
+          # mkShell rather than mkShellNoCC: Go needs no C compiler, but
+          # `tree-sitter parse` builds the generated parser with one.
+          devShells.default = pkgs.mkShell {
             packages = [
               pkgs.direnv
               go
@@ -54,6 +56,7 @@
               pkgs.buf
               pkgs.markdownlint-cli2
               pkgs.protoc-gen-go
+              pkgs.tree-sitter
             ];
           };
 
@@ -104,6 +107,9 @@
               # mdformat rewrites YAML frontmatter as a thematic break, and
               # the frontmatter is how Copilot decides when to load a skill.
               ".github/skills/**/SKILL.md"
+              # Generated: `tree-sitter generate` writes these, and jsonfmt
+              # would rewrite them on every check.
+              "tree-sitter/src/*.json"
             ];
           };
         };

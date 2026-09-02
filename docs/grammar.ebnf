@@ -34,9 +34,9 @@
 /*@ token doc_comment = DocPattern */
 /*@ token line_comment = LineCommentPattern */
 
-/*@ conflict Field KeyRequirement */
-/*@ conflict UnitExpr TypeRef */
-/*@ conflict Path Directive */
+/*@ conflict FieldMod KeyRequirement */
+/*@ conflict DottedIdent UnitTerm */
+/*@ conflict Field */
 
 File     = { [ Deprecated ] Decl } .
 /*@ hidden */
