@@ -9,7 +9,12 @@
 			"include-component-in-tag": false,
 			"extra-files": [
 				"internal/cli/version.go",
-				"flake.nix"
+				"flake.nix",
+				{
+					"type": "json",
+					"path": "editors/vscode/package.json",
+					"jsonpath": "$.version"
+				}
 			],
 			"changelog-sections": [
 				{

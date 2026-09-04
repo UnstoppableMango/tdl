@@ -72,6 +72,20 @@ The two agree on everything these six use except escaping, so translating them i
 
 Done when running the emitter twice produces the same bytes, every spelling in `lex.Keywords()` appears in the output, and a keyword added to `lex` without regenerating fails `go test ./internal/textmate`.
 
+Done.
+The done-condition was proved rather than assumed: a keyword added to `lex` and to `reserved_word` fails `TestTmLanguage` until `make textmate` runs.
+
+The patterns needed no translating after all.
+The six shapes use only what Oniguruma and Go's `regexp` spell the same way, so they are copied verbatim and `TestPatternsComeFromLex` holds the copy to the original.
+
+Three rules are more than a spelling, and each is a fact about the language rather than a preference.
+A regex literal is only ever a `ConstraintArg`, so it is matched after the `(` or `,` that introduces one, and no unit expression is coloured as one: `decimal<kg*m/s^2>` reads as arithmetic and `matches(/^[a-z-]+$/)` as a pattern.
+A reserved word followed by `:` is a field name, so every word rule ends in a lookahead and `where: string` is a field where `where {` is a block.
+A numeric literal is guarded against the identifier it might sit inside, since `\b` does not separate `x` from `1`.
+
+The modifiers are read from the grammar's quoted terminals rather than listed, so `key`, `owned`, and `deprecated` are coloured and a fourth would be too.
+`_` is identifier-shaped and is excluded: `import "x" as _` is a name the source declines to give.
+
 ## Phase 3: the VS Code extension
 
 `editors/vscode/package.json` contributes the language, the file extension, and the grammar from phase 2.
@@ -82,6 +96,14 @@ Done when running the emitter twice produces the same bytes, every spelling in `
 Installing through nix is the whole distribution story for now; the Marketplace is an account, a token, and a release job, and none of it changes a file here.
 
 Done when `nix build .#vscode-tdl` produces an extension that colours a conformance file, and `AGENTS.md` says how to add it to a configuration.
+
+Done.
+`sourceRoot` is set: `buildVscodeExtension` defaults it to the layout inside a `.vsix`, and the source here is a directory in the tree.
+
+`editors/vscode/package.json` carries a version, which makes it release-please's rather than anyone's to edit.
+It is listed in `release-please-config.json` as a JSON updater, since JSON cannot carry the `x-release-please-version` comment `flake.nix` and `internal/cli/version.go` use.
+
+The generated grammar is excluded from treefmt, the way `tree-sitter/src/*.json` is: `jsonfmt` and the emitter would otherwise each rewrite it.
 
 ## Phase 4: the grammar repository
 

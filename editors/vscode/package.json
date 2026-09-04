@@ -1,0 +1,44 @@
+{
+	"name": "tdl",
+	"displayName": "TDL",
+	"description": "Syntax highlighting for the Type Description Language",
+	"version": "0.1.4",
+	"publisher": "unstoppablemango",
+	"license": "GPL-3.0-or-later",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/UnstoppableMango/tdl.git"
+	},
+	"categories": [
+		"Programming Languages"
+	],
+	"engines": {
+		"vscode": "^1.75.0"
+	},
+	"extensionKind": [
+		"ui",
+		"workspace"
+	],
+	"contributes": {
+		"languages": [
+			{
+				"id": "tdl",
+				"aliases": [
+					"TDL",
+					"tdl"
+				],
+				"extensions": [
+					".tdl"
+				],
+				"configuration": "./language-configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "tdl",
+				"scopeName": "source.tdl",
+				"path": "./syntaxes/tdl.tmLanguage.json"
+			}
+		]
+	}
+}
