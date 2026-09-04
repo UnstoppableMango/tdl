@@ -98,6 +98,7 @@ A reserved word is never a type reference, so the kinds in `List: type -> type` 
 An enum variant is the fifth, and it is the one that needed a region rather than a line rule.
 Every other name is read from the token beside it; a variant has none, so what says it is a name is the block it sits in.
 A variant carrying fields opens a region of its own that includes the whole grammar again, which is how `Some { value: T }` reads as a variant and a field.
+Every `{` opens a region for the same reason: a region ends at the first `}` it sees, so a set type or a constraint block left as two punctuation marks inside a variant would end it early and uncolour everything after it.
 `EnumDecl` is named in the emitter the way the type-valued productions are, and the keyword comes from that production rather than from a literal.
 
 A target path is the sixth, found by what follows it rather than what precedes it: an entry is a path and then a block or a `=>`, and nothing else in the language puts a name before either.

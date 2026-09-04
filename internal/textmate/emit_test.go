@@ -195,12 +195,13 @@ func TestPatternsComeFromLex(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		quoted := strings.Trim(string(escaped), `"`)
+		// One delimiter at each end, not every quote there: a string
+		// pattern ends in an escaped one, and trimming that leaves a
+		// needle ending in a bare backslash, which the file contains
+		// wherever the pattern does and the check stops meaning anything.
+		quoted := strings.TrimSuffix(strings.TrimPrefix(string(escaped), `"`), `"`)
 
-		// IdentPattern reaches the file inside the guard on a numeric
-		// literal rather than as a rule of its own, since coloring an
-		// identifier needs a parse.
-		if !strings.Contains(out, quoted) && name != "IdentPattern" {
+		if !strings.Contains(out, quoted) {
 			t.Errorf("lex.%s is not in the derived grammar", name)
 		}
 	}
@@ -226,22 +227,20 @@ func TestTargetPathsAreColored(t *testing.T) {
 // keyword opening it comes from EnumDecl, so renaming the production is an
 // error and renaming the keyword is a diff in the output.
 func TestEnumBodyColorsItsVariants(t *testing.T) {
+	// The one region that names a declaration, which is the enum's.
 	var regions []pattern
 	for _, rule := range parse(t).Patterns {
-		if rule.Begin != "" {
+		if rule.BeginCaptures["2"].Name == "entity.name.type.tdl" {
 			regions = append(regions, rule)
 		}
 	}
 	if len(regions) != 1 {
-		t.Fatalf("%d regions in the grammar, want 1", len(regions))
+		t.Fatalf("%d regions name a declaration, want 1", len(regions))
 	}
 
 	enum := regions[0]
-	if !strings.Contains(enum.Begin, "enum") {
+	if !strings.Contains(enum.Begin, "(enum)") {
 		t.Errorf("the region begins with %q, which does not read an enum", enum.Begin)
-	}
-	if got := enum.BeginCaptures["2"].Name; got != "entity.name.type.tdl" {
-		t.Errorf("the enum's name is colored %q", got)
 	}
 
 	const variant = "variable.other.enummember.tdl"
@@ -260,6 +259,26 @@ func TestEnumBodyColorsItsVariants(t *testing.T) {
 	if !withBody {
 		t.Errorf("nothing in the enum body colors a variant carrying fields")
 	}
+}
+
+// TestEveryOpenBraceIsClosedByItsRegion is the invariant a region has to
+// keep: a rule that reads a `{` reads the `}` closing it too.
+//
+// A region ends at the first `}` it sees. A brace left to the punctuation
+// rule inside one therefore ends it early, and everything after the block
+// loses its colors, which is what a set type inside an enum's variant did
+// before the brace regions existed.
+func TestEveryOpenBraceIsClosedByItsRegion(t *testing.T) {
+	var check func(rules []pattern)
+	check = func(rules []pattern) {
+		for _, rule := range rules {
+			if strings.Contains(rule.Begin, `\{`) && rule.End != `\}` {
+				t.Errorf("a rule beginning %q ends %q, so its brace is not its own", rule.Begin, rule.End)
+			}
+			check(rule.Patterns)
+		}
+	}
+	check(parse(t).Patterns)
 }
 
 // TestScopeNameMatchesTreeSitter checks the two derived grammars name the
@@ -291,6 +310,7 @@ type pattern struct {
 	Name          string             `json:"name"`
 	Match         string             `json:"match"`
 	Begin         string             `json:"begin"`
+	End           string             `json:"end"`
 	Captures      map[string]capture `json:"captures"`
 	BeginCaptures map[string]capture `json:"beginCaptures"`
 	Patterns      []pattern          `json:"patterns"`

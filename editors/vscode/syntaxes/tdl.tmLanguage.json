@@ -153,15 +153,26 @@
 			}
 		},
 		{
-			"match": "(\\{)(?!\\b(?:primitive|instance|requires|include|package|entity|import|target|alias|class|mixin|value|where|enum|type|unit|for|as)\\b)((?:[_A-Za-z][_A-Za-z0-9]*)(?:\\.(?:[_A-Za-z][_A-Za-z0-9]*))*)",
-			"captures": {
+			"begin": "(\\{)(?!\\b(?:primitive|instance|requires|include|package|entity|import|target|alias|class|mixin|value|where|enum|type|unit|for|as)\\b)((?:[_A-Za-z][_A-Za-z0-9]*)(?:\\.(?:[_A-Za-z][_A-Za-z0-9]*))*)",
+			"end": "\\}",
+			"beginCaptures": {
 				"1": {
 					"name": "punctuation.tdl"
 				},
 				"2": {
 					"name": "support.type.tdl"
 				}
-			}
+			},
+			"endCaptures": {
+				"0": {
+					"name": "punctuation.tdl"
+				}
+			},
+			"patterns": [
+				{
+					"include": "$self"
+				}
+			]
 		},
 		{
 			"name": "constant.language.tdl",
@@ -174,6 +185,25 @@
 		{
 			"name": "variable.other.property.tdl",
 			"match": "(?:[_A-Za-z][_A-Za-z0-9]*)(?=\\s*:)"
+		},
+		{
+			"begin": "\\{",
+			"end": "\\}",
+			"beginCaptures": {
+				"0": {
+					"name": "punctuation.tdl"
+				}
+			},
+			"endCaptures": {
+				"0": {
+					"name": "punctuation.tdl"
+				}
+			},
+			"patterns": [
+				{
+					"include": "$self"
+				}
+			]
 		},
 		{
 			"name": "keyword.operator.tdl",

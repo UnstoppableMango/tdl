@@ -119,6 +119,7 @@ type rule struct {
 	Include       string             `json:"include,omitempty"`
 	Captures      map[string]capture `json:"captures,omitempty"`
 	BeginCaptures map[string]capture `json:"beginCaptures,omitempty"`
+	EndCaptures   map[string]capture `json:"endCaptures,omitempty"`
 	Patterns      []rule             `json:"patterns,omitempty"`
 }
 
@@ -316,11 +317,18 @@ func rules(file *ebnf.File) ([]rule, error) {
 		// what tells them apart here is the space canonical form puts
 		// after the block's brace: `{string -> int}` against `where {`.
 		// A hand-written `{ string }` goes uncoloured rather than wrong.
-		Match: "(\\{)" + notKeyword(keywords) + "(" + dotted(shapes[identifier]) + ")",
-		Captures: map[string]capture{
+		//
+		// A region rather than a match, so the `}` closing it belongs to
+		// it: a set type inside an enum's variant would otherwise hand
+		// that brace to the variant, which would end there.
+		Begin: "(\\{)" + notKeyword(keywords) + "(" + dotted(shapes[identifier]) + ")",
+		BeginCaptures: map[string]capture{
 			"1": {Name: "punctuation.tdl"},
 			"2": {Name: "support.type.tdl"},
 		},
+		End:         "\\}",
+		EndCaptures: map[string]capture{"0": {Name: "punctuation.tdl"}},
+		Patterns:    []rule{self},
 	}, {
 		Name:  "constant.language.tdl",
 		Match: name(alternation(values)),
@@ -333,6 +341,19 @@ func rules(file *ebnf.File) ([]rule, error) {
 		// what says the name is one.
 		Name:  "variable.other.property.tdl",
 		Match: "(?:" + shapes[identifier] + ")(?=\\s*:)",
+	}, {
+		// Every other `{`: a body, a constraint block, a target entry.
+		// It colors nothing the rules above do not, and it exists so a
+		// brace is closed by the region that opened it. A region ends at
+		// the first `}` it sees, so a block left as two punctuation marks
+		// inside one would end it early and uncolor the rest.
+		//
+		// It recurses through $self, which holds this rule.
+		Begin:         "\\{",
+		BeginCaptures: map[string]capture{"0": {Name: "punctuation.tdl"}},
+		End:           "\\}",
+		EndCaptures:   map[string]capture{"0": {Name: "punctuation.tdl"}},
+		Patterns:      []rule{self},
 	}, {
 		Name:  "keyword.operator.tdl",
 		Match: spellings(ops),

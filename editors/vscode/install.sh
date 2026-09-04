@@ -51,8 +51,8 @@ EOF
 cat >"$work/[Content_Types].xml" <<'EOF'
 <?xml version="1.0" encoding="utf-8"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension=".json" ContentType="application/json" />
-  <Default Extension=".vsixmanifest" ContentType="text/xml" />
+  <Default Extension="json" ContentType="application/json" />
+  <Default Extension="vsixmanifest" ContentType="text/xml" />
 </Types>
 EOF
 
