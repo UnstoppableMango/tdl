@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.1.4](https://github.com/UnstoppableMango/tdl/compare/v0.1.3...v0.1.4) (2026-09-04)
+
+
+### Features
+
+* **ir:** model units in the schema ([#726](https://github.com/UnstoppableMango/tdl/issues/726)) ([2e66aa8](https://github.com/UnstoppableMango/tdl/commit/2e66aa886b1dcfe058aeae160ba211660e71567f))
+* **sema:** lower unit arguments ([#728](https://github.com/UnstoppableMango/tdl/issues/728)) ([28a956c](https://github.com/UnstoppableMango/tdl/commit/28a956c8f2dcd69c72018949bc2d761608fcac1e))
+* **treesitter:** derive grammar.js from the ebnf ([#722](https://github.com/UnstoppableMango/tdl/issues/722)) ([d935268](https://github.com/UnstoppableMango/tdl/commit/d93526880581d22dcefdf1931e7eaedb95a8237c))
+* **treesitter:** scan regex literals externally ([#723](https://github.com/UnstoppableMango/tdl/issues/723)) ([e0ac880](https://github.com/UnstoppableMango/tdl/commit/e0ac880c91660ea6e6eae51a165056a5425f3a5a))
+* **treesitter:** wire the derivation into CI ([#725](https://github.com/UnstoppableMango/tdl/issues/725)) ([51e174a](https://github.com/UnstoppableMango/tdl/commit/51e174a6c8009442152c07aad9b56f66a0976a4d))
+
+
+### Bug Fixes
+
+* **ci:** stop release-please owning a version a generator embeds ([#734](https://github.com/UnstoppableMango/tdl/issues/734)) ([6eb998e](https://github.com/UnstoppableMango/tdl/commit/6eb998e34535e923128c6f63ee740af419e9806e))
+
+
+### Documentation
+
+* **design:** editor support ([#733](https://github.com/UnstoppableMango/tdl/issues/733)) ([270605c](https://github.com/UnstoppableMango/tdl/commit/270605c923dc679f9a8a58de3e13cc1eb1d761f5))
+* **ir:** units land, and the deferral goes ([#729](https://github.com/UnstoppableMango/tdl/issues/729)) ([cde3c58](https://github.com/UnstoppableMango/tdl/commit/cde3c588c6d6a12b517666e92cebd521478060ef))
+* **README.md:** update README to reflect current project status and tooling ([#720](https://github.com/UnstoppableMango/tdl/issues/720)) ([2e974cd](https://github.com/UnstoppableMango/tdl/commit/2e974cd22af9030539940bae7d02380b2f33f527))
+
+
+### Continuous Integration
+
+* keep build tools out of coverage ([#732](https://github.com/UnstoppableMango/tdl/issues/732)) ([5184ee9](https://github.com/UnstoppableMango/tdl/commit/5184ee9b9e1e4706576a38264bcf102801311933))
+
 ## [0.1.3](https://github.com/UnstoppableMango/tdl/compare/v0.1.2...v0.1.3) (2026-09-01)
 
 
