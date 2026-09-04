@@ -272,13 +272,32 @@ func TestEveryOpenBraceIsClosedByItsRegion(t *testing.T) {
 	var check func(rules []pattern)
 	check = func(rules []pattern) {
 		for _, rule := range rules {
-			if strings.Contains(rule.Begin, `\{`) && rule.End != `\}` {
+			if !strings.Contains(rule.Begin, `\{`) {
+				check(rule.Patterns)
+				continue
+			}
+			if rule.End != `\}` {
 				t.Errorf("a rule beginning %q ends %q, so its brace is not its own", rule.Begin, rule.End)
+			}
+			if !includesSelf(rule.Patterns) {
+				t.Errorf("a rule beginning %q does not include $self, so a brace nested in it ends the region", rule.Begin)
 			}
 			check(rule.Patterns)
 		}
 	}
 	check(parse(t).Patterns)
+}
+
+// includesSelf reports whether a region's patterns recurse through the
+// whole grammar. Without it a nested brace has no region of its own, and
+// the punctuation rule hands the `}` closing it to the enclosing region.
+func includesSelf(rules []pattern) bool {
+	for _, rule := range rules {
+		if rule.Include == "$self" {
+			return true
+		}
+	}
+	return false
 }
 
 // TestScopeNameMatchesTreeSitter checks the two derived grammars name the
@@ -311,6 +330,7 @@ type pattern struct {
 	Match         string             `json:"match"`
 	Begin         string             `json:"begin"`
 	End           string             `json:"end"`
+	Include       string             `json:"include"`
 	Captures      map[string]capture `json:"captures"`
 	BeginCaptures map[string]capture `json:"beginCaptures"`
 	Patterns      []pattern          `json:"patterns"`
