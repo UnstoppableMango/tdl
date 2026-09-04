@@ -148,13 +148,23 @@ vim.api.nvim_create_autocmd('User', {
     }
   end,
 })
+
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'tdl',
+  callback = function() vim.treesitter.start() end,
+})
 ```
+
+The last block is what colors a buffer.
+`nvim-treesitter` installs the parser and the queries and enables nothing, so highlighting is Neovim's `vim.treesitter.start`, called per filetype from an autocommand or from `ftplugin/tdl.lua`.
+
+The parser is named for the filetype, so `vim.treesitter.language.register` is not needed.
 
 Then `:TSInstall tdl`, which clones the repository, compiles the committed parser, and installs `highlights.scm` beside it.
 That branch builds through the `tree-sitter` CLI, so it has to be on the PATH.
 `:TSUpdate tdl` picks up a later revision.
 
-On the `master` branch the field names differ: `files = { 'src/parser.c', 'src/scanner.c' }` replaces `queries`, and the parser config is `require('nvim-treesitter.parsers').get_parser_configs().tdl`, which also takes a `filetype`.
+On the `master` branch the highlighting is the plugin's rather than Neovim's, enabled with `highlight = { enable = true }` in its `setup`, and the field names differ: `files = { 'src/parser.c', 'src/scanner.c' }` replaces `queries`, and the parser config is `require('nvim-treesitter.parsers').get_parser_configs().tdl`, which also takes a `filetype`.
 That branch installs no queries for a custom parser, so `tree-sitter/queries/highlights.scm` goes in `queries/tdl/highlights.scm` somewhere on the runtimepath.
 
 Both sources are compiled because the grammar has an external scanner.
