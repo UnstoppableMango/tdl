@@ -39,6 +39,11 @@ treesitter:
 textmate:
 	go test ./internal/textmate -update
 
+# Package editors/vscode and install it into a running VS Code. The
+# grammar it carries is whatever `make textmate` last wrote.
+vscode-install:
+	./editors/vscode/install.sh
+
 # The conformance corpus, run by tree-sitter rather than by Go.
 test-treesitter:
 	./tree-sitter/corpus.sh

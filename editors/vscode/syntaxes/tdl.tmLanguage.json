@@ -44,6 +44,126 @@
 			"match": "(?<![_A-Za-z0-9])(?:-?[0-9]+)(?![_A-Za-z0-9])"
 		},
 		{
+			"begin": "\\b(enum)\\b\\s+([_A-Za-z][_A-Za-z0-9]*)([^{]*)\\{",
+			"end": "\\}",
+			"beginCaptures": {
+				"1": {
+					"name": "keyword.control.tdl"
+				},
+				"2": {
+					"name": "entity.name.type.tdl"
+				},
+				"3": {
+					"patterns": [
+						{
+							"include": "$self"
+						}
+					]
+				}
+			},
+			"patterns": [
+				{
+					"begin": "([_A-Za-z][_A-Za-z0-9]*)\\s*\\{",
+					"end": "\\}",
+					"beginCaptures": {
+						"1": {
+							"name": "variable.other.enummember.tdl"
+						}
+					},
+					"patterns": [
+						{
+							"include": "$self"
+						}
+					]
+				},
+				{
+					"include": "$self"
+				},
+				{
+					"name": "variable.other.enummember.tdl",
+					"match": "(?!\\b(?:primitive|instance|requires|include|package|entity|import|target|alias|class|mixin|value|where|enum|type|unit|for|as)\\b)(?!\\b(?:deprecated|owned|key)\\b)(?:[_A-Za-z][_A-Za-z0-9]*)"
+				}
+			]
+		},
+		{
+			"match": "\\b(primitive|entity|target|alias|class|mixin|value|enum|type|unit)\\b\\s+([_A-Za-z][_A-Za-z0-9]*)",
+			"captures": {
+				"1": {
+					"name": "keyword.control.tdl"
+				},
+				"2": {
+					"name": "entity.name.type.tdl"
+				}
+			}
+		},
+		{
+			"match": "\\b(requires|include)\\b\\s+((?:[_A-Za-z][_A-Za-z0-9]*)(?:\\.(?:[_A-Za-z][_A-Za-z0-9]*))*)",
+			"captures": {
+				"1": {
+					"name": "keyword.control.tdl"
+				},
+				"2": {
+					"name": "support.type.tdl"
+				}
+			}
+		},
+		{
+			"name": "storage.modifier.tdl",
+			"match": "\\b(?:deprecated|owned|key)\\b(?!\\s*:)"
+		},
+		{
+			"name": "entity.name.namespace.tdl",
+			"match": "(?!\\b(?:primitive|instance|requires|include|package|entity|import|target|alias|class|mixin|value|where|enum|type|unit|for|as)\\b)(?!\\b(?:deprecated|owned|key)\\b)(?:(?:[_A-Za-z][_A-Za-z0-9]*)(?:\\.(?:[_A-Za-z][_A-Za-z0-9]*))*)(?=\\s*(?:=>|\\{))"
+		},
+		{
+			"match": "(=>)\\s*(?!\\b(?:primitive|instance|requires|include|package|entity|import|target|alias|class|mixin|value|where|enum|type|unit|for|as)\\b)((?:[_A-Za-z][_A-Za-z0-9]*)(?:\\.(?:[_A-Za-z][_A-Za-z0-9]*))*)",
+			"captures": {
+				"1": {
+					"name": "keyword.operator.tdl"
+				},
+				"2": {
+					"name": "entity.name.function.tdl"
+				}
+			}
+		},
+		{
+			"name": "entity.name.function.tdl",
+			"match": "(?:[_A-Za-z][_A-Za-z0-9]*)(?=\\s*\\()"
+		},
+		{
+			"match": "([:<,\\[])\\s*(?!\\b(?:primitive|instance|requires|include|package|entity|import|target|alias|class|mixin|value|where|enum|type|unit|for|as)\\b)((?:[_A-Za-z][_A-Za-z0-9]*)(?:\\.(?:[_A-Za-z][_A-Za-z0-9]*))*)",
+			"captures": {
+				"1": {
+					"name": "punctuation.tdl"
+				},
+				"2": {
+					"name": "support.type.tdl"
+				}
+			}
+		},
+		{
+			"match": "(->|=)\\s*(?!\\b(?:primitive|instance|requires|include|package|entity|import|target|alias|class|mixin|value|where|enum|type|unit|for|as)\\b)((?:[_A-Za-z][_A-Za-z0-9]*)(?:\\.(?:[_A-Za-z][_A-Za-z0-9]*))*)",
+			"captures": {
+				"1": {
+					"name": "keyword.operator.tdl"
+				},
+				"2": {
+					"name": "support.type.tdl"
+				}
+			}
+		},
+		{
+			"match": "(\\{)(?!\\b(?:primitive|instance|requires|include|package|entity|import|target|alias|class|mixin|value|where|enum|type|unit|for|as)\\b)((?:[_A-Za-z][_A-Za-z0-9]*)(?:\\.(?:[_A-Za-z][_A-Za-z0-9]*))*)",
+			"captures": {
+				"1": {
+					"name": "punctuation.tdl"
+				},
+				"2": {
+					"name": "support.type.tdl"
+				}
+			}
+		},
+		{
 			"name": "constant.language.tdl",
 			"match": "\\b(?:false|null|true)\\b(?!\\s*:)"
 		},
@@ -52,8 +172,8 @@
 			"match": "\\b(?:primitive|instance|requires|include|package|entity|import|target|alias|class|mixin|value|where|enum|type|unit|for|as)\\b(?!\\s*:)"
 		},
 		{
-			"name": "storage.modifier.tdl",
-			"match": "\\b(?:deprecated|owned|key)\\b(?!\\s*:)"
+			"name": "variable.other.property.tdl",
+			"match": "(?:[_A-Za-z][_A-Za-z0-9]*)(?=\\s*:)"
 		},
 		{
 			"name": "keyword.operator.tdl",

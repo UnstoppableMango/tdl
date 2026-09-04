@@ -64,9 +64,30 @@ var operators = map[string]bool{
 	"=": true, "->": true, "=>": true, "..": true,
 }
 
+// typeValued are the productions that name a type someone declared, as
+// against `identifier`, which is a name being declared, and `DottedIdent`,
+// which is a package path.
+//
+// Named rather than derived: what a production means is the one thing the
+// notation does not say, and reachability would call every one of these a
+// dotted identifier.
+// valueBlock is the declaration whose body holds values rather than
+// fields, and the one place a bare name is a name of something.
+//
+// Named for the reason typeValued is: the notation says the shape and not
+// what it means.
+const valueBlock = "EnumDecl"
+
+var typeValued = map[string]bool{
+	"NamedType": true,
+	"ClassRef":  true,
+	"TypeRef":   true,
+}
+
 // tokens is the name each shape is bound to in docs/grammar.ebnf, in the
 // order the rules are emitted.
 const (
+	identifier  = "identifier"
 	docComment  = "doc_comment"
 	lineComment = "line_comment"
 	stringLit   = "string_lit"
@@ -84,18 +105,34 @@ type grammar struct {
 	Patterns     []rule   `json:"patterns"`
 }
 
-// A rule is one match and the scope it names. Every rule here is a match
-// rather than a begin/end pair: no construct in the lexical layer spans
-// lines, so none of them needs one.
+// A rule is one match and the scope it names, or a region between a begin
+// and an end with rules of its own.
+//
+// The lexical layer needs no region, since nothing in it spans lines. An
+// enum body does: what a bare name means there is decided by the block
+// around it rather than by the token beside it.
 type rule struct {
-	Name     string             `json:"name,omitempty"`
-	Match    string             `json:"match"`
-	Captures map[string]capture `json:"captures,omitempty"`
+	Name          string             `json:"name,omitempty"`
+	Match         string             `json:"match,omitempty"`
+	Begin         string             `json:"begin,omitempty"`
+	End           string             `json:"end,omitempty"`
+	Include       string             `json:"include,omitempty"`
+	Captures      map[string]capture `json:"captures,omitempty"`
+	BeginCaptures map[string]capture `json:"beginCaptures,omitempty"`
+	Patterns      []rule             `json:"patterns,omitempty"`
 }
 
 type capture struct {
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
+
+	// Patterns colors what a capture holds rather than the whole of it,
+	// which is how an enum header's type parameters keep their colors.
+	Patterns []rule `json:"patterns,omitempty"`
 }
+
+// self is the whole grammar, included from inside a region so a nested
+// construct reads the way it does anywhere else.
+var self = rule{Include: "$self"}
 
 // Emit writes the tmLanguage for a grammar internal/ebnf has already read
 // and found clean.
@@ -134,7 +171,7 @@ func Emit(file *ebnf.File) ([]byte, error) {
 // before the integer that starts it.
 func rules(file *ebnf.File) ([]rule, error) {
 	shapes := map[string]string{}
-	for _, name := range []string{docComment, lineComment, stringLit, regexLit, floatLit, intLit} {
+	for _, name := range []string{identifier, docComment, lineComment, stringLit, regexLit, floatLit, intLit} {
 		pattern, err := token(file, name)
 		if err != nil {
 			return nil, err
@@ -161,6 +198,11 @@ func rules(file *ebnf.File) ([]rule, error) {
 	}
 
 	modifiers := contextual(file.Grammar)
+
+	variants, err := variantBlock(file, shapes[identifier], keywords, modifiers)
+	if err != nil {
+		return nil, err
+	}
 
 	return []rule{{
 		Name:  "comment.line.documentation.tdl",
@@ -189,6 +231,96 @@ func rules(file *ebnf.File) ([]rule, error) {
 	}, {
 		Name:  "constant.numeric.tdl",
 		Match: word(shapes[intLit]),
+	}, variants, {
+		// The one name TextMate can find without a parse: a declaration
+		// spells its keyword immediately before it, and the keywords that
+		// do are read from the grammar rather than listed. Before the
+		// keyword rule, since both start at the keyword and a tie goes to
+		// whichever is written first.
+		Match: capturing(declares(file.Grammar)) + "\\s+(" + shapes[identifier] + ")",
+		Captures: map[string]capture{
+			"1": {Name: "keyword.control.tdl"},
+			"2": {Name: "entity.name.type.tdl"},
+		},
+	}, {
+		// The other keyword-and-name shape: `include Auditable` and
+		// `requires Eq` name a type where a declaration names a fresh one.
+		// Before the keyword rule for the same reason as the rule above.
+		Match: capturing(refers(file.Grammar)) + "\\s+(" + dotted(shapes[identifier]) + ")",
+		Captures: map[string]capture{
+			"1": {Name: "keyword.control.tdl"},
+			"2": {Name: "support.type.tdl"},
+		},
+	}, {
+		// Contextual rather than reserved: each is usable as a field name
+		// without the `:` test below, and each reads as an annotation on
+		// the declaration it precedes.
+		//
+		// Before the call rule, so `deprecated("gone")` reads as the
+		// modifier it is rather than as a directive.
+		Name:  "storage.modifier.tdl",
+		Match: name(alternation(modifiers)),
+	}, {
+		// A target entry is a path and then a block or a `=>`, and both
+		// are what find it: nothing else in the language puts a name
+		// before either. The path names a declaration and its members,
+		// and is coloured whole, the way tree-sitter/queries/highlights.scm
+		// captures every segment of one.
+		Name:  "entity.name.namespace.tdl",
+		Match: notKeyword(keywords) + notKeyword(modifiers) + "(?:" + dotted(shapes[identifier]) + ")(?=\\s*(?:=>|\\{))",
+	}, {
+		// The directive an entry maps to, when it takes no arguments and
+		// the rule below therefore cannot see it.
+		Match: "(=>)\\s*" + notKeyword(keywords) + "(" + dotted(shapes[identifier]) + ")",
+		Captures: map[string]capture{
+			"1": {Name: "keyword.operator.tdl"},
+			"2": {Name: "entity.name.function.tdl"},
+		},
+	}, {
+		// A constraint and a directive are both a name applied to
+		// parenthesized arguments, and nothing else in the language is.
+		// Before the keyword rule, because a directive name may be spelled
+		// with a reserved word: that namespace belongs to the backend.
+		Name:  "entity.name.function.tdl",
+		Match: "(?:" + shapes[identifier] + ")(?=\\s*\\()",
+	}, {
+		// A type reference has no keyword in front of it, so what finds
+		// one is the punctuation that introduces a type position: `:` for
+		// a field's or a declaration's type and for a conformance list,
+		// `<` and `,` for a type argument, and `[` for an element type.
+		//
+		// A reserved word is excluded rather than coloured, since `type`
+		// and `unit` in that position are the kinds in `List: type ->
+		// type` rather than a type someone declared.
+		Match: "([:<,\\[])\\s*" + notKeyword(keywords) + "(" + dotted(shapes[identifier]) + ")",
+		Captures: map[string]capture{
+			"1": {Name: "punctuation.tdl"},
+			"2": {Name: "support.type.tdl"},
+		},
+	}, {
+		// `->` separates a map's key from its value, and `=` gives an
+		// alias its type. The same arrow separates the atoms of a kind,
+		// and the guard is what tells those apart: a kind atom is `type`
+		// or `unit`, both reserved.
+		//
+		// `=` also opens a unit expression and a field's default, so a
+		// unit and an enum variant are coloured as types here. Each is a
+		// name a declaration introduced, which is what the colour says.
+		Match: "(->|=)\\s*" + notKeyword(keywords) + "(" + dotted(shapes[identifier]) + ")",
+		Captures: map[string]capture{
+			"1": {Name: "keyword.operator.tdl"},
+			"2": {Name: "support.type.tdl"},
+		},
+	}, {
+		// `{` opens a set or a map type and also opens every block, and
+		// what tells them apart here is the space canonical form puts
+		// after the block's brace: `{string -> int}` against `where {`.
+		// A hand-written `{ string }` goes uncoloured rather than wrong.
+		Match: "(\\{)" + notKeyword(keywords) + "(" + dotted(shapes[identifier]) + ")",
+		Captures: map[string]capture{
+			"1": {Name: "punctuation.tdl"},
+			"2": {Name: "support.type.tdl"},
+		},
 	}, {
 		Name:  "constant.language.tdl",
 		Match: name(alternation(values)),
@@ -196,11 +328,11 @@ func rules(file *ebnf.File) ([]rule, error) {
 		Name:  "keyword.control.tdl",
 		Match: name(alternation(keywords)),
 	}, {
-		// Contextual rather than reserved: each is usable as a field name
-		// without the `:` test below, and each reads as an annotation on
-		// the declaration it precedes.
-		Name:  "storage.modifier.tdl",
-		Match: name(alternation(modifiers)),
+		// A `:` after a name makes it a field, which is the rule the
+		// keyword and modifier lookaheads above decline on. Here it is
+		// what says the name is one.
+		Name:  "variable.other.property.tdl",
+		Match: "(?:" + shapes[identifier] + ")(?=\\s*:)",
 	}, {
 		Name:  "keyword.operator.tdl",
 		Match: spellings(ops),
@@ -208,6 +340,67 @@ func rules(file *ebnf.File) ([]rule, error) {
 		Name:  "punctuation.tdl",
 		Match: spellings(delims),
 	}}, nil
+}
+
+// variantBlock colors an enum body, which is the one place a bare name
+// means something on its own.
+//
+// Everywhere else a name is read from the token beside it: a `:` after it
+// makes it a field, a `(` a constraint. A variant has neither, so what
+// says it is one is the block it sits in, and a block is a region rather
+// than a match. Inside it, a variant may carry a body of fields, and that
+// body is the whole grammar again.
+//
+// The keyword comes from the production named below rather than from a
+// literal here, so renaming it in the grammar is a diff in the output and
+// deleting it is an error.
+func variantBlock(file *ebnf.File, ident string, keywords, modifiers []string) (rule, error) {
+	prod, ok := file.Grammar[valueBlock]
+	if !ok {
+		return rule{}, fmt.Errorf("%s: no such production, and it is what spells the enum keyword", valueBlock)
+	}
+	seq, ok := prod.Expr.(xebnf.Sequence)
+	if !ok || len(seq) == 0 {
+		return rule{}, fmt.Errorf("%s: expected a sequence", valueBlock)
+	}
+	keyword, ok := seq[0].(*xebnf.Token)
+	if !ok {
+		return rule{}, fmt.Errorf("%s: expected a keyword first", valueBlock)
+	}
+
+	const variant = "variable.other.enummember.tdl"
+
+	return rule{
+		// Everything between the name and the `{` is the header: type
+		// parameters, a conformance list, a requires clause. It is
+		// colored as itself rather than skipped.
+		Begin: capturing([]string{keyword.String}) + "\\s+(" + ident + ")([^{]*)\\{",
+		BeginCaptures: map[string]capture{
+			"1": {Name: "keyword.control.tdl"},
+			"2": {Name: "entity.name.type.tdl"},
+			"3": {Patterns: []rule{self}},
+		},
+		End: "\\}",
+		Patterns: []rule{
+			// First, because a name before a `{` is a target path
+			// everywhere else and a variant carrying fields here. Nothing
+			// else in the body is a name followed by a brace, so putting
+			// this ahead of the whole grammar costs nothing.
+			{
+				Begin:         "(" + ident + ")\\s*\\{",
+				BeginCaptures: map[string]capture{"1": {Name: variant}},
+				End:           "\\}",
+				Patterns:      []rule{self},
+			},
+			// Then the rest of the language: a doc comment, a
+			// `deprecated`, and the fields inside a variant's body.
+			self,
+			{
+				Name:  variant,
+				Match: notKeyword(keywords) + notKeyword(modifiers) + "(?:" + ident + ")",
+			},
+		},
+	}, nil
 }
 
 // token is the pattern bound to a name, wherever docs/grammar.ebnf binds
@@ -226,6 +419,71 @@ func token(file *ebnf.File, name string) (string, error) {
 		return pattern, nil
 	}
 	return "", fmt.Errorf("%s: no token annotation binds it to a lex pattern", name)
+}
+
+// declares is every keyword a production spells immediately before the
+// identifier it names: `entity Order`, `unit kg`, `type Email`.
+//
+// That shape is what makes the name findable without a parse, and reading
+// it from the grammar rather than listing it means a declaration form
+// added there colors its name too. A production naming something else
+// second, as ImportDecl and InstanceDecl do, is not one of these.
+func declares(g xebnf.Grammar) []string {
+	var out []string
+	for _, prodName := range names(g) {
+		seq, ok := g[prodName].Expr.(xebnf.Sequence)
+		if !ok || len(seq) < 2 {
+			continue
+		}
+		keyword, ok := seq[0].(*xebnf.Token)
+		if !ok || !lex.IsKeyword(keyword.String) {
+			continue
+		}
+		if named, ok := seq[1].(*xebnf.Name); ok && named.String == identifier {
+			out = append(out, keyword.String)
+		}
+	}
+
+	sort.Strings(out)
+	return dedupe(out)
+}
+
+// refers is every keyword a production spells immediately before a type:
+// `include Auditable`, `requires Eq`.
+//
+// Read the way declares reads its keywords, and told from them by which
+// production follows: a name the source is defining is an identifier, and
+// a name it is using is one of typeValued.
+func refers(g xebnf.Grammar) []string {
+	var out []string
+	for _, prodName := range names(g) {
+		seq, ok := g[prodName].Expr.(xebnf.Sequence)
+		if !ok || len(seq) < 2 {
+			continue
+		}
+		keyword, ok := seq[0].(*xebnf.Token)
+		if !ok || !lex.IsKeyword(keyword.String) {
+			continue
+		}
+		if named, ok := seq[1].(*xebnf.Name); ok && typeValued[named.String] {
+			out = append(out, keyword.String)
+		}
+	}
+
+	sort.Strings(out)
+	return dedupe(out)
+}
+
+// dedupe drops the repeats a sorted list carries, since `type` introduces
+// a name in three productions and belongs in the alternation once.
+func dedupe(sorted []string) []string {
+	out := sorted[:0]
+	for i, item := range sorted {
+		if i == 0 || item != sorted[i-1] {
+			out = append(out, item)
+		}
+	}
+	return out
 }
 
 // contextual is every quoted terminal the lexer scans as an identifier:
@@ -267,11 +525,29 @@ func alternation(words []string) string {
 	return "\\b(?:" + strings.Join(longestFirst(words), "|") + ")\\b"
 }
 
+// capturing is an alternation a rule colors separately from the rest of
+// what it matches, which a non-capturing group gives no way to name.
+func capturing(words []string) string {
+	return "\\b(" + strings.Join(longestFirst(words), "|") + ")\\b"
+}
+
 // spellings matches any of a set of fixed spellings, already escaped.
 // Unlike a word, punctuation takes no boundary: `->` is two characters
 // neither of which is one.
 func spellings(escaped []string) string {
 	return "(?:" + strings.Join(longestFirst(escaped), "|") + ")"
+}
+
+// dotted matches a name and the package path in front of it, which is one
+// name in the language and is colored as one.
+func dotted(ident string) string {
+	return "(?:" + ident + ")(?:\\.(?:" + ident + "))*"
+}
+
+// notKeyword is the zero-width guard on a type position, since a reserved
+// word standing there is something else: a kind, or the block a `{` opens.
+func notKeyword(keywords []string) string {
+	return "(?!" + alternation(keywords) + ")"
 }
 
 // name declines to color a word a `:` turns into a field name.

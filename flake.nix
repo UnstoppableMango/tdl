@@ -79,6 +79,8 @@
               pkgs.markdownlint-cli2
               pkgs.protoc-gen-go
               pkgs.tree-sitter
+              # editors/vscode/install.sh builds a .vsix, which is a zip.
+              pkgs.zip
             ];
           };
 

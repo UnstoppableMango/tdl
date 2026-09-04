@@ -118,6 +118,62 @@ func TestModifiersAreContextual(t *testing.T) {
 	}
 }
 
+// TestDeclarationKeywordsComeFromTheGrammar checks the one name TextMate
+// can find without a parse is found for every declaration that spells one.
+//
+// The keywords are read from the productions rather than listed, so this
+// is the check that the reading is right: a form docs/grammar.ebnf spells
+// as a keyword and an identifier colors its name.
+func TestDeclarationKeywordsComeFromTheGrammar(t *testing.T) {
+	declares := alternatives(t, captureRuleFor(t, "entity.name.type.tdl"))
+
+	for _, want := range []string{
+		"alias", "class", "entity", "enum", "mixin",
+		"primitive", "target", "type", "unit", "value",
+	} {
+		if !declares[want] {
+			t.Errorf("%q introduces a name in docs/grammar.ebnf and nothing colors it", want)
+		}
+	}
+
+	// import and instance name something other than a fresh identifier,
+	// and coloring the next word after either would be wrong.
+	for _, unwanted := range []string{"import", "instance", "package"} {
+		if declares[unwanted] {
+			t.Errorf("%q does not introduce a declaration name", unwanted)
+		}
+	}
+	for text := range declares {
+		if !lex.IsKeyword(text) {
+			t.Errorf("%q introduces a name and lex does not reserve it", text)
+		}
+	}
+}
+
+// TestTypeReferenceKeywordsComeFromTheGrammar is the same check for the
+// keywords naming a type rather than declaring one.
+//
+// What tells the two apart is the production that follows the keyword: an
+// identifier is a name being introduced, and a NamedType or a ClassRef is
+// one being used.
+func TestTypeReferenceKeywordsComeFromTheGrammar(t *testing.T) {
+	refers := alternatives(t, ruleCapturing(t, "keyword.control.tdl", "support.type.tdl"))
+
+	for _, want := range []string{"include", "requires"} {
+		if !refers[want] {
+			t.Errorf("%q names a type in docs/grammar.ebnf and nothing colors it", want)
+		}
+	}
+
+	// package takes a path rather than a type, and coloring one as the
+	// other is what naming the productions above avoids.
+	for _, unwanted := range []string{"package", "import", "entity", "type"} {
+		if refers[unwanted] {
+			t.Errorf("%q does not name a type", unwanted)
+		}
+	}
+}
+
 // TestPatternsComeFromLex holds the copied shapes to the originals. They
 // are Oniguruma in the output and Go's regexp in lex, and the two agree on
 // everything these six use; a pattern that stopped being copyable would
@@ -150,6 +206,62 @@ func TestPatternsComeFromLex(t *testing.T) {
 	}
 }
 
+// TestTargetPathsAreColored checks the entry rule reads both shapes a
+// target entry takes, since a path colored in one and not the other would
+// look like the grammar losing track inside a block.
+func TestTargetPathsAreColored(t *testing.T) {
+	match := ruleFor(t, "entity.name.namespace.tdl")
+
+	for _, want := range []string{"=>", "\\{"} {
+		if !strings.Contains(match, want) {
+			t.Errorf("the path rule does not read an entry ending in %s", want)
+		}
+	}
+}
+
+// TestEnumBodyColorsItsVariants checks the one region the grammar has.
+//
+// A variant has no token beside it to read, so what makes it a name is the
+// block, and a block is a begin and an end rather than a match. The
+// keyword opening it comes from EnumDecl, so renaming the production is an
+// error and renaming the keyword is a diff in the output.
+func TestEnumBodyColorsItsVariants(t *testing.T) {
+	var regions []pattern
+	for _, rule := range parse(t).Patterns {
+		if rule.Begin != "" {
+			regions = append(regions, rule)
+		}
+	}
+	if len(regions) != 1 {
+		t.Fatalf("%d regions in the grammar, want 1", len(regions))
+	}
+
+	enum := regions[0]
+	if !strings.Contains(enum.Begin, "enum") {
+		t.Errorf("the region begins with %q, which does not read an enum", enum.Begin)
+	}
+	if got := enum.BeginCaptures["2"].Name; got != "entity.name.type.tdl" {
+		t.Errorf("the enum's name is colored %q", got)
+	}
+
+	const variant = "variable.other.enummember.tdl"
+	var bare, withBody bool
+	for _, inner := range enum.Patterns {
+		switch {
+		case inner.Name == variant:
+			bare = true
+		case inner.BeginCaptures["1"].Name == variant:
+			withBody = true
+		}
+	}
+	if !bare {
+		t.Errorf("nothing in the enum body colors a bare variant %s", variant)
+	}
+	if !withBody {
+		t.Errorf("nothing in the enum body colors a variant carrying fields")
+	}
+}
+
 // TestScopeNameMatchesTreeSitter checks the two derived grammars name the
 // language the same thing. An editor keying a theme or an injection off
 // the scope reads one name, and there is only one language.
@@ -171,11 +283,21 @@ func TestScopeNameMatchesTreeSitter(t *testing.T) {
 
 // A file is the shape of the emitted grammar a test reads back.
 type file struct {
-	ScopeName string `json:"scopeName"`
-	Patterns  []struct {
-		Name  string `json:"name"`
-		Match string `json:"match"`
-	} `json:"patterns"`
+	ScopeName string    `json:"scopeName"`
+	Patterns  []pattern `json:"patterns"`
+}
+
+type pattern struct {
+	Name          string             `json:"name"`
+	Match         string             `json:"match"`
+	Begin         string             `json:"begin"`
+	Captures      map[string]capture `json:"captures"`
+	BeginCaptures map[string]capture `json:"beginCaptures"`
+	Patterns      []pattern          `json:"patterns"`
+}
+
+type capture struct {
+	Name string `json:"name"`
 }
 
 func emitDocs(t *testing.T) string {
@@ -232,6 +354,43 @@ func ruleFor(t *testing.T, scope string) string {
 	return found[0]
 }
 
+// captureRuleFor is the match of the one rule coloring a scope through a
+// capture rather than as a whole.
+func captureRuleFor(t *testing.T, scope string) string {
+	t.Helper()
+
+	var found []string
+	for _, rule := range parse(t).Patterns {
+		for _, capture := range rule.Captures {
+			if capture.Name == scope {
+				found = append(found, rule.Match)
+			}
+		}
+	}
+	if len(found) != 1 {
+		t.Fatalf("%d rules capture %s, want 1", len(found), scope)
+	}
+	return found[0]
+}
+
+// ruleCapturing is the match of the one rule coloring two scopes in
+// order, which is how a rule that reads a keyword and the name after it
+// is told from the several coloring the same name after punctuation.
+func ruleCapturing(t *testing.T, first, second string) string {
+	t.Helper()
+
+	var found []string
+	for _, rule := range parse(t).Patterns {
+		if rule.Captures["1"].Name == first && rule.Captures["2"].Name == second {
+			found = append(found, rule.Match)
+		}
+	}
+	if len(found) != 1 {
+		t.Fatalf("%d rules capture %s then %s, want 1", len(found), first, second)
+	}
+	return found[0]
+}
+
 // alternatives are the spellings in a rule's alternation, still escaped.
 //
 // Read rather than matched: the patterns are Oniguruma and use lookaround
@@ -239,12 +398,16 @@ func ruleFor(t *testing.T, scope string) string {
 func alternatives(t *testing.T, match string) map[string]bool {
 	t.Helper()
 
-	const open = "(?:"
-	start := strings.Index(match, open)
+	// The group is capturing when the rule colors it separately and
+	// non-capturing when it does not; either way it is the first one.
+	start := strings.Index(match, "(")
 	if start < 0 {
 		t.Fatalf("%q is not an alternation", match)
 	}
-	start += len(open)
+	start++
+	if strings.HasPrefix(match[start:], "?:") {
+		start += len("?:")
+	}
 
 	depth, end := 1, -1
 	for i := start; i < len(match); i++ {
