@@ -61,6 +61,14 @@ The two branches of `nvim-treesitter` spell a custom parser differently, and the
 `main` takes `queries` and registers the parser in a `User TSUpdate` autocommand; `master` takes `files` naming both C sources, registers through `get_parser_configs()`, and installs no queries for a parser it does not ship, so `highlights.scm` goes on the runtimepath by hand.
 `main` builds through the `tree-sitter` CLI rather than invoking the compiler itself, which is a dependency the section states.
 
+`vim.treesitter.language.register` is not in the section, against what this phase said above.
+It maps a parser onto a filetype spelled differently, and the parser is named `tdl` for filetype `tdl`.
+The section says so, since an omission reads as an oversight.
+
+What the phase missed is that installing a parser colors nothing.
+`nvim-treesitter` ships queries and enables no feature, so highlighting is Neovim's `vim.treesitter.start` called per filetype, from a `FileType` autocommand or `ftplugin/tdl.lua`.
+`master` is the branch where highlighting is the plugin's, enabled in its `setup`.
+
 ## Phase 2: the TextMate emitter
 
 `internal/textmate` reads what `ebnf.Read` already returns and writes `editors/vscode/syntaxes/tdl.tmLanguage.json`.
