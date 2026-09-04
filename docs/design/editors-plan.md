@@ -54,6 +54,13 @@ First because it depends on nothing and blocks nothing.
 
 Done when pasting the section into a configuration that has never seen TDL highlights a conformance file.
 
+Done.
+The done-condition was run rather than reasoned about: the snippet pasted into an empty configuration installs the parser and colors `testdata/conformance/constraints/source.tdl` with no ERROR node.
+
+The two branches of `nvim-treesitter` spell a custom parser differently, and the section carries both.
+`main` takes `queries` and registers the parser in a `User TSUpdate` autocommand; `master` takes `files` naming both C sources, registers through `get_parser_configs()`, and installs no queries for a parser it does not ship, so `highlights.scm` goes on the runtimepath by hand.
+`main` builds through the `tree-sitter` CLI rather than invoking the compiler itself, which is a dependency the section states.
+
 ## Phase 2: the TextMate emitter
 
 `internal/textmate` reads what `ebnf.Read` already returns and writes `editors/vscode/syntaxes/tdl.tmLanguage.json`.
