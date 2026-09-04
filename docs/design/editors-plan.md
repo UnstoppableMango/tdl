@@ -72,16 +72,66 @@ The two agree on everything these six use except escaping, so translating them i
 
 Done when running the emitter twice produces the same bytes, every spelling in `lex.Keywords()` appears in the output, and a keyword added to `lex` without regenerating fails `go test ./internal/textmate`.
 
+Done.
+The done-condition was proved rather than assumed: a keyword added to `lex` and to `reserved_word` fails `TestTmLanguage` until `make textmate` runs.
+
+The patterns needed no translating after all.
+The six shapes use only what Oniguruma and Go's `regexp` spell the same way, so they are copied verbatim and `TestPatternsComeFromLex` holds the copy to the original.
+
+Three rules are more than a spelling, and each is a fact about the language rather than a preference.
+A regex literal is only ever a `ConstraintArg`, so it is matched after the `(` or `,` that introduces one, and no unit expression is coloured as one: `decimal<kg*m/s^2>` reads as arithmetic and `matches(/^[a-z-]+$/)` as a pattern.
+A reserved word followed by `:` is a field name, so every word rule ends in a lookahead and `where: string` is a field where `where {` is a block.
+A numeric literal is guarded against the identifier it might sit inside, since `\b` does not separate `x` from `1`.
+
+The modifiers are read from the grammar's quoted terminals rather than listed, so `key`, `owned`, and `deprecated` are coloured and a fourth would be too.
+`_` is identifier-shaped and is excluded: `import "x" as _` is a name the source declines to give.
+
+Four kinds of name are coloured that the design document said would not be, and none of them needs a parse after all.
+A declaration name is spelled after the keyword that declares it, a field name before a `:`, a constraint or directive name before a `(`, and a type reference after the punctuation opening a type position or after `include` and `requires`.
+
+Both keyword sets are read from the productions rather than listed, and the production after the keyword is what sorts them: `entity identifier` declares a name and `include NamedType` uses one.
+`NamedType`, `ClassRef`, and `TypeRef` are named in the emitter, since what a production means is the one thing the notation does not say, and reachability would call each of them a dotted identifier.
+
+Two guards keep the type rules honest.
+A reserved word is never a type reference, so the kinds in `List: type -> type` stay keywords, and `{` introduces a type only with no space after it, which is what separates `{string -> int}` from the `where {` canonical form writes with one.
+
+An enum variant is the fifth, and it is the one that needed a region rather than a line rule.
+Every other name is read from the token beside it; a variant has none, so what says it is a name is the block it sits in.
+A variant carrying fields opens a region of its own that includes the whole grammar again, which is how `Some { value: T }` reads as a variant and a field.
+Every `{` opens a region for the same reason: a region ends at the first `}` it sees, so a set type or a constraint block left as two punctuation marks inside a variant would end it early and uncolour everything after it.
+`EnumDecl` is named in the emitter the way the type-valued productions are, and the keyword comes from that production rather than from a literal.
+
+A target path is the sixth, found by what follows it rather than what precedes it: an entry is a path and then a block or a `=>`, and nothing else in the language puts a name before either.
+It is coloured whole, the way `highlights.scm` captures every segment of one, and the directive after the `=>` is coloured even when it takes no arguments and the constraint rule cannot see it.
+
+What is left uncoloured is the class `instance` names, whose production puts an optional group between the keyword and the name.
+
 ## Phase 3: the VS Code extension
 
 `editors/vscode/package.json` contributes the language, the file extension, and the grammar from phase 2.
 
 `language-configuration.json` is hand-written and separate from the grammar: comment markers, brackets, and auto-closing pairs are editor behaviour rather than facts about the syntax, and no generator should guess them.
 
+`<` and `>` are an auto-closing pair and not a bracket pair.
+Bracket pair colourisation reads `brackets`, so listing them there paints the `>` in `->` and `=>` as an unmatched closing bracket, in red, over whatever colour the grammar gave it.
+Type arguments lose bracket matching, which is the cheaper half of that trade.
+
 `flake.nix` gains `packages.vscode-tdl`, built with `pkgs.vscode-utils.buildVscodeExtension` from that directory.
 Installing through nix is the whole distribution story for now; the Marketplace is an account, a token, and a release job, and none of it changes a file here.
 
 Done when `nix build .#vscode-tdl` produces an extension that colours a conformance file, and `AGENTS.md` says how to add it to a configuration.
+
+Done.
+`sourceRoot` is set: `buildVscodeExtension` defaults it to the layout inside a `.vsix`, and the source here is a directory in the tree.
+
+`editors/vscode/package.json` carries a version, which makes it release-please's rather than anyone's to edit.
+It is listed in `release-please-config.json` as a JSON updater, since JSON cannot carry the `x-release-please-version` comment `flake.nix` and `internal/cli/version.go` use.
+
+The generated grammar is excluded from treefmt, the way `tree-sitter/src/*.json` is: `jsonfmt` and the emitter would otherwise each rewrite it.
+
+`editors/vscode/install.sh` and `make vscode-install` package the directory as a `.vsix` and install it with `code --install-extension`.
+That is the only route that reaches the client: a directory copied into an extensions folder registers on a remote server, appears in its `extensions.json`, and never shows up in the Extensions view, which reads as the grammar silently not working.
+The `.vsix` is a zip and two XML files, written by the script rather than by `vsce`, which would pull npm in for that.
 
 ## Phase 4: the grammar repository
 

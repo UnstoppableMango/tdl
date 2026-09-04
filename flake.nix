@@ -42,6 +42,28 @@
 
           packages.default = pkgs.callPackage ./nix { inherit version go; };
 
+          # The VS Code extension, installed through nix rather than the
+          # Marketplace: add it to vscode-with-extensions or to
+          # home-manager's programs.vscode.extensions.
+          #
+          # sourceRoot is the directory the unpacker copies src into, which
+          # takes its name; buildVscodeExtension defaults it to a .vsix's
+          # layout, and this is a directory in the tree.
+          packages.vscode-tdl = pkgs.vscode-utils.buildVscodeExtension {
+            pname = "tdl";
+            inherit version;
+            src = ./editors/vscode;
+            sourceRoot = "vscode";
+            vscodeExtPublisher = "unstoppablemango";
+            vscodeExtName = "tdl";
+            vscodeExtUniqueId = "unstoppablemango.tdl";
+            meta = {
+              description = "Syntax highlighting for the Type Description Language";
+              homepage = "https://github.com/UnstoppableMango/tdl";
+              license = pkgs.lib.licenses.gpl3Plus;
+            };
+          };
+
           # mkShell rather than mkShellNoCC: Go needs no C compiler, but
           # `tree-sitter parse` builds the generated parser with one.
           devShells.default = pkgs.mkShell {
@@ -57,6 +79,8 @@
               pkgs.markdownlint-cli2
               pkgs.protoc-gen-go
               pkgs.tree-sitter
+              # editors/vscode/install.sh builds a .vsix, which is a zip.
+              pkgs.zip
             ];
           };
 
@@ -110,6 +134,8 @@
               # Generated: `tree-sitter generate` writes these, and jsonfmt
               # would rewrite them on every check.
               "tree-sitter/src/*.json"
+              # Generated: `make textmate` writes this one.
+              "editors/vscode/syntaxes/*.json"
             ];
           };
         };

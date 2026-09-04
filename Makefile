@@ -34,6 +34,16 @@ treesitter:
 	go test ./internal/treesitter -update
 	cd tree-sitter && tree-sitter generate
 
+# Regenerate the VS Code TextMate grammar from docs/grammar.ebnf. Committed
+# like grammar.js, so this only runs when the grammar or the lexer changes.
+textmate:
+	go test ./internal/textmate -update
+
+# Package editors/vscode and install it into a running VS Code. The
+# grammar it carries is whatever `make textmate` last wrote.
+vscode-install:
+	./editors/vscode/install.sh
+
 # The conformance corpus, run by tree-sitter rather than by Go.
 test-treesitter:
 	./tree-sitter/corpus.sh
