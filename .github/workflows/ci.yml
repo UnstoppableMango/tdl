@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     name: Build and Test
-    runs-on: ubuntu-latest
+    runs-on: thecluster
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -27,7 +27,7 @@ jobs:
 
   treesitter:
     name: Tree-sitter
-    runs-on: ubuntu-latest
+    runs-on: thecluster
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -54,7 +54,7 @@ jobs:
 
   test:
     name: Test
-    runs-on: ubuntu-latest
+    runs-on: thecluster
     permissions:
       contents: read
       # Codecov uploads with use_oidc: true
@@ -79,7 +79,7 @@ jobs:
 
   golangci-lint:
     name: golangci-lint
-    runs-on: ubuntu-latest
+    runs-on: thecluster
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -92,7 +92,7 @@ jobs:
 
   buf:
     name: Buf
-    runs-on: ubuntu-latest
+    runs-on: thecluster
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -106,7 +106,7 @@ jobs:
 
   markdown-lint:
     name: Markdown Lint
-    runs-on: ubuntu-latest
+    runs-on: thecluster
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Which files to lint lives in .markdownlint-cli2.yaml, so a bare
