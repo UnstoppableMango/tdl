@@ -40,6 +40,7 @@ type NewtypeDecl struct {
 	Base        *TypeRef
 	Requires    []*ClassRef
 	Constraints []*Constraint
+	End         Position // the constraint block's `}`; zero without one
 }
 
 // StructDecl is a declaration with a body of members: `entity`, `value`, or
@@ -52,6 +53,7 @@ type StructDecl struct {
 	Conforms []*ClassRef
 	Requires []*ClassRef
 	Members  []Member
+	End      Position // the body's `}`
 }
 
 // EnumDecl is a closed set of variants. A variant may carry fields, which
@@ -62,6 +64,7 @@ type EnumDecl struct {
 	Conforms []*ClassRef
 	Requires []*ClassRef
 	Variants []*Variant
+	End      Position // the body's `}`
 }
 
 // TargetDecl is a `target go for billing { ... }` block. Everything a code
@@ -70,6 +73,7 @@ type TargetDecl struct {
 	DeclHead
 	For     string // the dotted package name the target applies to
 	Entries []*TargetEntry
+	End     Position // the block's `}`
 }
 
 // Member is one item in a [StructDecl] body: a [Field] or an [Include].
@@ -88,6 +92,7 @@ type Field struct {
 	Type        *TypeRef
 	Constraints []*Constraint
 	Default     *Literal
+	End         Position // the constraint block's `}`; zero without one
 }
 
 func (f *Field) MemberPos() Position { return f.P }
@@ -107,6 +112,7 @@ type Variant struct {
 	N      string
 	Dep    *Deprecation
 	Fields []*Field // nil for a variant without a payload
+	End    Position // the payload's `}`; zero without one
 }
 
 // TargetEntry is one entry in a [TargetDecl]: a path scoping a nested
@@ -117,6 +123,7 @@ type TargetEntry struct {
 	Path      string         // "" for a bare directive
 	Directive *Directive     // nil when Entries is set
 	Entries   []*TargetEntry // nil when Directive is set
+	End       Position       // the nested block's `}`; zero without one
 }
 
 // Directive is an opaque instruction to a backend. The compiler checks its
@@ -174,6 +181,7 @@ type ClassDecl struct {
 	Conforms []*ClassRef // classes this one requires
 	Requires []*ClassRef
 	Members  []Member
+	End      Position // the body's `}`
 }
 
 // FunDep states that some parameters determine others, which makes a
@@ -214,6 +222,7 @@ type InstanceDecl struct {
 	For      *TypeRef // set when written with `for`, nil when written with type arguments
 	Requires []*ClassRef
 	Binds    []*AssocTypeBind
+	End      Position // the bind block's `}`; zero without one
 }
 
 // AssocTypeBind supplies a type for one of a class's associated type

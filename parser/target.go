@@ -17,14 +17,14 @@ func (p *parser) parseTargetDecl(head ast.DeclHead) *ast.TargetDecl {
 		return d
 	}
 	d.For = p.parseDottedIdent()
-	d.Entries = p.parseTargetEntries()
+	d.Entries, d.End = p.parseTargetEntries()
 	return d
 }
 
-func (p *parser) parseTargetEntries() []*ast.TargetEntry {
+func (p *parser) parseTargetEntries() ([]*ast.TargetEntry, ast.Position) {
 	if !p.expect(lex.LBRACE) {
 		p.syncTop()
-		return nil
+		return nil, ast.Position{}
 	}
 
 	var entries []*ast.TargetEntry
@@ -35,8 +35,7 @@ func (p *parser) parseTargetEntries() []*ast.TargetEntry {
 			p.next()
 		}
 	}
-	p.expect(lex.RBRACE)
-	return entries
+	return entries, p.expectRbrace()
 }
 
 // parseTargetEntry parses one of the three entry forms:
@@ -60,7 +59,7 @@ func (p *parser) parseTargetEntry() *ast.TargetEntry {
 	switch {
 	case p.at(lex.LBRACE):
 		entry.Path = dotted
-		entry.Entries = p.parseTargetEntries()
+		entry.Entries, entry.End = p.parseTargetEntries()
 	case p.accept(lex.FATARROW):
 		entry.Path = dotted
 		entry.Directive = p.parseDirective()
