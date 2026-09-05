@@ -11,7 +11,7 @@ func newCheckCmd() *cobra.Command {
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return eachFile(cmd, args, func(_ int, path string) error {
-				_, err := loadFile(path)
+				_, err := loadFile(cmd, path)
 				return err
 			})
 		},

@@ -43,8 +43,17 @@ func newGenCmd() *cobra.Command {
 			if watch && len(args) > 1 {
 				return fmt.Errorf("--watch takes a single file, got %d", len(args))
 			}
+			// An import resolves next to the file that wrote it, and
+			// standard input has no directory: every import would quietly
+			// resolve against the working directory instead. `ir` reads a
+			// model and lives with that; gen writes files from it.
+			for _, path := range args {
+				if isStdin(path) {
+					return fmt.Errorf("gen needs a file on disk: an import resolves next to it, and %s has no directory", stdinName)
+				}
+			}
 			generate := func(path string) error {
-				file, err := loadFile(path)
+				file, err := loadFile(cmd, path)
 				if err != nil {
 					return err
 				}

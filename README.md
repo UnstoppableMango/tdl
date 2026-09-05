@@ -163,9 +163,11 @@ tdl tokens ./types.tdl   # print the token stream
 tdl version              # tool and spec versions
 ```
 
-Every command above takes more than one file.
+Every command above takes more than one file, and reads standard input when handed `-`.
 A file that fails is reported and the rest still run, so `tdl check ./*.tdl` names every broken file rather than the first.
 The commands that print something separate their output with a `==> path <==` banner when given more than one, and print no banner for a single file.
+`tdl fmt -` formats an editor buffer that has not been saved.
+`-w` rejects it, having nothing to write back to, and so does `gen`: an import resolves next to the file that wrote it, so reading a model from standard input would resolve every import against the working directory instead.
 
 ### Playground
 

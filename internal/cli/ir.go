@@ -38,7 +38,7 @@ func newIrCmd() *cobra.Command {
 			opts = append(opts, sema.WithLoader(sema.FSLoader{}))
 
 			return eachFile(cmd, args, func(i int, path string) error {
-				file, err := loadFile(path)
+				file, err := loadFile(cmd, path)
 				if err != nil {
 					return err
 				}
