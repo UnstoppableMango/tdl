@@ -39,7 +39,7 @@ func newIrCmd() *cobra.Command {
 
 			header := newHeader(args)
 			return eachFile(cmd, args, func(path string) error {
-				file, err := loadFile(path)
+				file, err := loadFile(cmd, path)
 				if err != nil {
 					return err
 				}
