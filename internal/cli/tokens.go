@@ -13,18 +13,23 @@ import (
 
 func newTokensCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "tokens <file>",
+		Use:   "tokens <file>...",
 		Short: "Print the token stream the lexer produces for a TDL file",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := args[0]
-			data, err := os.ReadFile(path)
-			if err != nil {
-				return err
-			}
+			return eachFile(cmd, args, func(i int, path string) error {
+				// The lexer is the stage under test here, so this reads the
+				// file itself rather than going through loadFile, which would
+				// parse it and fail on a file whose tokens are worth seeing.
+				data, err := os.ReadFile(path)
+				if err != nil {
+					return err
+				}
 
-			fmt.Fprint(cmd.OutOrStdout(), dumpTokens(path, string(data)))
-			return nil
+				writeHeader(cmd, args, i, path)
+				fmt.Fprint(cmd.OutOrStdout(), dumpTokens(path, string(data)))
+				return nil
+			})
 		},
 	}
 }

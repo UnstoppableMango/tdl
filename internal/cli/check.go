@@ -1,30 +1,19 @@
 package cli
 
 import (
-	"os"
-
 	"github.com/spf13/cobra"
-
-	"github.com/unstoppablemango/tdl/parser"
 )
 
 func newCheckCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "check <file>",
+		Use:   "check <file>...",
 		Short: "Parse a TDL file and report every syntax error found",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := args[0]
-			f, err := os.Open(path)
-			if err != nil {
+			return eachFile(cmd, args, func(_ int, path string) error {
+				_, err := loadFile(path)
 				return err
-			}
-			defer f.Close()
-
-			if _, err := parser.Parse(path, f); err != nil {
-				return err
-			}
-			return nil
+			})
 		},
 	}
 }

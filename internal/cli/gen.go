@@ -1,15 +1,12 @@
 package cli
 
 import (
-	"bytes"
 	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
 
 	"github.com/unstoppablemango/tdl/internal/gen"
 	"github.com/unstoppablemango/tdl/internal/sema"
-	"github.com/unstoppablemango/tdl/parser"
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
@@ -23,7 +20,7 @@ func newGenCmd() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "gen <file>",
+		Use:   "gen <file>...",
 		Short: "Generate code from a TDL file",
 		Long: "Generate code from a TDL file.\n\n" +
 			"Every target block in the file runs. A target block exists, so it\n" +
@@ -36,20 +33,18 @@ func newGenCmd() *cobra.Command {
 			"exiting non-zero when they differ. --clean empties the output\n" +
 			"directory first, and refuses one tdl did not write.\n\n" +
 			"--watch regenerates when the file changes, holding open any\n" +
-			"plugin that declared it can serve more than one request.",
-		Args: cobra.ExactArgs(1),
+			"plugin that declared it can serve more than one request. It\n" +
+			"takes a single file, since it does not return.",
+		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := args[0]
 			if watch && verify {
 				return fmt.Errorf("--watch regenerates, so it cannot be combined with --verify")
 			}
-			generate := func() error {
-				data, err := os.ReadFile(path)
-				if err != nil {
-					return err
-				}
-
-				file, err := parser.Parse(path, bytes.NewReader(data))
+			if watch && len(args) > 1 {
+				return fmt.Errorf("--watch takes a single file, got %d", len(args))
+			}
+			generate := func(path string) error {
+				file, err := loadFile(path)
 				if err != nil {
 					return err
 				}
@@ -129,18 +124,22 @@ func newGenCmd() *cobra.Command {
 			}
 
 			if !watch {
-				return generate()
+				return eachFile(cmd, args, func(_ int, path string) error {
+					return generate(path)
+				})
 			}
+
+			path := args[0]
 
 			// The first run reports its errors and the watch continues: a
 			// file being edited is expected to be broken between saves.
-			if err := generate(); err != nil {
+			if err := generate(path); err != nil {
 				fmt.Fprintln(cmd.ErrOrStderr(), err)
 			}
 			fmt.Fprintf(cmd.ErrOrStderr(), "watching %s\n", path)
 
 			gen.Watch(cmd.Context().Done(), path, func() {
-				if err := generate(); err != nil {
+				if err := generate(path); err != nil {
 					fmt.Fprintln(cmd.ErrOrStderr(), err)
 				}
 			})
