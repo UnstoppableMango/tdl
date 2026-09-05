@@ -21,7 +21,26 @@ type Lexer struct {
 	lineStart int // offset of the start of the current line
 
 	ch rune // current character, or -1 at EOF
+
+	comments []Comment
+	seen     int // offset after the last comment recorded
 }
+
+// Comment is an ordinary `//` comment, which [Lexer.Next] skips.
+//
+// A doc comment is a DOC token instead, because it belongs to the
+// declaration it precedes and the parser attaches it there. An ordinary
+// comment belongs to nobody, so it is collected here and the formatter
+// places it by position. Nothing between the two stages has to know it
+// exists.
+type Comment struct {
+	Text string // the text after the slashes, with one leading space removed
+	Pos  Position
+	End  int // offset just past the comment's last character
+}
+
+// Comments returns every ordinary comment scanned so far, in source order.
+func (l *Lexer) Comments() []Comment { return l.comments }
 
 // New returns a Lexer over src, reporting positions against filename.
 func New(filename, src string) *Lexer {
@@ -109,7 +128,8 @@ func (l *Lexer) skipSpace() {
 
 // scanComment consumes a `//` comment. A comment beginning `///` is a doc
 // comment and produces a DOC token holding the text after the slashes with
-// one leading space removed; anything else is skipped.
+// one leading space removed; anything else is recorded on the lexer and
+// skipped.
 func (l *Lexer) scanComment(pos Position) (Token, bool) {
 	l.next() // first /
 	l.next() // second /
@@ -121,10 +141,20 @@ func (l *Lexer) scanComment(pos Position) (Token, bool) {
 	for l.ch != '\n' && l.ch != eof {
 		l.next()
 	}
-	if !doc {
-		return Token{}, false
+
+	text := strings.TrimPrefix(l.src[start:l.offset], " ")
+	if doc {
+		return Token{Kind: DOC, Text: text, Pos: pos}, true
 	}
-	return Token{Kind: DOC, Text: strings.TrimPrefix(l.src[start:l.offset], " "), Pos: pos}, true
+
+	// RescanRegexAt rewinds the lexer, so a comment already passed can be
+	// reached a second time. Recording the offset the last one ended at is
+	// what keeps it from being collected twice.
+	if l.offset > l.seen {
+		l.comments = append(l.comments, Comment{Text: text, Pos: pos, End: l.offset})
+		l.seen = l.offset
+	}
+	return Token{}, false
 }
 
 func (l *Lexer) scanOperator() Token {

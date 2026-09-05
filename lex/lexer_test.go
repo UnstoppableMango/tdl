@@ -90,6 +90,37 @@ func TestComments(t *testing.T) {
 	}
 }
 
+// An ordinary comment produces no token, but it is not thrown away: it is
+// collected on the lexer, which is where `tdl fmt` reads it back from.
+func TestOrdinaryCommentsAreCollected(t *testing.T) {
+	lx := lex.New("t.tdl", "// one\nprimitive string // two\n")
+	for lx.Next().Kind != lex.EOF { //revive:disable-line:empty-block
+	}
+
+	got := lx.Comments()
+	if len(got) != 2 {
+		t.Fatalf("got %d comments, want 2: %v", len(got), got)
+	}
+	if got[0].Text != "one" || got[1].Text != "two" {
+		t.Errorf("comment texts = %q and %q, want \"one\" and \"two\"", got[0].Text, got[1].Text)
+	}
+	if got[0].Pos.Line != 1 || got[1].Pos.Line != 2 {
+		t.Errorf("comment lines = %d and %d, want 1 and 2", got[0].Pos.Line, got[1].Pos.Line)
+	}
+}
+
+// A doc comment belongs to the declaration that follows it, so it is a
+// token and must not also land in the sink.
+func TestDocCommentsAreNotCollected(t *testing.T) {
+	lx := lex.New("t.tdl", "/// docs\nprimitive string\n")
+	for lx.Next().Kind != lex.EOF { //revive:disable-line:empty-block
+	}
+
+	if got := lx.Comments(); len(got) != 0 {
+		t.Errorf("got %d comments, want none: %v", len(got), got)
+	}
+}
+
 // Whitespace is insignificant and produces no tokens.
 func TestWhitespaceProducesNoTokens(t *testing.T) {
 	want(t, "primitive\n\n\tstring", lex.PRIMITIVE, lex.IDENT)

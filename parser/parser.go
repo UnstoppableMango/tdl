@@ -68,6 +68,18 @@ func (p *parser) expect(kind lex.Kind) bool {
 	return true
 }
 
+// expectRbrace consumes a block's closing brace and reports where it was.
+//
+// A block's end is what the formatter places a comment on the last line
+// inside it against, so every block records it. On a missing brace the
+// position of whatever was found stands in, which keeps error recovery
+// unchanged.
+func (p *parser) expectRbrace() ast.Position {
+	pos := p.cur.Pos
+	p.expect(lex.RBRACE)
+	return pos
+}
+
 func (p *parser) expectIdent() string {
 	if p.cur.Kind != lex.IDENT {
 		p.errs.add(p.cur.Pos, "expected identifier, got %s", p.cur.Kind)
@@ -142,6 +154,13 @@ func (p *parser) parseFile() *ast.File {
 			p.next()
 			p.syncTop()
 		}
+	}
+
+	// The loop ends on EOF, so the lexer has scanned the whole file and the
+	// comment sink is complete.
+	file.End = p.cur.Pos
+	for _, c := range p.lx.Comments() {
+		file.Comments = append(file.Comments, &ast.Comment{P: c.Pos, Text: c.Text})
 	}
 
 	return file
