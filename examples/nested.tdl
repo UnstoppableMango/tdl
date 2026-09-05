@@ -39,10 +39,4 @@ value Money {
 }
 
 enum Currency { USD EUR GBP }
-
-enum Status {
-  Draft
-  Placed
-  Shipped
-  Cancelled
-}
+enum Status { Draft Placed Shipped Cancelled }

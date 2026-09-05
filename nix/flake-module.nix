@@ -76,8 +76,9 @@ _: {
             Define `checks.tdl-fmt`, which asserts every file in `files` is in
             canonical form.
 
-            `tdl fmt` drops ordinary `//` comments, so a file carrying them can
-            never pass. Turn this off for a project that writes them.
+            Comments survive formatting, but blank lines are the formatter's
+            to decide. Turn this off for a project that would rather not be
+            held to canonical form.
           '';
         };
 

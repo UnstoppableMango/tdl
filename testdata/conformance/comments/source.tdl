@@ -1,0 +1,52 @@
+// A comment before the package clause.
+package shop.comments
+
+// A comment before an import.
+import "common.tdl" as common
+
+primitive string  // trailing a one-line declaration
+primitive int
+
+// A comment before a declaration with a body.
+entity Order {  // trailing the line that opens a body
+  // Before a field.
+  key id: string  // trailing a field
+  // Before a field carrying constraints.
+  note: string where {
+    // Inside a where block, which this forces open.
+    length(1..10)  // trailing a constraint
+  }
+  // The last thing inside a body.
+}
+
+enum Status {  // this forces the block open
+  Draft
+  // Between two variants.
+  Shipped
+  Custom {  // trailing a variant payload
+    // Inside a variant payload.
+    reason: string
+  }
+}
+
+class Auditable {
+  // Inside a class body.
+  key  // trailing a key requirement
+  createdAt: string
+}
+
+instance Auditable for Order {
+  // Inside an instance body.
+  type Cursor = string
+}
+
+target go for shop.comments {
+  // Inside a target block.
+  out("./gen")  // trailing a directive
+  Order {
+    // Inside a nested target block.
+    name("PurchaseOrder")
+  }
+}
+
+// After the last declaration.

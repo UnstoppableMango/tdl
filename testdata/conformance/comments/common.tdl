@@ -1,0 +1,7 @@
+package shop.common
+
+value Address {
+  line1: string
+  city: string
+  postcode: string
+}
