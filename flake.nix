@@ -31,7 +31,7 @@
       perSystem =
         { pkgs, system, ... }:
         let
-          version = "0.1.4"; # x-release-please-version
+          version = "0.1.5"; # x-release-please-version
           go = pkgs.go_1_27;
         in
         {
