@@ -40,6 +40,8 @@ The design is settled and written down:
 | [design/plugins-plan.md](docs/design/plugins-plan.md) | Implementing it. Done, but for replaying the recorded exchanges against a non-Go implementation. |
 | [design/treesitter.md](docs/design/treesitter.md) | Deriving the tree-sitter grammar from the EBNF. |
 | [design/treesitter-plan.md](docs/design/treesitter-plan.md) | Implementing it. Phases 1 to 3 of 7 done. |
+| [design/editors.md](docs/design/editors.md) | Highlighting in Neovim, VS Code, Zed, and on GitHub. |
+| [design/editors-plan.md](docs/design/editors-plan.md) | Implementing it. Phases 1 to 3 of 5 done. |
 | [design/workflow.md](docs/design/workflow.md) | What a model author does with all of it. |
 | [backlog.md](docs/backlog.md) | Wanted, unscheduled: `tdl fmt` as a `treefmt` formatter, an LSP, editor support, an MCP server. |
 
@@ -118,6 +120,60 @@ Views are `source`, `fmt`, `ast`, `tokens`, `stats`, or `all`; the default is `f
 Parse errors render below the panes with a caret at the reported column.
 
 [`examples/`](examples/README.md) holds files to start from: the same domain modelled flat and nested, plus collections and target blocks.
+
+## Editor support
+
+Highlighting comes from two derived grammars, both generated from [grammar.ebnf](docs/grammar.ebnf).
+[design/editors.md](docs/design/editors.md) says why there are two.
+
+### Neovim
+
+The parser and its queries live in `tree-sitter/`, which is the layout `nvim-treesitter` reads with `location` and `queries`.
+The parser is built from this repository, since nothing is published yet.
+
+On `nvim-treesitter`'s `main` branch, the parser is registered in a `User TSUpdate` autocommand:
+
+```lua
+vim.filetype.add({ extension = { tdl = 'tdl' } })
+
+vim.api.nvim_create_autocmd('User', {
+  pattern = 'TSUpdate',
+  callback = function()
+    require('nvim-treesitter.parsers').tdl = {
+      install_info = {
+        url = 'https://github.com/UnstoppableMango/tdl',
+        location = 'tree-sitter',
+        queries = 'tree-sitter/queries',
+      },
+    }
+  end,
+})
+
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'tdl',
+  callback = function() vim.treesitter.start() end,
+})
+```
+
+The last block is what colors a buffer.
+`nvim-treesitter` installs the parser and the queries and enables nothing, so highlighting is Neovim's `vim.treesitter.start`, called per filetype from an autocommand or from `ftplugin/tdl.lua`.
+
+The parser is named for the filetype, so `vim.treesitter.language.register` is not needed.
+
+Then `:TSInstall tdl`, which clones the repository, compiles the committed parser, and installs `highlights.scm` beside it.
+That branch builds through the `tree-sitter` CLI, so it has to be on the PATH.
+`:TSUpdate tdl` picks up a later revision.
+
+On the `master` branch the highlighting is the plugin's rather than Neovim's, enabled with `highlight = { enable = true }` in its `setup`, and the field names differ: `files = { 'src/parser.c', 'src/scanner.c' }` replaces `queries`, and the parser config is `require('nvim-treesitter.parsers').get_parser_configs().tdl`, which also takes a `filetype`.
+That branch installs no queries for a custom parser, so `tree-sitter/queries/highlights.scm` goes in `queries/tdl/highlights.scm` somewhere on the runtimepath.
+
+Both sources are compiled because the grammar has an external scanner.
+
+### VS Code
+
+`nix build .#vscode-tdl` builds the extension in [editors/vscode](editors/vscode).
+Add it to `vscode-with-extensions` or to home-manager's `programs.vscode.extensions`.
+`make vscode-install` packages it as a `.vsix` and hands it to `code --install-extension`, which is the route to use when iterating on the colors.
 
 ## Support matrix
 
