@@ -121,6 +121,33 @@ It adds `tdl` and `vscode-tdl` to a nixpkgs instance, and composes [gomod2nix](h
 }
 ```
 
+`flakeModules.default` is for the other side: a [flake-parts](https://flake.parts) module a project whose sources include `.tdl` files imports into its own flake.
+`tdl.enable` defines `devShells.tdl`, a shell to pull into an existing one with `inputsFrom`.
+`tdl.files` names the models, relative to `tdl.src` rather than as paths, because an `include` resolves relative to the file that writes it.
+`checks.tdl-check` parses each one and `checks.tdl-fmt` asserts it is canonically formatted; `tdl.gen.files` adds `checks.tdl-gen`, which runs `tdl gen --verify` and fails when generated output on disk is stale.
+
+```nix
+{
+  imports = [ inputs.tdl.flakeModules.default ];
+
+  perSystem = { system, ... }: {
+    _module.args.pkgs = import inputs.nixpkgs {
+      inherit system;
+      overlays = [ inputs.tdl.overlays.default ];
+    };
+
+    tdl = {
+      enable = true;
+      src = ./model;
+      files = [ "orders.tdl" "billing.tdl" ];
+      gen.files = [ "orders.tdl" ];
+    };
+  };
+}
+```
+
+`tdl fmt` drops ordinary `//` comments, so a project that writes them sets `tdl.fmt.enable = false`.
+
 ## Usage
 
 ```shell
