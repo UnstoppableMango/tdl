@@ -105,9 +105,10 @@ _: {
             type = lib.types.listOf lib.types.package;
             default = [ ];
             description = ''
-              Packages put on PATH for the generation check and the devShell, so
-              a target naming a backend tdl has no builtin for finds its
-              `tdl-gen-<name>` executable.
+              Packages put on PATH for the generation check and the devShell.
+              A target naming a backend that tdl has no builtin for resolves to
+              `tdl-gen-<name>` on PATH, and this is what puts that executable
+              there.
             '';
           };
         };
