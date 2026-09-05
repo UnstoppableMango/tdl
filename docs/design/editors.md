@@ -60,7 +60,7 @@ It is not worth having first, because the snippet is the thing the plugin would 
 An extension in `editors/vscode/`, holding `package.json`, the language contribution, and the derived `syntaxes/tdl.tmLanguage.json`.
 
 It is installed through nix rather than the Marketplace.
-`vscode-utils.buildVscodeExtension` in nixpkgs builds an extension from a local source, and the flake exposes it as `packages.vscode-tdl`, so a user adds it to `vscode-with-extensions` or to home-manager's `programs.vscode.extensions`.
+`vscode-utils.buildVscodeExtension` in nixpkgs builds an extension from a local source, and the flake exposes it as `packages.vscode-tdl` and as `pkgs.vscode-tdl` through `overlays.default`, so a user adds it to `vscode-with-extensions` or to home-manager's `programs.vscode.extensions`.
 
 That is the whole distribution story for now.
 Publishing to the Marketplace is an account, a token, and a release job, and none of it changes the extension.
