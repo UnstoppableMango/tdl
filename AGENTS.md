@@ -110,6 +110,10 @@ Pipeline, one package per stage:
 - `internal/cli` — cobra commands (`ast`, `check`, `fmt`, `gen`, `ir`, `play`, `tokens`, `version`) wired in `root.go`.
   The root silences cobra's error printing so a diagnostic list renders as itself; `cmd/tdl` prints whatever a command returns, so a command should return an error rather than print it.
   `play` is a watch-mode playground that re-renders a file on save; `examples/` holds files to experiment with and is outside the conformance corpus.
+  `file.go` is what every command that reads a file goes through: `loadFile` reads and parses one, and `eachFile` walks the arguments, reporting each failure and continuing rather than stopping at the first, the way the parser reports every syntax error in a file.
+  It prints the error and not the path beside it, because a diagnostic and an `os.PathError` both already name the file.
+  `writeHeader` is the `==> path <==` banner, written only when there is more than one file, so single-file output stays pipeable.
+  `play` is the one command still taking a single file, and `gen --watch` rejects a second one, since neither returns.
 - `ir` — the resolved model backends consume.
   `ir.pb.go` is generated from `proto/tdl/ir/v1/ir.proto` by `make generate` and committed; `model.go` holds the hand-written lookups.
   Three interned tables: `Decls`, `Types`, and `Units`, each its own ID space.

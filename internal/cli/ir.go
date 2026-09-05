@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 
@@ -10,7 +9,6 @@ import (
 
 	"github.com/unstoppablemango/tdl/internal/sema"
 	"github.com/unstoppablemango/tdl/ir"
-	"github.com/unstoppablemango/tdl/parser"
 )
 
 func newIrCmd() *cobra.Command {
@@ -20,7 +18,7 @@ func newIrCmd() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "ir <file>",
+		Use:   "ir <file>...",
 		Short: "Print the resolved model a TDL file lowers to",
 		Long: "Print the resolved model a TDL file lowers to.\n\n" +
 			"The text form matches `tdl ast`, so the two read side by side.\n" +
@@ -31,37 +29,34 @@ func newIrCmd() *cobra.Command {
 			"worth looking at when the diagnostics are what you are debugging.\n\n" +
 			"--prelude lowers against a different prelude, so `[T]` means\n" +
 			"whatever that file says List is.",
-		Args: cobra.ExactArgs(1),
+		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := args[0]
-			data, err := os.ReadFile(path)
-			if err != nil {
-				return err
-			}
-
-			file, err := parser.Parse(path, bytes.NewReader(data))
-			if err != nil {
-				return err
-			}
-
 			opts, err := preludeOptions(preludePath)
 			if err != nil {
 				return err
 			}
 			opts = append(opts, sema.WithLoader(sema.FSLoader{}))
 
-			model, diags := sema.Lower(file, opts...)
+			return eachFile(cmd, args, func(i int, path string) error {
+				file, err := loadFile(path)
+				if err != nil {
+					return err
+				}
 
-			out, err := renderModel(model, format)
-			if err != nil {
-				return err
-			}
-			fmt.Fprint(cmd.OutOrStdout(), out)
+				model, diags := sema.Lower(file, opts...)
 
-			if len(diags) > 0 {
-				return diags
-			}
-			return nil
+				out, err := renderModel(model, format)
+				if err != nil {
+					return err
+				}
+				writeHeader(cmd, args, i, path)
+				fmt.Fprint(cmd.OutOrStdout(), out)
+
+				if len(diags) > 0 {
+					return diags
+				}
+				return nil
+			})
 		},
 	}
 

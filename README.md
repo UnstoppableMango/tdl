@@ -162,6 +162,10 @@ tdl tokens ./types.tdl   # print the token stream
 tdl version              # tool and spec versions
 ```
 
+Every command above takes more than one file.
+A file that fails is reported and the rest still run, so `tdl check ./*.tdl` names every broken file rather than the first.
+The commands that print something separate their output with a `==> path <==` banner when given more than one, and print no banner for a single file.
+
 ### Playground
 
 `tdl play` watches a file and re-renders it on every save.
