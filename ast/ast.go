@@ -14,6 +14,23 @@ type File struct {
 	Package  *PackageDecl // nil if omitted
 	Imports  []*ImportDecl
 	Decls    []Decl
+
+	// Comments holds every ordinary `//` comment in the file, in source
+	// order. They are not attached to any node: a comment can sit
+	// anywhere, so the formatter places each one by position rather than
+	// the tree carrying it. Doc comments are not here; those belong to the
+	// declaration they precede and live in its Doc.
+	Comments []*Comment
+
+	// End is the position of the end of the file, which is what a comment
+	// after the last declaration is placed against.
+	End Position
+}
+
+// Comment is one ordinary `//` comment.
+type Comment struct {
+	P    Position
+	Text string // the text after the slashes, with one leading space removed
 }
 
 // Decl is a top-level declaration. `class` and `instance` arrive with

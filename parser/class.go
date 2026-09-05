@@ -23,7 +23,7 @@ func (p *parser) parseClassDecl(head ast.DeclHead) *ast.ClassDecl {
 	if p.at(lex.REQUIRES) {
 		d.Requires = p.parseClassRefs()
 	}
-	d.Members = p.parseClassBody()
+	d.Members, d.End = p.parseClassBody()
 	return d
 }
 
@@ -56,10 +56,10 @@ func (p *parser) parseFunDeps() []*ast.FunDep {
 
 // parseClassBody parses the members a class may hold: fields, a bare `key`
 // requirement, and associated type requirements.
-func (p *parser) parseClassBody() []ast.Member {
+func (p *parser) parseClassBody() ([]ast.Member, ast.Position) {
 	if !p.expect(lex.LBRACE) {
 		p.syncTop()
-		return nil
+		return nil, ast.Position{}
 	}
 
 	var members []ast.Member
@@ -97,8 +97,7 @@ func (p *parser) parseClassBody() []ast.Member {
 			p.next()
 		}
 	}
-	p.expect(lex.RBRACE)
-	return members
+	return members, p.expectRbrace()
 }
 
 // parseInstanceDecl parses `instance [ TypeParams ] Class ( TypeArgs | "for"
@@ -134,12 +133,12 @@ func (p *parser) parseInstanceDecl(head ast.DeclHead) *ast.InstanceDecl {
 		d.Requires = p.parseClassRefs()
 	}
 	if p.at(lex.LBRACE) {
-		d.Binds = p.parseAssocTypeBinds()
+		d.Binds, d.End = p.parseAssocTypeBinds()
 	}
 	return d
 }
 
-func (p *parser) parseAssocTypeBinds() []*ast.AssocTypeBind {
+func (p *parser) parseAssocTypeBinds() ([]*ast.AssocTypeBind, ast.Position) {
 	p.next() // '{'
 
 	var binds []*ast.AssocTypeBind
@@ -159,6 +158,5 @@ func (p *parser) parseAssocTypeBinds() []*ast.AssocTypeBind {
 			p.next()
 		}
 	}
-	p.expect(lex.RBRACE)
-	return binds
+	return binds, p.expectRbrace()
 }

@@ -9,11 +9,11 @@ import (
 //
 // The `where` prefix is what keeps `{` unambiguous: after a complete type
 // reference it could otherwise open a set type, a declaration body, or this.
-func (p *parser) parseConstraintBlock() []*ast.Constraint {
+func (p *parser) parseConstraintBlock() ([]*ast.Constraint, ast.Position) {
 	p.next() // 'where'
 
 	if !p.expect(lex.LBRACE) {
-		return nil
+		return nil, ast.Position{}
 	}
 
 	var constraints []*ast.Constraint
@@ -24,8 +24,7 @@ func (p *parser) parseConstraintBlock() []*ast.Constraint {
 			p.next()
 		}
 	}
-	p.expect(lex.RBRACE)
-	return constraints
+	return constraints, p.expectRbrace()
 }
 
 // parseConstraint parses `identifier [ "(" [ Arg { "," Arg } ] ")" ]`.
