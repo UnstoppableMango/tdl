@@ -38,10 +38,16 @@ Deliberately excluded: `*.tdl` (until `tdl fmt` is wired in, see `docs/backlog.m
 
 After changing `go.mod` or adding dependencies, run `make tidy` so `nix/gomod2nix.toml` stays in sync, otherwise `nix build` fails.
 
-`nix/` holds the packaging: `cmd.nix` is the CLI, `vscode-extension.nix` is the editor extension, `overlay.nix` names both, and `default.nix` is the flake-parts module `flake.nix` imports, exporting that overlay as `flake.overlays.default` and holding the packages.
+`nix/` holds the packaging: `cmd.nix` is the CLI, `vscode-extension.nix` is the editor extension, `overlay.nix` names both, `hm-module.nix` is the home-manager module, and `default.nix` is the flake-parts module `flake.nix` imports, exporting that overlay as `flake.overlays.default` and holding the packages.
 `flake.nix` keeps the inputs, the devShell, the treefmt configuration, and `version`, which release-please rewrites there and the module reads as a module argument.
 The module's `perSystem` imports nixpkgs with the overlay and reads `packages.default` and `packages.vscode-tdl` back out of it, so `nix build .#` takes the path a consumer takes rather than a second one beside it.
 The overlay composes gomod2nix's, because `tdl` is built with `buildGoApplication`: a consumer adds one overlay and gets `buildGoApplication` and `mkGoEnv` along with `tdl`.
+
+`hm-module.nix` declares `programs.tdl`: `enable` puts `package` in `home.packages`, and `vscode.enable` puts `vscode.package` in the profiles `vscode.profiles` names, defaulting to `programs.vscode.enable` and to `[ "default" ]`.
+Both packages default to `pkgs.tdl` and `pkgs.vscode-tdl` through `mkPackageOption`, so the module names no flake input and the overlay stays the one thing a configuration adds.
+`default.nix` exports it as `flake.homeModules.default` and, under the name most configurations already reference, as `flake.homeManagerModules.default`; `tdl` is an alias of each.
+`checks.hm-module` is what holds it to that: it evaluates a minimal `homeManagerConfiguration` and asserts the two packages landed where the options promise.
+It imports its own nixpkgs with `allowUnfree`, because `programs.vscode.enable` evaluates the editor, and it reads the evaluated options rather than `activationPackage`, which would build the editor to say the same thing.
 
 Neither `gomod2nix` nor `protoc-gen-go` is on `PATH`.
 Run generators through the devShell: `nix develop --command make tidy`, or `gomod2nix --dir . --outdir nix` directly, and `buf generate` either inside `nix develop` or with `PATH="$(go env GOPATH)/bin:$PATH"`.
@@ -154,7 +160,7 @@ CI runs `make treesitter`, `git diff --exit-code`, and `make test-treesitter` th
 The same file derives the VS Code grammar.
 `editors/vscode/syntaxes/tdl.tmLanguage.json` is written by `go run ./tools/textmate`, committed, and checked by `go test ./internal/textmate`, which rewrites it under `-update`; `make textmate` is that command.
 A keyword added to `lex` and to `reserved_word` is a diff there as well as in `grammar.js`, so both grammars move together.
-The extension around it is `editors/vscode/`, and `nix build .#vscode-tdl` builds it; add it to `vscode-with-extensions` or to home-manager's `programs.vscode.extensions` to install it, either from `packages.vscode-tdl` or as `pkgs.vscode-tdl` through the overlay.
+The extension around it is `editors/vscode/`, and `nix build .#vscode-tdl` builds it; `programs.tdl.vscode.enable` in the home-manager module installs it, and by hand it goes in `vscode-with-extensions` or in home-manager's `programs.vscode.profiles.<name>.extensions`, either from `packages.vscode-tdl` or as `pkgs.vscode-tdl` through the overlay.
 `make vscode-install` is the other way in, for iterating on the colors: it packages the directory as a `.vsix` and hands it to `code --install-extension`, which is the only route that reaches the client.
 A directory copied into an extensions folder registers on a remote server and stops there, which looks exactly like the grammar not working.
 The installed copy is a copy, so a regenerated grammar needs the command again, and the window needs a reload.
