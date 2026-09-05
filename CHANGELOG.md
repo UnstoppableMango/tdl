@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.1.5](https://github.com/UnstoppableMango/tdl/compare/v0.1.4...v0.1.5) (2026-09-05)
+
+
+### Features
+
+* add grammar-driven contextual keyword and pattern utilities ([24b3c96](https://github.com/UnstoppableMango/tdl/commit/24b3c96b6ea19c8e35b1f43ac2a89a8b5910bfca))
+* **release-please:** add VSCode extension package.json to release-please versioning config to keep editor extension version in sync with releases ([24b3c96](https://github.com/UnstoppableMango/tdl/commit/24b3c96b6ea19c8e35b1f43ac2a89a8b5910bfca))
+* **textmate:** add TextMate grammar emitter for VS Code syntax highlighting ([24b3c96](https://github.com/UnstoppableMango/tdl/commit/24b3c96b6ea19c8e35b1f43ac2a89a8b5910bfca))
+* **tools/textmate:** add build tool to derive VS Code TextMate grammar from EBNF grammar definition ([24b3c96](https://github.com/UnstoppableMango/tdl/commit/24b3c96b6ea19c8e35b1f43ac2a89a8b5910bfca))
+* **vscode:** add VS Code extension with TDL syntax highlighting ([24b3c96](https://github.com/UnstoppableMango/tdl/commit/24b3c96b6ea19c8e35b1f43ac2a89a8b5910bfca))
+* **vscode:** syntax highlighting derived from the grammar ([#735](https://github.com/UnstoppableMango/tdl/issues/735)) ([24b3c96](https://github.com/UnstoppableMango/tdl/commit/24b3c96b6ea19c8e35b1f43ac2a89a8b5910bfca))
+
+
+### Documentation
+
+* register the tree-sitter parser with nvim-treesitter ([#737](https://github.com/UnstoppableMango/tdl/issues/737)) ([1f62a1e](https://github.com/UnstoppableMango/tdl/commit/1f62a1ef0d2c3c1279488f711e01438abf1df7be))
+
+
+### Tests
+
+* **textmate:** add comprehensive tests for TextMate grammar emission ([24b3c96](https://github.com/UnstoppableMango/tdl/commit/24b3c96b6ea19c8e35b1f43ac2a89a8b5910bfca))
+
 ## [0.1.4](https://github.com/UnstoppableMango/tdl/compare/v0.1.3...v0.1.4) (2026-09-04)
 
 

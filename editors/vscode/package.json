@@ -2,7 +2,7 @@
 	"name": "tdl",
 	"displayName": "TDL",
 	"description": "Syntax highlighting for the Type Description Language",
-	"version": "0.1.4",
+	"version": "0.1.5",
 	"publisher": "unstoppablemango",
 	"license": "GPL-3.0-or-later",
 	"repository": {
