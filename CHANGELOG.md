@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.1.6](https://github.com/UnstoppableMango/tdl/compare/v0.1.5...v0.1.6) (2026-09-05)
+
+
+### Features
+
+* **nix/default.nix:** expose flake-parts module as flakeModules.default and tdl alias with integration check ([897ab26](https://github.com/UnstoppableMango/tdl/commit/897ab2668bc12c42066f560179a4368853cc889c))
+* **nix:** add flake-parts module for integrating TDL into projects ([897ab26](https://github.com/UnstoppableMango/tdl/commit/897ab2668bc12c42066f560179a4368853cc889c))
+* **nix:** add home-manager module for tdl and vscode-tdl ([#743](https://github.com/UnstoppableMango/tdl/issues/743)) ([d349a56](https://github.com/UnstoppableMango/tdl/commit/d349a56a0b23120da8c3c63020c60eb0a034f5ff))
+* **nix:** add home-manager module for tdl CLI and VS Code extension ([d349a56](https://github.com/UnstoppableMango/tdl/commit/d349a56a0b23120da8c3c63020c60eb0a034f5ff))
+
+
+### Documentation
+
+* **AGENTS.md:** document flake-module.nix purpose, design decisions, and checks ([#744](https://github.com/UnstoppableMango/tdl/issues/744)) ([897ab26](https://github.com/UnstoppableMango/tdl/commit/897ab2668bc12c42066f560179a4368853cc889c))
+* document nix overlay and installation instructions ([#738](https://github.com/UnstoppableMango/tdl/issues/738)) ([890ffe0](https://github.com/UnstoppableMango/tdl/commit/890ffe0cc6c03cb23f3dbe664f4a9e81b72c165c))
+* one sentence per line throughout AGENTS.md ([#740](https://github.com/UnstoppableMango/tdl/issues/740)) ([c05c347](https://github.com/UnstoppableMango/tdl/commit/c05c347c0e2464d9184713aa0f29ff825b8945e7))
+* **README.md:** add flakeModules.default usage example and fmt caveat ([897ab26](https://github.com/UnstoppableMango/tdl/commit/897ab2668bc12c42066f560179a4368853cc889c))
+
+
+### Code Refactoring
+
+* **nix:** extract packages and overlay into separate nix modules ([890ffe0](https://github.com/UnstoppableMango/tdl/commit/890ffe0cc6c03cb23f3dbe664f4a9e81b72c165c))
+
 ## [0.1.5](https://github.com/UnstoppableMango/tdl/compare/v0.1.4...v0.1.5) (2026-09-05)
 
 
