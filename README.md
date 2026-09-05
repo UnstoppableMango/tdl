@@ -109,6 +109,18 @@ It adds `tdl` and `vscode-tdl` to a nixpkgs instance, and composes [gomod2nix](h
 }
 ```
 
+`homeModules.default` is a home-manager module over that overlay, exported as `homeManagerModules.default` under the older name as well.
+`programs.tdl.enable` installs the CLI, and `programs.tdl.vscode.enable` adds the extension to the VS Code profiles named in `programs.tdl.vscode.profiles`, defaulting to `default` and to whether `programs.vscode` is enabled at all.
+
+```nix
+{
+  imports = [ inputs.tdl.homeModules.default ];
+
+  nixpkgs.overlays = [ inputs.tdl.overlays.default ];
+  programs.tdl.enable = true;
+}
+```
+
 ## Usage
 
 ```shell
@@ -189,7 +201,7 @@ Both sources are compiled because the grammar has an external scanner.
 ### VS Code
 
 `nix build .#vscode-tdl` builds the extension in [editors/vscode](editors/vscode), and `overlays.default` exposes it as `pkgs.vscode-tdl`.
-Add it to `vscode-with-extensions` or to home-manager's `programs.vscode.extensions`.
+`programs.tdl.vscode.enable` in the home-manager module puts it in a VS Code profile; by hand, add it to `vscode-with-extensions` or to home-manager's `programs.vscode.profiles.<name>.extensions`.
 `make vscode-install` packages it as a `.vsix` and hands it to `code --install-extension`, which is the route to use when iterating on the colors.
 
 ## Support matrix

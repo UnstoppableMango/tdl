@@ -20,6 +20,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-utils.inputs.systems.follows = "systems";
     };
+
+    # Only checks.hm-module evaluates this; the module itself takes no input.
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -28,7 +34,7 @@
       systems = import inputs.systems;
       imports = with inputs; [
         treefmt-nix.flakeModule
-        # The packages and the overlay.
+        # The packages, the overlay, and the home-manager module.
         ./nix
       ];
 

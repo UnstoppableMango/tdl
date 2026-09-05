@@ -1,6 +1,7 @@
 # The VS Code extension, installed through nix rather than the Marketplace:
-# add it to vscode-with-extensions or to home-manager's
-# programs.vscode.extensions.
+# programs.tdl.vscode.enable in the home-manager module puts it in a profile,
+# and it can be added to vscode-with-extensions or to home-manager's
+# programs.vscode.profiles.<name>.extensions by hand.
 {
   lib,
   vscode-utils,
