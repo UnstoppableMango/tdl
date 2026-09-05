@@ -50,7 +50,8 @@ Both packages default to `pkgs.tdl` and `pkgs.vscode-tdl` through `mkPackageOpti
 It imports its own nixpkgs with `allowUnfree`, because `programs.vscode.enable` evaluates the editor, and it reads the evaluated options rather than `activationPackage`, which would build the editor to say the same thing.
 
 `flake-module.nix` is the other direction: `hm-module.nix` installs the language for a person, and this one wires it into a project that uses it.
-It declares `tdl` under `perSystem`, where `enable` defines `devShells.tdl` for a consumer to pull in with `inputsFrom`, and the checks are one per property a model should hold: `tdl-check` parses, `tdl-fmt` diffs each file against `tdl fmt`, and `tdl-gen` runs `tdl gen --verify`.
+It declares `tdl` under `perSystem`, where `enable` defines `devShells.tdl` for a consumer to pull in with `inputsFrom`, and the checks are one per property a model should hold: `tdl-check` parses, `tdl-fmt` runs `tdl fmt --check`, and `tdl-gen` runs `tdl gen --verify`.
+Each is one invocation over the whole file list rather than a shell loop, since the CLI walks its arguments itself and reports every file that fails.
 `files` is relative strings over one `src` rather than a `listOf path`, because a path is copied into the store on its own and an `include` resolves through `sema.FSLoader` relative to the file that writes it, so a split model would stop resolving.
 `gen.files` is a separate list and empty by default, because `tdl gen` fails on a file declaring no target block and so it cannot default to `files`.
 `fmt.enable` is a switch rather than the check being unconditional, because `tdl fmt` drops ordinary `//` comments and a file carrying them can never pass.
@@ -114,6 +115,7 @@ Pipeline, one package per stage:
   It prints the error and not the path beside it, because a diagnostic and an `os.PathError` both already name the file.
   `writeHeader` is the `==> path <==` banner, written only when there is more than one file, so single-file output stays pipeable.
   `play` is the one command still taking a single file, and `gen --watch` rejects a second one, since neither returns.
+  `fmt --check` lists what is not canonical and writes nothing, which is what `checks.tdl-fmt` in `nix/flake-module.nix` runs; `-w` reads the file's mode and writes it back, because formatting is not the place to widen permissions.
 - `ir` — the resolved model backends consume.
   `ir.pb.go` is generated from `proto/tdl/ir/v1/ir.proto` by `make generate` and committed; `model.go` holds the hand-written lookups.
   Three interned tables: `Decls`, `Types`, and `Units`, each its own ID space.
