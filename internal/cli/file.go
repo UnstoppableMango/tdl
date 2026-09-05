@@ -15,11 +15,19 @@ import (
 // parse tree starts here, so they agree on how a file is read and on what a
 // parse error looks like.
 func loadFile(path string) (*ast.File, error) {
+	_, file, err := readFile(path)
+	return file, err
+}
+
+// readFile is loadFile with the source text it read, for a caller that has
+// to compare against what was on disk rather than only against the tree.
+func readFile(path string) (string, *ast.File, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
-	return parser.Parse(path, bytes.NewReader(data))
+	file, err := parser.Parse(path, bytes.NewReader(data))
+	return string(data), file, err
 }
 
 // eachFile runs fn over every path given.

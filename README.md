@@ -152,7 +152,8 @@ It adds `tdl` and `vscode-tdl` to a nixpkgs instance, and composes [gomod2nix](h
 
 ```shell
 tdl check ./types.tdl    # parse and report syntax errors
-tdl fmt ./types.tdl      # print canonical formatting; -w to write in place
+tdl fmt ./types.tdl      # print canonical formatting; -w writes in place
+                         # --check lists what is not canonical and exits non-zero
 tdl ast ./types.tdl      # print the parse tree
 tdl gen ./types.tdl      # run every target block; --target narrows, -o overrides
                          # --verify checks, --clean empties first, --watch reruns
