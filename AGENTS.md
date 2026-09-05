@@ -54,7 +54,7 @@ It declares `tdl` under `perSystem`, where `enable` defines `devShells.tdl` for 
 Each is one invocation over the whole file list rather than a shell loop, since the CLI walks its arguments itself and reports every file that fails.
 `files` is relative strings over one `src` rather than a `listOf path`, because a path is copied into the store on its own and an `include` resolves through `sema.FSLoader` relative to the file that writes it, so a split model would stop resolving.
 `gen.files` is a separate list and empty by default, because `tdl gen` fails on a file declaring no target block and so it cannot default to `files`.
-`fmt.enable` is a switch rather than the check being unconditional, because `tdl fmt` drops ordinary `//` comments and a file carrying them can never pass.
+`fmt.enable` is a switch rather than the check being unconditional, so a project that would rather not be held to canonical form can say so.
 `package` is `pkgs.tdl` through `mkPackageOption` for the same reason it is in `hm-module.nix`.
 `default.nix` exports it as `flake.flakeModules.default`, with `tdl` as an alias, and `checks.flake-module` holds it to that: it evaluates a consumer flake against `testdata/conformance/entity` and builds what came out.
 The fixture is a conformance case because the corpus is already held to both properties asserted there, parsing clean and being stored in canonical form; `tdl-gen` is left out of it, since `--verify` compares against generated output on disk and no fixture here has any.
@@ -194,8 +194,9 @@ The corpus is the written-down target, not a record of what already works.
 
 `tdl fmt` must be idempotent: formatting canonical output is a no-op.
 
-Every `.tdl` file in `testdata/conformance/` and `prelude/` is stored in canonical form: `tdl fmt <file>` must print it back byte for byte.
-`examples/*.tdl` deliberately are not, because they carry `//` comments.
+Every `.tdl` file in `testdata/conformance/`, `prelude/`, and `examples/` is stored in canonical form: `tdl fmt <file>` must print it back byte for byte.
+`TestCorpusIsCanonical` in `parser/conformance_test.go` is what holds them to it, and `examples/` is in that list because it carries the explanatory comments the corpus does not.
+The formatter still owns blank lines, so a blank line grouping members inside a body does not survive.
 
 The protos are Protobuf Editions 2024.
 Editions default every field to explicit presence and the generated Go to the opaque API, so each file sets `features.field_presence = IMPLICIT` (what proto3 meant) and `features.(pb.go).api_level = API_OPEN` (the API these types were published with).
@@ -254,10 +255,11 @@ Both sets are open, so the parser knows no name's arity and an unparenthesized `
 Regex literals are ambiguous with unit division, so the parser calls `lex.RescanRegexAt` when it wants one.
 Nothing else in the lexer takes context.
 
-`tdl fmt` drops ordinary `//` comments: the lexer skips them and they never reach the AST.
-Doc comments (`///`) survive.
-Fixing this needs comment attachment in the parser and has no phase yet.
-Never run `tdl fmt` over `examples/*.tdl`: it silently deletes their explanatory headers.
+Both comment forms survive formatting, by different routes.
+A `///` doc comment is a token, attached to the declaration that follows it and carried in `DeclHead.Doc`.
+An ordinary `//` comment is skipped by the lexer and collected on the side, reaching `ast.File.Comments` as a flat list in source order, because one can sit anywhere and belongs to no node.
+`ast.Fprint` places each by position, on its own line before the item that follows it or folded onto the end of the line it was written on, and a block holding one opens up rather than collapsing to a line.
+A comment written between a declaration's doc comment and the declaration moves in front of the doc, which is the one placement the formatter does not preserve, and it is stable after the first pass.
 
 ## Releases
 

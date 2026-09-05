@@ -1,0 +1,67 @@
+Model shop.comments
+├── Imports
+│   └── common.tdl as common  (shop.common)  source.tdl:5:1
+├── Decls
+│   ├── [0] primitive string  std.tdl:4:1
+│   ├── [1] primitive int  std.tdl:6:1
+│   ├── [2] primitive bool  std.tdl:7:1
+│   ├── [3] primitive bytes  std.tdl:8:1
+│   ├── [4] primitive List: type -> type  std.tdl:11:1
+│   ├── [5] primitive Set: type -> type  std.tdl:14:1
+│   ├── [6] primitive Map: type -> type -> type  std.tdl:17:1
+│   ├── [7] primitive decimal  std.tdl:20:1
+│   ├── [8] primitive uuid  std.tdl:22:1
+│   ├── [9] primitive instant  std.tdl:23:1
+│   ├── [10] primitive date  std.tdl:24:1
+│   ├── [11] primitive duration  std.tdl:25:1
+│   ├── [12] unit s  std.tdl:28:1
+│   │   └── measures units[0] s
+│   ├── [13] unit m  std.tdl:30:1
+│   │   └── measures units[1] m
+│   ├── [14] unit kg  std.tdl:31:1
+│   │   └── measures units[2] kg
+│   ├── [15] enum Option  std.tdl:34:1
+│   │   ├── param T  std.tdl:34:14
+│   │   ├── variant Some  std.tdl:35:3
+│   │   │   └── field value: types[0] T  std.tdl:35:10
+│   │   └── variant None  std.tdl:36:3
+│   ├── [16] enum Nullable  std.tdl:40:1
+│   │   ├── param T  std.tdl:40:16
+│   │   ├── variant Present  std.tdl:41:3
+│   │   │   └── field value: types[1] T  std.tdl:41:13
+│   │   └── variant Null  std.tdl:42:3
+│   ├── [17] class Entity  std.tdl:46:1
+│   │   └── requires key
+│   ├── [18] class Value  std.tdl:51:1
+│   ├── [19] primitive string  source.tdl:7:1
+│   ├── [20] primitive int  source.tdl:8:1
+│   ├── [21] entity Order  @go:name("PurchaseOrder")  source.tdl:11:1
+│   │   ├── field key id: types[2] string  source.tdl:13:7
+│   │   └── field note: types[2] string  length(1..10)  source.tdl:15:3
+│   ├── [22] enum Status  source.tdl:22:1
+│   │   ├── variant Draft  source.tdl:23:3
+│   │   ├── variant Shipped  source.tdl:25:3
+│   │   └── variant Custom  source.tdl:26:3
+│   │       └── field reason: types[2] string  source.tdl:28:5
+│   └── [23] class Auditable  source.tdl:32:1
+│       ├── requires key
+│       └── field createdAt: types[2] string  source.tdl:35:3
+├── Instances
+│   └── instance Auditable<Order>  source.tdl:38:1
+│       └── type Cursor = types[2] string  source.tdl:40:3
+├── Targets
+│   └── go for shop.comments  source.tdl:43:1
+│       └── @go:out("./gen")  source.tdl:45:3
+├── Satisfies
+│   ├── Entity: nothing
+│   ├── Value: nothing
+│   └── Auditable: Order
+├── Units
+│   ├── [0] s  std.tdl:28:1
+│   ├── [1] m  std.tdl:30:1
+│   └── [2] kg  std.tdl:31:1
+└── Types
+    ├── [0] T  named  -> param Option.T  std.tdl:35:17
+    ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
+    ├── [2] string  named  -> decls[19]  source.tdl:13:11
+    └── [3] Order  named  -> decls[21]  source.tdl:38:24

@@ -5,100 +5,208 @@ import (
 	"strings"
 )
 
+// printer renders a file, placing as it goes the ordinary comments the
+// parser collected.
+//
+// A comment is attached to no node, so it is placed by position: written on
+// its own line before the item that follows it, or folded onto the end of
+// the line it was written on. The cursor only moves forward, which is what
+// says each comment is written exactly once.
+type printer struct {
+	b        strings.Builder
+	comments []*Comment
+	i        int
+}
+
+// pending is the next comment not yet written, or nil.
+func (p *printer) pending() *Comment {
+	if p.i < len(p.comments) {
+		return p.comments[p.i]
+	}
+	return nil
+}
+
+// before reports whether a comment is still waiting that was written before
+// pos. Everything earlier has already been placed, so this also answers
+// "is there a comment inside this block", asked against the block's end.
+func (p *printer) before(pos Position) bool {
+	c := p.pending()
+	return c != nil && c.P.Offset < pos.Offset
+}
+
+// take collects the comments written before pos rather than writing them,
+// for a caller that has to know they exist before it can lay them out.
+func (p *printer) take(pos Position) []*Comment {
+	var out []*Comment
+	for p.before(pos) {
+		out = append(out, p.comments[p.i])
+		p.i++
+	}
+	return out
+}
+
+// flush writes every comment before pos on a line of its own at indent.
+func (p *printer) flush(indent string, pos Position) {
+	for p.before(pos) {
+		p.writeComment(indent, p.comments[p.i])
+		p.i++
+	}
+}
+
+func (p *printer) writeComment(indent string, c *Comment) {
+	p.b.WriteString(strings.TrimRight(indent+"// "+c.Text, " ") + "\n")
+}
+
+// trailing returns the comment written on line, folded onto the end of it,
+// or "" when that line carries none. A `//` comment runs to the end of its
+// line, so one sharing a line with an item always follows it.
+func (p *printer) trailing(line int) string {
+	c := p.pending()
+	if c == nil || c.P.Line != line {
+		return ""
+	}
+	p.i++
+	return strings.TrimRight("  // "+c.Text, " ")
+}
+
+// line writes one complete line, folding in a comment written on it.
+func (p *printer) line(s string, srcLine int) {
+	p.b.WriteString(s + p.trailing(srcLine) + "\n")
+}
+
+// render runs f on a printer of its own and returns what it wrote, moving
+// this one's cursor over whatever f consumed. Fprint measures a
+// declaration before deciding the blank line in front of it, and a
+// constraint block is measured against the column limit the same way.
+func (p *printer) render(f func(*printer)) string {
+	sub := &printer{comments: p.comments, i: p.i}
+	f(sub)
+	p.i = sub.i
+	return sub.b.String()
+}
+
 // Fprint renders file as canonical TDL source, the formatting produced by
 // `tdl fmt`. It is idempotent: formatting canonical output changes nothing.
 //
 // Whitespace is insignificant in TDL, so the formatter owns layout
-// entirely. Its decisions depend only on the tree, never on how the input
-// was written, which is what makes idempotence hold.
+// entirely. Its decisions depend only on the tree and on where the comments
+// sit in it, never on how the input was written, which is what makes
+// idempotence hold.
 func Fprint(file *File) string {
-	var b strings.Builder
+	p := &printer{comments: file.Comments}
 
 	if file.Package != nil {
-		b.WriteString("package " + file.Package.Path + "\n")
+		p.flush("", file.Package.P)
+		p.line("package "+file.Package.Path, file.Package.P.Line)
 	}
 
 	if len(file.Imports) > 0 {
-		if b.Len() > 0 {
-			b.WriteString("\n")
+		if p.b.Len() > 0 {
+			p.b.WriteString("\n")
 		}
 		for _, imp := range file.Imports {
-			for _, line := range imp.Doc {
-				b.WriteString(strings.TrimRight("/// "+line, " ") + "\n")
-			}
-			b.WriteString("import " + quote(imp.Path) + " as " + imp.Alias + "\n")
+			p.flush("", imp.P)
+			writeDoc(&p.b, "", imp.Doc)
+			p.line("import "+quote(imp.Path)+" as "+imp.Alias, imp.P.Line)
 		}
 	}
 
 	prevMultiline := true // force a blank line after the header, if any
 	for _, decl := range file.Decls {
-		text := printDecl(decl)
+		// The comments in front of a declaration are collected rather than
+		// written, because whether it has any is part of deciding the blank
+		// line that goes before them.
+		lead := p.take(decl.Pos())
+		text := p.render(func(sub *printer) { sub.decl(decl) })
 		multiline := strings.Count(text, "\n") > 1
-		annotated := len(Doc(decl)) > 0 || Deprecated(decl) != nil
+		annotated := len(Doc(decl)) > 0 || Deprecated(decl) != nil || len(lead) > 0
 
 		// Consecutive one-line declarations group together; anything with a
-		// body, a doc comment, or a deprecation gets a blank line of its own.
-		// The decision reads only the tree, so formatting stays idempotent.
-		if b.Len() > 0 && (multiline || prevMultiline || annotated) {
-			b.WriteString("\n")
+		// body, a doc comment, a deprecation, or a comment of its own gets a
+		// blank line. The decision reads only the tree and the comments in
+		// it, so formatting stays idempotent.
+		if p.b.Len() > 0 && (multiline || prevMultiline || annotated) {
+			p.b.WriteString("\n")
 		}
 
-		writeDoc(&b, "", Doc(decl))
-		if dep := Deprecated(decl); dep != nil {
-			b.WriteString(printDeprecated(dep) + "\n")
+		for _, c := range lead {
+			p.writeComment("", c)
 		}
-		b.WriteString(text)
+		writeDoc(&p.b, "", Doc(decl))
+		if dep := Deprecated(decl); dep != nil {
+			p.b.WriteString(printDeprecated(dep) + "\n")
+		}
+		p.b.WriteString(text)
 		prevMultiline = multiline || annotated
 	}
 
-	return b.String()
+	// A comment after the last declaration has nothing to sit in front of.
+	if p.before(file.End) {
+		if p.b.Len() > 0 {
+			p.b.WriteString("\n")
+		}
+		p.flush("", file.End)
+	}
+
+	return p.b.String()
 }
 
-func printDecl(decl Decl) string {
+func (p *printer) decl(decl Decl) {
 	switch d := decl.(type) {
 	case *PrimitiveDecl:
+		s := "primitive " + d.N
 		if d.Kind != nil {
-			return "primitive " + d.N + ": " + printKind(d.Kind) + "\n"
+			s += ": " + printKind(d.Kind)
 		}
-		return "primitive " + d.N + "\n"
+		p.line(s, d.P.Line)
 
 	case *AliasDecl:
-		return "alias " + d.N + printParams(d.Params) + " = " + printTypeRef(d.Target) + "\n"
+		p.line("alias "+d.N+printParams(d.Params)+" = "+printTypeRef(d.Target), d.P.Line)
 
 	case *NewtypeDecl:
-		return "type " + d.N + printParams(d.Params) + ": " + printTypeRef(d.Base) +
-			printRequires(d.Requires) + printConstraints(d.Constraints, "") + "\n"
+		head := "type " + d.N + printParams(d.Params) + ": " + printTypeRef(d.Base) + printRequires(d.Requires)
+		p.constrained(head, d.Constraints, "", d.P.Line, d.End)
 
 	case *StructDecl:
-		head := d.Keyword + " " + d.N + printParams(d.Params) +
-			printConforms(d.Conforms) + printRequires(d.Requires)
-		return head + printMembers(d.Members)
+		p.b.WriteString(d.Keyword + " " + d.N + printParams(d.Params) +
+			printConforms(d.Conforms) + printRequires(d.Requires))
+		p.members(d.Members, d.P.Line, d.End)
 
 	case *EnumDecl:
-		head := "enum " + d.N + printParams(d.Params) +
-			printConforms(d.Conforms) + printRequires(d.Requires)
-		return head + printVariants(d.Variants)
+		p.b.WriteString("enum " + d.N + printParams(d.Params) +
+			printConforms(d.Conforms) + printRequires(d.Requires))
+		p.variants(d.Variants, d.P.Line, d.End)
 
 	case *ClassDecl:
-		head := "class " + d.N + printParams(d.Params) + printFunDeps(d.FunDeps) +
-			printConforms(d.Conforms) + printRequires(d.Requires)
-		return head + printMembers(d.Members)
+		p.b.WriteString("class " + d.N + printParams(d.Params) + printFunDeps(d.FunDeps) +
+			printConforms(d.Conforms) + printRequires(d.Requires))
+		p.members(d.Members, d.P.Line, d.End)
 
 	case *InstanceDecl:
-		return printInstance(d)
+		p.instance(d)
 
 	case *UnitDecl:
+		s := "unit " + d.N
 		if d.Expr != nil {
-			return "unit " + d.N + " = " + printUnitExpr(d.Expr) + "\n"
+			s += " = " + printUnitExpr(d.Expr)
 		}
-		return "unit " + d.N + "\n"
+		p.line(s, d.P.Line)
 
 	case *TargetDecl:
-		return "target " + d.N + " for " + d.For + printEntries(d.Entries, "")
-
-	default:
-		return ""
+		p.b.WriteString("target " + d.N + " for " + d.For)
+		p.entries(d.Entries, "", d.P.Line, d.End)
 	}
+}
+
+// constrained writes a head followed by its `where` block, if it has one.
+// A trailing comment belongs to whichever line the construct ends on.
+func (p *printer) constrained(head string, cs []*Constraint, indent string, headLine int, end Position) {
+	block := p.constraints(cs, indent, end)
+	line := headLine
+	if strings.Contains(block, "\n") {
+		line = end.Line
+	}
+	p.line(head+block, line)
 }
 
 func writeDoc(b *strings.Builder, indent string, doc []string) {
@@ -151,10 +259,10 @@ func printFunDeps(deps []*FunDep) string {
 	return " | " + strings.Join(parts, ", ")
 }
 
-// printInstance keeps the form that was written. `instance C for T` is
-// sugar for `instance C<T>`, and rewriting one into the other would lose
-// what the author chose to say.
-func printInstance(d *InstanceDecl) string {
+// instance keeps the form that was written. `instance C for T` is sugar
+// for `instance C<T>`, and rewriting one into the other would lose what the
+// author chose to say.
+func (p *printer) instance(d *InstanceDecl) {
 	s := "instance "
 	if len(d.Params) > 0 {
 		s += printParams(d.Params) + " "
@@ -165,50 +273,67 @@ func printInstance(d *InstanceDecl) string {
 	}
 	s += printRequires(d.Requires)
 
-	if len(d.Binds) == 0 {
-		return s + "\n"
+	// An empty bind block is dropped, unless a comment is sitting in it.
+	if len(d.Binds) == 0 && !p.before(d.End) {
+		p.line(s, d.P.Line)
+		return
 	}
 
-	var b strings.Builder
-	b.WriteString(s + " {\n")
+	p.b.WriteString(s + " {" + p.trailing(d.P.Line) + "\n")
 	for _, bind := range d.Binds {
-		b.WriteString("  type " + bind.N + " = " + printTypeRef(bind.Target) + "\n")
+		p.flush("  ", bind.P)
+		p.line("  type "+bind.N+" = "+printTypeRef(bind.Target), bind.P.Line)
 	}
-	b.WriteString("}\n")
-	return b.String()
+	p.flush("  ", d.End)
+	p.line("}", d.End.Line)
 }
 
-func printMembers(members []Member) string {
-	if len(members) == 0 {
-		return " { }\n"
+// members writes a declaration body. An empty one collapses to `{ }`,
+// unless a comment is sitting in it.
+func (p *printer) members(members []Member, headLine int, end Position) {
+	if len(members) == 0 && !p.before(end) {
+		p.line(" { }", headLine)
+		return
 	}
 
-	var b strings.Builder
-	b.WriteString(" {\n")
+	p.b.WriteString(" {" + p.trailing(headLine) + "\n")
 	for _, m := range members {
+		p.flush("  ", m.MemberPos())
 		switch n := m.(type) {
 		case *Include:
-			b.WriteString("  include " + printClassRefs([]*ClassRef{n.Type}) + "\n")
+			p.line("  include "+printClassRefs([]*ClassRef{n.Type}), n.P.Line)
 		case *KeyRequirement:
-			b.WriteString("  key\n")
+			p.line("  key", n.P.Line)
 		case *AssocTypeReq:
-			writeDoc(&b, "  ", n.Doc)
-			b.WriteString("  type " + n.N)
+			writeDoc(&p.b, "  ", n.Doc)
+			s := "  type " + n.N
 			if n.Kind != nil {
-				b.WriteString(": " + printKind(n.Kind))
+				s += ": " + printKind(n.Kind)
 			}
-			b.WriteString("\n")
+			p.line(s, n.P.Line)
 		case *Field:
-			writeDoc(&b, "  ", n.Doc)
-			b.WriteString("  " + printField(n) + "\n")
+			writeDoc(&p.b, "  ", n.Doc)
+			p.field(n, "  ")
 		}
 	}
-	b.WriteString("}\n")
-	return b.String()
+	p.flush("  ", end)
+	p.line("}", end.Line)
 }
 
-func printField(f *Field) string {
-	s := printFieldHead(f) + printConstraints(f.Constraints, "  ")
+func (p *printer) field(f *Field, indent string) {
+	tail := p.fieldTail(f, indent)
+	line := f.P.Line
+	if strings.Contains(tail, "\n") {
+		line = f.End.Line
+	}
+	p.line(indent+tail, line)
+}
+
+// fieldTail renders a field's head, its constraint block, and its default.
+// The block is what may run to several lines, so the caller decides which
+// line a trailing comment belongs to.
+func (p *printer) fieldTail(f *Field, indent string) string {
+	s := printFieldHead(f) + p.constraints(f.Constraints, indent, f.End)
 	if f.Default != nil {
 		s += " = " + printLiteral(f.Default)
 	}
@@ -232,72 +357,97 @@ func printFieldHead(f *Field) string {
 	return s
 }
 
-func printVariants(variants []*Variant) string {
-	if len(variants) == 0 {
-		return " { }\n"
+func (p *printer) variants(variants []*Variant, headLine int, end Position) {
+	if len(variants) == 0 && !p.before(end) {
+		p.line(" { }", headLine)
+		return
 	}
 
 	// A block stays on one line when it fits the column limit. Whitespace is
 	// insignificant, so this depends only on content: the same tree always
-	// formats the same way, whatever the input looked like.
-	inline := true
+	// formats the same way, whatever the input looked like. A comment inside
+	// forces the expanded form, since a one-line block has nowhere to put
+	// one.
+	inline := !p.before(end)
 	oneLine := " {"
-	for _, v := range variants {
-		if len(v.Fields) > 0 || len(v.Doc) > 0 || v.Dep != nil {
-			inline = false
-			break
+	if inline {
+		for _, v := range variants {
+			if len(v.Fields) > 0 || len(v.Doc) > 0 || v.Dep != nil {
+				inline = false
+				break
+			}
+			oneLine += " " + v.N
 		}
-		oneLine += " " + v.N
 	}
 	if inline && len(oneLine)+2 <= columnLimit {
-		return oneLine + " }\n"
+		p.line(oneLine+" }", headLine)
+		return
 	}
 
-	var b strings.Builder
-	b.WriteString(" {\n")
+	p.b.WriteString(" {" + p.trailing(headLine) + "\n")
 	for _, v := range variants {
-		writeDoc(&b, "  ", v.Doc)
-		b.WriteString("  ")
+		p.flush("  ", v.P)
+		writeDoc(&p.b, "  ", v.Doc)
+
+		s := "  "
 		if v.Dep != nil {
-			b.WriteString(printDeprecated(v.Dep) + " ")
+			s += printDeprecated(v.Dep) + " "
 		}
-		b.WriteString(v.N)
+		s += v.N
+
+		// A payload holding a comment opens up, for the reason the block
+		// around it does: one line has nowhere to put one.
+		if len(v.Fields) > 0 && p.before(v.End) {
+			p.b.WriteString(s + " {" + p.trailing(v.P.Line) + "\n")
+			for _, f := range v.Fields {
+				p.flush("    ", f.P)
+				writeDoc(&p.b, "    ", f.Doc)
+				p.field(f, "    ")
+			}
+			p.flush("    ", v.End)
+			p.line("  }", v.End.Line)
+			continue
+		}
+
+		line := v.P.Line
 		if len(v.Fields) > 0 {
 			parts := make([]string, len(v.Fields))
 			for i, f := range v.Fields {
-				parts[i] = printField(f)
+				parts[i] = p.fieldTail(f, "  ")
 			}
-			b.WriteString(" { " + strings.Join(parts, " ") + " }")
+			s += " { " + strings.Join(parts, " ") + " }"
+			if v.End.Line != 0 {
+				line = v.End.Line
+			}
 		}
-		b.WriteString("\n")
+		p.line(s, line)
 	}
-	b.WriteString("}\n")
-	return b.String()
+	p.flush("  ", end)
+	p.line("}", end.Line)
 }
 
-func printEntries(entries []*TargetEntry, indent string) string {
-	if len(entries) == 0 {
-		return " { }\n"
+func (p *printer) entries(entries []*TargetEntry, indent string, headLine int, end Position) {
+	if len(entries) == 0 && !p.before(end) {
+		p.line(" { }", headLine)
+		return
 	}
 
-	var b strings.Builder
-	b.WriteString(" {\n")
+	p.b.WriteString(" {" + p.trailing(headLine) + "\n")
 	inner := indent + "  "
 	for _, e := range entries {
-		b.WriteString(inner)
+		p.flush(inner, e.P)
 		switch {
 		case e.Entries != nil:
-			b.WriteString(e.Path)
-			b.WriteString(strings.TrimSuffix(printEntries(e.Entries, inner), "\n"))
-			b.WriteString("\n")
+			p.b.WriteString(inner + e.Path)
+			p.entries(e.Entries, inner, e.P.Line, e.End)
 		case e.Path != "":
-			b.WriteString(e.Path + " => " + printDirective(e.Directive) + "\n")
+			p.line(inner+e.Path+" => "+printDirective(e.Directive), e.P.Line)
 		default:
-			b.WriteString(printDirective(e.Directive) + "\n")
+			p.line(inner+printDirective(e.Directive), e.P.Line)
 		}
 	}
-	b.WriteString(indent + "}\n")
-	return b.String()
+	p.flush(inner, end)
+	p.line(indent+"}", end.Line)
 }
 
 func printDirective(d *Directive) string {
@@ -342,24 +492,28 @@ func printLiteral(l *Literal) string {
 // A single constraint stays on one line when it fits the column limit; two
 // or more always expand. One constraint is an aside on the thing it
 // qualifies, several are a specification of it, and the layout says which.
-func printConstraints(cs []*Constraint, indent string) string {
+func (p *printer) constraints(cs []*Constraint, indent string, end Position) string {
 	if len(cs) == 0 {
 		return ""
 	}
 
-	if len(cs) == 1 {
+	// A comment inside forces the expanded form, for the reason an enum
+	// body expands: a one-line block has nowhere to put one.
+	if len(cs) == 1 && !p.before(end) {
 		if line := " where { " + printConstraint(cs[0]) + " }"; len(indent)+len(line) <= columnLimit {
 			return line
 		}
 	}
 
-	var b strings.Builder
-	b.WriteString(" where {\n")
-	for _, c := range cs {
-		b.WriteString(indent + "  " + printConstraint(c) + "\n")
-	}
-	b.WriteString(indent + "}")
-	return b.String()
+	return p.render(func(sub *printer) {
+		sub.b.WriteString(" where {\n")
+		for _, c := range cs {
+			sub.flush(indent+"  ", c.P)
+			sub.line(indent+"  "+printConstraint(c), c.P.Line)
+		}
+		sub.flush(indent+"  ", end)
+		sub.b.WriteString(indent + "}")
+	})
 }
 
 func printConstraint(c *Constraint) string {

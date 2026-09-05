@@ -146,7 +146,7 @@ It adds `tdl` and `vscode-tdl` to a nixpkgs instance, and composes [gomod2nix](h
 }
 ```
 
-`tdl fmt` drops ordinary `//` comments, so a project that writes them sets `tdl.fmt.enable = false`.
+A project that would rather not be held to canonical form sets `tdl.fmt.enable = false`.
 
 ## Usage
 
@@ -262,7 +262,8 @@ What each part of the language reaches today.
 | `target` blocks | Yes | Partial: resolved and attached, dependency blocks not merged |
 | `unit` | Yes | No: declarations pass through unlowered, unit arguments are an error |
 
-`tdl fmt` drops ordinary `//` comments; `///` doc comments survive, since they attach to the declaration that follows.
+`tdl fmt` keeps both comment forms: a `///` doc comment attaches to the declaration that follows it, and an ordinary `//` comment is placed by position, either on its own line or at the end of the line it was written on.
+Blank lines are the formatter's to decide, so one grouping fields inside a body does not survive.
 
 Backends:
 

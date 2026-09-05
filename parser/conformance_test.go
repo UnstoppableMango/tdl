@@ -76,20 +76,25 @@ func TestCorpusIsCanonical(t *testing.T) {
 		})
 	}
 
-	t.Run("prelude", func(t *testing.T) {
-		matches, err := filepath.Glob("../prelude/*.tdl")
-		if err != nil {
-			t.Fatalf("globbing the prelude: %v", err)
-		}
-		if len(matches) == 0 {
-			t.Fatal("no prelude sources found")
-		}
-		for _, path := range matches {
-			t.Run(filepath.Base(path), func(t *testing.T) {
-				assertCanonical(t, path)
-			})
-		}
-	})
+	// examples/ carries the explanatory comments the corpus does not, so
+	// it is what says a comment survives a round trip through the
+	// formatter on a real file rather than only on a fixture.
+	for _, dir := range []string{"../prelude", "../examples"} {
+		t.Run(filepath.Base(dir), func(t *testing.T) {
+			matches, err := filepath.Glob(filepath.Join(dir, "*.tdl"))
+			if err != nil {
+				t.Fatalf("globbing %s: %v", dir, err)
+			}
+			if len(matches) == 0 {
+				t.Fatalf("no sources found in %s", dir)
+			}
+			for _, path := range matches {
+				t.Run(filepath.Base(path), func(t *testing.T) {
+					assertCanonical(t, path)
+				})
+			}
+		})
+	}
 }
 
 // assertCanonical parses path and compares ast.Fprint against the bytes on
