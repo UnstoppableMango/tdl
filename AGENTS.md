@@ -32,7 +32,10 @@ Which markdown files are linted lives in `.markdownlint-cli2.yaml`, so a bare `m
 
 After changing `go.mod` or adding dependencies, run `make tidy` so `nix/gomod2nix.toml` stays in sync, otherwise `nix build` fails.
 
-`nix/` holds the packaging: `cmd.nix` is the CLI, `vscode-extension.nix` is the editor extension, `overlay.nix` names both, and `default.nix` is the flake-parts module `flake.nix` imports, exporting that overlay as `flake.overlays.default` and holding the packages. `flake.nix` keeps the inputs, the devShell, the treefmt configuration, and `version`, which release-please rewrites there and the module reads as a module argument. The module's `perSystem` imports nixpkgs with the overlay and reads `packages.default` and `packages.vscode-tdl` back out of it, so `nix build .#` takes the path a consumer takes rather than a second one beside it. The overlay composes gomod2nix's, because `tdl` is built with `buildGoApplication`: a consumer adds one overlay and gets `buildGoApplication` and `mkGoEnv` along with `tdl`.
+`nix/` holds the packaging: `cmd.nix` is the CLI, `vscode-extension.nix` is the editor extension, `overlay.nix` names both, and `default.nix` is the flake-parts module `flake.nix` imports, exporting that overlay as `flake.overlays.default` and holding the packages.
+`flake.nix` keeps the inputs, the devShell, the treefmt configuration, and `version`, which release-please rewrites there and the module reads as a module argument.
+The module's `perSystem` imports nixpkgs with the overlay and reads `packages.default` and `packages.vscode-tdl` back out of it, so `nix build .#` takes the path a consumer takes rather than a second one beside it.
+The overlay composes gomod2nix's, because `tdl` is built with `buildGoApplication`: a consumer adds one overlay and gets `buildGoApplication` and `mkGoEnv` along with `tdl`.
 
 Neither `gomod2nix` nor `protoc-gen-go` is on `PATH`. Run generators through the devShell: `nix develop --command make tidy`, or `gomod2nix --dir . --outdir nix` directly, and `buf generate` either inside `nix develop` or with `PATH="$(go env GOPATH)/bin:$PATH"`.
 
