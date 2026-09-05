@@ -116,6 +116,8 @@ Pipeline, one package per stage:
   `writeHeader` is the `==> path <==` banner, written only when there is more than one file, so single-file output stays pipeable.
   `play` is the one command still taking a single file, and `gen --watch` rejects a second one, since neither returns.
   `fmt --check` lists what is not canonical and writes nothing, which is what `checks.tdl-fmt` in `nix/flake-module.nix` runs; `-w` reads the file's mode and writes it back, because formatting is not the place to widen permissions.
+  A file named `-` is standard input, spelled `<stdin>` in a position because `-` reads as a flag; `fmt -w` rejects it, having nothing to write back to, and so does `gen`, because `sema.FSLoader` resolves an import next to the file that wrote it and `<stdin>` has no directory, so every import would resolve against the working directory instead.
+  `ir` accepts it and lives with that, since it reads a model rather than writing files from one.
 - `ir` — the resolved model backends consume.
   `ir.pb.go` is generated from `proto/tdl/ir/v1/ir.proto` by `make generate` and committed; `model.go` holds the hand-written lookups.
   Three interned tables: `Decls`, `Types`, and `Units`, each its own ID space.

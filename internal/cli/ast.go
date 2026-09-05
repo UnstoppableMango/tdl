@@ -15,7 +15,7 @@ func newAstCmd() *cobra.Command {
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return eachFile(cmd, args, func(i int, path string) error {
-				file, err := loadFile(path)
+				file, err := loadFile(cmd, path)
 				if err != nil {
 					return err
 				}

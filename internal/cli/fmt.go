@@ -23,12 +23,22 @@ func newFmtCmd() *cobra.Command {
 			"-w writes the result back, keeping the file's mode.\n\n" +
 			"--check writes nothing and lists the files that are not already\n" +
 			"canonical, exiting non-zero when it lists any. That is the form\n" +
-			"a CI job or a pre-commit hook wants.",
+			"a CI job or a pre-commit hook wants.\n\n" +
+			"A file named - is read from standard input, which -w rejects:\n" +
+			"there is nothing to write it back to.",
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if write {
+				for _, path := range args {
+					if isStdin(path) {
+						return fmt.Errorf("-w has nothing to write back to when reading %s", stdinName)
+					}
+				}
+			}
+
 			stale := 0
 			err := eachFile(cmd, args, func(i int, path string) error {
-				src, file, err := readFile(path)
+				src, file, err := readFile(cmd, path)
 				if err != nil {
 					return err
 				}
