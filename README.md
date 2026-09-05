@@ -92,6 +92,23 @@ enum Status { Draft Placed Shipped Cancelled }
 `entity` and `value` is the modelling decision: an `Order` has identity that survives its contents changing, an `Address` does not.
 Everything a code generator needs lives in a separate `target` block, never in the model.
 
+## Install
+
+`nix run github:UnstoppableMango/tdl` runs the CLI without installing it, and `nix profile install github:UnstoppableMango/tdl` installs it.
+
+`overlays.default` is the way into a configuration.
+It adds `tdl` and `vscode-tdl` to a nixpkgs instance, and composes [gomod2nix](https://github.com/nix-community/gomod2nix)'s overlay, which `tdl` is built with, so it is the only one to add.
+
+```nix
+{
+  inputs.tdl.url = "github:UnstoppableMango/tdl";
+
+  # ... in a NixOS or home-manager configuration:
+  nixpkgs.overlays = [ inputs.tdl.overlays.default ];
+  environment.systemPackages = [ pkgs.tdl ];
+}
+```
+
 ## Usage
 
 ```shell
@@ -171,7 +188,7 @@ Both sources are compiled because the grammar has an external scanner.
 
 ### VS Code
 
-`nix build .#vscode-tdl` builds the extension in [editors/vscode](editors/vscode).
+`nix build .#vscode-tdl` builds the extension in [editors/vscode](editors/vscode), and `overlays.default` exposes it as `pkgs.vscode-tdl`.
 Add it to `vscode-with-extensions` or to home-manager's `programs.vscode.extensions`.
 `make vscode-install` packages it as a `.vsix` and hands it to `code --install-extension`, which is the route to use when iterating on the colors.
 

@@ -26,50 +26,23 @@
     inputs@{ flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = import inputs.systems;
-      imports = with inputs; [ treefmt-nix.flakeModule ];
+      imports = with inputs; [
+        treefmt-nix.flakeModule
+        # The packages and the overlay.
+        ./nix
+      ];
+
+      _module.args.version = "0.1.5"; # x-release-please-version
 
       perSystem =
-        { pkgs, system, ... }:
-        let
-          version = "0.1.5"; # x-release-please-version
-          go = pkgs.go_1_27;
-        in
+        { pkgs, ... }:
         {
-          _module.args.pkgs = import inputs.nixpkgs {
-            inherit system;
-            overlays = with inputs; [ gomod2nix.overlays.default ];
-          };
-
-          packages.default = pkgs.callPackage ./nix { inherit version go; };
-
-          # The VS Code extension, installed through nix rather than the
-          # Marketplace: add it to vscode-with-extensions or to
-          # home-manager's programs.vscode.extensions.
-          #
-          # sourceRoot is the directory the unpacker copies src into, which
-          # takes its name; buildVscodeExtension defaults it to a .vsix's
-          # layout, and this is a directory in the tree.
-          packages.vscode-tdl = pkgs.vscode-utils.buildVscodeExtension {
-            pname = "tdl";
-            inherit version;
-            src = ./editors/vscode;
-            sourceRoot = "vscode";
-            vscodeExtPublisher = "unstoppablemango";
-            vscodeExtName = "tdl";
-            vscodeExtUniqueId = "unstoppablemango.tdl";
-            meta = {
-              description = "Syntax highlighting for the Type Description Language";
-              homepage = "https://github.com/UnstoppableMango/tdl";
-              license = pkgs.lib.licenses.gpl3Plus;
-            };
-          };
-
           # mkShell rather than mkShellNoCC: Go needs no C compiler, but
           # `tree-sitter parse` builds the generated parser with one.
           devShells.default = pkgs.mkShell {
             packages = [
               pkgs.direnv
-              go
+              pkgs.go_1_27 # TODO: consolidate with nix/overlay.nix
               pkgs.gomod2nix
               pkgs.gopls
               pkgs.golangci-lint
