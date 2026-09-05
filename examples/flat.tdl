@@ -5,19 +5,15 @@ package shop.flat
 
 entity Order {
   key id: string
-
   customerEmail: string
   customerName: string?
-
   shipLine1: string?
   shipLine2: string?
   shipCity: string?
   shipPostcode: string?
   shipCountry: string?
-
   itemSkus: [string]
   itemQuantities: [int]
-
   status: string = "draft"
   totalCents: int = 0
 }

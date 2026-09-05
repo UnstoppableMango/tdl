@@ -190,4 +190,4 @@ The plugin protocol used to be what came after this, and it arrived first: `docs
 
 - Monomorphization. Parameters stay parameters; a backend that wants concrete types does that itself.
 - ir diffing, which incremental generation would need.
-- Comment preservation. `tdl fmt` drops ordinary `//` comments today, and fixing it is parser work with no phase in either plan.
+- Blank line preservation. `tdl fmt` keeps comments but owns vertical whitespace, so a blank line grouping members inside a body does not survive.
