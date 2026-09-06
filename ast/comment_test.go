@@ -113,6 +113,21 @@ func TestFprintExpandsBlocksHoldingComments(t *testing.T) {
 			src:  "package p\nprimitive string\nenum E {\n  V {\n    // why\n    n: string\n  }\n}\n",
 			want: "  V {\n    // why\n    n: string\n  }\n",
 		},
+		{
+			name: "empty variant payload with a comment",
+			src:  "package p\nenum E {\n  V {\n    // nothing yet\n  }\n}\n",
+			want: "  V {\n    // nothing yet\n  }\n",
+		},
+		{
+			name: "variant payload with a field doc comment",
+			src:  "package p\nprimitive string\nenum E {\n  V { /// the name\n    n: string }\n}\n",
+			want: "  V {\n    /// the name\n    n: string\n  }\n",
+		},
+		{
+			name: "variant payload with a multi-line constraint block",
+			src:  "package p\nprimitive string\nenum E {\n  V { n: string where { min(1) max(9) } }\n}\n",
+			want: "  V {\n    n: string where {\n      min(1)\n      max(9)\n    }\n  }\n",
+		},
 	}
 
 	for _, tc := range cases {
@@ -163,5 +178,41 @@ C }
 	twice := ast.Fprint(mustParse(t, once))
 	if once != twice {
 		t.Errorf("not idempotent\n--- once ---\n%s\n--- twice ---\n%s", once, twice)
+	}
+}
+
+// A comment after a block's closing brace stays there when the formatter
+// opens the block up. It shares a source line with the first item inside,
+// and the item's line is not where it belongs.
+func TestFprintKeepsTrailingCommentAfterBlock(t *testing.T) {
+	cases := []struct {
+		name string
+		src  string
+		want string
+	}{
+		{
+			name: "entity body",
+			src:  "package p\nprimitive string\nentity E { a: string b: string } // c\n",
+			want: "entity E {\n  a: string\n  b: string\n}  // c\n",
+		},
+		{
+			name: "constraint block",
+			src:  "package p\nprimitive string\nentity E {\n  a: string where { min(1) max(9) } // c\n}\n",
+			want: "  a: string where {\n    min(1)\n    max(9)\n  }  // c\n",
+		},
+		{
+			name: "nested target block",
+			src:  "package p\ntarget go for x {\n  E { a => tag(\"x\") } // c\n}\n",
+			want: "  E {\n    a => tag(\"x\")\n  }  // c\n",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := ast.Fprint(mustParse(t, tc.src))
+			if !strings.Contains(got, tc.want) {
+				t.Errorf("output does not contain %q:\n%s", tc.want, got)
+			}
+		})
 	}
 }

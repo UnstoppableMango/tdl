@@ -57,22 +57,31 @@ func (p *printer) writeComment(indent string, c *Comment) {
 	p.b.WriteString(strings.TrimRight(indent+"// "+c.Text, " ") + "\n")
 }
 
-// trailing returns the comment written on line, folded onto the end of it,
-// or "" when that line carries none. A `//` comment runs to the end of its
-// line, so one sharing a line with an item always follows it.
-func (p *printer) trailing(line int) string {
+// trailing returns the comment written on line and before until, folded
+// onto the end of the line, or "" when there is none. A `//` comment runs
+// to the end of its line, so one sharing a line with an item always follows
+// it; the bound is what says it follows this item and not a later one on
+// the same line. A block written on one line and opened up by the
+// formatter would otherwise fold a comment after its closing brace onto
+// its first line, so an item inside a block is bounded by the block's end.
+func (p *printer) trailing(line int, until Position) string {
 	c := p.pending()
-	if c == nil || c.P.Line != line {
+	if c == nil || c.P.Line != line || c.P.Offset >= until.Offset {
 		return ""
 	}
 	p.i++
 	return strings.TrimRight("  // "+c.Text, " ")
 }
 
-// line writes one complete line, folding in a comment written on it.
-func (p *printer) line(s string, srcLine int) {
-	p.b.WriteString(s + p.trailing(srcLine) + "\n")
+// line writes one complete line, folding in a comment written on it before
+// until.
+func (p *printer) line(s string, srcLine int, until Position) {
+	p.b.WriteString(s + p.trailing(srcLine, until) + "\n")
 }
+
+// anywhere is the bound for a line nothing follows on its own line: a
+// declaration, or the brace closing one.
+var anywhere = Position{Offset: int(^uint(0) >> 1)}
 
 // render runs f on a printer of its own and returns what it wrote, moving
 // this one's cursor over whatever f consumed. Fprint measures a
@@ -97,7 +106,7 @@ func Fprint(file *File) string {
 
 	if file.Package != nil {
 		p.flush("", file.Package.P)
-		p.line("package "+file.Package.Path, file.Package.P.Line)
+		p.line("package "+file.Package.Path, file.Package.P.Line, anywhere)
 	}
 
 	if len(file.Imports) > 0 {
@@ -107,7 +116,7 @@ func Fprint(file *File) string {
 		for _, imp := range file.Imports {
 			p.flush("", imp.P)
 			writeDoc(&p.b, "", imp.Doc)
-			p.line("import "+quote(imp.Path)+" as "+imp.Alias, imp.P.Line)
+			p.line("import "+quote(imp.Path)+" as "+imp.Alias, imp.P.Line, anywhere)
 		}
 	}
 
@@ -158,10 +167,10 @@ func (p *printer) decl(decl Decl) {
 		if d.Kind != nil {
 			s += ": " + printKind(d.Kind)
 		}
-		p.line(s, d.P.Line)
+		p.line(s, d.P.Line, anywhere)
 
 	case *AliasDecl:
-		p.line("alias "+d.N+printParams(d.Params)+" = "+printTypeRef(d.Target), d.P.Line)
+		p.line("alias "+d.N+printParams(d.Params)+" = "+printTypeRef(d.Target), d.P.Line, anywhere)
 
 	case *NewtypeDecl:
 		head := "type " + d.N + printParams(d.Params) + ": " + printTypeRef(d.Base) + printRequires(d.Requires)
@@ -190,11 +199,11 @@ func (p *printer) decl(decl Decl) {
 		if d.Expr != nil {
 			s += " = " + printUnitExpr(d.Expr)
 		}
-		p.line(s, d.P.Line)
+		p.line(s, d.P.Line, anywhere)
 
 	case *TargetDecl:
 		p.b.WriteString("target " + d.N + " for " + d.For)
-		p.entries(d.Entries, "", d.P.Line, d.End)
+		p.entries(d.Entries, "", d.P.Line, d.End, anywhere)
 	}
 }
 
@@ -206,7 +215,7 @@ func (p *printer) constrained(head string, cs []*Constraint, indent string, head
 	if strings.Contains(block, "\n") {
 		line = end.Line
 	}
-	p.line(head+block, line)
+	p.line(head+block, line, anywhere)
 }
 
 func writeDoc(b *strings.Builder, indent string, doc []string) {
@@ -275,58 +284,59 @@ func (p *printer) instance(d *InstanceDecl) {
 
 	// An empty bind block is dropped, unless a comment is sitting in it.
 	if len(d.Binds) == 0 && !p.before(d.End) {
-		p.line(s, d.P.Line)
+		p.line(s, d.P.Line, anywhere)
 		return
 	}
 
-	p.b.WriteString(s + " {" + p.trailing(d.P.Line) + "\n")
+	p.b.WriteString(s + " {" + p.trailing(d.P.Line, d.End) + "\n")
 	for _, bind := range d.Binds {
 		p.flush("  ", bind.P)
-		p.line("  type "+bind.N+" = "+printTypeRef(bind.Target), bind.P.Line)
+		p.line("  type "+bind.N+" = "+printTypeRef(bind.Target), bind.P.Line, d.End)
 	}
 	p.flush("  ", d.End)
-	p.line("}", d.End.Line)
+	p.line("}", d.End.Line, anywhere)
 }
 
 // members writes a declaration body. An empty one collapses to `{ }`,
 // unless a comment is sitting in it.
 func (p *printer) members(members []Member, headLine int, end Position) {
 	if len(members) == 0 && !p.before(end) {
-		p.line(" { }", headLine)
+		p.line(" { }", headLine, anywhere)
 		return
 	}
 
-	p.b.WriteString(" {" + p.trailing(headLine) + "\n")
+	p.b.WriteString(" {" + p.trailing(headLine, end) + "\n")
 	for _, m := range members {
 		p.flush("  ", m.MemberPos())
 		switch n := m.(type) {
 		case *Include:
-			p.line("  include "+printClassRefs([]*ClassRef{n.Type}), n.P.Line)
+			p.line("  include "+printClassRefs([]*ClassRef{n.Type}), n.P.Line, end)
 		case *KeyRequirement:
-			p.line("  key", n.P.Line)
+			p.line("  key", n.P.Line, end)
 		case *AssocTypeReq:
 			writeDoc(&p.b, "  ", n.Doc)
 			s := "  type " + n.N
 			if n.Kind != nil {
 				s += ": " + printKind(n.Kind)
 			}
-			p.line(s, n.P.Line)
+			p.line(s, n.P.Line, end)
 		case *Field:
 			writeDoc(&p.b, "  ", n.Doc)
-			p.field(n, "  ")
+			p.field(n, "  ", end)
 		}
 	}
 	p.flush("  ", end)
-	p.line("}", end.Line)
+	p.line("}", end.Line, anywhere)
 }
 
-func (p *printer) field(f *Field, indent string) {
+// field writes one field inside a block ending at until.
+func (p *printer) field(f *Field, indent string, until Position) {
 	tail := p.fieldTail(f, indent)
 	line := f.P.Line
 	if strings.Contains(tail, "\n") {
 		line = f.End.Line
 	}
-	p.line(indent+tail, line)
+	p.line(indent+tail, line, until)
 }
 
 // fieldTail renders a field's head, its constraint block, and its default.
@@ -359,7 +369,7 @@ func printFieldHead(f *Field) string {
 
 func (p *printer) variants(variants []*Variant, headLine int, end Position) {
 	if len(variants) == 0 && !p.before(end) {
-		p.line(" { }", headLine)
+		p.line(" { }", headLine, anywhere)
 		return
 	}
 
@@ -380,11 +390,11 @@ func (p *printer) variants(variants []*Variant, headLine int, end Position) {
 		}
 	}
 	if inline && len(oneLine)+2 <= columnLimit {
-		p.line(oneLine+" }", headLine)
+		p.line(oneLine+" }", headLine, anywhere)
 		return
 	}
 
-	p.b.WriteString(" {" + p.trailing(headLine) + "\n")
+	p.b.WriteString(" {" + p.trailing(headLine, end) + "\n")
 	for _, v := range variants {
 		p.flush("  ", v.P)
 		writeDoc(&p.b, "  ", v.Doc)
@@ -395,17 +405,15 @@ func (p *printer) variants(variants []*Variant, headLine int, end Position) {
 		}
 		s += v.N
 
-		// A payload holding a comment opens up, for the reason the block
-		// around it does: one line has nowhere to put one.
-		if len(v.Fields) > 0 && p.before(v.End) {
-			p.b.WriteString(s + " {" + p.trailing(v.P.Line) + "\n")
+		if p.expands(v) {
+			p.b.WriteString(s + " {" + p.trailing(v.P.Line, v.End) + "\n")
 			for _, f := range v.Fields {
 				p.flush("    ", f.P)
 				writeDoc(&p.b, "    ", f.Doc)
-				p.field(f, "    ")
+				p.field(f, "    ", v.End)
 			}
 			p.flush("    ", v.End)
-			p.line("  }", v.End.Line)
+			p.line("  }", v.End.Line, end)
 			continue
 		}
 
@@ -420,34 +428,58 @@ func (p *printer) variants(variants []*Variant, headLine int, end Position) {
 				line = v.End.Line
 			}
 		}
-		p.line(s, line)
+		p.line(s, line, end)
 	}
 	p.flush("  ", end)
-	p.line("}", end.Line)
+	p.line("}", end.Line, anywhere)
 }
 
-func (p *printer) entries(entries []*TargetEntry, indent string, headLine int, end Position) {
+// expands reports whether a variant's payload opens up rather than staying
+// on the variant's line: it holds a comment, a field carrying a doc
+// comment, or a field whose constraints run to several lines, none of
+// which one line has room for. A payload holding none of these is written
+// inline, and an empty one is dropped.
+func (p *printer) expands(v *Variant) bool {
+	if v.End.Line == 0 {
+		return false
+	}
+	if p.before(v.End) {
+		return true
+	}
+	// No comment sits in the payload, so rendering a tail here to measure
+	// it consumes nothing, and rendering it again to write it is safe.
+	for _, f := range v.Fields {
+		if len(f.Doc) > 0 || strings.Contains(p.fieldTail(f, "  "), "\n") {
+			return true
+		}
+	}
+	return false
+}
+
+// entries writes a target block ending at end, inside a block ending at
+// until when it is nested.
+func (p *printer) entries(entries []*TargetEntry, indent string, headLine int, end, until Position) {
 	if len(entries) == 0 && !p.before(end) {
-		p.line(" { }", headLine)
+		p.line(" { }", headLine, until)
 		return
 	}
 
-	p.b.WriteString(" {" + p.trailing(headLine) + "\n")
+	p.b.WriteString(" {" + p.trailing(headLine, end) + "\n")
 	inner := indent + "  "
 	for _, e := range entries {
 		p.flush(inner, e.P)
 		switch {
 		case e.Entries != nil:
 			p.b.WriteString(inner + e.Path)
-			p.entries(e.Entries, inner, e.P.Line, e.End)
+			p.entries(e.Entries, inner, e.P.Line, e.End, end)
 		case e.Path != "":
-			p.line(inner+e.Path+" => "+printDirective(e.Directive), e.P.Line)
+			p.line(inner+e.Path+" => "+printDirective(e.Directive), e.P.Line, end)
 		default:
-			p.line(inner+printDirective(e.Directive), e.P.Line)
+			p.line(inner+printDirective(e.Directive), e.P.Line, end)
 		}
 	}
 	p.flush(inner, end)
-	p.line(indent+"}", end.Line)
+	p.line(indent+"}", end.Line, until)
 }
 
 func printDirective(d *Directive) string {
@@ -509,7 +541,7 @@ func (p *printer) constraints(cs []*Constraint, indent string, end Position) str
 		sub.b.WriteString(" where {\n")
 		for _, c := range cs {
 			sub.flush(indent+"  ", c.P)
-			sub.line(indent+"  "+printConstraint(c), c.P.Line)
+			sub.line(indent+"  "+printConstraint(c), c.P.Line, end)
 		}
 		sub.flush(indent+"  ", end)
 		sub.b.WriteString(indent + "}")
