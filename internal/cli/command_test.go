@@ -71,6 +71,12 @@ func TestCommandsTakeSeveralFiles(t *testing.T) {
 			if got := strings.Count(two, "==> "+good+" <=="); got != 2 {
 				t.Errorf("banner appeared %d times, want 2:\n%s", got, two)
 			}
+
+			// A file that fails before printing leaves no gap.
+			after, _, _ := run(t, tc.cmd(), filepath.Join(t.TempDir(), "missing.tdl"), good)
+			if !strings.HasPrefix(after, "==> ") {
+				t.Errorf("output after a failed file should start with a banner:\n%q", after)
+			}
 		})
 	}
 }
@@ -197,6 +203,52 @@ func TestGenWritesAndVerifies(t *testing.T) {
 	}
 	if _, _, err := run(t, newGenCmd(), "-o", out, "--verify", path); err == nil {
 		t.Error("--verify accepted stale output")
+	}
+}
+
+// --clean empties an output directory once per run. Two files given the
+// same -o both write there, and cleaning before the second would delete
+// what the first just wrote.
+func TestGenCleansASharedOutputDirectoryOnce(t *testing.T) {
+	dir := t.TempDir()
+	src := "package p\n\nprimitive string\n\ntarget debug for p {\n  out(\"./out\")\n}\n"
+	var paths []string
+	for _, name := range []string{"a.tdl", "b.tdl"} {
+		path := filepath.Join(dir, name)
+		if err := os.WriteFile(path, []byte(src), 0o644); err != nil {
+			t.Fatalf("writing the fixture: %v", err)
+		}
+		paths = append(paths, path)
+	}
+
+	// An earlier run left a file behind that no target writes any more.
+	out := filepath.Join(dir, "out")
+	if _, _, err := run(t, newGenCmd(), "-o", out, paths[0]); err != nil {
+		t.Fatalf("gen: %v", err)
+	}
+	orphan := filepath.Join(out, "orphan.txt")
+	if err := os.WriteFile(orphan, []byte("old\n"), 0o644); err != nil {
+		t.Fatalf("writing the orphan: %v", err)
+	}
+
+	stdout, _, err := run(t, newGenCmd(), append([]string{"-o", out, "--clean"}, paths...)...)
+	if err != nil {
+		t.Fatalf("gen --clean: %v", err)
+	}
+	if !strings.Contains(stdout, "removed "+orphan) {
+		t.Errorf("--clean did not remove the orphan:\n%s", stdout)
+	}
+	// The first clean removes the orphan and the earlier run's model.txt.
+	// A clean before the second file would remove model.txt again, once
+	// the first file had written it back.
+	if got := strings.Count(stdout, "removed "); got != 2 {
+		t.Errorf("%d removals, want 2 (one clean pass):\n%s", got, stdout)
+	}
+	if _, err := os.Stat(orphan); err == nil {
+		t.Error("the orphan is still on disk")
+	}
+	if _, err := os.Stat(filepath.Join(out, "model.txt")); err != nil {
+		t.Errorf("model.txt missing after the run: %v", err)
 	}
 }
 

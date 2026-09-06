@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 
@@ -43,7 +44,15 @@ func newGenCmd() *cobra.Command {
 			if watch && len(args) > 1 {
 				return fmt.Errorf("--watch takes a single file, got %d", len(args))
 			}
-			generate := func(path string) error {
+			if verify && clean {
+				return fmt.Errorf("--verify writes nothing, so it cannot be combined with --clean")
+			}
+
+			// cleaned holds the output directories --clean has emptied in
+			// this run. A directory is emptied once, before the first target
+			// that writes to it: -o applies to every file given, so cleaning
+			// per target would delete what an earlier file just wrote.
+			generate := func(path string, cleaned map[string]bool) error {
 				file, err := loadFile(path)
 				if err != nil {
 					return err
@@ -62,21 +71,19 @@ func newGenCmd() *cobra.Command {
 					return fmt.Errorf("%s declares no target blocks", path)
 				}
 
-				if verify && clean {
-					return fmt.Errorf("--verify writes nothing, so it cannot be combined with --clean")
-				}
-				mode := gen.ModeWrite
-				switch {
-				case verify:
-					mode = gen.ModeVerify
-				case clean:
-					mode = gen.ModeClean
-				}
-
 				ran, stale := 0, 0
 				for _, t := range targets {
 					if target != "" && t.Name != target {
 						continue
+					}
+
+					mode := gen.ModeWrite
+					switch out := filepath.Clean(t.Out); {
+					case verify:
+						mode = gen.ModeVerify
+					case clean && !cleaned[out]:
+						mode = gen.ModeClean
+						cleaned[out] = true
 					}
 
 					backend, err := gen.Resolve(t.Name)
@@ -124,8 +131,9 @@ func newGenCmd() *cobra.Command {
 			}
 
 			if !watch {
-				return eachFile(cmd, args, func(_ int, path string) error {
-					return generate(path)
+				cleaned := map[string]bool{}
+				return eachFile(cmd, args, func(path string) error {
+					return generate(path, cleaned)
 				})
 			}
 
@@ -133,13 +141,15 @@ func newGenCmd() *cobra.Command {
 
 			// The first run reports its errors and the watch continues: a
 			// file being edited is expected to be broken between saves.
-			if err := generate(path); err != nil {
+			if err := generate(path, map[string]bool{}); err != nil {
 				fmt.Fprintln(cmd.ErrOrStderr(), err)
 			}
 			fmt.Fprintf(cmd.ErrOrStderr(), "watching %s\n", path)
 
+			// Each save is a run of its own, so a target removed between
+			// saves has its files cleaned on the next one.
 			gen.Watch(cmd.Context().Done(), path, func() {
-				if err := generate(path); err != nil {
+				if err := generate(path, map[string]bool{}); err != nil {
 					fmt.Fprintln(cmd.ErrOrStderr(), err)
 				}
 			})

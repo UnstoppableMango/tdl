@@ -17,7 +17,8 @@ func newTokensCmd() *cobra.Command {
 		Short: "Print the token stream the lexer produces for a TDL file",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return eachFile(cmd, args, func(i int, path string) error {
+			header := newHeader(args)
+			return eachFile(cmd, args, func(path string) error {
 				// The lexer is the stage under test here, so this reads the
 				// file itself rather than going through loadFile, which would
 				// parse it and fail on a file whose tokens are worth seeing.
@@ -26,7 +27,7 @@ func newTokensCmd() *cobra.Command {
 					return err
 				}
 
-				writeHeader(cmd, args, i, path)
+				header.write(cmd, path)
 				fmt.Fprint(cmd.OutOrStdout(), dumpTokens(path, string(data)))
 				return nil
 			})

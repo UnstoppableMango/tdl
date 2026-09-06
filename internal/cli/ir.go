@@ -37,7 +37,8 @@ func newIrCmd() *cobra.Command {
 			}
 			opts = append(opts, sema.WithLoader(sema.FSLoader{}))
 
-			return eachFile(cmd, args, func(i int, path string) error {
+			header := newHeader(args)
+			return eachFile(cmd, args, func(path string) error {
 				file, err := loadFile(path)
 				if err != nil {
 					return err
@@ -49,7 +50,7 @@ func newIrCmd() *cobra.Command {
 				if err != nil {
 					return err
 				}
-				writeHeader(cmd, args, i, path)
+				header.write(cmd, path)
 				fmt.Fprint(cmd.OutOrStdout(), out)
 
 				if len(diags) > 0 {

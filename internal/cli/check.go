@@ -10,7 +10,7 @@ func newCheckCmd() *cobra.Command {
 		Short: "Parse a TDL file and report every syntax error found",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return eachFile(cmd, args, func(_ int, path string) error {
+			return eachFile(cmd, args, func(path string) error {
 				_, err := loadFile(path)
 				return err
 			})

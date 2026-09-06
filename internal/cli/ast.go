@@ -14,13 +14,14 @@ func newAstCmd() *cobra.Command {
 		Short: "Print the parse tree a TDL file produces",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return eachFile(cmd, args, func(i int, path string) error {
+			header := newHeader(args)
+			return eachFile(cmd, args, func(path string) error {
 				file, err := loadFile(path)
 				if err != nil {
 					return err
 				}
 
-				writeHeader(cmd, args, i, path)
+				header.write(cmd, path)
 				fmt.Fprint(cmd.OutOrStdout(), ast.Dump(file))
 				return nil
 			})

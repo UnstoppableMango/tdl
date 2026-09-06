@@ -112,7 +112,8 @@ Pipeline, one package per stage:
   `play` is a watch-mode playground that re-renders a file on save; `examples/` holds files to experiment with and is outside the conformance corpus.
   `file.go` is what every command that reads a file goes through: `loadFile` reads and parses one, and `eachFile` walks the arguments, reporting each failure and continuing rather than stopping at the first, the way the parser reports every syntax error in a file.
   It prints the error and not the path beside it, because a diagnostic and an `os.PathError` both already name the file.
-  `writeHeader` is the `==> path <==` banner, written only when there is more than one file, so single-file output stays pipeable.
+  `header` is the `==> path <==` banner, written only when there is more than one file, so single-file output stays pipeable; the blank line between two goes before the second banner written rather than the second file given, so a file that failed before printing leaves no gap.
+  `gen` prints no banner: what it prints is the path of each file it wrote, which already says where it went.
   `play` is the one command still taking a single file, and `gen --watch` rejects a second one, since neither returns.
 - `ir` — the resolved model backends consume.
   `ir.pb.go` is generated from `proto/tdl/ir/v1/ir.proto` by `make generate` and committed; `model.go` holds the hand-written lookups.

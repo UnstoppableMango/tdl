@@ -162,9 +162,9 @@ tdl tokens ./types.tdl   # print the token stream
 tdl version              # tool and spec versions
 ```
 
-Every command above takes more than one file.
+Every command that reads a file takes more than one, except `tdl gen --watch`, which does not return.
 A file that fails is reported and the rest still run, so `tdl check ./*.tdl` names every broken file rather than the first.
-The commands that print something separate their output with a `==> path <==` banner when given more than one, and print no banner for a single file.
+`ast`, `fmt`, `ir`, and `tokens` separate their output with a `==> path <==` banner when given more than one file, and print no banner for a single file.
 
 ### Playground
 

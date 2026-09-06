@@ -17,7 +17,8 @@ func newFmtCmd() *cobra.Command {
 		Short: "Print a TDL file in canonical formatting",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return eachFile(cmd, args, func(i int, path string) error {
+			header := newHeader(args)
+			return eachFile(cmd, args, func(path string) error {
 				file, err := loadFile(path)
 				if err != nil {
 					return err
@@ -28,7 +29,7 @@ func newFmtCmd() *cobra.Command {
 					return os.WriteFile(path, []byte(out), 0o644)
 				}
 
-				writeHeader(cmd, args, i, path)
+				header.write(cmd, path)
 				fmt.Fprint(cmd.OutOrStdout(), out)
 				return nil
 			})

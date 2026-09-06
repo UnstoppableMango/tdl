@@ -30,7 +30,7 @@ func TestEachFileReportsEveryFailure(t *testing.T) {
 	cmd, _, errOut := newTestCmd()
 
 	var seen []string
-	err := eachFile(cmd, []string{"a.tdl", "b.tdl", "c.tdl"}, func(_ int, path string) error {
+	err := eachFile(cmd, []string{"a.tdl", "b.tdl", "c.tdl"}, func(path string) error {
 		seen = append(seen, path)
 		if path == "a.tdl" || path == "c.tdl" {
 			return errors.New(path + ": boom")
@@ -57,7 +57,7 @@ func TestEachFileReportsEveryFailure(t *testing.T) {
 func TestEachFileSucceedsSilently(t *testing.T) {
 	cmd, out, errOut := newTestCmd()
 
-	if err := eachFile(cmd, []string{"a.tdl"}, func(int, string) error { return nil }); err != nil {
+	if err := eachFile(cmd, []string{"a.tdl"}, func(string) error { return nil }); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if out.Len() != 0 || errOut.Len() != 0 {
@@ -68,7 +68,7 @@ func TestEachFileSucceedsSilently(t *testing.T) {
 func TestEachFileCountsOneFailure(t *testing.T) {
 	cmd, _, _ := newTestCmd()
 
-	err := eachFile(cmd, []string{"a.tdl"}, func(int, string) error { return errors.New("boom") })
+	err := eachFile(cmd, []string{"a.tdl"}, func(string) error { return errors.New("boom") })
 	if err == nil {
 		t.Fatal("expected an error")
 	}
@@ -78,11 +78,10 @@ func TestEachFileCountsOneFailure(t *testing.T) {
 }
 
 // One file prints no banner, so output stays pipeable in the common case.
-func TestWriteHeaderSingleFileIsSilent(t *testing.T) {
+func TestHeaderSingleFileIsSilent(t *testing.T) {
 	cmd, out, _ := newTestCmd()
 
-	paths := []string{"a.tdl"}
-	writeHeader(cmd, paths, 0, "a.tdl")
+	newHeader([]string{"a.tdl"}).write(cmd, "a.tdl")
 
 	if out.Len() != 0 {
 		t.Errorf("expected no header for a single file, got %q", out)
@@ -91,13 +90,30 @@ func TestWriteHeaderSingleFileIsSilent(t *testing.T) {
 
 // Two or more files are separated the way head(1) separates them, with a
 // blank line before every banner but the first.
-func TestWriteHeaderSeparatesFiles(t *testing.T) {
+func TestHeaderSeparatesFiles(t *testing.T) {
 	cmd, out, _ := newTestCmd()
 
 	paths := []string{"a.tdl", "b.tdl"}
-	for i, path := range paths {
-		writeHeader(cmd, paths, i, path)
+	h := newHeader(paths)
+	for _, path := range paths {
+		h.write(cmd, path)
 	}
+
+	want := "==> a.tdl <==\n\n==> b.tdl <==\n"
+	if got := out.String(); got != want {
+		t.Errorf("header output = %q, want %q", got, want)
+	}
+}
+
+// The blank line separates output from output, not file from file: a
+// first file that failed before printing anything leaves no gap before
+// the first banner.
+func TestHeaderSkipsFailedFiles(t *testing.T) {
+	cmd, out, _ := newTestCmd()
+
+	h := newHeader([]string{"bad.tdl", "a.tdl", "b.tdl"})
+	h.write(cmd, "a.tdl")
+	h.write(cmd, "b.tdl")
 
 	want := "==> a.tdl <==\n\n==> b.tdl <==\n"
 	if got := out.String(); got != want {

@@ -30,10 +30,10 @@ func loadFile(path string) (*ast.File, error) {
 // first. The error returned counts them rather than repeating them, since
 // a diagnostic and an os.PathError both already name the file they are
 // about.
-func eachFile(cmd *cobra.Command, paths []string, fn func(i int, path string) error) error {
+func eachFile(cmd *cobra.Command, paths []string, fn func(path string) error) error {
 	failed := 0
-	for i, path := range paths {
-		if err := fn(i, path); err != nil {
+	for _, path := range paths {
+		if err := fn(path); err != nil {
 			fmt.Fprintln(cmd.ErrOrStderr(), err)
 			failed++
 		}
@@ -49,15 +49,31 @@ func eachFile(cmd *cobra.Command, paths []string, fn func(i int, path string) er
 	}
 }
 
-// writeHeader prints a `==> path <==` banner, the way head(1) separates the
-// files it was given. It writes nothing for a single file, so output stays
-// pipeable in the common case.
-func writeHeader(cmd *cobra.Command, paths []string, i int, path string) {
-	if len(paths) < 2 {
+// header separates the output of several files with a `==> path <==`
+// banner, the way head(1) separates the files it was given.
+//
+// It writes nothing for a single file, so output stays pipeable in the
+// common case. A blank line goes before every banner after the first one
+// written, rather than before every file after the first one given: a file
+// that fails before printing anything leaves no gap.
+type header struct {
+	several bool
+	written bool
+}
+
+// newHeader returns a header for the files a command was given.
+func newHeader(paths []string) *header {
+	return &header{several: len(paths) > 1}
+}
+
+// write prints the banner for path.
+func (h *header) write(cmd *cobra.Command, path string) {
+	if !h.several {
 		return
 	}
-	if i > 0 {
+	if h.written {
 		fmt.Fprintln(cmd.OutOrStdout())
 	}
+	h.written = true
 	fmt.Fprintf(cmd.OutOrStdout(), "==> %s <==\n", path)
 }
