@@ -48,7 +48,7 @@ func (p *parser) parseNewtypeDecl(head ast.DeclHead) *ast.NewtypeDecl {
 		d.Requires = p.parseClassRefs()
 	}
 	if p.at(lex.WHERE) {
-		d.Constraints = p.parseConstraintBlock()
+		d.Constraints, d.End = p.parseConstraintBlock()
 	}
 	return d
 }
@@ -68,7 +68,7 @@ func (p *parser) parseStructDecl(head ast.DeclHead) *ast.StructDecl {
 	if p.at(lex.REQUIRES) {
 		d.Requires = p.parseClassRefs()
 	}
-	d.Members = p.parseBody()
+	d.Members, d.End = p.parseBody()
 	return d
 }
 
@@ -99,7 +99,7 @@ func (p *parser) parseEnumDecl(head ast.DeclHead) *ast.EnumDecl {
 			p.next() // no progress: drop the offending token
 		}
 	}
-	p.expect(lex.RBRACE)
+	d.End = p.expectRbrace()
 	return d
 }
 
@@ -119,7 +119,7 @@ func (p *parser) parseVariant() *ast.Variant {
 	}
 	if p.accept(lex.LBRACE) {
 		v.Fields = p.parseFields()
-		p.expect(lex.RBRACE)
+		v.End = p.expectRbrace()
 	}
 	return v
 }
@@ -158,10 +158,10 @@ func (p *parser) parseClassRef() *ast.ClassRef {
 	return ref
 }
 
-func (p *parser) parseBody() []ast.Member {
+func (p *parser) parseBody() ([]ast.Member, ast.Position) {
 	if !p.expect(lex.LBRACE) {
 		p.syncTop()
-		return nil
+		return nil, ast.Position{}
 	}
 
 	var members []ast.Member
@@ -180,8 +180,7 @@ func (p *parser) parseBody() []ast.Member {
 			p.next()
 		}
 	}
-	p.expect(lex.RBRACE)
-	return members
+	return members, p.expectRbrace()
 }
 
 // parseFields parses the field list inside an enum variant payload.
@@ -240,7 +239,7 @@ func (p *parser) parseField() *ast.Field {
 	// name, so a following field named `where` is not this field's
 	// constraint block. The modifiers above take the same lookahead.
 	if p.at(lex.WHERE) && p.peek.Kind != lex.COLON {
-		f.Constraints = p.parseConstraintBlock()
+		f.Constraints, f.End = p.parseConstraintBlock()
 	}
 	if p.accept(lex.EQUAL) {
 		f.Default = p.parseLiteral()
