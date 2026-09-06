@@ -91,7 +91,7 @@ func TestComments(t *testing.T) {
 }
 
 // An ordinary comment produces no token, but it is not thrown away: it is
-// collected on the lexer, which is where `tdl fmt` reads it back from.
+// collected on the lexer, which is where the parser reads it back from.
 func TestOrdinaryCommentsAreCollected(t *testing.T) {
 	lx := lex.New("t.tdl", "// one\nprimitive string // two\n")
 	for lx.Next().Kind != lex.EOF { //revive:disable-line:empty-block

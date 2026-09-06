@@ -2,6 +2,7 @@ package lex
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"unicode/utf8"
 )
@@ -40,7 +41,10 @@ type Comment struct {
 }
 
 // Comments returns every ordinary comment scanned so far, in source order.
-func (l *Lexer) Comments() []Comment { return l.comments }
+//
+// It is a copy, so a caller that edits what it gets does not edit what the
+// next caller gets.
+func (l *Lexer) Comments() []Comment { return slices.Clone(l.comments) }
 
 // New returns a Lexer over src, reporting positions against filename.
 func New(filename, src string) *Lexer {
