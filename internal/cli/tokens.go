@@ -3,7 +3,6 @@ package cli
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
@@ -19,16 +18,16 @@ func newTokensCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			header := newHeader(args)
 			return eachFile(cmd, args, func(path string) error {
-				// The lexer is the stage under test here, so this reads the
-				// file itself rather than going through loadFile, which would
-				// parse it and fail on a file whose tokens are worth seeing.
-				data, err := os.ReadFile(path)
+				// The lexer is the stage under test here, so this stops
+				// short of loadFile, which would parse the file and fail on
+				// one whose tokens are worth seeing.
+				data, err := readSource(cmd, path)
 				if err != nil {
 					return err
 				}
 
 				header.write(cmd, path)
-				fmt.Fprint(cmd.OutOrStdout(), dumpTokens(path, string(data)))
+				fmt.Fprint(cmd.OutOrStdout(), dumpTokens(displayName(path), string(data)))
 				return nil
 			})
 		},

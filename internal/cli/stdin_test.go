@@ -69,6 +69,23 @@ func TestFmtFormatsStdin(t *testing.T) {
 	}
 }
 
+// tokens reads the source without parsing it, and reads it from the
+// same place.
+func TestTokensReadsStdin(t *testing.T) {
+	cmd := newTokensCmd()
+	cmd.SilenceUsage, cmd.SilenceErrors = true, true
+	out, _ := captureCmd(cmd)
+	cmd.SetIn(strings.NewReader("primitive string\n"))
+	cmd.SetArgs([]string{"-"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(out.String(), "IDENT") {
+		t.Errorf("output does not look like a token stream:\n%s", out)
+	}
+}
+
 func TestDisplayName(t *testing.T) {
 	if got, want := displayName("-"), "<stdin>"; got != want {
 		t.Errorf("displayName(%q) = %q, want %q", "-", got, want)

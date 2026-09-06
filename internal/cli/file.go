@@ -42,21 +42,22 @@ func loadFile(cmd *cobra.Command, path string) (*ast.File, error) {
 // readFile is loadFile with the source text it read, for a caller that has
 // to compare against what was on disk rather than only against the tree.
 func readFile(cmd *cobra.Command, path string) (string, *ast.File, error) {
-	var (
-		data []byte
-		err  error
-	)
-	if isStdin(path) {
-		data, err = io.ReadAll(cmd.InOrStdin())
-	} else {
-		data, err = os.ReadFile(path)
-	}
+	data, err := readSource(cmd, path)
 	if err != nil {
 		return "", nil, err
 	}
 
 	file, err := parser.Parse(displayName(path), bytes.NewReader(data))
 	return string(data), file, err
+}
+
+// readSource is what readFile reads, before it is parsed, for a command
+// that works on the text or the tokens rather than the tree.
+func readSource(cmd *cobra.Command, path string) ([]byte, error) {
+	if isStdin(path) {
+		return io.ReadAll(cmd.InOrStdin())
+	}
+	return os.ReadFile(path)
 }
 
 // eachFile runs fn over every path given.
