@@ -42,13 +42,26 @@ func TestWriteFormattedCreatesMissingFile(t *testing.T) {
 		t.Fatalf("writeFormatted: %v", err)
 	}
 
+	// The mode a new file gets is 0644 narrowed by the umask, so the
+	// expectation is read from a file created the same way rather than
+	// written down.
+	reference := filepath.Join(filepath.Dir(path), "reference.tdl")
+	if err := os.WriteFile(reference, nil, 0o644); err != nil {
+		t.Fatalf("writing the reference: %v", err)
+	}
+	if got, want := mode(t, path), mode(t, reference); got != want {
+		t.Errorf("mode = %o, want %o", got, want)
+	}
+}
+
+// mode is the permission bits of path.
+func mode(t *testing.T, path string) os.FileMode {
+	t.Helper()
 	info, err := os.Stat(path)
 	if err != nil {
 		t.Fatalf("stat: %v", err)
 	}
-	if got, want := info.Mode().Perm(), os.FileMode(0o644); got != want {
-		t.Errorf("mode = %o, want %o", got, want)
-	}
+	return info.Mode().Perm()
 }
 
 // --check lists the files that need formatting and exits non-zero, and

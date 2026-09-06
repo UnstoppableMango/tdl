@@ -57,7 +57,7 @@ func newFmtCmd() *cobra.Command {
 			}
 
 			if stale > 0 {
-				return fmt.Errorf("%d file(s) are not formatted; run: tdl fmt -w", stale)
+				return fmt.Errorf("%d file(s) are not formatted; run: tdl fmt -w <file>...", stale)
 			}
 			return nil
 		},
