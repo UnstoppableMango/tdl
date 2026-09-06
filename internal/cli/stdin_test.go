@@ -69,6 +69,30 @@ func TestFmtFormatsStdin(t *testing.T) {
 	}
 }
 
+// --check names standard input <stdin>, and does not suggest -w for it:
+// -w has nothing to write it back to.
+func TestFmtCheckNamesStaleStdin(t *testing.T) {
+	cmd := newFmtCmd()
+	cmd.SilenceUsage, cmd.SilenceErrors = true, true
+	out, _ := captureCmd(cmd)
+	cmd.SetIn(strings.NewReader("primitive    string"))
+	cmd.SetArgs([]string{"--check", "-"})
+
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected a non-zero exit when standard input is not canonical")
+	}
+	if got, want := out.String(), "<stdin>\n"; got != want {
+		t.Errorf("stdout = %q, want %q", got, want)
+	}
+	if strings.Contains(err.Error(), "-w") {
+		t.Errorf("error %q suggests -w, which rejects standard input", err)
+	}
+	if !strings.Contains(err.Error(), "<stdin>") {
+		t.Errorf("error %q does not mention <stdin>", err)
+	}
+}
+
 // tokens reads the source without parsing it, and reads it from the
 // same place.
 func TestTokensReadsStdin(t *testing.T) {

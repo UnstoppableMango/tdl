@@ -36,7 +36,7 @@ func newFmtCmd() *cobra.Command {
 				}
 			}
 
-			stale := 0
+			staleFiles, staleStdin := 0, false
 			header := newHeader(args)
 			err := eachFile(cmd, args, func(path string) error {
 				src, file, err := readFile(cmd, path)
@@ -48,8 +48,12 @@ func newFmtCmd() *cobra.Command {
 				switch {
 				case check:
 					if out != src {
-						stale++
-						fmt.Fprintln(cmd.OutOrStdout(), path)
+						if isStdin(path) {
+							staleStdin = true
+						} else {
+							staleFiles++
+						}
+						fmt.Fprintln(cmd.OutOrStdout(), displayName(path))
 					}
 					return nil
 
@@ -66,8 +70,8 @@ func newFmtCmd() *cobra.Command {
 				return err
 			}
 
-			if stale > 0 {
-				return fmt.Errorf("%d file(s) are not formatted, run \"tdl fmt -w <file>...\" to fix them", stale)
+			if staleFiles > 0 || staleStdin {
+				return staleError(staleFiles, staleStdin)
 			}
 			return nil
 		},
@@ -77,6 +81,19 @@ func newFmtCmd() *cobra.Command {
 	cmd.Flags().BoolVarP(&check, "check", "l", false, "list files that are not canonically formatted, writing nothing")
 	cmd.MarkFlagsMutuallyExclusive("write", "check")
 	return cmd
+}
+
+// staleError describes what --check found. -w has nothing to write standard
+// input back to, so the hint only names it when a file on disk is stale.
+func staleError(files int, stdin bool) error {
+	switch {
+	case files == 0:
+		return fmt.Errorf("%s is not formatted", stdinName)
+	case stdin:
+		return fmt.Errorf("%s and %d file(s) are not formatted, run \"tdl fmt -w <file>...\" to fix the files", stdinName, files)
+	default:
+		return fmt.Errorf("%d file(s) are not formatted, run \"tdl fmt -w <file>...\" to fix them", files)
+	}
 }
 
 // writeFormatted replaces path with formatted, keeping the mode the file

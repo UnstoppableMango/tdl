@@ -166,6 +166,7 @@ tdl version              # tool and spec versions
 Every command that reads a file takes more than one, except `tdl gen --watch`, which does not return.
 A file that fails is reported and the rest still run, so `tdl check ./*.tdl` names every broken file rather than the first.
 `ast`, `fmt`, `ir`, and `tokens` separate their output with a `==> path <==` banner when given more than one file, and print no banner for a single file.
+`fmt` banners only what it prints: `-w` writes files and `--check` lists paths, neither with a banner.
 A file named `-` is read from standard input, so `tdl fmt -` formats an editor buffer that has not been saved.
 `fmt -w` rejects it, having nothing to write back to, and so does `gen`: an import resolves next to the file that wrote it, so reading a model from standard input would resolve every import against the working directory instead.
 
