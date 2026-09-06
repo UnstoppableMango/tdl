@@ -1,15 +1,13 @@
 package cli
 
 import (
-	"bytes"
 	"fmt"
-	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 
 	"github.com/unstoppablemango/tdl/internal/gen"
 	"github.com/unstoppablemango/tdl/internal/sema"
-	"github.com/unstoppablemango/tdl/parser"
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
@@ -23,7 +21,7 @@ func newGenCmd() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "gen <file>",
+		Use:   "gen <file>...",
 		Short: "Generate code from a TDL file",
 		Long: "Generate code from a TDL file.\n\n" +
 			"Every target block in the file runs. A target block exists, so it\n" +
@@ -36,20 +34,26 @@ func newGenCmd() *cobra.Command {
 			"exiting non-zero when they differ. --clean empties the output\n" +
 			"directory first, and refuses one tdl did not write.\n\n" +
 			"--watch regenerates when the file changes, holding open any\n" +
-			"plugin that declared it can serve more than one request.",
-		Args: cobra.ExactArgs(1),
+			"plugin that declared it can serve more than one request. It\n" +
+			"takes a single file, since it does not return.",
+		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := args[0]
 			if watch && verify {
 				return fmt.Errorf("--watch regenerates, so it cannot be combined with --verify")
 			}
-			generate := func() error {
-				data, err := os.ReadFile(path)
-				if err != nil {
-					return err
-				}
+			if watch && len(args) > 1 {
+				return fmt.Errorf("--watch takes a single file, got %d", len(args))
+			}
+			if verify && clean {
+				return fmt.Errorf("--verify writes nothing, so it cannot be combined with --clean")
+			}
 
-				file, err := parser.Parse(path, bytes.NewReader(data))
+			// cleaned holds the output directories --clean has emptied in
+			// this run. A directory is emptied once, before the first target
+			// that writes to it: -o applies to every file given, so cleaning
+			// per target would delete what an earlier file just wrote.
+			generate := func(path string, cleaned map[string]bool) error {
+				file, err := loadFile(path)
 				if err != nil {
 					return err
 				}
@@ -67,21 +71,19 @@ func newGenCmd() *cobra.Command {
 					return fmt.Errorf("%s declares no target blocks", path)
 				}
 
-				if verify && clean {
-					return fmt.Errorf("--verify writes nothing, so it cannot be combined with --clean")
-				}
-				mode := gen.ModeWrite
-				switch {
-				case verify:
-					mode = gen.ModeVerify
-				case clean:
-					mode = gen.ModeClean
-				}
-
 				ran, stale := 0, 0
 				for _, t := range targets {
 					if target != "" && t.Name != target {
 						continue
+					}
+
+					mode := gen.ModeWrite
+					switch out := filepath.Clean(t.Out); {
+					case verify:
+						mode = gen.ModeVerify
+					case clean && !cleaned[out]:
+						mode = gen.ModeClean
+						cleaned[out] = true
 					}
 
 					backend, err := gen.Resolve(t.Name)
@@ -129,18 +131,25 @@ func newGenCmd() *cobra.Command {
 			}
 
 			if !watch {
-				return generate()
+				cleaned := map[string]bool{}
+				return eachFile(cmd, args, func(path string) error {
+					return generate(path, cleaned)
+				})
 			}
+
+			path := args[0]
 
 			// The first run reports its errors and the watch continues: a
 			// file being edited is expected to be broken between saves.
-			if err := generate(); err != nil {
+			if err := generate(path, map[string]bool{}); err != nil {
 				fmt.Fprintln(cmd.ErrOrStderr(), err)
 			}
 			fmt.Fprintf(cmd.ErrOrStderr(), "watching %s\n", path)
 
+			// Each save is a run of its own, so a target removed between
+			// saves has its files cleaned on the next one.
 			gen.Watch(cmd.Context().Done(), path, func() {
-				if err := generate(); err != nil {
+				if err := generate(path, map[string]bool{}); err != nil {
 					fmt.Fprintln(cmd.ErrOrStderr(), err)
 				}
 			})
