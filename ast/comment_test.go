@@ -216,3 +216,64 @@ func TestFprintKeepsTrailingCommentAfterBlock(t *testing.T) {
 		})
 	}
 }
+
+// A comment sharing a source line with a block's first item belongs to that
+// item, not to the opening brace. The whole block is on one line until the
+// formatter opens it up, so the brace and the item start out on the line
+// the comment was written on, and only the item follows it.
+func TestFprintBindsCommentToFirstItem(t *testing.T) {
+	cases := []struct {
+		name string
+		src  string
+		want string
+	}{
+		{
+			name: "entity body",
+			src:  "package p\nprimitive string\nentity E { a: string // c\n}\n",
+			want: "entity E {\n  a: string  // c\n}\n",
+		},
+		{
+			name: "enum body",
+			src:  "package p\nenum E { A // c\n}\n",
+			want: "enum E {\n  A  // c\n}\n",
+		},
+		{
+			name: "variant body",
+			src:  "package p\nprimitive string\nenum E { A { a: string // c\n} }\n",
+			want: "  A {\n    a: string  // c\n  }\n",
+		},
+		{
+			name: "instance binds",
+			src:  "package p\ninstance C for T { type A = B // c\n}\n",
+			want: "instance C for T {\n  type A = B  // c\n}\n",
+		},
+		{
+			name: "target block",
+			src:  "package p\ntarget go for x { out(\"./gen\") // c\n}\n",
+			want: "target go for x {\n  out(\"./gen\")  // c\n}\n",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := ast.Fprint(mustParse(t, tc.src))
+			if !strings.Contains(got, tc.want) {
+				t.Errorf("output does not contain %q:\n%s", tc.want, got)
+			}
+			if twice := ast.Fprint(mustParse(t, got)); twice != got {
+				t.Errorf("not idempotent\n--- once ---\n%s\n--- twice ---\n%s", got, twice)
+			}
+		})
+	}
+}
+
+// A comment written before a block's first item belongs to the brace, and
+// stays folded onto it.
+func TestFprintKeepsCommentOnOpeningBrace(t *testing.T) {
+	src := "package p\nprimitive string\nentity E { // c\n  a: string\n}\n"
+	want := "entity E {  // c\n  a: string\n}\n"
+
+	if got := ast.Fprint(mustParse(t, src)); !strings.Contains(got, want) {
+		t.Errorf("output does not contain %q:\n%s", want, got)
+	}
+}

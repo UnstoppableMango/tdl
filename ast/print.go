@@ -79,6 +79,18 @@ func (p *printer) line(s string, srcLine int, until Position) {
 	p.b.WriteString(s + p.trailing(srcLine, until) + "\n")
 }
 
+// firstPos is the position of a block's first item, or end when the block
+// has none. It is what bounds a comment folded onto the opening brace: one
+// written after the first item belongs to that item and not to the brace,
+// which is what a block the source wrote on a single line looks like once
+// the formatter opens it up.
+func firstPos[T any](items []T, pos func(T) Position, end Position) Position {
+	if len(items) == 0 {
+		return end
+	}
+	return pos(items[0])
+}
+
 // anywhere is the bound for a line nothing follows on its own line: a
 // declaration, or the brace closing one.
 var anywhere = Position{Offset: int(^uint(0) >> 1)}
@@ -288,7 +300,7 @@ func (p *printer) instance(d *InstanceDecl) {
 		return
 	}
 
-	p.b.WriteString(s + " {" + p.trailing(d.P.Line, d.End) + "\n")
+	p.b.WriteString(s + " {" + p.trailing(d.P.Line, firstPos(d.Binds, func(b *AssocTypeBind) Position { return b.P }, d.End)) + "\n")
 	for _, bind := range d.Binds {
 		p.flush("  ", bind.P)
 		p.line("  type "+bind.N+" = "+printTypeRef(bind.Target), bind.P.Line, d.End)
@@ -305,7 +317,7 @@ func (p *printer) members(members []Member, headLine int, end Position) {
 		return
 	}
 
-	p.b.WriteString(" {" + p.trailing(headLine, end) + "\n")
+	p.b.WriteString(" {" + p.trailing(headLine, firstPos(members, Member.MemberPos, end)) + "\n")
 	for _, m := range members {
 		p.flush("  ", m.MemberPos())
 		switch n := m.(type) {
@@ -394,7 +406,7 @@ func (p *printer) variants(variants []*Variant, headLine int, end Position) {
 		return
 	}
 
-	p.b.WriteString(" {" + p.trailing(headLine, end) + "\n")
+	p.b.WriteString(" {" + p.trailing(headLine, firstPos(variants, func(v *Variant) Position { return v.P }, end)) + "\n")
 	for _, v := range variants {
 		p.flush("  ", v.P)
 		writeDoc(&p.b, "  ", v.Doc)
@@ -406,7 +418,7 @@ func (p *printer) variants(variants []*Variant, headLine int, end Position) {
 		s += v.N
 
 		if p.expands(v) {
-			p.b.WriteString(s + " {" + p.trailing(v.P.Line, v.End) + "\n")
+			p.b.WriteString(s + " {" + p.trailing(v.P.Line, firstPos(v.Fields, func(f *Field) Position { return f.P }, v.End)) + "\n")
 			for _, f := range v.Fields {
 				p.flush("    ", f.P)
 				writeDoc(&p.b, "    ", f.Doc)
@@ -464,7 +476,7 @@ func (p *printer) entries(entries []*TargetEntry, indent string, headLine int, e
 		return
 	}
 
-	p.b.WriteString(" {" + p.trailing(headLine, end) + "\n")
+	p.b.WriteString(" {" + p.trailing(headLine, firstPos(entries, func(e *TargetEntry) Position { return e.P }, end)) + "\n")
 	inner := indent + "  "
 	for _, e := range entries {
 		p.flush(inner, e.P)

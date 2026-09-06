@@ -264,7 +264,7 @@ What each part of the language reaches today.
 | `unit` | Yes | No: declarations pass through unlowered, unit arguments are an error |
 
 `tdl fmt` keeps both comment forms: a `///` doc comment attaches to the declaration that follows it, and an ordinary `//` comment is placed by position, either on its own line or at the end of the line it was written on.
-Blank lines are the formatter's to decide, so one grouping fields inside a body does not survive.
+Blank lines are the formatter's to decide, so a blank line grouping fields inside a body does not survive.
 
 Backends:
 
