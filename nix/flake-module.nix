@@ -17,25 +17,18 @@ _: {
       # Every check runs from inside `src` rather than over a copied file:
       # an `include` resolves relative to the file that writes it, so a model
       # split across files needs its tree intact.
+      #
+      # Each is a single invocation over the whole list rather than a shell
+      # loop: the CLI walks its arguments itself, reporting every file that
+      # fails rather than stopping at the first, so a loop here would only
+      # make the output worse.
       runIn =
         name: extraInputs: body:
         pkgs.runCommand name { nativeBuildInputs = [ cfg.package ] ++ extraInputs; } ''
           cd ${cfg.src}
-          failed=
           ${body}
-          if [ -n "$failed" ]; then
-            exit 1
-          fi
           touch $out
         '';
-
-      # A failing file is reported and the loop continues, so one run names
-      # every bad file rather than the first.
-      forEach = files: body: ''
-        for f in ${lib.escapeShellArgs files}; do
-          ${body}
-        done
-      '';
 
       enabled = list: cfg.src != null && list != [ ];
     in
@@ -130,35 +123,13 @@ _: {
 
         checks =
           lib.optionalAttrs (cfg.check.enable && enabled cfg.files) {
-            tdl-check = runIn "tdl-check" [ ] (
-              forEach cfg.files ''
-                echo "check $f"
-                tdl check "$f" || failed=1
-              ''
-            );
+            tdl-check = runIn "tdl-check" [ ] "tdl check ${lib.escapeShellArgs cfg.files}";
           }
           // lib.optionalAttrs (cfg.fmt.enable && enabled cfg.files) {
-            tdl-fmt = runIn "tdl-fmt" [ ] (
-              forEach cfg.files ''
-                echo "fmt $f"
-                if ! tdl fmt "$f" > "$TMPDIR/fmt"; then
-                  failed=1
-                  continue
-                fi
-                if ! diff -u "$f" "$TMPDIR/fmt"; then
-                  echo "$f is not canonically formatted; run: tdl fmt -w $f" >&2
-                  failed=1
-                fi
-              ''
-            );
+            tdl-fmt = runIn "tdl-fmt" [ ] "tdl fmt --check ${lib.escapeShellArgs cfg.files}";
           }
           // lib.optionalAttrs (enabled cfg.gen.files) {
-            tdl-gen = runIn "tdl-gen" cfg.gen.backends (
-              forEach cfg.gen.files ''
-                echo "gen $f"
-                tdl gen "$f" --verify || failed=1
-              ''
-            );
+            tdl-gen = runIn "tdl-gen" cfg.gen.backends "tdl gen --verify ${lib.escapeShellArgs cfg.gen.files}";
           };
       };
     };
