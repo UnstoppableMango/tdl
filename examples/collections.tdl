@@ -14,14 +14,11 @@ value Catalog {
   matrix: [[int]]
   regions: [{string -> string}]
   seenSkus: {string}
-
   explicitList: List<nested.LineItem>
   explicitMap: Map<string, string>
-
   optional: nested.Address?
   nullable: nested.Address | null
   both: nested.Address? | null
-
   primaryRegion: string = "us-east"
   ratio: decimal = 0.5
   active: bool = true
