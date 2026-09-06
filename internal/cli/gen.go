@@ -48,12 +48,22 @@ func newGenCmd() *cobra.Command {
 				return fmt.Errorf("--verify writes nothing, so it cannot be combined with --clean")
 			}
 
+			// An import resolves next to the file that wrote it, and
+			// standard input has no directory: every import would quietly
+			// resolve against the working directory instead. `ir` reads a
+			// model and lives with that; gen writes files from it.
+			for _, path := range args {
+				if isStdin(path) {
+					return fmt.Errorf("gen needs a file on disk: an import resolves next to it, and %s has no directory", stdinName)
+				}
+			}
+
 			// cleaned holds the output directories --clean has emptied in
 			// this run. A directory is emptied once, before the first target
 			// that writes to it: -o applies to every file given, so cleaning
 			// per target would delete what an earlier file just wrote.
 			generate := func(path string, cleaned map[string]bool) error {
-				file, err := loadFile(path)
+				file, err := loadFile(cmd, path)
 				if err != nil {
 					return err
 				}

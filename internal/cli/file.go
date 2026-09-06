@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -11,23 +12,52 @@ import (
 	"github.com/unstoppablemango/tdl/parser"
 )
 
+// stdinArg is the path that names standard input, the convention every
+// tool that reads a file list uses.
+const stdinArg = "-"
+
+// stdinName is what standard input is called in a position and in an error,
+// since `-` reads as a flag and as a file that is not there.
+const stdinName = "<stdin>"
+
+// isStdin reports whether path names standard input.
+func isStdin(path string) bool { return path == stdinArg }
+
+// displayName is what a path is called in output.
+func displayName(path string) string {
+	if isStdin(path) {
+		return stdinName
+	}
+	return path
+}
+
 // loadFile reads and parses one source file. Every command that works on a
-// parse tree starts here, so they agree on how a file is read and on what a
-// parse error looks like.
-func loadFile(path string) (*ast.File, error) {
-	_, file, err := readFile(path)
+// parse tree starts here, so they agree on how a file is read, on what
+// reading `-` means, and on what a parse error looks like.
+func loadFile(cmd *cobra.Command, path string) (*ast.File, error) {
+	_, file, err := readFile(cmd, path)
 	return file, err
 }
 
 // readFile is loadFile with the source text it read, for a caller that has
 // to compare against what was on disk rather than only against the tree.
-func readFile(path string) (string, *ast.File, error) {
-	data, err := os.ReadFile(path)
+func readFile(cmd *cobra.Command, path string) (string, *ast.File, error) {
+	data, err := readSource(cmd, path)
 	if err != nil {
 		return "", nil, err
 	}
-	file, err := parser.Parse(path, bytes.NewReader(data))
+
+	file, err := parser.Parse(displayName(path), bytes.NewReader(data))
 	return string(data), file, err
+}
+
+// readSource is what readFile reads, before it is parsed, for a command
+// that works on the text or the tokens rather than the tree.
+func readSource(cmd *cobra.Command, path string) ([]byte, error) {
+	if isStdin(path) {
+		return io.ReadAll(cmd.InOrStdin())
+	}
+	return os.ReadFile(path)
 }
 
 // eachFile runs fn over every path given.
@@ -83,5 +113,5 @@ func (h *header) write(cmd *cobra.Command, path string) {
 		fmt.Fprintln(cmd.OutOrStdout())
 	}
 	h.written = true
-	fmt.Fprintf(cmd.OutOrStdout(), "==> %s <==\n", path)
+	fmt.Fprintf(cmd.OutOrStdout(), "==> %s <==\n", displayName(path))
 }

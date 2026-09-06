@@ -23,13 +23,23 @@ func newFmtCmd() *cobra.Command {
 			"-w writes the result back, keeping the file's mode.\n\n" +
 			"--check writes nothing and lists the files that are not already\n" +
 			"canonical, exiting non-zero when it lists any. That is the form\n" +
-			"a CI job or a pre-commit hook wants.",
+			"a CI job or a pre-commit hook wants.\n\n" +
+			"A file named - is read from standard input, which -w rejects:\n" +
+			"there is nothing to write it back to.",
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			stale := 0
+			if write {
+				for _, path := range args {
+					if isStdin(path) {
+						return fmt.Errorf("-w has nothing to write back to when reading %s", stdinName)
+					}
+				}
+			}
+
+			staleFiles, staleStdin := 0, false
 			header := newHeader(args)
 			err := eachFile(cmd, args, func(path string) error {
-				src, file, err := readFile(path)
+				src, file, err := readFile(cmd, path)
 				if err != nil {
 					return err
 				}
@@ -38,8 +48,12 @@ func newFmtCmd() *cobra.Command {
 				switch {
 				case check:
 					if out != src {
-						stale++
-						fmt.Fprintln(cmd.OutOrStdout(), path)
+						if isStdin(path) {
+							staleStdin = true
+						} else {
+							staleFiles++
+						}
+						fmt.Fprintln(cmd.OutOrStdout(), displayName(path))
 					}
 					return nil
 
@@ -56,8 +70,8 @@ func newFmtCmd() *cobra.Command {
 				return err
 			}
 
-			if stale > 0 {
-				return fmt.Errorf("%d file(s) are not formatted, run \"tdl fmt -w <file>...\" to fix them", stale)
+			if staleFiles > 0 || staleStdin {
+				return staleError(staleFiles, staleStdin)
 			}
 			return nil
 		},
@@ -67,6 +81,19 @@ func newFmtCmd() *cobra.Command {
 	cmd.Flags().BoolVarP(&check, "check", "l", false, "list files that are not canonically formatted, writing nothing")
 	cmd.MarkFlagsMutuallyExclusive("write", "check")
 	return cmd
+}
+
+// staleError describes what --check found. -w has nothing to write standard
+// input back to, so the hint only names it when a file on disk is stale.
+func staleError(files int, stdin bool) error {
+	switch {
+	case files == 0:
+		return fmt.Errorf("%s is not formatted", stdinName)
+	case stdin:
+		return fmt.Errorf("%s and %d file(s) are not formatted, run \"tdl fmt -w <file>...\" to fix the files", stdinName, files)
+	default:
+		return fmt.Errorf("%d file(s) are not formatted, run \"tdl fmt -w <file>...\" to fix them", files)
+	}
 }
 
 // writeFormatted replaces path with formatted, keeping the mode the file
