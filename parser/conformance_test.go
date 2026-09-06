@@ -101,12 +101,13 @@ func assertCanonical(t *testing.T, path string) {
 		t.Fatalf("reading %s: %v", path, err)
 	}
 
-	file, err := parser.Parse(path, strings.NewReader(string(data)))
+	src := string(data)
+	file, err := parser.Parse(path, strings.NewReader(src))
 	if err != nil {
 		t.Fatalf("unexpected parse error: %v", err)
 	}
 
-	got, want := ast.Fprint(file), string(data)
+	got, want := ast.Fprint(file), src
 	if got == want {
 		return
 	}
