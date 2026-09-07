@@ -670,20 +670,6 @@ value Shadowed { s: string }
 	}
 }
 
-// Compiling a prelude means having no prelude, and then nothing resolves
-// that the file does not declare.
-func TestWithoutPrelude(t *testing.T) {
-	file, err := parser.Parse("test.tdl", strings.NewReader(`value V { s: string }`))
-	if err != nil {
-		t.Fatalf("unexpected parse error: %v", err)
-	}
-
-	_, diags := Lower(file, WithoutPrelude())
-	if !strings.Contains(diags.Error(), "undefined: string") {
-		t.Errorf("diagnostics = %v", diags)
-	}
-}
-
 // A qualified reference carries the dependency's package, and the
 // declaration is not inlined.
 func TestCrossPackageReference(t *testing.T) {

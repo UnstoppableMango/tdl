@@ -78,7 +78,7 @@ Pipeline, one package per stage:
   `lex.Kind` covers idents, literals, keywords, and punctuation; `LookupIdent` turns an identifier into a keyword kind.
   Positions originate here and flow through the AST as `ast.Position` (a type alias).
   Regex literals are scanned only on request via `RescanRegexAt`, because `/` is also division in a unit expression.
-  `table.go` states the same lexical facts for a program rather than a person: `Keywords`, `Punctuation`, `Lookup`, `Spelling`, and `Pattern`, so a tool deriving a second parser from `docs/grammar.ebnf` reads what the lexer accepts instead of restating it.
+  `table.go` states the same lexical facts for a program rather than a person: `Keywords`, `Punctuation`, `Lookup`, and the `*Pattern` constants, so a tool deriving a second parser from `docs/grammar.ebnf` reads what the lexer accepts instead of restating it.
 - `internal/ebnf` — the linter for `docs/grammar.ebnf` and `docs/notation.ebnf`.
   Parsing and reachability come from `golang.org/x/exp/ebnf`, which documents this exact dialect; what is local is the check no library makes, holding every quoted terminal to `lex` so a spelling the grammar invents is an error rather than a rule that can never match.
   It also reports an unterminated comment or string itself, because the library hands its scanner no error handler and `text/scanner` prints those to stderr.

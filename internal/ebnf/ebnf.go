@@ -50,12 +50,6 @@ var GrammarOptions = Options{Start: "File", LexSpellings: true, Annotated: true}
 // rather than TDL, so its quoted terminals are not TDL tokens.
 var NotationOptions = Options{Start: "Grammar"}
 
-// Lint reports every problem it finds.
-func Lint(filename, src string, opts Options) []error {
-	_, errs := Read(filename, src, opts)
-	return errs
-}
-
 // Read parses a grammar and its annotations, reporting every problem it
 // finds along the way.
 //

@@ -22,7 +22,8 @@ func quoteAll(words []string) []string {
 
 func lint(src string) []string {
 	var out []string
-	for _, err := range ebnf.Lint("test.ebnf", src, ebnf.GrammarOptions) {
+	_, errs := ebnf.Read("test.ebnf", src, ebnf.GrammarOptions)
+	for _, err := range errs {
 		out = append(out, err.Error())
 	}
 	return out
@@ -127,7 +128,8 @@ func TestDocsAreClean(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, d := range ebnf.Lint(c.name, string(b), c.opts) {
+		_, errs := ebnf.Read(c.name, string(b), c.opts)
+		for _, d := range errs {
 			t.Errorf("%v", d)
 		}
 	}
