@@ -12,8 +12,10 @@ package ebnf
 
 import (
 	"cmp"
+	"errors"
 	"fmt"
 	"maps"
+	"os"
 	"slices"
 	"strings"
 
@@ -51,6 +53,21 @@ var GrammarOptions = Options{Start: "File", LexSpellings: true, Annotated: true}
 // NotationOptions reads docs/notation.ebnf, which describes the notation
 // rather than TDL, so its quoted terminals are not TDL tokens.
 var NotationOptions = Options{Start: "Grammar"}
+
+// ReadFile is [Read] over a file on disk, with every problem joined into
+// one error, for a generator that has nothing to do with a broken grammar
+// but report it.
+func ReadFile(path string, opts Options) (*File, error) {
+	src, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	file, errs := Read(path, string(src), opts)
+	if len(errs) > 0 {
+		return nil, fmt.Errorf("%s: %d problems:\n%w", path, len(errs), errors.Join(errs...))
+	}
+	return file, nil
+}
 
 // Read parses a grammar and its annotations, reporting every problem it
 // finds along the way.

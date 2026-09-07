@@ -38,7 +38,7 @@ A derived parser has nothing but the grammar, and reads `key` on its own line as
 
 The fix is a production: the shared tail of `Field` becomes its own hidden and inlined rule, and a class body's field takes `Deprecated` alone.
 That deletes the conflict annotation and costs a `class_field` node distinct from `field`, which the highlight queries then have to name.
-It changes `docs/grammar.ebnf` and `docs/spec.md` rather than any code, which is why it is here and not in [design/treesitter-plan.md](design/treesitter-plan.md).
+It changes `docs/grammar.ebnf` and `docs/spec.md` rather than any code, which is why it is here and not in [design/treesitter.md](design/treesitter.md).
 
 ## An exponent on a parenthesized unit term
 

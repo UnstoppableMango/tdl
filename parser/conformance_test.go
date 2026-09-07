@@ -17,8 +17,9 @@ import (
 // check against the same files (see docs/spec.md).
 //
 // A case directory containing a `pending` file describes a construct the
-// parser cannot read yet and is skipped. The phase that implements the
-// construct deletes the marker; see docs/design/parser-plan.md.
+// parser cannot read yet and is skipped. The change that implements the
+// construct deletes the marker, so the corpus can hold a case before the
+// parser reads it.
 func TestConformanceCorpusParses(t *testing.T) {
 	for _, dir := range subdirs(t, "../testdata/conformance") {
 		t.Run(filepath.Base(dir), func(t *testing.T) {

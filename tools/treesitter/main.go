@@ -27,23 +27,13 @@ func main() {
 }
 
 func run(in, out string) error {
-	src, err := os.ReadFile(in)
+	file, err := ebnf.ReadFile(in, ebnf.GrammarOptions)
 	if err != nil {
 		return err
 	}
-
-	file, errs := ebnf.Read(in, string(src), ebnf.GrammarOptions)
-	for _, err := range errs {
-		fmt.Fprintln(os.Stderr, err)
-	}
-	if len(errs) > 0 {
-		return fmt.Errorf("%s: %d problems", in, len(errs))
-	}
-
 	js, err := treesitter.Emit(file)
 	if err != nil {
 		return fmt.Errorf("%s: %w", in, err)
 	}
-
 	return os.WriteFile(out, js, 0o644)
 }

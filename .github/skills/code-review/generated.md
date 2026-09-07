@@ -7,7 +7,8 @@ A diff in one of these is a consequence, and the question is whether the change 
 | --- | --- | --- |
 | `ir/ir.pb.go` | `make generate` | `proto/tdl/ir/v1/ir.proto` |
 | `plugin/plugin.pb.go` | `make generate` | `proto/tdl/plugin/v1/plugin.proto` |
-| `tree-sitter/grammar.js` | `go test ./internal/treesitter -update` | `docs/grammar.ebnf` |
+| `tree-sitter/grammar.js` | `make treesitter` | `docs/grammar.ebnf` |
+| `editors/vscode/syntaxes/tdl.tmLanguage.json` | `make textmate` | `docs/grammar.ebnf` |
 | `tree-sitter/src/` | `tree-sitter generate` | `tree-sitter/grammar.js` |
 | `testdata/conformance/*/ir.golden` | `go test ./internal/sema -update` | `internal/sema` |
 | `testdata/plugin/*.txtpb` | `go test ./internal/gen -record` | `internal/gen` |

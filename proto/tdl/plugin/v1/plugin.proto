@@ -2,7 +2,7 @@
 // whether it is compiled in or run as a subprocess.
 //
 // See docs/design/plugins.md for the protocol and
-// docs/design/plugins-plan.md for what is implemented so far.
+// docs/design/plugins.md for the protocol.
 edition = "2024";
 
 package tdl.plugin.v1;

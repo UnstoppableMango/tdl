@@ -3,8 +3,7 @@
 Starting points for playing with the language.
 They are not part of the conformance corpus, so edit them freely.
 
-All four parse.
-They are written for reading rather than in canonical form: `tdl fmt` groups them differently and drops the `//` comments, which is a known gap.
+All four parse and are stored in canonical form, comments included: `tdl fmt` prints each back byte for byte, and `TestCorpusIsCanonical` holds them to that.
 
 | File | What it shows |
 | --- | --- |
