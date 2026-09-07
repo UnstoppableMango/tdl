@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.1.7](https://github.com/UnstoppableMango/tdl/compare/v0.1.6...v0.1.7) (2026-09-07)
+
+
+### Features
+
+* **ast:** record ordinary comments and where each block closes ([#750](https://github.com/UnstoppableMango/tdl/issues/750)) ([7327303](https://github.com/UnstoppableMango/tdl/commit/7327303c49748e050c0db9a7fe2e6d0adc41c156))
+* **cli:** add fmt --check, and keep the file mode when writing ([#747](https://github.com/UnstoppableMango/tdl/issues/747)) ([784bd02](https://github.com/UnstoppableMango/tdl/commit/784bd02b00c2f4cbce8ead9ba3b6f22b206c7a5e))
+* **cli:** read standard input when handed - ([#748](https://github.com/UnstoppableMango/tdl/issues/748)) ([d83823e](https://github.com/UnstoppableMango/tdl/commit/d83823e0bbef75124dd540a0905869d440559c73))
+* **cli:** take more than one file argument ([#746](https://github.com/UnstoppableMango/tdl/issues/746)) ([9f2c29c](https://github.com/UnstoppableMango/tdl/commit/9f2c29cb2734440339c179a5a52773a636fdab4f))
+* **fmt:** keep ordinary comments ([#751](https://github.com/UnstoppableMango/tdl/issues/751)) ([2fa76ec](https://github.com/UnstoppableMango/tdl/commit/2fa76ec4f4444efb509a83c32da9362b5f9b4540))
+
+
+### Bug Fixes
+
+* **cli:** hold a reusable plugin open under gen --watch ([#756](https://github.com/UnstoppableMango/tdl/issues/756)) ([a8ad074](https://github.com/UnstoppableMango/tdl/commit/a8ad0746254070b959cc6b68d9289447f142f894))
+
+
+### Code Refactoring
+
+* delete code nothing reaches ([#755](https://github.com/UnstoppableMango/tdl/issues/755)) ([fa79ea4](https://github.com/UnstoppableMango/tdl/commit/fa79ea4498f4174f2e0ef5a24a47a6e8ef3c50c4))
+
+
+### Tests
+
+* **parser:** assert the corpus and prelude are stored canonically ([#745](https://github.com/UnstoppableMango/tdl/issues/745)) ([874640a](https://github.com/UnstoppableMango/tdl/commit/874640a4905bf0330fff5ed2d4e667b7890614b3))
+
 ## [0.1.6](https://github.com/UnstoppableMango/tdl/compare/v0.1.5...v0.1.6) (2026-09-05)
 
 
