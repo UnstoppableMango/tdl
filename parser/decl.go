@@ -104,7 +104,7 @@ func (p *parser) parseEnumDecl(head ast.DeclHead) *ast.EnumDecl {
 }
 
 func (p *parser) parseVariant() *ast.Variant {
-	v := &ast.Variant{Doc: p.parseDoc(), P: p.cur.Pos}
+	v := &ast.Variant{DeclHead: ast.DeclHead{Doc: p.parseDoc(), P: p.cur.Pos}}
 	if p.atContextual("deprecated") {
 		v.Dep = p.parseDeprecated()
 		v.P = p.cur.Pos
@@ -200,10 +200,10 @@ func (p *parser) parseField() *ast.Field {
 	if p.at(lex.COMMA) {
 		p.errs.add(p.cur.Pos, "unexpected comma: commas are not separators inside a block")
 		p.next()
-		return &ast.Field{P: p.cur.Pos}
+		return &ast.Field{DeclHead: ast.DeclHead{P: p.cur.Pos}}
 	}
 
-	f := &ast.Field{Doc: p.parseDoc(), P: p.cur.Pos}
+	f := &ast.Field{DeclHead: ast.DeclHead{Doc: p.parseDoc(), P: p.cur.Pos}}
 
 	// `key` and `deprecated` are contextual, so a field may be named either.
 	// A modifier is a modifier only when another token follows it before the

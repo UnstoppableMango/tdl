@@ -33,13 +33,12 @@ type Comment struct {
 	Text string // the text after the slashes, with one leading space removed
 }
 
-// Decl is a top-level declaration. `class` and `instance` arrive with
-// phase 4 of docs/design/parser-plan.md; every other form is here.
+// Decl is a top-level declaration. Every form embeds [DeclHead], which is
+// what Head returns.
 type Decl interface {
 	Pos() Position
 	Name() string
-	docLines() []string
-	deprecation() *Deprecation
+	Head() *DeclHead
 }
 
 // PackageDecl is a `package <dotted.ident>` declaration.
@@ -71,9 +70,6 @@ type AliasDecl struct {
 	Params []*TypeParam
 	Target *TypeRef
 }
-
-// Doc returns the doc comment lines attached to a declaration.
-func Doc(d Decl) []string { return d.docLines() }
 
 // TypeParam is one parameter in a `<...>` parameter list, with an optional
 // kind annotation.

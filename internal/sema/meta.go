@@ -5,21 +5,17 @@ import (
 	"github.com/unstoppablemango/tdl/ir"
 )
 
-// meta records the source fidelity of a declaration: its name, doc comment,
+// metaOf records the source fidelity of a node: its name, doc comment,
 // position, deprecation, and where it sat among its siblings.
-func meta(decl ast.Decl, order int) *ir.Meta {
-	return metaOf(decl.Name(), ast.Doc(decl), decl.Pos(), ast.Deprecated(decl), order)
-}
-
-func metaOf(name string, doc []string, pos ast.Position, dep *ast.Deprecation, order int) *ir.Meta {
+func metaOf(h *ast.DeclHead, order int) *ir.Meta {
 	m := &ir.Meta{
-		Name:     name,
-		Doc:      doc,
-		Position: position(pos),
+		Name:     h.N,
+		Doc:      h.Doc,
+		Position: position(h.P),
 		Order:    int32(order),
 	}
-	if dep != nil {
-		m.Deprecated = &ir.Deprecation{Reason: dep.Reason, Position: position(dep.P)}
+	if h.Dep != nil {
+		m.Deprecated = &ir.Deprecation{Reason: h.Dep.Reason, Position: position(h.Dep.P)}
 	}
 	return m
 }

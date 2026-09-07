@@ -79,7 +79,7 @@ func (p *parser) parseClassBody() ([]ast.Member, ast.Position) {
 
 		// `type Cursor` requires a type. `type: T` is a field named type.
 		case p.at(lex.TYPE) && p.peek.Kind == lex.IDENT:
-			req := &ast.AssocTypeReq{Doc: doc, P: p.cur.Pos}
+			req := &ast.AssocTypeReq{DeclHead: ast.DeclHead{Doc: doc, P: p.cur.Pos}}
 			p.next()
 			req.N = p.expectIdent()
 			if p.accept(lex.COLON) {

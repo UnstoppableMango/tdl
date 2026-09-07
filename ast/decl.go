@@ -9,12 +9,9 @@ type DeclHead struct {
 	Dep *Deprecation
 }
 
-func (h *DeclHead) Pos() Position      { return h.P }
-func (h *DeclHead) Name() string       { return h.N }
-func (h *DeclHead) docLines() []string { return h.Doc }
-
-// Deprecated returns the deprecation attached to a declaration, or nil.
-func Deprecated(d Decl) *Deprecation { return d.deprecation() }
+func (h *DeclHead) Pos() Position   { return h.P }
+func (h *DeclHead) Name() string    { return h.N }
+func (h *DeclHead) Head() *DeclHead { return h }
 
 // Deprecation marks a declaration, field, or variant as on its way out.
 type Deprecation struct {
@@ -78,24 +75,20 @@ type TargetDecl struct {
 
 // Member is one item in a [StructDecl] body: a [Field] or an [Include].
 type Member interface {
-	MemberPos() Position
+	Pos() Position
 }
 
-// Field is a named, typed member.
+// Field is a named, typed member. Its head is a declaration's: a doc
+// comment, a position, a name, and a deprecation.
 type Field struct {
-	Doc         []string
-	P           Position
-	N           string
+	DeclHead
 	Key         bool // part of the entity's identity
 	Owned       bool // composition rather than reference
-	Dep         *Deprecation
 	Type        *TypeRef
 	Constraints []*Constraint
 	Default     *Literal
 	End         Position // the constraint block's `}`; zero without one
 }
-
-func (f *Field) MemberPos() Position { return f.P }
 
 // Include copies a mixin's fields into the including declaration.
 type Include struct {
@@ -103,14 +96,11 @@ type Include struct {
 	Type *ClassRef
 }
 
-func (i *Include) MemberPos() Position { return i.P }
+func (i *Include) Pos() Position { return i.P }
 
 // Variant is one alternative in an [EnumDecl].
 type Variant struct {
-	Doc    []string
-	P      Position
-	N      string
-	Dep    *Deprecation
+	DeclHead
 	Fields []*Field // nil for a variant without a payload
 	End    Position // the payload's `}`; zero without one
 }
@@ -170,8 +160,6 @@ type Constraint struct {
 	Args []*Literal
 }
 
-func (h *DeclHead) deprecation() *Deprecation { return h.Dep }
-
 // ClassDecl is a contract. It declares nothing into the types that satisfy
 // it; conformance is nominal and always declared.
 type ClassDecl struct {
@@ -198,18 +186,14 @@ type KeyRequirement struct {
 	P Position
 }
 
-func (k *KeyRequirement) MemberPos() Position { return k.P }
+func (k *KeyRequirement) Pos() Position { return k.P }
 
 // AssocTypeReq is a `type Cursor` requirement: an implementor supplies a
-// type, and an instance binds it.
+// type, and an instance binds it. Nothing deprecates one, so Dep is nil.
 type AssocTypeReq struct {
-	Doc  []string
-	P    Position
-	N    string
+	DeclHead
 	Kind *Kind
 }
-
-func (a *AssocTypeReq) MemberPos() Position { return a.P }
 
 // InstanceDecl declares that a type satisfies a class.
 //
