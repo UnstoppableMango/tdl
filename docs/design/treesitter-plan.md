@@ -36,7 +36,7 @@ The grammar gets the corpus, run by `tree-sitter parse` rather than by Go, so a 
 
 ## Phase 1: the lexical tables
 
-`lex` states its own facts: `Keywords`, `Punctuation`, `Lookup`, `Spelling`, and `Pattern`, with tests holding the patterns to the lexer over table cases and the whole corpus.
+`lex` states its own facts: `Keywords`, `Punctuation`, `Lookup`, and the `*Pattern` constants, with tests holding the patterns to the lexer over table cases and the whole corpus.
 
 `docs/notation.ebnf` describes the notation in itself, and `internal/ebnf` lints both grammar files against it.
 
@@ -62,12 +62,12 @@ Scanning them separately and attaching each to the production or the file it bel
 Done when every annotation in phase 2 is readable from Go, and an annotation naming a production that does not exist, or a terminal with no `token` binding, is reported with the line that caused it.
 
 Done.
-`ebnf.Read` returns the grammar and an `Annotations` beside it; `Lint` is the same call with the grammar thrown away.
+`ebnf.Read` returns the grammar and an `Annotations` beside it, and the problems it found.
 A `token` binding resolves to the pattern rather than the symbol name, so a caller never has to know `lex` to use one.
 
 ## Phase 4: the emitter
 
-`internal/treesitter` walks the model and writes `grammar.js`: `seq`, `choice`, `optional`, `repeat`, the `extras`, `conflicts`, `externals`, `inline`, and `word` entries, and a rule per terminal built from `lex.Pattern` or from the spelling.
+`internal/treesitter` walks the model and writes `grammar.js`: `seq`, `choice`, `optional`, `repeat`, the `extras`, `conflicts`, `externals`, `inline`, and `word` entries, and a rule per terminal built from the bound `lex` pattern or from the spelling.
 
 Output is deterministic, since a nondeterministic generator makes the regeneration check useless.
 

@@ -134,7 +134,7 @@ Pipeline, one package per stage:
   Useless on purpose: it exercises the protocol without anyone agreeing what generated code should look like.
 - `internal/sema` — ast to ir: the declaration table, the interned type and unit tables, sugar lowering, scopes, the spec's recursion rules, and the import graph.
   `units.go` runs before the rest of lowering, because a unit may be written after the unit deriving from it and because a type argument naming a unit needs its reduction already computed.
-  It touches no filesystem: a `Loader` supplies imported sources, with `FSLoader` for real files and `MapLoader` for tests.
+  It touches no filesystem: a `Loader` supplies imported sources, `FSLoader` for real files, and the tests keep an in-memory one beside them.
   Private and free to change.
   See `docs/design/ir-plan.md` for what each phase adds.
 - `prelude` — the standard prelude, written in TDL and embedded with `go:embed`.
