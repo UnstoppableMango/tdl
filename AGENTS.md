@@ -124,7 +124,13 @@ Pipeline, one package per stage:
   Three interned tables: `Decls`, `Types`, and `Units`, each its own ID space.
   A unit is a quantity reduced to base dimensions and interned on them, so `decimal<N>` and `decimal<kg*m/s^2>` are one entry in `Types`; `UnitDef` is the declaration and `Unit` is what it measures.
   `proto/` and `ir/` are the public compatibility surface.
-- `cmd/tdl-gen-debug` — the debug backend as a plugin.
+- `backend/golang` — the Go backend, called `go` in a target block.
+  The first code generator here, and the first thing to say what generated code should look like.
+  One file per declaration; `types.go` is the whole IR to Go type mapping and the one place that walks a `Type`.
+  Two shapes carry the decisions: an enum whose variants carry no fields is a named string type with constants and one where any variant does is a sealed interface with a struct per variant, and `decimal`, `uuid`, and `date` map to a placeholder rather than to a dependency the backend would be choosing for every consumer.
+  It reports what it cannot generate as a warning with a position rather than emitting something plausible and wrong.
+  See `docs/design/go-backend.md` for the reasoning and `docs/design/go-backend-plan.md` for what each phase adds.
+- `cmd/tdl-gen-debug`, `cmd/tdl-gen-go` — each backend as a plugin.
   The same value the registry holds, served over a connection, which is what makes the two hosts testable against each other.
 - `plugin` — the wire protocol a backend speaks, generated from `proto/tdl/plugin/v1/plugin.proto`, plus the framing codec.
   Public, like `ir`.
@@ -142,8 +148,8 @@ Pipeline, one package per stage:
   Lowering knows the sugar's spellings (`List`, `Option`, ...) but nothing about what they mean, which is what makes the prelude replaceable.
 - `cmd/tdl` — main.
 
-There are no code-generation backends.
-`docs/design/plugins.md` describes the protocol they will speak.
+`go` is the only code-generation backend.
+`docs/design/plugins.md` describes the protocol every backend speaks, and `TestGoHostsAgree` in `internal/gen` is what holds `go` to producing the same bytes in process and over a pipe.
 
 Regenerate the ir goldens with `go test ./internal/sema -update` after any change to lowering or to `ir.Dump`, and read the diff rather than trusting it.
 
