@@ -62,7 +62,7 @@ func (l *lowerer) fieldAt(key fieldKey) *ir.Field {
 
 func (l *lowerer) lowerTargetBlock(block *ast.TargetDecl, byDecl map[int32][]candidate, byField map[fieldKey][]candidate) {
 	out := &ir.TargetBlock{
-		Meta:       metaOf(block.N, block.Doc, block.P, block.Dep, len(l.model.GetTargets())),
+		Meta:       metaOf(&block.DeclHead, len(l.model.GetTargets())),
 		ForPackage: block.For,
 	}
 	l.model.Targets = append(l.model.Targets, out)

@@ -105,7 +105,7 @@ func Dump(file *File) string {
 		case *UnitDecl:
 			desc := "Unit " + n.N
 			if n.Expr != nil {
-				desc += " = " + printUnitExpr(n.Expr)
+				desc += " = " + PrintUnitExpr(n.Expr)
 			}
 			entries = append(entries, entry{desc, n.P, nil})
 

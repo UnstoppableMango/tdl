@@ -140,7 +140,8 @@ func Fprint(file *File) string {
 		lead := p.take(decl.Pos())
 		text := p.render(func(sub *printer) { sub.decl(decl) })
 		multiline := strings.Count(text, "\n") > 1
-		annotated := len(Doc(decl)) > 0 || Deprecated(decl) != nil || len(lead) > 0
+		head := decl.Head()
+		annotated := len(head.Doc) > 0 || head.Dep != nil || len(lead) > 0
 
 		// Consecutive one-line declarations group together; anything with a
 		// body, a doc comment, a deprecation, or a comment of its own gets a
@@ -153,9 +154,9 @@ func Fprint(file *File) string {
 		for _, c := range lead {
 			p.writeComment("", c)
 		}
-		writeDoc(&p.b, "", Doc(decl))
-		if dep := Deprecated(decl); dep != nil {
-			p.b.WriteString(printDeprecated(dep) + "\n")
+		writeDoc(&p.b, "", head.Doc)
+		if head.Dep != nil {
+			p.b.WriteString(printDeprecated(head.Dep) + "\n")
 		}
 		p.b.WriteString(text)
 		prevMultiline = multiline || annotated
@@ -209,7 +210,7 @@ func (p *printer) decl(decl Decl) {
 	case *UnitDecl:
 		s := "unit " + d.N
 		if d.Expr != nil {
-			s += " = " + printUnitExpr(d.Expr)
+			s += " = " + PrintUnitExpr(d.Expr)
 		}
 		p.line(s, d.P.Line, anywhere)
 
@@ -317,9 +318,9 @@ func (p *printer) members(members []Member, headLine int, end Position) {
 		return
 	}
 
-	p.b.WriteString(" {" + p.trailing(headLine, firstPos(members, Member.MemberPos, end)) + "\n")
+	p.b.WriteString(" {" + p.trailing(headLine, firstPos(members, Member.Pos, end)) + "\n")
 	for _, m := range members {
-		p.flush("  ", m.MemberPos())
+		p.flush("  ", m.Pos())
 		switch n := m.(type) {
 		case *Include:
 			p.line("  include "+printClassRefs([]*ClassRef{n.Type}), n.P.Line, end)
@@ -608,7 +609,7 @@ func printTypeArgs(args []*TypeArg) string {
 	parts := make([]string, len(args))
 	for i, a := range args {
 		if a.Unit != nil {
-			parts[i] = printUnitExpr(a.Unit)
+			parts[i] = PrintUnitExpr(a.Unit)
 		} else {
 			parts[i] = printTypeRef(a.Type)
 		}
@@ -616,23 +617,18 @@ func printTypeArgs(args []*TypeArg) string {
 	return "<" + strings.Join(parts, ", ") + ">"
 }
 
-// PrintUnitExpr renders a unit expression the way `tdl fmt` writes it.
+// PrintUnitExpr renders a unit expression without spaces around its
+// operators, the form the spec uses: `kg*m/s^2`.
 //
 // Exported because lowering records what a unit was written as beside what
 // it reduces to, and reconstructing the text there would be a second
 // printer to keep in step with this one.
 func PrintUnitExpr(e *UnitExpr) string {
-	return printUnitExpr(e)
-}
-
-// printUnitExpr renders a unit expression without spaces around its
-// operators, the form the spec uses: `kg*m/s^2`.
-func printUnitExpr(e *UnitExpr) string {
 	var b strings.Builder
 	for _, t := range e.Terms {
 		b.WriteString(t.Op)
 		if t.Paren != nil {
-			b.WriteString("(" + printUnitExpr(t.Paren) + ")")
+			b.WriteString("(" + PrintUnitExpr(t.Paren) + ")")
 		} else {
 			b.WriteString(t.N)
 		}

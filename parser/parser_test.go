@@ -160,7 +160,7 @@ func TestDocComments(t *testing.T) {
 alias Handler = {string -> [Event]}
 `)
 
-	doc := ast.Doc(file.Decls[0])
+	doc := file.Decls[0].Head().Doc
 	if len(doc) != 2 || doc[0] != "A handler table." {
 		t.Errorf("doc = %q", doc)
 	}
@@ -335,7 +335,7 @@ deprecated("use Contact")
 entity Legacy { key id: string }
 `)
 
-	dep := ast.Deprecated(file.Decls[0])
+	dep := file.Decls[0].Head().Dep
 	if dep == nil || dep.Reason != "use Contact" {
 		t.Errorf("deprecation = %+v", dep)
 	}

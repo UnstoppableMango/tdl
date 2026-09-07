@@ -28,7 +28,7 @@ func (l *lowerer) classNode(d *ast.ClassDecl) *ir.Class {
 			c.RequiresKey = true
 		case *ast.AssocTypeReq:
 			c.AssocTypes = append(c.AssocTypes, &ir.AssocType{
-				Meta: metaOf(member.N, member.Doc, member.P, nil, len(c.AssocTypes)),
+				Meta: metaOf(&member.DeclHead, len(c.AssocTypes)),
 				Kind: kind(member.Kind),
 			})
 		case *ast.Field:
@@ -44,7 +44,7 @@ func (l *lowerer) classNode(d *ast.ClassDecl) *ir.Class {
 // `instance C for T` is sugar for `instance C<T>`, so the `for` form
 // becomes an argument here and there is one form from this point on.
 func (l *lowerer) instance(d *ast.InstanceDecl, order int) *ir.Instance {
-	inst := &ir.Instance{Meta: metaOf(d.Class.N, d.Doc, d.P, d.Dep, order)}
+	inst := &ir.Instance{Meta: metaOf(&d.DeclHead, order)}
 
 	s := l.paramScope(nil, d.Params)
 	l.inScope(s, func() {

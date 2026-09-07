@@ -171,7 +171,7 @@ func (l *lowerer) collect(file *ast.File) {
 		if _, isUnit := decl.(*ast.UnitDecl); isUnit {
 			l.units[name] = true
 		}
-		l.model.Decls = append(l.model.Decls, &ir.Decl{Meta: meta(decl, i)})
+		l.model.Decls = append(l.model.Decls, &ir.Decl{Meta: metaOf(decl.Head(), i)})
 	}
 }
 
@@ -269,7 +269,7 @@ func (l *lowerer) setNode(out *ir.Decl, decl ast.Decl) {
 			}
 			for i, v := range d.Variants {
 				e.Variants = append(e.Variants, &ir.Variant{
-					Meta:   metaOf(v.N, v.Doc, v.P, v.Dep, i),
+					Meta:   metaOf(&v.DeclHead, i),
 					Fields: l.variantFields(v.Fields),
 				})
 			}
@@ -324,7 +324,7 @@ func (l *lowerer) variantFields(in []*ast.Field) []*ir.Field {
 
 func (l *lowerer) field(f *ast.Field, order int) *ir.Field {
 	return &ir.Field{
-		Meta:         metaOf(f.N, f.Doc, f.P, f.Dep, order),
+		Meta:         metaOf(&f.DeclHead, order),
 		Type:         l.typeRef(f.Type),
 		Key:          f.Key,
 		Owned:        f.Owned,

@@ -47,7 +47,7 @@ primitive string
 	if len(file.Comments) != 0 {
 		t.Errorf("doc comment leaked into Comments: %s", commentTexts(file))
 	}
-	if got := ast.Doc(file.Decls[0]); len(got) != 1 || got[0] != "docs" {
+	if got := file.Decls[0].Head().Doc; len(got) != 1 || got[0] != "docs" {
 		t.Errorf("doc = %v, want [docs]", got)
 	}
 }
