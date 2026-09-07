@@ -270,8 +270,9 @@ Backends:
 
 | Backend | Kind | Status |
 | --- | --- | --- |
+| `go` | Built in, also shipped as `tdl-gen-go` | Structs, both enum shapes, newtypes, and the primitive and collection mapping |
 | `debug` | Built in, also shipped as `tdl-gen-debug` | Prints the model it was given |
-| Anything else | `tdl-gen-<name>` on PATH | The protocol is stable, none written |
+| Anything else | `tdl-gen-<name>` on PATH | The protocol is stable |
 
 ## Releases
 

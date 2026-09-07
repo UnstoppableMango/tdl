@@ -11,5 +11,8 @@ buildGoApplication {
   src = lib.cleanSource ../.;
   modules = ./gomod2nix.toml;
 
-  subPackages = [ "cmd/tdl" ];
+  subPackages = [
+    "cmd/tdl"
+    "cmd/tdl-gen-go"
+  ];
 }

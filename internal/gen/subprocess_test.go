@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/unstoppablemango/tdl/backend/debug"
+	"github.com/unstoppablemango/tdl/backend/golang"
 	"github.com/unstoppablemango/tdl/internal/gen"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -21,8 +22,8 @@ var buildOnce struct {
 	err error
 }
 
-// pluginDir builds tdl-gen-debug and returns the directory holding it, so
-// a test can put it on PATH.
+// pluginDir builds every backend tdl ships as a plugin and returns the
+// directory holding them, so a test can put it on PATH.
 func pluginDir(t *testing.T) string {
 	t.Helper()
 
@@ -32,13 +33,16 @@ func pluginDir(t *testing.T) string {
 			buildOnce.err = err
 			return
 		}
-		cmd := exec.Command("go", "build", "-o",
-			filepath.Join(dir, gen.CommandPrefix+debug.Name),
-			"github.com/unstoppablemango/tdl/cmd/tdl-gen-debug")
-		if out, err := cmd.CombinedOutput(); err != nil {
-			buildOnce.err = err
-			t.Logf("building the plugin: %s", out)
-			return
+		for _, name := range []string{debug.Name, golang.Name} {
+			binary := gen.CommandPrefix + name
+			cmd := exec.Command("go", "build", "-o",
+				filepath.Join(dir, binary),
+				"github.com/unstoppablemango/tdl/cmd/"+binary)
+			if out, err := cmd.CombinedOutput(); err != nil {
+				buildOnce.err = err
+				t.Logf("building %s: %s", binary, out)
+				return
+			}
 		}
 		buildOnce.dir = dir
 	})
