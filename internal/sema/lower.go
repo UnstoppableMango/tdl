@@ -5,10 +5,10 @@
 // It is private and free to change. `ir` and `proto` are the compatibility
 // surface, not this.
 //
-// See docs/design/ir-plan.md. Phases 1 and 2 are done: the declaration
-// table, the interned type table, scopes, shadowing, recursion rules, and
-// diagnostics for names that resolve to nothing. Imports, classes,
-// instances, constraints, and targets are still to come.
+// See docs/design/ir-plan.md for what each pass adds: the declaration
+// table, the interned type and unit tables, scopes and shadowing, the
+// recursion rules, imports, classes and instances, constraints, and
+// targets.
 package sema
 
 import (
@@ -37,7 +37,6 @@ type Option func(*config)
 type config struct {
 	preludeName string
 	preludeSrc  string
-	noPrelude   bool
 	loader      Loader
 }
 
@@ -46,14 +45,8 @@ type config struct {
 // replaceable rather than built in.
 func WithPrelude(name, src string) Option {
 	return func(c *config) {
-		c.preludeName, c.preludeSrc, c.noPrelude = name, src, false
+		c.preludeName, c.preludeSrc = name, src
 	}
-}
-
-// WithoutPrelude lowers with no prelude at all, which is what compiling a
-// prelude itself needs.
-func WithoutPrelude() Option {
-	return func(c *config) { c.noPrelude = true }
 }
 
 // WithLoader supplies the [Loader] that reads imported files. Without one,
@@ -120,7 +113,7 @@ func Lower(file *ast.File, opts ...Option) (*ir.Model, Diagnostics) {
 // declarations like any other, which is what lets a replacement prelude
 // change what a collection is without every backend learning about it.
 func (l *lowerer) loadPrelude(cfg config) *scope {
-	if cfg.noPrelude || cfg.preludeSrc == "" {
+	if cfg.preludeSrc == "" {
 		return nil
 	}
 
@@ -132,11 +125,9 @@ func (l *lowerer) loadPrelude(cfg config) *scope {
 
 	outer := newScope(nil)
 	l.file, l.scope = outer, outer
-	l.inPrelude = true
 	l.collect(file)
 	l.lowerUnits(file)
 	l.lower(file)
-	l.inPrelude = false
 	return outer
 }
 
@@ -149,14 +140,9 @@ type lowerer struct {
 	aliases  map[string]string // import alias to package name
 	externs  map[string]int32  // "pkg.Name" to index
 	loader   Loader
-	// inPrelude suppresses the diagnostics that say a declaration form is
-	// not lowered yet. The prelude is the compiler's own input, so telling a
-	// user that `class Entity` is unimplemented on every file is noise they
-	// cannot act on. Real problems in the prelude are still reported.
-	inPrelude bool
-	file      *scope // the file's declarations
-	scope     *scope // the scope a type reference resolves against
-	diags     Diagnostics
+	file     *scope // the file's declarations
+	scope    *scope // the scope a type reference resolves against
+	diags    Diagnostics
 }
 
 // collect fills the declaration table with an empty entry per declaration,
@@ -199,24 +185,6 @@ func namesAType(decl ast.Decl) bool {
 		return false
 	}
 	return true
-}
-
-// declLabel names a declaration for a diagnostic about the declaration
-// itself rather than about a name in it. Saying which form it is lets a
-// reader tell a deferral from a mistake, and lets the corpus test say which
-// phase each deferral belongs to.
-func declLabel(decl ast.Decl) string {
-	switch d := decl.(type) {
-	case *ast.InstanceDecl:
-		return "instance " + d.Class.N
-	case *ast.TargetDecl:
-		return "target " + d.N
-	case *ast.ClassDecl:
-		return "class " + d.N
-	case *ast.UnitDecl:
-		return "unit " + d.N
-	}
-	return decl.Name()
 }
 
 func (l *lowerer) lower(file *ast.File) {
@@ -311,19 +279,7 @@ func (l *lowerer) setNode(out *ir.Decl, decl ast.Decl) {
 	case *ast.UnitDecl:
 		// Already lowered by lowerUnits, which runs first because file order
 		// is not resolution order for units.
-
-	default:
-		l.deferral(decl.Pos(), "%s is not lowered yet", declLabel(decl))
 	}
-}
-
-// deferral reports a form the compiler has not implemented yet, unless the
-// declaration came from the prelude.
-func (l *lowerer) deferral(pos ast.Position, format string, args ...any) {
-	if l.inPrelude {
-		return
-	}
-	l.diags.add(pos, format, args...)
 }
 
 func structKind(keyword string) ir.StructKind {

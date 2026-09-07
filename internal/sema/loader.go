@@ -28,16 +28,3 @@ func (FSLoader) Load(from, path string) (string, string, error) {
 	}
 	return name, string(src), nil
 }
-
-// MapLoader resolves imports from an in-memory tree, keyed by the path as
-// written. Tests use it; so would a caller holding sources it has already
-// read.
-type MapLoader map[string]string
-
-func (m MapLoader) Load(_, path string) (string, string, error) {
-	src, ok := m[path]
-	if !ok {
-		return path, "", os.ErrNotExist
-	}
-	return path, src, nil
-}

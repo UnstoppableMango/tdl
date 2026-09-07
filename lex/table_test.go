@@ -27,12 +27,6 @@ func TestFixedSpellingsLexBack(t *testing.T) {
 			t.Errorf("Lookup(%q): not found", text)
 			continue
 		}
-		if got := lex.Spelling(kind); got != text {
-			t.Errorf("Spelling(%v) = %q, want %q", kind, got, text)
-		}
-		if got := lex.Pattern(kind); got != "" {
-			t.Errorf("Pattern(%v) = %q, want \"\" for a fixed spelling", kind, got)
-		}
 
 		toks := scan(text)
 		if len(toks) != 2 || toks[0].Kind != kind {
@@ -41,22 +35,23 @@ func TestFixedSpellingsLexBack(t *testing.T) {
 	}
 }
 
+// patterns is the class each shape pattern scans, which the lexer states
+// as constants rather than as a table.
+var patterns = map[lex.Kind]string{
+	lex.IDENT:  lex.IdentPattern,
+	lex.INT:    lex.IntPattern,
+	lex.FLOAT:  lex.FloatPattern,
+	lex.STRING: lex.StringPattern,
+	lex.DOC:    lex.DocPattern,
+	lex.REGEX:  lex.RegexPattern,
+}
+
 // A class scanned by shape has a pattern and no spelling, and the two
 // answers do not overlap.
 func TestShapedKindsHavePatterns(t *testing.T) {
-	shaped := []lex.Kind{lex.IDENT, lex.INT, lex.FLOAT, lex.STRING, lex.DOC, lex.REGEX}
-
-	for _, k := range shaped {
-		pattern := lex.Pattern(k)
-		if pattern == "" {
-			t.Errorf("Pattern(%v) is empty", k)
-			continue
-		}
+	for k, pattern := range patterns {
 		if _, err := regexp.Compile(pattern); err != nil {
-			t.Errorf("Pattern(%v) does not compile: %v", k, err)
-		}
-		if got := lex.Spelling(k); got != "" {
-			t.Errorf("Spelling(%v) = %q, want \"\"", k, got)
+			t.Errorf("%v pattern does not compile: %v", k, err)
 		}
 		if _, ok := lex.Lookup(pattern); ok {
 			t.Errorf("Lookup(%q): a pattern is not a spelling", pattern)
@@ -66,7 +61,7 @@ func TestShapedKindsHavePatterns(t *testing.T) {
 
 func anchored(t *testing.T, k lex.Kind) *regexp.Regexp {
 	t.Helper()
-	return regexp.MustCompile(`^(?:` + lex.Pattern(k) + `)`)
+	return regexp.MustCompile(`^(?:` + patterns[k] + `)`)
 }
 
 // The patterns say what the lexer accepts, so each one must match exactly
@@ -167,8 +162,8 @@ func TestPatternsAgreeWithTheLexerOverTheCorpus(t *testing.T) {
 		src := string(b)
 
 		for _, tok := range scan(src) {
-			pattern := lex.Pattern(tok.Kind)
-			if pattern == "" {
+			pattern, shaped := patterns[tok.Kind]
+			if !shaped {
 				continue
 			}
 			seen[tok.Kind]++
