@@ -11,8 +11,10 @@
 package ebnf
 
 import (
+	"cmp"
 	"fmt"
-	"sort"
+	"maps"
+	"slices"
 	"strings"
 
 	"golang.org/x/exp/ebnf"
@@ -82,7 +84,7 @@ func Read(filename, src string, opts Options) (*File, []error) {
 		errs = append(errs, more...)
 	}
 
-	sort.SliceStable(errs, func(i, j int) bool { return errs[i].Error() < errs[j].Error() })
+	slices.SortStableFunc(errs, func(a, b error) int { return cmp.Compare(a.Error(), b.Error()) })
 	return file, errs
 }
 
@@ -151,8 +153,8 @@ func flatten(err error) []error {
 // checkSpellings holds the grammar to the lexer.
 func checkSpellings(grammar ebnf.Grammar) []error {
 	var errs []error
-	for _, name := range sorted(grammar) {
-		walk(grammar[name].Expr, func(expr ebnf.Expression) {
+	for _, name := range slices.Sorted(maps.Keys(grammar)) {
+		Walk(grammar[name].Expr, func(expr ebnf.Expression) {
 			tok, ok := expr.(*ebnf.Token)
 			if !ok || lexesAsOneToken(tok.String) {
 				return
@@ -178,7 +180,7 @@ func checkReservedWords(grammar ebnf.Grammar) []error {
 	}
 
 	spelled := map[string]bool{}
-	walk(prod.Expr, func(expr ebnf.Expression) {
+	Walk(prod.Expr, func(expr ebnf.Expression) {
 		if tok, ok := expr.(*ebnf.Token); ok {
 			spelled[tok.String] = true
 		}
@@ -192,7 +194,7 @@ func checkReservedWords(grammar ebnf.Grammar) []error {
 		}
 		delete(spelled, kw)
 	}
-	for _, extra := range sortedSet(spelled) {
+	for _, extra := range slices.Sorted(maps.Keys(spelled)) {
 		errs = append(errs, fmt.Errorf("%s: reserved_word has %q, which lex does not reserve",
 			prod.Pos(), extra))
 	}
@@ -211,7 +213,8 @@ func lexesAsOneToken(text string) bool {
 	return l.Next().Kind == lex.EOF
 }
 
-func walk(expr ebnf.Expression, fn func(ebnf.Expression)) {
+// Walk calls fn on expr and then on everything inside it, in source order.
+func Walk(expr ebnf.Expression, fn func(ebnf.Expression)) {
 	if expr == nil {
 		return
 	}
@@ -219,38 +222,20 @@ func walk(expr ebnf.Expression, fn func(ebnf.Expression)) {
 	switch e := expr.(type) {
 	case ebnf.Alternative:
 		for _, x := range e {
-			walk(x, fn)
+			Walk(x, fn)
 		}
 	case ebnf.Sequence:
 		for _, x := range e {
-			walk(x, fn)
+			Walk(x, fn)
 		}
 	case *ebnf.Group:
-		walk(e.Body, fn)
+		Walk(e.Body, fn)
 	case *ebnf.Option:
-		walk(e.Body, fn)
+		Walk(e.Body, fn)
 	case *ebnf.Repetition:
-		walk(e.Body, fn)
+		Walk(e.Body, fn)
 	case *ebnf.Range:
-		walk(e.Begin, fn)
-		walk(e.End, fn)
+		Walk(e.Begin, fn)
+		Walk(e.End, fn)
 	}
-}
-
-func sortedSet(set map[string]bool) []string {
-	out := make([]string, 0, len(set))
-	for k := range set {
-		out = append(out, k)
-	}
-	sort.Strings(out)
-	return out
-}
-
-func sorted(grammar ebnf.Grammar) []string {
-	names := make([]string, 0, len(grammar))
-	for name := range grammar {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	return names
 }

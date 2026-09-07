@@ -79,9 +79,14 @@ func (m *Meta) IsDeprecated() bool { return m.GetDeprecated() != nil }
 // a foreign type made to satisfy a local class is in the instance table but
 // not here, because there is no local ID to name it by.
 func (x *Model) Satisfying(class *ID) []*ID {
+	return x.satisfaction(class).GetDecls()
+}
+
+// satisfaction is the index entry for a class, or nil.
+func (x *Model) satisfaction(class *ID) *Satisfaction {
 	for _, sat := range x.GetSatisfies() {
 		if sat.GetClass().GetIndex() == class.GetIndex() {
-			return sat.GetDecls()
+			return sat
 		}
 	}
 	return nil
@@ -103,12 +108,7 @@ func (x *Model) Unit(id *ID) *Unit {
 // These cannot appear in [Model.Satisfying] because they are types rather
 // than declarations: `Page` satisfies nothing on its own.
 func (x *Model) SatisfyingTypes(class *ID) []*ID {
-	for _, sat := range x.GetSatisfies() {
-		if sat.GetClass().GetIndex() == class.GetIndex() {
-			return sat.GetTypes()
-		}
-	}
-	return nil
+	return x.satisfaction(class).GetTypes()
 }
 
 // KindName is how a diagnostic names a literal kind: "a string", "an

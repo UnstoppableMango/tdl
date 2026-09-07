@@ -18,7 +18,7 @@ func (p *parser) parseClassDecl(head ast.DeclHead) *ast.ClassDecl {
 		d.FunDeps = p.parseFunDeps()
 	}
 	if p.at(lex.COLON) {
-		d.Conforms = p.parseConforms()
+		d.Conforms = p.parseClassRefs()
 	}
 	if p.at(lex.REQUIRES) {
 		d.Requires = p.parseClassRefs()
@@ -63,8 +63,7 @@ func (p *parser) parseClassBody() ([]ast.Member, ast.Position) {
 	}
 
 	var members []ast.Member
-	for !p.at(lex.RBRACE) && !p.at(lex.EOF) {
-		before := p.cur
+	p.untilRbrace(func() {
 		doc := p.parseDoc()
 
 		switch {
@@ -92,11 +91,7 @@ func (p *parser) parseClassBody() ([]ast.Member, ast.Position) {
 			f.Doc = append(doc, f.Doc...)
 			members = append(members, f)
 		}
-
-		if p.cur == before {
-			p.next()
-		}
-	}
+	})
 	return members, p.expectRbrace()
 }
 
@@ -142,9 +137,7 @@ func (p *parser) parseAssocTypeBinds() ([]*ast.AssocTypeBind, ast.Position) {
 	p.next() // '{'
 
 	var binds []*ast.AssocTypeBind
-	for !p.at(lex.RBRACE) && !p.at(lex.EOF) {
-		before := p.cur
-
+	p.untilRbrace(func() {
 		bind := &ast.AssocTypeBind{P: p.cur.Pos}
 		if p.expect(lex.TYPE) {
 			bind.N = p.expectIdent()
@@ -153,10 +146,6 @@ func (p *parser) parseAssocTypeBinds() ([]*ast.AssocTypeBind, ast.Position) {
 			}
 			binds = append(binds, bind)
 		}
-
-		if p.cur == before {
-			p.next()
-		}
-	}
+	})
 	return binds, p.expectRbrace()
 }

@@ -83,6 +83,19 @@ func (p *parser) expectRbrace() ast.Position {
 	return pos
 }
 
+// untilRbrace runs fn over a block's items until its closing brace or the
+// end of input, dropping a token whenever fn made no progress, so a bad
+// item costs one token rather than a loop that never ends.
+func (p *parser) untilRbrace(fn func()) {
+	for !p.at(lex.RBRACE) && !p.at(lex.EOF) {
+		before := p.cur
+		fn()
+		if p.cur == before {
+			p.next()
+		}
+	}
+}
+
 func (p *parser) expectIdent() string {
 	if p.cur.Kind != lex.IDENT {
 		p.errs.add(p.cur.Pos, "expected identifier, got %s", p.cur.Kind)

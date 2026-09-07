@@ -17,10 +17,12 @@ package textmate
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"regexp"
-	"sort"
+	"slices"
 	"strings"
 
 	xebnf "golang.org/x/exp/ebnf"
@@ -450,34 +452,25 @@ func token(file *ebnf.File, name string) (string, error) {
 // added there colors its name too. A production naming something else
 // second, as ImportDecl and InstanceDecl do, is not one of these.
 func declares(g xebnf.Grammar) []string {
-	var out []string
-	for _, prodName := range names(g) {
-		seq, ok := g[prodName].Expr.(xebnf.Sequence)
-		if !ok || len(seq) < 2 {
-			continue
-		}
-		keyword, ok := seq[0].(*xebnf.Token)
-		if !ok || !lex.IsKeyword(keyword.String) {
-			continue
-		}
-		if named, ok := seq[1].(*xebnf.Name); ok && named.String == identifier {
-			out = append(out, keyword.String)
-		}
-	}
-
-	sort.Strings(out)
-	return dedupe(out)
+	return keywordsBefore(g, func(next string) bool { return next == identifier })
 }
 
 // refers is every keyword a production spells immediately before a type:
 // `include Auditable`, `requires Eq`.
 //
-// Read the way declares reads its keywords, and told from them by which
-// production follows: a name the source is defining is an identifier, and
-// a name it is using is one of typeValued.
+// Told from declares by which production follows: a name the source is
+// defining is an identifier, and a name it is using is one of typeValued.
 func refers(g xebnf.Grammar) []string {
+	return keywordsBefore(g, func(next string) bool { return typeValued[next] })
+}
+
+// keywordsBefore is every keyword a production spells first and
+// immediately before a production next accepts, sorted and listed once:
+// `type` introduces a name in three productions and belongs in an
+// alternation once.
+func keywordsBefore(g xebnf.Grammar, next func(name string) bool) []string {
 	var out []string
-	for _, prodName := range names(g) {
+	for _, prodName := range slices.Sorted(maps.Keys(g)) {
 		seq, ok := g[prodName].Expr.(xebnf.Sequence)
 		if !ok || len(seq) < 2 {
 			continue
@@ -486,25 +479,13 @@ func refers(g xebnf.Grammar) []string {
 		if !ok || !lex.IsKeyword(keyword.String) {
 			continue
 		}
-		if named, ok := seq[1].(*xebnf.Name); ok && typeValued[named.String] {
+		if named, ok := seq[1].(*xebnf.Name); ok && next(named.String) {
 			out = append(out, keyword.String)
 		}
 	}
 
-	sort.Strings(out)
-	return dedupe(out)
-}
-
-// dedupe drops the repeats a sorted list carries, since `type` introduces
-// a name in three productions and belongs in the alternation once.
-func dedupe(sorted []string) []string {
-	out := sorted[:0]
-	for i, item := range sorted {
-		if i == 0 || item != sorted[i-1] {
-			out = append(out, item)
-		}
-	}
-	return out
+	slices.Sort(out)
+	return slices.Compact(out)
 }
 
 // contextual is every quoted terminal the lexer scans as an identifier:
@@ -521,8 +502,8 @@ func contextual(g xebnf.Grammar) []string {
 	word := regexp.MustCompile(`[A-Za-z]`)
 
 	seen := map[string]bool{}
-	for _, name := range names(g) {
-		walk(g[name].Expr, func(x xebnf.Expression) {
+	for _, name := range slices.Sorted(maps.Keys(g)) {
+		ebnf.Walk(g[name].Expr, func(x xebnf.Expression) {
 			tok, ok := x.(*xebnf.Token)
 			if !ok || !ident.MatchString(tok.String) || !word.MatchString(tok.String) {
 				return
@@ -533,12 +514,7 @@ func contextual(g xebnf.Grammar) []string {
 		})
 	}
 
-	out := make([]string, 0, len(seen))
-	for text := range seen {
-		out = append(out, text)
-	}
-	sort.Strings(out)
-	return out
+	return slices.Sorted(maps.Keys(seen))
 }
 
 // alternation matches any of a set of words, whole.
@@ -592,47 +568,9 @@ func word(pattern string) string {
 // another is tried first. Oniguruma takes the leftmost alternative that
 // matches, so `-` listed before `->` would color the arrow as a minus.
 func longestFirst(items []string) []string {
-	out := append([]string(nil), items...)
-	sort.Slice(out, func(i, j int) bool {
-		if len(out[i]) != len(out[j]) {
-			return len(out[i]) > len(out[j])
-		}
-		return out[i] < out[j]
+	out := slices.Clone(items)
+	slices.SortFunc(out, func(a, b string) int {
+		return cmp.Or(cmp.Compare(len(b), len(a)), cmp.Compare(a, b))
 	})
 	return out
-}
-
-func names(g xebnf.Grammar) []string {
-	out := make([]string, 0, len(g))
-	for name := range g {
-		out = append(out, name)
-	}
-	sort.Strings(out)
-	return out
-}
-
-func walk(x xebnf.Expression, fn func(xebnf.Expression)) {
-	if x == nil {
-		return
-	}
-	fn(x)
-	switch n := x.(type) {
-	case xebnf.Alternative:
-		for _, part := range n {
-			walk(part, fn)
-		}
-	case xebnf.Sequence:
-		for _, part := range n {
-			walk(part, fn)
-		}
-	case *xebnf.Group:
-		walk(n.Body, fn)
-	case *xebnf.Option:
-		walk(n.Body, fn)
-	case *xebnf.Repetition:
-		walk(n.Body, fn)
-	case *xebnf.Range:
-		walk(n.Begin, fn)
-		walk(n.End, fn)
-	}
 }

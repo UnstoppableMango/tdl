@@ -63,7 +63,7 @@ func (p *parser) parseStructDecl(head ast.DeclHead) *ast.StructDecl {
 		d.Params = p.parseTypeParams()
 	}
 	if p.at(lex.COLON) {
-		d.Conforms = p.parseConforms()
+		d.Conforms = p.parseClassRefs()
 	}
 	if p.at(lex.REQUIRES) {
 		d.Requires = p.parseClassRefs()
@@ -82,7 +82,7 @@ func (p *parser) parseEnumDecl(head ast.DeclHead) *ast.EnumDecl {
 		d.Params = p.parseTypeParams()
 	}
 	if p.at(lex.COLON) {
-		d.Conforms = p.parseConforms()
+		d.Conforms = p.parseClassRefs()
 	}
 	if p.at(lex.REQUIRES) {
 		d.Requires = p.parseClassRefs()
@@ -92,13 +92,7 @@ func (p *parser) parseEnumDecl(head ast.DeclHead) *ast.EnumDecl {
 		p.syncTop()
 		return d
 	}
-	for !p.at(lex.RBRACE) && !p.at(lex.EOF) {
-		before := p.cur
-		d.Variants = append(d.Variants, p.parseVariant())
-		if p.cur == before {
-			p.next() // no progress: drop the offending token
-		}
-	}
+	p.untilRbrace(func() { d.Variants = append(d.Variants, p.parseVariant()) })
 	d.End = p.expectRbrace()
 	return d
 }
@@ -124,19 +118,12 @@ func (p *parser) parseVariant() *ast.Variant {
 	return v
 }
 
-// parseConforms parses `":" ClassRef { "," ClassRef }`.
-func (p *parser) parseConforms() []*ast.ClassRef {
-	p.next() // ':'
-	return p.parseClassRefList()
-}
-
-// parseClassRefs parses a `requires` clause.
+// parseClassRefs parses `ClassRef { "," ClassRef }` after the `:` of a
+// conformance list or the `requires` of a constraint clause, consuming
+// whichever introduced it.
 func (p *parser) parseClassRefs() []*ast.ClassRef {
-	p.next() // 'requires'
-	return p.parseClassRefList()
-}
+	p.next() // ':' or 'requires'
 
-func (p *parser) parseClassRefList() []*ast.ClassRef {
 	var refs []*ast.ClassRef
 	for {
 		refs = append(refs, p.parseClassRef())
@@ -165,9 +152,7 @@ func (p *parser) parseBody() ([]ast.Member, ast.Position) {
 	}
 
 	var members []ast.Member
-	for !p.at(lex.RBRACE) && !p.at(lex.EOF) {
-		before := p.cur
-
+	p.untilRbrace(func() {
 		if p.at(lex.INCLUDE) && p.peek.Kind != lex.COLON {
 			pos := p.cur.Pos
 			p.next()
@@ -175,24 +160,14 @@ func (p *parser) parseBody() ([]ast.Member, ast.Position) {
 		} else {
 			members = append(members, p.parseField())
 		}
-
-		if p.cur == before {
-			p.next()
-		}
-	}
+	})
 	return members, p.expectRbrace()
 }
 
 // parseFields parses the field list inside an enum variant payload.
 func (p *parser) parseFields() []*ast.Field {
 	var fields []*ast.Field
-	for !p.at(lex.RBRACE) && !p.at(lex.EOF) {
-		before := p.cur
-		fields = append(fields, p.parseField())
-		if p.cur == before {
-			p.next()
-		}
-	}
+	p.untilRbrace(func() { fields = append(fields, p.parseField()) })
 	return fields
 }
 

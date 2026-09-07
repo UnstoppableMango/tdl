@@ -17,13 +17,7 @@ func (p *parser) parseConstraintBlock() ([]*ast.Constraint, ast.Position) {
 	}
 
 	var constraints []*ast.Constraint
-	for !p.at(lex.RBRACE) && !p.at(lex.EOF) {
-		before := p.cur
-		constraints = append(constraints, p.parseConstraint())
-		if p.cur == before {
-			p.next()
-		}
-	}
+	p.untilRbrace(func() { constraints = append(constraints, p.parseConstraint()) })
 	return constraints, p.expectRbrace()
 }
 

@@ -1,6 +1,7 @@
 package ast
 
 import (
+	"math"
 	"strconv"
 	"strings"
 )
@@ -93,7 +94,7 @@ func firstPos[T any](items []T, pos func(T) Position, end Position) Position {
 
 // anywhere is the bound for a line nothing follows on its own line: a
 // declaration, or the brace closing one.
-var anywhere = Position{Offset: int(^uint(0) >> 1)}
+var anywhere = Position{Offset: math.MaxInt}
 
 // render runs f on a printer of its own and returns what it wrote, moving
 // this one's cursor over whatever f consumed. Fprint measures a
@@ -495,15 +496,21 @@ func (p *printer) entries(entries []*TargetEntry, indent string, headLine int, e
 	p.line(indent+"}", end.Line, until)
 }
 
-func printDirective(d *Directive) string {
-	if len(d.Args) == 0 {
-		return d.N
+func printDirective(d *Directive) string { return printCall(d.N, d.Args) }
+
+func printConstraint(c *Constraint) string { return printCall(c.N, c.Args) }
+
+// printCall renders a name applied to literal arguments, which is what a
+// directive and a constraint both are: `min(0)`, `tag("json:email")`.
+func printCall(name string, args []*Literal) string {
+	if len(args) == 0 {
+		return name
 	}
-	args := make([]string, len(d.Args))
-	for i, a := range d.Args {
-		args[i] = printLiteral(a)
+	parts := make([]string, len(args))
+	for i, a := range args {
+		parts[i] = printLiteral(a)
 	}
-	return d.N + "(" + strings.Join(args, ", ") + ")"
+	return name + "(" + strings.Join(parts, ", ") + ")"
 }
 
 func printLiteral(l *Literal) string {
@@ -559,17 +566,6 @@ func (p *printer) constraints(cs []*Constraint, indent string, end Position) str
 		sub.flush(indent+"  ", end)
 		sub.b.WriteString(indent + "}")
 	})
-}
-
-func printConstraint(c *Constraint) string {
-	if len(c.Args) == 0 {
-		return c.N
-	}
-	args := make([]string, len(c.Args))
-	for i, a := range c.Args {
-		args[i] = printLiteral(a)
-	}
-	return c.N + "(" + strings.Join(args, ", ") + ")"
 }
 
 // columnLimit is the width a block must fit within to stay on one line.

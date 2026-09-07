@@ -1,8 +1,10 @@
 package ebnf
 
 import (
+	"cmp"
 	"fmt"
-	"sort"
+	"maps"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -296,13 +298,13 @@ func (a *Annotations) check(grammar ebnf.Grammar) []error {
 
 	// A production with no expression is the lexer's, and the token
 	// annotation is the only thing saying which part of the lexer.
-	for _, name := range sorted(grammar) {
+	for _, name := range slices.Sorted(maps.Keys(grammar)) {
 		if grammar[name].Expr == nil && a.Prods[name].Token == "" {
 			errs = append(errs, fmt.Errorf("%s: %s has no expression and no token annotation",
 				grammar[name].Pos(), name))
 		}
 	}
 
-	sort.SliceStable(errs, func(i, j int) bool { return errs[i].Error() < errs[j].Error() })
+	slices.SortStableFunc(errs, func(a, b error) int { return cmp.Compare(a.Error(), b.Error()) })
 	return errs
 }

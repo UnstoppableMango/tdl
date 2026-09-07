@@ -28,13 +28,7 @@ func (p *parser) parseTargetEntries() ([]*ast.TargetEntry, ast.Position) {
 	}
 
 	var entries []*ast.TargetEntry
-	for !p.at(lex.RBRACE) && !p.at(lex.EOF) {
-		before := p.cur
-		entries = append(entries, p.parseTargetEntry())
-		if p.cur == before {
-			p.next()
-		}
-	}
+	p.untilRbrace(func() { entries = append(entries, p.parseTargetEntry()) })
 	return entries, p.expectRbrace()
 }
 

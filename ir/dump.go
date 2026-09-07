@@ -281,29 +281,35 @@ func (d *dumper) classRef(r *ClassRef) string {
 	if e := r.GetExtern(); e != nil {
 		name = e.GetName()
 	}
-	if len(r.GetArgs()) == 0 {
-		return name
+	return name + d.args(r.GetArgs())
+}
+
+// args renders a `<...>` argument list through the table, or nothing for
+// a name applied to none.
+func (d *dumper) args(ids []*ID) string {
+	if len(ids) == 0 {
+		return ""
 	}
-	args := make([]string, len(r.GetArgs()))
-	for i, a := range r.GetArgs() {
+	args := make([]string, len(ids))
+	for i, a := range ids {
 		if !a.Resolved() {
 			args[i] = "?"
 			continue
 		}
 		args[i] = d.render(d.model.Type(a))
 	}
-	return name + "<" + strings.Join(args, ", ") + ">"
+	return "<" + strings.Join(args, ", ") + ">"
 }
 
 func (d *dumper) typeLine(index int, t *Type) string {
-	origin := "-> decls[" + itoa(int(t.GetCtor().GetIndex())) + "]"
+	origin := "-> decls[" + strconv.Itoa(int(t.GetCtor().GetIndex())) + "]"
 	switch {
 	case t.GetParam() != nil:
 		origin = "-> param " + t.GetParam().GetOwner().GetName() + "." + t.GetParam().GetName()
 	case t.GetExtern() != nil:
-		origin = "-> externs[" + itoa(int(t.GetExtern().GetIndex())) + "]"
+		origin = "-> externs[" + strconv.Itoa(int(t.GetExtern().GetIndex())) + "]"
 	case t.GetUnit() != nil:
-		origin = "-> units[" + itoa(int(t.GetUnit().GetIndex())) + "]"
+		origin = "-> units[" + strconv.Itoa(int(t.GetUnit().GetIndex())) + "]"
 	case !t.GetCtor().Resolved():
 		origin = "-> unresolved"
 	}
@@ -348,19 +354,7 @@ func (d *dumper) render(t *Type) string {
 	if name == "" {
 		name = "?"
 	}
-	if len(t.GetArgs()) == 0 {
-		return name
-	}
-
-	args := make([]string, len(t.GetArgs()))
-	for i, a := range t.GetArgs() {
-		if !a.Resolved() {
-			args[i] = "?"
-			continue
-		}
-		args[i] = d.render(d.model.Type(a))
-	}
-	return name + "<" + strings.Join(args, ", ") + ">"
+	return name + d.args(t.GetArgs())
 }
 
 // constraintText renders a constraint, noting the newtype it came from
@@ -482,8 +476,6 @@ func pad(last bool) string {
 	return "│   "
 }
 
-func itoa(n int) string { return fmt.Sprintf("%d", n) }
-
 // dimsText renders reduced dimensions as a product, `kg*m/s^2` written the
 // way the source would have written it: positive exponents first, negative
 // ones after a slash, and an exponent of one left off.
@@ -526,5 +518,5 @@ func factor(name string, exp int) string {
 	if exp == 1 {
 		return name
 	}
-	return name + "^" + itoa(exp)
+	return name + "^" + strconv.Itoa(exp)
 }

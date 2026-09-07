@@ -190,13 +190,9 @@ func (l *Lexer) scanOperator() Token {
 		return Token{Kind: DOT, Text: ".", Pos: pos}
 	}
 
-	simple := map[rune]Kind{
-		'{': LBRACE, '}': RBRACE, '(': LPAREN, ')': RPAREN,
-		'[': LBRACK, ']': RBRACK, '<': LT, '>': GT,
-		':': COLON, ',': COMMA, '?': QUESTION, '|': PIPE,
-		'^': CARET, '*': STAR, '/': SLASH,
-	}
-	if kind, ok := simple[ch]; ok {
+	// Every remaining operator is one character, so its spelling is its
+	// kind's name in the table.
+	if kind, ok := Lookup(string(ch)); ok {
 		return Token{Kind: kind, Text: string(ch), Pos: pos}
 	}
 	return Token{Kind: ILLEGAL, Text: string(ch), Pos: pos}

@@ -8,8 +8,10 @@
 package treesitter
 
 import (
+	"cmp"
 	"fmt"
-	"sort"
+	"maps"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -64,12 +66,9 @@ func Emit(file *ebnf.File) ([]byte, error) {
 // any other way would still be deterministic and would make the diff
 // against docs/grammar.ebnf unreadable.
 func fileOrder(grammar xebnf.Grammar) []*xebnf.Production {
-	out := make([]*xebnf.Production, 0, len(grammar))
-	for _, prod := range grammar {
-		out = append(out, prod)
-	}
-	sort.Slice(out, func(i, j int) bool {
-		return out[i].Name.Pos().Offset < out[j].Name.Pos().Offset
+	out := slices.Collect(maps.Values(grammar))
+	slices.SortFunc(out, func(a, b *xebnf.Production) int {
+		return cmp.Compare(a.Name.Pos().Offset, b.Name.Pos().Offset)
 	})
 	return out
 }
