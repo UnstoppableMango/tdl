@@ -76,12 +76,17 @@ func (s *Subprocess) describe() (plugin.Description, error) {
 	if err != nil {
 		return plugin.Description{}, err
 	}
+	return description(reply), nil
+}
+
+// description is what a handshake reply says about the plugin.
+func description(reply *plugin.HandshakeReply) plugin.Description {
 	return plugin.Description{
 		Name:       reply.GetName(),
 		Version:    reply.GetVersion(),
 		Directives: reply.GetDirectives(),
 		Reuse:      reply.GetFeatures().GetReuse(),
-	}, nil
+	}
 }
 
 // Generate runs one request through the plugin.

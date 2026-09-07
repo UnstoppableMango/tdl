@@ -16,6 +16,7 @@ import (
 // nothing here can catch it.
 type Session struct {
 	sub      *Subprocess
+	desc     plugin.Description // what the last handshake said
 	live     *session
 	modTime  time.Time
 	restarts int
@@ -24,14 +25,16 @@ type Session struct {
 // Open starts a plugin and holds the connection if it declared reuse.
 //
 // A plugin that did not gets a fresh process per generation, which is the
-// default: reuse is something a backend opts into by saying it can.
+// default: reuse is something a backend opts into by saying it can. The
+// one handshake answers both questions, so a plugin that will not shake
+// hands is an error here rather than a description of nothing.
 func Open(ctx context.Context, sub *Subprocess) (*Session, error) {
 	s := &Session{sub: sub}
-	if !sub.Describe().Reuse {
-		return s, nil
-	}
 	if err := s.start(ctx); err != nil {
 		return nil, err
+	}
+	if !s.desc.Reuse {
+		s.Close()
 	}
 	return s, nil
 }
@@ -41,18 +44,21 @@ func (s *Session) start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if _, err := live.shake(true); err != nil {
+	reply, err := live.shake(true)
+	if err != nil {
 		live.close()
 		return err
 	}
 
 	s.live = live
+	s.desc = description(reply)
 	s.modTime = binaryTime(s.sub.Path)
 	return nil
 }
 
-// Describe reports what the plugin said about itself.
-func (s *Session) Describe() plugin.Description { return s.sub.Describe() }
+// Describe reports what the plugin said about itself when it was opened,
+// without starting another process to ask again.
+func (s *Session) Describe() plugin.Description { return s.desc }
 
 // Generate serves one request, over the held connection when there is one.
 func (s *Session) Generate(ctx context.Context, req *plugin.Request) (*plugin.Response, error) {

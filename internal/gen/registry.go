@@ -7,7 +7,8 @@
 package gen
 
 import (
-	"sort"
+	"maps"
+	"slices"
 
 	"github.com/unstoppablemango/tdl/backend/debug"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -42,10 +43,5 @@ func Resolve(name string) (plugin.Backend, error) {
 
 // BuiltinNames lists the compiled-in backends, sorted.
 func BuiltinNames() []string {
-	names := make([]string, 0, len(builtin))
-	for name := range builtin {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	return names
+	return slices.Sorted(maps.Keys(builtin))
 }
