@@ -398,6 +398,39 @@ func TestIncomparableKeysAreUnsupported(t *testing.T) {
 	}
 }
 
+// Reaching the same declaration twice on separate paths is not a cycle, so
+// the walk that stops one has to unwind as it returns.
+func TestARepeatedFieldTypeIsNotACycle(t *testing.T) {
+	m := newModel("shop")
+	m.own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Coord"},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{
+			Fields: []*ir.Field{field("value", m.named("int"))},
+		}},
+	})
+	m.own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Point"},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{
+			Fields: []*ir.Field{
+				field("x", m.named("Coord")),
+				field("y", m.named("Coord")),
+			},
+		}},
+	})
+	m.own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Grid"},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{
+			Fields: []*ir.Field{field("seen", m.named("Set", m.named("Point")))},
+		}},
+	})
+
+	resp := generate(t, m)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	contains(t, files(t, resp)["grid.go"], "Seen map[Point]struct{}")
+}
+
 // A comparable element is still a map, since that is the only Go shape that
 // keeps what a Set promises.
 func TestComparableSetsStillGenerate(t *testing.T) {
@@ -489,6 +522,43 @@ func TestDirectives(t *testing.T) {
 	)
 	if strings.Contains(src, "db:") {
 		t.Errorf("another target's directive leaked through:\n%s", src)
+	}
+}
+
+// A package clause is one identifier that every file carries, so a name Go
+// will not accept is an error rather than a warning: nothing is generated
+// and the host writes nothing.
+func TestAKeywordPackageNameIsAnError(t *testing.T) {
+	m := newModel("shop")
+	m.own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Note"},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{
+			Fields: []*ir.Field{field("body", m.named("string"))},
+		}},
+	})
+	m.model.Targets = []*ir.TargetBlock{{
+		Meta: &ir.Meta{Name: "go"},
+		Directives: []*ir.Directive{{
+			Name:     "package",
+			Target:   "go",
+			Args:     []*ir.Literal{text("github.com/acme/type")},
+			Position: &ir.Position{Filename: "shop.tdl", Line: 2},
+		}},
+	}}
+
+	resp := generate(t, m)
+	if len(resp.GetFiles()) != 0 {
+		t.Errorf("a package clause Go refuses still generated files: %v", keys(files(t, resp)))
+	}
+	if len(resp.GetDiagnostics()) != 1 {
+		t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	d := resp.GetDiagnostics()[0]
+	if d.GetSeverity() != plugin.Severity_SEVERITY_ERROR {
+		t.Errorf("severity = %v, and the host only stops on an error", d.GetSeverity())
+	}
+	if d.GetPosition().GetLine() != 2 {
+		t.Errorf("position = %+v, and the directive is what to point at", d.GetPosition())
 	}
 }
 

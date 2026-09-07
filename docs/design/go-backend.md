@@ -128,6 +128,7 @@ The backend understands three, and declares all three in its handshake so the co
 - `package("github.com/acme/billing")`, on the target block.
   The Go package clause is the last path segment.
   Written as an import path because that is what a consumer of the generated code will write, and the clause is derivable from it while the reverse is not.
+  A last segment that comes out a Go keyword, as `github.com/acme/type` does, is an error and not a warning: the clause is one identifier every file carries, so what it makes unusable is the whole output rather than a declaration to skip.
 - `name("Account")`, on a declaration or a field.
   Overrides the Go identifier.
   TDL names and Go names disagree often enough that a rename has to be expressible, and renaming in the model would change the model to suit one backend.
@@ -166,6 +167,7 @@ A `where` constraint warns and the declaration is still emitted, since the const
 Each is a phase in [go-backend-plan.md](go-backend-plan.md), and each is a set of decisions rather than an oversight.
 
 A warning does not stop a run, so a model that is mostly generatable generates.
+An error stops it, and the two things that earn one are output `go/format` refuses to parse and a package clause Go will not accept, both of which are the package rather than a part of it.
 
 ## Formatting
 

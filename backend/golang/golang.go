@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"go/format"
+	"go/token"
 	"strconv"
 	"strings"
 
@@ -76,8 +77,22 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	g := &generator{model: req.GetModel(), target: req.GetTarget()}
 
 	pkg := packageClause(g.model.GetPackage())
-	if s, ok := g.blockDirective("package"); ok {
-		pkg = packageClause(s)
+	var pkgPos *ir.Position
+	if d, ok := g.blockDirective("package"); ok {
+		pkg, pkgPos = packageClause(d.GetArgs()[0].GetText()), d.GetPosition()
+	}
+
+	// A package clause is one identifier and every file carries it, so a
+	// name Go will not accept is not a declaration to skip but the whole
+	// output. It is an error rather than a warning for that reason: the
+	// host writes nothing and says why.
+	if token.IsKeyword(pkg) {
+		g.diags = append(g.diags, &plugin.Diagnostic{
+			Severity: plugin.Severity_SEVERITY_ERROR,
+			Message:  fmt.Sprintf("%q is a Go keyword and cannot be a package name", pkg),
+			Position: pkgPos,
+		})
+		return &plugin.Response{Diagnostics: g.diags}, nil
 	}
 
 	var files []*plugin.File
@@ -332,34 +347,45 @@ func (g *generator) fieldName(f *ir.Field) string {
 }
 
 // directive returns the single string argument of a directive on a node.
-//
-// A model carries directives for every target block in it, tagged with the
-// block they came from, so this filters rather than assuming what it is
-// handed is its own.
 func (g *generator) directive(all []*ir.Directive, name string) (string, bool) {
-	for _, d := range plugin.Directives(g.target, all) {
-		if d.GetName() != name {
-			continue
-		}
-		if args := d.GetArgs(); len(args) > 0 {
-			return args[0].GetText(), true
-		}
+	if d, ok := g.find(all, name); ok {
+		return d.GetArgs()[0].GetText(), true
 	}
 	return "", false
 }
 
+// find returns a directive carrying at least one argument.
+//
+// A model carries directives for every target block in it, tagged with the
+// block they came from, so this filters rather than assuming what it is
+// handed is its own.
+func (g *generator) find(all []*ir.Directive, name string) (*ir.Directive, bool) {
+	for _, d := range plugin.Directives(g.target, all) {
+		if d.GetName() != name {
+			continue
+		}
+		if len(d.GetArgs()) > 0 {
+			return d, true
+		}
+	}
+	return nil, false
+}
+
 // blockDirective reads a directive written on the target block itself
 // rather than against a node in the model.
-func (g *generator) blockDirective(name string) (string, bool) {
+//
+// It returns the directive rather than its argument, because a diagnostic
+// about the value wants the position it was written at.
+func (g *generator) blockDirective(name string) (*ir.Directive, bool) {
 	for _, block := range g.model.GetTargets() {
 		if block.GetMeta().GetName() != g.target {
 			continue
 		}
-		if s, ok := g.directive(block.GetDirectives(), name); ok {
-			return s, true
+		if d, ok := g.find(block.GetDirectives(), name); ok {
+			return d, true
 		}
 	}
-	return "", false
+	return nil, false
 }
 
 // warn reports something the backend cannot handle, with a position when

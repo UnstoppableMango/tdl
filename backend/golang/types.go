@@ -190,8 +190,8 @@ func (g *generator) comparable(id *ir.ID) bool {
 	return g.comparableSeen(id, map[int32]bool{})
 }
 
-// comparableSeen carries the declarations already being asked about, since
-// a struct may reach itself and a cycle is not an answer.
+// comparableSeen carries the declarations on the path being walked, since a
+// struct may reach itself and a cycle is not an answer.
 func (g *generator) comparableSeen(id *ir.ID, seen map[int32]bool) bool {
 	t := g.model.Type(id)
 	if t == nil {
@@ -232,11 +232,15 @@ func (g *generator) comparableSeen(id *ir.ID, seen map[int32]bool) bool {
 		return true
 	}
 
+	// seen is the path being walked and not a memo of what has been
+	// answered. A struct with two fields of the same struct type reaches it
+	// twice on separate paths, and the second one is not a cycle.
 	index := t.GetCtor().GetIndex()
 	if seen[index] {
 		return false
 	}
 	seen[index] = true
+	defer delete(seen, index)
 
 	if n := decl.GetNewtype(); n != nil {
 		return g.comparableSeen(n.GetBase(), seen)
