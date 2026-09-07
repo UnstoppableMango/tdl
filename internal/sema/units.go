@@ -1,7 +1,7 @@
 package sema
 
 import (
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -123,13 +123,10 @@ func (l *lowerer) dimsOf(name string, pos ast.Position, decls map[string]*ast.Un
 		l.diags.add(pos, "undefined unit: %s", name)
 		return nil, false
 	}
-	if !l.units[name] {
-		l.diags.add(pos, "%s is not a unit", name)
-		return nil, false
-	}
 
-	decl := l.model.Decls[b.id.GetIndex()]
-	if def := decl.GetUnit(); def != nil {
+	// Lowered already, or a unit of this file still waiting its turn.
+	// Anything else declared under that name is not a unit.
+	if def := l.model.Decl(b.id).GetUnit(); def != nil {
 		return l.dimsOfID(def.GetUnit())
 	}
 	if u, found := decls[name]; found {
@@ -138,10 +135,7 @@ func (l *lowerer) dimsOf(name string, pos ast.Position, decls map[string]*ast.Un
 		}
 		return nil, false
 	}
-
-	// Declared, a unit, and not lowered: the declaration came from a pass
-	// that is already finished, so nothing here can fix it.
-	l.diags.add(pos, "undefined unit: %s", name)
+	l.diags.add(pos, "%s is not a unit", name)
 	return nil, false
 }
 
@@ -191,7 +185,7 @@ func (l *lowerer) freeze(d dims) []*ir.Dimension {
 			bases = append(bases, id)
 		}
 	}
-	sort.Slice(bases, func(i, j int) bool { return bases[i] < bases[j] })
+	slices.Sort(bases)
 
 	out := make([]*ir.Dimension, 0, len(bases))
 	for _, id := range bases {

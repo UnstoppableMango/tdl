@@ -1165,10 +1165,10 @@ type Capped: string where { length(..64) }
 // The standard names are checked; everything else is passed through.
 func TestStandardConstraintChecking(t *testing.T) {
 	tests := []struct{ src, want string }{
-		{`type T: string where { unique(1) }`, "unique takes 0 arguments"},
-		{`type T: string where { min(1, 2) }`, "min takes 1 argument"},
-		{`type T: string where { matches("nope") }`, "matches does not take a string"},
-		{`type T: string where { min("nope") }`, "min does not take a string"},
+		{`type W: string where { unique(1) }`, "unique takes 0 arguments"},
+		{`type W: string where { min(1, 2) }`, "min takes 1 argument"},
+		{`type W: string where { matches("nope") }`, "matches does not take a string"},
+		{`type W: string where { min("nope") }`, "min does not take a string"},
 	}
 
 	for _, tt := range tests {

@@ -1,6 +1,9 @@
 package sema
 
 import (
+	"slices"
+	"strings"
+
 	"github.com/unstoppablemango/tdl/ast"
 	"github.com/unstoppablemango/tdl/ir"
 )
@@ -22,6 +25,20 @@ const (
 	specField = 2000
 )
 
+// targetPass is the walk over every target block in a file. Candidates are
+// collected before any are applied, because deciding which of two entries
+// wins needs both of them.
+type targetPass struct {
+	*lowerer
+	byDecl  map[int32][]candidate
+	byField map[fieldKey][]candidate
+}
+
+type fieldKey struct {
+	decl  int32
+	field int
+}
+
 // lowerTargets resolves every target block against the model and attaches
 // each directive to the node it applies to.
 //
@@ -30,55 +47,45 @@ const (
 // conflicts have been reported. A backend reads one field on the node in
 // front of it.
 func (l *lowerer) lowerTargets(file *ast.File) {
-	// Candidates are collected before any are applied, because deciding
-	// which of two entries wins needs both of them.
-	byDecl := map[int32][]candidate{}
-	byField := map[fieldKey][]candidate{}
+	t := &targetPass{
+		lowerer: l,
+		byDecl:  map[int32][]candidate{},
+		byField: map[fieldKey][]candidate{},
+	}
 
 	for _, decl := range file.Decls {
-		block, ok := decl.(*ast.TargetDecl)
-		if !ok {
-			continue
+		if block, ok := decl.(*ast.TargetDecl); ok {
+			t.block(block)
 		}
-		l.lowerTargetBlock(block, byDecl, byField)
 	}
 
-	for idx, cands := range byDecl {
+	for idx, cands := range t.byDecl {
 		l.model.Decls[idx].Directives = l.resolveConflicts(cands)
 	}
-	for key, cands := range byField {
-		l.fieldAt(key).Directives = l.resolveConflicts(cands)
+	for key, cands := range t.byField {
+		l.model.GetDecls()[key.decl].Fields()[key.field].Directives = l.resolveConflicts(cands)
 	}
 }
 
-type fieldKey struct {
-	decl  int32
-	field int
-}
-
-func (l *lowerer) fieldAt(key fieldKey) *ir.Field {
-	return l.model.GetDecls()[key.decl].Fields()[key.field]
-}
-
-func (l *lowerer) lowerTargetBlock(block *ast.TargetDecl, byDecl map[int32][]candidate, byField map[fieldKey][]candidate) {
+func (t *targetPass) block(block *ast.TargetDecl) {
 	out := &ir.TargetBlock{
-		Meta:       metaOf(&block.DeclHead, len(l.model.GetTargets())),
+		Meta:       metaOf(&block.DeclHead, len(t.model.GetTargets())),
 		ForPackage: block.For,
 	}
-	l.model.Targets = append(l.model.Targets, out)
+	t.model.Targets = append(t.model.Targets, out)
 
-	if block.For != l.model.GetPackage() {
-		l.diags.add(block.P, "target %s is for package %s, not %s",
-			block.N, block.For, l.model.GetPackage())
+	if block.For != t.model.GetPackage() {
+		t.diags.add(block.P, "target %s is for package %s, not %s",
+			block.N, block.For, t.model.GetPackage())
 		return
 	}
 
-	l.walkEntries(block, "", block.Entries, out, byDecl, byField)
+	t.walkEntries(block, "", block.Entries, out)
 }
 
 // walkEntries resolves the entries of a block, with scope naming the path a
 // nested block is under.
-func (l *lowerer) walkEntries(block *ast.TargetDecl, scope string, entries []*ast.TargetEntry, out *ir.TargetBlock, byDecl map[int32][]candidate, byField map[fieldKey][]candidate) {
+func (t *targetPass) walkEntries(block *ast.TargetDecl, scope string, entries []*ast.TargetEntry, out *ir.TargetBlock) {
 	for _, entry := range entries {
 		path := entry.Path
 		if scope != "" && path != "" {
@@ -87,56 +94,57 @@ func (l *lowerer) walkEntries(block *ast.TargetDecl, scope string, entries []*as
 
 		switch {
 		case entry.Entries != nil:
-			l.walkEntries(block, path, entry.Entries, out, byDecl, byField)
+			t.walkEntries(block, path, entry.Entries, out)
 
 		case entry.Path == "":
 			// A bare directive applies to the enclosing scope: the package at
 			// the top level, or the path a nested block is under.
-			d := l.directive(block.N, entry.Directive)
+			d := t.directive(block.N, entry.Directive)
 			if scope == "" {
 				out.Directives = append(out.Directives, d)
 				continue
 			}
-			l.attach(scope, entry.P, d, byDecl, byField)
+			t.attach(scope, entry.P, d)
 
 		default:
-			l.attach(path, entry.P, l.directive(block.N, entry.Directive), byDecl, byField)
+			t.attach(path, entry.P, t.directive(block.N, entry.Directive))
 		}
 	}
 }
 
 // attach resolves a path and records the directive as a candidate for every
 // node it reaches.
-func (l *lowerer) attach(path string, pos ast.Position, d *ir.Directive, byDecl map[int32][]candidate, byField map[fieldKey][]candidate) {
-	head, member := split(path)
+func (t *targetPass) attach(path string, pos ast.Position, d *ir.Directive) {
+	// Paths are at most two deep: a declaration and one of its fields.
+	head, member, _ := strings.Cut(path, ".")
 
-	b, ok := l.scope.lookup(head)
+	b, ok := t.scope.lookup(head)
 	if !ok || b.kind != bindDecl {
-		l.diags.add(pos, "target path %s names nothing", path)
+		t.diags.add(pos, "target path %s names nothing", path)
 		return
 	}
 	idx := b.id.GetIndex()
-	decl := l.model.GetDecls()[idx]
+	decl := t.model.GetDecls()[idx]
 
 	// A path naming a class applies to everything satisfying it, which is
 	// what lets a rule be written once rather than repeated per type.
 	if decl.GetClass() != nil {
-		l.expandClass(b.id, member, pos, d, byDecl, byField)
+		t.expandClass(b.id, member, pos, d)
 		return
 	}
 
 	if member == "" {
-		byDecl[idx] = append(byDecl[idx], candidate{directive: d, spec: specDecl, pos: pos})
+		t.byDecl[idx] = append(t.byDecl[idx], candidate{directive: d, spec: specDecl, pos: pos})
 		return
 	}
 
-	field, found := fieldIndex(decl, member)
-	if !found {
-		l.diags.add(pos, "target path %s names nothing: %s has no field %s", path, head, member)
+	field := fieldIndex(decl, member)
+	if field < 0 {
+		t.diags.add(pos, "target path %s names nothing: %s has no field %s", path, head, member)
 		return
 	}
-	byField[fieldKey{idx, field}] = append(byField[fieldKey{idx, field}],
-		candidate{directive: d, spec: specField, pos: pos})
+	key := fieldKey{idx, field}
+	t.byField[key] = append(t.byField[key], candidate{directive: d, spec: specField, pos: pos})
 }
 
 // expandClass applies a directive to every declaration satisfying a class.
@@ -144,10 +152,10 @@ func (l *lowerer) attach(path string, pos ast.Position, d *ir.Directive, byDecl 
 // A closer class wins: a directive on Auditable beats one on the
 // Timestamped it requires, because a type conforming to Auditable is more
 // specifically that than it is timestamped.
-func (l *lowerer) expandClass(class *ir.ID, member string, pos ast.Position, d *ir.Directive, byDecl map[int32][]candidate, byField map[fieldKey][]candidate) {
-	for _, id := range l.model.Satisfying(class) {
+func (t *targetPass) expandClass(class *ir.ID, member string, pos ast.Position, d *ir.Directive) {
+	for _, id := range t.model.Satisfying(class) {
 		idx := id.GetIndex()
-		decl := l.model.GetDecls()[idx]
+		decl := t.model.GetDecls()[idx]
 
 		expanded := &ir.Directive{
 			Name:      d.GetName(),
@@ -156,15 +164,15 @@ func (l *lowerer) expandClass(class *ir.ID, member string, pos ast.Position, d *
 			Target:    d.GetTarget(),
 			FromClass: class,
 		}
-		spec := specClass - l.classDistance(decl, class)
+		c := candidate{directive: expanded, spec: specClass - t.classDistance(decl, class), pos: pos}
 
 		if member == "" {
-			byDecl[idx] = append(byDecl[idx], candidate{directive: expanded, spec: spec, pos: pos})
+			t.byDecl[idx] = append(t.byDecl[idx], c)
 			continue
 		}
-		if field, found := fieldIndex(decl, member); found {
-			byField[fieldKey{idx, field}] = append(byField[fieldKey{idx, field}],
-				candidate{directive: expanded, spec: spec, pos: pos})
+		if field := fieldIndex(decl, member); field >= 0 {
+			key := fieldKey{idx, field}
+			t.byField[key] = append(t.byField[key], c)
 		}
 	}
 }
@@ -174,7 +182,7 @@ func (l *lowerer) expandClass(class *ir.ID, member string, pos ast.Position, d *
 func (l *lowerer) classDistance(decl *ir.Decl, class *ir.ID) int {
 	best := -1
 	for _, ref := range conformsOf(decl) {
-		if d := l.hops(ref.GetClass(), class, 0, map[int32]bool{}); d >= 0 && (best < 0 || d < best) {
+		if d := l.hops(ref.GetClass(), class.GetIndex(), 0, map[int32]bool{}); d >= 0 && (best < 0 || d < best) {
 			best = d
 		}
 	}
@@ -184,50 +192,33 @@ func (l *lowerer) classDistance(decl *ir.Decl, class *ir.ID) int {
 	return best
 }
 
-func (l *lowerer) hops(from, to *ir.ID, depth int, seen map[int32]bool) int {
-	if !from.Resolved() || seen[from.GetIndex()] {
-		return -1
-	}
-	if from.GetIndex() == to.GetIndex() {
-		return depth
-	}
-	seen[from.GetIndex()] = true
-
-	best := -1
-	for _, ref := range l.model.Decl(from).GetClass().GetRequiresClasses() {
-		if d := l.hops(ref.GetClass(), to, depth+1, seen); d >= 0 && (best < 0 || d < best) {
-			best = d
-		}
-	}
-	return best
-}
-
 // resolveConflicts applies the ladder: per directive name, the most
 // specific candidate wins, and two at the same specificity are an error
 // rather than a silent choice.
 func (l *lowerer) resolveConflicts(cands []candidate) []*ir.Directive {
+	key := func(c candidate) string { return c.directive.GetTarget() + "\x00" + c.directive.GetName() }
 	best := map[string]candidate{}
 	tied := map[string]bool{}
 
 	for _, c := range cands {
-		key := c.directive.GetTarget() + "\x00" + c.directive.GetName()
-		prev, seen := best[key]
+		k := key(c)
+		prev, seen := best[k]
 		switch {
 		case !seen || c.spec > prev.spec:
-			best[key] = c
-			tied[key] = false
+			best[k] = c
+			tied[k] = false
 		case c.spec == prev.spec:
-			tied[key] = true
+			tied[k] = true
 		}
 	}
 
 	var out []*ir.Directive
 	for _, c := range cands {
-		key := c.directive.GetTarget() + "\x00" + c.directive.GetName()
-		if best[key].directive != c.directive {
+		k := key(c)
+		if best[k].directive != c.directive {
 			continue
 		}
-		if tied[key] {
+		if tied[k] {
 			l.diags.add(c.pos, "two entries at the same specificity set %s; one of them has to go",
 				c.directive.GetName())
 		}
@@ -248,22 +239,7 @@ func (l *lowerer) directive(target string, d *ast.Directive) *ir.Directive {
 	return out
 }
 
-// split divides a path into its head and the rest. Paths are at most two
-// deep: a declaration and one of its fields.
-func split(path string) (head, member string) {
-	for i := 0; i < len(path); i++ {
-		if path[i] == '.' {
-			return path[:i], path[i+1:]
-		}
-	}
-	return path, ""
-}
-
-func fieldIndex(decl *ir.Decl, name string) (int, bool) {
-	for i, f := range decl.Fields() {
-		if f.GetMeta().GetName() == name {
-			return i, true
-		}
-	}
-	return 0, false
+// fieldIndex is the position of a named field in a declaration, or -1.
+func fieldIndex(decl *ir.Decl, name string) int {
+	return slices.IndexFunc(decl.Fields(), func(f *ir.Field) bool { return f.GetMeta().GetName() == name })
 }
