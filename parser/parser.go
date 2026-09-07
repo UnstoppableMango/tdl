@@ -96,6 +96,16 @@ func (p *parser) untilRbrace(fn func()) {
 	}
 }
 
+// parseQualified reads `name` or `alias.name`.
+func (p *parser) parseQualified() (qualifier, name string) {
+	name = p.expectIdent()
+	if p.at(lex.DOT) {
+		p.next()
+		qualifier, name = name, p.expectIdent()
+	}
+	return qualifier, name
+}
+
 func (p *parser) expectIdent() string {
 	if p.cur.Kind != lex.IDENT {
 		p.errs.add(p.cur.Pos, "expected identifier, got %s", p.cur.Kind)
@@ -263,7 +273,8 @@ func (p *parser) parseTypeParams() []*ast.TypeParam {
 
 	var params []*ast.TypeParam
 	for {
-		param := &ast.TypeParam{P: p.cur.Pos, N: p.expectIdent()}
+		param := &ast.TypeParam{P: p.cur.Pos}
+		param.N = p.expectIdent()
 		if p.accept(lex.COLON) {
 			param.Kind = p.parseKind()
 		}
@@ -342,11 +353,8 @@ func (p *parser) parseCoreType() *ast.TypeRef {
 		return t
 	}
 
-	t := &ast.TypeRef{P: pos, N: p.expectIdent()}
-	if p.at(lex.DOT) {
-		p.next()
-		t.Qualifier, t.N = t.N, p.expectIdent()
-	}
+	t := &ast.TypeRef{P: pos}
+	t.Qualifier, t.N = p.parseQualified()
 	if p.at(lex.LT) {
 		t.Args = p.parseTypeArgs()
 	}

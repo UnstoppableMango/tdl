@@ -106,11 +106,8 @@ func (p *parser) parseInstanceDecl(head ast.DeclHead) *ast.InstanceDecl {
 		d.Params = p.parseTypeParams()
 	}
 
-	d.Class = &ast.ClassRef{P: p.cur.Pos, N: p.expectIdent()}
-	if p.at(lex.DOT) {
-		p.next()
-		d.Class.Qualifier, d.Class.N = d.Class.N, p.expectIdent()
-	}
+	d.Class = &ast.ClassRef{P: p.cur.Pos}
+	d.Class.Qualifier, d.Class.N = p.parseQualified()
 	d.N = d.Class.N
 
 	switch {

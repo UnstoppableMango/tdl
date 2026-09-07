@@ -21,12 +21,12 @@ Model example.instances
 │   ├── [14] unit kg  std.tdl:31:1
 │   │   └── measures units[2] kg
 │   ├── [15] enum Option  std.tdl:34:1
-│   │   ├── param T  std.tdl:34:14
+│   │   ├── param T  std.tdl:34:13
 │   │   ├── variant Some  std.tdl:35:3
 │   │   │   └── field value: types[0] T  std.tdl:35:10
 │   │   └── variant None  std.tdl:36:3
 │   ├── [16] enum Nullable  std.tdl:40:1
-│   │   ├── param T  std.tdl:40:16
+│   │   ├── param T  std.tdl:40:15
 │   │   ├── variant Present  std.tdl:41:3
 │   │   │   └── field value: types[1] T  std.tdl:41:13
 │   │   └── variant Null  std.tdl:42:3
@@ -42,10 +42,10 @@ Model example.instances
 │   ├── [22] value OrderCursor  source.tdl:24:1
 │   │   └── field token: types[9] string  source.tdl:25:3
 │   ├── [23] value Page  source.tdl:28:1
-│   │   ├── param T  source.tdl:28:13
+│   │   ├── param T  source.tdl:28:12
 │   │   └── field items: types[11] List<T>  source.tdl:29:3
 │   ├── [24] value Audited  source.tdl:32:1
-│   │   ├── conforms Auditable  source.tdl:32:26
+│   │   ├── conforms Auditable  source.tdl:32:16
 │   │   └── field createdAt: types[2] instant  source.tdl:33:3
 │   ├── [25] value Plain  source.tdl:36:1
 │   │   └── field x: types[9] string  source.tdl:37:3

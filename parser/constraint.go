@@ -28,7 +28,8 @@ func (p *parser) parseConstraintBlock() ([]*ast.Constraint, ast.Position) {
 // parenthesized for the same reason a directive's are, since without a
 // delimiter `min 0 max 100` could not be split.
 func (p *parser) parseConstraint() *ast.Constraint {
-	c := &ast.Constraint{P: p.cur.Pos, N: p.expectIdent()}
+	c := &ast.Constraint{P: p.cur.Pos}
+	c.N = p.expectIdent()
 
 	if !p.accept(lex.LPAREN) {
 		return c

@@ -21,12 +21,12 @@ Model example.collections
 │   ├── [14] unit kg  std.tdl:31:1
 │   │   └── measures units[2] kg
 │   ├── [15] enum Option  std.tdl:34:1
-│   │   ├── param T  std.tdl:34:14
+│   │   ├── param T  std.tdl:34:13
 │   │   ├── variant Some  std.tdl:35:3
 │   │   │   └── field value: types[0] T  std.tdl:35:10
 │   │   └── variant None  std.tdl:36:3
 │   ├── [16] enum Nullable  std.tdl:40:1
-│   │   ├── param T  std.tdl:40:16
+│   │   ├── param T  std.tdl:40:15
 │   │   ├── variant Present  std.tdl:41:3
 │   │   │   └── field value: types[1] T  std.tdl:41:13
 │   │   └── variant Null  std.tdl:42:3

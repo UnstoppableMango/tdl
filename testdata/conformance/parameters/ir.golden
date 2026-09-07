@@ -19,12 +19,12 @@ Model example.parameters
 │   ├── [14] unit kg  std.tdl:31:1
 │   │   └── measures units[2] kg
 │   ├── [15] enum Option  std.tdl:34:1
-│   │   ├── param T  std.tdl:34:14
+│   │   ├── param T  std.tdl:34:13
 │   │   ├── variant Some  std.tdl:35:3
 │   │   │   └── field value: types[0] T  std.tdl:35:10
 │   │   └── variant None  std.tdl:36:3
 │   ├── [16] enum Nullable  std.tdl:40:1
-│   │   ├── param T  std.tdl:40:16
+│   │   ├── param T  std.tdl:40:15
 │   │   ├── variant Present  std.tdl:41:3
 │   │   │   └── field value: types[1] T  std.tdl:41:13
 │   │   └── variant Null  std.tdl:42:3
@@ -32,25 +32,25 @@ Model example.parameters
 │   │   └── requires key
 │   ├── [18] class Value  std.tdl:51:1
 │   ├── [19] alias Applied  source.tdl:3:1
-│   │   ├── param f: type -> type  source.tdl:3:16
-│   │   ├── param T: type  source.tdl:3:33
+│   │   ├── param f: type -> type  source.tdl:3:15
+│   │   ├── param T: type  source.tdl:3:32
 │   │   └── target types[3] f<T>
 │   ├── [20] alias Inferred  source.tdl:4:1
-│   │   ├── param f  source.tdl:4:17
-│   │   ├── param T  source.tdl:4:20
+│   │   ├── param f  source.tdl:4:16
+│   │   ├── param T  source.tdl:4:19
 │   │   └── target types[5] f<T>
 │   ├── [21] alias Curried  source.tdl:5:1
-│   │   ├── param f: type -> type -> type  source.tdl:5:16
-│   │   ├── param A  source.tdl:5:41
-│   │   ├── param B  source.tdl:5:44
+│   │   ├── param f: type -> type -> type  source.tdl:5:15
+│   │   ├── param A  source.tdl:5:40
+│   │   ├── param B  source.tdl:5:43
 │   │   └── target types[8] f<A, B>
 │   ├── [22] alias Parenthesized  source.tdl:6:1
-│   │   ├── param f: (type -> type) -> type  source.tdl:6:22
-│   │   ├── param g  source.tdl:6:49
+│   │   ├── param f: (type -> type) -> type  source.tdl:6:21
+│   │   ├── param g  source.tdl:6:48
 │   │   └── target types[10] f<g>
 │   └── [23] alias Measured  source.tdl:7:1
-│       ├── param T  source.tdl:7:17
-│       ├── param u: unit  source.tdl:7:20
+│       ├── param T  source.tdl:7:16
+│       ├── param u: unit  source.tdl:7:19
 │       └── target types[12] T<u>
 ├── Satisfies
 │   ├── Entity: nothing

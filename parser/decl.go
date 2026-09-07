@@ -98,7 +98,8 @@ func (p *parser) parseEnumDecl(head ast.DeclHead) *ast.EnumDecl {
 }
 
 func (p *parser) parseVariant() *ast.Variant {
-	v := &ast.Variant{DeclHead: ast.DeclHead{Doc: p.parseDoc(), P: p.cur.Pos}}
+	doc := p.parseDoc()
+	v := &ast.Variant{DeclHead: ast.DeclHead{Doc: doc, P: p.cur.Pos}}
 	if p.atContextual("deprecated") {
 		v.Dep = p.parseDeprecated()
 		v.P = p.cur.Pos
@@ -134,11 +135,8 @@ func (p *parser) parseClassRefs() []*ast.ClassRef {
 }
 
 func (p *parser) parseClassRef() *ast.ClassRef {
-	ref := &ast.ClassRef{P: p.cur.Pos, N: p.expectIdent()}
-	if p.at(lex.DOT) {
-		p.next()
-		ref.Qualifier, ref.N = ref.N, p.expectIdent()
-	}
+	ref := &ast.ClassRef{P: p.cur.Pos}
+	ref.Qualifier, ref.N = p.parseQualified()
 	if p.at(lex.LT) {
 		ref.Args = p.parseTypeArgs()
 	}
@@ -178,7 +176,8 @@ func (p *parser) parseField() *ast.Field {
 		return &ast.Field{DeclHead: ast.DeclHead{P: p.cur.Pos}}
 	}
 
-	f := &ast.Field{DeclHead: ast.DeclHead{Doc: p.parseDoc(), P: p.cur.Pos}}
+	doc := p.parseDoc()
+	f := &ast.Field{DeclHead: ast.DeclHead{Doc: doc, P: p.cur.Pos}}
 
 	// `key` and `deprecated` are contextual, so a field may be named either.
 	// A modifier is a modifier only when another token follows it before the
