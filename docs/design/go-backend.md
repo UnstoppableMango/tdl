@@ -18,6 +18,11 @@ One file per declaration is the layout, because a generated tree is read as a di
 The prelude arrives merged into `Model.decls` untagged, so the backend emits only what the model's own file declared.
 Prelude declarations are the type vocabulary, not output.
 
+What tells them apart is the file a declaration came from, compared against `prelude.Name` in whole.
+Comparing how the name ends would take a user's `my-std.tdl` for the prelude and silently generate nothing for it.
+A replacement prelude is named by whoever passed it and is not recognized, so a project that replaces the prelude generates it too.
+Marking the prelude on the wire is the fix, and [plugins.md](plugins.md) argues the opposite, that a backend should see prelude declarations as declarations like any other.
+
 ## The type mapping
 
 A TDL primitive has no Go type of its own, so each is a decision rather than a translation.
@@ -52,6 +57,11 @@ Both spellings of an option mean the same thing, `ir` says lowering is authorita
 
 `Set` as a map is a compromise.
 Go has no set, and `[]T` for a set would silently permit the duplicates the type exists to forbid.
+
+It carries a cost the other collections do not: a Go map key must be comparable.
+TDL says a `Set` holds distinct values and a `Map` is keyed, and says nothing about how a language decides two values are the same, so `Set<bytes>` and `Map<[string], string>` are models a Go backend cannot express.
+`map[[]byte]struct{}` is not a weaker guarantee but a compile error, so a set element or a map key whose Go type cannot be one is a warning and the declaration is skipped.
+A pointer is comparable whatever it points at, which makes `Set<bytes?>` legal where `Set<bytes>` is not, and an interface is comparable by Go's own rule, so a sealed enum is a legal key and panics only if a variant holding an incomparable field is used as one.
 
 ## Structs
 
@@ -105,6 +115,8 @@ A backend that invented a wire format would be making a decision that belongs to
 
 A newtype is `type N Base`: distinct, not interchangeable, which is what the language says it is.
 Its `where` constraints are not enforced in phase 1; validation is its own phase and its own set of decisions about where the check lives.
+What is skipped is the constraint and not the declaration, and the backend warns that it is.
+Emitting nothing for a constrained newtype would leave every field naming it referring to a type the package does not declare, which turns one unimplemented phase into output that does not compile.
 
 An alias is transparent and is expanded rather than emitted.
 `ir` already calls it an abbreviation, so there is nothing to generate.
@@ -113,9 +125,15 @@ An alias is transparent and is expanded rather than emitted.
 
 The backend understands three, and declares all three in its handshake so the compiler can check them before generating anything.
 
-- `package("github.com/acme/billing")`, on the target block. The Go package clause is the last path segment. Written as an import path because that is what a consumer of the generated code will write, and the clause is derivable from it while the reverse is not.
-- `name("Account")`, on a declaration or a field. Overrides the Go identifier. TDL names and Go names disagree often enough that a rename has to be expressible, and renaming in the model would change the model to suit one backend.
-- `tag("json:\"email_address\"")`, on a field. Emitted verbatim as the struct tag. The backend does not parse it: a struct tag is an open convention, and any grammar imposed here would be one more thing to keep current with whatever reflects over it.
+- `package("github.com/acme/billing")`, on the target block.
+  The Go package clause is the last path segment.
+  Written as an import path because that is what a consumer of the generated code will write, and the clause is derivable from it while the reverse is not.
+- `name("Account")`, on a declaration or a field.
+  Overrides the Go identifier.
+  TDL names and Go names disagree often enough that a rename has to be expressible, and renaming in the model would change the model to suit one backend.
+- `tag("json:\"email_address\"")`, on a field.
+  Emitted verbatim as the struct tag.
+  The backend does not parse it: a struct tag is an open convention, and any grammar imposed here would be one more thing to keep current with whatever reflects over it.
 
 A directive the backend does not declare is a warning from the compiler and is passed through anyway, so a target block can carry a directive for a future phase without failing today.
 
@@ -143,7 +161,8 @@ An identifier that collides with a Go keyword after exporting cannot, since expo
 
 The backend reports what it cannot handle rather than emitting something plausible and wrong.
 
-A type parameter, a unit-typed field, a class declaration, an extern, and a `where` constraint each produce a warning with the node's position and are skipped.
+A type parameter, a unit-typed field, a class declaration, an extern, and a set element or map key Go cannot compare each produce a warning with the node's position, and the declaration reaching one is skipped.
+A `where` constraint warns and the declaration is still emitted, since the constraint is what is missing and not the type.
 Each is a phase in [go-backend-plan.md](go-backend-plan.md), and each is a set of decisions rather than an oversight.
 
 A warning does not stop a run, so a model that is mostly generatable generates.

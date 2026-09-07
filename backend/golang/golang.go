@@ -23,12 +23,12 @@ import (
 	"errors"
 	"fmt"
 	"go/format"
-	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
+	"github.com/unstoppablemango/tdl/prelude"
 )
 
 // Name is what this backend is called, in a target block and as tdl-gen-go
@@ -269,6 +269,11 @@ func (g *generator) enumeration(b *strings.Builder, decl *ir.Decl) error {
 //
 // Its `where` constraints are not enforced. Validation is phase 4 and its
 // own set of decisions about where a check lives.
+//
+// What is skipped is the constraint and not the declaration. Emitting
+// nothing for a constrained newtype would leave every field naming it
+// referring to a type the package does not declare, so the type is emitted
+// and the unenforced constraint is said out loud.
 func (g *generator) newtype(b *strings.Builder, decl *ir.Decl) error {
 	if len(decl.Params()) > 0 {
 		return unsupported(decl.GetMeta().GetPosition(),
@@ -278,6 +283,12 @@ func (g *generator) newtype(b *strings.Builder, decl *ir.Decl) error {
 	base, err := g.goType(decl.GetNewtype().GetBase())
 	if err != nil {
 		return err
+	}
+
+	if n := len(decl.GetNewtype().GetValueConstraints()); n > 0 {
+		g.warn(unsupported(decl.GetMeta().GetPosition(),
+			"%s carries %d where constraint(s), and validation is not generated yet",
+			decl.GetMeta().GetName(), n))
 	}
 
 	g.doc(b, decl.GetMeta())
@@ -375,27 +386,21 @@ func (g *generator) warn(err error) {
 // whose source declares two things arrives with twenty-one declarations. A
 // backend that emits per declaration has to decide what is the user's, and
 // which file a declaration came from is what says so.
+//
+// The embedded prelude is named [prelude.Name] and nothing else is: it is
+// parsed under that name rather than read from a path, so the comparison is
+// against the whole name and not its ending. A user's `my-std.tdl`, or a
+// `std.tdl` of their own in any directory, is theirs and is generated.
+//
+// A replacement prelude passed to `sema.WithPrelude` is named by whoever
+// passed it and is not recognized here. Marking the prelude on the wire is
+// the fix, and `plugins.md` argues the opposite, that a backend should see
+// prelude declarations as declarations like any other; until that is
+// settled, a project replacing the prelude generates it too.
 func (g *generator) own() []*ir.Decl {
-	prelude := ""
-	seen := map[string]bool{}
-	names := []string{}
-	for _, d := range g.model.GetDecls() {
-		name := d.GetMeta().GetPosition().GetFilename()
-		if !seen[name] {
-			seen[name] = true
-			names = append(names, name)
-		}
-	}
-	sort.Strings(names)
-	for _, name := range names {
-		if strings.HasSuffix(name, "std.tdl") {
-			prelude = name
-		}
-	}
-
 	var own []*ir.Decl
 	for _, d := range g.model.GetDecls() {
-		if d.GetMeta().GetPosition().GetFilename() == prelude {
+		if d.GetMeta().GetPosition().GetFilename() == prelude.Name {
 			continue
 		}
 		own = append(own, d)

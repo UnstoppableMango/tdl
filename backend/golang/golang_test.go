@@ -2,14 +2,19 @@ package golang_test
 
 import (
 	"context"
+	"go/ast"
+	"go/importer"
 	"go/parser"
 	"go/token"
+	"go/types"
+	"sort"
 	"strings"
 	"testing"
 
 	"github.com/unstoppablemango/tdl/backend/golang"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
+	"github.com/unstoppablemango/tdl/prelude"
 )
 
 // A model is built by hand rather than parsed, so a failure here is the
@@ -24,12 +29,12 @@ func newModel(pkg string) *modelBuilder {
 	// fixture carries the primitives a field can name.
 	for _, name := range []string{"string", "int", "bool", "bytes", "decimal", "uuid", "instant", "date", "duration", "List", "Set", "Map"} {
 		m.decl(&ir.Decl{
-			Meta: &ir.Meta{Name: name, Position: &ir.Position{Filename: "/nix/store/x/std.tdl"}},
+			Meta: &ir.Meta{Name: name, Position: &ir.Position{Filename: prelude.Name}},
 			Node: &ir.Decl_Primitive{Primitive: &ir.Primitive{}},
 		})
 	}
 	m.decl(&ir.Decl{
-		Meta: &ir.Meta{Name: "Option", Position: &ir.Position{Filename: "/nix/store/x/std.tdl"}},
+		Meta: &ir.Meta{Name: "Option", Position: &ir.Position{Filename: prelude.Name}},
 		Node: &ir.Decl_Enumeration{Enumeration: &ir.Enum{
 			Params:   []*ir.Param{{Name: "T"}},
 			Variants: []*ir.Variant{{Meta: &ir.Meta{Name: "Some"}}, {Meta: &ir.Meta{Name: "None"}}},
@@ -81,21 +86,58 @@ func generate(t *testing.T, m *modelBuilder) *plugin.Response {
 	return resp
 }
 
-// files keys a response by path, and asserts every file is parseable Go.
+// files keys a response by path, and asserts the response is a Go package
+// that compiles.
 //
-// Parsing is the assertion that matters: a substring check can pass while
-// the output is something go build refuses.
+// Type checking rather than parsing is the assertion that matters. A
+// substring check can pass while the output is something go build refuses,
+// and so can parsing: `map[[]byte]struct{}` parses, and an undeclared type
+// a skipped declaration left behind parses too.
+//
+// The whole response is checked as one package, since one file per
+// declaration means a struct's field type is usually declared in another
+// file.
 func files(t *testing.T, resp *plugin.Response) map[string]string {
 	t.Helper()
 	out := map[string]string{}
+	fset := token.NewFileSet()
+
+	var parsed []*ast.File
 	for _, f := range resp.GetFiles() {
 		src := string(f.GetContent())
-		if _, err := parser.ParseFile(token.NewFileSet(), f.GetPath(), src, parser.AllErrors); err != nil {
-			t.Errorf("%s is not parseable Go: %v\n%s", f.GetPath(), err, src)
-		}
 		out[f.GetPath()] = src
+
+		file, err := parser.ParseFile(fset, f.GetPath(), src, parser.AllErrors)
+		if err != nil {
+			t.Errorf("%s is not parseable Go: %v\n%s", f.GetPath(), err, src)
+			continue
+		}
+		parsed = append(parsed, file)
+	}
+	if len(parsed) != len(resp.GetFiles()) || len(parsed) == 0 {
+		return out
+	}
+
+	// The source importer reads GOROOT rather than a build cache, so this
+	// needs nothing installed and no module on disk. The generated package
+	// imports only the standard library.
+	conf := types.Config{Importer: importer.ForCompiler(fset, "source", nil)}
+	if _, err := conf.Check(parsed[0].Name.Name, fset, parsed, nil); err != nil {
+		t.Errorf("the generated package does not type check: %v\n%s", err, strings.Join(sources(out), "\n"))
 	}
 	return out
+}
+
+// sources returns the response's files in a stable order, for a failure to
+// print.
+func sources(out map[string]string) []string {
+	paths := keys(out)
+	sort.Strings(paths)
+	srcs := make([]string, 0, len(paths))
+	for _, p := range paths {
+		srcs = append(srcs, "==> "+p+" <==\n"+out[p])
+	}
+	return srcs
 }
 
 // contains asserts on the output with runs of whitespace collapsed, since
@@ -278,6 +320,115 @@ func TestNewtype(t *testing.T) {
 	contains(t, got["sku.go"], "type Sku string")
 }
 
+// A newtype's `where` constraints are not enforced yet, and the backend
+// says so rather than letting the model believe they are. The type itself
+// is still emitted: skipping it would leave every field naming it referring
+// to something the package does not declare.
+func TestConstrainedNewtypeIsEmittedWithAWarning(t *testing.T) {
+	m := newModel("shop")
+	m.own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Email", Position: &ir.Position{Filename: "shop.tdl", Line: 7}},
+		Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{
+			Base:             m.named("string"),
+			ValueConstraints: []*ir.Constraint{{Name: "matches"}},
+		}},
+	})
+	m.own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Contact"},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{
+			Fields: []*ir.Field{field("email", m.named("Email"))},
+		}},
+	})
+
+	resp := generate(t, m)
+	if len(resp.GetDiagnostics()) != 1 {
+		t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	if line := resp.GetDiagnostics()[0].GetPosition().GetLine(); line != 7 {
+		t.Errorf("position line = %d", line)
+	}
+
+	got := files(t, resp)
+	contains(t, got["email.go"], "type Email string")
+	contains(t, got["contact.go"], "Email Email")
+}
+
+// Go requires a map key to be comparable, so a Set or a Map that would
+// become one it refuses is reported rather than emitted.
+func TestIncomparableKeysAreUnsupported(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		typ  func(m *modelBuilder) *ir.ID
+	}{
+		{"set of bytes", func(m *modelBuilder) *ir.ID { return m.named("Set", m.named("bytes")) }},
+		{"set of lists", func(m *modelBuilder) *ir.ID {
+			return m.named("Set", m.named("List", m.named("string")))
+		}},
+		{"map keyed by a list", func(m *modelBuilder) *ir.ID {
+			return m.named("Map", m.named("List", m.named("string")), m.named("string"))
+		}},
+		{"map keyed by a struct holding a list", func(m *modelBuilder) *ir.ID {
+			return m.named("Map", m.named("Path"), m.named("string"))
+		}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			m := newModel("shop")
+			m.own(&ir.Decl{
+				Meta: &ir.Meta{Name: "Path"},
+				Node: &ir.Decl_Structure{Structure: &ir.Struct{
+					Fields: []*ir.Field{field("segments", m.named("List", m.named("string")))},
+				}},
+			})
+			m.own(&ir.Decl{
+				Meta: &ir.Meta{Name: "Index", Position: &ir.Position{Filename: "shop.tdl", Line: 9}},
+				Node: &ir.Decl_Structure{Structure: &ir.Struct{
+					Fields: []*ir.Field{field("by", tt.typ(m))},
+				}},
+			})
+
+			resp := generate(t, m)
+			if len(resp.GetDiagnostics()) != 1 {
+				t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+			}
+			got := files(t, resp)
+			if _, ok := got["index.go"]; ok {
+				t.Errorf("a declaration with an uncompilable field was emitted:\n%s", got["index.go"])
+			}
+		})
+	}
+}
+
+// A comparable element is still a map, since that is the only Go shape that
+// keeps what a Set promises.
+func TestComparableSetsStillGenerate(t *testing.T) {
+	m := newModel("shop")
+	m.own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Sku"},
+		Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{Base: m.named("string")}},
+	})
+	m.own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Basket"},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{
+			Fields: []*ir.Field{
+				field("skus", m.named("Set", m.named("Sku"))),
+				// A pointer is comparable whatever it points at, so an
+				// optional element is a legal key even when its element
+				// would not be.
+				field("maybe", m.named("Set", m.named("Option", m.named("bytes")))),
+			},
+		}},
+	})
+
+	resp := generate(t, m)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	contains(t, files(t, resp)["basket.go"],
+		"Skus map[Sku]struct{}",
+		"Maybe map[*[]byte]struct{}",
+	)
+}
+
 // An alias is transparent, so it is expanded at every use rather than
 // declared.
 func TestAliasIsExpanded(t *testing.T) {
@@ -389,6 +540,23 @@ func TestPreludeIsNotGenerated(t *testing.T) {
 	got := files(t, generate(t, m))
 	if len(got) != 1 {
 		t.Errorf("expected only the model's own declaration, got %v", keys(got))
+	}
+}
+
+// The prelude is recognized by its whole name and not by how the name ends,
+// so a user's file that happens to end the same way is still theirs.
+func TestAFileEndingInStdIsNotThePrelude(t *testing.T) {
+	m := newModel("shop")
+	m.own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Note", Position: &ir.Position{Filename: "my-std.tdl"}},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{
+			Fields: []*ir.Field{field("body", m.named("string"))},
+		}},
+	})
+
+	got := files(t, generate(t, m))
+	if _, ok := got["note.go"]; !ok {
+		t.Errorf("a user file was mistaken for the prelude: %v", keys(got))
 	}
 }
 

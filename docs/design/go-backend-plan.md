@@ -26,9 +26,11 @@ The directory is `golang` and the backend is called `go`.
 
 ## What is not here
 
-**`foreign`.** Three primitives map to a placeholder because the right answer is a dependency the backend must not choose. Phase 5 is where that is fixed, and until then a project wanting `decimal.Decimal` post-processes.
+**`foreign`.** Three primitives map to a placeholder because the right answer is a dependency the backend must not choose.
+Phase 5 is where that is fixed, and until then a project wanting `decimal.Decimal` post-processes.
 
-**Dependency target blocks.** `ir-plan.md` phase 8b is not done, so a model does not see a dependency's blocks. Nothing here is blocked on it, because a generated package refers to a dependency through an extern either way.
+**Dependency target blocks.** `ir-plan.md` phase 8b is not done, so a model does not see a dependency's blocks.
+Nothing here is blocked on it, because a generated package refers to a dependency through an extern either way.
 
 ## Testing
 
@@ -37,6 +39,7 @@ A hand-built model states exactly the shape under test and does not drag the par
 
 The end-to-end test is the only one that matters: generated Go has to compile.
 A test that asserts on substrings can pass while emitting something `go build` refuses, and every phase here adds a shape that could.
+Parsing is not enough either, since `map[[]byte]struct{}` parses, so the unit tests type check the whole response as one package with `go/types` and a source importer.
 
 Both hosts run the same assertions, in process and as a subprocess, following `internal/gen/subprocess_test.go`.
 That is the protocol's invariant and this backend is the second thing holding it.
@@ -48,7 +51,8 @@ The shapes that need no new machinery: `Struct` in all three kinds, `Enum` in bo
 `Describe` declares `package`, `name`, and `tag`.
 The output is one file per declaration, formatted with `go/format`.
 
-Everything else, a type parameter, a unit, a class, an extern, or a `where` constraint, is a warning with a position and is skipped.
+Everything else, a type parameter, a unit, a class, an extern, or a set element or map key Go cannot compare, is a warning with a position and the declaration reaching it is skipped.
+A `where` constraint warns and the declaration is still emitted, since skipping a constrained newtype would leave every field naming it undeclared.
 
 The backend is registered in `internal/gen/registry.go` and served by `cmd/tdl-gen-go`.
 
@@ -56,7 +60,8 @@ Done when a model containing an entity, a value, a mixin, both enum shapes, and 
 
 ## Phase 2: identity
 
-`key` fields become something. An entity's identity is the one thing the language says an entity has that a value does not, and phase 1 emits them as ordinary fields, which loses it.
+`key` fields become something.
+An entity's identity is the one thing the language says an entity has that a value does not, and phase 1 emits them as ordinary fields, which loses it.
 
 The candidates are a `Key()` method returning a comparable struct, a generated key type per entity, and nothing at all with the `key` bits exposed as metadata.
 
@@ -98,7 +103,11 @@ Done when a corpus case is a directory and adding one requires no code.
 
 ## Decisions deferred
 
-- **Serialization.** No `encoding/json` opinion is generated. `tag` is how a consumer states one, and a backend that emitted tags by default would be choosing a wire format on their behalf.
-- **`Set` as a map.** `map[T]struct{}` is what phase 1 emits. A generated set type with methods is nicer to use and is a bigger commitment than a collection mapping should make on its own.
-- **Doc comment rendering.** `///` comments become Go doc comments verbatim. Whether a name is prefixed to satisfy Go's "comment starts with the identifier" convention is left alone, because rewriting a user's prose is worse than a vet warning.
+- **Serialization.** No `encoding/json` opinion is generated.
+  `tag` is how a consumer states one, and a backend that emitted tags by default would be choosing a wire format on their behalf.
+- **`Set` as a map.** `map[T]struct{}` is what phase 1 emits.
+  A generated set type with methods is nicer to use and is a bigger commitment than a collection mapping should make on its own.
+  It would also lift the comparability restriction, which is the strongest argument for it.
+- **Doc comment rendering.** `///` comments become Go doc comments verbatim.
+  Whether a name is prefixed to satisfy Go's "comment starts with the identifier" convention is left alone, because rewriting a user's prose is worse than a vet warning.
 - **One file per declaration.** Settled in [go-backend.md](go-backend.md), but the alternative of one file per package is the thing to revisit if a model with many small declarations makes the tree unreadable.

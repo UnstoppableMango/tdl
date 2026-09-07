@@ -150,6 +150,10 @@ func (g *generator) collection(name string, t *ir.Type) (string, error) {
 		if err != nil {
 			return "", err
 		}
+		if !g.comparable(args[0]) {
+			return "", unsupported(pos,
+				"a Set becomes a Go map, and %s is not a comparable Go type", e)
+		}
 		return "map[" + e + "]struct{}", nil
 	case "Map":
 		k, err := elem(0)
@@ -160,9 +164,93 @@ func (g *generator) collection(name string, t *ir.Type) (string, error) {
 		if err != nil {
 			return "", err
 		}
+		if !g.comparable(args[0]) {
+			return "", unsupported(pos,
+				"a Map key becomes a Go map key, and %s is not a comparable Go type", k)
+		}
 		return "map[" + k + "]" + v, nil
 	}
 	return "", unsupported(pos, "primitive %s has no Go type", name)
+}
+
+// comparable reports whether the Go type standing for a type reference may
+// be a map key.
+//
+// TDL says a Set holds distinct values and a Map is keyed, and says nothing
+// about how a language decides two values are the same. Go does: a map key
+// must be comparable, and `map[[]byte]struct{}` is not a weaker guarantee
+// but a compile error. So a set or a key whose Go type cannot be one is
+// reported as unsupported rather than emitted.
+//
+// An interface counts as comparable, which is Go's own rule: a sealed enum
+// is legal as a key and panics only if a variant holding an incomparable
+// field is used as one. Refusing it here would refuse the common case to
+// prevent the rare one.
+func (g *generator) comparable(id *ir.ID) bool {
+	return g.comparableSeen(id, map[int32]bool{})
+}
+
+// comparableSeen carries the declarations already being asked about, since
+// a struct may reach itself and a cycle is not an answer.
+func (g *generator) comparableSeen(id *ir.ID, seen map[int32]bool) bool {
+	t := g.model.Type(id)
+	if t == nil {
+		return false
+	}
+	// A parameter, a unit, and an extern each have no Go type at all, and
+	// goType has already refused them by the time this is asked.
+	if t.GetParam() != nil || t.GetUnit() != nil || t.GetExtern() != nil {
+		return false
+	}
+
+	decl := g.model.Decl(t.GetCtor())
+	if decl == nil {
+		return false
+	}
+	name := decl.GetMeta().GetName()
+
+	if a := decl.GetAlias(); a != nil {
+		return g.comparableSeen(a.GetTarget(), seen)
+	}
+	if decl.GetPrimitive() != nil {
+		if goName, ok := primitives[name]; ok {
+			return !strings.HasPrefix(goName, "[]")
+		}
+		// A List is a slice and a Set and a Map are maps; none of the three
+		// is comparable.
+		return false
+	}
+
+	// Option and Nullable are a pointer, and a pointer is comparable
+	// whatever it points at.
+	if decl.GetEnumeration() != nil && (name == "Option" || name == "Nullable") && len(t.GetArgs()) == 1 {
+		return true
+	}
+	if decl.GetEnumeration() != nil {
+		// Both enum shapes, a string type and a sealed interface, are legal
+		// map keys.
+		return true
+	}
+
+	index := t.GetCtor().GetIndex()
+	if seen[index] {
+		return false
+	}
+	seen[index] = true
+
+	if n := decl.GetNewtype(); n != nil {
+		return g.comparableSeen(n.GetBase(), seen)
+	}
+	if decl.GetStructure() != nil {
+		for _, f := range decl.Fields() {
+			if !g.comparableSeen(f.GetType(), seen) {
+				return false
+			}
+		}
+		return true
+	}
+	// A class and a unit are not Go types, and goType refuses them.
+	return false
 }
 
 // exported turns a TDL name into an exported Go identifier.
