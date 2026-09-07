@@ -3,6 +3,7 @@ package gen
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -42,7 +43,7 @@ func Targets(model *ir.Model, override string) ([]Target, error) {
 // outOf reads a block's `out("...")` directive.
 func outOf(block *ir.TargetBlock) string {
 	for _, d := range block.GetDirectives() {
-		if d.GetName() != "out" || len(d.GetArgs()) == 0 {
+		if d.GetName() != outDirective || len(d.GetArgs()) == 0 {
 			continue
 		}
 		return d.GetArgs()[0].GetText()
@@ -84,7 +85,7 @@ func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.M
 	}
 
 	result := Result{Target: target.Name, Diagnostics: resp.GetDiagnostics()}
-	if fatal(resp.GetDiagnostics()) {
+	if Fatal(resp.GetDiagnostics()) {
 		return result, fmt.Errorf("target %s reported errors", target.Name)
 	}
 
@@ -119,12 +120,9 @@ func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.M
 	return result, nil
 }
 
-// fatal reports whether any diagnostic is an error rather than a warning.
-func fatal(diags []*plugin.Diagnostic) bool {
-	for _, d := range diags {
-		if d.GetSeverity() == plugin.Severity_SEVERITY_ERROR {
-			return true
-		}
-	}
-	return false
+// Fatal reports whether any diagnostic is an error rather than a warning.
+func Fatal(diags []*plugin.Diagnostic) bool {
+	return slices.ContainsFunc(diags, func(d *plugin.Diagnostic) bool {
+		return d.GetSeverity() == plugin.Severity_SEVERITY_ERROR
+	})
 }

@@ -184,17 +184,14 @@ func (r *genRun) generate(path string) error {
 		// What a backend understands is checked against the target block
 		// before anything runs, so a mistyped directive fails with a
 		// position rather than half way through writing files.
-		failed := false
-		for _, p := range gen.CheckDirectives(t.Name, model, backend.Describe()) {
-			fmt.Fprintln(cmd.ErrOrStderr(), p)
-			failed = failed || !p.Warning
-		}
-		if failed {
+		problems := gen.CheckDirectives(t.Name, model, backend.Describe())
+		reportDiagnostics(cmd, problems)
+		if gen.Fatal(problems) {
 			return fmt.Errorf("target %s uses a directive incorrectly", t.Name)
 		}
 
 		result, err := gen.Run(cmd.Context(), backend, t, model, mode)
-		reportDiagnostics(cmd, result)
+		reportDiagnostics(cmd, result.Diagnostics)
 		if err != nil {
 			return err
 		}
@@ -220,21 +217,17 @@ func (r *genRun) generate(path string) error {
 	return nil
 }
 
-// severity names a diagnostic's level for output.
-func severity(d *plugin.Diagnostic) string {
-	if d.GetSeverity() == plugin.Severity_SEVERITY_WARNING {
-		return "warning"
-	}
-	return "error"
-}
-
-// reportDiagnostics prints what a backend said, in the same shape as the
-// compiler's own diagnostics.
-func reportDiagnostics(cmd *cobra.Command, result gen.Result) {
-	for _, d := range result.Diagnostics {
+// reportDiagnostics prints what a backend said, or what was found wrong
+// with its target block, in the same shape as the compiler's own
+// diagnostics.
+func reportDiagnostics(cmd *cobra.Command, diags []*plugin.Diagnostic) {
+	for _, d := range diags {
+		severity := "error"
+		if d.GetSeverity() == plugin.Severity_SEVERITY_WARNING {
+			severity = "warning"
+		}
 		pos := d.GetPosition()
 		fmt.Fprintf(cmd.ErrOrStderr(), "%s:%d:%d: %s: %s\n",
-			pos.GetFilename(), pos.GetLine(), pos.GetColumn(),
-			severity(d), d.GetMessage())
+			pos.GetFilename(), pos.GetLine(), pos.GetColumn(), severity, d.GetMessage())
 	}
 }

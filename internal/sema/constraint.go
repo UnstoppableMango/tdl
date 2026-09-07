@@ -64,7 +64,7 @@ func (l *lowerer) checkStandard(src *ast.Constraint, c *ir.Constraint) {
 	}
 	for _, arg := range c.GetArgs() {
 		if !slices.Contains(spec.kinds, arg.GetKind()) {
-			l.diags.add(positionOf(arg.GetPosition()), "%s does not take %s", c.GetName(), kindName(arg.GetKind()))
+			l.diags.add(positionOf(arg.GetPosition()), "%s does not take %s", c.GetName(), ir.KindName(arg.GetKind()))
 		}
 	}
 }
@@ -74,28 +74,6 @@ func plural(n int) string {
 		return ""
 	}
 	return "s"
-}
-
-func kindName(k ir.LiteralKind) string {
-	switch k {
-	case ir.LiteralKind_LITERAL_KIND_STRING:
-		return "a string"
-	case ir.LiteralKind_LITERAL_KIND_INT:
-		return "an integer"
-	case ir.LiteralKind_LITERAL_KIND_FLOAT:
-		return "a float"
-	case ir.LiteralKind_LITERAL_KIND_BOOL:
-		return "a boolean"
-	case ir.LiteralKind_LITERAL_KIND_NAME:
-		return "a name"
-	case ir.LiteralKind_LITERAL_KIND_REGEX:
-		return "a regex"
-	case ir.LiteralKind_LITERAL_KIND_LIST:
-		return "a list"
-	case ir.LiteralKind_LITERAL_KIND_RANGE:
-		return "a range"
-	}
-	return "that"
 }
 
 // literal lowers a literal value.

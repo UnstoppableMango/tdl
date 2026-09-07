@@ -9,11 +9,11 @@ package debug
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
+	"github.com/unstoppablemango/tdl/prelude"
 )
 
 // Name is what this backend is called, in a target block and as
@@ -100,30 +100,11 @@ func notes(own []*ir.Decl) []*plugin.Diagnostic {
 }
 
 // partition splits declarations by whether they came from the file being
-// generated or from the prelude merged into it.
+// generated or from the prelude merged into it, which is the one file
+// whose name a backend can know in advance.
 func partition(model *ir.Model) (own, borrowed []*ir.Decl) {
-	counts := map[string]int{}
 	for _, d := range model.GetDecls() {
-		counts[d.GetMeta().GetPosition().GetFilename()]++
-	}
-
-	// The file with the most declarations that is not the one the model
-	// names is the prelude. Rather than guess, take the model's own package
-	// file as whatever is not the prelude's.
-	prelude := ""
-	names := make([]string, 0, len(counts))
-	for name := range counts {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	for _, name := range names {
-		if strings.HasSuffix(name, "std.tdl") {
-			prelude = name
-		}
-	}
-
-	for _, d := range model.GetDecls() {
-		if d.GetMeta().GetPosition().GetFilename() == prelude {
+		if strings.HasSuffix(d.GetMeta().GetPosition().GetFilename(), prelude.Name) {
 			borrowed = append(borrowed, d)
 			continue
 		}
