@@ -1,5 +1,44 @@
 # Changelog
 
+## [0.1.8](https://github.com/UnstoppableMango/tdl/compare/v0.1.7...v0.1.8) (2026-09-08)
+
+
+### Features
+
+* add Go code generation for enums, newtypes, and declarations ([d67e927](https://github.com/UnstoppableMango/tdl/commit/d67e927d758e447a350e5f41cc5036a09480089c))
+* **backend/golang:** add Go source code generator backend ([d67e927](https://github.com/UnstoppableMango/tdl/commit/d67e927d758e447a350e5f41cc5036a09480089c))
+* **gen:** register Go backend as a builtin and add integration tests ([d67e927](https://github.com/UnstoppableMango/tdl/commit/d67e927d758e447a350e5f41cc5036a09480089c))
+* **golang:** add comparability check for Set elements and Map keys ([d67e927](https://github.com/UnstoppableMango/tdl/commit/d67e927d758e447a350e5f41cc5036a09480089c))
+* **golang:** add Go backend type system and plugin entrypoint ([d67e927](https://github.com/UnstoppableMango/tdl/commit/d67e927d758e447a350e5f41cc5036a09480089c))
+
+
+### Bug Fixes
+
+* **parser:** record a name's position before reading the name ([#761](https://github.com/UnstoppableMango/tdl/issues/761)) ([3fe0aac](https://github.com/UnstoppableMango/tdl/commit/3fe0aacb855f8705141c9f8c63ef0685ba1f069e))
+
+
+### Documentation
+
+* add Go backend design document ([d67e927](https://github.com/UnstoppableMango/tdl/commit/d67e927d758e447a350e5f41cc5036a09480089c))
+* add Go backend implementation plan ([d67e927](https://github.com/UnstoppableMango/tdl/commit/d67e927d758e447a350e5f41cc5036a09480089c))
+* add Go backend to AGENTS.md and README.md documentation ([#754](https://github.com/UnstoppableMango/tdl/issues/754)) ([d67e927](https://github.com/UnstoppableMango/tdl/commit/d67e927d758e447a350e5f41cc5036a09480089c))
+* **go-backend:** clarify prelude filtering, Set/Map key constraints, newtype constraint handling, and directive formatting ([d67e927](https://github.com/UnstoppableMango/tdl/commit/d67e927d758e447a350e5f41cc5036a09480089c))
+
+
+### Code Refactoring
+
+* **ast:** one head per declaration ([#757](https://github.com/UnstoppableMango/tdl/issues/757)) ([c4b9904](https://github.com/UnstoppableMango/tdl/commit/c4b99047a119980a63e7856d5bd0fd5b5bced79e))
+* **gen:** report directive problems as diagnostics ([#759](https://github.com/UnstoppableMango/tdl/issues/759)) ([0e0033c](https://github.com/UnstoppableMango/tdl/commit/0e0033c6faae6d596dd43366177e44aeb4e0676a))
+* **sema:** read the scope instead of two side tables ([#758](https://github.com/UnstoppableMango/tdl/issues/758)) ([6109c22](https://github.com/UnstoppableMango/tdl/commit/6109c223622c144eb85b9e9fd9fd647786a04ced))
+* use the standard library where it says the same thing ([#760](https://github.com/UnstoppableMango/tdl/issues/760)) ([a939e51](https://github.com/UnstoppableMango/tdl/commit/a939e5173ec03d8e7e292746d03181f67cc36329))
+
+
+### Tests
+
+* add comprehensive test suite for Go backend code generation ([d67e927](https://github.com/UnstoppableMango/tdl/commit/d67e927d758e447a350e5f41cc5036a09480089c))
+* **golang:** add comprehensive test suite for Go backend code generation ([d67e927](https://github.com/UnstoppableMango/tdl/commit/d67e927d758e447a350e5f41cc5036a09480089c))
+* **golang:** upgrade file assertion to full type checking and add new test cases ([d67e927](https://github.com/UnstoppableMango/tdl/commit/d67e927d758e447a350e5f41cc5036a09480089c))
+
 ## [0.1.7](https://github.com/UnstoppableMango/tdl/compare/v0.1.6...v0.1.7) (2026-09-07)
 
 
