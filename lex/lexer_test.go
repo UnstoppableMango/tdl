@@ -178,3 +178,23 @@ func TestRescanRegexUnterminated(t *testing.T) {
 func TestUnitDivisionStaysSlash(t *testing.T) {
 	want(t, "kg*m/s^2", lex.IDENT, lex.STAR, lex.IDENT, lex.SLASH, lex.IDENT, lex.CARET, lex.INT)
 }
+
+// A token's text is a slice of the source, so scanning allocates nothing.
+// Converting a rune to a string instead would allocate once per operator,
+// which is a per-token cost on the hottest path in the lexer and the kind
+// of thing that returns quietly once it has been fixed.
+func TestScanningOperatorsDoesNotAllocate(t *testing.T) {
+	const src = "{}()[]<>:,?|^*/->=>.."
+
+	got := testing.AllocsPerRun(100, func() {
+		l := lex.New("t.tdl", src)
+		for {
+			if l.Next().Kind == lex.EOF {
+				return
+			}
+		}
+	})
+	if got > 0 {
+		t.Errorf("scanning %q allocated %v times per run, want 0", src, got)
+	}
+}
