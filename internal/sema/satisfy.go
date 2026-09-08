@@ -1,6 +1,8 @@
 package sema
 
 import (
+	"slices"
+
 	"github.com/unstoppablemango/tdl/ast"
 	"github.com/unstoppablemango/tdl/ir"
 )
@@ -44,11 +46,11 @@ func (l *lowerer) expandInto(file *ast.File, name string, done, onPath map[strin
 		return
 	}
 
-	idx, ok := l.byName[name]
-	if !ok {
+	b, ok := l.file.lookup(name)
+	if !ok || b.kind != bindDecl {
 		return
 	}
-	target := l.model.Decls[idx].GetStructure()
+	target := l.model.Decl(b.id).GetStructure()
 	if target == nil {
 		return
 	}
@@ -187,7 +189,7 @@ func (l *lowerer) closure(class int32, direct map[int32]bool) []int32 {
 				continue
 			}
 			for _, ref := range conformsOf(decl) {
-				if l.requiresClass(ref.GetClass(), class, map[int32]bool{}) {
+				if l.hops(ref.GetClass(), class, 0, map[int32]bool{}) >= 0 {
 					reached[int32(i)] = true
 					changed = true
 				}
@@ -204,23 +206,29 @@ func (l *lowerer) closure(class int32, direct map[int32]bool) []int32 {
 	return out
 }
 
-// requiresClass reports whether sub is class, or requires it transitively.
-func (l *lowerer) requiresClass(sub *ir.ID, class int32, seen map[int32]bool) bool {
-	if !sub.Resolved() || seen[sub.GetIndex()] {
-		return false
+// hops is how many `requires` steps separate a class from one it requires
+// transitively: zero for the class itself, and -1 when it never reaches it.
+func (l *lowerer) hops(from *ir.ID, to int32, depth int, seen map[int32]bool) int {
+	if !from.Resolved() || seen[from.GetIndex()] {
+		return -1
 	}
-	if sub.GetIndex() == class {
-		return true
+	if from.GetIndex() == to {
+		return depth
 	}
-	seen[sub.GetIndex()] = true
 
-	decl := l.model.Decl(sub)
-	for _, ref := range decl.GetClass().GetRequiresClasses() {
-		if l.requiresClass(ref.GetClass(), class, seen) {
-			return true
+	// seen marks the path being walked and not everything ever walked: a
+	// sibling branch may reach the same class in fewer steps, and a shared
+	// set would prune the shorter route and report the longer one.
+	seen[from.GetIndex()] = true
+	defer delete(seen, from.GetIndex())
+
+	best := -1
+	for _, ref := range l.model.Decl(from).GetClass().GetRequiresClasses() {
+		if d := l.hops(ref.GetClass(), to, depth+1, seen); d >= 0 && (best < 0 || d < best) {
+			best = d
 		}
 	}
-	return false
+	return best
 }
 
 // conformsOf returns the classes a declaration says it satisfies.
@@ -306,17 +314,9 @@ func (l *lowerer) satisfies(class, decl *ir.ID) bool {
 	if !class.Resolved() || !decl.Resolved() {
 		return true // unresolved names are already reported
 	}
-	for _, sat := range l.model.GetSatisfies() {
-		if sat.GetClass().GetIndex() != class.GetIndex() {
-			continue
-		}
-		for _, d := range sat.GetDecls() {
-			if d.GetIndex() == decl.GetIndex() {
-				return true
-			}
-		}
-	}
-	return false
+	return slices.ContainsFunc(l.model.Satisfying(class), func(d *ir.ID) bool {
+		return d.GetIndex() == decl.GetIndex()
+	})
 }
 
 // constraintsOf returns the `requires` clause on a declaration's

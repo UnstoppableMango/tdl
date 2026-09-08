@@ -130,9 +130,11 @@ func (l *lowerer) typeArgs(args []*ast.TypeArg) []*ir.ID {
 		switch {
 		case a.Unit != nil:
 			out = append(out, l.unitArg(a.Unit, a.P))
-		case a.Type != nil && l.namesAUnit(a.Type):
-			out = append(out, l.namedUnitArg(a.Type))
 		default:
+			if id, ok := l.namedUnit(a.Type); ok {
+				out = append(out, id)
+				continue
+			}
 			out = append(out, l.typeRef(a.Type))
 		}
 	}
@@ -152,19 +154,31 @@ func (l *lowerer) unitArg(e *ast.UnitExpr, pos ast.Position) *ir.ID {
 	return l.unitType(l.internUnit(acc, ast.PrintUnitExpr(e), pos), pos)
 }
 
-// namedUnitArg interns a bare name that resolved to a unit declaration.
-// The declaration already carries what it measures, so there is nothing to
-// reduce.
-func (l *lowerer) namedUnitArg(t *ast.TypeRef) *ir.ID {
+// namedUnit interns a bare name that resolves to a unit declaration, which
+// is what makes it a unit argument rather than a type argument. The
+// declaration already carries what it measures, so there is nothing to
+// reduce; one that failed to resolve is an unresolved unit rather than a
+// type.
+func (l *lowerer) namedUnit(t *ast.TypeRef) (*ir.ID, bool) {
+	// A modifier makes it a type reference whatever the name resolves to.
+	// `kg?` is not a unit, and treating it as one drops the modifier and
+	// interns the same entry as a bare `kg`.
+	if t == nil || t.N == "" || t.Qualifier != "" || len(t.Args) > 0 ||
+		t.Optional || t.Nullable {
+		return nil, false
+	}
 	b, ok := l.scope.lookup(t.N)
-	if !ok {
-		return &ir.ID{Index: ir.Unresolved}
+	if !ok || b.kind != bindDecl {
+		return nil, false
 	}
-	def := l.model.Decls[b.id.GetIndex()].GetUnit()
-	if def == nil || !def.GetUnit().Resolved() {
-		return &ir.ID{Index: ir.Unresolved}
+	def := l.model.Decl(b.id).GetUnit()
+	if def == nil {
+		return nil, false
 	}
-	return l.unitType(def.GetUnit(), t.P)
+	if !def.GetUnit().Resolved() {
+		return &ir.ID{Index: ir.Unresolved}, true
+	}
+	return l.unitType(def.GetUnit(), t.P), true
 }
 
 // unitType wraps a unit in a type-table entry, which is what makes a unit
@@ -175,19 +189,6 @@ func (l *lowerer) unitType(unit *ir.ID, pos ast.Position) *ir.ID {
 		Wrote:    ir.SyntacticForm_SYNTACTIC_FORM_NAMED,
 		Position: position(pos),
 	})
-}
-
-// namesAUnit reports whether a bare argument resolves to a unit
-// declaration, which is what makes it a unit argument rather than a type
-// argument.
-func (l *lowerer) namesAUnit(t *ast.TypeRef) bool {
-	if t.N == "" || t.Qualifier != "" || len(t.Args) > 0 {
-		return false
-	}
-	if b, ok := l.scope.lookup(t.N); !ok || b.kind != bindDecl {
-		return false
-	}
-	return l.units[t.N]
 }
 
 // qualified resolves `alias.Name` to an extern.

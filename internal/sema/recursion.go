@@ -1,6 +1,8 @@
 package sema
 
 import (
+	"slices"
+
 	"github.com/unstoppablemango/tdl/ast"
 )
 
@@ -20,17 +22,18 @@ import (
 // parameterized by that rather than duplicated.
 func (l *lowerer) checkRecursion(file *ast.File) {
 	for _, decl := range file.Decls {
+		name := decl.Name()
 		switch d := decl.(type) {
 		case *ast.AliasDecl:
 			// Expansion follows every edge, including through collections.
-			l.findCycle(file, decl.Name(), d.Name(), map[string]bool{}, true)
+			l.findCycle(file, name, name, map[string]bool{}, true)
 		case *ast.StructDecl:
 			if d.Keyword == "entity" {
 				continue
 			}
-			l.findCycle(file, decl.Name(), d.Name(), map[string]bool{}, false)
+			l.findCycle(file, name, name, map[string]bool{}, false)
 		case *ast.EnumDecl:
-			l.findCycle(file, decl.Name(), d.Name(), map[string]bool{}, false)
+			l.findCycle(file, name, name, map[string]bool{}, false)
 		}
 	}
 }
@@ -146,10 +149,9 @@ func reachedNames(t *ast.TypeRef, throughWrappers bool) []string {
 }
 
 func findDecl(file *ast.File, name string) ast.Decl {
-	for _, d := range file.Decls {
-		if d.Name() == name {
-			return d
-		}
+	i := slices.IndexFunc(file.Decls, func(d ast.Decl) bool { return d.Name() == name })
+	if i < 0 {
+		return nil
 	}
-	return nil
+	return file.Decls[i]
 }

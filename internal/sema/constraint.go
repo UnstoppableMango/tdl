@@ -1,6 +1,7 @@
 package sema
 
 import (
+	"slices"
 	"strconv"
 
 	"github.com/unstoppablemango/tdl/ast"
@@ -62,19 +63,10 @@ func (l *lowerer) checkStandard(src *ast.Constraint, c *ir.Constraint) {
 		return
 	}
 	for _, arg := range c.GetArgs() {
-		if !allowed(arg.GetKind(), spec.kinds) {
+		if !slices.Contains(spec.kinds, arg.GetKind()) {
 			l.diags.add(positionOf(arg.GetPosition()), "%s does not take %s", c.GetName(), kindName(arg.GetKind()))
 		}
 	}
-}
-
-func allowed(k ir.LiteralKind, kinds []ir.LiteralKind) bool {
-	for _, want := range kinds {
-		if k == want {
-			return true
-		}
-	}
-	return false
 }
 
 func plural(n int) string {
@@ -134,14 +126,14 @@ func (l *lowerer) literal(lit *ast.Literal) *ir.Literal {
 	case ast.LitRange:
 		out.Kind = ir.LiteralKind_LITERAL_KIND_RANGE
 		out.Text = ""
-		out.Range = &ir.Range{Low: bound(l, lit.Lo), High: bound(l, lit.Hi)}
+		out.Range = &ir.Range{Low: l.bound(lit.Lo), High: l.bound(lit.Hi)}
 	}
 	return out
 }
 
 // bound parses one end of a range, which is absent when the range is open
 // on that side.
-func bound(l *lowerer, lit *ast.Literal) *int64 {
+func (l *lowerer) bound(lit *ast.Literal) *int64 {
 	if lit == nil {
 		return nil
 	}

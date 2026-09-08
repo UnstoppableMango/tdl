@@ -70,9 +70,7 @@ func Lower(file *ast.File, opts ...Option) (*ir.Model, Diagnostics) {
 
 	l := &lowerer{
 		model:    &ir.Model{},
-		byName:   map[string]int32{},
 		types:    map[string]int32{},
-		units:    map[string]bool{},
 		unitKeys: map[string]int32{},
 		aliases:  map[string]string{},
 		externs:  map[string]int32{},
@@ -133,9 +131,7 @@ func (l *lowerer) loadPrelude(cfg config) *scope {
 
 type lowerer struct {
 	model    *ir.Model
-	byName   map[string]int32  // declaration name to index
 	types    map[string]int32  // interning key to index
-	units    map[string]bool   // declaration names that are units
 	unitKeys map[string]int32  // reduced dimensions to Model.units index
 	aliases  map[string]string // import alias to package name
 	externs  map[string]int32  // "pkg.Name" to index
@@ -167,10 +163,6 @@ func (l *lowerer) collect(file *ast.File) {
 			l.diags.add(decl.Pos(), "%s is declared twice, first at %s", name, prev.pos)
 			continue
 		}
-		l.byName[name] = idx
-		if _, isUnit := decl.(*ast.UnitDecl); isUnit {
-			l.units[name] = true
-		}
 		l.model.Decls = append(l.model.Decls, &ir.Decl{Meta: metaOf(decl.Head(), i)})
 	}
 }
@@ -196,18 +188,19 @@ func (l *lowerer) lower(file *ast.File) {
 		if !namesAType(decl) {
 			continue
 		}
-		idx, ok := l.byName[decl.Name()]
-		if !ok {
+		b, ok := l.file.lookup(decl.Name())
+		if !ok || b.pos != decl.Pos() {
 			continue // a duplicate, already reported
 		}
-		l.setNode(l.model.Decls[idx], decl)
+		l.setNode(l.model.Decl(b.id), decl)
 	}
 }
 
 // declID returns the ID of a declaration by name, for use as a parameter's
 // owner. Every name here has already been collected.
 func (l *lowerer) declID(name string) *ir.ID {
-	return &ir.ID{Index: l.byName[name], Name: name}
+	b, _ := l.file.lookup(name)
+	return b.id
 }
 
 // inScope lowers within a scope and restores the previous one, so a
