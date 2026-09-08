@@ -21,7 +21,7 @@ This skill is about what to check, which is a different question.
    - `docs/spec.md`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `tree-sitter/` — [grammar.md](grammar.md)
    - `testdata/`, `prelude/`, `examples/` — [corpora.md](corpora.md)
    - Go under `lex/`, `parser/`, `ast/`, `internal/`, `ir/`, `plugin/` — [go.md](go.md)
-4. Check for incompleteness. A change is often correct in what it touches and wrong in what it leaves behind: a proto edit without the regenerated `.pb.go`, a lowering change without regenerated goldens, a grammar change without the spec.
+4. Check for incompleteness. A change is often correct in what it touches and wrong in what it leaves behind: a proto edit without the regenerated `.pb.go`, a lowering change without regenerated goldens, a grammar change without the spec, a deleted document with links still pointing at it. Nothing checks that a link resolves, so a deletion is worth grepping for.
 
 ## What a good comment looks like
 
