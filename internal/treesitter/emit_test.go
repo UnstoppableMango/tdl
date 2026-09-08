@@ -1,7 +1,6 @@
 package treesitter_test
 
 import (
-	"flag"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,11 +10,6 @@ import (
 	"github.com/unstoppablemango/tdl/internal/treesitter"
 )
 
-// update rewrites tree-sitter/grammar.js instead of checking it:
-//
-//	go test ./internal/treesitter -update
-var update = flag.Bool("update", false, "rewrite tree-sitter/grammar.js")
-
 var (
 	grammarPath = filepath.Join("..", "..", "docs", "grammar.ebnf")
 	goldenPath  = filepath.Join("..", "..", "tree-sitter", "grammar.js")
@@ -24,22 +18,16 @@ var (
 // TestGrammarJS checks the committed grammar.js against the grammar it is
 // derived from. It is the check the corpus cannot make: a production that
 // reaches docs/grammar.ebnf and not the derived parser is a diff here.
+// tools/treesitter is what writes the file; this only reads it.
 func TestGrammarJS(t *testing.T) {
 	got := emitDocs(t)
 
-	if *update {
-		if err := os.WriteFile(goldenPath, []byte(got), 0o644); err != nil {
-			t.Fatalf("writing %s: %v", goldenPath, err)
-		}
-		return
-	}
-
 	want, err := os.ReadFile(goldenPath)
 	if err != nil {
-		t.Fatalf("reading %s: %v (run `go test ./internal/treesitter -update`)", goldenPath, err)
+		t.Fatalf("reading %s: %v (run `make treesitter`)", goldenPath, err)
 	}
 	if got != string(want) {
-		t.Errorf("%s is out of date, run `go test ./internal/treesitter -update`", goldenPath)
+		t.Errorf("%s is out of date, run `make treesitter`", goldenPath)
 	}
 }
 
@@ -254,19 +242,10 @@ func emit(t *testing.T, src string) string {
 func emitDocs(t *testing.T) string {
 	t.Helper()
 
-	src, err := os.ReadFile(grammarPath)
+	file, err := ebnf.ReadFile(grammarPath, ebnf.GrammarOptions)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	file, errs := ebnf.Read(grammarPath, string(src), ebnf.GrammarOptions)
-	for _, err := range errs {
-		t.Errorf("%v", err)
-	}
-	if file == nil {
-		t.FailNow()
-	}
-
 	js, err := treesitter.Emit(file)
 	if err != nil {
 		t.Fatal(err)

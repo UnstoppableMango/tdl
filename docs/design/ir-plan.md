@@ -10,7 +10,7 @@ This plan builds `ir` and the lowering that produces it.
 It does not build backends or the plugin protocol.
 
 The parser is finished.
-[parser-plan.md](parser-plan.md) delivered the whole grammar, so every phase below starts from a complete `ast.File` and nothing here is blocked on front-end work.
+The parser reads the whole grammar, so every phase below starts from a complete `ast.File` and nothing here is blocked on front-end work.
 `prelude/std.tdl` exists and parses; it declares the primitives, collection constructors, `Option`, `Nullable`, the SI base units, and the `Entity` and `Value` classes.
 
 Seven grammar problems surfaced while writing the parser and were fixed in the spec.
@@ -184,7 +184,7 @@ They are Go tests in `internal/sema` instead.
 
 `tdl check` becomes parse plus full lowering, with `--parse-only` for editors that want the fast path on every keystroke.
 
-The plugin protocol used to be what came after this, and it arrived first: `docs/design/plugins-plan.md` is complete.
+The plugin protocol used to be what came after this, and it arrived first: [plugins.md](plugins.md) is built.
 
 ## Not in this plan
 

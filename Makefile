@@ -12,9 +12,6 @@ cover: cover.profile
 cover.profile: ${GO_SRC}
 	go test -race -coverprofile=$@ ./...
 
-validate_codecov: codecov.yml
-	curl -X POST --data-binary @codecov.yml https://codecov.io/validate
-
 # Watch a TDL file and re-render it on every save.
 # Override the target: make play FILE=examples/nested.tdl VIEWS=all
 FILE ?= examples/nested.tdl
@@ -31,13 +28,13 @@ generate:
 # from grammar.js. Both are committed, so this only runs when the grammar
 # changes; read the diff rather than trusting it.
 treesitter:
-	go test ./internal/treesitter -update
+	go run ./tools/treesitter
 	cd tree-sitter && tree-sitter generate
 
 # Regenerate the VS Code TextMate grammar from docs/grammar.ebnf. Committed
 # like grammar.js, so this only runs when the grammar or the lexer changes.
 textmate:
-	go test ./internal/textmate -update
+	go run ./tools/textmate
 
 # Package editors/vscode and install it into a running VS Code. The
 # grammar it carries is whatever `make textmate` last wrote.
@@ -51,14 +48,14 @@ test-treesitter:
 update:
 	nix flake update
 
-check lint:
+lint:
 	nix flake check
 	golangci-lint run ./...
 	buf lint
 	buf format --diff --exit-code
 	markdownlint-cli2
 
-format fmt:
+fmt:
 	nix fmt
 	buf format -w
 

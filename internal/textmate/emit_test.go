@@ -2,7 +2,6 @@ package textmate_test
 
 import (
 	"encoding/json"
-	"flag"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -14,11 +13,6 @@ import (
 	"github.com/unstoppablemango/tdl/lex"
 )
 
-// update rewrites the committed grammar instead of checking it:
-//
-//	go test ./internal/textmate -update
-var update = flag.Bool("update", false, "rewrite editors/vscode/syntaxes/tdl.tmLanguage.json")
-
 var (
 	grammarPath    = filepath.Join("..", "..", "docs", "grammar.ebnf")
 	goldenPath     = filepath.Join("..", "..", "editors", "vscode", "syntaxes", "tdl.tmLanguage.json")
@@ -28,22 +22,16 @@ var (
 // TestTmLanguage checks the committed grammar against the file it is
 // derived from. A keyword that reaches lex and not the colors is a diff
 // here, which is the whole reason the grammar is derived.
+// tools/textmate is what writes the file; this only reads it.
 func TestTmLanguage(t *testing.T) {
 	got := emitDocs(t)
 
-	if *update {
-		if err := os.WriteFile(goldenPath, []byte(got), 0o644); err != nil {
-			t.Fatalf("writing %s: %v", goldenPath, err)
-		}
-		return
-	}
-
 	want, err := os.ReadFile(goldenPath)
 	if err != nil {
-		t.Fatalf("reading %s: %v (run `go test ./internal/textmate -update`)", goldenPath, err)
+		t.Fatalf("reading %s: %v (run `make textmate`)", goldenPath, err)
 	}
 	if got != string(want) {
-		t.Errorf("%s is out of date, run `go test ./internal/textmate -update`", goldenPath)
+		t.Errorf("%s is out of date, run `make textmate`", goldenPath)
 	}
 }
 
@@ -343,19 +331,10 @@ type capture struct {
 func emitDocs(t *testing.T) string {
 	t.Helper()
 
-	src, err := os.ReadFile(grammarPath)
+	grammar, err := ebnf.ReadFile(grammarPath, ebnf.GrammarOptions)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	grammar, errs := ebnf.Read(grammarPath, string(src), ebnf.GrammarOptions)
-	for _, err := range errs {
-		t.Errorf("%v", err)
-	}
-	if grammar == nil {
-		t.FailNow()
-	}
-
 	out, err := textmate.Emit(grammar)
 	if err != nil {
 		t.Fatal(err)

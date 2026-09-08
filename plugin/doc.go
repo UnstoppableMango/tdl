@@ -55,8 +55,7 @@
 //
 // # What a plugin will not see
 //
-// Units, because ir defers them and a model using one does not lower. A
-// dependency's target blocks, because merging them needs the dependency
+// A dependency's target blocks, because merging them needs the dependency
 // lowered and nothing does that yet. And class-scoped directives on types
 // that satisfy a class only through a conditional instance: a directive on
 // Auditable reaches Audited and not the Page[Audited] that satisfies

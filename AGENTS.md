@@ -16,6 +16,7 @@ command make cover            # go test -race -coverprofile=cover.profile ./... 
 command make play             # watch scratch.tdl; FILE=examples/nested.tdl VIEWS=all to override
 command make lint             # nix flake check + golangci-lint + buf + markdownlint
 command make fmt              # nix fmt (treefmt) + buf format
+command make update           # nix flake update
 command make tidy             # go mod tidy + regenerate nix/gomod2nix.toml
 command make generate         # buf generate: proto/ -> ir/ir.pb.go
 command make treesitter       # docs/grammar.ebnf -> tree-sitter/grammar.js -> tree-sitter/src/
@@ -171,7 +172,7 @@ An ISO EBNF tool reads either file as an error from its first production, so VS 
 A lexical name the lexer owns is declared as a production with no expression, which is how this notation says the name is defined elsewhere, and a `/*@ token ... */` annotation names the `lex` symbol that defines it.
 `reserved_word` is spelled out rather than annotated, and `internal/ebnf` checks that list against `lex.Keywords`, so a keyword added to one and not the other fails the build.
 `ebnf.Read` returns the annotations beside the grammar, scanned from the comments the parsing library drops, and holds the file to them: a production with no expression needs a `token` binding, and every name an annotation mentions has to exist.
-`docs/design/treesitter.md` defines them, and `internal/treesitter` is what reads them: `tree-sitter/grammar.js` is derived from this file with `go run ./tools/treesitter`, committed like `ir/ir.pb.go`, and checked by `go test ./internal/treesitter`, which rewrites it under `-update`.
+`docs/design/treesitter.md` defines them, and `internal/treesitter` is what reads them: `tree-sitter/grammar.js` is derived from this file with `go run ./tools/treesitter`, committed like `ir/ir.pb.go`, and checked by `go test ./internal/treesitter`, which only compares and never writes it.
 `make treesitter` runs that and `tree-sitter generate` after it, since the parser is committed too.
 Change the grammar and regenerate, and read the diff rather than trusting it.
 `make test-treesitter` runs `tree-sitter/corpus.sh`, which holds the derived parser to both corpora: `testdata/conformance/*/source.tdl` must parse with no ERROR node and `testdata/invalid/*/source.tdl` must produce one.
@@ -182,7 +183,7 @@ CI runs `make treesitter`, `git diff --exit-code`, and `make test-treesitter` th
 `TestDocsAreClean` fails the build when either file stops linting clean.
 
 The same file derives the VS Code grammar.
-`editors/vscode/syntaxes/tdl.tmLanguage.json` is written by `go run ./tools/textmate`, committed, and checked by `go test ./internal/textmate`, which rewrites it under `-update`; `make textmate` is that command.
+`editors/vscode/syntaxes/tdl.tmLanguage.json` is written by `go run ./tools/textmate`, committed, and checked by `go test ./internal/textmate`, which only compares it; `make textmate` runs the tool.
 A keyword added to `lex` and to `reserved_word` is a diff there as well as in `grammar.js`, so both grammars move together.
 The extension around it is `editors/vscode/`, and `nix build .#vscode-tdl` builds it; `programs.tdl.vscode.enable` in the home-manager module installs it, and by hand it goes in `vscode-with-extensions` or in home-manager's `programs.vscode.profiles.<name>.extensions`, either from `packages.vscode-tdl` or as `pkgs.vscode-tdl` through the overlay.
 `make vscode-install` is the other way in, for iterating on the colors: it packages the directory as a `.vsix` and hands it to `code --install-extension`, which is the only route that reaches the client.
