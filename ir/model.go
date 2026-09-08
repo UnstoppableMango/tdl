@@ -110,3 +110,31 @@ func (x *Model) SatisfyingTypes(class *ID) []*ID {
 	}
 	return nil
 }
+
+// KindName is how a diagnostic names a literal kind: "a string", "an
+// integer", and so on, so a message reads as a sentence.
+func KindName(k LiteralKind) string {
+	switch k {
+	case LiteralKind_LITERAL_KIND_STRING:
+		return "a string"
+	case LiteralKind_LITERAL_KIND_INT:
+		return "an integer"
+	case LiteralKind_LITERAL_KIND_FLOAT:
+		return "a float"
+	case LiteralKind_LITERAL_KIND_BOOL:
+		return "a boolean"
+	case LiteralKind_LITERAL_KIND_NAME:
+		return "a name"
+	case LiteralKind_LITERAL_KIND_REGEX:
+		return "a regex"
+	case LiteralKind_LITERAL_KIND_LIST:
+		return "a list"
+	case LiteralKind_LITERAL_KIND_RANGE:
+		return "a range"
+	case LiteralKind_LITERAL_KIND_UNSPECIFIED:
+		return "an unspecified value"
+	}
+	// A kind this build has no name for, which is what a model written
+	// against a newer schema looks like from here.
+	return "an unrecognized value"
+}

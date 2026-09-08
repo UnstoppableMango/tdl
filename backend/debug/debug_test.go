@@ -8,6 +8,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/debug"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
+	"github.com/unstoppablemango/tdl/prelude"
 )
 
 func TestDescribe(t *testing.T) {
@@ -43,7 +44,7 @@ func TestGenerate(t *testing.T) {
 			{
 				Meta: &ir.Meta{
 					Name:     "List",
-					Position: &ir.Position{Filename: "/nix/store/x/std.tdl"},
+					Position: &ir.Position{Filename: prelude.Name},
 				},
 			},
 		},
@@ -120,5 +121,42 @@ func TestDiagnostics(t *testing.T) {
 	// A warning does not stop a run, so the file is still there.
 	if len(resp.GetFiles()) != 1 {
 		t.Error("a warning suppressed the output")
+	}
+}
+
+// The prelude is matched by its whole name. A suffix match would also
+// claim a file of the model's own called `mystd.tdl` and report its
+// declarations as borrowed, so a name ending in the prelude's is the case
+// that tells the two apart.
+func TestNearMissPreludeNameIsOwn(t *testing.T) {
+	model := &ir.Model{
+		Package: "shop",
+		Decls: []*ir.Decl{
+			{
+				Meta: &ir.Meta{Name: "Order", Position: &ir.Position{Filename: "mystd.tdl"}},
+				Node: &ir.Decl_Structure{Structure: &ir.Struct{
+					Fields: []*ir.Field{{Meta: &ir.Meta{Name: "id"}, Type: &ir.ID{Name: "string"}}},
+				}},
+			},
+			{
+				Meta: &ir.Meta{Name: "List", Position: &ir.Position{Filename: prelude.Name}},
+			},
+		},
+	}
+
+	resp, err := debug.Backend{}.Generate(context.Background(), &plugin.Request{
+		Target: debug.Name,
+		Model:  model,
+	})
+	if err != nil {
+		t.Fatalf("generate: %v", err)
+	}
+
+	out := string(resp.GetFiles()[0].GetContent())
+	if !strings.Contains(out, "1 own, 1 from the prelude") {
+		t.Errorf("mystd.tdl was not counted as the model's own:\n%s", out)
+	}
+	if !strings.Contains(out, "Order") {
+		t.Errorf("output missing the declaration from mystd.tdl:\n%s", out)
 	}
 }

@@ -63,11 +63,11 @@ func TestDirectiveArity(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			model := modelWith(&ir.Directive{Name: "tag", Target: "t", Args: tt.args})
 			problems := gen.CheckDirectives("t", model, spec())
-			if len(problems) != 1 || problems[0].Warning {
+			if len(problems) != 1 || problems[0].GetSeverity() == plugin.Severity_SEVERITY_WARNING {
 				t.Fatalf("problems = %v", problems)
 			}
-			if !strings.Contains(problems[0].Message, tt.want) {
-				t.Errorf("message = %q, want it to mention %q", problems[0].Message, tt.want)
+			if !strings.Contains(problems[0].GetMessage(), tt.want) {
+				t.Errorf("message = %q, want it to mention %q", problems[0].GetMessage(), tt.want)
 			}
 		})
 	}
@@ -81,11 +81,11 @@ func TestDirectiveArgumentKind(t *testing.T) {
 	})
 
 	problems := gen.CheckDirectives("t", model, spec())
-	if len(problems) != 1 || problems[0].Warning {
+	if len(problems) != 1 || problems[0].GetSeverity() == plugin.Severity_SEVERITY_WARNING {
 		t.Fatalf("problems = %v", problems)
 	}
-	if !strings.Contains(problems[0].Message, "is an integer, want a string") {
-		t.Errorf("message = %q", problems[0].Message)
+	if !strings.Contains(problems[0].GetMessage(), "is an integer, want a string") {
+		t.Errorf("message = %q", problems[0].GetMessage())
 	}
 }
 
@@ -98,11 +98,11 @@ func TestUndeclaredDirectiveWarns(t *testing.T) {
 	if len(problems) != 1 {
 		t.Fatalf("problems = %v", problems)
 	}
-	if !problems[0].Warning {
+	if problems[0].GetSeverity() != plugin.Severity_SEVERITY_WARNING {
 		t.Error("an undeclared directive was an error")
 	}
-	if !strings.Contains(problems[0].Message, "surprise") {
-		t.Errorf("the warning does not name it: %q", problems[0].Message)
+	if !strings.Contains(problems[0].GetMessage(), "surprise") {
+		t.Errorf("the warning does not name it: %q", problems[0].GetMessage())
 	}
 }
 
