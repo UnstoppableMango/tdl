@@ -160,7 +160,11 @@ func (l *lowerer) unitArg(e *ast.UnitExpr, pos ast.Position) *ir.ID {
 // reduce; one that failed to resolve is an unresolved unit rather than a
 // type.
 func (l *lowerer) namedUnit(t *ast.TypeRef) (*ir.ID, bool) {
-	if t == nil || t.N == "" || t.Qualifier != "" || len(t.Args) > 0 {
+	// A modifier makes it a type reference whatever the name resolves to.
+	// `kg?` is not a unit, and treating it as one drops the modifier and
+	// interns the same entry as a bare `kg`.
+	if t == nil || t.N == "" || t.Qualifier != "" || len(t.Args) > 0 ||
+		t.Optional || t.Nullable {
 		return nil, false
 	}
 	b, ok := l.scope.lookup(t.N)

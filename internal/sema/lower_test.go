@@ -1408,3 +1408,57 @@ func TestDirectiveNameMayBeAKeyword(t *testing.T) {
 		t.Errorf("directive = %q", got)
 	}
 }
+
+// hops reports the shortest `requires` chain, so a class reachable by two
+// routes is measured by the shorter one. The walk marks the path it is on
+// rather than everything it has ever seen: sharing one set across sibling
+// branches lets the first, longer route claim a class and the shorter one
+// then find it already taken.
+//
+// Here Top reaches Root at four steps through Long and at three through
+// Short, and Long is written first. classDistance turns the answer into
+// directive specificity, so a long answer is a directive winning that
+// should not.
+func TestHopsTakesTheShortestRequiresChain(t *testing.T) {
+	model := lower(t, `
+class Root { }
+class Via: Root { }
+class Deep: Via { }
+class Short: Via { }
+class Long: Deep { }
+class Top: Long, Short { }`)
+
+	_, top, ok := model.FindDecl("Top")
+	if !ok {
+		t.Fatal("no class Top")
+	}
+	_, root, ok := model.FindDecl("Root")
+	if !ok {
+		t.Fatal("no class Root")
+	}
+
+	l := &lowerer{model: model}
+	if got := l.hops(top, root.GetIndex(), 0, map[int32]bool{}); got != 3 {
+		t.Errorf("hops(Top, Root) = %d, want 3", got)
+	}
+}
+
+// A modifier on a named reference makes it a type reference, whatever the
+// name resolves to. Reading `kg?` as a bare unit drops the `?` and interns
+// the same entry a plain `kg` reaches, so the two spellings would become
+// one type.
+func TestModifiedUnitNameIsNotABareUnit(t *testing.T) {
+	model := lower(t, `
+primitive decimal
+unit kg
+value W {
+  net: decimal<kg>
+  maybe: decimal<kg?>
+}`)
+
+	decl, _, _ := model.FindDecl("W")
+	fields := decl.GetStructure().GetFields()
+	if got, other := fields[0].GetType().GetIndex(), fields[1].GetType().GetIndex(); got == other {
+		t.Errorf("decimal<kg?> interned with decimal<kg> at types[%d]", got)
+	}
+}

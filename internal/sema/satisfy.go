@@ -215,7 +215,12 @@ func (l *lowerer) hops(from *ir.ID, to int32, depth int, seen map[int32]bool) in
 	if from.GetIndex() == to {
 		return depth
 	}
+
+	// seen marks the path being walked and not everything ever walked: a
+	// sibling branch may reach the same class in fewer steps, and a shared
+	// set would prune the shorter route and report the longer one.
 	seen[from.GetIndex()] = true
+	defer delete(seen, from.GetIndex())
 
 	best := -1
 	for _, ref := range l.model.Decl(from).GetClass().GetRequiresClasses() {
