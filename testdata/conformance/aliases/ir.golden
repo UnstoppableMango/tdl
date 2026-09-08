@@ -21,12 +21,12 @@ Model example.aliases
 │   ├── [14] unit kg  std.tdl:31:1
 │   │   └── measures units[2] kg
 │   ├── [15] enum Option  std.tdl:34:1
-│   │   ├── param T  std.tdl:34:14
+│   │   ├── param T  std.tdl:34:13
 │   │   ├── variant Some  std.tdl:35:3
 │   │   │   └── field value: types[0] T  std.tdl:35:10
 │   │   └── variant None  std.tdl:36:3
 │   ├── [16] enum Nullable  std.tdl:40:1
-│   │   ├── param T  std.tdl:40:16
+│   │   ├── param T  std.tdl:40:15
 │   │   ├── variant Present  std.tdl:41:3
 │   │   │   └── field value: types[1] T  std.tdl:41:13
 │   │   └── variant Null  std.tdl:42:3
@@ -36,16 +36,16 @@ Model example.aliases
 │   ├── [19] alias Handler  source.tdl:6:1
 │   │   └── target types[5] Map<string, List<Event>>
 │   ├── [20] alias Pair  source.tdl:8:1
-│   │   ├── param T  source.tdl:8:13
+│   │   ├── param T  source.tdl:8:12
 │   │   └── target types[7] Map<string, T>
 │   ├── [21] alias Maybe  source.tdl:9:1
-│   │   ├── param T  source.tdl:9:14
+│   │   ├── param T  source.tdl:9:13
 │   │   └── target types[9] Option<T>
 │   ├── [22] alias Nullable2  source.tdl:10:1
-│   │   ├── param T  source.tdl:10:18
+│   │   ├── param T  source.tdl:10:17
 │   │   └── target types[11] Nullable<T>
 │   ├── [23] alias Both  source.tdl:11:1
-│   │   ├── param T  source.tdl:11:13
+│   │   ├── param T  source.tdl:11:12
 │   │   └── target types[14] Nullable<Option<T>>
 │   ├── [24] alias Qualified  source.tdl:12:1
 │   │   └── target types[15] example.common.Address

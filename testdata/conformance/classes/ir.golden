@@ -19,12 +19,12 @@ Model example.classes
 │   ├── [14] unit kg  std.tdl:31:1
 │   │   └── measures units[2] kg
 │   ├── [15] enum Option  std.tdl:34:1
-│   │   ├── param T  std.tdl:34:14
+│   │   ├── param T  std.tdl:34:13
 │   │   ├── variant Some  std.tdl:35:3
 │   │   │   └── field value: types[0] T  std.tdl:35:10
 │   │   └── variant None  std.tdl:36:3
 │   ├── [16] enum Nullable  std.tdl:40:1
-│   │   ├── param T  std.tdl:40:16
+│   │   ├── param T  std.tdl:40:15
 │   │   ├── variant Present  std.tdl:41:3
 │   │   │   └── field value: types[1] T  std.tdl:41:13
 │   │   └── variant Null  std.tdl:42:3
@@ -34,7 +34,7 @@ Model example.classes
 │   ├── [19] class Timestamped  source.tdl:3:1
 │   │   └── field createdAt: types[2] instant  source.tdl:4:3
 │   ├── [20] class Auditable  source.tdl:7:1
-│   │   ├── requires Timestamped  source.tdl:7:30
+│   │   ├── requires Timestamped  source.tdl:7:18
 │   │   └── field updatedAt: types[2] instant  source.tdl:8:3
 │   ├── [21] class Tenanted  source.tdl:11:1
 │   │   ├── requires key
@@ -46,11 +46,11 @@ Model example.classes
 │   ├── [24] class Projection  source.tdl:22:1
 │   │   └── fundep from -> to  source.tdl:22:30
 │   ├── [25] value Page  source.tdl:24:1
-│   │   ├── param f  source.tdl:24:13
-│   │   ├── param T  source.tdl:24:16
+│   │   ├── param f  source.tdl:24:12
+│   │   ├── param T  source.tdl:24:15
 │   │   └── field items: types[6] f<T>  source.tdl:25:3
 │   └── [26] value Envelope  source.tdl:28:1
-│       ├── param T  source.tdl:28:17
+│       ├── param T  source.tdl:28:16
 │       ├── field body: types[8] T  source.tdl:29:3
 │       └── field receivedAt: types[2] instant  source.tdl:30:3
 ├── Satisfies

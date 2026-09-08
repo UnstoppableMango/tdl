@@ -19,12 +19,12 @@ Model billing
 │   ├── [14] unit kg  std.tdl:31:1
 │   │   └── measures units[2] kg
 │   ├── [15] enum Option  std.tdl:34:1
-│   │   ├── param T  std.tdl:34:14
+│   │   ├── param T  std.tdl:34:13
 │   │   ├── variant Some  std.tdl:35:3
 │   │   │   └── field value: types[0] T  std.tdl:35:10
 │   │   └── variant None  std.tdl:36:3
 │   ├── [16] enum Nullable  std.tdl:40:1
-│   │   ├── param T  std.tdl:40:16
+│   │   ├── param T  std.tdl:40:15
 │   │   ├── variant Present  std.tdl:41:3
 │   │   │   └── field value: types[1] T  std.tdl:41:13
 │   │   └── variant Null  std.tdl:42:3
@@ -36,14 +36,14 @@ Model billing
 │   ├── [21] class Auditable  source.tdl:6:1
 │   │   └── field createdAt: types[2] instant  source.tdl:7:3
 │   ├── [22] entity User  @go:name("Account")  @go:embed("audit.Fields") (via Auditable)  @sql:trigger("set_updated_at") (via Auditable)  source.tdl:10:1
-│   │   ├── conforms Auditable  source.tdl:10:24
+│   │   ├── conforms Auditable  source.tdl:10:14
 │   │   ├── field key id: types[3] string  source.tdl:11:7
 │   │   ├── field createdAt: types[2] instant  source.tdl:12:3
 │   │   ├── field email: types[3] string  @go:tag("json:\"email_address\"")  source.tdl:13:3
 │   │   ├── field name: types[3] string  source.tdl:14:3
 │   │   └── field type: types[3] string  @go:tag("json:\"kind\"")  source.tdl:15:3
 │   └── [23] entity Order  @go:embed("audit.Fields") (via Auditable)  @sql:table("orders")  @sql:trigger("set_updated_at") (via Auditable)  source.tdl:18:1
-│       ├── conforms Auditable  source.tdl:18:25
+│       ├── conforms Auditable  source.tdl:18:15
 │       ├── field key id: types[3] string  source.tdl:19:7
 │       ├── field createdAt: types[2] instant  source.tdl:20:3
 │       ├── field owned items: types[4] List<string>  @go:slice  source.tdl:21:3
