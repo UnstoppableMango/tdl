@@ -8,7 +8,7 @@ This is not a task list and does not estimate anything.
 
 This plan builds the `go` backend: the first code generator in this repository.
 
-[plugins-plan.md](plugins-plan.md) scoped it out on purpose, saying "a code generator is a body of work with its own plan and its own conformance story".
+[plugins.md](plugins.md) covers the protocol and not what a backend does with it: a code generator is a body of work with its own plan and its own conformance story.
 This is that plan.
 The protocol it speaks is finished and unchanged by anything here; if a phase needs something the protocol cannot express, the protocol is what changes, and this plan does not get a private surface.
 
