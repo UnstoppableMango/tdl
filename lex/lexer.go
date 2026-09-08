@@ -191,11 +191,15 @@ func (l *Lexer) scanOperator() Token {
 	}
 
 	// Every remaining operator is one character, so its spelling is its
-	// kind's name in the table.
-	if kind, ok := Lookup(string(ch)); ok {
-		return Token{Kind: kind, Text: string(ch), Pos: pos}
+	// kind's name in the table. The text is a slice of the source rather
+	// than a conversion of the rune, the way scanIdent takes its own: a
+	// slice shares the source's bytes and a conversion allocates, and an
+	// illegal character wider than a byte reaches the token whole.
+	text := l.src[pos.Offset:l.offset]
+	if kind, ok := Lookup(text); ok {
+		return Token{Kind: kind, Text: text, Pos: pos}
 	}
-	return Token{Kind: ILLEGAL, Text: string(ch), Pos: pos}
+	return Token{Kind: ILLEGAL, Text: text, Pos: pos}
 }
 
 func (l *Lexer) scanIdent(pos Position) Token {
