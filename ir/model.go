@@ -131,6 +131,10 @@ func KindName(k LiteralKind) string {
 		return "a list"
 	case LiteralKind_LITERAL_KIND_RANGE:
 		return "a range"
+	case LiteralKind_LITERAL_KIND_UNSPECIFIED:
+		return "an unspecified value"
 	}
-	return "unspecified"
+	// A kind this build has no name for, which is what a model written
+	// against a newer schema looks like from here.
+	return "an unrecognized value"
 }

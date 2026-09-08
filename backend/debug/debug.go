@@ -102,9 +102,13 @@ func notes(own []*ir.Decl) []*plugin.Diagnostic {
 // partition splits declarations by whether they came from the file being
 // generated or from the prelude merged into it, which is the one file
 // whose name a backend can know in advance.
+//
+// The name is matched whole. A suffix match would also claim a file of the
+// model's own called `mystd.tdl`, and report its declarations as the
+// prelude's.
 func partition(model *ir.Model) (own, borrowed []*ir.Decl) {
 	for _, d := range model.GetDecls() {
-		if strings.HasSuffix(d.GetMeta().GetPosition().GetFilename(), prelude.Name) {
+		if d.GetMeta().GetPosition().GetFilename() == prelude.Name {
 			borrowed = append(borrowed, d)
 			continue
 		}
