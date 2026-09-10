@@ -1,0 +1,24 @@
+package shop.orders
+
+import "common.tdl" as common
+
+entity Order {
+  key id: OrderId
+  customer: User
+  shipping: common.Address?
+  items: [LineItem] owned
+  status: Status = Draft
+}
+
+entity LineItem {
+  key order: Order
+  key sku: string
+  quantity: int
+}
+
+entity User {
+  key id: string
+}
+
+type OrderId: string
+enum Status { Draft Placed Shipped }

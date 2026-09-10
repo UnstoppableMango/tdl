@@ -1,0 +1,75 @@
+Model example.parameters
+├── Decls
+│   ├── [0] primitive string  std.tdl:4:1
+│   ├── [1] primitive int  std.tdl:6:1
+│   ├── [2] primitive bool  std.tdl:7:1
+│   ├── [3] primitive bytes  std.tdl:8:1
+│   ├── [4] primitive List: type -> type  std.tdl:11:1
+│   ├── [5] primitive Set: type -> type  std.tdl:14:1
+│   ├── [6] primitive Map: type -> type -> type  std.tdl:17:1
+│   ├── [7] primitive decimal  std.tdl:20:1
+│   ├── [8] primitive uuid  std.tdl:22:1
+│   ├── [9] primitive instant  std.tdl:23:1
+│   ├── [10] primitive date  std.tdl:24:1
+│   ├── [11] primitive duration  std.tdl:25:1
+│   ├── [12] unit s  std.tdl:28:1
+│   │   └── measures units[0] s
+│   ├── [13] unit m  std.tdl:30:1
+│   │   └── measures units[1] m
+│   ├── [14] unit kg  std.tdl:31:1
+│   │   └── measures units[2] kg
+│   ├── [15] enum Option  std.tdl:34:1
+│   │   ├── param T  std.tdl:34:13
+│   │   ├── variant Some  std.tdl:35:3
+│   │   │   └── field value: types[0] T  std.tdl:35:10
+│   │   └── variant None  std.tdl:36:3
+│   ├── [16] enum Nullable  std.tdl:40:1
+│   │   ├── param T  std.tdl:40:15
+│   │   ├── variant Present  std.tdl:41:3
+│   │   │   └── field value: types[1] T  std.tdl:41:13
+│   │   └── variant Null  std.tdl:42:3
+│   ├── [17] class Entity  std.tdl:46:1
+│   │   └── requires key
+│   ├── [18] class Value  std.tdl:51:1
+│   ├── [19] alias Applied  source.tdl:3:1
+│   │   ├── param f: type -> type  source.tdl:3:15
+│   │   ├── param T: type  source.tdl:3:32
+│   │   └── target types[3] f<T>
+│   ├── [20] alias Inferred  source.tdl:4:1
+│   │   ├── param f  source.tdl:4:16
+│   │   ├── param T  source.tdl:4:19
+│   │   └── target types[5] f<T>
+│   ├── [21] alias Curried  source.tdl:5:1
+│   │   ├── param f: type -> type -> type  source.tdl:5:15
+│   │   ├── param A  source.tdl:5:40
+│   │   ├── param B  source.tdl:5:43
+│   │   └── target types[8] f<A, B>
+│   ├── [22] alias Parenthesized  source.tdl:6:1
+│   │   ├── param f: (type -> type) -> type  source.tdl:6:21
+│   │   ├── param g  source.tdl:6:48
+│   │   └── target types[10] f<g>
+│   └── [23] alias Measured  source.tdl:7:1
+│       ├── param T  source.tdl:7:16
+│       ├── param u: unit  source.tdl:7:19
+│       └── target types[12] T<u>
+├── Satisfies
+│   ├── Entity: nothing
+│   └── Value: nothing
+├── Units
+│   ├── [0] s  std.tdl:28:1
+│   ├── [1] m  std.tdl:30:1
+│   └── [2] kg  std.tdl:31:1
+└── Types
+    ├── [0] T  named  -> param Option.T  std.tdl:35:17
+    ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
+    ├── [2] T  named  -> param Applied.T  source.tdl:3:45
+    ├── [3] f<T>  named  -> param Applied.f  source.tdl:3:43
+    ├── [4] T  named  -> param Inferred.T  source.tdl:4:26
+    ├── [5] f<T>  named  -> param Inferred.f  source.tdl:4:24
+    ├── [6] A  named  -> param Curried.A  source.tdl:5:50
+    ├── [7] B  named  -> param Curried.B  source.tdl:5:53
+    ├── [8] f<A, B>  named  -> param Curried.f  source.tdl:5:48
+    ├── [9] g  named  -> param Parenthesized.g  source.tdl:6:55
+    ├── [10] f<g>  named  -> param Parenthesized.f  source.tdl:6:53
+    ├── [11] u  named  -> param Measured.u  source.tdl:7:32
+    └── [12] T<u>  named  -> param Measured.T  source.tdl:7:30

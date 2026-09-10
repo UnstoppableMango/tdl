@@ -1,0 +1,23 @@
+# Build artifacts
+bin/
+cover.profile
+dist/
+out/
+*.test
+
+# Nix
+/result*
+.direnv/
+
+# Playground scratch files
+scratch.tdl
+
+# User specific
+.idea/
+# extensions.json is a shared recommendation rather than a personal setting.
+.vscode/*
+!.vscode/extensions.json
+*.user
+.envrc
+.claude/*
+!.claude/skills/

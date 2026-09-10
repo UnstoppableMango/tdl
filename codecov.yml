@@ -1,0 +1,21 @@
+ignore:
+  # Generated protobuf bindings are not hand-written and are not tested
+  # directly.
+  - "**/*.pb.go"
+  # Build tools rather than something shipped, which is why they are not
+  # under cmd/. Each is checked by what it produces: the emitter tests
+  # hold the committed grammars to docs/grammar.ebnf, and CI regenerates
+  # and diffs them. Coverage of the main that calls the emitter would say
+  # nothing those checks do not.
+  - "tools/**"
+
+coverage:
+  status:
+    project:
+      default:
+        target: 70%
+        threshold: 3%
+    patch:
+      default:
+        target: 60%
+        threshold: 10%

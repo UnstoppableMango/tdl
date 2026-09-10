@@ -1,0 +1,42 @@
+/* The notation grammar.ebnf is written in, described in itself.
+
+   It is Wirth syntax notation, the dialect the Go and Oberon reports use,
+   not ISO 14977.  The difference is worth stating because tools assume
+   the ISO form: a production ends with '.' rather than ';', and items in
+   a sequence are juxtaposed rather than separated by ','.  An ISO EBNF
+   parser reads this file as an error from its first line.
+
+   A name beginning with an upper-case letter is a nonterminal, defined by
+   a production in the same file.  A name beginning with a lower-case
+   letter is a terminal the lexer produces and the grammar does not
+   define; lex/table.go says what each one accepts.
+
+   Comments follow Go's rules, so this one is a block comment and `//`
+   runs to the end of a line.  They may appear wherever whitespace may.
+
+   golang.org/x/exp/ebnf parses this notation, which is why the comment
+   form is Go's rather than the ISO family's. */
+
+Grammar    = { Production } .
+Production = nonterminal "=" Expression "." .
+
+Expression = Sequence { "|" Sequence } .
+Sequence   = Term { Term } .
+Term       = nonterminal | terminal | quoted | Group | Option | Repetition .
+
+Group      = "(" Expression ")" .
+Option     = "[" Expression "]" .
+Repetition = "{" Expression "}" .
+
+/* nonterminal is a name beginning with an upper-case letter, terminal a
+   name beginning with a lower-case one, and quoted a double-quoted
+   literal naming the exact source text of one token.
+
+   An Option matches its contents once or not at all, and a Repetition
+   zero or more times.  Neither is a separator rule: a list written
+   `A { "," A }` says the commas are required, and nothing is implied
+   between the items of a Sequence. */
+
+nonterminal = .
+terminal    = .
+quoted      = .

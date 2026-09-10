@@ -1,0 +1,8 @@
+package shop.money
+
+value Money {
+  amount: decimal
+  currency: Currency
+}
+
+enum Currency { USD EUR GBP }

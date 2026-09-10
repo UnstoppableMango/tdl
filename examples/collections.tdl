@@ -1,0 +1,25 @@
+// Every collection and optionality form in one place: nesting, qualified
+// references, the explicit prelude spellings, and defaults.
+//
+// The bracket forms are sugar. `[T]` is `List<T>`, `{T}` is `Set<T>`,
+// `{K -> V}` is `Map<K, V>`, `T?` is `Option<T>`, and `T | null` is
+// `Nullable<T>`. All five are ordinary prelude types.
+package shop.collections
+
+import "nested.tdl" as nested
+
+value Catalog {
+  bySku: {string -> nested.LineItem}
+  tagIndex: {string -> [string]}
+  matrix: [[int]]
+  regions: [{string -> string}]
+  seenSkus: {string}
+  explicitList: List<nested.LineItem>
+  explicitMap: Map<string, string>
+  optional: nested.Address?
+  nullable: nested.Address | null
+  both: nested.Address? | null
+  primaryRegion: string = "us-east"
+  ratio: decimal = 0.5
+  active: bool = true
+}

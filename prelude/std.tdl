@@ -1,0 +1,51 @@
+package std
+
+/// An opaque, irreducible root type. Every other type is built from these.
+primitive string
+
+primitive int
+primitive bool
+primitive bytes
+
+/// An ordered collection, duplicates allowed. `[T]` is sugar for `List<T>`.
+primitive List: type -> type
+
+/// An unordered collection of distinct elements. `{T}` is sugar for `Set<T>`.
+primitive Set: type -> type
+
+/// A mapping from keys to values. `{K -> V}` is sugar for `Map<K, V>`.
+primitive Map: type -> type -> type
+
+/// Arbitrary-precision decimal.
+primitive decimal
+
+primitive uuid
+primitive instant
+primitive date
+primitive duration
+
+/// Base units of the SI system. A project may declare its own.
+unit s
+
+unit m
+unit kg
+
+/// Absence. `T?` is sugar for `Option<T>`.
+enum Option<T> {
+  Some { value: T }
+  None
+}
+
+/// Presence with a null value. `T | null` is sugar for `Nullable<T>`.
+enum Nullable<T> {
+  Present { value: T }
+  Null
+}
+
+/// Anything with identity that survives changes to its contents.
+class Entity {
+  key
+}
+
+/// Anything defined entirely by its contents.
+class Value { }

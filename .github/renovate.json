@@ -1,0 +1,23 @@
+{
+	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
+	"extends": [
+		"config:recommended",
+		"github>UnstoppableMango/renovate-config"
+	],
+	"automerge": true,
+	"schedule": [
+		"before 4am on the first day of the month"
+	],
+	"timezone": "America/Chicago",
+	"nix": {
+		"enabled": true
+	},
+	"packageRules": [
+		{
+			"groupName": "tdl",
+			"matchPackageNames": [
+				"/unstoppablemango/tdl/"
+			]
+		}
+	]
+}

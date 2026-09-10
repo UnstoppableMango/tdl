@@ -1,0 +1,24 @@
+name: Release Please
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    name: Release Please
+    runs-on: ubuntu-latest
+    steps:
+      # A pull request opened with GITHUB_TOKEN does not trigger workflows,
+      # so the release PR arrives with no CI. RELEASE_PLEASE_TOKEN is a PAT
+      # that fixes that; without one this still works, the release PR just
+      # has nothing checking it.
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json

@@ -1,0 +1,6 @@
+package shop.shipping
+
+value Address {
+  line1: string
+  city: string
+}

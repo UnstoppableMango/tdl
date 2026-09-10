@@ -1,0 +1,42 @@
+// The same domain as flat.tdl, split into declarations. Parallel lists
+// become a list of a value, and the address group becomes one optional
+// field instead of five.
+//
+// `entity` and `value` is the modelling decision: an Order has identity
+// that survives its contents changing, an Address does not.
+package shop.nested
+
+entity Order {
+  key id: string
+  customer: Customer
+  shipping: Address?
+  items: [LineItem] owned where { length(1..) }
+  status: Status = Draft
+  total: Money
+}
+
+entity Customer {
+  key email: string where { matches(/^[^@]+@[^@]+$/) }
+  name: string?
+}
+
+value Address {
+  line1: string
+  line2: string?
+  city: string
+  postcode: string
+  country: string
+}
+
+value LineItem {
+  sku: string
+  quantity: int where { min(1) } = 1
+}
+
+value Money {
+  amount: decimal
+  currency: Currency
+}
+
+enum Currency { USD EUR GBP }
+enum Status { Draft Placed Shipped Cancelled }

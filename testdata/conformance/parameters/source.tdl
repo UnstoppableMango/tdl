@@ -1,0 +1,7 @@
+package example.parameters
+
+alias Applied<f: type -> type, T: type> = f<T>
+alias Inferred<f, T> = f<T>
+alias Curried<f: type -> type -> type, A, B> = f<A, B>
+alias Parenthesized<f: (type -> type) -> type, g> = f<g>
+alias Measured<T, u: unit> = T<u>
