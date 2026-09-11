@@ -235,7 +235,7 @@ Keep all of it short.
 It earns its place by saying what a reviewer would otherwise get wrong, not by describing the repository.
 
 CodeRabbit reviews the tip of a stack and nothing beneath it.
-A pull request lower down showing no review comments has not been reviewed, which looks exactly like having been reviewed and found clean.
+A pull request lower down showing no review comments may not have been reviewed, which looks exactly like having been reviewed and found clean.
 Wait for it to become the tip, and read the CodeRabbit check rather than the thread count.
 
 `main` requires no approving review and does require every review thread to be resolved, so an unanswered bot comment is what blocks a merge.
