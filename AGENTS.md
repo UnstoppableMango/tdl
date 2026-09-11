@@ -218,7 +218,7 @@ CI enforces that with `buf breaking` against the pull request's base, alongside 
 A pull request that has to break the schema carries the `buf skip breaking` label, which is what `bufbuild/buf-action` reads.
 The workflow only re-runs on push, so label first and then push, or the run will still be working from a payload without it.
 
-## Copilot
+## Review
 
 Copilot code review reads this file directly on github.com, so architecture is already covered and is not what the other two places are for.
 
@@ -233,6 +233,17 @@ References are not expanded inside a skill file, so `SKILL.md` and its siblings 
 
 Keep all of it short.
 It earns its place by saying what a reviewer would otherwise get wrong, not by describing the repository.
+
+CodeRabbit reviews the tip of a stack and nothing beneath it.
+A pull request lower down showing no review comments may not have been reviewed, which looks exactly like having been reviewed and found clean.
+Wait for it to become the tip, and read the CodeRabbit check rather than the thread count.
+
+`main` requires no approving review and does require every review thread to be resolved, so an unanswered bot comment is what blocks a merge.
+Reply with what changed, or with why nothing did, and then resolve it.
+
+Pull requests here are stacked, and GitHub owns the stack: merging one rebases the rest and rewrites their branches, so a local copy is stale afterwards and is reset from the remote rather than merged into.
+`gh pr merge` and `PUT /pulls/{n}/merge` both refuse a stacked pull request.
+`PUT /pulls/{n}/merge-async` is the one that works, and it returns `{"status":"pending"}` and lands a few seconds later.
 
 ## Conventions
 
