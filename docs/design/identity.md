@@ -109,17 +109,20 @@ The phase in [go-backend-plan.md](go-backend-plan.md) that turns `key` fields in
 
 The recursion rules keep their meaning.
 A type conforming to `std.Entity` may be mutually recursive without restriction, since a cycle between entities is a graph of references.
-Any other type, and every enum, may reach itself only through a collection or an optional.
+Any other type may reach itself only through a collection or an optional.
+So may every enum, including one conforming to `std.Entity`: an enum value is a variant holding its fields inline, and conformance does not make it a reference.
 
 `checkRecursion` asks whether a declaration satisfies `std.Entity` instead of comparing a keyword string.
 It walks the AST before `buildSatisfaction` runs (`internal/sema/lower.go`), and conformance can come from an `instance` anywhere in the package, so the check moves after satisfaction is built and reads it.
+It reads unconditional conformance only, the set `buildSatisfaction` builds.
+A conditional instance, one with parameters or a `requires` clause, stands for a family of types, so it exempts no declaration from the restricted rule; see the last open question below.
 The edges it follows, direct, optional, and through a collection, do not change.
 
 ## ir and backends
 
 `ir.StructKind` keeps `STRUCT_KIND_ENTITY` and `STRUCT_KIND_VALUE` with their numbers.
 A backend asking "is this an entity" should not have to walk a conformance set.
-The compiler writes `ENTITY` for a type satisfying `std.Entity` and `VALUE` for any other type, so the kind is computed from conformance rather than from a keyword.
+The compiler writes `MIXIN` for a mixin, `ENTITY` for any other struct satisfying `std.Entity`, and `VALUE` for the rest, in that order, so the kind is computed from conformance rather than from a keyword.
 
 `Field.key` (field 3) and `Class.requires_key` (field 6) are removed and their numbers reserved.
 That is a breaking change to the plugin protocol and carries the `buf skip breaking` label.
