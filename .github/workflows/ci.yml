@@ -67,9 +67,7 @@ jobs:
           cache-dependency-path: go.sum
           go-version-file: go.mod
 
-      # -race is what catches a plugin subprocess writing its stderr
-      # while the compiler reads it; nothing else in the suite does.
-      - run: go test -race -coverprofile=cover.profile ./...
+      - run: nix develop -c go test -race -coverprofile=cover.profile ./...
         env:
           CGO_ENABLED: '1'
 
