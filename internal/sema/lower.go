@@ -29,6 +29,7 @@ const (
 	preludeMap      = "Map"
 	preludeOption   = "Option"
 	preludeNullable = "Nullable"
+	preludeEntity   = "Entity"
 )
 
 // Option configures a lowering.
@@ -89,7 +90,6 @@ func Lower(file *ast.File, opts ...Option) (*ir.Model, Diagnostics) {
 	// Declarations are collected before anything is lowered, so a reference
 	// to a declaration further down the file resolves like one above it.
 	l.collect(file)
-	l.checkRecursion(file)
 	l.lowerUnits(file)
 	l.lower(file)
 	l.expandIncludes(file)
@@ -97,6 +97,8 @@ func Lower(file *ast.File, opts ...Option) (*ir.Model, Diagnostics) {
 	l.checkDefaults()
 	l.validateInstances()
 	l.buildSatisfaction()
+	l.markEntities()
+	l.checkRecursion(file)
 	l.searchSatisfaction()
 	l.checkConstraints()
 	l.lowerTargets(file)
@@ -275,16 +277,28 @@ func (l *lowerer) setNode(out *ir.Decl, decl ast.Decl) {
 	}
 }
 
+// structKind is the kind the keyword gives. A `type` is a value until
+// [lowerer.markEntities] finds it conforms to the prelude's Entity.
 func structKind(keyword string) ir.StructKind {
-	switch keyword {
-	case "entity":
-		return ir.StructKind_STRUCT_KIND_ENTITY
-	case "value":
-		return ir.StructKind_STRUCT_KIND_VALUE
-	case "mixin":
+	if keyword == "mixin" {
 		return ir.StructKind_STRUCT_KIND_MIXIN
 	}
-	return ir.StructKind_STRUCT_KIND_UNSPECIFIED
+	return ir.StructKind_STRUCT_KIND_VALUE
+}
+
+// markEntities makes an entity of every value satisfying the prelude's
+// Entity. Conformance may come from an instance anywhere in the package, so
+// this reads the satisfaction index rather than the declaration.
+func (l *lowerer) markEntities() {
+	b, ok := l.file.parent.lookup(preludeEntity)
+	if !ok || b.kind != bindDecl {
+		return
+	}
+	for _, id := range l.model.Satisfying(b.id) {
+		if s := l.model.Decl(id).GetStructure(); s.GetKind() == ir.StructKind_STRUCT_KIND_VALUE {
+			s.Kind = ir.StructKind_STRUCT_KIND_ENTITY
+		}
+	}
 }
 
 func (l *lowerer) fields(members []ast.Member) []*ir.Field {
@@ -319,7 +333,6 @@ func (l *lowerer) field(f *ast.Field, order int) *ir.Field {
 	return &ir.Field{
 		Meta:         metaOf(&f.DeclHead, order),
 		Type:         l.typeRef(f.Type),
-		Key:          f.Key,
 		Owned:        f.Owned,
 		Constraints:  l.constraints(f.Constraints),
 		DefaultValue: l.literal(f.Default),

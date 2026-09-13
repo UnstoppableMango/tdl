@@ -71,7 +71,6 @@ func (l *lowerer) expandInto(file *ast.File, name string, done, onPath map[strin
 			copied := &ir.Field{
 				Meta:         f.GetMeta(),
 				Type:         f.GetType(),
-				Key:          f.GetKey(),
 				Owned:        f.GetOwned(),
 				IncludedFrom: id,
 			}
@@ -245,13 +244,13 @@ func conformsOf(decl *ir.Decl) []*ir.ClassRef {
 // checkConstraints reports a `requires` clause that an instantiation does
 // not satisfy.
 //
-// `value Envelope<T> requires Auditable<T>` says nothing checkable until
+// `type Envelope<T> requires Auditable<T>` says nothing checkable until
 // someone writes `Envelope<Order>`, so the check happens at the use site
 // and the diagnostic points there.
 //
 // An argument that is itself a parameter is not checked: whether it
 // satisfies anything depends on the outer instantiation, and checking it
-// here would reject `value Outer<T> requires Auditable<T> { e: Envelope<T> }`
+// here would reject `type Outer<T> requires Auditable<T> { e: Envelope<T> }`
 // which is exactly what the constraint is for.
 func (l *lowerer) checkConstraints() {
 	for _, use := range l.model.GetTypes() {

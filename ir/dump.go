@@ -151,9 +151,6 @@ func (d *dumper) decl(prefix string, last bool, index int, decl *Decl) {
 				d.leaf(inner, l, "fundep "+strings.Join(fd.GetFrom(), " ")+" -> "+strings.Join(fd.GetTo(), " "), fd.GetPosition())
 			})
 		}
-		if c.GetRequiresKey() {
-			kids = append(kids, func(l bool) { d.leaf(inner, l, "requires key", nil) })
-		}
 		for _, at := range c.GetAssocTypes() {
 			kids = append(kids, func(l bool) {
 				d.leaf(inner, l, "type "+at.GetMeta().GetName()+kindSuffix(at.GetKind()), at.GetMeta().GetPosition())
@@ -235,9 +232,6 @@ func directiveText(d *Directive) string {
 
 func (d *dumper) fieldLine(f *Field) string {
 	var mods string
-	if f.GetKey() {
-		mods += "key "
-	}
 	if f.GetOwned() {
 		mods += "owned "
 	}

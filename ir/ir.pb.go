@@ -97,7 +97,9 @@ func (LiteralKind) EnumDescriptor() ([]byte, []int) {
 	return file_tdl_ir_v1_ir_proto_rawDescGZIP(), []int{0}
 }
 
-// StructKind distinguishes the three declarations that share a body.
+// StructKind distinguishes the three declarations that share a body. The
+// compiler computes it: MIXIN for a mixin, ENTITY for any other struct
+// satisfying std.Entity, and VALUE for the rest.
 type StructKind int32
 
 const (
@@ -1396,7 +1398,6 @@ type Class struct {
 	RequiresClasses []*ClassRef            `protobuf:"bytes,3,rep,name=requires_classes,json=requiresClasses" json:"requires_classes,omitempty"` // classes an implementor must also satisfy
 	Constraints     []*ClassRef            `protobuf:"bytes,4,rep,name=constraints" json:"constraints,omitempty"`                                // the `requires` clause on this class's parameters
 	Fields          []*Field               `protobuf:"bytes,5,rep,name=fields" json:"fields,omitempty"`
-	RequiresKey     bool                   `protobuf:"varint,6,opt,name=requires_key,json=requiresKey" json:"requires_key,omitempty"` // a bare `key` in the body
 	AssocTypes      []*AssocType           `protobuf:"bytes,7,rep,name=assoc_types,json=assocTypes" json:"assoc_types,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
@@ -1465,13 +1466,6 @@ func (x *Class) GetFields() []*Field {
 		return x.Fields
 	}
 	return nil
-}
-
-func (x *Class) GetRequiresKey() bool {
-	if x != nil {
-		return x.RequiresKey
-	}
-	return false
 }
 
 func (x *Class) GetAssocTypes() []*AssocType {
@@ -2375,7 +2369,6 @@ type Field struct {
 	state        protoimpl.MessageState `protogen:"open.v1"`
 	Meta         *Meta                  `protobuf:"bytes,1,opt,name=meta" json:"meta,omitempty"`
 	Type         *ID                    `protobuf:"bytes,2,opt,name=type" json:"type,omitempty"`    // indexes Model.types
-	Key          bool                   `protobuf:"varint,3,opt,name=key" json:"key,omitempty"`     // part of the entity's identity
 	Owned        bool                   `protobuf:"varint,4,opt,name=owned" json:"owned,omitempty"` // composition rather than reference
 	Constraints  []*Constraint          `protobuf:"bytes,6,rep,name=constraints" json:"constraints,omitempty"`
 	DefaultValue *Literal               `protobuf:"bytes,7,opt,name=default_value,json=defaultValue" json:"default_value,omitempty"` // unset when the field has no default
@@ -2430,13 +2423,6 @@ func (x *Field) GetType() *ID {
 		return x.Type
 	}
 	return nil
-}
-
-func (x *Field) GetKey() bool {
-	if x != nil {
-		return x.Key
-	}
-	return false
 }
 
 func (x *Field) GetOwned() bool {
@@ -2846,16 +2832,15 @@ const file_tdl_ir_v1_ir_proto_rawDesc = "" +
 	"\venumeration\x18\x06 \x01(\v2\x0f.tdl.ir.v1.EnumH\x00R\venumeration\x12(\n" +
 	"\x05class\x18\a \x01(\v2\x10.tdl.ir.v1.ClassH\x00R\x05class\x12(\n" +
 	"\x04unit\x18\t \x01(\v2\x12.tdl.ir.v1.UnitDefH\x00R\x04unitB\x06\n" +
-	"\x04node\"\xda\x02\n" +
+	"\x04node\"\xcb\x02\n" +
 	"\x05Class\x12(\n" +
 	"\x06params\x18\x01 \x03(\v2\x10.tdl.ir.v1.ParamR\x06params\x12,\n" +
 	"\bfun_deps\x18\x02 \x03(\v2\x11.tdl.ir.v1.FunDepR\afunDeps\x12>\n" +
 	"\x10requires_classes\x18\x03 \x03(\v2\x13.tdl.ir.v1.ClassRefR\x0frequiresClasses\x125\n" +
 	"\vconstraints\x18\x04 \x03(\v2\x13.tdl.ir.v1.ClassRefR\vconstraints\x12(\n" +
-	"\x06fields\x18\x05 \x03(\v2\x10.tdl.ir.v1.FieldR\x06fields\x12!\n" +
-	"\frequires_key\x18\x06 \x01(\bR\vrequiresKey\x125\n" +
+	"\x06fields\x18\x05 \x03(\v2\x10.tdl.ir.v1.FieldR\x06fields\x125\n" +
 	"\vassoc_types\x18\a \x03(\v2\x14.tdl.ir.v1.AssocTypeR\n" +
-	"assocTypes\"]\n" +
+	"assocTypesJ\x04\b\x06\x10\aR\frequires_key\"]\n" +
 	"\x06FunDep\x12\x12\n" +
 	"\x04from\x18\x01 \x03(\tR\x04from\x12\x0e\n" +
 	"\x02to\x18\x02 \x03(\tR\x02to\x12/\n" +
@@ -2913,18 +2898,17 @@ const file_tdl_ir_v1_ir_proto_rawDesc = "" +
 	"\vconstraints\x18\x04 \x03(\v2\x13.tdl.ir.v1.ClassRefR\vconstraints\"X\n" +
 	"\aVariant\x12#\n" +
 	"\x04meta\x18\x01 \x01(\v2\x0f.tdl.ir.v1.MetaR\x04meta\x12(\n" +
-	"\x06fields\x18\x02 \x03(\v2\x10.tdl.ir.v1.FieldR\x06fields\"\xd3\x02\n" +
+	"\x06fields\x18\x02 \x03(\v2\x10.tdl.ir.v1.FieldR\x06fields\"\xcc\x02\n" +
 	"\x05Field\x12#\n" +
 	"\x04meta\x18\x01 \x01(\v2\x0f.tdl.ir.v1.MetaR\x04meta\x12!\n" +
-	"\x04type\x18\x02 \x01(\v2\r.tdl.ir.v1.IDR\x04type\x12\x10\n" +
-	"\x03key\x18\x03 \x01(\bR\x03key\x12\x14\n" +
+	"\x04type\x18\x02 \x01(\v2\r.tdl.ir.v1.IDR\x04type\x12\x14\n" +
 	"\x05owned\x18\x04 \x01(\bR\x05owned\x127\n" +
 	"\vconstraints\x18\x06 \x03(\v2\x15.tdl.ir.v1.ConstraintR\vconstraints\x127\n" +
 	"\rdefault_value\x18\a \x01(\v2\x12.tdl.ir.v1.LiteralR\fdefaultValue\x124\n" +
 	"\n" +
 	"directives\x18\b \x03(\v2\x14.tdl.ir.v1.DirectiveR\n" +
 	"directives\x122\n" +
-	"\rincluded_from\x18\x05 \x01(\v2\r.tdl.ir.v1.IDR\fincludedFrom\"q\n" +
+	"\rincluded_from\x18\x05 \x01(\v2\r.tdl.ir.v1.IDR\fincludedFromJ\x04\b\x03\x10\x04R\x03key\"q\n" +
 	"\x05Param\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12#\n" +
 	"\x04kind\x18\x02 \x01(\v2\x0f.tdl.ir.v1.KindR\x04kind\x12/\n" +

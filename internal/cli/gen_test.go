@@ -23,7 +23,7 @@ func TestGenWatchRegeneratesOnSave(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	write("entity Before {\n  key id: string\n}")
+	write("type Before: Entity {\n  id: string\n}")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -38,7 +38,7 @@ func TestGenWatchRegeneratesOnSave(t *testing.T) {
 	go func() { done <- cmd.Execute() }()
 
 	waitForOutput(t, model, "Before")
-	write("entity After {\n  key id: string\n}")
+	write("type After: Entity {\n  id: string\n}")
 	waitForOutput(t, model, "After")
 
 	cancel()

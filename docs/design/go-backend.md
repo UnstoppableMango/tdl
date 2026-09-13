@@ -65,10 +65,10 @@ A pointer is comparable whatever it points at, which makes `Set<bytes?>` legal w
 
 ## Structs
 
-`entity`, `value`, and `mixin` all lower to `ir.Struct`, and all three become a Go struct.
+Entities, values, and mixins all lower to `ir.Struct`, and all three become a Go struct.
 
 The kinds differ in what they mean, not in what they emit.
-Nothing in Go expresses "identity that survives changes to its contents", so an entity and a value are the same declaration with different documentation, and the `key` fields are what a later phase turns into an identity method.
+Nothing in Go expresses "identity that survives changes to its contents", so an entity and a value are the same declaration with different documentation, and a target block's `key` directive is what a later phase turns into an identity method.
 
 A mixin's fields are copied into whatever includes it, and `Field.included_from` says where each came from.
 The mixin still gets a struct of its own, because it is a declaration a consumer may name.

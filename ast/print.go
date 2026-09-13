@@ -325,8 +325,6 @@ func (p *printer) members(members []Member, headLine int, end Position) {
 		switch n := m.(type) {
 		case *Include:
 			p.line("  include "+printClassRefs([]*ClassRef{n.Type}), n.P.Line, end)
-		case *KeyRequirement:
-			p.line("  key", n.P.Line, end)
 		case *AssocTypeReq:
 			writeDoc(&p.b, "  ", n.Doc)
 			s := "  type " + n.N
@@ -368,9 +366,6 @@ func (p *printer) fieldTail(f *Field, indent string) string {
 // it so a field stays one line even when its constraints do not.
 func printFieldHead(f *Field) string {
 	var s string
-	if f.Key {
-		s += "key "
-	}
 	if f.Dep != nil {
 		s += printDeprecated(f.Dep) + " "
 	}

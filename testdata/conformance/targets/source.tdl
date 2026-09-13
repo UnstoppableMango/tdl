@@ -7,16 +7,16 @@ class Auditable {
   createdAt: instant
 }
 
-entity User: Auditable {
-  key id: string
+type User: Entity, Auditable {
+  id: string
   createdAt: instant
   email: string
   name: string
   type: string
 }
 
-entity Order: Auditable {
-  key id: string
+type Order: Entity, Auditable {
+  id: string
   createdAt: instant
   items: [string] owned
   tags: {string}

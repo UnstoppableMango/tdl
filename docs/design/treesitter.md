@@ -36,8 +36,8 @@ The grammar is written for a reader, and four things it leaves to prose are thin
 
 - The six terminals it names but never defines. `identifier`, `string_lit`, `int_lit`, `float_lit`, `bool_lit`, and `regex_lit` are the lexer's business, which is why they are absent.
 - Whitespace and comments. The header says doc comments are lexical and omits them.
-- The ambiguities it resolves in prose. Its own comments name them: `key` as a bare requirement against `key` as a field modifier, a `<...>` argument that is a type or a unit, `{ }` as both a declaration body and a set or map type, and `/` as both unit division and a regex delimiter.
-- Which productions are structure worth a node and which are plumbing. `CoreType`, `Member`, and `FieldMod` exist to make the notation readable and would only clutter a tree.
+- The ambiguities it resolves in prose. Its own comments name them: the name after `type X:` as a class against a newtype's base, a `<...>` argument that is a type or a unit, `{ }` as both a declaration body and a set or map type, and `/` as both unit division and a regex delimiter.
+- Which productions are structure worth a node and which are plumbing. `CoreType`, `Member`, and `ClassMember` exist to make the notation readable and would only clutter a tree.
 
 Prose is the right form for a reader, and the file explains each of these where it happens.
 The annotations below make the same statements machine-readable without moving them somewhere else.
@@ -54,7 +54,7 @@ File-level directives come first, before any production.
 /*@ word identifier */
 /*@ extra doc_comment line_comment */
 /*@ token doc_comment = DocPattern */
-/*@ conflict FieldMod KeyRequirement */
+/*@ conflict ClassRef NamedType */
 ```
 
 `word` names the token tree-sitter extracts keywords from, which it needs to keep a keyword from matching a prefix of an identifier.

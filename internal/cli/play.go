@@ -32,8 +32,8 @@ type Email: string where {
   length(3..254)
 }
 
-entity User {
-  key id: string
+type User: Entity {
+  id: string
   email: Email
   name: string? where { length(1..120) }
   tags: {string}
@@ -266,15 +266,12 @@ func annotateErrors(src string, err error) string {
 // stats summarizes the shape of a parsed file: enough numbers to feel the
 // difference between two ways of modelling the same data.
 func stats(file *ast.File) string {
-	var primitives, entities, values, enums, newtypes, aliases, targets int
-	var fields, optional, keys, variants int
+	var primitives, types, mixins, enums, newtypes, aliases, targets int
+	var fields, optional, variants int
 
 	countFields := func(fs []*ast.Field) {
 		for _, f := range fs {
 			fields++
-			if f.Key {
-				keys++
-			}
 			if f.Type != nil && f.Type.Optional {
 				optional++
 			}
@@ -298,11 +295,10 @@ func stats(file *ast.File) string {
 				countFields(v.Fields)
 			}
 		case *ast.StructDecl:
-			switch d.Keyword {
-			case "entity":
-				entities++
-			case "value":
-				values++
+			if d.Keyword == "mixin" {
+				mixins++
+			} else {
+				types++
 			}
 			for _, m := range d.Members {
 				if f, ok := m.(*ast.Field); ok {
@@ -317,14 +313,13 @@ func stats(file *ast.File) string {
 	row("imports", len(file.Imports))
 	row("declarations", len(file.Decls))
 	row("primitives", primitives)
-	row("entities", entities)
-	row("values", values)
+	row("types", types)
+	row("mixins", mixins)
 	row("enums", enums)
 	row("newtypes", newtypes)
 	row("aliases", aliases)
 	row("targets", targets)
 	row("fields", fields)
-	row("keys", keys)
 	row("optional", optional)
 	row("variants", variants)
 	return b.String()

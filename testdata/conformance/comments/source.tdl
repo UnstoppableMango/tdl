@@ -8,9 +8,9 @@ primitive string  // trailing a one-line declaration
 primitive int
 
 // A comment before a declaration with a body.
-entity Order {  // trailing the line that opens a body
+type Order: Entity {  // trailing the line that opens a body
   // Before a field.
-  key id: string  // trailing a field
+  id: string  // trailing a field
   // Before a field carrying constraints.
   note: string where {
     // Inside a where block, which this forces open.
@@ -31,8 +31,7 @@ enum Status {  // this forces the block open
 
 class Auditable {
   // Inside a class body.
-  key  // trailing a key requirement
-  createdAt: string
+  createdAt: string  // trailing a class field
 }
 
 instance Auditable for Order {

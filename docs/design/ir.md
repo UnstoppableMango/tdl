@@ -77,7 +77,7 @@ Lowering does, against the declaration each name resolves to.
 
 Declarations split by nature rather than collapsing into one tagged message or fragmenting into eight:
 
-- `Struct` covers `entity`, `value`, and `mixin`, which share a shape and differ in meaning. A `StructKind` records which was written.
+- `Struct` covers a `type` with a body and a `mixin`, which share a shape and differ in meaning. A `StructKind` records which: `MIXIN` for a mixin, `ENTITY` for a type satisfying `std.Entity`, and `VALUE` for the rest.
 - `Class` shares that shape and adds what only a contract has.
 - `Enum` is its own message: variants, each with optional payload fields.
 - `Alias`, `Newtype`, and `Primitive` are their own, being neither structured nor enumerated.

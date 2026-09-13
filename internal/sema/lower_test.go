@@ -54,12 +54,12 @@ func TestDeclarationTable(t *testing.T) {
 alias Names = [string]
 type Email: string
 
-entity Order {
-  key id: string
+type Order: Entity {
+  id: string
   items: [string] owned
 }
 
-value Money { amount: string }
+type Money { amount: string }
 
 mixin Timestamps { createdAt: string }
 
@@ -85,9 +85,6 @@ enum Status { Draft Placed }
 	if got := len(order.Fields()); got != 2 {
 		t.Errorf("Order has %d fields, want 2", got)
 	}
-	if !order.Fields()[0].GetKey() {
-		t.Error("id lost its key marker")
-	}
 	if !order.Fields()[1].GetOwned() {
 		t.Error("items lost its owned marker")
 	}
@@ -111,8 +108,8 @@ enum Status { Draft Placed }
 // above it, which is why the table is collected before anything is lowered.
 func TestForwardReference(t *testing.T) {
 	model := lower(t, `
-value A { b: B }
-value B { name: string }
+type A { b: B }
+type B { name: string }
 `)
 
 	a, _, _ := model.FindDecl("A")
@@ -195,8 +192,8 @@ func TestOptionalAndNullable(t *testing.T) {
 // comparison a type comparison.
 func TestInterning(t *testing.T) {
 	model := lower(t, `
-value A { x: [string] }
-value B { y: [string] }
+type A { x: [string] }
+type B { y: [string] }
 `)
 
 	da, _, _ := model.FindDecl("A")
@@ -222,7 +219,7 @@ value B { y: [string] }
 // An unresolved name is a diagnostic, and the ID keeps the text so later
 // output can say what was written.
 func TestUndefinedName(t *testing.T) {
-	diags := lowerDiags(t, `value A { x: Missing }`)
+	diags := lowerDiags(t, `type A { x: Missing }`)
 	if !strings.Contains(diags.Error(), "undefined: Missing") {
 		t.Errorf("diagnostics = %v", diags)
 	}
@@ -232,9 +229,9 @@ func TestSourceFidelity(t *testing.T) {
 	model := lower(t, `
 /// An order someone placed.
 deprecated("use PurchaseOrder")
-entity Order {
+type Order: Entity {
   /// What identifies it.
-  key id: string
+  id: string
   deprecated legacy: string
 }
 `)
@@ -267,8 +264,8 @@ entity Order {
 
 func TestDuplicateDeclaration(t *testing.T) {
 	diags := lowerDiags(t, `
-value A { x: string }
-value A { y: string }
+type A { x: string }
+type A { y: string }
 `)
 	if !strings.Contains(diags.Error(), "declared twice") {
 		t.Errorf("diagnostics = %v", diags)
@@ -285,7 +282,7 @@ unit kg
 unit m
 unit s
 unit N = kg*m/s^2
-value W {
+type W {
   named: decimal<N>
   written: decimal<kg*m/s^2>
   parenthesized: decimal<(kg*m)/s^2>
@@ -312,7 +309,7 @@ func TestUnitArgumentIsAType(t *testing.T) {
 	model := lower(t, `
 primitive decimal
 unit kg
-value W { net: decimal<kg> }`)
+type W { net: decimal<kg> }`)
 
 	decl, _, _ := model.FindDecl("W")
 	arg := model.Type(decl.GetStructure().GetFields()[0].GetType()).GetArgs()[0]
@@ -425,8 +422,8 @@ func dimsText(t *testing.T, model *ir.Model, decl *ir.Decl) string {
 // declaration that declares it and nowhere else.
 func TestTypeParameterShadowing(t *testing.T) {
 	model := lower(t, `
-value Box<string> { held: string }
-value Plain { held: string }
+type Box<string> { held: string }
+type Plain { held: string }
 `)
 
 	box, _, _ := model.FindDecl("Box")
@@ -449,7 +446,7 @@ value Plain { held: string }
 }
 
 func TestHigherKindedParameterApplied(t *testing.T) {
-	model := lower(t, `value Collection<f, E> { items: f<E> }`)
+	model := lower(t, `type Collection<f, E> { items: f<E> }`)
 
 	c, _, _ := model.FindDecl("Collection")
 	items := model.Type(c.Fields()[0].GetType())
@@ -465,14 +462,14 @@ func TestHigherKindedParameterApplied(t *testing.T) {
 }
 
 func TestDuplicateTypeParameter(t *testing.T) {
-	diags := lowerDiags(t, `value Holder<P, P> { x: P }`)
+	diags := lowerDiags(t, `type Holder<P, P> { x: P }`)
 	if !strings.Contains(diags.Error(), "type parameter P is declared twice") {
 		t.Errorf("diagnostics = %v", diags)
 	}
 }
 
 func TestDuplicateField(t *testing.T) {
-	diags := lowerDiags(t, `value Holder { x: string x: string }`)
+	diags := lowerDiags(t, `type Holder { x: string x: string }`)
 	if !strings.Contains(diags.Error(), "field x is declared twice") {
 		t.Errorf("diagnostics = %v", diags)
 	}
@@ -482,21 +479,21 @@ func TestDuplicateField(t *testing.T) {
 // them is a graph of references, which every backend can represent.
 func TestEntityRecursionAllowed(t *testing.T) {
 	lower(t, `
-entity Order { items: [LineItem] owned self: Order }
-entity LineItem { order: Order }
+type Order: Entity { items: [LineItem] owned self: Order }
+type LineItem: Entity { order: Order }
 `)
 }
 
 // A value may reach itself only through a collection or an optional.
 func TestValueRecursion(t *testing.T) {
 	lower(t, `
-value Ok { next: Ok? children: [Ok] byName: {string -> Ok} }
+type Ok { next: Ok? children: [Ok] byName: {string -> Ok} }
 `)
 
 	for _, src := range []string{
-		`value Node { next: Node }`,
-		`value A { b: B }
-value B { a: A }`,
+		`type Node { next: Node }`,
+		`type A { b: B }
+type B { a: A }`,
 		`enum Tree { Branch { left: Tree } }`,
 	} {
 		t.Run(src, func(t *testing.T) {
@@ -505,6 +502,53 @@ value B { a: A }`,
 				t.Errorf("diagnostics = %v", diags)
 			}
 		})
+	}
+}
+
+// A struct's kind comes from satisfying the prelude's Entity, however that
+// satisfaction arises, and only an entity is exempt from the value rule.
+func TestEntityKindFromConformance(t *testing.T) {
+	model := lower(t, `
+class Aggregate: Entity { }
+type Direct: Entity { self: Direct }
+type ViaClass: Aggregate { self: ViaClass }
+type ViaInstance { self: ViaInstance }
+instance Entity for ViaInstance
+type Plain { }
+mixin Stamped: Entity { }
+`)
+
+	for name, want := range map[string]ir.StructKind{
+		"Direct":      ir.StructKind_STRUCT_KIND_ENTITY,
+		"ViaClass":    ir.StructKind_STRUCT_KIND_ENTITY,
+		"ViaInstance": ir.StructKind_STRUCT_KIND_ENTITY,
+		"Plain":       ir.StructKind_STRUCT_KIND_VALUE,
+		"Stamped":     ir.StructKind_STRUCT_KIND_MIXIN,
+	} {
+		decl, _, _ := model.FindDecl(name)
+		if got := decl.GetStructure().GetKind(); got != want {
+			t.Errorf("%s kind = %v, want %v", name, got, want)
+		}
+	}
+}
+
+// Identity is the prelude's Entity. A file declaring its own class of that
+// name shadows it, and conforming to that says nothing about identity.
+func TestShadowedEntityIsNotIdentity(t *testing.T) {
+	diags := lowerDiags(t, `
+class Entity { }
+type Node: Entity { next: Node }`)
+	if !strings.Contains(diags.Error(), "Node contains itself") {
+		t.Errorf("diagnostics = %v", diags)
+	}
+}
+
+// An enum holds its variants' fields inline, so conforming to Entity does
+// not make a cycle through one a reference.
+func TestEntityEnumRecursion(t *testing.T) {
+	diags := lowerDiags(t, `enum Tree: Entity { Branch { left: Tree } }`)
+	if !strings.Contains(diags.Error(), "Tree contains itself") {
+		t.Errorf("diagnostics = %v", diags)
 	}
 }
 
@@ -536,7 +580,7 @@ func TestImportNeedsALoader(t *testing.T) {
 }
 
 func TestUndefinedImportAlias(t *testing.T) {
-	diags := lowerDiags(t, `value Holder { a: common.Address }`)
+	diags := lowerDiags(t, `type Holder { a: common.Address }`)
 	if !strings.Contains(diags.Error(), "undefined import alias: common") {
 		t.Errorf("diagnostics = %v", diags)
 	}
@@ -544,7 +588,7 @@ func TestUndefinedImportAlias(t *testing.T) {
 
 // Every diagnostic in a pass is reported, not just the first.
 func TestDiagnosticsAccumulate(t *testing.T) {
-	diags := lowerDiags(t, `value Holder { a: Missing b: AlsoMissing }`)
+	diags := lowerDiags(t, `type Holder { a: Missing b: AlsoMissing }`)
 	if len(diags) != 2 {
 		t.Errorf("got %d diagnostics, want 2: %v", len(diags), diags)
 	}
@@ -557,8 +601,8 @@ func TestInstancesAreNotTypeNames(t *testing.T) {
 class Auditable { createdAt: string }
 instance Auditable for A
 instance Auditable for B
-value A { x: string }
-value B { x: string }
+type A { x: string }
+type B { x: string }
 `)
 
 	if got := len(model.GetInstances()); got != 2 {
@@ -570,7 +614,7 @@ value B { x: string }
 // a declaration of the same name.
 func TestTargetsAreNotTypeNames(t *testing.T) {
 	model := lower(t, `
-value go { x: string }
+type go { x: string }
 target go for p { out("./gen") }
 `)
 
@@ -627,7 +671,7 @@ alias B = Set<List<string>>
 // The prelude is replaceable: `[T]` means whatever the loaded prelude says
 // `List` is, and nothing in lowering knows more than the spelling.
 func TestPreludeIsReplaceable(t *testing.T) {
-	file, err := parser.Parse("test.tdl", strings.NewReader(`value V { items: [string] }`))
+	file, err := parser.Parse("test.tdl", strings.NewReader(`type V { items: [string] }`))
 	if err != nil {
 		t.Fatalf("unexpected parse error: %v", err)
 	}
@@ -660,7 +704,7 @@ primitive Nullable: type -> type
 func TestFileShadowsPrelude(t *testing.T) {
 	model := lower(t, `
 primitive string
-value Shadowed { s: string }
+type Shadowed { s: string }
 `)
 
 	v, _, _ := model.FindDecl("Shadowed")
@@ -678,14 +722,14 @@ package shop
 
 import "common.tdl" as common
 
-value Order { ship: common.Address }
+type Order { ship: common.Address }
 `))
 	if err != nil {
 		t.Fatalf("unexpected parse error: %v", err)
 	}
 
 	model, diags := Lower(file, WithLoader(MapLoader{
-		"common.tdl": "package shop.common\nvalue Address { line1: string }\n",
+		"common.tdl": "package shop.common\ntype Address { line1: string }\n",
 	}))
 	if len(diags) > 0 {
 		t.Fatalf("unexpected diagnostics: %v", diags)
@@ -720,14 +764,14 @@ func TestUnderscoreImportMerges(t *testing.T) {
 	file, err := parser.Parse("main.tdl", strings.NewReader(`
 import "common.tdl" as _
 
-value Order { ship: Address }
+type Order { ship: Address }
 `))
 	if err != nil {
 		t.Fatalf("unexpected parse error: %v", err)
 	}
 
 	model, diags := Lower(file, WithLoader(MapLoader{
-		"common.tdl": "package shop.common\nvalue Address { line1: string }\nvalue internal { x: string }\n",
+		"common.tdl": "package shop.common\ntype Address { line1: string }\ntype internal { x: string }\n",
 	}))
 	if len(diags) > 0 {
 		t.Fatalf("unexpected diagnostics: %v", diags)
@@ -777,15 +821,15 @@ func TestExternsAreInterned(t *testing.T) {
 	file, err := parser.Parse("main.tdl", strings.NewReader(`
 import "common.tdl" as common
 
-value A { x: common.Address }
-value B { y: common.Address }
+type A { x: common.Address }
+type B { y: common.Address }
 `))
 	if err != nil {
 		t.Fatalf("unexpected parse error: %v", err)
 	}
 
 	model, _ := Lower(file, WithLoader(MapLoader{
-		"common.tdl": "package shop.common\nvalue Address { line1: string }\n",
+		"common.tdl": "package shop.common\ntype Address { line1: string }\n",
 	}))
 	if got := len(model.GetExterns()); got != 1 {
 		t.Errorf("got %d externs, want 1", got)
@@ -797,7 +841,6 @@ func TestClassLowering(t *testing.T) {
 class Timestamped { createdAt: string }
 
 class Auditable: Timestamped {
-  key
   type Cursor: type
   updatedAt: string
 }
@@ -809,9 +852,6 @@ class Projection<from, to> | from -> to { }
 	c := auditable.GetClass()
 	if len(c.GetRequiresClasses()) != 1 {
 		t.Errorf("Auditable requires %d classes, want 1", len(c.GetRequiresClasses()))
-	}
-	if !c.GetRequiresKey() {
-		t.Error("the key requirement was lost")
 	}
 	if len(c.GetAssocTypes()) != 1 || c.GetAssocTypes()[0].GetMeta().GetName() != "Cursor" {
 		t.Errorf("assoc types = %+v", c.GetAssocTypes())
@@ -832,7 +872,7 @@ class Projection<from, to> | from -> to { }
 func TestInstanceFormsNormalize(t *testing.T) {
 	model := lower(t, `
 class Auditable { createdAt: string }
-value A { x: string }
+type A { x: string }
 
 instance Auditable<A>
 instance Auditable for A
@@ -855,9 +895,9 @@ func TestSatisfaction(t *testing.T) {
 class Timestamped { createdAt: string }
 class Auditable: Timestamped { updatedAt: string }
 
-entity Declared: Auditable { key id: string }
-value ByInstance { x: string }
-value Neither { x: string }
+type Declared: Entity, Auditable { id: string }
+type ByInstance { x: string }
+type Neither { x: string }
 
 instance Auditable<ByInstance>
 `)
@@ -884,7 +924,7 @@ func TestIncludeDoesNotConfer(t *testing.T) {
 	model := lower(t, `
 class Auditable { createdAt: string }
 mixin Stamps: Auditable { createdAt: string }
-value Uses { include Stamps }
+type Uses { include Stamps }
 `)
 
 	_, auditable, _ := model.FindDecl("Auditable")
@@ -898,7 +938,7 @@ value Uses { include Stamps }
 func TestConditionalInstanceNotIndexed(t *testing.T) {
 	model := lower(t, `
 class Auditable { createdAt: string }
-value Page<T> { items: [T] }
+type Page<T> { items: [T] }
 
 instance <T> Auditable<Page<T>> requires Auditable<T>
 `)
@@ -916,7 +956,7 @@ func TestIncludeExpansion(t *testing.T) {
 	model := lower(t, `
 mixin Inner { a: string }
 mixin Outer { include Inner b: string }
-value Uses { include Outer c: string }
+type Uses { include Outer c: string }
 `)
 
 	uses, _, _ := model.FindDecl("Uses")
@@ -949,8 +989,8 @@ value Uses { include Outer c: string }
 
 func TestIncludeOfNonMixin(t *testing.T) {
 	diags := lowerDiags(t, `
-value NotAMixin { x: string }
-value Uses { include NotAMixin }
+type NotAMixin { x: string }
+type Uses { include NotAMixin }
 `)
 	if !strings.Contains(diags.Error(), "is not a mixin") {
 		t.Errorf("diagnostics = %v", diags)
@@ -962,9 +1002,9 @@ value Uses { include NotAMixin }
 func TestRequiresCheckedAtUse(t *testing.T) {
 	diags := lowerDiags(t, `
 class Auditable { createdAt: string }
-value Envelope<P> requires Auditable<P> { body: P }
-value Plain { x: string }
-value Holder { e: Envelope<Plain> }
+type Envelope<P> requires Auditable<P> { body: P }
+type Plain { x: string }
+type Holder { e: Envelope<Plain> }
 `)
 	if !strings.Contains(diags.Error(), "Plain does not satisfy Auditable") {
 		t.Errorf("diagnostics = %v", diags)
@@ -974,9 +1014,9 @@ value Holder { e: Envelope<Plain> }
 func TestRequiresSatisfied(t *testing.T) {
 	lower(t, `
 class Auditable { createdAt: string }
-value Envelope<P> requires Auditable<P> { body: P }
-value Audited: Auditable { createdAt: string }
-value Holder { e: Envelope<Audited> }
+type Envelope<P> requires Auditable<P> { body: P }
+type Audited: Auditable { createdAt: string }
+type Holder { e: Envelope<Audited> }
 `)
 }
 
@@ -985,8 +1025,8 @@ value Holder { e: Envelope<Audited> }
 func TestRequiresDefersToOuterInstantiation(t *testing.T) {
 	lower(t, `
 class Auditable { createdAt: string }
-value Envelope<P> requires Auditable<P> { body: P }
-value Outer<P> requires Auditable<P> { e: Envelope<P> }
+type Envelope<P> requires Auditable<P> { body: P }
+type Outer<P> requires Auditable<P> { e: Envelope<P> }
 `)
 }
 
@@ -1012,13 +1052,13 @@ func contains(names []string, want string) bool {
 func TestConditionalInstanceSearch(t *testing.T) {
 	model := lower(t, `
 class Auditable { createdAt: string }
-value Page<P> { items: [P] }
-value Audited: Auditable { createdAt: string }
-value Plain { x: string }
+type Page<P> { items: [P] }
+type Audited: Auditable { createdAt: string }
+type Plain { x: string }
 
 instance <P> Auditable<Page<P>> requires Auditable<P>
 
-value Uses {
+type Uses {
   good: Page<Audited>
   bad: Page<Plain>
 }
@@ -1042,12 +1082,12 @@ value Uses {
 func TestConditionalInstanceNests(t *testing.T) {
 	model := lower(t, `
 class Auditable { createdAt: string }
-value Page<P> { items: [P] }
-value Audited: Auditable { createdAt: string }
+type Page<P> { items: [P] }
+type Audited: Auditable { createdAt: string }
 
 instance <P> Auditable<Page<P>> requires Auditable<P>
 
-value Uses { nested: Page<Page<Audited>> }
+type Uses { nested: Page<Page<Audited>> }
 `)
 
 	_, auditable, _ := model.FindDecl("Auditable")
@@ -1065,13 +1105,13 @@ value Uses { nested: Page<Page<Audited>> }
 func TestRequiresThroughConditionalInstance(t *testing.T) {
 	lower(t, `
 class Auditable { createdAt: string }
-value Page<P> { items: [P] }
-value Audited: Auditable { createdAt: string }
-value Envelope<P> requires Auditable<P> { body: P }
+type Page<P> { items: [P] }
+type Audited: Auditable { createdAt: string }
+type Envelope<P> requires Auditable<P> { body: P }
 
 instance <P> Auditable<Page<P>> requires Auditable<P>
 
-value Holder { e: Envelope<Page<Audited>> }
+type Holder { e: Envelope<Page<Audited>> }
 `)
 }
 
@@ -1090,7 +1130,7 @@ instance <P> Auditable<P>
 func TestInstanceHeadParametersMustBeDistinct(t *testing.T) {
 	diags := lowerDiags(t, `
 class Rel<a, b> { }
-value Pair<a, b> { x: a y: b }
+type Pair<a, b> { x: a y: b }
 instance <P> Rel<Pair<P, P>>
 `)
 	if !strings.Contains(diags.Error(), "repeats the parameter") {
@@ -1101,7 +1141,7 @@ instance <P> Rel<Pair<P, P>>
 func TestInstanceConditionMustBeSmaller(t *testing.T) {
 	diags := lowerDiags(t, `
 class Auditable { createdAt: string }
-value Page<P> { items: [P] }
+type Page<P> { items: [P] }
 
 instance <P> Auditable<Page<P>> requires Auditable<Page<P>>
 `)
@@ -1118,7 +1158,7 @@ type Email: string where {
   unique
 }
 
-value Holder {
+type Holder {
   region: string where { oneOf("us-east", "eu-west") }
   ratio: int where { between(0, 100) }
 }
@@ -1213,7 +1253,7 @@ type SeniorEmail: WorkEmail where { unique }
 func TestNameDefaults(t *testing.T) {
 	model := lower(t, `
 enum Status { Draft Placed }
-value Holder { status: Status = Draft optional: Status? = Placed }
+type Holder { status: Status = Draft optional: Status? = Placed }
 `)
 
 	v, _, _ := model.FindDecl("Holder")
@@ -1227,8 +1267,8 @@ value Holder { status: Status = Draft optional: Status? = Placed }
 
 func TestBadNameDefaults(t *testing.T) {
 	tests := []struct{ src, want string }{
-		{"enum Status { Draft }\nvalue Holder { s: Status = Missing }", "Status has no variant Missing"},
-		{"value Other { x: string }\nvalue Holder { s: Other = Draft }", "Other is not an enum"},
+		{"enum Status { Draft }\ntype Holder { s: Status = Missing }", "Status has no variant Missing"},
+		{"type Other { x: string }\ntype Holder { s: Other = Draft }", "Other is not an enum"},
 	}
 
 	for _, tt := range tests {
@@ -1242,7 +1282,7 @@ func TestBadNameDefaults(t *testing.T) {
 }
 
 func TestLiteralDefaults(t *testing.T) {
-	model := lower(t, `value Holder { n: int = 3 s: string = "x" b: bool = true xs: [string] = [] }`)
+	model := lower(t, `type Holder { n: int = 3 s: string = "x" b: bool = true xs: [string] = [] }`)
 
 	v, _, _ := model.FindDecl("Holder")
 	kinds := []ir.LiteralKind{
@@ -1260,10 +1300,10 @@ func TestLiteralDefaults(t *testing.T) {
 
 func TestTargetDirectivesAttach(t *testing.T) {
 	model := lower(t, `
-value Money { amount: string }
+type Money { amount: string }
 
-entity Order {
-  key id: string
+type Order: Entity {
+  id: string
   items: [string]
 }
 
@@ -1311,9 +1351,9 @@ target go for p {
 func TestClassPathExpands(t *testing.T) {
 	model := lower(t, `
 class Auditable { createdAt: string }
-entity A: Auditable { key id: string createdAt: string }
-entity B: Auditable { key id: string createdAt: string }
-entity C { key id: string }
+type A: Entity, Auditable { id: string createdAt: string }
+type B: Entity, Auditable { id: string createdAt: string }
+type C: Entity { id: string }
 
 target sql for p {
   Auditable => trigger("touch")
@@ -1343,7 +1383,7 @@ func TestSpecificityLadder(t *testing.T) {
 	model := lower(t, `
 class Base { x: string }
 class Derived: Base { y: string }
-entity Ent: Derived { key id: string x: string y: string }
+type Ent: Entity, Derived { id: string x: string y: string }
 
 target go for p {
   Base => rule("base")
@@ -1364,7 +1404,7 @@ func TestEqualSpecificityIsAnError(t *testing.T) {
 	diags := lowerDiags(t, `
 class One { x: string }
 class Two { y: string }
-entity Ent: One, Two { key id: string x: string y: string }
+type Ent: Entity, One, Two { id: string x: string y: string }
 
 target go for p {
   One => rule("a")
@@ -1379,7 +1419,7 @@ target go for p {
 func TestTargetPathNamesNothing(t *testing.T) {
 	tests := []struct{ src, want string }{
 		{"target go for p { Missing => rule }", "target path Missing names nothing"},
-		{"value V2 { x: string }\ntarget go for p { V2.nope => rule }", "V2 has no field nope"},
+		{"type V2 { x: string }\ntarget go for p { V2.nope => rule }", "V2 has no field nope"},
 	}
 
 	for _, tt := range tests {
@@ -1451,7 +1491,7 @@ func TestModifiedUnitNameIsNotABareUnit(t *testing.T) {
 	model := lower(t, `
 primitive decimal
 unit kg
-value W {
+type W {
   net: decimal<kg>
   maybe: decimal<kg?>
 }`)

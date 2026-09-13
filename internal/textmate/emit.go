@@ -445,7 +445,7 @@ func token(file *ebnf.File, name string) (string, error) {
 }
 
 // declares is every keyword a production spells immediately before the
-// identifier it names: `entity Order`, `unit kg`, `type Email`.
+// identifier it names: `type Order: Entity`, `unit kg`, `type Email`.
 //
 // That shape is what makes the name findable without a parse, and reading
 // it from the grammar rather than listing it means a declaration form
@@ -489,7 +489,7 @@ func keywordsBefore(g xebnf.Grammar, next func(name string) bool) []string {
 }
 
 // contextual is every quoted terminal the lexer scans as an identifier:
-// the modifiers `key`, `owned`, and `deprecated`, which are spellings the
+// the modifiers `owned` and `deprecated`, which are spellings the
 // grammar reserves in a position and lex does not reserve at all.
 //
 // Read from the grammar rather than listed, so a modifier added there is

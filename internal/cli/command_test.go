@@ -18,7 +18,7 @@ func twoFiles(t *testing.T) (good, bad string) {
 	if err := os.WriteFile(good, []byte("primitive string\n"), 0o644); err != nil {
 		t.Fatalf("writing the fixture: %v", err)
 	}
-	if err := os.WriteFile(bad, []byte("entity E { id string }\n"), 0o644); err != nil {
+	if err := os.WriteFile(bad, []byte("type E: Entity { id string }\n"), 0o644); err != nil {
 		t.Fatalf("writing the fixture: %v", err)
 	}
 	return good, bad
@@ -176,7 +176,7 @@ func TestFmtWriteRewritesEveryFile(t *testing.T) {
 func TestGenWritesAndVerifies(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "m.tdl")
-	src := "package p\n\nprimitive string\n\nentity E {\n  key id: string\n}\n\ntarget debug for p {\n  out(\"./out\")\n}\n"
+	src := "package p\n\nprimitive string\n\ntype E: Entity {\n  id: string\n}\n\ntarget debug for p {\n  out(\"./out\")\n}\n"
 	if err := os.WriteFile(path, []byte(src), 0o644); err != nil {
 		t.Fatalf("writing the fixture: %v", err)
 	}

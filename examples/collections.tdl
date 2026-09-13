@@ -8,7 +8,7 @@ package shop.collections
 
 import "nested.tdl" as nested
 
-value Catalog {
+type Catalog {
   bySku: {string -> nested.LineItem}
   tagIndex: {string -> [string]}
   matrix: [[int]]

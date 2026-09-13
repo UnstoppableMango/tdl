@@ -24,8 +24,6 @@ func (l *lowerer) classNode(d *ast.ClassDecl) *ir.Class {
 	var fields []*ast.Field
 	for _, m := range d.Members {
 		switch member := m.(type) {
-		case *ast.KeyRequirement:
-			c.RequiresKey = true
 		case *ast.AssocTypeReq:
 			c.AssocTypes = append(c.AssocTypes, &ir.AssocType{
 				Meta: metaOf(&member.DeclHead, len(c.AssocTypes)),

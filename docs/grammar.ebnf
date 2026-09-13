@@ -9,9 +9,9 @@
    declaration, field, or variant that follows and are omitted below.
 
    `reserved_word` is a word the lexer reserves, the set lex.Keywords
-   returns.  It is narrower than the words this grammar quotes: `key`,
-   `owned`, and `deprecated` are contextual and lex as `identifier`,
-   so they are already legal names and Name is not what admits them.
+   returns.  It is narrower than the words this grammar quotes: `owned`
+   and `deprecated` are contextual and lex as `identifier`, so they are
+   already legal names and Name is not what admits them.
    It and the other lexical names are declared at the end.
 
    Whitespace is insignificant and there are no separator rules: an item
@@ -34,14 +34,14 @@
 /*@ token doc_comment = DocPattern */
 /*@ token line_comment = LineCommentPattern */
 
-/*@ conflict FieldMod KeyRequirement */
+/*@ conflict ClassRef NamedType */
 /*@ conflict DottedIdent UnitTerm */
 /*@ conflict Field */
 
 File     = { [ Deprecated ] Decl } .
 /*@ hidden */
 Decl     = PackageDecl | ImportDecl | PrimitiveDecl | UnitDecl
-         | AliasDecl | TypeDecl | ValueDecl | EntityDecl | EnumDecl
+         | AliasDecl | TypeDecl | EnumDecl
          | ClassDecl | MixinDecl | InstanceDecl | TargetDecl .
 
 PackageDecl = "package" DottedIdent .
@@ -55,8 +55,8 @@ Name = identifier | reserved_word .
    name and a target path segment need no such test, because that
    namespace belongs to the backend.
 
-   Every other name is a plain identifier, so `value value`, `enum type`,
-   `import "x" as type`, and `x: value` are each errors. */
+   Every other name is a plain identifier, so `enum type`,
+   `import "x" as type`, and `x: mixin` are each errors. */
 
 /* ---- roots and units ---------------------------------------------------- */
 
@@ -82,11 +82,14 @@ ClassRef       = DottedIdent [ TypeArgs ] .
 
 AliasDecl  = "alias" identifier [ TypeParams ] "=" TypeRef .
 
-TypeDecl   = "type" identifier [ TypeParams ] ":" TypeRef
-             [ RequiresClause ] [ ConstraintBlock ] .
+TypeDecl   = "type" identifier [ TypeParams ]
+             ( ":" TypeRef [ RequiresClause ] [ ConstraintBlock ]
+             | [ Conforms ] [ RequiresClause ] Body ) .
+/* A body makes a domain type and the colon list its conformance; without
+   one it is a newtype and the colon names its base.  A newtype's
+   constraints open with "where", so a "{" after the colon list or the
+   requires clause can only open a body. */
 
-ValueDecl  = "value"  identifier [ TypeParams ] [ Conforms ] [ RequiresClause ] Body .
-EntityDecl = "entity" identifier [ TypeParams ] [ Conforms ] [ RequiresClause ] Body .
 MixinDecl  = "mixin"  identifier [ TypeParams ] [ Conforms ] [ RequiresClause ] Body .
 EnumDecl   = "enum"   identifier [ TypeParams ] [ Conforms ] [ RequiresClause ]
              "{" { Variant } "}" .
@@ -100,10 +103,8 @@ Include = "include" NamedType .
 
 Variant = [ Deprecated ] identifier [ "{" { Field } "}" ] .
 
-Field    = { FieldMod } Name ":" TypeRef { FieldRel }
+Field    = [ Deprecated ] Name ":" TypeRef { FieldRel }
            [ ConstraintBlock ] [ "=" Literal ] .
-/*@ hidden */
-FieldMod = "key" | Deprecated .
 /*@ inline */
 FieldRel = "owned" .
 
@@ -115,12 +116,8 @@ Deprecated = "deprecated" [ "(" string_lit ")" ] .
 ClassDecl   = "class" identifier [ TypeParams ] [ FunDeps ] [ Conforms ]
               [ RequiresClause ] "{" { ClassMember } "}" .
 /*@ hidden */
-ClassMember = Field | KeyRequirement | AssocTypeReq .
-KeyRequirement = "key" .
-/* A class may not declare key fields, so a Field in a class body carries no
-   "key" modifier.  Whitespace is insignificant, so a bare KeyRequirement
-   followed by a field would otherwise read as one key field. */
-AssocTypeReq   = "type" identifier [ ":" Kind ] .
+ClassMember  = Field | AssocTypeReq .
+AssocTypeReq = "type" identifier [ ":" Kind ] .
 
 FunDeps = "|" FunDep { "," FunDep } .
 FunDep  = identifier { identifier } "->" identifier { identifier } .
@@ -217,6 +214,6 @@ regex_lit = .
 bool_lit = "true" | "false" .
 
 reserved_word = "package" | "import" | "as" | "primitive" | "unit"
-              | "alias" | "type" | "value" | "entity" | "enum" | "class"
-              | "mixin" | "instance" | "target" | "for" | "requires"
-              | "where" | "include" | "null" | "true" | "false" .
+              | "alias" | "type" | "enum" | "class" | "mixin"
+              | "instance" | "target" | "for" | "requires" | "where"
+              | "include" | "null" | "true" | "false" .

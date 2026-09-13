@@ -31,29 +31,29 @@ Model shop.orders
 │   │   │   └── field value: types[1] T  std.tdl:41:13
 │   │   └── variant Null  std.tdl:42:3
 │   ├── [17] class Entity  std.tdl:46:1
-│   │   └── requires key
-│   ├── [18] class Value  std.tdl:51:1
-│   ├── [19] entity Order  source.tdl:5:1
-│   │   ├── field key id: types[2] OrderId  source.tdl:6:7
+│   ├── [18] entity Order  source.tdl:5:1
+│   │   ├── conforms Entity  source.tdl:5:13
+│   │   ├── field id: types[2] OrderId  source.tdl:6:3
 │   │   ├── field customer: types[3] User  source.tdl:7:3
 │   │   ├── field shipping: types[5] Option<shop.common.Address>  source.tdl:8:3
 │   │   ├── field owned items: types[7] List<LineItem>  source.tdl:9:3
 │   │   └── field status: types[8] Status = Draft  source.tdl:10:3
-│   ├── [20] entity LineItem  source.tdl:13:1
-│   │   ├── field key order: types[9] Order  source.tdl:14:7
-│   │   ├── field key sku: types[10] string  source.tdl:15:7
+│   ├── [19] entity LineItem  source.tdl:13:1
+│   │   ├── conforms Entity  source.tdl:13:16
+│   │   ├── field order: types[9] Order  source.tdl:14:3
+│   │   ├── field sku: types[10] string  source.tdl:15:3
 │   │   └── field quantity: types[11] int  source.tdl:16:3
-│   ├── [21] entity User  source.tdl:19:1
-│   │   └── field key id: types[10] string  source.tdl:20:7
-│   ├── [22] newtype OrderId  source.tdl:23:1
+│   ├── [20] entity User  source.tdl:19:1
+│   │   ├── conforms Entity  source.tdl:19:12
+│   │   └── field id: types[10] string  source.tdl:20:3
+│   ├── [21] newtype OrderId  source.tdl:23:1
 │   │   └── base types[10] string
-│   └── [23] enum Status  source.tdl:24:1
+│   └── [22] enum Status  source.tdl:24:1
 │       ├── variant Draft  source.tdl:24:15
 │       ├── variant Placed  source.tdl:24:21
 │       └── variant Shipped  source.tdl:24:28
 ├── Satisfies
-│   ├── Entity: nothing
-│   └── Value: nothing
+│   └── Entity: Order, LineItem, User
 ├── Units
 │   ├── [0] s  std.tdl:28:1
 │   ├── [1] m  std.tdl:30:1
@@ -61,15 +61,15 @@ Model shop.orders
 ├── Types
 │   ├── [0] T  named  -> param Option.T  std.tdl:35:17
 │   ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
-│   ├── [2] OrderId  named  -> decls[22]  source.tdl:6:11
-│   ├── [3] User  named  -> decls[21]  source.tdl:7:13
+│   ├── [2] OrderId  named  -> decls[21]  source.tdl:6:7
+│   ├── [3] User  named  -> decls[20]  source.tdl:7:13
 │   ├── [4] shop.common.Address  named  -> externs[0]  source.tdl:8:13
 │   ├── [5] Option<shop.common.Address>  T?  -> decls[15]  source.tdl:8:13
-│   ├── [6] LineItem  named  -> decls[20]  source.tdl:9:11
+│   ├── [6] LineItem  named  -> decls[19]  source.tdl:9:11
 │   ├── [7] List<LineItem>  [T]  -> decls[4]  source.tdl:9:10
-│   ├── [8] Status  named  -> decls[23]  source.tdl:10:11
-│   ├── [9] Order  named  -> decls[19]  source.tdl:14:14
-│   ├── [10] string  named  -> decls[0]  source.tdl:15:12
+│   ├── [8] Status  named  -> decls[22]  source.tdl:10:11
+│   ├── [9] Order  named  -> decls[18]  source.tdl:14:10
+│   ├── [10] string  named  -> decls[0]  source.tdl:15:8
 │   └── [11] int  named  -> decls[1]  source.tdl:16:13
 └── Externs
     └── shop.common.Address  source.tdl:8:13

@@ -54,8 +54,8 @@ func (p *parser) parseFunDeps() []*ast.FunDep {
 	}
 }
 
-// parseClassBody parses the members a class may hold: fields, a bare `key`
-// requirement, and associated type requirements.
+// parseClassBody parses the members a class may hold: fields and associated
+// type requirements.
 func (p *parser) parseClassBody() ([]ast.Member, ast.Position) {
 	if !p.expect(lex.LBRACE) {
 		p.syncTop()
@@ -67,15 +67,6 @@ func (p *parser) parseClassBody() ([]ast.Member, ast.Position) {
 		doc := p.parseDoc()
 
 		switch {
-		// A class may not declare key fields, so `key` inside a class body is
-		// always the requirement. It says an implementor must have identity,
-		// never which field carries it. Without that rule `key` followed by a
-		// field would be indistinguishable from `key field: T`, since
-		// whitespace is insignificant.
-		case p.atContextual("key") && p.peek.Kind != lex.COLON:
-			members = append(members, &ast.KeyRequirement{P: p.cur.Pos})
-			p.next()
-
 		// `type Cursor` requires a type. `type: T` is a field named type.
 		case p.at(lex.TYPE) && p.peek.Kind == lex.IDENT:
 			req := &ast.AssocTypeReq{DeclHead: ast.DeclHead{Doc: doc, P: p.cur.Pos}}

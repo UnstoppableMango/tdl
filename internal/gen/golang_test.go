@@ -28,7 +28,6 @@ func goModel() *ir.Model {
 					Fields: []*ir.Field{{
 						Meta: &ir.Meta{Name: "id"},
 						Type: &ir.ID{Index: 0, Name: "string"},
-						Key:  true,
 					}},
 				}},
 			},

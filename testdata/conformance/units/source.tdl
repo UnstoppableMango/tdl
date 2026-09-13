@@ -8,7 +8,7 @@ unit Pa = N/m^2
 unit Hz = s^-1
 unit Complex = (kg*m)/(s^2*m)
 
-value Weight {
+type Weight {
   net: decimal<kg>
   force: decimal<N>
   plain: decimal

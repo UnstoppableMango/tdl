@@ -14,13 +14,13 @@ mixin Named {
   name: string
 }
 
-entity User: Auditable {
-  key id: string
+type User: Entity, Auditable {
+  id: string
   include Timestamps
   include Named
   email: string
 }
 
-value Snapshot {
+type Snapshot {
   include Timestamps
 }

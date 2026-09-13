@@ -1,7 +1,7 @@
 # Identity as library code
 
 Design document.
-Nothing here is built.
+Everything outside the open questions is built.
 
 An author declares types in their domain and says which of them have identity.
 The language has one keyword for a domain type, and identity is conformance to a prelude class.

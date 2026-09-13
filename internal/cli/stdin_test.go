@@ -25,7 +25,7 @@ func TestLoadFileReadsStdin(t *testing.T) {
 
 func TestLoadFileReportsStdinPositions(t *testing.T) {
 	cmd, _, _ := newTestCmd()
-	cmd.SetIn(strings.NewReader("entity E { id string }\n"))
+	cmd.SetIn(strings.NewReader("type E: Entity { id string }\n"))
 
 	_, err := loadFile(cmd, "-")
 	if err == nil {

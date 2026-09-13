@@ -254,13 +254,14 @@ Commas are required inside `<...>`, conformance lists, and list literals, and ar
 Both readings of `{` would otherwise collide.
 
 Declaration keywords are reserved.
-Modifiers and constraint names (`key`, `owned`, `deprecated`, `min`, `max`, `length`, `matches`, `oneOf`, `unique`) are contextual and remain usable as field names.
+Modifiers and constraint names (`owned`, `deprecated`, `min`, `max`, `length`, `matches`, `oneOf`, `unique`) are contextual and remain usable as field names.
 
 A reserved word followed by `:` is a field name: `value: T` is a field, and `include Foo` is still an include while `include: Foo` is a field.
 A contextual modifier followed by `:` is likewise a name, not a modifier.
 
-A class may not declare key fields, so `key` inside a class body is always the requirement.
-A class says an implementor must have identity, never which field carries it.
+Identity is conformance to the prelude's `Entity` class, which the compiler knows by name the way it knows `List`.
+`ir.StructKind` is computed from that conformance after satisfaction is built, and the recursion rules read the kind.
+Which fields identify an entity is a target directive, not language syntax.
 
 A `<...>` argument is a type or a unit.
 A bare name could be either, so it is recorded as a type reference and the resolver picks by kind; only an operator (`*`, `/`, `^`) or parentheses makes it unambiguously a unit.

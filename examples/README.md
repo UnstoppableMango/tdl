@@ -25,10 +25,10 @@ tdl fmt examples/flat.tdl                  # canonical formatting
 
 Things to try:
 
-- Change an `entity` to a `value` and ask whether the thing it describes still makes sense without identity.
+- Drop `: Entity` from a type and ask whether the thing it describes still makes sense without identity.
 - Delete a `?` and watch the `optional` count in the `stats` view move.
 - Replace `customer: Customer` with the five inlined fields from `flat.tdl` and compare `stats`.
 - Break a line on purpose. The `errors` view points a caret at the column, and parsing continues past it to the next declaration.
 - Put a comma between two fields. Whitespace is insignificant and commas are not block separators, so it is a syntax error.
-- Name a field `value` or `type`. A reserved word followed by `:` is a field name.
+- Name a field `type` or `unit`. A reserved word followed by `:` is a field name.
 - Invent a constraint: `where { between(0, 100) }`. The set is open, so the parser takes any name.

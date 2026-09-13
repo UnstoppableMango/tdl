@@ -1,6 +1,6 @@
 package shop.money
 
-value Money {
+type Money {
   amount: decimal
   currency: Currency
 }

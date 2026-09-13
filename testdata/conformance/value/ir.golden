@@ -29,18 +29,15 @@ Model shop.money
 │   │   │   └── field value: types[1] T  std.tdl:41:13
 │   │   └── variant Null  std.tdl:42:3
 │   ├── [17] class Entity  std.tdl:46:1
-│   │   └── requires key
-│   ├── [18] class Value  std.tdl:51:1
-│   ├── [19] value Money  source.tdl:3:1
+│   ├── [18] value Money  source.tdl:3:1
 │   │   ├── field amount: types[2] decimal  source.tdl:4:3
 │   │   └── field currency: types[3] Currency  source.tdl:5:3
-│   └── [20] enum Currency  source.tdl:8:1
+│   └── [19] enum Currency  source.tdl:8:1
 │       ├── variant USD  source.tdl:8:17
 │       ├── variant EUR  source.tdl:8:21
 │       └── variant GBP  source.tdl:8:25
 ├── Satisfies
-│   ├── Entity: nothing
-│   └── Value: nothing
+│   └── Entity: nothing
 ├── Units
 │   ├── [0] s  std.tdl:28:1
 │   ├── [1] m  std.tdl:30:1
@@ -49,4 +46,4 @@ Model shop.money
     ├── [0] T  named  -> param Option.T  std.tdl:35:17
     ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
     ├── [2] decimal  named  -> decls[7]  source.tdl:4:11
-    └── [3] Currency  named  -> decls[20]  source.tdl:5:13
+    └── [3] Currency  named  -> decls[19]  source.tdl:5:13

@@ -197,7 +197,7 @@ func TestStructs(t *testing.T) {
 		Node: &ir.Decl_Structure{Structure: &ir.Struct{
 			Kind: ir.StructKind_STRUCT_KIND_ENTITY,
 			Fields: []*ir.Field{
-				{Meta: &ir.Meta{Name: "id"}, Type: m.named("string"), Key: true},
+				{Meta: &ir.Meta{Name: "id"}, Type: m.named("string")},
 				field("placedAt", m.named("instant")),
 				field("items", m.named("List", m.named("LineItem"))),
 				field("tags", m.named("Set", m.named("string"))),

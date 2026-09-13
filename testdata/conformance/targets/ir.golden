@@ -29,22 +29,22 @@ Model billing
 │   │   │   └── field value: types[1] T  std.tdl:41:13
 │   │   └── variant Null  std.tdl:42:3
 │   ├── [17] class Entity  std.tdl:46:1
-│   │   └── requires key
-│   ├── [18] class Value  std.tdl:51:1
-│   ├── [19] primitive string  source.tdl:3:1
-│   ├── [20] primitive instant  source.tdl:4:1
-│   ├── [21] class Auditable  source.tdl:6:1
+│   ├── [18] primitive string  source.tdl:3:1
+│   ├── [19] primitive instant  source.tdl:4:1
+│   ├── [20] class Auditable  source.tdl:6:1
 │   │   └── field createdAt: types[2] instant  source.tdl:7:3
-│   ├── [22] entity User  @go:name("Account")  @go:embed("audit.Fields") (via Auditable)  @sql:trigger("set_updated_at") (via Auditable)  source.tdl:10:1
-│   │   ├── conforms Auditable  source.tdl:10:14
-│   │   ├── field key id: types[3] string  source.tdl:11:7
+│   ├── [21] entity User  @go:name("Account")  @go:embed("audit.Fields") (via Auditable)  @sql:trigger("set_updated_at") (via Auditable)  source.tdl:10:1
+│   │   ├── conforms Entity  source.tdl:10:12
+│   │   ├── conforms Auditable  source.tdl:10:20
+│   │   ├── field id: types[3] string  source.tdl:11:3
 │   │   ├── field createdAt: types[2] instant  source.tdl:12:3
 │   │   ├── field email: types[3] string  @go:tag("json:\"email_address\"")  source.tdl:13:3
 │   │   ├── field name: types[3] string  source.tdl:14:3
 │   │   └── field type: types[3] string  @go:tag("json:\"kind\"")  source.tdl:15:3
-│   └── [23] entity Order  @go:embed("audit.Fields") (via Auditable)  @sql:table("orders")  @sql:trigger("set_updated_at") (via Auditable)  source.tdl:18:1
-│       ├── conforms Auditable  source.tdl:18:15
-│       ├── field key id: types[3] string  source.tdl:19:7
+│   └── [22] entity Order  @go:embed("audit.Fields") (via Auditable)  @sql:table("orders")  @sql:trigger("set_updated_at") (via Auditable)  source.tdl:18:1
+│       ├── conforms Entity  source.tdl:18:13
+│       ├── conforms Auditable  source.tdl:18:21
+│       ├── field id: types[3] string  source.tdl:19:3
 │       ├── field createdAt: types[2] instant  source.tdl:20:3
 │       ├── field owned items: types[4] List<string>  @go:slice  source.tdl:21:3
 │       └── field tags: types[5] Set<string>  @go:set  source.tdl:22:3
@@ -54,8 +54,7 @@ Model billing
 │   │   └── @go:package("github.com/acme/billing")  source.tdl:27:3
 │   └── sql for billing  source.tdl:38:1
 ├── Satisfies
-│   ├── Entity: nothing
-│   ├── Value: nothing
+│   ├── Entity: User, Order
 │   └── Auditable: User, Order
 ├── Units
 │   ├── [0] s  std.tdl:28:1
@@ -64,7 +63,7 @@ Model billing
 └── Types
     ├── [0] T  named  -> param Option.T  std.tdl:35:17
     ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
-    ├── [2] instant  named  -> decls[20]  source.tdl:7:14
-    ├── [3] string  named  -> decls[19]  source.tdl:11:11
+    ├── [2] instant  named  -> decls[19]  source.tdl:7:14
+    ├── [3] string  named  -> decls[18]  source.tdl:11:7
     ├── [4] List<string>  [T]  -> decls[4]  source.tdl:21:10
     └── [5] Set<string>  {T}  -> decls[5]  source.tdl:22:9

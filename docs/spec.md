@@ -12,7 +12,7 @@ This document is canonical where the two disagree.
 The language core is small.
 Almost everything that looks like a type system is library code written in TDL and shipped in a replaceable prelude.
 
-1. **Identity is first class.** An `entity` has identity that persists across changes to its contents. A `value` is defined entirely by its contents.
+1. **Identity is first class.** A type conforming to the prelude's `Entity` class has identity that persists across changes to its contents. Any other type is defined entirely by its contents.
 2. **The model is pure.** A `.tdl` file describes the domain. Everything a code generator needs lives in a separate `target` block.
 3. **Constraints are syntax, not semantics.** The compiler parses and resolves constraints. It does not evaluate or interpret them. Backends decide what a constraint means.
 4. **Behavior belongs to backends.** `owned` says a child is part of its parent. It does not say what happens on delete.
@@ -21,10 +21,10 @@ Almost everything that looks like a type system is library code written in TDL a
 ## Lexical structure
 
 Identifiers are letters, digits, and underscore, not starting with a digit.
-Declaration keywords are reserved; modifiers and constraint names are not, so `key`, `owned`, `length`, and `min` remain usable as field names.
-A reserved word followed by `:` is a field name, which is why the prelude's `Option<T>` can have a field called `value`.
+Declaration keywords are reserved; modifiers and constraint names are not, so `owned`, `length`, and `min` remain usable as field names.
+A reserved word followed by `:` is a field name, which is why a field may be called `type`.
 Inside a target block a directive name and a path segment may be reserved words outright, since that namespace belongs to the backend rather than to the language.
-Every other name is an ordinary identifier, so `value value { ... }` and `x: value` are both errors.
+Every other name is an ordinary identifier, so `type type { ... }` and `x: type` are both errors.
 Comments run from `//` to end of line.
 A comment beginning `///` is a doc comment: it attaches to the declaration, field, or variant that follows, is carried through to the model, and is available to every target.
 Literals are strings (`"..."`), integers, floats, booleans, regexes (`/.../`), and bracketed lists.
@@ -89,7 +89,7 @@ The compiler has no opinion about which types exist.
 
 ### Newtypes
 
-`type` declares a distinct type over another type, optionally constrained.
+`type` followed by `:` and a type, with no body, declares a newtype: a distinct type over another type, optionally constrained.
 
 ```tdl
 type Email: string where {
@@ -120,38 +120,48 @@ Use `type` when the distinction should be enforced and `alias` when it should no
 
 ### Values
 
-A `value` is defined by its contents.
-Two values with equal fields are the same value.
+`type` followed by a body declares a domain type.
+One that does not conform to `Entity` is a value, defined by its contents: two values with equal fields are the same value.
 
 ```tdl
-value Money {
+type Money {
   amount: decimal
   currency: Currency
 }
 ```
 
+A newtype's constraints open with `where`, so a `{` after the name, the conformance list, or the `requires` clause always opens a body.
+
 ### Entities
 
-An `entity` has identity.
-Fields marked `key` form its identity; repeating `key` gives a composite identity.
+A type conforming to the prelude's `Entity` class has identity that survives changes to its contents.
 
 ```tdl
-entity Order {
-  key id: OrderId
+type Order: Entity {
+  id: OrderId
   customer: User
   items: [LineItem] owned
   total: Money
 }
 
-entity LineItem {
-  key order: Order
-  key sku: SKU
+type LineItem: Entity {
+  order: Order
+  sku: SKU
   quantity: int where { min(1) }
 }
 ```
 
-`key` is optional.
-An entity without a declared key still has identity; the backend supplies it.
+Conformance may also come from an instance or from a class that requires `Entity`; either makes the type an entity.
+A file declaring its own class named `Entity` shadows the prelude's, and conforming to that one confers no identity.
+
+`: Entity` says nothing about which fields identify an entity.
+That is a backend decision, written in a target block when a backend needs it:
+
+```tdl
+target sql for shop {
+  LineItem => key(order, sku)
+}
+```
 
 ### Enums
 
@@ -179,12 +189,13 @@ Entities may be mutually recursive without restriction.
 A cycle between entities is a graph of references, which every backend can represent.
 
 ```tdl
-entity Order  { items: [LineItem] owned }
-entity LineItem { order: Order }
+type Order: Entity { items: [LineItem] owned }
+type LineItem: Entity { order: Order }
 ```
 
-A value may only reach itself through a collection or an optional, never as a bare field.
-`value Node { next: Node }` is an error because it has no finite representation; `next: Node?` and `children: [Node]` are both fine.
+A value or an enum may only reach itself through a collection or an optional, never as a bare field.
+An enum holds its variants' fields inline, so conforming to `Entity` does not exempt one.
+`type Node { next: Node }` is an error because it has no finite representation; `next: Node?` and `children: [Node]` are both fine.
 
 Aliases may never be recursive, since they are expanded rather than referenced.
 
@@ -193,7 +204,7 @@ Aliases may never be recursive, since they are expanded rather than referenced.
 Any declaration may take parameters.
 
 ```tdl
-value Page<T> {
+type Page<T> {
   items: [T]
   next: Cursor? | null
 }
@@ -212,7 +223,7 @@ Kinds are inferred from how a parameter is used.
 A parameter applied to an argument has an arrow kind; one used directly as a field type has kind `type`.
 
 ```tdl
-value Collection<f, T> {
+type Collection<f, T> {
   items: f<T>          // f is inferred as type -> type
 }
 ```
@@ -220,7 +231,7 @@ value Collection<f, T> {
 An explicit annotation is permitted, and is worth writing when a parameter is never applied or when the inferred kind would be surprising.
 
 ```tdl
-value Collection<f: type -> type, T: type> {
+type Collection<f: type -> type, T: type> {
   items: f<T>
 }
 ```
@@ -247,17 +258,9 @@ class Auditable {
 }
 ```
 
-A class may require a field, a key, or an associated type.
-
-A class may not declare key fields.
-`key` inside a class body is the requirement itself: an implementor must have identity, and which field carries it is the implementor's business.
+A class may require a field or an associated type.
 
 ```tdl
-class Tenanted {
-  key                  // an implementor must have some key
-  tenant: TenantId
-}
-
 class Paged {
   type Cursor          // an implementor supplies a type
   pageSize: int
@@ -275,7 +278,7 @@ A class may take parameters, including higher-kinded ones, which lets a target d
 ```tdl
 class Container<f: type -> type> { }
 
-value Page<f, T> requires Container<f> {
+type Page<f, T> requires Container<f> {
   items: f<T>
 }
 ```
@@ -305,13 +308,14 @@ A `requires` clause constrains parameters.
 It applies to any declaration that takes parameters.
 
 ```tdl
-value Envelope<T> requires Auditable<T> {
+type Envelope<T> requires Auditable<T> {
   body: T
   receivedAt: instant
 }
 ```
 
-`Entity` and `Value` are classes declared by the prelude, so "any entity" is expressible without a special form.
+`Entity` is a class declared by the prelude, so "any entity" is `requires Entity<T>` without a special form.
+A class requiring `Entity` says an implementor must have identity, never which field carries it.
 
 ### Mixins
 
@@ -324,8 +328,8 @@ mixin Timestamps {
   updatedAt: instant
 }
 
-entity User: Auditable {
-  key id: UserId
+type User: Entity, Auditable {
+  id: UserId
   include Timestamps
   email: Email
 }
@@ -342,7 +346,7 @@ Conformance is declared in one of two places.
 On the declaration:
 
 ```tdl
-entity User: Auditable { ... }
+type User: Entity, Auditable { ... }
 ```
 
 Or separately, which lets a class be applied to a type declared elsewhere:
@@ -431,7 +435,7 @@ unit N = kg*m/s^2
 A unit is applied as a type argument.
 
 ```tdl
-value Weight {
+type Weight {
   net: decimal<kg>
   force: decimal<N>
 }
@@ -454,7 +458,7 @@ Cardinality comes from the collection form.
 `owned` marks composition: the referenced value is part of this one rather than an independent participant.
 
 ```tdl
-entity Order {
+type Order: Entity {
   items: [LineItem] owned   // composition
   customer: User            // reference
   coupon: Coupon?           // optional reference
@@ -471,7 +475,7 @@ A constraint block may follow a type declaration or a field, introduced by `wher
 ```tdl
 type Email: string where { length(3..254) }
 
-entity User {
+type User: Entity {
   age: int where { min(0) }
 }
 ```
@@ -514,7 +518,7 @@ The compiler collects the accumulated set and hands it to backends; it does not 
 A field may carry a default value.
 
 ```tdl
-entity Order {
+type Order: Entity {
   status: OrderStatus = Pending
   tags: {string} = []
 }
@@ -532,9 +536,9 @@ There are no expressions, so `now` and `uuid()` are not defaults but backend dir
 
 ```tdl
 deprecated("use billingEmail")
-entity LegacyContact { ... }
+type LegacyContact: Entity { ... }
 
-entity User {
+type User: Entity {
   deprecated email: Email
   billingEmail: Email
 }

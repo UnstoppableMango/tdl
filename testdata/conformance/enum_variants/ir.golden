@@ -29,9 +29,7 @@ Model shop.payment
 │   │   │   └── field value: types[1] T  std.tdl:41:13
 │   │   └── variant Null  std.tdl:42:3
 │   ├── [17] class Entity  std.tdl:46:1
-│   │   └── requires key
-│   ├── [18] class Value  std.tdl:51:1
-│   ├── [19] enum Payment  source.tdl:3:1
+│   ├── [18] enum Payment  source.tdl:3:1
 │   │   ├── variant Card  source.tdl:4:3
 │   │   │   ├── field last4: types[2] string  source.tdl:4:10
 │   │   │   └── field brand: types[3] CardBrand  source.tdl:4:24
@@ -39,17 +37,16 @@ Model shop.payment
 │   │   │   ├── field routing: types[2] string  source.tdl:5:10
 │   │   │   └── field account: types[2] string  source.tdl:5:26
 │   │   └── variant Credit  source.tdl:6:3
-│   ├── [20] enum CardBrand  source.tdl:9:1
+│   ├── [19] enum CardBrand  source.tdl:9:1
 │   │   ├── variant Visa  source.tdl:9:18
 │   │   ├── variant Mastercard  source.tdl:9:23
 │   │   └── variant Amex  source.tdl:9:34
-│   └── [21] enum Inline  source.tdl:10:1
+│   └── [20] enum Inline  source.tdl:10:1
 │       ├── variant A  source.tdl:10:15
 │       ├── variant B  source.tdl:10:17
 │       └── variant C  source.tdl:10:19
 ├── Satisfies
-│   ├── Entity: nothing
-│   └── Value: nothing
+│   └── Entity: nothing
 ├── Units
 │   ├── [0] s  std.tdl:28:1
 │   ├── [1] m  std.tdl:30:1
@@ -58,4 +55,4 @@ Model shop.payment
     ├── [0] T  named  -> param Option.T  std.tdl:35:17
     ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
     ├── [2] string  named  -> decls[0]  source.tdl:4:17
-    └── [3] CardBrand  named  -> decls[20]  source.tdl:4:31
+    └── [3] CardBrand  named  -> decls[19]  source.tdl:4:31

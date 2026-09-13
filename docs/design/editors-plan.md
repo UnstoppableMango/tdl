@@ -98,7 +98,7 @@ A regex literal is only ever a `ConstraintArg`, so it is matched after the `(` o
 A reserved word followed by `:` is a field name, so every word rule ends in a lookahead and `where: string` is a field where `where {` is a block.
 A numeric literal is guarded against the identifier it might sit inside, since `\b` does not separate `x` from `1`.
 
-The modifiers are read from the grammar's quoted terminals rather than listed, so `key`, `owned`, and `deprecated` are coloured and a fourth would be too.
+The modifiers are read from the grammar's quoted terminals rather than listed, so `owned` and `deprecated` are coloured and a third would be too.
 `_` is identifier-shaped and is excluded: `import "x" as _` is a name the source declines to give.
 
 Four kinds of name are coloured that the design document said would not be, and none of them needs a parse after all.

@@ -12,9 +12,9 @@ func TestCommentsAreRecordedInSourceOrder(t *testing.T) {
 	file := parse(t, `// first
 primitive string // second
 // third
-entity E {
+type E: Entity {
   // fourth
-  key id: string
+  id: string
 }
 // last
 `)
@@ -98,8 +98,8 @@ func TestFileEndIsPastEveryComment(t *testing.T) {
 func TestBlockEndPositions(t *testing.T) {
 	file := parse(t, `primitive string
 
-entity E {
-  key id: string
+type E: Entity {
+  id: string
   n: string where {
     length(1..10)
   }
@@ -158,7 +158,7 @@ target go for p {
 
 // A field without a constraint block has no block to record.
 func TestFieldWithoutConstraintsHasNoEnd(t *testing.T) {
-	file := parse(t, "primitive string\n\nentity E {\n  key id: string\n}\n")
+	file := parse(t, "primitive string\n\ntype E: Entity {\n  id: string\n}\n")
 
 	e := file.Decls[1].(*ast.StructDecl)
 	if got := e.Members[0].(*ast.Field).End; got.Line != 0 {
