@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.2.0](https://github.com/UnstoppableMango/tdl/compare/v0.1.8...v0.2.0) (2026-09-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* the `entity`, `value`, and `key` keywords are removed, and the IR drops Field.key (3) and Class.requires_key (6).
+
+### Features
+
+* identity is conformance to Entity ([#773](https://github.com/UnstoppableMango/tdl/issues/773)) ([31fdd53](https://github.com/UnstoppableMango/tdl/commit/31fdd53bd5ab5496d8d7fdd4183d1f2f68dc1556))
+
+
+### Bug Fixes
+
+* **deps:** update golang.org/x/exp digest to 85c1c22 ([#769](https://github.com/UnstoppableMango/tdl/issues/769)) ([58ccc01](https://github.com/UnstoppableMango/tdl/commit/58ccc0181146a3b0890f437f65029778271a976a))
+
+
+### Documentation
+
+* **design:** identity is conformance, and entity, value, and key leave the language ([#766](https://github.com/UnstoppableMango/tdl/issues/766)) ([9076f6d](https://github.com/UnstoppableMango/tdl/commit/9076f6ddfd52819af88daaf6d005ed68268b911e))
+* record how the review bots behave in a stack ([#768](https://github.com/UnstoppableMango/tdl/issues/768)) ([19593a2](https://github.com/UnstoppableMango/tdl/commit/19593a2242d40f90cb9ade12e241a43809ca25ed))
+
 ## [0.1.8](https://github.com/UnstoppableMango/tdl/compare/v0.1.7...v0.1.8) (2026-09-08)
 
 
