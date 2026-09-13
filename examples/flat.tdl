@@ -3,8 +3,8 @@
 // which fields happen to be set.
 package shop.flat
 
-entity Order {
-  key id: string
+type Order: Entity {
+  id: string
   customerEmail: string
   customerName: string?
   shipLine1: string?

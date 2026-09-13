@@ -29,23 +29,21 @@ Model example.units
 │   │   │   └── field value: types[1] T  std.tdl:41:13
 │   │   └── variant Null  std.tdl:42:3
 │   ├── [17] class Entity  std.tdl:46:1
-│   │   └── requires key
-│   ├── [18] class Value  std.tdl:51:1
-│   ├── [19] unit kg  source.tdl:3:1
+│   ├── [18] unit kg  source.tdl:3:1
 │   │   └── measures units[3] kg
-│   ├── [20] unit m  source.tdl:4:1
+│   ├── [19] unit m  source.tdl:4:1
 │   │   └── measures units[4] m
-│   ├── [21] unit s  source.tdl:5:1
+│   ├── [20] unit s  source.tdl:5:1
 │   │   └── measures units[5] s
-│   ├── [22] unit N  source.tdl:6:1
+│   ├── [21] unit N  source.tdl:6:1
 │   │   └── measures units[6] kg*m/s^2
-│   ├── [23] unit Pa  source.tdl:7:1
+│   ├── [22] unit Pa  source.tdl:7:1
 │   │   └── measures units[7] kg/m/s^2
-│   ├── [24] unit Hz  source.tdl:8:1
+│   ├── [23] unit Hz  source.tdl:8:1
 │   │   └── measures units[8] 1/s
-│   ├── [25] unit Complex  source.tdl:9:1
+│   ├── [24] unit Complex  source.tdl:9:1
 │   │   └── measures units[9] kg/s^2
-│   └── [26] value Weight  source.tdl:11:1
+│   └── [25] value Weight  source.tdl:11:1
 │       ├── field net: types[3] decimal<kg>  source.tdl:12:3
 │       ├── field force: types[5] decimal<kg*m/s^2>  source.tdl:13:3
 │       ├── field plain: types[6] decimal  source.tdl:14:3
@@ -54,8 +52,7 @@ Model example.units
 │       ├── field exponent: types[8] decimal<m^3>  source.tdl:17:3
 │       └── field mapped: types[10] Map<string, decimal<kg>>  source.tdl:18:3
 ├── Satisfies
-│   ├── Entity: nothing
-│   └── Value: nothing
+│   └── Entity: nothing
 ├── Units
 │   ├── [0] s  std.tdl:28:1
 │   ├── [1] m  std.tdl:30:1

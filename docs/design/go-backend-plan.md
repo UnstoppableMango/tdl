@@ -60,10 +60,11 @@ Done when a model containing an entity, a value, a mixin, both enum shapes, and 
 
 ## Phase 2: identity
 
-`key` fields become something.
-An entity's identity is the one thing the language says an entity has that a value does not, and phase 1 emits them as ordinary fields, which loses it.
+An entity's key becomes something.
+An entity's identity is the one thing the language says an entity has that a value does not, and phase 1 emits an entity as an ordinary struct, which loses it.
 
-The candidates are a `Key()` method returning a comparable struct, a generated key type per entity, and nothing at all with the `key` bits exposed as metadata.
+Which fields identify an entity is a target directive, `LineItem => key(order, sku)` in a `go` block, rather than language syntax, so this phase reads the directive.
+The candidates are a `Key()` method returning a comparable struct, a generated key type per entity, and nothing at all with the directive passed through as metadata.
 
 Done when an entity's key is expressible in Go without the consumer reading the `.tdl` file.
 

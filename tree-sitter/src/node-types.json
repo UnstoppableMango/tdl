@@ -113,10 +113,6 @@
           "named": true
         },
         {
-          "type": "key_requirement",
-          "named": true
-        },
-        {
           "type": "requires_clause",
           "named": true
         },
@@ -293,37 +289,6 @@
     }
   },
   {
-    "type": "entity_decl",
-    "named": true,
-    "fields": {},
-    "children": {
-      "multiple": true,
-      "required": true,
-      "types": [
-        {
-          "type": "body",
-          "named": true
-        },
-        {
-          "type": "conforms",
-          "named": true
-        },
-        {
-          "type": "identifier",
-          "named": true
-        },
-        {
-          "type": "requires_clause",
-          "named": true
-        },
-        {
-          "type": "type_params",
-          "named": true
-        }
-      ]
-    }
-  },
-  {
     "type": "enum_decl",
     "named": true,
     "fields": {},
@@ -427,10 +392,6 @@
           "named": true
         },
         {
-          "type": "entity_decl",
-          "named": true
-        },
-        {
           "type": "enum_decl",
           "named": true
         },
@@ -464,10 +425,6 @@
         },
         {
           "type": "unit_decl",
-          "named": true
-        },
-        {
-          "type": "value_decl",
           "named": true
         }
       ]
@@ -571,11 +528,6 @@
         }
       ]
     }
-  },
-  {
-    "type": "key_requirement",
-    "named": true,
-    "fields": {}
   },
   {
     "type": "kind",
@@ -899,6 +851,14 @@
       "required": true,
       "types": [
         {
+          "type": "body",
+          "named": true
+        },
+        {
+          "type": "conforms",
+          "named": true
+        },
+        {
           "type": "constraint_block",
           "named": true
         },
@@ -1036,37 +996,6 @@
     }
   },
   {
-    "type": "value_decl",
-    "named": true,
-    "fields": {},
-    "children": {
-      "multiple": true,
-      "required": true,
-      "types": [
-        {
-          "type": "body",
-          "named": true
-        },
-        {
-          "type": "conforms",
-          "named": true
-        },
-        {
-          "type": "identifier",
-          "named": true
-        },
-        {
-          "type": "requires_clause",
-          "named": true
-        },
-        {
-          "type": "type_params",
-          "named": true
-        }
-      ]
-    }
-  },
-  {
     "type": "variant",
     "named": true,
     "fields": {},
@@ -1183,10 +1112,6 @@
     "extra": true
   },
   {
-    "type": "entity",
-    "named": false
-  },
-  {
     "type": "enum",
     "named": false
   },
@@ -1221,10 +1146,6 @@
   {
     "type": "int_lit",
     "named": true
-  },
-  {
-    "type": "key",
-    "named": false
   },
   {
     "type": "line_comment",
@@ -1277,10 +1198,6 @@
   },
   {
     "type": "unit",
-    "named": false
-  },
-  {
-    "type": "value",
     "named": false
   },
   {

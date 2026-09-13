@@ -29,20 +29,17 @@ Model prelude.roots
 │   │   │   └── field value: types[1] T  std.tdl:41:13
 │   │   └── variant Null  std.tdl:42:3
 │   ├── [17] class Entity  std.tdl:46:1
-│   │   └── requires key
-│   ├── [18] class Value  std.tdl:51:1
-│   ├── [19] primitive string  source.tdl:4:1
-│   ├── [20] primitive int  source.tdl:6:1
-│   ├── [21] primitive bool  source.tdl:7:1
-│   ├── [22] primitive bytes  source.tdl:8:1
-│   ├── [23] primitive List: type -> type  source.tdl:9:1
-│   ├── [24] primitive Set: type -> type  source.tdl:10:1
-│   ├── [25] primitive Map: type -> type -> type  source.tdl:11:1
-│   ├── [26] primitive Measured: unit -> type  source.tdl:12:1
-│   └── [27] primitive Higher: (type -> type) -> type  source.tdl:13:1
+│   ├── [18] primitive string  source.tdl:4:1
+│   ├── [19] primitive int  source.tdl:6:1
+│   ├── [20] primitive bool  source.tdl:7:1
+│   ├── [21] primitive bytes  source.tdl:8:1
+│   ├── [22] primitive List: type -> type  source.tdl:9:1
+│   ├── [23] primitive Set: type -> type  source.tdl:10:1
+│   ├── [24] primitive Map: type -> type -> type  source.tdl:11:1
+│   ├── [25] primitive Measured: unit -> type  source.tdl:12:1
+│   └── [26] primitive Higher: (type -> type) -> type  source.tdl:13:1
 ├── Satisfies
-│   ├── Entity: nothing
-│   └── Value: nothing
+│   └── Entity: nothing
 ├── Units
 │   ├── [0] s  std.tdl:28:1
 │   ├── [1] m  std.tdl:30:1

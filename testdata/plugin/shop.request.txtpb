@@ -351,21 +351,6 @@ model:  {
       }
       order:  17
     }
-    class:  {
-      requires_key:  true
-    }
-  }
-  decls:  {
-    meta:  {
-      name:  "Value"
-      doc:  "Anything defined entirely by its contents."
-      position:  {
-        filename:  "std.tdl"
-        line:  51
-        column:  1
-      }
-      order:  18
-    }
     class:  {}
   }
   decls:  {
@@ -403,14 +388,13 @@ model:  {
           position:  {
             filename:  "shop.tdl"
             line:  4
-            column:  7
+            column:  3
           }
         }
         type:  {
           index:  2
           name:  "string"
         }
-        key:  true
       }
       fields:  {
         meta:  {
@@ -425,6 +409,17 @@ model:  {
         type:  {
           index:  3
           name:  "int"
+        }
+      }
+      conforms:  {
+        class:  {
+          index:  17
+          name:  "Entity"
+        }
+        position:  {
+          filename:  "shop.tdl"
+          line:  3
+          column:  13
         }
       }
     }
@@ -467,7 +462,7 @@ model:  {
     position:  {
       filename:  "shop.tdl"
       line:  4
-      column:  11
+      column:  7
     }
   }
   types:  {
@@ -487,11 +482,9 @@ model:  {
       index:  17
       name:  "Entity"
     }
-  }
-  satisfies:  {
-    class:  {
+    decls:  {
       index:  18
-      name:  "Value"
+      name:  "Order"
     }
   }
   targets:  {

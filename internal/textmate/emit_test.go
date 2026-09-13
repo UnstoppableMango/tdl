@@ -94,7 +94,7 @@ func TestEveryPunctuationIsColored(t *testing.T) {
 func TestModifiersAreContextual(t *testing.T) {
 	mods := alternatives(t, ruleFor(t, "storage.modifier.tdl"))
 
-	for _, want := range []string{"key", "owned", "deprecated"} {
+	for _, want := range []string{"owned", "deprecated"} {
 		if !mods[want] {
 			t.Errorf("%q is a modifier docs/grammar.ebnf spells and nothing colors", want)
 		}
@@ -116,8 +116,8 @@ func TestDeclarationKeywordsComeFromTheGrammar(t *testing.T) {
 	declares := alternatives(t, captureRuleFor(t, "entity.name.type.tdl"))
 
 	for _, want := range []string{
-		"alias", "class", "entity", "enum", "mixin",
-		"primitive", "target", "type", "unit", "value",
+		"alias", "class", "enum", "mixin",
+		"primitive", "target", "type", "unit",
 	} {
 		if !declares[want] {
 			t.Errorf("%q introduces a name in docs/grammar.ebnf and nothing colors it", want)

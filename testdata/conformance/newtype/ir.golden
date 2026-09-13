@@ -29,17 +29,14 @@ Model example.newtypes
 │   │   │   └── field value: types[1] T  std.tdl:41:13
 │   │   └── variant Null  std.tdl:42:3
 │   ├── [17] class Entity  std.tdl:46:1
-│   │   └── requires key
-│   ├── [18] class Value  std.tdl:51:1
-│   ├── [19] newtype Email  source.tdl:3:1
+│   ├── [18] newtype Email  source.tdl:3:1
 │   │   └── base types[2] string
-│   ├── [20] newtype UserId  source.tdl:4:1
+│   ├── [19] newtype UserId  source.tdl:4:1
 │   │   └── base types[3] uuid
-│   └── [21] newtype WorkEmail  source.tdl:5:1
+│   └── [20] newtype WorkEmail  source.tdl:5:1
 │       └── base types[4] Email
 ├── Satisfies
-│   ├── Entity: nothing
-│   └── Value: nothing
+│   └── Entity: nothing
 ├── Units
 │   ├── [0] s  std.tdl:28:1
 │   ├── [1] m  std.tdl:30:1
@@ -49,4 +46,4 @@ Model example.newtypes
     ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
     ├── [2] string  named  -> decls[0]  source.tdl:3:13
     ├── [3] uuid  named  -> decls[8]  source.tdl:4:14
-    └── [4] Email  named  -> decls[19]  source.tdl:5:17
+    └── [4] Email  named  -> decls[18]  source.tdl:5:17

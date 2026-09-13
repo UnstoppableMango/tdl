@@ -19,8 +19,8 @@ const (
 	REGEX  // /.../, scanned only on demand; see [Lexer.RescanRegexAt]
 
 	// Reserved keywords. Declaration keywords are reserved; modifiers and
-	// constraint names (key, owned, deprecated, min, length, ...) are
-	// contextual and lex as IDENT.
+	// constraint names (owned, deprecated, min, length, ...) are contextual
+	// and lex as IDENT.
 	PACKAGE
 	IMPORT
 	AS
@@ -28,8 +28,6 @@ const (
 	UNIT
 	ALIAS
 	TYPE
-	VALUE
-	ENTITY
 	ENUM
 	CLASS
 	MIXIN
@@ -77,8 +75,6 @@ var keywords = map[string]Kind{
 	"unit":      UNIT,
 	"alias":     ALIAS,
 	"type":      TYPE,
-	"value":     VALUE,
-	"entity":    ENTITY,
 	"enum":      ENUM,
 	"class":     CLASS,
 	"mixin":     MIXIN,

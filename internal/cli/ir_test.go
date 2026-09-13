@@ -16,8 +16,8 @@ package shop
 
 primitive string
 
-entity Order {
-  key id: string
+type Order: Entity {
+  id: string
   tags: {string}
 }
 `)
@@ -26,7 +26,7 @@ entity Order {
 	if err != nil {
 		t.Fatalf("text: %v", err)
 	}
-	for _, want := range []string{"Model shop", "entity Order", "field key id", "Set<string>"} {
+	for _, want := range []string{"Model shop", "entity Order", "field id", "Set<string>"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("text output missing %q:\n%s", want, text)
 		}

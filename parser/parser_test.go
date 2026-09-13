@@ -185,7 +185,7 @@ alias Broken =
 }
 
 func TestReservedKeywordsCannotName(t *testing.T) {
-	if msg := parseErr(t, `alias entity = string`); !strings.Contains(msg, "expected identifier") {
+	if msg := parseErr(t, `alias mixin = string`); !strings.Contains(msg, "expected identifier") {
 		t.Errorf("error = %s", msg)
 	}
 }
@@ -193,7 +193,7 @@ func TestReservedKeywordsCannotName(t *testing.T) {
 // Modifier and constraint names are contextual, so they stay usable as
 // ordinary identifiers.
 func TestContextualKeywordsAreIdentifiers(t *testing.T) {
-	for _, name := range []string{"key", "owned", "deprecated", "min", "max", "length", "matches", "oneOf", "unique"} {
+	for _, name := range []string{"owned", "deprecated", "min", "max", "length", "matches", "oneOf", "unique"} {
 		t.Run(name, func(t *testing.T) {
 			file := parse(t, "alias "+name+" = string")
 			if got := file.Decls[0].Name(); got != name {
@@ -212,31 +212,49 @@ func TestNewtype(t *testing.T) {
 	}
 }
 
-// `type` introduces a newtype, so the M1 record form is a syntax error.
-func TestRecordFormRejected(t *testing.T) {
-	if msg := parseErr(t, "type User {\n  id: string\n}"); !strings.Contains(msg, "expected :, got {") {
+// A body after the colon list makes it conformance; a newtype has one base
+// and no body, so a second name before anything else is an error.
+func TestTypeForms(t *testing.T) {
+	file := parse(t, `
+type Money { amount: decimal }
+type Order<T>: Entity requires Ord<T> { }
+type Email: string where { length(..254) }
+`)
+
+	if d := file.Decls[0].(*ast.StructDecl); d.Keyword != "type" || len(d.Conforms) != 0 {
+		t.Errorf("Money = %+v", d)
+	}
+	if d := file.Decls[1].(*ast.StructDecl); len(d.Conforms) != 1 || d.Conforms[0].N != "Entity" || len(d.Requires) != 1 {
+		t.Errorf("Order = %+v", d)
+	}
+	if d := file.Decls[2].(*ast.NewtypeDecl); d.Base.N != "string" || len(d.Constraints) != 1 {
+		t.Errorf("Email = %+v", d)
+	}
+
+	if msg := parseErr(t, "type Email: string, Entity"); !strings.Contains(msg, "a newtype has one base") {
+		t.Errorf("error = %s", msg)
+	}
+	if msg := parseErr(t, "type Tags: [string] { }"); !strings.Contains(msg, "expected a class") {
 		t.Errorf("error = %s", msg)
 	}
 }
 
 func TestStructDecls(t *testing.T) {
 	file := parse(t, `
-entity Order: Auditable, Tenanted requires Ord<T> {
-  key id: OrderId
-  key sku: string
+type Order: Entity, Tenanted requires Ord<T> {
+  id: OrderId
+  sku: string
   include Timestamps
   items: [LineItem] owned
   status: Status = Draft
   deprecated("gone soon") legacy: string
 }
 
-value Money { amount: decimal }
-
 mixin Timestamps { createdAt: instant }
 `)
 
 	order := file.Decls[0].(*ast.StructDecl)
-	if order.Keyword != "entity" {
+	if order.Keyword != "type" {
 		t.Errorf("keyword = %q", order.Keyword)
 	}
 	if len(order.Conforms) != 2 || len(order.Requires) != 1 {
@@ -244,10 +262,6 @@ mixin Timestamps { createdAt: instant }
 	}
 	if len(order.Members) != 6 {
 		t.Fatalf("got %d members, want 6", len(order.Members))
-	}
-
-	if f := order.Members[0].(*ast.Field); !f.Key || f.N != "id" {
-		t.Errorf("first member = %+v", f)
 	}
 	if _, ok := order.Members[2].(*ast.Include); !ok {
 		t.Errorf("third member is not an include: %T", order.Members[2])
@@ -262,35 +276,31 @@ mixin Timestamps { createdAt: instant }
 		t.Errorf("legacy deprecation = %+v", f.Dep)
 	}
 
-	if file.Decls[1].(*ast.StructDecl).Keyword != "value" {
-		t.Error("value keyword lost")
-	}
-	if file.Decls[2].(*ast.StructDecl).Keyword != "mixin" {
+	if file.Decls[1].(*ast.StructDecl).Keyword != "mixin" {
 		t.Error("mixin keyword lost")
 	}
 }
 
-// `key` and `deprecated` are contextual, so they are still legal field
+// `deprecated` and `owned` are contextual, so they are still legal field
 // names. A modifier is a modifier only when a colon does not follow it.
 func TestContextualModifiersAsFieldNames(t *testing.T) {
-	file := parse(t, `value V {
-  key: string
+	file := parse(t, `type V {
   deprecated: bool
   owned: int
-  key id: string
+  deprecated id: string
 }`)
 
 	members := file.Decls[0].(*ast.StructDecl).Members
-	if len(members) != 4 {
-		t.Fatalf("got %d members, want 4", len(members))
+	if len(members) != 3 {
+		t.Fatalf("got %d members, want 3", len(members))
 	}
-	for i, want := range []string{"key", "deprecated", "owned"} {
+	for i, want := range []string{"deprecated", "owned"} {
 		f := members[i].(*ast.Field)
-		if f.N != want || f.Key {
+		if f.N != want || f.Dep != nil {
 			t.Errorf("member %d = %+v, want a field named %q", i, f, want)
 		}
 	}
-	if f := members[3].(*ast.Field); !f.Key || f.N != "id" {
+	if f := members[2].(*ast.Field); f.Dep == nil || f.N != "id" {
 		t.Errorf("last member = %+v", f)
 	}
 }
@@ -324,7 +334,7 @@ func TestEnumValuesRejected(t *testing.T) {
 }
 
 func TestCommasRejectedInBlocks(t *testing.T) {
-	if msg := parseErr(t, "value P {\n  x: int,\n  y: int\n}"); !strings.Contains(msg, "not separators inside a block") {
+	if msg := parseErr(t, "type P {\n  x: int,\n  y: int\n}"); !strings.Contains(msg, "not separators inside a block") {
 		t.Errorf("error = %s", msg)
 	}
 }
@@ -332,7 +342,7 @@ func TestCommasRejectedInBlocks(t *testing.T) {
 func TestDeprecatedDecl(t *testing.T) {
 	file := parse(t, `
 deprecated("use Contact")
-entity Legacy { key id: string }
+type Legacy: Entity { id: string }
 `)
 
 	dep := file.Decls[0].Head().Dep
@@ -396,7 +406,7 @@ func TestDirectiveArguments(t *testing.T) {
 // A reserved word followed by `:` is a field name. The prelude's Option<T>
 // depends on it.
 func TestKeywordFieldNames(t *testing.T) {
-	file := parse(t, `value V {
+	file := parse(t, `type V {
   value: string
   type: string
   unit: string
@@ -424,7 +434,7 @@ func TestKeywordFieldNames(t *testing.T) {
 // previous field looks for a constraint block. One token of lookahead
 // separates the two, the way it does for the contextual modifiers.
 func TestWhereFieldNameAfterAField(t *testing.T) {
-	file := parse(t, `value V {
+	file := parse(t, `type V {
   a: string
   where: int where { min(0) }
   b: string
@@ -462,8 +472,8 @@ func TestWhereFieldNameAfterAField(t *testing.T) {
 // and usable everywhere one is: a declaration name, a type reference, and
 // a type parameter, none of which admit a reserved word.
 func TestUnionIsAnOrdinaryIdentifier(t *testing.T) {
-	file := parse(t, `value union { x: string }
-value W<union> { u: union }`)
+	file := parse(t, `type union { x: string }
+type W<union> { u: union }`)
 
 	if got := file.Decls[0].(*ast.StructDecl).N; got != "union" {
 		t.Errorf("declaration name = %q, want \"union\"", got)
@@ -480,7 +490,7 @@ value W<union> { u: union }`)
 
 // `include Foo` is still an include, not a field named include.
 func TestIncludeStillParses(t *testing.T) {
-	file := parse(t, `value V { include Timestamps }`)
+	file := parse(t, `type V { include Timestamps }`)
 	if _, ok := file.Decls[0].(*ast.StructDecl).Members[0].(*ast.Include); !ok {
 		t.Error("include parsed as something else")
 	}
@@ -548,7 +558,7 @@ func TestRangeForms(t *testing.T) {
 
 // The constraint set is open: the parser recognizes no name in particular.
 func TestUnknownConstraintParses(t *testing.T) {
-	file := parse(t, `entity E { x: int where { between(0, 100) } }`)
+	file := parse(t, `type E: Entity { x: int where { between(0, 100) } }`)
 
 	f := file.Decls[0].(*ast.StructDecl).Members[0].(*ast.Field)
 	if len(f.Constraints) != 1 || f.Constraints[0].N != "between" {
@@ -560,7 +570,7 @@ func TestUnknownConstraintParses(t *testing.T) {
 }
 
 func TestFieldConstraintsThenDefault(t *testing.T) {
-	file := parse(t, `entity E { status: Status where { unique } = Draft }`)
+	file := parse(t, `type E: Entity { status: Status where { unique } = Draft }`)
 
 	f := file.Decls[0].(*ast.StructDecl).Members[0].(*ast.Field)
 	if len(f.Constraints) != 1 {
@@ -572,9 +582,9 @@ func TestFieldConstraintsThenDefault(t *testing.T) {
 }
 
 // A constraint block must be introduced by `where`, so `{` after a type
-// reference is never a constraint block.
+// reference is a body, and a constraint in it is a field missing its colon.
 func TestConstraintBlockNeedsWhere(t *testing.T) {
-	if msg := parseErr(t, "type Email: string {\n  length(3..254)\n}"); !strings.Contains(msg, "expected a declaration") {
+	if msg := parseErr(t, "type Email: string {\n  length(3..254)\n}"); !strings.Contains(msg, "expected :") {
 		t.Errorf("error = %s", msg)
 	}
 }
@@ -598,7 +608,6 @@ func TestUnterminatedRegex(t *testing.T) {
 
 func TestClassDecl(t *testing.T) {
 	file := parse(t, `class Auditable: Timestamped requires Ord<T> {
-  key
   type Cursor: type
   createdAt: instant
 }`)
@@ -607,53 +616,30 @@ func TestClassDecl(t *testing.T) {
 	if len(d.Conforms) != 1 || len(d.Requires) != 1 {
 		t.Errorf("conforms %d, requires %d", len(d.Conforms), len(d.Requires))
 	}
-	if len(d.Members) != 3 {
-		t.Fatalf("got %d members, want 3", len(d.Members))
+	if len(d.Members) != 2 {
+		t.Fatalf("got %d members, want 2", len(d.Members))
 	}
-	if _, ok := d.Members[0].(*ast.KeyRequirement); !ok {
-		t.Errorf("first member is %T, want a key requirement", d.Members[0])
-	}
-	req, ok := d.Members[1].(*ast.AssocTypeReq)
+	req, ok := d.Members[0].(*ast.AssocTypeReq)
 	if !ok {
-		t.Fatalf("second member is %T, want an associated type", d.Members[1])
+		t.Fatalf("first member is %T, want an associated type", d.Members[0])
 	}
 	if req.N != "Cursor" || req.Kind == nil {
 		t.Errorf("assoc type = %+v", req)
 	}
-	if _, ok := d.Members[2].(*ast.Field); !ok {
-		t.Errorf("third member is %T, want a field", d.Members[2])
+	if _, ok := d.Members[1].(*ast.Field); !ok {
+		t.Errorf("second member is %T, want a field", d.Members[1])
 	}
 }
 
-// A class may not declare key fields, so a bare `key` before a field is the
-// requirement and not a modifier on that field.
-func TestClassKeyIsARequirement(t *testing.T) {
-	file := parse(t, `class Tenanted {
-  key
-  tenant: string
-}`)
-
-	members := file.Decls[0].(*ast.ClassDecl).Members
-	if len(members) != 2 {
-		t.Fatalf("got %d members, want 2", len(members))
-	}
-	if _, ok := members[0].(*ast.KeyRequirement); !ok {
-		t.Errorf("first member is %T, want a key requirement", members[0])
-	}
-	if f := members[1].(*ast.Field); f.N != "tenant" || f.Key {
-		t.Errorf("second member = %+v", f)
-	}
-}
-
-// A field named `key` or `type` still works inside a class.
+// A field named after a reserved word still works inside a class.
 func TestClassKeywordFields(t *testing.T) {
 	file := parse(t, `class C {
-  key: string
   type: string
+  unit: string
 }`)
 
 	members := file.Decls[0].(*ast.ClassDecl).Members
-	for i, want := range []string{"key", "type"} {
+	for i, want := range []string{"type", "unit"} {
 		f, ok := members[i].(*ast.Field)
 		if !ok {
 			t.Fatalf("member %d is %T, want a field", i, members[i])

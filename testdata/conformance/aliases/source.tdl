@@ -11,6 +11,6 @@ alias Nullable2<T> = T | null
 alias Both<T> = T? | null
 alias Qualified = common.Address
 
-value Event {
+type Event {
   name: string
 }

@@ -176,8 +176,8 @@ func (g *generator) file(pkg string, decl *ir.Decl) (*plugin.File, error) {
 //
 // The three differ in what they mean rather than in what they emit: Go has
 // no way to say "identity that survives changes to its contents", so an
-// entity and a value are one shape apart in documentation only. Turning
-// `key` into something is phase 2.
+// entity and a value are one shape apart in documentation only. Reading an
+// entity's key from a target directive is phase 2.
 func (g *generator) structure(b *strings.Builder, decl *ir.Decl) error {
 	if len(decl.Params()) > 0 {
 		return unsupported(decl.GetMeta().GetPosition(),

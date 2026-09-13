@@ -45,8 +45,8 @@ type Email: string where {
 
 type Slug: string where { length(1..64) }
 
-entity Order {
-  key id: OrderId
+type Order: Entity {
+  id: OrderId
   customer: Customer
   items: [LineItem] owned
   status: Status = Draft
@@ -54,12 +54,12 @@ entity Order {
   deprecated legacy: string
 }
 
-value Money {
+type Money {
   amount: decimal
   currency: Currency
 }
 
-value Weight {
+type Weight {
   net: decimal<kg>
   force: decimal<kg*m/s^2>
   cubed: decimal<m^3>
@@ -71,7 +71,6 @@ mixin Timestamps {
 }
 
 class Auditable: Timestamped requires Ord<T> {
-  key
   type Cursor: type
   createdAt: instant
 }
@@ -94,8 +93,8 @@ enum Payment {
 }
 
 deprecated("use Contact")
-entity LegacyContact {
-  key id: string
+type LegacyContact: Entity {
+  id: string
 }
 
 target go for example.aliases {
@@ -123,7 +122,7 @@ func TestFprintIdempotent(t *testing.T) {
 primitive string primitive int
 alias   A=[  T ]
 alias B = { K->V }
-entity  E{key id:string
+type  E: Entity{id:string
   tags:{string}=[]
   n:int where{min(0) max(10)}}
 enum Big { AlphaVariant BetaVariant GammaVariant DeltaVariant EpsilonVariant ZetaVariant }

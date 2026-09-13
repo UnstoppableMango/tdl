@@ -22,7 +22,6 @@
   "alias"
   "as"
   "class"
-  "entity"
   "enum"
   "for"
   "import"
@@ -35,7 +34,6 @@
   "target"
   "type"
   "unit"
-  "value"
   "where"
 ] @keyword
 
@@ -50,10 +48,7 @@
 ; Contextual rather than reserved: each is usable as a field name, and each
 ; reads as an annotation on the declaration it precedes.
 
-[
-  "key"
-  "owned"
-] @attribute
+"owned" @attribute
 
 (deprecated) @attribute
 
@@ -61,13 +56,11 @@
 
 (alias_decl (identifier) @type)
 (class_decl (identifier) @type)
-(entity_decl (identifier) @type)
 (enum_decl (identifier) @type)
 (mixin_decl (identifier) @type)
 (primitive_decl (identifier) @type)
 (type_decl (identifier) @type)
 (unit_decl (identifier) @type)
-(value_decl (identifier) @type)
 
 (named_type (dotted_ident (identifier) @type))
 (class_ref (dotted_ident (identifier) @type))

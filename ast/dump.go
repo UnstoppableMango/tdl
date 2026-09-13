@@ -151,8 +151,6 @@ func memberChildren(members []Member) []child {
 		switch mem := m.(type) {
 		case *Include:
 			kids = append(kids, child{"Include " + mem.Type.N, mem.P})
-		case *KeyRequirement:
-			kids = append(kids, child{"KeyRequirement", mem.P})
 		case *AssocTypeReq:
 			desc := "AssocType " + mem.N
 			if mem.Kind != nil {

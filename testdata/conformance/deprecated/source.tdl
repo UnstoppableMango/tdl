@@ -1,12 +1,12 @@
 package example.deprecation
 
 deprecated("use billingEmail")
-entity LegacyContact {
-  key id: string
+type LegacyContact: Entity {
+  id: string
 }
 
-entity User {
-  key id: string
+type User: Entity {
+  id: string
   deprecated email: string
   billingEmail: string
 }

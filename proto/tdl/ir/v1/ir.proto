@@ -201,8 +201,10 @@ message Class {
   repeated ClassRef requires_classes = 3; // classes an implementor must also satisfy
   repeated ClassRef constraints = 4; // the `requires` clause on this class's parameters
   repeated Field fields = 5;
-  bool requires_key = 6; // a bare `key` in the body
   repeated AssocType assoc_types = 7;
+
+  reserved 6;
+  reserved requires_key;
 }
 
 // FunDep states that some parameters determine others, which makes a
@@ -322,7 +324,9 @@ message Constraint {
   ID from = 4; // indexes Model.decls
 }
 
-// StructKind distinguishes the three declarations that share a body.
+// StructKind distinguishes the three declarations that share a body. The
+// compiler computes it: MIXIN for a mixin, ENTITY for any other struct
+// satisfying std.Entity, and VALUE for the rest.
 enum StructKind {
   STRUCT_KIND_UNSPECIFIED = 0;
   STRUCT_KIND_ENTITY = 1; // identity that survives changes to its contents
@@ -358,7 +362,6 @@ message Variant {
 message Field {
   Meta meta = 1;
   ID type = 2; // indexes Model.types
-  bool key = 3; // part of the entity's identity
   bool owned = 4; // composition rather than reference
   repeated Constraint constraints = 6;
   Literal default_value = 7; // unset when the field has no default
@@ -368,6 +371,9 @@ message Field {
   // that can express the grouping does not have to reconstruct it. Unset
   // for a field the declaration wrote itself.
   ID included_from = 5; // indexes Model.decls
+
+  reserved 3;
+  reserved key;
 }
 
 // Param is one type parameter.

@@ -31,40 +31,37 @@ Model example.collections
 │   │   │   └── field value: types[1] T  std.tdl:41:13
 │   │   └── variant Null  std.tdl:42:3
 │   ├── [17] class Entity  std.tdl:46:1
-│   │   └── requires key
-│   ├── [18] class Value  std.tdl:51:1
-│   ├── [19] alias BySku  source.tdl:5:1
+│   ├── [18] alias BySku  source.tdl:5:1
 │   │   └── target types[4] Map<string, LineItem>
-│   ├── [20] alias TagIndex  source.tdl:6:1
+│   ├── [19] alias TagIndex  source.tdl:6:1
 │   │   └── target types[6] Map<string, List<string>>
-│   ├── [21] alias Matrix  source.tdl:7:1
+│   ├── [20] alias Matrix  source.tdl:7:1
 │   │   └── target types[9] List<List<int>>
-│   ├── [22] alias Regions  source.tdl:8:1
+│   ├── [21] alias Regions  source.tdl:8:1
 │   │   └── target types[11] List<Map<string, string>>
-│   ├── [23] alias SeenSkus  source.tdl:9:1
+│   ├── [22] alias SeenSkus  source.tdl:9:1
 │   │   └── target types[12] Set<string>
-│   ├── [24] alias ExplicitList  source.tdl:10:1
+│   ├── [23] alias ExplicitList  source.tdl:10:1
 │   │   └── target types[13] List<LineItem>
-│   ├── [25] alias ExplicitSet  source.tdl:11:1
+│   ├── [24] alias ExplicitSet  source.tdl:11:1
 │   │   └── target types[14] Set<LineItem>
-│   ├── [26] alias ExplicitMap  source.tdl:12:1
+│   ├── [25] alias ExplicitMap  source.tdl:12:1
 │   │   └── target types[15] Map<string, string>
-│   ├── [27] alias Optional  source.tdl:13:1
+│   ├── [26] alias Optional  source.tdl:13:1
 │   │   └── target types[16] Option<LineItem>
-│   ├── [28] alias OrNull  source.tdl:14:1
+│   ├── [27] alias OrNull  source.tdl:14:1
 │   │   └── target types[17] Nullable<LineItem>
-│   ├── [29] alias Both  source.tdl:15:1
+│   ├── [28] alias Both  source.tdl:15:1
 │   │   └── target types[18] Nullable<Option<LineItem>>
-│   ├── [30] alias NestedOptional  source.tdl:16:1
+│   ├── [29] alias NestedOptional  source.tdl:16:1
 │   │   └── target types[19] List<Option<LineItem>>
-│   ├── [31] alias QualifiedArg  source.tdl:17:1
+│   ├── [30] alias QualifiedArg  source.tdl:17:1
 │   │   └── target types[21] Map<string, example.common.Address>
-│   └── [32] value LineItem  source.tdl:19:1
+│   └── [31] value LineItem  source.tdl:19:1
 │       ├── field sku: types[2] string  source.tdl:20:3
 │       └── field quantity: types[7] int  source.tdl:21:3
 ├── Satisfies
-│   ├── Entity: nothing
-│   └── Value: nothing
+│   └── Entity: nothing
 ├── Units
 │   ├── [0] s  std.tdl:28:1
 │   ├── [1] m  std.tdl:30:1
@@ -73,7 +70,7 @@ Model example.collections
 │   ├── [0] T  named  -> param Option.T  std.tdl:35:17
 │   ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
 │   ├── [2] string  named  -> decls[0]  source.tdl:5:16
-│   ├── [3] LineItem  named  -> decls[32]  source.tdl:5:26
+│   ├── [3] LineItem  named  -> decls[31]  source.tdl:5:26
 │   ├── [4] Map<string, LineItem>  {K -> V}  -> decls[6]  source.tdl:5:15
 │   ├── [5] List<string>  [T]  -> decls[4]  source.tdl:6:29
 │   ├── [6] Map<string, List<string>>  {K -> V}  -> decls[6]  source.tdl:6:18

@@ -29,32 +29,29 @@ Model example.parameters
 │   │   │   └── field value: types[1] T  std.tdl:41:13
 │   │   └── variant Null  std.tdl:42:3
 │   ├── [17] class Entity  std.tdl:46:1
-│   │   └── requires key
-│   ├── [18] class Value  std.tdl:51:1
-│   ├── [19] alias Applied  source.tdl:3:1
+│   ├── [18] alias Applied  source.tdl:3:1
 │   │   ├── param f: type -> type  source.tdl:3:15
 │   │   ├── param T: type  source.tdl:3:32
 │   │   └── target types[3] f<T>
-│   ├── [20] alias Inferred  source.tdl:4:1
+│   ├── [19] alias Inferred  source.tdl:4:1
 │   │   ├── param f  source.tdl:4:16
 │   │   ├── param T  source.tdl:4:19
 │   │   └── target types[5] f<T>
-│   ├── [21] alias Curried  source.tdl:5:1
+│   ├── [20] alias Curried  source.tdl:5:1
 │   │   ├── param f: type -> type -> type  source.tdl:5:15
 │   │   ├── param A  source.tdl:5:40
 │   │   ├── param B  source.tdl:5:43
 │   │   └── target types[8] f<A, B>
-│   ├── [22] alias Parenthesized  source.tdl:6:1
+│   ├── [21] alias Parenthesized  source.tdl:6:1
 │   │   ├── param f: (type -> type) -> type  source.tdl:6:21
 │   │   ├── param g  source.tdl:6:48
 │   │   └── target types[10] f<g>
-│   └── [23] alias Measured  source.tdl:7:1
+│   └── [22] alias Measured  source.tdl:7:1
 │       ├── param T  source.tdl:7:16
 │       ├── param u: unit  source.tdl:7:19
 │       └── target types[12] T<u>
 ├── Satisfies
-│   ├── Entity: nothing
-│   └── Value: nothing
+│   └── Entity: nothing
 ├── Units
 │   ├── [0] s  std.tdl:28:1
 │   ├── [1] m  std.tdl:30:1

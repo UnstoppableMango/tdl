@@ -31,29 +31,26 @@ Model example.aliases
 │   │   │   └── field value: types[1] T  std.tdl:41:13
 │   │   └── variant Null  std.tdl:42:3
 │   ├── [17] class Entity  std.tdl:46:1
-│   │   └── requires key
-│   ├── [18] class Value  std.tdl:51:1
-│   ├── [19] alias Handler  source.tdl:6:1
+│   ├── [18] alias Handler  source.tdl:6:1
 │   │   └── target types[5] Map<string, List<Event>>
-│   ├── [20] alias Pair  source.tdl:8:1
+│   ├── [19] alias Pair  source.tdl:8:1
 │   │   ├── param T  source.tdl:8:12
 │   │   └── target types[7] Map<string, T>
-│   ├── [21] alias Maybe  source.tdl:9:1
+│   ├── [20] alias Maybe  source.tdl:9:1
 │   │   ├── param T  source.tdl:9:13
 │   │   └── target types[9] Option<T>
-│   ├── [22] alias Nullable2  source.tdl:10:1
+│   ├── [21] alias Nullable2  source.tdl:10:1
 │   │   ├── param T  source.tdl:10:17
 │   │   └── target types[11] Nullable<T>
-│   ├── [23] alias Both  source.tdl:11:1
+│   ├── [22] alias Both  source.tdl:11:1
 │   │   ├── param T  source.tdl:11:12
 │   │   └── target types[14] Nullable<Option<T>>
-│   ├── [24] alias Qualified  source.tdl:12:1
+│   ├── [23] alias Qualified  source.tdl:12:1
 │   │   └── target types[15] example.common.Address
-│   └── [25] value Event  source.tdl:14:1
+│   └── [24] value Event  source.tdl:14:1
 │       └── field name: types[2] string  source.tdl:15:3
 ├── Satisfies
-│   ├── Entity: nothing
-│   └── Value: nothing
+│   └── Entity: nothing
 ├── Units
 │   ├── [0] s  std.tdl:28:1
 │   ├── [1] m  std.tdl:30:1
@@ -62,7 +59,7 @@ Model example.aliases
 │   ├── [0] T  named  -> param Option.T  std.tdl:35:17
 │   ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
 │   ├── [2] string  named  -> decls[0]  source.tdl:6:18
-│   ├── [3] Event  named  -> decls[25]  source.tdl:6:29
+│   ├── [3] Event  named  -> decls[24]  source.tdl:6:29
 │   ├── [4] List<Event>  [T]  -> decls[4]  source.tdl:6:28
 │   ├── [5] Map<string, List<Event>>  {K -> V}  -> decls[6]  source.tdl:6:17
 │   ├── [6] T  named  -> param Pair.T  source.tdl:8:29

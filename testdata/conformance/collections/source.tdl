@@ -16,7 +16,7 @@ alias Both = LineItem? | null
 alias NestedOptional = [LineItem?]
 alias QualifiedArg = Map<string, common.Address>
 
-value LineItem {
+type LineItem {
   sku: string
   quantity: int
 }

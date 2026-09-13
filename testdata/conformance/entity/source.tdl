@@ -2,22 +2,22 @@ package shop.orders
 
 import "common.tdl" as common
 
-entity Order {
-  key id: OrderId
+type Order: Entity {
+  id: OrderId
   customer: User
   shipping: common.Address?
   items: [LineItem] owned
   status: Status = Draft
 }
 
-entity LineItem {
-  key order: Order
-  key sku: string
+type LineItem: Entity {
+  order: Order
+  sku: string
   quantity: int
 }
 
-entity User {
-  key id: string
+type User: Entity {
+  id: string
 }
 
 type OrderId: string

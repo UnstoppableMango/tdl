@@ -1,5 +1,5 @@
 package example.common
 
-value Address {
+type Address {
   line1: string
 }

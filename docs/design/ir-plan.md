@@ -11,7 +11,7 @@ It does not build backends or the plugin protocol.
 
 The parser is finished.
 The parser reads the whole grammar, so every phase below starts from a complete `ast.File` and nothing here is blocked on front-end work.
-`prelude/std.tdl` exists and parses; it declares the primitives, collection constructors, `Option`, `Nullable`, the SI base units, and the `Entity` and `Value` classes.
+`prelude/std.tdl` exists and parses; it declares the primitives, collection constructors, `Option`, `Nullable`, the SI base units, and the `Entity` class.
 
 Seven grammar problems surfaced while writing the parser and were fixed in the spec.
 Three of them change what lowering receives and are worth stating here:
@@ -90,7 +90,7 @@ Done when `tdl ir` prints every conformance case, the text output is the golden 
 
 Phase 1 lowers sugar to constructors that the parser already reads, but nothing has yet loaded a prelude as a package.
 
-This phase makes `prelude/std.tdl` a real compilation unit: embedded, parsed, lowered, and merged into the model's scope, with `List`, `Set`, `Map`, `Option`, `Nullable`, `Entity`, and `Value` as ordinary declarations rather than names lowering knows about.
+This phase makes `prelude/std.tdl` a real compilation unit: embedded, parsed, lowered, and merged into the model's scope, with `List`, `Set`, `Map`, `Option`, `Nullable`, and `Entity` as ordinary declarations whose names lowering knows and whose meaning it does not.
 
 Done when the sugar lowering in phase 1 resolves through the loaded prelude with no builtin names left in `internal/sema`, and pointing `prelude` at a replacement directory changes what `[T]` means.
 

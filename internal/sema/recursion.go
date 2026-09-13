@@ -4,31 +4,37 @@ import (
 	"slices"
 
 	"github.com/unstoppablemango/tdl/ast"
+	"github.com/unstoppablemango/tdl/ir"
 )
 
 // checkRecursion enforces the spec's three recursion rules.
 //
-//   - Entities may be mutually recursive without restriction. A cycle
-//     between entities is a graph of references, which every backend can
-//     represent.
-//   - A value may reach itself only through a collection or an optional,
-//     never as a bare field. `value Node { next: Node }` has no finite
-//     representation; `next: Node?` and `children: [Node]` do.
+//   - A struct conforming to std.Entity may be mutually recursive without
+//     restriction. A cycle between entities is a graph of references,
+//     which every backend can represent.
+//   - Any other struct or enum may reach itself only through a collection
+//     or an optional, never as a bare field. `type Node { next: Node }` has
+//     no finite representation; `next: Node?` and `children: [Node]` do.
+//     An enum holds its variants' fields inline, so conforming to Entity
+//     does not exempt one.
 //   - Aliases may never be recursive, since they are expanded rather than
 //     referenced. An alias cycle does not terminate under expansion, so
 //     even a collection does not save it.
 //
 // The two rules differ in which edges they follow, so the walk is
-// parameterized by that rather than duplicated.
+// parameterized by that rather than duplicated. It runs after
+// [lowerer.markEntities], since whether a struct is an entity is read from
+// its kind.
 func (l *lowerer) checkRecursion(file *ast.File) {
 	for _, decl := range file.Decls {
 		name := decl.Name()
-		switch d := decl.(type) {
+		switch decl.(type) {
 		case *ast.AliasDecl:
 			// Expansion follows every edge, including through collections.
 			l.findCycle(file, name, name, map[string]bool{}, true)
 		case *ast.StructDecl:
-			if d.Keyword == "entity" {
+			if b, ok := l.file.lookup(name); ok && b.kind == bindDecl &&
+				l.model.Decl(b.id).GetStructure().GetKind() == ir.StructKind_STRUCT_KIND_ENTITY {
 				continue
 			}
 			l.findCycle(file, name, name, map[string]bool{}, false)

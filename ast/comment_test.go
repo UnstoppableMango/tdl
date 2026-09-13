@@ -20,9 +20,9 @@ import "common.tdl" as common
 primitive string  // trailing a declaration
 
 // before the entity
-entity E {  // opening a body
+type E: Entity {  // opening a body
   // before a field
-  key id: string  // trailing a field
+  id: string  // trailing a field
   n: string where {
     // inside a where block
     min(0)  // trailing a constraint
@@ -59,8 +59,8 @@ func TestFprintDropsNoComment(t *testing.T) {
 	src := `package p
 primitive string
 // one
-entity E{// two
-key id:string// three
+type E: Entity{// two
+id:string// three
 n:string where{// four
 min(0)}// five
 }// six
@@ -105,8 +105,8 @@ func TestFprintExpandsBlocksHoldingComments(t *testing.T) {
 		},
 		{
 			name: "empty body with a comment",
-			src:  "package p\nentity E {\n  // nothing yet\n}\n",
-			want: "entity E {\n  // nothing yet\n}\n",
+			src:  "package p\ntype E: Entity {\n  // nothing yet\n}\n",
+			want: "type E: Entity {\n  // nothing yet\n}\n",
 		},
 		{
 			name: "variant payload with a comment",
@@ -166,7 +166,7 @@ func TestFprintIdempotentWithComments(t *testing.T) {
 package   p
 primitive string// one
 // two
-entity  E{key id:string// three
+type  E: Entity{id:string// three
   n:int where{// four
 min(0) max(10)}}
 enum Big { A B // five
@@ -192,12 +192,12 @@ func TestFprintKeepsTrailingCommentAfterBlock(t *testing.T) {
 	}{
 		{
 			name: "entity body",
-			src:  "package p\nprimitive string\nentity E { a: string b: string } // c\n",
-			want: "entity E {\n  a: string\n  b: string\n}  // c\n",
+			src:  "package p\nprimitive string\ntype E: Entity { a: string b: string } // c\n",
+			want: "type E: Entity {\n  a: string\n  b: string\n}  // c\n",
 		},
 		{
 			name: "constraint block",
-			src:  "package p\nprimitive string\nentity E {\n  a: string where { min(1) max(9) } // c\n}\n",
+			src:  "package p\nprimitive string\ntype E: Entity {\n  a: string where { min(1) max(9) } // c\n}\n",
 			want: "  a: string where {\n    min(1)\n    max(9)\n  }  // c\n",
 		},
 		{
@@ -229,8 +229,8 @@ func TestFprintBindsCommentToFirstItem(t *testing.T) {
 	}{
 		{
 			name: "entity body",
-			src:  "package p\nprimitive string\nentity E { a: string // c\n}\n",
-			want: "entity E {\n  a: string  // c\n}\n",
+			src:  "package p\nprimitive string\ntype E: Entity { a: string // c\n}\n",
+			want: "type E: Entity {\n  a: string  // c\n}\n",
 		},
 		{
 			name: "enum body",
@@ -270,8 +270,8 @@ func TestFprintBindsCommentToFirstItem(t *testing.T) {
 // A comment written before a block's first item belongs to the brace, and
 // stays folded onto it.
 func TestFprintKeepsCommentOnOpeningBrace(t *testing.T) {
-	src := "package p\nprimitive string\nentity E { // c\n  a: string\n}\n"
-	want := "entity E {  // c\n  a: string\n}\n"
+	src := "package p\nprimitive string\ntype E: Entity { // c\n  a: string\n}\n"
+	want := "type E: Entity {  // c\n  a: string\n}\n"
 
 	if got := ast.Fprint(mustParse(t, src)); !strings.Contains(got, want) {
 		t.Errorf("output does not contain %q:\n%s", want, got)

@@ -14,8 +14,8 @@ type Open: string where { length(1..) }
 type Capped: string where { length(..64) }
 type WorkEmail: Email where { matches(/@acme\.com$/) }
 
-entity Order {
-  key id: string
+type Order: Entity {
+  id: string
   where: string
   quantity: int where {
     min(1)
@@ -30,7 +30,7 @@ entity Order {
   status: Status = Draft
 }
 
-value Clause {
+type Clause {
   where: int where { min(0) }
   after: string
 }

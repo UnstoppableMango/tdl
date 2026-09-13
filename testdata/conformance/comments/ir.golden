@@ -31,30 +31,27 @@ Model shop.comments
 │   │   │   └── field value: types[1] T  std.tdl:41:13
 │   │   └── variant Null  std.tdl:42:3
 │   ├── [17] class Entity  std.tdl:46:1
-│   │   └── requires key
-│   ├── [18] class Value  std.tdl:51:1
-│   ├── [19] primitive string  source.tdl:7:1
-│   ├── [20] primitive int  source.tdl:8:1
-│   ├── [21] entity Order  @go:name("PurchaseOrder")  source.tdl:11:1
-│   │   ├── field key id: types[2] string  source.tdl:13:7
+│   ├── [18] primitive string  source.tdl:7:1
+│   ├── [19] primitive int  source.tdl:8:1
+│   ├── [20] entity Order  @go:name("PurchaseOrder")  source.tdl:11:1
+│   │   ├── conforms Entity  source.tdl:11:13
+│   │   ├── field id: types[2] string  source.tdl:13:3
 │   │   └── field note: types[2] string  length(1..10)  source.tdl:15:3
-│   ├── [22] enum Status  source.tdl:22:1
+│   ├── [21] enum Status  source.tdl:22:1
 │   │   ├── variant Draft  source.tdl:23:3
 │   │   ├── variant Shipped  source.tdl:25:3
 │   │   └── variant Custom  source.tdl:26:3
 │   │       └── field reason: types[2] string  source.tdl:28:5
-│   └── [23] class Auditable  source.tdl:32:1
-│       ├── requires key
-│       └── field createdAt: types[2] string  source.tdl:35:3
+│   └── [22] class Auditable  source.tdl:32:1
+│       └── field createdAt: types[2] string  source.tdl:34:3
 ├── Instances
-│   └── instance Auditable<Order>  source.tdl:38:1
-│       └── type Cursor = types[2] string  source.tdl:40:3
+│   └── instance Auditable<Order>  source.tdl:37:1
+│       └── type Cursor = types[2] string  source.tdl:39:3
 ├── Targets
-│   └── go for shop.comments  source.tdl:43:1
-│       └── @go:out("./gen")  source.tdl:45:3
+│   └── go for shop.comments  source.tdl:42:1
+│       └── @go:out("./gen")  source.tdl:44:3
 ├── Satisfies
-│   ├── Entity: nothing
-│   ├── Value: nothing
+│   ├── Entity: Order
 │   └── Auditable: Order
 ├── Units
 │   ├── [0] s  std.tdl:28:1
@@ -63,5 +60,5 @@ Model shop.comments
 └── Types
     ├── [0] T  named  -> param Option.T  std.tdl:35:17
     ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
-    ├── [2] string  named  -> decls[19]  source.tdl:13:11
-    └── [3] Order  named  -> decls[21]  source.tdl:38:24
+    ├── [2] string  named  -> decls[18]  source.tdl:13:7
+    └── [3] Order  named  -> decls[20]  source.tdl:37:24

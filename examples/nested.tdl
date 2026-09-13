@@ -2,12 +2,12 @@
 // become a list of a value, and the address group becomes one optional
 // field instead of five.
 //
-// `entity` and `value` is the modelling decision: an Order has identity
+// Conforming to Entity is the modelling decision: an Order has identity
 // that survives its contents changing, an Address does not.
 package shop.nested
 
-entity Order {
-  key id: string
+type Order: Entity {
+  id: string
   customer: Customer
   shipping: Address?
   items: [LineItem] owned where { length(1..) }
@@ -15,12 +15,12 @@ entity Order {
   total: Money
 }
 
-entity Customer {
-  key email: string where { matches(/^[^@]+@[^@]+$/) }
+type Customer: Entity {
+  email: string where { matches(/^[^@]+@[^@]+$/) }
   name: string?
 }
 
-value Address {
+type Address {
   line1: string
   line2: string?
   city: string
@@ -28,12 +28,12 @@ value Address {
   country: string
 }
 
-value LineItem {
+type LineItem {
   sku: string
   quantity: int where { min(1) } = 1
 }
 
-value Money {
+type Money {
   amount: decimal
   currency: Currency
 }

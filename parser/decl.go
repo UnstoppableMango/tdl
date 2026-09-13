@@ -30,33 +30,64 @@ func (p *parser) atContextual(word string) bool {
 	return p.cur.Kind == lex.IDENT && p.cur.Text == word
 }
 
-func (p *parser) parseNewtypeDecl(head ast.DeclHead) *ast.NewtypeDecl {
+// parseTypeDecl parses both forms `type` introduces. A body makes it a
+// domain type and the colon list the classes it conforms to; without one it
+// is a newtype and the colon names its base. A newtype's constraints open
+// with `where`, so a `{` here can only be a body.
+func (p *parser) parseTypeDecl(head ast.DeclHead) ast.Decl {
 	head.P = p.cur.Pos
 	p.next() // 'type'
 
-	d := &ast.NewtypeDecl{DeclHead: head}
-	d.N = p.expectIdent()
+	head.N = p.expectIdent()
+	var params []*ast.TypeParam
 	if p.at(lex.LT) {
-		d.Params = p.parseTypeParams()
+		params = p.parseTypeParams()
 	}
-	if !p.expect(lex.COLON) {
-		p.syncTop()
+	var refs []*ast.TypeRef
+	if p.accept(lex.COLON) {
+		refs = append(refs, p.parseTypeRef())
+		for p.accept(lex.COMMA) {
+			refs = append(refs, p.parseTypeRef())
+		}
+	}
+	var requires []*ast.ClassRef
+	if p.at(lex.REQUIRES) {
+		requires = p.parseClassRefs()
+	}
+
+	if p.at(lex.LBRACE) || len(refs) == 0 {
+		d := &ast.StructDecl{DeclHead: head, Keyword: "type", Params: params, Requires: requires}
+		for _, r := range refs {
+			d.Conforms = append(d.Conforms, p.classRefOf(r))
+		}
+		d.Members, d.End = p.parseBody()
 		return d
 	}
-	d.Base = p.parseTypeRef()
-	if p.at(lex.REQUIRES) {
-		d.Requires = p.parseClassRefs()
+
+	if len(refs) > 1 {
+		p.errs.add(refs[1].P, "a newtype has one base; a conformance list needs a body")
 	}
+	d := &ast.NewtypeDecl{DeclHead: head, Params: params, Base: refs[0], Requires: requires}
 	if p.at(lex.WHERE) {
 		d.Constraints, d.End = p.parseConstraintBlock()
 	}
 	return d
 }
 
+// classRefOf reads a type reference parsed before a body said it was a
+// conformance list. A class is a name with arguments, so any other form is
+// an error rather than a class.
+func (p *parser) classRefOf(t *ast.TypeRef) *ast.ClassRef {
+	if t.N == "" || t.Optional || t.Nullable {
+		p.errs.add(t.P, "expected a class, got a type")
+	}
+	return &ast.ClassRef{P: t.P, Qualifier: t.Qualifier, N: t.N, Args: t.Args}
+}
+
 func (p *parser) parseStructDecl(head ast.DeclHead) *ast.StructDecl {
 	head.P = p.cur.Pos
 	d := &ast.StructDecl{DeclHead: head, Keyword: p.cur.Text}
-	p.next() // 'entity', 'value', or 'mixin'
+	p.next() // 'mixin'
 
 	d.N = p.expectIdent()
 	if p.at(lex.LT) {
@@ -179,20 +210,10 @@ func (p *parser) parseField() *ast.Field {
 	doc := p.parseDoc()
 	f := &ast.Field{DeclHead: ast.DeclHead{Doc: doc, P: p.cur.Pos}}
 
-	// `key` and `deprecated` are contextual, so a field may be named either.
-	// A modifier is a modifier only when another token follows it before the
-	// colon.
-	for {
-		if p.atContextual("key") && p.peek.Kind != lex.COLON {
-			f.Key = true
-			p.next()
-			continue
-		}
-		if p.atContextual("deprecated") && p.peek.Kind != lex.COLON {
-			f.Dep = p.parseDeprecated()
-			continue
-		}
-		break
+	// `deprecated` is contextual, so a field may be named it. It is a
+	// modifier only when another token follows it before the colon.
+	if p.atContextual("deprecated") && p.peek.Kind != lex.COLON {
+		f.Dep = p.parseDeprecated()
 	}
 
 	f.P = p.cur.Pos
@@ -222,9 +243,8 @@ func (p *parser) parseField() *ast.Field {
 }
 
 // expectFieldName reads a field name, accepting a reserved keyword when a
-// colon follows it. `value`, `type`, and `unit` are ordinary words in a
-// domain model, and the prelude's own `Option<T>` has a field named
-// `value`. One token of lookahead settles it: `include Foo` is an include,
+// colon follows it. `type`, `unit`, and `include` are ordinary words in a
+// domain model. One token of lookahead settles it: `include Foo` is an include,
 // `include: Foo` is a field.
 func (p *parser) expectFieldName() string {
 	if p.cur.Kind != lex.IDENT && (!lex.IsKeyword(p.cur.Text) || p.peek.Kind != lex.COLON) {

@@ -119,9 +119,8 @@ func (p *parser) expectIdent() string {
 // declStart reports whether kind can begin a top-level declaration.
 func declStart(kind lex.Kind) bool {
 	switch kind {
-	case lex.IMPORT, lex.PRIMITIVE, lex.UNIT, lex.ALIAS, lex.TYPE, lex.VALUE,
-		lex.ENTITY, lex.ENUM, lex.CLASS, lex.MIXIN, lex.INSTANCE, lex.TARGET,
-		lex.DOC, lex.EOF:
+	case lex.IMPORT, lex.PRIMITIVE, lex.UNIT, lex.ALIAS, lex.TYPE, lex.ENUM,
+		lex.CLASS, lex.MIXIN, lex.INSTANCE, lex.TARGET, lex.DOC, lex.EOF:
 		return true
 	}
 	return false
@@ -159,8 +158,8 @@ func (p *parser) parseFile() *ast.File {
 		case lex.UNIT:
 			file.Decls = append(file.Decls, p.parseUnitDecl(head))
 		case lex.TYPE:
-			file.Decls = append(file.Decls, p.parseNewtypeDecl(head))
-		case lex.ENTITY, lex.VALUE, lex.MIXIN:
+			file.Decls = append(file.Decls, p.parseTypeDecl(head))
+		case lex.MIXIN:
 			file.Decls = append(file.Decls, p.parseStructDecl(head))
 		case lex.ENUM:
 			file.Decls = append(file.Decls, p.parseEnumDecl(head))

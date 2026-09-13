@@ -9,7 +9,6 @@ class Auditable: Timestamped {
 }
 
 class Tenanted {
-  key
   tenant: string
 }
 
@@ -21,11 +20,11 @@ class Paged {
 class Container<f: type -> type> { }
 class Projection<from, to> | from -> to { }
 
-value Page<f, T> requires Container<f> {
+type Page<f, T> requires Container<f> {
   items: f<T>
 }
 
-value Envelope<T> requires Auditable<T> {
+type Envelope<T> requires Auditable<T> {
   body: T
   receivedAt: instant
 }

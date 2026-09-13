@@ -40,12 +40,12 @@ type NewtypeDecl struct {
 	End         Position // the constraint block's `}`; zero without one
 }
 
-// StructDecl is a declaration with a body of members: `entity`, `value`, or
-// `mixin`. The three share a shape and differ in meaning, so the keyword is
-// recorded rather than split across three identical node types.
+// StructDecl is a declaration with a body of members: a `type` or a `mixin`.
+// The two share a shape and differ in meaning, so the keyword is recorded
+// rather than split across two identical node types.
 type StructDecl struct {
 	DeclHead
-	Keyword  string // "entity", "value", or "mixin"
+	Keyword  string // "type" or "mixin"
 	Params   []*TypeParam
 	Conforms []*ClassRef
 	Requires []*ClassRef
@@ -82,7 +82,6 @@ type Member interface {
 // comment, a position, a name, and a deprecation.
 type Field struct {
 	DeclHead
-	Key         bool // part of the entity's identity
 	Owned       bool // composition rather than reference
 	Type        *TypeRef
 	Constraints []*Constraint
@@ -179,14 +178,6 @@ type FunDep struct {
 	From []string
 	To   []string
 }
-
-// KeyRequirement is a bare `key` in a class body: an implementor must have
-// some key, without the class saying which.
-type KeyRequirement struct {
-	P Position
-}
-
-func (k *KeyRequirement) Pos() Position { return k.P }
 
 // AssocTypeReq is a `type Cursor` requirement: an implementor supplies a
 // type, and an instance binds it. Nothing deprecates one, so Dep is nil.

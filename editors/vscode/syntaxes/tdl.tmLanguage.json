@@ -81,12 +81,12 @@
 				},
 				{
 					"name": "variable.other.enummember.tdl",
-					"match": "(?!\\b(?:primitive|instance|requires|include|package|entity|import|target|alias|class|mixin|value|where|enum|type|unit|for|as)\\b)(?!\\b(?:deprecated|owned|key)\\b)(?:[_A-Za-z][_A-Za-z0-9]*)"
+					"match": "(?!\\b(?:primitive|instance|requires|include|package|import|target|alias|class|mixin|where|enum|type|unit|for|as)\\b)(?!\\b(?:deprecated|owned)\\b)(?:[_A-Za-z][_A-Za-z0-9]*)"
 				}
 			]
 		},
 		{
-			"match": "\\b(primitive|entity|target|alias|class|mixin|value|enum|type|unit)\\b\\s+([_A-Za-z][_A-Za-z0-9]*)",
+			"match": "\\b(primitive|target|alias|class|mixin|enum|type|unit)\\b\\s+([_A-Za-z][_A-Za-z0-9]*)",
 			"captures": {
 				"1": {
 					"name": "keyword.control.tdl"
@@ -109,14 +109,14 @@
 		},
 		{
 			"name": "storage.modifier.tdl",
-			"match": "\\b(?:deprecated|owned|key)\\b(?!\\s*:)"
+			"match": "\\b(?:deprecated|owned)\\b(?!\\s*:)"
 		},
 		{
 			"name": "entity.name.namespace.tdl",
-			"match": "(?!\\b(?:primitive|instance|requires|include|package|entity|import|target|alias|class|mixin|value|where|enum|type|unit|for|as)\\b)(?!\\b(?:deprecated|owned|key)\\b)(?:(?:[_A-Za-z][_A-Za-z0-9]*)(?:\\.(?:[_A-Za-z][_A-Za-z0-9]*))*)(?=\\s*(?:=>|\\{))"
+			"match": "(?!\\b(?:primitive|instance|requires|include|package|import|target|alias|class|mixin|where|enum|type|unit|for|as)\\b)(?!\\b(?:deprecated|owned)\\b)(?:(?:[_A-Za-z][_A-Za-z0-9]*)(?:\\.(?:[_A-Za-z][_A-Za-z0-9]*))*)(?=\\s*(?:=>|\\{))"
 		},
 		{
-			"match": "(=>)\\s*(?!\\b(?:primitive|instance|requires|include|package|entity|import|target|alias|class|mixin|value|where|enum|type|unit|for|as)\\b)((?:[_A-Za-z][_A-Za-z0-9]*)(?:\\.(?:[_A-Za-z][_A-Za-z0-9]*))*)",
+			"match": "(=>)\\s*(?!\\b(?:primitive|instance|requires|include|package|import|target|alias|class|mixin|where|enum|type|unit|for|as)\\b)((?:[_A-Za-z][_A-Za-z0-9]*)(?:\\.(?:[_A-Za-z][_A-Za-z0-9]*))*)",
 			"captures": {
 				"1": {
 					"name": "keyword.operator.tdl"
@@ -131,7 +131,7 @@
 			"match": "(?:[_A-Za-z][_A-Za-z0-9]*)(?=\\s*\\()"
 		},
 		{
-			"match": "([:<,\\[])\\s*(?!\\b(?:primitive|instance|requires|include|package|entity|import|target|alias|class|mixin|value|where|enum|type|unit|for|as)\\b)((?:[_A-Za-z][_A-Za-z0-9]*)(?:\\.(?:[_A-Za-z][_A-Za-z0-9]*))*)",
+			"match": "([:<,\\[])\\s*(?!\\b(?:primitive|instance|requires|include|package|import|target|alias|class|mixin|where|enum|type|unit|for|as)\\b)((?:[_A-Za-z][_A-Za-z0-9]*)(?:\\.(?:[_A-Za-z][_A-Za-z0-9]*))*)",
 			"captures": {
 				"1": {
 					"name": "punctuation.tdl"
@@ -142,7 +142,7 @@
 			}
 		},
 		{
-			"match": "(->|=)\\s*(?!\\b(?:primitive|instance|requires|include|package|entity|import|target|alias|class|mixin|value|where|enum|type|unit|for|as)\\b)((?:[_A-Za-z][_A-Za-z0-9]*)(?:\\.(?:[_A-Za-z][_A-Za-z0-9]*))*)",
+			"match": "(->|=)\\s*(?!\\b(?:primitive|instance|requires|include|package|import|target|alias|class|mixin|where|enum|type|unit|for|as)\\b)((?:[_A-Za-z][_A-Za-z0-9]*)(?:\\.(?:[_A-Za-z][_A-Za-z0-9]*))*)",
 			"captures": {
 				"1": {
 					"name": "keyword.operator.tdl"
@@ -153,7 +153,7 @@
 			}
 		},
 		{
-			"begin": "(\\{)(?!\\b(?:primitive|instance|requires|include|package|entity|import|target|alias|class|mixin|value|where|enum|type|unit|for|as)\\b)((?:[_A-Za-z][_A-Za-z0-9]*)(?:\\.(?:[_A-Za-z][_A-Za-z0-9]*))*)",
+			"begin": "(\\{)(?!\\b(?:primitive|instance|requires|include|package|import|target|alias|class|mixin|where|enum|type|unit|for|as)\\b)((?:[_A-Za-z][_A-Za-z0-9]*)(?:\\.(?:[_A-Za-z][_A-Za-z0-9]*))*)",
 			"end": "\\}",
 			"beginCaptures": {
 				"1": {
@@ -180,7 +180,7 @@
 		},
 		{
 			"name": "keyword.control.tdl",
-			"match": "\\b(?:primitive|instance|requires|include|package|entity|import|target|alias|class|mixin|value|where|enum|type|unit|for|as)\\b(?!\\s*:)"
+			"match": "\\b(?:primitive|instance|requires|include|package|import|target|alias|class|mixin|where|enum|type|unit|for|as)\\b(?!\\s*:)"
 		},
 		{
 			"name": "variable.other.property.tdl",

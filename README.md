@@ -47,8 +47,8 @@ The design is settled and written down:
 ```tdl
 package shop
 
-entity Order {
-  key id: OrderId
+type Order: Entity {
+  id: OrderId
   customer: Customer
   shipping: Address?
   items: [LineItem] owned where { length(1..) }
@@ -56,12 +56,12 @@ entity Order {
   total: Money
 }
 
-entity Customer {
-  key email: Email
+type Customer: Entity {
+  email: Email
   name: string?
 }
 
-value Address {
+type Address {
   line1: string
   line2: string?
   city: string
@@ -69,7 +69,7 @@ value Address {
   country: string
 }
 
-value Money {
+type Money {
   amount: decimal
   currency: Currency
 }
@@ -86,7 +86,7 @@ enum Currency { USD EUR GBP }
 enum Status { Draft Placed Shipped Cancelled }
 ```
 
-`entity` and `value` is the modelling decision: an `Order` has identity that survives its contents changing, an `Address` does not.
+Conforming to `Entity` is the modelling decision: an `Order` has identity that survives its contents changing, an `Address` does not.
 Everything a code generator needs lives in a separate `target` block, never in the model.
 
 ## Install
@@ -247,7 +247,7 @@ What each part of the language reaches today.
 | `primitive` | Yes | Yes |
 | `alias` | Yes | Yes |
 | `type` (newtype chains) | Yes | Yes, constraints accumulate down the chain |
-| `value`, `entity` | Yes | Yes |
+| `type` with a body, `: Entity` | Yes | Yes, the kind computed from conformance |
 | `mixin`, `include` | Yes | Yes, expanded |
 | `enum`, variants with fields | Yes | Yes |
 | `class`, functional dependencies, associated types | Yes | Yes |
