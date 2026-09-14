@@ -7,6 +7,7 @@ This file provides guidance to coding agents when working with code in this repo
 ```shell
 go test ./...                      # all tests
 go test -race ./...                # what CI runs; the plugin subprocess needs it
+go test -short ./...               # skips TestValidationRuns, which runs go on generated code
 go test ./parser -run TestConformanceCorpusParses   # a single test
 go build ./...
 
@@ -127,7 +128,7 @@ Pipeline, one package per stage:
   `proto/` and `ir/` are the public compatibility surface.
 - `backend/golang` — the Go backend, called `go` in a target block.
   The first code generator here, and the first thing to say what generated code should look like.
-  One file per declaration; `types.go` is the IR to Go type mapping, `generics.go` turns type parameters into Go ones and infers `comparable`, and `classes.go` makes a class an interface.
+  One file per declaration; `types.go` is the IR to Go type mapping, `generics.go` turns type parameters into Go ones and infers `comparable`, `classes.go` makes a class an interface, and `validate.go` turns `where` constraints into a `Validate` method.
   `types.go` walks a `Type` itself rather than through `emit.Resolve`, which refuses a type parameter: Go is the one target here with generics, so a parameter is a type it emits, and the frame in `generics.go` is what substitutes one at a use.
   Two shapes carry the decisions: an enum whose variants carry no fields is a named string type with constants and one where any variant does is a sealed interface with a struct per variant, and `decimal`, `uuid`, and `date` map to a placeholder rather than to a dependency the backend would be choosing for every consumer.
   An entity's `key` directive becomes a `Key()` method, returning the field itself when it names one and a generated `<Name>Key` struct when it names several.

@@ -150,9 +150,7 @@ A Go constant cannot be generic, nothing in a fieldless enum names a parameter, 
 
 A newtype is `type N Base`: distinct, not interchangeable, which is what the language says it is.
 A parameterized newtype is generic the same way, `type Ids[T any] []T`, except over a bare parameter: Go refuses a type parameter as the whole of a type declaration, so that one warns and is skipped.
-Its `where` constraints are not enforced in phase 1; validation is its own phase and its own set of decisions about where the check lives.
-What is skipped is the constraint and not the declaration, and the backend warns that it is.
-Emitting nothing for a constrained newtype would leave every field naming it referring to a type the package does not declare, which turns one unimplemented phase into output that does not compile.
+Its `where` constraints are its [Validate method](#validation), checked in one place from the set the compiler accumulated down the chain.
 
 An alias is transparent and is expanded rather than emitted.
 `ir` already calls it an abbreviation, so there is nothing to generate.
@@ -174,7 +172,7 @@ A parameter Go cannot express warns at the parameter and skips its declaration:
 
 - a higher kind, written as `f: type -> type` or only used as `f<T>`, since Go has no higher-kinded type parameters;
 - a `unit` kind, which waits on phase 6 of [go-backend-plan.md](go-backend-plan.md);
-- a name that is a Go keyword, one of Go's predeclared names, `time`, or the Go name of a generated declaration.
+- a name that is a Go keyword, one of Go's predeclared names, a package generated code imports (`errors`, `fmt`, `regexp`, `time`, `utf8`), or the Go name of a generated declaration.
 
 The last rule is conservative on purpose.
 `int` is Go's `int64`, so a parameter named `int64` is legal TDL and would capture every field typed `int`.
@@ -198,7 +196,7 @@ A `requires` clause is a constraint naming that interface, so `Envelope<T> requi
 
 A class's fields are not methods of the interface.
 The declarations satisfying it declare them already, Go refuses a field and a method with one name, and a getter under another name would be API the model never asked for.
-Generated code holds types and no functions, so a constraint's only job is to say which types may be arguments, and the marker says exactly that.
+Generated code never calls into a type argument's values, so a constraint's only job is to say which types may be arguments, and the marker says exactly that.
 
 A marker goes in the satisfying declaration's file.
 A sealed enum is an interface, which cannot carry a method, so it embeds the class and every variant carries the marker.
@@ -220,6 +218,60 @@ What Go cannot express warns where it was written:
 `Entity` is the prelude's, and the prelude is not generated, so `requires Entity<T>` is the second-to-last row and `class Auditable requires Entity` is the last.
 
 The last two rows are the same clause read in the two places it lands, and both warn: a class Go cannot embed leaves an interface that any type satisfies without satisfying what the model says it requires, which is quieter than a missing constraint and no less wrong.
+
+## Validation
+
+`where` constraints are a pair of methods on the type they check:
+
+```go
+func (e Email) Validate() error {
+	return errors.Join(e.validate("Email", nil)...)
+}
+
+func (e Email) validate(path string, errs []error) []error {
+	if !patternEmail_0.MatchString(string(e)) {
+		errs = append(errs, fmt.Errorf("%s: matches(/^[^@]+@[^@]+$/): no match", path))
+	}
+	if count := utf8.RuneCountInString(string(e)); count < 3 || count > 254 {
+		errs = append(errs, fmt.Errorf("%s: length(3..254): got %d", path, count))
+	}
+	return errs
+}
+```
+
+`Validate` reports every violation, joined, and `validate` threads the path a container prefixes.
+Without the second, a container prefixing a child's joined error would prefix only its first line.
+
+A message is the path, the constraint as written, and a detail: `Order.items[1].quantity: max(100): got 200`.
+It echoes numbers, counts, indices, and enum values, and never a string's or bytes' contents, since validation errors reach logs and those contents are often addresses or secrets.
+A set element or a map key is named by its value when that is a number or an enum's, and as `?` otherwise, for the same reason.
+
+The spec gives the standard constraints' forms and leaves their meaning to backends, so this is the meaning here:
+
+| Constraint | Checks |
+| --- | --- |
+| `min`, `max` | An integer, compared; a float bound compares as `float64` |
+| `length` | A string's characters, or the length of bytes, a list, a set, or a map; an integer means exactly that length |
+| `matches` | A string, unanchored, against a pattern compiled once per package |
+| `oneOf` | A string, integer, or bool equal to one argument, or a fieldless enum's variant named by one |
+| `unique` | A list's elements, when Go can compare them; a set is unique already |
+
+A string's length is characters rather than bytes, because a model writing `length(3..254)` for a name means what a person reads.
+A pattern is compiled when the code is generated, since Go's `regexp` is RE2 and refuses what other engines accept, and a pattern it refuses would panic when the package loads.
+`decimal` is a placeholder string until foreign types, and a text check on `"1.50"` is not what a model means, so every standard constraint on one warns.
+
+A type validates the values it holds: a field whose type validates, what a pointer points at, and every element of a collection, at any depth.
+A sealed enum is an interface, which cannot carry a method, so each variant with something to check carries the pair, and a field holding the enum asks the value it holds.
+A struct with nothing to check gets neither method.
+
+A newtype is checked in one place, from the whole set the compiler accumulated down its chain, so a newtype over a newtype does not call its parent.
+A newtype over a struct validates the struct as well.
+A newtype over a pointer or an interface has no methods in Go, so its constraints warn.
+
+A generic type checks its own fields and not its type arguments' values.
+Asserting a method on a `T` that holds a nil pointer panics, and avoiding that needs `reflect`.
+
+What the backend cannot check warns at the constraint, and the rest is generated: a name it does not know, since the set is open; a constraint on a type it gives no meaning to; a pattern Go refuses; and a length that can never hold.
 
 ## Directives
 
@@ -269,7 +321,8 @@ The backend reports what it cannot handle rather than emitting something plausib
 A unit-typed field, an extern, a set element or map key Go cannot compare, a type parameter Go cannot express, and a type argument breaking a constraint each produce a warning with the node's position, and the declaration reaching one is skipped.
 A declaration naming a skipped one, directly or through an option, a collection, or an alias, is skipped with it, since it would otherwise name a type the package does not declare.
 `emit.Cascade` is what does that, so the warning is at the referring declaration and says which declaration caused it.
-A `where` constraint, a `requires` clause Go cannot state, a class's associated types, and a fieldless enum's parameters warn and the declaration is still emitted, since what is missing is the constraint and not the type.
+A `where` constraint the backend cannot check, a `requires` clause Go cannot state, a class's associated types, and a fieldless enum's parameters warn and the declaration is still emitted, since what is missing is the constraint and not the type.
+A field whose Go name is `Validate` or `validate` warns the same way, and the type is emitted without the methods.
 What [Classes](#classes) lists as getting no marker warns, and the declaration is emitted without the marker.
 A `key` the backend cannot generate warns the same way and the entity is emitted without it: a key on a value or a mixin, an argument that is not a name, a field named twice or not at all, a field Go cannot compare, a field whose Go name is `Key`, and a key type colliding with a declaration of the same name.
 Everything above has a phase or a deferred decision in [go-backend-plan.md](go-backend-plan.md), or a section here saying why Go cannot express it, and each is a set of decisions rather than an oversight.
