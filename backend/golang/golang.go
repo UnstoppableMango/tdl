@@ -24,8 +24,10 @@ import (
 	"fmt"
 	"go/format"
 	"go/token"
+	"slices"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -57,6 +59,10 @@ func (Backend) Describe() plugin.Description {
 			// A struct tag, emitted verbatim. A tag is an open convention,
 			// so this backend does not parse it.
 			{Name: "tag", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			// The fields identifying an entity, as bare names. ArgKinds
+			// constrains by position, so that each one is a name is checked
+			// here rather than declared.
+			{Name: "key", MinArgs: 1, MaxArgs: -1},
 		},
 	}
 }
@@ -176,8 +182,8 @@ func (g *generator) file(pkg string, decl *ir.Decl) (*plugin.File, error) {
 //
 // The three differ in what they mean rather than in what they emit: Go has
 // no way to say "identity that survives changes to its contents", so an
-// entity and a value are one shape apart in documentation only. Reading an
-// entity's key from a target directive is phase 2.
+// entity and a value are one shape apart until a `key` directive names the
+// fields identifying the entity.
 func (g *generator) structure(b *strings.Builder, decl *ir.Decl) error {
 	if len(decl.Params()) > 0 {
 		return unsupported(decl.GetMeta().GetPosition(),
@@ -191,7 +197,105 @@ func (g *generator) structure(b *strings.Builder, decl *ir.Decl) error {
 		return err
 	}
 	b.WriteString("}\n")
+
+	if d, ok := g.find(decl.GetDirectives(), "key"); ok {
+		if err := g.key(b, decl, name, d); err != nil {
+			g.warn(err)
+		}
+	}
 	return nil
+}
+
+// key renders an entity's identity: a Key method returning the one field a
+// `key` directive names, or a key type holding every field it names.
+//
+// A key that cannot be generated is returned as an error for the caller to
+// warn about, and the entity is still emitted, since the struct is what
+// other declarations name.
+func (g *generator) key(b *strings.Builder, decl *ir.Decl, name string, d *ir.Directive) error {
+	fields, err := g.keyFields(decl, name, d)
+	if err != nil {
+		return err
+	}
+
+	types := make([]string, len(fields))
+	for i, f := range fields {
+		if types[i], err = g.goType(f.GetType()); err != nil {
+			return err
+		}
+	}
+
+	recv := string(unicode.ToLower([]rune(name)[0]))
+	if len(fields) == 1 {
+		fmt.Fprintf(b, "\n// Key returns what identifies this %s.\n", name)
+		fmt.Fprintf(b, "func (%s %s) Key() %s {\n\treturn %s.%s\n}\n",
+			recv, name, types[0], recv, g.fieldName(fields[0]))
+		return nil
+	}
+
+	keyType := name + "Key"
+	fmt.Fprintf(b, "\n// %s is what identifies a %s.\ntype %s struct {\n", keyType, name, keyType)
+	inits := make([]string, len(fields))
+	for i, f := range fields {
+		field := g.fieldName(f)
+		fmt.Fprintf(b, "\t%s %s\n", field, types[i])
+		inits[i] = fmt.Sprintf("%s: %s.%s", field, recv, field)
+	}
+	b.WriteString("}\n")
+	fmt.Fprintf(b, "\n// Key returns what identifies this %s.\n", name)
+	fmt.Fprintf(b, "func (%s %s) Key() %s {\n\treturn %s{%s}\n}\n",
+		recv, name, keyType, keyType, strings.Join(inits, ", "))
+	return nil
+}
+
+// keyFields resolves the fields a `key` directive names, or says why the
+// key cannot be generated.
+func (g *generator) keyFields(decl *ir.Decl, name string, d *ir.Directive) ([]*ir.Field, error) {
+	pos := d.GetPosition()
+	at := func(arg *ir.Literal) *ir.Position {
+		if p := arg.GetPosition(); p != nil {
+			return p
+		}
+		return pos
+	}
+
+	if decl.GetStructure().GetKind() != ir.StructKind_STRUCT_KIND_ENTITY {
+		return nil, unsupported(pos, "%s has a key, and only an entity is identified by one", name)
+	}
+	for _, f := range decl.Fields() {
+		if g.fieldName(f) == "Key" {
+			return nil, unsupported(pos, "%s has a field named Key, which the Key method would collide with", name)
+		}
+	}
+
+	var fields []*ir.Field
+	for _, arg := range d.GetArgs() {
+		if arg.GetKind() != ir.LiteralKind_LITERAL_KIND_NAME {
+			return nil, unsupported(at(arg), "a key names fields, and %q is %s", arg.GetText(), ir.KindName(arg.GetKind()))
+		}
+		i := slices.IndexFunc(decl.Fields(), func(f *ir.Field) bool { return f.GetMeta().GetName() == arg.GetText() })
+		if i < 0 {
+			return nil, unsupported(at(arg), "%s has no field %s to key on", name, arg.GetText())
+		}
+		f := decl.Fields()[i]
+		if slices.Contains(fields, f) {
+			return nil, unsupported(at(arg), "the key of %s names %s twice", name, arg.GetText())
+		}
+		if !g.comparable(f.GetType()) {
+			return nil, unsupported(at(arg), "a key is compared, and %s.%s is not a comparable Go type", name, arg.GetText())
+		}
+		fields = append(fields, f)
+	}
+
+	if len(fields) > 1 {
+		keyType := name + "Key"
+		for _, other := range g.own() {
+			if other != decl && g.declName(other) == keyType {
+				return nil, unsupported(pos, "the key type %s would collide with the declaration of that name", keyType)
+			}
+		}
+	}
+	return fields, nil
 }
 
 // fields renders a struct body.

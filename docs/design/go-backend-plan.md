@@ -64,7 +64,8 @@ An entity's key becomes something.
 An entity's identity is the one thing the language says an entity has that a value does not, and phase 1 emits an entity as an ordinary struct, which loses it.
 
 Which fields identify an entity is a target directive, `LineItem => key(order, sku)` in a `go` block, rather than language syntax, so this phase reads the directive.
-The candidates are a `Key()` method returning a comparable struct, a generated key type per entity, and nothing at all with the directive passed through as metadata.
+The key is a `Key()` method: it returns the field itself when the directive names one, and a generated `<Name>Key` struct when it names several.
+[go-backend.md](go-backend.md#structs) says why, and a key that cannot be generated is a warning and leaves the entity without one.
 
 Done when an entity's key is expressible in Go without the consumer reading the `.tdl` file.
 

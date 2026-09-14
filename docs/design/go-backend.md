@@ -68,7 +68,24 @@ A pointer is comparable whatever it points at, which makes `Set<bytes?>` legal w
 Entities, values, and mixins all lower to `ir.Struct`, and all three become a Go struct.
 
 The kinds differ in what they mean, not in what they emit.
-Nothing in Go expresses "identity that survives changes to its contents", so an entity and a value are the same declaration with different documentation, and a target block's `key` directive is what a later phase turns into an identity method.
+Nothing in Go expresses "identity that survives changes to its contents", so an entity and a value are the same declaration with different documentation until a target block's `key` directive names the fields identifying the entity.
+
+A key naming several fields becomes a key type and a method returning it:
+
+```go
+type LineItemKey struct {
+	Order string
+	Sku   string
+}
+
+func (l LineItem) Key() LineItemKey {
+	return LineItemKey{Order: l.Order, Sku: l.Sku}
+}
+```
+
+A key naming one field returns that field's type, so `User => key(id)` is `func (u User) Key() UserID`.
+The common case reads as what it is, and the cost is that adding a second field changes the return type, which is a breaking change to the model either way.
+The key type is named so a consumer can write `map[LineItemKey]LineItem`, and every field in it must be comparable for the same reason.
 
 A mixin's fields are copied into whatever includes it, and `Field.included_from` says where each came from.
 The mixin still gets a struct of its own, because it is a declaration a consumer may name.
@@ -123,7 +140,7 @@ An alias is transparent and is expanded rather than emitted.
 
 ## Directives
 
-The backend understands three, and declares all three in its handshake so the compiler can check them before generating anything.
+The backend understands four, and declares all four in its handshake so the compiler can check them before generating anything.
 
 - `package("github.com/acme/billing")`, on the target block.
   The Go package clause is the last path segment.
@@ -135,6 +152,9 @@ The backend understands three, and declares all three in its handshake so the co
 - `tag("json:\"email_address\"")`, on a field.
   Emitted verbatim as the struct tag.
   The backend does not parse it: a struct tag is an open convention, and any grammar imposed here would be one more thing to keep current with whatever reflects over it.
+- `key(order, sku)`, on an entity.
+  The fields identifying it, as bare names, generating the `Key()` method described under [Structs](#structs).
+  The handshake declares any number of arguments and no kinds, since `arg_kinds` constrains by position; that each is a name is checked by the backend.
 
 A directive the backend does not declare is a warning from the compiler and is passed through anyway, so a target block can carry a directive for a future phase without failing today.
 
@@ -164,6 +184,7 @@ The backend reports what it cannot handle rather than emitting something plausib
 
 A type parameter, a unit-typed field, a class declaration, an extern, and a set element or map key Go cannot compare each produce a warning with the node's position, and the declaration reaching one is skipped.
 A `where` constraint warns and the declaration is still emitted, since the constraint is what is missing and not the type.
+A `key` the backend cannot generate warns the same way and the entity is emitted without it: a key on a value or a mixin, an argument that is not a name, a field named twice or not at all, a field Go cannot compare, a field whose Go name is `Key`, and a key type colliding with a declaration of the same name.
 Each is a phase in [go-backend-plan.md](go-backend-plan.md), and each is a set of decisions rather than an oversight.
 
 A warning does not stop a run, so a model that is mostly generatable generates.
