@@ -34,6 +34,12 @@ func goModel() *ir.Model {
 					Fields: []*ir.Field{{
 						Meta: &ir.Meta{Name: "id"},
 						Type: &ir.ID{Index: 0, Name: "string"},
+						// A check brings imports and a compiled pattern, which
+						// the pipe has to carry byte for byte too.
+						Constraints: []*ir.Constraint{{
+							Name: "matches",
+							Args: []*ir.Literal{{Kind: ir.LiteralKind_LITERAL_KIND_REGEX, Text: "^[a-z0-9-]+$"}},
+						}},
 					}},
 				}},
 			},

@@ -16,9 +16,9 @@ import (
 // A class's fields are not methods of the interface. The declarations
 // satisfying it already declare them, Go refuses a field and a method with
 // one name, and a getter under another name is API the model never asked
-// for. Generated code holds types and no functions, so a constraint's only
-// job is to say which types may be arguments, and the marker says exactly
-// that.
+// for. Generated code never calls into a type argument's values, so a
+// constraint's only job is to say which types may be arguments, and the
+// marker says exactly that.
 
 // planClasses decides which classes are generated and which declarations
 // carry each marker, before anything is rendered: a use of a constrained
