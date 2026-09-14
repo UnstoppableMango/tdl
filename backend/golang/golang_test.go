@@ -41,6 +41,10 @@ func newModel(pkg string) *modelBuilder {
 			Variants: []*ir.Variant{{Meta: &ir.Meta{Name: "Some"}}, {Meta: &ir.Meta{Name: "None"}}},
 		}},
 	})
+	m.decl(&ir.Decl{
+		Meta: &ir.Meta{Name: "Entity", Position: &ir.Position{Filename: prelude.Name}},
+		Node: &ir.Decl_Class{Class: &ir.Class{}},
+	})
 	return m
 }
 
@@ -618,8 +622,8 @@ func TestAKeywordPackageNameIsAnError(t *testing.T) {
 func TestUnsupportedIsAWarning(t *testing.T) {
 	m := newModel("shop")
 	m.own(&ir.Decl{
-		Meta: &ir.Meta{Name: "Auditable", Position: &ir.Position{Filename: "shop.tdl", Line: 4}},
-		Node: &ir.Decl_Class{Class: &ir.Class{}},
+		Meta: &ir.Meta{Name: "kg", Position: &ir.Position{Filename: "shop.tdl", Line: 4}},
+		Node: &ir.Decl_Unit{Unit: &ir.UnitDef{Base: true}},
 	})
 	m.own(&ir.Decl{
 		Meta: &ir.Meta{Name: "Note"},
@@ -868,4 +872,705 @@ func keys(m map[string]string) []string {
 		out = append(out, k)
 	}
 	return out
+}
+
+// param interns a reference to a type parameter, by its position in the
+// declaring node's parameter list.
+func (m *modelBuilder) param(paramName string, index int32, args ...*ir.ID) *ir.ID {
+	t := &ir.Type{Param: &ir.ParamRef{Name: paramName, Index: index}, Args: args}
+	id := &ir.ID{Index: int32(len(m.model.GetTypes())), Name: paramName}
+	m.model.Types = append(m.model.Types, t)
+	return id
+}
+
+func params(names ...string) []*ir.Param {
+	out := make([]*ir.Param, len(names))
+	for i, n := range names {
+		out[i] = &ir.Param{Name: n}
+	}
+	return out
+}
+
+// structure is a value declaration, parameterized when ps is not empty.
+func structure(declName string, ps []*ir.Param, fields ...*ir.Field) *ir.Decl {
+	return &ir.Decl{
+		Meta: &ir.Meta{Name: declName},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{Params: ps, Fields: fields}},
+	}
+}
+
+func noDiagnostics(t *testing.T, resp *plugin.Response) {
+	t.Helper()
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+}
+
+// onlyWarningAt asserts the response carries one diagnostic, a warning, at
+// line; a line of 0 is a use the fixture gave no position.
+func onlyWarningAt(t *testing.T, resp *plugin.Response, line int32) {
+	t.Helper()
+	if len(resp.GetDiagnostics()) != 1 {
+		t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	d := resp.GetDiagnostics()[0]
+	if d.GetSeverity() != plugin.Severity_SEVERITY_WARNING {
+		t.Errorf("severity = %v", d.GetSeverity())
+	}
+	if line != 0 && d.GetPosition().GetLine() != line {
+		t.Errorf("position = %+v, want line %d", d.GetPosition(), line)
+	}
+}
+
+// A parameterized declaration is a Go generic type, and applying it is
+// instantiating one.
+func TestGenericStruct(t *testing.T) {
+	m := newModel("shop")
+	m.own(structure("Page", params("T"),
+		field("items", m.named("List", m.param("T", 0))),
+		field("next", m.named("Option", m.param("T", 0))),
+	))
+	m.own(structure("Order", nil, field("id", m.named("string"))))
+	m.own(structure("Orders", nil,
+		field("page", m.named("Page", m.named("Order"))),
+		field("byName", m.named("Map", m.named("string"), m.named("Page", m.named("int")))),
+	))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	got := files(t, resp)
+	contains(t, got["page.go"], "type Page[T any] struct {", "Items []T", "Next *T")
+	contains(t, got["orders.go"], "Page Page[Order]", "ByName map[string]Page[int64]")
+}
+
+// A sealed enum's marker method takes the enum's parameters, so a variant of
+// one instantiation does not satisfy another.
+func TestGenericSealedEnum(t *testing.T) {
+	m := newModel("shop")
+	m.own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Result"},
+		Node: &ir.Decl_Enumeration{Enumeration: &ir.Enum{
+			Params: params("T"),
+			Variants: []*ir.Variant{
+				{Meta: &ir.Meta{Name: "Ok"}, Fields: []*ir.Field{field("value", m.param("T", 0))}},
+				{Meta: &ir.Meta{Name: "Err"}, Fields: []*ir.Field{field("message", m.named("string"))}},
+			},
+		}},
+	})
+	m.own(structure("Reply", nil, field("result", m.named("Result", m.named("string")))))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	got := files(t, resp)
+	contains(t, got["result.go"],
+		"type Result[T any] interface{ isResult(T) }",
+		"type ResultOk[T any] struct {",
+		"Value T",
+		"func (ResultOk[T]) isResult(T) {}",
+		"type ResultErr[T any] struct {",
+		"func (ResultErr[T]) isResult(T) {}",
+	)
+	contains(t, got["reply.go"], "Result Result[string]")
+}
+
+func TestGenericNewtype(t *testing.T) {
+	m := newModel("shop")
+	m.own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Ids"},
+		Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{Params: params("T"), Base: m.named("List", m.param("T", 0))}},
+	})
+	m.own(structure("User", nil, field("friends", m.named("Ids", m.named("string")))))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	got := files(t, resp)
+	contains(t, got["ids.go"], "type Ids[T any] []T")
+	contains(t, got["user.go"], "Friends Ids[string]")
+}
+
+// Go refuses a type parameter as the whole right-hand side of a type
+// declaration, so a newtype over a bare parameter has no Go shape.
+func TestNewtypeOverABareParameterIsAWarning(t *testing.T) {
+	m := newModel("shop")
+	m.own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Tagged", Position: &ir.Position{Filename: "shop.tdl", Line: 3}},
+		Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{Params: params("T"), Base: m.param("T", 0)}},
+	})
+	m.own(structure("Note", nil, field("body", m.named("string"))))
+
+	resp := generate(t, m)
+	onlyWarningAt(t, resp, 3)
+	if src, ok := files(t, resp)["tagged.go"]; ok {
+		t.Errorf("a newtype over a bare parameter was emitted:\n%s", src)
+	}
+}
+
+// A fieldless enum is constants, and a constant cannot have a generic type,
+// so its parameters are dropped with a warning rather than changing the
+// enum's shape.
+func TestParameterizedFieldlessEnumDropsItsParams(t *testing.T) {
+	m := newModel("shop")
+	m.own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Status", Position: &ir.Position{Filename: "shop.tdl", Line: 3}},
+		Node: &ir.Decl_Enumeration{Enumeration: &ir.Enum{
+			Params:   params("T"),
+			Variants: []*ir.Variant{{Meta: &ir.Meta{Name: "Active"}}, {Meta: &ir.Meta{Name: "Pending"}}},
+		}},
+	})
+	m.own(structure("Job", nil, field("status", m.named("Status", m.named("int")))))
+
+	resp := generate(t, m)
+	onlyWarningAt(t, resp, 3)
+	got := files(t, resp)
+	contains(t, got["status.go"], "type Status string", `StatusActive Status = "Active"`)
+	contains(t, got["job.go"], "Status Status")
+}
+
+// An alias is expanded at every use, so a parameterized one is expanded with
+// its arguments substituted for its parameters.
+func TestParameterizedAliasIsSubstituted(t *testing.T) {
+	m := newModel("shop")
+	m.own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Pair"},
+		Node: &ir.Decl_Alias{Alias: &ir.Alias{
+			Params: params("K", "V"),
+			Target: m.named("Map", m.param("K", 0), m.param("V", 1)),
+		}},
+	})
+	// An alias of an alias, applying the inner one to its own parameter.
+	m.own(&ir.Decl{
+		Meta: &ir.Meta{Name: "ByName"},
+		Node: &ir.Decl_Alias{Alias: &ir.Alias{
+			Params: params("V"),
+			Target: m.named("Pair", m.named("string"), m.param("V", 0)),
+		}},
+	})
+	m.own(structure("Wrap", params("T"),
+		field("direct", m.named("Pair", m.named("string"), m.named("bool"))),
+		field("nested", m.named("ByName", m.named("int"))),
+		field("generic", m.named("Pair", m.named("string"), m.param("T", 0))),
+	))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	got := files(t, resp)
+	if _, ok := got["pair.go"]; ok {
+		t.Error("an alias should not generate a declaration")
+	}
+	contains(t, got["wrap.go"],
+		"Direct map[string]bool",
+		"Nested map[string]int64",
+		"Generic map[string]T",
+	)
+}
+
+func TestAliasGivenTheWrongNumberOfArgumentsIsAWarning(t *testing.T) {
+	m := newModel("shop")
+	m.own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Pair"},
+		Node: &ir.Decl_Alias{Alias: &ir.Alias{
+			Params: params("K", "V"),
+			Target: m.named("Map", m.param("K", 0), m.param("V", 1)),
+		}},
+	})
+	m.own(structure("Bad", nil, field("pair", m.named("Pair", m.named("string")))))
+
+	resp := generate(t, m)
+	onlyWarningAt(t, resp, 0)
+	if src, ok := files(t, resp)["bad.go"]; ok {
+		t.Errorf("a declaration with a misapplied alias was emitted:\n%s", src)
+	}
+}
+
+// A parameter Go cannot express is a warning at the parameter, and the
+// declaration taking it is skipped.
+func TestParamsGoCannotExpress(t *testing.T) {
+	atom := func(a ir.KindAtom) *ir.Kind { return &ir.Kind{Atom: a} }
+	arrow := &ir.Kind{Atom: ir.KindAtom_KIND_ATOM_TYPE, Arrow: atom(ir.KindAtom_KIND_ATOM_TYPE)}
+	at := &ir.Position{Filename: "shop.tdl", Line: 4}
+
+	cases := []struct {
+		name  string
+		param *ir.Param
+		body  func(m *modelBuilder) *ir.ID
+		line  int32
+	}{
+		{"a higher kind", &ir.Param{Name: "f", Kind: arrow, Position: at}, nil, 4},
+		{"a parenthesized higher kind", &ir.Param{Name: "f", Kind: &ir.Kind{Paren: arrow}, Position: at}, nil, 4},
+		{"a unit", &ir.Param{Name: "u", Kind: atom(ir.KindAtom_KIND_ATOM_UNIT), Position: at}, nil, 4},
+		{"a Go keyword", &ir.Param{Name: "range", Position: at}, nil, 4},
+		{"a predeclared type", &ir.Param{Name: "string", Position: at}, nil, 4},
+		{"a predeclared constraint", &ir.Param{Name: "any", Position: at}, nil, 4},
+		{"the time package", &ir.Param{Name: "time", Position: at}, nil, 4},
+		{"a generated declaration", &ir.Param{Name: "Note", Position: at}, nil, 4},
+		// The kind is left to inference, and only the use says it is higher.
+		{"applied to arguments", &ir.Param{Name: "f"}, func(m *modelBuilder) *ir.ID {
+			return m.param("f", 0, m.named("string"))
+		}, 0},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			m := newModel("shop")
+			m.own(structure("Note", nil, field("body", m.named("string"))))
+			body := m.named("string")
+			if c.body != nil {
+				body = c.body(m)
+			}
+			m.own(structure("Box", []*ir.Param{c.param}, field("value", body)))
+
+			resp := generate(t, m)
+			onlyWarningAt(t, resp, c.line)
+			got := files(t, resp)
+			if src, ok := got["box.go"]; ok {
+				t.Errorf("a declaration taking %s was emitted:\n%s", c.name, src)
+			}
+			if _, ok := got["note.go"]; !ok {
+				t.Errorf("the rest of the model was not generated: %v", keys(got))
+			}
+		})
+	}
+}
+
+// Go needs a map key to be comparable and TDL has no way to say so, so a
+// parameter is constrained by what reaches a key.
+func TestComparableIsInferred(t *testing.T) {
+	m := newModel("shop")
+	m.own(structure("Bag", params("T"), field("items", m.named("Set", m.param("T", 0)))))
+	m.own(structure("Index", params("K", "V"), field("by", m.named("Map", m.param("K", 0), m.param("V", 1)))))
+	m.own(structure("Shelf", params("T"), field("bag", m.named("Bag", m.param("T", 0)))))
+	m.own(structure("Pair", params("X"), field("x", m.param("X", 0))))
+	m.own(structure("Pairs", params("T"), field("seen", m.named("Set", m.named("Pair", m.param("T", 0))))))
+	// A pointer is comparable whatever it points at.
+	m.own(structure("Maybe", params("T"), field("seen", m.named("Set", m.named("Option", m.param("T", 0))))))
+	// Declared before what makes it comparable, so one pass in declaration
+	// order is not enough. Its field is attached once Late exists.
+	early := &ir.Struct{Params: params("T")}
+	m.own(&ir.Decl{Meta: &ir.Meta{Name: "Early"}, Node: &ir.Decl_Structure{Structure: early}})
+	m.own(structure("Late", params("T"), field("items", m.named("Set", m.param("T", 0)))))
+	early.Fields = []*ir.Field{field("late", m.named("Late", m.param("T", 0)))}
+	m.own(structure("Uses", nil, field("bag", m.named("Bag", m.named("string")))))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	got := files(t, resp)
+	contains(t, got["bag.go"], "type Bag[T comparable] struct {", "Items map[T]struct{}")
+	contains(t, got["index.go"], "type Index[K comparable, V any] struct {")
+	contains(t, got["shelf.go"], "type Shelf[T comparable] struct {", "Bag Bag[T]")
+	contains(t, got["pair.go"], "type Pair[X any] struct {")
+	contains(t, got["pairs.go"], "type Pairs[T comparable] struct {", "Seen map[Pair[T]]struct{}")
+	contains(t, got["maybe.go"], "type Maybe[T any] struct {", "Seen map[*T]struct{}")
+	contains(t, got["early.go"], "type Early[T comparable] struct {")
+	contains(t, got["uses.go"], "Bag Bag[string]")
+}
+
+// An argument Go cannot compare, given to a parameter that has to be, is a
+// warning at the use, and the declaration using it is skipped.
+func TestComparableArgumentsAtUse(t *testing.T) {
+	m := newModel("shop")
+	m.own(structure("Bag", params("T"), field("items", m.named("Set", m.param("T", 0)))))
+	m.own(structure("Path", nil, field("segments", m.named("List", m.named("string")))))
+	m.own(structure("Blobs", nil, field("bag", m.named("Bag", m.named("bytes")))))
+	m.own(structure("Paths", nil, field("bag", m.named("Bag", m.named("Path")))))
+	m.own(structure("Names", nil, field("bag", m.named("Bag", m.named("string")))))
+
+	resp := generate(t, m)
+	if len(resp.GetDiagnostics()) != 2 {
+		t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	got := files(t, resp)
+	for _, skipped := range []string{"blobs.go", "paths.go"} {
+		if src, ok := got[skipped]; ok {
+			t.Errorf("%s gives an incomparable argument and was emitted:\n%s", skipped, src)
+		}
+	}
+	contains(t, got["names.go"], "Bag Bag[string]")
+}
+
+// A generic entity's key is generic too, and a key field has to be
+// comparable, so the parameter it names is.
+func TestGenericEntityKey(t *testing.T) {
+	m := newModel("shop")
+	entry := keyed("Entry", []*ir.Field{
+		field("id", m.param("T", 0)),
+		field("note", m.named("string")),
+	}, name("id"))
+	entry.GetStructure().Params = params("T")
+	m.own(entry)
+
+	item := keyed("LineItem", []*ir.Field{
+		field("order", m.param("T", 0)),
+		field("sku", m.named("string")),
+	}, name("order"), name("sku"))
+	item.GetStructure().Params = params("T")
+	m.own(item)
+
+	// A parameter spelled like the receiver would be redeclared by it.
+	edge := keyed("Edge", []*ir.Field{field("id", m.param("e", 0))}, name("id"))
+	edge.GetStructure().Params = params("e")
+	m.own(edge)
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	got := files(t, resp)
+	contains(t, got["entry.go"],
+		"type Entry[T comparable] struct {",
+		"func (e Entry[T]) Key() T {",
+		"return e.Id",
+	)
+	contains(t, got["line_item.go"],
+		"type LineItemKey[T comparable] struct {",
+		"func (l LineItem[T]) Key() LineItemKey[T] {",
+		"return LineItemKey[T]{Order: l.Order, Sku: l.Sku}",
+	)
+	contains(t, got["edge.go"], "func (r Edge[e]) Key() e {", "return r.Id")
+}
+
+// ref is the ID of a declaration, which is how a class reference and the
+// satisfaction index name one.
+func (m *modelBuilder) ref(declName string) *ir.ID {
+	_, id, ok := m.model.FindDecl(declName)
+	if !ok {
+		panic("no declaration named " + declName)
+	}
+	return id
+}
+
+// class declares a class owned by the model, requiring the classes named.
+func (m *modelBuilder) class(declName string, supers ...string) *ir.Decl {
+	c := &ir.Class{}
+	for _, s := range supers {
+		c.RequiresClasses = append(c.RequiresClasses, &ir.ClassRef{Class: m.ref(s)})
+	}
+	d := &ir.Decl{Meta: &ir.Meta{Name: declName}, Node: &ir.Decl_Class{Class: c}}
+	m.own(d)
+	return d
+}
+
+// satisfies records declarations as satisfying a class, which is what the
+// compiler computes from conformance and instances.
+func (m *modelBuilder) satisfies(class string, decls ...string) {
+	id := m.ref(class)
+	var sat *ir.Satisfaction
+	for _, s := range m.model.GetSatisfies() {
+		if s.GetClass().GetIndex() == id.GetIndex() {
+			sat = s
+		}
+	}
+	if sat == nil {
+		sat = &ir.Satisfaction{Class: id}
+		m.model.Satisfies = append(m.model.Satisfies, sat)
+	}
+	for _, d := range decls {
+		sat.Decls = append(sat.Decls, m.ref(d))
+	}
+}
+
+// requires is a `requires` clause entry naming a class.
+func (m *modelBuilder) requires(class string, line int32, args ...*ir.ID) *ir.ClassRef {
+	return &ir.ClassRef{Class: m.ref(class), Args: args, Position: &ir.Position{Filename: "shop.tdl", Line: line}}
+}
+
+// extern interns a reference to a declaration in another package.
+func (m *modelBuilder) extern(qualified string) *ir.ID {
+	id := &ir.ID{Index: int32(len(m.model.GetTypes())), Name: qualified}
+	m.model.Types = append(m.model.Types, &ir.Type{Extern: &ir.ID{Name: qualified}})
+	return id
+}
+
+// A class is a contract, and conformance to it is declared, so it is an
+// interface only the declarations that said so implement: its method is
+// unexported, which seals it to the package.
+func TestClassIsAMarkerInterface(t *testing.T) {
+	m := newModel("shop")
+	m.class("Timestamped")
+	m.class("Auditable", "Timestamped")
+	m.own(structure("Order", nil, field("id", m.named("string"))))
+	m.satisfies("Timestamped", "Order")
+	m.satisfies("Auditable", "Order")
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	got := files(t, resp)
+	contains(t, got["timestamped.go"], "type Timestamped interface { isTimestamped() }")
+	contains(t, got["auditable.go"], "type Auditable interface { Timestamped isAuditable() }")
+	contains(t, got["order.go"], "func (Order) isTimestamped() {}", "func (Order) isAuditable() {}")
+}
+
+func TestMarkersOnEveryShape(t *testing.T) {
+	m := newModel("shop")
+	m.class("Auditable")
+	m.own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Status"},
+		Node: &ir.Decl_Enumeration{Enumeration: &ir.Enum{
+			Variants: []*ir.Variant{{Meta: &ir.Meta{Name: "Active"}}},
+		}},
+	})
+	m.own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Payment"},
+		Node: &ir.Decl_Enumeration{Enumeration: &ir.Enum{
+			Variants: []*ir.Variant{
+				{Meta: &ir.Meta{Name: "Cash"}},
+				{Meta: &ir.Meta{Name: "Card"}, Fields: []*ir.Field{field("last4", m.named("string"))}},
+			},
+		}},
+	})
+	m.own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Sku"},
+		Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{Base: m.named("string")}},
+	})
+	m.own(structure("Page", params("T"), field("items", m.named("List", m.param("T", 0)))))
+	m.satisfies("Auditable", "Status", "Payment", "Sku", "Page")
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	got := files(t, resp)
+	contains(t, got["status.go"], "func (Status) isAuditable() {}")
+	// A sealed enum is an interface, which cannot carry a method, so it
+	// embeds the class and every variant carries the marker.
+	contains(t, got["payment.go"],
+		"type Payment interface { Auditable isPayment() }",
+		"func (PaymentCash) isAuditable() {}",
+		"func (PaymentCard) isAuditable() {}",
+	)
+	contains(t, got["sku.go"], "func (Sku) isAuditable() {}")
+	contains(t, got["page.go"], "func (Page[T]) isAuditable() {}")
+}
+
+// A `requires` clause is a Go constraint, since the class it names is an
+// interface, and a parameter that also has to be comparable says both.
+func TestRequiresBecomesAConstraint(t *testing.T) {
+	m := newModel("shop")
+	m.class("Timestamped")
+	m.class("Auditable", "Timestamped")
+	m.own(structure("Order", nil, field("id", m.named("string"))))
+	m.satisfies("Timestamped", "Order")
+	m.satisfies("Auditable", "Order")
+
+	envelope := structure("Envelope", params("T"), field("body", m.param("T", 0)))
+	envelope.GetStructure().Constraints = []*ir.ClassRef{m.requires("Auditable", 0, m.param("T", 0))}
+	m.own(envelope)
+	stamped := structure("Stamped", params("T"), field("body", m.param("T", 0)))
+	stamped.GetStructure().Constraints = []*ir.ClassRef{m.requires("Timestamped", 0, m.param("T", 0))}
+	m.own(stamped)
+	tracked := structure("Tracked", params("T"), field("seen", m.named("Set", m.param("T", 0))))
+	tracked.GetStructure().Constraints = []*ir.ClassRef{m.requires("Auditable", 0, m.param("T", 0))}
+	m.own(tracked)
+	// Auditable requires Timestamped, so a parameter that is Auditable
+	// satisfies a constraint naming either.
+	forward := structure("Forward", params("T"),
+		field("envelope", m.named("Envelope", m.param("T", 0))),
+		field("stamped", m.named("Stamped", m.param("T", 0))),
+	)
+	forward.GetStructure().Constraints = []*ir.ClassRef{m.requires("Auditable", 0, m.param("T", 0))}
+	m.own(forward)
+	m.own(structure("Uses", nil,
+		field("envelope", m.named("Envelope", m.named("Order"))),
+		field("stamped", m.named("Stamped", m.named("Order"))),
+		field("tracked", m.named("Tracked", m.named("Order"))),
+	))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	got := files(t, resp)
+	contains(t, got["envelope.go"], "type Envelope[T Auditable] struct {")
+	contains(t, got["stamped.go"], "type Stamped[T Timestamped] struct {")
+	// gofmt spreads an interface of several elements over lines.
+	contains(t, got["tracked.go"], "type Tracked[T interface { comparable Auditable }] struct {")
+	contains(t, got["forward.go"], "type Forward[T Auditable] struct {")
+	contains(t, got["uses.go"], "Envelope Envelope[Order]", "Tracked Tracked[Order]")
+}
+
+// The compiler does not check a constraint whose argument is a parameter,
+// and Go does, so the backend checks every use and skips what Go would
+// refuse.
+func TestConstraintViolatedAtUse(t *testing.T) {
+	m := newModel("shop")
+	m.class("Auditable")
+	m.own(structure("Order", nil, field("id", m.named("string"))))
+	m.satisfies("Auditable", "Order")
+	envelope := structure("Envelope", params("T"), field("body", m.param("T", 0)))
+	envelope.GetStructure().Constraints = []*ir.ClassRef{m.requires("Auditable", 0, m.param("T", 0))}
+	m.own(envelope)
+
+	m.own(structure("Strings", nil, field("envelope", m.named("Envelope", m.named("string")))))
+	m.own(structure("Outer", params("T"), field("envelope", m.named("Envelope", m.param("T", 0)))))
+	m.own(structure("Good", nil, field("envelope", m.named("Envelope", m.named("Order")))))
+
+	resp := generate(t, m)
+	if len(resp.GetDiagnostics()) != 2 {
+		t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	got := files(t, resp)
+	for _, skipped := range []string{"strings.go", "outer.go"} {
+		if src, ok := got[skipped]; ok {
+			t.Errorf("%s breaks a constraint and was emitted:\n%s", skipped, src)
+		}
+	}
+	contains(t, got["good.go"], "Envelope Envelope[Order]")
+}
+
+// What Go cannot express about a class is a warning where it was written,
+// and the rest is generated without it.
+func TestClassesGoCannotExpress(t *testing.T) {
+	at := &ir.Position{Filename: "shop.tdl", Line: 4}
+	instance := func(m *modelBuilder, arg *ir.ID) *ir.Instance {
+		return &ir.Instance{
+			Meta:  &ir.Meta{Position: at},
+			Class: &ir.ClassRef{Class: m.ref("Auditable"), Args: []*ir.ID{arg}},
+		}
+	}
+
+	cases := []struct {
+		name string
+		// build returns the file expected, and what must not be in it.
+		build func(m *modelBuilder) (file, absent string)
+	}{
+		{"a class taking parameters", func(m *modelBuilder) (string, string) {
+			d := m.class("Projection")
+			d.GetMeta().Position = at
+			d.GetClass().Params = params("from", "to")
+			return "", "projection.go"
+		}},
+		{"a class with an associated type", func(m *modelBuilder) (string, string) {
+			d := m.class("Paged")
+			d.GetMeta().Position = at
+			d.GetClass().AssocTypes = []*ir.AssocType{{Meta: &ir.Meta{Name: "Cursor"}}}
+			return "paged.go", ""
+		}},
+		{"a conditional instance", func(m *modelBuilder) (string, string) {
+			m.class("Auditable")
+			m.own(structure("Page", params("T"), field("items", m.named("List", m.param("T", 0)))))
+			inst := instance(m, m.named("Page", m.param("T", 0)))
+			inst.Params = params("T")
+			inst.Requires = []*ir.ClassRef{{Class: m.ref("Auditable"), Args: []*ir.ID{m.param("T", 0)}}}
+			m.model.Instances = append(m.model.Instances, inst)
+			return "page.go", "isAuditable"
+		}},
+		{"an instance for a prelude type", func(m *modelBuilder) (string, string) {
+			m.class("Auditable")
+			m.model.Instances = append(m.model.Instances, instance(m, m.named("string")))
+			return "auditable.go", "func (string)"
+		}},
+		{"an instance for a type in another package", func(m *modelBuilder) (string, string) {
+			m.class("Auditable")
+			m.model.Instances = append(m.model.Instances, instance(m, m.extern("acme.Money")))
+			return "auditable.go", "Money"
+		}},
+		{"a newtype over a pointer", func(m *modelBuilder) (string, string) {
+			m.class("Auditable")
+			m.own(&ir.Decl{
+				Meta: &ir.Meta{Name: "Maybe", Position: at},
+				Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{Base: m.named("Option", m.named("string"))}},
+			})
+			m.satisfies("Auditable", "Maybe")
+			return "maybe.go", "isAuditable"
+		}},
+		{"a newtype over a sealed enum", func(m *modelBuilder) (string, string) {
+			m.class("Auditable")
+			m.own(&ir.Decl{
+				Meta: &ir.Meta{Name: "Payment"},
+				Node: &ir.Decl_Enumeration{Enumeration: &ir.Enum{
+					Variants: []*ir.Variant{{Meta: &ir.Meta{Name: "Card"}, Fields: []*ir.Field{field("last4", m.named("string"))}}},
+				}},
+			})
+			m.own(&ir.Decl{
+				Meta: &ir.Meta{Name: "Tender", Position: at},
+				Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{Base: m.named("Payment")}},
+			})
+			m.satisfies("Auditable", "Tender")
+			return "tender.go", "isAuditable"
+		}},
+		{"a field named like the marker", func(m *modelBuilder) (string, string) {
+			m.class("Auditable")
+			note := structure("Note", nil, &ir.Field{
+				Meta:       &ir.Meta{Name: "audit"},
+				Type:       m.named("string"),
+				Directives: []*ir.Directive{{Name: "name", Target: "go", Args: []*ir.Literal{text("isAuditable")}}},
+			})
+			note.GetMeta().Position = at
+			m.own(note)
+			m.satisfies("Auditable", "Note")
+			return "note.go", "func (Note)"
+		}},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			m := newModel("shop")
+			file, absent := c.build(m)
+
+			resp := generate(t, m)
+			onlyWarningAt(t, resp, 4)
+			got := files(t, resp)
+			if file != "" {
+				src, ok := got[file]
+				if !ok {
+					t.Fatalf("no %s in %v", file, keys(got))
+				}
+				if absent != "" && strings.Contains(src, absent) {
+					t.Errorf("%s holds %q:\n%s", file, absent, src)
+				}
+			} else if _, ok := got[absent]; ok {
+				t.Errorf("%s was emitted: %v", absent, keys(got))
+			}
+		})
+	}
+}
+
+// A `requires` clause Go cannot state is a warning at the clause, and the
+// declaration is emitted without that constraint, as it is without an
+// unenforced `where`.
+func TestUnexpressibleRequiresIsDropped(t *testing.T) {
+	cases := []struct {
+		name  string
+		ref   func(m *modelBuilder) *ir.ClassRef
+		diags int
+	}{
+		{"a prelude class", func(m *modelBuilder) *ir.ClassRef {
+			return m.requires("Entity", 4, m.param("T", 0))
+		}, 1},
+		// The class warns where it is declared, and the clause where it is
+		// written.
+		{"a class taking parameters", func(m *modelBuilder) *ir.ClassRef {
+			d := m.class("Projection")
+			d.GetMeta().Position = &ir.Position{Filename: "shop.tdl", Line: 2}
+			d.GetClass().Params = params("from", "to")
+			return m.requires("Projection", 4, m.param("T", 0), m.named("string"))
+		}, 2},
+		{"an argument that is not a parameter", func(m *modelBuilder) *ir.ClassRef {
+			m.class("Auditable")
+			return m.requires("Auditable", 4, m.named("List", m.param("T", 0)))
+		}, 1},
+		{"a class in another package", func(m *modelBuilder) *ir.ClassRef {
+			return &ir.ClassRef{
+				Extern:   &ir.ID{Name: "acme.Auditable"},
+				Args:     []*ir.ID{m.param("T", 0)},
+				Position: &ir.Position{Filename: "shop.tdl", Line: 4},
+			}
+		}, 1},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			m := newModel("shop")
+			ref := c.ref(m)
+			envelope := structure("Envelope", params("T"), field("body", m.param("T", 0)))
+			envelope.GetStructure().Constraints = []*ir.ClassRef{ref}
+			m.own(envelope)
+
+			resp := generate(t, m)
+			if len(resp.GetDiagnostics()) != c.diags {
+				t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+			}
+			atClause := false
+			for _, d := range resp.GetDiagnostics() {
+				atClause = atClause || d.GetPosition().GetLine() == 4
+			}
+			if !atClause {
+				t.Errorf("no warning at the clause: %+v", resp.GetDiagnostics())
+			}
+			contains(t, files(t, resp)["envelope.go"], "type Envelope[T any] struct {")
+		})
+	}
 }

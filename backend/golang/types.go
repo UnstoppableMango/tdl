@@ -48,6 +48,12 @@ func unsupported(pos *ir.Position, format string, args ...any) error {
 // own file reaches the same entry, because what matters is that the
 // constructor is a primitive named `string`.
 func (g *generator) goType(id *ir.ID) (string, error) {
+	return g.typeIn(id, nil)
+}
+
+// typeIn is [generator.goType] inside a frame, where a parameter stands for
+// the argument the frame binds it to rather than for itself.
+func (g *generator) typeIn(id *ir.ID, fr *frame) (string, error) {
 	t := g.model.Type(id)
 	if t == nil {
 		return "", unsupported(nil, "type %s did not resolve", id.GetName())
@@ -56,9 +62,19 @@ func (g *generator) goType(id *ir.ID) (string, error) {
 
 	switch {
 	case t.GetParam() != nil:
-		// Parameters survive lowering so a language with generics can emit
-		// them. Emitting them is phase 3.
-		return "", unsupported(pos, "type parameter %s: generics are not generated yet", t.GetParam().GetName())
+		ref := t.GetParam()
+		if len(t.GetArgs()) > 0 {
+			return "", unsupported(pos, "type parameter %s is applied to type arguments, and Go has no higher-kinded type parameters", ref.GetName())
+		}
+		if fr == nil {
+			// Outside any frame a parameter is the rendered declaration's
+			// own, and Go spells it as TDL does.
+			return ref.GetName(), nil
+		}
+		if int(ref.GetIndex()) >= len(fr.args) {
+			return "", unsupported(pos, "type parameter %s has no argument", ref.GetName())
+		}
+		return g.typeIn(fr.args[ref.GetIndex()], fr.outer)
 	case t.GetUnit() != nil:
 		return "", unsupported(pos, "a unit-typed field has no Go type yet")
 	case t.GetExtern() != nil:
@@ -72,9 +88,13 @@ func (g *generator) goType(id *ir.ID) (string, error) {
 	}
 	name := decl.GetMeta().GetName()
 
-	// An alias is transparent, so it is expanded rather than referenced.
+	// An alias is transparent, so it is expanded rather than referenced,
+	// with its arguments standing for its parameters.
 	if a := decl.GetAlias(); a != nil {
-		return g.goType(a.GetTarget())
+		if len(t.GetArgs()) != len(a.GetParams()) {
+			return "", unsupported(pos, "%s takes %d type argument(s), and %d were given", name, len(a.GetParams()), len(t.GetArgs()))
+		}
+		return g.typeIn(a.GetTarget(), bind(t.GetArgs(), fr))
 	}
 
 	if decl.GetPrimitive() != nil {
@@ -85,7 +105,7 @@ func (g *generator) goType(id *ir.ID) (string, error) {
 			return goName, nil
 		}
 		if isCollection(name) {
-			return g.collection(name, t)
+			return g.collection(name, t, fr)
 		}
 		return "", unsupported(pos, "primitive %s has no Go type", name)
 	}
@@ -96,7 +116,7 @@ func (g *generator) goType(id *ir.ID) (string, error) {
 	// shapes would make the sugar semantic after the compiler decided it
 	// was not.
 	if decl.GetEnumeration() != nil && (name == "Option" || name == "Nullable") && len(t.GetArgs()) == 1 {
-		inner, err := g.goType(t.GetArgs()[0])
+		inner, err := g.typeIn(t.GetArgs()[0], fr)
 		if err != nil {
 			return "", err
 		}
@@ -110,13 +130,56 @@ func (g *generator) goType(id *ir.ID) (string, error) {
 		return "", unsupported(pos, "%s is a unit, and units are not generated yet", name)
 	}
 
-	if len(t.GetArgs()) > 0 {
-		return "", unsupported(pos, "%s is applied to type arguments, and generics are not generated yet", name)
-	}
 	if g.skipped[t.GetCtor().GetIndex()] != nil {
 		return "", unsupported(pos, "%s is not generated, so nothing generated can name it", name)
 	}
-	return g.declName(decl), nil
+	return g.apply(decl, t, fr)
+}
+
+// apply names a generated declaration, instantiated with its type arguments
+// when it takes parameters.
+func (g *generator) apply(decl *ir.Decl, t *ir.Type, fr *frame) (string, error) {
+	goName := g.declName(decl)
+	// A fieldless enum's parameters are dropped where it is declared, so
+	// they are dropped where it is used.
+	if phantom(decl) {
+		return goName, nil
+	}
+
+	name, pos, args := decl.GetMeta().GetName(), t.GetPosition(), t.GetArgs()
+	if len(args) != len(decl.Params()) {
+		return "", unsupported(pos, "%s takes %d type argument(s), and %d were given", name, len(decl.Params()), len(args))
+	}
+	if len(args) == 0 {
+		return goName, nil
+	}
+
+	// The compiler does not check a constraint whose argument is a
+	// parameter, and Go does, so every use is checked here and one Go would
+	// refuse is not generated.
+	flags := g.needsComparable[t.GetCtor().GetIndex()]
+	classes := g.paramClasses(decl, false)
+	rendered := make([]string, len(args))
+	for i, a := range args {
+		s, err := g.typeIn(a, fr)
+		if err != nil {
+			return "", err
+		}
+		param := decl.Params()[i].GetName()
+		if i < len(flags) && flags[i] && !g.comparableIn(a, fr, map[int32]bool{}, nil) {
+			return "", unsupported(pos, "%s needs %s to be comparable, and %s is not a comparable Go type", name, param, s)
+		}
+		if i < len(classes) {
+			for _, c := range classes[i] {
+				if !g.satisfies(a, fr, c) {
+					return "", unsupported(pos, "%s needs %s to satisfy %s, and %s does not",
+						name, param, g.model.GetDecls()[c].GetMeta().GetName(), s)
+				}
+			}
+		}
+		rendered[i] = s
+	}
+	return goName + "[" + strings.Join(rendered, ", ") + "]", nil
 }
 
 // isCollection reports whether a prelude primitive is one of the three
@@ -127,7 +190,7 @@ func isCollection(name string) bool {
 }
 
 // collection maps the three prelude collections.
-func (g *generator) collection(name string, t *ir.Type) (string, error) {
+func (g *generator) collection(name string, t *ir.Type, fr *frame) (string, error) {
 	args := t.GetArgs()
 	pos := t.GetPosition()
 
@@ -135,7 +198,7 @@ func (g *generator) collection(name string, t *ir.Type) (string, error) {
 		if i >= len(args) {
 			return "", unsupported(pos, "%s is missing a type argument", name)
 		}
-		return g.goType(args[i])
+		return g.typeIn(args[i], fr)
 	}
 
 	switch name {
@@ -153,7 +216,7 @@ func (g *generator) collection(name string, t *ir.Type) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if !g.comparable(args[0]) {
+		if !g.comparableIn(args[0], fr, map[int32]bool{}, nil) {
 			return "", unsupported(pos,
 				"a Set becomes a Go map, and %s is not a comparable Go type", e)
 		}
@@ -167,7 +230,7 @@ func (g *generator) collection(name string, t *ir.Type) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if !g.comparable(args[0]) {
+		if !g.comparableIn(args[0], fr, map[int32]bool{}, nil) {
 			return "", unsupported(pos,
 				"a Map key becomes a Go map key, and %s is not a comparable Go type", k)
 		}
@@ -190,19 +253,40 @@ func (g *generator) collection(name string, t *ir.Type) (string, error) {
 // field is used as one. Refusing it here would refuse the common case to
 // prevent the rare one.
 func (g *generator) comparable(id *ir.ID) bool {
-	return g.comparableSeen(id, map[int32]bool{})
+	return g.comparableIn(id, nil, map[int32]bool{}, nil)
 }
 
-// comparableSeen carries the declarations on the path being walked, since a
-// struct may reach itself and a cycle is not an answer.
-func (g *generator) comparableSeen(id *ir.ID, seen map[int32]bool) bool {
+// comparableIn is [generator.comparable] inside a frame. seen carries the
+// declarations on the path being walked, since a struct may reach itself and
+// a cycle is not an answer.
+//
+// A parameter of the declaration being rendered is comparable when Go was
+// told it is, which [generator.inferComparable] decided. mark is how that
+// inference asks: a parameter reaching this question is reported to it and
+// counts as comparable, since saying so is what makes it one.
+func (g *generator) comparableIn(id *ir.ID, fr *frame, seen map[int32]bool, mark func(int32)) bool {
 	t := g.model.Type(id)
 	if t == nil {
 		return false
 	}
-	// A parameter, a unit, and an extern each have no Go type at all, and
-	// goType has already refused them by the time this is asked.
-	if t.GetParam() != nil || t.GetUnit() != nil || t.GetExtern() != nil {
+	if ref := t.GetParam(); ref != nil {
+		switch {
+		case len(t.GetArgs()) > 0:
+			return false
+		case fr != nil:
+			if int(ref.GetIndex()) >= len(fr.args) {
+				return false
+			}
+			return g.comparableIn(fr.args[ref.GetIndex()], fr.outer, seen, mark)
+		case mark != nil:
+			mark(ref.GetIndex())
+			return true
+		}
+		return g.paramComparable(ref.GetIndex())
+	}
+	// A unit and an extern have no Go type at all, and goType has already
+	// refused them by the time this is asked.
+	if t.GetUnit() != nil || t.GetExtern() != nil {
 		return false
 	}
 
@@ -213,7 +297,7 @@ func (g *generator) comparableSeen(id *ir.ID, seen map[int32]bool) bool {
 	name := decl.GetMeta().GetName()
 
 	if a := decl.GetAlias(); a != nil {
-		return g.comparableSeen(a.GetTarget(), seen)
+		return g.comparableIn(a.GetTarget(), bind(t.GetArgs(), fr), seen, mark)
 	}
 	if decl.GetPrimitive() != nil {
 		if goName, ok := primitives[name]; ok {
@@ -246,11 +330,12 @@ func (g *generator) comparableSeen(id *ir.ID, seen map[int32]bool) bool {
 	defer delete(seen, index)
 
 	if n := decl.GetNewtype(); n != nil {
-		return g.comparableSeen(n.GetBase(), seen)
+		return g.comparableIn(n.GetBase(), bind(t.GetArgs(), fr), seen, mark)
 	}
 	if decl.GetStructure() != nil {
+		inner := bind(t.GetArgs(), fr)
 		for _, f := range decl.Fields() {
-			if !g.comparableSeen(f.GetType(), seen) {
+			if !g.comparableIn(f.GetType(), inner, seen, mark) {
 				return false
 			}
 		}
