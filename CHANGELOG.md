@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.1](https://github.com/UnstoppableMango/tdl/compare/v0.2.0...v0.2.1) (2026-09-14)
+
+
+### Features
+
+* **go:** generate an entity's key from the key directive ([#775](https://github.com/UnstoppableMango/tdl/issues/775)) ([b1ee649](https://github.com/UnstoppableMango/tdl/commit/b1ee649ee29ec3ecb97b675a6b6cbecc55bf2179))
+* **Makefile:** add `check` target to run nix flake checks ([#776](https://github.com/UnstoppableMango/tdl/issues/776)) ([624e892](https://github.com/UnstoppableMango/tdl/commit/624e892b1e7f6cd8769efc69dd769db0c095b2f3))
+
+
+### Documentation
+
+* **go:** give every backend warning a phase or a deferred decision ([#778](https://github.com/UnstoppableMango/tdl/issues/778)) ([59f6b9f](https://github.com/UnstoppableMango/tdl/commit/59f6b9fc18ae07c686307ec238c529086074dffc))
+
 ## [0.2.0](https://github.com/UnstoppableMango/tdl/compare/v0.1.8...v0.2.0) (2026-09-13)
 
 
