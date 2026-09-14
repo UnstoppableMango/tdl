@@ -102,11 +102,14 @@ Done when a model naming a foreign type generates a package that imports it and 
 
 A unit reaches the backend reduced to base dimensions, and Go has nothing that carries one.
 
-The decision is whether a quantity becomes a named Go type, which keeps a `decimal<kg>` from being assigned to a `decimal<N>`, or whether the unit is dropped and the field's doc comment says so.
+The decision is whether a quantity becomes a named Go type, which keeps a `decimal<kg>` from being assigned to a `decimal<N>`, or whether the unit is dropped with a warning at the field.
 A named type needs a name, and a unit written as an expression rather than declared has none: `Unit.decl` is unset for exactly that case.
 This follows phase 5 because a named quantity's underlying type is whatever `foreign` maps `decimal` to.
 
-Done when a unit-typed field either generates a type that keeps its unit or produces a warning saying the unit was dropped.
+Either way the declaration is emitted, as it is for a `where` constraint, since the unit is what is missing and not the type.
+That replaces phase 1's skip, and the Diagnostics section of [go-backend.md](go-backend.md#diagnostics) changes with it.
+
+Done when a unit-typed field either generates a type that keeps its unit or produces a warning saying the unit was dropped, and the declaration holding it is emitted in both cases.
 
 ## Phase 7: conformance
 
