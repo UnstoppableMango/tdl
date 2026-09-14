@@ -765,6 +765,24 @@ func TestKeyFromAnotherTargetIsIgnored(t *testing.T) {
 	}
 }
 
+// The receiver is derived from the Go name, and `name("")` passes the
+// compiler's checks, so an empty name has to be a warning rather than an
+// index out of range.
+func TestKeyOnAnEmptyNameIsAWarning(t *testing.T) {
+	m := newModel("shop")
+	d := keyed("User", []*ir.Field{field("id", m.named("string"))}, name("id"))
+	d.Directives = append(d.Directives, &ir.Directive{Name: "name", Target: "go", Args: []*ir.Literal{text("")}})
+	m.own(d)
+
+	resp := generate(t, m)
+	for _, diag := range resp.GetDiagnostics() {
+		if diag.GetSeverity() == plugin.Severity_SEVERITY_WARNING && diag.GetPosition().GetLine() == keyLine {
+			return
+		}
+	}
+	t.Errorf("no warning at the key directive: %+v", resp.GetDiagnostics())
+}
+
 // keyLine is where [keyed] says its directive was written.
 const keyLine = 9
 

@@ -259,6 +259,9 @@ func (g *generator) keyFields(decl *ir.Decl, name string, d *ir.Directive) ([]*i
 		return pos
 	}
 
+	if name == "" {
+		return nil, unsupported(pos, "%s is named \"\" in this target, and a Key method needs a receiver named after it", decl.GetMeta().GetName())
+	}
 	if decl.GetStructure().GetKind() != ir.StructKind_STRUCT_KIND_ENTITY {
 		return nil, unsupported(pos, "%s has a key, and only an entity is identified by one", name)
 	}
