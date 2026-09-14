@@ -100,7 +100,7 @@ func (g *generator) typeIn(id *ir.ID, fr *frame) (string, error) {
 	if decl.GetPrimitive() != nil {
 		if goName, ok := primitives[name]; ok {
 			if strings.HasPrefix(goName, "time.") {
-				g.needTime = true
+				g.use("time")
 			}
 			return goName, nil
 		}

@@ -41,6 +41,9 @@ The end-to-end test is the only one that matters: generated Go has to compile.
 A test that asserts on substrings can pass while emitting something `go build` refuses, and every phase here adds a shape that could.
 Parsing is not enough either, since `map[[]byte]struct{}` parses, so the unit tests type check the whole response as one package with `go/types` and a source importer.
 
+Phase 4 is the first to run generated code: `TestValidationRuns` builds the response in a module of its own and runs a test against it, since a check is shown to reject a value only by running it.
+It skips under `-short` and when `go` is not on `PATH`.
+
 Both hosts run the same assertions, in process and as a subprocess, following `internal/gen/subprocess_test.go`.
 That is the protocol's invariant and this backend is the second thing holding it.
 
@@ -80,7 +83,7 @@ The question was constraints: a `requires` clause names a TDL class, and a class
 A class declaration is the same question from the other side, since whatever a `requires` clause generates is what the class it names has to become.
 
 A class is a marker interface, with one unexported method each satisfying declaration carries, and a `requires` clause is a constraint naming it.
-An interface of getters was the alternative and loses: the satisfying struct declares the fields already, Go refuses a field and a method with one name, and generated code has no functions for a getter to serve beyond saying which types may be arguments, which the marker says.
+An interface of getters was the alternative and loses: the satisfying struct declares the fields already, Go refuses a field and a method with one name, and generated code never calls into a type argument's values, so a getter would serve nothing beyond saying which types may be arguments, which the marker says.
 [go-backend.md](go-backend.md#classes) has the rest, including what warns.
 
 Left to later work: a conditional instance, a class taking parameters, an instance for a foreign type (phase 5), and a class as a field type.
@@ -92,8 +95,12 @@ Done when a parameterized declaration generates a Go generic type that compiles,
 
 `where` constraints become code.
 
-The decisions are where the check lives (a `Validate() error` method is the obvious one), what an unknown constraint name does, and whether a newtype's accumulated constraints run in one place or per inherited origin.
-The constraint name set is open, so the backend understands what it understands and warns about the rest.
+A check is a `Validate() error` method joining every violation, beside an unexported `validate` that threads a container's path, so a nested violation names where it is.
+An unknown constraint name warns and the rest is still checked, since the set is open.
+A newtype's accumulated constraints run in one place, the newtype's own method, because the compiler already hands it the whole set.
+[go-backend.md](go-backend.md#validation) has what each standard name means.
+
+Left to later work: validating a type argument's values, and `Validate` on a sealed interface itself, which Go would need a function beside the interface for.
 
 Done when the standard constraint names generate a check that fails on a value violating them.
 
@@ -113,7 +120,7 @@ The decision is whether a quantity becomes a named Go type, which keeps a `decim
 A named type needs a name, and a unit written as an expression rather than declared has none: `Unit.decl` is unset for exactly that case.
 This follows phase 5 because a named quantity's underlying type is whatever `foreign` maps `decimal` to.
 
-Either way the declaration is emitted, as it is for a `where` constraint, since the unit is what is missing and not the type.
+Either way the declaration is emitted, as it is for a `where` constraint the backend cannot check, since the unit is what is missing and not the type.
 That replaces phase 1's skip, and the Diagnostics section of [go-backend.md](go-backend.md#diagnostics) changes with it.
 
 Done when a unit-typed field either generates a type that keeps its unit or produces a warning saying the unit was dropped, and the declaration holding it is emitted in both cases.

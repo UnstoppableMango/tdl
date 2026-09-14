@@ -7,6 +7,9 @@ import (
 	"go/parser"
 	"go/token"
 	"go/types"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"slices"
 	"sort"
 	"strings"
@@ -91,6 +94,13 @@ func generate(t *testing.T, m *modelBuilder) *plugin.Response {
 	return resp
 }
 
+// sourceImporter type checks what generated code imports from GOROOT rather
+// than a build cache, so it needs nothing installed and no module on disk;
+// the generated package imports only the standard library. It is shared
+// because it keeps what it has checked, and checking fmt and regexp from
+// source for every test would dominate the run.
+var sourceImporter = importer.ForCompiler(token.NewFileSet(), "source", nil)
+
 // files keys a response by path, and asserts the response is a Go package
 // that compiles.
 //
@@ -123,10 +133,7 @@ func files(t *testing.T, resp *plugin.Response) map[string]string {
 		return out
 	}
 
-	// The source importer reads GOROOT rather than a build cache, so this
-	// needs nothing installed and no module on disk. The generated package
-	// imports only the standard library.
-	conf := types.Config{Importer: importer.ForCompiler(fset, "source", nil)}
+	conf := types.Config{Importer: sourceImporter}
 	if _, err := conf.Check(parsed[0].Name.Name, fset, parsed, nil); err != nil {
 		t.Errorf("the generated package does not type check: %v\n%s", err, strings.Join(sources(out), "\n"))
 	}
@@ -325,37 +332,577 @@ func TestNewtype(t *testing.T) {
 	contains(t, got["sku.go"], "type Sku string")
 }
 
-// A newtype's `where` constraints are not enforced yet, and the backend
-// says so rather than letting the model believe they are. The type itself
-// is still emitted: skipping it would leave every field naming it referring
-// to something the package does not declare.
-func TestConstrainedNewtypeIsEmittedWithAWarning(t *testing.T) {
+// The constraint set is open, so a name the backend does not know warns at
+// the constraint, and the checks it does know are still generated, as is
+// the type every field naming it refers to.
+func TestUnknownConstraintIsAWarning(t *testing.T) {
+	m := newModel("shop")
+	m.own(newtype("Quantity", m.named("int"), where("min", 3, intArg("1")), where("shout", 8)))
+	m.own(structure("Order", nil, field("quantity", m.named("Quantity"))))
+
+	resp := generate(t, m)
+	onlyWarningAt(t, resp, 8)
+	got := files(t, resp)
+	contains(t, got["quantity.go"], "type Quantity int64", "if q < 1 {")
+	contains(t, got["order.go"], "Quantity Quantity")
+}
+
+// A newtype's constraints are a Validate method, joining every violation,
+// and an unexported validate that threads the path a container prefixes.
+func TestNewtypeMinMax(t *testing.T) {
+	m := newModel("shop")
+	m.own(newtype("Quantity", m.named("int"), where("min", 3, intArg("1")), where("max", 4, intArg("100"))))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	contains(t, files(t, resp)["quantity.go"],
+		"func (q Quantity) Validate() error {",
+		`return errors.Join(q.validate("Quantity", nil)...)`,
+		"func (q Quantity) validate(path string, errs []error) []error {",
+		"if q < 1 {",
+		`errs = append(errs, fmt.Errorf("%s: min(1): got %d", path, q))`,
+		"if q > 100 {",
+	)
+}
+
+// TestValidationRuns is where a check is shown to fail on a value violating
+// it, rather than only to compile: the generated package is built and a test
+// written against it is run.
+func TestValidationRuns(t *testing.T) {
+	m := newModel("shop")
+	m.own(newtype("Quantity", m.named("int"), where("min", 3, intArg("1")), where("max", 4, intArg("100"))))
+	m.own(newtype("Email", m.named("string"),
+		where("matches", 5, regexArg("^[^@]+@[^@]+$")),
+		where("length", 6, rangeArg(bound(3), bound(254))),
+	))
+	m.own(newtype("Initials", m.named("string"), where("length", 7, rangeArg(bound(1), bound(3)))))
+	m.own(enum("Status", variant("Active"), variant("Pending"), variant("Closed")))
+	m.own(enum("Payment",
+		variant("Cash"),
+		variant("Card", constrained(field("last4", m.named("string")), where("length", 8, intArg("4")))),
+	))
+	m.own(structure("LineItem", nil,
+		constrained(field("quantity", m.named("int")), where("min", 9, intArg("1")), where("max", 9, intArg("100"))),
+		constrained(field("size", m.named("string")), where("oneOf", 10, text("S"), text("M"), text("L"))),
+		constrained(field("tags", m.named("List", m.named("string"))), where("unique", 11)),
+		constrained(field("status", m.named("Status")), where("oneOf", 12, name("Active"), name("Pending"))),
+		constrained(field("note", m.named("Option", m.named("string"))), where("length", 13, rangeArg(bound(1), bound(5)))),
+		field("contact", m.named("Email")),
+	))
+	m.own(structure("Order", nil,
+		constrained(field("items", m.named("List", m.named("LineItem"))), where("length", 14, rangeArg(bound(1), nil))),
+		field("payment", m.named("Payment")),
+	))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	goTest(t, resp, validationTest)
+}
+
+// validationTest is run inside the generated package by [TestValidationRuns].
+// Error lines are compared as sets, since a map is walked in no fixed order.
+const validationTest = `package shop
+
+import (
+	"slices"
+	"strings"
+	"testing"
+)
+
+func check(t *testing.T, err error, want ...string) {
+	t.Helper()
+	var got []string
+	if err != nil {
+		got = strings.Split(err.Error(), "\n")
+	}
+	slices.Sort(got)
+	slices.Sort(want)
+	if !slices.Equal(got, want) {
+		t.Errorf("errors = %q, want %q", got, want)
+	}
+}
+
+func TestQuantity(t *testing.T) {
+	check(t, Quantity(5).Validate())
+	check(t, Quantity(0).Validate(), "Quantity: min(1): got 0")
+	check(t, Quantity(101).Validate(), "Quantity: max(100): got 101")
+}
+
+func TestEmail(t *testing.T) {
+	check(t, Email("a@b.c").Validate())
+	check(t, Email("ab").Validate(),
+		"Email: matches(/^[^@]+@[^@]+$/): no match",
+		"Email: length(3..254): got 2",
+	)
+}
+
+// A string's length is its characters, not its bytes.
+func TestRunes(t *testing.T) {
+	check(t, Initials("hé").Validate())
+	check(t, Initials("héll").Validate(), "Initials: length(1..3): got 4")
+}
+
+func TestLineItem(t *testing.T) {
+	good := LineItem{Quantity: 1, Size: "S", Tags: []string{"a"}, Status: StatusActive, Contact: "a@b.c"}
+	check(t, good.Validate())
+
+	note := "toolong"
+	bad := LineItem{Quantity: 0, Size: "XL", Tags: []string{"a", "a"}, Status: StatusClosed, Note: &note, Contact: "ab"}
+	check(t, bad.Validate(),
+		"LineItem.quantity: min(1): got 0",
+		"LineItem.size: oneOf(\"S\", \"M\", \"L\"): not one of them",
+		"LineItem.tags: unique: [1] repeats [0]",
+		"LineItem.status: oneOf(Active, Pending): got \"Closed\"",
+		"LineItem.note: length(1..5): got 7",
+		"LineItem.contact: matches(/^[^@]+@[^@]+$/): no match",
+		"LineItem.contact: length(3..254): got 2",
+	)
+}
+
+func TestOrder(t *testing.T) {
+	check(t, Order{}.Validate(), "Order.items: length(1..): got 0")
+
+	o := Order{
+		Items: []LineItem{
+			{Quantity: 1, Size: "S", Status: StatusActive, Contact: "a@b.c"},
+			{Quantity: 200, Size: "M", Status: StatusPending, Contact: "a@b.c"},
+		},
+		Payment: PaymentCard{Last4: "12"},
+	}
+	check(t, o.Validate(),
+		"Order.items[1].quantity: max(100): got 200",
+		"Order.payment.last4: length(4): got 2",
+	)
+	check(t, PaymentCard{Last4: "12"}.Validate(), "Payment.Card.last4: length(4): got 2")
+	check(t, Order{Items: o.Items[:1], Payment: PaymentCash{}}.Validate())
+}
+`
+
+// goTest runs a test file inside the generated package, in a module of its
+// own, since type checking shows a check compiles and only running it shows
+// what it rejects.
+func goTest(t *testing.T, resp *plugin.Response, test string) {
+	t.Helper()
+	if testing.Short() {
+		t.Skip("runs go test on the generated package")
+	}
+	goBin, err := exec.LookPath("go")
+	if err != nil {
+		t.Skip("go is not on PATH")
+	}
+	got := files(t, resp)
+
+	dir := t.TempDir()
+	write := func(name, src string) {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(src), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("go.mod", "module example.com/generated\n\ngo 1.21\n")
+	for path, src := range got {
+		write(path, src)
+	}
+	write("tdl_validation_test.go", test)
+
+	cmd := exec.CommandContext(t.Context(), goBin, "test", "-count=1", ".")
+	cmd.Dir = dir
+	// The generated package imports only the standard library, so nothing
+	// here needs a network, a workspace, or another toolchain.
+	cmd.Env = append(os.Environ(), "GOFLAGS=", "GOWORK=off", "GOTOOLCHAIN=local", "GOPROXY=off", "CGO_ENABLED=0")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("go test on the generated package: %v\n%s\n%s", err, out, strings.Join(sources(got), "\n"))
+	}
+}
+
+// newtype is a newtype owned by the model, carrying constraints.
+func newtype(declName string, base *ir.ID, cs ...*ir.Constraint) *ir.Decl {
+	return &ir.Decl{
+		Meta: &ir.Meta{Name: declName},
+		Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{Base: base, ValueConstraints: cs}},
+	}
+}
+
+// where is a constraint as a `where` block writes it, at a line.
+func where(constraintName string, line int32, args ...*ir.Literal) *ir.Constraint {
+	return &ir.Constraint{Name: constraintName, Args: args, Position: &ir.Position{Filename: "shop.tdl", Line: line}}
+}
+
+func intArg(s string) *ir.Literal {
+	return &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_INT, Text: s}
+}
+
+func floatArg(s string) *ir.Literal {
+	return &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_FLOAT, Text: s}
+}
+
+func regexArg(s string) *ir.Literal {
+	return &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_REGEX, Text: s}
+}
+
+func boolArg(s string) *ir.Literal {
+	return &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_BOOL, Text: s}
+}
+
+// rangeArg is a range literal; a nil bound is an open end.
+func rangeArg(low, high *int64) *ir.Literal {
+	return &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_RANGE, Range: &ir.Range{Low: low, High: high}}
+}
+
+func bound(n int64) *int64 { return &n }
+
+func enum(declName string, variants ...*ir.Variant) *ir.Decl {
+	return &ir.Decl{
+		Meta: &ir.Meta{Name: declName},
+		Node: &ir.Decl_Enumeration{Enumeration: &ir.Enum{Variants: variants}},
+	}
+}
+
+func variant(variantName string, fields ...*ir.Field) *ir.Variant {
+	return &ir.Variant{Meta: &ir.Meta{Name: variantName}, Fields: fields}
+}
+
+func constrained(f *ir.Field, cs ...*ir.Constraint) *ir.Field {
+	f.Constraints = cs
+	return f
+}
+
+func TestLength(t *testing.T) {
+	m := newModel("shop")
+	m.own(newtype("Initials", m.named("string"), where("length", 3, rangeArg(bound(1), bound(3)))))
+	m.own(newtype("Blob", m.named("bytes"), where("length", 4, intArg("16"))))
+	m.own(newtype("Tags", m.named("List", m.named("string")), where("length", 5, rangeArg(nil, bound(5)))))
+	m.own(newtype("Index", m.named("Map", m.named("string"), m.named("int")), where("length", 6, rangeArg(bound(1), nil))))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	got := files(t, resp)
+	contains(t, got["initials.go"], "if count := utf8.RuneCountInString(string(i)); count < 1 || count > 3 {")
+	contains(t, got["blob.go"], "if count := len(b); count != 16 {")
+	contains(t, got["tags.go"], "if count := len(t); count > 5 {")
+	contains(t, got["index.go"], "if count := len(i); count < 1 {")
+}
+
+// A range constraining nothing, or nothing at all, is a mistake in the
+// model, and a check that can never pass is not generated.
+func TestLengthThatCannotHoldIsAWarning(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		arg  *ir.Literal
+	}{
+		{"an unbounded range", rangeArg(nil, nil)},
+		{"a range whose low end passes its high", rangeArg(bound(5), bound(3))},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			m := newModel("shop")
+			m.own(newtype("Name", m.named("string"), where("length", 4, tt.arg)))
+			resp := generate(t, m)
+			onlyWarningAt(t, resp, 4)
+			if src := files(t, resp)["name.go"]; strings.Contains(src, "Validate") {
+				t.Errorf("a length that cannot hold was checked:\n%s", src)
+			}
+		})
+	}
+}
+
+func TestMatches(t *testing.T) {
+	m := newModel("shop")
+	m.own(newtype("Slug", m.named("string"), where("matches", 3, regexArg("^[a-z-]+$"))))
+	// A raw string cannot hold a backquote.
+	m.own(newtype("Quoted", m.named("string"), where("matches", 4, regexArg("a`b"))))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	got := files(t, resp)
+	contains(t, got["slug.go"],
+		"var patternSlug_0 = regexp.MustCompile(`^[a-z-]+$`)",
+		"if !patternSlug_0.MatchString(string(s)) {",
+		`errs = append(errs, fmt.Errorf("%s: matches(/^[a-z-]+$/): no match", path))`,
+	)
+	contains(t, got["quoted.go"], "var patternQuoted_0 = regexp.MustCompile(\"a`b\")")
+}
+
+// Go's regexp is RE2, which refuses what other engines accept, and a
+// pattern it refuses would panic when the package loads.
+func TestMatchesGoRefusesIsAWarning(t *testing.T) {
+	m := newModel("shop")
+	m.own(newtype("After", m.named("string"), where("matches", 4, regexArg("(?<=a)b"))))
+
+	resp := generate(t, m)
+	onlyWarningAt(t, resp, 4)
+	if src := files(t, resp)["after.go"]; strings.Contains(src, "regexp") {
+		t.Errorf("a pattern Go refuses was compiled:\n%s", src)
+	}
+}
+
+func TestOneOf(t *testing.T) {
+	m := newModel("shop")
+	m.own(enum("Status", variant("Active"), variant("Pending")))
+	m.own(structure("Order", nil,
+		constrained(field("size", m.named("string")), where("oneOf", 3, text("S"), text("M"))),
+		constrained(field("level", m.named("int")), where("oneOf", 4, intArg("1"), intArg("2"))),
+		constrained(field("ratio", m.named("int")), where("oneOf", 5, floatArg("0.5"))),
+		constrained(field("flag", m.named("bool")), where("oneOf", 6, boolArg("true"))),
+		constrained(field("status", m.named("Status")), where("oneOf", 7, name("Active"))),
+	))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	contains(t, files(t, resp)["order.go"],
+		`if o.Size != "S" && o.Size != "M" {`,
+		"if o.Level != 1 && o.Level != 2 {",
+		"if float64(o.Ratio) != 0.5 {",
+		"if o.Flag != true {",
+		"if o.Status != StatusActive {",
+	)
+}
+
+func TestOneOfItCannotCheckIsAWarning(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		typ  string
+		arg  *ir.Literal
+	}{
+		{"a variant the enum lacks", "Status", name("Closed")},
+		{"a quoted variant", "Status", text("Active")},
+		{"a list", "string", &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_LIST, Items: []*ir.Literal{text("a")}}},
+		{"an integer for a string", "string", intArg("1")},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			m := newModel("shop")
+			m.own(enum("Status", variant("Active")))
+			m.own(structure("Order", nil, constrained(field("value", m.named(tt.typ)), where("oneOf", 4, tt.arg))))
+			resp := generate(t, m)
+			onlyWarningAt(t, resp, 4)
+			if src := files(t, resp)["order.go"]; strings.Contains(src, "Validate") {
+				t.Errorf("a oneOf it cannot check was generated:\n%s", src)
+			}
+		})
+	}
+}
+
+func TestUnique(t *testing.T) {
+	m := newModel("shop")
+	m.own(structure("Bag", nil,
+		constrained(field("tags", m.named("List", m.named("string"))), where("unique", 3)),
+		// A set holds distinct values already.
+		constrained(field("set", m.named("Set", m.named("string"))), where("unique", 4)),
+		constrained(field("blobs", m.named("List", m.named("bytes"))), where("unique", 5)),
+	))
+
+	resp := generate(t, m)
+	onlyWarningAt(t, resp, 5)
+	contains(t, files(t, resp)["bag.go"], "seen := make(map[string]int, len(b.Tags))")
+}
+
+// A constraint whose meaning this backend cannot give to a type warns, and
+// the rest of the type is still checked.
+func TestConstraintOnTheWrongTypeIsAWarning(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		typ  func(m *modelBuilder) *ir.ID
+		c    *ir.Constraint
+	}{
+		{"min on a string", func(m *modelBuilder) *ir.ID { return m.named("string") }, where("min", 4, intArg("1"))},
+		{"min on a decimal", func(m *modelBuilder) *ir.ID { return m.named("decimal") }, where("min", 4, intArg("1"))},
+		{"length on a decimal", func(m *modelBuilder) *ir.ID { return m.named("decimal") }, where("length", 4, intArg("3"))},
+		{"min on a duration", func(m *modelBuilder) *ir.ID { return m.named("duration") }, where("min", 4, intArg("1"))},
+		{"matches on an integer", func(m *modelBuilder) *ir.ID { return m.named("int") }, where("matches", 4, regexArg("^1$"))},
+		{"min on a type parameter", func(m *modelBuilder) *ir.ID { return m.param("T", 0) }, where("min", 4, intArg("1"))},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			m := newModel("shop")
+			m.own(structure("Box", params("T"),
+				constrained(field("value", tt.typ(m)), tt.c),
+				constrained(field("count", m.named("int")), where("min", 9, intArg("0"))),
+			))
+			resp := generate(t, m)
+			onlyWarningAt(t, resp, 4)
+			contains(t, files(t, resp)["box.go"], "if b.Count < 0 {")
+		})
+	}
+}
+
+// A field whose type validates is validated with it, through a pointer and
+// through every collection, and a struct with nothing to check gets no
+// methods.
+func TestValidationRecurses(t *testing.T) {
+	m := newModel("shop")
+	m.own(newtype("Email", m.named("string"), where("length", 3, rangeArg(bound(3), nil))))
+	m.own(structure("Contact", nil, field("email", m.named("Email"))))
+	m.own(structure("Plain", nil, field("name", m.named("string"))))
+	m.own(structure("Book", nil,
+		field("contacts", m.named("List", m.named("Contact"))),
+		field("primary", m.named("Option", m.named("Contact"))),
+		field("byName", m.named("Map", m.named("string"), m.named("Contact"))),
+		field("grid", m.named("List", m.named("List", m.named("Contact")))),
+		field("plain", m.named("Plain")),
+	))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	got := files(t, resp)
+	contains(t, got["contact.go"], `errs = c.Email.validate(path+".email", errs)`)
+	contains(t, got["book.go"],
+		"for idx, elem := range b.Contacts {",
+		`errs = elem.validate(fmt.Sprintf("%s.contacts[%d]", path, idx), errs)`,
+		"if b.Primary != nil {",
+		`errs = (*b.Primary).validate(path+".primary", errs)`,
+		"for _, val := range b.ByName {",
+		`errs = val.validate(path+".byName[?]", errs)`,
+		"for idx1, elem1 := range elem {",
+	)
+	if strings.Contains(got["book.go"], "Plain.validate") || strings.Contains(got["plain.go"], "Validate") {
+		t.Errorf("a struct with nothing to check was validated:\n%s\n%s", got["plain.go"], got["book.go"])
+	}
+}
+
+// Two structs reaching each other through pointers settle on both
+// validating, which a walk stopping at what it has seen would get wrong.
+func TestValidationThroughACycle(t *testing.T) {
+	m := newModel("shop")
+	b := &ir.Struct{}
+	m.own(&ir.Decl{Meta: &ir.Meta{Name: "B"}, Node: &ir.Decl_Structure{Structure: b}})
+	m.own(structure("A", nil,
+		field("b", m.named("Option", m.named("B"))),
+		constrained(field("n", m.named("int")), where("min", 3, intArg("1"))),
+	))
+	b.Fields = []*ir.Field{field("a", m.named("Option", m.named("A")))}
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	got := files(t, resp)
+	contains(t, got["b.go"], `errs = (*b.A).validate(path+".a", errs)`)
+	contains(t, got["a.go"], `errs = (*a.B).validate(path+".b", errs)`)
+}
+
+// The compiler hands a newtype its whole accumulated set, so it is checked
+// in one place, and a constraint the backend cannot check warns where it
+// was written and not again where it was inherited.
+func TestNewtypeChainChecksOnce(t *testing.T) {
+	m := newModel("shop")
+	email := newtype("Email", m.named("string"), where("length", 3, rangeArg(bound(3), nil)), where("shout", 4))
+	m.own(email)
+	inherited := func(c *ir.Constraint) *ir.Constraint {
+		return &ir.Constraint{Name: c.GetName(), Args: c.GetArgs(), Position: c.GetPosition(), From: m.ref("Email")}
+	}
+	cs := email.GetNewtype().GetValueConstraints()
+	m.own(newtype("WorkEmail", m.named("Email"), where("matches", 5, regexArg("@acme$")), inherited(cs[0]), inherited(cs[1])))
+
+	resp := generate(t, m)
+	onlyWarningAt(t, resp, 4)
+	src := files(t, resp)["work_email.go"]
+	contains(t, src, "if !patternWorkEmail_0.MatchString(string(w)) {", "count < 3")
+	if strings.Contains(src, "Email(w)") {
+		t.Errorf("an accumulated constraint was checked through the parent:\n%s", src)
+	}
+}
+
+func TestNewtypeOverAStructValidatesIt(t *testing.T) {
+	m := newModel("shop")
+	m.own(structure("Person", nil, constrained(field("age", m.named("int")), where("min", 3, intArg("0")))))
+	m.own(newtype("Customer", m.named("Person")))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	contains(t, files(t, resp)["customer.go"], "errs = Person(c).validate(path, errs)")
+}
+
+// Go gives no method to a type whose underlying type is a pointer or an
+// interface, so such a newtype's constraints cannot be checked.
+func TestConstrainedNewtypeOverAPointerIsAWarning(t *testing.T) {
 	m := newModel("shop")
 	m.own(&ir.Decl{
-		Meta: &ir.Meta{Name: "Email", Position: &ir.Position{Filename: "shop.tdl", Line: 7}},
+		Meta: &ir.Meta{Name: "Maybe", Position: &ir.Position{Filename: "shop.tdl", Line: 3}},
 		Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{
-			Base:             m.named("string"),
-			ValueConstraints: []*ir.Constraint{{Name: "matches"}},
-		}},
-	})
-	m.own(&ir.Decl{
-		Meta: &ir.Meta{Name: "Contact"},
-		Node: &ir.Decl_Structure{Structure: &ir.Struct{
-			Fields: []*ir.Field{field("email", m.named("Email"))},
+			Base:             m.named("Option", m.named("string")),
+			ValueConstraints: []*ir.Constraint{where("length", 4, rangeArg(bound(1), nil))},
 		}},
 	})
 
 	resp := generate(t, m)
-	if len(resp.GetDiagnostics()) != 1 {
-		t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+	onlyWarningAt(t, resp, 3)
+	if src := files(t, resp)["maybe.go"]; strings.Contains(src, "Validate") {
+		t.Errorf("a newtype over a pointer was given methods:\n%s", src)
 	}
-	if line := resp.GetDiagnostics()[0].GetPosition().GetLine(); line != 7 {
-		t.Errorf("position line = %d", line)
-	}
+}
 
+// A sealed enum is an interface, so each variant with something to check
+// carries the methods, and a field holding the enum asks the value it holds.
+func TestSealedEnumValidation(t *testing.T) {
+	m := newModel("shop")
+	m.own(enum("Payment",
+		variant("Cash"),
+		variant("Card", constrained(field("last4", m.named("string")), where("length", 3, intArg("4")))),
+	))
+	m.own(structure("Order", nil, field("payment", m.named("Payment"))))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
 	got := files(t, resp)
-	contains(t, got["email.go"], "type Email string")
-	contains(t, got["contact.go"], "Email Email")
+	contains(t, got["payment.go"],
+		`return errors.Join(p.validate("Payment.Card", nil)...)`,
+		"func (p PaymentCard) validate(path string, errs []error) []error {",
+	)
+	if strings.Contains(got["payment.go"], "func (p PaymentCash) Validate") {
+		t.Errorf("a variant with nothing to check was given methods:\n%s", got["payment.go"])
+	}
+	contains(t, got["order.go"],
+		"if inner, ok := o.Payment.(interface{ validate(string, []error) []error }); ok {",
+		`errs = inner.validate(path+".payment", errs)`,
+	)
+}
+
+// A generic struct checks its own fields and leaves its type arguments'
+// values alone, since asserting a method on a T that is a nil pointer
+// panics.
+func TestGenericValidation(t *testing.T) {
+	m := newModel("shop")
+	m.own(structure("Page", params("T"),
+		constrained(field("items", m.named("List", m.param("T", 0))), where("length", 3, rangeArg(nil, bound(50)))),
+		constrained(field("total", m.named("int")), where("min", 4, intArg("0"))),
+	))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	contains(t, files(t, resp)["page.go"],
+		"func (p Page[T]) Validate() error {",
+		"func (p Page[T]) validate(path string, errs []error) []error {",
+		"if count := len(p.Items); count > 50 {",
+	)
+}
+
+// The method's parameters and locals share a scope with the type's
+// parameters, so none may be spelled like one.
+func TestLocalsAvoidTypeParams(t *testing.T) {
+	m := newModel("shop")
+	m.own(structure("Box", params("path", "errs", "count", "seen"),
+		constrained(field("tags", m.named("List", m.named("string"))), where("length", 3, rangeArg(bound(1), nil)), where("unique", 4)),
+	))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	contains(t, files(t, resp)["box.go"], "Validate() error {")
+}
+
+// A field Go would call Validate leaves no room for the method, which warns
+// the way a field called Key does; a key and a check live side by side.
+func TestValidateCollision(t *testing.T) {
+	m := newModel("shop")
+	clash := structure("Clash", nil, constrained(field("validate", m.named("int")), where("min", 4, intArg("1"))))
+	clash.GetMeta().Position = &ir.Position{Filename: "shop.tdl", Line: 3}
+	m.own(clash)
+	m.own(keyed("User", []*ir.Field{
+		field("id", m.named("string")),
+		constrained(field("age", m.named("int")), where("min", 9, intArg("0"))),
+	}, name("id")))
+
+	resp := generate(t, m)
+	onlyWarningAt(t, resp, 3)
+	got := files(t, resp)
+	if strings.Contains(got["clash.go"], "func (c Clash) Validate") {
+		t.Errorf("a method collided with a field:\n%s", got["clash.go"])
+	}
+	contains(t, got["user.go"], "func (u User) Key() string {", "func (u User) Validate() error {")
 }
 
 // Go requires a map key to be comparable, so a Set or a Map that would
@@ -1102,6 +1649,12 @@ func TestParamsGoCannotExpress(t *testing.T) {
 		{"a predeclared type", &ir.Param{Name: "string", Position: at}, nil, 4},
 		{"a predeclared constraint", &ir.Param{Name: "any", Position: at}, nil, 4},
 		{"the time package", &ir.Param{Name: "time", Position: at}, nil, 4},
+		// Validation imports these, so a parameter spelled like one would
+		// shadow it in whichever file it lands.
+		{"the fmt package", &ir.Param{Name: "fmt", Position: at}, nil, 4},
+		{"the errors package", &ir.Param{Name: "errors", Position: at}, nil, 4},
+		{"the regexp package", &ir.Param{Name: "regexp", Position: at}, nil, 4},
+		{"the utf8 package", &ir.Param{Name: "utf8", Position: at}, nil, 4},
 		{"a generated declaration", &ir.Param{Name: "Note", Position: at}, nil, 4},
 		// The kind is left to inference, and only the use says it is higher.
 		{"applied to arguments", &ir.Param{Name: "f"}, func(m *modelBuilder) *ir.ID {
