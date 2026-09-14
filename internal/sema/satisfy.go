@@ -72,6 +72,8 @@ func (l *lowerer) expandInto(file *ast.File, name string, done, onPath map[strin
 				Meta:         f.GetMeta(),
 				Type:         f.GetType(),
 				Owned:        f.GetOwned(),
+				Constraints:  f.GetConstraints(),
+				DefaultValue: f.GetDefaultValue(),
 				IncludedFrom: id,
 			}
 			if f.GetIncludedFrom() != nil {
