@@ -87,6 +87,10 @@ A key naming one field returns that field's type, so `User => key(id)` is `func 
 The common case reads as what it is, and the cost is that adding a second field changes the return type, which is a breaking change to the model either way.
 The key type is named so a consumer can write `map[LineItemKey]LineItem`, and every field in it must be comparable for the same reason.
 
+A parameterized struct is a Go generic type, `type Page[T any] struct`, and applying it is instantiating one, so `Page<Order>` is `Page[Order]`.
+A generic entity's key type takes the entity's parameters, as `LineItemKey[T]`.
+A method's receiver is named after its type unless a type parameter is already spelled that way, since the two share a scope, and it is `r` then.
+
 A mixin's fields are copied into whatever includes it, and `Field.included_from` says where each came from.
 The mixin still gets a struct of its own, because it is a declaration a consumer may name.
 The including struct does not embed it: the fields are already there, flattened by lowering, and embedding on top would double them.
@@ -128,15 +132,90 @@ It is also honest: adding a field to a variant is a breaking change to the model
 The string a fieldless variant carries is the variant's name as written.
 A backend that invented a wire format would be making a decision that belongs to the consumer, and `tag` is where a consumer states one.
 
+A generic enum with a field-carrying variant is a generic interface whose marker takes the enum's parameters:
+
+```go
+type Result[T any] interface{ isResult(T) }
+
+type ResultOk[T any] struct{ Value T }
+
+func (ResultOk[T]) isResult(T) {}
+```
+
+Without the parameters in the marker, a `ResultOk[int]` would satisfy `Result[string]`.
+A fieldless enum with parameters keeps its shape and drops them with a warning, where it is declared and wherever it is used.
+A Go constant cannot be generic, nothing in a fieldless enum names a parameter, and turning it into the sealed shape to keep them would be a second rule deciding the shape.
+
 ## Newtypes and aliases
 
 A newtype is `type N Base`: distinct, not interchangeable, which is what the language says it is.
+A parameterized newtype is generic the same way, `type Ids[T any] []T`, except over a bare parameter: Go refuses a type parameter as the whole of a type declaration, so that one warns and is skipped.
 Its `where` constraints are not enforced in phase 1; validation is its own phase and its own set of decisions about where the check lives.
 What is skipped is the constraint and not the declaration, and the backend warns that it is.
 Emitting nothing for a constrained newtype would leave every field naming it referring to a type the package does not declare, which turns one unimplemented phase into output that does not compile.
 
 An alias is transparent and is expanded rather than emitted.
 `ir` already calls it an abbreviation, so there is nothing to generate.
+A parameterized alias is expanded with its arguments standing for its parameters, so given `alias Pair<K, V> = {K -> V}`, `Pair<string, int>` is `map[string]int64` wherever it is written.
+
+## Generics
+
+Type parameters reach the backend unmonomorphized, and each becomes a Go type parameter spelled as TDL spells it.
+
+Go needs a map key to be comparable, and TDL has no way to say a parameter is, so the backend infers it.
+A parameter reaching a set element, a map key, or a key field is `comparable`, and so is one handed to another declaration's parameter that has to be.
+That is decided across the whole model before anything is rendered, since a declaration may hand its parameter to one declared after it.
+Inference is the only way `Bag<T> { items: {T} }` compiles, and it is safe to infer because `comparable` can never be written, where a class constraint always is.
+
+The compiler does not check a constraint whose argument is itself a parameter, and Go does.
+So every use of a constrained declaration is checked, and one Go would refuse, such as `Bag<bytes>` or an unconstrained `T` handed to `Envelope<T>`, warns at the use and skips the declaration holding it.
+
+A parameter Go cannot express warns at the parameter and skips its declaration:
+
+- a higher kind, written as `f: type -> type` or only used as `f<T>`, since Go has no higher-kinded type parameters;
+- a `unit` kind, which waits on phase 6 of [go-backend-plan.md](go-backend-plan.md);
+- a name that is a Go keyword, one of Go's predeclared names, `time`, or the Go name of a generated declaration.
+
+The last rule is conservative on purpose.
+`int` is Go's `int64`, so a parameter named `int64` is legal TDL and would capture every field typed `int`.
+
+## Classes
+
+A class is an interface whose one method is unexported, and each declaration satisfying the class carries that method:
+
+```go
+type Auditable interface {
+	Timestamped
+	isAuditable()
+}
+
+func (Order) isAuditable() {}
+```
+
+Conformance in TDL is nominal and always declared, and an unexported method makes it so in Go: nothing outside the package can implement the interface, and nothing inside implements it without being generated to.
+A class it requires is embedded, and the satisfying declarations are read from `Model.Satisfying`, which already closes over the classes a class requires.
+A `requires` clause is a constraint naming that interface, so `Envelope<T> requires Auditable<T>` is `type Envelope[T Auditable] struct`, and a parameter that also has to be comparable is constrained by `interface{ comparable; Auditable }`.
+
+A class's fields are not methods of the interface.
+The declarations satisfying it declare them already, Go refuses a field and a method with one name, and a getter under another name would be API the model never asked for.
+Generated code holds types and no functions, so a constraint's only job is to say which types may be arguments, and the marker says exactly that.
+
+A marker goes in the satisfying declaration's file.
+A sealed enum is an interface, which cannot carry a method, so it embeds the class and every variant carries the marker.
+
+What Go cannot express warns where it was written:
+
+| Case | Result |
+| --- | --- |
+| A class taking parameters, as a multi-parameter or higher-kinded class does | Skipped, since a Go interface cannot state a relationship between types |
+| A class requiring associated types | Emitted without them |
+| A conditional instance | No marker, since Go cannot give a method to only some instantiations |
+| An instance for a prelude type or a type in another package | No marker, since Go cannot add a method to either |
+| A newtype over a pointer or an interface | No marker, for the same reason |
+| A field whose Go name is the marker's | No marker |
+| A `requires` naming a prelude class, a class that is not generated, a class in another package, or anything but a bare parameter | The declaration is emitted without that constraint |
+
+`Entity` is the prelude's, and the prelude is not generated, so `requires Entity<T>` is the last row.
 
 ## Directives
 
@@ -168,6 +247,7 @@ A directive written against `Auditable` and one written against `User` mean the 
 
 A declaration's `Meta.name` is fully qualified, and the Go identifier is its last segment, exported.
 A field's name is bare and is exported the same way.
+A type parameter keeps its TDL spelling, since nothing outside its declaration names it; [Generics](#generics) says which spellings are refused.
 
 Exporting is unconditional.
 Nothing in TDL says a declaration or a field is private, and inventing a rule out of the leading character would make a case change in the model a visibility change in the output.
@@ -182,10 +262,12 @@ An identifier that collides with a Go keyword after exporting cannot, since expo
 
 The backend reports what it cannot handle rather than emitting something plausible and wrong.
 
-A type parameter, a unit-typed field, a class declaration, an extern, and a set element or map key Go cannot compare each produce a warning with the node's position, and the declaration reaching one is skipped.
-A `where` constraint warns and the declaration is still emitted, since the constraint is what is missing and not the type.
+A unit-typed field, an extern, a set element or map key Go cannot compare, a type parameter Go cannot express, and a type argument breaking a constraint each produce a warning with the node's position, and the declaration reaching one is skipped.
+A declaration naming a skipped one, directly or through an option, a collection, or an alias, is skipped with it and warns at the use, since it would otherwise name a type the package does not declare.
+A `where` constraint, a `requires` clause Go cannot state, a class's associated types, and a fieldless enum's parameters warn and the declaration is still emitted, since what is missing is the constraint and not the type.
+What [Classes](#classes) lists as getting no marker warns, and the declaration is emitted without the marker.
 A `key` the backend cannot generate warns the same way and the entity is emitted without it: a key on a value or a mixin, an argument that is not a name, a field named twice or not at all, a field Go cannot compare, a field whose Go name is `Key`, and a key type colliding with a declaration of the same name.
-Everything the first two sentences name has a phase or a deferred decision in [go-backend-plan.md](go-backend-plan.md), and each is a set of decisions rather than an oversight.
+Everything above has a phase or a deferred decision in [go-backend-plan.md](go-backend-plan.md), or a section here saying why Go cannot express it, and each is a set of decisions rather than an oversight.
 A key warning is a mistake in the model, except a field Go cannot compare, which is the comparability decision again.
 
 A warning does not stop a run, so a model that is mostly generatable generates.

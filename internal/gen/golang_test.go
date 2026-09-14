@@ -12,8 +12,8 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// goModel is a model with one keyed entity, enough to generate a Go file
-// from.
+// goModel is a model with one keyed entity and one generic struct, enough to
+// generate Go from on both of the paths a declaration takes.
 func goModel() *ir.Model {
 	return &ir.Model{
 		Package: "shop",
@@ -37,11 +37,21 @@ func goModel() *ir.Model {
 					}},
 				}},
 			},
+			{
+				Meta: &ir.Meta{Name: "Box", Position: &ir.Position{Filename: "shop.tdl"}},
+				Node: &ir.Decl_Structure{Structure: &ir.Struct{
+					Params: []*ir.Param{{Name: "T"}},
+					Fields: []*ir.Field{{
+						Meta: &ir.Meta{Name: "value"},
+						Type: &ir.ID{Index: 1, Name: "T"},
+					}},
+				}},
+			},
 		},
-		Types: []*ir.Type{{
-			Ctor:  &ir.ID{Index: 0, Name: "string"},
-			Wrote: ir.SyntacticForm_SYNTACTIC_FORM_NAMED,
-		}},
+		Types: []*ir.Type{
+			{Ctor: &ir.ID{Index: 0, Name: "string"}, Wrote: ir.SyntacticForm_SYNTACTIC_FORM_NAMED},
+			{Param: &ir.ParamRef{Name: "T"}},
+		},
 	}
 }
 
@@ -68,7 +78,7 @@ func TestGoHostsAgree(t *testing.T) {
 		t.Fatalf("subprocess: %v", err)
 	}
 
-	if len(inProcess.GetFiles()) != 1 {
+	if len(inProcess.GetFiles()) != 2 {
 		t.Fatalf("files = %+v", inProcess.GetFiles())
 	}
 	if len(inProcess.GetFiles()) != len(viaPipe.GetFiles()) {
@@ -87,9 +97,10 @@ func TestGoHostsAgree(t *testing.T) {
 	// The output is Go, so the assertion that matters is that Go accepts
 	// it. A substring check can pass while the file is something go build
 	// refuses.
-	file := inProcess.GetFiles()[0]
-	if _, err := parser.ParseFile(token.NewFileSet(), file.GetPath(), file.GetContent(), parser.AllErrors); err != nil {
-		t.Errorf("%s is not parseable Go: %v\n%s", file.GetPath(), err, file.GetContent())
+	for _, file := range inProcess.GetFiles() {
+		if _, err := parser.ParseFile(token.NewFileSet(), file.GetPath(), file.GetContent(), parser.AllErrors); err != nil {
+			t.Errorf("%s is not parseable Go: %v\n%s", file.GetPath(), err, file.GetContent())
+		}
 	}
 }
 

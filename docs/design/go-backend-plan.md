@@ -74,10 +74,17 @@ Done when an entity's key is expressible in Go without the consumer reading the 
 Type parameters reach the backend unmonomorphized, which `ir` did on purpose so a language with generics emits them.
 
 A `Param` becomes a Go type parameter, and a `ParamRef` in a field type becomes a use of it.
-The open question is constraints: a `requires` clause names a TDL class, and a class is not a Go interface.
+`comparable` is inferred from what reaches a map key, since TDL has no way to write it.
 
+The question was constraints: a `requires` clause names a TDL class, and a class is not a Go interface until the backend makes it one.
 A class declaration is the same question from the other side, since whatever a `requires` clause generates is what the class it names has to become.
-A class with fields, like `Auditable`, could become an interface of getters, and a multi-parameter class like `Projection<from, to>` has no Go shape at all, because its content is a relationship between types.
+
+A class is a marker interface, with one unexported method each satisfying declaration carries, and a `requires` clause is a constraint naming it.
+An interface of getters was the alternative and loses: the satisfying struct declares the fields already, Go refuses a field and a method with one name, and generated code has no functions for a getter to serve beyond saying which types may be arguments, which the marker says.
+[go-backend.md](go-backend.md#classes) has the rest, including what warns.
+
+Left to later work: a conditional instance, a class taking parameters, an instance for a foreign type (phase 5), and a class as a field type.
+A multi-parameter class like `Projection<from, to>` has no Go shape at all, because its content is a relationship between types.
 
 Done when a parameterized declaration generates a Go generic type that compiles, and when a `requires` clause and the class it names either generate a constraint or produce a warning saying why they cannot.
 
@@ -127,6 +134,9 @@ Done when a corpus case is a directory and adding one requires no code.
   `map[T]struct{}` is what phase 1 emits for `Set`, and a generated set type with methods would lift the restriction for sets, which is the strongest argument for it.
   It is nicer to use and a bigger commitment than a collection mapping should make on its own.
   `Map` keys and key fields stay restricted either way, since a generated set type does not change what `map[K]V` or `map[LineItemKey]LineItem` accepts.
+  A type parameter is not restricted: reaching a key makes it `comparable`, and the use supplying an argument Go cannot compare is what warns.
+- **A class as a field type.** Naming a class as a field's type warns.
+  An interface field holding any satisfying declaration is the obvious Go shape, and whether the language means that is the spec's call rather than a backend's.
 - **Doc comment rendering.** `///` comments become Go doc comments verbatim.
   Whether a name is prefixed to satisfy Go's "comment starts with the identifier" convention is left alone, because rewriting a user's prose is worse than a vet warning.
 - **One file per declaration.** Settled in [go-backend.md](go-backend.md), but the alternative of one file per package is the thing to revisit if a model with many small declarations makes the tree unreadable.

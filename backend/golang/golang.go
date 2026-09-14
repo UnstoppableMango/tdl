@@ -9,13 +9,15 @@
 // target block writes the latter and a Go package cannot usefully be the
 // former.
 //
-// Two shapes are worth knowing before reading the output. An enum whose
+// Three things are worth knowing before reading the output. An enum whose
 // variants carry no fields is a named string type with constants, and one
 // where any variant carries fields is a sealed interface with a struct per
 // variant; the language calls the second its sum type, and no single Go
-// shape serves both. And three primitives, decimal, uuid, and date, map to
-// a placeholder rather than a dependency this backend would be choosing on
-// every consumer's behalf.
+// shape serves both. Three primitives, decimal, uuid, and date, map to a
+// placeholder rather than a dependency this backend would be choosing on
+// every consumer's behalf. And a class is an interface with one unexported
+// method, which each declaration satisfying the class carries, so a
+// `requires` clause is a Go constraint and conformance stays declared.
 package golang
 
 import (
@@ -27,7 +29,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"unicode"
 
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -74,6 +75,30 @@ type generator struct {
 	target string
 	diags  []*plugin.Diagnostic
 
+	// skipped holds the declarations not generated, by index, with why.
+	skipped map[int32]error
+
+	// cur is the index of the declaration being rendered, whose type
+	// parameters a bare parameter reference names.
+	cur int32
+
+	// needsComparable holds, per parameterized declaration, which of its
+	// parameters Go needs to be comparable.
+	needsComparable map[int32][]bool
+
+	// genClass holds the classes generated as interfaces, and marks the
+	// classes whose marker each declaration carries, both by index.
+	genClass map[int32]bool
+	marks    map[int32][]int32
+
+	// curClasses is the generated classes constraining each parameter of the
+	// declaration being rendered.
+	curClasses [][]int32
+
+	// planned holds what deciding the classes found to warn about, which
+	// belongs to no single render.
+	planned []*plugin.Diagnostic
+
 	// needTime is reset before each file, since imports are per file.
 	needTime bool
 }
@@ -101,17 +126,49 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		return &plugin.Response{Diagnostics: g.diags}, nil
 	}
 
+	// A declaration naming a skipped one would name a type the package does
+	// not declare, so it is skipped too. It may come earlier in the table
+	// than what it names, so rendering repeats until a pass skips nothing
+	// new. The skipped set only grows, which bounds the passes by the number
+	// of declarations.
+	g.skipped = map[int32]error{}
+	g.planClasses()
+	g.inferComparable()
 	var files []*plugin.File
-	for _, decl := range g.own() {
-		file, err := g.file(pkg, decl)
-		if err != nil {
-			g.warn(err)
-			continue
-		}
-		if file != nil {
-			files = append(files, file)
+	var rendered map[int32][]*plugin.Diagnostic
+	for again := true; again; {
+		again = false
+		files, rendered = nil, map[int32][]*plugin.Diagnostic{}
+		for i, decl := range g.model.GetDecls() {
+			index := int32(i)
+			if !isOwn(decl) || g.skipped[index] != nil {
+				continue
+			}
+			g.diags, g.cur = nil, index
+			file, err := g.file(pkg, decl)
+			if err != nil {
+				g.skipped[index] = err
+				again = true
+				continue
+			}
+			rendered[index] = g.diags
+			if file != nil {
+				files = append(files, file)
+			}
 		}
 	}
+
+	// Diagnostics come from the last pass that rendered each declaration, so
+	// a repeated pass does not repeat them, and in declaration order.
+	g.diags = nil
+	for i := range g.model.GetDecls() {
+		index := int32(i)
+		if err := g.skipped[index]; err != nil {
+			g.warn(err)
+		}
+		g.diags = append(g.diags, rendered[index]...)
+	}
+	g.diags = append(g.diags, g.planned...)
 
 	return &plugin.Response{Files: files, Diagnostics: g.diags}, nil
 }
@@ -119,6 +176,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 // file renders one declaration, or nil for one that generates nothing.
 func (g *generator) file(pkg string, decl *ir.Decl) (*plugin.File, error) {
 	g.needTime = false
+	g.curClasses = g.paramClasses(decl, true)
 
 	var body strings.Builder
 	switch {
@@ -139,8 +197,9 @@ func (g *generator) file(pkg string, decl *ir.Decl) (*plugin.File, error) {
 		// nothing to declare for it.
 		return nil, nil
 	case decl.GetClass() != nil:
-		return nil, unsupported(decl.GetMeta().GetPosition(),
-			"%s is a class, and classes are not generated yet", decl.GetMeta().GetName())
+		if err := g.class(&body, decl); err != nil {
+			return nil, err
+		}
 	case decl.GetUnit() != nil:
 		return nil, unsupported(decl.GetMeta().GetPosition(),
 			"%s is a unit, and units are not generated yet", decl.GetMeta().GetName())
@@ -185,14 +244,13 @@ func (g *generator) file(pkg string, decl *ir.Decl) (*plugin.File, error) {
 // entity and a value are one shape apart until a `key` directive names the
 // fields identifying the entity.
 func (g *generator) structure(b *strings.Builder, decl *ir.Decl) error {
-	if len(decl.Params()) > 0 {
-		return unsupported(decl.GetMeta().GetPosition(),
-			"%s is parameterized, and generics are not generated yet", decl.GetMeta().GetName())
+	if err := g.paramProblem(decl); err != nil {
+		return err
 	}
 
 	name := g.declName(decl)
 	g.doc(b, decl.GetMeta())
-	fmt.Fprintf(b, "type %s struct {\n", name)
+	fmt.Fprintf(b, "type %s%s struct {\n", name, g.typeParams(decl))
 	if err := g.fields(b, decl.Fields()); err != nil {
 		return err
 	}
@@ -203,6 +261,7 @@ func (g *generator) structure(b *strings.Builder, decl *ir.Decl) error {
 			g.warn(err)
 		}
 	}
+	g.writeMarkers(b, name+typeArgs(decl))
 	return nil
 }
 
@@ -225,16 +284,18 @@ func (g *generator) key(b *strings.Builder, decl *ir.Decl, name string, d *ir.Di
 		}
 	}
 
-	recv := string(unicode.ToLower([]rune(name)[0]))
+	recv, self := receiver(decl, name), name+typeArgs(decl)
 	if len(fields) == 1 {
 		fmt.Fprintf(b, "\n// Key returns what identifies this %s.\n", name)
 		fmt.Fprintf(b, "func (%s %s) Key() %s {\n\treturn %s.%s\n}\n",
-			recv, name, types[0], recv, g.fieldName(fields[0]))
+			recv, self, types[0], recv, g.fieldName(fields[0]))
 		return nil
 	}
 
+	// A generic entity's key type takes the entity's parameters, since its
+	// fields may name them.
 	keyType := name + "Key"
-	fmt.Fprintf(b, "\n// %s is what identifies a %s.\ntype %s struct {\n", keyType, name, keyType)
+	fmt.Fprintf(b, "\n// %s is what identifies a %s.\ntype %s%s struct {\n", keyType, name, keyType, g.typeParams(decl))
 	inits := make([]string, len(fields))
 	for i, f := range fields {
 		field := g.fieldName(f)
@@ -243,8 +304,9 @@ func (g *generator) key(b *strings.Builder, decl *ir.Decl, name string, d *ir.Di
 	}
 	b.WriteString("}\n")
 	fmt.Fprintf(b, "\n// Key returns what identifies this %s.\n", name)
+	keyType += typeArgs(decl)
 	fmt.Fprintf(b, "func (%s %s) Key() %s {\n\treturn %s{%s}\n}\n",
-		recv, name, keyType, keyType, strings.Join(inits, ", "))
+		recv, self, keyType, keyType, strings.Join(inits, ", "))
 	return nil
 }
 
@@ -336,23 +398,18 @@ func quoteTag(tag string) string {
 // three-name enum is unusable as a map key and unwritable as a constant,
 // and constants cannot express a variant with fields at all.
 func (g *generator) enumeration(b *strings.Builder, decl *ir.Decl) error {
-	if len(decl.Params()) > 0 {
-		return unsupported(decl.GetMeta().GetPosition(),
-			"%s is parameterized, and generics are not generated yet", decl.GetMeta().GetName())
-	}
-
 	name := g.declName(decl)
 	variants := decl.GetEnumeration().GetVariants()
 
-	carries := false
-	for _, v := range variants {
-		if len(v.GetFields()) > 0 {
-			carries = true
-			break
+	if !carries(decl.GetEnumeration()) {
+		// Turning the enum into the sealed shape to keep its parameters
+		// would be a second rule deciding the shape, and nothing in it names
+		// a parameter, since nothing carries a field.
+		if len(decl.Params()) > 0 {
+			g.warn(unsupported(decl.GetMeta().GetPosition(),
+				"%s takes type parameters and none of its variants carries a field, so it is constants, and a Go constant cannot be generic: its parameters are dropped",
+				decl.GetMeta().GetName()))
 		}
-	}
-
-	if !carries {
 		g.doc(b, decl.GetMeta())
 		fmt.Fprintf(b, "type %s string\n\nconst (\n", name)
 		for _, v := range variants {
@@ -363,26 +420,46 @@ func (g *generator) enumeration(b *strings.Builder, decl *ir.Decl) error {
 				name, exported(v.GetMeta().GetName()), name, v.GetMeta().GetName())
 		}
 		b.WriteString(")\n")
+		g.writeMarkers(b, name)
 		return nil
 	}
 
 	// A sealed interface: the unexported method is what keeps the set
 	// closed, which is what makes this an enum rather than an open
 	// hierarchy.
-	sealed := "is" + name
+	if err := g.paramProblem(decl); err != nil {
+		return err
+	}
+
+	// A generic enum's marker takes its parameters, so a variant of one
+	// instantiation does not satisfy another: without them a ResultOk[int]
+	// would be a Result[string].
+	sealed := "is" + name + "(" + strings.Join(paramNames(decl), ", ") + ")"
+	params, args := g.typeParams(decl), typeArgs(decl)
 	g.doc(b, decl.GetMeta())
-	fmt.Fprintf(b, "type %s interface{ %s() }\n", name, sealed)
+	// An interface cannot carry a class's marker, so it embeds the class,
+	// and every variant carries the marker instead.
+	if embeds := g.markedClasses(); len(embeds) == 0 {
+		fmt.Fprintf(b, "type %s%s interface{ %s }\n", name, params, sealed)
+	} else {
+		fmt.Fprintf(b, "type %s%s interface {\n", name, params)
+		for _, e := range embeds {
+			fmt.Fprintf(b, "\t%s\n", e)
+		}
+		fmt.Fprintf(b, "\t%s\n}\n", sealed)
+	}
 
 	for _, v := range variants {
 		variant := name + exported(v.GetMeta().GetName())
 		b.WriteString("\n")
 		g.doc(b, v.GetMeta())
-		fmt.Fprintf(b, "type %s struct {\n", variant)
+		fmt.Fprintf(b, "type %s%s struct {\n", variant, params)
 		if err := g.fields(b, v.GetFields()); err != nil {
 			return err
 		}
 		b.WriteString("}\n\n")
-		fmt.Fprintf(b, "func (%s) %s() {}\n", variant, sealed)
+		fmt.Fprintf(b, "func (%s%s) %s {}\n", variant, args, sealed)
+		g.writeMarkers(b, variant+args)
 	}
 	return nil
 }
@@ -397,14 +474,20 @@ func (g *generator) enumeration(b *strings.Builder, decl *ir.Decl) error {
 // referring to a type the package does not declare, so the type is emitted
 // and the unenforced constraint is said out loud.
 func (g *generator) newtype(b *strings.Builder, decl *ir.Decl) error {
-	if len(decl.Params()) > 0 {
-		return unsupported(decl.GetMeta().GetPosition(),
-			"%s is parameterized, and generics are not generated yet", decl.GetMeta().GetName())
+	if err := g.paramProblem(decl); err != nil {
+		return err
 	}
 
 	base, err := g.goType(decl.GetNewtype().GetBase())
 	if err != nil {
 		return err
+	}
+	// Go refuses `type N[T any] T`: a type parameter cannot be the whole of
+	// a type declaration.
+	if slices.Contains(paramNames(decl), base) {
+		return unsupported(decl.GetMeta().GetPosition(),
+			"%s is a newtype over its type parameter %s, and Go cannot declare a type that is only a type parameter",
+			decl.GetMeta().GetName(), base)
 	}
 
 	if n := len(decl.GetNewtype().GetValueConstraints()); n > 0 {
@@ -414,7 +497,8 @@ func (g *generator) newtype(b *strings.Builder, decl *ir.Decl) error {
 	}
 
 	g.doc(b, decl.GetMeta())
-	fmt.Fprintf(b, "type %s %s\n", g.declName(decl), base)
+	fmt.Fprintf(b, "type %s%s %s\n", g.declName(decl), g.typeParams(decl), base)
+	g.writeMarkers(b, g.declName(decl)+typeArgs(decl))
 	return nil
 }
 
@@ -502,6 +586,11 @@ func (g *generator) blockDirective(name string) (*ir.Directive, bool) {
 // because this reaches the user with a position attached and does not stop
 // the run.
 func (g *generator) warn(err error) {
+	g.diags = append(g.diags, warning(err))
+}
+
+// warning is the diagnostic [generator.warn] reports.
+func warning(err error) *plugin.Diagnostic {
 	d := &plugin.Diagnostic{
 		Severity: plugin.Severity_SEVERITY_WARNING,
 		Message:  err.Error(),
@@ -510,7 +599,7 @@ func (g *generator) warn(err error) {
 	if errors.As(err, &u) {
 		d.Position = u.position
 	}
-	g.diags = append(g.diags, d)
+	return d
 }
 
 // own returns the declarations the model's own file declared.
@@ -533,10 +622,15 @@ func (g *generator) warn(err error) {
 func (g *generator) own() []*ir.Decl {
 	var own []*ir.Decl
 	for _, d := range g.model.GetDecls() {
-		if d.GetMeta().GetPosition().GetFilename() == prelude.Name {
-			continue
+		if isOwn(d) {
+			own = append(own, d)
 		}
-		own = append(own, d)
 	}
 	return own
+}
+
+// isOwn reports whether a declaration is the model's rather than the
+// prelude's; [generator.own] says how the two are told apart.
+func isOwn(d *ir.Decl) bool {
+	return d.GetMeta().GetPosition().GetFilename() != prelude.Name
 }
