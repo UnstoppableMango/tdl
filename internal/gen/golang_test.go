@@ -12,7 +12,8 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// goModel is a model with one entity, enough to generate a Go file from.
+// goModel is a model with one keyed entity, enough to generate a Go file
+// from.
 func goModel() *ir.Model {
 	return &ir.Model{
 		Package: "shop",
@@ -23,6 +24,11 @@ func goModel() *ir.Model {
 			},
 			{
 				Meta: &ir.Meta{Name: "Order", Position: &ir.Position{Filename: "shop.tdl"}},
+				Directives: []*ir.Directive{{
+					Name:   "key",
+					Target: golang.Name,
+					Args:   []*ir.Literal{{Kind: ir.LiteralKind_LITERAL_KIND_NAME, Text: "id"}},
+				}},
 				Node: &ir.Decl_Structure{Structure: &ir.Struct{
 					Kind: ir.StructKind_STRUCT_KIND_ENTITY,
 					Fields: []*ir.Field{{

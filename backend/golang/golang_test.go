@@ -172,7 +172,7 @@ func TestDescribe(t *testing.T) {
 	for _, spec := range d.Directives {
 		declared[spec.GetName()] = true
 	}
-	for _, want := range []string{"package", "name", "tag"} {
+	for _, want := range []string{"package", "name", "tag", "key"} {
 		if !declared[want] {
 			t.Errorf("directive %q is acted on but not declared, so the compiler would warn about it", want)
 		}
@@ -630,8 +630,186 @@ func TestAFileEndingInStdIsNotThePrelude(t *testing.T) {
 	}
 }
 
+// An entity's key is a target directive naming fields, and it becomes a key
+// type and a method returning it, so a consumer can index entities without
+// reading the .tdl file.
+func TestEntityKey(t *testing.T) {
+	m := newModel("shop")
+	m.own(keyed("LineItem", []*ir.Field{
+		field("order", m.named("string")),
+		field("sku", m.named("string")),
+		field("quantity", m.named("int")),
+	}, name("order"), name("sku")))
+
+	resp := generate(t, m)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	got := files(t, resp)
+	contains(t, got["line_item.go"],
+		"type LineItemKey struct { Order string Sku string }",
+		"func (l LineItem) Key() LineItemKey {",
+		"return LineItemKey{Order: l.Order, Sku: l.Sku}",
+	)
+}
+
+// A key of one field is that field's type, with no struct around it.
+func TestSingleFieldKey(t *testing.T) {
+	m := newModel("shop")
+	m.own(&ir.Decl{
+		Meta: &ir.Meta{Name: "UserID"},
+		Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{Base: m.named("string")}},
+	})
+	m.own(keyed("User", []*ir.Field{
+		field("id", m.named("UserID")),
+		field("email", m.named("string")),
+	}, name("id")))
+
+	got := files(t, generate(t, m))
+	src := got["user.go"]
+	contains(t, src, "func (u User) Key() UserID {", "return u.Id")
+	if strings.Contains(src, "UserKey") {
+		t.Errorf("a single-field key generated a key type:\n%s", src)
+	}
+}
+
+// A key the backend cannot generate is a warning at the directive, and the
+// entity is still emitted: skipping it would leave every field naming it
+// referring to an undeclared type.
+func TestKeyIsAWarningWhenItCannotBeGenerated(t *testing.T) {
+	cases := []struct {
+		name  string
+		build func(m *modelBuilder)
+		file  string
+	}{
+		{"on a value", func(m *modelBuilder) {
+			d := keyed("Money", []*ir.Field{field("amount", m.named("int"))}, name("amount"))
+			d.GetStructure().Kind = ir.StructKind_STRUCT_KIND_VALUE
+			m.own(d)
+		}, "money.go"},
+		{"an argument that is not a name", func(m *modelBuilder) {
+			m.own(keyed("User", []*ir.Field{field("id", m.named("string"))}, text("id")))
+		}, "user.go"},
+		{"a name that is no field", func(m *modelBuilder) {
+			m.own(keyed("User", []*ir.Field{field("id", m.named("string"))}, name("nope")))
+		}, "user.go"},
+		{"a repeated field", func(m *modelBuilder) {
+			m.own(keyed("User", []*ir.Field{field("id", m.named("string"))}, name("id"), name("id")))
+		}, "user.go"},
+		{"an incomparable field", func(m *modelBuilder) {
+			m.own(keyed("Blob", []*ir.Field{field("hash", m.named("bytes"))}, name("hash")))
+		}, "blob.go"},
+		{"a field the method would collide with", func(m *modelBuilder) {
+			m.own(keyed("Secret", []*ir.Field{
+				field("id", m.named("string")),
+				field("key", m.named("string")),
+			}, name("id")))
+		}, "secret.go"},
+		{"a declaration the key type would collide with", func(m *modelBuilder) {
+			m.own(&ir.Decl{
+				Meta: &ir.Meta{Name: "LineItemKey"},
+				Node: &ir.Decl_Structure{Structure: &ir.Struct{
+					Fields: []*ir.Field{field("raw", m.named("string"))},
+				}},
+			})
+			m.own(keyed("LineItem", []*ir.Field{
+				field("order", m.named("string")),
+				field("sku", m.named("string")),
+			}, name("order"), name("sku")))
+		}, "line_item.go"},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			m := newModel("shop")
+			c.build(m)
+
+			resp := generate(t, m)
+			if len(resp.GetDiagnostics()) != 1 {
+				t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+			}
+			d := resp.GetDiagnostics()[0]
+			if d.GetSeverity() != plugin.Severity_SEVERITY_WARNING {
+				t.Errorf("severity = %v", d.GetSeverity())
+			}
+			if d.GetPosition().GetLine() != keyLine {
+				t.Errorf("position = %+v, and the directive is what to point at", d.GetPosition())
+			}
+
+			got := files(t, resp)
+			src, ok := got[c.file]
+			if !ok {
+				t.Fatalf("the entity was skipped along with its key: %v", keys(got))
+			}
+			if strings.Contains(src, "Key()") {
+				t.Errorf("a key that warned was generated anyway:\n%s", src)
+			}
+		})
+	}
+}
+
+// A model carries directives for every target block, and another backend's
+// key is not this one's.
+func TestKeyFromAnotherTargetIsIgnored(t *testing.T) {
+	m := newModel("shop")
+	d := keyed("User", []*ir.Field{field("id", m.named("string"))}, name("id"))
+	d.Directives[0].Target = "sql"
+	m.own(d)
+
+	resp := generate(t, m)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	if src := files(t, resp)["user.go"]; strings.Contains(src, "Key()") {
+		t.Errorf("another target's key was generated:\n%s", src)
+	}
+}
+
+// The receiver is derived from the Go name, and `name("")` passes the
+// compiler's checks, so an empty name has to be a warning rather than an
+// index out of range.
+func TestKeyOnAnEmptyNameIsAWarning(t *testing.T) {
+	m := newModel("shop")
+	d := keyed("User", []*ir.Field{field("id", m.named("string"))}, name("id"))
+	d.Directives = append(d.Directives, &ir.Directive{Name: "name", Target: "go", Args: []*ir.Literal{text("")}})
+	m.own(d)
+
+	resp := generate(t, m)
+	for _, diag := range resp.GetDiagnostics() {
+		if diag.GetSeverity() == plugin.Severity_SEVERITY_WARNING && diag.GetPosition().GetLine() == keyLine {
+			return
+		}
+	}
+	t.Errorf("no warning at the key directive: %+v", resp.GetDiagnostics())
+}
+
+// keyLine is where [keyed] says its directive was written.
+const keyLine = 9
+
+// keyed is an entity carrying a key directive for the go target.
+func keyed(declName string, fields []*ir.Field, args ...*ir.Literal) *ir.Decl {
+	return &ir.Decl{
+		Meta: &ir.Meta{Name: declName},
+		Directives: []*ir.Directive{{
+			Name:     "key",
+			Target:   "go",
+			Args:     args,
+			Position: &ir.Position{Filename: "shop.tdl", Line: keyLine},
+		}},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{
+			Kind:   ir.StructKind_STRUCT_KIND_ENTITY,
+			Fields: fields,
+		}},
+	}
+}
+
 func text(s string) *ir.Literal {
 	return &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_STRING, Text: s}
+}
+
+// name is a bare identifier, which is how a key directive names a field.
+func name(s string) *ir.Literal {
+	return &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_NAME, Text: s}
 }
 
 func keys(m map[string]string) []string {

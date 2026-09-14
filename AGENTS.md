@@ -129,6 +129,7 @@ Pipeline, one package per stage:
   The first code generator here, and the first thing to say what generated code should look like.
   One file per declaration; `types.go` is the whole IR to Go type mapping and the one place that walks a `Type`.
   Two shapes carry the decisions: an enum whose variants carry no fields is a named string type with constants and one where any variant does is a sealed interface with a struct per variant, and `decimal`, `uuid`, and `date` map to a placeholder rather than to a dependency the backend would be choosing for every consumer.
+  An entity's `key` directive becomes a `Key()` method, returning the field itself when it names one and a generated `<Name>Key` struct when it names several.
   It reports what it cannot generate as a warning with a position rather than emitting something plausible and wrong.
   See `docs/design/go-backend.md` for the reasoning and `docs/design/go-backend-plan.md` for what each phase adds.
 - `cmd/tdl-gen-debug`, `cmd/tdl-gen-go` — each backend as a plugin.
