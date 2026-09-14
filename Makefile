@@ -55,6 +55,9 @@ lint:
 	buf format --diff --exit-code
 	markdownlint-cli2
 
+check:
+	nix flake check
+
 fmt:
 	nix fmt
 	buf format -w
