@@ -7,6 +7,7 @@ import (
 	"go/parser"
 	"go/token"
 	"go/types"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -395,6 +396,55 @@ func TestIncomparableKeysAreUnsupported(t *testing.T) {
 				t.Errorf("a declaration with an uncompilable field was emitted:\n%s", got["index.go"])
 			}
 		})
+	}
+}
+
+// A skipped declaration is one the package does not declare, so whatever
+// names it is skipped too, however far away, rather than emitted naming an
+// undeclared type.
+func TestReferringToASkippedDeclarationSkipsItToo(t *testing.T) {
+	m := newModel("shop")
+	m.own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Index", Position: &ir.Position{Filename: "shop.tdl", Line: 3}},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{
+			Fields: []*ir.Field{field("by", m.named("Set", m.named("bytes")))},
+		}},
+	})
+	// Declared before what it names, so a single pass in declaration order
+	// would have rendered it before learning its field is skipped. Its field
+	// is attached once Top exists, since a type reference is made by name.
+	outer := &ir.Struct{}
+	m.own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Outer", Position: &ir.Position{Filename: "shop.tdl", Line: 5}},
+		Node: &ir.Decl_Structure{Structure: outer},
+	})
+	m.own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Top", Position: &ir.Position{Filename: "shop.tdl", Line: 7}},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{
+			Fields: []*ir.Field{field("index", m.named("Index"))},
+		}},
+	})
+	outer.Fields = []*ir.Field{field("top", m.named("Option", m.named("Top")))}
+	m.own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Note"},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{
+			Fields: []*ir.Field{field("body", m.named("string"))},
+		}},
+	})
+
+	resp := generate(t, m)
+	if len(resp.GetDiagnostics()) != 3 {
+		t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	for _, d := range resp.GetDiagnostics() {
+		if d.GetSeverity() != plugin.Severity_SEVERITY_WARNING {
+			t.Errorf("severity = %v", d.GetSeverity())
+		}
+	}
+
+	got := files(t, resp)
+	if want := []string{"note.go"}; !slices.Equal(keys(got), want) {
+		t.Errorf("files = %v, want %v", keys(got), want)
 	}
 }
 

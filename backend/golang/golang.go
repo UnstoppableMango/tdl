@@ -74,6 +74,9 @@ type generator struct {
 	target string
 	diags  []*plugin.Diagnostic
 
+	// skipped holds the declarations not generated, by index, with why.
+	skipped map[int32]error
+
 	// needTime is reset before each file, since imports are per file.
 	needTime bool
 }
@@ -101,16 +104,45 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		return &plugin.Response{Diagnostics: g.diags}, nil
 	}
 
+	// A declaration naming a skipped one would name a type the package does
+	// not declare, so it is skipped too. It may come earlier in the table
+	// than what it names, so rendering repeats until a pass skips nothing
+	// new. The skipped set only grows, which bounds the passes by the number
+	// of declarations.
+	g.skipped = map[int32]error{}
 	var files []*plugin.File
-	for _, decl := range g.own() {
-		file, err := g.file(pkg, decl)
-		if err != nil {
+	var rendered map[int32][]*plugin.Diagnostic
+	for again := true; again; {
+		again = false
+		files, rendered = nil, map[int32][]*plugin.Diagnostic{}
+		for i, decl := range g.model.GetDecls() {
+			index := int32(i)
+			if !isOwn(decl) || g.skipped[index] != nil {
+				continue
+			}
+			g.diags = nil
+			file, err := g.file(pkg, decl)
+			if err != nil {
+				g.skipped[index] = err
+				again = true
+				continue
+			}
+			rendered[index] = g.diags
+			if file != nil {
+				files = append(files, file)
+			}
+		}
+	}
+
+	// Diagnostics come from the last pass that rendered each declaration, so
+	// a repeated pass does not repeat them, and in declaration order.
+	g.diags = nil
+	for i := range g.model.GetDecls() {
+		index := int32(i)
+		if err := g.skipped[index]; err != nil {
 			g.warn(err)
-			continue
 		}
-		if file != nil {
-			files = append(files, file)
-		}
+		g.diags = append(g.diags, rendered[index]...)
 	}
 
 	return &plugin.Response{Files: files, Diagnostics: g.diags}, nil
@@ -533,10 +565,15 @@ func (g *generator) warn(err error) {
 func (g *generator) own() []*ir.Decl {
 	var own []*ir.Decl
 	for _, d := range g.model.GetDecls() {
-		if d.GetMeta().GetPosition().GetFilename() == prelude.Name {
-			continue
+		if isOwn(d) {
+			own = append(own, d)
 		}
-		own = append(own, d)
 	}
 	return own
+}
+
+// isOwn reports whether a declaration is the model's rather than the
+// prelude's; [generator.own] says how the two are told apart.
+func isOwn(d *ir.Decl) bool {
+	return d.GetMeta().GetPosition().GetFilename() != prelude.Name
 }
