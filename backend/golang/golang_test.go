@@ -271,7 +271,7 @@ func TestNewtype(t *testing.T) {
 func TestConstrainedNewtypeIsEmittedWithAWarning(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(&ir.Decl{
-		Meta: &ir.Meta{Name: "Email", Position: &ir.Position{Filename: "shop.tdl", Line: 7}},
+		Meta: &ir.Meta{Name: "Email", Position: &ir.Position{Filename: irtest.OwnFile, Line: 7}},
 		Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{
 			Base:             m.Named("string"),
 			ValueConstraints: []*ir.Constraint{{Name: "matches"}},
@@ -324,7 +324,7 @@ func TestIncomparableKeysAreUnsupported(t *testing.T) {
 				}},
 			})
 			m.Own(&ir.Decl{
-				Meta: &ir.Meta{Name: "Index", Position: &ir.Position{Filename: "shop.tdl", Line: 9}},
+				Meta: &ir.Meta{Name: "Index", Position: &ir.Position{Filename: irtest.OwnFile, Line: 9}},
 				Node: &ir.Decl_Structure{Structure: &ir.Struct{
 					Fields: []*ir.Field{irtest.Field("by", tt.typ(m))},
 				}},
@@ -600,7 +600,7 @@ func TestAKeywordPackageNameIsAnError(t *testing.T) {
 			Name:     "package",
 			Target:   "go",
 			Args:     []*ir.Literal{irtest.Text("github.com/acme/type")},
-			Position: &ir.Position{Filename: "shop.tdl", Line: 2},
+			Position: &ir.Position{Filename: irtest.OwnFile, Line: 2},
 		}},
 	}}
 
@@ -626,8 +626,8 @@ func TestAKeywordPackageNameIsAnError(t *testing.T) {
 func TestUnsupportedIsAWarning(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(&ir.Decl{
-		Meta: &ir.Meta{Name: "Auditable", Position: &ir.Position{Filename: "shop.tdl", Line: 4}},
-		Node: &ir.Decl_Class{Class: &ir.Class{}},
+		Meta: &ir.Meta{Name: "kg", Position: &ir.Position{Filename: irtest.OwnFile, Line: 4}},
+		Node: &ir.Decl_Unit{Unit: &ir.UnitDef{Base: true}},
 	})
 	m.Own(&ir.Decl{
 		Meta: &ir.Meta{Name: "Note"},
@@ -852,7 +852,7 @@ func keyed(declName string, fields []*ir.Field, args ...*ir.Literal) *ir.Decl {
 			Name:     "key",
 			Target:   "go",
 			Args:     args,
-			Position: &ir.Position{Filename: "shop.tdl", Line: keyLine},
+			Position: &ir.Position{Filename: irtest.OwnFile, Line: keyLine},
 		}},
 		Node: &ir.Decl_Structure{Structure: &ir.Struct{
 			Kind:   ir.StructKind_STRUCT_KIND_ENTITY,
@@ -867,4 +867,636 @@ func keys(m map[string]string) []string {
 		out = append(out, k)
 	}
 	return out
+}
+
+// structure is a value declaration, parameterized when ps is not empty.
+func structure(declName string, ps []*ir.Param, fields ...*ir.Field) *ir.Decl {
+	return &ir.Decl{
+		Meta: &ir.Meta{Name: declName},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{Params: ps, Fields: fields}},
+	}
+}
+
+func noDiagnostics(t *testing.T, resp *plugin.Response) {
+	t.Helper()
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+}
+
+// onlyWarningAt asserts the response carries one diagnostic, a warning, at
+// line; a line of 0 is a use the fixture gave no position.
+func onlyWarningAt(t *testing.T, resp *plugin.Response, line int32) {
+	t.Helper()
+	if len(resp.GetDiagnostics()) != 1 {
+		t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	d := resp.GetDiagnostics()[0]
+	if d.GetSeverity() != plugin.Severity_SEVERITY_WARNING {
+		t.Errorf("severity = %v", d.GetSeverity())
+	}
+	if line != 0 && d.GetPosition().GetLine() != line {
+		t.Errorf("position = %+v, want line %d", d.GetPosition(), line)
+	}
+}
+
+// A parameterized declaration is a Go generic type, and applying it is
+// instantiating one.
+func TestGenericStruct(t *testing.T) {
+	m := irtest.New("shop")
+	m.Own(structure("Page", irtest.Params("T"),
+		irtest.Field("items", m.Named("List", m.Param("T", 0))),
+		irtest.Field("next", m.Named("Option", m.Param("T", 0))),
+	))
+	m.Own(structure("Order", nil, irtest.Field("id", m.Named("string"))))
+	m.Own(structure("Orders", nil,
+		irtest.Field("page", m.Named("Page", m.Named("Order"))),
+		irtest.Field("byName", m.Named("Map", m.Named("string"), m.Named("Page", m.Named("int")))),
+	))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	got := files(t, resp)
+	contains(t, got["page.go"], "type Page[T any] struct {", "Items []T", "Next *T")
+	contains(t, got["orders.go"], "Page Page[Order]", "ByName map[string]Page[int64]")
+}
+
+// A sealed enum's marker method takes the enum's parameters, so a variant of
+// one instantiation does not satisfy another.
+func TestGenericSealedEnum(t *testing.T) {
+	m := irtest.New("shop")
+	m.Own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Result"},
+		Node: &ir.Decl_Enumeration{Enumeration: &ir.Enum{
+			Params: irtest.Params("T"),
+			Variants: []*ir.Variant{
+				{Meta: &ir.Meta{Name: "Ok"}, Fields: []*ir.Field{irtest.Field("value", m.Param("T", 0))}},
+				{Meta: &ir.Meta{Name: "Err"}, Fields: []*ir.Field{irtest.Field("message", m.Named("string"))}},
+			},
+		}},
+	})
+	m.Own(structure("Reply", nil, irtest.Field("result", m.Named("Result", m.Named("string")))))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	got := files(t, resp)
+	contains(t, got["result.go"],
+		"type Result[T any] interface{ isResult(T) }",
+		"type ResultOk[T any] struct {",
+		"Value T",
+		"func (ResultOk[T]) isResult(T) {}",
+		"type ResultErr[T any] struct {",
+		"func (ResultErr[T]) isResult(T) {}",
+	)
+	contains(t, got["reply.go"], "Result Result[string]")
+}
+
+func TestGenericNewtype(t *testing.T) {
+	m := irtest.New("shop")
+	m.Own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Ids"},
+		Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{Params: irtest.Params("T"), Base: m.Named("List", m.Param("T", 0))}},
+	})
+	m.Own(structure("User", nil, irtest.Field("friends", m.Named("Ids", m.Named("string")))))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	got := files(t, resp)
+	contains(t, got["ids.go"], "type Ids[T any] []T")
+	contains(t, got["user.go"], "Friends Ids[string]")
+}
+
+// Go refuses a type parameter as the whole right-hand side of a type
+// declaration, so a newtype over a bare parameter has no Go shape.
+func TestNewtypeOverABareParameterIsAWarning(t *testing.T) {
+	m := irtest.New("shop")
+	m.Own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Tagged", Position: &ir.Position{Filename: irtest.OwnFile, Line: 3}},
+		Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{Params: irtest.Params("T"), Base: m.Param("T", 0)}},
+	})
+	m.Own(structure("Note", nil, irtest.Field("body", m.Named("string"))))
+
+	resp := generate(t, m)
+	onlyWarningAt(t, resp, 3)
+	if src, ok := files(t, resp)["tagged.go"]; ok {
+		t.Errorf("a newtype over a bare parameter was emitted:\n%s", src)
+	}
+}
+
+// A fieldless enum is constants, and a constant cannot have a generic type,
+// so its parameters are dropped with a warning rather than changing the
+// enum's shape.
+func TestParameterizedFieldlessEnumDropsItsParams(t *testing.T) {
+	m := irtest.New("shop")
+	m.Own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Status", Position: &ir.Position{Filename: irtest.OwnFile, Line: 3}},
+		Node: &ir.Decl_Enumeration{Enumeration: &ir.Enum{
+			Params:   irtest.Params("T"),
+			Variants: []*ir.Variant{{Meta: &ir.Meta{Name: "Active"}}, {Meta: &ir.Meta{Name: "Pending"}}},
+		}},
+	})
+	m.Own(structure("Job", nil, irtest.Field("status", m.Named("Status", m.Named("int")))))
+
+	resp := generate(t, m)
+	onlyWarningAt(t, resp, 3)
+	got := files(t, resp)
+	contains(t, got["status.go"], "type Status string", `StatusActive Status = "Active"`)
+	contains(t, got["job.go"], "Status Status")
+}
+
+// An alias is expanded at every use, so a parameterized one is expanded with
+// its arguments substituted for its parameters.
+func TestParameterizedAliasIsSubstituted(t *testing.T) {
+	m := irtest.New("shop")
+	m.Own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Pair"},
+		Node: &ir.Decl_Alias{Alias: &ir.Alias{
+			Params: irtest.Params("K", "V"),
+			Target: m.Named("Map", m.Param("K", 0), m.Param("V", 1)),
+		}},
+	})
+	// An alias of an alias, applying the inner one to its own parameter.
+	m.Own(&ir.Decl{
+		Meta: &ir.Meta{Name: "ByName"},
+		Node: &ir.Decl_Alias{Alias: &ir.Alias{
+			Params: irtest.Params("V"),
+			Target: m.Named("Pair", m.Named("string"), m.Param("V", 0)),
+		}},
+	})
+	m.Own(structure("Wrap", irtest.Params("T"),
+		irtest.Field("direct", m.Named("Pair", m.Named("string"), m.Named("bool"))),
+		irtest.Field("nested", m.Named("ByName", m.Named("int"))),
+		irtest.Field("generic", m.Named("Pair", m.Named("string"), m.Param("T", 0))),
+	))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	got := files(t, resp)
+	if _, ok := got["pair.go"]; ok {
+		t.Error("an alias should not generate a declaration")
+	}
+	contains(t, got["wrap.go"],
+		"Direct map[string]bool",
+		"Nested map[string]int64",
+		"Generic map[string]T",
+	)
+}
+
+func TestAliasGivenTheWrongNumberOfArgumentsIsAWarning(t *testing.T) {
+	m := irtest.New("shop")
+	m.Own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Pair"},
+		Node: &ir.Decl_Alias{Alias: &ir.Alias{
+			Params: irtest.Params("K", "V"),
+			Target: m.Named("Map", m.Param("K", 0), m.Param("V", 1)),
+		}},
+	})
+	m.Own(structure("Bad", nil, irtest.Field("pair", m.Named("Pair", m.Named("string")))))
+
+	resp := generate(t, m)
+	onlyWarningAt(t, resp, 0)
+	if src, ok := files(t, resp)["bad.go"]; ok {
+		t.Errorf("a declaration with a misapplied alias was emitted:\n%s", src)
+	}
+}
+
+// A parameter Go cannot express is a warning at the parameter, and the
+// declaration taking it is skipped.
+func TestParamsGoCannotExpress(t *testing.T) {
+	atom := func(a ir.KindAtom) *ir.Kind { return &ir.Kind{Atom: a} }
+	arrow := &ir.Kind{Atom: ir.KindAtom_KIND_ATOM_TYPE, Arrow: atom(ir.KindAtom_KIND_ATOM_TYPE)}
+	at := &ir.Position{Filename: irtest.OwnFile, Line: 4}
+
+	cases := []struct {
+		name  string
+		param *ir.Param
+		body  func(m *irtest.Builder) *ir.ID
+		line  int32
+	}{
+		{"a higher kind", &ir.Param{Name: "f", Kind: arrow, Position: at}, nil, 4},
+		{"a parenthesized higher kind", &ir.Param{Name: "f", Kind: &ir.Kind{Paren: arrow}, Position: at}, nil, 4},
+		{"a unit", &ir.Param{Name: "u", Kind: atom(ir.KindAtom_KIND_ATOM_UNIT), Position: at}, nil, 4},
+		{"a Go keyword", &ir.Param{Name: "range", Position: at}, nil, 4},
+		{"a predeclared type", &ir.Param{Name: "string", Position: at}, nil, 4},
+		{"a predeclared constraint", &ir.Param{Name: "any", Position: at}, nil, 4},
+		{"the time package", &ir.Param{Name: "time", Position: at}, nil, 4},
+		{"a generated declaration", &ir.Param{Name: "Note", Position: at}, nil, 4},
+		// The kind is left to inference, and only the use says it is higher.
+		{"applied to arguments", &ir.Param{Name: "f"}, func(m *irtest.Builder) *ir.ID {
+			return m.Param("f", 0, m.Named("string"))
+		}, 0},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			m := irtest.New("shop")
+			m.Own(structure("Note", nil, irtest.Field("body", m.Named("string"))))
+			body := m.Named("string")
+			if c.body != nil {
+				body = c.body(m)
+			}
+			m.Own(structure("Box", []*ir.Param{c.param}, irtest.Field("value", body)))
+
+			resp := generate(t, m)
+			onlyWarningAt(t, resp, c.line)
+			got := files(t, resp)
+			if src, ok := got["box.go"]; ok {
+				t.Errorf("a declaration taking %s was emitted:\n%s", c.name, src)
+			}
+			if _, ok := got["note.go"]; !ok {
+				t.Errorf("the rest of the model was not generated: %v", keys(got))
+			}
+		})
+	}
+}
+
+// Go needs a map key to be comparable and TDL has no way to say so, so a
+// parameter is constrained by what reaches a key.
+func TestComparableIsInferred(t *testing.T) {
+	m := irtest.New("shop")
+	m.Own(structure("Bag", irtest.Params("T"), irtest.Field("items", m.Named("Set", m.Param("T", 0)))))
+	m.Own(structure("Index", irtest.Params("K", "V"), irtest.Field("by", m.Named("Map", m.Param("K", 0), m.Param("V", 1)))))
+	m.Own(structure("Shelf", irtest.Params("T"), irtest.Field("bag", m.Named("Bag", m.Param("T", 0)))))
+	m.Own(structure("Pair", irtest.Params("X"), irtest.Field("x", m.Param("X", 0))))
+	m.Own(structure("Pairs", irtest.Params("T"), irtest.Field("seen", m.Named("Set", m.Named("Pair", m.Param("T", 0))))))
+	// A pointer is comparable whatever it points at.
+	m.Own(structure("Maybe", irtest.Params("T"), irtest.Field("seen", m.Named("Set", m.Named("Option", m.Param("T", 0))))))
+	// Declared before what makes it comparable, so one pass in declaration
+	// order is not enough. Its field is attached once Late exists.
+	early := &ir.Struct{Params: irtest.Params("T")}
+	m.Own(&ir.Decl{Meta: &ir.Meta{Name: "Early"}, Node: &ir.Decl_Structure{Structure: early}})
+	m.Own(structure("Late", irtest.Params("T"), irtest.Field("items", m.Named("Set", m.Param("T", 0)))))
+	early.Fields = []*ir.Field{irtest.Field("late", m.Named("Late", m.Param("T", 0)))}
+	m.Own(structure("Uses", nil, irtest.Field("bag", m.Named("Bag", m.Named("string")))))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	got := files(t, resp)
+	contains(t, got["bag.go"], "type Bag[T comparable] struct {", "Items map[T]struct{}")
+	contains(t, got["index.go"], "type Index[K comparable, V any] struct {")
+	contains(t, got["shelf.go"], "type Shelf[T comparable] struct {", "Bag Bag[T]")
+	contains(t, got["pair.go"], "type Pair[X any] struct {")
+	contains(t, got["pairs.go"], "type Pairs[T comparable] struct {", "Seen map[Pair[T]]struct{}")
+	contains(t, got["maybe.go"], "type Maybe[T any] struct {", "Seen map[*T]struct{}")
+	contains(t, got["early.go"], "type Early[T comparable] struct {")
+	contains(t, got["uses.go"], "Bag Bag[string]")
+}
+
+// An argument Go cannot compare, given to a parameter that has to be, is a
+// warning at the use, and the declaration using it is skipped.
+func TestComparableArgumentsAtUse(t *testing.T) {
+	m := irtest.New("shop")
+	m.Own(structure("Bag", irtest.Params("T"), irtest.Field("items", m.Named("Set", m.Param("T", 0)))))
+	m.Own(structure("Path", nil, irtest.Field("segments", m.Named("List", m.Named("string")))))
+	m.Own(structure("Blobs", nil, irtest.Field("bag", m.Named("Bag", m.Named("bytes")))))
+	m.Own(structure("Paths", nil, irtest.Field("bag", m.Named("Bag", m.Named("Path")))))
+	m.Own(structure("Names", nil, irtest.Field("bag", m.Named("Bag", m.Named("string")))))
+
+	resp := generate(t, m)
+	if len(resp.GetDiagnostics()) != 2 {
+		t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	got := files(t, resp)
+	for _, skipped := range []string{"blobs.go", "paths.go"} {
+		if src, ok := got[skipped]; ok {
+			t.Errorf("%s gives an incomparable argument and was emitted:\n%s", skipped, src)
+		}
+	}
+	contains(t, got["names.go"], "Bag Bag[string]")
+}
+
+// A generic entity's key is generic too, and a key field has to be
+// comparable, so the parameter it names is.
+func TestGenericEntityKey(t *testing.T) {
+	m := irtest.New("shop")
+	entry := keyed("Entry", []*ir.Field{
+		irtest.Field("id", m.Param("T", 0)),
+		irtest.Field("note", m.Named("string")),
+	}, irtest.Name("id"))
+	entry.GetStructure().Params = irtest.Params("T")
+	m.Own(entry)
+
+	item := keyed("LineItem", []*ir.Field{
+		irtest.Field("order", m.Param("T", 0)),
+		irtest.Field("sku", m.Named("string")),
+	}, irtest.Name("order"), irtest.Name("sku"))
+	item.GetStructure().Params = irtest.Params("T")
+	m.Own(item)
+
+	// A parameter spelled like the receiver would be redeclared by it.
+	edge := keyed("Edge", []*ir.Field{irtest.Field("id", m.Param("e", 0))}, irtest.Name("id"))
+	edge.GetStructure().Params = irtest.Params("e")
+	m.Own(edge)
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	got := files(t, resp)
+	contains(t, got["entry.go"],
+		"type Entry[T comparable] struct {",
+		"func (e Entry[T]) Key() T {",
+		"return e.Id",
+	)
+	contains(t, got["line_item.go"],
+		"type LineItemKey[T comparable] struct {",
+		"func (l LineItem[T]) Key() LineItemKey[T] {",
+		"return LineItemKey[T]{Order: l.Order, Sku: l.Sku}",
+	)
+	contains(t, got["edge.go"], "func (r Edge[e]) Key() e {", "return r.Id")
+}
+
+// A class is a contract, and conformance to it is declared, so it is an
+// interface only the declarations that said so implement: its method is
+// unexported, which seals it to the package.
+func TestClassIsAMarkerInterface(t *testing.T) {
+	m := irtest.New("shop")
+	m.Class("Timestamped")
+	m.Class("Auditable", "Timestamped")
+	m.Own(structure("Order", nil, irtest.Field("id", m.Named("string"))))
+	m.Satisfies("Timestamped", "Order")
+	m.Satisfies("Auditable", "Order")
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	got := files(t, resp)
+	contains(t, got["timestamped.go"], "type Timestamped interface { isTimestamped() }")
+	contains(t, got["auditable.go"], "type Auditable interface { Timestamped isAuditable() }")
+	contains(t, got["order.go"], "func (Order) isTimestamped() {}", "func (Order) isAuditable() {}")
+}
+
+func TestMarkersOnEveryShape(t *testing.T) {
+	m := irtest.New("shop")
+	m.Class("Auditable")
+	m.Own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Status"},
+		Node: &ir.Decl_Enumeration{Enumeration: &ir.Enum{
+			Variants: []*ir.Variant{{Meta: &ir.Meta{Name: "Active"}}},
+		}},
+	})
+	m.Own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Payment"},
+		Node: &ir.Decl_Enumeration{Enumeration: &ir.Enum{
+			Variants: []*ir.Variant{
+				{Meta: &ir.Meta{Name: "Cash"}},
+				{Meta: &ir.Meta{Name: "Card"}, Fields: []*ir.Field{irtest.Field("last4", m.Named("string"))}},
+			},
+		}},
+	})
+	m.Own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Sku"},
+		Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{Base: m.Named("string")}},
+	})
+	m.Own(structure("Page", irtest.Params("T"), irtest.Field("items", m.Named("List", m.Param("T", 0)))))
+	m.Satisfies("Auditable", "Status", "Payment", "Sku", "Page")
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	got := files(t, resp)
+	contains(t, got["status.go"], "func (Status) isAuditable() {}")
+	// A sealed enum is an interface, which cannot carry a method, so it
+	// embeds the class and every variant carries the marker.
+	contains(t, got["payment.go"],
+		"type Payment interface { Auditable isPayment() }",
+		"func (PaymentCash) isAuditable() {}",
+		"func (PaymentCard) isAuditable() {}",
+	)
+	contains(t, got["sku.go"], "func (Sku) isAuditable() {}")
+	contains(t, got["page.go"], "func (Page[T]) isAuditable() {}")
+}
+
+// A `requires` clause is a Go constraint, since the class it names is an
+// interface, and a parameter that also has to be comparable says both.
+func TestRequiresBecomesAConstraint(t *testing.T) {
+	m := irtest.New("shop")
+	m.Class("Timestamped")
+	m.Class("Auditable", "Timestamped")
+	m.Own(structure("Order", nil, irtest.Field("id", m.Named("string"))))
+	m.Satisfies("Timestamped", "Order")
+	m.Satisfies("Auditable", "Order")
+
+	envelope := structure("Envelope", irtest.Params("T"), irtest.Field("body", m.Param("T", 0)))
+	envelope.GetStructure().Constraints = []*ir.ClassRef{m.Requires("Auditable", 0, m.Param("T", 0))}
+	m.Own(envelope)
+	stamped := structure("Stamped", irtest.Params("T"), irtest.Field("body", m.Param("T", 0)))
+	stamped.GetStructure().Constraints = []*ir.ClassRef{m.Requires("Timestamped", 0, m.Param("T", 0))}
+	m.Own(stamped)
+	tracked := structure("Tracked", irtest.Params("T"), irtest.Field("seen", m.Named("Set", m.Param("T", 0))))
+	tracked.GetStructure().Constraints = []*ir.ClassRef{m.Requires("Auditable", 0, m.Param("T", 0))}
+	m.Own(tracked)
+	// Auditable requires Timestamped, so a parameter that is Auditable
+	// satisfies a constraint naming either.
+	forward := structure("Forward", irtest.Params("T"),
+		irtest.Field("envelope", m.Named("Envelope", m.Param("T", 0))),
+		irtest.Field("stamped", m.Named("Stamped", m.Param("T", 0))),
+	)
+	forward.GetStructure().Constraints = []*ir.ClassRef{m.Requires("Auditable", 0, m.Param("T", 0))}
+	m.Own(forward)
+	m.Own(structure("Uses", nil,
+		irtest.Field("envelope", m.Named("Envelope", m.Named("Order"))),
+		irtest.Field("stamped", m.Named("Stamped", m.Named("Order"))),
+		irtest.Field("tracked", m.Named("Tracked", m.Named("Order"))),
+	))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	got := files(t, resp)
+	contains(t, got["envelope.go"], "type Envelope[T Auditable] struct {")
+	contains(t, got["stamped.go"], "type Stamped[T Timestamped] struct {")
+	// gofmt spreads an interface of several elements over lines.
+	contains(t, got["tracked.go"], "type Tracked[T interface { comparable Auditable }] struct {")
+	contains(t, got["forward.go"], "type Forward[T Auditable] struct {")
+	contains(t, got["uses.go"], "Envelope Envelope[Order]", "Tracked Tracked[Order]")
+}
+
+// The compiler does not check a constraint whose argument is a parameter,
+// and Go does, so the backend checks every use and skips what Go would
+// refuse.
+func TestConstraintViolatedAtUse(t *testing.T) {
+	m := irtest.New("shop")
+	m.Class("Auditable")
+	m.Own(structure("Order", nil, irtest.Field("id", m.Named("string"))))
+	m.Satisfies("Auditable", "Order")
+	envelope := structure("Envelope", irtest.Params("T"), irtest.Field("body", m.Param("T", 0)))
+	envelope.GetStructure().Constraints = []*ir.ClassRef{m.Requires("Auditable", 0, m.Param("T", 0))}
+	m.Own(envelope)
+
+	m.Own(structure("Strings", nil, irtest.Field("envelope", m.Named("Envelope", m.Named("string")))))
+	m.Own(structure("Outer", irtest.Params("T"), irtest.Field("envelope", m.Named("Envelope", m.Param("T", 0)))))
+	m.Own(structure("Good", nil, irtest.Field("envelope", m.Named("Envelope", m.Named("Order")))))
+
+	resp := generate(t, m)
+	if len(resp.GetDiagnostics()) != 2 {
+		t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	got := files(t, resp)
+	for _, skipped := range []string{"strings.go", "outer.go"} {
+		if src, ok := got[skipped]; ok {
+			t.Errorf("%s breaks a constraint and was emitted:\n%s", skipped, src)
+		}
+	}
+	contains(t, got["good.go"], "Envelope Envelope[Order]")
+}
+
+// What Go cannot express about a class is a warning where it was written,
+// and the rest is generated without it.
+func TestClassesGoCannotExpress(t *testing.T) {
+	at := &ir.Position{Filename: irtest.OwnFile, Line: 4}
+	instance := func(m *irtest.Builder, arg *ir.ID) *ir.Instance {
+		return &ir.Instance{
+			Meta:  &ir.Meta{Position: at},
+			Class: &ir.ClassRef{Class: m.Ref("Auditable"), Args: []*ir.ID{arg}},
+		}
+	}
+
+	cases := []struct {
+		name string
+		// build returns the file expected, and what must not be in it.
+		build func(m *irtest.Builder) (file, absent string)
+	}{
+		{"a class taking parameters", func(m *irtest.Builder) (string, string) {
+			d := m.Class("Projection")
+			d.GetMeta().Position = at
+			d.GetClass().Params = irtest.Params("from", "to")
+			return "", "projection.go"
+		}},
+		{"a class with an associated type", func(m *irtest.Builder) (string, string) {
+			d := m.Class("Paged")
+			d.GetMeta().Position = at
+			d.GetClass().AssocTypes = []*ir.AssocType{{Meta: &ir.Meta{Name: "Cursor"}}}
+			return "paged.go", ""
+		}},
+		{"a conditional instance", func(m *irtest.Builder) (string, string) {
+			m.Class("Auditable")
+			m.Own(structure("Page", irtest.Params("T"), irtest.Field("items", m.Named("List", m.Param("T", 0)))))
+			inst := instance(m, m.Named("Page", m.Param("T", 0)))
+			inst.Params = irtest.Params("T")
+			inst.Requires = []*ir.ClassRef{{Class: m.Ref("Auditable"), Args: []*ir.ID{m.Param("T", 0)}}}
+			m.Model.Instances = append(m.Model.Instances, inst)
+			return "page.go", "isAuditable"
+		}},
+		{"an instance for a prelude type", func(m *irtest.Builder) (string, string) {
+			m.Class("Auditable")
+			m.Model.Instances = append(m.Model.Instances, instance(m, m.Named("string")))
+			return "auditable.go", "func (string)"
+		}},
+		{"an instance for a type in another package", func(m *irtest.Builder) (string, string) {
+			m.Class("Auditable")
+			m.Model.Instances = append(m.Model.Instances, instance(m, m.Extern("acme.Money")))
+			return "auditable.go", "Money"
+		}},
+		{"a newtype over a pointer", func(m *irtest.Builder) (string, string) {
+			m.Class("Auditable")
+			m.Own(&ir.Decl{
+				Meta: &ir.Meta{Name: "Maybe", Position: at},
+				Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{Base: m.Named("Option", m.Named("string"))}},
+			})
+			m.Satisfies("Auditable", "Maybe")
+			return "maybe.go", "isAuditable"
+		}},
+		{"a newtype over a sealed enum", func(m *irtest.Builder) (string, string) {
+			m.Class("Auditable")
+			m.Own(&ir.Decl{
+				Meta: &ir.Meta{Name: "Payment"},
+				Node: &ir.Decl_Enumeration{Enumeration: &ir.Enum{
+					Variants: []*ir.Variant{{Meta: &ir.Meta{Name: "Card"}, Fields: []*ir.Field{irtest.Field("last4", m.Named("string"))}}},
+				}},
+			})
+			m.Own(&ir.Decl{
+				Meta: &ir.Meta{Name: "Tender", Position: at},
+				Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{Base: m.Named("Payment")}},
+			})
+			m.Satisfies("Auditable", "Tender")
+			return "tender.go", "isAuditable"
+		}},
+		{"a field named like the marker", func(m *irtest.Builder) (string, string) {
+			m.Class("Auditable")
+			note := structure("Note", nil, &ir.Field{
+				Meta:       &ir.Meta{Name: "audit"},
+				Type:       m.Named("string"),
+				Directives: []*ir.Directive{{Name: "name", Target: "go", Args: []*ir.Literal{irtest.Text("isAuditable")}}},
+			})
+			note.GetMeta().Position = at
+			m.Own(note)
+			m.Satisfies("Auditable", "Note")
+			return "note.go", "func (Note)"
+		}},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			m := irtest.New("shop")
+			file, absent := c.build(m)
+
+			resp := generate(t, m)
+			onlyWarningAt(t, resp, 4)
+			got := files(t, resp)
+			if file != "" {
+				src, ok := got[file]
+				if !ok {
+					t.Fatalf("no %s in %v", file, keys(got))
+				}
+				if absent != "" && strings.Contains(src, absent) {
+					t.Errorf("%s holds %q:\n%s", file, absent, src)
+				}
+			} else if _, ok := got[absent]; ok {
+				t.Errorf("%s was emitted: %v", absent, keys(got))
+			}
+		})
+	}
+}
+
+// A `requires` clause Go cannot state is a warning at the clause, and the
+// declaration is emitted without that constraint, as it is without an
+// unenforced `where`.
+func TestUnexpressibleRequiresIsDropped(t *testing.T) {
+	cases := []struct {
+		name  string
+		ref   func(m *irtest.Builder) *ir.ClassRef
+		diags int
+	}{
+		{"a prelude class", func(m *irtest.Builder) *ir.ClassRef {
+			return m.Requires("Entity", 4, m.Param("T", 0))
+		}, 1},
+		// The class warns where it is declared, and the clause where it is
+		// written.
+		{"a class taking parameters", func(m *irtest.Builder) *ir.ClassRef {
+			d := m.Class("Projection")
+			d.GetMeta().Position = &ir.Position{Filename: irtest.OwnFile, Line: 2}
+			d.GetClass().Params = irtest.Params("from", "to")
+			return m.Requires("Projection", 4, m.Param("T", 0), m.Named("string"))
+		}, 2},
+		{"an argument that is not a parameter", func(m *irtest.Builder) *ir.ClassRef {
+			m.Class("Auditable")
+			return m.Requires("Auditable", 4, m.Named("List", m.Param("T", 0)))
+		}, 1},
+		{"a class in another package", func(m *irtest.Builder) *ir.ClassRef {
+			return &ir.ClassRef{
+				Extern:   &ir.ID{Name: "acme.Auditable"},
+				Args:     []*ir.ID{m.Param("T", 0)},
+				Position: &ir.Position{Filename: irtest.OwnFile, Line: 4},
+			}
+		}, 1},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			m := irtest.New("shop")
+			ref := c.ref(m)
+			envelope := structure("Envelope", irtest.Params("T"), irtest.Field("body", m.Param("T", 0)))
+			envelope.GetStructure().Constraints = []*ir.ClassRef{ref}
+			m.Own(envelope)
+
+			resp := generate(t, m)
+			if len(resp.GetDiagnostics()) != c.diags {
+				t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+			}
+			atClause := false
+			for _, d := range resp.GetDiagnostics() {
+				atClause = atClause || d.GetPosition().GetLine() == 4
+			}
+			if !atClause {
+				t.Errorf("no warning at the clause: %+v", resp.GetDiagnostics())
+			}
+			contains(t, files(t, resp)["envelope.go"], "type Envelope[T any] struct {")
+		})
+	}
 }

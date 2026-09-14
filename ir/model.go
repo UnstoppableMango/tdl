@@ -68,6 +68,20 @@ func (d *Decl) Params() []*Param {
 	return nil
 }
 
+// Constraints returns the `requires` clause on a declaration's type
+// parameters, or nil for a declaration that cannot carry one.
+func (d *Decl) Constraints() []*ClassRef {
+	switch {
+	case d.GetNewtype() != nil:
+		return d.GetNewtype().GetConstraints()
+	case d.GetStructure() != nil:
+		return d.GetStructure().GetConstraints()
+	case d.GetEnumeration() != nil:
+		return d.GetEnumeration().GetConstraints()
+	}
+	return nil
+}
+
 // IsDeprecated reports whether the node is marked deprecated.
 func (m *Meta) IsDeprecated() bool { return m.GetDeprecated() != nil }
 
