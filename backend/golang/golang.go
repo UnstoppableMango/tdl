@@ -94,14 +94,29 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		return g.Response(nil), nil
 	}
 
-	var files []*plugin.File
-	for _, decl := range g.Own() {
+	own := g.Own()
+	skipped := map[*ir.Decl]bool{}
+	rendered := map[*ir.Decl]*plugin.File{}
+	for _, decl := range own {
 		file, err := g.file(pkg, decl)
 		if err != nil {
 			g.Warn(err)
+			skipped[decl] = true
 			continue
 		}
 		if file != nil {
+			rendered[decl] = file
+		}
+	}
+
+	// A declaration naming a skipped one would name a type the package does
+	// not declare, so it is skipped too, and its file is dropped rather than
+	// written.
+	g.Cascade(own, skipped)
+
+	var files []*plugin.File
+	for _, decl := range own {
+		if file := rendered[decl]; file != nil && !skipped[decl] {
 			files = append(files, file)
 		}
 	}

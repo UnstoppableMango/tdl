@@ -7,6 +7,7 @@ import (
 	"go/parser"
 	"go/token"
 	"go/types"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -338,6 +339,55 @@ func TestIncomparableKeysAreUnsupported(t *testing.T) {
 				t.Errorf("a declaration with an uncompilable field was emitted:\n%s", got["index.go"])
 			}
 		})
+	}
+}
+
+// A skipped declaration is one the package does not declare, so whatever
+// names it is skipped too, however far away, rather than emitted naming an
+// undeclared type.
+func TestReferringToASkippedDeclarationSkipsItToo(t *testing.T) {
+	m := irtest.New("shop")
+	m.Own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Index", Position: &ir.Position{Filename: irtest.OwnFile, Line: 3}},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{
+			Fields: []*ir.Field{irtest.Field("by", m.Named("Set", m.Named("bytes")))},
+		}},
+	})
+	// Declared before what it names, so a single pass in declaration order
+	// would have rendered it before learning its field is skipped. Its field
+	// is attached once Top exists, since a type reference is made by name.
+	outer := &ir.Struct{}
+	m.Own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Outer", Position: &ir.Position{Filename: irtest.OwnFile, Line: 5}},
+		Node: &ir.Decl_Structure{Structure: outer},
+	})
+	m.Own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Top", Position: &ir.Position{Filename: irtest.OwnFile, Line: 7}},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{
+			Fields: []*ir.Field{irtest.Field("index", m.Named("Index"))},
+		}},
+	})
+	outer.Fields = []*ir.Field{irtest.Field("top", m.Named("Option", m.Named("Top")))}
+	m.Own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Note"},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{
+			Fields: []*ir.Field{irtest.Field("body", m.Named("string"))},
+		}},
+	})
+
+	resp := generate(t, m)
+	if len(resp.GetDiagnostics()) != 3 {
+		t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	for _, d := range resp.GetDiagnostics() {
+		if d.GetSeverity() != plugin.Severity_SEVERITY_WARNING {
+			t.Errorf("severity = %v", d.GetSeverity())
+		}
+	}
+
+	got := files(t, resp)
+	if want := []string{"note.go"}; !slices.Equal(keys(got), want) {
+		t.Errorf("files = %v, want %v", keys(got), want)
 	}
 }
 
