@@ -185,7 +185,8 @@ The backend reports what it cannot handle rather than emitting something plausib
 A type parameter, a unit-typed field, a class declaration, an extern, and a set element or map key Go cannot compare each produce a warning with the node's position, and the declaration reaching one is skipped.
 A `where` constraint warns and the declaration is still emitted, since the constraint is what is missing and not the type.
 A `key` the backend cannot generate warns the same way and the entity is emitted without it: a key on a value or a mixin, an argument that is not a name, a field named twice or not at all, a field Go cannot compare, a field whose Go name is `Key`, and a key type colliding with a declaration of the same name.
-Each is a phase in [go-backend-plan.md](go-backend-plan.md), and each is a set of decisions rather than an oversight.
+Everything the first two sentences name has a phase or a deferred decision in [go-backend-plan.md](go-backend-plan.md), and each is a set of decisions rather than an oversight.
+A key warning is a mistake in the model, except a field Go cannot compare, which is the comparability decision again.
 
 A warning does not stop a run, so a model that is mostly generatable generates.
 An error stops it, and the two things that earn one are output `go/format` refuses to parse and a package clause Go will not accept, both of which are the package rather than a part of it.

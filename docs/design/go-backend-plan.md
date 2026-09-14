@@ -76,7 +76,10 @@ Type parameters reach the backend unmonomorphized, which `ir` did on purpose so 
 A `Param` becomes a Go type parameter, and a `ParamRef` in a field type becomes a use of it.
 The open question is constraints: a `requires` clause names a TDL class, and a class is not a Go interface.
 
-Done when a parameterized declaration generates a Go generic type that compiles, and when a `requires` clause either generates a constraint or produces a warning saying why it cannot.
+A class declaration is the same question from the other side, since whatever a `requires` clause generates is what the class it names has to become.
+A class with fields, like `Auditable`, could become an interface of getters, and a multi-parameter class like `Projection<from, to>` has no Go shape at all, because its content is a relationship between types.
+
+Done when a parameterized declaration generates a Go generic type that compiles, and when a `requires` clause and the class it names either generate a constraint or produce a warning saying why they cannot.
 
 ## Phase 4: validation
 
@@ -95,7 +98,20 @@ This is what makes the `decimal`, `uuid`, and `date` placeholders survivable, an
 
 Done when a model naming a foreign type generates a package that imports it and does not redeclare it.
 
-## Phase 6: conformance
+## Phase 6: units
+
+A unit reaches the backend reduced to base dimensions, and Go has nothing that carries one.
+
+The decision is whether a quantity becomes a named Go type, which keeps a `decimal<kg>` from being assigned to a `decimal<N>`, or whether the unit is dropped with a warning at the field.
+A named type needs a name, and a unit written as an expression rather than declared has none: `Unit.decl` is unset for exactly that case.
+This follows phase 5 because a named quantity's underlying type is whatever `foreign` maps `decimal` to.
+
+Either way the declaration is emitted, as it is for a `where` constraint, since the unit is what is missing and not the type.
+That replaces phase 1's skip, and the Diagnostics section of [go-backend.md](go-backend.md#diagnostics) changes with it.
+
+Done when a unit-typed field either generates a type that keeps its unit or produces a warning saying the unit was dropped, and the declaration holding it is emitted in both cases.
+
+## Phase 7: conformance
 
 A corpus for generated output, in the shape the parser and lowering corpora already have: a `.tdl` file, an expected tree of Go files, and a check that runs `go build` over the result.
 
@@ -107,9 +123,10 @@ Done when a corpus case is a directory and adding one requires no code.
 
 - **Serialization.** No `encoding/json` opinion is generated.
   `tag` is how a consumer states one, and a backend that emitted tags by default would be choosing a wire format on their behalf.
-- **`Set` as a map.** `map[T]struct{}` is what phase 1 emits.
-  A generated set type with methods is nicer to use and is a bigger commitment than a collection mapping should make on its own.
-  It would also lift the comparability restriction, which is the strongest argument for it.
+- **Comparability.** A set element, a map key, and a key field must each be a comparable Go type, and one that is not is a warning.
+  `map[T]struct{}` is what phase 1 emits for `Set`, and a generated set type with methods would lift the restriction for sets, which is the strongest argument for it.
+  It is nicer to use and a bigger commitment than a collection mapping should make on its own.
+  `Map` keys and key fields stay restricted either way, since a generated set type does not change what `map[K]V` or `map[LineItemKey]LineItem` accepts.
 - **Doc comment rendering.** `///` comments become Go doc comments verbatim.
   Whether a name is prefixed to satisfy Go's "comment starts with the identifier" convention is left alone, because rewriting a user's prose is worse than a vet warning.
 - **One file per declaration.** Settled in [go-backend.md](go-backend.md), but the alternative of one file per package is the thing to revisit if a model with many small declarations makes the tree unreadable.
