@@ -19,5 +19,6 @@ buildGoApplication {
     "cmd/tdl-gen-protobuf"
     "cmd/tdl-gen-smithy"
     "cmd/tdl-gen-thrift"
+    "cmd/tdl-gen-typescript"
   ];
 }

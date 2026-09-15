@@ -22,6 +22,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/protobuf"
 	"github.com/unstoppablemango/tdl/backend/smithy"
 	"github.com/unstoppablemango/tdl/backend/thrift"
+	"github.com/unstoppablemango/tdl/backend/typescript"
 	"github.com/unstoppablemango/tdl/internal/gen"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -46,6 +47,7 @@ var shipped = []struct {
 	{backend: protobuf.Backend{}, model: orderModel, packaged: true, valid: compileProto},
 	{backend: smithy.Backend{}, model: orderModel, packaged: true},
 	{backend: thrift.Backend{}, model: orderModel, packaged: true, valid: checkThrift},
+	{backend: typescript.Backend{}, model: orderModel, packaged: true},
 }
 
 // The protocol's one real claim: a compiled-in backend and the same
