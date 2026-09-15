@@ -81,3 +81,7 @@ target smithy for smoke {
 target graphql for smoke {
   out("graphql")
 }
+
+target typescript for smoke {
+  out("typescript")
+}
