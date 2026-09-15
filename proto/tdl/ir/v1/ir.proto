@@ -356,6 +356,7 @@ message Enum {
 message Variant {
   Meta meta = 1;
   repeated Field fields = 2;
+  repeated Directive directives = 3; // resolved from every target block, tagged with the block
 }
 
 // Field is a named, typed member.

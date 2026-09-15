@@ -145,3 +145,30 @@ func TestFieldDirectivesAreChecked(t *testing.T) {
 		t.Errorf("a field's directive was not checked: %v", problems)
 	}
 }
+
+// A variant and a variant's field are addressable from a target block, so
+// what lands on them is checked like any other directive.
+func TestVariantDirectivesAreChecked(t *testing.T) {
+	model := &ir.Model{Decls: []*ir.Decl{{
+		Meta: &ir.Meta{Name: "Payment"},
+		Node: &ir.Decl_Enumeration{Enumeration: &ir.Enum{Variants: []*ir.Variant{{
+			Meta:       &ir.Meta{Name: "Card"},
+			Directives: []*ir.Directive{{Name: "tag", Target: "t"}},
+			Fields: []*ir.Field{{
+				Meta:       &ir.Meta{Name: "last4"},
+				Directives: []*ir.Directive{{Name: "slice", Target: "t", Args: []*ir.Literal{str("x"), str("y")}}},
+			}},
+		}}}},
+	}}}
+
+	problems := gen.CheckDirectives("t", model, spec())
+	if len(problems) != 2 {
+		t.Fatalf("problems = %v", problems)
+	}
+	if !strings.Contains(problems[0].GetMessage(), "at least 1") {
+		t.Errorf("variant directive: %v", problems[0])
+	}
+	if !strings.Contains(problems[1].GetMessage(), "at most 0") {
+		t.Errorf("variant field directive: %v", problems[1])
+	}
+}
