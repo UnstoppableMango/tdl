@@ -24,7 +24,7 @@ Nothing in [grammar.ebnf](docs/grammar.ebnf) is missing.
 The support matrix below says what each construct reaches.
 Units, and merging a dependency's target blocks, are the two pieces still outstanding.
 
-**The back end generates Go, protobuf, Smithy, and Thrift.** `tdl gen` resolves a target's backend to a built-in or to `tdl-gen-<name>` on PATH, sends it the resolved model, and writes back the files it returns.
+**The back end generates Go, GraphQL, protobuf, Smithy, and Thrift.** `tdl gen` resolves a target's backend to a built-in or to `tdl-gen-<name>` on PATH, sends it the resolved model, and writes back the files it returns.
 The backends table below says what each one covers.
 
 The design is settled and written down:
@@ -268,6 +268,7 @@ Backends:
 | Backend | Kind | Status |
 | --- | --- | --- |
 | `go` | Built in, also shipped as `tdl-gen-go` | Structs, entity keys, both enum shapes, newtypes, and the primitive and collection mapping |
+| `graphql` | Built in, also shipped as `tdl-gen-graphql` | Output types, both enum shapes, custom scalars, the primitive and list mapping; maps are unsupported |
 | `protobuf` | Built in, also shipped as `tdl-gen-protobuf` | Structs, both enum shapes, newtypes, the primitive and collection mapping, and `number` pins |
 | `smithy` | Built in, also shipped as `tdl-gen-smithy` | Structures, both enum shapes, newtypes as named shapes, the primitive and collection mapping |
 | `thrift` | Built in, also shipped as `tdl-gen-thrift` | Structs, both enum shapes, newtypes as typedefs, the primitive and collection mapping, and `number` pins |

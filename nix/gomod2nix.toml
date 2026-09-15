@@ -1,6 +1,10 @@
 schema = 3
 
 [mod]
+  [mod.'github.com/agnivade/levenshtein']
+    version = 'v1.2.1'
+    hash = 'sha256-3XnCzf7tFgEE0MmjxvjfWaw6qK6mKLabFZ3c23JIH9Y='
+
   [mod.'github.com/bufbuild/protocompile']
     version = 'v0.14.1'
     hash = 'sha256-5ah3BKPQKmudFLpYzzVG2Wu9Z65ZZZNfMxr3wGtE+Eg='
@@ -28,6 +32,10 @@ schema = 3
   [mod.'github.com/spf13/pflag']
     version = 'v1.0.9'
     hash = 'sha256-YAjyYpq5BXCosVJtvYLWFG1t4gma2ylzc7ILLoj/hD8='
+
+  [mod.'github.com/vektah/gqlparser/v2']
+    version = 'v2.5.37'
+    hash = 'sha256-mH2WN/2OjnNb+w1eufpcZ+xBAn5oR8KR73yzBAV5s+s='
 
   [mod.'golang.org/x/exp']
     version = 'v0.0.0-20260908205506-85c1c2202aba'

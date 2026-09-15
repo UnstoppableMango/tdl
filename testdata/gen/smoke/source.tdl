@@ -21,7 +21,6 @@ type Order: Entity {
   include Timestamps
   items: [LineItem]
   tags: Tags
-  totals: {string -> decimal}
   note: string?
   shipOn: date | null
   took: duration
@@ -50,6 +49,10 @@ enum Payment {
   Cash
 }
 
+type Totals {
+  byCurrency: {string -> decimal}
+}
+
 type Counts {
   byStatus: {Status -> int}
 }
@@ -73,4 +76,8 @@ target thrift for smoke {
 
 target smithy for smoke {
   out("smithy")
+}
+
+target graphql for smoke {
+  out("graphql")
 }

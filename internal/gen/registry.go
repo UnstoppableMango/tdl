@@ -12,6 +12,7 @@ import (
 
 	"github.com/unstoppablemango/tdl/backend/debug"
 	"github.com/unstoppablemango/tdl/backend/golang"
+	"github.com/unstoppablemango/tdl/backend/graphql"
 	"github.com/unstoppablemango/tdl/backend/protobuf"
 	"github.com/unstoppablemango/tdl/backend/smithy"
 	"github.com/unstoppablemango/tdl/backend/thrift"
@@ -25,6 +26,7 @@ import (
 var builtin = map[string]plugin.Backend{
 	debug.Name:    debug.Backend{},
 	golang.Name:   golang.Backend{},
+	graphql.Name:  graphql.Backend{},
 	protobuf.Name: protobuf.Backend{},
 	smithy.Name:   smithy.Backend{},
 	thrift.Name:   thrift.Backend{},
