@@ -103,6 +103,23 @@ in
             touch $out
           '';
 
+      # Holds the typescript backend to declarations tsc accepts under
+      # --strict, for the same reason gen-smithy exists.
+      checks.gen-typescript =
+        pkgs.runCommand "tdl-gen-typescript"
+          {
+            nativeBuildInputs = [
+              pkgs.tdl
+              pkgs.typescript
+            ];
+          }
+          ''
+            cp ${../testdata/gen/smoke/source.tdl} source.tdl
+            tdl gen --target typescript -o out source.tdl
+            tsc --noEmit --strict out/*.ts
+            touch $out
+          '';
+
       # Holds the flake-parts module to what it promises, by evaluating a
       # consumer flake that imports it and building what came out. The
       # fixture is a conformance case because the corpus is already held to

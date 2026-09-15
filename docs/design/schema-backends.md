@@ -7,8 +7,7 @@ TypeScript is on the list because what it emits here is a description of JSON on
 
 They cover the core type definitions: structs in all three kinds, both enum shapes, newtypes, aliases, the primitives, the collections, and optionality.
 
-`protobuf`, `thrift`, `smithy`, and `graphql` are implemented, each in `backend/<name>`.
-`typescript` follows the same mapping and is not written.
+Each is implemented in `backend/<name>`.
 [go-backend.md](go-backend.md) is the model for each decision below, and where a target has no reason to differ from Go it does not.
 
 ## What is shared
