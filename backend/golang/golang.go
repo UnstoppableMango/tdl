@@ -20,7 +20,6 @@ package golang
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"go/format"
 	"go/token"
@@ -29,9 +28,9 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
-	"github.com/unstoppablemango/tdl/prelude"
 )
 
 // Name is what this backend is called, in a target block and as tdl-gen-go
@@ -70,9 +69,7 @@ func (Backend) Describe() plugin.Description {
 // generator carries what rendering one request needs. A fresh one is made
 // per request, so a reused connection shares nothing between them.
 type generator struct {
-	model  *ir.Model
-	target string
-	diags  []*plugin.Diagnostic
+	*emit.Session
 
 	// needTime is reset before each file, since imports are per file.
 	needTime bool
@@ -80,11 +77,11 @@ type generator struct {
 
 // Generate returns one Go file per declaration the model owns.
 func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Response, error) {
-	g := &generator{model: req.GetModel(), target: req.GetTarget()}
+	g := &generator{Session: emit.NewSession(req, "Go")}
 
-	pkg := packageClause(g.model.GetPackage())
+	pkg := packageClause(g.Model.GetPackage())
 	var pkgPos *ir.Position
-	if d, ok := g.blockDirective("package"); ok {
+	if d, ok := g.Block("package"); ok {
 		pkg, pkgPos = packageClause(d.GetArgs()[0].GetText()), d.GetPosition()
 	}
 
@@ -93,19 +90,15 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	// output. It is an error rather than a warning for that reason: the
 	// host writes nothing and says why.
 	if token.IsKeyword(pkg) {
-		g.diags = append(g.diags, &plugin.Diagnostic{
-			Severity: plugin.Severity_SEVERITY_ERROR,
-			Message:  fmt.Sprintf("%q is a Go keyword and cannot be a package name", pkg),
-			Position: pkgPos,
-		})
-		return &plugin.Response{Diagnostics: g.diags}, nil
+		g.Error(pkgPos, "%q is a Go keyword and cannot be a package name", pkg)
+		return g.Response(nil), nil
 	}
 
 	var files []*plugin.File
-	for _, decl := range g.own() {
+	for _, decl := range g.Own() {
 		file, err := g.file(pkg, decl)
 		if err != nil {
-			g.warn(err)
+			g.Warn(err)
 			continue
 		}
 		if file != nil {
@@ -113,7 +106,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		}
 	}
 
-	return &plugin.Response{Files: files, Diagnostics: g.diags}, nil
+	return g.Response(files), nil
 }
 
 // file renders one declaration, or nil for one that generates nothing.
@@ -139,10 +132,10 @@ func (g *generator) file(pkg string, decl *ir.Decl) (*plugin.File, error) {
 		// nothing to declare for it.
 		return nil, nil
 	case decl.GetClass() != nil:
-		return nil, unsupported(decl.GetMeta().GetPosition(),
+		return nil, emit.Unsupported(decl.GetMeta().GetPosition(),
 			"%s is a class, and classes are not generated yet", decl.GetMeta().GetName())
 	case decl.GetUnit() != nil:
-		return nil, unsupported(decl.GetMeta().GetPosition(),
+		return nil, emit.Unsupported(decl.GetMeta().GetPosition(),
 			"%s is a unit, and units are not generated yet", decl.GetMeta().GetName())
 	case decl.GetPrimitive() != nil:
 		// A model declaring its own primitive is naming an opaque root
@@ -167,11 +160,7 @@ func (g *generator) file(pkg string, decl *ir.Decl) (*plugin.File, error) {
 		// Malformed output the consumer can read beats no output, and a
 		// generator that cannot produce parseable Go has a bug that should
 		// be visible rather than swallowed.
-		g.diags = append(g.diags, &plugin.Diagnostic{
-			Severity: plugin.Severity_SEVERITY_ERROR,
-			Message:  fmt.Sprintf("%s is not parseable Go: %v", path, err),
-			Position: decl.GetMeta().GetPosition(),
-		})
+		g.Error(decl.GetMeta().GetPosition(), "%s is not parseable Go: %v", path, err)
 		src = []byte(b.String())
 	}
 
@@ -186,7 +175,7 @@ func (g *generator) file(pkg string, decl *ir.Decl) (*plugin.File, error) {
 // fields identifying the entity.
 func (g *generator) structure(b *strings.Builder, decl *ir.Decl) error {
 	if len(decl.Params()) > 0 {
-		return unsupported(decl.GetMeta().GetPosition(),
+		return emit.Unsupported(decl.GetMeta().GetPosition(),
 			"%s is parameterized, and generics are not generated yet", decl.GetMeta().GetName())
 	}
 
@@ -198,9 +187,9 @@ func (g *generator) structure(b *strings.Builder, decl *ir.Decl) error {
 	}
 	b.WriteString("}\n")
 
-	if d, ok := g.find(decl.GetDirectives(), "key"); ok {
+	if d, ok := g.Find(decl.GetDirectives(), "key"); ok {
 		if err := g.key(b, decl, name, d); err != nil {
-			g.warn(err)
+			g.Warn(err)
 		}
 	}
 	return nil
@@ -260,41 +249,41 @@ func (g *generator) keyFields(decl *ir.Decl, name string, d *ir.Directive) ([]*i
 	}
 
 	if name == "" {
-		return nil, unsupported(pos, "%s is named \"\" in this target, and a Key method needs a receiver named after it", decl.GetMeta().GetName())
+		return nil, emit.Unsupported(pos, "%s is named \"\" in this target, and a Key method needs a receiver named after it", decl.GetMeta().GetName())
 	}
 	if decl.GetStructure().GetKind() != ir.StructKind_STRUCT_KIND_ENTITY {
-		return nil, unsupported(pos, "%s has a key, and only an entity is identified by one", name)
+		return nil, emit.Unsupported(pos, "%s has a key, and only an entity is identified by one", name)
 	}
 	for _, f := range decl.Fields() {
 		if g.fieldName(f) == "Key" {
-			return nil, unsupported(pos, "%s has a field named Key, which the Key method would collide with", name)
+			return nil, emit.Unsupported(pos, "%s has a field named Key, which the Key method would collide with", name)
 		}
 	}
 
 	var fields []*ir.Field
 	for _, arg := range d.GetArgs() {
 		if arg.GetKind() != ir.LiteralKind_LITERAL_KIND_NAME {
-			return nil, unsupported(at(arg), "a key names fields, and %q is %s", arg.GetText(), ir.KindName(arg.GetKind()))
+			return nil, emit.Unsupported(at(arg), "a key names fields, and %q is %s", arg.GetText(), ir.KindName(arg.GetKind()))
 		}
 		i := slices.IndexFunc(decl.Fields(), func(f *ir.Field) bool { return f.GetMeta().GetName() == arg.GetText() })
 		if i < 0 {
-			return nil, unsupported(at(arg), "%s has no field %s to key on", name, arg.GetText())
+			return nil, emit.Unsupported(at(arg), "%s has no field %s to key on", name, arg.GetText())
 		}
 		f := decl.Fields()[i]
 		if slices.Contains(fields, f) {
-			return nil, unsupported(at(arg), "the key of %s names %s twice", name, arg.GetText())
+			return nil, emit.Unsupported(at(arg), "the key of %s names %s twice", name, arg.GetText())
 		}
 		if !g.comparable(f.GetType()) {
-			return nil, unsupported(at(arg), "a key is compared, and %s.%s is not a comparable Go type", name, arg.GetText())
+			return nil, emit.Unsupported(at(arg), "a key is compared, and %s.%s is not a comparable Go type", name, arg.GetText())
 		}
 		fields = append(fields, f)
 	}
 
 	if len(fields) > 1 {
 		keyType := name + "Key"
-		for _, other := range g.own() {
+		for _, other := range g.Own() {
 			if other != decl && g.declName(other) == keyType {
-				return nil, unsupported(pos, "the key type %s would collide with the declaration of that name", keyType)
+				return nil, emit.Unsupported(pos, "the key type %s would collide with the declaration of that name", keyType)
 			}
 		}
 	}
@@ -311,7 +300,7 @@ func (g *generator) fields(b *strings.Builder, fields []*ir.Field) error {
 
 		g.doc(b, f.GetMeta())
 		fmt.Fprintf(b, "\t%s %s", g.fieldName(f), goType)
-		if tag, ok := g.directive(f.GetDirectives(), "tag"); ok {
+		if tag, ok := g.Text(f.GetDirectives(), "tag"); ok {
 			fmt.Fprintf(b, " %s", quoteTag(tag))
 		}
 		b.WriteString("\n")
@@ -337,22 +326,14 @@ func quoteTag(tag string) string {
 // and constants cannot express a variant with fields at all.
 func (g *generator) enumeration(b *strings.Builder, decl *ir.Decl) error {
 	if len(decl.Params()) > 0 {
-		return unsupported(decl.GetMeta().GetPosition(),
+		return emit.Unsupported(decl.GetMeta().GetPosition(),
 			"%s is parameterized, and generics are not generated yet", decl.GetMeta().GetName())
 	}
 
 	name := g.declName(decl)
 	variants := decl.GetEnumeration().GetVariants()
 
-	carries := false
-	for _, v := range variants {
-		if len(v.GetFields()) > 0 {
-			carries = true
-			break
-		}
-	}
-
-	if !carries {
+	if !emit.Fielded(decl.GetEnumeration()) {
 		g.doc(b, decl.GetMeta())
 		fmt.Fprintf(b, "type %s string\n\nconst (\n", name)
 		for _, v := range variants {
@@ -398,7 +379,7 @@ func (g *generator) enumeration(b *strings.Builder, decl *ir.Decl) error {
 // and the unenforced constraint is said out loud.
 func (g *generator) newtype(b *strings.Builder, decl *ir.Decl) error {
 	if len(decl.Params()) > 0 {
-		return unsupported(decl.GetMeta().GetPosition(),
+		return emit.Unsupported(decl.GetMeta().GetPosition(),
 			"%s is parameterized, and generics are not generated yet", decl.GetMeta().GetName())
 	}
 
@@ -407,11 +388,7 @@ func (g *generator) newtype(b *strings.Builder, decl *ir.Decl) error {
 		return err
 	}
 
-	if n := len(decl.GetNewtype().GetValueConstraints()); n > 0 {
-		g.warn(unsupported(decl.GetMeta().GetPosition(),
-			"%s carries %d where constraint(s), and validation is not generated yet",
-			decl.GetMeta().GetName(), n))
-	}
+	g.WarnWhere(decl)
 
 	g.doc(b, decl.GetMeta())
 	fmt.Fprintf(b, "type %s %s\n", g.declName(decl), base)
@@ -421,14 +398,14 @@ func (g *generator) newtype(b *strings.Builder, decl *ir.Decl) error {
 // doc writes a node's documentation as Go doc comments, and its deprecation
 // as the paragraph go doc and every editor reads.
 func (g *generator) doc(b *strings.Builder, meta *ir.Meta) {
-	for _, line := range meta.GetDoc() {
-		fmt.Fprintf(b, "// %s\n", strings.TrimSpace(line))
+	lines := emit.Doc(meta)
+	for _, line := range lines {
+		fmt.Fprintf(b, "// %s\n", line)
 	}
-	if d := meta.GetDeprecated(); d != nil {
-		if len(meta.GetDoc()) > 0 {
+	if reason, ok := emit.Deprecated(meta); ok {
+		if len(lines) > 0 {
 			b.WriteString("//\n")
 		}
-		reason := d.GetReason()
 		if reason == "" {
 			reason = "this declaration is on its way out."
 		}
@@ -439,104 +416,10 @@ func (g *generator) doc(b *strings.Builder, meta *ir.Meta) {
 // declName is the Go identifier for a declaration, after a `name`
 // directive has had its say.
 func (g *generator) declName(decl *ir.Decl) string {
-	if s, ok := g.directive(decl.GetDirectives(), "name"); ok {
-		return s
-	}
-	return exported(decl.GetMeta().GetName())
+	return g.DeclName(decl, exported)
 }
 
 // fieldName is the Go identifier for a field.
 func (g *generator) fieldName(f *ir.Field) string {
-	if s, ok := g.directive(f.GetDirectives(), "name"); ok {
-		return s
-	}
-	return exported(f.GetMeta().GetName())
-}
-
-// directive returns the single string argument of a directive on a node.
-func (g *generator) directive(all []*ir.Directive, name string) (string, bool) {
-	if d, ok := g.find(all, name); ok {
-		return d.GetArgs()[0].GetText(), true
-	}
-	return "", false
-}
-
-// find returns a directive carrying at least one argument.
-//
-// A model carries directives for every target block in it, tagged with the
-// block they came from, so this filters rather than assuming what it is
-// handed is its own.
-func (g *generator) find(all []*ir.Directive, name string) (*ir.Directive, bool) {
-	for _, d := range plugin.Directives(g.target, all) {
-		if d.GetName() != name {
-			continue
-		}
-		if len(d.GetArgs()) > 0 {
-			return d, true
-		}
-	}
-	return nil, false
-}
-
-// blockDirective reads a directive written on the target block itself
-// rather than against a node in the model.
-//
-// It returns the directive rather than its argument, because a diagnostic
-// about the value wants the position it was written at.
-func (g *generator) blockDirective(name string) (*ir.Directive, bool) {
-	for _, block := range g.model.GetTargets() {
-		if block.GetMeta().GetName() != g.target {
-			continue
-		}
-		if d, ok := g.find(block.GetDirectives(), name); ok {
-			return d, true
-		}
-	}
-	return nil, false
-}
-
-// warn reports something the backend cannot handle, with a position when
-// the failure carried one.
-//
-// A backend says what it cannot do here rather than returning an error,
-// because this reaches the user with a position attached and does not stop
-// the run.
-func (g *generator) warn(err error) {
-	d := &plugin.Diagnostic{
-		Severity: plugin.Severity_SEVERITY_WARNING,
-		Message:  err.Error(),
-	}
-	var u *unsupportedError
-	if errors.As(err, &u) {
-		d.Position = u.position
-	}
-	g.diags = append(g.diags, d)
-}
-
-// own returns the declarations the model's own file declared.
-//
-// The prelude is merged into the declaration table untagged, so a model
-// whose source declares two things arrives with twenty-one declarations. A
-// backend that emits per declaration has to decide what is the user's, and
-// which file a declaration came from is what says so.
-//
-// The embedded prelude is named [prelude.Name] and nothing else is: it is
-// parsed under that name rather than read from a path, so the comparison is
-// against the whole name and not its ending. A user's `my-std.tdl`, or a
-// `std.tdl` of their own in any directory, is theirs and is generated.
-//
-// A replacement prelude passed to `sema.WithPrelude` is named by whoever
-// passed it and is not recognized here. Marking the prelude on the wire is
-// the fix, and `plugins.md` argues the opposite, that a backend should see
-// prelude declarations as declarations like any other; until that is
-// settled, a project replacing the prelude generates it too.
-func (g *generator) own() []*ir.Decl {
-	var own []*ir.Decl
-	for _, d := range g.model.GetDecls() {
-		if d.GetMeta().GetPosition().GetFilename() == prelude.Name {
-			continue
-		}
-		own = append(own, d)
-	}
-	return own
+	return g.FieldName(f, exported)
 }

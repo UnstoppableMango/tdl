@@ -1,10 +1,10 @@
 package golang
 
 import (
-	"fmt"
 	"strings"
 	"unicode"
 
+	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/ir"
 )
 
@@ -26,151 +26,69 @@ var primitives = map[string]string{
 	"decimal":  "string",
 }
 
-// unsupportedError reports a type this phase cannot express. It reaches the
-// user as a warning rather than stopping the run, so a model that is mostly
-// generatable generates.
-type unsupportedError struct {
-	what     string
-	position *ir.Position
-}
-
-func (e *unsupportedError) Error() string { return e.what }
-
-func unsupported(pos *ir.Position, format string, args ...any) error {
-	return &unsupportedError{what: fmt.Sprintf(format, args...), position: pos}
-}
-
 // goType returns the Go type expression for a type reference.
-//
-// The prelude is replaceable, so this reads the spellings lowering itself
-// knows (List, Set, Map, Option, Nullable) rather than anything about what
-// the declarations mean. A model that redeclares `primitive string` in its
-// own file reaches the same entry, because what matters is that the
-// constructor is a primitive named `string`.
 func (g *generator) goType(id *ir.ID) (string, error) {
-	t := g.model.Type(id)
-	if t == nil {
-		return "", unsupported(nil, "type %s did not resolve", id.GetName())
+	ref, err := g.Resolve(id)
+	if err != nil {
+		return "", err
 	}
-	pos := t.GetPosition()
+	return g.goRef(ref)
+}
 
-	switch {
-	case t.GetParam() != nil:
-		// Parameters survive lowering so a language with generics can emit
-		// them. Emitting them is phase 3.
-		return "", unsupported(pos, "type parameter %s: generics are not generated yet", t.GetParam().GetName())
-	case t.GetUnit() != nil:
-		return "", unsupported(pos, "a unit-typed field has no Go type yet")
-	case t.GetExtern() != nil:
-		ext := t.GetExtern()
-		return "", unsupported(pos, "%s is declared in another package, and foreign types are not generated yet", ext.GetName())
-	}
-
-	decl := g.model.Decl(t.GetCtor())
-	if decl == nil {
-		return "", unsupported(pos, "type %s did not resolve", t.GetCtor().GetName())
-	}
-	name := decl.GetMeta().GetName()
-
-	// An alias is transparent, so it is expanded rather than referenced.
-	if a := decl.GetAlias(); a != nil {
-		return g.goType(a.GetTarget())
-	}
-
-	if decl.GetPrimitive() != nil {
-		if goName, ok := primitives[name]; ok {
-			if strings.HasPrefix(goName, "time.") {
-				g.needTime = true
-			}
-			return goName, nil
+// goRef maps a resolved type reference to Go.
+func (g *generator) goRef(r *emit.Ref) (string, error) {
+	switch r.Form {
+	case emit.Prim:
+		goName, ok := primitives[r.Name]
+		if !ok {
+			return "", emit.Unsupported(r.Pos, "primitive %s has no Go type", r.Name)
 		}
-		if isCollection(name) {
-			return g.collection(name, t)
+		if strings.HasPrefix(goName, "time.") {
+			g.needTime = true
 		}
-		return "", unsupported(pos, "primitive %s has no Go type", name)
-	}
-
-	// Option and Nullable both mean "may be absent", and both become a
-	// pointer. SyntacticForm records which spelling was written and is
-	// deliberately not read: lowering is authoritative, and generating two
-	// shapes would make the sugar semantic after the compiler decided it
-	// was not.
-	if decl.GetEnumeration() != nil && (name == "Option" || name == "Nullable") && len(t.GetArgs()) == 1 {
-		inner, err := g.goType(t.GetArgs()[0])
+		return goName, nil
+	case emit.List:
+		e, err := g.goRef(r.Elem)
+		if err != nil {
+			return "", err
+		}
+		return "[]" + e, nil
+	case emit.Set:
+		// Go has no set. A slice would silently permit the duplicates the
+		// type exists to forbid, so the key set of a map is the closest
+		// thing that keeps the guarantee.
+		e, err := g.goRef(r.Elem)
+		if err != nil {
+			return "", err
+		}
+		if !g.comparable(r.Elem.ID) {
+			return "", emit.Unsupported(r.Pos,
+				"a Set becomes a Go map, and %s is not a comparable Go type", e)
+		}
+		return "map[" + e + "]struct{}", nil
+	case emit.Map:
+		k, err := g.goRef(r.Key)
+		if err != nil {
+			return "", err
+		}
+		v, err := g.goRef(r.Elem)
+		if err != nil {
+			return "", err
+		}
+		if !g.comparable(r.Key.ID) {
+			return "", emit.Unsupported(r.Pos,
+				"a Map key becomes a Go map key, and %s is not a comparable Go type", k)
+		}
+		return "map[" + k + "]" + v, nil
+	case emit.Option, emit.Nullable:
+		// Both mean "may be absent", and both become a pointer.
+		inner, err := g.goRef(r.Elem)
 		if err != nil {
 			return "", err
 		}
 		return "*" + inner, nil
 	}
-
-	if decl.GetClass() != nil {
-		return "", unsupported(pos, "%s is a class, and a class is not a Go type", name)
-	}
-	if decl.GetUnit() != nil {
-		return "", unsupported(pos, "%s is a unit, and units are not generated yet", name)
-	}
-
-	if len(t.GetArgs()) > 0 {
-		return "", unsupported(pos, "%s is applied to type arguments, and generics are not generated yet", name)
-	}
-	return g.declName(decl), nil
-}
-
-// isCollection reports whether a prelude primitive is one of the three
-// collections, which are separate from [primitives] because each reads its
-// type arguments.
-func isCollection(name string) bool {
-	return name == "List" || name == "Set" || name == "Map"
-}
-
-// collection maps the three prelude collections.
-func (g *generator) collection(name string, t *ir.Type) (string, error) {
-	args := t.GetArgs()
-	pos := t.GetPosition()
-
-	elem := func(i int) (string, error) {
-		if i >= len(args) {
-			return "", unsupported(pos, "%s is missing a type argument", name)
-		}
-		return g.goType(args[i])
-	}
-
-	switch name {
-	case "List":
-		e, err := elem(0)
-		if err != nil {
-			return "", err
-		}
-		return "[]" + e, nil
-	case "Set":
-		// Go has no set. A slice would silently permit the duplicates the
-		// type exists to forbid, so the key set of a map is the closest
-		// thing that keeps the guarantee.
-		e, err := elem(0)
-		if err != nil {
-			return "", err
-		}
-		if !g.comparable(args[0]) {
-			return "", unsupported(pos,
-				"a Set becomes a Go map, and %s is not a comparable Go type", e)
-		}
-		return "map[" + e + "]struct{}", nil
-	case "Map":
-		k, err := elem(0)
-		if err != nil {
-			return "", err
-		}
-		v, err := elem(1)
-		if err != nil {
-			return "", err
-		}
-		if !g.comparable(args[0]) {
-			return "", unsupported(pos,
-				"a Map key becomes a Go map key, and %s is not a comparable Go type", k)
-		}
-		return "map[" + k + "]" + v, nil
-	}
-	return "", unsupported(pos, "primitive %s has no Go type", name)
+	return g.declName(r.Decl), nil
 }
 
 // comparable reports whether the Go type standing for a type reference may
@@ -193,7 +111,7 @@ func (g *generator) comparable(id *ir.ID) bool {
 // comparableSeen carries the declarations on the path being walked, since a
 // struct may reach itself and a cycle is not an answer.
 func (g *generator) comparableSeen(id *ir.ID, seen map[int32]bool) bool {
-	t := g.model.Type(id)
+	t := g.Model.Type(id)
 	if t == nil {
 		return false
 	}
@@ -203,7 +121,7 @@ func (g *generator) comparableSeen(id *ir.ID, seen map[int32]bool) bool {
 		return false
 	}
 
-	decl := g.model.Decl(t.GetCtor())
+	decl := g.Model.Decl(t.GetCtor())
 	if decl == nil {
 		return false
 	}
