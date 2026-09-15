@@ -155,7 +155,11 @@ Pipeline, one package per stage:
   Smithy names every collection, so a list or map a field holds is a shape declared once and named for what it holds, such as `LineItemList` or `StringLongMap`; a reference to a prelude shape the model's own shapes shadow is written `smithy.api#`.
   A field that is not optional is `@required`, and an optional element makes a list or map `@sparse`.
   There is no Go implementation of Smithy, so its tests run `smithy validate` when the CLI is on `PATH`, and `checks.gen-smithy` generates from `testdata/gen/smoke` and validates the `.smithy` files that come out regardless.
-- `cmd/tdl-gen-debug`, `cmd/tdl-gen-go`, `cmd/tdl-gen-protobuf`, `cmd/tdl-gen-smithy`, `cmd/tdl-gen-thrift` — each backend as a plugin.
+- `backend/graphql` — the GraphQL backend: one `.graphql` schema per model, holding output types only.
+  A primitive GraphQL has no type for is a custom scalar declared only when something uses it, `int` among them because GraphQL's `Int` is 32 bits.
+  An enum where any variant carries fields is a union of one object type per variant, and a variant with no fields carries a placeholder `_: Boolean`, since a GraphQL object needs a field; a map is a warning, since GraphQL has none.
+  Its tests load every response with `vektah/gqlparser`, which validates the schema as well as parsing it.
+- `cmd/tdl-gen-debug`, `cmd/tdl-gen-go`, `cmd/tdl-gen-graphql`, `cmd/tdl-gen-protobuf`, `cmd/tdl-gen-smithy`, `cmd/tdl-gen-thrift` — each backend as a plugin.
   The same value the registry holds, served over a connection, which is what makes the two hosts testable against each other.
 - `plugin` — the wire protocol a backend speaks, generated from `proto/tdl/plugin/v1/plugin.proto`, plus the framing codec.
   Public, like `ir`.
@@ -184,7 +188,7 @@ Pipeline, one package per stage:
   Lowering knows the sugar's spellings (`List`, `Option`, ...) but nothing about what they mean, which is what makes the prelude replaceable.
 - `cmd/tdl` — main.
 
-`go`, `protobuf`, `smithy`, and `thrift` are the code-generation backends, and `docs/design/schema-backends.md` maps the schema backends, including the ones planned beside the last three.
+`go`, `graphql`, `protobuf`, `smithy`, and `thrift` are the code-generation backends, and `docs/design/schema-backends.md` maps the schema backends, including `typescript`, which is planned beside them.
 `testdata/gen/smoke/source.tdl` is one file exercising the whole mapping, with a target block per schema backend; it is stored in canonical form, and the nix checks generate from it and hand the output to each language's own tool.
 `docs/design/plugins.md` describes the protocol every backend speaks, and `TestHostsAgree` in `internal/gen` is what holds each backend to producing the same bytes in process and over a pipe.
 It reads the `shipped` table in `internal/gen/hosts_test.go`, and a backend added to the registry gets a row there: `TestEveryBuiltinHasARow` fails until it does, and `TestPackagedBackendsShip` fails until a shipped one is in `nix/cmd.nix`.
