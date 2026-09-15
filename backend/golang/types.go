@@ -113,6 +113,9 @@ func (g *generator) goType(id *ir.ID) (string, error) {
 	if len(t.GetArgs()) > 0 {
 		return "", unsupported(pos, "%s is applied to type arguments, and generics are not generated yet", name)
 	}
+	if g.skipped[t.GetCtor().GetIndex()] != nil {
+		return "", unsupported(pos, "%s is not generated, so nothing generated can name it", name)
+	}
 	return g.declName(decl), nil
 }
 
