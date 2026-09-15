@@ -163,7 +163,11 @@ func (d *dumper) decl(prefix string, last bool, index int, decl *Decl) {
 	case decl.GetEnumeration() != nil:
 		for _, v := range decl.GetEnumeration().GetVariants() {
 			kids = append(kids, func(l bool) {
-				d.leaf(inner, l, "variant "+v.GetMeta().GetName()+deprecatedSuffix(v.GetMeta()), v.GetMeta().GetPosition())
+				line := "variant " + v.GetMeta().GetName()
+				for _, dir := range v.GetDirectives() {
+					line += "  " + directiveText(dir)
+				}
+				d.leaf(inner, l, line+deprecatedSuffix(v.GetMeta()), v.GetMeta().GetPosition())
 				for i, f := range v.GetFields() {
 					d.leaf(inner+pad(l), i == len(v.GetFields())-1, d.fieldLine(f), f.GetMeta().GetPosition())
 				}

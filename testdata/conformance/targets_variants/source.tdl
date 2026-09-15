@@ -1,0 +1,14 @@
+package shop.payment
+
+enum Payment {
+  Card { last4: string brand: string }
+  Cash
+}
+
+target protobuf for shop.payment {
+  Payment.Card => number(4)
+  Payment.Card.last4 => number(2)
+  Payment {
+    Cash => number(1)
+  }
+}

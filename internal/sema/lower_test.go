@@ -1400,6 +1400,44 @@ target go for p {
 	}
 }
 
+// A path reaches an enum's variant and a field of that variant, which is
+// where a backend numbering a sum type reads its numbers from.
+func TestVariantDirectivesAttach(t *testing.T) {
+	model := lower(t, `
+enum Payment {
+  Card { last4: string }
+  Cash
+}
+
+target proto for p {
+  Payment.Card => number(4)
+  Payment.Card.last4 => number(2)
+  Payment {
+    Cash => number(1)
+  }
+}
+`)
+
+	payment, _, _ := model.FindDecl("Payment")
+	variants := payment.GetEnumeration().GetVariants()
+	for _, tt := range []struct {
+		what string
+		got  []*ir.Directive
+		want string
+	}{
+		{"Card", variants[0].GetDirectives(), "4"},
+		{"Card.last4", variants[0].GetFields()[0].GetDirectives(), "2"},
+		{"Cash", variants[1].GetDirectives(), "1"},
+	} {
+		if len(tt.got) != 1 || tt.got[0].GetArgs()[0].GetText() != tt.want {
+			t.Errorf("%s directives = %+v, want number(%s)", tt.what, tt.got, tt.want)
+		}
+	}
+	if len(payment.GetDirectives()) != 0 {
+		t.Errorf("a variant's directive landed on the enum: %+v", payment.GetDirectives())
+	}
+}
+
 func TestEqualSpecificityIsAnError(t *testing.T) {
 	diags := lowerDiags(t, `
 class One { x: string }
@@ -1420,6 +1458,10 @@ func TestTargetPathNamesNothing(t *testing.T) {
 	tests := []struct{ src, want string }{
 		{"target go for p { Missing => rule }", "target path Missing names nothing"},
 		{"type V2 { x: string }\ntarget go for p { V2.nope => rule }", "V2 has no field nope"},
+		{"type V3 { x: string }\ntarget go for p { V3.x.y => rule }", "nothing is beneath a field"},
+		{"enum Pay { A { x: string } B }\ntarget go for p { Pay.C => rule }", "Pay has no variant C"},
+		{"enum Pay { A { x: string } B }\ntarget go for p { Pay.A.nope => rule }", "Pay.A has no field nope"},
+		{"class Klass { x: string }\ntarget go for p { Klass.x.y => rule }", "a class path reaches a field and no further"},
 	}
 
 	for _, tt := range tests {

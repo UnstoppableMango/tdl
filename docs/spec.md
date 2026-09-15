@@ -573,6 +573,9 @@ target go for billing {
 A target block names a generator and the package it applies to.
 Entries are either a path into the model followed by `=>` and a directive, a nested block scoping a path, or a bare directive applying to the enclosing scope.
 
+A path names a declaration, then optionally one of its fields.
+For an enum, the second segment names a variant, and a third may name one of that variant's fields, so `Payment.Card => number(4)` and `Payment.Card.last4 => number(2)` each reach one node.
+
 A directive's arguments are parenthesized, and a directive taking none omits the parentheses.
 Whitespace is insignificant, so without a delimiter `table snake_case` followed by another entry could not be told from `table` applied to three arguments.
 
