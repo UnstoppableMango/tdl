@@ -5,6 +5,18 @@ schema = 3
     version = 'v0.14.1'
     hash = 'sha256-5ah3BKPQKmudFLpYzzVG2Wu9Z65ZZZNfMxr3wGtE+Eg='
 
+  [mod.'github.com/bytedance/gopkg']
+    version = 'v0.1.4'
+    hash = 'sha256-GpfG8K5YTWAt5MRg7RvpcemU7jfPV0A+mMbxSfA+2ws='
+
+  [mod.'github.com/cloudwego/gopkg']
+    version = 'v0.2.0'
+    hash = 'sha256-I7M6OAT71QurwW1ZsEKwE7WQoTcwFLzH+heX9pd3qxU='
+
+  [mod.'github.com/cloudwego/thriftgo']
+    version = 'v0.4.5'
+    hash = 'sha256-8svpWfJNDlBYBPD6TAeuzVnsxdjlCqQJm2ionSXEWRw='
+
   [mod.'github.com/inconshreveable/mousetrap']
     version = 'v1.1.0'
     hash = 'sha256-XWlYH0c8IcxAwQTnIi6WYqq44nOKUylSWxWO/vi+8pE='
