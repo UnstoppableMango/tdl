@@ -15,5 +15,6 @@ buildGoApplication {
     "cmd/tdl"
     "cmd/tdl-gen-go"
     "cmd/tdl-gen-protobuf"
+    "cmd/tdl-gen-thrift"
   ];
 }
