@@ -1,0 +1,76 @@
+// Every construct the schema backends map, in one file with no imports,
+// so each backend's output can be checked by its own language's tools.
+package smoke
+
+/// An address to write to.
+type Email: string
+
+type WorkEmail: Email
+type Sku: string
+type Skus: [Sku]
+alias Tags = {string}
+
+mixin Timestamps {
+  createdAt: instant
+  updatedAt: instant
+}
+
+/// An order, identified by its id.
+type Order: Entity {
+  id: uuid
+  include Timestamps
+  items: [LineItem]
+  tags: Tags
+  totals: {string -> decimal}
+  note: string?
+  shipOn: date | null
+  took: duration
+  receipt: bytes
+  paid: bool
+  contact: WorkEmail
+  skus: Skus
+  payment: Payment
+  status: Status
+  deprecated fax: string
+}
+
+type LineItem {
+  sku: Sku
+  quantity: int where { min(1) }
+}
+
+enum Status {
+  Draft
+  Placed
+  deprecated("no longer issued") Provisional
+}
+
+enum Payment {
+  Card { last4: string }
+  Cash
+}
+
+type Counts {
+  byStatus: {Status -> int}
+}
+
+type Sparse {
+  values: [int?]
+}
+
+deprecated("use Order")
+type LegacyOrder {
+  id: string
+}
+
+target protobuf for smoke {
+  out("protobuf")
+}
+
+target thrift for smoke {
+  out("thrift")
+}
+
+target smithy for smoke {
+  out("smithy")
+}

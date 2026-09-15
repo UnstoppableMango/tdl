@@ -58,6 +58,10 @@
               pkgs.buf
               pkgs.markdownlint-cli2
               pkgs.protoc-gen-go
+              # The schema backends' tests hand their output to these when
+              # they are on PATH, since neither has a Go implementation.
+              pkgs.smithy-cli
+              pkgs.typescript
               pkgs.tree-sitter
               # editors/vscode/install.sh builds a .vsix, which is a zip.
               pkgs.zip

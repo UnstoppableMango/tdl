@@ -84,6 +84,25 @@ in
           "programs.tdl.vscode.enable did not add vscode-tdl to the default profile";
         pkgs.runCommand "tdl-hm-module" { } "touch $out";
 
+      # Holds the smithy backend to output Smithy accepts. No Go library can
+      # say so, which is why this is a check rather than a Go test: it
+      # generates from the smoke fixture and hands the result to the CLI.
+      checks.gen-smithy =
+        pkgs.runCommand "tdl-gen-smithy"
+          {
+            nativeBuildInputs = [
+              pkgs.tdl
+              pkgs.smithy-cli
+            ];
+          }
+          ''
+            export HOME=$TMPDIR
+            cp ${../testdata/gen/smoke/source.tdl} source.tdl
+            tdl gen --target smithy -o out source.tdl
+            smithy validate --quiet --no-config out/*.smithy
+            touch $out
+          '';
+
       # Holds the flake-parts module to what it promises, by evaluating a
       # consumer flake that imports it and building what came out. The
       # fixture is a conformance case because the corpus is already held to

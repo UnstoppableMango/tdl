@@ -80,7 +80,7 @@ func TestCorpusIsCanonical(t *testing.T) {
 	// examples/ carries the explanatory comments the corpus does not, so
 	// it is what says a comment survives a round trip through the
 	// formatter on a real file rather than only on a fixture.
-	for _, dir := range []string{"../prelude", "../examples"} {
+	for _, dir := range []string{"../prelude", "../examples", "../testdata/gen/smoke"} {
 		t.Run(filepath.Base(dir), func(t *testing.T) {
 			matches, err := filepath.Glob(filepath.Join(dir, "*.tdl"))
 			if err != nil {
