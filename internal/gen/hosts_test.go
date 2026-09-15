@@ -9,10 +9,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/bufbuild/protocompile"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/unstoppablemango/tdl/backend/debug"
 	"github.com/unstoppablemango/tdl/backend/golang"
+	"github.com/unstoppablemango/tdl/backend/protobuf"
 	"github.com/unstoppablemango/tdl/internal/gen"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -33,7 +35,8 @@ var shipped = []struct {
 	valid func(t *testing.T, f *plugin.File)
 }{
 	{backend: debug.Backend{}, model: sampleModel},
-	{backend: golang.Backend{}, model: goModel, packaged: true, valid: parseGo},
+	{backend: golang.Backend{}, model: orderModel, packaged: true, valid: parseGo},
+	{backend: protobuf.Backend{}, model: orderModel, packaged: true, valid: compileProto},
 }
 
 // The protocol's one real claim: a compiled-in backend and the same
@@ -159,9 +162,9 @@ func TestPackagedBackendsShip(t *testing.T) {
 	}
 }
 
-// goModel is a model with one keyed entity, enough to generate a Go file
-// from.
-func goModel() *ir.Model {
+// orderModel is a model with one keyed entity, enough for every backend to
+// generate a file from.
+func orderModel() *ir.Model {
 	return &ir.Model{
 		Package: "shop",
 		Decls: []*ir.Decl{
@@ -196,5 +199,15 @@ func parseGo(t *testing.T, f *plugin.File) {
 	t.Helper()
 	if _, err := parser.ParseFile(token.NewFileSet(), f.GetPath(), f.GetContent(), parser.AllErrors); err != nil {
 		t.Errorf("%s is not parseable Go: %v\n%s", f.GetPath(), err, f.GetContent())
+	}
+}
+
+func compileProto(t *testing.T, f *plugin.File) {
+	t.Helper()
+	c := protocompile.Compiler{Resolver: protocompile.WithStandardImports(&protocompile.SourceResolver{
+		Accessor: protocompile.SourceAccessorFromMap(map[string]string{f.GetPath(): string(f.GetContent())}),
+	})}
+	if _, err := c.Compile(context.Background(), f.GetPath()); err != nil {
+		t.Errorf("%s does not compile: %v\n%s", f.GetPath(), err, f.GetContent())
 	}
 }

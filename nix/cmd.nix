@@ -14,5 +14,6 @@ buildGoApplication {
   subPackages = [
     "cmd/tdl"
     "cmd/tdl-gen-go"
+    "cmd/tdl-gen-protobuf"
   ];
 }

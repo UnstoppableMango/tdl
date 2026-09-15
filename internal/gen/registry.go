@@ -12,6 +12,7 @@ import (
 
 	"github.com/unstoppablemango/tdl/backend/debug"
 	"github.com/unstoppablemango/tdl/backend/golang"
+	"github.com/unstoppablemango/tdl/backend/protobuf"
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
@@ -20,8 +21,9 @@ import (
 // A name that is not here resolves to tdl-gen-<name> on PATH. Both kinds
 // speak the same protocol; see docs/design/plugins.md.
 var builtin = map[string]plugin.Backend{
-	debug.Name:  debug.Backend{},
-	golang.Name: golang.Backend{},
+	debug.Name:    debug.Backend{},
+	golang.Name:   golang.Backend{},
+	protobuf.Name: protobuf.Backend{},
 }
 
 // Builtin returns the backend compiled in under name.

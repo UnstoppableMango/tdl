@@ -137,7 +137,11 @@ Pipeline, one package per stage:
   `docs/design/schema-backends.md` is the mapping the schema backends build on it.
   Private to `backend/`.
 - `backend/internal/irtest` — builds `*ir.Model` values by hand for backend tests, seeded with the prelude declarations a field can name.
-- `cmd/tdl-gen-debug`, `cmd/tdl-gen-go` — each backend as a plugin.
+- `backend/protobuf` — the protobuf backend: one proto3 file per model, placed in the directories its package spells.
+  An enum where any variant carries fields is a message holding a oneof of one nested message per variant, and a newtype is expanded to its base, since a wrapper message would change the wire format.
+  Every field, variant, and enum value is numbered by position unless a `number` directive pins it; `emit.Numbers` holds the rule.
+  Its tests compile every response with `bufbuild/protocompile`, which is the protobuf equivalent of type checking the Go backend's output.
+- `cmd/tdl-gen-debug`, `cmd/tdl-gen-go`, `cmd/tdl-gen-protobuf` — each backend as a plugin.
   The same value the registry holds, served over a connection, which is what makes the two hosts testable against each other.
 - `plugin` — the wire protocol a backend speaks, generated from `proto/tdl/plugin/v1/plugin.proto`, plus the framing codec.
   Public, like `ir`.
@@ -155,7 +159,7 @@ Pipeline, one package per stage:
   Lowering knows the sugar's spellings (`List`, `Option`, ...) but nothing about what they mean, which is what makes the prelude replaceable.
 - `cmd/tdl` — main.
 
-`go` is the only code-generation backend.
+`go` and `protobuf` are the code-generation backends, and `docs/design/schema-backends.md` maps the schema backends planned beside `protobuf`.
 `docs/design/plugins.md` describes the protocol every backend speaks, and `TestHostsAgree` in `internal/gen` is what holds each backend to producing the same bytes in process and over a pipe.
 It reads the `shipped` table in `internal/gen/hosts_test.go`, and a backend added to the registry gets a row there: `TestEveryBuiltinHasARow` fails until it does, and `TestPackagedBackendsShip` fails until a shipped one is in `nix/cmd.nix`.
 
