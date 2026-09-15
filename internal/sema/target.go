@@ -30,13 +30,15 @@ const (
 // wins needs both of them.
 type targetPass struct {
 	*lowerer
-	byDecl  map[int32][]candidate
-	byField map[fieldKey][]candidate
+	byDecl   map[int32][]candidate
+	byMember map[memberKey][]candidate
 }
 
-type fieldKey struct {
-	decl  int32
-	field int
+// memberKey names a node beneath a declaration: a struct's field (variant
+// -1), an enum's variant (field -1), or a field of a variant.
+type memberKey struct {
+	decl           int32
+	variant, field int
 }
 
 // lowerTargets resolves every target block against the model and attaches
@@ -48,9 +50,9 @@ type fieldKey struct {
 // front of it.
 func (l *lowerer) lowerTargets(file *ast.File) {
 	t := &targetPass{
-		lowerer: l,
-		byDecl:  map[int32][]candidate{},
-		byField: map[fieldKey][]candidate{},
+		lowerer:  l,
+		byDecl:   map[int32][]candidate{},
+		byMember: map[memberKey][]candidate{},
 	}
 
 	for _, decl := range file.Decls {
@@ -62,8 +64,17 @@ func (l *lowerer) lowerTargets(file *ast.File) {
 	for idx, cands := range t.byDecl {
 		l.model.Decls[idx].Directives = l.resolveConflicts(cands)
 	}
-	for key, cands := range t.byField {
-		l.model.GetDecls()[key.decl].Fields()[key.field].Directives = l.resolveConflicts(cands)
+	for key, cands := range t.byMember {
+		directives := l.resolveConflicts(cands)
+		decl := l.model.GetDecls()[key.decl]
+		switch {
+		case key.variant < 0:
+			decl.Fields()[key.field].Directives = directives
+		case key.field < 0:
+			decl.GetEnumeration().GetVariants()[key.variant].Directives = directives
+		default:
+			decl.GetEnumeration().GetVariants()[key.variant].GetFields()[key.field].Directives = directives
+		}
 	}
 }
 
@@ -115,8 +126,10 @@ func (t *targetPass) walkEntries(block *ast.TargetDecl, scope string, entries []
 // attach resolves a path and records the directive as a candidate for every
 // node it reaches.
 func (t *targetPass) attach(path string, pos ast.Position, d *ir.Directive) {
-	// Paths are at most two deep: a declaration and one of its fields.
-	head, member, _ := strings.Cut(path, ".")
+	// A path is a declaration and one of its fields, or an enum, one of its
+	// variants, and one of that variant's fields.
+	head, rest, _ := strings.Cut(path, ".")
+	member, sub, _ := strings.Cut(rest, ".")
 
 	b, ok := t.scope.lookup(head)
 	if !ok || b.kind != bindDecl {
@@ -129,6 +142,10 @@ func (t *targetPass) attach(path string, pos ast.Position, d *ir.Directive) {
 	// A path naming a class applies to everything satisfying it, which is
 	// what lets a rule be written once rather than repeated per type.
 	if decl.GetClass() != nil {
+		if sub != "" {
+			t.diags.add(pos, "target path %s names nothing: a class path reaches a field and no further", path)
+			return
+		}
 		t.expandClass(b.id, member, pos, d)
 		return
 	}
@@ -138,13 +155,32 @@ func (t *targetPass) attach(path string, pos ast.Position, d *ir.Directive) {
 		return
 	}
 
-	field := fieldIndex(decl, member)
-	if field < 0 {
-		t.diags.add(pos, "target path %s names nothing: %s has no field %s", path, head, member)
-		return
+	key := memberKey{decl: idx, variant: -1, field: -1}
+	if e := decl.GetEnumeration(); e != nil {
+		key.variant = slices.IndexFunc(e.GetVariants(), func(v *ir.Variant) bool { return v.GetMeta().GetName() == member })
+		if key.variant < 0 {
+			t.diags.add(pos, "target path %s names nothing: %s has no variant %s", path, head, member)
+			return
+		}
+		if sub != "" {
+			key.field = slices.IndexFunc(e.GetVariants()[key.variant].GetFields(), func(f *ir.Field) bool { return f.GetMeta().GetName() == sub })
+			if key.field < 0 {
+				t.diags.add(pos, "target path %s names nothing: %s.%s has no field %s", path, head, member, sub)
+				return
+			}
+		}
+	} else {
+		key.field = fieldIndex(decl, member)
+		if key.field < 0 {
+			t.diags.add(pos, "target path %s names nothing: %s has no field %s", path, head, member)
+			return
+		}
+		if sub != "" {
+			t.diags.add(pos, "target path %s names nothing: %s.%s is a field, and nothing is beneath a field", path, head, member)
+			return
+		}
 	}
-	key := fieldKey{idx, field}
-	t.byField[key] = append(t.byField[key], candidate{directive: d, spec: specField, pos: pos})
+	t.byMember[key] = append(t.byMember[key], candidate{directive: d, spec: specField, pos: pos})
 }
 
 // expandClass applies a directive to every declaration satisfying a class.
@@ -171,8 +207,8 @@ func (t *targetPass) expandClass(class *ir.ID, member string, pos ast.Position, 
 			continue
 		}
 		if field := fieldIndex(decl, member); field >= 0 {
-			key := fieldKey{idx, field}
-			t.byField[key] = append(t.byField[key], c)
+			key := memberKey{decl: idx, variant: -1, field: field}
+			t.byMember[key] = append(t.byMember[key], c)
 		}
 	}
 }

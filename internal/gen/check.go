@@ -97,6 +97,12 @@ func directivesFor(target string, model *ir.Model) []*ir.Directive {
 		for _, f := range decl.Fields() {
 			add(f.GetDirectives())
 		}
+		for _, v := range decl.GetEnumeration().GetVariants() {
+			add(v.GetDirectives())
+			for _, f := range v.GetFields() {
+				add(f.GetDirectives())
+			}
+		}
 	}
 	return all
 }
