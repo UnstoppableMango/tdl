@@ -144,3 +144,22 @@ func (s *Session) Resolve(id *ir.ID) (*Ref, error) {
 	ref.Form, ref.Decl = Named, decl
 	return ref, nil
 }
+
+// Expand follows a newtype to what it wraps, for a target with no distinct
+// type to give it. Any other reference is returned as it is.
+func (s *Session) Expand(r *Ref) (*Ref, error) {
+	seen := map[*ir.Decl]bool{}
+	for r.Form == Named && r.Decl.GetNewtype() != nil {
+		if seen[r.Decl] {
+			return nil, Unsupported(r.Pos, "%s wraps itself", r.Decl.GetMeta().GetName())
+		}
+		seen[r.Decl] = true
+
+		next, err := s.Resolve(r.Decl.GetNewtype().GetBase())
+		if err != nil {
+			return nil, err
+		}
+		r = next
+	}
+	return r, nil
+}

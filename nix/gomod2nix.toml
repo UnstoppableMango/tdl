@@ -1,6 +1,10 @@
 schema = 3
 
 [mod]
+  [mod.'github.com/bufbuild/protocompile']
+    version = 'v0.14.1'
+    hash = 'sha256-5ah3BKPQKmudFLpYzzVG2Wu9Z65ZZZNfMxr3wGtE+Eg='
+
   [mod.'github.com/inconshreveable/mousetrap']
     version = 'v1.1.0'
     hash = 'sha256-XWlYH0c8IcxAwQTnIi6WYqq44nOKUylSWxWO/vi+8pE='
@@ -14,8 +18,12 @@ schema = 3
     hash = 'sha256-YAjyYpq5BXCosVJtvYLWFG1t4gma2ylzc7ILLoj/hD8='
 
   [mod.'golang.org/x/exp']
-    version = 'v0.0.0-20260824195058-e88cd73687aa'
-    hash = 'sha256-8aABAHGuW6uSooqzXprNBLgbu+RrIpvYS/CXaGjDC4k='
+    version = 'v0.0.0-20260908205506-85c1c2202aba'
+    hash = 'sha256-g/gNDzulP2hxBtZf3w2cASzcWbUAI6r0Q9zy5Q/wrRQ='
+
+  [mod.'golang.org/x/sync']
+    version = 'v0.23.0'
+    hash = 'sha256-nF8YZFVC+TitjkderlqgGwJkuMqJCxI+fIElVLjBT2M='
 
   [mod.'google.golang.org/protobuf']
     version = 'v1.36.12'

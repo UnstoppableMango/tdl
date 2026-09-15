@@ -24,8 +24,8 @@ Nothing in [grammar.ebnf](docs/grammar.ebnf) is missing.
 The support matrix below says what each construct reaches.
 Units, and merging a dependency's target blocks, are the two pieces still outstanding.
 
-**The back end runs, with nothing behind it yet.** `tdl gen` resolves a target's backend to a built-in or to `tdl-gen-<name>` on PATH, sends it the resolved model, and writes back the files it returns.
-The only backend is `debug`, which prints what it was given, so nothing generates real code yet.
+**The back end generates Go and protobuf.** `tdl gen` resolves a target's backend to a built-in or to `tdl-gen-<name>` on PATH, sends it the resolved model, and writes back the files it returns.
+The backends table below says what each one covers.
 
 The design is settled and written down:
 
@@ -268,6 +268,7 @@ Backends:
 | Backend | Kind | Status |
 | --- | --- | --- |
 | `go` | Built in, also shipped as `tdl-gen-go` | Structs, entity keys, both enum shapes, newtypes, and the primitive and collection mapping |
+| `protobuf` | Built in, also shipped as `tdl-gen-protobuf` | Structs, both enum shapes, newtypes, the primitive and collection mapping, and `number` pins |
 | `debug` | Built in, also shipped as `tdl-gen-debug` | Prints the model it was given |
 | Anything else | `tdl-gen-<name>` on PATH | The protocol is stable |
 
