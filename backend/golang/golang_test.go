@@ -12,73 +12,16 @@ import (
 	"testing"
 
 	"github.com/unstoppablemango/tdl/backend/golang"
+	"github.com/unstoppablemango/tdl/backend/internal/irtest"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
-	"github.com/unstoppablemango/tdl/prelude"
 )
 
-// A model is built by hand rather than parsed, so a failure here is the
-// generator's and not lowering's.
-type modelBuilder struct {
-	model *ir.Model
-}
-
-func newModel(pkg string) *modelBuilder {
-	m := &modelBuilder{model: &ir.Model{Package: pkg}}
-	// The prelude arrives merged into the declaration table, so every
-	// fixture carries the primitives a field can name.
-	for _, name := range []string{"string", "int", "bool", "bytes", "decimal", "uuid", "instant", "date", "duration", "List", "Set", "Map"} {
-		m.decl(&ir.Decl{
-			Meta: &ir.Meta{Name: name, Position: &ir.Position{Filename: prelude.Name}},
-			Node: &ir.Decl_Primitive{Primitive: &ir.Primitive{}},
-		})
-	}
-	m.decl(&ir.Decl{
-		Meta: &ir.Meta{Name: "Option", Position: &ir.Position{Filename: prelude.Name}},
-		Node: &ir.Decl_Enumeration{Enumeration: &ir.Enum{
-			Params:   []*ir.Param{{Name: "T"}},
-			Variants: []*ir.Variant{{Meta: &ir.Meta{Name: "Some"}}, {Meta: &ir.Meta{Name: "None"}}},
-		}},
-	})
-	return m
-}
-
-// decl appends a declaration. A type reference to it is made by name with
-// [modelBuilder.named], so the index never has to be carried around.
-func (m *modelBuilder) decl(d *ir.Decl) {
-	m.model.Decls = append(m.model.Decls, d)
-}
-
-// named interns a type reference to a declaration, applied to arguments.
-func (m *modelBuilder) named(declName string, args ...*ir.ID) *ir.ID {
-	_, ctor, ok := m.model.FindDecl(declName)
-	if !ok {
-		panic("no declaration named " + declName)
-	}
-	t := &ir.Type{Ctor: ctor, Args: args, Wrote: ir.SyntacticForm_SYNTACTIC_FORM_NAMED}
-	id := &ir.ID{Index: int32(len(m.model.GetTypes())), Name: declName}
-	m.model.Types = append(m.model.Types, t)
-	return id
-}
-
-// own appends a declaration attributed to the model's own file, which is
-// how the backend tells it apart from the prelude.
-func (m *modelBuilder) own(d *ir.Decl) {
-	if d.GetMeta().GetPosition() == nil {
-		d.GetMeta().Position = &ir.Position{Filename: "shop.tdl"}
-	}
-	m.decl(d)
-}
-
-func field(name string, typ *ir.ID) *ir.Field {
-	return &ir.Field{Meta: &ir.Meta{Name: name}, Type: typ}
-}
-
-func generate(t *testing.T, m *modelBuilder) *plugin.Response {
+func generate(t *testing.T, m *irtest.Builder) *plugin.Response {
 	t.Helper()
 	resp, err := golang.Backend{}.Generate(context.Background(), &plugin.Request{
 		Target: golang.Name,
-		Model:  m.model,
+		Model:  m.Model,
 	})
 	if err != nil {
 		t.Fatalf("generate: %v", err)
@@ -180,29 +123,29 @@ func TestDescribe(t *testing.T) {
 }
 
 func TestStructs(t *testing.T) {
-	m := newModel("shop.billing")
-	m.own(&ir.Decl{
+	m := irtest.New("shop.billing")
+	m.Own(&ir.Decl{
 		Meta: &ir.Meta{Name: "LineItem", Doc: []string{"One line on an order."}},
 		Node: &ir.Decl_Structure{Structure: &ir.Struct{
 			Kind: ir.StructKind_STRUCT_KIND_VALUE,
 			Fields: []*ir.Field{
-				field("sku", m.named("string")),
-				field("quantity", m.named("int")),
+				irtest.Field("sku", m.Named("string")),
+				irtest.Field("quantity", m.Named("int")),
 			},
 		}},
 	})
 
-	m.own(&ir.Decl{
+	m.Own(&ir.Decl{
 		Meta: &ir.Meta{Name: "Order"},
 		Node: &ir.Decl_Structure{Structure: &ir.Struct{
 			Kind: ir.StructKind_STRUCT_KIND_ENTITY,
 			Fields: []*ir.Field{
-				{Meta: &ir.Meta{Name: "id"}, Type: m.named("string")},
-				field("placedAt", m.named("instant")),
-				field("items", m.named("List", m.named("LineItem"))),
-				field("tags", m.named("Set", m.named("string"))),
-				field("totals", m.named("Map", m.named("string"), m.named("decimal"))),
-				field("note", m.named("Option", m.named("string"))),
+				{Meta: &ir.Meta{Name: "id"}, Type: m.Named("string")},
+				irtest.Field("placedAt", m.Named("instant")),
+				irtest.Field("items", m.Named("List", m.Named("LineItem"))),
+				irtest.Field("tags", m.Named("Set", m.Named("string"))),
+				irtest.Field("totals", m.Named("Map", m.Named("string"), m.Named("decimal"))),
+				irtest.Field("note", m.Named("Option", m.Named("string"))),
 			},
 		}},
 	})
@@ -240,12 +183,12 @@ func TestStructs(t *testing.T) {
 // The three struct kinds mean different things and emit the same shape: Go
 // has no way to say "identity that survives changes to its contents".
 func TestMixinIsAStructToo(t *testing.T) {
-	m := newModel("shop")
-	m.own(&ir.Decl{
+	m := irtest.New("shop")
+	m.Own(&ir.Decl{
 		Meta: &ir.Meta{Name: "Audit"},
 		Node: &ir.Decl_Structure{Structure: &ir.Struct{
 			Kind:   ir.StructKind_STRUCT_KIND_MIXIN,
-			Fields: []*ir.Field{field("createdAt", m.named("instant"))},
+			Fields: []*ir.Field{irtest.Field("createdAt", m.Named("instant"))},
 		}},
 	})
 
@@ -254,8 +197,8 @@ func TestMixinIsAStructToo(t *testing.T) {
 }
 
 func TestFieldlessEnumIsConstants(t *testing.T) {
-	m := newModel("shop")
-	m.own(&ir.Decl{
+	m := irtest.New("shop")
+	m.Own(&ir.Decl{
 		Meta: &ir.Meta{Name: "Status"},
 		Node: &ir.Decl_Enumeration{Enumeration: &ir.Enum{
 			Variants: []*ir.Variant{
@@ -278,15 +221,15 @@ func TestFieldlessEnumIsConstants(t *testing.T) {
 }
 
 func TestVariantWithFieldsIsASealedInterface(t *testing.T) {
-	m := newModel("shop")
-	m.own(&ir.Decl{
+	m := irtest.New("shop")
+	m.Own(&ir.Decl{
 		Meta: &ir.Meta{Name: "Payment"},
 		Node: &ir.Decl_Enumeration{Enumeration: &ir.Enum{
 			Variants: []*ir.Variant{
 				{Meta: &ir.Meta{Name: "Cash"}},
 				{
 					Meta:   &ir.Meta{Name: "Card"},
-					Fields: []*ir.Field{field("last4", m.named("string"))},
+					Fields: []*ir.Field{irtest.Field("last4", m.Named("string"))},
 				},
 			},
 		}},
@@ -310,10 +253,10 @@ func TestVariantWithFieldsIsASealedInterface(t *testing.T) {
 }
 
 func TestNewtype(t *testing.T) {
-	m := newModel("shop")
-	m.own(&ir.Decl{
+	m := irtest.New("shop")
+	m.Own(&ir.Decl{
 		Meta: &ir.Meta{Name: "Sku"},
-		Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{Base: m.named("string")}},
+		Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{Base: m.Named("string")}},
 	})
 
 	got := files(t, generate(t, m))
@@ -325,18 +268,18 @@ func TestNewtype(t *testing.T) {
 // is still emitted: skipping it would leave every field naming it referring
 // to something the package does not declare.
 func TestConstrainedNewtypeIsEmittedWithAWarning(t *testing.T) {
-	m := newModel("shop")
-	m.own(&ir.Decl{
+	m := irtest.New("shop")
+	m.Own(&ir.Decl{
 		Meta: &ir.Meta{Name: "Email", Position: &ir.Position{Filename: "shop.tdl", Line: 7}},
 		Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{
-			Base:             m.named("string"),
+			Base:             m.Named("string"),
 			ValueConstraints: []*ir.Constraint{{Name: "matches"}},
 		}},
 	})
-	m.own(&ir.Decl{
+	m.Own(&ir.Decl{
 		Meta: &ir.Meta{Name: "Contact"},
 		Node: &ir.Decl_Structure{Structure: &ir.Struct{
-			Fields: []*ir.Field{field("email", m.named("Email"))},
+			Fields: []*ir.Field{irtest.Field("email", m.Named("Email"))},
 		}},
 	})
 
@@ -358,31 +301,31 @@ func TestConstrainedNewtypeIsEmittedWithAWarning(t *testing.T) {
 func TestIncomparableKeysAreUnsupported(t *testing.T) {
 	for _, tt := range []struct {
 		name string
-		typ  func(m *modelBuilder) *ir.ID
+		typ  func(m *irtest.Builder) *ir.ID
 	}{
-		{"set of bytes", func(m *modelBuilder) *ir.ID { return m.named("Set", m.named("bytes")) }},
-		{"set of lists", func(m *modelBuilder) *ir.ID {
-			return m.named("Set", m.named("List", m.named("string")))
+		{"set of bytes", func(m *irtest.Builder) *ir.ID { return m.Named("Set", m.Named("bytes")) }},
+		{"set of lists", func(m *irtest.Builder) *ir.ID {
+			return m.Named("Set", m.Named("List", m.Named("string")))
 		}},
-		{"map keyed by a list", func(m *modelBuilder) *ir.ID {
-			return m.named("Map", m.named("List", m.named("string")), m.named("string"))
+		{"map keyed by a list", func(m *irtest.Builder) *ir.ID {
+			return m.Named("Map", m.Named("List", m.Named("string")), m.Named("string"))
 		}},
-		{"map keyed by a struct holding a list", func(m *modelBuilder) *ir.ID {
-			return m.named("Map", m.named("Path"), m.named("string"))
+		{"map keyed by a struct holding a list", func(m *irtest.Builder) *ir.ID {
+			return m.Named("Map", m.Named("Path"), m.Named("string"))
 		}},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			m := newModel("shop")
-			m.own(&ir.Decl{
+			m := irtest.New("shop")
+			m.Own(&ir.Decl{
 				Meta: &ir.Meta{Name: "Path"},
 				Node: &ir.Decl_Structure{Structure: &ir.Struct{
-					Fields: []*ir.Field{field("segments", m.named("List", m.named("string")))},
+					Fields: []*ir.Field{irtest.Field("segments", m.Named("List", m.Named("string")))},
 				}},
 			})
-			m.own(&ir.Decl{
+			m.Own(&ir.Decl{
 				Meta: &ir.Meta{Name: "Index", Position: &ir.Position{Filename: "shop.tdl", Line: 9}},
 				Node: &ir.Decl_Structure{Structure: &ir.Struct{
-					Fields: []*ir.Field{field("by", tt.typ(m))},
+					Fields: []*ir.Field{irtest.Field("by", tt.typ(m))},
 				}},
 			})
 
@@ -401,26 +344,26 @@ func TestIncomparableKeysAreUnsupported(t *testing.T) {
 // Reaching the same declaration twice on separate paths is not a cycle, so
 // the walk that stops one has to unwind as it returns.
 func TestARepeatedFieldTypeIsNotACycle(t *testing.T) {
-	m := newModel("shop")
-	m.own(&ir.Decl{
+	m := irtest.New("shop")
+	m.Own(&ir.Decl{
 		Meta: &ir.Meta{Name: "Coord"},
 		Node: &ir.Decl_Structure{Structure: &ir.Struct{
-			Fields: []*ir.Field{field("value", m.named("int"))},
+			Fields: []*ir.Field{irtest.Field("value", m.Named("int"))},
 		}},
 	})
-	m.own(&ir.Decl{
+	m.Own(&ir.Decl{
 		Meta: &ir.Meta{Name: "Point"},
 		Node: &ir.Decl_Structure{Structure: &ir.Struct{
 			Fields: []*ir.Field{
-				field("x", m.named("Coord")),
-				field("y", m.named("Coord")),
+				irtest.Field("x", m.Named("Coord")),
+				irtest.Field("y", m.Named("Coord")),
 			},
 		}},
 	})
-	m.own(&ir.Decl{
+	m.Own(&ir.Decl{
 		Meta: &ir.Meta{Name: "Grid"},
 		Node: &ir.Decl_Structure{Structure: &ir.Struct{
-			Fields: []*ir.Field{field("seen", m.named("Set", m.named("Point")))},
+			Fields: []*ir.Field{irtest.Field("seen", m.Named("Set", m.Named("Point")))},
 		}},
 	})
 
@@ -434,20 +377,20 @@ func TestARepeatedFieldTypeIsNotACycle(t *testing.T) {
 // A comparable element is still a map, since that is the only Go shape that
 // keeps what a Set promises.
 func TestComparableSetsStillGenerate(t *testing.T) {
-	m := newModel("shop")
-	m.own(&ir.Decl{
+	m := irtest.New("shop")
+	m.Own(&ir.Decl{
 		Meta: &ir.Meta{Name: "Sku"},
-		Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{Base: m.named("string")}},
+		Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{Base: m.Named("string")}},
 	})
-	m.own(&ir.Decl{
+	m.Own(&ir.Decl{
 		Meta: &ir.Meta{Name: "Basket"},
 		Node: &ir.Decl_Structure{Structure: &ir.Struct{
 			Fields: []*ir.Field{
-				field("skus", m.named("Set", m.named("Sku"))),
+				irtest.Field("skus", m.Named("Set", m.Named("Sku"))),
 				// A pointer is comparable whatever it points at, so an
 				// optional element is a legal key even when its element
 				// would not be.
-				field("maybe", m.named("Set", m.named("Option", m.named("bytes")))),
+				irtest.Field("maybe", m.Named("Set", m.Named("Option", m.Named("bytes")))),
 			},
 		}},
 	})
@@ -465,15 +408,15 @@ func TestComparableSetsStillGenerate(t *testing.T) {
 // An alias is transparent, so it is expanded at every use rather than
 // declared.
 func TestAliasIsExpanded(t *testing.T) {
-	m := newModel("shop")
-	m.own(&ir.Decl{
+	m := irtest.New("shop")
+	m.Own(&ir.Decl{
 		Meta: &ir.Meta{Name: "Tags"},
-		Node: &ir.Decl_Alias{Alias: &ir.Alias{Target: m.named("List", m.named("string"))}},
+		Node: &ir.Decl_Alias{Alias: &ir.Alias{Target: m.Named("List", m.Named("string"))}},
 	})
-	m.own(&ir.Decl{
+	m.Own(&ir.Decl{
 		Meta: &ir.Meta{Name: "Post"},
 		Node: &ir.Decl_Structure{Structure: &ir.Struct{
-			Fields: []*ir.Field{field("tags", m.named("Tags"))},
+			Fields: []*ir.Field{irtest.Field("tags", m.Named("Tags"))},
 		}},
 	})
 
@@ -485,29 +428,29 @@ func TestAliasIsExpanded(t *testing.T) {
 }
 
 func TestDirectives(t *testing.T) {
-	m := newModel("shop")
-	m.own(&ir.Decl{
+	m := irtest.New("shop")
+	m.Own(&ir.Decl{
 		Meta:       &ir.Meta{Name: "User"},
-		Directives: []*ir.Directive{{Name: "name", Target: "go", Args: []*ir.Literal{text("Account")}}},
+		Directives: []*ir.Directive{{Name: "name", Target: "go", Args: []*ir.Literal{irtest.Text("Account")}}},
 		Node: &ir.Decl_Structure{Structure: &ir.Struct{
 			Fields: []*ir.Field{
 				{
 					Meta: &ir.Meta{Name: "email"},
-					Type: m.named("string"),
+					Type: m.Named("string"),
 					Directives: []*ir.Directive{
-						{Name: "tag", Target: "go", Args: []*ir.Literal{text(`json:"email_address"`)}},
+						{Name: "tag", Target: "go", Args: []*ir.Literal{irtest.Text(`json:"email_address"`)}},
 						// A model carries directives for every target
 						// block, so one that does not filter would read
 						// another backend's.
-						{Name: "tag", Target: "sql", Args: []*ir.Literal{text(`db:"nope"`)}},
+						{Name: "tag", Target: "sql", Args: []*ir.Literal{irtest.Text(`db:"nope"`)}},
 					},
 				},
 			},
 		}},
 	})
-	m.model.Targets = []*ir.TargetBlock{{
+	m.Model.Targets = []*ir.TargetBlock{{
 		Meta:       &ir.Meta{Name: "go"},
-		Directives: []*ir.Directive{{Name: "package", Target: "go", Args: []*ir.Literal{text("github.com/acme/billing")}}},
+		Directives: []*ir.Directive{{Name: "package", Target: "go", Args: []*ir.Literal{irtest.Text("github.com/acme/billing")}}},
 	}}
 
 	got := files(t, generate(t, m))
@@ -529,19 +472,19 @@ func TestDirectives(t *testing.T) {
 // will not accept is an error rather than a warning: nothing is generated
 // and the host writes nothing.
 func TestAKeywordPackageNameIsAnError(t *testing.T) {
-	m := newModel("shop")
-	m.own(&ir.Decl{
+	m := irtest.New("shop")
+	m.Own(&ir.Decl{
 		Meta: &ir.Meta{Name: "Note"},
 		Node: &ir.Decl_Structure{Structure: &ir.Struct{
-			Fields: []*ir.Field{field("body", m.named("string"))},
+			Fields: []*ir.Field{irtest.Field("body", m.Named("string"))},
 		}},
 	})
-	m.model.Targets = []*ir.TargetBlock{{
+	m.Model.Targets = []*ir.TargetBlock{{
 		Meta: &ir.Meta{Name: "go"},
 		Directives: []*ir.Directive{{
 			Name:     "package",
 			Target:   "go",
-			Args:     []*ir.Literal{text("github.com/acme/type")},
+			Args:     []*ir.Literal{irtest.Text("github.com/acme/type")},
 			Position: &ir.Position{Filename: "shop.tdl", Line: 2},
 		}},
 	}}
@@ -566,15 +509,15 @@ func TestAKeywordPackageNameIsAnError(t *testing.T) {
 // returning an error, and a warning does not stop the rest of the model
 // from generating.
 func TestUnsupportedIsAWarning(t *testing.T) {
-	m := newModel("shop")
-	m.own(&ir.Decl{
+	m := irtest.New("shop")
+	m.Own(&ir.Decl{
 		Meta: &ir.Meta{Name: "Auditable", Position: &ir.Position{Filename: "shop.tdl", Line: 4}},
 		Node: &ir.Decl_Class{Class: &ir.Class{}},
 	})
-	m.own(&ir.Decl{
+	m.Own(&ir.Decl{
 		Meta: &ir.Meta{Name: "Note"},
 		Node: &ir.Decl_Structure{Structure: &ir.Struct{
-			Fields: []*ir.Field{field("body", m.named("string"))},
+			Fields: []*ir.Field{irtest.Field("body", m.Named("string"))},
 		}},
 	})
 
@@ -599,11 +542,11 @@ func TestUnsupportedIsAWarning(t *testing.T) {
 // The prelude is merged into the declaration table untagged, so a backend
 // that emits per declaration has to tell it apart from the model's own.
 func TestPreludeIsNotGenerated(t *testing.T) {
-	m := newModel("shop")
-	m.own(&ir.Decl{
+	m := irtest.New("shop")
+	m.Own(&ir.Decl{
 		Meta: &ir.Meta{Name: "Note"},
 		Node: &ir.Decl_Structure{Structure: &ir.Struct{
-			Fields: []*ir.Field{field("body", m.named("string"))},
+			Fields: []*ir.Field{irtest.Field("body", m.Named("string"))},
 		}},
 	})
 
@@ -616,11 +559,11 @@ func TestPreludeIsNotGenerated(t *testing.T) {
 // The prelude is recognized by its whole name and not by how the name ends,
 // so a user's file that happens to end the same way is still theirs.
 func TestAFileEndingInStdIsNotThePrelude(t *testing.T) {
-	m := newModel("shop")
-	m.own(&ir.Decl{
+	m := irtest.New("shop")
+	m.Own(&ir.Decl{
 		Meta: &ir.Meta{Name: "Note", Position: &ir.Position{Filename: "my-std.tdl"}},
 		Node: &ir.Decl_Structure{Structure: &ir.Struct{
-			Fields: []*ir.Field{field("body", m.named("string"))},
+			Fields: []*ir.Field{irtest.Field("body", m.Named("string"))},
 		}},
 	})
 
@@ -634,12 +577,12 @@ func TestAFileEndingInStdIsNotThePrelude(t *testing.T) {
 // type and a method returning it, so a consumer can index entities without
 // reading the .tdl file.
 func TestEntityKey(t *testing.T) {
-	m := newModel("shop")
-	m.own(keyed("LineItem", []*ir.Field{
-		field("order", m.named("string")),
-		field("sku", m.named("string")),
-		field("quantity", m.named("int")),
-	}, name("order"), name("sku")))
+	m := irtest.New("shop")
+	m.Own(keyed("LineItem", []*ir.Field{
+		irtest.Field("order", m.Named("string")),
+		irtest.Field("sku", m.Named("string")),
+		irtest.Field("quantity", m.Named("int")),
+	}, irtest.Name("order"), irtest.Name("sku")))
 
 	resp := generate(t, m)
 	if len(resp.GetDiagnostics()) != 0 {
@@ -655,15 +598,15 @@ func TestEntityKey(t *testing.T) {
 
 // A key of one field is that field's type, with no struct around it.
 func TestSingleFieldKey(t *testing.T) {
-	m := newModel("shop")
-	m.own(&ir.Decl{
+	m := irtest.New("shop")
+	m.Own(&ir.Decl{
 		Meta: &ir.Meta{Name: "UserID"},
-		Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{Base: m.named("string")}},
+		Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{Base: m.Named("string")}},
 	})
-	m.own(keyed("User", []*ir.Field{
-		field("id", m.named("UserID")),
-		field("email", m.named("string")),
-	}, name("id")))
+	m.Own(keyed("User", []*ir.Field{
+		irtest.Field("id", m.Named("UserID")),
+		irtest.Field("email", m.Named("string")),
+	}, irtest.Name("id")))
 
 	got := files(t, generate(t, m))
 	src := got["user.go"]
@@ -679,49 +622,49 @@ func TestSingleFieldKey(t *testing.T) {
 func TestKeyIsAWarningWhenItCannotBeGenerated(t *testing.T) {
 	cases := []struct {
 		name  string
-		build func(m *modelBuilder)
+		build func(m *irtest.Builder)
 		file  string
 	}{
-		{"on a value", func(m *modelBuilder) {
-			d := keyed("Money", []*ir.Field{field("amount", m.named("int"))}, name("amount"))
+		{"on a value", func(m *irtest.Builder) {
+			d := keyed("Money", []*ir.Field{irtest.Field("amount", m.Named("int"))}, irtest.Name("amount"))
 			d.GetStructure().Kind = ir.StructKind_STRUCT_KIND_VALUE
-			m.own(d)
+			m.Own(d)
 		}, "money.go"},
-		{"an argument that is not a name", func(m *modelBuilder) {
-			m.own(keyed("User", []*ir.Field{field("id", m.named("string"))}, text("id")))
+		{"an argument that is not a name", func(m *irtest.Builder) {
+			m.Own(keyed("User", []*ir.Field{irtest.Field("id", m.Named("string"))}, irtest.Text("id")))
 		}, "user.go"},
-		{"a name that is no field", func(m *modelBuilder) {
-			m.own(keyed("User", []*ir.Field{field("id", m.named("string"))}, name("nope")))
+		{"a name that is no field", func(m *irtest.Builder) {
+			m.Own(keyed("User", []*ir.Field{irtest.Field("id", m.Named("string"))}, irtest.Name("nope")))
 		}, "user.go"},
-		{"a repeated field", func(m *modelBuilder) {
-			m.own(keyed("User", []*ir.Field{field("id", m.named("string"))}, name("id"), name("id")))
+		{"a repeated field", func(m *irtest.Builder) {
+			m.Own(keyed("User", []*ir.Field{irtest.Field("id", m.Named("string"))}, irtest.Name("id"), irtest.Name("id")))
 		}, "user.go"},
-		{"an incomparable field", func(m *modelBuilder) {
-			m.own(keyed("Blob", []*ir.Field{field("hash", m.named("bytes"))}, name("hash")))
+		{"an incomparable field", func(m *irtest.Builder) {
+			m.Own(keyed("Blob", []*ir.Field{irtest.Field("hash", m.Named("bytes"))}, irtest.Name("hash")))
 		}, "blob.go"},
-		{"a field the method would collide with", func(m *modelBuilder) {
-			m.own(keyed("Secret", []*ir.Field{
-				field("id", m.named("string")),
-				field("key", m.named("string")),
-			}, name("id")))
+		{"a field the method would collide with", func(m *irtest.Builder) {
+			m.Own(keyed("Secret", []*ir.Field{
+				irtest.Field("id", m.Named("string")),
+				irtest.Field("key", m.Named("string")),
+			}, irtest.Name("id")))
 		}, "secret.go"},
-		{"a declaration the key type would collide with", func(m *modelBuilder) {
-			m.own(&ir.Decl{
+		{"a declaration the key type would collide with", func(m *irtest.Builder) {
+			m.Own(&ir.Decl{
 				Meta: &ir.Meta{Name: "LineItemKey"},
 				Node: &ir.Decl_Structure{Structure: &ir.Struct{
-					Fields: []*ir.Field{field("raw", m.named("string"))},
+					Fields: []*ir.Field{irtest.Field("raw", m.Named("string"))},
 				}},
 			})
-			m.own(keyed("LineItem", []*ir.Field{
-				field("order", m.named("string")),
-				field("sku", m.named("string")),
-			}, name("order"), name("sku")))
+			m.Own(keyed("LineItem", []*ir.Field{
+				irtest.Field("order", m.Named("string")),
+				irtest.Field("sku", m.Named("string")),
+			}, irtest.Name("order"), irtest.Name("sku")))
 		}, "line_item.go"},
 	}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			m := newModel("shop")
+			m := irtest.New("shop")
 			c.build(m)
 
 			resp := generate(t, m)
@@ -751,10 +694,10 @@ func TestKeyIsAWarningWhenItCannotBeGenerated(t *testing.T) {
 // A model carries directives for every target block, and another backend's
 // key is not this one's.
 func TestKeyFromAnotherTargetIsIgnored(t *testing.T) {
-	m := newModel("shop")
-	d := keyed("User", []*ir.Field{field("id", m.named("string"))}, name("id"))
+	m := irtest.New("shop")
+	d := keyed("User", []*ir.Field{irtest.Field("id", m.Named("string"))}, irtest.Name("id"))
 	d.Directives[0].Target = "sql"
-	m.own(d)
+	m.Own(d)
 
 	resp := generate(t, m)
 	if len(resp.GetDiagnostics()) != 0 {
@@ -765,14 +708,14 @@ func TestKeyFromAnotherTargetIsIgnored(t *testing.T) {
 	}
 }
 
-// The receiver is derived from the Go name, and `name("")` passes the
+// The receiver is derived from the Go name, and `irtest.Name("")` passes the
 // compiler's checks, so an empty name has to be a warning rather than an
 // index out of range.
 func TestKeyOnAnEmptyNameIsAWarning(t *testing.T) {
-	m := newModel("shop")
-	d := keyed("User", []*ir.Field{field("id", m.named("string"))}, name("id"))
-	d.Directives = append(d.Directives, &ir.Directive{Name: "name", Target: "go", Args: []*ir.Literal{text("")}})
-	m.own(d)
+	m := irtest.New("shop")
+	d := keyed("User", []*ir.Field{irtest.Field("id", m.Named("string"))}, irtest.Name("id"))
+	d.Directives = append(d.Directives, &ir.Directive{Name: "name", Target: "go", Args: []*ir.Literal{irtest.Text("")}})
+	m.Own(d)
 
 	resp := generate(t, m)
 	for _, diag := range resp.GetDiagnostics() {
@@ -801,15 +744,6 @@ func keyed(declName string, fields []*ir.Field, args ...*ir.Literal) *ir.Decl {
 			Fields: fields,
 		}},
 	}
-}
-
-func text(s string) *ir.Literal {
-	return &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_STRING, Text: s}
-}
-
-// name is a bare identifier, which is how a key directive names a field.
-func name(s string) *ir.Literal {
-	return &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_NAME, Text: s}
 }
 
 func keys(m map[string]string) []string {

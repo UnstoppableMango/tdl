@@ -9,8 +9,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/unstoppablemango/tdl/backend/debug"
-	"github.com/unstoppablemango/tdl/backend/golang"
 	"github.com/unstoppablemango/tdl/internal/gen"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -33,8 +31,8 @@ func pluginDir(t *testing.T) string {
 			buildOnce.err = err
 			return
 		}
-		for _, name := range []string{debug.Name, golang.Name} {
-			binary := gen.CommandPrefix + name
+		for _, row := range shipped {
+			binary := gen.CommandPrefix + row.backend.Describe().Name
 			cmd := exec.Command("go", "build", "-o",
 				filepath.Join(dir, binary),
 				"github.com/unstoppablemango/tdl/cmd/"+binary)
@@ -70,64 +68,6 @@ func sampleModel() *ir.Model {
 				}},
 			}},
 		}},
-	}
-}
-
-// The protocol's one real claim: a compiled-in backend and the same
-// backend as a subprocess produce the same thing. A plan that shipped only
-// the in-process path could state that and never check it.
-func TestHostsAgree(t *testing.T) {
-	onPath(t, pluginDir(t))
-
-	sub, err := gen.Find(debug.Name)
-	if err != nil {
-		t.Fatalf("find: %v", err)
-	}
-
-	req := &plugin.Request{Target: debug.Name, Model: sampleModel(), Out: "out"}
-
-	inProcess, err := debug.Backend{}.Generate(context.Background(), req)
-	if err != nil {
-		t.Fatalf("in process: %v", err)
-	}
-	viaPipe, err := sub.Generate(context.Background(), req)
-	if err != nil {
-		t.Fatalf("subprocess: %v", err)
-	}
-
-	if len(inProcess.GetFiles()) != len(viaPipe.GetFiles()) {
-		t.Fatalf("file counts differ: %d and %d", len(inProcess.GetFiles()), len(viaPipe.GetFiles()))
-	}
-	for i := range inProcess.GetFiles() {
-		a, b := inProcess.GetFiles()[i], viaPipe.GetFiles()[i]
-		if a.GetPath() != b.GetPath() {
-			t.Errorf("path %d: %q and %q", i, a.GetPath(), b.GetPath())
-		}
-		if string(a.GetContent()) != string(b.GetContent()) {
-			t.Errorf("content of %s differs between hosts", a.GetPath())
-		}
-	}
-}
-
-// A description survives the wire, so tdl can check a target block against
-// what a plugin says it understands.
-func TestDescribeOverTheWire(t *testing.T) {
-	onPath(t, pluginDir(t))
-
-	sub, err := gen.Find(debug.Name)
-	if err != nil {
-		t.Fatalf("find: %v", err)
-	}
-
-	got, want := sub.Describe(), debug.Backend{}.Describe()
-	if got.Name != want.Name || got.Version != want.Version {
-		t.Errorf("got %+v, want %+v", got, want)
-	}
-	if len(got.Directives) != len(want.Directives) {
-		t.Fatalf("directives: %d over the wire, %d in process", len(got.Directives), len(want.Directives))
-	}
-	if got.Directives[0].GetName() != want.Directives[0].GetName() {
-		t.Errorf("directive names differ: %q and %q", got.Directives[0].GetName(), want.Directives[0].GetName())
 	}
 }
 

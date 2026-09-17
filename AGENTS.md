@@ -132,6 +132,11 @@ Pipeline, one package per stage:
   An entity's `key` directive becomes a `Key()` method, returning the field itself when it names one and a generated `<Name>Key` struct when it names several.
   It reports what it cannot generate as a warning with a position rather than emitting something plausible and wrong.
   See `docs/design/go-backend.md` for the reasoning and `docs/design/go-backend-plan.md` for what each phase adds.
+- `backend/internal/emit` — what every code generator shares and no target language decides: which declarations are the model's own, reading directives for one target, positioned warnings, and `Resolve`, which walks a type reference into the prelude's shapes with aliases expanded, or into the struct, enum, or newtype the reference names.
+  `Cascade` skips every declaration naming one that was skipped, and the case helpers split and join names for each target's convention.
+  `docs/design/schema-backends.md` is the mapping the schema backends build on it.
+  Private to `backend/`.
+- `backend/internal/irtest` — builds `*ir.Model` values by hand for backend tests, seeded with the prelude declarations a field can name.
 - `cmd/tdl-gen-debug`, `cmd/tdl-gen-go` — each backend as a plugin.
   The same value the registry holds, served over a connection, which is what makes the two hosts testable against each other.
 - `plugin` — the wire protocol a backend speaks, generated from `proto/tdl/plugin/v1/plugin.proto`, plus the framing codec.
@@ -151,7 +156,8 @@ Pipeline, one package per stage:
 - `cmd/tdl` — main.
 
 `go` is the only code-generation backend.
-`docs/design/plugins.md` describes the protocol every backend speaks, and `TestGoHostsAgree` in `internal/gen` is what holds `go` to producing the same bytes in process and over a pipe.
+`docs/design/plugins.md` describes the protocol every backend speaks, and `TestHostsAgree` in `internal/gen` is what holds each backend to producing the same bytes in process and over a pipe.
+It reads the `shipped` table in `internal/gen/hosts_test.go`, and a backend added to the registry gets a row there: `TestEveryBuiltinHasARow` fails until it does, and `TestPackagedBackendsShip` fails until a shipped one is in `nix/cmd.nix`.
 
 Regenerate the ir goldens with `go test ./internal/sema -update` after any change to lowering or to `ir.Dump`, and read the diff rather than trusting it.
 
