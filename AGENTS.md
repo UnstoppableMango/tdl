@@ -132,7 +132,7 @@ Pipeline, one package per stage:
   An entity's `key` directive becomes a `Key()` method, returning the field itself when it names one and a generated `<Name>Key` struct when it names several.
   It reports what it cannot generate as a warning with a position rather than emitting something plausible and wrong.
   See `docs/design/go-backend.md` for the reasoning and `docs/design/go-backend-plan.md` for what each phase adds.
-- `backend/internal/emit` — what every code generator shares and no target language decides: which declarations are the model's own, reading directives for one target, positioned warnings, and `Resolve`, which walks a type reference into the prelude's shapes with aliases expanded.
+- `backend/internal/emit` — what every code generator shares and no target language decides: which declarations are the model's own, reading directives for one target, positioned warnings, and `Resolve`, which walks a type reference into the prelude's shapes with aliases expanded, or into the struct, enum, or newtype the reference names.
   `Cascade` skips every declaration naming one that was skipped, and the case helpers split and join names for each target's convention.
   `docs/design/schema-backends.md` is the mapping the schema backends build on it.
   Private to `backend/`.

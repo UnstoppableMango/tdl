@@ -42,7 +42,8 @@ Input types are a second copy of every type with different rules for unions, and
 
 ## The type mapping
 
-**Warn** means a positioned warning, with the reaching declaration skipped.
+**Warn** in the table below means a positioned warning, with the reaching declaration skipped.
+The constraint warning above is the exception: it reports what is not enforced and leaves the declaration emitted.
 
 | TDL | protobuf | thrift | smithy | graphql | typescript |
 | --- | --- | --- | --- | --- | --- |
