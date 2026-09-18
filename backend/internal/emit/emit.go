@@ -13,6 +13,7 @@ package emit
 import (
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -181,6 +182,25 @@ func (s *Session) WarnWhere(d *ir.Decl) {
 		s.Warn(Unsupported(d.GetMeta().GetPosition(),
 			"%s carries %d where constraint(s), and validation is not generated yet",
 			d.GetMeta().GetName(), n))
+	}
+}
+
+// WarnConstraints says out loud that a declaration's constraints are not
+// enforced: a newtype's `where` block, and each field's, in a struct or in
+// an enum's variants. The declaration is still emitted.
+func (s *Session) WarnConstraints(d *ir.Decl) {
+	s.WarnWhere(d)
+
+	fields := slices.Clone(d.Fields())
+	for _, v := range d.GetEnumeration().GetVariants() {
+		fields = append(fields, v.GetFields()...)
+	}
+	for _, f := range fields {
+		if n := len(f.GetConstraints()); n > 0 {
+			s.Warn(Unsupported(f.GetMeta().GetPosition(),
+				"%s.%s carries %d constraint(s), and validation is not generated yet",
+				LastSegment(d.GetMeta().GetName()), f.GetMeta().GetName(), n))
+		}
 	}
 }
 

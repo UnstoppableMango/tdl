@@ -6,6 +6,9 @@ Five backends turn a resolved model into a schema language rather than a program
 TypeScript is on the list because what it emits here is a description of JSON on the wire, the same job the other four do.
 
 They cover the core type definitions: structs in all three kinds, both enum shapes, newtypes, aliases, the primitives, the collections, and optionality.
+
+`protobuf` is implemented, in `backend/protobuf`.
+`thrift`, `smithy`, `graphql`, and `typescript` follow the same mapping and are not written.
 [go-backend.md](go-backend.md) is the model for each decision below, and where a target has no reason to differ from Go it does not.
 
 ## What is shared
@@ -115,6 +118,7 @@ A declaration is Pascal case in every target.
 A protobuf field is snake case and a protobuf enum value is screaming snake case, which is the protobuf style guide.
 Every other target writes a field as TDL does.
 A `name` directive replaces the name in any target, and a name that collides after conversion, with a keyword, or with a synthesized name is a warning that `name` resolves.
+A value the target refuses as an identifier is a warning of its own, since a backend styles every other name into one and a directive is the only way a name the target cannot spell reaches the file.
 
 ## Numbering
 
