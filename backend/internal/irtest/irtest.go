@@ -168,3 +168,24 @@ func (b *Builder) Extern(qualified string) *ir.ID {
 	b.Model.Types = append(b.Model.Types, &ir.Type{Extern: &ir.ID{Name: qualified}})
 	return id
 }
+
+// Unit interns a type reference to the quantity a unit declaration
+// measures, which is what the `kg` of `decimal<kg>` lowers to: an ordinary
+// entry in the type table with `unit` set where a named type sets `ctor`.
+func (b *Builder) Unit(declName string, line int32) *ir.ID {
+	decl := b.Ref(declName)
+	quantity := &ir.ID{Index: int32(len(b.Model.GetUnits())), Name: declName}
+	b.Model.Units = append(b.Model.Units, &ir.Unit{
+		Dims:  []*ir.Dimension{{Base: decl, Exponent: 1}},
+		Decl:  decl,
+		Wrote: declName,
+	})
+
+	id := &ir.ID{Index: int32(len(b.Model.GetTypes())), Name: declName}
+	b.Model.Types = append(b.Model.Types, &ir.Type{
+		Unit:     quantity,
+		Wrote:    ir.SyntacticForm_SYNTACTIC_FORM_NAMED,
+		Position: &ir.Position{Filename: OwnFile, Line: line},
+	})
+	return id
+}
