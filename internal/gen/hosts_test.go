@@ -28,13 +28,12 @@ var shipped = []struct {
 	model   func() *ir.Model
 
 	// packaged is whether nix/cmd.nix ships the backend as tdl-gen-<name>.
-	// debug exercises the protocol and is not shipped.
 	packaged bool
 
 	// valid checks that a file is something the target language accepts.
 	valid func(t *testing.T, f *plugin.File)
 }{
-	{backend: debug.Backend{}, model: sampleModel},
+	{backend: debug.Backend{}, model: sampleModel, packaged: true},
 	{backend: golang.Backend{}, model: goModel, packaged: true, valid: parseGo},
 	{backend: protobuf.Backend{}, model: orderModel, packaged: true, valid: compileProto},
 }
