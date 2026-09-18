@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.6](https://github.com/UnstoppableMango/tdl/compare/v0.2.5...v0.2.6) (2026-09-18)
+
+
+### Features
+
+* **smithy:** generate Smithy IDL 2.0 models ([#794](https://github.com/UnstoppableMango/tdl/issues/794)) ([1824cc6](https://github.com/UnstoppableMango/tdl/commit/1824cc6e651762b9cd9fd918a9f4a8c6ed870a60))
+
+
+### Bug Fixes
+
+* **deps:** update go.lsp.dev modules to v1 ([#825](https://github.com/UnstoppableMango/tdl/issues/825)) ([ab0ebf1](https://github.com/UnstoppableMango/tdl/commit/ab0ebf17648347eeca556327c7c53a4bbcb79a7b))
+
 ## [0.2.5](https://github.com/UnstoppableMango/tdl/compare/v0.2.4...v0.2.5) (2026-09-18)
 
 
