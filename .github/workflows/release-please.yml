@@ -11,14 +11,13 @@ permissions:
 jobs:
   release-please:
     name: Release Please
-    runs-on: thecluster
-    steps:
-      # A pull request opened with GITHUB_TOKEN does not trigger workflows,
-      # so the release PR arrives with no CI. RELEASE_PLEASE_TOKEN is a PAT
-      # that fixes that; without one this still works, the release PR just
-      # has nothing checking it.
-      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
-        with:
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
-          config-file: release-please-config.json
-          manifest-file: .release-please-manifest.json
+    # Authenticates as the thecluster-bot GitHub App rather than with
+    # GITHUB_TOKEN, so the release PR triggers CI, and rather than with a PAT,
+    # so the commits it pushes are signed.
+    uses: unmango/actions/.github/workflows/release-please.yml@3ec4ed5a6af9c00f6a39e079df488573c77ebda6 # v1.0.1
+    with:
+      app-client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+      config-file: release-please-config.json
+      manifest-file: .release-please-manifest.json
+    secrets:
+      app-private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
