@@ -97,6 +97,10 @@ func newtype(name string, base *ir.ID) *ir.Decl {
 	return &ir.Decl{Meta: &ir.Meta{Name: name}, Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{Base: base}}}
 }
 
+func renamed(n string) []*ir.Directive {
+	return []*ir.Directive{{Name: "name", Target: thrift.Name, Args: []*ir.Literal{irtest.Text(n)}}}
+}
+
 func number(n string) *ir.Directive {
 	return &ir.Directive{Name: "number", Target: thrift.Name, Args: []*ir.Literal{{Kind: ir.LiteralKind_LITERAL_KIND_INT, Text: n}}}
 }
@@ -284,6 +288,48 @@ func TestKeywordsAreSkipped(t *testing.T) {
 	contains(t, src, "1: string type")
 }
 
+// A `name` directive is arbitrary text, and Thrift has to read it as an
+// identifier.
+func TestNamesThriftCannotReadAreSkipped(t *testing.T) {
+	b := irtest.New("shop")
+	order := value("Order", irtest.Field("a", b.Named("string")))
+	order.Directives = renamed("1Order")
+	b.Own(order)
+
+	total := irtest.Field("total", b.Named("int"))
+	total.Directives = renamed("bad name")
+	b.Own(value("Invoice", total))
+
+	b.Own(value("Fine", irtest.Field("a", b.Named("string"))))
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 2 {
+		t.Errorf("want a warning for Order and one for Invoice: %+v", resp.GetDiagnostics())
+	}
+	src := check(t, resp)
+	absent(t, src, "1Order", "bad name")
+	contains(t, src, "struct Fine")
+}
+
+// A declaration Cascade removes does not hold the name it would have
+// declared against a declaration that survives.
+func TestACascadedNameIsFreed(t *testing.T) {
+	b := irtest.New("shop")
+	b.Own(&ir.Decl{Meta: &ir.Meta{Name: "kg"}, Node: &ir.Decl_Unit{Unit: &ir.UnitDef{}}})
+	// Weight renders, since `decimal<kg>` is a string, and then names a
+	// unit, which is not generated.
+	b.Own(value("Weight", irtest.Field("w", b.Named("decimal", b.Named("kg")))))
+	mass := value("Mass", irtest.Field("m", b.Named("int")))
+	mass.Directives = renamed("Weight")
+	b.Own(mass)
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 2 {
+		t.Errorf("want a warning for kg and one for Weight: %+v", resp.GetDiagnostics())
+	}
+	contains(t, check(t, resp), "struct Weight { 1: i64 m }")
+}
+
 func TestConstraintsWarn(t *testing.T) {
 	b := irtest.New("shop")
 	qty := irtest.Field("quantity", b.Named("int"))
@@ -311,6 +357,21 @@ func TestDocsAndDeprecation(t *testing.T) {
 		"/** * Deprecated: nobody has one */",
 		`1: string fax (deprecated = "nobody has one")`,
 		`} (deprecated = "")`,
+	)
+}
+
+// A reason is prose: it survives into the comment as it was written, and
+// into the annotation as something Thrift reads as one string.
+func TestADeprecationReasonIsQuoted(t *testing.T) {
+	b := irtest.New("shop")
+	old := irtest.Field("fax", b.Named("string"))
+	old.Meta.Deprecated = &ir.Deprecation{Reason: "one\ntwo \\ \"three\""}
+	b.Own(value("Contact", old))
+
+	src := check(t, generate(t, b))
+	contains(t, src,
+		`/** * Deprecated: one * two \ "three" */`,
+		`1: string fax (deprecated = "one two \\ \"three\"")`,
 	)
 }
 
@@ -357,9 +418,7 @@ func TestConformance(t *testing.T) {
 					t.Errorf("error: %s", d.GetMessage())
 				}
 			}
-			if len(resp.GetFiles()) > 0 {
-				check(t, resp)
-			}
+			check(t, resp)
 		})
 	}
 }

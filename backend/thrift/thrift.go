@@ -84,16 +84,12 @@ var ident = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
 type generator struct {
 	*emit.Session
-
-	// names is every name declared at file scope, with the declaration that
-	// declared it.
-	names map[string]string
 }
 
 // Generate returns one .thrift file holding every declaration the model
 // owns.
 func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Response, error) {
-	g := &generator{Session: emit.NewSession(req, "Thrift"), names: map[string]string{}}
+	g := &generator{Session: emit.NewSession(req, "Thrift")}
 
 	ns, nsPos := req.GetModel().GetPackage(), (*ir.Position)(nil)
 	if d, ok := g.Block("package"); ok {
@@ -108,19 +104,31 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 
 	own := g.Own()
 	texts := map[*ir.Decl]string{}
+	declared := map[*ir.Decl][]string{}
 	skipped := map[*ir.Decl]bool{}
 	for _, d := range own {
-		text, err := g.decl(d)
+		text, names, err := g.decl(d)
 		if err != nil {
 			g.Warn(err)
 			skipped[d] = true
 			continue
 		}
 		if text != "" {
-			texts[d] = text
+			texts[d], declared[d] = text, names
 		}
 	}
-	g.Cascade(own, skipped)
+
+	// A name is claimed only for a declaration that survives, so one that
+	// [emit.Session.Cascade] removes for naming a skipped declaration does
+	// not hold its name against a later one. Claiming can skip a
+	// declaration too, which frees its names and may remove a referrer, so
+	// both run until nothing more is removed.
+	for {
+		g.Cascade(own, skipped)
+		if !g.claim(own, texts, declared, skipped) {
+			break
+		}
+	}
 
 	order := g.order(own, func(d *ir.Decl) bool { return texts[d] != "" && !skipped[d] })
 	if len(order) == 0 {
@@ -172,23 +180,28 @@ func (g *generator) order(own []*ir.Decl, emitted func(*ir.Decl) bool) []*ir.Dec
 	return out
 }
 
-// decl renders one declaration, or "" for one that declares nothing.
-func (g *generator) decl(d *ir.Decl) (string, error) {
+// decl renders one declaration and the names it declares at file scope, or
+// "" for one that declares nothing.
+//
+// Whether another declaration already took one of those names is not
+// decided here: that answer depends on which declarations survive, which
+// [emit.Session.Cascade] has yet to say. [generator.claim] decides it.
+func (g *generator) decl(d *ir.Decl) (string, []string, error) {
 	pos := d.GetMeta().GetPosition()
 	name := d.GetMeta().GetName()
 
 	switch {
 	case d.GetClass() != nil:
-		return "", emit.Unsupported(pos, "%s is a class, and classes are not generated yet", name)
+		return "", nil, emit.Unsupported(pos, "%s is a class, and classes are not generated yet", name)
 	case d.GetUnit() != nil:
-		return "", emit.Unsupported(pos, "%s is a unit, and units are not generated yet", name)
+		return "", nil, emit.Unsupported(pos, "%s is a unit, and units are not generated yet", name)
 	case d.GetStructure() == nil && d.GetEnumeration() == nil && d.GetNewtype() == nil:
 		// An alias is expanded where it is used, and a model's own
 		// primitive names an opaque root; neither declares anything.
-		return "", nil
+		return "", nil, nil
 	}
 	if len(d.Params()) > 0 {
-		return "", emit.Unsupported(pos, "%s is parameterized, and generics are not generated yet", name)
+		return "", nil, emit.Unsupported(pos, "%s is parameterized, and generics are not generated yet", name)
 	}
 
 	var b strings.Builder
@@ -205,22 +218,52 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 		declared, err = g.enum(&b, d)
 	}
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	for _, n := range declared {
+		if !ident.MatchString(n) {
+			return "", nil, emit.Unsupported(pos, "%s would be named %s in Thrift, which is not an identifier", name, n)
+		}
 		if keywords[n] {
-			return "", emit.Unsupported(pos, "%s would be named %s in Thrift, which is a keyword", name, n)
+			return "", nil, emit.Unsupported(pos, "%s would be named %s in Thrift, which is a keyword", name, n)
 		}
-		if other, ok := g.names[n]; ok {
-			return "", emit.Unsupported(pos, "%s would declare %s in Thrift, and %s already does", name, n, other)
-		}
-	}
-	for _, n := range declared {
-		g.names[n] = name
 	}
 	g.WarnConstraints(d)
-	return b.String(), nil
+	return b.String(), declared, nil
+}
+
+// claim gives each surviving declaration the file-scope names it declares,
+// skipping one whose name an earlier declaration already took, and reports
+// whether it skipped anything.
+//
+// The names are claimed afresh on every call, because a declaration skipped
+// since the last one no longer holds the names it declared.
+func (g *generator) claim(own []*ir.Decl, texts map[*ir.Decl]string, declared map[*ir.Decl][]string, skipped map[*ir.Decl]bool) bool {
+	names, changed := map[string]string{}, false
+	for _, d := range own {
+		if skipped[d] || texts[d] == "" {
+			continue
+		}
+		name, taken := d.GetMeta().GetName(), false
+		for _, n := range declared[d] {
+			other, ok := names[n]
+			if !ok {
+				continue
+			}
+			g.Warn(emit.Unsupported(d.GetMeta().GetPosition(),
+				"%s would declare %s in Thrift, and %s already does", name, n, other))
+			skipped[d], changed, taken = true, true, true
+			break
+		}
+		if taken {
+			continue
+		}
+		for _, n := range declared[d] {
+			names[n] = name
+		}
+	}
+	return changed
 }
 
 // typedef renders a newtype as a named alias for its base.
@@ -350,6 +393,9 @@ func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, error) {
 
 // member claims a name inside a struct, a union, or an enum.
 func (g *generator) member(seen map[string]bool, owner, name string, pos *ir.Position) error {
+	if !ident.MatchString(name) {
+		return emit.Unsupported(pos, "%s.%s is not a Thrift identifier", owner, name)
+	}
 	if keywords[name] {
 		return emit.Unsupported(pos, "%s.%s is a Thrift keyword", owner, name)
 	}
@@ -418,7 +464,9 @@ func comment(b *strings.Builder, indent string, meta *ir.Meta) {
 		if len(lines) > 0 {
 			lines = append(lines, "")
 		}
-		lines = append(lines, "Deprecated: "+reason)
+		// A reason is prose and may be written over several lines, each of
+		// which needs the comment's prefix.
+		lines = append(lines, strings.Split("Deprecated: "+reason, "\n")...)
 	}
 	if len(lines) == 0 {
 		return
@@ -441,7 +489,32 @@ func annotation(meta *ir.Meta) string {
 	if !ok {
 		return ""
 	}
-	return ` (deprecated = "` + strings.ReplaceAll(reason, `"`, `'`) + `")`
+	return " (deprecated = " + quote(reason) + ")"
+}
+
+// quote writes prose as a Thrift string literal.
+//
+// Thrift's lexer reads `\"` and `\\` inside one, so those two are escaped;
+// a control character has no escape a literal can carry and is written as a
+// space, which is what a reason spanning lines means on the one line an
+// annotation is. The doc comment beside the annotation carries the text as
+// it was written.
+func quote(s string) string {
+	var b strings.Builder
+	b.WriteByte('"')
+	for _, r := range s {
+		switch {
+		case r == '"' || r == '\\':
+			b.WriteByte('\\')
+			b.WriteRune(r)
+		case r < 0x20 || r == 0x7f:
+			b.WriteByte(' ')
+		default:
+			b.WriteRune(r)
+		}
+	}
+	b.WriteByte('"')
+	return b.String()
 }
 
 func validNamespace(ns string) bool {
