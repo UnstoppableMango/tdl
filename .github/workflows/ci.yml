@@ -22,6 +22,10 @@ jobs:
         with:
           name: unstoppablemango
 
+      # No go-cache step: both commands run go inside the nix sandbox, which
+      # has its own GOMODCACHE and GOCACHE and takes its modules from
+      # nix/gomod2nix.toml. What carries over between runs here is the store,
+      # which is what magic-nix-cache and cachix above are for.
       - run: nix flake check
       - run: nix build .#
 
@@ -108,6 +112,13 @@ jobs:
         with:
           name: unstoppablemango
 
+      # The one place the shell is entered twice. `go env` has to run inside
+      # it to answer where the caches are, and the 8s that costs against a
+      # warm store buys back the 73s the job spent downloading one module.
+      - uses: ./.github/actions/go-cache
+        with:
+          go: nix develop .#treesitter --command go
+
       # One invocation of `nix develop`, not three: entering the shell again
       # against an already-warm store re-evaluates the flake and cost 8s of
       # the run. git comes from the runner, which is where actions/checkout
@@ -129,10 +140,17 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # cache: false, because the tests run go from the devShell rather than
+      # from this toolchain, and setup-go would cache the paths of a go that
+      # never ran. The step below reads them from the one that does.
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          cache-dependency-path: go.sum
+          cache: false
           go-version-file: go.mod
+
+      - uses: ./.github/actions/go-cache
+        with:
+          go: nix develop -c go
 
       - run: nix develop -c go test -race -coverprofile=cover.profile ./...
         env:
@@ -150,10 +168,14 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # One mechanism owns the Go caches here, the step below, so setup-go
+      # does not restore and save the same two directories beside it.
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          cache-dependency-path: go.sum
+          cache: false
           go-version-file: go.mod
+
+      - uses: ./.github/actions/go-cache
 
       - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
 
