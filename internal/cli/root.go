@@ -16,6 +16,7 @@ func Execute() error {
 	root.AddCommand(newFmtCmd())
 	root.AddCommand(newGenCmd())
 	root.AddCommand(newIrCmd())
+	root.AddCommand(newLspCmd())
 	root.AddCommand(newPlayCmd())
 	root.AddCommand(newTokensCmd())
 	root.AddCommand(newVersionCmd())

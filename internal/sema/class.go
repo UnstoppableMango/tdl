@@ -78,6 +78,8 @@ func (l *lowerer) classRef(r *ast.ClassRef) *ir.ClassRef {
 	out := &ir.ClassRef{Position: position(r.P), Args: l.typeArgs(r.Args)}
 
 	if r.Qualifier != "" {
+		l.record(r.P, r.Qualifier+"."+r.N, binding{}, false)
+
 		pkg, ok := l.aliases[r.Qualifier]
 		if !ok {
 			l.diags.add(r.P, "undefined import alias: %s", r.Qualifier)
@@ -86,6 +88,8 @@ func (l *lowerer) classRef(r *ast.ClassRef) *ir.ClassRef {
 		out.Extern = l.extern(pkg, r.N, r.P)
 		return out
 	}
+
+	l.recordLookup(r.P, r.N)
 
 	b, ok := l.scope.lookup(r.N)
 	switch {

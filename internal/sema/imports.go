@@ -94,10 +94,14 @@ func (l *lowerer) bindImport(imp *ast.ImportDecl, pkg string, dep *ast.File) {
 		if !exported(name) || !namesAType(decl) {
 			continue
 		}
+		// The position is the declaration's own, in the dependency, rather
+		// than the import that merged it in: it is where the name was
+		// declared, which is where a reader asking about the name wants to
+		// be taken and what a collision with it should name.
 		if _, ok := l.file.bind(name, binding{
 			kind: bindExtern,
 			id:   l.extern(pkg, name, imp.P),
-			pos:  imp.P,
+			pos:  decl.Pos(),
 		}); !ok {
 			l.diags.add(imp.P, "%s from %q is already declared here", name, imp.Path)
 		}

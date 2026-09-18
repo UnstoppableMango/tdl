@@ -19,7 +19,7 @@ type binding struct {
 	id    *ir.ID       // set for bindDecl
 	owner *ir.ID       // set for bindParam: the declaration that declares it
 	index int32        // set for bindParam: position in the parameter list
-	pos   ast.Position // where the name was bound
+	pos   ast.Position // where the name was declared, in whichever file declares it
 }
 
 // scope is a chain of name bindings. The file's declarations sit at the

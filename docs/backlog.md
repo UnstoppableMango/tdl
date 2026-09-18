@@ -39,20 +39,10 @@ A unit expression is dimensional algebra, and a group is a term like any other; 
 The change is `UnitTerm = ( identifier | "(" UnitExpr ")" ) [ "^" int_lit ] .`, a sentence in the spec's units section, and a regenerated tree-sitter grammar.
 It is here rather than in a plan because it touches `docs/grammar.ebnf`, and a grammar change and the tree-sitter derivation have to land together.
 
-## Language server
-
-`tdl lsp` is already described in [design/workflow.md](design/workflow.md) as the editor-facing half of the inner loop.
-
-The pieces exist: the parser reports every error in one pass with positions, and `internal/sema` resolves names and records where each declaration came from.
-What is missing is the protocol layer and incremental reparsing.
-
-Diagnostics, go-to-definition, and hover are the first three features worth having, in that order.
-Completion needs scope information the resolver already computes.
-
 ## Editor support
 
-Highlighting for Neovim, VS Code, Zed, and GitHub has a design of its own in [design/editors.md](design/editors.md).
-Two remain here, because both want the language server more than they want highlighting and neither is close to the other four in shape.
+Highlighting for Neovim, VS Code, Zed, and GitHub has a design of its own in [design/editors.md](design/editors.md), and the language server has one in [design/lsp.md](design/lsp.md).
+Two editors remain here, because neither is close to the other four in shape.
 
 - **JetBrains.** A plugin. The platform has its own PSI model, so this is the most work of the six; the LSP API narrows it.
 - **Emacs.** A major mode deriving from `prog-mode`, `treesit` integration, and an `eglot` entry. Close to Neovim once `treesit` has the grammar.

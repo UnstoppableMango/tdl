@@ -79,6 +79,10 @@ func (l *lowerer) coreType(t *ast.TypeRef) *ir.ID {
 		})
 	}
 
+	// Every branch below resolves this same name against this same scope,
+	// so the reference is recorded once here rather than in each of them.
+	l.recordLookup(t.P, t.N)
+
 	// A `_` import merges a dependency's exported names into this scope, and
 	// a reference to one is an extern rather than a local declaration.
 	if b, ok := l.scope.lookup(t.N); ok && b.kind == bindExtern {
@@ -175,6 +179,10 @@ func (l *lowerer) namedUnit(t *ast.TypeRef) (*ir.ID, bool) {
 	if def == nil {
 		return nil, false
 	}
+
+	// A name that turns out to be a unit is answered here and never
+	// reaches coreType, so it is recorded here or not at all.
+	l.record(t.P, t.N, b, true)
 	if !def.GetUnit().Resolved() {
 		return &ir.ID{Index: ir.Unresolved}, true
 	}
@@ -197,6 +205,12 @@ func (l *lowerer) unitType(unit *ir.ID, pos ast.Position) *ir.ID {
 // carries the dependency's package to the backend, which either resolves
 // it through the import table or maps it with a target directive.
 func (l *lowerer) qualified(t *ast.TypeRef) *ir.ID {
+	// Recorded with no target: the declaration is in a dependency this
+	// model parsed for its names and not for its positions. The record
+	// still earns its place, because it is what stops a cursor on
+	// `money.Money` from finding whatever reference sits next to it.
+	l.record(t.P, t.Qualifier+"."+t.N, binding{}, false)
+
 	pkg, ok := l.aliases[t.Qualifier]
 	if !ok {
 		l.diags.add(t.P, "undefined import alias: %s", t.Qualifier)
