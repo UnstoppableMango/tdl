@@ -1500,3 +1500,62 @@ func TestUnexpressibleRequiresIsDropped(t *testing.T) {
 		})
 	}
 }
+
+// A class a class requires is embedded in its interface, which is what makes
+// the requirement hold. One Go cannot embed is dropped, so the interface is
+// weaker than the model says, and that is a warning at the clause rather
+// than a quieter interface.
+func TestUnembeddableSuperIsAWarning(t *testing.T) {
+	cases := []struct {
+		name  string
+		ref   func(m *irtest.Builder) *ir.ClassRef
+		diags int
+		// absent is the name the interface must not embed.
+		absent string
+	}{
+		{"a prelude class", func(m *irtest.Builder) *ir.ClassRef {
+			return m.Requires("Entity", 4)
+		}, 1, "Entity"},
+		// The class warns where it is declared, and the clause where it is
+		// written.
+		{"a class taking parameters", func(m *irtest.Builder) *ir.ClassRef {
+			d := m.Class("Projection")
+			d.GetMeta().Position = &ir.Position{Filename: irtest.OwnFile, Line: 2}
+			d.GetClass().Params = irtest.Params("from", "to")
+			return m.Requires("Projection", 4)
+		}, 2, "Projection"},
+		{"a class in another package", func(m *irtest.Builder) *ir.ClassRef {
+			return &ir.ClassRef{
+				Extern:   &ir.ID{Name: "acme.Auditable"},
+				Position: &ir.Position{Filename: irtest.OwnFile, Line: 4},
+			}
+		}, 1, "Auditable"},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			m := irtest.New("shop")
+			ref := c.ref(m)
+			timestamped := m.Class("Timestamped")
+			timestamped.GetClass().RequiresClasses = []*ir.ClassRef{ref}
+
+			resp := generate(t, m)
+			if len(resp.GetDiagnostics()) != c.diags {
+				t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+			}
+			atClause := false
+			for _, d := range resp.GetDiagnostics() {
+				atClause = atClause || d.GetPosition().GetLine() == 4
+			}
+			if !atClause {
+				t.Errorf("no warning at the clause: %+v", resp.GetDiagnostics())
+			}
+
+			src := files(t, resp)["timestamped.go"]
+			contains(t, src, "type Timestamped interface")
+			if strings.Contains(src, c.absent) {
+				t.Errorf("the interface embeds %s:\n%s", c.absent, src)
+			}
+		})
+	}
+}

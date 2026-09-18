@@ -214,8 +214,11 @@ What Go cannot express warns where it was written:
 | A newtype over a pointer or an interface | No marker, for the same reason |
 | A field whose Go name is the marker's | No marker |
 | A `requires` naming a prelude class, a class that is not generated, a class in another package, or anything but a bare parameter | The declaration is emitted without that constraint |
+| A class requiring one of those, where the interface would embed it | The interface is emitted without the embed |
 
-`Entity` is the prelude's, and the prelude is not generated, so `requires Entity<T>` is the last row.
+`Entity` is the prelude's, and the prelude is not generated, so `requires Entity<T>` is the second-to-last row and `class Auditable requires Entity` is the last.
+
+The last two rows are the same clause read in the two places it lands, and both warn: a class Go cannot embed leaves an interface that any type satisfies without satisfying what the model says it requires, which is quieter than a missing constraint and no less wrong.
 
 ## Directives
 

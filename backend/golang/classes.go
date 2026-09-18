@@ -38,6 +38,14 @@ func (g *generator) planClasses() {
 		if !g.genClass[int32(i)] {
 			continue
 		}
+		// A class the interface cannot embed is dropped by
+		// [generator.supers], so it is reported once here rather than at
+		// each of that function's callers.
+		for _, ref := range class.GetClass().GetRequiresClasses() {
+			if err := g.superProblem(class, ref); err != nil {
+				g.Warn(err)
+			}
+		}
 		for _, id := range g.Model.Satisfying(&ir.ID{Index: int32(i)}) {
 			target := g.Model.Decl(id)
 			if target == nil || !emit.IsOwn(target) {
@@ -165,14 +173,51 @@ func (g *generator) class(b *strings.Builder, decl *ir.Decl) error {
 }
 
 // supers is the generated classes a class requires.
+//
+// It says nothing about what it drops: [generator.planClasses] has already
+// warned about each of those once, and this is asked again for every use of
+// a constrained declaration.
 func (g *generator) supers(class *ir.Decl) []int32 {
 	var out []int32
 	for _, ref := range class.GetClass().GetRequiresClasses() {
-		if i := ref.GetClass().GetIndex(); ref.GetClass() != nil && g.genClass[i] {
+		if ref.GetClass() == nil {
+			continue
+		}
+		if i := ref.GetClass().GetIndex(); g.genClass[i] {
 			out = append(out, i)
 		}
 	}
 	return out
+}
+
+// superProblem says why a class a class requires cannot be embedded in its
+// Go interface, or returns nil when it can.
+//
+// Embedding is what makes the requirement hold, since a type satisfying the
+// interface carries the method of everything it embeds. A requirement Go
+// cannot embed is dropped and the interface is weaker than the model says,
+// which is worth saying out loud.
+func (g *generator) superProblem(class *ir.Decl, ref *ir.ClassRef) error {
+	pos := ref.GetPosition()
+	if pos == nil {
+		pos = class.GetMeta().GetPosition()
+	}
+	into := g.declName(class)
+	if ext := ref.GetExtern(); ext != nil {
+		return emit.Unsupported(pos, "%s is declared in another package, so %s does not embed it", ext.GetName(), into)
+	}
+	super := g.Model.Decl(ref.GetClass())
+	if super == nil {
+		return emit.Unsupported(pos, "class %s did not resolve", ref.GetClass().GetName())
+	}
+	cname := super.GetMeta().GetName()
+	switch {
+	case !emit.IsOwn(super):
+		return emit.Unsupported(pos, "%s is declared by the prelude, which is not generated, so %s does not embed it", cname, into)
+	case !g.genClass[ref.GetClass().GetIndex()]:
+		return emit.Unsupported(pos, "%s is not generated, so %s does not embed it", cname, into)
+	}
+	return nil
 }
 
 // writeMarkers writes the method marking the declaration being rendered as
