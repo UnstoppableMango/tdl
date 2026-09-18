@@ -13,7 +13,6 @@ import (
 	"go.lsp.dev/jsonrpc2"
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
-	"go.uber.org/zap"
 
 	"github.com/unstoppablemango/tdl/internal/lsp"
 )
@@ -52,7 +51,7 @@ func newSession(t *testing.T) *session {
 	}()
 
 	client := &testClient{published: map[string][]protocol.Diagnostic{}}
-	_, conn, server := protocol.NewClient(ctx, client, jsonrpc2.NewStream(clientConn), zap.NewNop())
+	_, conn, server := protocol.NewClient(ctx, client, jsonrpc2.NewStream(clientConn))
 
 	t.Cleanup(func() {
 		_ = conn.Close()
@@ -102,7 +101,9 @@ func (s *session) change(path, text string, version int32) []protocol.Diagnostic
 			TextDocumentIdentifier: protocol.TextDocumentIdentifier{URI: u},
 			Version:                version,
 		},
-		ContentChanges: []protocol.TextDocumentContentChangeEvent{{Text: text}},
+		ContentChanges: []protocol.TextDocumentContentChangeEvent{
+			&protocol.TextDocumentContentChangeWholeDocument{Text: text},
+		},
 	})
 	if err != nil {
 		s.t.Fatalf("didChange: %v", err)
@@ -116,7 +117,7 @@ func (s *session) change(path, text string, version int32) []protocol.Diagnostic
 // The cursor is computed from the text the test wrote rather than passed
 // as a line and a column, so a case says which name it is asking about and
 // not where that name happens to sit.
-func (s *session) definition(path, text, needle string) []protocol.Location {
+func (s *session) definition(path, text, needle string) protocol.LocationSlice {
 	s.t.Helper()
 
 	locs, err := s.server.Definition(context.Background(), &protocol.DefinitionParams{
@@ -128,7 +129,31 @@ func (s *session) definition(path, text, needle string) []protocol.Location {
 	if err != nil {
 		s.t.Fatalf("definition: %v", err)
 	}
-	return locs
+	if locs == nil {
+		return nil
+	}
+
+	// The server answers with the LocationSlice arm of the union, and
+	// nothing here asks a question the other two arms answer.
+	slice, ok := locs.(protocol.LocationSlice)
+	if !ok {
+		s.t.Fatalf("definition answered %T, want protocol.LocationSlice", locs)
+	}
+	return slice
+}
+
+// message is a diagnostic's text.
+//
+// The protocol says a message is a string or markup, so the field is a
+// union; this server only ever writes the string arm.
+func message(t *testing.T, d protocol.Diagnostic) string {
+	t.Helper()
+
+	s, ok := d.Message.(protocol.String)
+	if !ok {
+		t.Fatalf("diagnostic message is %T, want protocol.String", d.Message)
+	}
+	return string(s)
 }
 
 // cursor is the protocol position of the first occurrence of needle.
@@ -151,9 +176,11 @@ func cursor(t *testing.T, text, needle string) protocol.Position {
 
 // testClient records what the server publishes.
 //
-// Only PublishDiagnostics is interesting; the rest of the interface exists
-// because protocol.Client declares it.
+// Only PublishDiagnostics is interesting; protocol.UnimplementedClient
+// answers the rest of the interface.
 type testClient struct {
+	protocol.UnimplementedClient
+
 	mu        sync.Mutex
 	published map[string][]protocol.Diagnostic
 	waiting   map[string]chan []protocol.Diagnostic
@@ -201,42 +228,6 @@ func (c *testClient) PublishDiagnostics(_ context.Context, params *protocol.Publ
 		}
 	}
 	return nil
-}
-
-func (c *testClient) Progress(context.Context, *protocol.ProgressParams) error { return nil }
-
-func (c *testClient) WorkDoneProgressCreate(context.Context, *protocol.WorkDoneProgressCreateParams) error {
-	return nil
-}
-
-func (c *testClient) LogMessage(context.Context, *protocol.LogMessageParams) error { return nil }
-
-func (c *testClient) ShowMessage(context.Context, *protocol.ShowMessageParams) error { return nil }
-
-func (c *testClient) ShowMessageRequest(context.Context, *protocol.ShowMessageRequestParams) (*protocol.MessageActionItem, error) {
-	return nil, nil
-}
-
-func (c *testClient) Telemetry(context.Context, interface{}) error { return nil }
-
-func (c *testClient) RegisterCapability(context.Context, *protocol.RegistrationParams) error {
-	return nil
-}
-
-func (c *testClient) UnregisterCapability(context.Context, *protocol.UnregistrationParams) error {
-	return nil
-}
-
-func (c *testClient) ApplyEdit(context.Context, *protocol.ApplyWorkspaceEditParams) (bool, error) {
-	return false, nil
-}
-
-func (c *testClient) Configuration(context.Context, *protocol.ConfigurationParams) ([]interface{}, error) {
-	return nil, nil
-}
-
-func (c *testClient) WorkspaceFolders(context.Context) ([]protocol.WorkspaceFolder, error) {
-	return nil, nil
 }
 
 var _ protocol.Client = (*testClient)(nil)

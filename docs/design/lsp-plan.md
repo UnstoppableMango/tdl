@@ -48,7 +48,7 @@ Serves `initialize`, `initialized`, `shutdown`, `exit`, and the four text docume
 `initialize` advertises full text synchronization and nothing else, so a client asks for nothing this phase does not answer.
 
 `internal/cli/lsp.go` builds the server over stdin and stdout and waits on the connection.
-The logger is `zap.NewNop`: anything written to stdout on a stdio server corrupts the stream, and a library that logs by default is a library that will.
+Nothing is logged: anything written to stdout on a stdio server corrupts the stream, and a library that logs by default is a library that will.
 
 Done when opening a file with a syntax error underlines the right span, when opening one with an undefined type underlines that, and when fixing either clears it.
 

@@ -11,6 +11,7 @@ package lsp
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"sort"
@@ -25,27 +26,36 @@ import (
 // the message.
 const source = "tdl"
 
+// errNoClient answers a request whose context carries no client. Serve
+// puts one there, so reaching this means the server was driven by
+// something that did not.
+var errNoClient = errors.New("lsp: no client in context")
+
 // Server answers protocol requests about the documents an editor has open.
 //
-// It embeds unimplemented, so a request it does not serve is answered with
-// ErrMethodNotFound rather than with a panic, and adding a feature is
-// writing the method for it.
+// It embeds protocol.UnimplementedServer, so a request it does not serve
+// is answered with "method not found" rather than with a panic, and adding
+// a feature is writing the method for it.
 type Server struct {
-	unimplemented
+	protocol.UnimplementedServer
 
-	client protocol.Client
-	store  *store
-	opts   []sema.Option
+	store *store
+	opts  []sema.Option
 }
 
-// NewServer returns a server publishing to client.
+// NewServer returns a server.
+//
+// The client it publishes to comes from each request's context rather than
+// from a field, which is how protocol.NewServer hands one over: the
+// connection exists before the client dispatching across it, and the
+// server exists before the connection.
 //
 // opts are the lowering options every document is analyzed with, which is
 // how a caller replaces the prelude. The loader is not among them: the
 // server supplies its own, so an open document's unsaved text is what an
 // import of it resolves to.
-func NewServer(client protocol.Client, opts ...sema.Option) *Server {
-	s := &Server{client: client, store: newStore()}
+func NewServer(opts ...sema.Option) *Server {
+	s := &Server{store: newStore()}
 	s.opts = append(append([]sema.Option{}, opts...), sema.WithLoader(newOverlay(s.store)))
 	return s
 }
@@ -61,13 +71,13 @@ func (s *Server) Initialize(context.Context, *protocol.InitializeParams) (*proto
 	return &protocol.InitializeResult{
 		Capabilities: protocol.ServerCapabilities{
 			TextDocumentSync: &protocol.TextDocumentSyncOptions{
-				OpenClose: true,
-				Change:    protocol.TextDocumentSyncKindFull,
-				Save:      &protocol.SaveOptions{IncludeText: false},
+				OpenClose: ptr(true),
+				Change:    ptr(protocol.TextDocumentSyncKindFull),
+				Save:      &protocol.SaveOptions{IncludeText: ptr(false)},
 			},
-			DefinitionProvider: true,
+			DefinitionProvider: protocol.Boolean(true),
 		},
-		ServerInfo: &protocol.ServerInfo{Name: "tdl"},
+		ServerInfo: protocol.ServerInfo{Name: "tdl"},
 	}, nil
 }
 
@@ -88,7 +98,11 @@ func (s *Server) DidOpen(ctx context.Context, params *protocol.DidOpenTextDocume
 
 // DidChange replaces a document's text and re-analyzes it.
 //
-// Synchronization is full, so the last change carries the whole document.
+// Synchronization is full, so the last change carries the whole document,
+// which is the arm of the change union this reads. A range change is a
+// thing the server never advertised, and applying one as whole text would
+// replace the document with a fragment of itself.
+//
 // A change for a file that was never opened is dropped: the editor and the
 // server disagree about what is open, and guessing at the text is worse
 // than reporting nothing until the next didOpen.
@@ -97,8 +111,12 @@ func (s *Server) DidChange(ctx context.Context, params *protocol.DidChangeTextDo
 		return nil
 	}
 
-	text := params.ContentChanges[len(params.ContentChanges)-1].Text
-	doc := s.store.change(params.TextDocument.URI, params.TextDocument.Version, text)
+	whole, ok := params.ContentChanges[len(params.ContentChanges)-1].(*protocol.TextDocumentContentChangeWholeDocument)
+	if !ok {
+		return nil
+	}
+
+	doc := s.store.change(params.TextDocument.URI, params.TextDocument.Version, whole.Text)
 	if doc == nil {
 		return nil
 	}
@@ -113,7 +131,7 @@ func (s *Server) DidChange(ctx context.Context, params *protocol.DidChangeTextDo
 // DidSave re-analyzes, because a file this document imports may have been
 // written by something other than the editor.
 func (s *Server) DidSave(ctx context.Context, params *protocol.DidSaveTextDocumentParams) error {
-	if doc := s.store.get(params.TextDocument.URI.Filename()); doc == nil {
+	if doc := s.store.get(params.TextDocument.URI.FsPath()); doc == nil {
 		return nil
 	}
 	s.store.invalidate()
@@ -145,8 +163,8 @@ func (s *Server) DidClose(ctx context.Context, params *protocol.DidCloseTextDocu
 // failure: the cursor is not on a name, the name did not resolve, or it
 // resolved into the prelude, which is embedded and has no file an editor
 // can open. docs/design/lsp.md argues the last one.
-func (s *Server) Definition(_ context.Context, params *protocol.DefinitionParams) ([]protocol.Location, error) {
-	doc := s.store.get(params.TextDocument.URI.Filename())
+func (s *Server) Definition(_ context.Context, params *protocol.DefinitionParams) (protocol.DefinitionResult, error) {
+	doc := s.store.get(params.TextDocument.URI.FsPath())
 	if doc == nil {
 		return nil, nil
 	}
@@ -167,7 +185,7 @@ func (s *Server) Definition(_ context.Context, params *protocol.DefinitionParams
 		return nil, nil
 	}
 
-	return []protocol.Location{{URI: uri.File(ref.Target.Filename), Range: rng}}, nil
+	return protocol.LocationSlice{{URI: uri.File(ref.Target.Filename), Range: rng}}, nil
 }
 
 // targetIndex is the line index of the file a definition points into, or
@@ -214,6 +232,11 @@ func (s *Server) publishAll(ctx context.Context) error {
 // file belongs on that file, and an import that fails to resolve belongs
 // on the file that wrote it, which is what the position already says.
 func (s *Server) publish(ctx context.Context, doc *document) error {
+	client, ok := protocol.ClientFromContext(ctx)
+	if !ok {
+		return errNoClient
+	}
+
 	snap := s.store.analyze(doc, s.opts...)
 	byFile := map[string][]protocol.Diagnostic{}
 
@@ -236,7 +259,7 @@ func (s *Server) publish(ctx context.Context, doc *document) error {
 
 	for path, diags := range byFile {
 		sortDiagnostics(diags)
-		if err := s.client.PublishDiagnostics(ctx, &protocol.PublishDiagnosticsParams{
+		if err := client.PublishDiagnostics(ctx, &protocol.PublishDiagnosticsParams{
 			URI:         uri.File(path),
 			Diagnostics: diags,
 		}); err != nil {
@@ -249,7 +272,12 @@ func (s *Server) publish(ctx context.Context, doc *document) error {
 // clear publishes an empty list, which is how the protocol says a server
 // retracts what it reported about a file.
 func (s *Server) clear(ctx context.Context, u uri.URI) error {
-	return s.client.PublishDiagnostics(ctx, &protocol.PublishDiagnosticsParams{
+	client, ok := protocol.ClientFromContext(ctx)
+	if !ok {
+		return errNoClient
+	}
+
+	return client.PublishDiagnostics(ctx, &protocol.PublishDiagnosticsParams{
 		URI:         u,
 		Diagnostics: nil,
 	})
@@ -270,8 +298,8 @@ func (s *Server) diagnostic(doc *document, snap *snapshot, path string, line, co
 			return protocol.Diagnostic{
 				Range:    lineRange(line),
 				Severity: protocol.DiagnosticSeverityError,
-				Source:   source,
-				Message:  msg,
+				Source:   protocol.NewOptional(source),
+				Message:  protocol.String(msg),
 			}
 		}
 		index = s.store.analyze(other, s.opts...).index
@@ -284,10 +312,14 @@ func (s *Server) diagnostic(doc *document, snap *snapshot, path string, line, co
 	return protocol.Diagnostic{
 		Range:    rng,
 		Severity: protocol.DiagnosticSeverityError,
-		Source:   source,
-		Message:  msg,
+		Source:   protocol.NewOptional(source),
+		Message:  protocol.String(msg),
 	}
 }
+
+// ptr is what an optional protocol field takes: a property that may be
+// absent is spelled as a pointer, and a literal has no address.
+func ptr[T any](v T) *T { return &v }
 
 // lineRange is the empty range at the start of a 1-based line, for a
 // position the server cannot resolve against any text it has.

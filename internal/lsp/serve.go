@@ -6,29 +6,22 @@ import (
 
 	"go.lsp.dev/jsonrpc2"
 	"go.lsp.dev/protocol"
-	"go.uber.org/zap"
 
 	"github.com/unstoppablemango/tdl/internal/sema"
 )
 
 // Serve runs a server over one connection and returns when it ends.
 //
-// The connection is built here rather than with protocol.NewServer,
-// because that constructor wants the server before it has made the client,
-// and this server publishes diagnostics, so it needs the client to exist
-// first.
+// The connection is built by protocol.NewServer rather than by hand,
+// because the codec it installs is what decodes a union-typed parameter
+// and is not exported to be installed separately. It puts the client in
+// the context every request is answered under, which is where this server
+// reads the one it publishes to.
 //
-// The logger is silent. Anything written to stdout on a stdio server
-// corrupts the stream, and a library that logs by default is a library
-// that will.
+// Nothing is logged. Anything written to stdout on a stdio server corrupts
+// the stream, and a library that logs by default is a library that will.
 func Serve(ctx context.Context, rwc io.ReadWriteCloser, opts ...sema.Option) error {
-	conn := jsonrpc2.NewConn(jsonrpc2.NewStream(rwc))
-	client := protocol.ClientDispatcher(conn, zap.NewNop())
-
-	ctx = protocol.WithClient(ctx, client)
-	conn.Go(ctx, protocol.Handlers(
-		protocol.ServerHandler(NewServer(client, opts...), jsonrpc2.MethodNotFoundHandler),
-	))
+	_, conn, _ := protocol.NewServer(ctx, NewServer(opts...), jsonrpc2.NewStream(rwc))
 
 	<-conn.Done()
 	return conn.Err()

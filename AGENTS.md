@@ -169,7 +169,7 @@ Pipeline, one package per stage:
 - `internal/lsp` — the language server `tdl lsp` runs, over `go.lsp.dev/protocol`.
   It adds no front end: `parser.Parse` already reports every error in one pass and `sema.Lower` already reports every diagnostic, so what is here is the protocol layer, a document store, and an overlay `sema.Loader` that serves an open document's unsaved text so an import resolves to what the editor has rather than to what is on disk.
   Text synchronization is full, and `position.go` is the one place that knows a `lex.Position` counts bytes while the protocol counts UTF-16 code units, which is the part that is wrong silently rather than loudly.
-  `unimplemented.go` names all 60 methods of `protocol.Server` so the package can ship no base and the server can implement a feature by writing one method.
+  `Server` embeds `protocol.UnimplementedServer`, the base the dependency ships for its whole-surface `Server` interface, so implementing a feature is writing one method.
   A file that does not parse publishes syntax errors only, because lowering a tree with holes reports names undefined only because their declaration failed to parse.
   Go to definition reads the index `sema.WithReferences` records, so shadowing, the prelude, and imports are decided once, by lowering.
   A name declared in a dependency a `_` import merged in jumps into that file, which is the one case the server reads a file it has no open document for, because the declaration's column is a byte offset into text it would otherwise not have.
