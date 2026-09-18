@@ -987,6 +987,32 @@ type Uses { include Outer c: string }
 	}
 }
 
+// `include` copies a field, and a field's constraints and default are part of
+// it, so a backend checking the including declaration sees what the mixin
+// declared, however many mixins it passed through.
+func TestIncludeCopiesConstraintsAndDefaults(t *testing.T) {
+	model := lower(t, `
+mixin Audited { note: string where { length(1..280) } = "none" }
+mixin Tracked { include Audited }
+type Direct { include Audited }
+type Nested { include Tracked }
+`)
+
+	for _, name := range []string{"Direct", "Nested"} {
+		decl, _, _ := model.FindDecl(name)
+		if len(decl.Fields()) != 1 {
+			t.Fatalf("%s fields = %v, want one", name, decl.Fields())
+		}
+		note := decl.Fields()[0]
+		if cs := note.GetConstraints(); len(cs) != 1 || cs[0].GetName() != "length" {
+			t.Errorf("%s.note constraints = %v, want length", name, cs)
+		}
+		if got := note.GetDefaultValue().GetText(); got != "none" {
+			t.Errorf("%s.note default = %q, want \"none\"", name, got)
+		}
+	}
+}
+
 func TestIncludeOfNonMixin(t *testing.T) {
 	diags := lowerDiags(t, `
 type NotAMixin { x: string }
