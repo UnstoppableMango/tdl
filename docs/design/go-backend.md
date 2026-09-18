@@ -15,6 +15,17 @@ One package, in one file per declaration the model owns, named after the declara
 [workflow.md](workflow.md) already settled that the backend decides layout and that there is no `layout` directive.
 One file per declaration is the layout, because a generated tree is read as a diff more often than it is read as a program, and a declaration that moves should not move everything under it.
 
+Snake case is not the whole of the name, because Go reads a meaning into how a file name ends.
+`foo_test.go` is a test file and `go build` leaves it out of the package, and `order_linux.go` or `report_arm64.go` are build constraints, so the declaration exists only on that OS or architecture.
+A declaration named `FooTest` or `OrderLinux` is none of those things, and either way a model that is valid TDL generates a package that does not build, or builds differently per platform.
+
+So a file name whose last underscore-separated element is `test`, a GOOS, or a GOARCH gets `_tdl` appended: `foo_test_tdl.go`, `order_linux_tdl.go`.
+The lists are the ones `go/build` matches against, `internal/syslist`, in whole rather than the targets one toolchain builds for, since a file name means the same thing to every toolchain that reads it.
+Everything up to the first underscore is skipped the way `go/build` skips it, so `linux.go` is an ordinary file and only `foo_linux.go` carries a constraint, and the `_GOOS_GOARCH` pair form needs no case of its own because its last element is a GOARCH.
+
+Escaping rather than rejecting the declaration keeps the rule one a reader can predict from the name.
+The cost is that `FooTestTdl` already spells what `FooTest` escapes to, and two declarations named that way collide.
+
 The prelude arrives merged into `Model.decls` untagged, so the backend emits only what the model's own file declared.
 Prelude declarations are the type vocabulary, not output.
 

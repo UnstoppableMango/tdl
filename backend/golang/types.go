@@ -354,7 +354,47 @@ func exported(name string) string {
 	return string(r)
 }
 
+// reserved is what go/build reads the last underscore-separated element of
+// a file name as: the GOOS and GOARCH lists in internal/syslist, which name
+// every past, present, and future target so a name is never reused, plus
+// `test`, which leaves a file out of the package the rest of the time.
+//
+// The whole of both lists is here rather than the values this toolchain
+// builds for, because a file name means the same thing to every toolchain
+// that reads it and a generated package is read by more than one.
+var reserved = map[string]bool{
+	"test": true,
+
+	"aix": true, "android": true, "darwin": true, "dragonfly": true,
+	"freebsd": true, "hurd": true, "illumos": true, "ios": true,
+	"js": true, "linux": true, "nacl": true, "netbsd": true,
+	"openbsd": true, "plan9": true, "solaris": true, "wasip1": true,
+	"windows": true, "zos": true,
+
+	"386": true, "amd64": true, "amd64p32": true, "arm": true,
+	"armbe": true, "arm64": true, "arm64be": true, "loong64": true,
+	"mips": true, "mipsle": true, "mips64": true, "mips64le": true,
+	"mips64p32": true, "mips64p32le": true, "ppc": true, "ppc64": true,
+	"ppc64le": true, "riscv": true, "riscv64": true, "s390": true,
+	"s390x": true, "sparc": true, "sparc64": true, "wasm": true,
+}
+
+// escape is appended to a file name Go would read something into, and is a
+// name no GOOS or GOARCH will take, since the lists are Go's to extend.
+const escape = "_tdl"
+
 // fileName is the snake case file a declaration is written to.
+//
+// Go reads a meaning into how a file name ends: `foo_test.go` is a test
+// file and `go build` leaves it out of the package, and `order_linux.go` or
+// `report_arm64.go` build only on that OS or architecture. A declaration
+// named FooTest or OrderLinux is neither of those things, so a name that
+// would end that way gets [escape] appended and lands in the package on
+// every platform.
+//
+// Two declarations can still collide, since FooTestTdl already spells what
+// FooTest escapes to. A name deliberately spelled as another one's escape
+// is worth less than the rule staying one a reader can predict.
 func fileName(name string) string {
 	if i := strings.LastIndex(name, "."); i >= 0 {
 		name = name[i+1:]
@@ -371,7 +411,28 @@ func fileName(name string) string {
 		}
 		b.WriteRune(r)
 	}
-	return b.String() + ".go"
+
+	s := b.String()
+	if readsAsSuffix(s) {
+		s += escape
+	}
+	return s + ".go"
+}
+
+// readsAsSuffix reports whether go/build gives the end of a file name a
+// meaning.
+//
+// Everything up to the first underscore is skipped the way go/build skips
+// it: a prefix is required, so `linux.go` is an ordinary file and only
+// `foo_linux.go` carries the constraint. The `_GOOS_GOARCH` pair form needs
+// no case of its own, because its last element is a GOARCH.
+func readsAsSuffix(name string) bool {
+	i := strings.Index(name, "_")
+	if i < 0 {
+		return false
+	}
+	parts := strings.Split(name[i+1:], "_")
+	return reserved[parts[len(parts)-1]]
 }
 
 // packageClause is the Go package name for the output.
