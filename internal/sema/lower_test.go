@@ -401,6 +401,54 @@ unit A = string`)
 	}
 }
 
+// A unit sharing its name with an earlier declaration loses the binding,
+// so the name stays what won it: the duplicate never reaches the unit
+// table and a type argument naming it is an ordinary type argument.
+func TestUnitNameBoundToANonUnit(t *testing.T) {
+	file, err := parser.Parse("test.tdl", strings.NewReader(preamble+`
+primitive foo
+unit foo
+type W { a: decimal<foo> }`))
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+	model, diags := Lower(file)
+
+	if !strings.Contains(diags.Error(), "foo is declared twice") {
+		t.Errorf("diagnostics = %v", diags)
+	}
+	decl, id, _ := model.FindDecl("foo")
+	if decl.GetUnit() != nil {
+		t.Errorf("foo lowered as a unit: %v", decl)
+	}
+	for _, u := range model.Units {
+		if u.GetWrote() == "foo" {
+			t.Error("the duplicate unit reached the unit table")
+		}
+	}
+
+	w, _, _ := model.FindDecl("W")
+	arg := model.Type(model.Type(w.GetStructure().GetFields()[0].GetType()).GetArgs()[0])
+	if arg.GetUnit() != nil {
+		t.Errorf("decimal<foo> took a unit argument: %v", arg)
+	}
+	if got := arg.GetCtor(); got.GetIndex() != id.GetIndex() {
+		t.Errorf("argument ctor = %v, want the primitive at %v", got, id)
+	}
+}
+
+// A unit expression names the declaration a name is bound to, so a
+// duplicate unit is not a unit there either.
+func TestUnitExpressionNamingADuplicateUnit(t *testing.T) {
+	diags := lowerDiags(t, `
+primitive foo
+unit foo
+unit A = foo`)
+	if !strings.Contains(diags.Error(), "foo is not a unit") {
+		t.Errorf("diagnostics = %v", diags)
+	}
+}
+
 func TestUndefinedUnit(t *testing.T) {
 	diags := lowerDiags(t, `unit A = nope`)
 	if !strings.Contains(diags.Error(), "undefined unit: nope") {

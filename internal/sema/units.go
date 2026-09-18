@@ -47,7 +47,7 @@ func (l *lowerer) lowerUnits(file *ast.File) {
 // from first. The lowered node is the memo: a second call returns it.
 func (l *lowerer) resolveUnit(u *ast.UnitDecl, decls map[string]*ast.UnitDecl, seen map[string]bool) (*ir.ID, bool) {
 	b, ok := l.scope.lookup(u.N)
-	if !ok || b.kind != bindDecl {
+	if !ok || b.kind != bindDecl || b.pos != u.Pos() {
 		return unresolvedUnit(), false // a duplicate, already reported
 	}
 	decl := l.model.Decls[b.id.GetIndex()]
@@ -129,7 +129,10 @@ func (l *lowerer) dimsOf(name string, pos ast.Position, decls map[string]*ast.Un
 	if def := l.model.Decl(b.id).GetUnit(); def != nil {
 		return l.dimsOfID(def.GetUnit())
 	}
-	if u, found := decls[name]; found {
+	// The name has to be bound to this very declaration: a unit written
+	// under a name an earlier declaration already took is still in `decls`,
+	// and lowering it here would make the loser of the binding a unit.
+	if u, found := decls[name]; found && b.pos == u.Pos() {
 		if id, resolved := l.resolveUnit(u, decls, seen); resolved {
 			return l.dimsOfID(id)
 		}
