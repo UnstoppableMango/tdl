@@ -67,20 +67,29 @@ func (l *lowerer) accumulateInto(idx int32, done, onPath map[int32]bool) {
 	}
 }
 
-// checkDefaults resolves a field default written as a name.
-//
-// A name denotes an enum variant, and which enum it belongs to is the
-// field's type, so this is the first point at which the check can be made:
-// the parser records the name, and nothing before now knows the type.
-func (l *lowerer) checkDefaults() {
+// resolveNames resolves the names a field writes: a default and a
+// constraint argument each denote an enum variant, and which enum it
+// belongs to is the field's type, so this is the first point at which
+// either can be checked: the parser records the name, and nothing before
+// now knows the type.
+func (l *lowerer) resolveNames() {
 	for _, decl := range l.model.GetDecls() {
 		for _, f := range decl.Fields() {
-			l.checkDefault(f)
+			l.resolveFieldNames(f)
 		}
 		for _, v := range decl.GetEnumeration().GetVariants() {
 			for _, f := range v.GetFields() {
-				l.checkDefault(f)
+				l.resolveFieldNames(f)
 			}
+		}
+	}
+}
+
+func (l *lowerer) resolveFieldNames(f *ir.Field) {
+	l.checkDefault(f)
+	for _, c := range f.GetConstraints() {
+		for _, arg := range c.GetArgs() {
+			l.resolveConstraintArg(f, arg)
 		}
 	}
 }
@@ -91,23 +100,9 @@ func (l *lowerer) checkDefault(f *ir.Field) {
 		return
 	}
 
-	ty := l.model.Type(f.GetType())
-	if ty == nil || ty.GetParam() != nil || ty.GetExtern() != nil {
-		return // a parameter or a foreign type: nothing local to check against
-	}
-
-	// Look through the optionality sugar: `status: Status? = Draft` names a
-	// variant of Status.
-	for len(ty.GetArgs()) == 1 && isOptionLike(ty) {
-		ty = l.model.Type(ty.GetArgs()[0])
-		if ty == nil {
-			return
-		}
-	}
-
-	decl := l.model.Decl(ty.GetCtor())
+	decl := l.fieldDecl(f)
 	if decl == nil {
-		return // already reported as undefined
+		return // a parameter, a foreign type, or already reported as undefined
 	}
 
 	enum := decl.GetEnumeration()
@@ -116,15 +111,58 @@ func (l *lowerer) checkDefault(f *ir.Field) {
 			decl.GetMeta().GetName(), def.GetText())
 		return
 	}
+	l.resolveVariant(decl, enum, def)
+}
 
+// resolveConstraintArg resolves a constraint argument written as a name,
+// which denotes a variant of the field's type exactly as a default does.
+//
+// A name on a field whose type is not an enum says nothing here: the set of
+// constraint names is open, so until there are variants for a name to
+// denote it is a symbol whichever backend knows the constraint gives
+// meaning to.
+func (l *lowerer) resolveConstraintArg(f *ir.Field, arg *ir.Literal) {
+	if arg.GetKind() != ir.LiteralKind_LITERAL_KIND_NAME {
+		return
+	}
+
+	decl := l.fieldDecl(f)
+	if enum := decl.GetEnumeration(); enum != nil {
+		l.resolveVariant(decl, enum, arg)
+	}
+}
+
+// resolveVariant points a name at the variant it denotes, and reports one
+// that denotes none.
+func (l *lowerer) resolveVariant(decl *ir.Decl, enum *ir.Enum, lit *ir.Literal) {
 	for i, v := range enum.GetVariants() {
-		if v.GetMeta().GetName() == def.GetText() {
-			def.Variant = &ir.ID{Index: int32(i), Name: v.GetMeta().GetName()}
+		if v.GetMeta().GetName() == lit.GetText() {
+			lit.Variant = &ir.ID{Index: int32(i), Name: v.GetMeta().GetName()}
 			return
 		}
 	}
-	l.diags.add(positionOf(def.GetPosition()), "%s has no variant %s",
-		decl.GetMeta().GetName(), def.GetText())
+	l.diags.add(positionOf(lit.GetPosition()), "%s has no variant %s",
+		decl.GetMeta().GetName(), lit.GetText())
+}
+
+// fieldDecl is the declaration a field's type names, or nil when there is
+// nothing local to resolve a name against.
+func (l *lowerer) fieldDecl(f *ir.Field) *ir.Decl {
+	ty := l.model.Type(f.GetType())
+	if ty == nil || ty.GetParam() != nil || ty.GetExtern() != nil {
+		return nil // a parameter or a foreign type: nothing local to check against
+	}
+
+	// Look through the optionality sugar: `status: Status? = Draft` names a
+	// variant of Status.
+	for len(ty.GetArgs()) == 1 && isOptionLike(ty) {
+		ty = l.model.Type(ty.GetArgs()[0])
+		if ty == nil {
+			return nil
+		}
+	}
+
+	return l.model.Decl(ty.GetCtor()) // nil when already reported as undefined
 }
 
 // isOptionLike reports whether a type is the sugar for absence or null,

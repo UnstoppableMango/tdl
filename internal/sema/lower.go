@@ -101,7 +101,7 @@ func Lower(file *ast.File, opts ...Option) (*ir.Model, Diagnostics) {
 	l.lower(file)
 	l.expandIncludes(file)
 	l.accumulateConstraints()
-	l.checkDefaults()
+	l.resolveNames()
 	l.validateInstances()
 	l.buildSatisfaction()
 	l.markEntities()
