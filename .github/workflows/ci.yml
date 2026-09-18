@@ -25,9 +25,75 @@ jobs:
       - run: nix flake check
       - run: nix build .#
 
+  # Whether the Tree-sitter job has anything to say. It regenerates the
+  # derived grammar and checks the diff, so a pull request touching neither
+  # the grammar nor what derives it can only reproduce the committed output.
+  # Skipping it there is worth a job of its own: the run it skips is three
+  # minutes, almost all of it provisioning Nix.
+  changes:
+    name: Changes
+    runs-on: thecluster
+    permissions:
+      contents: read
+    outputs:
+      grammar: ${{ steps.filter.outputs.grammar }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The base of the pull request has to be here to diff against.
+          fetch-depth: 0
+
+      - id: filter
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+
+          # A push to main regenerates unconditionally: the committed parser
+          # is what the branch is merged as, whatever the diff said.
+          if [ "$EVENT" != pull_request ]; then
+            echo 'grammar=true' >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # The grammar, what reads it, what it derives, the corpora both
+          # parsers are held to, and the CLI version flake.lock pins. The
+          # Makefile is here because it is what invokes the two, and this
+          # workflow because a change to the job is a reason to run it.
+          paths=(
+            .github/workflows/ci.yml
+            Makefile
+            docs/grammar.ebnf
+            docs/notation.ebnf
+            flake.lock
+            flake.nix
+            internal/ebnf
+            internal/treesitter
+            lex
+            testdata/conformance
+            testdata/invalid
+            tools/treesitter
+            tree-sitter
+          )
+          # 0 is no change and 1 is a change; anything else is git failing to
+          # answer, and an unanswered question runs the job.
+          status=0
+          git diff --quiet "$BASE" HEAD -- "${paths[@]}" || status=$?
+          if [ "$status" = 0 ]; then
+            echo 'grammar=false' >>"$GITHUB_OUTPUT"
+          else
+            if [ "$status" != 1 ]; then
+              echo "git diff exited $status; running the job rather than trusting it"
+            fi
+            echo 'grammar=true' >>"$GITHUB_OUTPUT"
+          fi
+
   treesitter:
     name: Tree-sitter
     runs-on: thecluster
+    needs: changes
+    if: needs.changes.outputs.grammar == 'true'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -35,15 +101,24 @@ jobs:
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: DeterminateSystems/magic-nix-cache-action@84c0677f58dcedf3b91f8223ce36a9ea5b3c84b7 # v15
-
+      # magic-nix-cache is deliberately absent. This job builds one
+      # derivation of its own, the shell's environment, and its post step
+      # spent 31s pushing that.
       - uses: cachix/cachix-action@38b082610b782e7e93e209c35fd730d399dee866 # v17
         with:
           name: unstoppablemango
 
-      - run: nix develop --command make treesitter
-      - run: git diff --exit-code
-      - run: nix develop --command make test-treesitter
+      # One invocation of `nix develop`, not three: entering the shell again
+      # against an already-warm store re-evaluates the flake and cost 8s of
+      # the run. git comes from the runner, which is where actions/checkout
+      # found it.
+      - run: |
+          nix develop .#treesitter --command bash -c '
+            set -euo pipefail
+            make treesitter
+            git diff --exit-code
+            make test-treesitter
+          '
 
   test:
     name: Test
