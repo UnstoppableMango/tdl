@@ -41,15 +41,8 @@ jobs:
         with:
           name: unstoppablemango
 
-      # Through the devShell rather than tree-sitter/setup-action: the
-      # regeneration diff is only stable against a pinned CLI, and
-      # flake.lock is what pins it.
       - run: nix develop --command make treesitter
-
-      # The check the corpus cannot make. A production added to
-      # docs/grammar.ebnf without regenerating is a diff here.
       - run: git diff --exit-code
-
       - run: nix develop --command make test-treesitter
 
   test:
@@ -57,7 +50,6 @@ jobs:
     runs-on: thecluster
     permissions:
       contents: read
-      # Codecov uploads with use_oidc: true
       id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

@@ -55,6 +55,7 @@
               pkgs.golangci-lint
               pkgs.gnumake
               pkgs.nixfmt
+              pkgs.nodejs
               pkgs.buf
               pkgs.markdownlint-cli2
               pkgs.protoc-gen-go
