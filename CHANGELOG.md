@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.2.3](https://github.com/UnstoppableMango/tdl/compare/v0.2.2...v0.2.3) (2026-09-18)
+
+
+### Features
+
+* **go:** generate type parameters as Go generics and classes as interfaces ([#782](https://github.com/UnstoppableMango/tdl/issues/782)) ([9dac09b](https://github.com/UnstoppableMango/tdl/commit/9dac09b6b50b06ed2bab0564fe445d9489e0bb66))
+
+
+### Bug Fixes
+
+* **go:** skip a declaration that names a skipped one ([#781](https://github.com/UnstoppableMango/tdl/issues/781)) ([da60d72](https://github.com/UnstoppableMango/tdl/commit/da60d72e4a7708a0850b3fd4cb414f5e94926263))
+
+
+### Continuous Integration
+
+* give the Tree-sitter job a shell of its own and a reason to run ([#803](https://github.com/UnstoppableMango/tdl/issues/803)) ([26ea99c](https://github.com/UnstoppableMango/tdl/commit/26ea99c6ae97c363baa8bfc1ac6c24051450e848))
+* run release-please as thecluster[bot] ([#805](https://github.com/UnstoppableMango/tdl/issues/805)) ([60bfd3f](https://github.com/UnstoppableMango/tdl/commit/60bfd3fd1b5005021993658e70766f8cc39c6bf8))
+
 ## [0.2.2](https://github.com/UnstoppableMango/tdl/compare/v0.2.1...v0.2.2) (2026-09-18)
 
 
