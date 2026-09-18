@@ -1,5 +1,48 @@
 # Changelog
 
+## [0.2.2](https://github.com/UnstoppableMango/tdl/compare/v0.2.1...v0.2.2) (2026-09-18)
+
+
+### Features
+
+* add LSP dependencies to go.mod for editor integration ([7d13744](https://github.com/UnstoppableMango/tdl/commit/7d137449d5b90814a6ef097f87174e7513aa9f54))
+* **cli:** add LSP command to root CLI ([7d13744](https://github.com/UnstoppableMango/tdl/commit/7d137449d5b90814a6ef097f87174e7513aa9f54))
+* **internal/cli/lsp.go:** add LSP command to serve Language ([7d13744](https://github.com/UnstoppableMango/tdl/commit/7d137449d5b90814a6ef097f87174e7513aa9f54))
+* **lsp/unimplemented.go:** add unimplemented protocol server ([7d13744](https://github.com/UnstoppableMango/tdl/commit/7d137449d5b90814a6ef097f87174e7513aa9f54))
+* **lsp:** add language server protocol implementation ([7d13744](https://github.com/UnstoppableMango/tdl/commit/7d137449d5b90814a6ef097f87174e7513aa9f54))
+* **lsp:** add position conversion utilities for LSP protocol ([7d13744](https://github.com/UnstoppableMango/tdl/commit/7d137449d5b90814a6ef097f87174e7513aa9f54))
+* **lsp:** add Serve function to run LSP server over connection ([7d13744](https://github.com/UnstoppableMango/tdl/commit/7d137449d5b90814a6ef097f87174e7513aa9f54))
+* **lsp:** implement document store with snapshot caching ([7d13744](https://github.com/UnstoppableMango/tdl/commit/7d137449d5b90814a6ef097f87174e7513aa9f54))
+* **lsp:** implement import overlay for editor buffer resolution ([7d13744](https://github.com/UnstoppableMango/tdl/commit/7d137449d5b90814a6ef097f87174e7513aa9f54))
+* **lsp:** serve diagnostics and go to definition ([#799](https://github.com/UnstoppableMango/tdl/issues/799)) ([7d13744](https://github.com/UnstoppableMango/tdl/commit/7d137449d5b90814a6ef097f87174e7513aa9f54))
+* **sema/class.go:** record class reference lookups for LSP support ([7d13744](https://github.com/UnstoppableMango/tdl/commit/7d137449d5b90814a6ef097f87174e7513aa9f54))
+* **sema:** add support for recording name references during lowering ([7d13744](https://github.com/UnstoppableMango/tdl/commit/7d137449d5b90814a6ef097f87174e7513aa9f54))
+* **sema:** clarify binding position comment to indicate it may reference declarations in imported files ([7d13744](https://github.com/UnstoppableMango/tdl/commit/7d137449d5b90814a6ef097f87174e7513aa9f54))
+* **sema:** record lookups for target entry paths and type references ([7d13744](https://github.com/UnstoppableMango/tdl/commit/7d137449d5b90814a6ef097f87174e7513aa9f54))
+
+
+### Bug Fixes
+
+* **sema:** keep a field's constraints and default through include ([#786](https://github.com/UnstoppableMango/tdl/issues/786)) ([b1b9ea6](https://github.com/UnstoppableMango/tdl/commit/b1b9ea61307733c6023823908a2b73b113ef5e6e)), closes [#783](https://github.com/UnstoppableMango/tdl/issues/783)
+* **sema:** use declaration position instead of import position for ([7d13744](https://github.com/UnstoppableMango/tdl/commit/7d137449d5b90814a6ef097f87174e7513aa9f54))
+
+
+### Documentation
+
+* add language server protocol design document ([7d13744](https://github.com/UnstoppableMango/tdl/commit/7d137449d5b90814a6ef097f87174e7513aa9f54))
+* add lsp-plan.md with language server implementation phases ([7d13744](https://github.com/UnstoppableMango/tdl/commit/7d137449d5b90814a6ef097f87174e7513aa9f54))
+* **AGENTS.md:** add lsp command to internal/cli cobra commands list ([7d13744](https://github.com/UnstoppableMango/tdl/commit/7d137449d5b90814a6ef097f87174e7513aa9f54))
+* **AGENTS.md:** document internal/lsp package and refs.go reference index ([7d13744](https://github.com/UnstoppableMango/tdl/commit/7d137449d5b90814a6ef097f87174e7513aa9f54))
+* **backlog.md:** move language server from backlog to completed work ([7d13744](https://github.com/UnstoppableMango/tdl/commit/7d137449d5b90814a6ef097f87174e7513aa9f54))
+* **backlog.md:** update editor support section with lsp design reference ([7d13744](https://github.com/UnstoppableMango/tdl/commit/7d137449d5b90814a6ef097f87174e7513aa9f54))
+
+
+### Tests
+
+* add session_test.go with LSP session testing utilities ([7d13744](https://github.com/UnstoppableMango/tdl/commit/7d137449d5b90814a6ef097f87174e7513aa9f54))
+* **lsp:** add comprehensive server protocol tests for diagnostics and definition ([7d13744](https://github.com/UnstoppableMango/tdl/commit/7d137449d5b90814a6ef097f87174e7513aa9f54))
+* **sema:** add comprehensive tests for reference resolution ([7d13744](https://github.com/UnstoppableMango/tdl/commit/7d137449d5b90814a6ef097f87174e7513aa9f54))
+
 ## [0.2.1](https://github.com/UnstoppableMango/tdl/compare/v0.2.0...v0.2.1) (2026-09-18)
 
 
