@@ -39,6 +39,7 @@ type config struct {
 	preludeName string
 	preludeSrc  string
 	loader      Loader
+	refs        *References
 }
 
 // WithPrelude lowers against the given prelude source instead of the
@@ -79,6 +80,12 @@ func Lower(file *ast.File, opts ...Option) (*ir.Model, Diagnostics) {
 	}
 	l.file = newScope(l.loadPrelude(cfg))
 	l.scope = l.file
+
+	// Recording starts after the prelude, which is lowered through this
+	// same lowerer: the names inside prelude.tdl resolve against a file
+	// nobody is editing, and an index of them is noise an editor would
+	// search through on every request.
+	l.refs = cfg.refs
 	if file.Package != nil {
 		l.model.Package = file.Package.Path
 	}
@@ -102,6 +109,10 @@ func Lower(file *ast.File, opts ...Option) (*ir.Model, Diagnostics) {
 	l.searchSatisfaction()
 	l.checkConstraints()
 	l.lowerTargets(file)
+
+	if l.refs != nil {
+		l.refs.sort()
+	}
 	return l.model, l.diags
 }
 
@@ -141,6 +152,7 @@ type lowerer struct {
 	file     *scope // the file's declarations
 	scope    *scope // the scope a type reference resolves against
 	diags    Diagnostics
+	refs     *References // nil unless the caller asked for them
 }
 
 // collect fills the declaration table with an empty entry per declaration,

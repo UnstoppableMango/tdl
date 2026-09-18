@@ -109,7 +109,7 @@ Pipeline, one package per stage:
   Errors accumulate in an `ErrorList` rather than aborting: `syncTop` resynchronizes at the next declaration so one bad line does not swallow the rest of the file.
 - `ast` — parse tree mirroring source 1:1, names left unresolved.
   `ast.Fprint` produces the canonical formatting used by `tdl fmt`.
-- `internal/cli` — cobra commands (`ast`, `check`, `fmt`, `gen`, `ir`, `play`, `tokens`, `version`) wired in `root.go`.
+- `internal/cli` — cobra commands (`ast`, `check`, `fmt`, `gen`, `ir`, `lsp`, `play`, `tokens`, `version`) wired in `root.go`.
   The root silences cobra's error printing so a diagnostic list renders as itself; `cmd/tdl` prints whatever a command returns, so a command should return an error rather than print it.
   `play` is a watch-mode playground that re-renders a file on save; `examples/` holds files to experiment with and is outside the conformance corpus.
   `file.go` is what every command that reads a file goes through: `loadFile` reads and parses one, and `eachFile` walks the arguments, reporting each failure and continuing rather than stopping at the first, the way the parser reports every syntax error in a file.
@@ -152,8 +152,19 @@ Pipeline, one package per stage:
 - `internal/sema` — ast to ir: the declaration table, the interned type and unit tables, sugar lowering, scopes, the spec's recursion rules, and the import graph.
   `units.go` runs before the rest of lowering, because a unit may be written after the unit deriving from it and because a type argument naming a unit needs its reduction already computed.
   It touches no filesystem: a `Loader` supplies imported sources, `FSLoader` for real files, and the tests keep an in-memory one beside them.
+  `refs.go` is the reference index an editor asks for with `WithReferences`: lowering interns a type reference and keeps only the answer's effect, so a second mention of a name is not a second entry and a cursor on it has nothing to find, and this records the question instead.
+  Recording is opt-in because nothing but an editor wants it, and it hooks the places that already resolve a name, so `tdl check` and the server cannot disagree about what one means.
   Private and free to change.
   See `docs/design/ir-plan.md` for what each phase adds.
+- `internal/lsp` — the language server `tdl lsp` runs, over `go.lsp.dev/protocol`.
+  It adds no front end: `parser.Parse` already reports every error in one pass and `sema.Lower` already reports every diagnostic, so what is here is the protocol layer, a document store, and an overlay `sema.Loader` that serves an open document's unsaved text so an import resolves to what the editor has rather than to what is on disk.
+  Text synchronization is full, and `position.go` is the one place that knows a `lex.Position` counts bytes while the protocol counts UTF-16 code units, which is the part that is wrong silently rather than loudly.
+  `unimplemented.go` names all 60 methods of `protocol.Server` so the package can ship no base and the server can implement a feature by writing one method.
+  A file that does not parse publishes syntax errors only, because lowering a tree with holes reports names undefined only because their declaration failed to parse.
+  Go to definition reads the index `sema.WithReferences` records, so shadowing, the prelude, and imports are decided once, by lowering.
+  A name declared in a dependency a `_` import merged in jumps into that file, which is the one case the server reads a file it has no open document for, because the declaration's column is a byte offset into text it would otherwise not have.
+  Private.
+  See `docs/design/lsp.md` for the reasoning and `docs/design/lsp-plan.md` for what each phase adds.
 - `prelude` — the standard prelude, written in TDL and embedded with `go:embed`.
   `sema` loads it into an outer scope beneath every file and merges its declarations into the model untagged.
   Lowering knows the sugar's spellings (`List`, `Option`, ...) but nothing about what they mean, which is what makes the prelude replaceable.

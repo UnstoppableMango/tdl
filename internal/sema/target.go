@@ -103,6 +103,19 @@ func (t *targetPass) walkEntries(block *ast.TargetDecl, scope string, entries []
 			path = scope + "." + path
 		}
 
+		// The first segment of a top-level entry is a declaration name,
+		// written at the entry's position, so `User.email => tag(...)`
+		// reaches User from a cursor on it.
+		//
+		// Only the first segment, and only at the top level. A nested
+		// entry's first segment is a member of the path it sits under, and
+		// ast.TargetEntry keeps the path as one string, so the later
+		// segments have no position of their own to record.
+		if scope == "" && entry.Path != "" {
+			head, _, _ := strings.Cut(entry.Path, ".")
+			t.recordLookup(entry.P, head)
+		}
+
 		switch {
 		case entry.Entries != nil:
 			t.walkEntries(block, path, entry.Entries, out)
