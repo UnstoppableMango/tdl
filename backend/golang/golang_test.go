@@ -7,6 +7,7 @@ import (
 	"go/parser"
 	"go/token"
 	"go/types"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -336,6 +337,120 @@ func TestIncomparableKeysAreUnsupported(t *testing.T) {
 			got := files(t, resp)
 			if _, ok := got["index.go"]; ok {
 				t.Errorf("a declaration with an uncompilable field was emitted:\n%s", got["index.go"])
+			}
+		})
+	}
+}
+
+// A skipped declaration is one the package does not declare, so whatever
+// names it is skipped too, however far away, rather than emitted naming an
+// undeclared type.
+func TestReferringToASkippedDeclarationSkipsItToo(t *testing.T) {
+	m := irtest.New("shop")
+	m.Own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Index", Position: &ir.Position{Filename: irtest.OwnFile, Line: 3}},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{
+			Fields: []*ir.Field{irtest.Field("by", m.Named("Set", m.Named("bytes")))},
+		}},
+	})
+	// Declared before what it names, so a single pass in declaration order
+	// would have rendered it before learning its field is skipped. Its field
+	// is attached once Top exists, since a type reference is made by name.
+	outer := &ir.Struct{}
+	m.Own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Outer", Position: &ir.Position{Filename: irtest.OwnFile, Line: 5}},
+		Node: &ir.Decl_Structure{Structure: outer},
+	})
+	m.Own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Top", Position: &ir.Position{Filename: irtest.OwnFile, Line: 7}},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{
+			Fields: []*ir.Field{irtest.Field("index", m.Named("Index"))},
+		}},
+	})
+	outer.Fields = []*ir.Field{irtest.Field("top", m.Named("Option", m.Named("Top")))}
+	m.Own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Note"},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{
+			Fields: []*ir.Field{irtest.Field("body", m.Named("string"))},
+		}},
+	})
+
+	resp := generate(t, m)
+	if len(resp.GetDiagnostics()) != 3 {
+		t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	for _, d := range resp.GetDiagnostics() {
+		if d.GetSeverity() != plugin.Severity_SEVERITY_WARNING {
+			t.Errorf("severity = %v", d.GetSeverity())
+		}
+	}
+
+	got := files(t, resp)
+	if want := []string{"note.go"}; !slices.Equal(keys(got), want) {
+		t.Errorf("files = %v, want %v", keys(got), want)
+	}
+}
+
+// A collection's type argument and an alias's target are expanded rather
+// than named, and a skipped declaration reached through either is still one
+// the package does not declare.
+func TestASkippedDeclarationInsideAnExpansionIsSkipped(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		typ  func(m *irtest.Builder, index *ir.ID) *ir.ID
+	}{
+		{"list element", func(m *irtest.Builder, index *ir.ID) *ir.ID { return m.Named("List", index) }},
+		{"map value", func(m *irtest.Builder, index *ir.ID) *ir.ID {
+			return m.Named("Map", m.Named("string"), index)
+		}},
+		{"alias target", func(m *irtest.Builder, index *ir.ID) *ir.ID {
+			m.Own(&ir.Decl{
+				Meta: &ir.Meta{Name: "Lookup"},
+				Node: &ir.Decl_Alias{Alias: &ir.Alias{Target: index}},
+			})
+			return m.Named("Lookup")
+		}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			m := irtest.New("shop")
+			m.Own(&ir.Decl{
+				Meta: &ir.Meta{Name: "Index", Position: &ir.Position{Filename: irtest.OwnFile, Line: 3}},
+				Node: &ir.Decl_Structure{Structure: &ir.Struct{
+					Fields: []*ir.Field{irtest.Field("by", m.Named("Set", m.Named("bytes")))},
+				}},
+			})
+			m.Own(&ir.Decl{
+				Meta: &ir.Meta{Name: "Catalog", Position: &ir.Position{Filename: irtest.OwnFile, Line: 7}},
+				Node: &ir.Decl_Structure{Structure: &ir.Struct{
+					Fields: []*ir.Field{irtest.Field("index", tt.typ(m, m.Named("Index")))},
+				}},
+			})
+			m.Own(&ir.Decl{
+				Meta: &ir.Meta{Name: "Note"},
+				Node: &ir.Decl_Structure{Structure: &ir.Struct{
+					Fields: []*ir.Field{irtest.Field("body", m.Named("string"))},
+				}},
+			})
+
+			resp := generate(t, m)
+			if len(resp.GetDiagnostics()) != 2 {
+				t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+			}
+			for _, d := range resp.GetDiagnostics() {
+				if d.GetSeverity() != plugin.Severity_SEVERITY_WARNING {
+					t.Errorf("severity = %v", d.GetSeverity())
+				}
+			}
+			// The cascade warns at the declaration being skipped rather than
+			// at the reference that reached the skipped one, since a
+			// declaration may name it more than once.
+			if line := resp.GetDiagnostics()[1].GetPosition().GetLine(); line != 7 {
+				t.Errorf("Catalog's warning is at line %d, want Catalog at 7", line)
+			}
+
+			got := files(t, resp)
+			if want := []string{"note.go"}; !slices.Equal(keys(got), want) {
+				t.Errorf("files = %v, want %v", keys(got), want)
 			}
 		})
 	}

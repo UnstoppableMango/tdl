@@ -183,6 +183,8 @@ An identifier that collides with a Go keyword after exporting cannot, since expo
 The backend reports what it cannot handle rather than emitting something plausible and wrong.
 
 A type parameter, a unit-typed field, a class declaration, an extern, and a set element or map key Go cannot compare each produce a warning with the node's position, and the declaration reaching one is skipped.
+A declaration naming a skipped one, directly or through an option, a collection, or an alias, is skipped with it, since it would otherwise name a type the package does not declare.
+`emit.Cascade` is what does that, so the warning is at the referring declaration and says which declaration caused it.
 A `where` constraint warns and the declaration is still emitted, since the constraint is what is missing and not the type.
 A `key` the backend cannot generate warns the same way and the entity is emitted without it: a key on a value or a mixin, an argument that is not a name, a field named twice or not at all, a field Go cannot compare, a field whose Go name is `Key`, and a key type colliding with a declaration of the same name.
 Everything the first two sentences name has a phase or a deferred decision in [go-backend-plan.md](go-backend-plan.md), and each is a set of decisions rather than an oversight.
