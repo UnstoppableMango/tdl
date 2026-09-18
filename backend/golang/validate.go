@@ -547,6 +547,9 @@ func (g *generator) constraintCheck(w *checkWriter, c *ir.Constraint, expr strin
 		default:
 			return refuse("it applies to a list, and this is %s", v.describe())
 		}
+		if len(v.t.GetArgs()) == 0 {
+			return refuse("the list has no element type")
+		}
 		elem := v.t.GetArgs()[0]
 		if !g.comparableIn(elem, v.fr, map[int32]bool{}, nil) {
 			return refuse("the list's elements are not comparable in Go")

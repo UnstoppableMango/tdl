@@ -633,6 +633,24 @@ func TestUnique(t *testing.T) {
 	contains(t, files(t, resp)["bag.go"], "seen := make(map[string]int, len(b.Tags))")
 }
 
+// A collection named without its element type reaches the backend as a
+// list with no type argument. Planning validation runs before the type is
+// rendered, so a check reading that argument decides nothing validates
+// rather than panicking, and the missing argument is what is reported.
+func TestUniqueOnAnElementlessListIsAWarning(t *testing.T) {
+	m := irtest.New("shop")
+	m.Own(structure("Bag", nil,
+		constrained(irtest.Field("tags", m.Named("List")), where("unique", 4)),
+	))
+
+	resp := generate(t, m)
+	onlyWarningAt(t, resp, 0)
+	contains(t, resp.GetDiagnostics()[0].GetMessage(), "List is missing a type argument")
+	if len(resp.GetFiles()) != 0 {
+		t.Errorf("files = %v", keys(files(t, resp)))
+	}
+}
+
 // A constraint whose meaning this backend cannot give to a type warns, and
 // the rest of the type is still checked.
 func TestConstraintOnTheWrongTypeIsAWarning(t *testing.T) {
