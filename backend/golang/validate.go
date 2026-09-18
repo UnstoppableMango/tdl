@@ -55,7 +55,7 @@ func (g *generator) planValidation() {
 			if !emit.IsOwn(d) {
 				continue
 			}
-			g.cur, g.imports = int32(i), map[string]bool{}
+			g.cur, g.imports = int32(i), map[string]string{}
 			g.curClasses = g.paramClasses(d, false)
 			for _, u := range g.checkUnits(d) {
 				key := validKey{int32(i), u.variant}
@@ -71,6 +71,12 @@ func (g *generator) planValidation() {
 func (g *generator) checkUnits(d *ir.Decl) []checkUnit {
 	goName, root := g.declName(d), tdlName(d.GetMeta().GetName())
 	if goName == "" {
+		return nil
+	}
+	// Go adds a method to a type its own package declares, so a foreign
+	// type carries none; [generator.planForeign] says so at each
+	// constraint that leaves unchecked.
+	if _, ok := g.foreign[d]; ok {
 		return nil
 	}
 	switch {
@@ -289,6 +295,7 @@ const (
 	shapeDecimal
 	shapeTime
 	shapeParam
+	shapeForeign
 )
 
 var primitiveShapes = map[string]shape{
@@ -341,6 +348,8 @@ func (c checked) describe() string {
 		return "a time"
 	case shapeParam:
 		return "a type parameter, whose values Go knows nothing about"
+	case shapeForeign:
+		return "a foreign type, whose values another package decides"
 	}
 	return "a type this backend has no check for"
 }
@@ -368,6 +377,10 @@ func (g *generator) underlying(id *ir.ID, fr *frame) checked {
 			return c
 		}
 		seen[t.GetCtor().GetIndex()] = true
+		if _, ok := g.foreign[d]; ok {
+			c.shape = shapeForeign
+			return c
+		}
 
 		switch {
 		case d.GetAlias() != nil:

@@ -80,6 +80,17 @@ func (g *generator) typeIn(id *ir.ID, fr *frame) (string, error) {
 	}
 	name := decl.GetMeta().GetName()
 
+	// A foreign declaration is a type another package declares, so it is
+	// imported and referred to rather than expanded or looked up here.
+	if f, ok := g.foreign[decl]; ok {
+		g.useAs(f.path, f.alias)
+		args, err := g.typeArgsIn(t, fr)
+		if err != nil {
+			return "", err
+		}
+		return f.ref() + args, nil
+	}
+
 	// An alias is transparent, so it is expanded rather than referenced,
 	// with its arguments standing for its parameters.
 	if a := decl.GetAlias(); a != nil {
@@ -297,6 +308,13 @@ func (g *generator) comparableIn(id *ir.ID, fr *frame, seen map[int32]bool, mark
 	}
 	name := decl.GetMeta().GetName()
 
+	// Whether a foreign type is a legal map key is decided by the package
+	// that declares it, at the consumer's build. Refusing it here would
+	// refuse a Set of a mapped uuid, which is the mapping working.
+	if g.isForeign(decl) {
+		return true
+	}
+
 	if a := decl.GetAlias(); a != nil {
 		return g.comparableIn(a.GetTarget(), bind(t.GetArgs(), fr), seen, mark)
 	}
@@ -470,4 +488,21 @@ func packageClause(s string) string {
 		return "main"
 	}
 	return b.String()
+}
+
+// typeArgsIn renders a type's arguments as a Go type argument list, and ""
+// for a type applied to none.
+func (g *generator) typeArgsIn(t *ir.Type, fr *frame) (string, error) {
+	if len(t.GetArgs()) == 0 {
+		return "", nil
+	}
+	rendered := make([]string, len(t.GetArgs()))
+	for i, a := range t.GetArgs() {
+		s, err := g.typeIn(a, fr)
+		if err != nil {
+			return "", err
+		}
+		rendered[i] = s
+	}
+	return "[" + strings.Join(rendered, ", ") + "]", nil
 }

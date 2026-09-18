@@ -123,8 +123,10 @@ func (g *generator) paramProblem(decl *ir.Decl) error {
 		// A parameter would shadow what the generated code names, and TDL
 		// never saw the clash: `int` is Go's int64, so a parameter named
 		// int64 is legal TDL and captures the field typed `int`.
-		case types.Universe.Lookup(name) != nil, importNames[name]:
+		case types.Universe.Lookup(name) != nil, importNames[name] != "":
 			return emit.Unsupported(pos, "type parameter %s of %s would shadow Go's %s", name, of, name)
+		case g.aliases[name]:
+			return emit.Unsupported(pos, "type parameter %s of %s would shadow the import named %s", name, of, name)
 		case g.declares(name):
 			return emit.Unsupported(pos, "type parameter %s of %s would shadow the generated declaration %s", name, of, name)
 		}

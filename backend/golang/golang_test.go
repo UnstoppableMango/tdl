@@ -2,6 +2,7 @@ package golang_test
 
 import (
 	"context"
+	"fmt"
 	"go/ast"
 	"go/importer"
 	"go/parser"
@@ -123,7 +124,7 @@ func TestDescribe(t *testing.T) {
 	for _, spec := range d.Directives {
 		declared[spec.GetName()] = true
 	}
-	for _, want := range []string{"package", "name", "tag", "key"} {
+	for _, want := range []string{"package", "name", "tag", "key", "foreign"} {
 		if !declared[want] {
 			t.Errorf("directive %q is acted on but not declared, so the compiler would warn about it", want)
 		}
@@ -2230,4 +2231,236 @@ func TestClassRequiresCycle(t *testing.T) {
 	}
 	contains(t, got["envelope.go"], "type Envelope[T any] struct {")
 	contains(t, got["uses.go"], "Envelope Envelope[Order]")
+}
+
+// foreignLine is where [foreign] says its directive was written.
+const foreignLine = 5
+
+// foreign maps a declaration to a Go type in another package, the way a
+// target block's foreign directive does.
+func foreign(d *ir.Decl, path, typeName string) *ir.Decl {
+	d.Directives = append(d.Directives, &ir.Directive{
+		Name:     "foreign",
+		Target:   "go",
+		Args:     []*ir.Literal{irtest.Text(path), irtest.Text(typeName)},
+		Position: &ir.Position{Filename: irtest.OwnFile, Line: foreignLine},
+	})
+	return d
+}
+
+// mapForeign maps a declaration the prelude owns, which a target block
+// reaches by name like any other.
+func mapForeign(m *irtest.Builder, declName, path, typeName string) {
+	d, _, ok := m.Model.FindDecl(declName)
+	if !ok {
+		panic("no declaration named " + declName)
+	}
+	foreign(d, path, typeName)
+}
+
+// raw keys a response by path without type checking it, for a mapping onto
+// a package that is not on disk to import.
+func raw(resp *plugin.Response) map[string]string {
+	out := map[string]string{}
+	for _, f := range resp.GetFiles() {
+		out[f.GetPath()] = string(f.GetContent())
+	}
+	return out
+}
+
+// A foreign declaration is a type this package imports rather than one it
+// declares, so it generates an import and a reference and no file.
+func TestForeignTypeIsImported(t *testing.T) {
+	m := irtest.New("shop")
+	m.Own(foreign(newtype("Money", m.Named("string")), "math/big", "Int"))
+	m.Own(structure("Order", nil, irtest.Field("total", m.Named("Money"))))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	got := files(t, resp)
+	if _, ok := got["money.go"]; ok {
+		t.Errorf("a foreign type was redeclared:\n%s", got["money.go"])
+	}
+	contains(t, got["order.go"], `big "math/big"`, "Total big.Int")
+}
+
+// A primitive is a declaration like any other, which is what makes the
+// decimal, uuid, and date placeholders survivable.
+func TestForeignPrimitive(t *testing.T) {
+	m := irtest.New("shop")
+	mapForeign(m, "decimal", "math/big", "Float")
+	m.Own(structure("Order", nil, irtest.Field("total", m.Named("decimal"))))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	contains(t, files(t, resp)["order.go"], `big "math/big"`, "Total big.Float")
+}
+
+// Two packages can end in one segment, and the alias is what keeps them
+// apart, since the qualifier is what the generated code reads.
+func TestForeignAliasesDoNotCollide(t *testing.T) {
+	m := irtest.New("shop")
+	m.Own(foreign(newtype("Page", m.Named("string")), "text/template", "Template"))
+	m.Own(foreign(newtype("Safe", m.Named("string")), "html/template", "Template"))
+	m.Own(structure("Site", nil,
+		irtest.Field("page", m.Named("Page")),
+		irtest.Field("safe", m.Named("Safe")),
+	))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	contains(t, files(t, resp)["site.go"],
+		`template "text/template"`,
+		`htmltemplate "html/template"`,
+		"Page template.Template",
+		"Safe htmltemplate.Template",
+	)
+}
+
+// A path's last segment is not always a Go identifier, and the alias is
+// what makes the reference one. A major version and a `go-` prefix are
+// what the segment carries and the package name does not, so they go.
+func TestForeignAliasIsAnIdentifier(t *testing.T) {
+	for _, tt := range []struct {
+		path, alias string
+	}{
+		{"gopkg.in/yaml.v3", "yaml"},
+		{"github.com/acme/money/v2", "money"},
+		{"github.com/google/go-cmp", "cmp"},
+		{"github.com/acme/my_pkg", "my_pkg"},
+		{"github.com/acme/2fa", "fa"},
+	} {
+		t.Run(tt.path, func(t *testing.T) {
+			m := irtest.New("shop")
+			m.Own(foreign(newtype("Doc", m.Named("string")), tt.path, "Node"))
+			m.Own(structure("File", nil, irtest.Field("doc", m.Named("Doc"))))
+
+			resp := generate(t, m)
+			noDiagnostics(t, resp)
+			// The package is not on disk, so this reads the output rather
+			// than type checking it.
+			contains(t, raw(resp)["file.go"],
+				fmt.Sprintf("%s %q", tt.alias, tt.path),
+				"Doc "+tt.alias+".Node",
+			)
+		})
+	}
+}
+
+// Whether a foreign type is a legal map key is decided by the package that
+// declares it, at the consumer's build, so the backend trusts it rather
+// than refusing a Set of one.
+func TestForeignTypeIsAssumedComparable(t *testing.T) {
+	m := irtest.New("shop")
+	mapForeign(m, "uuid", "time", "Time")
+	m.Own(structure("Bag", nil, irtest.Field("ids", m.Named("Set", m.Named("uuid")))))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	contains(t, files(t, resp)["bag.go"], `time "time"`, "Ids map[time.Time]struct{}")
+}
+
+// A foreign type takes type arguments like any other, and the reference
+// carries them.
+func TestForeignTypeTakesTypeArguments(t *testing.T) {
+	m := irtest.New("shop")
+	m.Own(foreign(structure("Holder", irtest.Params("T"), irtest.Field("value", m.Param("T", 0))), "sync", "Map"))
+	m.Own(structure("Cache", nil, irtest.Field("entries", m.Named("Holder", m.Named("string")))))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	contains(t, raw(resp)["cache.go"], `sync "sync"`, "Entries sync.Map[string]")
+}
+
+// A key is a method, and a foreign type carries none, so the entity the
+// mapping replaced says so rather than silently losing it.
+func TestKeyOnAForeignTypeIsAWarning(t *testing.T) {
+	m := irtest.New("shop")
+	m.Own(foreign(keyed("User", []*ir.Field{irtest.Field("id", m.Named("string"))}, irtest.Name("id")), "math/big", "Int"))
+	m.Own(structure("Order", nil, irtest.Field("user", m.Named("User"))))
+
+	resp := generate(t, m)
+	onlyWarningAt(t, resp, keyLine)
+	contains(t, resp.GetDiagnostics()[0].GetMessage(), "User", "foreign")
+	contains(t, files(t, resp)["order.go"], "User big.Int")
+}
+
+// A foreign type's values belong to the package that declares them, so
+// nothing is checked against them and no method is generated for one.
+func TestForeignTypeIsNotValidated(t *testing.T) {
+	m := irtest.New("shop")
+	m.Own(foreign(newtype("Money", m.Named("string"), where("length", 4, intArg("3"))), "math/big", "Int"))
+	m.Own(structure("Order", nil,
+		constrained(irtest.Field("total", m.Named("Money")), where("min", 7, intArg("1"))),
+		constrained(irtest.Field("count", m.Named("int")), where("min", 8, intArg("0"))),
+	))
+
+	resp := generate(t, m)
+	var lines []int32
+	for _, d := range resp.GetDiagnostics() {
+		lines = append(lines, d.GetPosition().GetLine())
+	}
+	if !slices.Equal(lines, []int32{4, 7}) {
+		t.Errorf("warnings at %v, want the constraints at 4 and 7: %+v", lines, resp.GetDiagnostics())
+	}
+	got := files(t, resp)
+	contains(t, got["order.go"], "if o.Count < 0 {")
+	if strings.Contains(got["order.go"], "Total.validate") {
+		t.Errorf("a foreign value was validated:\n%s", got["order.go"])
+	}
+}
+
+// Go adds a method to a type its own package declares, so a foreign type
+// cannot carry a class marker and says so where the mapping was written.
+func TestForeignTypeCannotCarryAMarker(t *testing.T) {
+	m := irtest.New("shop")
+	m.Class("Priced")
+	m.Own(foreign(newtype("Money", m.Named("string")), "math/big", "Int"))
+	m.Satisfies("Priced", "Money")
+
+	resp := generate(t, m)
+	if len(resp.GetDiagnostics()) != 1 {
+		t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	contains(t, resp.GetDiagnostics()[0].GetMessage(), "Money", "Priced", "foreign")
+}
+
+// A parameter spelled like an import alias would shadow it in whichever
+// file the parameter lands in.
+func TestParamShadowingAForeignAliasIsAWarning(t *testing.T) {
+	m := irtest.New("shop")
+	m.Own(foreign(newtype("Money", m.Named("string")), "math/big", "Int"))
+	m.Own(structure("Box", irtest.Params("big"),
+		&ir.Field{
+			Meta: &ir.Meta{Name: "value", Position: &ir.Position{Filename: irtest.OwnFile, Line: 4}},
+			Type: m.Param("big", 0),
+		},
+	))
+	m.Model.Decls[len(m.Model.Decls)-1].GetStructure().Params[0].Position = &ir.Position{Filename: irtest.OwnFile, Line: 4}
+
+	resp := generate(t, m)
+	onlyWarningAt(t, resp, 4)
+	contains(t, resp.GetDiagnostics()[0].GetMessage(), "big")
+}
+
+// A mapping the generated code could not refer to warns where it was
+// written, and the declaration is emitted as it would have been.
+func TestForeignMappingProblems(t *testing.T) {
+	for _, tt := range []struct {
+		name, path, typeName string
+	}{
+		{"no import path", "", "Int"},
+		{"a name Go cannot spell", "math/big", "Int.Value"},
+		{"a name the package does not export", "math/big", "int"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			m := irtest.New("shop")
+			m.Own(foreign(newtype("Money", m.Named("string")), tt.path, tt.typeName))
+			m.Own(structure("Order", nil, irtest.Field("total", m.Named("Money"))))
+
+			resp := generate(t, m)
+			onlyWarningAt(t, resp, foreignLine)
+			contains(t, files(t, resp)["money.go"], "type Money string")
+		})
+	}
 }

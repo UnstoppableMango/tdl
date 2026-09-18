@@ -128,9 +128,9 @@ Pipeline, one package per stage:
   `proto/` and `ir/` are the public compatibility surface.
 - `backend/golang` — the Go backend, called `go` in a target block.
   The first code generator here, and the first thing to say what generated code should look like.
-  One file per declaration; `types.go` is the IR to Go type mapping, `generics.go` turns type parameters into Go ones and infers `comparable`, `classes.go` makes a class an interface, and `validate.go` turns `where` constraints into a `Validate` method.
+  One file per declaration; `types.go` is the IR to Go type mapping, `generics.go` turns type parameters into Go ones and infers `comparable`, `classes.go` makes a class an interface, `validate.go` turns `where` constraints into a `Validate` method, and `foreign.go` maps a declaration to a type another package declares.
   `types.go` walks a `Type` itself rather than through `emit.Resolve`, which refuses a type parameter: Go is the one target here with generics, so a parameter is a type it emits, and the frame in `generics.go` is what substitutes one at a use.
-  Two shapes carry the decisions: an enum whose variants carry no fields is a named string type with constants and one where any variant does is a sealed interface with a struct per variant, and `decimal`, `uuid`, and `date` map to a placeholder rather than to a dependency the backend would be choosing for every consumer.
+  Two shapes carry the decisions: an enum whose variants carry no fields is a named string type with constants and one where any variant does is a sealed interface with a struct per variant, and `decimal`, `uuid`, and `date` map to a placeholder rather than to a dependency the backend would be choosing for every consumer, until a `foreign` directive names the type a model means and the package imports it instead.
   An entity's `key` directive becomes a `Key()` method, returning the field itself when it names one and a generated `<Name>Key` struct when it names several.
   A class is an interface with one unexported method that each satisfying declaration carries, so a `requires` clause is a Go constraint and conformance stays declared; a parameter reaching a map key is inferred `comparable`, since TDL cannot say so.
   A declaration naming one the backend skipped is skipped too, so what it does emit always compiles.

@@ -44,14 +44,15 @@ A TDL primitive has no Go type of its own, so each is a decision rather than a t
 | `int` | `int64` | The spec puts no width on `int`, and a model that outgrows 32 bits should not be a silent truncation. |
 | `bool` | `bool` | |
 | `bytes` | `[]byte` | |
-| `uuid` | `string` | The standard library has no UUID type, and choosing a third-party one for every consumer is not the backend's call. `foreign` is the way out. |
+| `uuid` | `string` | The standard library has no UUID type, and choosing a third-party one for every consumer is not the backend's call. `foreign` is the way out, and [Foreign types](#foreign-types) is how. |
 | `instant` | `time.Time` | |
 | `date` | `time.Time` | Go has no date-without-time type either, and a `time.Time` at midnight UTC is what everything else in the ecosystem does. |
 | `duration` | `time.Duration` | |
 | `decimal` | `string` | This is the uncomfortable one. `float64` is wrong for the thing `decimal` exists to express, and every correct answer is a dependency. A string round-trips exactly and forces the consumer to pick a library rather than the backend picking one badly. |
 
-Three of these are placeholders waiting on `foreign`, which is how a target block names an existing Go type for a TDL one.
-Until it lands, a project that wants `decimal.Decimal` has to post-process, and that is the cost of not guessing.
+Three of these are placeholders a target block replaces with `foreign`, which names the existing Go type a TDL one means.
+A project that wants `decimal.Decimal` writes `decimal => foreign("github.com/shopspring/decimal", "Decimal")` and gets it everywhere the model says `decimal`; one that writes nothing gets a string that round-trips exactly.
+[Foreign types](#foreign-types) has the rest.
 
 Collections come from the prelude, so the mapping reads the type constructor rather than any syntax:
 
@@ -284,9 +285,36 @@ Asserting a method on a `T` that holds a nil pointer panics, and avoiding that n
 
 What the backend cannot check warns at the constraint, and the rest is generated: a name it does not know, since the set is open; a constraint on a type it gives no meaning to; a pattern Go refuses; and a length that can never hold.
 
+## Foreign types
+
+`Money => foreign("github.com/shopspring/decimal", "Decimal")` says a declaration is a type another package declares.
+The generated package imports it and refers to it, and declares nothing for it: the file that would have held it is not written, and every field naming it reads `decimal.Decimal`.
+A primitive is a declaration like any other, so `decimal`, `uuid`, and `date` are mapped the same way, which is what the type mapping's placeholders are waiting for.
+
+An import is always given an alias, derived from the path.
+A package's name is not always its path's last segment, `gopkg.in/yaml.v3` is package `yaml`, and nothing in the model says which it is, so the alias is what makes the qualifier the generated code reads true by construction rather than by guess.
+It is the last segment as an identifier, the last two joined when that is taken, and then a number, so two packages ending in `template` become `template` and `htmltemplate`.
+A module's major version and a `go-` prefix are what a path carries and a package name does not, so `gopkg.in/yaml.v3`, `example.com/money/v2`, and `github.com/google/go-cmp` are `yaml`, `money`, and `cmp`.
+That is about what a reader expects, since the alias is explicit either way.
+An alias that would shadow a declaration, another import, or a predeclared identifier is taken in the same sense, and a type parameter spelled like one warns as [Generics](#generics) describes.
+A mapping onto a package the backend imports itself, `time`, say, is not a collision: one import of one path is what the file writes either way.
+
+A foreign declaration takes type arguments like any other, and the reference carries them, so a mapped `Holder<string>` is `sync.Map[string]`.
+
+A foreign type is assumed comparable.
+Whether it is a legal map key is decided by the package declaring it, at the consumer's build, and refusing it here would refuse `Set<uuid>` as soon as `uuid` is mapped, which is the mapping working.
+This is the one place the backend trusts what it was told rather than what it can see, and a mapping that is wrong about it fails at the consumer's build.
+
+What a foreign type does not get is a method.
+Go declares a method beside the type, so a foreign type carries no `Validate`, and a `where` constraint on one warns at the constraint; it carries no class marker either, and satisfying a class warns at the mapping, and no `Key()`, so a `key` directive on one warns at the directive.
+A mapping this backend could not refer to, one with no import path or naming something that is not an exported Go identifier, warns and the declaration is generated as though it had not been written.
+
+An extern, a declaration an imported TDL package owns, is the same problem from the other side and is not solved yet: a target path names a declaration of the model's own, so nothing can attach a mapping to an extern today.
+It still warns and skips the declaration reaching it.
+
 ## Directives
 
-The backend understands four, and declares all four in its handshake so the compiler can check them before generating anything.
+The backend understands five, and declares all four in its handshake so the compiler can check them before generating anything.
 
 - `package("github.com/acme/billing")`, on the target block.
   The Go package clause is the last path segment.
@@ -301,6 +329,9 @@ The backend understands four, and declares all four in its handshake so the comp
 - `key(order, sku)`, on an entity.
   The fields identifying it, as bare names, generating the `Key()` method described under [Structs](#structs).
   The handshake declares any number of arguments and no kinds, since `arg_kinds` constrains by position; that each is a name is checked by the backend.
+- `foreign("github.com/shopspring/decimal", "Decimal")`, on a declaration.
+  The import path of a Go package and the type it declares, described under [Foreign types](#foreign-types).
+  Two arguments rather than one qualified string, because a path and a type name are two things and splitting a string on its last dot would get `gopkg.in/yaml.v3` wrong.
 
 A directive the backend does not declare is a warning from the compiler and is passed through anyway, so a target block can carry a directive for a future phase without failing today.
 
@@ -329,11 +360,12 @@ An identifier that collides with a Go keyword after exporting cannot, since expo
 
 The backend reports what it cannot handle rather than emitting something plausible and wrong.
 
-A unit-typed field, an extern, a set element or map key Go cannot compare, a type parameter Go cannot express, and a type argument breaking a constraint each produce a warning with the node's position, and the declaration reaching one is skipped.
+A unit-typed field, an extern with no mapping, a set element or map key Go cannot compare, a type parameter Go cannot express, and a type argument breaking a constraint each produce a warning with the node's position, and the declaration reaching one is skipped.
 A declaration naming a skipped one, directly or through an option, a collection, or an alias, is skipped with it, since it would otherwise name a type the package does not declare.
 `emit.Cascade` is what does that, so the warning is at the referring declaration and says which declaration caused it.
 A `where` constraint the backend cannot check, a `requires` clause Go cannot state, a class's associated types, and a fieldless enum's parameters warn and the declaration is still emitted, since what is missing is the constraint and not the type.
 A field whose Go name is `Validate` or `validate` warns the same way, and the type is emitted without the methods.
+A constraint on a foreign type, a foreign type satisfying a class, a `key` on one, and a mapping the generated code could not refer to each warn and nothing else changes, as [Foreign types](#foreign-types) describes.
 What [Classes](#classes) lists as getting no marker warns, and the declaration is emitted without the marker.
 A `key` the backend cannot generate warns the same way and the entity is emitted without it: a key on a value or a mixin, an argument that is not a name, a field named twice or not at all, a field Go cannot compare, a field whose Go name is `Key`, and a key type colliding with a declaration of the same name.
 Everything above has a phase or a deferred decision in [go-backend-plan.md](go-backend-plan.md), or a section here saying why Go cannot express it, and each is a set of decisions rather than an oversight.
