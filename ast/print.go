@@ -54,6 +54,27 @@ func (p *printer) flush(indent string, pos Position) {
 	}
 }
 
+// writeLead writes a run of collected comments together with a doc
+// comment, each where it was written. The two sources are separate, an
+// ordinary comment placed by position and a doc comment carried by the
+// node, so only the offsets say which came first.
+func (p *printer) writeLead(indent string, lead []*Comment, doc []string, docPos Position) {
+	i := 0
+	for ; i < len(lead) && lead[i].P.Offset < docPos.Offset; i++ {
+		p.writeComment(indent, lead[i])
+	}
+	writeDoc(&p.b, indent, doc)
+	for ; i < len(lead); i++ {
+		p.writeComment(indent, lead[i])
+	}
+}
+
+// lead writes everything standing in front of an item at pos: the comments
+// waiting before it and its doc comment, in the order they were written.
+func (p *printer) lead(indent string, pos Position, doc []string, docPos Position) {
+	p.writeLead(indent, p.take(pos), doc, docPos)
+}
+
 func (p *printer) writeComment(indent string, c *Comment) {
 	p.b.WriteString(strings.TrimRight(indent+"// "+c.Text, " ") + "\n")
 }
@@ -127,8 +148,7 @@ func Fprint(file *File) string {
 			p.b.WriteString("\n")
 		}
 		for _, imp := range file.Imports {
-			p.flush("", imp.P)
-			writeDoc(&p.b, "", imp.Doc)
+			p.lead("", imp.P, imp.Doc, imp.DocP)
 			p.line("import "+quote(imp.Path)+" as "+imp.Alias, imp.P.Line, anywhere)
 		}
 	}
@@ -152,10 +172,7 @@ func Fprint(file *File) string {
 			p.b.WriteString("\n")
 		}
 
-		for _, c := range lead {
-			p.writeComment("", c)
-		}
-		writeDoc(&p.b, "", head.Doc)
+		p.writeLead("", lead, head.Doc, head.DocP)
 		if head.Dep != nil {
 			p.b.WriteString(printDeprecated(head.Dep) + "\n")
 		}
@@ -321,19 +338,19 @@ func (p *printer) members(members []Member, headLine int, end Position) {
 
 	p.b.WriteString(" {" + p.trailing(headLine, firstPos(members, Member.Pos, end)) + "\n")
 	for _, m := range members {
-		p.flush("  ", m.Pos())
 		switch n := m.(type) {
 		case *Include:
+			p.flush("  ", n.P)
 			p.line("  include "+printClassRefs([]*ClassRef{n.Type}), n.P.Line, end)
 		case *AssocTypeReq:
-			writeDoc(&p.b, "  ", n.Doc)
+			p.lead("  ", n.P, n.Doc, n.DocP)
 			s := "  type " + n.N
 			if n.Kind != nil {
 				s += ": " + printKind(n.Kind)
 			}
 			p.line(s, n.P.Line, end)
 		case *Field:
-			writeDoc(&p.b, "  ", n.Doc)
+			p.lead("  ", n.P, n.Doc, n.DocP)
 			p.field(n, "  ", end)
 		}
 	}
@@ -405,8 +422,7 @@ func (p *printer) variants(variants []*Variant, headLine int, end Position) {
 
 	p.b.WriteString(" {" + p.trailing(headLine, firstPos(variants, func(v *Variant) Position { return v.P }, end)) + "\n")
 	for _, v := range variants {
-		p.flush("  ", v.P)
-		writeDoc(&p.b, "  ", v.Doc)
+		p.lead("  ", v.P, v.Doc, v.DocP)
 
 		s := "  "
 		if v.Dep != nil {
@@ -417,8 +433,7 @@ func (p *printer) variants(variants []*Variant, headLine int, end Position) {
 		if p.expands(v) {
 			p.b.WriteString(s + " {" + p.trailing(v.P.Line, firstPos(v.Fields, func(f *Field) Position { return f.P }, v.End)) + "\n")
 			for _, f := range v.Fields {
-				p.flush("    ", f.P)
-				writeDoc(&p.b, "    ", f.Doc)
+				p.lead("    ", f.P, f.Doc, f.DocP)
 				p.field(f, "    ", v.End)
 			}
 			p.flush("    ", v.End)

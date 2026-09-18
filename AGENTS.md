@@ -307,10 +307,10 @@ Regex literals are ambiguous with unit division, so the parser calls `lex.Rescan
 Nothing else in the lexer takes context.
 
 Both comment forms survive formatting, by different routes.
-A `///` doc comment is a token, attached to the declaration that follows it and carried in `DeclHead.Doc`.
+A `///` doc comment is a token, attached to the declaration that follows it and carried in `DeclHead.Doc`, with the position it was written at in `DeclHead.DocP`.
 An ordinary `//` comment is skipped by the lexer and collected on the side, reaching `ast.File.Comments` as a flat list in source order, because one can sit anywhere and belongs to no node.
 `ast.Fprint` places each by position, on its own line before the item that follows it or folded onto the end of the line it was written on, and a block holding one opens up rather than collapsing to a line.
-A comment written between a declaration's doc comment and the declaration moves in front of the doc, which is the one placement the formatter does not preserve, and it is stable after the first pass.
+A doc comment and the ordinary comments around it are merged by offset, so the two keep the order they were written in.
 
 ## Releases
 

@@ -49,7 +49,9 @@ type PackageDecl struct {
 
 // ImportDecl is an `import "path.tdl" as alias` declaration.
 type ImportDecl struct {
-	Doc   []string
+	Doc  []string
+	DocP Position // where the doc comment was written; zero without one
+
 	P     Position
 	Path  string
 	Alias string // "_" merges the imported names into the current scope

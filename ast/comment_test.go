@@ -277,3 +277,95 @@ func TestFprintKeepsCommentOnOpeningBrace(t *testing.T) {
 		t.Errorf("output does not contain %q:\n%s", want, got)
 	}
 }
+
+// A doc comment and an ordinary comment written above the same item keep
+// the order they were written in. The doc comment lives on the node while
+// an ordinary comment is placed by position, so holding this order is what
+// the doc comment's own position is for.
+func TestFprintKeepsDocAndCommentOrder(t *testing.T) {
+	tests := map[string]string{
+		"declaration, doc first": `package p
+
+/// what it is
+// how it got here
+primitive string
+`,
+		"declaration, comment first": `package p
+
+// how it got here
+/// what it is
+primitive string
+`,
+		"import, doc first": `package p
+
+/// what it is
+// how it got here
+import "common.tdl" as common
+`,
+		"import, comment first": `package p
+
+// how it got here
+/// what it is
+import "common.tdl" as common
+`,
+		"field, doc first": `package p
+
+type E: Entity {
+  /// what it is
+  // how it got here
+  id: string
+}
+`,
+		"field, comment first": `package p
+
+type E: Entity {
+  // how it got here
+  /// what it is
+  id: string
+}
+`,
+		"variant, doc first": `package p
+
+enum Color {
+  /// what it is
+  // how it got here
+  Red
+  Blue
+}
+`,
+		"variant, comment first": `package p
+
+enum Color {
+  // how it got here
+  /// what it is
+  Red
+  Blue
+}
+`,
+		"associated type, doc first": `package p
+
+class C<T> {
+  /// what it is
+  // how it got here
+  type Cursor
+}
+`,
+		"associated type, comment first": `package p
+
+class C<T> {
+  // how it got here
+  /// what it is
+  type Cursor
+}
+`,
+	}
+
+	for name, src := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := ast.Fprint(mustParse(t, src))
+			if got != src {
+				t.Errorf("Fprint mismatch\n--- got ---\n%s\n--- want ---\n%s", got, src)
+			}
+		})
+	}
+}
