@@ -234,10 +234,35 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	return b.String(), nil
 }
 
+// name is what a `name` directive renames a node to, held to protobuf's
+// identifier rule, or fallback when the node carries none. A value the
+// protobuf compiler would refuse is reported rather than written out, since
+// nothing downstream reads the file again to catch it.
+func (g *generator) name(all []*ir.Directive, fallback string) (string, error) {
+	d, ok := g.Find(all, "name")
+	if !ok {
+		return fallback, nil
+	}
+	n := d.GetArgs()[0].GetText()
+	if !ident.MatchString(n) {
+		return "", emit.Unsupported(d.GetPosition(), "%q is not a protobuf name", n)
+	}
+	return n, nil
+}
+
+// declName is [generator.name] over a declaration, matching what
+// [emit.Session.DeclName] would return for a valid one.
+func (g *generator) declName(d *ir.Decl) (string, error) {
+	return g.name(d.GetDirectives(), emit.Pascal(emit.LastSegment(d.GetMeta().GetName())))
+}
+
 // message renders an entity, a value, or a mixin. The three differ in what
 // they mean and not in what they emit.
 func (g *generator) message(b *strings.Builder, d *ir.Decl) ([]string, error) {
-	name := g.DeclName(d, emit.Pascal)
+	name, err := g.declName(d)
+	if err != nil {
+		return nil, err
+	}
 	comment(b, "", d.GetMeta())
 	fmt.Fprintf(b, "message %s {\n", name)
 	deprecatedOption(b, "  ", d.GetMeta())
@@ -250,7 +275,10 @@ func (g *generator) message(b *strings.Builder, d *ir.Decl) ([]string, error) {
 
 // enum renders an enum whose variants carry no fields.
 func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, error) {
-	name := g.DeclName(d, emit.Pascal)
+	name, err := g.declName(d)
+	if err != nil {
+		return nil, err
+	}
 	variants := d.GetEnumeration().GetVariants()
 	nums, err := g.Numbers(name, emit.VariantMembers(variants), enumNumbers)
 	if err != nil {
@@ -265,9 +293,9 @@ func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	var body strings.Builder
 	fmt.Fprintf(&body, "  %s = 0;\n", values[0])
 	for i, v := range variants {
-		value := prefix + "_" + emit.ScreamingSnake(v.GetMeta().GetName())
-		if n, ok := g.Text(v.GetDirectives(), "name"); ok {
-			value = n
+		value, err := g.name(v.GetDirectives(), prefix+"_"+emit.ScreamingSnake(v.GetMeta().GetName()))
+		if err != nil {
+			return nil, err
 		}
 		if slices.Contains(values, value) {
 			return nil, emit.Unsupported(v.GetMeta().GetPosition(), "%s has two values named %s in protobuf", name, value)
@@ -292,7 +320,10 @@ func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 // A variant with no fields still gets a message, empty, since a oneof
 // member is a field and a field has a type.
 func (g *generator) sum(b *strings.Builder, d *ir.Decl) ([]string, error) {
-	name := g.DeclName(d, emit.Pascal)
+	name, err := g.declName(d)
+	if err != nil {
+		return nil, err
+	}
 	variants := d.GetEnumeration().GetVariants()
 	nums, err := g.Numbers(name, emit.VariantMembers(variants), fieldNumbers)
 	if err != nil {
@@ -305,9 +336,9 @@ func (g *generator) sum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	taken := map[string]bool{oneof: true}
 	for i, v := range variants {
 		pos := v.GetMeta().GetPosition()
-		messages[i] = emit.Pascal(v.GetMeta().GetName())
-		if n, ok := g.Text(v.GetDirectives(), "name"); ok {
-			messages[i] = n
+		messages[i], err = g.name(v.GetDirectives(), emit.Pascal(v.GetMeta().GetName()))
+		if err != nil {
+			return nil, err
 		}
 		if nested[messages[i]] {
 			return nil, emit.Unsupported(pos, "%s has two variants named %s in protobuf", name, messages[i])
@@ -359,7 +390,10 @@ func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*i
 			return err
 		}
 
-		name := g.FieldName(f, emit.Snake)
+		name, err := g.name(f.GetDirectives(), emit.Snake(f.GetMeta().GetName()))
+		if err != nil {
+			return err
+		}
 		if seen[name] {
 			return emit.Unsupported(f.GetMeta().GetPosition(), "%s has two fields named %s in protobuf", owner, name)
 		}

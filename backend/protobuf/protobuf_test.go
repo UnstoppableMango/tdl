@@ -90,6 +90,13 @@ func variant(name string, fields ...*ir.Field) *ir.Variant {
 	return &ir.Variant{Meta: &ir.Meta{Name: name}, Fields: fields}
 }
 
+func renamed(n string) []*ir.Directive {
+	return []*ir.Directive{{
+		Name: "name", Target: protobuf.Name, Args: []*ir.Literal{irtest.Text(n)},
+		Position: &ir.Position{Filename: "shop.tdl", Line: 7},
+	}}
+}
+
 func number(n string) *ir.Directive {
 	return &ir.Directive{Name: "number", Target: protobuf.Name, Args: []*ir.Literal{{Kind: ir.LiteralKind_LITERAL_KIND_INT, Text: n}}}
 }
@@ -350,6 +357,44 @@ func TestNames(t *testing.T) {
 	src := compile(t, resp)
 	contains(t, src, "message Account { string email_address = 1; }")
 	absent(t, src, "Nope", "message Clash")
+}
+
+// A `name` directive is a name the model wrote rather than one the backend
+// styled, so it is the one place a name protobuf refuses can reach the file.
+// Each is a skipped declaration and not output the compiler chokes on.
+func TestInvalidNames(t *testing.T) {
+	b := irtest.New("shop")
+
+	decl := value("Bad", irtest.Field("body", b.Named("string")))
+	decl.Directives = renamed("a-b")
+	b.Own(decl)
+
+	field := irtest.Field("second", b.Named("string"))
+	field.Directives = renamed("2nd")
+	b.Own(value("BadField", field))
+
+	red := variant("Red")
+	red.Directives = renamed("RED COLOR")
+	b.Own(enum("BadValue", red, variant("Blue")))
+
+	member := variant("Cash", irtest.Field("amount", b.Named("int")))
+	member.Directives = renamed("cash.paid")
+	b.Own(enum("BadVariant", member, variant("Card")))
+
+	b.Own(value("Good", irtest.Field("body", b.Named("string"))))
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 4 {
+		t.Errorf("want a warning per invalid name: %+v", resp.GetDiagnostics())
+	}
+	for _, d := range resp.GetDiagnostics() {
+		if d.GetPosition().GetLine() != 7 {
+			t.Errorf("a name is reported where it was written: %+v", d)
+		}
+	}
+	src := compile(t, resp)
+	contains(t, src, "message Good")
+	absent(t, src, "a-b", "2nd", "RED COLOR", "cash.paid")
 }
 
 func TestPackageDirective(t *testing.T) {
