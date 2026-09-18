@@ -267,6 +267,38 @@ func TestAReservedNameIsSkipped(t *testing.T) {
 	absent(t, check(t, resp), "interface interface")
 }
 
+func TestAwaitIsSkipped(t *testing.T) {
+	b := irtest.New("shop")
+	broken := value("Broken", irtest.Field("a", b.Named("string")))
+	broken.Directives = []*ir.Directive{directive("name", "await")}
+	b.Own(broken)
+	b.Own(value("Fine", irtest.Field("a", b.Named("string"))))
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 1 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	absent(t, check(t, resp), "await")
+}
+
+func TestTwoVariantsUnderOneNameAreSkipped(t *testing.T) {
+	b := irtest.New("shop")
+	card := variant("Card", irtest.Field("last4", b.Named("string")))
+	card.Directives = []*ir.Directive{directive("name", "Offline")}
+	cash := variant("Cash", irtest.Field("note", b.Named("string")))
+	cash.Directives = []*ir.Directive{directive("name", "Offline")}
+	b.Own(enum("Broken", card, cash))
+	b.Own(value("Fine", irtest.Field("a", b.Named("string"))))
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 1 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	src := check(t, resp)
+	absent(t, src, "Offline")
+	contains(t, src, "export interface Fine")
+}
+
 func TestConstraintsWarn(t *testing.T) {
 	b := irtest.New("shop")
 	qty := irtest.Field("quantity", b.Named("int"))

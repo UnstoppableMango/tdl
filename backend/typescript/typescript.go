@@ -63,11 +63,12 @@ var scalars = map[string]string{
 }
 
 // reserved is the words TypeScript does not accept as a type's name.
+// An emitted file is a module, where `await` is reserved too.
 var reserved = map[string]bool{}
 
 func init() {
 	for _, w := range strings.Fields(`
-		any as boolean break case catch class const continue debugger default
+		any as await boolean break case catch class const continue debugger default
 		delete do else enum export extends false finally for function if
 		implements import in instanceof interface let never new null number
 		object package private protected public return static string super
@@ -179,10 +180,15 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 		return "", err
 	}
 
+	local := map[string]bool{}
 	for _, n := range declared {
 		if !ident.MatchString(n) || reserved[n] {
 			return "", emit.Unsupported(pos, "%s would be named %s in TypeScript, which cannot name a type", name, n)
 		}
+		if local[n] {
+			return "", emit.Unsupported(pos, "%s would declare %s in TypeScript twice", name, n)
+		}
+		local[n] = true
 		if other, ok := g.names[n]; ok {
 			return "", emit.Unsupported(pos, "%s would declare %s in TypeScript, and %s already does", name, n, other)
 		}
