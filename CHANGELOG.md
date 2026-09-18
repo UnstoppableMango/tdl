@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.2.4](https://github.com/UnstoppableMango/tdl/compare/v0.2.3...v0.2.4) (2026-09-18)
+
+
+### Features
+
+* **go:** generate where constraints as Validate methods ([#787](https://github.com/UnstoppableMango/tdl/issues/787)) ([918d354](https://github.com/UnstoppableMango/tdl/commit/918d35426e6cdb1b130075070a28ff8cb7df7e46))
+* **go:** map a declaration to a foreign type ([#813](https://github.com/UnstoppableMango/tdl/issues/813)) ([fdeef4a](https://github.com/UnstoppableMango/tdl/commit/fdeef4aa6273392dbf83424cdeb3a4f42102367d))
+
+
+### Bug Fixes
+
+* **fmt:** keep a doc comment and an ordinary comment in written order ([#814](https://github.com/UnstoppableMango/tdl/issues/814)) ([5eba6c6](https://github.com/UnstoppableMango/tdl/commit/5eba6c6ce658c4b090ba099675b18d84090696d1)), closes [#753](https://github.com/UnstoppableMango/tdl/issues/753)
+* **go:** escape a file name Go reads as a test or a build constraint ([#819](https://github.com/UnstoppableMango/tdl/issues/819)) ([3a96b60](https://github.com/UnstoppableMango/tdl/commit/3a96b60abb493b3913ad19e122393cf059e4ad76)), closes [#785](https://github.com/UnstoppableMango/tdl/issues/785)
+* **go:** warn on a unit argument instead of dropping it ([#817](https://github.com/UnstoppableMango/tdl/issues/817)) ([3292d3b](https://github.com/UnstoppableMango/tdl/commit/3292d3be3aaa9dac1731f00b581b0f71a9408be6)), closes [#779](https://github.com/UnstoppableMango/tdl/issues/779)
+* **nix:** ship tdl-gen-debug in subPackages ([#818](https://github.com/UnstoppableMango/tdl/issues/818)) ([7d2064a](https://github.com/UnstoppableMango/tdl/commit/7d2064a9cc3e20f6d5575f826dc569d720caeb33))
+* **sema:** do not lower a unit that lost its name binding ([#815](https://github.com/UnstoppableMango/tdl/issues/815)) ([6246b05](https://github.com/UnstoppableMango/tdl/commit/6246b05dd8593aafd261bc5a6ddbb56afe8d1ea3)), closes [#767](https://github.com/UnstoppableMango/tdl/issues/767)
+* **sema:** resolve a NAME constraint argument to its variant ([#816](https://github.com/UnstoppableMango/tdl/issues/816)) ([8e4b8ad](https://github.com/UnstoppableMango/tdl/commit/8e4b8adec7917dc943b8422ff48736b7a8d9cb9f)), closes [#784](https://github.com/UnstoppableMango/tdl/issues/784)
+
+
+### Continuous Integration
+
+* cache the Go module and build caches ([#820](https://github.com/UnstoppableMango/tdl/issues/820)) ([16e6030](https://github.com/UnstoppableMango/tdl/commit/16e603086cc09bec8386dc42588a621a9fae6efa)), closes [#806](https://github.com/UnstoppableMango/tdl/issues/806)
+
 ## [0.2.3](https://github.com/UnstoppableMango/tdl/compare/v0.2.2...v0.2.3) (2026-09-18)
 
 
