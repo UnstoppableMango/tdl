@@ -517,6 +517,9 @@ func (g *generator) constraintCheck(w *checkWriter, c *ir.Constraint, expr strin
 		w.line("}")
 
 	case "oneOf":
+		if len(args) == 0 {
+			return refuse("it takes the values it allows")
+		}
 		var conds []string
 		for _, a := range args {
 			cond, err := g.oneOfCond(expr, v, a)

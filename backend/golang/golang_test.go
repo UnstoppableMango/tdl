@@ -595,6 +595,21 @@ func TestOneOf(t *testing.T) {
 	)
 }
 
+// A oneOf with nothing to compare against would write an empty condition,
+// which is not Go. Every other check states what it takes, and this one
+// says so too rather than reaching the formatter.
+func TestOneOfWithoutArgumentsIsAWarning(t *testing.T) {
+	m := irtest.New("shop")
+	m.Own(structure("Order", nil,
+		constrained(irtest.Field("size", m.Named("string")), where("oneOf", 4)),
+		constrained(irtest.Field("level", m.Named("int")), where("min", 9, intArg("0"))),
+	))
+
+	resp := generate(t, m)
+	onlyWarningAt(t, resp, 4)
+	contains(t, files(t, resp)["order.go"], "if o.Level < 0 {")
+}
+
 func TestOneOfItCannotCheckIsAWarning(t *testing.T) {
 	for _, tt := range []struct {
 		name string
