@@ -201,6 +201,12 @@ func orderModel() *ir.Model {
 // declaration rather than skipping it.
 func goModel() *ir.Model {
 	m := orderModel()
+	// A check brings imports and a compiled pattern, which the pipe has to
+	// carry byte for byte too.
+	m.Decls[1].GetStructure().Fields[0].Constraints = []*ir.Constraint{{
+		Name: "matches",
+		Args: []*ir.Literal{{Kind: ir.LiteralKind_LITERAL_KIND_REGEX, Text: "^[a-z0-9-]+$"}},
+	}}
 	m.Decls = append(m.Decls, &ir.Decl{
 		Meta: &ir.Meta{Name: "Box", Position: &ir.Position{Filename: "shop.tdl"}},
 		Node: &ir.Decl_Structure{Structure: &ir.Struct{
