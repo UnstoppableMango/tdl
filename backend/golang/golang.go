@@ -9,13 +9,15 @@
 // target block writes the latter and a Go package cannot usefully be the
 // former.
 //
-// Two shapes are worth knowing before reading the output. An enum whose
+// Three things are worth knowing before reading the output. An enum whose
 // variants carry no fields is a named string type with constants, and one
 // where any variant carries fields is a sealed interface with a struct per
 // variant; the language calls the second its sum type, and no single Go
-// shape serves both. And three primitives, decimal, uuid, and date, map to
-// a placeholder rather than a dependency this backend would be choosing on
-// every consumer's behalf.
+// shape serves both. Three primitives, decimal, uuid, and date, map to a
+// placeholder rather than a dependency this backend would be choosing on
+// every consumer's behalf. And a class is an interface with one unexported
+// method, which each declaration satisfying the class carries, so a
+// `requires` clause is a Go constraint and conformance stays declared.
 package golang
 
 import (
@@ -26,7 +28,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"unicode"
 
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/ir"
@@ -71,6 +72,26 @@ func (Backend) Describe() plugin.Description {
 type generator struct {
 	*emit.Session
 
+	// cur is the index of the declaration being rendered, whose type
+	// parameters a bare parameter reference names.
+	cur int32
+
+	// needsComparable holds, per parameterized declaration, which of its
+	// parameters Go needs to be comparable.
+	needsComparable map[int32][]bool
+
+	// genClass holds the classes generated as interfaces, and marks the
+	// classes whose marker each declaration carries, both by index.
+	genClass map[int32]bool
+	// classCycle holds the classes whose requires clause reaches themselves,
+	// which a Go interface cannot embed its way out of.
+	classCycle map[int32]bool
+	marks      map[int32][]int32
+
+	// curClasses is the generated classes constraining each parameter of the
+	// declaration being rendered.
+	curClasses [][]int32
+
 	// needTime is reset before each file, since imports are per file.
 	needTime bool
 }
@@ -94,10 +115,20 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		return g.Response(nil), nil
 	}
 
-	own := g.Own()
+	// Which classes are generated, which declarations carry each marker, and
+	// which parameters Go needs to be comparable are decided before anything
+	// is rendered, since a use of a constrained declaration anywhere in the
+	// table asks about them.
+	g.planClasses()
+	g.inferComparable()
+
 	skipped := map[*ir.Decl]bool{}
 	rendered := map[*ir.Decl]*plugin.File{}
-	for _, decl := range own {
+	for i, decl := range g.Model.GetDecls() {
+		if !emit.IsOwn(decl) {
+			continue
+		}
+		g.cur = int32(i)
 		file, err := g.file(pkg, decl)
 		if err != nil {
 			g.Warn(err)
@@ -112,6 +143,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	// A declaration naming a skipped one would name a type the package does
 	// not declare, so it is skipped too, and its file is dropped rather than
 	// written.
+	own := g.Own()
 	g.Cascade(own, skipped)
 
 	var files []*plugin.File
@@ -127,6 +159,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 // file renders one declaration, or nil for one that generates nothing.
 func (g *generator) file(pkg string, decl *ir.Decl) (*plugin.File, error) {
 	g.needTime = false
+	g.curClasses = g.paramClasses(decl, true)
 
 	var body strings.Builder
 	switch {
@@ -147,8 +180,9 @@ func (g *generator) file(pkg string, decl *ir.Decl) (*plugin.File, error) {
 		// nothing to declare for it.
 		return nil, nil
 	case decl.GetClass() != nil:
-		return nil, emit.Unsupported(decl.GetMeta().GetPosition(),
-			"%s is a class, and classes are not generated yet", decl.GetMeta().GetName())
+		if err := g.class(&body, decl); err != nil {
+			return nil, err
+		}
 	case decl.GetUnit() != nil:
 		return nil, emit.Unsupported(decl.GetMeta().GetPosition(),
 			"%s is a unit, and units are not generated yet", decl.GetMeta().GetName())
@@ -189,14 +223,13 @@ func (g *generator) file(pkg string, decl *ir.Decl) (*plugin.File, error) {
 // entity and a value are one shape apart until a `key` directive names the
 // fields identifying the entity.
 func (g *generator) structure(b *strings.Builder, decl *ir.Decl) error {
-	if len(decl.Params()) > 0 {
-		return emit.Unsupported(decl.GetMeta().GetPosition(),
-			"%s is parameterized, and generics are not generated yet", decl.GetMeta().GetName())
+	if err := g.paramProblem(decl); err != nil {
+		return err
 	}
 
 	name := g.declName(decl)
 	g.doc(b, decl.GetMeta())
-	fmt.Fprintf(b, "type %s struct {\n", name)
+	fmt.Fprintf(b, "type %s%s struct {\n", name, g.typeParams(decl))
 	if err := g.fields(b, decl.Fields()); err != nil {
 		return err
 	}
@@ -207,6 +240,7 @@ func (g *generator) structure(b *strings.Builder, decl *ir.Decl) error {
 			g.Warn(err)
 		}
 	}
+	g.writeMarkers(b, name+typeArgs(decl))
 	return nil
 }
 
@@ -229,16 +263,18 @@ func (g *generator) key(b *strings.Builder, decl *ir.Decl, name string, d *ir.Di
 		}
 	}
 
-	recv := string(unicode.ToLower([]rune(name)[0]))
+	recv, self := receiver(decl, name), name+typeArgs(decl)
 	if len(fields) == 1 {
 		fmt.Fprintf(b, "\n// Key returns what identifies this %s.\n", name)
 		fmt.Fprintf(b, "func (%s %s) Key() %s {\n\treturn %s.%s\n}\n",
-			recv, name, types[0], recv, g.fieldName(fields[0]))
+			recv, self, types[0], recv, g.fieldName(fields[0]))
 		return nil
 	}
 
+	// A generic entity's key type takes the entity's parameters, since its
+	// fields may name them.
 	keyType := name + "Key"
-	fmt.Fprintf(b, "\n// %s is what identifies a %s.\ntype %s struct {\n", keyType, name, keyType)
+	fmt.Fprintf(b, "\n// %s is what identifies a %s.\ntype %s%s struct {\n", keyType, name, keyType, g.typeParams(decl))
 	inits := make([]string, len(fields))
 	for i, f := range fields {
 		field := g.fieldName(f)
@@ -247,8 +283,9 @@ func (g *generator) key(b *strings.Builder, decl *ir.Decl, name string, d *ir.Di
 	}
 	b.WriteString("}\n")
 	fmt.Fprintf(b, "\n// Key returns what identifies this %s.\n", name)
+	keyType += typeArgs(decl)
 	fmt.Fprintf(b, "func (%s %s) Key() %s {\n\treturn %s{%s}\n}\n",
-		recv, name, keyType, keyType, strings.Join(inits, ", "))
+		recv, self, keyType, keyType, strings.Join(inits, ", "))
 	return nil
 }
 
@@ -340,15 +377,18 @@ func quoteTag(tag string) string {
 // three-name enum is unusable as a map key and unwritable as a constant,
 // and constants cannot express a variant with fields at all.
 func (g *generator) enumeration(b *strings.Builder, decl *ir.Decl) error {
-	if len(decl.Params()) > 0 {
-		return emit.Unsupported(decl.GetMeta().GetPosition(),
-			"%s is parameterized, and generics are not generated yet", decl.GetMeta().GetName())
-	}
-
 	name := g.declName(decl)
 	variants := decl.GetEnumeration().GetVariants()
 
 	if !emit.Fielded(decl.GetEnumeration()) {
+		// Turning the enum into the sealed shape to keep its parameters
+		// would be a second rule deciding the shape, and nothing in it names
+		// a parameter, since nothing carries a field.
+		if len(decl.Params()) > 0 {
+			g.Warn(emit.Unsupported(decl.GetMeta().GetPosition(),
+				"%s takes type parameters and none of its variants carries a field, so it is constants, and a Go constant cannot be generic: its parameters are dropped",
+				decl.GetMeta().GetName()))
+		}
 		g.doc(b, decl.GetMeta())
 		fmt.Fprintf(b, "type %s string\n\nconst (\n", name)
 		for _, v := range variants {
@@ -359,26 +399,46 @@ func (g *generator) enumeration(b *strings.Builder, decl *ir.Decl) error {
 				name, exported(v.GetMeta().GetName()), name, v.GetMeta().GetName())
 		}
 		b.WriteString(")\n")
+		g.writeMarkers(b, name)
 		return nil
 	}
 
 	// A sealed interface: the unexported method is what keeps the set
 	// closed, which is what makes this an enum rather than an open
 	// hierarchy.
-	sealed := "is" + name
+	if err := g.paramProblem(decl); err != nil {
+		return err
+	}
+
+	// A generic enum's marker takes its parameters, so a variant of one
+	// instantiation does not satisfy another: without them a ResultOk[int]
+	// would be a Result[string].
+	sealed := "is" + name + "(" + strings.Join(paramNames(decl), ", ") + ")"
+	params, args := g.typeParams(decl), typeArgs(decl)
 	g.doc(b, decl.GetMeta())
-	fmt.Fprintf(b, "type %s interface{ %s() }\n", name, sealed)
+	// An interface cannot carry a class's marker, so it embeds the class,
+	// and every variant carries the marker instead.
+	if embeds := g.markedClasses(); len(embeds) == 0 {
+		fmt.Fprintf(b, "type %s%s interface{ %s }\n", name, params, sealed)
+	} else {
+		fmt.Fprintf(b, "type %s%s interface {\n", name, params)
+		for _, e := range embeds {
+			fmt.Fprintf(b, "\t%s\n", e)
+		}
+		fmt.Fprintf(b, "\t%s\n}\n", sealed)
+	}
 
 	for _, v := range variants {
 		variant := name + exported(v.GetMeta().GetName())
 		b.WriteString("\n")
 		g.doc(b, v.GetMeta())
-		fmt.Fprintf(b, "type %s struct {\n", variant)
+		fmt.Fprintf(b, "type %s%s struct {\n", variant, params)
 		if err := g.fields(b, v.GetFields()); err != nil {
 			return err
 		}
 		b.WriteString("}\n\n")
-		fmt.Fprintf(b, "func (%s) %s() {}\n", variant, sealed)
+		fmt.Fprintf(b, "func (%s%s) %s {}\n", variant, args, sealed)
+		g.writeMarkers(b, variant+args)
 	}
 	return nil
 }
@@ -393,20 +453,27 @@ func (g *generator) enumeration(b *strings.Builder, decl *ir.Decl) error {
 // referring to a type the package does not declare, so the type is emitted
 // and the unenforced constraint is said out loud.
 func (g *generator) newtype(b *strings.Builder, decl *ir.Decl) error {
-	if len(decl.Params()) > 0 {
-		return emit.Unsupported(decl.GetMeta().GetPosition(),
-			"%s is parameterized, and generics are not generated yet", decl.GetMeta().GetName())
+	if err := g.paramProblem(decl); err != nil {
+		return err
 	}
 
 	base, err := g.goType(decl.GetNewtype().GetBase())
 	if err != nil {
 		return err
 	}
+	// Go refuses `type N[T any] T`: a type parameter cannot be the whole of
+	// a type declaration.
+	if slices.Contains(paramNames(decl), base) {
+		return emit.Unsupported(decl.GetMeta().GetPosition(),
+			"%s is a newtype over its type parameter %s, and Go cannot declare a type that is only a type parameter",
+			decl.GetMeta().GetName(), base)
+	}
 
 	g.WarnWhere(decl)
 
 	g.doc(b, decl.GetMeta())
-	fmt.Fprintf(b, "type %s %s\n", g.declName(decl), base)
+	fmt.Fprintf(b, "type %s%s %s\n", g.declName(decl), g.typeParams(decl), base)
+	g.writeMarkers(b, g.declName(decl)+typeArgs(decl))
 	return nil
 }
 

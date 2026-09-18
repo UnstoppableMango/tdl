@@ -63,12 +63,20 @@ func (s *Session) Response(files []*plugin.File) *plugin.Response {
 func (s *Session) Own() []*ir.Decl {
 	var own []*ir.Decl
 	for _, d := range s.Model.GetDecls() {
-		if d.GetMeta().GetPosition().GetFilename() == prelude.Name {
-			continue
+		if IsOwn(d) {
+			own = append(own, d)
 		}
-		own = append(own, d)
 	}
 	return own
+}
+
+// IsOwn reports whether a declaration is the model's rather than the
+// prelude's; [Session.Own] says how the two are told apart.
+//
+// It is the predicate rather than the list, for a backend walking the
+// declaration table by index because something it emits is keyed on one.
+func IsOwn(d *ir.Decl) bool {
+	return d.GetMeta().GetPosition().GetFilename() != prelude.Name
 }
 
 // Find returns a directive carrying at least one argument.

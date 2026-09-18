@@ -35,7 +35,7 @@ var shipped = []struct {
 	valid func(t *testing.T, f *plugin.File)
 }{
 	{backend: debug.Backend{}, model: sampleModel},
-	{backend: golang.Backend{}, model: orderModel, packaged: true, valid: parseGo},
+	{backend: golang.Backend{}, model: goModel, packaged: true, valid: parseGo},
 	{backend: protobuf.Backend{}, model: orderModel, packaged: true, valid: compileProto},
 }
 
@@ -193,6 +193,26 @@ func orderModel() *ir.Model {
 			Wrote: ir.SyntacticForm_SYNTACTIC_FORM_NAMED,
 		}},
 	}
+}
+
+// goModel is [orderModel] with a generic struct added, so the Go row covers
+// both of the paths a declaration takes through that backend. It is the Go
+// backend's own because it is the only one that generates a parameterized
+// declaration rather than skipping it.
+func goModel() *ir.Model {
+	m := orderModel()
+	m.Decls = append(m.Decls, &ir.Decl{
+		Meta: &ir.Meta{Name: "Box", Position: &ir.Position{Filename: "shop.tdl"}},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{
+			Params: []*ir.Param{{Name: "T"}},
+			Fields: []*ir.Field{{
+				Meta: &ir.Meta{Name: "value"},
+				Type: &ir.ID{Index: 1, Name: "T"},
+			}},
+		}},
+	})
+	m.Types = append(m.Types, &ir.Type{Param: &ir.ParamRef{Name: "T"}})
+	return m
 }
 
 func parseGo(t *testing.T, f *plugin.File) {

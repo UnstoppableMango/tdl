@@ -127,16 +127,21 @@ Pipeline, one package per stage:
   `proto/` and `ir/` are the public compatibility surface.
 - `backend/golang` — the Go backend, called `go` in a target block.
   The first code generator here, and the first thing to say what generated code should look like.
-  One file per declaration; `types.go` is the whole IR to Go type mapping and the one place that walks a `Type`.
+  One file per declaration; `types.go` is the IR to Go type mapping, `generics.go` turns type parameters into Go ones and infers `comparable`, and `classes.go` makes a class an interface.
+  `types.go` walks a `Type` itself rather than through `emit.Resolve`, which refuses a type parameter: Go is the one target here with generics, so a parameter is a type it emits, and the frame in `generics.go` is what substitutes one at a use.
   Two shapes carry the decisions: an enum whose variants carry no fields is a named string type with constants and one where any variant does is a sealed interface with a struct per variant, and `decimal`, `uuid`, and `date` map to a placeholder rather than to a dependency the backend would be choosing for every consumer.
   An entity's `key` directive becomes a `Key()` method, returning the field itself when it names one and a generated `<Name>Key` struct when it names several.
+  A class is an interface with one unexported method that each satisfying declaration carries, so a `requires` clause is a Go constraint and conformance stays declared; a parameter reaching a map key is inferred `comparable`, since TDL cannot say so.
+  A declaration naming one the backend skipped is skipped too, so what it does emit always compiles.
   It reports what it cannot generate as a warning with a position rather than emitting something plausible and wrong.
   See `docs/design/go-backend.md` for the reasoning and `docs/design/go-backend-plan.md` for what each phase adds.
 - `backend/internal/emit` — what every code generator shares and no target language decides: which declarations are the model's own, reading directives for one target, positioned warnings, and `Resolve`, which walks a type reference into the prelude's shapes with aliases expanded, or into the struct, enum, or newtype the reference names.
+  `Resolve` refuses a type parameter and a type argument, since no target but Go generates one.
   `Cascade` skips every declaration naming one that was skipped, and the case helpers split and join names for each target's convention.
   `docs/design/schema-backends.md` is the mapping the schema backends build on it.
   Private to `backend/`.
-- `backend/internal/irtest` — builds `*ir.Model` values by hand for backend tests, seeded with the prelude declarations a field can name.
+- `backend/internal/irtest` — builds `*ir.Model` values by hand for backend tests, seeded with the prelude declarations a field can name and the `Entity` class identity conforms to.
+  `Param` interns a type parameter reference, and `Class`, `Satisfies`, and `Requires` build what a class needs, which lowering computes and a hand-built model has to state.
 - `backend/protobuf` — the protobuf backend: one proto3 file per model, placed in the directories its package spells.
   An enum where any variant carries fields is a message holding a oneof of one nested message per variant, and a newtype is expanded to its base, since a wrapper message would change the wire format.
   Every field, variant, and enum value is numbered by position unless a `number` directive pins it; `emit.Numbers` holds the rule.
