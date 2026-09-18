@@ -88,6 +88,8 @@ func (g *generator) markerProblem(target, class *ir.Decl) error {
 	name, cname := target.GetMeta().GetName(), class.GetMeta().GetName()
 	marker := "is" + g.declName(class)
 	switch {
+	case g.isForeign(target):
+		return emit.Unsupported(pos, "%s satisfies %s, and it is a foreign type, which this package cannot add %s's method to", name, cname, cname)
 	case target.GetStructure() == nil && target.GetEnumeration() == nil && target.GetNewtype() == nil:
 		return emit.Unsupported(pos, "%s satisfies %s, and it declares no Go type to carry %s's method", name, cname, cname)
 	case target.GetNewtype() != nil && g.pointerOrInterface(target.GetNewtype().GetBase(), map[int32]bool{}):

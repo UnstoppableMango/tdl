@@ -108,7 +108,14 @@ Done when the standard constraint names generate a check that fails on a value v
 
 `foreign("github.com/acme/money", "Money")` in a target block maps a TDL declaration to an existing Go type, and the backend emits an import and a reference rather than a declaration.
 
-This is what makes the `decimal`, `uuid`, and `date` placeholders survivable, and it is also how an extern is generated: a declaration in another package is a foreign type whose mapping the consumer supplies.
+This is what makes the `decimal`, `uuid`, and `date` placeholders survivable, since a primitive is a declaration a target block names like any other.
+
+Every import is aliased, because a package's name is not always its path's last segment and nothing in the model says which it is, so the qualifier is true by construction.
+A foreign type carries no method: Go declares one beside the type, so a `where` constraint on a mapped declaration and a class it satisfies each warn.
+[go-backend.md](go-backend.md#foreign-types) has the rest.
+
+Left to later work: an extern, which is the same mapping for a declaration an imported TDL package owns.
+`attach` in `internal/sema/target.go` resolves a target path against the model's own declarations, so there is nothing for a mapping to attach to yet, and that is a compiler change rather than a backend one.
 
 Done when a model naming a foreign type generates a package that imports it and does not redeclare it.
 

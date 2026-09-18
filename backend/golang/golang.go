@@ -63,6 +63,9 @@ func (Backend) Describe() plugin.Description {
 			// constrains by position, so that each one is a name is checked
 			// here rather than declared.
 			{Name: "key", MinArgs: 1, MaxArgs: -1},
+			// The import path of a Go package and the type it declares,
+			// for a declaration this package imports rather than declares.
+			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{str[0], str[0]}},
 		},
 	}
 }
@@ -95,9 +98,16 @@ type generator struct {
 	// valid holds what has something to check and carries Validate.
 	valid map[validKey]bool
 
-	// imports holds the packages the file being rendered uses, by path. It
-	// is reset before each file, since imports are per file.
-	imports map[string]bool
+	// imports holds the packages the file being rendered uses, by path,
+	// each with the alias it is imported under or "" for none. It is reset
+	// before each file, since imports are per file.
+	imports map[string]string
+
+	// foreign holds the declarations a target block mapped to a type
+	// another package declares, and aliases the identifiers those imports
+	// are named by.
+	foreign map[*ir.Decl]foreignType
+	aliases map[string]bool
 }
 
 // Generate returns one Go file per declaration the model owns.
@@ -123,6 +133,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	// which parameters Go needs to be comparable are decided before anything
 	// is rendered, since a use of a constrained declaration anywhere in the
 	// table asks about them.
+	g.planForeign()
 	g.planClasses()
 	g.inferComparable()
 	g.planValidation()
@@ -163,7 +174,12 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 
 // file renders one declaration, or nil for one that generates nothing.
 func (g *generator) file(pkg string, decl *ir.Decl) (*plugin.File, error) {
-	g.imports = map[string]bool{}
+	// A foreign declaration is imported rather than declared, so there is
+	// nothing to write for it.
+	if _, ok := g.foreign[decl]; ok {
+		return nil, nil
+	}
+	g.imports = map[string]string{}
 	g.curClasses = g.paramClasses(decl, true)
 
 	var body strings.Builder
@@ -501,7 +517,14 @@ func (g *generator) doc(b *strings.Builder, meta *ir.Meta) {
 
 // use records that the file being rendered imports a package.
 func (g *generator) use(path string) {
-	g.imports[path] = true
+	if _, ok := g.imports[path]; !ok {
+		g.imports[path] = ""
+	}
+}
+
+// useAs records an import the generated code refers to by an alias.
+func (g *generator) useAs(path, alias string) {
+	g.imports[path] = alias
 }
 
 // importNames is every package name generated code may import, by the name
@@ -510,21 +533,27 @@ var importNames = map[string]bool{"errors": true, "fmt": true, "regexp": true, "
 
 // writeImports writes a file's import declaration: one import on its own
 // line, several as a sorted block.
-func writeImports(b *strings.Builder, imports map[string]bool) {
+func writeImports(b *strings.Builder, imports map[string]string) {
 	paths := make([]string, 0, len(imports))
 	for p := range imports {
 		paths = append(paths, p)
 	}
 	slices.Sort(paths)
 
+	one := func(p string) string {
+		if alias := imports[p]; alias != "" {
+			return fmt.Sprintf("%s %q", alias, p)
+		}
+		return fmt.Sprintf("%q", p)
+	}
 	switch len(paths) {
 	case 0:
 	case 1:
-		fmt.Fprintf(b, "\nimport %q\n", paths[0])
+		fmt.Fprintf(b, "\nimport %s\n", one(paths[0]))
 	default:
 		b.WriteString("\nimport (\n")
 		for _, p := range paths {
-			fmt.Fprintf(b, "\t%q\n", p)
+			fmt.Fprintf(b, "\t%s\n", one(p))
 		}
 		b.WriteString(")\n")
 	}

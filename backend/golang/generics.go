@@ -125,6 +125,8 @@ func (g *generator) paramProblem(decl *ir.Decl) error {
 		// int64 is legal TDL and captures the field typed `int`.
 		case types.Universe.Lookup(name) != nil, importNames[name]:
 			return emit.Unsupported(pos, "type parameter %s of %s would shadow Go's %s", name, of, name)
+		case g.aliases[name]:
+			return emit.Unsupported(pos, "type parameter %s of %s would shadow the import named %s", name, of, name)
 		case g.declares(name):
 			return emit.Unsupported(pos, "type parameter %s of %s would shadow the generated declaration %s", name, of, name)
 		}

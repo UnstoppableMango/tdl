@@ -80,6 +80,13 @@ func (g *generator) typeIn(id *ir.ID, fr *frame) (string, error) {
 	}
 	name := decl.GetMeta().GetName()
 
+	// A foreign declaration is a type another package declares, so it is
+	// imported and referred to rather than expanded or looked up here.
+	if f, ok := g.foreign[decl]; ok {
+		g.useAs(f.path, f.alias)
+		return f.ref(), nil
+	}
+
 	// An alias is transparent, so it is expanded rather than referenced,
 	// with its arguments standing for its parameters.
 	if a := decl.GetAlias(); a != nil {

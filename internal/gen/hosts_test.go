@@ -218,6 +218,26 @@ func goModel() *ir.Model {
 		}},
 	})
 	m.Types = append(m.Types, &ir.Type{Param: &ir.ParamRef{Name: "T"}})
+
+	// A foreign mapping brings an aliased import and no file of its own,
+	// which the pipe has to carry byte for byte too.
+	m.Decls = append(m.Decls, &ir.Decl{
+		Meta: &ir.Meta{Name: "Money", Position: &ir.Position{Filename: "shop.tdl"}},
+		Directives: []*ir.Directive{{
+			Name:   "foreign",
+			Target: golang.Name,
+			Args:   []*ir.Literal{irText("math/big"), irText("Int")},
+		}},
+		Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{Base: &ir.ID{Index: 0, Name: "string"}}},
+	})
+	m.Types = append(m.Types, &ir.Type{
+		Ctor:  &ir.ID{Index: 3, Name: "Money"},
+		Wrote: ir.SyntacticForm_SYNTACTIC_FORM_NAMED,
+	})
+	m.Decls[1].GetStructure().Fields = append(m.Decls[1].GetStructure().Fields, &ir.Field{
+		Meta: &ir.Meta{Name: "total"},
+		Type: &ir.ID{Index: 2, Name: "Money"},
+	})
 	return m
 }
 
@@ -236,4 +256,9 @@ func compileProto(t *testing.T, f *plugin.File) {
 	if _, err := c.Compile(context.Background(), f.GetPath()); err != nil {
 		t.Errorf("%s does not compile: %v\n%s", f.GetPath(), err, f.GetContent())
 	}
+}
+
+// irText is a string literal, which a directive argument is.
+func irText(s string) *ir.Literal {
+	return &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_STRING, Text: s}
 }
