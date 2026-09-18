@@ -13,6 +13,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/debug"
 	"github.com/unstoppablemango/tdl/backend/golang"
 	"github.com/unstoppablemango/tdl/backend/protobuf"
+	"github.com/unstoppablemango/tdl/backend/thrift"
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
@@ -24,6 +25,7 @@ var builtin = map[string]plugin.Backend{
 	debug.Name:    debug.Backend{},
 	golang.Name:   golang.Backend{},
 	protobuf.Name: protobuf.Backend{},
+	thrift.Name:   thrift.Backend{},
 }
 
 // Builtin returns the backend compiled in under name.

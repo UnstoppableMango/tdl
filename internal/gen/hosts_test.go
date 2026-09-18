@@ -10,11 +10,14 @@ import (
 	"testing"
 
 	"github.com/bufbuild/protocompile"
+	thriftparser "github.com/cloudwego/thriftgo/parser"
+	"github.com/cloudwego/thriftgo/semantic"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/unstoppablemango/tdl/backend/debug"
 	"github.com/unstoppablemango/tdl/backend/golang"
 	"github.com/unstoppablemango/tdl/backend/protobuf"
+	"github.com/unstoppablemango/tdl/backend/thrift"
 	"github.com/unstoppablemango/tdl/internal/gen"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -36,6 +39,7 @@ var shipped = []struct {
 	{backend: debug.Backend{}, model: sampleModel, packaged: true},
 	{backend: golang.Backend{}, model: goModel, packaged: true, valid: parseGo},
 	{backend: protobuf.Backend{}, model: orderModel, packaged: true, valid: compileProto},
+	{backend: thrift.Backend{}, model: orderModel, packaged: true, valid: checkThrift},
 }
 
 // The protocol's one real claim: a compiled-in backend and the same
@@ -260,4 +264,15 @@ func compileProto(t *testing.T, f *plugin.File) {
 // irText is a string literal, which a directive argument is.
 func irText(s string) *ir.Literal {
 	return &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_STRING, Text: s}
+}
+
+func checkThrift(t *testing.T, f *plugin.File) {
+	t.Helper()
+	ast, err := thriftparser.ParseString(f.GetPath(), string(f.GetContent()))
+	if err == nil {
+		err = semantic.ResolveSymbols(ast)
+	}
+	if err != nil {
+		t.Errorf("%s is not valid Thrift: %v\n%s", f.GetPath(), err, f.GetContent())
+	}
 }
