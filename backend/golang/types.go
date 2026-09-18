@@ -91,6 +91,18 @@ func (g *generator) typeIn(id *ir.ID, fr *frame) (string, error) {
 
 	if decl.GetPrimitive() != nil {
 		if goName, ok := primitives[name]; ok {
+			// A primitive in the table takes no type parameters, so an
+			// argument on one is a unit saying what the number measures.
+			// Returning the Go type without reading it would make
+			// `decimal<kg>` and `decimal<N>` the same type, so the
+			// argument is visited, which is what reports it.
+			if args := t.GetArgs(); len(args) > 0 {
+				if _, err := g.typeIn(args[0], fr); err != nil {
+					return "", err
+				}
+				return "", emit.Unsupported(pos,
+					"%s is applied to a type argument, and Go has no type carrying one", name)
+			}
 			if strings.HasPrefix(goName, "time.") {
 				g.use("time")
 			}

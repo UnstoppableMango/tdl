@@ -1036,6 +1036,55 @@ func TestASkippedDeclarationInsideAnExpansionIsSkipped(t *testing.T) {
 	}
 }
 
+// A unit argument says what a number measures, and Go has no type that
+// carries one. Returning the bare Go type for the primitive would make
+// `decimal<kg>` and `decimal<N>` the same type, so the field warns and the
+// declaration holding it is skipped, the way an extern is.
+func TestAUnitArgumentOnAPrimitiveIsSkipped(t *testing.T) {
+	m := irtest.New("probe")
+	m.Own(&ir.Decl{
+		Meta: &ir.Meta{Name: "kg", Position: &ir.Position{Filename: irtest.OwnFile, Line: 3}},
+		Node: &ir.Decl_Unit{Unit: &ir.UnitDef{Base: true}},
+	})
+	m.Own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Parcel", Position: &ir.Position{Filename: irtest.OwnFile, Line: 5}},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{
+			Fields: []*ir.Field{
+				irtest.Field("weight", m.Named("decimal", m.Unit("kg", 6))),
+				irtest.Field("plain", m.Named("decimal")),
+			},
+		}},
+	})
+	m.Own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Note"},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{
+			Fields: []*ir.Field{irtest.Field("body", m.Named("string"))},
+		}},
+	})
+
+	resp := generate(t, m)
+	// One for the unit declaration, which is its own phase, and one for
+	// the field the unit argument is on.
+	if len(resp.GetDiagnostics()) != 2 {
+		t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	for _, d := range resp.GetDiagnostics() {
+		if d.GetSeverity() != plugin.Severity_SEVERITY_WARNING {
+			t.Errorf("severity = %v", d.GetSeverity())
+		}
+	}
+	field := resp.GetDiagnostics()[1]
+	contains(t, field.GetMessage(), "unit")
+	if line := field.GetPosition().GetLine(); line != 6 {
+		t.Errorf("the warning is at line %d, want the field at 6", line)
+	}
+
+	got := files(t, resp)
+	if want := []string{"note.go"}; !slices.Equal(keys(got), want) {
+		t.Errorf("files = %v, want %v", keys(got), want)
+	}
+}
+
 // Reaching the same declaration twice on separate paths is not a cycle, so
 // the walk that stops one has to unwind as it returns.
 func TestARepeatedFieldTypeIsNotACycle(t *testing.T) {
