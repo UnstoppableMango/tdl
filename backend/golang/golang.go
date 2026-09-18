@@ -527,9 +527,15 @@ func (g *generator) useAs(path, alias string) {
 	g.imports[path] = alias
 }
 
-// importNames is every package name generated code may import, by the name
-// it is referred to with.
-var importNames = map[string]bool{"errors": true, "fmt": true, "regexp": true, "time": true, "utf8": true}
+// importNames is every package the backend imports itself, by the name the
+// generated code refers to it with.
+var importNames = map[string]string{
+	"errors": "errors",
+	"fmt":    "fmt",
+	"regexp": "regexp",
+	"time":   "time",
+	"utf8":   "unicode/utf8",
+}
 
 // writeImports writes a file's import declaration: one import on its own
 // line, several as a sorted block.

@@ -3,6 +3,7 @@ package golang
 import (
 	"go/token"
 	"go/types"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -66,6 +67,13 @@ func (g *generator) planForeign() {
 		}
 		g.foreign[d] = foreignType{path: path, name: name, alias: alias}
 		g.warnForeignConstraints(d)
+
+		// A key is a method, and a method is declared beside the type.
+		if key, ok := g.Find(d.GetDirectives(), "key"); ok {
+			g.Warn(emit.Unsupported(key.GetPosition(),
+				"%s is a foreign type, so its key is not generated: a method is declared beside the type",
+				emit.LastSegment(d.GetMeta().GetName())))
+		}
 	}
 }
 
@@ -104,14 +112,20 @@ func foreignProblem(pos *ir.Position, d *ir.Decl, path, name string) error {
 
 // alias is the identifier an import of path is given, derived from the
 // segments that tell it apart from the imports already taken.
+//
+// A module's major version and a `go-` prefix are what a path carries and a
+// package name does not, so `gopkg.in/yaml.v3`, `example.com/money/v2`, and
+// `github.com/google/go-cmp` are `yaml`, `money`, and `cmp`. The alias is
+// explicit either way, so this is about what a reader expects rather than
+// about the reference resolving.
 func (g *generator) alias(path string) string {
-	segments := strings.Split(path, "/")
+	segments := strings.Split(major.ReplaceAllString(path, ""), "/")
 	candidates := []string{identifier(last(segments, 1))}
 	if len(segments) > 1 {
 		candidates = append(candidates, identifier(last(segments, 2)))
 	}
 	for _, c := range candidates {
-		if c != "" && !g.aliasTaken(c) {
+		if c != "" && !g.aliasTaken(c, path) {
 			return c
 		}
 	}
@@ -122,7 +136,7 @@ func (g *generator) alias(path string) string {
 	}
 	for n := 2; ; n++ {
 		c := base + strconv.Itoa(n)
-		if !g.aliasTaken(c) {
+		if !g.aliasTaken(c, path) {
 			return c
 		}
 	}
@@ -131,14 +145,26 @@ func (g *generator) alias(path string) string {
 // aliasTaken reports whether an alias would shadow something the generated
 // file already names: another import, a declaration, or a Go predeclared
 // identifier.
-func (g *generator) aliasTaken(alias string) bool {
-	return g.aliases[alias] || importNames[alias] ||
+//
+// A mapping onto a package the backend imports itself is not a collision,
+// since one import of one path is what the file writes either way.
+func (g *generator) aliasTaken(alias, path string) bool {
+	if p, ok := importNames[alias]; ok && p != path {
+		return true
+	}
+	return g.aliases[alias] ||
 		types.Universe.Lookup(alias) != nil || token.IsKeyword(alias) || g.declares(alias)
 }
 
-// identifier is the trailing segments of a path as one Go identifier, with
-// what Go does not accept in one dropped: `yaml.v3` is `yamlv3`.
+// major matches the major version a module path states, as its own segment
+// or as a suffix of the last one.
+var major = regexp.MustCompile(`(/v[0-9]+|\.v[0-9]+)$`)
+
+// identifier is a path's trailing segments as one Go identifier, with the
+// `go-` prefix a repository name often carries and whatever Go does not
+// accept in an identifier dropped: `go-cmp` is `cmp`.
 func identifier(s string) string {
+	s = strings.TrimPrefix(s, "go-")
 	var b strings.Builder
 	for _, r := range s {
 		switch {

@@ -2,6 +2,7 @@ package golang_test
 
 import (
 	"context"
+	"fmt"
 	"go/ast"
 	"go/importer"
 	"go/parser"
@@ -2268,17 +2269,71 @@ func TestForeignAliasesDoNotCollide(t *testing.T) {
 }
 
 // A path's last segment is not always a Go identifier, and the alias is
-// what makes the reference one.
+// what makes the reference one. A major version and a `go-` prefix are
+// what the segment carries and the package name does not, so they go.
 func TestForeignAliasIsAnIdentifier(t *testing.T) {
+	for _, tt := range []struct {
+		path, alias string
+	}{
+		{"gopkg.in/yaml.v3", "yaml"},
+		{"github.com/acme/money/v2", "money"},
+		{"github.com/google/go-cmp", "cmp"},
+		{"github.com/acme/my_pkg", "my_pkg"},
+		{"github.com/acme/2fa", "fa"},
+	} {
+		t.Run(tt.path, func(t *testing.T) {
+			m := irtest.New("shop")
+			m.Own(foreign(newtype("Doc", m.Named("string")), tt.path, "Node"))
+			m.Own(structure("File", nil, irtest.Field("doc", m.Named("Doc"))))
+
+			resp := generate(t, m)
+			noDiagnostics(t, resp)
+			// The package is not on disk, so this reads the output rather
+			// than type checking it.
+			contains(t, raw(resp)["file.go"],
+				fmt.Sprintf("%s %q", tt.alias, tt.path),
+				"Doc "+tt.alias+".Node",
+			)
+		})
+	}
+}
+
+// Whether a foreign type is a legal map key is decided by the package that
+// declares it, at the consumer's build, so the backend trusts it rather
+// than refusing a Set of one.
+func TestForeignTypeIsAssumedComparable(t *testing.T) {
 	m := irtest.New("shop")
-	m.Own(foreign(newtype("Doc", m.Named("string")), "gopkg.in/yaml.v3", "Node"))
-	m.Own(structure("File", nil, irtest.Field("doc", m.Named("Doc"))))
+	mapForeign(m, "uuid", "time", "Time")
+	m.Own(structure("Bag", nil, irtest.Field("ids", m.Named("Set", m.Named("uuid")))))
 
 	resp := generate(t, m)
 	noDiagnostics(t, resp)
-	// The package is not on disk, so this reads the output rather than
-	// type checking it.
-	contains(t, raw(resp)["file.go"], `yamlv3 "gopkg.in/yaml.v3"`, "Doc yamlv3.Node")
+	contains(t, files(t, resp)["bag.go"], `time "time"`, "Ids map[time.Time]struct{}")
+}
+
+// A foreign type takes type arguments like any other, and the reference
+// carries them.
+func TestForeignTypeTakesTypeArguments(t *testing.T) {
+	m := irtest.New("shop")
+	m.Own(foreign(structure("Holder", irtest.Params("T"), irtest.Field("value", m.Param("T", 0))), "sync", "Map"))
+	m.Own(structure("Cache", nil, irtest.Field("entries", m.Named("Holder", m.Named("string")))))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	contains(t, raw(resp)["cache.go"], `sync "sync"`, "Entries sync.Map[string]")
+}
+
+// A key is a method, and a foreign type carries none, so the entity the
+// mapping replaced says so rather than silently losing it.
+func TestKeyOnAForeignTypeIsAWarning(t *testing.T) {
+	m := irtest.New("shop")
+	m.Own(foreign(keyed("User", []*ir.Field{irtest.Field("id", m.Named("string"))}, irtest.Name("id")), "math/big", "Int"))
+	m.Own(structure("Order", nil, irtest.Field("user", m.Named("User"))))
+
+	resp := generate(t, m)
+	onlyWarningAt(t, resp, keyLine)
+	contains(t, resp.GetDiagnostics()[0].GetMessage(), "User", "foreign")
+	contains(t, files(t, resp)["order.go"], "User big.Int")
 }
 
 // A foreign type's values belong to the package that declares them, so

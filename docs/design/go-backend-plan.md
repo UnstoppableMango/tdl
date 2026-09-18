@@ -111,7 +111,8 @@ Done when the standard constraint names generate a check that fails on a value v
 This is what makes the `decimal`, `uuid`, and `date` placeholders survivable, since a primitive is a declaration a target block names like any other.
 
 Every import is aliased, because a package's name is not always its path's last segment and nothing in the model says which it is, so the qualifier is true by construction.
-A foreign type carries no method: Go declares one beside the type, so a `where` constraint on a mapped declaration and a class it satisfies each warn.
+A foreign type carries no method: Go declares one beside the type, so a `where` constraint on a mapped declaration, a class it satisfies, and a `key` on it each warn.
+It is assumed comparable, since whether it is a legal map key is the declaring package's answer and refusing it would refuse a set of a mapped `uuid`.
 [go-backend.md](go-backend.md#foreign-types) has the rest.
 
 Left to later work: an extern, which is the same mapping for a declaration an imported TDL package owns.

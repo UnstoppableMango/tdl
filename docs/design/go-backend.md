@@ -283,10 +283,19 @@ A primitive is a declaration like any other, so `decimal`, `uuid`, and `date` ar
 An import is always given an alias, derived from the path.
 A package's name is not always its path's last segment, `gopkg.in/yaml.v3` is package `yaml`, and nothing in the model says which it is, so the alias is what makes the qualifier the generated code reads true by construction rather than by guess.
 It is the last segment as an identifier, the last two joined when that is taken, and then a number, so two packages ending in `template` become `template` and `htmltemplate`.
+A module's major version and a `go-` prefix are what a path carries and a package name does not, so `gopkg.in/yaml.v3`, `example.com/money/v2`, and `github.com/google/go-cmp` are `yaml`, `money`, and `cmp`.
+That is about what a reader expects, since the alias is explicit either way.
 An alias that would shadow a declaration, another import, or a predeclared identifier is taken in the same sense, and a type parameter spelled like one warns as [Generics](#generics) describes.
+A mapping onto a package the backend imports itself, `time`, say, is not a collision: one import of one path is what the file writes either way.
+
+A foreign declaration takes type arguments like any other, and the reference carries them, so a mapped `Holder<string>` is `sync.Map[string]`.
+
+A foreign type is assumed comparable.
+Whether it is a legal map key is decided by the package declaring it, at the consumer's build, and refusing it here would refuse `Set<uuid>` as soon as `uuid` is mapped, which is the mapping working.
+This is the one place the backend trusts what it was told rather than what it can see, and a mapping that is wrong about it fails at the consumer's build.
 
 What a foreign type does not get is a method.
-Go declares a method beside the type, so a foreign type carries no `Validate`, and a `where` constraint on one warns at the constraint; it carries no class marker either, and satisfying a class warns at the mapping.
+Go declares a method beside the type, so a foreign type carries no `Validate`, and a `where` constraint on one warns at the constraint; it carries no class marker either, and satisfying a class warns at the mapping, and no `Key()`, so a `key` directive on one warns at the directive.
 A mapping this backend could not refer to, one with no import path or naming something that is not an exported Go identifier, warns and the declaration is generated as though it had not been written.
 
 An extern, a declaration an imported TDL package owns, is the same problem from the other side and is not solved yet: a target path names a declaration of the model's own, so nothing can attach a mapping to an extern today.
@@ -345,7 +354,7 @@ A declaration naming a skipped one, directly or through an option, a collection,
 `emit.Cascade` is what does that, so the warning is at the referring declaration and says which declaration caused it.
 A `where` constraint the backend cannot check, a `requires` clause Go cannot state, a class's associated types, and a fieldless enum's parameters warn and the declaration is still emitted, since what is missing is the constraint and not the type.
 A field whose Go name is `Validate` or `validate` warns the same way, and the type is emitted without the methods.
-A constraint on a foreign type, a foreign type satisfying a class, and a mapping the generated code could not refer to each warn and nothing else changes, as [Foreign types](#foreign-types) describes.
+A constraint on a foreign type, a foreign type satisfying a class, a `key` on one, and a mapping the generated code could not refer to each warn and nothing else changes, as [Foreign types](#foreign-types) describes.
 What [Classes](#classes) lists as getting no marker warns, and the declaration is emitted without the marker.
 A `key` the backend cannot generate warns the same way and the entity is emitted without it: a key on a value or a mixin, an argument that is not a name, a field named twice or not at all, a field Go cannot compare, a field whose Go name is `Key`, and a key type colliding with a declaration of the same name.
 Everything above has a phase or a deferred decision in [go-backend-plan.md](go-backend-plan.md), or a section here saying why Go cannot express it, and each is a set of decisions rather than an oversight.
