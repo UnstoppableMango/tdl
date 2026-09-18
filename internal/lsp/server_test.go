@@ -25,7 +25,7 @@ func TestConformanceCorpusPublishesNothing(t *testing.T) {
 			diags := newSession(t).open(path, src)
 			for _, d := range diags {
 				t.Errorf("unexpected diagnostic at %d:%d: %s",
-					d.Range.Start.Line+1, d.Range.Start.Character+1, d.Message)
+					d.Range.Start.Line+1, d.Range.Start.Character+1, message(t, d))
 			}
 		})
 	}
@@ -51,11 +51,11 @@ func TestInvalidCorpusPublishesTheError(t *testing.T) {
 			}
 
 			for _, d := range diags {
-				if strings.Contains(d.Message, want) {
+				if strings.Contains(message(t, d), want) {
 					return
 				}
 			}
-			t.Errorf("no diagnostic contains %q; got %v", want, messages(diags))
+			t.Errorf("no diagnostic contains %q; got %v", want, messages(t, diags))
 		})
 	}
 }
@@ -77,7 +77,7 @@ func TestFixingAnErrorClearsIt(t *testing.T) {
 		t.Fatal("expected a diagnostic for the undefined type")
 	}
 	if diags := s.change(path, fixed, 2); len(diags) != 0 {
-		t.Errorf("expected the diagnostic to clear, got %v", messages(diags))
+		t.Errorf("expected the diagnostic to clear, got %v", messages(t, diags))
 	}
 }
 
@@ -98,8 +98,8 @@ func TestSyntaxErrorsSuppressLoweringDiagnostics(t *testing.T) {
 		t.Fatal("expected a syntax error")
 	}
 	for _, d := range diags {
-		if strings.Contains(d.Message, "undefined") {
-			t.Errorf("lowering diagnostic published for a file that does not parse: %s", d.Message)
+		if msg := message(t, d); strings.Contains(msg, "undefined") {
+			t.Errorf("lowering diagnostic published for a file that does not parse: %s", msg)
 		}
 	}
 }
@@ -123,7 +123,7 @@ func TestDiagnosticsUseUTF16Columns(t *testing.T) {
 
 	diags := newSession(t).open(abs(t, "utf16.tdl"), src)
 	if len(diags) != 1 {
-		t.Fatalf("expected one diagnostic, got %v", messages(diags))
+		t.Fatalf("expected one diagnostic, got %v", messages(t, diags))
 	}
 
 	// `Nope` is 28 bytes into line 3 and 25 UTF-16 code units into it, so
@@ -155,7 +155,7 @@ func TestDefinitionJumpsToADeclaration(t *testing.T) {
 	s := newSession(t)
 	path := abs(t, "def.tdl")
 	if diags := s.open(path, src); len(diags) != 0 {
-		t.Fatalf("unexpected diagnostics: %v", messages(diags))
+		t.Fatalf("unexpected diagnostics: %v", messages(t, diags))
 	}
 
 	locs := s.definition(path, src, "Email\n}")
@@ -200,7 +200,7 @@ func TestDefinitionCrossesAnImport(t *testing.T) {
 
 	s := newSession(t)
 	if diags := s.open(path, src); len(diags) != 0 {
-		t.Fatalf("unexpected diagnostics: %v", messages(diags))
+		t.Fatalf("unexpected diagnostics: %v", messages(t, diags))
 	}
 
 	locs := s.definition(path, src, "Money\n}")
@@ -267,10 +267,12 @@ func writeFile(t *testing.T, path, src string) {
 }
 
 // messages is what a failure prints.
-func messages(diags []protocol.Diagnostic) []string {
+func messages(t *testing.T, diags []protocol.Diagnostic) []string {
+	t.Helper()
+
 	out := make([]string, 0, len(diags))
 	for _, d := range diags {
-		out = append(out, d.Message)
+		out = append(out, message(t, d))
 	}
 	return out
 }

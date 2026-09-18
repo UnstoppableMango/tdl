@@ -61,7 +61,7 @@ func (s *store) open(u uri.URI, version int32, text string) *document {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	doc := &document{uri: u, path: u.Filename(), version: version, text: text}
+	doc := &document{uri: u, path: u.FsPath(), version: version, text: text}
 	s.docs[doc.path] = doc
 	return doc
 }
@@ -72,7 +72,7 @@ func (s *store) change(u uri.URI, version int32, text string) *document {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	doc, ok := s.docs[u.Filename()]
+	doc, ok := s.docs[u.FsPath()]
 	if !ok {
 		return nil
 	}
@@ -84,7 +84,7 @@ func (s *store) change(u uri.URI, version int32, text string) *document {
 func (s *store) close(u uri.URI) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	delete(s.docs, u.Filename())
+	delete(s.docs, u.FsPath())
 }
 
 // invalidate drops every snapshot.

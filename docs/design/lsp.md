@@ -26,7 +26,7 @@ So the server is a protocol layer and an index, not a second front end.
 
 ## The protocol layer
 
-`go.lsp.dev/protocol` at v0.12.0, with `go.lsp.dev/jsonrpc2`.
+`go.lsp.dev/protocol` at v1, with `go.lsp.dev/jsonrpc2`.
 
 The alternative was hand-rolling JSON-RPC and the message types, which the `plugin` package does for its own wire format.
 That reasoning does not carry here.
@@ -34,13 +34,12 @@ That reasoning does not carry here.
 
 The dependency is not free, and two of its properties are worth stating so they are not rediscovered.
 
-**`protocol.Server` is 60 methods and the package ships no base.**
-`internal/lsp/unimplemented.go` holds one struct satisfying the whole interface, every method returning `jsonrpc2.ErrMethodNotFound`.
+**`protocol.Server` is the whole LSP surface and nothing implements most of it.**
+`protocol.UnimplementedServer` is the base the package ships for that: every method answers "method not found", except a notification, which is ignored, because a non-nil error from a notification handler tears the connection down.
 `Server` embeds it and overrides what it serves, so adding a feature is one method rather than an edit to a dispatch table.
-The file is mechanical, and the dependency is pinned, so it is also stable.
 
-**v0.12.0 is LSP 3.16, which has no `positionEncoding` negotiation.**
-Positions on the wire are therefore UTF-16 code units and cannot be anything else.
+**The server does not negotiate `positionEncoding`, so positions on the wire are UTF-16 code units.**
+LSP 3.17 added the negotiation and the capability defaults to `utf-16` when a server offers nothing, which is what this one does.
 `lex.Position` counts bytes, so the conversion is required rather than a nicety, and a server that skipped it would work on ASCII and put the underline in the wrong place the first time a model used a non-ASCII character in a comment or a string.
 
 `internal/lsp/position.go` is the one place that knows this.
