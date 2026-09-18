@@ -17,6 +17,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/debug"
 	"github.com/unstoppablemango/tdl/backend/golang"
 	"github.com/unstoppablemango/tdl/backend/protobuf"
+	"github.com/unstoppablemango/tdl/backend/smithy"
 	"github.com/unstoppablemango/tdl/backend/thrift"
 	"github.com/unstoppablemango/tdl/internal/gen"
 	"github.com/unstoppablemango/tdl/ir"
@@ -39,6 +40,7 @@ var shipped = []struct {
 	{backend: debug.Backend{}, model: sampleModel, packaged: true},
 	{backend: golang.Backend{}, model: goModel, packaged: true, valid: parseGo},
 	{backend: protobuf.Backend{}, model: orderModel, packaged: true, valid: compileProto},
+	{backend: smithy.Backend{}, model: orderModel, packaged: true},
 	{backend: thrift.Backend{}, model: orderModel, packaged: true, valid: checkThrift},
 }
 

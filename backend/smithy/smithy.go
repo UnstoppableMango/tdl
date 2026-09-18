@@ -1,0 +1,594 @@
+// Package smithy generates a Smithy IDL 2.0 model from a resolved model.
+//
+// docs/design/schema-backends.md has the mapping and the reasons for it.
+// Three things are worth knowing before reading the output. Smithy names
+// every collection, so a list or map a field holds is a shape the backend
+// declares, named for what it holds (`LineItemList`, `StringLongMap`) and
+// declared once however many fields use it. A newtype over a primitive or
+// a collection is a named shape of its own. And a field that is not
+// optional is `@required`, since Smithy members are optional by default.
+package smithy
+
+import (
+	"context"
+	"fmt"
+	"maps"
+	"regexp"
+	"slices"
+	"strconv"
+	"strings"
+
+	"github.com/unstoppablemango/tdl/backend/internal/emit"
+	"github.com/unstoppablemango/tdl/ir"
+	"github.com/unstoppablemango/tdl/plugin"
+)
+
+// Name is what this backend is called, in a target block and as
+// tdl-gen-smithy on PATH.
+const Name = "smithy"
+
+// Backend implements [plugin.Backend].
+type Backend struct{}
+
+func (Backend) Describe() plugin.Description {
+	str := []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_STRING}
+	return plugin.Description{
+		Name:    Name,
+		Version: "0.1.0",
+		// Each request is answered from the request alone.
+		Reuse: true,
+		Directives: []*plugin.DirectiveSpec{
+			// The Smithy namespace. The model's package is the default.
+			{Name: "package", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			// The Smithy name for a shape, a member, an enum member, or a
+			// variant's structure.
+			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+		},
+	}
+}
+
+// preludeShapes maps a TDL primitive to the Smithy prelude shape standing
+// for it. Smithy has no UUID and no date without a time, so each of those
+// is a String a consumer parses.
+var preludeShapes = map[string]string{
+	"string":   "String",
+	"int":      "Long",
+	"bool":     "Boolean",
+	"bytes":    "Blob",
+	"decimal":  "BigDecimal",
+	"uuid":     "String",
+	"instant":  "Timestamp",
+	"date":     "String",
+	"duration": "String",
+}
+
+// simple is the keyword declaring a simple shape of each prelude shape's
+// type, for a newtype over one.
+var simple = map[string]string{
+	"String":     "string",
+	"Long":       "long",
+	"Boolean":    "boolean",
+	"Blob":       "blob",
+	"BigDecimal": "bigDecimal",
+	"Timestamp":  "timestamp",
+}
+
+// ident is the Smithy identifier grammar: identifier-start is any number
+// of underscores and then a letter, so `_1` and `_` are not identifiers.
+var ident = regexp.MustCompile(`^_*[A-Za-z][A-Za-z0-9_]*$`)
+
+type generator struct {
+	*emit.Session
+
+	// local is every shape name the model's own declarations could take,
+	// which a reference to a prelude shape of the same name has to step
+	// around.
+	local map[string]bool
+
+	// names is every shape name declared, by the name folded to lower
+	// case: Smithy reads two shape IDs differing only in case as one.
+	names map[string]shape
+
+	// shapes is every collection shape a field needed, by name.
+	shapes map[string]string
+
+	// uses is the collection shapes the declaration being rendered needs.
+	uses map[string]bool
+}
+
+// shape is a declared shape name and the declaration that declared it.
+type shape struct{ name, decl string }
+
+type rendered struct {
+	decl *ir.Decl
+	text string
+	uses map[string]bool
+}
+
+// Generate returns one .smithy file holding every declaration the model
+// owns.
+func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Response, error) {
+	g := &generator{
+		Session: emit.NewSession(req, "Smithy"),
+		local:   map[string]bool{},
+		names:   map[string]shape{},
+		shapes:  map[string]string{},
+	}
+
+	ns, nsPos := req.GetModel().GetPackage(), (*ir.Position)(nil)
+	if d, ok := g.Block("package"); ok {
+		ns, nsPos = d.GetArgs()[0].GetText(), d.GetPosition()
+	}
+	// Every shape lives in the namespace, and a Smithy file has to have
+	// one, so a namespace Smithy refuses is the whole output.
+	if !validNamespace(ns) {
+		g.Error(nsPos, "%q is not a Smithy namespace", ns)
+		return g.Response(nil), nil
+	}
+
+	own := g.Own()
+	for _, d := range own {
+		if d.GetStructure() == nil && d.GetEnumeration() == nil && d.GetNewtype() == nil {
+			continue
+		}
+		name := g.DeclName(d, emit.Pascal)
+		g.local[name] = true
+		// A union variant carrying fields emits a structure of its own,
+		// which is as much one of the model's names as a declaration is.
+		for _, v := range d.GetEnumeration().GetVariants() {
+			if len(v.GetFields()) > 0 {
+				g.local[g.variantShape(name, v)] = true
+			}
+		}
+	}
+
+	skipped := map[*ir.Decl]bool{}
+	var out []rendered
+	for _, d := range own {
+		g.uses = map[string]bool{}
+		text, err := g.decl(d)
+		if err != nil {
+			g.Warn(err)
+			skipped[d] = true
+			continue
+		}
+		if text != "" {
+			out = append(out, rendered{d, text, g.uses})
+		}
+	}
+	g.Cascade(own, skipped)
+
+	var blocks []string
+	need := map[string]bool{}
+	for _, r := range out {
+		if skipped[r.decl] {
+			continue
+		}
+		blocks = append(blocks, r.text)
+		maps.Copy(need, r.uses)
+	}
+	if len(blocks) == 0 {
+		return g.Response(nil), nil
+	}
+	for _, name := range slices.Sorted(maps.Keys(need)) {
+		blocks = append(blocks, g.shapes[name])
+	}
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "// Code generated by tdl. DO NOT EDIT.\n\n$version: \"2\"\n\nnamespace %s\n", ns)
+	for _, block := range blocks {
+		b.WriteString("\n")
+		b.WriteString(block)
+	}
+	path := emit.LastSegment(ns) + ".smithy"
+	return g.Response([]*plugin.File{{Path: path, Content: []byte(b.String())}}), nil
+}
+
+// decl renders one declaration, or "" for one that declares nothing.
+func (g *generator) decl(d *ir.Decl) (string, error) {
+	pos := d.GetMeta().GetPosition()
+	name := d.GetMeta().GetName()
+
+	switch {
+	case d.GetClass() != nil:
+		return "", emit.Unsupported(pos, "%s is a class, and classes are not generated yet", name)
+	case d.GetUnit() != nil:
+		return "", emit.Unsupported(pos, "%s is a unit, and units are not generated yet", name)
+	case d.GetStructure() == nil && d.GetEnumeration() == nil && d.GetNewtype() == nil:
+		// An alias is expanded where it is used, and a model's own
+		// primitive names an opaque root; neither declares anything.
+		return "", nil
+	}
+	if len(d.Params()) > 0 {
+		return "", emit.Unsupported(pos, "%s is parameterized, and generics are not generated yet", name)
+	}
+
+	var b strings.Builder
+	var declared []string
+	var err error
+	switch e := d.GetEnumeration(); {
+	case d.GetNewtype() != nil:
+		declared, err = g.newtype(&b, d)
+	case d.GetStructure() != nil:
+		declared, err = g.structure(&b, g.DeclName(d, emit.Pascal), d.GetMeta(), d.Fields())
+	case emit.Fielded(e):
+		declared, err = g.union(&b, d)
+	default:
+		declared, err = g.enum(&b, d)
+	}
+	if err != nil {
+		return "", err
+	}
+
+	within := map[string]string{}
+	for _, n := range declared {
+		if !ident.MatchString(n) {
+			return "", emit.Unsupported(pos, "%s would be named %s in Smithy, which is not an identifier", name, n)
+		}
+		key := fold(n)
+		if prior, ok := within[key]; ok {
+			return "", emit.Unsupported(pos, "%s would declare both %s and %s in Smithy, which is one shape twice", name, prior, n)
+		}
+		within[key] = n
+		if other, ok := g.names[key]; ok {
+			if other.name == n {
+				return "", emit.Unsupported(pos, "%s would declare %s in Smithy, and %s already does", name, n, other.decl)
+			}
+			return "", emit.Unsupported(pos, "%s would declare %s in Smithy, and %s declares %s, which Smithy reads as the same shape", name, n, other.decl, other.name)
+		}
+	}
+	// Nothing is committed until the whole declaration is known to be
+	// renderable, so a declaration that fails leaves no name behind.
+	for _, n := range declared {
+		g.names[fold(n)] = shape{n, name}
+	}
+	g.WarnConstraints(d)
+	return b.String(), nil
+}
+
+// structure renders a structure. An entity, a value, and a mixin differ in
+// what they mean and not in what they emit.
+func (g *generator) structure(b *strings.Builder, name string, meta *ir.Meta, fields []*ir.Field) ([]string, error) {
+	var body strings.Builder
+	seen := map[string]string{}
+	for _, f := range fields {
+		ref, err := g.Resolve(f.GetType())
+		if err != nil {
+			return nil, err
+		}
+		required, target, err := g.memberTarget(ref)
+		if err != nil {
+			return nil, err
+		}
+
+		member := g.FieldName(f, asWritten)
+		if err := claim(seen, name, member, f.GetMeta().GetPosition()); err != nil {
+			return nil, err
+		}
+
+		comment(&body, "    ", f.GetMeta())
+		if required {
+			body.WriteString("    @required\n")
+		}
+		deprecated(&body, "    ", f.GetMeta())
+		fmt.Fprintf(&body, "    %s: %s\n", member, target)
+	}
+
+	comment(b, "", meta)
+	deprecated(b, "", meta)
+	fmt.Fprintf(b, "structure %s {\n%s}\n", name, body.String())
+	return []string{name}, nil
+}
+
+// enum renders an enum whose variants carry no fields. Each member's value
+// is the variant's name as written, since inventing a wire format belongs
+// to the consumer.
+func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, error) {
+	name := g.DeclName(d, emit.Pascal)
+
+	var body strings.Builder
+	seen := map[string]string{}
+	for _, v := range d.GetEnumeration().GetVariants() {
+		member := emit.ScreamingSnake(v.GetMeta().GetName())
+		if n, ok := g.Text(v.GetDirectives(), "name"); ok {
+			member = n
+		}
+		if err := claim(seen, name, member, v.GetMeta().GetPosition()); err != nil {
+			return nil, err
+		}
+		comment(&body, "    ", v.GetMeta())
+		deprecated(&body, "    ", v.GetMeta())
+		fmt.Fprintf(&body, "    %s = %s\n", member, strconv.Quote(v.GetMeta().GetName()))
+	}
+
+	comment(b, "", d.GetMeta())
+	deprecated(b, "", d.GetMeta())
+	fmt.Fprintf(b, "enum %s {\n%s}\n", name, body.String())
+	return []string{name}, nil
+}
+
+// union renders an enum where any variant carries fields: a union whose
+// members target a structure per variant, and Unit for a variant with no
+// fields.
+func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, error) {
+	name := g.DeclName(d, emit.Pascal)
+	declared := []string{name}
+
+	var body, structures strings.Builder
+	seen := map[string]string{}
+	for _, v := range d.GetEnumeration().GetVariants() {
+		member := emit.Camel(v.GetMeta().GetName())
+		if err := claim(seen, name, member, v.GetMeta().GetPosition()); err != nil {
+			return nil, err
+		}
+
+		target := g.preludeRef("Unit")
+		if len(v.GetFields()) > 0 {
+			target = g.variantShape(name, v)
+			structures.WriteString("\n")
+			if _, err := g.structure(&structures, target, &ir.Meta{Doc: v.GetMeta().GetDoc()}, v.GetFields()); err != nil {
+				return nil, err
+			}
+			declared = append(declared, target)
+		}
+
+		comment(&body, "    ", v.GetMeta())
+		deprecated(&body, "    ", v.GetMeta())
+		fmt.Fprintf(&body, "    %s: %s\n", member, target)
+	}
+
+	comment(b, "", d.GetMeta())
+	deprecated(b, "", d.GetMeta())
+	fmt.Fprintf(b, "union %s {\n%s}\n", name, body.String())
+	b.WriteString(structures.String())
+	return declared, nil
+}
+
+// newtype renders a newtype as a shape of its own when its base is a
+// primitive or a collection. Over a structure or an enum it declares
+// nothing, and a reference to it targets the base: Smithy has no way to
+// name one structure as another.
+func (g *generator) newtype(b *strings.Builder, d *ir.Decl) ([]string, error) {
+	pos := d.GetMeta().GetPosition()
+	name := g.DeclName(d, emit.Pascal)
+
+	base, err := g.Resolve(d.GetNewtype().GetBase())
+	if err != nil {
+		return nil, err
+	}
+	x, err := g.Expand(base)
+	if err != nil {
+		return nil, err
+	}
+
+	var text string
+	switch x.Form {
+	case emit.Prim:
+		shape, ok := preludeShapes[x.Name]
+		if !ok {
+			return nil, emit.Unsupported(x.Pos, "primitive %s has no Smithy shape", x.Name)
+		}
+		text = simple[shape] + " " + name + "\n"
+	case emit.List, emit.Set, emit.Map:
+		if _, text, err = g.collection(x, name); err != nil {
+			return nil, err
+		}
+	case emit.Option, emit.Nullable:
+		return nil, emit.Unsupported(pos, "%s wraps an optional value, and an optional value is not a Smithy shape", d.GetMeta().GetName())
+	default:
+		return nil, nil
+	}
+
+	comment(b, "", d.GetMeta())
+	deprecated(b, "", d.GetMeta())
+	b.WriteString(text)
+	return []string{name}, nil
+}
+
+// named reports whether a newtype declares a shape of its own.
+func (g *generator) named(d *ir.Decl) bool {
+	base, err := g.Resolve(d.GetNewtype().GetBase())
+	if err != nil {
+		return true
+	}
+	x, err := g.Expand(base)
+	if err != nil {
+		return true
+	}
+	return x.Form != emit.Named
+}
+
+// memberTarget returns whether a member is required, and the shape it
+// targets.
+func (g *generator) memberTarget(r *emit.Ref) (bool, string, error) {
+	if r.Form != emit.Option && r.Form != emit.Nullable {
+		target, err := g.target(r)
+		return true, target, err
+	}
+	if r.Elem.Form == emit.Option || r.Elem.Form == emit.Nullable {
+		return false, "", emit.Unsupported(r.Pos, "an optional value holding an optional value has no Smithy form")
+	}
+	target, err := g.target(r.Elem)
+	return false, target, err
+}
+
+// target is the shape a reference targets.
+func (g *generator) target(r *emit.Ref) (string, error) {
+	switch r.Form {
+	case emit.Prim:
+		shape, ok := preludeShapes[r.Name]
+		if !ok {
+			return "", emit.Unsupported(r.Pos, "primitive %s has no Smithy shape", r.Name)
+		}
+		return g.preludeRef(shape), nil
+	case emit.List, emit.Set, emit.Map:
+		name, text, err := g.collection(r, "")
+		if err != nil {
+			return "", err
+		}
+		if g.local[name] {
+			return "", emit.Unsupported(r.Pos, "the shape %s this collection needs would collide with the declaration of that name", name)
+		}
+		// Two collections can derive one name from different elements,
+		// and the second is not the first however alike the names are.
+		if prior, ok := g.shapes[name]; ok && prior != text {
+			return "", emit.Unsupported(r.Pos, "the shape %s this collection needs is already declared holding something else", name)
+		}
+		g.shapes[name] = text
+		g.uses[name] = true
+		return name, nil
+	case emit.Option, emit.Nullable:
+		return "", emit.Unsupported(r.Pos, "an optional value here has no Smithy form")
+	}
+
+	if r.Decl.GetNewtype() != nil && !g.named(r.Decl) {
+		next, err := g.Resolve(r.Decl.GetNewtype().GetBase())
+		if err != nil {
+			return "", err
+		}
+		return g.target(next)
+	}
+	return g.DeclName(r.Decl, emit.Pascal), nil
+}
+
+// collection returns the name and text of a list or map shape. A newtype
+// passes its own name; anything else is named for what it holds.
+//
+// An optional element makes the shape @sparse, which is how Smithy says a
+// list or a map may hold nulls.
+func (g *generator) collection(r *emit.Ref, name string) (string, string, error) {
+	elem, sparse := r.Elem, false
+	if elem.Form == emit.Option || elem.Form == emit.Nullable {
+		elem, sparse = elem.Elem, true
+		if elem.Form == emit.Option || elem.Form == emit.Nullable {
+			return "", "", emit.Unsupported(r.Pos, "an optional value holding an optional value has no Smithy form")
+		}
+	}
+	if sparse && r.Form == emit.Set {
+		return "", "", emit.Unsupported(r.Pos, "a set holding optional values has no Smithy form, since a @uniqueItems list cannot be @sparse")
+	}
+	value, err := g.target(elem)
+	if err != nil {
+		return "", "", err
+	}
+
+	var traits strings.Builder
+	if sparse {
+		traits.WriteString("@sparse\n")
+	}
+
+	if r.Form == emit.Map {
+		kx, err := g.Expand(r.Key)
+		if err != nil {
+			return "", "", err
+		}
+		stringy := kx.Form == emit.Prim && preludeShapes[kx.Name] == "String"
+		enum := kx.Form == emit.Named && kx.Decl.GetEnumeration() != nil && !emit.Fielded(kx.Decl.GetEnumeration())
+		if !stringy && !enum {
+			return "", "", emit.Unsupported(r.Pos, "a Smithy map key is a string or an enum")
+		}
+		key, err := g.target(r.Key)
+		if err != nil {
+			return "", "", err
+		}
+		if name == "" {
+			name = sparsePrefix(sparse) + bare(key) + bare(value) + "Map"
+		}
+		return name, fmt.Sprintf("%smap %s {\n    key: %s\n    value: %s\n}\n", traits.String(), name, key, value), nil
+	}
+
+	suffix := "List"
+	if r.Form == emit.Set {
+		suffix = "Set"
+		traits.WriteString("@uniqueItems\n")
+	}
+	if name == "" {
+		name = sparsePrefix(sparse) + bare(value) + suffix
+	}
+	return name, fmt.Sprintf("%slist %s {\n    member: %s\n}\n", traits.String(), name, value), nil
+}
+
+// preludeRef is a reference to a prelude shape, qualified when one of the
+// model's own shapes would take its name.
+func (g *generator) preludeRef(shape string) string {
+	if g.local[shape] {
+		return "smithy.api#" + shape
+	}
+	return shape
+}
+
+func bare(target string) string { return strings.TrimPrefix(target, "smithy.api#") }
+
+func sparsePrefix(sparse bool) string {
+	if sparse {
+		return "Sparse"
+	}
+	return ""
+}
+
+func asWritten(name string) string { return name }
+
+// claim takes a member name inside a shape. Smithy member names are unique
+// without regard to case, so the name is held folded.
+func claim(seen map[string]string, owner, name string, pos *ir.Position) error {
+	if !ident.MatchString(name) {
+		return emit.Unsupported(pos, "%s.%s is not a Smithy identifier", owner, name)
+	}
+	if prior, ok := seen[fold(name)]; ok {
+		if prior == name {
+			return emit.Unsupported(pos, "%s has two members named %s in Smithy", owner, name)
+		}
+		return emit.Unsupported(pos, "%s has members named %s and %s, which Smithy reads as one member", owner, prior, name)
+	}
+	seen[fold(name)] = name
+	return nil
+}
+
+// fold is the form two Smithy names share when Smithy cannot tell them
+// apart.
+func fold(name string) string { return strings.ToLower(name) }
+
+// variantShape is the name of the structure a variant carrying fields
+// emits, under the union named name.
+func (g *generator) variantShape(name string, v *ir.Variant) string {
+	if n, ok := g.Text(v.GetDirectives(), "name"); ok {
+		return n
+	}
+	return name + emit.Pascal(v.GetMeta().GetName())
+}
+
+// comment writes a node's documentation as Smithy doc comments.
+func comment(b *strings.Builder, indent string, meta *ir.Meta) {
+	for _, line := range emit.Doc(meta) {
+		if line == "" {
+			fmt.Fprintf(b, "%s///\n", indent)
+			continue
+		}
+		fmt.Fprintf(b, "%s/// %s\n", indent, line)
+	}
+}
+
+// deprecated writes the @deprecated trait, with the reason as its message
+// when there is one.
+func deprecated(b *strings.Builder, indent string, meta *ir.Meta) {
+	reason, ok := emit.Deprecated(meta)
+	switch {
+	case !ok:
+	case reason == "":
+		fmt.Fprintf(b, "%s@deprecated\n", indent)
+	default:
+		fmt.Fprintf(b, "%s@deprecated(message: %s)\n", indent, strconv.Quote(reason))
+	}
+}
+
+func validNamespace(ns string) bool {
+	if ns == "" {
+		return false
+	}
+	for seg := range strings.SplitSeq(ns, ".") {
+		if !ident.MatchString(seg) {
+			return false
+		}
+	}
+	return true
+}

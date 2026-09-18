@@ -151,7 +151,11 @@ Pipeline, one package per stage:
   An enum where any variant carries fields is a union of one struct per variant, a newtype is a `typedef`, and declarations are written in dependency order because a Thrift compiler reads a file top to bottom.
   Field ids come from `emit.Numbers`, as protobuf's do.
   Its tests parse every response with thriftgo and resolve its symbols, so a reference to a skipped declaration fails there.
-- `cmd/tdl-gen-debug`, `cmd/tdl-gen-go`, `cmd/tdl-gen-protobuf`, `cmd/tdl-gen-thrift` — each backend as a plugin.
+- `backend/smithy` — the Smithy IDL 2.0 backend: one `.smithy` file per model in the namespace its package names.
+  Smithy names every collection, so a list or map a field holds is a shape declared once and named for what it holds, such as `LineItemList` or `StringLongMap`; a reference to a prelude shape the model's own shapes shadow is written `smithy.api#`.
+  A field that is not optional is `@required`, and an optional element makes a list or map `@sparse`.
+  There is no Go implementation of Smithy, so its tests run `smithy validate` when the CLI is on `PATH`, and `checks.gen-smithy` generates from `testdata/gen/smoke` and validates the `.smithy` files that come out regardless.
+- `cmd/tdl-gen-debug`, `cmd/tdl-gen-go`, `cmd/tdl-gen-protobuf`, `cmd/tdl-gen-smithy`, `cmd/tdl-gen-thrift` — each backend as a plugin.
   The same value the registry holds, served over a connection, which is what makes the two hosts testable against each other.
 - `plugin` — the wire protocol a backend speaks, generated from `proto/tdl/plugin/v1/plugin.proto`, plus the framing codec.
   Public, like `ir`.
@@ -180,7 +184,8 @@ Pipeline, one package per stage:
   Lowering knows the sugar's spellings (`List`, `Option`, ...) but nothing about what they mean, which is what makes the prelude replaceable.
 - `cmd/tdl` — main.
 
-`go`, `protobuf`, and `thrift` are the code-generation backends, and `docs/design/schema-backends.md` maps the schema backends planned beside the last two.
+`go`, `protobuf`, `smithy`, and `thrift` are the code-generation backends, and `docs/design/schema-backends.md` maps the schema backends, including the ones planned beside the last three.
+`testdata/gen/smoke/source.tdl` is one file exercising the whole mapping, with a target block per schema backend; it is stored in canonical form, and the nix checks generate from it and hand the output to each language's own tool.
 `docs/design/plugins.md` describes the protocol every backend speaks, and `TestHostsAgree` in `internal/gen` is what holds each backend to producing the same bytes in process and over a pipe.
 It reads the `shipped` table in `internal/gen/hosts_test.go`, and a backend added to the registry gets a row there: `TestEveryBuiltinHasARow` fails until it does, and `TestPackagedBackendsShip` fails until a shipped one is in `nix/cmd.nix`.
 
@@ -237,7 +242,7 @@ The corpus is the written-down target, not a record of what already works.
 
 `tdl fmt` must be idempotent: formatting canonical output is a no-op.
 
-Every `.tdl` file in `testdata/conformance/`, `prelude/`, and `examples/` is stored in canonical form: `tdl fmt <file>` must print it back byte for byte.
+Every `.tdl` file in `testdata/conformance/`, `testdata/gen/`, `prelude/`, and `examples/` is stored in canonical form: `tdl fmt <file>` must print it back byte for byte.
 `TestCorpusIsCanonical` in `parser/conformance_test.go` is what holds them to it, and `examples/` is in that list because it carries the explanatory comments the corpus does not.
 The formatter still owns blank lines, so a blank line grouping members inside a body does not survive.
 
