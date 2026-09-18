@@ -305,6 +305,8 @@ A comment written between a declaration's doc comment and the declaration moves 
 
 ## Releases
 
+`.github/workflows/release-please.yml` calls the reusable workflow in `unmango/actions` and authenticates as the thecluster[bot] GitHub App through `vars.RELEASE_APP_CLIENT_ID` and `secrets.RELEASE_APP_PRIVATE_KEY`, so the release PR triggers CI and its commits are signed.
+
 release-please owns the version.
 Never hand-edit `toolVersion` in `internal/cli/version.go`, `version` in `flake.nix`, `version` in `editors/vscode/package.json`, or `CHANGELOG.md`; each release PR rewrites them.
 The first two carry an `x-release-please-version` annotation, which is what makes them update rather than drift.
