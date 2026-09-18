@@ -1,0 +1,36 @@
+name: Go cache
+description: Cache GOMODCACHE and GOCACHE for the Go toolchain the job runs, keyed on go.sum.
+
+inputs:
+  go:
+    description: How to invoke go, so a job running it through a nix devShell passes the command that enters the shell.
+    required: false
+    default: go
+
+runs:
+  using: composite
+  steps:
+    # Asked rather than hardcoded as ~/go/pkg/mod: these jobs run the go
+    # flake.lock pins, and that shell is free to put either cache elsewhere.
+    - id: paths
+      shell: bash
+      env:
+        GO: ${{ inputs.go }}
+      run: |
+        set -euo pipefail
+        { read -r modcache; read -r buildcache; } < <($GO env GOMODCACHE GOCACHE)
+        echo "modcache=$modcache" >>"$GITHUB_OUTPUT"
+        echo "buildcache=$buildcache" >>"$GITHUB_OUTPUT"
+
+    # The key carries the job because what fills the build cache differs by
+    # job: -race objects for Test, the linter's analysis for golangci-lint.
+    # The restore key means a go.sum change starts from the previous run's
+    # cache rather than from nothing.
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          ${{ steps.paths.outputs.modcache }}
+          ${{ steps.paths.outputs.buildcache }}
+        key: ${{ runner.os }}-go-${{ github.job }}-${{ hashFiles('go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-${{ github.job }}-
