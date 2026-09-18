@@ -34,6 +34,21 @@ func (g *generator) planClasses() {
 		}
 	}
 
+	// A class reaching itself is dropped before anything asks what it
+	// requires: a Go interface cannot embed itself, directly or through
+	// another, and the rest of the plan reads the classes that remain.
+	var cyclic []int32
+	for i := range decls {
+		if g.genClass[int32(i)] && g.requiresCycle(int32(i)) {
+			cyclic = append(cyclic, int32(i))
+		}
+	}
+	g.classCycle = map[int32]bool{}
+	for _, i := range cyclic {
+		g.classCycle[i] = true
+		delete(g.genClass, i)
+	}
+
 	for i, class := range decls {
 		if !g.genClass[int32(i)] {
 			continue
@@ -159,6 +174,9 @@ func (g *generator) class(b *strings.Builder, decl *ir.Decl) error {
 	if goName == "" {
 		return emit.Unsupported(pos, "%s is named \"\" in this target, and its method is named after it", name)
 	}
+	if g.classCycle[g.cur] {
+		return emit.Unsupported(pos, "%s requires itself, directly or through another class, and a Go interface cannot embed itself", name)
+	}
 	if len(decl.GetClass().GetAssocTypes()) > 0 {
 		g.Warn(emit.Unsupported(pos, "%s requires associated types, and a Go interface cannot bind one, so it is generated without them", name))
 	}
@@ -170,6 +188,34 @@ func (g *generator) class(b *strings.Builder, decl *ir.Decl) error {
 	}
 	fmt.Fprintf(b, "\tis%s()\n}\n", goName)
 	return nil
+}
+
+// requiresCycle reports whether a class's requires clause reaches the class
+// itself, over the classes that are candidates to be generated.
+func (g *generator) requiresCycle(start int32) bool {
+	decls := g.Model.GetDecls()
+	seen := map[int32]bool{}
+	var reaches func(int32) bool
+	reaches = func(i int32) bool {
+		for _, ref := range decls[i].GetClass().GetRequiresClasses() {
+			next := ref.GetClass()
+			if next == nil || !g.genClass[next.GetIndex()] {
+				continue
+			}
+			if next.GetIndex() == start {
+				return true
+			}
+			if seen[next.GetIndex()] {
+				continue
+			}
+			seen[next.GetIndex()] = true
+			if reaches(next.GetIndex()) {
+				return true
+			}
+		}
+		return false
+	}
+	return reaches(start)
 }
 
 // supers is the generated classes a class requires.

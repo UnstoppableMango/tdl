@@ -208,6 +208,7 @@ What Go cannot express warns where it was written:
 | Case | Result |
 | --- | --- |
 | A class taking parameters, as a multi-parameter or higher-kinded class does | Skipped, since a Go interface cannot state a relationship between types |
+| A class reaching itself through what it requires | Skipped, since a Go interface cannot embed itself, directly or through another |
 | A class requiring associated types | Emitted without them |
 | A conditional instance | No marker, since Go cannot give a method to only some instantiations |
 | An instance for a prelude type or a type in another package | No marker, since Go cannot add a method to either |

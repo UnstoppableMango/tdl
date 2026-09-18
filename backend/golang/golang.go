@@ -83,7 +83,10 @@ type generator struct {
 	// genClass holds the classes generated as interfaces, and marks the
 	// classes whose marker each declaration carries, both by index.
 	genClass map[int32]bool
-	marks    map[int32][]int32
+	// classCycle holds the classes whose requires clause reaches themselves,
+	// which a Go interface cannot embed its way out of.
+	classCycle map[int32]bool
+	marks      map[int32][]int32
 
 	// curClasses is the generated classes constraining each parameter of the
 	// declaration being rendered.

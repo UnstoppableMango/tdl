@@ -1559,3 +1559,40 @@ func TestUnembeddableSuperIsAWarning(t *testing.T) {
 		})
 	}
 }
+
+// Nothing rejects a cycle in what classes require, and a Go interface cannot
+// embed itself, so each class in the cycle is dropped with a warning rather
+// than generated into a package that does not compile.
+func TestClassRequiresCycle(t *testing.T) {
+	at := &ir.Position{Filename: irtest.OwnFile, Line: 4}
+	m := irtest.New("shop")
+	auditable := m.Class("Auditable")
+	auditable.GetMeta().Position = at
+	timestamped := m.Class("Timestamped", "Auditable")
+	timestamped.GetMeta().Position = at
+	auditable.GetClass().RequiresClasses = []*ir.ClassRef{{Class: m.Ref("Timestamped")}}
+
+	m.Own(structure("Order", nil, irtest.Field("id", m.Named("string"))))
+	m.Satisfies("Auditable", "Order")
+	m.Satisfies("Timestamped", "Order")
+
+	envelope := structure("Envelope", irtest.Params("T"), irtest.Field("body", m.Param("T", 0)))
+	envelope.GetStructure().Constraints = []*ir.ClassRef{m.Requires("Auditable", 4, m.Param("T", 0))}
+	m.Own(envelope)
+	m.Own(structure("Uses", nil, irtest.Field("envelope", m.Named("Envelope", m.Named("Order")))))
+
+	resp := generate(t, m)
+	for _, d := range resp.GetDiagnostics() {
+		if d.GetSeverity() != plugin.Severity_SEVERITY_WARNING {
+			t.Errorf("diagnostic = %+v, want a warning", d)
+		}
+	}
+	got := files(t, resp)
+	for _, dropped := range []string{"auditable.go", "timestamped.go"} {
+		if src, ok := got[dropped]; ok {
+			t.Errorf("%s is in a class cycle and was emitted:\n%s", dropped, src)
+		}
+	}
+	contains(t, got["envelope.go"], "type Envelope[T any] struct {")
+	contains(t, got["uses.go"], "Envelope Envelope[Order]")
+}
