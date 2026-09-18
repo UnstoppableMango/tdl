@@ -1307,6 +1307,35 @@ func TestBadNameDefaults(t *testing.T) {
 	}
 }
 
+// A name in a constraint argument denotes an enum variant the same way a
+// default does, so lowering resolves it once rather than every backend
+// resolving it again.
+func TestNameConstraintArgs(t *testing.T) {
+	model := lower(t, `
+enum Status { Draft Placed }
+type Holder { status: Status where { oneOf(Draft, Placed) } }
+`)
+
+	v, _, _ := model.FindDecl("Holder")
+	args := v.Fields()[0].GetConstraints()[0].GetArgs()
+	if len(args) != 2 {
+		t.Fatalf("oneOf has %d arguments, want 2", len(args))
+	}
+	for i, want := range []string{"Draft", "Placed"} {
+		got := args[i].GetVariant()
+		if got.GetName() != want || got.GetIndex() != int32(i) {
+			t.Errorf("argument %d resolved to %+v, want variant %d %s", i, got, i, want)
+		}
+	}
+}
+
+func TestBadNameConstraintArgs(t *testing.T) {
+	diags := lowerDiags(t, "enum Status { Draft }\ntype Holder { s: Status where { oneOf(Draft, Missing) } }")
+	if !strings.Contains(diags.Error(), "Status has no variant Missing") {
+		t.Errorf("diagnostics = %v", diags)
+	}
+}
+
 func TestLiteralDefaults(t *testing.T) {
 	model := lower(t, `type Holder { n: int = 3 s: string = "x" b: bool = true xs: [string] = [] }`)
 
