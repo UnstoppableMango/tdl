@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.5](https://github.com/UnstoppableMango/tdl/compare/v0.2.4...v0.2.5) (2026-09-18)
+
+
+### Features
+
+* **thrift:** generate Thrift IDL ([#793](https://github.com/UnstoppableMango/tdl/issues/793)) ([4c989b5](https://github.com/UnstoppableMango/tdl/commit/4c989b5778fb03cfafb165709323a9a2299ed738))
+
 ## [0.2.4](https://github.com/UnstoppableMango/tdl/compare/v0.2.3...v0.2.4) (2026-09-18)
 
 
