@@ -391,6 +391,71 @@ func TestReferringToASkippedDeclarationSkipsItToo(t *testing.T) {
 	}
 }
 
+// A collection's type argument and an alias's target are expanded rather
+// than named, and a skipped declaration reached through either is still one
+// the package does not declare.
+func TestASkippedDeclarationInsideAnExpansionIsSkipped(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		typ  func(m *irtest.Builder, index *ir.ID) *ir.ID
+	}{
+		{"list element", func(m *irtest.Builder, index *ir.ID) *ir.ID { return m.Named("List", index) }},
+		{"map value", func(m *irtest.Builder, index *ir.ID) *ir.ID {
+			return m.Named("Map", m.Named("string"), index)
+		}},
+		{"alias target", func(m *irtest.Builder, index *ir.ID) *ir.ID {
+			m.Own(&ir.Decl{
+				Meta: &ir.Meta{Name: "Lookup"},
+				Node: &ir.Decl_Alias{Alias: &ir.Alias{Target: index}},
+			})
+			return m.Named("Lookup")
+		}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			m := irtest.New("shop")
+			m.Own(&ir.Decl{
+				Meta: &ir.Meta{Name: "Index", Position: &ir.Position{Filename: irtest.OwnFile, Line: 3}},
+				Node: &ir.Decl_Structure{Structure: &ir.Struct{
+					Fields: []*ir.Field{irtest.Field("by", m.Named("Set", m.Named("bytes")))},
+				}},
+			})
+			m.Own(&ir.Decl{
+				Meta: &ir.Meta{Name: "Catalog", Position: &ir.Position{Filename: irtest.OwnFile, Line: 7}},
+				Node: &ir.Decl_Structure{Structure: &ir.Struct{
+					Fields: []*ir.Field{irtest.Field("index", tt.typ(m, m.Named("Index")))},
+				}},
+			})
+			m.Own(&ir.Decl{
+				Meta: &ir.Meta{Name: "Note"},
+				Node: &ir.Decl_Structure{Structure: &ir.Struct{
+					Fields: []*ir.Field{irtest.Field("body", m.Named("string"))},
+				}},
+			})
+
+			resp := generate(t, m)
+			if len(resp.GetDiagnostics()) != 2 {
+				t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+			}
+			for _, d := range resp.GetDiagnostics() {
+				if d.GetSeverity() != plugin.Severity_SEVERITY_WARNING {
+					t.Errorf("severity = %v", d.GetSeverity())
+				}
+			}
+			// The cascade warns at the declaration being skipped rather than
+			// at the reference that reached the skipped one, since a
+			// declaration may name it more than once.
+			if line := resp.GetDiagnostics()[1].GetPosition().GetLine(); line != 7 {
+				t.Errorf("Catalog's warning is at line %d, want Catalog at 7", line)
+			}
+
+			got := files(t, resp)
+			if want := []string{"note.go"}; !slices.Equal(keys(got), want) {
+				t.Errorf("files = %v, want %v", keys(got), want)
+			}
+		})
+	}
+}
+
 // Reaching the same declaration twice on separate paths is not a cycle, so
 // the walk that stops one has to unwind as it returns.
 func TestARepeatedFieldTypeIsNotACycle(t *testing.T) {
