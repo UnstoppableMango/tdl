@@ -269,7 +269,7 @@ Backends:
 | --- | --- | --- |
 | `go` | Built in, also shipped as `tdl-gen-go` | Structs, entity keys, both enum shapes, newtypes, and the primitive and collection mapping |
 | `protobuf` | Built in, also shipped as `tdl-gen-protobuf` | Structs, both enum shapes, newtypes, the primitive and collection mapping, and `number` pins |
-| `smithy` | Built in, also shipped as `tdl-gen-smithy` | Structures, both enum shapes, newtypes as named shapes, the primitive and collection mapping |
+| `smithy` | Built in, also shipped as `tdl-gen-smithy` | Structures, both enum shapes, a newtype over a primitive or a collection as a named shape, the primitive and collection mapping |
 | `thrift` | Built in, also shipped as `tdl-gen-thrift` | Structs, both enum shapes, newtypes as typedefs, the primitive and collection mapping, and `number` pins |
 | `debug` | Built in, also shipped as `tdl-gen-debug` | Prints the model it was given |
 | Anything else | `tdl-gen-<name>` on PATH | The protocol is stable |

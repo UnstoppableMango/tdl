@@ -154,7 +154,7 @@ Pipeline, one package per stage:
 - `backend/smithy` — the Smithy IDL 2.0 backend: one `.smithy` file per model in the namespace its package names.
   Smithy names every collection, so a list or map a field holds is a shape declared once and named for what it holds, such as `LineItemList` or `StringLongMap`; a reference to a prelude shape the model's own shapes shadow is written `smithy.api#`.
   A field that is not optional is `@required`, and an optional element makes a list or map `@sparse`.
-  There is no Go implementation of Smithy, so its tests run `smithy validate` when the CLI is on `PATH`, and `checks.gen-smithy` runs it over `testdata/gen/smoke` regardless.
+  There is no Go implementation of Smithy, so its tests run `smithy validate` when the CLI is on `PATH`, and `checks.gen-smithy` generates from `testdata/gen/smoke` and validates the `.smithy` files that come out regardless.
 - `cmd/tdl-gen-debug`, `cmd/tdl-gen-go`, `cmd/tdl-gen-protobuf`, `cmd/tdl-gen-smithy`, `cmd/tdl-gen-thrift` — each backend as a plugin.
   The same value the registry holds, served over a connection, which is what makes the two hosts testable against each other.
 - `plugin` — the wire protocol a backend speaks, generated from `proto/tdl/plugin/v1/plugin.proto`, plus the framing codec.
