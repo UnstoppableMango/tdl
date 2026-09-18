@@ -289,6 +289,7 @@ Wait for it to become the tip, and read the CodeRabbit check rather than the thr
 
 DeepSource is configured in `.deepsource.toml`: the `go`, `shell`, `secrets`, and `test-coverage` analyzers, with the committed generated files excluded and the conformance corpus marked as test rather than source.
 Coverage reaches it from the Test job, which reports the same `cover.profile` Codecov gets, authenticated with the job's OIDC token rather than a DSN secret.
+The CLI comes from the devShell rather than an install script the job curls, so the version CI runs is the one `flake.lock` names.
 What it says about Go style overlaps golangci-lint, so a finding the linter does not raise is worth reading and one it would have raised is worth checking against `.golangci.yml` before acting on.
 
 `main` requires no approving review and does require every review thread to be resolved, so an unanswered bot comment is what blocks a merge.

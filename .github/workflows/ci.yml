@@ -168,8 +168,7 @@ jobs:
       # root so the paths in the profile resolve.
       - name: Upload coverage to DeepSource
         run: |
-          curl -fsSL https://cli.deepsource.com/install | BINDIR=./bin sh
-          ./bin/deepsource report \
+          nix develop -c deepsource report \
             --analyzer test-coverage \
             --key go \
             --value-file cover.profile \

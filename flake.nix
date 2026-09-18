@@ -64,6 +64,10 @@
               pkgs.smithy-cli
               pkgs.typescript
               pkgs.tree-sitter
+              # What the Test job reports cover.profile to DeepSource with.
+              # Pinned here rather than curled from cli.deepsource.com in
+              # the job, so the version CI runs is the one flake.lock names.
+              pkgs.deepsource
               # editors/vscode/install.sh builds a .vsix, which is a zip.
               pkgs.zip
             ];
