@@ -207,6 +207,9 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	}
 
 	for _, n := range declared {
+		if !ident.MatchString(n) {
+			return "", emit.Unsupported(pos, "%s would be named %s in Smithy, which is not an identifier", name, n)
+		}
 		if other, ok := g.names[n]; ok {
 			return "", emit.Unsupported(pos, "%s would declare %s in Smithy, and %s already does", name, n, other)
 		}

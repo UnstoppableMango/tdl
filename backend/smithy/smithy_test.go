@@ -105,6 +105,10 @@ func newtype(name string, base *ir.ID) *ir.Decl {
 	return &ir.Decl{Meta: &ir.Meta{Name: name}, Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{Base: base}}}
 }
 
+func renamed(n string) []*ir.Directive {
+	return []*ir.Directive{{Name: "name", Target: smithy.Name, Args: []*ir.Literal{irtest.Text(n)}}}
+}
+
 func TestDescribe(t *testing.T) {
 	d := smithy.Backend{}.Describe()
 	if d.Name != "smithy" || !d.Reuse {
@@ -292,6 +296,56 @@ func TestUnsupportedShapesAreSkipped(t *testing.T) {
 			}
 			src := check(t, resp)
 			absent(t, src, "structure Broken", "structure Holder")
+			contains(t, src, "structure Fine")
+		})
+	}
+}
+
+// A name directive is taken verbatim, so every shape name a declaration
+// would emit has to be a Smithy identifier.
+func TestNamesSmithyCannotReadAreSkipped(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		bad  string
+		own  func(b *irtest.Builder) *ir.Decl
+	}{
+		{"a structure", "line-item", func(b *irtest.Builder) *ir.Decl {
+			d := value("Line", irtest.Field("a", b.Named("string")))
+			d.Directives = renamed("line-item")
+			return d
+		}},
+		{"an enum", "1Status", func(b *irtest.Builder) *ir.Decl {
+			d := enum("Status", variant("Open"), variant("Closed"))
+			d.Directives = renamed("1Status")
+			return d
+		}},
+		{"a union", "bad name", func(b *irtest.Builder) *ir.Decl {
+			d := enum("Event", variant("Created", irtest.Field("at", b.Named("string"))))
+			d.Directives = renamed("bad name")
+			return d
+		}},
+		{"a union variant structure", "event-created", func(b *irtest.Builder) *ir.Decl {
+			v := variant("Created", irtest.Field("at", b.Named("string")))
+			v.Directives = renamed("event-created")
+			return enum("Event", v)
+		}},
+		{"a newtype", "sku#1", func(b *irtest.Builder) *ir.Decl {
+			d := newtype("Sku", b.Named("string"))
+			d.Directives = renamed("sku#1")
+			return d
+		}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			b := irtest.New("shop")
+			b.Own(tt.own(b))
+			b.Own(value("Fine", irtest.Field("a", b.Named("string"))))
+
+			resp := generate(t, b)
+			if len(resp.GetDiagnostics()) != 1 {
+				t.Errorf("want one warning: %+v", resp.GetDiagnostics())
+			}
+			src := check(t, resp)
+			absent(t, src, tt.bad)
 			contains(t, src, "structure Fine")
 		})
 	}
