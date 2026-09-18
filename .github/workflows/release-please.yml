@@ -11,7 +11,7 @@ permissions:
 jobs:
   release-please:
     name: Release Please
-    runs-on: ubuntu-latest
+    runs-on: thecluster
     steps:
       # A pull request opened with GITHUB_TOKEN does not trigger workflows,
       # so the release PR arrives with no CI. RELEASE_PLEASE_TOKEN is a PAT
