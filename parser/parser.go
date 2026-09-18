@@ -143,14 +143,15 @@ func (p *parser) parseFile() *ast.File {
 	}
 
 	for !p.at(lex.EOF) {
-		head := ast.DeclHead{Doc: p.parseDoc()}
+		doc, docP := p.parseDoc()
+		head := ast.DeclHead{Doc: doc, DocP: docP}
 		if p.atContextual("deprecated") {
 			head.Dep = p.parseDeprecated()
 		}
 
 		switch p.cur.Kind {
 		case lex.IMPORT:
-			file.Imports = append(file.Imports, p.parseImportDecl(head.Doc))
+			file.Imports = append(file.Imports, p.parseImportDecl(head))
 		case lex.PRIMITIVE:
 			file.Decls = append(file.Decls, p.parsePrimitiveDecl(head))
 		case lex.ALIAS:
@@ -191,14 +192,20 @@ func (p *parser) parseFile() *ast.File {
 	return file
 }
 
-// parseDoc consumes a run of `///` comment lines.
-func (p *parser) parseDoc() []string {
+// parseDoc consumes a run of `///` comment lines, reporting where the run
+// began. The position is what lets the formatter order a doc comment
+// against the ordinary comments beside it.
+func (p *parser) parseDoc() ([]string, ast.Position) {
 	var doc []string
+	var pos ast.Position
 	for p.at(lex.DOC) {
+		if len(doc) == 0 {
+			pos = p.cur.Pos
+		}
 		doc = append(doc, p.cur.Text)
 		p.next()
 	}
-	return doc
+	return doc, pos
 }
 
 func (p *parser) parsePackageDecl() *ast.PackageDecl {
@@ -216,11 +223,11 @@ func (p *parser) parseDottedIdent() string {
 	return name
 }
 
-func (p *parser) parseImportDecl(doc []string) *ast.ImportDecl {
+func (p *parser) parseImportDecl(head ast.DeclHead) *ast.ImportDecl {
 	pos := p.cur.Pos
 	p.next() // 'import'
 
-	imp := &ast.ImportDecl{Doc: doc, P: pos}
+	imp := &ast.ImportDecl{Doc: head.Doc, DocP: head.DocP, P: pos}
 	if p.at(lex.STRING) {
 		imp.Path = p.cur.Text
 		p.next()

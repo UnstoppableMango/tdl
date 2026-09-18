@@ -64,12 +64,12 @@ func (p *parser) parseClassBody() ([]ast.Member, ast.Position) {
 
 	var members []ast.Member
 	p.untilRbrace(func() {
-		doc := p.parseDoc()
+		doc, docP := p.parseDoc()
 
 		switch {
 		// `type Cursor` requires a type. `type: T` is a field named type.
 		case p.at(lex.TYPE) && p.peek.Kind == lex.IDENT:
-			req := &ast.AssocTypeReq{DeclHead: ast.DeclHead{Doc: doc, P: p.cur.Pos}}
+			req := &ast.AssocTypeReq{DeclHead: ast.DeclHead{Doc: doc, DocP: docP, P: p.cur.Pos}}
 			p.next()
 			req.N = p.expectIdent()
 			if p.accept(lex.COLON) {
@@ -79,7 +79,10 @@ func (p *parser) parseClassBody() ([]ast.Member, ast.Position) {
 
 		default:
 			f := p.parseField()
-			f.Doc = append(doc, f.Doc...)
+			if len(doc) > 0 {
+				f.Doc = append(doc, f.Doc...)
+				f.DocP = docP
+			}
 			members = append(members, f)
 		}
 	})

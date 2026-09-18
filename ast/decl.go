@@ -4,6 +4,12 @@ package ast
 // position, its name, and whether it is deprecated.
 type DeclHead struct {
 	Doc []string
+
+	// DocP is where the doc comment was written, zero without one. The
+	// formatter orders it against the ordinary comments around it, which
+	// are placed by position and not carried by the tree.
+	DocP Position
+
 	P   Position
 	N   string
 	Dep *Deprecation

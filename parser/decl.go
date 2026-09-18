@@ -129,8 +129,8 @@ func (p *parser) parseEnumDecl(head ast.DeclHead) *ast.EnumDecl {
 }
 
 func (p *parser) parseVariant() *ast.Variant {
-	doc := p.parseDoc()
-	v := &ast.Variant{DeclHead: ast.DeclHead{Doc: doc, P: p.cur.Pos}}
+	doc, docP := p.parseDoc()
+	v := &ast.Variant{DeclHead: ast.DeclHead{Doc: doc, DocP: docP, P: p.cur.Pos}}
 	if p.atContextual("deprecated") {
 		v.Dep = p.parseDeprecated()
 		v.P = p.cur.Pos
@@ -207,8 +207,8 @@ func (p *parser) parseField() *ast.Field {
 		return &ast.Field{DeclHead: ast.DeclHead{P: p.cur.Pos}}
 	}
 
-	doc := p.parseDoc()
-	f := &ast.Field{DeclHead: ast.DeclHead{Doc: doc, P: p.cur.Pos}}
+	doc, docP := p.parseDoc()
+	f := &ast.Field{DeclHead: ast.DeclHead{Doc: doc, DocP: docP, P: p.cur.Pos}}
 
 	// `deprecated` is contextual, so a field may be named it. It is a
 	// modifier only when another token follows it before the colon.
