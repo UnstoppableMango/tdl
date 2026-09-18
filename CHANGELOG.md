@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.2.1](https://github.com/UnstoppableMango/tdl/compare/v0.2.0...v0.2.1) (2026-09-18)
+
+
+### Features
+
+* **go:** generate an entity's key from the key directive ([#775](https://github.com/UnstoppableMango/tdl/issues/775)) ([b1ee649](https://github.com/UnstoppableMango/tdl/commit/b1ee649ee29ec3ecb97b675a6b6cbecc55bf2179))
+* **ir:** directives on enum variants ([#791](https://github.com/UnstoppableMango/tdl/issues/791)) ([c225216](https://github.com/UnstoppableMango/tdl/commit/c225216103e026736a4fd82e2f8f94df4cd579bd))
+* **Makefile:** add `check` target to run nix flake checks ([#776](https://github.com/UnstoppableMango/tdl/issues/776)) ([624e892](https://github.com/UnstoppableMango/tdl/commit/624e892b1e7f6cd8769efc69dd769db0c095b2f3))
+* **protobuf:** generate proto3 schemas ([#792](https://github.com/UnstoppableMango/tdl/issues/792)) ([26098ff](https://github.com/UnstoppableMango/tdl/commit/26098ff43d0209a0ae323e389e75ba49819de9c0))
+* runs-on thecluster ([#739](https://github.com/UnstoppableMango/tdl/issues/739)) ([e516e44](https://github.com/UnstoppableMango/tdl/commit/e516e44409722368f007ceb196bf1606517f14c1))
+
+
+### Documentation
+
+* **go:** give every backend warning a phase or a deferred decision ([#778](https://github.com/UnstoppableMango/tdl/issues/778)) ([59f6b9f](https://github.com/UnstoppableMango/tdl/commit/59f6b9fc18ae07c686307ec238c529086074dffc))
+
+
+### Code Refactoring
+
+* **backend:** share backend helpers in backend/internal/emit ([#790](https://github.com/UnstoppableMango/tdl/issues/790)) ([c9ec7da](https://github.com/UnstoppableMango/tdl/commit/c9ec7da5d50f0e53ce38a1cfe214d7365ffc1699))
+
 ## [0.2.0](https://github.com/UnstoppableMango/tdl/compare/v0.1.8...v0.2.0) (2026-09-13)
 
 
