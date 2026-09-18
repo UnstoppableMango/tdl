@@ -65,6 +65,29 @@
             ];
           };
 
+          # What `make treesitter` and `make test-treesitter` need, and
+          # nothing else. The CI job that runs the two is otherwise handed
+          # the default shell, whose closure is 1516 MB against this one's
+          # 879 MB, and realising the difference from the binary cache was
+          # the job's largest cost by an order of magnitude: 112s of a 192s
+          # run, against 5s for the work itself.
+          #
+          # nodejs is the one package here that neither Makefile target
+          # names: `tree-sitter generate` evaluates grammar.js by running it
+          # through node, and fails outright without one.
+          #
+          # A second shell is a second thing to keep in step with the first,
+          # which is the price. It stays worth paying while the job is one
+          # generator and one corpus script.
+          devShells.treesitter = pkgs.mkShell {
+            packages = [
+              pkgs.go_1_27
+              pkgs.gnumake
+              pkgs.nodejs
+              pkgs.tree-sitter
+            ];
+          };
+
           treefmt = {
             programs = {
               actionlint.enable = true;
