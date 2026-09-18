@@ -271,6 +271,81 @@ func TestACollectionShapeCollidingWithADeclarationIsSkipped(t *testing.T) {
 	contains(t, src, "structure StringList")
 }
 
+// Two collections deriving the same name from different elements are two
+// shapes, and the second cannot silently replace the first.
+func TestTwoCollectionsWantingOneNameAreSkipped(t *testing.T) {
+	b := irtest.New("shop")
+	b.Own(value("String", irtest.Field("raw", b.Named("bytes"))))
+	b.Own(value("Prelude", irtest.Field("names", b.Named("List", b.Named("string")))))
+	b.Own(value("Broken", irtest.Field("names", b.Named("List", b.Named("String")))))
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 1 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	src := check(t, resp)
+	absent(t, src, "structure Broken", "list StringList { member: String }")
+	contains(t, src, "structure Prelude", "list StringList { member: smithy.api#String }")
+}
+
+// A union variant's structure is one of the model's own shape names too, so
+// a prelude shape it takes the name of is qualified where it is referenced.
+func TestAPreludeNameAVariantStructureTakesIsQualified(t *testing.T) {
+	b := irtest.New("shop")
+	v := variant("Raw", irtest.Field("body", b.Named("string")))
+	v.Directives = renamed("String")
+	b.Own(enum("Payload", v))
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	contains(t, check(t, resp),
+		"union Payload { raw: String }",
+		"structure String { @required body: smithy.api#String }",
+	)
+}
+
+// Smithy reads two names differing only in case as one name, so a model
+// that would emit both says nothing Smithy can read.
+func TestNamesSmithyCannotTellApartAreSkipped(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		own  func(b *irtest.Builder) []*ir.Decl
+	}{
+		{"two members of one structure", func(b *irtest.Builder) []*ir.Decl {
+			return []*ir.Decl{value("Broken",
+				irtest.Field("id", b.Named("string")),
+				irtest.Field("ID", b.Named("string")),
+			)}
+		}},
+		{"two declarations", func(b *irtest.Builder) []*ir.Decl {
+			d := value("Other", irtest.Field("a", b.Named("string")))
+			d.Directives = renamed("broken")
+			return []*ir.Decl{value("Broken", irtest.Field("a", b.Named("string"))), d}
+		}},
+		{"a union and one of its variant structures", func(b *irtest.Builder) []*ir.Decl {
+			v := variant("Created", irtest.Field("at", b.Named("string")))
+			v.Directives = renamed("Broken")
+			return []*ir.Decl{enum("Broken", v)}
+		}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			b := irtest.New("shop")
+			for _, d := range tt.own(b) {
+				b.Own(d)
+			}
+			b.Own(value("Fine", irtest.Field("a", b.Named("string"))))
+
+			resp := generate(t, b)
+			if len(resp.GetDiagnostics()) != 1 {
+				t.Errorf("want one warning: %+v", resp.GetDiagnostics())
+			}
+			contains(t, check(t, resp), "structure Fine")
+		})
+	}
+}
+
 func TestUnsupportedShapesAreSkipped(t *testing.T) {
 	for _, tt := range []struct {
 		name string
@@ -328,6 +403,11 @@ func TestNamesSmithyCannotReadAreSkipped(t *testing.T) {
 			v := variant("Created", irtest.Field("at", b.Named("string")))
 			v.Directives = renamed("event-created")
 			return enum("Event", v)
+		}},
+		{"a name of underscores and digits", "_1", func(b *irtest.Builder) *ir.Decl {
+			d := value("Line", irtest.Field("a", b.Named("string")))
+			d.Directives = renamed("_1")
+			return d
 		}},
 		{"a newtype", "sku#1", func(b *irtest.Builder) *ir.Decl {
 			d := newtype("Sku", b.Named("string"))

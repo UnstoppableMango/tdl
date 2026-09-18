@@ -73,7 +73,9 @@ var simple = map[string]string{
 	"Timestamp":  "timestamp",
 }
 
-var ident = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+// ident is the Smithy identifier grammar: identifier-start is any number
+// of underscores and then a letter, so `_1` and `_` are not identifiers.
+var ident = regexp.MustCompile(`^_*[A-Za-z][A-Za-z0-9_]*$`)
 
 type generator struct {
 	*emit.Session
@@ -83,9 +85,9 @@ type generator struct {
 	// around.
 	local map[string]bool
 
-	// names is every shape name declared, with the declaration that
-	// declared it.
-	names map[string]string
+	// names is every shape name declared, by the name folded to lower
+	// case: Smithy reads two shape IDs differing only in case as one.
+	names map[string]shape
 
 	// shapes is every collection shape a field needed, by name.
 	shapes map[string]string
@@ -93,6 +95,9 @@ type generator struct {
 	// uses is the collection shapes the declaration being rendered needs.
 	uses map[string]bool
 }
+
+// shape is a declared shape name and the declaration that declared it.
+type shape struct{ name, decl string }
 
 type rendered struct {
 	decl *ir.Decl
@@ -106,7 +111,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	g := &generator{
 		Session: emit.NewSession(req, "Smithy"),
 		local:   map[string]bool{},
-		names:   map[string]string{},
+		names:   map[string]shape{},
 		shapes:  map[string]string{},
 	}
 
@@ -123,8 +128,17 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 
 	own := g.Own()
 	for _, d := range own {
-		if d.GetStructure() != nil || d.GetEnumeration() != nil || d.GetNewtype() != nil {
-			g.local[g.DeclName(d, emit.Pascal)] = true
+		if d.GetStructure() == nil && d.GetEnumeration() == nil && d.GetNewtype() == nil {
+			continue
+		}
+		name := g.DeclName(d, emit.Pascal)
+		g.local[name] = true
+		// A union variant carrying fields emits a structure of its own,
+		// which is as much one of the model's names as a declaration is.
+		for _, v := range d.GetEnumeration().GetVariants() {
+			if len(v.GetFields()) > 0 {
+				g.local[g.variantShape(name, v)] = true
+			}
 		}
 	}
 
@@ -206,16 +220,27 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 		return "", err
 	}
 
+	within := map[string]string{}
 	for _, n := range declared {
 		if !ident.MatchString(n) {
 			return "", emit.Unsupported(pos, "%s would be named %s in Smithy, which is not an identifier", name, n)
 		}
-		if other, ok := g.names[n]; ok {
-			return "", emit.Unsupported(pos, "%s would declare %s in Smithy, and %s already does", name, n, other)
+		key := fold(n)
+		if prior, ok := within[key]; ok {
+			return "", emit.Unsupported(pos, "%s would declare both %s and %s in Smithy, which is one shape twice", name, prior, n)
+		}
+		within[key] = n
+		if other, ok := g.names[key]; ok {
+			if other.name == n {
+				return "", emit.Unsupported(pos, "%s would declare %s in Smithy, and %s already does", name, n, other.decl)
+			}
+			return "", emit.Unsupported(pos, "%s would declare %s in Smithy, and %s declares %s, which Smithy reads as the same shape", name, n, other.decl, other.name)
 		}
 	}
+	// Nothing is committed until the whole declaration is known to be
+	// renderable, so a declaration that fails leaves no name behind.
 	for _, n := range declared {
-		g.names[n] = name
+		g.names[fold(n)] = shape{n, name}
 	}
 	g.WarnConstraints(d)
 	return b.String(), nil
@@ -225,7 +250,7 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 // what they mean and not in what they emit.
 func (g *generator) structure(b *strings.Builder, name string, meta *ir.Meta, fields []*ir.Field) ([]string, error) {
 	var body strings.Builder
-	seen := map[string]bool{}
+	seen := map[string]string{}
 	for _, f := range fields {
 		ref, err := g.Resolve(f.GetType())
 		if err != nil {
@@ -262,7 +287,7 @@ func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	name := g.DeclName(d, emit.Pascal)
 
 	var body strings.Builder
-	seen := map[string]bool{}
+	seen := map[string]string{}
 	for _, v := range d.GetEnumeration().GetVariants() {
 		member := emit.ScreamingSnake(v.GetMeta().GetName())
 		if n, ok := g.Text(v.GetDirectives(), "name"); ok {
@@ -290,7 +315,7 @@ func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	declared := []string{name}
 
 	var body, structures strings.Builder
-	seen := map[string]bool{}
+	seen := map[string]string{}
 	for _, v := range d.GetEnumeration().GetVariants() {
 		member := emit.Camel(v.GetMeta().GetName())
 		if err := claim(seen, name, member, v.GetMeta().GetPosition()); err != nil {
@@ -299,10 +324,7 @@ func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, error) {
 
 		target := g.preludeRef("Unit")
 		if len(v.GetFields()) > 0 {
-			target = name + emit.Pascal(v.GetMeta().GetName())
-			if n, ok := g.Text(v.GetDirectives(), "name"); ok {
-				target = n
-			}
+			target = g.variantShape(name, v)
 			structures.WriteString("\n")
 			if _, err := g.structure(&structures, target, &ir.Meta{Doc: v.GetMeta().GetDoc()}, v.GetFields()); err != nil {
 				return nil, err
@@ -407,6 +429,11 @@ func (g *generator) target(r *emit.Ref) (string, error) {
 		if g.local[name] {
 			return "", emit.Unsupported(r.Pos, "the shape %s this collection needs would collide with the declaration of that name", name)
 		}
+		// Two collections can derive one name from different elements,
+		// and the second is not the first however alike the names are.
+		if prior, ok := g.shapes[name]; ok && prior != text {
+			return "", emit.Unsupported(r.Pos, "the shape %s this collection needs is already declared holding something else", name)
+		}
 		g.shapes[name] = text
 		g.uses[name] = true
 		return name, nil
@@ -501,16 +528,33 @@ func sparsePrefix(sparse bool) string {
 
 func asWritten(name string) string { return name }
 
-// claim takes a member name inside a shape.
-func claim(seen map[string]bool, owner, name string, pos *ir.Position) error {
+// claim takes a member name inside a shape. Smithy member names are unique
+// without regard to case, so the name is held folded.
+func claim(seen map[string]string, owner, name string, pos *ir.Position) error {
 	if !ident.MatchString(name) {
 		return emit.Unsupported(pos, "%s.%s is not a Smithy identifier", owner, name)
 	}
-	if seen[name] {
-		return emit.Unsupported(pos, "%s has two members named %s in Smithy", owner, name)
+	if prior, ok := seen[fold(name)]; ok {
+		if prior == name {
+			return emit.Unsupported(pos, "%s has two members named %s in Smithy", owner, name)
+		}
+		return emit.Unsupported(pos, "%s has members named %s and %s, which Smithy reads as one member", owner, prior, name)
 	}
-	seen[name] = true
+	seen[fold(name)] = name
 	return nil
+}
+
+// fold is the form two Smithy names share when Smithy cannot tell them
+// apart.
+func fold(name string) string { return strings.ToLower(name) }
+
+// variantShape is the name of the structure a variant carrying fields
+// emits, under the union named name.
+func (g *generator) variantShape(name string, v *ir.Variant) string {
+	if n, ok := g.Text(v.GetDirectives(), "name"); ok {
+		return n
+	}
+	return name + emit.Pascal(v.GetMeta().GetName())
 }
 
 // comment writes a node's documentation as Smithy doc comments.
