@@ -1,6 +1,8 @@
 # Build artifacts
 bin/
 cover.profile
+# GOMODCACHE and GOCACHE, where CI points them so one cache step covers both.
+.go/
 dist/
 out/
 *.test

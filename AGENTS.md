@@ -25,6 +25,7 @@ command make treesitter       # docs/grammar.ebnf -> tree-sitter/grammar.js -> t
 command make textmate         # docs/grammar.ebnf -> editors/vscode/syntaxes/tdl.tmLanguage.json
 command make vscode-install   # package editors/vscode and install it into a running VS Code
 command make test-treesitter  # the conformance corpus, run by tree-sitter
+command make check-treesitter # what CI runs: treesitter + a diff + test-treesitter
 ```
 
 Prefix `make` with `command` (see the shell autoload note in the global instructions).
@@ -229,10 +230,10 @@ Change the grammar and regenerate, and read the diff rather than trusting it.
 The invalid half checks the ERROR and not the message, since `error.golden` is the reference implementation's wording.
 It also compiles `tree-sitter/queries/highlights.scm`, which is hand-written: what should be colored is a judgment rather than a fact about the grammar, so the generator does not emit it.
 Compiling it catches a node the grammar no longer has, and `TestHighlightsCoverKeywords` catches a keyword it never gained, since a keyword is an anonymous token no tree carries the name of.
-CI runs `make treesitter`, `git diff --exit-code`, and `make test-treesitter` in one `nix develop .#treesitter`, because the regeneration diff is only stable against the CLI version `flake.lock` pins.
+`make check-treesitter` is what CI runs, in one `nix develop .#treesitter`, because the regeneration diff is only stable against the CLI version `flake.lock` pins.
+It regenerates, runs `git diff --exit-code` over `tree-sitter/`, and then runs `make test-treesitter`; the diff is scoped to that directory so the target is usable with other work in the tree.
 `devShells.treesitter` holds go, gnumake, node, and tree-sitter and nothing else: the job's cost is realising the shell's closure rather than doing the work, and the default shell is 1516 MB against its 879 MB for tools it never runs.
 Node is there because `tree-sitter generate` evaluates `grammar.js` by running it through node.
-A `changes` job decides whether the job runs at all, since a pull request touching neither the grammar nor what derives it can only reproduce the committed output; a push to main regenerates unconditionally.
 `TestDocsAreClean` fails the build when either file stops linting clean.
 
 The same file derives the VS Code grammar.
