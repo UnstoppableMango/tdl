@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.7](https://github.com/UnstoppableMango/tdl/compare/v0.2.6...v0.2.7) (2026-09-19)
+
+
+### Features
+
+* **graphql:** generate GraphQL schemas ([#795](https://github.com/UnstoppableMango/tdl/issues/795)) ([7b74555](https://github.com/UnstoppableMango/tdl/commit/7b745551186caf4fd29691cf93099e073cd44bb5))
+* **typescript:** generate TypeScript wire types ([#796](https://github.com/UnstoppableMango/tdl/issues/796)) ([a829475](https://github.com/UnstoppableMango/tdl/commit/a82947506eff8ec9a516411d00447a4ffe2aa4e2))
+
 ## [0.2.6](https://github.com/UnstoppableMango/tdl/compare/v0.2.5...v0.2.6) (2026-09-18)
 
 
