@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.8](https://github.com/UnstoppableMango/tdl/compare/v0.2.7...v0.2.8) (2026-09-19)
+
+
+### Documentation
+
+* **AGENTS.md:** clarify agent settings and document design plan structure ([#832](https://github.com/UnstoppableMango/tdl/issues/832)) ([a65f4fd](https://github.com/UnstoppableMango/tdl/commit/a65f4fdc2f89556b12f10e37351c1478cc08d6ec))
+* **AGENTS.md:** update make play command description and add make check command ([#830](https://github.com/UnstoppableMango/tdl/issues/830)) ([4a636ac](https://github.com/UnstoppableMango/tdl/commit/4a636ac72404ff464f28d3bdbcd1b0018f5bd8fc))
+
+
+### Continuous Integration
+
+* configure DeepSource ([#826](https://github.com/UnstoppableMango/tdl/issues/826)) ([c9b63ae](https://github.com/UnstoppableMango/tdl/commit/c9b63aea5a68d5d9a6f721f48d5d9326a9d33d88))
+
 ## [0.2.7](https://github.com/UnstoppableMango/tdl/compare/v0.2.6...v0.2.7) (2026-09-19)
 
 
