@@ -12,10 +12,13 @@ import (
 	"github.com/bufbuild/protocompile"
 	thriftparser "github.com/cloudwego/thriftgo/parser"
 	"github.com/cloudwego/thriftgo/semantic"
+	"github.com/vektah/gqlparser/v2"
+	gqlast "github.com/vektah/gqlparser/v2/ast"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/unstoppablemango/tdl/backend/debug"
 	"github.com/unstoppablemango/tdl/backend/golang"
+	"github.com/unstoppablemango/tdl/backend/graphql"
 	"github.com/unstoppablemango/tdl/backend/protobuf"
 	"github.com/unstoppablemango/tdl/backend/smithy"
 	"github.com/unstoppablemango/tdl/backend/thrift"
@@ -39,6 +42,7 @@ var shipped = []struct {
 }{
 	{backend: debug.Backend{}, model: sampleModel, packaged: true},
 	{backend: golang.Backend{}, model: goModel, packaged: true, valid: parseGo},
+	{backend: graphql.Backend{}, model: orderModel, packaged: true, valid: loadGraphQL},
 	{backend: protobuf.Backend{}, model: orderModel, packaged: true, valid: compileProto},
 	{backend: smithy.Backend{}, model: orderModel, packaged: true},
 	{backend: thrift.Backend{}, model: orderModel, packaged: true, valid: checkThrift},
@@ -276,5 +280,12 @@ func checkThrift(t *testing.T, f *plugin.File) {
 	}
 	if err != nil {
 		t.Errorf("%s is not valid Thrift: %v\n%s", f.GetPath(), err, f.GetContent())
+	}
+}
+
+func loadGraphQL(t *testing.T, f *plugin.File) {
+	t.Helper()
+	if _, err := gqlparser.LoadSchema(&gqlast.Source{Name: f.GetPath(), Input: string(f.GetContent())}); err != nil {
+		t.Errorf("%s does not load: %v\n%s", f.GetPath(), err, f.GetContent())
 	}
 }
