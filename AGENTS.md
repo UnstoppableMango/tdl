@@ -37,7 +37,7 @@ Which markdown files are linted lives in `.markdownlint-cli2.yaml`, so a bare `m
 Eight files have no formatter: `Makefile`, `.editorconfig`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, and `tree-sitter/src/scanner.c`.
 The two grammars have no published formatter, and their column alignment is chosen per section for reading; `internal/ebnf` lints them instead.
 A skill's YAML frontmatter is how Copilot decides when to load it, and mdformat rewrites it into a thematic break.
-Deliberately excluded: `*.tdl` (until `tdl fmt` is wired in, see `docs/backlog.md`), `*.golden` and `nix/gomod2nix.toml` and `flake.lock` and `tree-sitter/src/*.json` and `editors/vscode/syntaxes/*.json` (generated), and `.claude/` (agent skills).
+Deliberately excluded: `*.tdl` (until `tdl fmt` is wired in, see `docs/backlog.md`), `*.golden` and `nix/gomod2nix.toml` and `flake.lock` and `tree-sitter/src/*.json` and `editors/vscode/syntaxes/*.json` (generated), and `.claude/` (local agent settings).
 
 After changing `go.mod` or adding dependencies, run `make tidy` so `nix/gomod2nix.toml` stays in sync, otherwise `nix build` fails.
 
@@ -205,6 +205,10 @@ They exist for an implementation in another language to replay.
 
 `internal/sema/corpus_test.go` asserts the conformance corpus lowers with no diagnostic at all.
 It used to carry a `deferred` list naming the phase that would stop producing each one; units were the last entry, so the list is gone.
+
+`docs/design/` holds the plans, each `*-plan.md` naming what its phases add.
+A design document describes the target rather than the implementation, and `workflow.md` is the furthest ahead of it: its `tdl.toml` project model is unbuilt, and the command list in its header is stale.
+`docs/backlog.md` is work wanted and unscheduled, with anything that earned a plan moved into `docs/design/`.
 
 ## Specification and conformance
 
