@@ -14,8 +14,9 @@ go build ./...
 command make build            # nix build .#
 command make test             # go test ./...
 command make cover            # go test -race -coverprofile=cover.profile ./... + go tool cover -func
-command make play             # watch scratch.tdl; FILE=examples/nested.tdl VIEWS=all to override
+command make play             # watch examples/nested.tdl; FILE=scratch.tdl VIEWS=all to override
 command make lint             # nix flake check + golangci-lint + buf + markdownlint
+command make check            # nix flake check alone, the fast subset of lint
 command make fmt              # nix fmt (treefmt) + buf format
 command make update           # nix flake update
 command make tidy             # go mod tidy + regenerate nix/gomod2nix.toml
