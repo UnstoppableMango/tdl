@@ -5,134 +5,33 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  queue: max
+
+env:
+  GOMODCACHE: ${{ github.workspace }}/.go/mod
+  GOCACHE: ${{ github.workspace }}/.go/build
+
 jobs:
   build:
-    name: Build and Test
     runs-on: thecluster
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+      - uses: unmango/actions/setup-nix@3ec4ed5a6af9c00f6a39e079df488573c77ebda6 # v1.0.1
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: DeterminateSystems/magic-nix-cache-action@84c0677f58dcedf3b91f8223ce36a9ea5b3c84b7 # v15
-
-      - uses: cachix/cachix-action@38b082610b782e7e93e209c35fd730d399dee866 # v17
-        with:
-          name: unstoppablemango
-
-      # No go-cache step: both commands run go inside the nix sandbox, which
-      # has its own GOMODCACHE and GOCACHE and takes its modules from
-      # nix/gomod2nix.toml. What carries over between runs here is the store,
-      # which is what magic-nix-cache and cachix above are for.
       - run: nix flake check
+
+      # The checks are not the package, so this builds what a consumer builds.
       - run: nix build .#
 
-  # Whether the Tree-sitter job has anything to say. It regenerates the
-  # derived grammar and checks the diff, so a pull request touching neither
-  # the grammar nor what derives it can only reproduce the committed output.
-  # Skipping it there is worth a job of its own: the run it skips is three
-  # minutes, almost all of it provisioning Nix.
-  changes:
-    name: Changes
-    runs-on: thecluster
-    permissions:
-      contents: read
-    outputs:
-      grammar: ${{ steps.filter.outputs.grammar }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          # The base of the pull request has to be here to diff against.
-          fetch-depth: 0
-
-      - id: filter
-        env:
-          EVENT: ${{ github.event_name }}
-          BASE: ${{ github.event.pull_request.base.sha }}
-        run: |
-          set -euo pipefail
-
-          # A push to main regenerates unconditionally: the committed parser
-          # is what the branch is merged as, whatever the diff said.
-          if [ "$EVENT" != pull_request ]; then
-            echo 'grammar=true' >>"$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          # The grammar, what reads it, what it derives, the corpora both
-          # parsers are held to, and the CLI version flake.lock pins. The
-          # Makefile is here because it is what invokes the two, and this
-          # workflow because a change to the job is a reason to run it.
-          paths=(
-            .github/workflows/ci.yml
-            Makefile
-            docs/grammar.ebnf
-            docs/notation.ebnf
-            flake.lock
-            flake.nix
-            internal/ebnf
-            internal/treesitter
-            lex
-            testdata/conformance
-            testdata/invalid
-            tools/treesitter
-            tree-sitter
-          )
-          # 0 is no change and 1 is a change; anything else is git failing to
-          # answer, and an unanswered question runs the job.
-          status=0
-          git diff --quiet "$BASE" HEAD -- "${paths[@]}" || status=$?
-          if [ "$status" = 0 ]; then
-            echo 'grammar=false' >>"$GITHUB_OUTPUT"
-          else
-            if [ "$status" != 1 ]; then
-              echo "git diff exited $status; running the job rather than trusting it"
-            fi
-            echo 'grammar=true' >>"$GITHUB_OUTPUT"
-          fi
-
-  treesitter:
-    name: Tree-sitter
-    runs-on: thecluster
-    needs: changes
-    if: needs.changes.outputs.grammar == 'true'
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
-        with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-
-      # magic-nix-cache is deliberately absent. This job builds one
-      # derivation of its own, the shell's environment, and its post step
-      # spent 31s pushing that.
-      - uses: cachix/cachix-action@38b082610b782e7e93e209c35fd730d399dee866 # v17
-        with:
-          name: unstoppablemango
-
-      # The one place the shell is entered twice. `go env` has to run inside
-      # it to answer where the caches are, and the 8s that costs against a
-      # warm store buys back the 73s the job spent downloading one module.
-      - uses: ./.github/actions/go-cache
-        with:
-          go: nix develop .#treesitter --command go
-
-      # One invocation of `nix develop`, not three: entering the shell again
-      # against an already-warm store re-evaluates the flake and cost 8s of
-      # the run. git comes from the runner, which is where actions/checkout
-      # found it.
-      - run: |
-          nix develop .#treesitter --command bash -c '
-            set -euo pipefail
-            make treesitter
-            git diff --exit-code
-            make test-treesitter
-          '
-
   test:
-    name: Test
     runs-on: thecluster
     permissions:
       contents: read
@@ -140,24 +39,21 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # cache: false, because the tests run go from the devShell rather than
-      # from this toolchain, and setup-go would cache the paths of a go that
-      # never ran. The step below reads them from the one that does.
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          cache: false
-          go-version-file: go.mod
+          path: .go
+          key: ${{ runner.os }}-go-${{ github.job }}-${{ hashFiles('go.sum') }}
+          restore-keys: ${{ runner.os }}-go-${{ github.job }}-
 
-      - uses: ./.github/actions/go-cache
+      - uses: unmango/actions/setup-nix@3ec4ed5a6af9c00f6a39e079df488573c77ebda6 # v1.0.1
         with:
-          go: nix develop -c go
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
       - run: nix develop -c go test -race -coverprofile=cover.profile ./...
         env:
           CGO_ENABLED: '1'
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+      - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           use_oidc: true
           files: cover.profile
@@ -174,42 +70,55 @@ jobs:
             --value-file cover.profile \
             --use-oidc
 
-  golangci-lint:
-    name: golangci-lint
+  lint:
     runs-on: thecluster
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # One mechanism owns the Go caches here, the step below, so setup-go
-      # does not restore and save the same two directories beside it.
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          cache: false
-          go-version-file: go.mod
+          path: .go
+          key: ${{ runner.os }}-go-${{ github.job }}-${{ hashFiles('go.sum') }}
+          restore-keys: ${{ runner.os }}-go-${{ github.job }}-
 
-      - uses: ./.github/actions/go-cache
+      - uses: unmango/actions/setup-nix@3ec4ed5a6af9c00f6a39e079df488573c77ebda6 # v1.0.1
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+      - run: nix develop -c golangci-lint run ./...
 
   buf:
-    name: Buf
     runs-on: thecluster
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # Defaults do the right thing per event: lint, format, and breaking
-      # change detection on a pull request, comparing against its base.
-      # Nothing is published, so the push and archive steps stay off.
       - uses: bufbuild/buf-action@8c6a16e16f12ba20b6470afa9c2ba9b5ba8c97c3 # v1.5.0
         with:
           push: false
           archive: false
 
-  markdown-lint:
-    name: Markdown Lint
+  markdown:
     runs-on: thecluster
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
       # Which files to lint lives in .markdownlint-cli2.yaml, so a bare
       # `markdownlint-cli2` locally checks exactly what this checks.
       - uses: DavidAnson/markdownlint-cli2-action@21c1be1b93ad9ed58fa840aacc3f279cde2a72ff # v24.2.0
+
+  treesitter:
+    runs-on: thecluster
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .go
+          key: ${{ runner.os }}-go-${{ github.job }}-${{ hashFiles('go.sum') }}
+          restore-keys: ${{ runner.os }}-go-${{ github.job }}-
+
+      - uses: unmango/actions/setup-nix@3ec4ed5a6af9c00f6a39e079df488573c77ebda6 # v1.0.1
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: nix develop .#treesitter --command make check-treesitter
