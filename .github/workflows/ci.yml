@@ -162,6 +162,18 @@ jobs:
           use_oidc: true
           files: cover.profile
 
+      # The same profile, reported to the other consumer. The CLI reads the
+      # job's OIDC token rather than a DSN secret, which is what the
+      # id-token permission above is for, and it runs from the repository
+      # root so the paths in the profile resolve.
+      - name: Upload coverage to DeepSource
+        run: |
+          nix develop -c deepsource report \
+            --analyzer test-coverage \
+            --key go \
+            --value-file cover.profile \
+            --use-oidc
+
   golangci-lint:
     name: golangci-lint
     runs-on: thecluster
