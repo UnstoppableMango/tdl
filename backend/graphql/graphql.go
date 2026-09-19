@@ -84,8 +84,9 @@ const placeholder = "_"
 type generator struct {
 	*emit.Session
 
-	// local is every type name the model's own declarations take, which a
-	// custom scalar of the same name would collide with.
+	// local is every type name the model's own declarations take, a
+	// variant's object type among them, which a custom scalar of the same
+	// name would collide with.
 	local map[string]bool
 
 	// names is every type name declared, with the declaration that
@@ -113,8 +114,8 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 
 	own := g.Own()
 	for _, d := range own {
-		if d.GetStructure() != nil || d.GetEnumeration() != nil {
-			g.local[g.DeclName(d, emit.Pascal)] = true
+		for _, n := range g.declares(d) {
+			g.local[n] = true
 		}
 	}
 
@@ -167,6 +168,33 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	return g.Response([]*plugin.File{{Path: path, Content: []byte(b.String())}}), nil
 }
 
+// declares is every type name a declaration takes, read before anything is
+// rendered so that a custom scalar sees the whole namespace rather than the
+// part of it declared so far.
+func (g *generator) declares(d *ir.Decl) []string {
+	if d.GetStructure() == nil && d.GetEnumeration() == nil {
+		return nil
+	}
+	name := g.DeclName(d, emit.Pascal)
+	e := d.GetEnumeration()
+	if e == nil || !emit.Fielded(e) {
+		return []string{name}
+	}
+	names := []string{name}
+	for _, v := range e.GetVariants() {
+		names = append(names, g.memberName(name, v))
+	}
+	return names
+}
+
+// memberName is the object type a variant of a union becomes.
+func (g *generator) memberName(union string, v *ir.Variant) string {
+	if n, ok := g.Text(v.GetDirectives(), "name"); ok {
+		return n
+	}
+	return union + emit.Pascal(v.GetMeta().GetName())
+}
+
 // decl renders one declaration, or "" for one that declares nothing.
 func (g *generator) decl(d *ir.Decl) (string, error) {
 	pos := d.GetMeta().GetPosition()
@@ -215,6 +243,7 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 		return "", err
 	}
 
+	seen := map[string]bool{}
 	for _, n := range declared {
 		if err := g.typeName(n, pos); err != nil {
 			return "", err
@@ -222,6 +251,10 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 		if other, ok := g.names[n]; ok {
 			return "", emit.Unsupported(pos, "%s would declare %s in GraphQL, and %s already does", name, n, other)
 		}
+		if seen[n] {
+			return "", emit.Unsupported(pos, "%s would declare %s in GraphQL twice", name, n)
+		}
+		seen[n] = true
 	}
 	for _, n := range declared {
 		g.names[n] = name
@@ -276,6 +309,9 @@ func (g *generator) object(b *strings.Builder, name string, meta *ir.Meta, field
 // enum renders an enum whose variants carry no fields.
 func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	name := g.DeclName(d, emit.Pascal)
+	if len(d.GetEnumeration().GetVariants()) == 0 {
+		return nil, emit.Unsupported(d.GetMeta().GetPosition(), "%s has no variants, and a GraphQL enum needs at least one", name)
+	}
 
 	var body strings.Builder
 	seen := map[string]bool{}
@@ -308,10 +344,7 @@ func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	var types strings.Builder
 	var members []string
 	for _, v := range d.GetEnumeration().GetVariants() {
-		member := name + emit.Pascal(v.GetMeta().GetName())
-		if n, ok := g.Text(v.GetDirectives(), "name"); ok {
-			member = n
-		}
+		member := g.memberName(name, v)
 		types.WriteString("\n")
 
 		if len(v.GetFields()) == 0 {

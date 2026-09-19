@@ -82,6 +82,12 @@ func variant(name string, fields ...*ir.Field) *ir.Variant {
 	return &ir.Variant{Meta: &ir.Meta{Name: name}, Fields: fields}
 }
 
+// named gives a variant's object type the GraphQL name n.
+func named(v *ir.Variant, n string) *ir.Variant {
+	v.Directives = []*ir.Directive{{Name: "name", Target: graphql.Name, Args: []*ir.Literal{irtest.Text(n)}}}
+	return v
+}
+
 func TestDescribe(t *testing.T) {
 	d := graphql.Backend{}.Describe()
 	if d.Name != "graphql" || !d.Reuse {
@@ -211,6 +217,59 @@ func TestScalarNames(t *testing.T) {
 	src := check(t, resp)
 	absent(t, src, "type ID", "type Counter", "scalar Long")
 	contains(t, src, "type Long")
+}
+
+// A variant's object type takes a name in the same namespace the model's
+// own declarations take theirs from, so a custom scalar collides with one.
+func TestScalarNamesAgainstVariants(t *testing.T) {
+	b := irtest.New("shop")
+	b.Own(enum("Payment",
+		named(variant("Card", irtest.Field("last4", b.Named("string"))), "Long"),
+		variant("Cash"),
+	))
+	b.Own(value("Counter", irtest.Field("n", b.Named("int"))))
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 1 {
+		t.Errorf("want a warning for Counter: %+v", resp.GetDiagnostics())
+	}
+	src := check(t, resp)
+	absent(t, src, "type Counter", "scalar Long")
+	contains(t, src, "type Long")
+}
+
+// Two variants naming their object types the same would declare one type
+// twice, which the check against earlier declarations does not see.
+func TestVariantsSharingAName(t *testing.T) {
+	b := irtest.New("shop")
+	b.Own(value("Fine", irtest.Field("a", b.Named("string"))))
+	b.Own(enum("Payment",
+		named(variant("Card", irtest.Field("last4", b.Named("string"))), "Tender"),
+		named(variant("Cash"), "Tender"),
+	))
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 1 {
+		t.Errorf("want a warning for Payment: %+v", resp.GetDiagnostics())
+	}
+	src := check(t, resp)
+	absent(t, src, "union Payment", "type Tender")
+	contains(t, src, "type Fine")
+}
+
+// GraphQL has no empty enum, so one is skipped rather than emitted.
+func TestEmptyEnumsAreSkipped(t *testing.T) {
+	b := irtest.New("shop")
+	b.Own(value("Fine", irtest.Field("a", b.Named("string"))))
+	b.Own(enum("Empty"))
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 1 {
+		t.Errorf("want a warning for Empty: %+v", resp.GetDiagnostics())
+	}
+	src := check(t, resp)
+	absent(t, src, "enum Empty")
+	contains(t, src, "type Fine")
 }
 
 func TestConstraintsWarn(t *testing.T) {
