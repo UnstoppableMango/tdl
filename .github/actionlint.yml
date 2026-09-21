@@ -1,3 +1,10 @@
 self-hosted-runner:
   labels:
     - thecluster
+
+# actionlint 1.7.12 knows only `group` and `cancel-in-progress` under
+# `concurrency`, and rejects `queue` as a syntax error.
+paths:
+  .github/workflows/ci.yml:
+    ignore:
+      - 'unexpected key "queue" for "concurrency" section'

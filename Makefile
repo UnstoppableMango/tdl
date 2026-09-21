@@ -45,6 +45,12 @@ vscode-install:
 test-treesitter:
 	./tree-sitter/corpus.sh
 
+# What CI holds the derived parser to: regenerate, fail on a diff, then run
+# both corpora through it.
+check-treesitter: treesitter
+	git diff --exit-code -- tree-sitter
+	${MAKE} test-treesitter
+
 update:
 	nix flake update
 

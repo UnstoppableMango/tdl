@@ -9,8 +9,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  release-please:
-    name: Release Please
+  release:
     # Authenticates as the thecluster-bot GitHub App rather than with
     # GITHUB_TOKEN, so the release PR triggers CI, and rather than with a PAT,
     # so the commits it pushes are signed.

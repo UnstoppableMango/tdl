@@ -129,7 +129,7 @@ Zed reads a grammar from a repository and a revision with no key for a subdirect
 
 Three checks, each catching what the others cannot.
 
-`command make generate-treesitter` regenerates `grammar.js`, and CI runs it followed by `git diff --exit-code`.
+`make treesitter` regenerates `grammar.js`, and `make check-treesitter`, which CI runs, follows it with `git diff --exit-code` over `tree-sitter/`.
 A production added to the EBNF without a regeneration fails the build.
 This is the check the corpus cannot make.
 
