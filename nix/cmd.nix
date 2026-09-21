@@ -17,6 +17,7 @@ buildGoApplication {
     "cmd/tdl-gen-go"
     "cmd/tdl-gen-graphql"
     "cmd/tdl-gen-protobuf"
+    "cmd/tdl-gen-salesforce"
     "cmd/tdl-gen-smithy"
     "cmd/tdl-gen-thrift"
     "cmd/tdl-gen-typescript"

@@ -8,6 +8,7 @@ TypeScript is on the list because what it emits here is a description of JSON on
 They cover the core type definitions: structs in all three kinds, both enum shapes, newtypes, aliases, the primitives, the collections, and optionality.
 
 Each is implemented in `backend/<name>`.
+The `salesforce` backend builds on the same pieces and is mapped in [salesforce-backend.md](salesforce-backend.md), since half of what it writes is an org's schema rather than a wire format.
 [go-backend.md](go-backend.md) is the model for each decision below, and where a target has no reason to differ from Go it does not.
 
 ## What is shared

@@ -1,9 +1,12 @@
 package gen_test
 
 import (
+	"bytes"
 	"context"
+	"encoding/xml"
 	"go/parser"
 	"go/token"
+	"io"
 	"os"
 	"slices"
 	"strings"
@@ -20,6 +23,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/golang"
 	"github.com/unstoppablemango/tdl/backend/graphql"
 	"github.com/unstoppablemango/tdl/backend/protobuf"
+	"github.com/unstoppablemango/tdl/backend/salesforce"
 	"github.com/unstoppablemango/tdl/backend/smithy"
 	"github.com/unstoppablemango/tdl/backend/thrift"
 	"github.com/unstoppablemango/tdl/backend/typescript"
@@ -45,6 +49,7 @@ var shipped = []struct {
 	{backend: golang.Backend{}, model: goModel, packaged: true, valid: parseGo},
 	{backend: graphql.Backend{}, model: orderModel, packaged: true, valid: loadGraphQL},
 	{backend: protobuf.Backend{}, model: orderModel, packaged: true, valid: compileProto},
+	{backend: salesforce.Backend{}, model: orderModel, packaged: true, valid: parseXML},
 	{backend: smithy.Backend{}, model: orderModel, packaged: true},
 	{backend: thrift.Backend{}, model: orderModel, packaged: true, valid: checkThrift},
 	{backend: typescript.Backend{}, model: orderModel, packaged: true},
@@ -282,6 +287,24 @@ func checkThrift(t *testing.T, f *plugin.File) {
 	}
 	if err != nil {
 		t.Errorf("%s is not valid Thrift: %v\n%s", f.GetPath(), err, f.GetContent())
+	}
+}
+
+// parseXML checks that Salesforce metadata is well formed. An Apex class
+// has no Go parser, so a .cls file is not checked.
+func parseXML(t *testing.T, f *plugin.File) {
+	t.Helper()
+	if !strings.HasSuffix(f.GetPath(), ".xml") {
+		return
+	}
+	d := xml.NewDecoder(bytes.NewReader(f.GetContent()))
+	for {
+		if _, err := d.Token(); err == io.EOF {
+			return
+		} else if err != nil {
+			t.Errorf("%s is not well formed: %v\n%s", f.GetPath(), err, f.GetContent())
+			return
+		}
 	}
 }
 
