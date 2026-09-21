@@ -236,6 +236,9 @@ Both sources are compiled because the grammar has an external scanner.
 `programs.tdl.vscode.enable` in the home-manager module puts it in a VS Code profile; by hand, add it to `vscode-with-extensions` or to home-manager's `programs.vscode.profiles.<name>.extensions`.
 `make vscode-install` packages it as a `.vsix` and hands it to `code --install-extension`, which is the route to use when iterating on the colors.
 
+The extension starts `tdl lsp` for diagnostics, hover, go to definition, formatting, and the outline.
+It runs `tdl` from `PATH`, and the `tdl.server.path` setting names another executable; without one, it says so once and highlighting still works.
+
 ## Support matrix
 
 What each part of the language reaches today.

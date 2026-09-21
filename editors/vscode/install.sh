@@ -2,7 +2,8 @@
 # Package this extension and install it into a running VS Code.
 #
 # The extension is committed as a directory, and `code --install-extension`
-# wants a .vsix, so one is built here and thrown away. The two files a
+# wants a .vsix, so one is built here and thrown away. The language client is
+# bundled first, with the dependencies package-lock.json pins. The two files a
 # .vsix carries beyond the extension itself are written below rather than
 # by `vsce`, which would pull npm in for a zip and a manifest.
 #
@@ -19,6 +20,9 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
+npm ci --no-audit --no-fund
+npm run bundle
+
 version=$(sed -n 's/^[[:space:]]*"version": "\(.*\)".*/\1/p' package.json | head -1)
 publisher=$(sed -n 's/^[[:space:]]*"publisher": "\(.*\)".*/\1/p' package.json | head -1)
 name=$(sed -n 's/^[[:space:]]*"name": "\(.*\)".*/\1/p' package.json | head -1)
@@ -27,7 +31,7 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
 mkdir -p "$work/extension"
-cp -RL package.json language-configuration.json syntaxes "$work/extension/"
+cp -RL package.json language-configuration.json syntaxes dist "$work/extension/"
 
 cat >"$work/extension.vsixmanifest" <<EOF
 <?xml version="1.0" encoding="utf-8"?>
@@ -35,7 +39,7 @@ cat >"$work/extension.vsixmanifest" <<EOF
   <Metadata>
     <Identity Language="en-US" Id="${name}" Version="${version}" Publisher="${publisher}" />
     <DisplayName>TDL</DisplayName>
-    <Description xml:space="preserve">Syntax highlighting for the Type Description Language</Description>
+    <Description xml:space="preserve">Language support for the Type Description Language</Description>
     <Categories>Programming Languages</Categories>
   </Metadata>
   <Installation>
@@ -52,6 +56,7 @@ cat >"$work/[Content_Types].xml" <<'EOF'
 <?xml version="1.0" encoding="utf-8"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="json" ContentType="application/json" />
+  <Default Extension="js" ContentType="application/javascript" />
   <Default Extension="vsixmanifest" ContentType="text/xml" />
 </Types>
 EOF

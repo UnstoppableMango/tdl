@@ -1,7 +1,7 @@
 {
 	"name": "tdl",
 	"displayName": "TDL",
-	"description": "Syntax highlighting for the Type Description Language",
+	"description": "Language support for the Type Description Language: highlighting, and diagnostics, hover, go to definition, formatting, and an outline from tdl lsp",
 	"version": "0.2.8",
 	"publisher": "unstoppablemango",
 	"license": "GPL-3.0-or-later",
@@ -13,12 +13,13 @@
 		"Programming Languages"
 	],
 	"engines": {
-		"vscode": "^1.75.0"
+		"vscode": "^1.91.0"
 	},
 	"extensionKind": [
 		"ui",
 		"workspace"
 	],
+	"main": "./dist/extension.js",
 	"contributes": {
 		"languages": [
 			{
@@ -39,15 +40,33 @@
 				"scopeName": "source.tdl",
 				"path": "./syntaxes/tdl.tmLanguage.json"
 			}
-		]
+		],
+		"configuration": {
+			"title": "TDL",
+			"properties": {
+				"tdl.server.path": {
+					"type": "string",
+					"default": "tdl",
+					"scope": "machine-overridable",
+					"markdownDescription": "The `tdl` executable to run as the language server, with `lsp` as its argument. A bare name is looked up on `PATH`."
+				}
+			}
+		}
 	},
 	"scripts": {
+		"bundle": "esbuild src/extension.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --minify --outfile=dist/extension.js",
 		"typecheck": "tsc --noEmit",
 		"check": "biome check",
 		"format": "biome check --write"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.5.14",
+		"@types/node": "^20.19.43",
+		"@types/vscode": "~1.91.0",
+		"esbuild": "^0.28.2",
 		"typescript": "^7.0.2"
+	},
+	"dependencies": {
+		"vscode-languageclient": "^10.1.1"
 	}
 }
