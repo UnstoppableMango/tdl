@@ -107,5 +107,5 @@ It is not worth a client-side feature in four editors.
 
 - **Completion.** It needs the bindings in scope at a cursor, and what the index records is the binding a resolved name reached. That is a different question, and it is worth asking after the first three features have been used.
 - **Rename and references.** Both fall out of the index once it records every occurrence rather than every resolution, which is a smaller step than it sounds and still a separate one.
-- **A VS Code client.** `editors/vscode/` contributes a language and a grammar and has no JavaScript in it. A client means `vscode-languageclient`, a bundler, and a nix build with node dependencies, and it changes nothing about the server.
+- **Editor clients.** A client changes nothing about the server. [lsp-editors-plan.md](lsp-editors-plan.md) plans one for each editor, and the features after them.
 - **The MCP server.** [backlog.md](../backlog.md) has it, and it reads a resolved model rather than a file being edited. The two share `sema` and nothing else.

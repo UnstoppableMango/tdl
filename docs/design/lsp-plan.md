@@ -1,6 +1,7 @@
 # Implementing the language server
 
 An implementation plan for [lsp.md](lsp.md).
+[lsp-editors-plan.md](lsp-editors-plan.md) continues it.
 Phases are ordered by dependency, and each states what makes it done.
 This is not a task list and does not estimate anything.
 
