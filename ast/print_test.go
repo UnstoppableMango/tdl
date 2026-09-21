@@ -134,3 +134,22 @@ enum Big { AlphaVariant BetaVariant GammaVariant DeltaVariant EpsilonVariant Zet
 		t.Errorf("not idempotent\n--- once ---\n%s\n--- twice ---\n%s", once, twice)
 	}
 }
+
+func TestPrintDecl(t *testing.T) {
+	file := mustParse(t, `package p
+
+/// An order.
+deprecated("use Purchase")
+type Order: Entity {
+  // placed by position, and not part of the declaration
+  id: string
+  /// What it costs.
+  total: decimal
+}
+`)
+	got := ast.PrintDecl(file.Decls[0])
+	want := "type Order: Entity {\n  id: string\n  /// What it costs.\n  total: decimal\n}\n"
+	if got != want {
+		t.Errorf("PrintDecl =\n%s\nwant\n%s", got, want)
+	}
+}

@@ -142,6 +142,33 @@ func (s *session) definition(path, text, needle string) protocol.LocationSlice {
 	return slice
 }
 
+// hover sends a textDocument/hover with the cursor on the first
+// occurrence of needle, and returns its markdown, or "" for no answer.
+func (s *session) hover(path, text, needle string) string {
+	s.t.Helper()
+
+	h, err := s.server.Hover(context.Background(), &protocol.HoverParams{
+		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+			TextDocument: protocol.TextDocumentIdentifier{URI: uri.File(path)},
+			Position:     cursor(s.t, text, needle),
+		},
+	})
+	if err != nil {
+		s.t.Fatalf("hover: %v", err)
+	}
+	if h == nil {
+		return ""
+	}
+	mc, ok := h.Contents.(*protocol.MarkupContent)
+	if !ok {
+		s.t.Fatalf("hover answered %T, want *protocol.MarkupContent", h.Contents)
+	}
+	if mc.Kind != protocol.MarkupKindMarkdown {
+		s.t.Errorf("hover kind = %s, want markdown", mc.Kind)
+	}
+	return mc.Value
+}
+
 // message is a diagnostic's text.
 //
 // The protocol says a message is a string or markup, so the field is a

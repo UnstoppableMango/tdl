@@ -75,6 +75,8 @@ A reference into the prelude hovers and does not jump, which [lsp.md](lsp.md) ar
 
 Done when hovering a field's type shows the declaration and its doc comment.
 
+Done.
+
 ## Phase 4: formatting and document symbols
 
 `textDocument/formatting` is `ast.Fprint` over the snapshot as one whole-file edit.
