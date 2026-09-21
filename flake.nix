@@ -70,6 +70,10 @@
               pkgs.deepsource
               # editors/vscode/install.sh builds a .vsix, which is a zip.
               pkgs.zip
+              # The formatter and linter for editors/vscode. Its own
+              # devDependency is what `npm run` uses; this one is for an
+              # editor or a shell outside that directory.
+              pkgs.biome
             ];
           };
 
@@ -99,6 +103,20 @@
           treefmt = {
             programs = {
               actionlint.enable = true;
+              # `check` rather than `format`, so a lint finding fails
+              # `nix flake check` as an unformatted file does. The module
+              # hands biome a config of its own, so editors/vscode/biome.json
+              # is read in here rather than written twice; `files` is dropped
+              # because its globs are relative to that file, and treefmt's
+              # includes say the same thing from the root.
+              biome = {
+                enable = true;
+                includes = [ "editors/vscode/**/*.ts" ];
+                settings = removeAttrs (builtins.fromJSON (builtins.readFile ./editors/vscode/biome.json)) [
+                  "$schema"
+                  "files"
+                ];
+              };
               buf.enable = true;
               gofmt.enable = true;
               jsonfmt.enable = true;

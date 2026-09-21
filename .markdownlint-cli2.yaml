@@ -7,6 +7,8 @@ globs:
 ignores:
   # Nix build cache, not ours.
   - ".direnv"
+  # npm's install of editors/vscode's dependencies, not ours.
+  - "**/node_modules"
   # Written by release-please. Linting a generated file means editing it
   # by hand, which the next release would overwrite.
   - "CHANGELOG.md"
