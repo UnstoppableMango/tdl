@@ -25,6 +25,7 @@ command make treesitter       # docs/grammar.ebnf -> tree-sitter/grammar.js -> t
 command make textmate         # docs/grammar.ebnf -> editors/vscode/syntaxes/tdl.tmLanguage.json
 command make vscode-install   # package editors/vscode and install it into a running VS Code
 command make vscode-check     # npm ci, then typecheck and biome check editors/vscode
+command make vscode-test      # in `nix develop .#vscode`: the extension in a headless VSCodium
 command make test-treesitter  # the conformance corpus, run by tree-sitter
 command make check-treesitter # what CI runs: treesitter + a diff + test-treesitter
 ```
@@ -262,6 +263,11 @@ esbuild bundles it into `dist/extension.js`, since an extension shipping `node_m
 It then rewrites `tdl.server.path`'s default to `lib.getExe tdl` with `jq`, which is how nixpkgs wires an extension to the binary it needs, so the editor runs what nix installed and no user setting is written; a second `jq -e` fails the build if that setting is ever renamed, since the rewrite would otherwise ship the default quietly unpatched.
 The `.vsix` from `install.sh` keeps the `tdl` a development install wants, and `meta.mainProgram` in `nix/cmd.nix` is what `lib.getExe` reads out of a package installing nine binaries.
 release-please rewrites the lock file's two version fields along with `package.json`'s, so `npm ci` never sees them disagree.
+
+`make vscode-test` runs `editors/vscode/test/suite.ts` inside a headless VSCodium with the extension under development and a freshly built `tdl`: a diagnostic arrives, hover shows a declaration and its doc comment, and formatting produces canonical text.
+It asks through the commands the editor's own UI uses, and applies the formatting edits before comparing, because VS Code narrows the server's one whole-document edit into minimal ones.
+`devShells.vscode` holds what it needs, and `VS_CODE` names VSCodium's Electron binary rather than `bin/codium`, the launcher that starts the editor in the background and exits 0 before any test has run, which reads as a pass.
+The `vscode` CI job runs it and is not a required check.
 A directory copied into an extensions folder registers on a remote server and stops there, which looks exactly like the grammar not working.
 The installed copy is a copy, so a regenerated grammar needs the command again, and the window needs a reload.
 `language-configuration.json` is hand-written on purpose: comment markers, brackets, and auto-closing pairs are editor behavior rather than facts about the syntax.
