@@ -191,6 +191,15 @@ func Fprint(file *File) string {
 	return p.b.String()
 }
 
+// PrintDecl renders one declaration in canonical form, without its doc
+// comment, its deprecation, or the ordinary comments around it. It is the
+// declaration as a hover shows it, which renders those separately.
+func PrintDecl(decl Decl) string {
+	p := &printer{}
+	p.decl(decl)
+	return p.b.String()
+}
+
 func (p *printer) decl(decl Decl) {
 	switch d := decl.(type) {
 	case *PrimitiveDecl:

@@ -1,6 +1,6 @@
 // Package lsp serves the Language Server Protocol over a TDL model being
-// edited: what is wrong with a file, and where a name under the cursor was
-// declared.
+// edited: what is wrong with a file, where a name under the cursor was
+// declared, and what it is.
 //
 // It is private for the reason internal/sema is. `ir` and `proto` are the
 // compatibility surface, and an editor integration is not.
@@ -76,6 +76,7 @@ func (s *Server) Initialize(context.Context, *protocol.InitializeParams) (*proto
 				Save:      &protocol.SaveOptions{IncludeText: ptr(false)},
 			},
 			DefinitionProvider: protocol.Boolean(true),
+			HoverProvider:      protocol.Boolean(true),
 		},
 		ServerInfo: protocol.ServerInfo{Name: "tdl"},
 	}, nil
