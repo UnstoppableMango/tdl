@@ -109,6 +109,25 @@ jobs:
             --value-file cover.profile \
             --use-oidc
 
+  # Not a required check: it drives a whole editor, and a failure here
+  # should be read rather than block a merge the other jobs passed.
+  vscode:
+    runs-on: thecluster
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .go
+          key: ${{ runner.os }}-go-${{ github.job }}-${{ hashFiles('go.sum') }}
+          restore-keys: ${{ runner.os }}-go-${{ github.job }}-
+
+      - uses: unmango/actions/setup-nix@56abf92ca6c8e241831118a76b7b2ce1d3b8d414 # v1.1.1
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: nix develop .#vscode --command make vscode-test
+
   # The one check the main ruleset requires, so the jobs above can be renamed,
   # split, or merged without a ruleset change. A skipped required check counts
   # as passing, which is why this runs even when a need failed or the run was
