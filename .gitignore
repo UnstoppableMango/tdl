@@ -7,6 +7,9 @@ dist/
 out/
 *.test
 
+# npm, for editors/vscode
+node_modules/
+
 # Nix
 /result*
 .direnv/

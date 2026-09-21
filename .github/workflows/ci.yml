@@ -87,6 +87,8 @@ jobs:
 
       - run: nix develop -c golangci-lint run ./...
 
+      - run: nix develop -c make vscode-check
+
   buf:
     runs-on: thecluster
     # buf-action posts its lint and breaking-change summary as a PR comment.

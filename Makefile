@@ -41,6 +41,11 @@ textmate:
 vscode-install:
 	./editors/vscode/install.sh
 
+# Typecheck and lint the extension's TypeScript with the versions its lock
+# file pins. `nix fmt` formats it; this is what an editor reports.
+vscode-check:
+	cd editors/vscode && npm ci --no-audit --no-fund && npm run typecheck && npm run check
+
 # The conformance corpus, run by tree-sitter rather than by Go.
 test-treesitter:
 	./tree-sitter/corpus.sh
@@ -57,6 +62,7 @@ update:
 lint:
 	nix flake check
 	golangci-lint run ./...
+	${MAKE} vscode-check
 	buf lint
 	buf format --diff --exit-code
 	markdownlint-cli2

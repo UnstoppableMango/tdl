@@ -24,13 +24,19 @@ command make generate         # buf generate: proto/ -> ir/ir.pb.go
 command make treesitter       # docs/grammar.ebnf -> tree-sitter/grammar.js -> tree-sitter/src/
 command make textmate         # docs/grammar.ebnf -> editors/vscode/syntaxes/tdl.tmLanguage.json
 command make vscode-install   # package editors/vscode and install it into a running VS Code
+command make vscode-check     # npm ci, then typecheck and biome check editors/vscode
 command make test-treesitter  # the conformance corpus, run by tree-sitter
 command make check-treesitter # what CI runs: treesitter + a diff + test-treesitter
 ```
 
 Prefix `make` with `command` (see the shell autoload note in the global instructions).
 
-`nix fmt` formats Go, Nix, YAML, JSON, TOML, Markdown, and protobuf; `nix flake check` fails when anything is unformatted.
+`nix fmt` formats Go, Nix, YAML, JSON, TOML, Markdown, protobuf, and TypeScript; `nix flake check` fails when anything is unformatted.
+
+`editors/vscode/src/` is the one TypeScript in the repository, and `editors/vscode/package-lock.json` pins its toolchain: TypeScript 7 and Biome, run through `npm run` so an editor and CI use the same versions.
+Biome is the formatter and the linter, configured once in `editors/vscode/biome.json`: treefmt reads that file into its own generated config, dropping `files`, whose globs are relative to it, and runs `biome check`, so a lint finding fails `nix flake check` too.
+Biome's JSON formatter is off, since jsonfmt owns JSON here and the two disagree about arrays.
+`make vscode-check` runs `npm ci`, `tsc --noEmit`, and `biome check`; `make lint` and the `lint` CI job include it.
 
 Which markdown files are linted lives in `.markdownlint-cli2.yaml`, so a bare `markdownlint-cli2` locally checks what CI checks.
 `CLAUDE.md` is ignored: its whole content is an import pointing at this file, and a file that is one directive has no heading to lint.

@@ -40,5 +40,14 @@
 				"path": "./syntaxes/tdl.tmLanguage.json"
 			}
 		]
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit",
+		"check": "biome check",
+		"format": "biome check --write"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.5.14",
+		"typescript": "^7.0.2"
 	}
 }
