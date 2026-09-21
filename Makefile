@@ -46,6 +46,12 @@ vscode-install:
 vscode-check:
 	cd editors/vscode && npm ci --no-audit --no-fund && npm run typecheck && npm run check
 
+# Drive the extension in a headless editor against a freshly built server.
+# Run it in `nix develop .#vscode`, which sets VS_CODE and has xvfb-run.
+vscode-test:
+	go build -o bin/tdl ./cmd/tdl
+	cd editors/vscode && npm ci --no-audit --no-fund && TDL=${CURDIR}/bin/tdl xvfb-run -a npm test
+
 # The conformance corpus, run by tree-sitter rather than by Go.
 test-treesitter:
 	./tree-sitter/corpus.sh
