@@ -86,6 +86,8 @@ This is `tdl fmt` reused rather than reimplemented, and the corpus already holds
 
 Both are last because neither needs the index and neither is interesting, not because either is hard.
 
+Done.
+
 ## What is not here
 
 **Completion.** It needs the scope at a cursor rather than the binding a name reached, which is a different question of lowering.

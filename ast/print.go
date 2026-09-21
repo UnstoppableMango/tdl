@@ -654,6 +654,10 @@ func PrintUnitExpr(e *UnitExpr) string {
 	return b.String()
 }
 
+// PrintTypeRef renders a type reference as the formatter writes it, which
+// is how an editor's outline shows a field's type.
+func PrintTypeRef(t *TypeRef) string { return printTypeRef(t) }
+
 func printTypeRef(t *TypeRef) string {
 	if t == nil {
 		return ""

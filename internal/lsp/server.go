@@ -1,6 +1,6 @@
 // Package lsp serves the Language Server Protocol over a TDL model being
 // edited: what is wrong with a file, where a name under the cursor was
-// declared, and what it is.
+// declared, what it is, the file's outline, and its canonical form.
 //
 // It is private for the reason internal/sema is. `ir` and `proto` are the
 // compatibility surface, and an editor integration is not.
@@ -77,6 +77,9 @@ func (s *Server) Initialize(context.Context, *protocol.InitializeParams) (*proto
 			},
 			DefinitionProvider: protocol.Boolean(true),
 			HoverProvider:      protocol.Boolean(true),
+			// Formatting is `tdl fmt`, and the outline reads the tree.
+			DocumentFormattingProvider: protocol.Boolean(true),
+			DocumentSymbolProvider:     protocol.Boolean(true),
 		},
 		ServerInfo: protocol.ServerInfo{Name: "tdl"},
 	}, nil

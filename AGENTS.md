@@ -192,6 +192,7 @@ Pipeline, one package per stage:
   A file that does not parse publishes syntax errors only, because lowering a tree with holes reports names undefined only because their declaration failed to parse.
   Go to definition reads the index `sema.WithReferences` records, so shadowing, the prelude, and imports are decided once, by lowering.
   Hover prints the declaration a name reaches with `ast.PrintDecl`, the formatter's rendering without comments, followed by its deprecation and doc comment; the prelude is parsed from its embedded source, so a prelude name hovers even though it cannot be jumped to.
+  Formatting is `ast.Fprint` returned as one whole-document edit and refuses a file that does not parse, since printing a tree with holes would delete what the parser could not read; the outline reads the tree, so a broken file still outlines what was recovered.
   A name declared in a dependency a `_` import merged in jumps into that file, which is the one case the server reads a file it has no open document for, because the declaration's column is a byte offset into text it would otherwise not have.
   Private.
   See `docs/design/lsp.md` for the reasoning and `docs/design/lsp-plan.md` for what each phase adds.

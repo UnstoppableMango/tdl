@@ -169,6 +169,36 @@ func (s *session) hover(path, text, needle string) string {
 	return mc.Value
 }
 
+// format sends a textDocument/formatting.
+func (s *session) format(path string) []protocol.TextEdit {
+	s.t.Helper()
+
+	edits, err := s.server.Formatting(context.Background(), &protocol.DocumentFormattingParams{
+		TextDocument: protocol.TextDocumentIdentifier{URI: uri.File(path)},
+	})
+	if err != nil {
+		s.t.Fatalf("formatting: %v", err)
+	}
+	return edits
+}
+
+// symbols sends a textDocument/documentSymbol.
+func (s *session) symbols(path string) protocol.DocumentSymbolSlice {
+	s.t.Helper()
+
+	res, err := s.server.DocumentSymbol(context.Background(), &protocol.DocumentSymbolParams{
+		TextDocument: protocol.TextDocumentIdentifier{URI: uri.File(path)},
+	})
+	if err != nil {
+		s.t.Fatalf("documentSymbol: %v", err)
+	}
+	slice, ok := res.(protocol.DocumentSymbolSlice)
+	if !ok {
+		s.t.Fatalf("documentSymbol answered %T, want protocol.DocumentSymbolSlice", res)
+	}
+	return slice
+}
+
 // message is a diagnostic's text.
 //
 // The protocol says a message is a string or markup, so the field is a
