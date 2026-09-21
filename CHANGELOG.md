@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.2.8](https://github.com/UnstoppableMango/tdl/compare/v0.2.7...v0.2.8) (2026-09-21)
+
+
+### Features
+
+* **lsp:** format documents and outline their symbols ([#839](https://github.com/UnstoppableMango/tdl/issues/839)) ([994a4ef](https://github.com/UnstoppableMango/tdl/commit/994a4ef3f26bf8542ad205112457fd2ed5d070fe))
+* **lsp:** hover a name to see its declaration ([#838](https://github.com/UnstoppableMango/tdl/issues/838)) ([a247f6b](https://github.com/UnstoppableMango/tdl/commit/a247f6b74e3750dcff1dd8ffeab469cdea95de51))
+* **salesforce:** generate Salesforce DX metadata and Apex ([#836](https://github.com/UnstoppableMango/tdl/issues/836)) ([b7d2b4d](https://github.com/UnstoppableMango/tdl/commit/b7d2b4d3860ad4befff48e12e6941baeb3ec0a7b))
+
+
+### Documentation
+
+* **AGENTS.md:** clarify agent settings and document design plan structure ([#832](https://github.com/UnstoppableMango/tdl/issues/832)) ([a65f4fd](https://github.com/UnstoppableMango/tdl/commit/a65f4fdc2f89556b12f10e37351c1478cc08d6ec))
+* **AGENTS.md:** update make play command description and add make check command ([#830](https://github.com/UnstoppableMango/tdl/issues/830)) ([4a636ac](https://github.com/UnstoppableMango/tdl/commit/4a636ac72404ff464f28d3bdbcd1b0018f5bd8fc))
+* **lsp:** plan editor clients and the next server features ([#841](https://github.com/UnstoppableMango/tdl/issues/841)) ([18f5741](https://github.com/UnstoppableMango/tdl/commit/18f5741e4d96ddc749eddec6cd7b97b49b3a18e5))
+
+
+### Build System
+
+* set up TypeScript development for editors/vscode ([#842](https://github.com/UnstoppableMango/tdl/issues/842)) ([3d9da6b](https://github.com/UnstoppableMango/tdl/commit/3d9da6b30229947f1e9c2c845914125c8b4f6986))
+
+
+### Continuous Integration
+
+* configure DeepSource ([#826](https://github.com/UnstoppableMango/tdl/issues/826)) ([c9b63ae](https://github.com/UnstoppableMango/tdl/commit/c9b63aea5a68d5d9a6f721f48d5d9326a9d33d88))
+* consolidate the workflow around nix and lowercase job names ([#833](https://github.com/UnstoppableMango/tdl/issues/833)) ([edfa90c](https://github.com/UnstoppableMango/tdl/commit/edfa90c1b56fd5164c499f160a96381825d7c354))
+
 ## [0.2.7](https://github.com/UnstoppableMango/tdl/compare/v0.2.6...v0.2.7) (2026-09-19)
 
 
