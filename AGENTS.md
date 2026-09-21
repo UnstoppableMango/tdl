@@ -165,7 +165,12 @@ Pipeline, one package per stage:
   A set is an array, a map is a `Record`, and a primitive JSON has no form for is a string; a newtype is a plain alias rather than a branded type, so parsed JSON needs no cast.
   An enum where any variant carries fields is a discriminated union on `kind`, which a `discriminant` directive on the target block or the enum renames.
   Its tests run `tsc --noEmit --strict` when it is on `PATH`, and `checks.gen-typescript` runs it over `testdata/gen/smoke` regardless.
-- `cmd/tdl-gen-debug`, `cmd/tdl-gen-go`, `cmd/tdl-gen-graphql`, `cmd/tdl-gen-protobuf`, `cmd/tdl-gen-smithy`, `cmd/tdl-gen-thrift`, `cmd/tdl-gen-typescript` — each backend as a plugin.
+- `backend/salesforce` — the Salesforce backend: Salesforce DX source, one file per component.
+  An entity is a custom object with a field per field an org can store, and a field with no column is a warning while the object is still written; a value, a mixin, and an enum are Apex, which names an entity by its SObject type.
+  A fielded enum is an Apex class holding a `kind` and a member per variant, and a `key` directive makes one field a unique external ID.
+  Its tests check the XML is well formed, and `checks.gen-salesforce` runs `xmllint` over `testdata/gen/smoke`; nothing checks the Apex, which has no compiler outside an org.
+  See `docs/design/salesforce-backend.md`.
+- `cmd/tdl-gen-debug`, `cmd/tdl-gen-go`, `cmd/tdl-gen-graphql`, `cmd/tdl-gen-protobuf`, `cmd/tdl-gen-salesforce`, `cmd/tdl-gen-smithy`, `cmd/tdl-gen-thrift`, `cmd/tdl-gen-typescript` — each backend as a plugin.
   The same value the registry holds, served over a connection, which is what makes the two hosts testable against each other.
 - `plugin` — the wire protocol a backend speaks, generated from `proto/tdl/plugin/v1/plugin.proto`, plus the framing codec.
   Public, like `ir`.
@@ -194,8 +199,8 @@ Pipeline, one package per stage:
   Lowering knows the sugar's spellings (`List`, `Option`, ...) but nothing about what they mean, which is what makes the prelude replaceable.
 - `cmd/tdl` — main.
 
-`go`, `graphql`, `protobuf`, `smithy`, `thrift`, and `typescript` are the code-generation backends, and `docs/design/schema-backends.md` maps the five schema backends.
-`testdata/gen/smoke/source.tdl` is one file exercising the whole mapping, with a target block per schema backend; it is stored in canonical form, and the nix checks generate from it and hand the output to each language's own tool.
+`go`, `graphql`, `protobuf`, `salesforce`, `smithy`, `thrift`, and `typescript` are the code-generation backends, `docs/design/schema-backends.md` maps the five schema backends, and `docs/design/salesforce-backend.md` maps the one that writes an org's metadata.
+`testdata/gen/smoke/source.tdl` is one file exercising the whole mapping, with a target block per schema backend and one for `salesforce`; it is stored in canonical form, and the nix checks generate from it and hand the output to each language's own tool.
 `docs/design/plugins.md` describes the protocol every backend speaks, and `TestHostsAgree` in `internal/gen` is what holds each backend to producing the same bytes in process and over a pipe.
 It reads the `shipped` table in `internal/gen/hosts_test.go`, and a backend added to the registry gets a row there: `TestEveryBuiltinHasARow` fails until it does, and `TestPackagedBackendsShip` fails until a shipped one is in `nix/cmd.nix`.
 

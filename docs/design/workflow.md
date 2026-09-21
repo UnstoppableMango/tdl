@@ -126,7 +126,7 @@ A directory with files but no marker is someone else's, and cleaning it is an er
 
 ## Backends
 
-Targets named `go`, `graphql`, `protobuf`, `smithy`, `thrift`, and `typescript` are built in, along with `debug`, which describes the model it was given.
+Targets named `go`, `graphql`, `protobuf`, `salesforce`, `smithy`, `thrift`, and `typescript` are built in, along with `debug`, which describes the model it was given.
 Any other target name resolves to `tdl-gen-<name>` on `PATH`; `tdl` resolves the model and pipes the IR to that executable's stdin.
 There is no verification, signing, or version check, the same trust model as `git` subcommands and `protoc` plugins.
 Declaring a plugin in `[plugins]` documents the dependency and lets a project pin an explicit command, but a plugin on `PATH` works without being declared.

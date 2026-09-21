@@ -270,6 +270,7 @@ Backends:
 | `go` | Built in, also shipped as `tdl-gen-go` | Structs, entity keys, both enum shapes, newtypes, and the primitive and collection mapping |
 | `graphql` | Built in, also shipped as `tdl-gen-graphql` | Output types, both enum shapes, custom scalars, the primitive and list mapping; maps are unsupported |
 | `protobuf` | Built in, also shipped as `tdl-gen-protobuf` | Structs, both enum shapes, newtypes, the primitive and collection mapping, and `number` pins |
+| `salesforce` | Built in, also shipped as `tdl-gen-salesforce` | Salesforce DX source: a custom object per entity with a field per storable field, and Apex classes and enums for values and enums |
 | `smithy` | Built in, also shipped as `tdl-gen-smithy` | Structures, both enum shapes, a newtype over a primitive or a collection as a named shape, the primitive and collection mapping |
 | `typescript` | Built in, also shipped as `tdl-gen-typescript` | JSON wire types: interfaces, both enum shapes, newtypes as aliases, the primitive and collection mapping |
 | `thrift` | Built in, also shipped as `tdl-gen-thrift` | Structs, both enum shapes, newtypes as typedefs, the primitive and collection mapping, and `number` pins |

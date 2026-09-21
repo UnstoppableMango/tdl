@@ -74,6 +74,10 @@ target thrift for smoke {
   out("thrift")
 }
 
+target salesforce for smoke {
+  out("salesforce")
+}
+
 target smithy for smoke {
   out("smithy")
 }

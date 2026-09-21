@@ -120,6 +120,25 @@ in
             touch $out
           '';
 
+      # Holds the salesforce backend to well-formed metadata XML. Apex has
+      # no parser outside an org, so the classes are checked by deploying,
+      # which no check can do.
+      checks.gen-salesforce =
+        pkgs.runCommand "tdl-gen-salesforce"
+          {
+            nativeBuildInputs = [
+              pkgs.tdl
+              pkgs.findutils
+              pkgs.libxml2
+            ];
+          }
+          ''
+            cp ${../testdata/gen/smoke/source.tdl} source.tdl
+            tdl gen --target salesforce -o out source.tdl
+            find out -name '*.xml' -exec xmllint --noout {} +
+            touch $out
+          '';
+
       # Holds the flake-parts module to what it promises, by evaluating a
       # consumer flake that imports it and building what came out. The
       # fixture is a conformance case because the corpus is already held to
