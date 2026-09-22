@@ -9,20 +9,38 @@ import { LanguageClient, type LanguageClientOptions, type ServerOptions } from "
 
 let client: LanguageClient | undefined;
 
+// Every start and stop runs through one chain, so two configuration
+// changes arriving together restart the server once each, in order, rather
+// than both clearing `client` and then both assigning it. A step that
+// fails does not block the ones after it.
+let lifecycle: Promise<void> = Promise.resolve();
+
+function enqueue(step: () => Promise<void>): Promise<void> {
+	lifecycle = lifecycle.then(step, step);
+	return lifecycle;
+}
+
 export async function activate(context: ExtensionContext): Promise<void> {
 	context.subscriptions.push(
-		workspace.onDidChangeConfiguration(async (event) => {
+		workspace.onDidChangeConfiguration((event) => {
 			if (event.affectsConfiguration("tdl.server.path")) {
-				await stop();
-				await start();
+				enqueue(async () => {
+					await stop();
+					await start();
+				}).catch(report);
 			}
 		}),
 	);
-	await start();
+	await enqueue(start);
 }
 
 export async function deactivate(): Promise<void> {
-	await stop();
+	await enqueue(stop);
+}
+
+function report(err: unknown): void {
+	const reason = err instanceof Error ? err.message : String(err);
+	void window.showErrorMessage(`TDL: the language server did not stop cleanly: ${reason}`);
 }
 
 async function start(): Promise<void> {
