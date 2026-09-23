@@ -22,4 +22,8 @@ buildGoApplication {
     "cmd/tdl-gen-thrift"
     "cmd/tdl-gen-typescript"
   ];
+
+  # Nine binaries are installed, so lib.getExe needs telling which one is the
+  # program; nix/vscode-extension.nix reads it.
+  meta.mainProgram = "tdl";
 }
