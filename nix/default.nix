@@ -54,33 +54,39 @@ in
       checks.vscode-tdl = pkgs.vscode-tdl;
 
       # Holds the home-manager module to what it promises: the CLI lands in
-      # home.packages and the extension lands in the VS Code profile. It reads
-      # the evaluated options rather than home.path or activationPackage,
-      # which would build VS Code itself to say the same thing. It gets its
-      # own nixpkgs because `programs.vscode.enable` evaluates the editor, and
-      # the editor is unfree.
+      # home.packages and the extension lands in the profile of each editor
+      # that is enabled. It reads the evaluated options rather than home.path
+      # or activationPackage, which would build an editor to say the same
+      # thing. It gets its own nixpkgs because `programs.vscode.enable`
+      # evaluates the editor, and the editor is unfree.
+      #
+      # VSCodium stands in for the five forks: all six editor modules come
+      # from one mkVscodeModule, so what holds for one holds for the others.
       checks.hm-module =
         let
-          configure = inputs.home-manager.lib.homeManagerConfiguration {
-            pkgs = import inputs.nixpkgs {
-              inherit system;
-              overlays = [ overlay ];
-              config.allowUnfree = true;
+          configure =
+            editor:
+            inputs.home-manager.lib.homeManagerConfiguration {
+              pkgs = import inputs.nixpkgs {
+                inherit system;
+                overlays = [ overlay ];
+                config.allowUnfree = true;
+              };
+              modules = [
+                ./hm-module.nix
+                {
+                  home = {
+                    username = "tdl";
+                    homeDirectory = "/home/tdl";
+                    stateVersion = "24.11";
+                  };
+                  programs.${editor}.enable = true;
+                  programs.tdl.enable = true;
+                }
+              ];
             };
-            modules = [
-              ./hm-module.nix
-              {
-                home = {
-                  username = "tdl";
-                  homeDirectory = "/home/tdl";
-                  stateVersion = "24.11";
-                };
-                programs.vscode.enable = true;
-                programs.tdl.enable = true;
-              }
-            ];
-          };
-          hm = configure;
+          hm = configure "vscode";
+          codium = configure "vscodium";
         in
         assert pkgs.lib.assertMsg (builtins.elem pkgs.tdl hm.config.home.packages)
           "programs.tdl.enable did not add tdl to home.packages";
@@ -90,6 +96,21 @@ in
         assert pkgs.lib.assertMsg (
           hm.config.programs.vscode.profiles.default.userSettings == { }
         ) "programs.tdl.vscode wrote a user setting, which would make home-manager own settings.json";
+        assert pkgs.lib.assertMsg (
+          hm.config.programs.tdl.vscode.editors == [ "vscode" ]
+        ) "programs.tdl.vscode.editors did not default to the one editor that is enabled";
+        assert pkgs.lib.assertMsg (
+          codium.config.programs.tdl.vscode.editors == [ "vscodium" ]
+        ) "programs.tdl.vscode.editors did not find VSCodium";
+        assert pkgs.lib.assertMsg
+          (builtins.elem pkgs.vscode-tdl codium.config.programs.vscodium.profiles.default.extensions)
+          "programs.tdl.vscode.enable did not add vscode-tdl to the VSCodium profile";
+        assert pkgs.lib.assertMsg (
+          codium.config.programs.vscode.profiles == { }
+        ) "programs.tdl.vscode touched VS Code, which is not enabled here";
+        assert pkgs.lib.assertMsg (builtins.all (
+          a: a.assertion
+        ) codium.config.assertions) "the module asserted something with only VSCodium enabled";
         pkgs.runCommand "tdl-hm-module" { } "touch $out";
 
       # Holds the smithy backend to output Smithy accepts. No Go library can
