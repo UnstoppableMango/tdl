@@ -107,7 +107,8 @@ It adds `tdl` and `vscode-tdl` to a nixpkgs instance, and composes [gomod2nix](h
 ```
 
 `homeModules.default` is a home-manager module over that overlay, exported as `homeManagerModules.default` under the older name as well.
-`programs.tdl.enable` installs the CLI, and `programs.tdl.vscode.enable` adds the extension to the VS Code profiles named in `programs.tdl.vscode.profiles`, defaulting to `default` and to whether `programs.vscode` is enabled at all.
+`programs.tdl.enable` installs the CLI, and `programs.tdl.vscode.enable` adds the extension to the profiles named in `programs.tdl.vscode.profiles`, defaulting to `default`.
+It goes to every VS Code-based editor home-manager has enabled, `programs.vscode`, `programs.vscodium`, `programs.cursor`, `programs.windsurf`, `programs.kiro`, and `programs.antigravity`; `programs.tdl.vscode.editors` narrows that to the ones named.
 
 ```nix
 {
