@@ -9,6 +9,7 @@ out/
 
 # npm, for editors/vscode
 node_modules/
+.vscode-test/
 
 # Nix
 /result*
