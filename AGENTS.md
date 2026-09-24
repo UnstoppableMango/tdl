@@ -254,6 +254,12 @@ The same file derives the VS Code grammar.
 A keyword added to `lex` and to `reserved_word` is a diff there as well as in `grammar.js`, so both grammars move together.
 The extension around it is `editors/vscode/`, and `nix build .#vscode-tdl` builds it; `programs.tdl.vscode.enable` in the home-manager module installs it, and by hand it goes in `vscode-with-extensions` or in home-manager's `programs.vscode.profiles.<name>.extensions`, either from `packages.vscode-tdl` or as `pkgs.vscode-tdl` through the overlay.
 `make vscode-install` is the other way in, for iterating on the colors: it packages the directory as a `.vsix` and hands it to `code --install-extension`, which is the only route that reaches the client.
+
+`editors/vscode/src/extension.ts` starts `tdl lsp` through `vscode-languageclient`, running `tdl.server.path` or `tdl` from `PATH`.
+It looks the executable up itself rather than leaving it to the client, which reports a missing one as a connection failure and retries; a missing server is one message, and the grammar still colours the file.
+esbuild bundles it into `dist/extension.js`, since an extension shipping `node_modules` is slower to load.
+`nix/vscode-extension.nix` builds that bundle with `buildNpmPackage` and `importNpmLock`, which fetches each dependency by the integrity hash `package-lock.json` already records, so a lock file update needs no hash edited; `checks.vscode-tdl` builds it, typecheck included, because `nix flake check` builds no packages.
+release-please rewrites the lock file's two version fields along with `package.json`'s, so `npm ci` never sees them disagree.
 A directory copied into an extensions folder registers on a remote server and stops there, which looks exactly like the grammar not working.
 The installed copy is a copy, so a regenerated grammar needs the command again, and the window needs a reload.
 `language-configuration.json` is hand-written on purpose: comment markers, brackets, and auto-closing pairs are editor behavior rather than facts about the syntax.
@@ -358,7 +364,7 @@ A doc comment and the ordinary comments around it are merged by offset, so the t
 `.github/workflows/release-please.yml` calls the reusable workflow in `unmango/actions` and authenticates as the thecluster[bot] GitHub App through `vars.RELEASE_APP_CLIENT_ID` and `secrets.RELEASE_APP_PRIVATE_KEY`, so the release PR triggers CI and its commits are signed.
 
 release-please owns the version.
-Never hand-edit `toolVersion` in `internal/cli/version.go`, `version` in `flake.nix`, `version` in `editors/vscode/package.json`, or `CHANGELOG.md`; each release PR rewrites them.
+Never hand-edit `toolVersion` in `internal/cli/version.go`, `version` in `flake.nix`, `version` in `editors/vscode/package.json` and `package-lock.json`, or `CHANGELOG.md`; each release PR rewrites them.
 The first two carry an `x-release-please-version` annotation, which is what makes them update rather than drift.
 JSON has no comments, so the extension's is a JSON updater in `release-please-config.json` naming `$.version` instead.
 

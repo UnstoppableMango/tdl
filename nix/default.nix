@@ -49,6 +49,10 @@ in
         inherit (pkgs) tdl vscode-tdl;
       };
 
+      # `nix flake check` builds checks and not packages, and building the
+      # extension is what typechecks and bundles it.
+      checks.vscode-tdl = pkgs.vscode-tdl;
+
       # Holds the home-manager module to what it promises: the CLI lands in
       # home.packages and the extension lands in the VS Code profile. It reads
       # the evaluated options rather than home.path or activationPackage,

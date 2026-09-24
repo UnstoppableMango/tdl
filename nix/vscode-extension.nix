@@ -4,26 +4,63 @@
 # programs.vscode.profiles.<name>.extensions by hand.
 {
   lib,
+  buildNpmPackage,
+  importNpmLock,
   vscode-utils,
   version,
 }:
+let
+  # The language client bundled into one file, with what the extension
+  # ships beside it. importNpmLock fetches each package by the integrity
+  # hash package-lock.json already records, so a dependency update needs no
+  # hash edited here. node_modules and dist are gitignored, so a flake's
+  # copy of the directory never carries a local install.
+  bundle = buildNpmPackage {
+    pname = "vscode-tdl-bundle";
+    inherit version;
+
+    src = ../editors/vscode;
+
+    npmDeps = importNpmLock { npmRoot = ../editors/vscode; };
+    npmConfigHook = importNpmLock.npmConfigHook;
+    npmBuildScript = "bundle";
+
+    # The typecheck runs here, so `nix flake check` holds the extension to
+    # it. Biome is not run: npm's binary is linked against a loader the
+    # sandbox does not have, and treefmt already runs nixpkgs' biome check.
+    doCheck = true;
+    checkPhase = ''
+      runHook preCheck
+      npm run typecheck
+      runHook postCheck
+    '';
+
+    installPhase = ''
+      runHook preInstall
+      mkdir -p $out
+      cp -r package.json language-configuration.json syntaxes dist $out/
+      runHook postInstall
+    '';
+  };
+in
 vscode-utils.buildVscodeExtension {
   pname = "tdl";
   inherit version;
 
-  src = ../editors/vscode;
+  src = bundle;
 
-  # sourceRoot is the directory the unpacker copies src into, which takes its
-  # name; buildVscodeExtension defaults it to a .vsix's layout, and this is a
-  # directory in the tree.
-  sourceRoot = "vscode";
+  # sourceRoot is the directory the unpacker copies src into, which takes
+  # the bundle's name; buildVscodeExtension defaults it to a .vsix's layout.
+  sourceRoot = bundle.name;
 
   vscodeExtPublisher = "unstoppablemango";
   vscodeExtName = "tdl";
   vscodeExtUniqueId = "unstoppablemango.tdl";
 
+  passthru = { inherit bundle; };
+
   meta = {
-    description = "Syntax highlighting for the Type Description Language";
+    description = "Language support for the Type Description Language";
     homepage = "https://github.com/UnstoppableMango/tdl";
     license = lib.licenses.gpl3Plus;
   };
