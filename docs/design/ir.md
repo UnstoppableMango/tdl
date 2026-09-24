@@ -13,9 +13,9 @@ Two consumers share it, in-process backends importing the Go package, and plugin
 Lowering to `ir` does four things and no more:
 
 1. Resolves every name to a declaration, across imports.
-2. Lowers collection and optionality sugar to prelude types.
-3. Computes which types satisfy which classes.
-4. Resolves target paths and attaches the winning directives.
+1. Lowers collection and optionality sugar to prelude types.
+1. Computes which types satisfy which classes.
+1. Resolves target paths and attaches the winning directives.
 
 It does not evaluate constraints, monomorphize generics, or make any decision a backend could reasonably want to make differently.
 

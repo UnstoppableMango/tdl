@@ -13,10 +13,10 @@ The language core is small.
 Almost everything that looks like a type system is library code written in TDL and shipped in a replaceable prelude.
 
 1. **Identity is first class.** A type conforming to the prelude's `Entity` class has identity that persists across changes to its contents. Any other type is defined entirely by its contents.
-2. **The model is pure.** A `.tdl` file describes the domain. Everything a code generator needs lives in a separate `target` block.
-3. **Constraints are syntax, not semantics.** The compiler parses and resolves constraints. It does not evaluate or interpret them. Backends decide what a constraint means.
-4. **Behavior belongs to backends.** `owned` says a child is part of its parent. It does not say what happens on delete.
-5. **Abstraction is library-level.** Generics, kinds, classes, and instances exist so that shared structure is declared once and reused, rather than copied between declarations or re-encoded in every backend.
+1. **The model is pure.** A `.tdl` file describes the domain. Everything a code generator needs lives in a separate `target` block.
+1. **Constraints are syntax, not semantics.** The compiler parses and resolves constraints. It does not evaluate or interpret them. Backends decide what a constraint means.
+1. **Behavior belongs to backends.** `owned` says a child is part of its parent. It does not say what happens on delete.
+1. **Abstraction is library-level.** Generics, kinds, classes, and instances exist so that shared structure is declared once and reused, rather than copied between declarations or re-encoded in every backend.
 
 ## Lexical structure
 

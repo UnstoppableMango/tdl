@@ -32,10 +32,10 @@
     inputs@{ flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = import inputs.systems;
+
       imports = with inputs; [
         systems.flakeModule
         treefmt-nix.flakeModule
-        # The packages, the overlay, and the home-manager module.
         ./nix
       ];
 
@@ -44,53 +44,28 @@
       perSystem =
         { pkgs, ... }:
         {
-          # mkShell rather than mkShellNoCC: Go needs no C compiler, but
-          # `tree-sitter parse` builds the generated parser with one.
           devShells.default = pkgs.mkShell {
-            packages = [
-              pkgs.direnv
-              pkgs.go_1_27 # TODO: consolidate with nix/overlay.nix
-              pkgs.gomod2nix
-              pkgs.gopls
-              pkgs.golangci-lint
-              pkgs.gnumake
-              pkgs.nixfmt
-              pkgs.nodejs
-              pkgs.buf
-              pkgs.markdownlint-cli2
-              pkgs.protoc-gen-go
-              # The schema backends' tests hand their output to these when
-              # they are on PATH, since neither has a Go implementation.
-              pkgs.smithy-cli
-              pkgs.typescript
-              pkgs.tree-sitter
-              # What the Test job reports cover.profile to DeepSource with.
-              # Pinned here rather than curled from cli.deepsource.com in
-              # the job, so the version CI runs is the one flake.lock names.
-              pkgs.deepsource
-              # editors/vscode/install.sh builds a .vsix, which is a zip.
-              pkgs.zip
-              # The formatter and linter for editors/vscode. Its own
-              # devDependency is what `npm run` uses; this one is for an
-              # editor or a shell outside that directory.
-              pkgs.biome
+            packages = with pkgs; [
+              direnv
+              go_1_27 # TODO: consolidate with nix/overlay.nix
+              gomod2nix
+              gopls
+              golangci-lint
+              gnumake
+              nixfmt
+              nodejs
+              buf
+              markdownlint-cli2
+              protoc-gen-go
+              smithy-cli
+              typescript
+              tree-sitter
+              deepsource
+              zip
+              biome
             ];
           };
 
-          # What `make treesitter` and `make test-treesitter` need, and
-          # nothing else. The CI job that runs the two is otherwise handed
-          # the default shell, whose closure is 1516 MB against this one's
-          # 879 MB, and realising the difference from the binary cache was
-          # the job's largest cost by an order of magnitude: 112s of a 192s
-          # run, against 5s for the work itself.
-          #
-          # nodejs is the one package here that neither Makefile target
-          # names: `tree-sitter generate` evaluates grammar.js by running it
-          # through node, and fails outright without one.
-          #
-          # A second shell is a second thing to keep in step with the first,
-          # which is the price. It stays worth paying while the job is one
-          # generator and one corpus script.
           devShells.treesitter = pkgs.mkShell {
             packages = [
               pkgs.go_1_27
@@ -103,12 +78,6 @@
           treefmt = {
             programs = {
               actionlint.enable = true;
-              # `check` rather than `format`, so a lint finding fails
-              # `nix flake check` as an unformatted file does. The module
-              # hands biome a config of its own, so editors/vscode/biome.json
-              # is read in here rather than written twice; `files` is dropped
-              # because its globs are relative to that file, and treefmt's
-              # includes say the same thing from the root.
               biome = {
                 enable = true;
                 includes = [ "editors/vscode/**/*.ts" ];
@@ -122,49 +91,31 @@
               jsonfmt.enable = true;
               mdformat = {
                 enable = true;
-                # Keep 1. 2. 3. rather than rewriting every item to `1.`, and
-                # keep the line breaks the author chose: prose here is one
-                # sentence per line so diffs stay readable.
-                settings.number = true;
                 settings.wrap = "keep";
               };
               nixfmt.enable = true;
               taplo.enable = true;
               yamlfmt = {
                 enable = true;
-                # Blank lines between workflow steps are how a job stays
-                # readable; the default drops all of them.
                 settings.formatter.retain_line_breaks_single = true;
               };
+              zizmor.enable = true;
             };
 
-            # .editorconfig asks for tabs everywhere except yaml and nix, and
-            # jsonfmt indents with spaces unless told otherwise.
             settings.formatter.jsonfmt.options = [
               "--indent"
               "\t"
             ];
 
             settings.global.excludes = [
-              # Agent skills are authored prose with their own conventions.
               ".claude/**"
-              # Generated: `go test ./internal/sema -update` writes these.
               "*.golden"
-              # Generated by release-please, which would fight the formatter
-              # over it every release.
               "CHANGELOG.md"
-              # Generated: gomod2nix and nix own these.
               "nix/gomod2nix.toml"
               "flake.lock"
-              # `tdl fmt` formats these; wiring it in is in docs/backlog.md.
               "*.tdl"
-              # mdformat rewrites YAML frontmatter as a thematic break, and
-              # the frontmatter is how Copilot decides when to load a skill.
               ".github/skills/**/SKILL.md"
-              # Generated: `tree-sitter generate` writes these, and jsonfmt
-              # would rewrite them on every check.
               "tree-sitter/src/*.json"
-              # Generated: `make textmate` writes this one.
               "editors/vscode/syntaxes/*.json"
             ];
           };
