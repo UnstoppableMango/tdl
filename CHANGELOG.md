@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.9](https://github.com/UnstoppableMango/tdl/compare/v0.2.8...v0.2.9) (2026-09-24)
+
+
+### Features
+
+* **vscode:** start the language server ([#843](https://github.com/UnstoppableMango/tdl/issues/843)) ([17d0393](https://github.com/UnstoppableMango/tdl/commit/17d0393a4c2643c50d6eafe9b059a3654534fb97))
+
 ## [0.2.8](https://github.com/UnstoppableMango/tdl/compare/v0.2.7...v0.2.8) (2026-09-21)
 
 
