@@ -259,6 +259,8 @@ The extension around it is `editors/vscode/`, and `nix build .#vscode-tdl` build
 It looks the executable up itself rather than leaving it to the client, which reports a missing one as a connection failure and retries; a missing server is one message, and the grammar still colours the file.
 esbuild bundles it into `dist/extension.js`, since an extension shipping `node_modules` is slower to load.
 `nix/vscode-extension.nix` builds that bundle with `buildNpmPackage` and `importNpmLock`, which fetches each dependency by the integrity hash `package-lock.json` already records, so a lock file update needs no hash edited; `checks.vscode-tdl` builds it, typecheck included, because `nix flake check` builds no packages.
+It then rewrites `tdl.server.path`'s default to `lib.getExe tdl` with `jq`, which is how nixpkgs wires an extension to the binary it needs, so the editor runs what nix installed and no user setting is written; a second `jq -e` fails the build if that setting is ever renamed, since the rewrite would otherwise ship the default quietly unpatched.
+The `.vsix` from `install.sh` keeps the `tdl` a development install wants, and `meta.mainProgram` in `nix/cmd.nix` is what `lib.getExe` reads out of a package installing nine binaries.
 release-please rewrites the lock file's two version fields along with `package.json`'s, so `npm ci` never sees them disagree.
 A directory copied into an extensions folder registers on a remote server and stops there, which looks exactly like the grammar not working.
 The installed copy is a copy, so a regenerated grammar needs the command again, and the window needs a reload.

@@ -61,7 +61,7 @@ in
       # the editor is unfree.
       checks.hm-module =
         let
-          hm = inputs.home-manager.lib.homeManagerConfiguration {
+          configure = inputs.home-manager.lib.homeManagerConfiguration {
             pkgs = import inputs.nixpkgs {
               inherit system;
               overlays = [ overlay ];
@@ -80,12 +80,16 @@ in
               }
             ];
           };
+          hm = configure;
         in
         assert pkgs.lib.assertMsg (builtins.elem pkgs.tdl hm.config.home.packages)
           "programs.tdl.enable did not add tdl to home.packages";
         assert pkgs.lib.assertMsg
           (builtins.elem pkgs.vscode-tdl hm.config.programs.vscode.profiles.default.extensions)
           "programs.tdl.vscode.enable did not add vscode-tdl to the default profile";
+        assert pkgs.lib.assertMsg (
+          hm.config.programs.vscode.profiles.default.userSettings == { }
+        ) "programs.tdl.vscode wrote a user setting, which would make home-manager own settings.json";
         pkgs.runCommand "tdl-hm-module" { } "touch $out";
 
       # Holds the smithy backend to output Smithy accepts. No Go library can
