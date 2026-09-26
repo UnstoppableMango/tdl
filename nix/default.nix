@@ -39,12 +39,10 @@ in
       };
 
       packages = {
-        default = pkgs.tdl;
         inherit (pkgs) tdl vscode-tdl;
+        default = pkgs.tdl;
       };
 
-      # It gets its own nixpkgs because `programs.vscode.enable` evaluates the editor, and
-      # the editor is unfree.
       checks.hm-module =
         let
           pkgs = import inputs.nixpkgs {
