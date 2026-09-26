@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.10](https://github.com/UnstoppableMango/tdl/compare/v0.2.9...v0.2.10) (2026-09-26)
+
+
+### Bug Fixes
+
+* **renovate:** reference shared presets by name ([#851](https://github.com/UnstoppableMango/tdl/issues/851)) ([4b06360](https://github.com/UnstoppableMango/tdl/commit/4b0636065f619f9f91843d86a650b2546b5d6b1b)), closes [#848](https://github.com/UnstoppableMango/tdl/issues/848)
+
 ## [0.2.9](https://github.com/UnstoppableMango/tdl/compare/v0.2.8...v0.2.9) (2026-09-24)
 
 
