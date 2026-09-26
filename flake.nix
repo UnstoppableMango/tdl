@@ -100,6 +100,23 @@
             ];
           };
 
+          # What `make vscode-test` needs: the extension's toolchain, go to
+          # build the server, and an editor under a virtual display.
+          # VSCodium rather than a build @vscode/test-electron downloads, which
+          # is linked against a loader NixOS does not have, and rather than
+          # VS Code, which is unfree. VS_CODE names the Electron binary and
+          # not bin/codium: that is the command-line launcher, which starts
+          # the editor in the background and exits 0 before a test has run.
+          devShells.vscode = pkgs.mkShell {
+            packages = [
+              pkgs.go_1_27
+              pkgs.gnumake
+              pkgs.nodejs
+              pkgs.xvfb-run
+            ];
+            VS_CODE = "${pkgs.vscodium}/lib/vscode/codium";
+          };
+
           treefmt = {
             programs = {
               actionlint.enable = true;

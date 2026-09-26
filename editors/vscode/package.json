@@ -57,12 +57,15 @@
 		"bundle": "esbuild src/extension.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --minify --outfile=dist/extension.js",
 		"typecheck": "tsc --noEmit",
 		"check": "biome check",
-		"format": "biome check --write"
+		"format": "biome check --write",
+		"bundle-test": "esbuild test/run.ts test/suite.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --outdir=dist/test",
+		"test": "npm run bundle && npm run bundle-test && node dist/test/run.js"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.5.14",
 		"@types/node": "^20.19.43",
 		"@types/vscode": "~1.91.0",
+		"@vscode/test-electron": "^3.1.0",
 		"esbuild": "^0.28.2",
 		"typescript": "^7.0.2"
 	},
