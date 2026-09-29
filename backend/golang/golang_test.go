@@ -2490,3 +2490,39 @@ func TestForeignMappingProblems(t *testing.T) {
 		})
 	}
 }
+
+// foreignDirective is the directive [foreign] attaches, for a declaration
+// the model holds only as an extern.
+func foreignDirective(path, typeName string) *ir.Directive {
+	return foreign(&ir.Decl{}, path, typeName).GetDirectives()[0]
+}
+
+// A target path can name a declaration another package owns, and a foreign
+// mapping on it is read the way one on a local declaration is.
+func TestForeignExternIsImported(t *testing.T) {
+	m := irtest.New("shop")
+	money := m.ExternIn("acme.money", "Money", foreignDirective("github.com/acme/money", "Money"))
+	m.Own(structure("Price", nil, irtest.Field("amount", money)))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	got := raw(resp)
+	if _, ok := got["price.go"]; !ok {
+		t.Fatalf("Price was not generated: files = %v", keys(got))
+	}
+	contains(t, got["price.go"], `money "github.com/acme/money"`, "Amount money.Money")
+}
+
+// An extern nothing maps has no Go type, so the declaration using it is
+// skipped with a warning.
+func TestUnmappedExternIsSkipped(t *testing.T) {
+	m := irtest.New("shop")
+	m.Own(structure("Price", nil, irtest.Field("amount", m.ExternIn("acme.money", "Money"))))
+
+	resp := generate(t, m)
+	onlyWarningAt(t, resp, 0)
+	contains(t, resp.GetDiagnostics()[0].GetMessage(), "acme.money.Money")
+	if got := raw(resp); len(got) != 0 {
+		t.Errorf("files = %v, want none", keys(got))
+	}
+}
