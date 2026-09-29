@@ -130,3 +130,93 @@ target protobuf for acme.widgets.v1 {
 		"message Widget { string name = 1; }",
 	)
 }
+
+// A deprecated service carries the option as its first statement, under a
+// comment giving the reason.
+func TestDeprecatedServiceIsMarked(t *testing.T) {
+	const src = `package acme.widgets.v1
+
+primitive Fn: type -> type -> type
+
+type GetWidgetRequest { name: string }
+
+type Widget { name: string }
+
+deprecated("use v2")
+type WidgetService { GetWidget: Fn<GetWidgetRequest, Widget> }
+
+target protobuf for acme.widgets.v1 {
+  Fn => rpc
+  WidgetService => service
+}
+`
+	resp := generateIR(t, lower(t, "widgets.tdl", src, nil))
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	contains(t, compile(t, resp),
+		"// Deprecated: use v2\nservice WidgetService { option deprecated = true; rpc GetWidget(GetWidgetRequest) returns (Widget); }",
+	)
+}
+
+// A deprecated rpc field carries the option in the rpc's body.
+func TestDeprecatedRPCIsMarked(t *testing.T) {
+	const src = `package acme.widgets.v1
+
+primitive Fn: type -> type -> type
+
+type GetWidgetRequest { name: string }
+
+type Widget { name: string }
+
+type WidgetService {
+  deprecated GetWidget: Fn<GetWidgetRequest, Widget>
+  ListWidgets: Fn<GetWidgetRequest, Widget>
+}
+
+target protobuf for acme.widgets.v1 {
+  Fn => rpc
+  WidgetService => service
+}
+`
+	resp := generateIR(t, lower(t, "widgets.tdl", src, nil))
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	out := compile(t, resp)
+	contains(t, out,
+		"rpc GetWidget(GetWidgetRequest) returns (Widget) { option deprecated = true; }",
+		"rpc ListWidgets(GetWidgetRequest) returns (Widget);",
+	)
+	absent(t, out, "rpc GetWidget(GetWidgetRequest) returns (Widget);")
+}
+
+// Doc comments on a service and on its rpc fields are written above them.
+func TestServiceDocCommentsAreWritten(t *testing.T) {
+	const src = `package acme.widgets.v1
+
+primitive Fn: type -> type -> type
+
+type GetWidgetRequest { name: string }
+
+type Widget { name: string }
+
+/// Serves widgets.
+type WidgetService {
+  /// Fetches one widget by name.
+  GetWidget: Fn<GetWidgetRequest, Widget>
+}
+
+target protobuf for acme.widgets.v1 {
+  Fn => rpc
+  WidgetService => service
+}
+`
+	resp := generateIR(t, lower(t, "widgets.tdl", src, nil))
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	contains(t, compile(t, resp),
+		"// Serves widgets.\nservice WidgetService {\n  // Fetches one widget by name.\n  rpc GetWidget(GetWidgetRequest) returns (Widget);\n}",
+	)
+}
