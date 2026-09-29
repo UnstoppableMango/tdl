@@ -172,6 +172,7 @@ message Extern {
   string package = 1; // the declaring package
   string name = 2; // the declaration's name within it
   Position position = 3; // where this model first referred to it
+  repeated Directive directives = 4; // resolved target directives whose path names this extern
 }
 
 // Decl is one declaration. The forms split by nature rather than
