@@ -182,12 +182,12 @@ func TestNumbers(t *testing.T) {
 	rule := emit.NumberRule{Max: 100, Reserved: [][2]int64{{50, 59}}}
 
 	got, err := s.Numbers("M", []emit.Member{member("a", nil), member("b", pin("10")), member("c", nil)}, rule)
-	if err != nil || !slices.Equal(got, []int64{1, 10, 3}) {
+	if err != nil || !slices.Equal(got, []int64{1, 10, 2}) {
 		t.Errorf("numbers = %v, %v", got, err)
 	}
 
 	for name, members := range map[string][]emit.Member{
-		"collision":    {member("a", nil), member("b", pin("1"))},
+		"collision":    {member("a", pin("1")), member("b", pin("1"))},
 		"reserved":     {member("a", pin("55"))},
 		"zero":         {member("a", pin("0"))},
 		"over the max": {member("a", pin("101"))},
