@@ -53,3 +53,95 @@ func TestReservedOnAMessage(t *testing.T) {
 		"string id = 1;",
 	)
 }
+
+// A field a message reserves, by number or by name, is refused: protoc
+// rejects the message, so it is skipped and its siblings still generate.
+func TestReservedFieldIsRefused(t *testing.T) {
+	for _, tt := range []struct {
+		name  string
+		model string
+		line  int32
+		wants []string
+	}{
+		{
+			name: "a reserved number",
+			model: `package shop
+
+type Widget {
+  id: string
+  name: string
+}
+
+type Gadget { id: string }
+
+target protobuf for shop {
+  Widget {
+    reserved(2)
+    id => number(1)
+    name => number(2)
+  }
+}
+`,
+			// The pinned number's directive.
+			line:  14,
+			wants: []string{"Widget.name", "2", "reserve"},
+		},
+		{
+			name: "a reserved name",
+			model: `package shop
+
+type Widget {
+  id: string
+  legacy: string
+}
+
+type Gadget { id: string }
+
+target protobuf for shop {
+  Widget {
+    reserved("legacy")
+  }
+}
+`,
+			// The field's declaration.
+			line:  5,
+			wants: []string{"Widget.legacy", "reserve"},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			file, err := parser.Parse("shop.tdl", strings.NewReader(tt.model))
+			if err != nil {
+				t.Fatalf("parse: %v", err)
+			}
+			model, diags := sema.Lower(file)
+			if len(diags) > 0 {
+				t.Fatalf("lowering reported %v", diags)
+			}
+
+			resp, err := protobuf.Backend{}.Generate(context.Background(), &plugin.Request{Target: protobuf.Name, Model: model})
+			if err != nil {
+				t.Fatalf("generate: %v", err)
+			}
+			ds := resp.GetDiagnostics()
+			if len(ds) != 1 {
+				t.Fatalf("diagnostics = %+v, want one warning", ds)
+			}
+			d := ds[0]
+			if d.GetSeverity() != plugin.Severity_SEVERITY_WARNING {
+				t.Errorf("severity = %v, want a warning", d.GetSeverity())
+			}
+			if d.GetPosition().GetFilename() != "shop.tdl" || d.GetPosition().GetLine() != tt.line {
+				t.Errorf("position = %v, want shop.tdl:%d", d.GetPosition(), tt.line)
+			}
+			for _, w := range tt.wants {
+				if !strings.Contains(d.GetMessage(), w) {
+					t.Errorf("message %q does not mention %q", d.GetMessage(), w)
+				}
+			}
+
+			src := compile(t, resp)
+			absent(t, src, "message Widget {")
+			contains(t, src, "message Gadget {")
+		})
+	}
+}
