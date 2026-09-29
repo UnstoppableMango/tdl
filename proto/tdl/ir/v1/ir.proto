@@ -161,6 +161,11 @@ message Import {
   string alias = 2; // "_" merges the imported names into this scope
   string package = 3; // the package the imported file declares
   Position position = 4;
+
+  // directives are the block-scope directives of the dependency's target
+  // blocks, each naming its target, so a backend can refer to the
+  // dependency the way the dependency says it is generated.
+  repeated Directive directives = 5;
 }
 
 // Extern is a declaration in another package that this one refers to.
