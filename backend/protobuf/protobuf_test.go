@@ -3,6 +3,7 @@ package protobuf_test
 import (
 	"context"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -550,6 +551,43 @@ func TestFileDirective(t *testing.T) {
 	compile(t, resp)
 	if path := resp.GetFiles()[0].GetPath(); path != "acme/finance/account/v1/account.proto" {
 		t.Errorf("with file, path = %q, want %q", path, "acme/finance/account/v1/account.proto")
+	}
+}
+
+// The file directive names a file within the package's directory, so a
+// value that is a path, is empty, or is not a .proto file is an error at the
+// directive, the way a package protobuf refuses is.
+func TestFileDirectiveRefusesWhatIsNotAFileName(t *testing.T) {
+	for _, name := range []string{"sub/account.proto", "", "account.txt"} {
+		t.Run(strconv.Quote(name), func(t *testing.T) {
+			b := irtest.New("acme.finance.account.v1")
+			b.Own(value("Account", irtest.Field("id", b.Named("uuid"))))
+			b.Model.Targets = []*ir.TargetBlock{{
+				Meta: &ir.Meta{Name: protobuf.Name},
+				Directives: []*ir.Directive{{
+					Name: "file", Target: protobuf.Name, Args: []*ir.Literal{irtest.Text(name)},
+					Position: &ir.Position{Filename: "account.tdl", Line: 2},
+				}},
+			}}
+
+			resp := generate(t, b)
+			if len(resp.GetFiles()) != 0 {
+				t.Errorf("files = %+v, want none", resp.GetFiles())
+			}
+			if len(resp.GetDiagnostics()) != 1 {
+				t.Fatalf("diagnostics = %+v, want one error", resp.GetDiagnostics())
+			}
+			d := resp.GetDiagnostics()[0]
+			if d.GetSeverity() != plugin.Severity_SEVERITY_ERROR {
+				t.Errorf("severity = %v, want %v", d.GetSeverity(), plugin.Severity_SEVERITY_ERROR)
+			}
+			if pos := d.GetPosition(); pos.GetFilename() != "account.tdl" || pos.GetLine() != 2 {
+				t.Errorf("position = %v, want account.tdl:2", pos)
+			}
+			if !strings.Contains(d.GetMessage(), strconv.Quote(name)) {
+				t.Errorf("message = %q, want it to quote %q", d.GetMessage(), name)
+			}
+		})
 	}
 }
 
