@@ -2,6 +2,7 @@ package protobuf_test
 
 import (
 	"context"
+	"maps"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -37,9 +38,6 @@ func generate(t *testing.T, b *irtest.Builder) *plugin.Response {
 // Compiling rather than parsing is the assertion that matters: a reference
 // to a message a skipped declaration left behind parses, and so does a map
 // keyed by a message.
-//
-// The compiler is protocompile's experimental one, which buf builds images
-// with, because it is the one that compiles edition 2024.
 func compile(t *testing.T, resp *plugin.Response) string {
 	t.Helper()
 	return compileWith(t, resp, nil)
@@ -52,26 +50,37 @@ func compileWith(t *testing.T, resp *plugin.Response, extra map[string]string) s
 		t.Fatalf("files = %d, diagnostics = %+v", len(resp.GetFiles()), resp.GetDiagnostics())
 	}
 	f := resp.GetFiles()[0]
+	sources := map[string]string{f.GetPath(): string(f.GetContent())}
+	maps.Copy(sources, extra)
+	compileSources(t, sources, f.GetPath())
+	return string(f.GetContent())
+}
+
+// compileSources asserts protobuf accepts the files at paths compiled
+// together, each importing from sources or the well-known types.
+//
+// The compiler is protocompile's experimental one, which buf builds images
+// with, because it is the one that compiles edition 2024.
+func compileSources(t *testing.T, sources map[string]string, paths ...string) {
+	t.Helper()
 	files := source.NewMap(nil)
-	files.Add(f.GetPath(), string(f.GetContent()))
-	for path, src := range extra {
-		files.Add(path, src)
+	for p, text := range sources {
+		files.Add(p, text)
 	}
 	results, diags, err := incremental.Run(context.Background(), incremental.New(), queries.FDS{
 		Opener:    &source.Openers{files, source.WKTs()},
 		Session:   new(protoir.Session),
-		Workspace: source.NewWorkspace(f.GetPath()),
+		Workspace: source.NewWorkspace(paths...),
 	})
 	if err != nil {
-		t.Fatalf("compile %s: %v", f.GetPath(), err)
+		t.Fatalf("compile %v: %v", paths, err)
 	}
 	if fatal := results[0].Fatal; fatal != nil {
-		t.Errorf("%s does not compile: %v\n%s", f.GetPath(), fatal, f.GetContent())
+		t.Errorf("%v do not compile: %v\n%v", paths, fatal, sources)
 	}
 	if text, errs, _ := (report.Renderer{}).RenderString(diags); errs != 0 {
-		t.Errorf("%s does not compile:\n%s\n%s", f.GetPath(), text, f.GetContent())
+		t.Errorf("%v do not compile:\n%s\n%v", paths, text, sources)
 	}
-	return string(f.GetContent())
 }
 
 // contains asserts on the output with runs of whitespace collapsed.
@@ -841,4 +850,63 @@ func TestSumTypeNotInlinedIsEmitted(t *testing.T) {
 		variant("SystemActor", irtest.Field("system_actor", b.Named("string"))),
 	))
 	contains(t, compile(t, generate(t, b)), "message TriggerActor {")
+}
+
+// compileAll returns the response's files by path, and asserts protobuf
+// accepts them compiled together, so an import between two of them has to
+// resolve.
+func compileAll(t *testing.T, resp *plugin.Response) map[string]string {
+	t.Helper()
+	files := map[string]string{}
+	var paths []string
+	for _, f := range resp.GetFiles() {
+		files[f.GetPath()] = string(f.GetContent())
+		paths = append(paths, f.GetPath())
+	}
+	compileSources(t, files, paths...)
+	return files
+}
+
+// A file directive on a declaration places it in that file of the package,
+// and a declaration referencing one placed in another file imports it.
+func TestFileDirectiveOnADeclaration(t *testing.T) {
+	b := irtest.New("acme.cli.v1")
+	token := value("Token", irtest.Field("text", b.Named("string")))
+	token.Directives = []*ir.Directive{{
+		Name: "file", Target: protobuf.Name, Args: []*ir.Literal{irtest.Text("cst.proto")},
+		Position: &ir.Position{Filename: "cli.tdl", Line: 5},
+	}}
+	b.Own(token)
+	b.Own(value("Command", irtest.Field("tokens", b.Named("List", b.Named("Token")))))
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	if len(resp.GetFiles()) != 2 {
+		t.Fatalf("files = %d, want 2: %+v", len(resp.GetFiles()), resp.GetFiles())
+	}
+	files := compileAll(t, resp)
+
+	main, ok := files["acme/cli/v1/v1.proto"]
+	if !ok {
+		t.Fatalf("no acme/cli/v1/v1.proto among %v", files)
+	}
+	cst, ok := files["acme/cli/v1/cst.proto"]
+	if !ok {
+		t.Fatalf("no acme/cli/v1/cst.proto among %v", files)
+	}
+
+	contains(t, main,
+		"package acme.cli.v1;",
+		`import "acme/cli/v1/cst.proto";`,
+		"message Command { repeated Token tokens = 1; }",
+	)
+	absent(t, main, "message Token")
+
+	contains(t, cst,
+		"package acme.cli.v1;",
+		"message Token { string text = 1; }",
+	)
+	absent(t, cst, "message Command", "import")
 }
