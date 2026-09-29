@@ -72,6 +72,12 @@ primitive string
 primitive int
 primitive bool
 primitive bytes
+primitive int32
+primitive uint32
+primitive int64
+primitive uint64
+primitive float32
+primitive float64
 ```
 
 A primitive may take a kind, which is how the collection constructors are introduced.
