@@ -38,15 +38,13 @@ type NumberRule struct {
 }
 
 // Numbers assigns each member its wire number. A `number` directive pins a
-// member's number, and each unpinned member takes, in declaration order, the
-// lowest number from one that no pin and no earlier unpinned member holds.
+// member's number; each unpinned member, in declaration order, takes the
+// lowest number from 1 that no pin or earlier member holds. A number the rule
+// refuses, or two pins sharing one, is an [UnsupportedError].
 //
-// The IR carries no numbers, so declaration order is the only default there
-// is, and it is fragile: inserting an unpinned member anywhere but the end
-// renumbers every unpinned member after it. A pinned number is how a model
-// keeps its wire format while its source moves, and no unpinned member is
-// ever given a pinned number. A number outside the rule, or two pins sharing
-// one, is an [UnsupportedError] naming both.
+// Pins keep a wire format stable while the source moves: inserting an
+// unpinned member anywhere but the end renumbers every unpinned member after
+// it.
 func (s *Session) Numbers(owner string, members []Member, rule NumberRule) ([]int64, error) {
 	nums := make([]int64, len(members))
 	by := map[int64]string{}
