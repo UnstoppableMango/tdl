@@ -150,6 +150,9 @@ A protobuf message takes a repeatable `reserved` directive of numbers or names, 
 An unpinned field skips a number the message reserves, and a field pinned to a reserved number or on a reserved name is refused.
 An inlined oneof member is held to both rules, since protobuf counts one as a field of its message.
 
+A protobuf target block takes a repeatable `import(path)` directive, and each path joins the file's imports, which are sorted and written once each.
+A protobuf field takes a repeatable `option(name, value)` directive, and a field's options are written `name = value` in one bracket list in the order written, after any option the backend writes itself, such as `deprecated = true`.
+
 ## Output
 
 Each backend writes one file per model, since a schema language reads a package as one document and cross-file imports would be layout the consumer did not ask for.

@@ -56,6 +56,10 @@ func (Backend) Describe() plugin.Description {
 			{Name: "reserved", MinArgs: 1, MaxArgs: -1, Repeatable: true},
 			// Inlines a field's sum type into its message as a oneof.
 			{Name: "oneof"},
+			// A file the output imports, for the options it uses.
+			{Name: "import", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Repeatable: true},
+			// A field option, written `name = value` in the field's brackets.
+			{Name: "option", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_STRING, ir.LiteralKind_LITERAL_KIND_STRING}, Repeatable: true},
 		},
 	}
 }
@@ -186,6 +190,16 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		}
 		blocks = append(blocks, r.text)
 		maps.Copy(need, r.imports)
+	}
+	for _, block := range req.GetModel().GetTargets() {
+		if block.GetMeta().GetName() != g.Target {
+			continue
+		}
+		for _, d := range plugin.Directives(g.Target, block.GetDirectives()) {
+			if d.GetName() == "import" && len(d.GetArgs()) > 0 {
+				need[d.GetArgs()[0].GetText()] = true
+			}
+		}
 	}
 	if len(blocks) == 0 {
 		return g.Response(nil), nil
@@ -541,7 +555,20 @@ func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*i
 		if label != "" {
 			label += " "
 		}
-		fmt.Fprintf(b, "%s%s%s %s = %d%s;\n", indent, label, typ, name, nums[first[i]], deprecatedField(f.GetMeta()))
+		var opts []string
+		if f.GetMeta().IsDeprecated() {
+			opts = append(opts, "deprecated = true")
+		}
+		for _, d := range plugin.Directives(g.Target, f.GetDirectives()) {
+			if d.GetName() == "option" && len(d.GetArgs()) == 2 {
+				opts = append(opts, d.GetArgs()[0].GetText()+" = "+d.GetArgs()[1].GetText())
+			}
+		}
+		var suffix string
+		if len(opts) > 0 {
+			suffix = " [" + strings.Join(opts, ", ") + "]"
+		}
+		fmt.Fprintf(b, "%s%s%s %s = %d%s;\n", indent, label, typ, name, nums[first[i]], suffix)
 		out = append(out, slot{members[first[i]], name, nums[first[i]]})
 	}
 	return out, nil
