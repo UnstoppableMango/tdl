@@ -203,3 +203,28 @@ func TestNumbers(t *testing.T) {
 		t.Errorf("another target's number was read: %v", got)
 	}
 }
+
+func TestNumbersAllocatesAroundPins(t *testing.T) {
+	s := session(irtest.New("shop"))
+	pin := func(n string) []*ir.Directive {
+		return []*ir.Directive{{Name: "number", Target: "x", Args: []*ir.Literal{{Kind: ir.LiteralKind_LITERAL_KIND_INT, Text: n}}}}
+	}
+	member := func(name string, dirs []*ir.Directive) emit.Member { return emit.Member{Name: name, Directives: dirs} }
+	rule := emit.NumberRule{Max: 100}
+
+	got, err := s.Numbers("M", []emit.Member{member("x", nil), member("y", nil), member("z", pin("2"))}, rule)
+	if err != nil {
+		t.Fatalf("numbers: %v", err)
+	}
+	if want := []int64{1, 3, 2}; !slices.Equal(got, want) {
+		t.Errorf("numbers = %v, want %v", got, want)
+	}
+
+	got, err = s.Numbers("M", []emit.Member{member("x", nil), member("y", nil), member("z", nil)}, rule)
+	if err != nil {
+		t.Fatalf("unpinned numbers: %v", err)
+	}
+	if want := []int64{1, 2, 3}; !slices.Equal(got, want) {
+		t.Errorf("unpinned numbers = %v, want %v", got, want)
+	}
+}
