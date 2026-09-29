@@ -16,11 +16,7 @@ func (p *parser) parseTargetDecl(head ast.DeclHead) *ast.TargetDecl {
 		p.syncTop()
 		return d
 	}
-	d.For = p.expectName("package name")
-	for p.at(lex.DOT) {
-		p.next()
-		d.For += "." + p.expectName("package name")
-	}
+	d.For = p.parsePackagePath()
 	d.Entries, d.End = p.parseTargetEntries()
 	return d
 }
@@ -80,8 +76,9 @@ func (p *parser) parseDirective() *ast.Directive {
 // namespace belongs to the backend, so `package("github.com/acme/billing")`
 // is a directive named `package` rather than a syntax error. Model paths
 // cannot collide with this: a declaration name is always an ordinary
-// identifier. A package path segment may be a keyword so that `package
-// google.type` can mirror another schema language's namespace.
+// identifier. A package path segment, after `package` or a target's `for`,
+// may be a keyword so that `package google.type` can mirror another schema
+// language's namespace.
 func (p *parser) expectName(kind string) string {
 	if p.cur.Kind != lex.IDENT && !lex.IsKeyword(p.cur.Text) {
 		p.errs.add(p.cur.Pos, "expected a %s, got %s", kind, p.cur.Kind)
