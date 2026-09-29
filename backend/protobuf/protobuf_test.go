@@ -40,12 +40,21 @@ func generate(t *testing.T, b *irtest.Builder) *plugin.Response {
 // with, because it is the one that compiles edition 2024.
 func compile(t *testing.T, resp *plugin.Response) string {
 	t.Helper()
+	return compileWith(t, resp, nil)
+}
+
+// compileWith is compile with extra files, by path, available to import.
+func compileWith(t *testing.T, resp *plugin.Response, extra map[string]string) string {
+	t.Helper()
 	if len(resp.GetFiles()) != 1 {
 		t.Fatalf("files = %d, diagnostics = %+v", len(resp.GetFiles()), resp.GetDiagnostics())
 	}
 	f := resp.GetFiles()[0]
 	files := source.NewMap(nil)
 	files.Add(f.GetPath(), string(f.GetContent()))
+	for path, src := range extra {
+		files.Add(path, src)
+	}
 	results, diags, err := incremental.Run(context.Background(), incremental.New(), queries.FDS{
 		Opener:    &source.Openers{files, source.WKTs()},
 		Session:   new(protoir.Session),
