@@ -196,8 +196,8 @@ func TestObject(t *testing.T) {
 
 // Each fixed-width numeric is stored and typed as the nearest of int and
 // decimal: int32 is an Apex Integer, int64 and uint32 are what int is, and
-// uint64, which exceeds a Long, is what decimal is. A float is an Apex
-// Double in the column decimal uses.
+// uint64, which exceeds a Long, is a Decimal stored in the integer column.
+// A float is an Apex Double in the column decimal uses.
 func TestFixedWidthNumerics(t *testing.T) {
 	b := irtest.New("shop")
 	fields := func() []*ir.Field {
@@ -222,8 +222,8 @@ func TestFixedWidthNumerics(t *testing.T) {
 	integer := []string{"<precision>18</precision>", "<scale>0</scale>", "<type>Number</type>"}
 	fractional := []string{"<precision>18</precision>", "<scale>6</scale>", "<type>Number</type>"}
 	for name, want := range map[string][]string{
-		"Small": integer, "Big": integer, "Count": integer,
-		"Huge": fractional, "Ratio": fractional, "Score": fractional,
+		"Small": integer, "Big": integer, "Count": integer, "Huge": integer,
+		"Ratio": fractional, "Score": fractional,
 	} {
 		contains(t, file(t, all, "objects/Reading__c/fields/"+name+"__c.field-meta.xml"),
 			append([]string{"<fullName>" + name + "__c</fullName>"}, want...)...)
