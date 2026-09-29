@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"maps"
 	"math"
+	"path"
 	"regexp"
 	"slices"
 	"strconv"
@@ -43,6 +44,9 @@ func (Backend) Describe() plugin.Description {
 			// The dotted protobuf package. The model's package is the
 			// default.
 			{Name: "package", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			// The file name within the package's directories, in place of
+			// the package's last segment with .proto.
+			{Name: "file", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
 			// The protobuf name for a declaration, a field, an enum value, or
 			// a variant's nested message.
 			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
@@ -226,7 +230,11 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		b.WriteString(block)
 	}
 
-	return g.Response([]*plugin.File{{Path: filePath(g.pkg), Content: []byte(b.String())}}), nil
+	file := filePath(g.pkg)
+	if d, ok := g.Block("file"); ok {
+		file = path.Join(path.Dir(file), d.GetArgs()[0].GetText())
+	}
+	return g.Response([]*plugin.File{{Path: file, Content: []byte(b.String())}}), nil
 }
 
 // decl renders one declaration, or "" for one that declares nothing.

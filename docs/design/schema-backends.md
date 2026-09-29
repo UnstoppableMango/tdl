@@ -163,7 +163,7 @@ Each backend writes one file per model, since a schema language reads a package 
 
 | Target | File | Namespace |
 | --- | --- | --- |
-| protobuf | `<package as directories>/<last segment>.proto` | `package` directive, else the model's package |
+| protobuf | `<package as directories>/<last segment>.proto`, or the `file` directive's name in those directories | `package` directive, else the model's package |
 | thrift | `<last segment>.thrift` | `namespace *` from the `package` directive, else the model's package |
 | smithy | `<last segment>.smithy` | `namespace` from the `package` directive, else the model's package |
 | graphql | `<last segment>.graphql` | none |
