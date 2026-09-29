@@ -79,7 +79,7 @@ Each target states less than TDL does somewhere.
 - Protobuf has no set, so a `Set` is `repeated` and uniqueness is not enforced.
   A repeated or map field cannot be optional or hold another collection, so those shapes warn.
   A map key must resolve to a string, an integer, or a bool.
-  An `edition` directive replaces `syntax = "proto3";` with that edition's header, and under an edition a `T?` or `T | null` field carries no `optional` label, since every field has explicit presence by default.
+  An `edition` directive, which accepts `2023` or `2024` and reports any other value as an error, replaces `syntax = "proto3";` with that edition's header, and under an edition a `T?` or `T | null` field carries no `optional` label, since every field has explicit presence by default.
 - Smithy names every collection, so the backend synthesizes one shape per distinct collection type and names it from its element and key.
   A map key must resolve to a string or a fieldless enum.
 - GraphQL has no map.

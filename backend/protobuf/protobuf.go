@@ -84,6 +84,9 @@ var wellKnown = map[string]string{
 // emits: protobuf allows integral and string keys, and nothing else.
 var mapKeys = map[string]bool{"string": true, "int64": true, "bool": true}
 
+// editions is every edition the `edition` directive accepts.
+var editions = map[string]bool{"2023": true, "2024": true}
+
 // oneof is the name of the oneof a sum type's message holds.
 const oneof = "variant"
 
@@ -125,8 +128,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		g.pkg, pkgPos = d.GetArgs()[0].GetText(), d.GetPosition()
 	}
 	if d, ok := g.Block("edition"); ok {
-		g.edition = d.GetArgs()[0].GetText()
-		if g.edition != "2023" && g.edition != "2024" {
+		if g.edition = d.GetArgs()[0].GetText(); !editions[g.edition] {
 			g.Error(d.GetPosition(), "%q is not a protobuf edition", g.edition)
 			return g.Response(nil), nil
 		}
