@@ -710,3 +710,55 @@ func TestOneofUninlinable(t *testing.T) {
 		})
 	}
 }
+
+// A sum type every use of which is inlined as a oneof is not written as a
+// message of its own. One that anything else names still is.
+func TestOneofOnlySumTypeIsNotEmitted(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		// also declares whatever else the model holds beside Trigger.
+		also func(b *irtest.Builder)
+		want bool
+	}{
+		{"every use inlined", func(*irtest.Builder) {}, false},
+		{"also an ordinary field", func(b *irtest.Builder) {
+			b.Own(value("Audit", irtest.Field("actor", b.Named("TriggerActor"))))
+		}, true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			b := irtest.New("shop")
+			b.Own(enum("TriggerActor",
+				variant("Contact", irtest.Field("contact", b.Named("string"))),
+				variant("SystemActor", irtest.Field("system_actor", b.Named("string"))),
+			))
+			actor := irtest.Field("actor", b.Named("TriggerActor"))
+			actor.Directives = []*ir.Directive{{Name: "oneof", Target: protobuf.Name}}
+			b.Own(value("Trigger", irtest.Field("kind", b.Named("string")), actor))
+			tt.also(b)
+
+			resp := generate(t, b)
+			if len(resp.GetDiagnostics()) != 0 {
+				t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+			}
+			src := compile(t, resp)
+			contains(t, src,
+				"message Trigger { string kind = 1; oneof actor { string contact = 2; string system_actor = 3; } }",
+			)
+			if tt.want {
+				contains(t, src, "message TriggerActor {", "TriggerActor actor = 1;")
+			} else {
+				absent(t, src, "message TriggerActor {")
+			}
+		})
+	}
+}
+
+// A sum type no field inlines is written as a message, as it always was.
+func TestSumTypeNotInlinedIsEmitted(t *testing.T) {
+	b := irtest.New("shop")
+	b.Own(enum("TriggerActor",
+		variant("Contact", irtest.Field("contact", b.Named("string"))),
+		variant("SystemActor", irtest.Field("system_actor", b.Named("string"))),
+	))
+	contains(t, compile(t, generate(t, b)), "message TriggerActor {")
+}
