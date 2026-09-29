@@ -53,6 +53,12 @@ func (Backend) Describe() plugin.Description {
 var preludeShapes = map[string]string{
 	"string":   "String",
 	"int":      "Long",
+	"int32":    "Integer",
+	"int64":    "Long",
+	"uint32":   "Long",
+	"uint64":   "BigInteger",
+	"float32":  "Float",
+	"float64":  "Double",
 	"bool":     "Boolean",
 	"bytes":    "Blob",
 	"decimal":  "BigDecimal",
@@ -67,6 +73,10 @@ var preludeShapes = map[string]string{
 var simple = map[string]string{
 	"String":     "string",
 	"Long":       "long",
+	"Integer":    "integer",
+	"BigInteger": "bigInteger",
+	"Float":      "float",
+	"Double":     "double",
 	"Boolean":    "boolean",
 	"Blob":       "blob",
 	"BigDecimal": "bigDecimal",
