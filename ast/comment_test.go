@@ -369,3 +369,24 @@ class C<T> {
 		})
 	}
 }
+
+// A blank line the source puts between two comment groups is kept, so
+// separate comments stay visibly separate.
+func TestFprintKeepsBlankLineBetweenCommentGroups(t *testing.T) {
+	src := `package acme.v1
+
+// What this package models.
+
+// Widgets
+
+type Widget {
+  name: string
+}
+`
+	want := "// What this package models.\n\n// Widgets\n"
+
+	got := ast.Fprint(mustParse(t, src))
+	if !strings.Contains(got, want) {
+		t.Errorf("blank line between comment groups was dropped\n--- got ---\n%s\n--- want substring ---\n%s", got, want)
+	}
+}
