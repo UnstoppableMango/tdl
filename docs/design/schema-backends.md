@@ -52,12 +52,12 @@ The constraint warning above is the exception: it reports what is not enforced a
 | --- | --- | --- | --- | --- | --- |
 | `string` | `string` | `string` | `String` | `String` | `string` |
 | `int` | `int64` | `i64` | `Long` | `scalar Long` | `number` |
-| `int32` | `int32` | `i32` | `Integer` | | |
-| `uint32` | `uint32` | `i64` | `Long` | | |
-| `int64` | `int64` | `i64` | `Long` | | |
-| `uint64` | `uint64` | warn | `BigInteger` | | |
-| `float32` | `float` | `double` | `Float` | | |
-| `float64` | `double` | `double` | `Double` | | |
+| `int32` | `int32` | `i32` | `Integer` | `Int` | |
+| `uint32` | `uint32` | `i64` | `Long` | `scalar Long` | |
+| `int64` | `int64` | `i64` | `Long` | `scalar Long` | |
+| `uint64` | `uint64` | warn | `BigInteger` | `scalar UInt64` | |
+| `float32` | `float` | `double` | `Float` | `Float` | |
+| `float64` | `double` | `double` | `Double` | `Float` | |
 | `bool` | `bool` | `bool` | `Boolean` | `Boolean` | `boolean` |
 | `bytes` | `bytes` | `binary` | `Blob` | `scalar Bytes` | `string` |
 | `decimal` | `string` | `string` | `BigDecimal` | `scalar Decimal` | `string` |

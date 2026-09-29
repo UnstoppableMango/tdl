@@ -51,6 +51,12 @@ func (Backend) Describe() plugin.Description {
 var scalars = map[string]string{
 	"string":   "String",
 	"int":      "Long",
+	"int32":    "Int",
+	"int64":    "Long",
+	"uint32":   "Long",
+	"uint64":   "UInt64",
+	"float32":  "Float",
+	"float64":  "Float",
 	"bool":     "Boolean",
 	"bytes":    "Bytes",
 	"decimal":  "Decimal",
@@ -65,6 +71,7 @@ var scalars = map[string]string{
 // written.
 var custom = map[string]string{
 	"Long":     "A 64-bit signed integer.",
+	"UInt64":   "A 64-bit unsigned integer.",
 	"Bytes":    "Binary data.",
 	"Decimal":  "An exact decimal number.",
 	"UUID":     "A universally unique identifier.",
