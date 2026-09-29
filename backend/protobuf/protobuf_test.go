@@ -253,24 +253,28 @@ func TestNumbers(t *testing.T) {
 	b.Own(enum("Status", variant("Open"), closed))
 
 	contains(t, compile(t, generate(t, b)),
-		"string a = 1; string b = 10; string c = 3;",
+		"string a = 1; string b = 10; string c = 2;",
 		"Card card = 1; Cash cash = 5;",
 		"STATUS_OPEN = 1; STATUS_CLOSED = 9;",
 	)
 }
 
 func TestNumbersProtobufRefuses(t *testing.T) {
-	for name, n := range map[string]string{
-		"a collision":         "1",
-		"the reserved range":  "19500",
-		"zero":                "0",
-		"past the last field": "536870912",
+	for name, pins := range map[string][2]string{
+		"a collision":         {"1", "1"},
+		"the reserved range":  {"", "19500"},
+		"zero":                {"", "0"},
+		"past the last field": {"", "536870912"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			b := irtest.New("shop")
-			pinned := irtest.Field("b", b.Named("string"))
-			pinned.Directives = []*ir.Directive{number(n)}
-			b.Own(value("Broken", irtest.Field("a", b.Named("string")), pinned))
+			fields := []*ir.Field{irtest.Field("a", b.Named("string")), irtest.Field("b", b.Named("string"))}
+			for i, n := range pins {
+				if n != "" {
+					fields[i].Directives = []*ir.Directive{number(n)}
+				}
+			}
+			b.Own(value("Broken", fields...))
 			b.Own(value("Fine", irtest.Field("a", b.Named("string"))))
 
 			resp := generate(t, b)

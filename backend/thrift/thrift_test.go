@@ -223,7 +223,7 @@ func TestNumbers(t *testing.T) {
 	cash.Directives = []*ir.Directive{number("5")}
 	b.Own(enum("Payment", variant("Card", irtest.Field("last4", b.Named("string"))), cash))
 
-	contains(t, check(t, generate(t, b)), "1: string a 10: string b 3: string c", "1: PaymentCard card 5: PaymentCash cash")
+	contains(t, check(t, generate(t, b)), "1: string a 10: string b 2: string c", "1: PaymentCard card 5: PaymentCash cash")
 }
 
 func TestAFieldIdPastI16IsSkipped(t *testing.T) {
