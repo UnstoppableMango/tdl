@@ -65,6 +65,10 @@ func (Backend) Describe() plugin.Description {
 			// An option, written `name = value` in the brackets of a field or
 			// an enum value, or as an `option` statement in a message or enum.
 			{Name: "option", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_STRING, ir.LiteralKind_LITERAL_KIND_STRING}, Repeatable: true},
+			// A message another proto file declares: the file to import and
+			// the message's fully qualified name. The declaration carrying
+			// it is not emitted.
+			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: append(str, str...)},
 		},
 	}
 }
@@ -305,6 +309,10 @@ func (g *generator) pathOf(d *ir.Decl) (string, error) {
 func (g *generator) decl(d *ir.Decl) (string, error) {
 	pos := d.GetMeta().GetPosition()
 	name := d.GetMeta().GetName()
+
+	if _, ok := g.Find(d.GetDirectives(), "foreign"); ok {
+		return "", nil
+	}
 
 	switch {
 	case d.GetClass() != nil:
@@ -805,6 +813,11 @@ func (g *generator) single(r *emit.Ref, nested map[string]bool) (string, error) 
 			g.imports[imp] = true
 		}
 		return typ, nil
+	}
+
+	if f, ok := g.Find(r.Decl.GetDirectives(), "foreign"); ok {
+		g.imports[f.GetArgs()[0].GetText()] = true
+		return f.GetArgs()[1].GetText(), nil
 	}
 
 	g.refs[r.Decl] = true

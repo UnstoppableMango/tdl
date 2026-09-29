@@ -31,8 +31,11 @@ Each of these is a positioned warning, and the declaration reaching it is skippe
 - generics
 - classes
 - units
-- externs and `foreign`
+- externs and `foreign`, except in protobuf
 - entity keys
+
+Protobuf reads `foreign(file, message)` on a declaration as a message another proto file declares.
+The declaration is not emitted, every reference to it is written as `message`, and each output file referencing it gains `import "<file>";` beside the well-known type imports, once however many references there are.
 
 Constraints are a warning and the declaration is still emitted, since skipping a constrained newtype would leave every field naming it undeclared.
 Validation is its own set of decisions about where a check lives.
