@@ -2526,3 +2526,43 @@ func TestUnmappedExternIsSkipped(t *testing.T) {
 		t.Errorf("files = %v, want none", keys(got))
 	}
 }
+
+// A mapped extern is a foreign type, and whether a foreign type is a legal
+// map key is decided by the package declaring it, so it is accepted as a Map
+// key and a Set element the way a mapped local declaration is.
+func TestForeignExternIsComparable(t *testing.T) {
+	m := irtest.New("shop")
+	currency := m.ExternIn("acme.money", "Currency", foreignDirective("github.com/acme/money", "Currency"))
+	m.Own(structure("Ledger", nil,
+		irtest.Field("byCurrency", m.Named("Map", currency, m.Named("int"))),
+		irtest.Field("accepted", m.Named("Set", currency)),
+	))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	got := raw(resp)
+	if _, ok := got["ledger.go"]; !ok {
+		t.Fatalf("Ledger was not generated: files = %v", keys(got))
+	}
+	contains(t, got["ledger.go"],
+		`money "github.com/acme/money"`,
+		"ByCurrency map[money.Currency]int64",
+		"Accepted   map[money.Currency]struct{}",
+	)
+}
+
+// An unmapped extern has no Go type, so a Map keyed by one is skipped with a
+// warning naming the extern.
+func TestUnmappedExternKeyIsSkipped(t *testing.T) {
+	m := irtest.New("shop")
+	m.Own(structure("Ledger", nil,
+		irtest.Field("byCurrency", m.Named("Map", m.ExternIn("acme.money", "Currency"), m.Named("int"))),
+	))
+
+	resp := generate(t, m)
+	onlyWarningAt(t, resp, 0)
+	contains(t, resp.GetDiagnostics()[0].GetMessage(), "acme.money.Currency")
+	if got := raw(resp); len(got) != 0 {
+		t.Errorf("files = %v, want none", keys(got))
+	}
+}
