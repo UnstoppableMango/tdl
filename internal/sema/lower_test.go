@@ -837,6 +837,36 @@ type Order { ship: Address }
 	}
 }
 
+// A primitive is always exported, whatever its case, so a `_` import
+// merges a lower-case primitive.
+func TestUnderscoreImportMergesPrimitive(t *testing.T) {
+	file, err := parser.Parse("main.tdl", strings.NewReader(`
+import "dep.tdl" as _
+
+type Reading { count: int32 }
+`))
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+
+	model, diags := Lower(file, WithLoader(MapLoader{
+		"dep.tdl": "package acme.scalar\nprimitive int32\n",
+	}))
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+
+	reading, _, _ := model.FindDecl("Reading")
+	count := model.Type(reading.Fields()[0].GetType())
+	if count.GetExtern() == nil {
+		t.Fatalf("the reference is not an extern: %+v", count)
+	}
+	ext := model.GetExterns()[count.GetExtern().GetIndex()]
+	if ext.GetPackage() != "acme.scalar" || ext.GetName() != "int32" {
+		t.Errorf("extern = %+v, want acme.scalar.int32", ext)
+	}
+}
+
 func TestImportCycle(t *testing.T) {
 	file, err := parser.Parse("a.tdl", strings.NewReader(`import "b.tdl" as b`))
 	if err != nil {
