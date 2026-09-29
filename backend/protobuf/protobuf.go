@@ -230,11 +230,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		b.WriteString(block)
 	}
 
-	file := filePath(g.pkg)
-	if d, ok := g.Block("file"); ok {
-		file = path.Join(path.Dir(file), d.GetArgs()[0].GetText())
-	}
-	return g.Response([]*plugin.File{{Path: file, Content: []byte(b.String())}}), nil
+	return g.Response([]*plugin.File{{Path: g.filePath(), Content: []byte(b.String())}}), nil
 }
 
 // decl renders one declaration, or "" for one that declares nothing.
@@ -851,10 +847,15 @@ func validPackage(pkg string) bool {
 }
 
 // filePath places the file where buf expects a package's files to be: in
-// the directories its name spells.
-func filePath(pkg string) string {
-	if pkg == "" {
-		return "model.proto"
+// the directories its name spells. The file directive names the file, and
+// the package's last segment with .proto is the default.
+func (g *generator) filePath() string {
+	name := "model.proto"
+	if g.pkg != "" {
+		name = emit.LastSegment(g.pkg) + ".proto"
 	}
-	return strings.ReplaceAll(pkg, ".", "/") + "/" + emit.LastSegment(pkg) + ".proto"
+	if d, ok := g.Block("file"); ok {
+		name = d.GetArgs()[0].GetText()
+	}
+	return path.Join(strings.ReplaceAll(g.pkg, ".", "/"), name)
 }
