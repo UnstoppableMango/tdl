@@ -68,11 +68,15 @@ func (p *printer) writeLead(indent string, lead []*Comment, doc []string, docPos
 	p.writeComments(indent, lead[i:])
 }
 
+// separated reports whether the source put a blank line between line prev
+// and the later line next.
+func separated(prev, next int) bool { return next > prev+1 }
+
 // writeComments writes a run of comments, keeping a blank line the source
 // put between two of them.
 func (p *printer) writeComments(indent string, cs []*Comment) {
 	for i, c := range cs {
-		if i > 0 && c.P.Line > cs[i-1].P.Line+1 {
+		if i > 0 && separated(cs[i-1].P.Line, c.P.Line) {
 			p.b.WriteString("\n")
 		}
 		p.writeComment(indent, c)
@@ -190,7 +194,7 @@ func Fprint(file *File) string {
 			if head.Dep != nil {
 				next = head.Dep.P.Line
 			}
-			if next > lead[n-1].P.Line+1 {
+			if separated(lead[n-1].P.Line, next) {
 				p.b.WriteString("\n")
 			}
 		}
