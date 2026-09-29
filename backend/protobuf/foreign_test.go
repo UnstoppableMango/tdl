@@ -95,3 +95,61 @@ func TestUnmappedExternIsSkipped(t *testing.T) {
 	absent(t, src, "message Widget")
 	contains(t, src, "message Fine")
 }
+
+// newtype declares a newtype over base, owned by the model.
+func newtype(name string, base *ir.ID) *ir.Decl {
+	return &ir.Decl{Meta: &ir.Meta{Name: name}, Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{Base: base}}}
+}
+
+// at gives an interned type reference the position lowering records for
+// where it was written.
+func at(b *irtest.Builder, id *ir.ID, line int32) *ir.ID {
+	b.Model.GetTypes()[id.GetIndex()].Position = &ir.Position{Filename: irtest.OwnFile, Line: line}
+	return id
+}
+
+// A newtype over an extern nothing maps expands to nothing protobuf has, so
+// the one message using it is skipped with one warning naming the extern,
+// placed at the use rather than at the newtype.
+func TestNewtypeOverUnmappedExternIsSkipped(t *testing.T) {
+	b := irtest.New("shop")
+	b.Own(newtype("Cond", at(b, b.ExternIn("k8s.io.apimachinery.pkg.apis.meta.v1", "Condition"), 3)))
+	b.Own(value("Fine", irtest.Field("a", b.Named("string"))))
+	b.Own(value("Widget", irtest.Field("condition", at(b, b.Named("Cond"), 9))))
+
+	resp := generate(t, b)
+	diags := resp.GetDiagnostics()
+	if len(diags) != 1 {
+		t.Fatalf("diagnostics = %+v, want one warning", diags)
+	}
+	if diags[0].GetSeverity() != plugin.Severity_SEVERITY_WARNING {
+		t.Errorf("severity = %v", diags[0].GetSeverity())
+	}
+	if pos := diags[0].GetPosition(); pos.GetFilename() != irtest.OwnFile || pos.GetLine() != 9 {
+		t.Errorf("position = %+v, want %s:9, the field using the newtype", pos, irtest.OwnFile)
+	}
+	contains(t, diags[0].GetMessage(), "k8s.io.apimachinery.pkg.apis.meta.v1.Condition")
+	src := compile(t, resp)
+	absent(t, src, "message Widget", "message Cond")
+	contains(t, src, "message Fine { string a = 1; }")
+}
+
+// A newtype over a mapped extern expands to the foreign message, the way a
+// field naming the extern directly does.
+func TestNewtypeOverForeignExternIsImported(t *testing.T) {
+	b := irtest.New("shop")
+	b.Own(newtype("Cond", b.ExternIn("k8s.io.apimachinery.pkg.apis.meta.v1", "Condition",
+		foreignDirective(metaV1File, "k8s.io.apimachinery.pkg.apis.meta.v1.Condition"))))
+	b.Own(value("Widget", irtest.Field("condition", b.Named("Cond"))))
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	src := compileWith(t, resp, map[string]string{metaV1File: metaV1Stub})
+	contains(t, src,
+		`import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";`,
+		"message Widget { k8s.io.apimachinery.pkg.apis.meta.v1.Condition condition = 1; }",
+	)
+	absent(t, src, "message Cond")
+}
