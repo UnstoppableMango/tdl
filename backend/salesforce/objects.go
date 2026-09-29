@@ -90,6 +90,12 @@ type column struct {
 var columns = map[string]column{
 	"string":   {typ: "Text", length: 255},
 	"int":      {typ: "Number", precision: 18},
+	"int32":    {typ: "Number", precision: 18},
+	"int64":    {typ: "Number", precision: 18},
+	"uint32":   {typ: "Number", precision: 18},
+	"uint64":   {typ: "Number", precision: 18},
+	"float32":  {typ: "Number", precision: 18, scale: 6},
+	"float64":  {typ: "Number", precision: 18, scale: 6},
 	"bool":     {typ: "Checkbox"},
 	"decimal":  {typ: "Number", precision: 18, scale: 6},
 	"uuid":     {typ: "Text", length: 36},

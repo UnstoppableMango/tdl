@@ -16,6 +16,12 @@ import (
 var apexTypes = map[string]string{
 	"string":   "String",
 	"int":      "Long",
+	"int32":    "Integer",
+	"int64":    "Long",
+	"uint32":   "Long",
+	"uint64":   "Decimal",
+	"float32":  "Double",
+	"float64":  "Double",
 	"bool":     "Boolean",
 	"bytes":    "Blob",
 	"decimal":  "Decimal",

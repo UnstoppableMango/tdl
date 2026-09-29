@@ -34,6 +34,12 @@ A variant's class is an inner class named after the variant, so `Payment.Card`, 
 | --- | --- | --- |
 | `string` | `Text`, length 255 | `String` |
 | `int` | `Number`, precision 18, scale 0 | `Long` |
+| `int32` | `Number`, precision 18, scale 0 | `Integer` |
+| `int64` | `Number`, precision 18, scale 0 | `Long` |
+| `uint32` | `Number`, precision 18, scale 0 | `Long` |
+| `uint64` | `Number`, precision 18, scale 0 | `Decimal` |
+| `float32` | `Number`, precision 18, scale 6 | `Double` |
+| `float64` | `Number`, precision 18, scale 6 | `Double` |
 | `bool` | `Checkbox`, default false | `Boolean` |
 | `bytes` | warn | `Blob` |
 | `decimal` | `Number`, precision 18, scale 6 | `Decimal` |
