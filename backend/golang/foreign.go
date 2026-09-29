@@ -40,32 +40,16 @@ func (f foreignType) ref() string { return f.alias + "." + f.name }
 // one segment have to be told apart across the whole model.
 func (g *generator) planForeign() {
 	g.foreign = map[*ir.Decl]foreignType{}
+	g.externs = map[*ir.Extern]foreignType{}
 	g.aliases = map[string]bool{}
 
 	byPath := map[string]string{}
 	for _, d := range g.Model.GetDecls() {
-		dir, ok := g.Find(d.GetDirectives(), "foreign")
+		f, ok := g.mapping(d.GetDirectives(), d.GetMeta().GetName(), byPath)
 		if !ok {
 			continue
 		}
-		args := dir.GetArgs()
-		if len(args) != 2 {
-			g.Warn(emit.Unsupported(dir.GetPosition(),
-				"foreign takes an import path and a type name, and %d argument(s) were given", len(args)))
-			continue
-		}
-		path, name := args[0].GetText(), args[1].GetText()
-		if err := foreignProblem(dir.GetPosition(), d.GetMeta().GetName(), path, name); err != nil {
-			g.Warn(err)
-			continue
-		}
-		alias, ok := byPath[path]
-		if !ok {
-			alias = g.alias(path)
-			byPath[path] = alias
-			g.aliases[alias] = true
-		}
-		g.foreign[d] = foreignType{path: path, name: name, alias: alias}
+		g.foreign[d] = f
 		g.warnForeignConstraints(d)
 
 		// A key is a method, and a method is declared beside the type.
@@ -78,31 +62,39 @@ func (g *generator) planForeign() {
 
 	// A target path can name a declaration another package owns, and its
 	// mapping is read the same way.
-	g.externs = map[*ir.Extern]foreignType{}
 	for _, e := range g.Model.GetExterns() {
-		dir, ok := g.Find(e.GetDirectives(), "foreign")
-		if !ok {
-			continue
+		if f, ok := g.mapping(e.GetDirectives(), e.GetPackage()+"."+e.GetName(), byPath); ok {
+			g.externs[e] = f
 		}
-		args := dir.GetArgs()
-		if len(args) != 2 {
-			g.Warn(emit.Unsupported(dir.GetPosition(),
-				"foreign takes an import path and a type name, and %d argument(s) were given", len(args)))
-			continue
-		}
-		path, name := args[0].GetText(), args[1].GetText()
-		if err := foreignProblem(dir.GetPosition(), e.GetPackage()+"."+e.GetName(), path, name); err != nil {
-			g.Warn(err)
-			continue
-		}
-		alias, ok := byPath[path]
-		if !ok {
-			alias = g.alias(path)
-			byPath[path] = alias
-			g.aliases[alias] = true
-		}
-		g.externs[e] = foreignType{path: path, name: name, alias: alias}
 	}
+}
+
+// mapping reads the foreign directive among dirs, warning when the mapping of
+// of is one the generated code could not refer to. byPath holds the alias each
+// import path already has, so one path is imported once across the model.
+func (g *generator) mapping(dirs []*ir.Directive, of string, byPath map[string]string) (foreignType, bool) {
+	dir, ok := g.Find(dirs, "foreign")
+	if !ok {
+		return foreignType{}, false
+	}
+	args := dir.GetArgs()
+	if len(args) != 2 {
+		g.Warn(emit.Unsupported(dir.GetPosition(),
+			"foreign takes an import path and a type name, and %d argument(s) were given", len(args)))
+		return foreignType{}, false
+	}
+	path, name := args[0].GetText(), args[1].GetText()
+	if err := foreignProblem(dir.GetPosition(), of, path, name); err != nil {
+		g.Warn(err)
+		return foreignType{}, false
+	}
+	alias, ok := byPath[path]
+	if !ok {
+		alias = g.alias(path)
+		byPath[path] = alias
+		g.aliases[alias] = true
+	}
+	return foreignType{path: path, name: name, alias: alias}, true
 }
 
 // externForeign is the mapping of the extern a type refers to, if any.
