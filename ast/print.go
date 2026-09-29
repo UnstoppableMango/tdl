@@ -183,6 +183,17 @@ func Fprint(file *File) string {
 		}
 
 		p.writeLead("", lead, head.Doc, head.DocP)
+		// A comment the source separated from the declaration by a blank
+		// line keeps one; a comment directly above stays attached.
+		if n := len(lead); n > 0 && (len(head.Doc) == 0 || lead[n-1].P.Offset > head.DocP.Offset) {
+			next := decl.Pos().Line
+			if head.Dep != nil {
+				next = head.Dep.P.Line
+			}
+			if next > lead[n-1].P.Line+1 {
+				p.b.WriteString("\n")
+			}
+		}
 		if head.Dep != nil {
 			p.b.WriteString(printDeprecated(head.Dep) + "\n")
 		}
