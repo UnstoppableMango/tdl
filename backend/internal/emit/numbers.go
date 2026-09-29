@@ -76,7 +76,7 @@ func (s *Session) Numbers(owner string, members []Member, rule NumberRule) ([]in
 		if nums[i] != 0 {
 			continue
 		}
-		for by[next] != "" || reserved(next, rule) {
+		for by[next] != "" || reserved(next, rule) != nil {
 			next++
 		}
 		if err := s.checkNumber(owner, m.Name, next, m.Position, rule); err != nil {
@@ -92,19 +92,18 @@ func (s *Session) checkNumber(owner, name string, n int64, pos *ir.Position, rul
 	if n < 1 || n > rule.Max {
 		return Unsupported(pos, "%s.%s is numbered %d, and %s numbers run from 1 to %d", owner, name, n, s.Lang, rule.Max)
 	}
-	for _, r := range rule.Reserved {
-		if n >= r[0] && n <= r[1] {
-			return Unsupported(pos, "%s.%s is numbered %d, which %s reserves (%d to %d)", owner, name, n, s.Lang, r[0], r[1])
-		}
+	if r := reserved(n, rule); r != nil {
+		return Unsupported(pos, "%s.%s is numbered %d, which %s reserves (%d to %d)", owner, name, n, s.Lang, r[0], r[1])
 	}
 	return nil
 }
 
-func reserved(n int64, rule NumberRule) bool {
-	for _, r := range rule.Reserved {
+// reserved is the range in rule holding n, or nil when none does.
+func reserved(n int64, rule NumberRule) *[2]int64 {
+	for i, r := range rule.Reserved {
 		if n >= r[0] && n <= r[1] {
-			return true
+			return &rule.Reserved[i]
 		}
 	}
-	return false
+	return nil
 }
