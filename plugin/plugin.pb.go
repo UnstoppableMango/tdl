@@ -257,7 +257,11 @@ type DirectiveSpec struct {
 	// arg_kinds constrains each argument by position. An empty list accepts
 	// any kind, and a list shorter than the argument count constrains only
 	// the arguments it covers.
-	ArgKinds      []ir.LiteralKind `protobuf:"varint,4,rep,packed,name=arg_kinds,json=argKinds,enum=tdl.ir.v1.LiteralKind" json:"arg_kinds,omitempty"`
+	ArgKinds []ir.LiteralKind `protobuf:"varint,4,rep,packed,name=arg_kinds,json=argKinds,enum=tdl.ir.v1.LiteralKind" json:"arg_kinds,omitempty"`
+	// repeatable says several entries of this directive at the same
+	// specificity all reach the backend, in source order, rather than being
+	// an error.
+	Repeatable    bool `protobuf:"varint,5,opt,name=repeatable" json:"repeatable,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -318,6 +322,13 @@ func (x *DirectiveSpec) GetArgKinds() []ir.LiteralKind {
 		return x.ArgKinds
 	}
 	return nil
+}
+
+func (x *DirectiveSpec) GetRepeatable() bool {
+	if x != nil {
+		return x.Repeatable
+	}
+	return false
 }
 
 // Features are the optional parts of the protocol a backend supports.
@@ -652,12 +663,15 @@ const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
 	"\n" +
 	"directives\x18\x05 \x03(\v2\x1c.tdl.plugin.v1.DirectiveSpecR\n" +
 	"directives\x123\n" +
-	"\bfeatures\x18\x06 \x01(\v2\x17.tdl.plugin.v1.FeaturesR\bfeatures\"\x8e\x01\n" +
+	"\bfeatures\x18\x06 \x01(\v2\x17.tdl.plugin.v1.FeaturesR\bfeatures\"\xae\x01\n" +
 	"\rDirectiveSpec\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x19\n" +
 	"\bmin_args\x18\x02 \x01(\x05R\aminArgs\x12\x19\n" +
 	"\bmax_args\x18\x03 \x01(\x05R\amaxArgs\x123\n" +
-	"\targ_kinds\x18\x04 \x03(\x0e2\x16.tdl.ir.v1.LiteralKindR\bargKinds\" \n" +
+	"\targ_kinds\x18\x04 \x03(\x0e2\x16.tdl.ir.v1.LiteralKindR\bargKinds\x12\x1e\n" +
+	"\n" +
+	"repeatable\x18\x05 \x01(\bR\n" +
+	"repeatable\" \n" +
 	"\bFeatures\x12\x14\n" +
 	"\x05reuse\x18\x01 \x01(\bR\x05reuse\"t\n" +
 	"\aRequest\x12\x16\n" +
