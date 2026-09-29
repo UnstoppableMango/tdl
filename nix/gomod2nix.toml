@@ -1,13 +1,21 @@
 schema = 3
 
 [mod]
+  [mod.'buf.build/gen/go/bufbuild/protodescriptor/protocolbuffers/go']
+    version = 'v1.36.12-20250109164928-1da0de137947.1'
+    hash = 'sha256-M/mQKTZnUrCvcFT/Saue2DVRm5/8A8fAwiXODi6IDQU='
+
+  [mod.'buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go']
+    version = 'v1.36.12-20260709200747-435963d16310.1'
+    hash = 'sha256-ZqFd1TpWPNhTxlYwhT3305ow9ZVqvzfGxlV5z6lxQRY='
+
   [mod.'github.com/agnivade/levenshtein']
     version = 'v1.2.1'
     hash = 'sha256-3XnCzf7tFgEE0MmjxvjfWaw6qK6mKLabFZ3c23JIH9Y='
 
   [mod.'github.com/bufbuild/protocompile']
-    version = 'v0.14.1'
-    hash = 'sha256-5ah3BKPQKmudFLpYzzVG2Wu9Z65ZZZNfMxr3wGtE+Eg='
+    version = 'v0.14.2-0.20260917202354-386f9fcfc7b9'
+    hash = 'sha256-qRlR7huYbDpIy95cF4oTkAT6wuqF28d4h1xXO6HrnW4='
 
   [mod.'github.com/bytedance/gopkg']
     version = 'v0.1.4'
@@ -29,6 +37,14 @@ schema = 3
     version = 'v1.1.0'
     hash = 'sha256-XWlYH0c8IcxAwQTnIi6WYqq44nOKUylSWxWO/vi+8pE='
 
+  [mod.'github.com/petermattis/goid']
+    version = 'v0.0.0-20260716134002-a9b348f0a2b9'
+    hash = 'sha256-TIiIFuxmQKvSYPkbdQP3FaiiuRTbOxujmt2mQNaGMHw='
+
+  [mod.'github.com/rivo/uniseg']
+    version = 'v0.4.7'
+    hash = 'sha256-rDcdNYH6ZD8KouyyiZCUEy8JrjOQoAkxHBhugrfHjFo='
+
   [mod.'github.com/spf13/cobra']
     version = 'v1.10.2'
     hash = 'sha256-nbRCTFiDCC2jKK7AHi79n7urYCMP5yDZnWtNVJrDi+k='
@@ -37,9 +53,13 @@ schema = 3
     version = 'v1.0.10'
     hash = 'sha256-uDPnWjHpSrzXr17KEYEA1yAbizfcsfo5AyztY2tS6ZU='
 
+  [mod.'github.com/tidwall/btree']
+    version = 'v1.8.1'
+    hash = 'sha256-QsYonFnbD/zaxUYAJMzDNI3ju0TjcBJrh8/DBhaJfbM='
+
   [mod.'github.com/vektah/gqlparser/v2']
-    version = 'v2.5.37'
-    hash = 'sha256-mH2WN/2OjnNb+w1eufpcZ+xBAn5oR8KR73yzBAV5s+s='
+    version = 'v2.5.58'
+    hash = 'sha256-48MUGiyex9u4IuOniZptPSMJ+OwETLUGdpjWzvneRnQ='
 
   [mod.'go.lsp.dev/jsonrpc2']
     version = 'v1.0.1'
