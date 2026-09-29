@@ -45,6 +45,7 @@ Protobuf declares services with two argument-less directives.
 A structure tagged `service` is emitted as a `service` rather than a `message`.
 A primitive tagged `rpc` takes two type arguments, the request and the response, and each field of a service is typed by one: the field becomes `rpc <Field>(<Request>) returns (<Response>);`, keeping the field's name as written.
 A primitive tagged `stream` takes one type argument, and a request or response that applies it is written with the `stream` prefix, as in `rpc Chat(stream Chunk) returns (stream Widget);`.
+Either primitive may be declared in the file or imported from another one, and the target block tags it the same way in both cases.
 The request and response, inside any `stream`, are message references, and a service field that is not an rpc is a warning that skips the service.
 
 Constraints are a warning and the declaration is still emitted, since skipping a constrained newtype would leave every field naming it undeclared.

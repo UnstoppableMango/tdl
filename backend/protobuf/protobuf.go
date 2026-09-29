@@ -489,15 +489,14 @@ func (g *generator) service(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	for _, f := range d.Fields() {
 		pos := f.GetMeta().GetPosition()
 		t := g.Model.Type(f.GetType())
-		ctor := g.Model.Decl(t.GetCtor())
-		if ctor.GetPrimitive() == nil || !g.tagged(ctor.GetDirectives(), "rpc") || len(t.GetArgs()) != 2 {
+		if !g.ctorTagged(t, "rpc") || len(t.GetArgs()) != 2 {
 			return nil, emit.Unsupported(pos, "%s is a service, and its field %s is not an rpc", name, f.GetMeta().GetName())
 		}
 		var types [2]string
 		for i, arg := range t.GetArgs() {
 			prefix := ""
 			if at := g.Model.Type(arg); len(at.GetArgs()) == 1 {
-				if c := g.Model.Decl(at.GetCtor()); c.GetPrimitive() != nil && g.tagged(c.GetDirectives(), "stream") {
+				if g.ctorTagged(at, "stream") {
 					prefix, arg = "stream ", at.GetArgs()[0]
 				}
 			}
@@ -521,6 +520,16 @@ func (g *generator) service(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	}
 	b.WriteString("}\n")
 	return []string{name}, nil
+}
+
+// ctorTagged reports whether t applies a primitive tagged name, declared
+// locally or imported as an extern.
+func (g *generator) ctorTagged(t *ir.Type, name string) bool {
+	if e := t.GetExtern(); e.Resolved() && int(e.GetIndex()) < len(g.Model.GetExterns()) {
+		return g.tagged(g.Model.GetExterns()[e.GetIndex()].GetDirectives(), name)
+	}
+	c := g.Model.Decl(t.GetCtor())
+	return c.GetPrimitive() != nil && g.tagged(c.GetDirectives(), name)
 }
 
 // tagged reports whether a node carries an argument-less directive.
