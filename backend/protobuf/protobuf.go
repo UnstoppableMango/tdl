@@ -5,8 +5,9 @@
 // Two things are worth knowing before reading the output. An enum whose
 // variants carry fields is a message holding a oneof of one nested message
 // per variant, which is protobuf's sum type. And every field, variant, and
-// enum value is numbered by its position unless a `number` directive pins
-// it, because the IR has no numbers and protobuf cannot go without them.
+// enum value without a `number` directive takes the lowest number no pin
+// holds, in declaration order, because the IR has no numbers and protobuf
+// cannot go without them.
 package protobuf
 
 import (
