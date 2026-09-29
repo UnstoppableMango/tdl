@@ -61,12 +61,22 @@ func (p *printer) flush(indent string, pos Position) {
 func (p *printer) writeLead(indent string, lead []*Comment, doc []string, docPos Position) {
 	i := 0
 	for ; i < len(lead) && lead[i].P.Offset < docPos.Offset; i++ {
-		p.writeComment(indent, lead[i])
+		p.writeLeadComment(indent, lead, i, 0)
 	}
 	writeDoc(&p.b, indent, doc)
-	for ; i < len(lead); i++ {
-		p.writeComment(indent, lead[i])
+	for first := i; i < len(lead); i++ {
+		p.writeLeadComment(indent, lead, i, first)
 	}
+}
+
+// writeLeadComment writes lead[i], keeping a blank line the source put
+// between it and the comment before it. A comment at first has no
+// predecessor on its side of the doc comment.
+func (p *printer) writeLeadComment(indent string, lead []*Comment, i, first int) {
+	if i > first && lead[i].P.Line > lead[i-1].P.Line+1 {
+		p.b.WriteString("\n")
+	}
+	p.writeComment(indent, lead[i])
 }
 
 // lead writes everything standing in front of an item at pos: the comments
