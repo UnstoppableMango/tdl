@@ -476,7 +476,9 @@ func (g *generator) sum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	}
 	fmt.Fprintf(b, "  oneof %s {\n", oneof)
 	for i, v := range variants {
-		fmt.Fprintf(b, "    %s %s = %d%s;\n", messages[i], fields[i], nums[i], deprecatedField(v.GetMeta()))
+		// A oneof member carries its variant's deprecation and none of its
+		// option directives.
+		fmt.Fprintf(b, "    %s %s = %d%s;\n", messages[i], fields[i], nums[i], brackets(g.options(v.GetMeta(), nil)))
 	}
 	b.WriteString("  }\n}\n")
 	return []string{name}, nil
@@ -819,13 +821,6 @@ func brackets(opts []string) string {
 		return ""
 	}
 	return " [" + strings.Join(opts, ", ") + "]"
-}
-
-func deprecatedField(meta *ir.Meta) string {
-	if meta.IsDeprecated() {
-		return " [deprecated = true]"
-	}
-	return ""
 }
 
 func validPackage(pkg string) bool {
