@@ -51,14 +51,92 @@ model:  {
   }
   decls:  {
     meta:  {
-      name:  "List"
-      doc:  "An ordered collection, duplicates allowed. `[T]` is sugar for `List<T>`."
+      name:  "int32"
+      doc:  "A signed 32-bit integer."
       position:  {
         filename:  "std.tdl"
         line:  11
         column:  1
       }
       order:  4
+    }
+    primitive:  {}
+  }
+  decls:  {
+    meta:  {
+      name:  "uint32"
+      doc:  "An unsigned 32-bit integer."
+      position:  {
+        filename:  "std.tdl"
+        line:  14
+        column:  1
+      }
+      order:  5
+    }
+    primitive:  {}
+  }
+  decls:  {
+    meta:  {
+      name:  "int64"
+      doc:  "A signed 64-bit integer."
+      position:  {
+        filename:  "std.tdl"
+        line:  17
+        column:  1
+      }
+      order:  6
+    }
+    primitive:  {}
+  }
+  decls:  {
+    meta:  {
+      name:  "uint64"
+      doc:  "An unsigned 64-bit integer."
+      position:  {
+        filename:  "std.tdl"
+        line:  20
+        column:  1
+      }
+      order:  7
+    }
+    primitive:  {}
+  }
+  decls:  {
+    meta:  {
+      name:  "float32"
+      doc:  "An IEEE 754 single-precision float."
+      position:  {
+        filename:  "std.tdl"
+        line:  23
+        column:  1
+      }
+      order:  8
+    }
+    primitive:  {}
+  }
+  decls:  {
+    meta:  {
+      name:  "float64"
+      doc:  "An IEEE 754 double-precision float."
+      position:  {
+        filename:  "std.tdl"
+        line:  26
+        column:  1
+      }
+      order:  9
+    }
+    primitive:  {}
+  }
+  decls:  {
+    meta:  {
+      name:  "List"
+      doc:  "An ordered collection, duplicates allowed. `[T]` is sugar for `List<T>`."
+      position:  {
+        filename:  "std.tdl"
+        line:  29
+        column:  1
+      }
+      order:  10
     }
     primitive:  {
       kind:  {
@@ -75,10 +153,10 @@ model:  {
       doc:  "An unordered collection of distinct elements. `{T}` is sugar for `Set<T>`."
       position:  {
         filename:  "std.tdl"
-        line:  14
+        line:  32
         column:  1
       }
-      order:  5
+      order:  11
     }
     primitive:  {
       kind:  {
@@ -95,10 +173,10 @@ model:  {
       doc:  "A mapping from keys to values. `{K -> V}` is sugar for `Map<K, V>`."
       position:  {
         filename:  "std.tdl"
-        line:  17
+        line:  35
         column:  1
       }
-      order:  6
+      order:  12
     }
     primitive:  {
       kind:  {
@@ -118,10 +196,10 @@ model:  {
       doc:  "Arbitrary-precision decimal."
       position:  {
         filename:  "std.tdl"
-        line:  20
+        line:  38
         column:  1
       }
-      order:  7
+      order:  13
     }
     primitive:  {}
   }
@@ -130,10 +208,10 @@ model:  {
       name:  "uuid"
       position:  {
         filename:  "std.tdl"
-        line:  22
+        line:  40
         column:  1
       }
-      order:  8
+      order:  14
     }
     primitive:  {}
   }
@@ -142,10 +220,10 @@ model:  {
       name:  "instant"
       position:  {
         filename:  "std.tdl"
-        line:  23
+        line:  41
         column:  1
       }
-      order:  9
+      order:  15
     }
     primitive:  {}
   }
@@ -154,10 +232,10 @@ model:  {
       name:  "date"
       position:  {
         filename:  "std.tdl"
-        line:  24
+        line:  42
         column:  1
       }
-      order:  10
+      order:  16
     }
     primitive:  {}
   }
@@ -166,10 +244,10 @@ model:  {
       name:  "duration"
       position:  {
         filename:  "std.tdl"
-        line:  25
+        line:  43
         column:  1
       }
-      order:  11
+      order:  17
     }
     primitive:  {}
   }
@@ -179,10 +257,10 @@ model:  {
       doc:  "Base units of the SI system. A project may declare its own."
       position:  {
         filename:  "std.tdl"
-        line:  28
+        line:  46
         column:  1
       }
-      order:  12
+      order:  18
     }
     unit:  {
       unit:  {
@@ -196,10 +274,10 @@ model:  {
       name:  "m"
       position:  {
         filename:  "std.tdl"
-        line:  30
+        line:  48
         column:  1
       }
-      order:  13
+      order:  19
     }
     unit:  {
       unit:  {
@@ -214,10 +292,10 @@ model:  {
       name:  "kg"
       position:  {
         filename:  "std.tdl"
-        line:  31
+        line:  49
         column:  1
       }
-      order:  14
+      order:  20
     }
     unit:  {
       unit:  {
@@ -233,17 +311,17 @@ model:  {
       doc:  "Absence. `T?` is sugar for `Option<T>`."
       position:  {
         filename:  "std.tdl"
-        line:  34
+        line:  52
         column:  1
       }
-      order:  15
+      order:  21
     }
     enumeration:  {
       params:  {
         name:  "T"
         position:  {
           filename:  "std.tdl"
-          line:  34
+          line:  52
           column:  13
         }
       }
@@ -252,7 +330,7 @@ model:  {
           name:  "Some"
           position:  {
             filename:  "std.tdl"
-            line:  35
+            line:  53
             column:  3
           }
         }
@@ -261,7 +339,7 @@ model:  {
             name:  "value"
             position:  {
               filename:  "std.tdl"
-              line:  35
+              line:  53
               column:  10
             }
           }
@@ -275,7 +353,7 @@ model:  {
           name:  "None"
           position:  {
             filename:  "std.tdl"
-            line:  36
+            line:  54
             column:  3
           }
           order:  1
@@ -289,17 +367,17 @@ model:  {
       doc:  "Presence with a null value. `T | null` is sugar for `Nullable<T>`."
       position:  {
         filename:  "std.tdl"
-        line:  40
+        line:  58
         column:  1
       }
-      order:  16
+      order:  22
     }
     enumeration:  {
       params:  {
         name:  "T"
         position:  {
           filename:  "std.tdl"
-          line:  40
+          line:  58
           column:  15
         }
       }
@@ -308,7 +386,7 @@ model:  {
           name:  "Present"
           position:  {
             filename:  "std.tdl"
-            line:  41
+            line:  59
             column:  3
           }
         }
@@ -317,7 +395,7 @@ model:  {
             name:  "value"
             position:  {
               filename:  "std.tdl"
-              line:  41
+              line:  59
               column:  13
             }
           }
@@ -332,7 +410,7 @@ model:  {
           name:  "Null"
           position:  {
             filename:  "std.tdl"
-            line:  42
+            line:  60
             column:  3
           }
           order:  1
@@ -346,10 +424,10 @@ model:  {
       doc:  "Anything with identity that survives changes to its contents."
       position:  {
         filename:  "std.tdl"
-        line:  46
+        line:  64
         column:  1
       }
-      order:  17
+      order:  23
     }
     class:  {}
   }
@@ -413,7 +491,7 @@ model:  {
       }
       conforms:  {
         class:  {
-          index:  17
+          index:  23
           name:  "Entity"
         }
         position:  {
@@ -428,13 +506,13 @@ model:  {
     wrote:  SYNTACTIC_FORM_NAMED
     position:  {
       filename:  "std.tdl"
-      line:  35
+      line:  53
       column:  17
     }
     param:  {
       name:  "T"
       owner:  {
-        index:  15
+        index:  21
         name:  "Option"
       }
     }
@@ -443,13 +521,13 @@ model:  {
     wrote:  SYNTACTIC_FORM_NAMED
     position:  {
       filename:  "std.tdl"
-      line:  41
+      line:  59
       column:  20
     }
     param:  {
       name:  "T"
       owner:  {
-        index:  16
+        index:  22
         name:  "Nullable"
       }
     }
@@ -479,11 +557,11 @@ model:  {
   }
   satisfies:  {
     class:  {
-      index:  17
+      index:  23
       name:  "Entity"
     }
     decls:  {
-      index:  18
+      index:  24
       name:  "Order"
     }
   }
@@ -519,7 +597,7 @@ model:  {
   units:  {
     dims:  {
       base:  {
-        index:  12
+        index:  18
         name:  "s"
       }
       exponent:  1
@@ -527,14 +605,14 @@ model:  {
     wrote:  "s"
     position:  {
       filename:  "std.tdl"
-      line:  28
+      line:  46
       column:  1
     }
   }
   units:  {
     dims:  {
       base:  {
-        index:  13
+        index:  19
         name:  "m"
       }
       exponent:  1
@@ -542,14 +620,14 @@ model:  {
     wrote:  "m"
     position:  {
       filename:  "std.tdl"
-      line:  30
+      line:  48
       column:  1
     }
   }
   units:  {
     dims:  {
       base:  {
-        index:  14
+        index:  20
         name:  "kg"
       }
       exponent:  1
@@ -557,7 +635,7 @@ model:  {
     wrote:  "kg"
     position:  {
       filename:  "std.tdl"
-      line:  31
+      line:  49
       column:  1
     }
   }
