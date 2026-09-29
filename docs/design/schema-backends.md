@@ -151,7 +151,10 @@ An unpinned field skips a number the message reserves, and a field pinned to a r
 An inlined oneof member is held to both rules, since protobuf counts one as a field of its message.
 
 A protobuf target block takes a repeatable `import(path)` directive, and each path joins the file's imports, which are sorted and written once each.
-A protobuf field takes a repeatable `option(name, value)` directive, and a field's options are written `name = value` in one bracket list in the order written, after any option the backend writes itself, such as `deprecated = true`.
+A protobuf field, message, enum, or enum value takes a repeatable `option(name, value)` directive.
+A field's or an enum value's options are written `name = value` in one bracket list in the order written, after any option the backend writes itself, such as `deprecated = true`.
+A message's or an enum's options are each an `option name = value;` statement at the top of its body, after any `reserved` statements, in the same order.
+An `option("deprecated", ...)` on a deprecated node is dropped, since the backend already writes `deprecated = true` and protoc refuses an option set twice.
 
 ## Output
 
