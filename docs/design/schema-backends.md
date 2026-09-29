@@ -160,6 +160,8 @@ An `option("deprecated", ...)` on a deprecated node is dropped, since the backen
 ## Output
 
 Each backend writes one file per model, since a schema language reads a package as one document and cross-file imports would be layout the consumer did not ask for.
+Protobuf is the exception when a model asks for it: a `file` directive on a declaration places that declaration in the named file of the package, beside the one the target block names or the default.
+Each file carries the header and the package line, and a file naming a declaration placed in another imports that file by its path.
 
 | Target | File | Namespace |
 | --- | --- | --- |
