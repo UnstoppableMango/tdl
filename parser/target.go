@@ -16,7 +16,11 @@ func (p *parser) parseTargetDecl(head ast.DeclHead) *ast.TargetDecl {
 		p.syncTop()
 		return d
 	}
-	d.For = p.parseDottedIdent()
+	d.For = p.expectName("package name")
+	for p.at(lex.DOT) {
+		p.next()
+		d.For += "." + p.expectName("package name")
+	}
 	d.Entries, d.End = p.parseTargetEntries()
 	return d
 }

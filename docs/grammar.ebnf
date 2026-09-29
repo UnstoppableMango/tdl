@@ -54,8 +54,8 @@ Name = identifier | reserved_word .
    `include Foo` is an include and `include: Foo` is a field.  A directive
    name and a target path segment need no such test, because that
    namespace belongs to the backend, and neither does a package path
-   segment, which follows `package` and may mirror another schema's
-   namespace, as in `package google.type`.
+   segment, which follows `package` or a target's `for` and may mirror
+   another schema's namespace, as in `package google.type`.
 
    Every other name is a plain identifier, so `enum type`,
    `import "x" as type`, and `x: mixin` are each errors. */
@@ -164,7 +164,7 @@ Range           = [ int_lit ] ".." [ int_lit ] .
 
 /* ---- targets ------------------------------------------------------------ */
 
-TargetDecl  = "target" identifier "for" DottedIdent "{" { TargetEntry } "}" .
+TargetDecl  = "target" identifier "for" Name { "." Name } "{" { TargetEntry } "}" .
 TargetEntry = Path "{" { TargetEntry } "}"
             | Path "=>" Directive
             | Directive .

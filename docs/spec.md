@@ -24,7 +24,7 @@ Identifiers are letters, digits, and underscore, not starting with a digit.
 Declaration keywords are reserved; modifiers and constraint names are not, so `owned`, `length`, and `min` remain usable as field names.
 A reserved word followed by `:` is a field name, which is why a field may be called `type`.
 Inside a target block a directive name and a path segment may be reserved words outright, since that namespace belongs to the backend rather than to the language.
-A package path segment may be a reserved word too, so `package google.type` can mirror a namespace from another schema language.
+A package path segment may be a reserved word too, so `package google.type` can mirror a namespace from another schema language, and `target protobuf for google.type` can name that package.
 Every other name is an ordinary identifier, so `type type { ... }` and `x: type` are both errors.
 Comments run from `//` to end of line.
 A comment beginning `///` is a doc comment: it attaches to the declaration, field, or variant that follows, is carried through to the model, and is available to every target.
