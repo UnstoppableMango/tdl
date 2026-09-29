@@ -16,6 +16,7 @@ import (
 	"math"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
@@ -306,8 +307,56 @@ func (g *generator) message(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	if err := g.fields(b, "  ", name, d.Fields(), nil); err != nil {
 		return nil, err
 	}
+	if err := g.checkReserved(name, d); err != nil {
+		return nil, err
+	}
 	b.WriteString("}\n")
 	return []string{name}, nil
+}
+
+// checkReserved refuses a field whose number or name the message's
+// `reserved` directives reserve, since protoc rejects such a message.
+func (g *generator) checkReserved(owner string, d *ir.Decl) error {
+	numbers := map[int64]bool{}
+	names := map[string]bool{}
+	for _, r := range plugin.Directives(g.Target, d.GetDirectives()) {
+		if r.GetName() != "reserved" {
+			continue
+		}
+		for _, a := range r.GetArgs() {
+			if a.GetKind() == ir.LiteralKind_LITERAL_KIND_STRING {
+				names[a.GetText()] = true
+			} else if n, err := strconv.ParseInt(a.GetText(), 0, 64); err == nil {
+				numbers[n] = true
+			}
+		}
+	}
+	if len(numbers) == 0 && len(names) == 0 {
+		return nil
+	}
+
+	fields := d.Fields()
+	nums, err := g.Numbers(owner, emit.FieldMembers(fields), fieldNumbers)
+	if err != nil {
+		return err
+	}
+	for i, f := range fields {
+		if numbers[nums[i]] {
+			pos := f.GetMeta().GetPosition()
+			if p, ok := g.Find(f.GetDirectives(), "number"); ok {
+				pos = p.GetPosition()
+			}
+			return emit.Unsupported(pos, "%s.%s is numbered %d, which the message reserves", owner, f.GetMeta().GetName(), nums[i])
+		}
+		name, err := g.name(f.GetDirectives(), emit.Snake(f.GetMeta().GetName()))
+		if err != nil {
+			return err
+		}
+		if names[name] {
+			return emit.Unsupported(f.GetMeta().GetPosition(), "%s.%s is named %s, which the message reserves", owner, f.GetMeta().GetName(), name)
+		}
+	}
+	return nil
 }
 
 // enum renders an enum whose variants carry no fields.
