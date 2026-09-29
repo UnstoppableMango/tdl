@@ -158,9 +158,13 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	}
 
 	own := g.Own()
+	inlinedOnly := g.inlinedOnly()
 	skipped := map[*ir.Decl]bool{}
 	var out []rendered
 	for _, d := range own {
+		if inlinedOnly[d] {
+			continue
+		}
 		g.imports = map[string]bool{}
 		text, err := g.decl(d)
 		if err != nil {
@@ -208,6 +212,44 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	}
 
 	return g.Response([]*plugin.File{{Path: filePath(g.pkg), Content: []byte(b.String())}}), nil
+}
+
+// inlinedOnly is the sum types every use of which is a field carrying
+// `oneof`. Each such field writes the variants out itself, so the sum
+// type's message would be declared and never named.
+func (g *generator) inlinedOnly() map[*ir.Decl]bool {
+	inlined := map[*ir.Decl]bool{}
+	named := map[*ir.Decl]bool{}
+	for _, d := range g.Model.GetDecls() {
+		if d.GetAlias() != nil {
+			continue
+		}
+		fields := d.Fields()
+		for _, v := range d.GetEnumeration().GetVariants() {
+			fields = append(fields, v.GetFields()...)
+		}
+		var plain []*ir.Field
+		for _, f := range fields {
+			if !g.has(f.GetDirectives(), "oneof") {
+				plain = append(plain, f)
+				continue
+			}
+			if ref, err := g.Resolve(f.GetType()); err == nil && ref.Form == emit.Named {
+				inlined[ref.Decl] = true
+			}
+		}
+		rest := d
+		if d.GetStructure() != nil || d.GetEnumeration() != nil {
+			rest = &ir.Decl{Node: &ir.Decl_Structure{Structure: &ir.Struct{Fields: plain}}}
+		}
+		for _, r := range g.References(rest) {
+			named[r] = true
+		}
+	}
+	for d := range named {
+		delete(inlined, d)
+	}
+	return inlined
 }
 
 // decl renders one declaration, or "" for one that declares nothing.

@@ -110,6 +110,7 @@ A mixin is emitted too, and a struct including it already carries its fields.
 A fielded enum is each target's sum type.
 
 - In protobuf, each variant is a nested message and the enum is a message holding a `oneof` of them.
+  A field carrying the `oneof` directive, whose enum's variants each carry one field, is written as a `oneof` of those fields inside its message, and an enum no other field names is then not emitted.
 - In Thrift, Smithy, and GraphQL, each variant is a struct named after the enum and the variant, such as `PaymentCard`.
   Smithy targets `Unit` for a variant with no fields.
 - A GraphQL object needs at least one field, so a fieldless variant carries a placeholder `_: Boolean` that is always null.

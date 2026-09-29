@@ -154,6 +154,7 @@ Pipeline, one package per stage:
 - `backend/protobuf` — the protobuf backend: one `.proto` file per model, placed in the directories its package spells.
   The file is proto3 unless an `edition` directive names an edition, and under one a `T?` field carries no `optional` label, since every field already has explicit presence.
   An enum where any variant carries fields is a message holding a oneof of one nested message per variant, and a newtype is expanded to its base, since a wrapper message would change the wire format.
+  A field carrying the `oneof` directive inlines its enum's single-field variants as a oneof in its message, and an enum named only by such fields is not emitted.
   A `number` directive pins a field, variant, or enum value, and each unpinned one takes the lowest number no pin or earlier member holds; `emit.Numbers` holds the rule.
   A `reserved` directive on a message is repeatable and writes one `reserved` statement each, an unpinned field skips a reserved number, and a field pinned to a reserved number or on a reserved name is refused.
   Its tests compile every response with `bufbuild/protocompile`, which is the protobuf equivalent of type checking the Go backend's output.
