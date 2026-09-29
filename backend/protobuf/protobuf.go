@@ -159,6 +159,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		pkg:     req.GetModel().GetPackage(),
 		names:   map[string]string{},
 	}
+	g.Externs = true
 
 	var pkgPos *ir.Position
 	if d, ok := g.Block("package"); ok {
@@ -815,6 +816,15 @@ func (g *generator) single(r *emit.Ref, nested map[string]bool) (string, error) 
 		return typ, nil
 	}
 
+	if r.Form == emit.Extern {
+		f, ok := g.Find(r.Extern.GetDirectives(), "foreign")
+		if !ok {
+			return "", emit.Unsupported(r.Pos, "%s is declared in another package, and foreign types are not generated yet", r.Name)
+		}
+		g.imports[f.GetArgs()[0].GetText()] = true
+		return f.GetArgs()[1].GetText(), nil
+	}
+
 	if f, ok := g.Find(r.Decl.GetDirectives(), "foreign"); ok {
 		g.imports[f.GetArgs()[0].GetText()] = true
 		return f.GetArgs()[1].GetText(), nil
@@ -834,9 +844,15 @@ func (g *generator) single(r *emit.Ref, nested map[string]bool) (string, error) 
 	return name, nil
 }
 
-func single(r *emit.Ref) bool { return r.Form == emit.Prim || r.Form == emit.Named }
+func single(r *emit.Ref) bool {
+	return r.Form == emit.Prim || r.Form == emit.Named || r.Form == emit.Extern
+}
 
 func isMessage(r *emit.Ref) bool {
+	// A foreign mapping names a message.
+	if r.Form == emit.Extern {
+		return true
+	}
 	if r.Form != emit.Named {
 		return false
 	}

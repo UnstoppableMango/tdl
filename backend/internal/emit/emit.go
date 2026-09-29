@@ -30,6 +30,11 @@ type Session struct {
 	// "Protobuf", and so on.
 	Lang string
 
+	// Externs makes [Session.Resolve] return a reference to an extern as
+	// an [Extern] ref rather than refusing it, for a backend that maps
+	// externs itself.
+	Externs bool
+
 	Diags []*plugin.Diagnostic
 }
 
