@@ -147,7 +147,7 @@ func TestDescribe(t *testing.T) {
 	for _, spec := range d.Directives {
 		declared[spec.GetName()] = true
 	}
-	for _, want := range []string{"package", "name", "number"} {
+	for _, want := range []string{"package", "name", "number", "foreign"} {
 		if !declared[want] {
 			t.Errorf("directive %q is acted on but not declared", want)
 		}
