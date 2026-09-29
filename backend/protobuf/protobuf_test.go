@@ -644,3 +644,69 @@ func TestOneofMemberCollides(t *testing.T) {
 	absent(t, src, "message Trigger {")
 	contains(t, src, "message Fine")
 }
+
+// A `oneof` the backend cannot inline is a warning at the directive, and the
+// message holding it is skipped rather than written with a guess or a panic.
+func TestOneofUninlinable(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		// typ declares what the field names and returns its type.
+		typ func(b *irtest.Builder) *ir.ID
+	}{
+		{"a variant carrying no fields", func(b *irtest.Builder) *ir.ID {
+			b.Own(enum("TriggerActor",
+				variant("Contact", irtest.Field("contact", b.Named("string"))),
+				variant("Nobody"),
+			))
+			return b.Named("TriggerActor")
+		}},
+		{"a variant carrying two fields", func(b *irtest.Builder) *ir.ID {
+			b.Own(enum("TriggerActor",
+				variant("Contact", irtest.Field("contact", b.Named("string"))),
+				variant("System", irtest.Field("name", b.Named("string")), irtest.Field("id", b.Named("int"))),
+			))
+			return b.Named("TriggerActor")
+		}},
+		{"a string", func(b *irtest.Builder) *ir.ID { return b.Named("string") }},
+		{"a plain enum", func(b *irtest.Builder) *ir.ID {
+			b.Own(enum("Status", variant("Open"), variant("Closed")))
+			return b.Named("Status")
+		}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			b := irtest.New("shop")
+			actor := irtest.Field("actor", tt.typ(b))
+			actor.Meta.Position = &ir.Position{Filename: "shop.tdl", Line: 12}
+			actor.Directives = []*ir.Directive{{
+				Name: "oneof", Target: protobuf.Name,
+				Position: &ir.Position{Filename: "shop.tdl", Line: 12},
+			}}
+			b.Own(value("Trigger", irtest.Field("kind", b.Named("string")), actor))
+			b.Own(value("Fine", irtest.Field("a", b.Named("string"))))
+
+			var resp *plugin.Response
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						t.Fatalf("generate panicked: %v", r)
+					}
+				}()
+				resp = generate(t, b)
+			}()
+
+			diags := resp.GetDiagnostics()
+			if len(diags) != 1 {
+				t.Fatalf("want one warning, for the oneof: %+v", diags)
+			}
+			if diags[0].GetSeverity() != plugin.Severity_SEVERITY_WARNING {
+				t.Errorf("severity = %v", diags[0].GetSeverity())
+			}
+			if pos := diags[0].GetPosition(); pos.GetFilename() != "shop.tdl" || pos.GetLine() != 12 {
+				t.Errorf("want the warning at shop.tdl:12, got %+v", pos)
+			}
+			src := compile(t, resp)
+			absent(t, src, "message Trigger {")
+			contains(t, src, "message Fine {")
+		})
+	}
+}
