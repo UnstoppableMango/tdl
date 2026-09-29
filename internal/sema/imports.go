@@ -91,7 +91,7 @@ func (l *lowerer) bindImport(imp *ast.ImportDecl, pkg string, dep *ast.File) {
 
 	for _, decl := range dep.Decls {
 		name := decl.Name()
-		if !exportedDecl(decl) || !namesAType(decl) {
+		if !exported(decl) || !namesAType(decl) {
 			continue
 		}
 		// The position is the declaration's own, in the dependency, rather
@@ -108,25 +108,17 @@ func (l *lowerer) bindImport(imp *ast.ImportDecl, pkg string, dep *ast.File) {
 	}
 }
 
-// exportedDecl reports whether decl is visible outside its package.
-// Primitive and unit declarations are always exported, whatever their case.
-func exportedDecl(decl ast.Decl) bool {
+// exported reports whether decl is visible outside its package: a name
+// beginning with an upper-case letter is exported, and everything else is
+// package-private. Primitive and unit declarations are always exported,
+// whatever their case.
+func exported(decl ast.Decl) bool {
 	switch decl.(type) {
 	case *ast.PrimitiveDecl, *ast.UnitDecl:
 		return true
 	}
-	return exported(decl.Name())
-}
-
-// exported reports whether a declaration is visible outside its package. A
-// name beginning with an upper-case letter is exported, and everything else
-// is package-private.
-func exported(name string) bool {
-	if name == "" {
-		return false
-	}
-	r := name[0]
-	return r >= 'A' && r <= 'Z'
+	name := decl.Name()
+	return name != "" && name[0] >= 'A' && name[0] <= 'Z'
 }
 
 // extern returns the ID of a foreign declaration, adding it to the table
