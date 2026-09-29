@@ -297,13 +297,13 @@ func (g *generator) write(path string, grp *group) *plugin.File {
 func (g *generator) pathOf(d *ir.Decl) (string, error) {
 	fd, ok := g.Find(d.GetDirectives(), "file")
 	if !ok {
-		return g.filePath(g.file), nil
+		return filePath(g.pkg, g.file), nil
 	}
 	name := fd.GetArgs()[0].GetText()
 	if !validFile(name) {
 		return "", emit.Unsupported(fd.GetPosition(), "%q is not a protobuf file name", name)
 	}
-	return g.filePath(name), nil
+	return filePath(g.pkg, name), nil
 }
 
 // decl renders one declaration, or "" for one that declares nothing.
@@ -817,12 +817,25 @@ func (g *generator) single(r *emit.Ref, nested map[string]bool) (string, error) 
 	}
 
 	if r.Form == emit.Extern {
-		f, ok := g.Find(r.Extern.GetDirectives(), "foreign")
-		if !ok {
-			return "", emit.Unsupported(r.Pos, "%s is declared in another package, and foreign types are not generated yet", r.Name)
+		if f, ok := g.Find(r.Extern.GetDirectives(), "foreign"); ok {
+			g.imports[f.GetArgs()[0].GetText()] = true
+			return f.GetArgs()[1].GetText(), nil
 		}
-		g.imports[f.GetArgs()[0].GetText()] = true
-		return f.GetArgs()[1].GetText(), nil
+		// A dependency with a protobuf target block generates its own
+		// file, so the extern is the message in it.
+		for _, imp := range g.Model.GetImports() {
+			if imp.GetPackage() != r.Extern.GetPackage() || len(plugin.Directives(g.Target, imp.GetDirectives())) == 0 {
+				continue
+			}
+			pkg, _ := g.Text(imp.GetDirectives(), "package")
+			if pkg == "" {
+				pkg = imp.GetPackage()
+			}
+			file, _ := g.Text(imp.GetDirectives(), "file")
+			g.imports[filePath(pkg, file)] = true
+			return pkg + "." + emit.Pascal(emit.LastSegment(r.Extern.GetName())), nil
+		}
+		return "", emit.Unsupported(r.Pos, "%s is declared in another package, and foreign types are not generated yet", r.Name)
 	}
 
 	if f, ok := g.Find(r.Decl.GetDirectives(), "foreign"); ok {
@@ -948,15 +961,15 @@ func validFile(name string) bool {
 	return !strings.ContainsAny(name, `/\`) && strings.HasSuffix(name, ".proto")
 }
 
-// filePath places a file where buf expects a package's files to be: in the
-// directories its name spells. name is what a file directive names, and the
-// package's last segment with .proto stands in for "".
-func (g *generator) filePath(name string) string {
+// filePath places a file of pkg where buf expects a package's files to be:
+// in the directories its name spells. name is what a file directive names,
+// and the package's last segment with .proto stands in for "".
+func filePath(pkg, name string) string {
 	if name == "" {
 		name = "model.proto"
-		if g.pkg != "" {
-			name = emit.LastSegment(g.pkg) + ".proto"
+		if pkg != "" {
+			name = emit.LastSegment(pkg) + ".proto"
 		}
 	}
-	return path.Join(strings.ReplaceAll(g.pkg, ".", "/"), name)
+	return path.Join(strings.ReplaceAll(pkg, ".", "/"), name)
 }
