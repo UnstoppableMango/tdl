@@ -54,6 +54,8 @@ func (Backend) Describe() plugin.Description {
 			// statement per directive. arg_kinds constrains by position, so
 			// it cannot say "int or string" and is left unset.
 			{Name: "reserved", MinArgs: 1, MaxArgs: -1, Repeatable: true},
+			// Inlines a field's sum type into its message as a oneof.
+			{Name: "oneof"},
 		},
 	}
 }
@@ -483,6 +485,12 @@ func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*i
 		if err != nil {
 			return nil, err
 		}
+		if slices.ContainsFunc(plugin.Directives(g.Target, f.GetDirectives()), func(d *ir.Directive) bool { return d.GetName() == "oneof" }) {
+			if err := g.inlineOneof(b, indent, f, ref, nested); err != nil {
+				return nil, err
+			}
+			continue
+		}
 		label, typ, err := g.fieldType(ref, nested)
 		if err != nil {
 			return nil, err
@@ -504,6 +512,31 @@ func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*i
 		fmt.Fprintf(b, "%s%s%s %s = %d%s;\n", indent, label, typ, name, nums[i], deprecatedField(f.GetMeta()))
 	}
 	return nums, nil
+}
+
+// inlineOneof renders a field whose type is a sum type as a oneof of the
+// variants' single fields, numbered by the variants' numbers.
+func (g *generator) inlineOneof(b *strings.Builder, indent string, f *ir.Field, ref *emit.Ref, nested map[string]bool) error {
+	variants := ref.Decl.GetEnumeration().GetVariants()
+	nums, err := g.Numbers(ref.Decl.GetMeta().GetName(), emit.VariantMembers(variants), fieldNumbers)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(b, "%soneof %s {\n", indent, emit.Snake(f.GetMeta().GetName()))
+	for i, v := range variants {
+		vf := v.GetFields()[0]
+		r, err := g.Resolve(vf.GetType())
+		if err != nil {
+			return err
+		}
+		typ, err := g.single(r, nested)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(b, "%s  %s %s = %d;\n", indent, typ, emit.Snake(vf.GetMeta().GetName()), nums[i])
+	}
+	fmt.Fprintf(b, "%s}\n", indent)
+	return nil
 }
 
 // fieldType returns a field's label and type.
