@@ -69,6 +69,11 @@ func (Backend) Describe() plugin.Description {
 			// the message's fully qualified name. The declaration carrying
 			// it is not emitted.
 			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: append(str, str...)},
+			// A structure emitted as a service rather than a message.
+			{Name: "service"},
+			// A primitive of two type arguments, request and response, that
+			// a service's field applies to declare an rpc.
+			{Name: "rpc"},
 		},
 	}
 }
@@ -347,6 +352,8 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	var declared []string
 	var err error
 	switch e := d.GetEnumeration(); {
+	case e == nil && g.tagged(d.GetDirectives(), "service"):
+		declared, err = g.service(&b, d)
 	case e == nil:
 		declared, err = g.message(&b, d)
 	case emit.Fielded(e):
@@ -463,6 +470,57 @@ func (g *generator) checkReserved(owner string, slots []slot, numbers map[int64]
 		}
 	}
 	return nil
+}
+
+// service renders a structure tagged `service`. Each field is an rpc named
+// as the field is, typed by a primitive tagged `rpc` applied to the request
+// and the response.
+func (g *generator) service(b *strings.Builder, d *ir.Decl) ([]string, error) {
+	name, err := g.declName(d)
+	if err != nil {
+		return nil, err
+	}
+	comment(b, "", d.GetMeta())
+	fmt.Fprintf(b, "service %s {\n", name)
+	g.declOptions(b, d.GetMeta(), nil)
+	for _, f := range d.Fields() {
+		pos := f.GetMeta().GetPosition()
+		t := g.Model.Type(f.GetType())
+		ctor := g.Model.Decl(t.GetCtor())
+		if ctor.GetPrimitive() == nil || !g.tagged(ctor.GetDirectives(), "rpc") || len(t.GetArgs()) != 2 {
+			return nil, emit.Unsupported(pos, "%s is a service, and its field %s is not an rpc", name, f.GetMeta().GetName())
+		}
+		var types [2]string
+		for i, arg := range t.GetArgs() {
+			ref, err := g.Resolve(arg)
+			if err == nil {
+				ref, err = g.Expand(ref)
+			}
+			if err != nil {
+				return nil, err
+			}
+			if !isMessage(ref) {
+				return nil, emit.Unsupported(pos, "an rpc's request and response are messages, and %s's are not", f.GetMeta().GetName())
+			}
+			if types[i], err = g.single(ref, nil); err != nil {
+				return nil, err
+			}
+		}
+		comment(b, "  ", f.GetMeta())
+		fmt.Fprintf(b, "  rpc %s(%s) returns (%s);\n", f.GetMeta().GetName(), types[0], types[1])
+	}
+	b.WriteString("}\n")
+	return []string{name}, nil
+}
+
+// tagged reports whether a node carries an argument-less directive.
+func (g *generator) tagged(all []*ir.Directive, name string) bool {
+	for _, d := range plugin.Directives(g.Target, all) {
+		if d.GetName() == name {
+			return true
+		}
+	}
+	return false
 }
 
 // enum renders an enum whose variants carry no fields.
