@@ -438,8 +438,9 @@ func (g *generator) fieldType(r *emit.Ref, nested map[string]bool) (label, typ s
 			return "", "", err
 		}
 		// A message field already has presence, and `optional` on one
-		// says nothing more.
-		if isMessage(inner) {
+		// says nothing more. Under an edition every field has explicit
+		// presence by default.
+		if _, edition := g.Block("edition"); edition || isMessage(inner) {
 			return "", typ, nil
 		}
 		return "optional", typ, nil
