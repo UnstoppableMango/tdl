@@ -552,3 +552,37 @@ func TestConformance(t *testing.T) {
 		})
 	}
 }
+
+// A field carrying `oneof` whose type is a sum type with one field per
+// variant is that sum type's members written inline, as a oneof named for
+// the field, each member numbered by its variant.
+func TestOneofField(t *testing.T) {
+	declared := false
+	for _, spec := range (protobuf.Backend{}).Describe().Directives {
+		if spec.GetName() == "oneof" {
+			declared = true
+		}
+	}
+	if !declared {
+		t.Errorf("directive %q is not declared", "oneof")
+	}
+
+	b := irtest.New("shop")
+	contact := variant("Contact", irtest.Field("contact", b.Named("string")))
+	contact.Directives = []*ir.Directive{number("4")}
+	system := variant("SystemActor", irtest.Field("system_actor", b.Named("string")))
+	system.Directives = []*ir.Directive{number("5")}
+	b.Own(enum("TriggerActor", contact, system))
+
+	kind := irtest.Field("kind", b.Named("string"))
+	kind.Directives = []*ir.Directive{number("1")}
+	actor := irtest.Field("actor", b.Named("TriggerActor"))
+	actor.Directives = []*ir.Directive{{Name: "oneof", Target: protobuf.Name}}
+	b.Own(value("Trigger", kind, actor))
+
+	src := compile(t, generate(t, b))
+	contains(t, src,
+		"message Trigger { string kind = 1; oneof actor { string contact = 4; string system_actor = 5; } }",
+	)
+	absent(t, src, "TriggerActor actor")
+}
