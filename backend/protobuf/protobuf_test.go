@@ -586,3 +586,59 @@ func TestOneofField(t *testing.T) {
 	)
 	absent(t, src, "TriggerActor actor")
 }
+
+// An inlined oneof's members share the containing message's number space,
+// and the oneof itself takes no number.
+func TestOneofSharesNumbers(t *testing.T) {
+	b := irtest.New("shop")
+	b.Own(enum("TriggerActor",
+		variant("Contact", irtest.Field("contact", b.Named("string"))),
+		variant("SystemActor", irtest.Field("system_actor", b.Named("string"))),
+	))
+	actor := irtest.Field("actor", b.Named("TriggerActor"))
+	actor.Directives = []*ir.Directive{{Name: "oneof", Target: protobuf.Name}}
+	b.Own(value("Trigger",
+		irtest.Field("kind", b.Named("string")),
+		actor,
+		irtest.Field("note", b.Named("string")),
+	))
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	contains(t, compile(t, resp),
+		"message Trigger { string kind = 1; oneof actor { string contact = 2; string system_actor = 3; } string note = 4; }",
+	)
+}
+
+// A pinned oneof member colliding with a field of the containing message is
+// the same warning as two colliding fields, and the message is skipped.
+func TestOneofMemberCollides(t *testing.T) {
+	b := irtest.New("shop")
+	contact := variant("Contact", irtest.Field("contact", b.Named("string")))
+	contact.Directives = []*ir.Directive{number("1")}
+	b.Own(enum("TriggerActor",
+		contact,
+		variant("SystemActor", irtest.Field("system_actor", b.Named("string"))),
+	))
+	actor := irtest.Field("actor", b.Named("TriggerActor"))
+	actor.Directives = []*ir.Directive{{Name: "oneof", Target: protobuf.Name}}
+	b.Own(value("Trigger", irtest.Field("kind", b.Named("string")), actor))
+	b.Own(value("Fine", irtest.Field("a", b.Named("string"))))
+
+	resp := generate(t, b)
+	diags := resp.GetDiagnostics()
+	if len(diags) != 1 {
+		t.Fatalf("want one warning, for the collision: %+v", diags)
+	}
+	if diags[0].GetSeverity() != plugin.Severity_SEVERITY_WARNING {
+		t.Errorf("severity = %v", diags[0].GetSeverity())
+	}
+	if !strings.Contains(diags[0].GetMessage(), "both numbered 1") {
+		t.Errorf("message = %q", diags[0].GetMessage())
+	}
+	src := compile(t, resp)
+	absent(t, src, "message Trigger")
+	contains(t, src, "message Fine")
+}
