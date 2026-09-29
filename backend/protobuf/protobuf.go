@@ -286,6 +286,12 @@ func (g *generator) name(all []*ir.Directive, fallback string) (string, error) {
 	return n, nil
 }
 
+// has reports whether a node carries this target's directive. It covers
+// the directives that take no argument, which [emit.Session.Find] skips.
+func (g *generator) has(all []*ir.Directive, name string) bool {
+	return slices.ContainsFunc(plugin.Directives(g.Target, all), func(d *ir.Directive) bool { return d.GetName() == name })
+}
+
 // declName is [generator.name] over a declaration, matching what
 // [emit.Session.DeclName] would return for a valid one.
 func (g *generator) declName(d *ir.Decl) (string, error) {
@@ -485,7 +491,7 @@ func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*i
 		if err != nil {
 			return nil, err
 		}
-		if slices.ContainsFunc(plugin.Directives(g.Target, f.GetDirectives()), func(d *ir.Directive) bool { return d.GetName() == "oneof" }) {
+		if g.has(f.GetDirectives(), "oneof") {
 			if err := g.inlineOneof(b, indent, f, ref, nested); err != nil {
 				return nil, err
 			}
