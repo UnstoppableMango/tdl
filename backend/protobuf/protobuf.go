@@ -126,6 +126,10 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	}
 	if d, ok := g.Block("edition"); ok {
 		g.edition = d.GetArgs()[0].GetText()
+		if g.edition != "2023" && g.edition != "2024" {
+			g.Error(d.GetPosition(), "%q is not a protobuf edition", g.edition)
+			return g.Response(nil), nil
+		}
 	}
 	// Every declaration lives in the package, so a name protobuf refuses is
 	// the whole output rather than one declaration to skip.
