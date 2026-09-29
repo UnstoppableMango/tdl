@@ -228,3 +228,24 @@ func TestNumbersAllocatesAroundPins(t *testing.T) {
 		t.Errorf("unpinned numbers = %v, want %v", got, want)
 	}
 }
+
+func TestNumbersSkipsReservedRanges(t *testing.T) {
+	s := session(irtest.New("shop"))
+	pin := func(n string) []*ir.Directive {
+		return []*ir.Directive{{Name: "number", Target: "x", Args: []*ir.Literal{{Kind: ir.LiteralKind_LITERAL_KIND_INT, Text: n}}}}
+	}
+	member := func(name string, dirs []*ir.Directive) emit.Member { return emit.Member{Name: name, Directives: dirs} }
+	rule := emit.NumberRule{Max: 100, Reserved: [][2]int64{{3, 5}}}
+
+	got, err := s.Numbers("M", []emit.Member{member("a", nil), member("b", nil), member("c", nil)}, rule)
+	if err != nil {
+		t.Fatalf("numbers: %v", err)
+	}
+	if want := []int64{1, 2, 6}; !slices.Equal(got, want) {
+		t.Errorf("numbers = %v, want %v", got, want)
+	}
+
+	if _, err := s.Numbers("M", []emit.Member{member("a", nil), member("b", pin("4"))}, rule); err == nil {
+		t.Error("a member pinned inside a reserved range: no error")
+	}
+}
