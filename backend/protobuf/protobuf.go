@@ -48,6 +48,10 @@ func (Backend) Describe() plugin.Description {
 			{Name: "number", MinArgs: 1, MaxArgs: 1, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_INT}},
 			// The protobuf edition the file declares in place of proto3.
 			{Name: "edition", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			// Field numbers or names a message reserves, one `reserved`
+			// statement per directive. arg_kinds constrains by position, so
+			// it cannot say "int or string" and is left unset.
+			{Name: "reserved", MinArgs: 1, MaxArgs: -1, Repeatable: true},
 		},
 	}
 }
@@ -284,6 +288,20 @@ func (g *generator) message(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	}
 	comment(b, "", d.GetMeta())
 	fmt.Fprintf(b, "message %s {\n", name)
+	for _, r := range plugin.Directives(g.Target, d.GetDirectives()) {
+		if r.GetName() != "reserved" {
+			continue
+		}
+		var args []string
+		for _, a := range r.GetArgs() {
+			if a.GetKind() == ir.LiteralKind_LITERAL_KIND_STRING {
+				args = append(args, fmt.Sprintf("%q", a.GetText()))
+			} else {
+				args = append(args, a.GetText())
+			}
+		}
+		fmt.Fprintf(b, "  reserved %s;\n", strings.Join(args, ", "))
+	}
 	deprecatedOption(b, "  ", d.GetMeta())
 	if err := g.fields(b, "  ", name, d.Fields(), nil); err != nil {
 		return nil, err
