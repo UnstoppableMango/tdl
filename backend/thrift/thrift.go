@@ -55,10 +55,16 @@ var (
 
 // scalars maps a prelude primitive to the Thrift type standing for it.
 // Thrift has no decimal, UUID, or time type, so each of those is the string
-// a consumer parses.
+// a consumer parses. Thrift has no unsigned types, so uint32 widens to i64
+// and uint64, which no Thrift type holds, is left unmapped.
 var scalars = map[string]string{
 	"string":   "string",
 	"int":      "i64",
+	"int32":    "i32",
+	"int64":    "i64",
+	"uint32":   "i64",
+	"float32":  "double",
+	"float64":  "double",
 	"bool":     "bool",
 	"bytes":    "binary",
 	"decimal":  "string",
