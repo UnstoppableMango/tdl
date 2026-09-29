@@ -44,7 +44,8 @@ An extern with neither is a warning like any other.
 Protobuf declares services with two argument-less directives.
 A structure tagged `service` is emitted as a `service` rather than a `message`.
 A primitive tagged `rpc` takes two type arguments, the request and the response, and each field of a service is typed by one: the field becomes `rpc <Field>(<Request>) returns (<Response>);`, keeping the field's name as written.
-The request and response are message references, and a service field that is not an rpc is a warning that skips the service.
+A primitive tagged `stream` takes one type argument, and a request or response that applies it is written with the `stream` prefix, as in `rpc Chat(stream Chunk) returns (stream Widget);`.
+The request and response, inside any `stream`, are message references, and a service field that is not an rpc is a warning that skips the service.
 
 Constraints are a warning and the declaration is still emitted, since skipping a constrained newtype would leave every field naming it undeclared.
 Validation is its own set of decisions about where a check lives.

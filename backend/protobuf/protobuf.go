@@ -74,6 +74,9 @@ func (Backend) Describe() plugin.Description {
 			// A primitive of two type arguments, request and response, that
 			// a service's field applies to declare an rpc.
 			{Name: "rpc"},
+			// A primitive of one type argument that an rpc's request or
+			// response applies to mark it streamed.
+			{Name: "stream"},
 		},
 	}
 }
@@ -492,6 +495,12 @@ func (g *generator) service(b *strings.Builder, d *ir.Decl) ([]string, error) {
 		}
 		var types [2]string
 		for i, arg := range t.GetArgs() {
+			prefix := ""
+			if at := g.Model.Type(arg); len(at.GetArgs()) == 1 {
+				if c := g.Model.Decl(at.GetCtor()); c.GetPrimitive() != nil && g.tagged(c.GetDirectives(), "stream") {
+					prefix, arg = "stream ", at.GetArgs()[0]
+				}
+			}
 			ref, err := g.Resolve(arg)
 			if err == nil {
 				ref, err = g.Expand(ref)
@@ -505,6 +514,7 @@ func (g *generator) service(b *strings.Builder, d *ir.Decl) ([]string, error) {
 			if types[i], err = g.single(ref, nil); err != nil {
 				return nil, err
 			}
+			types[i] = prefix + types[i]
 		}
 		comment(b, "  ", f.GetMeta())
 		fmt.Fprintf(b, "  rpc %s(%s) returns (%s);\n", f.GetMeta().GetName(), types[0], types[1])
