@@ -6,7 +6,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bufbuild/protocompile"
+	"github.com/bufbuild/protocompile/experimental/incremental"
+	"github.com/bufbuild/protocompile/experimental/incremental/queries"
+	protoir "github.com/bufbuild/protocompile/experimental/ir"
+	"github.com/bufbuild/protocompile/experimental/report"
+	"github.com/bufbuild/protocompile/experimental/source"
 
 	"github.com/unstoppablemango/tdl/backend/internal/irtest"
 	"github.com/unstoppablemango/tdl/backend/protobuf"
@@ -31,17 +35,30 @@ func generate(t *testing.T, b *irtest.Builder) *plugin.Response {
 // Compiling rather than parsing is the assertion that matters: a reference
 // to a message a skipped declaration left behind parses, and so does a map
 // keyed by a message.
+//
+// The compiler is protocompile's experimental one, which buf builds images
+// with, because it is the one that compiles edition 2024.
 func compile(t *testing.T, resp *plugin.Response) string {
 	t.Helper()
 	if len(resp.GetFiles()) != 1 {
 		t.Fatalf("files = %d, diagnostics = %+v", len(resp.GetFiles()), resp.GetDiagnostics())
 	}
 	f := resp.GetFiles()[0]
-	c := protocompile.Compiler{Resolver: protocompile.WithStandardImports(&protocompile.SourceResolver{
-		Accessor: protocompile.SourceAccessorFromMap(map[string]string{f.GetPath(): string(f.GetContent())}),
-	})}
-	if _, err := c.Compile(context.Background(), f.GetPath()); err != nil {
-		t.Errorf("%s does not compile: %v\n%s", f.GetPath(), err, f.GetContent())
+	files := source.NewMap(nil)
+	files.Add(f.GetPath(), string(f.GetContent()))
+	results, diags, err := incremental.Run(context.Background(), incremental.New(), queries.FDS{
+		Opener:    &source.Openers{files, source.WKTs()},
+		Session:   new(protoir.Session),
+		Workspace: source.NewWorkspace(f.GetPath()),
+	})
+	if err != nil {
+		t.Fatalf("compile %s: %v", f.GetPath(), err)
+	}
+	if fatal := results[0].Fatal; fatal != nil {
+		t.Errorf("%s does not compile: %v\n%s", f.GetPath(), fatal, f.GetContent())
+	}
+	if text, errs, _ := (report.Renderer{}).RenderString(diags); errs != 0 {
+		t.Errorf("%s does not compile:\n%s\n%s", f.GetPath(), text, f.GetContent())
 	}
 	return string(f.GetContent())
 }
