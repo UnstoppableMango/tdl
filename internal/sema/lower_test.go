@@ -867,6 +867,26 @@ type Reading { count: int32 }
 	}
 }
 
+// A local primitive that repeats one a `_` import merges is a collision,
+// as it is for any other merged name.
+func TestUnderscoreImportPrimitiveCollides(t *testing.T) {
+	file, err := parser.Parse("main.tdl", strings.NewReader(`
+import "dep.tdl" as _
+
+primitive int32
+`))
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+
+	_, diags := Lower(file, WithLoader(MapLoader{
+		"dep.tdl": "package acme.scalar\nprimitive int32\n",
+	}))
+	if !strings.Contains(diags.Error(), "int32 is declared twice") {
+		t.Errorf("diagnostics = %v", diags)
+	}
+}
+
 func TestImportCycle(t *testing.T) {
 	file, err := parser.Parse("a.tdl", strings.NewReader(`import "b.tdl" as b`))
 	if err != nil {
