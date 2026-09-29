@@ -487,43 +487,48 @@ func (g *generator) service(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	fmt.Fprintf(b, "service %s {\n", name)
 	g.declOptions(b, d.GetMeta(), nil)
 	for _, f := range d.Fields() {
-		pos := f.GetMeta().GetPosition()
 		t := g.Model.Type(f.GetType())
 		if !g.ctorTagged(t, "rpc") || len(t.GetArgs()) != 2 {
-			return nil, emit.Unsupported(pos, "%s is a service, and its field %s is not an rpc", name, f.GetMeta().GetName())
+			return nil, emit.Unsupported(f.GetMeta().GetPosition(), "%s is a service, and its field %s is not an rpc", name, f.GetMeta().GetName())
 		}
-		var types [2]string
-		for i, arg := range t.GetArgs() {
-			prefix := ""
-			if at := g.Model.Type(arg); len(at.GetArgs()) == 1 {
-				if g.ctorTagged(at, "stream") {
-					prefix, arg = "stream ", at.GetArgs()[0]
-				}
-			}
-			ref, err := g.Resolve(arg)
-			if err == nil {
-				ref, err = g.Expand(ref)
-			}
-			if err != nil {
-				return nil, err
-			}
-			if !isMessage(ref) {
-				return nil, emit.Unsupported(pos, "an rpc's request and response are messages, and %s's are not", f.GetMeta().GetName())
-			}
-			if types[i], err = g.single(ref, nil); err != nil {
-				return nil, err
-			}
-			types[i] = prefix + types[i]
+		req, err := g.rpcArg(f, t.GetArgs()[0])
+		if err != nil {
+			return nil, err
+		}
+		res, err := g.rpcArg(f, t.GetArgs()[1])
+		if err != nil {
+			return nil, err
 		}
 		comment(b, "  ", f.GetMeta())
 		end := ";"
 		if f.GetMeta().IsDeprecated() {
 			end = " { option deprecated = true; }"
 		}
-		fmt.Fprintf(b, "  rpc %s(%s) returns (%s)%s\n", f.GetMeta().GetName(), types[0], types[1], end)
+		fmt.Fprintf(b, "  rpc %s(%s) returns (%s)%s\n", f.GetMeta().GetName(), req, res, end)
 	}
 	b.WriteString("}\n")
 	return []string{name}, nil
+}
+
+// rpcArg renders an rpc's request or response: a message, prefixed
+// `stream ` when a primitive tagged `stream` wraps it.
+func (g *generator) rpcArg(f *ir.Field, arg *ir.ID) (string, error) {
+	prefix := ""
+	if t := g.Model.Type(arg); len(t.GetArgs()) == 1 && g.ctorTagged(t, "stream") {
+		prefix, arg = "stream ", t.GetArgs()[0]
+	}
+	ref, err := g.Resolve(arg)
+	if err == nil {
+		ref, err = g.Expand(ref)
+	}
+	if err != nil {
+		return "", err
+	}
+	if !isMessage(ref) {
+		return "", emit.Unsupported(f.GetMeta().GetPosition(), "an rpc's request and response are messages, and %s's are not", f.GetMeta().GetName())
+	}
+	typ, err := g.single(ref, nil)
+	return prefix + typ, err
 }
 
 // ctorTagged reports whether t applies a primitive tagged name, declared
