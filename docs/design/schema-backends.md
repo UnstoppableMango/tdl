@@ -79,6 +79,7 @@ Each target states less than TDL does somewhere.
 - Protobuf has no set, so a `Set` is `repeated` and uniqueness is not enforced.
   A repeated or map field cannot be optional or hold another collection, so those shapes warn.
   A map key must resolve to a string, an integer, or a bool.
+  An `edition` directive replaces `syntax = "proto3";` with that edition's header, and under an edition a `T?` or `T | null` field carries no `optional` label, since every field has explicit presence by default.
 - Smithy names every collection, so the backend synthesizes one shape per distinct collection type and names it from its element and key.
   A map key must resolve to a string or a fieldless enum.
 - GraphQL has no map.
@@ -106,7 +107,7 @@ A fielded enum is each target's sum type.
 - A GraphQL object needs at least one field, so a fieldless variant carries a placeholder `_: Boolean` that is always null.
 - In TypeScript, each variant is an interface with a `kind` field holding the variant's name. A `discriminant` directive renames the field.
 
-A protobuf enum starts with an `_UNSPECIFIED` value at zero, which proto3 requires, and its values are prefixed with the enum's name, since protobuf enum values share one scope per package.
+A protobuf enum starts with an `_UNSPECIFIED` value at zero, which protobuf requires, and its values are prefixed with the enum's name, since protobuf enum values share one scope per package.
 
 Protobuf and GraphQL expand a newtype to its base.
 A protobuf wrapper message would change the wire format, and a GraphQL custom scalar per newtype would need server code for each one.

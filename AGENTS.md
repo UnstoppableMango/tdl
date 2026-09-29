@@ -151,7 +151,8 @@ Pipeline, one package per stage:
   Private to `backend/`.
 - `backend/internal/irtest` — builds `*ir.Model` values by hand for backend tests, seeded with the prelude declarations a field can name and the `Entity` class identity conforms to.
   `Param` interns a type parameter reference, and `Class`, `Satisfies`, and `Requires` build what a class needs, which lowering computes and a hand-built model has to state.
-- `backend/protobuf` — the protobuf backend: one proto3 file per model, placed in the directories its package spells.
+- `backend/protobuf` — the protobuf backend: one `.proto` file per model, placed in the directories its package spells.
+  The file is proto3 unless an `edition` directive names an edition, and under one a `T?` field carries no `optional` label, since every field already has explicit presence.
   An enum where any variant carries fields is a message holding a oneof of one nested message per variant, and a newtype is expanded to its base, since a wrapper message would change the wire format.
   Every field, variant, and enum value is numbered by position unless a `number` directive pins it; `emit.Numbers` holds the rule.
   Its tests compile every response with `bufbuild/protocompile`, which is the protobuf equivalent of type checking the Go backend's output.
