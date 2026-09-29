@@ -91,7 +91,7 @@ func (l *lowerer) bindImport(imp *ast.ImportDecl, pkg string, dep *ast.File) {
 
 	for _, decl := range dep.Decls {
 		name := decl.Name()
-		if !exported(name) || !namesAType(decl) {
+		if !exportedDecl(decl) || !namesAType(decl) {
 			continue
 		}
 		// The position is the declaration's own, in the dependency, rather
@@ -106,6 +106,16 @@ func (l *lowerer) bindImport(imp *ast.ImportDecl, pkg string, dep *ast.File) {
 			l.diags.add(imp.P, "%s from %q is already declared here", name, imp.Path)
 		}
 	}
+}
+
+// exportedDecl reports whether decl is visible outside its package.
+// Primitive and unit declarations are always exported, whatever their case.
+func exportedDecl(decl ast.Decl) bool {
+	switch decl.(type) {
+	case *ast.PrimitiveDecl, *ast.UnitDecl:
+		return true
+	}
+	return exported(decl.Name())
 }
 
 // exported reports whether a declaration is visible outside its package. A
