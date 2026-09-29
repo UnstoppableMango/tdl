@@ -1,0 +1,10 @@
+package google.type
+
+type Money {
+  currency_code: string
+  units: int
+}
+
+target protobuf for google.type {
+  Money.units => number(2)
+}

@@ -57,6 +57,15 @@ type Money { units: int }
 	}
 }
 
+func TestTargetPackageKeywordSegment(t *testing.T) {
+	file := parse(t, `target protobuf for google.type { }`)
+
+	d := file.Decls[0].(*ast.TargetDecl)
+	if d.N != "protobuf" || d.For != "google.type" {
+		t.Errorf("target = %q for %q, want protobuf for google.type", d.N, d.For)
+	}
+}
+
 func TestPrimitiveKinds(t *testing.T) {
 	file := parse(t, `
 primitive string
