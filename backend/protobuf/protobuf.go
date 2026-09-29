@@ -165,6 +165,13 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		g.Error(pkgPos, "%q is not a protobuf package name", g.pkg)
 		return g.Response(nil), nil
 	}
+	if d, ok := g.Block("file"); ok {
+		name := d.GetArgs()[0].GetText()
+		if strings.ContainsAny(name, `/\`) || !strings.HasSuffix(name, ".proto") {
+			g.Error(d.GetPosition(), "%q is not a protobuf file name", name)
+			return g.Response(nil), nil
+		}
+	}
 
 	own := g.Own()
 	inlinedOnly := g.inlinedOnly()
