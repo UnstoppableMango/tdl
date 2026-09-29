@@ -14,6 +14,7 @@ import (
 
 	"github.com/unstoppablemango/tdl/backend/internal/irtest"
 	"github.com/unstoppablemango/tdl/backend/protobuf"
+	"github.com/unstoppablemango/tdl/internal/gen"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -517,6 +518,38 @@ func TestPackageDirective(t *testing.T) {
 	if len(resp.GetFiles()) != 0 || len(resp.GetDiagnostics()) != 1 ||
 		resp.GetDiagnostics()[0].GetSeverity() != plugin.Severity_SEVERITY_ERROR {
 		t.Errorf("a package protobuf refuses should be an error and nothing else: %+v", resp)
+	}
+}
+
+// The file directive names the generated file within the package's
+// directory, and is declared so tdl does not warn about it.
+func TestFileDirective(t *testing.T) {
+	b := irtest.New("acme.finance.account.v1")
+	b.Own(value("Account", irtest.Field("id", b.Named("uuid"))))
+
+	resp := generate(t, b)
+	compile(t, resp)
+	if path := resp.GetFiles()[0].GetPath(); path != "acme/finance/account/v1/v1.proto" {
+		t.Errorf("without file, path = %q, want %q", path, "acme/finance/account/v1/v1.proto")
+	}
+
+	b.Model.Targets = []*ir.TargetBlock{{
+		Meta: &ir.Meta{Name: protobuf.Name},
+		Directives: []*ir.Directive{{
+			Name: "file", Target: protobuf.Name, Args: []*ir.Literal{irtest.Text("account.proto")},
+			Position: &ir.Position{Filename: "account.tdl", Line: 2},
+		}},
+	}}
+	if problems := gen.CheckDirectives(protobuf.Name, b.Model, protobuf.Backend{}.Describe()); len(problems) != 0 {
+		t.Errorf("file directive problems = %+v", problems)
+	}
+	resp = generate(t, b)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	compile(t, resp)
+	if path := resp.GetFiles()[0].GetPath(); path != "acme/finance/account/v1/account.proto" {
+		t.Errorf("with file, path = %q, want %q", path, "acme/finance/account/v1/account.proto")
 	}
 }
 
