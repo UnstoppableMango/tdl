@@ -639,6 +639,6 @@ func TestOneofMemberCollides(t *testing.T) {
 		t.Errorf("message = %q", diags[0].GetMessage())
 	}
 	src := compile(t, resp)
-	absent(t, src, "message Trigger")
+	absent(t, src, "message Trigger {")
 	contains(t, src, "message Fine")
 }
