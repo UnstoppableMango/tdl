@@ -39,8 +39,9 @@ type NumberRule struct {
 
 // Numbers assigns each member its wire number. A `number` directive pins a
 // member's number; each unpinned member, in declaration order, takes the
-// lowest number from 1 that no pin or earlier member holds. A number the rule
-// refuses, or two pins sharing one, is an [UnsupportedError].
+// lowest number from 1 that no pin or earlier member holds and the rule does
+// not reserve. A number the rule refuses, or two pins sharing one, is an
+// [UnsupportedError].
 //
 // Pins keep a wire format stable while the source moves: inserting an
 // unpinned member anywhere but the end renumbers every unpinned member after
@@ -75,7 +76,7 @@ func (s *Session) Numbers(owner string, members []Member, rule NumberRule) ([]in
 		if nums[i] != 0 {
 			continue
 		}
-		for by[next] != "" {
+		for by[next] != "" || reserved(next, rule) {
 			next++
 		}
 		if err := s.checkNumber(owner, m.Name, next, m.Position, rule); err != nil {
@@ -97,4 +98,13 @@ func (s *Session) checkNumber(owner, name string, n int64, pos *ir.Position, rul
 		}
 	}
 	return nil
+}
+
+func reserved(n int64, rule NumberRule) bool {
+	for _, r := range rule.Reserved {
+		if n >= r[0] && n <= r[1] {
+			return true
+		}
+	}
+	return false
 }

@@ -124,11 +124,11 @@ A value the target refuses as an identifier is a warning of its own, since a bac
 ## Numbering
 
 Protobuf fields and Thrift fields carry numbers that are the wire format, and the IR has none.
-A `number(n)` directive pins a field's number, and each unpinned field takes, in declaration order, the lowest number from one that no pin and no earlier unpinned field holds.
+A `number(n)` directive pins a field's number, and each unpinned field takes, in declaration order, the lowest number from one that no pin and no earlier unpinned field holds and the target does not reserve.
 Enum values and variants are numbered the same way.
 
 A pinned number is never handed to an unpinned field, so a pin cannot collide with one.
-Two pins on one number are an error.
+Two pins on one number are an error, and so is a pin inside a reserved range.
 
 Declaration order is fragile, and pinning is the answer.
 Inserting an unpinned field anywhere but the end renumbers every unpinned field after it.
