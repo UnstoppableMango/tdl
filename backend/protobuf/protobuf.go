@@ -817,25 +817,12 @@ func (g *generator) single(r *emit.Ref, nested map[string]bool) (string, error) 
 	}
 
 	if r.Form == emit.Extern {
-		if f, ok := g.Find(r.Extern.GetDirectives(), "foreign"); ok {
-			g.imports[f.GetArgs()[0].GetText()] = true
-			return f.GetArgs()[1].GetText(), nil
+		typ, imp, err := g.externRef(r)
+		if err != nil {
+			return "", err
 		}
-		// A dependency with a protobuf target block generates its own
-		// file, so the extern is the message in it.
-		for _, imp := range g.Model.GetImports() {
-			if imp.GetPackage() != r.Extern.GetPackage() || len(plugin.Directives(g.Target, imp.GetDirectives())) == 0 {
-				continue
-			}
-			pkg, _ := g.Text(imp.GetDirectives(), "package")
-			if pkg == "" {
-				pkg = imp.GetPackage()
-			}
-			file, _ := g.Text(imp.GetDirectives(), "file")
-			g.imports[filePath(pkg, file)] = true
-			return pkg + "." + emit.Pascal(emit.LastSegment(r.Extern.GetName())), nil
-		}
-		return "", emit.Unsupported(r.Pos, "%s is declared in another package, and foreign types are not generated yet", r.Name)
+		g.imports[imp] = true
+		return typ, nil
 	}
 
 	if f, ok := g.Find(r.Decl.GetDirectives(), "foreign"); ok {
@@ -855,6 +842,27 @@ func (g *generator) single(r *emit.Ref, nested map[string]bool) (string, error) 
 		return "." + g.pkg + "." + name, nil
 	}
 	return name, nil
+}
+
+// externRef is the protobuf type for a declaration in another package and
+// the file it is imported from: the one a foreign directive names, else the
+// one a dependency with a protobuf target block generates.
+func (g *generator) externRef(r *emit.Ref) (typ, imp string, err error) {
+	if f, ok := g.Find(r.Extern.GetDirectives(), "foreign"); ok {
+		return f.GetArgs()[1].GetText(), f.GetArgs()[0].GetText(), nil
+	}
+	for _, dep := range g.Model.GetImports() {
+		if dep.GetPackage() != r.Extern.GetPackage() || len(plugin.Directives(g.Target, dep.GetDirectives())) == 0 {
+			continue
+		}
+		pkg, _ := g.Text(dep.GetDirectives(), "package")
+		if pkg == "" {
+			pkg = dep.GetPackage()
+		}
+		file, _ := g.Text(dep.GetDirectives(), "file")
+		return pkg + "." + emit.Pascal(emit.LastSegment(r.Extern.GetName())), filePath(pkg, file), nil
+	}
+	return "", "", emit.Unsupported(r.Pos, "%s is declared in another package, and foreign types are not generated yet", r.Name)
 }
 
 func single(r *emit.Ref) bool {

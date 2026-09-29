@@ -13,9 +13,10 @@ import (
 //
 // A dependency is parsed but not lowered. What the walk needs from it is
 // its package name, its own imports, the block-scope directives of its
-// target blocks, and, for a `_` import, the names it exports. Whether a qualified reference names something that dependency
-// actually declares is not checked here: the reference carries the
-// dependency's package to the backend, which is what ir.md asks for.
+// target blocks, and, for a `_` import, the names it exports. Whether a
+// qualified reference names something that dependency actually declares is
+// not checked here: the reference carries the dependency's package to the
+// backend, which is what ir.md asks for.
 func (l *lowerer) loadImports(file *ast.File) {
 	if len(file.Imports) == 0 {
 		return

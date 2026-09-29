@@ -79,7 +79,7 @@ No expressions, no control flow, no runtime.
 This repo owns both the specification and the reference implementation.
 
 The parser reads the whole grammar, and lowering to `ir` reads all of it: `docs/design/ir-plan.md` phases 1 through 9 are done, and the conformance corpus lowers with no diagnostic.
-What is left is phase 8b, merging a dependency's target blocks, which the plan gates on something needing a dependency's blocks.
+Phase 8b, merging a dependency's target blocks, is partial: the block-scope directives of a dependency's target blocks reach its `ir.Import`, and its declaration-level directives do not.
 The plugin protocol in `docs/design/plugins.md` is complete.
 
 Pipeline, one package per stage:
@@ -153,6 +153,7 @@ Pipeline, one package per stage:
   `Param` interns a type parameter reference, and `Class`, `Satisfies`, and `Requires` build what a class needs, which lowering computes and a hand-built model has to state.
 - `backend/protobuf` — the protobuf backend: `.proto` files placed in the directories the package spells, one named for the package's last segment unless a `file` directive names it.
   A `file` directive on a declaration places it in another file of the package, which the files naming it import.
+  A type from a tdl dependency with a protobuf target block is the message that dependency generates, imported from its file.
   Every file is proto3 unless an `edition` directive names an edition, and under one a `T?` field carries no `optional` label, since every field already has explicit presence.
   An enum where any variant carries fields is a message holding a oneof of one nested message per variant, and a newtype is expanded to its base, since a wrapper message would change the wire format.
   A field carrying the `oneof` directive inlines its enum's single-field variants as a oneof in its message, and an enum named only by such fields is not emitted.
