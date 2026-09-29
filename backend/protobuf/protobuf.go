@@ -516,7 +516,11 @@ func (g *generator) service(b *strings.Builder, d *ir.Decl) ([]string, error) {
 			types[i] = prefix + types[i]
 		}
 		comment(b, "  ", f.GetMeta())
-		fmt.Fprintf(b, "  rpc %s(%s) returns (%s);\n", f.GetMeta().GetName(), types[0], types[1])
+		end := ";"
+		if f.GetMeta().IsDeprecated() {
+			end = " { option deprecated = true; }"
+		}
+		fmt.Fprintf(b, "  rpc %s(%s) returns (%s)%s\n", f.GetMeta().GetName(), types[0], types[1], end)
 	}
 	b.WriteString("}\n")
 	return []string{name}, nil
