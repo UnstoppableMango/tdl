@@ -121,6 +121,8 @@ var ident = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 type generator struct {
 	*emit.Session
 	pkg string
+	// file is what the file directive names, or "" when there is none.
+	file string
 
 	// edition is what the `edition` directive names, or "" for proto3.
 	edition string
@@ -166,9 +168,9 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		return g.Response(nil), nil
 	}
 	if d, ok := g.Block("file"); ok {
-		name := d.GetArgs()[0].GetText()
-		if strings.ContainsAny(name, `/\`) || !strings.HasSuffix(name, ".proto") {
-			g.Error(d.GetPosition(), "%q is not a protobuf file name", name)
+		g.file = d.GetArgs()[0].GetText()
+		if strings.ContainsAny(g.file, `/\`) || !strings.HasSuffix(g.file, ".proto") {
+			g.Error(d.GetPosition(), "%q is not a protobuf file name", g.file)
 			return g.Response(nil), nil
 		}
 	}
@@ -861,8 +863,8 @@ func (g *generator) filePath() string {
 	if g.pkg != "" {
 		name = emit.LastSegment(g.pkg) + ".proto"
 	}
-	if d, ok := g.Block("file"); ok {
-		name = d.GetArgs()[0].GetText()
+	if g.file != "" {
+		name = g.file
 	}
 	return path.Join(strings.ReplaceAll(g.pkg, ".", "/"), name)
 }
