@@ -160,6 +160,56 @@ func TestStructs(t *testing.T) {
 	)
 }
 
+// Thrift has no unsigned types, so uint32 widens to i64, which holds every
+// value of it, and Thrift's one floating-point type is double.
+func TestFixedWidthNumerics(t *testing.T) {
+	b := irtest.New("shop")
+	b.Own(value("Sizes",
+		irtest.Field("a", b.Named("int32")),
+		irtest.Field("b", b.Named("int64")),
+		irtest.Field("c", b.Named("uint32")),
+		irtest.Field("d", b.Named("float32")),
+		irtest.Field("e", b.Named("float64")),
+	))
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	contains(t, check(t, resp),
+		"struct Sizes { 1: i32 a 2: i64 b 3: i64 c 4: double d 5: double e }",
+	)
+}
+
+// No Thrift type holds every uint64, so a field of one is a warning at the
+// reference and its declaration is skipped.
+func TestUint64IsSkipped(t *testing.T) {
+	b := irtest.New("shop")
+	b.Own(value("Fine", irtest.Field("a", b.Named("int64"))))
+	ref := b.Named("uint64")
+	b.Model.Types[ref.GetIndex()].Position = &ir.Position{Filename: irtest.OwnFile, Line: 7}
+	b.Own(value("Broken", irtest.Field("x", ref)))
+
+	resp := generate(t, b)
+	diags := resp.GetDiagnostics()
+	if len(diags) != 1 {
+		t.Fatalf("want one warning for Broken: %+v", diags)
+	}
+	d := diags[0]
+	if d.GetSeverity() != plugin.Severity_SEVERITY_WARNING {
+		t.Errorf("severity = %v", d.GetSeverity())
+	}
+	if want := "primitive uint64 has no Thrift type"; !strings.Contains(d.GetMessage(), want) {
+		t.Errorf("message = %q, want it to contain %q", d.GetMessage(), want)
+	}
+	if line := d.GetPosition().GetLine(); line != 7 {
+		t.Errorf("position = %+v, want line 7", d.GetPosition())
+	}
+	src := check(t, resp)
+	absent(t, src, "struct Broken", "uint64")
+	contains(t, src, "struct Fine { 1: i64 a }")
+}
+
 // A Thrift compiler reads a file top to bottom, so a declaration comes
 // after everything it names, whatever order the model wrote them in.
 func TestDependencyOrder(t *testing.T) {
