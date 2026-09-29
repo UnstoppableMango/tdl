@@ -315,7 +315,8 @@ What a foreign type does not get is a method.
 Go declares a method beside the type, so a foreign type carries no `Validate`, and a `where` constraint on one warns at the constraint; it carries no class marker either, and satisfying a class warns at the mapping, and no `Key()`, so a `key` directive on one warns at the directive.
 A mapping this backend could not refer to, one with no import path or naming something that is not an exported Go identifier, warns and the declaration is generated as though it had not been written.
 
-An extern, a declaration an imported TDL package owns, is the same problem from the other side and is not solved yet: a target path names a declaration of the model's own, so nothing can attach a mapping to an extern today.
+An extern, a declaration an imported TDL package owns, is mapped the same way: a target path can name a declaration a `_` import merged in, so `Money => foreign("github.com/acme/money", "Money")` reaches it, and every field naming it is imported and qualified as a mapped local declaration is.
+An extern nothing maps has no Go type, so a declaration naming it warns and is skipped, and so is each declaration naming that one.
 It still warns and skips the declaration reaching it.
 
 ## Directives

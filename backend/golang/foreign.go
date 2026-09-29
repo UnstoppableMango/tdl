@@ -55,7 +55,7 @@ func (g *generator) planForeign() {
 			continue
 		}
 		path, name := args[0].GetText(), args[1].GetText()
-		if err := foreignProblem(dir.GetPosition(), d, path, name); err != nil {
+		if err := foreignProblem(dir.GetPosition(), d.GetMeta().GetName(), path, name); err != nil {
 			g.Warn(err)
 			continue
 		}
@@ -75,6 +75,44 @@ func (g *generator) planForeign() {
 				emit.LastSegment(d.GetMeta().GetName())))
 		}
 	}
+
+	// A target path can name a declaration another package owns, and its
+	// mapping is read the same way.
+	g.externs = map[*ir.Extern]foreignType{}
+	for _, e := range g.Model.GetExterns() {
+		dir, ok := g.Find(e.GetDirectives(), "foreign")
+		if !ok {
+			continue
+		}
+		args := dir.GetArgs()
+		if len(args) != 2 {
+			g.Warn(emit.Unsupported(dir.GetPosition(),
+				"foreign takes an import path and a type name, and %d argument(s) were given", len(args)))
+			continue
+		}
+		path, name := args[0].GetText(), args[1].GetText()
+		if err := foreignProblem(dir.GetPosition(), e.GetPackage()+"."+e.GetName(), path, name); err != nil {
+			g.Warn(err)
+			continue
+		}
+		alias, ok := byPath[path]
+		if !ok {
+			alias = g.alias(path)
+			byPath[path] = alias
+			g.aliases[alias] = true
+		}
+		g.externs[e] = foreignType{path: path, name: name, alias: alias}
+	}
+}
+
+// externForeign is the mapping of the extern a type refers to, if any.
+func (g *generator) externForeign(t *ir.Type) (foreignType, bool) {
+	i := int(t.GetExtern().GetIndex())
+	if i < 0 || i >= len(g.Model.GetExterns()) {
+		return foreignType{}, false
+	}
+	f, ok := g.externs[g.Model.GetExterns()[i]]
+	return f, ok
 }
 
 // warnForeignConstraints says at each constraint on a foreign declaration
@@ -97,8 +135,7 @@ func (g *generator) warnForeignConstraints(d *ir.Decl) {
 }
 
 // foreignProblem reports a mapping the generated code could not refer to.
-func foreignProblem(pos *ir.Position, d *ir.Decl, path, name string) error {
-	of := d.GetMeta().GetName()
+func foreignProblem(pos *ir.Position, of, path, name string) error {
 	switch {
 	case path == "":
 		return emit.Unsupported(pos, "the foreign mapping of %s has no import path", of)

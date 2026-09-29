@@ -107,6 +107,7 @@ type generator struct {
 	// another package declares, and aliases the identifiers those imports
 	// are named by.
 	foreign map[*ir.Decl]foreignType
+	externs map[*ir.Extern]foreignType
 	aliases map[string]bool
 }
 
