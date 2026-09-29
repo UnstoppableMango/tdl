@@ -184,6 +184,26 @@ func TestMessages(t *testing.T) {
 	)
 }
 
+func TestFixedWidthNumerics(t *testing.T) {
+	b := irtest.New("shop")
+	b.Own(value("Sizes",
+		irtest.Field("a", b.Named("int32")),
+		irtest.Field("b", b.Named("uint32")),
+		irtest.Field("c", b.Named("int64")),
+		irtest.Field("d", b.Named("uint64")),
+		irtest.Field("e", b.Named("float32")),
+		irtest.Field("f", b.Named("float64")),
+	))
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	contains(t, compile(t, resp),
+		"message Sizes { int32 a = 1; uint32 b = 2; int64 c = 3; uint64 d = 4; float e = 5; double f = 6; }",
+	)
+}
+
 func TestImportsOnlyWhatIsUsed(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(value("Note", irtest.Field("body", b.Named("string"))))
