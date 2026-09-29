@@ -87,3 +87,56 @@ func TestUnrepeatableDirectiveTiedIsAnError(t *testing.T) {
 		t.Errorf("problems = %v, want an error %q", problems, want)
 	}
 }
+
+// twoClassRules reaches Ent through two classes it satisfies at the same
+// distance, so both entries tie.
+const twoClassRules = `package p
+
+class One { x: string }
+class Two { y: string }
+type Ent: Entity, One, Two { id: string x: string y: string }
+
+target t for p {
+  One => rule("a")
+  Two => rule("b")
+}
+`
+
+func hasProblem(problems []*plugin.Diagnostic, severity plugin.Severity, message string) bool {
+	for _, p := range problems {
+		if p.GetSeverity() == severity && p.GetMessage() == message {
+			return true
+		}
+	}
+	return false
+}
+
+func TestUnrepeatableDirectiveTiedThroughClassesIsAnError(t *testing.T) {
+	model := lowerClean(t, twoClassRules)
+	desc := plugin.Description{
+		Name:       "t",
+		Directives: []*plugin.DirectiveSpec{{Name: "rule", MinArgs: 1, MaxArgs: 1}},
+	}
+
+	problems := gen.CheckDirectives("t", model, desc)
+	const want = "two entries at the same specificity set rule; one of them has to go"
+	if !hasProblem(problems, plugin.Severity_SEVERITY_ERROR, want) {
+		t.Errorf("problems = %v, want an error %q", problems, want)
+	}
+}
+
+// A directive the backend does not declare cannot be repeatable, so a tie
+// on it is an error on top of the undeclared warning.
+func TestUndeclaredDirectiveTiedIsAnError(t *testing.T) {
+	model := lowerClean(t, twoReserved)
+
+	problems := gen.CheckDirectives("t", model, plugin.Description{Name: "t"})
+	const tie = "two entries at the same specificity set reserved; one of them has to go"
+	if !hasProblem(problems, plugin.Severity_SEVERITY_ERROR, tie) {
+		t.Errorf("problems = %v, want an error %q", problems, tie)
+	}
+	const undeclared = "t does not declare the directive reserved"
+	if !hasProblem(problems, plugin.Severity_SEVERITY_WARNING, undeclared) {
+		t.Errorf("problems = %v, want a warning %q", problems, undeclared)
+	}
+}
