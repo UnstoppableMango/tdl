@@ -49,7 +49,48 @@ func CheckDirectives(target string, model *ir.Model, desc plugin.Description) []
 		}
 		problems = append(problems, checkOne(d, spec)...)
 	}
+
+	// Lowering keeps every entry at the winning specificity, so a name
+	// appearing twice on one node is a tie. Only a directive the backend
+	// declares repeatable may tie.
+	for _, ds := range nodeDirectives(target, model) {
+		seen := map[string]bool{}
+		for _, d := range ds {
+			if !seen[d.GetName()] {
+				seen[d.GetName()] = true
+				continue
+			}
+			if specs[d.GetName()].GetRepeatable() {
+				continue
+			}
+			problems = append(problems, problem(d.GetPosition(), plugin.Severity_SEVERITY_ERROR,
+				"two entries at the same specificity set %s; one of them has to go", d.GetName()))
+		}
+	}
 	return problems
+}
+
+// nodeDirectives is the directives belonging to a target on each node of
+// the model's declarations, one slice per node.
+func nodeDirectives(target string, model *ir.Model) [][]*ir.Directive {
+	var nodes [][]*ir.Directive
+
+	add := func(ds []*ir.Directive) {
+		nodes = append(nodes, plugin.Directives(target, ds))
+	}
+	for _, decl := range model.GetDecls() {
+		add(decl.GetDirectives())
+		for _, f := range decl.Fields() {
+			add(f.GetDirectives())
+		}
+		for _, v := range decl.GetEnumeration().GetVariants() {
+			add(v.GetDirectives())
+			for _, f := range v.GetFields() {
+				add(f.GetDirectives())
+			}
+		}
+	}
+	return nodes
 }
 
 func checkOne(d *ir.Directive, spec *plugin.DirectiveSpec) []*plugin.Diagnostic {

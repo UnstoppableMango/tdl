@@ -12,8 +12,7 @@ import (
 // specificity that decides whether it does.
 type candidate struct {
 	directive *ir.Directive
-	spec      int          // higher wins
-	pos       ast.Position // where the entry was written
+	spec      int // higher wins
 }
 
 // Specificity, as the spec's ladder: a directive on a field beats one on
@@ -45,9 +44,10 @@ type memberKey struct {
 // each directive to the node it applies to.
 //
 // By the time a backend runs, paths are resolved, class paths are expanded
-// across everything satisfying them, the ladder has been applied, and
-// conflicts have been reported. A backend reads one field on the node in
-// front of it.
+// across everything satisfying them, and the ladder has been applied. Ties
+// at one specificity are kept in source order for gen.CheckDirectives to
+// judge against the backend's DirectiveSpec. A backend reads one field on
+// the node in front of it.
 func (l *lowerer) lowerTargets(file *ast.File) {
 	t := &targetPass{
 		lowerer:  l,
@@ -159,12 +159,12 @@ func (t *targetPass) attach(path string, pos ast.Position, d *ir.Directive) {
 			t.diags.add(pos, "target path %s names nothing: a class path reaches a field and no further", path)
 			return
 		}
-		t.expandClass(b.id, member, pos, d)
+		t.expandClass(b.id, member, d)
 		return
 	}
 
 	if member == "" {
-		t.byDecl[idx] = append(t.byDecl[idx], candidate{directive: d, spec: specDecl, pos: pos})
+		t.byDecl[idx] = append(t.byDecl[idx], candidate{directive: d, spec: specDecl})
 		return
 	}
 
@@ -193,7 +193,7 @@ func (t *targetPass) attach(path string, pos ast.Position, d *ir.Directive) {
 			return
 		}
 	}
-	t.byMember[key] = append(t.byMember[key], candidate{directive: d, spec: specField, pos: pos})
+	t.byMember[key] = append(t.byMember[key], candidate{directive: d, spec: specField})
 }
 
 // expandClass applies a directive to every declaration satisfying a class.
@@ -201,7 +201,7 @@ func (t *targetPass) attach(path string, pos ast.Position, d *ir.Directive) {
 // A closer class wins: a directive on Auditable beats one on the
 // Timestamped it requires, because a type conforming to Auditable is more
 // specifically that than it is timestamped.
-func (t *targetPass) expandClass(class *ir.ID, member string, pos ast.Position, d *ir.Directive) {
+func (t *targetPass) expandClass(class *ir.ID, member string, d *ir.Directive) {
 	for _, id := range t.model.Satisfying(class) {
 		idx := id.GetIndex()
 		decl := t.model.GetDecls()[idx]
@@ -213,7 +213,7 @@ func (t *targetPass) expandClass(class *ir.ID, member string, pos ast.Position, 
 			Target:    d.GetTarget(),
 			FromClass: class,
 		}
-		c := candidate{directive: expanded, spec: specClass - t.classDistance(decl, class), pos: pos}
+		c := candidate{directive: expanded, spec: specClass - t.classDistance(decl, class)}
 
 		if member == "" {
 			t.byDecl[idx] = append(t.byDecl[idx], c)
@@ -242,36 +242,26 @@ func (l *lowerer) classDistance(decl *ir.Decl, class *ir.ID) int {
 }
 
 // resolveConflicts applies the ladder: per directive name, the most
-// specific candidate wins, and two at the same specificity are an error
-// rather than a silent choice.
+// specific candidates win, and every candidate at that specificity is kept
+// in source order. Whether a directive may appear more than once is the
+// backend's to say, so gen.CheckDirectives reports ties rather than
+// lowering.
 func (l *lowerer) resolveConflicts(cands []candidate) []*ir.Directive {
 	key := func(c candidate) string { return c.directive.GetTarget() + "\x00" + c.directive.GetName() }
-	best := map[string]candidate{}
-	tied := map[string]bool{}
+	best := map[string]int{}
 
 	for _, c := range cands {
 		k := key(c)
-		prev, seen := best[k]
-		switch {
-		case !seen || c.spec > prev.spec:
-			best[k] = c
-			tied[k] = false
-		case c.spec == prev.spec:
-			tied[k] = true
+		if prev, seen := best[k]; !seen || c.spec > prev {
+			best[k] = c.spec
 		}
 	}
 
 	var out []*ir.Directive
 	for _, c := range cands {
-		k := key(c)
-		if best[k].directive != c.directive {
-			continue
+		if c.spec == best[key(c)] {
+			out = append(out, c.directive)
 		}
-		if tied[k] {
-			l.diags.add(c.pos, "two entries at the same specificity set %s; one of them has to go",
-				c.directive.GetName())
-		}
-		out = append(out, c.directive)
 	}
 	return out
 }
