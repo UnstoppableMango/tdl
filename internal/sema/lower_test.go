@@ -887,6 +887,60 @@ primitive int32
 	}
 }
 
+// A unit is always exported, whatever its case, so a `_` import merges a
+// lower-case unit and a type argument can name it.
+func TestUnderscoreImportMergesUnit(t *testing.T) {
+	file, err := parser.Parse("main.tdl", strings.NewReader(`
+import "dep.tdl" as _
+
+type Length { value: decimal<m> }
+`))
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+
+	model, diags := Lower(file, WithLoader(MapLoader{
+		"dep.tdl": "package acme.si\nunit m\n",
+	}))
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+
+	length, _, _ := model.FindDecl("Length")
+	args := model.Type(length.Fields()[0].GetType()).GetArgs()
+	if len(args) != 1 {
+		t.Fatalf("decimal<m> has %d arguments, want 1", len(args))
+	}
+	arg := model.Type(args[0])
+	if arg.GetExtern() == nil {
+		t.Fatalf("the unit argument is not an extern: %+v", arg)
+	}
+	ext := model.GetExterns()[arg.GetExtern().GetIndex()]
+	if ext.GetPackage() != "acme.si" || ext.GetName() != "m" {
+		t.Errorf("extern = %+v, want acme.si.m", ext)
+	}
+}
+
+// A lower-case declaration that is neither a primitive nor a unit is
+// package-private, so a `_` import does not merge it.
+func TestUnderscoreImportSkipsLowerCaseType(t *testing.T) {
+	file, err := parser.Parse("main.tdl", strings.NewReader(`
+import "dep.tdl" as _
+
+type Order { part: widget }
+`))
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+
+	_, diags := Lower(file, WithLoader(MapLoader{
+		"dep.tdl": "package acme.parts\ntype widget { }\n",
+	}))
+	if !strings.Contains(diags.Error(), "undefined: widget") {
+		t.Errorf("diagnostics = %v, want undefined: widget", diags)
+	}
+}
+
 func TestImportCycle(t *testing.T) {
 	file, err := parser.Parse("a.tdl", strings.NewReader(`import "b.tdl" as b`))
 	if err != nil {
