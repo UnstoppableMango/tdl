@@ -214,44 +214,6 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	return g.Response([]*plugin.File{{Path: filePath(g.pkg), Content: []byte(b.String())}}), nil
 }
 
-// inlinedOnly is the sum types every use of which is a field carrying
-// `oneof`. Each such field writes the variants out itself, so the sum
-// type's message would be declared and never named.
-func (g *generator) inlinedOnly() map[*ir.Decl]bool {
-	inlined := map[*ir.Decl]bool{}
-	named := map[*ir.Decl]bool{}
-	for _, d := range g.Model.GetDecls() {
-		if d.GetAlias() != nil {
-			continue
-		}
-		fields := d.Fields()
-		for _, v := range d.GetEnumeration().GetVariants() {
-			fields = append(fields, v.GetFields()...)
-		}
-		var plain []*ir.Field
-		for _, f := range fields {
-			if !g.has(f.GetDirectives(), "oneof") {
-				plain = append(plain, f)
-				continue
-			}
-			if ref, err := g.Resolve(f.GetType()); err == nil && ref.Form == emit.Named {
-				inlined[ref.Decl] = true
-			}
-		}
-		rest := d
-		if d.GetStructure() != nil || d.GetEnumeration() != nil {
-			rest = &ir.Decl{Node: &ir.Decl_Structure{Structure: &ir.Struct{Fields: plain}}}
-		}
-		for _, r := range g.References(rest) {
-			named[r] = true
-		}
-	}
-	for d := range named {
-		delete(inlined, d)
-	}
-	return inlined
-}
-
 // decl renders one declaration, or "" for one that declares nothing.
 func (g *generator) decl(d *ir.Decl) (string, error) {
 	pos := d.GetMeta().GetPosition()
@@ -326,12 +288,6 @@ func (g *generator) name(all []*ir.Directive, fallback string) (string, error) {
 		return "", emit.Unsupported(d.GetPosition(), "%q is not a protobuf name", n)
 	}
 	return n, nil
-}
-
-// has reports whether a node carries this target's directive. It covers
-// the directives that take no argument, which [emit.Session.Find] skips.
-func (g *generator) has(all []*ir.Directive, name string) bool {
-	return slices.ContainsFunc(plugin.Directives(g.Target, all), func(d *ir.Directive) bool { return d.GetName() == name })
 }
 
 // declName is [generator.name] over a declaration, matching what
@@ -530,7 +486,7 @@ func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*i
 	first := make([]int, len(fields))
 	for i, f := range fields {
 		first[i] = len(members)
-		if !g.has(f.GetDirectives(), "oneof") {
+		if !g.isOneof(f) {
 			members = append(members, emit.FieldMembers(fields[i:i+1])...)
 			continue
 		}
@@ -557,7 +513,7 @@ func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*i
 		if err != nil {
 			return nil, err
 		}
-		if g.has(f.GetDirectives(), "oneof") {
+		if g.isOneof(f) {
 			if err := g.inlineOneof(b, indent, f, ref, nums[first[i]:], nested); err != nil {
 				return nil, err
 			}
@@ -591,16 +547,52 @@ func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*i
 	return out, nil
 }
 
+// oneofDirective is a field's `oneof` directive for this target, or nil.
+// [emit.Session.Find] skips a directive that takes no argument.
+func (g *generator) oneofDirective(f *ir.Field) *ir.Directive {
+	for _, d := range plugin.Directives(g.Target, f.GetDirectives()) {
+		if d.GetName() == "oneof" {
+			return d
+		}
+	}
+	return nil
+}
+
+func (g *generator) isOneof(f *ir.Field) bool { return g.oneofDirective(f) != nil }
+
+// inlinedOnly is the sum types every use of which is a field carrying
+// `oneof`. Each such field writes the variants out itself, so the sum
+// type's message would be declared and never named.
+func (g *generator) inlinedOnly() map[*ir.Decl]bool {
+	inlined := map[*ir.Decl]bool{}
+	var named []*ir.ID
+	for _, d := range g.Model.GetDecls() {
+		if n := d.GetNewtype(); n != nil {
+			named = append(named, n.GetBase())
+			continue
+		}
+		fields := d.Fields()
+		for _, v := range d.GetEnumeration().GetVariants() {
+			fields = append(fields, v.GetFields()...)
+		}
+		for _, f := range fields {
+			if !g.isOneof(f) {
+				named = append(named, f.GetType())
+			} else if ref, err := g.Resolve(f.GetType()); err == nil && ref.Form == emit.Named {
+				inlined[ref.Decl] = true
+			}
+		}
+	}
+	for _, d := range g.TypeReferences(named...) {
+		delete(inlined, d)
+	}
+	return inlined
+}
+
 // inlinable reports why a field's `oneof` directive cannot be honored: its
 // type has to be an enum whose every variant carries exactly one field.
 func (g *generator) inlinable(f *ir.Field, ref *emit.Ref) error {
-	var pos *ir.Position
-	for _, d := range plugin.Directives(g.Target, f.GetDirectives()) {
-		if d.GetName() == "oneof" {
-			pos = d.GetPosition()
-			break
-		}
-	}
+	pos := g.oneofDirective(f).GetPosition()
 	name := f.GetMeta().GetName()
 	e := ref.Decl.GetEnumeration()
 	if ref.Form != emit.Named || e == nil {
