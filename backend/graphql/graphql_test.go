@@ -144,6 +144,33 @@ func TestScalarsAreDeclaredOnlyWhenUsed(t *testing.T) {
 	absent(t, check(t, generate(t, b)), "scalar")
 }
 
+// GraphQL's Int is signed 32-bit, so int32 is Int. int64 and uint32 fit a
+// Long, and uint64 needs a scalar of its own.
+func TestFixedWidthNumerics(t *testing.T) {
+	b := irtest.New("shop")
+	b.Own(value("Sizes",
+		irtest.Field("a", b.Named("int32")),
+		irtest.Field("b", b.Named("int64")),
+		irtest.Field("c", b.Named("uint32")),
+		irtest.Field("d", b.Named("uint64")),
+		irtest.Field("e", b.Named("float32")),
+		irtest.Field("f", b.Named("float64")),
+	))
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	src := check(t, resp)
+	contains(t, src, "type Sizes { a: Int! b: Long! c: Long! d: UInt64! e: Float! f: Float! }")
+	for _, s := range []string{"scalar Long\n", "scalar UInt64\n"} {
+		if n := strings.Count(src, s); n != 1 {
+			t.Errorf("%q declared %d times:\n%s", strings.TrimSpace(s), n, src)
+		}
+	}
+	absent(t, src, "scalar Int", "scalar Float")
+}
+
 func TestEnums(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(enum("Status", variant("Active"), variant("InProgress")))
