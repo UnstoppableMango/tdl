@@ -309,12 +309,11 @@ func (g *generator) message(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	fmt.Fprintf(b, "message %s {\n", name)
 	numbers, names := g.reserved(b, d)
 	deprecatedOption(b, "  ", d.GetMeta())
-	fields := d.Fields()
-	nums, err := g.fields(b, "  ", name, fields, nil, numbers)
+	slots, err := g.fields(b, "  ", name, d.Fields(), nil, numbers)
 	if err != nil {
 		return nil, err
 	}
-	if err := g.checkReserved(name, fields, nums, numbers, names); err != nil {
+	if err := g.checkReserved(name, slots, numbers, names); err != nil {
 		return nil, err
 	}
 	b.WriteString("}\n")
@@ -352,25 +351,21 @@ func (g *generator) reserved(b *strings.Builder, d *ir.Decl) (map[int64]bool, ma
 	return numbers, names
 }
 
-// checkReserved refuses a field whose number or name the message reserves,
-// since protoc rejects such a message. Only a pin can land on a reserved
-// number, since unpinned fields skip them. nums is what [generator.fields]
-// numbered the fields.
-func (g *generator) checkReserved(owner string, fields []*ir.Field, nums []int64, numbers map[int64]bool, names map[string]bool) error {
-	for i, f := range fields {
-		if numbers[nums[i]] {
-			pos := f.GetMeta().GetPosition()
-			if p, ok := g.Find(f.GetDirectives(), "number"); ok {
+// checkReserved refuses a field, or an inlined oneof's member, whose number
+// or name the message reserves, since protoc rejects such a message. Only a
+// pin can land on a reserved number, since unpinned members skip them. slots
+// is what [generator.fields] gave out.
+func (g *generator) checkReserved(owner string, slots []slot, numbers map[int64]bool, names map[string]bool) error {
+	for _, s := range slots {
+		if numbers[s.num] {
+			pos := s.Position
+			if p, ok := g.Find(s.Directives, "number"); ok {
 				pos = p.GetPosition()
 			}
-			return emit.Unsupported(pos, "%s.%s is numbered %d, which the message reserves", owner, f.GetMeta().GetName(), nums[i])
+			return emit.Unsupported(pos, "%s.%s is numbered %d, which the message reserves", owner, s.Name, s.num)
 		}
-		name, err := g.name(f.GetDirectives(), emit.Snake(f.GetMeta().GetName()))
-		if err != nil {
-			return err
-		}
-		if names[name] {
-			return emit.Unsupported(f.GetMeta().GetPosition(), "%s.%s is named %s, which the message reserves", owner, f.GetMeta().GetName(), name)
+		if names[s.name] {
+			return emit.Unsupported(s.Position, "%s.%s is named %s, which the message reserves", owner, s.Name, s.name)
 		}
 	}
 	return nil
@@ -474,26 +469,56 @@ func (g *generator) sum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	return []string{name}, nil
 }
 
-// fields renders a message body and returns the numbers it gave the
-// fields. nested is the names of the messages declared beside it, which a
-// reference has to step around; skip is the numbers unpinned fields pass over.
-func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*ir.Field, nested map[string]bool, skip map[int64]bool) ([]int64, error) {
+// slot is a number a message body gives out, to a field or to one member of
+// an inlined oneof, which protobuf counts as a field of the message.
+type slot struct {
+	emit.Member
+	name string // the protobuf name written
+	num  int64
+}
+
+// fields renders a message body and returns the numbers it gave out, in the
+// order written. nested is the names of the messages declared beside it,
+// which a reference has to step around; skip is the numbers unpinned fields
+// and oneof members pass over.
+func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*ir.Field, nested map[string]bool, skip map[int64]bool) ([]slot, error) {
+	// An inlined oneof's variants take numbers in the message's space in
+	// the oneof's place, and the oneof takes none.
+	var members []emit.Member
+	first := make([]int, len(fields))
+	for i, f := range fields {
+		first[i] = len(members)
+		if !g.has(f.GetDirectives(), "oneof") {
+			members = append(members, emit.FieldMembers(fields[i:i+1])...)
+			continue
+		}
+		ref, err := g.Resolve(f.GetType())
+		if err != nil {
+			return nil, err
+		}
+		members = append(members, emit.VariantMembers(ref.Decl.GetEnumeration().GetVariants())...)
+	}
 	rule := fieldNumbers
 	rule.Skip = skip
-	nums, err := g.Numbers(owner, emit.FieldMembers(fields), rule)
+	nums, err := g.Numbers(owner, members, rule)
 	if err != nil {
 		return nil, err
 	}
 
 	seen := map[string]bool{}
+	out := make([]slot, 0, len(members))
 	for i, f := range fields {
 		ref, err := g.Resolve(f.GetType())
 		if err != nil {
 			return nil, err
 		}
 		if g.has(f.GetDirectives(), "oneof") {
-			if err := g.inlineOneof(b, indent, f, ref, nested); err != nil {
+			if err := g.inlineOneof(b, indent, f, ref, nums[first[i]:], nested); err != nil {
 				return nil, err
+			}
+			for j, v := range ref.Decl.GetEnumeration().GetVariants() {
+				k := first[i] + j
+				out = append(out, slot{members[k], emit.Snake(v.GetFields()[0].GetMeta().GetName()), nums[k]})
 			}
 			continue
 		}
@@ -515,19 +540,16 @@ func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*i
 		if label != "" {
 			label += " "
 		}
-		fmt.Fprintf(b, "%s%s%s %s = %d%s;\n", indent, label, typ, name, nums[i], deprecatedField(f.GetMeta()))
+		fmt.Fprintf(b, "%s%s%s %s = %d%s;\n", indent, label, typ, name, nums[first[i]], deprecatedField(f.GetMeta()))
+		out = append(out, slot{members[first[i]], name, nums[first[i]]})
 	}
-	return nums, nil
+	return out, nil
 }
 
 // inlineOneof renders a field whose type is a sum type as a oneof of the
-// variants' single fields, numbered by the variants' numbers.
-func (g *generator) inlineOneof(b *strings.Builder, indent string, f *ir.Field, ref *emit.Ref, nested map[string]bool) error {
+// variants' single fields, numbered by nums in variant order.
+func (g *generator) inlineOneof(b *strings.Builder, indent string, f *ir.Field, ref *emit.Ref, nums []int64, nested map[string]bool) error {
 	variants := ref.Decl.GetEnumeration().GetVariants()
-	nums, err := g.Numbers(ref.Decl.GetMeta().GetName(), emit.VariantMembers(variants), fieldNumbers)
-	if err != nil {
-		return err
-	}
 	fmt.Fprintf(b, "%soneof %s {\n", indent, emit.Snake(f.GetMeta().GetName()))
 	for i, v := range variants {
 		vf := v.GetFields()[0]

@@ -612,7 +612,7 @@ func TestOneofSharesNumbers(t *testing.T) {
 	)
 }
 
-// A pinned oneof member colliding with a field of the containing message is
+// A oneof member pinned to the number a field of the containing message pins is
 // the same warning as two colliding fields, and the message is skipped.
 func TestOneofMemberCollides(t *testing.T) {
 	b := irtest.New("shop")
@@ -624,7 +624,9 @@ func TestOneofMemberCollides(t *testing.T) {
 	))
 	actor := irtest.Field("actor", b.Named("TriggerActor"))
 	actor.Directives = []*ir.Directive{{Name: "oneof", Target: protobuf.Name}}
-	b.Own(value("Trigger", irtest.Field("kind", b.Named("string")), actor))
+	kind := irtest.Field("kind", b.Named("string"))
+	kind.Directives = []*ir.Directive{number("1")}
+	b.Own(value("Trigger", kind, actor))
 	b.Own(value("Fine", irtest.Field("a", b.Named("string"))))
 
 	resp := generate(t, b)
