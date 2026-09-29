@@ -110,7 +110,7 @@ func at(b *irtest.Builder, id *ir.ID, line int32) *ir.ID {
 
 // A newtype over an extern nothing maps expands to nothing protobuf has, so
 // the one message using it is skipped with one warning naming the extern,
-// placed at the use rather than at the newtype.
+// placed where the newtype names the extern.
 func TestNewtypeOverUnmappedExternIsSkipped(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(newtype("Cond", at(b, b.ExternIn("k8s.io.apimachinery.pkg.apis.meta.v1", "Condition"), 3)))
@@ -125,8 +125,8 @@ func TestNewtypeOverUnmappedExternIsSkipped(t *testing.T) {
 	if diags[0].GetSeverity() != plugin.Severity_SEVERITY_WARNING {
 		t.Errorf("severity = %v", diags[0].GetSeverity())
 	}
-	if pos := diags[0].GetPosition(); pos.GetFilename() != irtest.OwnFile || pos.GetLine() != 9 {
-		t.Errorf("position = %+v, want %s:9, the field using the newtype", pos, irtest.OwnFile)
+	if pos := diags[0].GetPosition(); pos.GetFilename() != irtest.OwnFile || pos.GetLine() != 3 {
+		t.Errorf("position = %+v, want %s:3, where the extern is named", pos, irtest.OwnFile)
 	}
 	contains(t, diags[0].GetMessage(), "k8s.io.apimachinery.pkg.apis.meta.v1.Condition")
 	src := compile(t, resp)
