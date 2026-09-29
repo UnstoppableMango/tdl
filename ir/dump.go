@@ -23,7 +23,11 @@ func Dump(m *Model) string {
 				if pkg := imp.GetPackage(); pkg != "" {
 					desc += "  (" + pkg + ")"
 				}
-				d.leaf(prefix, i == len(m.GetImports())-1, desc, imp.GetPosition())
+				last := i == len(m.GetImports())-1
+				d.leaf(prefix, last, desc, imp.GetPosition())
+				for j, dir := range imp.GetDirectives() {
+					d.leaf(prefix+pad(last), j == len(imp.GetDirectives())-1, directiveText(dir), dir.GetPosition())
+				}
 			}
 		})
 	}

@@ -191,7 +191,11 @@ Resolved directives attach to the nodes they apply to.
 
 By the time a backend runs, the specificity ladder has been applied, class-scoped directives have been expanded across every satisfying type, and entries tied at one specificity have been checked against the directives the backend declares repeatable: a tie on any other directive is an error before the backend runs, and a repeatable one reaches it as every entry in source order.
 
-Merging a dependency's target blocks is not done: it needs the dependency lowered, and nothing else does. See ir-plan.md phase 8b.
+An `Import` carries its dependency's block-scope directives: the bare directives at the top level of each of the dependency's target blocks for its own package, each naming the block's target.
+A backend generating a reference into the dependency reads from them where the dependency says its declarations are generated, such as a protobuf `file` or `package`.
+They are read from the dependency's parse tree, so none of the dependency is lowered.
+
+Merging a dependency's declaration-level directives is not done: it needs the dependency lowered, and nothing else does. See ir-plan.md phase 8b.
 
 An `Entity` carries its directives; so does each `Field`, and so does each `Extern`.
 A backend reads one field on the node in front of it, and never does a lookup or a precedence computation.
