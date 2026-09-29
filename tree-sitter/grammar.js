@@ -31,7 +31,7 @@ module.exports = grammar({
       $.instance_decl,
       $.target_decl,
     ),
-    package_decl: $ => seq('package', $.dotted_ident),
+    package_decl: $ => seq('package', $.name, repeat(seq('.', $.name))),
     import_decl: $ => seq('import', $.string_lit, 'as', choice($.identifier, '_')),
     dotted_ident: $ => seq($.identifier, repeat(seq('.', $.identifier))),
     name: $ => choice($.identifier, $.reserved_word),

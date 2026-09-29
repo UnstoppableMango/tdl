@@ -211,7 +211,12 @@ func (p *parser) parseDoc() ([]string, ast.Position) {
 func (p *parser) parsePackageDecl() *ast.PackageDecl {
 	pos := p.cur.Pos
 	p.next() // 'package'
-	return &ast.PackageDecl{P: pos, Path: p.parseDottedIdent()}
+	name := p.expectDirectiveIdent()
+	for p.at(lex.DOT) {
+		p.next()
+		name += "." + p.expectDirectiveIdent()
+	}
+	return &ast.PackageDecl{P: pos, Path: name}
 }
 
 func (p *parser) parseDottedIdent() string {

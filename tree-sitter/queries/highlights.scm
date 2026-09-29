@@ -71,7 +71,7 @@
 
 (field (name) @property)
 
-(package_decl (dotted_ident (identifier) @module))
+(package_decl (name) @module)
 (import_decl (identifier) @module)
 
 ; A target path is the backend's namespace, and a directive is the call it

@@ -44,7 +44,7 @@ Decl     = PackageDecl | ImportDecl | PrimitiveDecl | UnitDecl
          | AliasDecl | TypeDecl | EnumDecl
          | ClassDecl | MixinDecl | InstanceDecl | TargetDecl .
 
-PackageDecl = "package" DottedIdent .
+PackageDecl = "package" Name { "." Name } .
 ImportDecl  = "import" string_lit "as" ( identifier | "_" ) .
 DottedIdent = identifier { "." identifier } .
 
@@ -53,7 +53,9 @@ Name = identifier | reserved_word .
    says which reading is meant.  A field name is followed by ':', so
    `include Foo` is an include and `include: Foo` is a field.  A directive
    name and a target path segment need no such test, because that
-   namespace belongs to the backend.
+   namespace belongs to the backend, and neither does a package path
+   segment, which follows `package` and may mirror another schema's
+   namespace, as in `package google.type`.
 
    Every other name is a plain identifier, so `enum type`,
    `import "x" as type`, and `x: mixin` are each errors. */
