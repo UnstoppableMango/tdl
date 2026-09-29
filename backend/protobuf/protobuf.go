@@ -496,6 +496,9 @@ func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*i
 		if err != nil {
 			return nil, err
 		}
+		if err := g.inlinable(f, ref); err != nil {
+			return nil, err
+		}
 		members = append(members, emit.VariantMembers(ref.Decl.GetEnumeration().GetVariants())...)
 	}
 	rule := fieldNumbers
@@ -544,6 +547,29 @@ func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*i
 		out = append(out, slot{members[first[i]], name, nums[first[i]]})
 	}
 	return out, nil
+}
+
+// inlinable reports why a field's `oneof` directive cannot be honored: its
+// type has to be an enum whose every variant carries exactly one field.
+func (g *generator) inlinable(f *ir.Field, ref *emit.Ref) error {
+	var pos *ir.Position
+	for _, d := range plugin.Directives(g.Target, f.GetDirectives()) {
+		if d.GetName() == "oneof" {
+			pos = d.GetPosition()
+			break
+		}
+	}
+	name := f.GetMeta().GetName()
+	e := ref.Decl.GetEnumeration()
+	if ref.Form != emit.Named || e == nil {
+		return emit.Unsupported(pos, "field %s is a oneof, and only an enum can be inlined as one", name)
+	}
+	for _, v := range e.GetVariants() {
+		if n := len(v.GetFields()); n != 1 {
+			return emit.Unsupported(pos, "field %s is a oneof, and variant %s carries %d fields rather than one", name, v.GetMeta().GetName(), n)
+		}
+	}
+	return nil
 }
 
 // inlineOneof renders a field whose type is a sum type as a oneof of the
