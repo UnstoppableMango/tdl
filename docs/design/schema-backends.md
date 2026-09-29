@@ -52,6 +52,12 @@ The constraint warning above is the exception: it reports what is not enforced a
 | --- | --- | --- | --- | --- | --- |
 | `string` | `string` | `string` | `String` | `String` | `string` |
 | `int` | `int64` | `i64` | `Long` | `scalar Long` | `number` |
+| `int32` | `int32` | | | | |
+| `uint32` | `uint32` | | | | |
+| `int64` | `int64` | | | | |
+| `uint64` | `uint64` | | | | |
+| `float32` | `float` | | | | |
+| `float64` | `double` | | | | |
 | `bool` | `bool` | `bool` | `Boolean` | `Boolean` | `boolean` |
 | `bytes` | `bytes` | `binary` | `Blob` | `scalar Bytes` | `string` |
 | `decimal` | `string` | `string` | `BigDecimal` | `scalar Decimal` | `string` |

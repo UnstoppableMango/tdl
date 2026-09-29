@@ -70,6 +70,12 @@ var (
 var scalars = map[string]string{
 	"string":   "string",
 	"int":      "int64",
+	"int32":    "int32",
+	"uint32":   "uint32",
+	"int64":    "int64",
+	"uint64":   "uint64",
+	"float32":  "float",
+	"float64":  "double",
 	"bool":     "bool",
 	"bytes":    "bytes",
 	"decimal":  "string",
