@@ -45,6 +45,18 @@ import "std/prelude" as _
 	}
 }
 
+func TestPackagePathKeywordSegment(t *testing.T) {
+	file := parse(t, `
+package google.type
+
+type Money { units: int }
+`)
+
+	if file.Package == nil || file.Package.Path != "google.type" {
+		t.Fatalf("package = %+v, want google.type", file.Package)
+	}
+}
+
 func TestPrimitiveKinds(t *testing.T) {
 	file := parse(t, `
 primitive string
