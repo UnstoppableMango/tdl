@@ -220,3 +220,92 @@ target protobuf for acme.widgets.v1 {
 		"// Serves widgets.\nservice WidgetService {\n  // Fetches one widget by name.\n  rpc GetWidget(GetWidgetRequest) returns (Widget);\n}",
 	)
 }
+
+// googleAPIClient stands in for google/api/client.proto, declaring only the
+// service option the tests set.
+var googleAPIClient = map[string]string{
+	"google/api/client.proto": `syntax = "proto3";
+package google.api;
+import "google/protobuf/descriptor.proto";
+extend google.protobuf.ServiceOptions {
+  string default_host = 1049;
+}
+`,
+}
+
+// An option directive on a service is an option statement in its body,
+// after the one its deprecation writes.
+func TestServiceOptionIsWritten(t *testing.T) {
+	const src = `package acme.widgets.v1
+
+primitive Fn: type -> type -> type
+
+type GetWidgetRequest { name: string }
+
+type Widget { name: string }
+
+deprecated("use v2")
+type WidgetService { GetWidget: Fn<GetWidgetRequest, Widget> }
+
+target protobuf for acme.widgets.v1 {
+  import("google/api/client.proto")
+  Fn => rpc
+  WidgetService {
+    service
+    option("(google.api.default_host)", "\"widgets.example.com\"")
+  }
+}
+`
+	model := lower(t, "widgets.tdl", src, nil)
+	if problems := gen.CheckDirectives(protobuf.Name, model, protobuf.Backend{}.Describe()); len(problems) != 0 {
+		t.Errorf("directive problems = %+v", problems)
+	}
+	resp := generateIR(t, model)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	contains(t, compileWith(t, resp, googleAPIClient),
+		`service WidgetService {
+  option deprecated = true;
+  option (google.api.default_host) = "widgets.example.com";
+  rpc GetWidget(GetWidgetRequest) returns (Widget);
+}`,
+	)
+}
+
+// An option directive on an rpc field is an option statement in the rpc's
+// body, beside the one its deprecation writes.
+func TestRPCOptionIsWritten(t *testing.T) {
+	const src = `package acme.widgets.v1
+
+primitive Fn: type -> type -> type
+
+type GetWidgetRequest { name: string }
+
+type Widget { name: string }
+
+type WidgetService {
+  deprecated GetWidget: Fn<GetWidgetRequest, Widget>
+  ListWidgets: Fn<GetWidgetRequest, Widget>
+}
+
+target protobuf for acme.widgets.v1 {
+  Fn => rpc
+  WidgetService => service
+  WidgetService.GetWidget => option("idempotency_level", "NO_SIDE_EFFECTS")
+  WidgetService.ListWidgets => option("idempotency_level", "IDEMPOTENT")
+}
+`
+	model := lower(t, "widgets.tdl", src, nil)
+	if problems := gen.CheckDirectives(protobuf.Name, model, protobuf.Backend{}.Describe()); len(problems) != 0 {
+		t.Errorf("directive problems = %+v", problems)
+	}
+	resp := generateIR(t, model)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	contains(t, compile(t, resp),
+		"rpc GetWidget(GetWidgetRequest) returns (Widget) { option deprecated = true; option idempotency_level = NO_SIDE_EFFECTS; }",
+		"rpc ListWidgets(GetWidgetRequest) returns (Widget) { option idempotency_level = IDEMPOTENT; }",
+	)
+}
