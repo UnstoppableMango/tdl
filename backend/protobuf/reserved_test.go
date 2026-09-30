@@ -108,7 +108,7 @@ target protobuf for shop {
 			wants: []string{"Widget.legacy", "reserve"},
 		},
 		{
-			name: "an inlined oneof member's number",
+			name: "an inlined oneof member pinned to a reserved number",
 			model: `package shop
 
 enum Actor {
@@ -124,14 +124,17 @@ type Widget {
 type Gadget { id: string }
 
 target protobuf for shop {
+  Actor {
+    System => number(3)
+  }
   Widget {
     reserved(3)
     actor => oneof
   }
 }
 `,
-			// The variant, numbered 3 after id and Contact.
-			line:  5,
+			// The pinned number's directive.
+			line:  17,
 			wants: []string{"Widget.System", "3", "reserve"},
 		},
 		{
