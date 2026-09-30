@@ -31,6 +31,7 @@ type targetPass struct {
 	*lowerer
 	byDecl   map[int32][]candidate
 	byMember map[memberKey][]candidate
+	byExtern map[int32][]candidate
 }
 
 // memberKey names a node beneath a declaration: a struct's field (variant
@@ -53,6 +54,7 @@ func (l *lowerer) lowerTargets(file *ast.File) {
 		lowerer:  l,
 		byDecl:   map[int32][]candidate{},
 		byMember: map[memberKey][]candidate{},
+		byExtern: map[int32][]candidate{},
 	}
 
 	for _, decl := range file.Decls {
@@ -63,6 +65,9 @@ func (l *lowerer) lowerTargets(file *ast.File) {
 
 	for idx, cands := range t.byDecl {
 		l.model.Decls[idx].Directives = l.resolveConflicts(cands)
+	}
+	for idx, cands := range t.byExtern {
+		l.model.Externs[idx].Directives = l.resolveConflicts(cands)
 	}
 	for key, cands := range t.byMember {
 		directives := l.resolveConflicts(cands)
@@ -145,6 +150,19 @@ func (t *targetPass) attach(path string, pos ast.Position, d *ir.Directive) {
 	member, sub, _ := strings.Cut(rest, ".")
 
 	b, ok := t.scope.lookup(head)
+
+	// A name a `_` import merged in is an extern. Its members are declared
+	// in the dependency, so the path reaches the extern and no further.
+	if ok && b.kind == bindExtern {
+		if member != "" {
+			t.diags.add(pos, "target path %s names nothing: %s is imported, and its members are not visible here", path, head)
+			return
+		}
+		idx := b.id.GetIndex()
+		t.byExtern[idx] = append(t.byExtern[idx], candidate{directive: d, spec: specDecl})
+		return
+	}
+
 	if !ok || b.kind != bindDecl {
 		t.diags.add(pos, "target path %s names nothing", path)
 		return

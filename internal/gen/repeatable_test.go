@@ -1,6 +1,7 @@
 package gen_test
 
 import (
+	"os"
 	"strings"
 	"testing"
 
@@ -138,5 +139,63 @@ func TestUndeclaredDirectiveTiedIsAnError(t *testing.T) {
 	const undeclared = "t does not declare the directive reserved"
 	if !hasProblem(problems, plugin.Severity_SEVERITY_WARNING, undeclared) {
 		t.Errorf("problems = %v, want a warning %q", problems, undeclared)
+	}
+}
+
+// depLoader serves the one dependency twoExternRules imports.
+type depLoader struct{}
+
+func (depLoader) Load(_, path string) (string, string, error) {
+	if path != "dep.tdl" {
+		return path, "", os.ErrNotExist
+	}
+	return path, "package dep\ntype Money { units: int }\n", nil
+}
+
+// twoExternRules sets rule twice on a declaration a `_` import merged in,
+// both at the specificity of a path naming it.
+const twoExternRules = `package p
+
+import "dep.tdl" as _
+
+type Price { amount: Money }
+
+target t for p {
+  Money => rule("a")
+  Money => rule("b")
+}
+`
+
+// An extern's directives follow the same rule as a declaration's: lowering
+// keeps both tied entries, and the backend's spec decides whether a tie is
+// an error.
+func TestTiedDirectiveOnAnExtern(t *testing.T) {
+	file, err := parser.Parse("test.tdl", strings.NewReader(twoExternRules))
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	model, diags := sema.Lower(file, sema.WithLoader(depLoader{}))
+	if len(diags) > 0 {
+		t.Fatalf("lowering reported %v; whether a directive may repeat is the backend's to say", diags)
+	}
+	if n := len(model.GetExterns()); n != 1 {
+		t.Fatalf("externs = %d, want 1: %v", n, model.GetExterns())
+	}
+	if got := plugin.Directives("t", model.GetExterns()[0].GetDirectives()); len(got) != 2 {
+		t.Fatalf("Money directives = %v, want rule(a) then rule(b)", got)
+	}
+
+	spec := func(repeatable bool) plugin.Description {
+		return plugin.Description{
+			Name:       "t",
+			Directives: []*plugin.DirectiveSpec{{Name: "rule", MinArgs: 1, MaxArgs: 1, Repeatable: repeatable}},
+		}
+	}
+	if problems := gen.CheckDirectives("t", model, spec(true)); len(problems) != 0 {
+		t.Errorf("problems = %v, want none for a repeatable directive", problems)
+	}
+	const tie = "two entries at the same specificity set rule; one of them has to go"
+	if problems := gen.CheckDirectives("t", model, spec(false)); !hasProblem(problems, plugin.Severity_SEVERITY_ERROR, tie) {
+		t.Errorf("problems = %v, want an error %q", problems, tie)
 	}
 }

@@ -77,6 +77,14 @@ func (g *generator) typeIn(id *ir.ID, fr *frame) (string, error) {
 		return "", emit.Unsupported(pos, "a unit-typed field has no Go type yet")
 	case t.GetExtern() != nil:
 		ext := t.GetExtern()
+		if f, ok := g.externForeign(t); ok {
+			g.useAs(f.path, f.alias)
+			args, err := g.typeArgsIn(t, fr)
+			if err != nil {
+				return "", err
+			}
+			return f.ref() + args, nil
+		}
 		return "", emit.Unsupported(pos, "%s is declared in another package, and foreign types are not generated yet", ext.GetName())
 	}
 
@@ -302,9 +310,14 @@ func (g *generator) comparableIn(id *ir.ID, fr *frame, seen map[int32]bool, mark
 		}
 		return g.paramComparable(ref.GetIndex())
 	}
-	// A unit and an extern have no Go type at all, and goType has already
+	// A mapped extern is foreign, so it is assumed comparable. A unit and
+	// an unmapped extern have no Go type at all, and goType has already
 	// refused them by the time this is asked.
-	if t.GetUnit() != nil || t.GetExtern() != nil {
+	if t.GetExtern() != nil {
+		_, ok := g.externForeign(t)
+		return ok
+	}
+	if t.GetUnit() != nil {
 		return false
 	}
 

@@ -1762,3 +1762,56 @@ type W {
 		t.Errorf("decimal<kg?> interned with decimal<kg> at types[%d]", got)
 	}
 }
+
+// A target path may name a declaration a `_` import merged in. The name is
+// an extern rather than a declaration, so the directive is carried on the
+// extern entry, where a backend mapping the foreign type reads it.
+func TestTargetPathNamesUnderscoreImport(t *testing.T) {
+	file, err := parser.Parse("main.tdl", strings.NewReader(`
+package shop
+
+import "dep.tdl" as _
+
+type Price { amount: Money }
+
+target go for shop {
+  Money => foreign("github.com/acme/money", "Money")
+}
+`))
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+
+	model, diags := Lower(file, WithLoader(MapLoader{
+		"dep.tdl": "package acme.money\ntype Money { units: int }\n",
+	}))
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+
+	var money *ir.Extern
+	for _, e := range model.GetExterns() {
+		if e.GetPackage() == "acme.money" && e.GetName() == "Money" {
+			money = e
+		}
+	}
+	if money == nil {
+		t.Fatalf("no extern for acme.money.Money in %+v", model.GetExterns())
+	}
+
+	ds := money.GetDirectives()
+	if len(ds) != 1 {
+		t.Fatalf("got %d directives on the extern, want 1: %+v", len(ds), ds)
+	}
+	d := ds[0]
+	if d.GetName() != "foreign" || d.GetTarget() != "go" {
+		t.Errorf("directive = %s for %s, want foreign for go", d.GetName(), d.GetTarget())
+	}
+	var args []string
+	for _, a := range d.GetArgs() {
+		args = append(args, a.GetText())
+	}
+	if got, want := strings.Join(args, ","), "github.com/acme/money,Money"; got != want {
+		t.Errorf("args = %s, want %s", got, want)
+	}
+}

@@ -189,3 +189,20 @@ func (b *Builder) Unit(declName string, line int32) *ir.ID {
 	})
 	return id
 }
+
+// ExternIn interns a reference to a declaration in another package and
+// records the declaration in the extern table, carrying the target
+// directives lowering resolved onto it.
+func (b *Builder) ExternIn(pkg, declName string, directives ...*ir.Directive) *ir.ID {
+	qualified := pkg + "." + declName
+	ext := &ir.ID{Index: int32(len(b.Model.GetExterns())), Name: qualified}
+	b.Model.Externs = append(b.Model.Externs, &ir.Extern{
+		Package:    pkg,
+		Name:       declName,
+		Directives: directives,
+	})
+
+	id := &ir.ID{Index: int32(len(b.Model.GetTypes())), Name: qualified}
+	b.Model.Types = append(b.Model.Types, &ir.Type{Extern: ext, Wrote: ir.SyntacticForm_SYNTACTIC_FORM_NAMED})
+	return id
+}

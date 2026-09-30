@@ -177,6 +177,8 @@ A backend receives one package.
 Declarations from imported packages are not inlined.
 A reference into a dependency is an `ID` into an `externs` table, one entry per foreign declaration this model mentions, carrying the declaring package and the name.
 A backend either resolves that through the model's import table or treats it as foreign and maps it with a `foreign` directive.
+A target path naming a declaration that a `_` import merged in resolves to its `Extern` entry, and the winning directives are recorded in that entry's `directives` field.
+Such a path reaches the extern and nothing beneath it, since its fields are declared in the dependency.
 
 Whether the dependency actually declares that name is not checked.
 Doing so would mean resolving every reachable package to lower one file, and the reference carries enough for a backend to resolve or reject it.
@@ -191,7 +193,7 @@ By the time a backend runs, the specificity ladder has been applied, class-scope
 
 Merging a dependency's target blocks is not done: it needs the dependency lowered, and nothing else does. See ir-plan.md phase 8b.
 
-An `Entity` carries its directives; so does each `Field`.
+An `Entity` carries its directives; so does each `Field`, and so does each `Extern`.
 A backend reads one field on the node in front of it, and never does a lookup or a precedence computation.
 
 The spec's "the model is pure" commitment is about the source language, where directives may not appear in a declaration.
