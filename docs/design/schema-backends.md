@@ -150,7 +150,7 @@ A protobuf message takes a repeatable `reserved` directive of numbers or names, 
 An unpinned field skips a number the message reserves, and a field pinned to a reserved number or on a reserved name is refused.
 An inlined oneof member is held to both rules, since protobuf counts one as a field of its message.
 
-A protobuf target block takes a repeatable `import(path)` directive, and each path joins the file's imports, which are sorted and written once each.
+A protobuf target block takes a repeatable `import(path)` directive, and each path joins every file's imports, which are sorted and written once each.
 A protobuf field, message, enum, or enum value takes a repeatable `option(name, value)` directive.
 A field's or an enum value's options are written `name = value` in one bracket list in the order written, after any option the backend writes itself, such as `deprecated = true`.
 An inlined oneof member stands for its variant and the variant's one field, so it carries the options of both, the variant's first, and is deprecated when either is.
@@ -160,10 +160,12 @@ An `option("deprecated", ...)` on a deprecated node is dropped, since the backen
 ## Output
 
 Each backend writes one file per model, since a schema language reads a package as one document and cross-file imports would be layout the consumer did not ask for.
+Protobuf is the exception when a model asks for it: a `file` directive on a declaration places that declaration in the named file of the package, beside the one the target block names or the default.
+Each file carries the header and the package line, and a file naming a declaration placed in another imports that file by its path.
 
 | Target | File | Namespace |
 | --- | --- | --- |
-| protobuf | `<package as directories>/<last segment>.proto` | `package` directive, else the model's package |
+| protobuf | `<package as directories>/<last segment>.proto`, or the `file` directive's name in those directories | `package` directive, else the model's package |
 | thrift | `<last segment>.thrift` | `namespace *` from the `package` directive, else the model's package |
 | smithy | `<last segment>.smithy` | `namespace` from the `package` directive, else the model's package |
 | graphql | `<last segment>.graphql` | none |

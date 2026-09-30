@@ -2,6 +2,7 @@ package protobuf_test
 
 import (
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/unstoppablemango/tdl/backend/internal/irtest"
@@ -123,5 +124,39 @@ func TestEditionValues(t *testing.T) {
 				t.Errorf("position = %+v, want %+v", got, pos)
 			}
 		})
+	}
+}
+
+// Every file a `file` directive splits out declares the edition, since each
+// is compiled on its own.
+func TestEditionInEveryFile(t *testing.T) {
+	b := irtest.New("acme.cli.v1")
+	token := value("Token", irtest.Field("text", b.Named("string")))
+	token.Directives = []*ir.Directive{{
+		Name: "file", Target: protobuf.Name, Args: []*ir.Literal{irtest.Text("cst.proto")},
+		Position: &ir.Position{Filename: "cli.tdl", Line: 5},
+	}}
+	b.Own(token)
+	b.Own(value("Command", irtest.Field("tokens", b.Named("List", b.Named("Token")))))
+	b.Model.Targets = []*ir.TargetBlock{{
+		Meta: &ir.Meta{Name: protobuf.Name},
+		Directives: []*ir.Directive{{
+			Name: "edition", Target: protobuf.Name, Args: []*ir.Literal{irtest.Text("2024")},
+			Position: &ir.Position{Filename: "cli.tdl", Line: 2},
+		}},
+	}}
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	files := compileAll(t, resp)
+	if len(files) != 2 {
+		t.Fatalf("files = %d, want 2: %v", len(files), files)
+	}
+	for path, src := range files {
+		if !strings.Contains(src, `edition = "2024";`) || strings.Contains(src, "syntax") {
+			t.Errorf("%s does not declare edition 2024:\n%s", path, src)
+		}
 	}
 }

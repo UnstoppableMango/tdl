@@ -151,13 +151,14 @@ Pipeline, one package per stage:
   Private to `backend/`.
 - `backend/internal/irtest` — builds `*ir.Model` values by hand for backend tests, seeded with the prelude declarations a field can name and the `Entity` class identity conforms to.
   `Param` interns a type parameter reference, and `Class`, `Satisfies`, and `Requires` build what a class needs, which lowering computes and a hand-built model has to state.
-- `backend/protobuf` — the protobuf backend: one `.proto` file per model, placed in the directories its package spells.
-  The file is proto3 unless an `edition` directive names an edition, and under one a `T?` field carries no `optional` label, since every field already has explicit presence.
+- `backend/protobuf` — the protobuf backend: `.proto` files placed in the directories the package spells, one named for the package's last segment unless a `file` directive names it.
+  A `file` directive on a declaration places it in another file of the package, which the files naming it import.
+  Every file is proto3 unless an `edition` directive names an edition, and under one a `T?` field carries no `optional` label, since every field already has explicit presence.
   An enum where any variant carries fields is a message holding a oneof of one nested message per variant, and a newtype is expanded to its base, since a wrapper message would change the wire format.
   A field carrying the `oneof` directive inlines its enum's single-field variants as a oneof in its message, and an enum named only by such fields is not emitted.
   A `number` directive pins a field, variant, or enum value, and each unpinned one takes the lowest number no pin or earlier member holds; `emit.Numbers` holds the rule.
   A `reserved` directive on a message is repeatable and writes one `reserved` statement each, an unpinned field or inlined oneof member skips a reserved number, and a field or inlined oneof member pinned to a reserved number or on a reserved name is refused.
-  A repeatable `import` directive in the target block adds an import, and a repeatable `option` directive writes `name = value` in the brackets of a field, an inlined oneof member, or an enum value, or as an `option` statement in a message or enum.
+  A repeatable `import` directive in the target block adds an import to every file, and a repeatable `option` directive writes `name = value` in the brackets of a field, an inlined oneof member, or an enum value, or as an `option` statement in a message or enum.
   Its tests compile every response with `bufbuild/protocompile`, which is the protobuf equivalent of type checking the Go backend's output.
 - `backend/thrift` — the Thrift backend: one `.thrift` file per model under `namespace *`.
   An enum where any variant carries fields is a union of one struct per variant, a newtype is a `typedef`, and declarations are written in dependency order because a Thrift compiler reads a file top to bottom.

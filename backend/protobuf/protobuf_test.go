@@ -2,7 +2,9 @@ package protobuf_test
 
 import (
 	"context"
+	"maps"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -14,6 +16,7 @@ import (
 
 	"github.com/unstoppablemango/tdl/backend/internal/irtest"
 	"github.com/unstoppablemango/tdl/backend/protobuf"
+	"github.com/unstoppablemango/tdl/internal/gen"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -35,9 +38,6 @@ func generate(t *testing.T, b *irtest.Builder) *plugin.Response {
 // Compiling rather than parsing is the assertion that matters: a reference
 // to a message a skipped declaration left behind parses, and so does a map
 // keyed by a message.
-//
-// The compiler is protocompile's experimental one, which buf builds images
-// with, because it is the one that compiles edition 2024.
 func compile(t *testing.T, resp *plugin.Response) string {
 	t.Helper()
 	return compileWith(t, resp, nil)
@@ -50,26 +50,37 @@ func compileWith(t *testing.T, resp *plugin.Response, extra map[string]string) s
 		t.Fatalf("files = %d, diagnostics = %+v", len(resp.GetFiles()), resp.GetDiagnostics())
 	}
 	f := resp.GetFiles()[0]
+	sources := map[string]string{f.GetPath(): string(f.GetContent())}
+	maps.Copy(sources, extra)
+	compileSources(t, sources, f.GetPath())
+	return string(f.GetContent())
+}
+
+// compileSources asserts protobuf accepts the files at paths compiled
+// together, each importing from sources or the well-known types.
+//
+// The compiler is protocompile's experimental one, which buf builds images
+// with, because it is the one that compiles edition 2024.
+func compileSources(t *testing.T, sources map[string]string, paths ...string) {
+	t.Helper()
 	files := source.NewMap(nil)
-	files.Add(f.GetPath(), string(f.GetContent()))
-	for path, src := range extra {
-		files.Add(path, src)
+	for p, text := range sources {
+		files.Add(p, text)
 	}
 	results, diags, err := incremental.Run(context.Background(), incremental.New(), queries.FDS{
 		Opener:    &source.Openers{files, source.WKTs()},
 		Session:   new(protoir.Session),
-		Workspace: source.NewWorkspace(f.GetPath()),
+		Workspace: source.NewWorkspace(paths...),
 	})
 	if err != nil {
-		t.Fatalf("compile %s: %v", f.GetPath(), err)
+		t.Fatalf("compile %v: %v", paths, err)
 	}
 	if fatal := results[0].Fatal; fatal != nil {
-		t.Errorf("%s does not compile: %v\n%s", f.GetPath(), fatal, f.GetContent())
+		t.Errorf("%v do not compile: %v\n%v", paths, fatal, sources)
 	}
 	if text, errs, _ := (report.Renderer{}).RenderString(diags); errs != 0 {
-		t.Errorf("%s does not compile:\n%s\n%s", f.GetPath(), text, f.GetContent())
+		t.Errorf("%v do not compile:\n%s\n%v", paths, text, sources)
 	}
-	return string(f.GetContent())
 }
 
 // contains asserts on the output with runs of whitespace collapsed.
@@ -520,6 +531,75 @@ func TestPackageDirective(t *testing.T) {
 	}
 }
 
+// The file directive names the generated file within the package's
+// directory, and is declared so tdl does not warn about it.
+func TestFileDirective(t *testing.T) {
+	b := irtest.New("acme.finance.account.v1")
+	b.Own(value("Account", irtest.Field("id", b.Named("uuid"))))
+
+	resp := generate(t, b)
+	compile(t, resp)
+	if path := resp.GetFiles()[0].GetPath(); path != "acme/finance/account/v1/v1.proto" {
+		t.Errorf("without file, path = %q, want %q", path, "acme/finance/account/v1/v1.proto")
+	}
+
+	b.Model.Targets = []*ir.TargetBlock{{
+		Meta: &ir.Meta{Name: protobuf.Name},
+		Directives: []*ir.Directive{{
+			Name: "file", Target: protobuf.Name, Args: []*ir.Literal{irtest.Text("account.proto")},
+			Position: &ir.Position{Filename: "account.tdl", Line: 2},
+		}},
+	}}
+	if problems := gen.CheckDirectives(protobuf.Name, b.Model, protobuf.Backend{}.Describe()); len(problems) != 0 {
+		t.Errorf("file directive problems = %+v", problems)
+	}
+	resp = generate(t, b)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	compile(t, resp)
+	if path := resp.GetFiles()[0].GetPath(); path != "acme/finance/account/v1/account.proto" {
+		t.Errorf("with file, path = %q, want %q", path, "acme/finance/account/v1/account.proto")
+	}
+}
+
+// The file directive names a file within the package's directory, so a
+// value that is a path, is empty, or is not a .proto file is an error at the
+// directive, the way a package protobuf refuses is.
+func TestFileDirectiveRefusesWhatIsNotAFileName(t *testing.T) {
+	for _, name := range []string{"sub/account.proto", "", "account.txt"} {
+		t.Run(strconv.Quote(name), func(t *testing.T) {
+			b := irtest.New("acme.finance.account.v1")
+			b.Own(value("Account", irtest.Field("id", b.Named("uuid"))))
+			b.Model.Targets = []*ir.TargetBlock{{
+				Meta: &ir.Meta{Name: protobuf.Name},
+				Directives: []*ir.Directive{{
+					Name: "file", Target: protobuf.Name, Args: []*ir.Literal{irtest.Text(name)},
+					Position: &ir.Position{Filename: "account.tdl", Line: 2},
+				}},
+			}}
+
+			resp := generate(t, b)
+			if len(resp.GetFiles()) != 0 {
+				t.Errorf("files = %+v, want none", resp.GetFiles())
+			}
+			if len(resp.GetDiagnostics()) != 1 {
+				t.Fatalf("diagnostics = %+v, want one error", resp.GetDiagnostics())
+			}
+			d := resp.GetDiagnostics()[0]
+			if d.GetSeverity() != plugin.Severity_SEVERITY_ERROR {
+				t.Errorf("severity = %v, want %v", d.GetSeverity(), plugin.Severity_SEVERITY_ERROR)
+			}
+			if pos := d.GetPosition(); pos.GetFilename() != "account.tdl" || pos.GetLine() != 2 {
+				t.Errorf("position = %v, want account.tdl:2", pos)
+			}
+			if !strings.Contains(d.GetMessage(), strconv.Quote(name)) {
+				t.Errorf("message = %q, want it to quote %q", d.GetMessage(), name)
+			}
+		})
+	}
+}
+
 func TestDocsAndDeprecation(t *testing.T) {
 	b := irtest.New("shop")
 	old := irtest.Field("fax", b.Named("string"))
@@ -770,4 +850,95 @@ func TestSumTypeNotInlinedIsEmitted(t *testing.T) {
 		variant("SystemActor", irtest.Field("system_actor", b.Named("string"))),
 	))
 	contains(t, compile(t, generate(t, b)), "message TriggerActor {")
+}
+
+// compileAll returns the response's files by path, and asserts protobuf
+// accepts them compiled together, so an import between two of them has to
+// resolve.
+func compileAll(t *testing.T, resp *plugin.Response) map[string]string {
+	t.Helper()
+	files := map[string]string{}
+	var paths []string
+	for _, f := range resp.GetFiles() {
+		files[f.GetPath()] = string(f.GetContent())
+		paths = append(paths, f.GetPath())
+	}
+	compileSources(t, files, paths...)
+	return files
+}
+
+// A file directive on a declaration places it in that file of the package,
+// and a declaration referencing one placed in another file imports it.
+func TestFileDirectiveOnADeclaration(t *testing.T) {
+	b := irtest.New("acme.cli.v1")
+	token := value("Token", irtest.Field("text", b.Named("string")))
+	token.Directives = []*ir.Directive{{
+		Name: "file", Target: protobuf.Name, Args: []*ir.Literal{irtest.Text("cst.proto")},
+		Position: &ir.Position{Filename: "cli.tdl", Line: 5},
+	}}
+	b.Own(token)
+	b.Own(value("Command", irtest.Field("tokens", b.Named("List", b.Named("Token")))))
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	if len(resp.GetFiles()) != 2 {
+		t.Fatalf("files = %d, want 2: %+v", len(resp.GetFiles()), resp.GetFiles())
+	}
+	files := compileAll(t, resp)
+
+	main, ok := files["acme/cli/v1/v1.proto"]
+	if !ok {
+		t.Fatalf("no acme/cli/v1/v1.proto among %v", files)
+	}
+	cst, ok := files["acme/cli/v1/cst.proto"]
+	if !ok {
+		t.Fatalf("no acme/cli/v1/cst.proto among %v", files)
+	}
+
+	contains(t, main,
+		"package acme.cli.v1;",
+		`import "acme/cli/v1/cst.proto";`,
+		"message Command { repeated Token tokens = 1; }",
+	)
+	absent(t, main, "message Token")
+
+	contains(t, cst,
+		"package acme.cli.v1;",
+		"message Token { string text = 1; }",
+	)
+	absent(t, cst, "message Command", "import")
+}
+
+// An import directive in the target block is written into every file, since
+// an option any file's declarations carry can need it.
+func TestImportDirectiveReachesEveryFile(t *testing.T) {
+	b := irtest.New("acme.cli.v1")
+	token := value("Token", irtest.Field("text", b.Named("string")))
+	token.Directives = []*ir.Directive{{
+		Name: "file", Target: protobuf.Name, Args: []*ir.Literal{irtest.Text("cst.proto")},
+	}}
+	b.Own(token)
+	b.Own(value("Command", irtest.Field("name", b.Named("string"))))
+	b.Model.Targets = []*ir.TargetBlock{{
+		Meta: &ir.Meta{Name: protobuf.Name},
+		Directives: []*ir.Directive{
+			{Name: "import", Target: protobuf.Name, Args: []*ir.Literal{irtest.Text("google/protobuf/empty.proto")}},
+		},
+	}}
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	files := compileAll(t, resp)
+	if len(files) != 2 {
+		t.Fatalf("files = %d, want 2: %v", len(files), files)
+	}
+	for path, src := range files {
+		if !strings.Contains(src, `import "google/protobuf/empty.proto";`) {
+			t.Errorf("%s does not import the target block's import:\n%s", path, src)
+		}
+	}
 }
