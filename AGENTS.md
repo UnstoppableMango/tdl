@@ -157,6 +157,7 @@ Pipeline, one package per stage:
   A field carrying the `oneof` directive inlines its enum's single-field variants as a oneof in its message, and an enum named only by such fields is not emitted.
   A `number` directive pins a field, variant, or enum value, and each unpinned one takes the lowest number no pin or earlier member holds; `emit.Numbers` holds the rule.
   A `reserved` directive on a message is repeatable and writes one `reserved` statement each, an unpinned field or inlined oneof member skips a reserved number, and a field or inlined oneof member pinned to a reserved number or on a reserved name is refused.
+  A repeatable `import` directive in the target block adds an import, and a repeatable `option` directive writes `name = value` in the brackets of a field, an inlined oneof member, or an enum value, or as an `option` statement in a message or enum.
   Its tests compile every response with `bufbuild/protocompile`, which is the protobuf equivalent of type checking the Go backend's output.
 - `backend/thrift` — the Thrift backend: one `.thrift` file per model under `namespace *`.
   An enum where any variant carries fields is a union of one struct per variant, a newtype is a `typedef`, and declarations are written in dependency order because a Thrift compiler reads a file top to bottom.

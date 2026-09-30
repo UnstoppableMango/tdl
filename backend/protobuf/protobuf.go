@@ -56,6 +56,11 @@ func (Backend) Describe() plugin.Description {
 			{Name: "reserved", MinArgs: 1, MaxArgs: -1, Repeatable: true},
 			// Inlines a field's sum type into its message as a oneof.
 			{Name: "oneof"},
+			// A file the output imports, for the options it uses.
+			{Name: "import", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Repeatable: true},
+			// An option, written `name = value` in the brackets of a field or
+			// an enum value, or as an `option` statement in a message or enum.
+			{Name: "option", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_STRING, ir.LiteralKind_LITERAL_KIND_STRING}, Repeatable: true},
 		},
 	}
 }
@@ -187,6 +192,16 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		blocks = append(blocks, r.text)
 		maps.Copy(need, r.imports)
 	}
+	for _, block := range req.GetModel().GetTargets() {
+		if block.GetMeta().GetName() != g.Target {
+			continue
+		}
+		for _, d := range plugin.Directives(g.Target, block.GetDirectives()) {
+			if d.GetName() == "import" && len(d.GetArgs()) > 0 {
+				need[d.GetArgs()[0].GetText()] = true
+			}
+		}
+	}
 	if len(blocks) == 0 {
 		return g.Response(nil), nil
 	}
@@ -306,7 +321,7 @@ func (g *generator) message(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	comment(b, "", d.GetMeta())
 	fmt.Fprintf(b, "message %s {\n", name)
 	numbers, names := g.reserved(b, d)
-	deprecatedOption(b, "  ", d.GetMeta())
+	g.declOptions(b, d.GetMeta(), d.GetDirectives())
 	slots, err := g.fields(b, "  ", name, d.Fields(), nil, numbers)
 	if err != nil {
 		return nil, err
@@ -399,12 +414,12 @@ func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 		values = append(values, value)
 
 		comment(&body, "  ", v.GetMeta())
-		fmt.Fprintf(&body, "  %s = %d%s;\n", value, nums[i], deprecatedField(v.GetMeta()))
+		fmt.Fprintf(&body, "  %s = %d%s;\n", value, nums[i], brackets(g.options(v.GetMeta(), v.GetDirectives())))
 	}
 
 	comment(b, "", d.GetMeta())
 	fmt.Fprintf(b, "enum %s {\n", name)
-	deprecatedOption(b, "  ", d.GetMeta())
+	g.declOptions(b, d.GetMeta(), d.GetDirectives())
 	b.WriteString(body.String())
 	b.WriteString("}\n")
 	return append([]string{name}, values...), nil
@@ -450,7 +465,7 @@ func (g *generator) sum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 
 	comment(b, "", d.GetMeta())
 	fmt.Fprintf(b, "message %s {\n", name)
-	deprecatedOption(b, "  ", d.GetMeta())
+	g.declOptions(b, d.GetMeta(), d.GetDirectives())
 	for i, v := range variants {
 		comment(b, "  ", v.GetMeta())
 		fmt.Fprintf(b, "  message %s {\n", messages[i])
@@ -461,7 +476,9 @@ func (g *generator) sum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	}
 	fmt.Fprintf(b, "  oneof %s {\n", oneof)
 	for i, v := range variants {
-		fmt.Fprintf(b, "    %s %s = %d%s;\n", messages[i], fields[i], nums[i], deprecatedField(v.GetMeta()))
+		// A oneof member carries its variant's deprecation and none of its
+		// option directives.
+		fmt.Fprintf(b, "    %s %s = %d%s;\n", messages[i], fields[i], nums[i], brackets(g.options(v.GetMeta(), nil)))
 	}
 	b.WriteString("  }\n}\n")
 	return []string{name}, nil
@@ -541,7 +558,7 @@ func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*i
 		if label != "" {
 			label += " "
 		}
-		fmt.Fprintf(b, "%s%s%s %s = %d%s;\n", indent, label, typ, name, nums[first[i]], deprecatedField(f.GetMeta()))
+		fmt.Fprintf(b, "%s%s%s %s = %d%s;\n", indent, label, typ, name, nums[first[i]], brackets(g.options(f.GetMeta(), f.GetDirectives())))
 		out = append(out, slot{members[first[i]], name, nums[first[i]]})
 	}
 	return out, nil
@@ -621,7 +638,14 @@ func (g *generator) inlineOneof(b *strings.Builder, indent string, f *ir.Field, 
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(b, "%s  %s %s = %d;\n", indent, typ, emit.Snake(vf.GetMeta().GetName()), nums[i])
+		// The member stands for both the variant and its one field, so it
+		// carries the options of each and is deprecated when either is.
+		meta := vf.GetMeta()
+		if v.GetMeta().IsDeprecated() {
+			meta = v.GetMeta()
+		}
+		opts := g.options(meta, append(slices.Clone(v.GetDirectives()), vf.GetDirectives()...))
+		fmt.Fprintf(b, "%s  %s %s = %d%s;\n", indent, typ, emit.Snake(vf.GetMeta().GetName()), nums[i], brackets(opts))
 	}
 	fmt.Fprintf(b, "%s}\n", indent)
 	return nil
@@ -770,17 +794,40 @@ func comment(b *strings.Builder, indent string, meta *ir.Meta) {
 	}
 }
 
-func deprecatedOption(b *strings.Builder, indent string, meta *ir.Meta) {
+// options is a node's options as `name = value`: `deprecated = true` when
+// the node is deprecated, then each `option` directive in source order. An
+// option directive naming deprecated is dropped when the node is already
+// deprecated, since protoc refuses an option set twice.
+func (g *generator) options(meta *ir.Meta, dirs []*ir.Directive) []string {
+	var opts []string
 	if meta.IsDeprecated() {
-		fmt.Fprintf(b, "%soption deprecated = true;\n", indent)
+		opts = append(opts, "deprecated = true")
+	}
+	for _, d := range plugin.Directives(g.Target, dirs) {
+		if d.GetName() != "option" || len(d.GetArgs()) != 2 {
+			continue
+		}
+		if meta.IsDeprecated() && d.GetArgs()[0].GetText() == "deprecated" {
+			continue
+		}
+		opts = append(opts, d.GetArgs()[0].GetText()+" = "+d.GetArgs()[1].GetText())
+	}
+	return opts
+}
+
+// declOptions writes a message's or an enum's options as statements.
+func (g *generator) declOptions(b *strings.Builder, meta *ir.Meta, dirs []*ir.Directive) {
+	for _, o := range g.options(meta, dirs) {
+		fmt.Fprintf(b, "  option %s;\n", o)
 	}
 }
 
-func deprecatedField(meta *ir.Meta) string {
-	if meta.IsDeprecated() {
-		return " [deprecated = true]"
+// brackets is a field's or an enum value's options as a bracket list.
+func brackets(opts []string) string {
+	if len(opts) == 0 {
+		return ""
 	}
-	return ""
+	return " [" + strings.Join(opts, ", ") + "]"
 }
 
 func validPackage(pkg string) bool {
