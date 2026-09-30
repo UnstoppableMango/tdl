@@ -16,6 +16,7 @@ import (
 	"math"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
@@ -48,6 +49,10 @@ func (Backend) Describe() plugin.Description {
 			{Name: "number", MinArgs: 1, MaxArgs: 1, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_INT}},
 			// The protobuf edition the file declares in place of proto3.
 			{Name: "edition", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			// Field numbers or names a message reserves, one `reserved`
+			// statement per directive. arg_kinds constrains by position, so
+			// it cannot say "int or string" and is left unset.
+			{Name: "reserved", MinArgs: 1, MaxArgs: -1, Repeatable: true},
 		},
 	}
 }
@@ -284,12 +289,72 @@ func (g *generator) message(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	}
 	comment(b, "", d.GetMeta())
 	fmt.Fprintf(b, "message %s {\n", name)
+	numbers, names := g.reserved(b, d)
 	deprecatedOption(b, "  ", d.GetMeta())
-	if err := g.fields(b, "  ", name, d.Fields(), nil); err != nil {
+	fields := d.Fields()
+	nums, err := g.fields(b, "  ", name, fields, nil)
+	if err != nil {
+		return nil, err
+	}
+	if err := g.checkReserved(name, fields, nums, numbers, names); err != nil {
 		return nil, err
 	}
 	b.WriteString("}\n")
 	return []string{name}, nil
+}
+
+// reserved writes one `reserved` statement per directive on d and returns
+// the field numbers and names they reserve.
+func (g *generator) reserved(b *strings.Builder, d *ir.Decl) (map[int64]bool, map[string]bool) {
+	numbers := map[int64]bool{}
+	names := map[string]bool{}
+	for _, r := range plugin.Directives(g.Target, d.GetDirectives()) {
+		if r.GetName() != "reserved" {
+			continue
+		}
+		var args []string
+		for _, a := range r.GetArgs() {
+			if a.GetKind() == ir.LiteralKind_LITERAL_KIND_STRING {
+				names[a.GetText()] = true
+				// Editions refuse the quoted form proto3 uses.
+				if g.edition != "" {
+					args = append(args, a.GetText())
+				} else {
+					args = append(args, fmt.Sprintf("%q", a.GetText()))
+				}
+				continue
+			}
+			if n, err := strconv.ParseInt(a.GetText(), 0, 64); err == nil {
+				numbers[n] = true
+			}
+			args = append(args, a.GetText())
+		}
+		fmt.Fprintf(b, "  reserved %s;\n", strings.Join(args, ", "))
+	}
+	return numbers, names
+}
+
+// checkReserved refuses a field whose number or name the message reserves,
+// since protoc rejects such a message. nums is what [generator.fields]
+// numbered the fields.
+func (g *generator) checkReserved(owner string, fields []*ir.Field, nums []int64, numbers map[int64]bool, names map[string]bool) error {
+	for i, f := range fields {
+		if numbers[nums[i]] {
+			pos := f.GetMeta().GetPosition()
+			if p, ok := g.Find(f.GetDirectives(), "number"); ok {
+				pos = p.GetPosition()
+			}
+			return emit.Unsupported(pos, "%s.%s is numbered %d, which the message reserves", owner, f.GetMeta().GetName(), nums[i])
+		}
+		name, err := g.name(f.GetDirectives(), emit.Snake(f.GetMeta().GetName()))
+		if err != nil {
+			return err
+		}
+		if names[name] {
+			return emit.Unsupported(f.GetMeta().GetPosition(), "%s.%s is named %s, which the message reserves", owner, f.GetMeta().GetName(), name)
+		}
+	}
+	return nil
 }
 
 // enum renders an enum whose variants carry no fields.
@@ -377,7 +442,7 @@ func (g *generator) sum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	for i, v := range variants {
 		comment(b, "  ", v.GetMeta())
 		fmt.Fprintf(b, "  message %s {\n", messages[i])
-		if err := g.fields(b, "    ", name+"."+messages[i], v.GetFields(), nested); err != nil {
+		if _, err := g.fields(b, "    ", name+"."+messages[i], v.GetFields(), nested); err != nil {
 			return nil, err
 		}
 		b.WriteString("  }\n")
@@ -390,31 +455,32 @@ func (g *generator) sum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	return []string{name}, nil
 }
 
-// fields renders a message body. nested is the names of the messages
-// declared beside it, which a reference has to step around.
-func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*ir.Field, nested map[string]bool) error {
+// fields renders a message body and returns the numbers it gave the
+// fields. nested is the names of the messages declared beside it, which a
+// reference has to step around.
+func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*ir.Field, nested map[string]bool) ([]int64, error) {
 	nums, err := g.Numbers(owner, emit.FieldMembers(fields), fieldNumbers)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	seen := map[string]bool{}
 	for i, f := range fields {
 		ref, err := g.Resolve(f.GetType())
 		if err != nil {
-			return err
+			return nil, err
 		}
 		label, typ, err := g.fieldType(ref, nested)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		name, err := g.name(f.GetDirectives(), emit.Snake(f.GetMeta().GetName()))
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if seen[name] {
-			return emit.Unsupported(f.GetMeta().GetPosition(), "%s has two fields named %s in protobuf", owner, name)
+			return nil, emit.Unsupported(f.GetMeta().GetPosition(), "%s has two fields named %s in protobuf", owner, name)
 		}
 		seen[name] = true
 
@@ -424,7 +490,7 @@ func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*i
 		}
 		fmt.Fprintf(b, "%s%s%s %s = %d%s;\n", indent, label, typ, name, nums[i], deprecatedField(f.GetMeta()))
 	}
-	return nil
+	return nums, nil
 }
 
 // fieldType returns a field's label and type.

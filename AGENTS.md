@@ -155,6 +155,7 @@ Pipeline, one package per stage:
   The file is proto3 unless an `edition` directive names an edition, and under one a `T?` field carries no `optional` label, since every field already has explicit presence.
   An enum where any variant carries fields is a message holding a oneof of one nested message per variant, and a newtype is expanded to its base, since a wrapper message would change the wire format.
   Every field, variant, and enum value is numbered by position unless a `number` directive pins it; `emit.Numbers` holds the rule.
+  A `reserved` directive on a message is repeatable and writes one `reserved` statement each, and a field on a reserved number or name is refused.
   Its tests compile every response with `bufbuild/protocompile`, which is the protobuf equivalent of type checking the Go backend's output.
 - `backend/thrift` — the Thrift backend: one `.thrift` file per model under `namespace *`.
   An enum where any variant carries fields is a union of one struct per variant, a newtype is a `typedef`, and declarations are written in dependency order because a Thrift compiler reads a file top to bottom.

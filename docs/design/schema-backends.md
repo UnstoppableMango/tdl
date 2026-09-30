@@ -134,6 +134,8 @@ A mixin's fields are copied into each struct including it, so adding one renumbe
 Protobuf numbers run to 536870911, with 19000 to 19999 reserved by protobuf itself.
 Thrift numbers run to 32767.
 
+A protobuf message takes a repeatable `reserved` directive of numbers or names, and each one is a `reserved` statement at the top of the message, in the order written.
+
 ## Output
 
 Each backend writes one file per model, since a schema language reads a package as one document and cross-file imports would be layout the consumer did not ask for.
