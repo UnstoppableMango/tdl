@@ -85,7 +85,7 @@ func checkTies(ds []*ir.Directive, specs map[string]*plugin.DirectiveSpec) []*pl
 }
 
 // nodeDirectives is the directives belonging to a target on each node of
-// the model's declarations, one slice per node.
+// the model's declarations and externs, one slice per node.
 func nodeDirectives(target string, model *ir.Model) [][]*ir.Directive {
 	var nodes [][]*ir.Directive
 
@@ -103,6 +103,9 @@ func nodeDirectives(target string, model *ir.Model) [][]*ir.Directive {
 				add(f.GetDirectives())
 			}
 		}
+	}
+	for _, e := range model.GetExterns() {
+		add(e.GetDirectives())
 	}
 	return nodes
 }
