@@ -211,7 +211,18 @@ func (p *parser) parseDoc() ([]string, ast.Position) {
 func (p *parser) parsePackageDecl() *ast.PackageDecl {
 	pos := p.cur.Pos
 	p.next() // 'package'
-	return &ast.PackageDecl{P: pos, Path: p.parseDottedIdent()}
+	return &ast.PackageDecl{P: pos, Path: p.parsePackagePath()}
+}
+
+// parsePackagePath parses `Name { . Name }`, the path after `package` and
+// after a target block's `for`.
+func (p *parser) parsePackagePath() string {
+	path := p.expectName("package name")
+	for p.at(lex.DOT) {
+		p.next()
+		path += "." + p.expectName("package name")
+	}
+	return path
 }
 
 func (p *parser) parseDottedIdent() string {

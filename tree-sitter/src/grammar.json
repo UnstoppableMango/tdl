@@ -85,7 +85,23 @@
         },
         {
           "type": "SYMBOL",
-          "name": "dotted_ident"
+          "name": "name"
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "STRING",
+                "value": "."
+              },
+              {
+                "type": "SYMBOL",
+                "name": "name"
+              }
+            ]
+          }
         }
       ]
     },
@@ -1590,7 +1606,23 @@
         },
         {
           "type": "SYMBOL",
-          "name": "dotted_ident"
+          "name": "name"
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "STRING",
+                "value": "."
+              },
+              {
+                "type": "SYMBOL",
+                "name": "name"
+              }
+            ]
+          }
         },
         {
           "type": "STRING",

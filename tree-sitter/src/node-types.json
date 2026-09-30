@@ -683,11 +683,11 @@
     "named": true,
     "fields": {},
     "children": {
-      "multiple": false,
+      "multiple": true,
       "required": true,
       "types": [
         {
-          "type": "dotted_ident",
+          "type": "name",
           "named": true
         }
       ]
@@ -786,11 +786,11 @@
       "required": true,
       "types": [
         {
-          "type": "dotted_ident",
+          "type": "identifier",
           "named": true
         },
         {
-          "type": "identifier",
+          "type": "name",
           "named": true
         },
         {

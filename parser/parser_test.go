@@ -45,6 +45,27 @@ import "std/prelude" as _
 	}
 }
 
+func TestPackagePathKeywordSegment(t *testing.T) {
+	file := parse(t, `
+package google.type
+
+type Money { units: int }
+`)
+
+	if file.Package == nil || file.Package.Path != "google.type" {
+		t.Fatalf("package = %+v, want google.type", file.Package)
+	}
+}
+
+func TestTargetPackageKeywordSegment(t *testing.T) {
+	file := parse(t, `target protobuf for google.type { }`)
+
+	d := file.Decls[0].(*ast.TargetDecl)
+	if d.N != "protobuf" || d.For != "google.type" {
+		t.Errorf("target = %q for %q, want protobuf for google.type", d.N, d.For)
+	}
+}
+
 func TestPrimitiveKinds(t *testing.T) {
 	file := parse(t, `
 primitive string

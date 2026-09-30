@@ -348,6 +348,7 @@ A `<...>` argument is a type or a unit.
 A bare name could be either, so it is recorded as a type reference and the resolver picks by kind; only an operator (`*`, `/`, `^`) or parentheses makes it unambiguously a unit.
 
 Inside a target block a directive name and a path segment may be reserved words, since that namespace belongs to the backend.
+A package path segment may be a reserved word too, after `package` or after a target block's `for`, so `package google.type` and `target go for google.type` can mirror a namespace from another schema language.
 `Name` in `docs/grammar.ebnf` is the production for a name that may be spelled with one; every other name is a plain `identifier`.
 
 Directive and constraint arguments are parenthesized and comma separated.
