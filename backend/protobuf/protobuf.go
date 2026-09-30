@@ -638,7 +638,14 @@ func (g *generator) inlineOneof(b *strings.Builder, indent string, f *ir.Field, 
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(b, "%s  %s %s = %d;\n", indent, typ, emit.Snake(vf.GetMeta().GetName()), nums[i])
+		// The member stands for both the variant and its one field, so it
+		// carries the options of each and is deprecated when either is.
+		meta := vf.GetMeta()
+		if v.GetMeta().IsDeprecated() {
+			meta = v.GetMeta()
+		}
+		opts := g.options(meta, append(slices.Clone(v.GetDirectives()), vf.GetDirectives()...))
+		fmt.Fprintf(b, "%s  %s %s = %d%s;\n", indent, typ, emit.Snake(vf.GetMeta().GetName()), nums[i], brackets(opts))
 	}
 	fmt.Fprintf(b, "%s}\n", indent)
 	return nil

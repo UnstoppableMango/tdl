@@ -5,9 +5,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/unstoppablemango/tdl/backend/internal/irtest"
 	"github.com/unstoppablemango/tdl/backend/protobuf"
 	"github.com/unstoppablemango/tdl/internal/gen"
 	"github.com/unstoppablemango/tdl/internal/sema"
+	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/parser"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -88,5 +90,46 @@ func TestOptionsOnAField(t *testing.T) {
 		`import "google/api/field_info.proto";`,
 		"string id = 1;",
 		"string uid = 2 [(google.api.field_behavior) = OUTPUT_ONLY, (google.api.field_info).format = UUID4];",
+	)
+}
+
+func option(name, value string) *ir.Directive {
+	return &ir.Directive{Name: "option", Target: protobuf.Name, Args: []*ir.Literal{irtest.Text(name), irtest.Text(value)}}
+}
+
+// An inlined oneof member stands for its variant's one field, so it carries
+// that field's options and deprecation, and its variant's too.
+func TestOptionsOnAnInlinedOneofMember(t *testing.T) {
+	b := irtest.New("shop")
+	contact := variant("Contact", irtest.Field("contact", b.Named("string")))
+	contact.Directives = []*ir.Directive{option("(google.api.field_behavior)", "OUTPUT_ONLY")}
+	system := variant("SystemActor", irtest.Field("system_actor", b.Named("string")))
+	system.Meta.Deprecated = &ir.Deprecation{}
+	fax := irtest.Field("fax", b.Named("string"))
+	fax.Directives = []*ir.Directive{option("(google.api.field_info).format", "UUID4")}
+	fax.Meta.Deprecated = &ir.Deprecation{}
+	b.Own(enum("TriggerActor", contact, system, variant("Fax", fax)))
+
+	actor := irtest.Field("actor", b.Named("TriggerActor"))
+	actor.Directives = []*ir.Directive{{Name: "oneof", Target: protobuf.Name}}
+	b.Own(value("Trigger", actor))
+	b.Model.Targets = []*ir.TargetBlock{{
+		Meta: &ir.Meta{Name: protobuf.Name},
+		Directives: []*ir.Directive{
+			{Name: "import", Target: protobuf.Name, Args: []*ir.Literal{irtest.Text("google/api/field_behavior.proto")}},
+			{Name: "import", Target: protobuf.Name, Args: []*ir.Literal{irtest.Text("google/api/field_info.proto")}},
+		},
+	}}
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	contains(t, compileWith(t, resp, googleAPI),
+		`oneof actor {
+  string contact = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string system_actor = 2 [deprecated = true];
+  string fax = 3 [deprecated = true, (google.api.field_info).format = UUID4];
+}`,
 	)
 }
