@@ -54,6 +54,8 @@ func (Backend) Describe() plugin.Description {
 			// statement per directive. arg_kinds constrains by position, so
 			// it cannot say "int or string" and is left unset.
 			{Name: "reserved", MinArgs: 1, MaxArgs: -1, Repeatable: true},
+			// Inlines a field's sum type into its message as a oneof.
+			{Name: "oneof"},
 		},
 	}
 }
@@ -156,9 +158,13 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	}
 
 	own := g.Own()
+	inlinedOnly := g.inlinedOnly()
 	skipped := map[*ir.Decl]bool{}
 	var out []rendered
 	for _, d := range own {
+		if inlinedOnly[d] {
+			continue
+		}
 		g.imports = map[string]bool{}
 		text, err := g.decl(d)
 		if err != nil {
@@ -301,12 +307,11 @@ func (g *generator) message(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	fmt.Fprintf(b, "message %s {\n", name)
 	numbers, names := g.reserved(b, d)
 	deprecatedOption(b, "  ", d.GetMeta())
-	fields := d.Fields()
-	nums, err := g.fields(b, "  ", name, fields, nil, numbers)
+	slots, err := g.fields(b, "  ", name, d.Fields(), nil, numbers)
 	if err != nil {
 		return nil, err
 	}
-	if err := g.checkReserved(name, fields, nums, numbers, names); err != nil {
+	if err := g.checkReserved(name, slots, numbers, names); err != nil {
 		return nil, err
 	}
 	b.WriteString("}\n")
@@ -344,25 +349,21 @@ func (g *generator) reserved(b *strings.Builder, d *ir.Decl) (map[int64]bool, ma
 	return numbers, names
 }
 
-// checkReserved refuses a field whose number or name the message reserves,
-// since protoc rejects such a message. Only a pin can land on a reserved
-// number, since unpinned fields skip them. nums is what [generator.fields]
-// numbered the fields.
-func (g *generator) checkReserved(owner string, fields []*ir.Field, nums []int64, numbers map[int64]bool, names map[string]bool) error {
-	for i, f := range fields {
-		if numbers[nums[i]] {
-			pos := f.GetMeta().GetPosition()
-			if p, ok := g.Find(f.GetDirectives(), "number"); ok {
+// checkReserved refuses a field, or an inlined oneof's member, whose number
+// or name the message reserves, since protoc rejects such a message. Only a
+// pin can land on a reserved number, since unpinned members skip them. slots
+// is what [generator.fields] gave out.
+func (g *generator) checkReserved(owner string, slots []slot, numbers map[int64]bool, names map[string]bool) error {
+	for _, s := range slots {
+		if numbers[s.num] {
+			pos := s.Position
+			if p, ok := g.Find(s.Directives, "number"); ok {
 				pos = p.GetPosition()
 			}
-			return emit.Unsupported(pos, "%s.%s is numbered %d, which the message reserves", owner, f.GetMeta().GetName(), nums[i])
+			return emit.Unsupported(pos, "%s.%s is numbered %d, which the message reserves", owner, s.Name, s.num)
 		}
-		name, err := g.name(f.GetDirectives(), emit.Snake(f.GetMeta().GetName()))
-		if err != nil {
-			return err
-		}
-		if names[name] {
-			return emit.Unsupported(f.GetMeta().GetPosition(), "%s.%s is named %s, which the message reserves", owner, f.GetMeta().GetName(), name)
+		if names[s.name] {
+			return emit.Unsupported(s.Position, "%s.%s is named %s, which the message reserves", owner, s.Name, s.name)
 		}
 	}
 	return nil
@@ -466,22 +467,61 @@ func (g *generator) sum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	return []string{name}, nil
 }
 
-// fields renders a message body and returns the numbers it gave the
-// fields. nested is the names of the messages declared beside it, which a
-// reference has to step around; skip is the numbers unpinned fields pass over.
-func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*ir.Field, nested map[string]bool, skip map[int64]bool) ([]int64, error) {
+// slot is a number a message body gives out, to a field or to one member of
+// an inlined oneof, which protobuf counts as a field of the message.
+type slot struct {
+	emit.Member
+	name string // the protobuf name written
+	num  int64
+}
+
+// fields renders a message body and returns the numbers it gave out, in the
+// order written. nested is the names of the messages declared beside it,
+// which a reference has to step around; skip is the numbers unpinned fields
+// and oneof members pass over.
+func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*ir.Field, nested map[string]bool, skip map[int64]bool) ([]slot, error) {
+	// An inlined oneof's variants take numbers in the message's space in
+	// the oneof's place, and the oneof takes none.
+	var members []emit.Member
+	first := make([]int, len(fields))
+	for i, f := range fields {
+		first[i] = len(members)
+		if !g.isOneof(f) {
+			members = append(members, emit.FieldMembers(fields[i:i+1])...)
+			continue
+		}
+		ref, err := g.Resolve(f.GetType())
+		if err != nil {
+			return nil, err
+		}
+		if err := g.inlinable(f, ref); err != nil {
+			return nil, err
+		}
+		members = append(members, emit.VariantMembers(ref.Decl.GetEnumeration().GetVariants())...)
+	}
 	rule := fieldNumbers
 	rule.Skip = skip
-	nums, err := g.Numbers(owner, emit.FieldMembers(fields), rule)
+	nums, err := g.Numbers(owner, members, rule)
 	if err != nil {
 		return nil, err
 	}
 
 	seen := map[string]bool{}
+	out := make([]slot, 0, len(members))
 	for i, f := range fields {
 		ref, err := g.Resolve(f.GetType())
 		if err != nil {
 			return nil, err
+		}
+		if g.isOneof(f) {
+			if err := g.inlineOneof(b, indent, f, ref, nums[first[i]:], nested); err != nil {
+				return nil, err
+			}
+			for j, v := range ref.Decl.GetEnumeration().GetVariants() {
+				k := first[i] + j
+				out = append(out, slot{members[k], emit.Snake(v.GetFields()[0].GetMeta().GetName()), nums[k]})
+			}
+			continue
 		}
 		label, typ, err := g.fieldType(ref, nested)
 		if err != nil {
@@ -501,9 +541,90 @@ func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*i
 		if label != "" {
 			label += " "
 		}
-		fmt.Fprintf(b, "%s%s%s %s = %d%s;\n", indent, label, typ, name, nums[i], deprecatedField(f.GetMeta()))
+		fmt.Fprintf(b, "%s%s%s %s = %d%s;\n", indent, label, typ, name, nums[first[i]], deprecatedField(f.GetMeta()))
+		out = append(out, slot{members[first[i]], name, nums[first[i]]})
 	}
-	return nums, nil
+	return out, nil
+}
+
+// oneofDirective is a field's `oneof` directive for this target, or nil.
+// [emit.Session.Find] skips a directive that takes no argument.
+func (g *generator) oneofDirective(f *ir.Field) *ir.Directive {
+	for _, d := range plugin.Directives(g.Target, f.GetDirectives()) {
+		if d.GetName() == "oneof" {
+			return d
+		}
+	}
+	return nil
+}
+
+func (g *generator) isOneof(f *ir.Field) bool { return g.oneofDirective(f) != nil }
+
+// inlinedOnly is the sum types every use of which is a field carrying
+// `oneof`. Each such field writes the variants out itself, so the sum
+// type's message would be declared and never named.
+func (g *generator) inlinedOnly() map[*ir.Decl]bool {
+	inlined := map[*ir.Decl]bool{}
+	var named []*ir.ID
+	for _, d := range g.Model.GetDecls() {
+		if n := d.GetNewtype(); n != nil {
+			named = append(named, n.GetBase())
+			continue
+		}
+		fields := d.Fields()
+		for _, v := range d.GetEnumeration().GetVariants() {
+			fields = append(fields, v.GetFields()...)
+		}
+		for _, f := range fields {
+			if !g.isOneof(f) {
+				named = append(named, f.GetType())
+			} else if ref, err := g.Resolve(f.GetType()); err == nil && ref.Form == emit.Named {
+				inlined[ref.Decl] = true
+			}
+		}
+	}
+	for _, d := range g.TypeReferences(named...) {
+		delete(inlined, d)
+	}
+	return inlined
+}
+
+// inlinable reports why a field's `oneof` directive cannot be honored: its
+// type has to be an enum whose every variant carries exactly one field.
+func (g *generator) inlinable(f *ir.Field, ref *emit.Ref) error {
+	pos := g.oneofDirective(f).GetPosition()
+	name := f.GetMeta().GetName()
+	e := ref.Decl.GetEnumeration()
+	if ref.Form != emit.Named || e == nil {
+		return emit.Unsupported(pos, "field %s is a oneof, and only an enum can be inlined as one", name)
+	}
+	for _, v := range e.GetVariants() {
+		if n := len(v.GetFields()); n != 1 {
+			return emit.Unsupported(pos, "field %s is a oneof, and variant %s carries %d fields rather than one", name, v.GetMeta().GetName(), n)
+		}
+	}
+	return nil
+}
+
+// inlineOneof renders a field whose type is a sum type as a oneof of the
+// variants' single fields, numbered by nums in variant order.
+func (g *generator) inlineOneof(b *strings.Builder, indent string, f *ir.Field, ref *emit.Ref, nums []int64, nested map[string]bool) error {
+	variants := ref.Decl.GetEnumeration().GetVariants()
+	fmt.Fprintf(b, "%soneof %s {\n", indent, emit.Snake(f.GetMeta().GetName()))
+	for i, v := range variants {
+		vf := v.GetFields()[0]
+		r, err := g.Resolve(vf.GetType())
+		if err != nil {
+			return err
+		}
+		typ, err := g.single(r, nested)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(b, "%s  %s %s = %d;\n", indent, typ, emit.Snake(vf.GetMeta().GetName()), nums[i])
+	}
+	fmt.Fprintf(b, "%s}\n", indent)
+	return nil
 }
 
 // fieldType returns a field's label and type.

@@ -24,7 +24,12 @@ func (s *Session) References(d *ir.Decl) []*ir.Decl {
 	case d.GetAlias() != nil:
 		ids = append(ids, d.GetAlias().GetTarget())
 	}
+	return s.TypeReferences(ids...)
+}
 
+// TypeReferences returns the declarations the type references ids name,
+// walked as [Session.References] walks a declaration's.
+func (s *Session) TypeReferences(ids ...*ir.ID) []*ir.Decl {
 	var out []*ir.Decl
 	seen := map[*ir.Decl]bool{}
 	var walk func(id *ir.ID)

@@ -552,3 +552,213 @@ func TestConformance(t *testing.T) {
 		})
 	}
 }
+
+// A field carrying `oneof` whose type is a sum type with one field per
+// variant is that sum type's members written inline, as a oneof named for
+// the field, each member numbered by its variant.
+func TestOneofField(t *testing.T) {
+	declared := false
+	for _, spec := range (protobuf.Backend{}).Describe().Directives {
+		if spec.GetName() == "oneof" {
+			declared = true
+		}
+	}
+	if !declared {
+		t.Errorf("directive %q is not declared", "oneof")
+	}
+
+	b := irtest.New("shop")
+	contact := variant("Contact", irtest.Field("contact", b.Named("string")))
+	contact.Directives = []*ir.Directive{number("4")}
+	system := variant("SystemActor", irtest.Field("system_actor", b.Named("string")))
+	system.Directives = []*ir.Directive{number("5")}
+	b.Own(enum("TriggerActor", contact, system))
+
+	kind := irtest.Field("kind", b.Named("string"))
+	kind.Directives = []*ir.Directive{number("1")}
+	actor := irtest.Field("actor", b.Named("TriggerActor"))
+	actor.Directives = []*ir.Directive{{Name: "oneof", Target: protobuf.Name}}
+	b.Own(value("Trigger", kind, actor))
+
+	src := compile(t, generate(t, b))
+	contains(t, src,
+		"message Trigger { string kind = 1; oneof actor { string contact = 4; string system_actor = 5; } }",
+	)
+	absent(t, src, "TriggerActor actor")
+}
+
+// An inlined oneof's members share the containing message's number space,
+// and the oneof itself takes no number.
+func TestOneofSharesNumbers(t *testing.T) {
+	b := irtest.New("shop")
+	b.Own(enum("TriggerActor",
+		variant("Contact", irtest.Field("contact", b.Named("string"))),
+		variant("SystemActor", irtest.Field("system_actor", b.Named("string"))),
+	))
+	actor := irtest.Field("actor", b.Named("TriggerActor"))
+	actor.Directives = []*ir.Directive{{Name: "oneof", Target: protobuf.Name}}
+	b.Own(value("Trigger",
+		irtest.Field("kind", b.Named("string")),
+		actor,
+		irtest.Field("note", b.Named("string")),
+	))
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	contains(t, compile(t, resp),
+		"message Trigger { string kind = 1; oneof actor { string contact = 2; string system_actor = 3; } string note = 4; }",
+	)
+}
+
+// A oneof member pinned to the number a field of the containing message pins is
+// the same warning as two colliding fields, and the message is skipped.
+func TestOneofMemberCollides(t *testing.T) {
+	b := irtest.New("shop")
+	contact := variant("Contact", irtest.Field("contact", b.Named("string")))
+	contact.Directives = []*ir.Directive{number("1")}
+	b.Own(enum("TriggerActor",
+		contact,
+		variant("SystemActor", irtest.Field("system_actor", b.Named("string"))),
+	))
+	actor := irtest.Field("actor", b.Named("TriggerActor"))
+	actor.Directives = []*ir.Directive{{Name: "oneof", Target: protobuf.Name}}
+	kind := irtest.Field("kind", b.Named("string"))
+	kind.Directives = []*ir.Directive{number("1")}
+	b.Own(value("Trigger", kind, actor))
+	b.Own(value("Fine", irtest.Field("a", b.Named("string"))))
+
+	resp := generate(t, b)
+	diags := resp.GetDiagnostics()
+	if len(diags) != 1 {
+		t.Fatalf("want one warning, for the collision: %+v", diags)
+	}
+	if diags[0].GetSeverity() != plugin.Severity_SEVERITY_WARNING {
+		t.Errorf("severity = %v", diags[0].GetSeverity())
+	}
+	if !strings.Contains(diags[0].GetMessage(), "both numbered 1") {
+		t.Errorf("message = %q", diags[0].GetMessage())
+	}
+	src := compile(t, resp)
+	absent(t, src, "message Trigger {")
+	contains(t, src, "message Fine")
+}
+
+// A `oneof` the backend cannot inline is a warning at the directive, and the
+// message holding it is skipped rather than written with a guess or a panic.
+func TestOneofUninlinable(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		// typ declares what the field names and returns its type.
+		typ func(b *irtest.Builder) *ir.ID
+	}{
+		{"a variant carrying no fields", func(b *irtest.Builder) *ir.ID {
+			b.Own(enum("TriggerActor",
+				variant("Contact", irtest.Field("contact", b.Named("string"))),
+				variant("Nobody"),
+			))
+			return b.Named("TriggerActor")
+		}},
+		{"a variant carrying two fields", func(b *irtest.Builder) *ir.ID {
+			b.Own(enum("TriggerActor",
+				variant("Contact", irtest.Field("contact", b.Named("string"))),
+				variant("System", irtest.Field("name", b.Named("string")), irtest.Field("id", b.Named("int"))),
+			))
+			return b.Named("TriggerActor")
+		}},
+		{"a string", func(b *irtest.Builder) *ir.ID { return b.Named("string") }},
+		{"a plain enum", func(b *irtest.Builder) *ir.ID {
+			b.Own(enum("Status", variant("Open"), variant("Closed")))
+			return b.Named("Status")
+		}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			b := irtest.New("shop")
+			actor := irtest.Field("actor", tt.typ(b))
+			actor.Meta.Position = &ir.Position{Filename: "shop.tdl", Line: 12}
+			actor.Directives = []*ir.Directive{{
+				Name: "oneof", Target: protobuf.Name,
+				Position: &ir.Position{Filename: "shop.tdl", Line: 12},
+			}}
+			b.Own(value("Trigger", irtest.Field("kind", b.Named("string")), actor))
+			b.Own(value("Fine", irtest.Field("a", b.Named("string"))))
+
+			var resp *plugin.Response
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						t.Fatalf("generate panicked: %v", r)
+					}
+				}()
+				resp = generate(t, b)
+			}()
+
+			diags := resp.GetDiagnostics()
+			if len(diags) != 1 {
+				t.Fatalf("want one warning, for the oneof: %+v", diags)
+			}
+			if diags[0].GetSeverity() != plugin.Severity_SEVERITY_WARNING {
+				t.Errorf("severity = %v", diags[0].GetSeverity())
+			}
+			if pos := diags[0].GetPosition(); pos.GetFilename() != "shop.tdl" || pos.GetLine() != 12 {
+				t.Errorf("want the warning at shop.tdl:12, got %+v", pos)
+			}
+			src := compile(t, resp)
+			absent(t, src, "message Trigger {")
+			contains(t, src, "message Fine {")
+		})
+	}
+}
+
+// A sum type every use of which is inlined as a oneof is not written as a
+// message of its own. One that anything else names still is.
+func TestOneofOnlySumTypeIsNotEmitted(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		// also declares whatever else the model holds beside Trigger.
+		also func(b *irtest.Builder)
+		want bool
+	}{
+		{"every use inlined", func(*irtest.Builder) {}, false},
+		{"also an ordinary field", func(b *irtest.Builder) {
+			b.Own(value("Audit", irtest.Field("actor", b.Named("TriggerActor"))))
+		}, true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			b := irtest.New("shop")
+			b.Own(enum("TriggerActor",
+				variant("Contact", irtest.Field("contact", b.Named("string"))),
+				variant("SystemActor", irtest.Field("system_actor", b.Named("string"))),
+			))
+			actor := irtest.Field("actor", b.Named("TriggerActor"))
+			actor.Directives = []*ir.Directive{{Name: "oneof", Target: protobuf.Name}}
+			b.Own(value("Trigger", irtest.Field("kind", b.Named("string")), actor))
+			tt.also(b)
+
+			resp := generate(t, b)
+			if len(resp.GetDiagnostics()) != 0 {
+				t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+			}
+			src := compile(t, resp)
+			contains(t, src,
+				"message Trigger { string kind = 1; oneof actor { string contact = 2; string system_actor = 3; } }",
+			)
+			if tt.want {
+				contains(t, src, "message TriggerActor {", "TriggerActor actor = 1;")
+			} else {
+				absent(t, src, "message TriggerActor {")
+			}
+		})
+	}
+}
+
+// A sum type no field inlines is written as a message, as it always was.
+func TestSumTypeNotInlinedIsEmitted(t *testing.T) {
+	b := irtest.New("shop")
+	b.Own(enum("TriggerActor",
+		variant("Contact", irtest.Field("contact", b.Named("string"))),
+		variant("SystemActor", irtest.Field("system_actor", b.Named("string"))),
+	))
+	contains(t, compile(t, generate(t, b)), "message TriggerActor {")
+}
