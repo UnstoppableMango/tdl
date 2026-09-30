@@ -148,6 +148,7 @@ Thrift numbers run to 32767.
 
 A protobuf message takes a repeatable `reserved` directive of numbers or names, and each one is a `reserved` statement at the top of the message, in the order written.
 An unpinned field skips a number the message reserves, and a field pinned to a reserved number or on a reserved name is refused.
+An inlined oneof member is held to both rules, since protobuf counts one as a field of its message.
 
 ## Output
 
