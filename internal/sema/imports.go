@@ -12,10 +12,11 @@ import (
 // the model and reporting cycles.
 //
 // A dependency is parsed but not lowered. What the walk needs from it is
-// its package name, its own imports, and, for a `_` import, the names it
-// exports. Whether a qualified reference names something that dependency
-// actually declares is not checked here: the reference carries the
-// dependency's package to the backend, which is what ir.md asks for.
+// its package name, its own imports, the block-scope directives of its
+// target blocks, and, for a `_` import, the names it exports. Whether a
+// qualified reference names something that dependency actually declares is
+// not checked here: the reference carries the dependency's package to the
+// backend, which is what ir.md asks for.
 func (l *lowerer) loadImports(file *ast.File) {
 	if len(file.Imports) == 0 {
 		return
@@ -59,10 +60,11 @@ func (l *lowerer) walkImports(file *ast.File, from string, onPath map[string]boo
 
 		if root {
 			l.model.Imports = append(l.model.Imports, &ir.Import{
-				Path:     imp.Path,
-				Alias:    imp.Alias,
-				Package:  pkg,
-				Position: position(imp.P),
+				Path:       imp.Path,
+				Alias:      imp.Alias,
+				Package:    pkg,
+				Position:   position(imp.P),
+				Directives: l.depDirectives(dep, pkg),
 			})
 			l.bindImport(imp, pkg, dep)
 		}
@@ -71,6 +73,25 @@ func (l *lowerer) walkImports(file *ast.File, from string, onPath map[string]boo
 		l.walkImports(dep, name, onPath, append(chain, name), false)
 		delete(onPath, name)
 	}
+}
+
+// depDirectives collects the block-scope directives of a dependency's
+// target blocks for its own package: the bare directives at a block's top
+// level, each naming the block's target.
+func (l *lowerer) depDirectives(dep *ast.File, pkg string) []*ir.Directive {
+	var out []*ir.Directive
+	for _, decl := range dep.Decls {
+		block, ok := decl.(*ast.TargetDecl)
+		if !ok || block.For != pkg {
+			continue
+		}
+		for _, entry := range block.Entries {
+			if entry.Entries == nil && entry.Path == "" {
+				out = append(out, l.directive(block.N, entry.Directive))
+			}
+		}
+	}
+	return out
 }
 
 // bindImport binds what an import brings into scope.

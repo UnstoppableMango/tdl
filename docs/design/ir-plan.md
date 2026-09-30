@@ -164,6 +164,11 @@ Origin outranks specificity, per [workflow.md](workflow.md): any entry in the ro
 
 Done when a dependency's directives reach the root model's nodes, a root entry beats a dependency entry at any specificity, and a conflict between two dependencies is reported.
 
+Block-scope directives are done.
+Each `ir.Import` carries the bare top-level directives of its dependency's target blocks for the dependency's own package, read from the parse tree without lowering the dependency, and `ir.Dump` prints them under the import.
+The protobuf backend consumes them: an extern whose dependency has a protobuf block is written as the message that dependency generates and imported from its file.
+Declaration-level directives, and the precedence between origins, are not.
+
 ## Phase 9: units
 
 `ir.md` deferred units and called the addition additive: a `Unit` table and a unit-typed argument in `Type.Args`.

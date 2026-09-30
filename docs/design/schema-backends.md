@@ -36,7 +36,10 @@ Each of these is a positioned warning, and the declaration reaching it is skippe
 
 Protobuf reads `foreign(file, message)` on a declaration as a message another proto file declares.
 The declaration is not emitted, every reference to it is written as `message`, and each output file referencing it gains `import "<file>";` beside the well-known type imports, once however many references there are.
-An extern carrying protobuf's `foreign(file, message)` is read the same way, and an extern without one is a warning like any other.
+An extern carrying protobuf's `foreign(file, message)` is read the same way.
+An extern without one, whose dependency has a protobuf target block, is the message that dependency generates: it is written `<package>.<Name>` and imported from `<package dirs>/<file>`, where the package is the block's `package` directive or else the dependency's package, the file is its `file` directive or else the package's last segment with `.proto`, and the name is Pascal-cased as the backend names its own messages.
+That is the same path the dependency's own output is written to, so the two agree.
+An extern with neither is a warning like any other.
 
 Constraints are a warning and the declaration is still emitted, since skipping a constrained newtype would leave every field naming it undeclared.
 Validation is its own set of decisions about where a check lives.
