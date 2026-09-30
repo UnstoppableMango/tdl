@@ -62,8 +62,9 @@ func (Backend) Describe() plugin.Description {
 			{Name: "oneof"},
 			// A file the output imports, for the options it uses.
 			{Name: "import", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Repeatable: true},
-			// An option, written `name = value` in the brackets of a field or
-			// an enum value, or as an `option` statement in a message or enum.
+			// An option, written `name = value` in the brackets of a field or an
+			// enum value, or as an `option` statement in a message, an enum, a
+			// service, or an rpc.
 			{Name: "option", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_STRING, ir.LiteralKind_LITERAL_KIND_STRING}, Repeatable: true},
 			// A message another proto file declares: the file to import and
 			// the message's fully qualified name. The declaration carrying
@@ -485,7 +486,7 @@ func (g *generator) service(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	}
 	comment(b, "", d.GetMeta())
 	fmt.Fprintf(b, "service %s {\n", name)
-	g.declOptions(b, d.GetMeta(), nil)
+	g.declOptions(b, d.GetMeta(), d.GetDirectives())
 	for _, f := range d.Fields() {
 		t := g.Model.Type(f.GetType())
 		if !g.ctorTagged(t, "rpc") || len(t.GetArgs()) != 2 {
@@ -501,8 +502,8 @@ func (g *generator) service(b *strings.Builder, d *ir.Decl) ([]string, error) {
 		}
 		comment(b, "  ", f.GetMeta())
 		end := ";"
-		if f.GetMeta().IsDeprecated() {
-			end = " { option deprecated = true; }"
+		if opts := g.options(f.GetMeta(), f.GetDirectives()); len(opts) > 0 {
+			end = " { option " + strings.Join(opts, "; option ") + "; }"
 		}
 		fmt.Fprintf(b, "  rpc %s(%s) returns (%s)%s\n", f.GetMeta().GetName(), req, res, end)
 	}
@@ -1024,7 +1025,8 @@ func (g *generator) options(meta *ir.Meta, dirs []*ir.Directive) []string {
 	return opts
 }
 
-// declOptions writes a message's or an enum's options as statements.
+// declOptions writes a message's, an enum's, or a service's options as
+// statements.
 func (g *generator) declOptions(b *strings.Builder, meta *ir.Meta, dirs []*ir.Directive) {
 	for _, o := range g.options(meta, dirs) {
 		fmt.Fprintf(b, "  option %s;\n", o)
