@@ -316,7 +316,12 @@ func (g *generator) reserved(b *strings.Builder, d *ir.Decl) (map[int64]bool, ma
 		for _, a := range r.GetArgs() {
 			if a.GetKind() == ir.LiteralKind_LITERAL_KIND_STRING {
 				names[a.GetText()] = true
-				args = append(args, fmt.Sprintf("%q", a.GetText()))
+				// Editions refuse the quoted form proto3 uses.
+				if g.edition != "" {
+					args = append(args, a.GetText())
+				} else {
+					args = append(args, fmt.Sprintf("%q", a.GetText()))
+				}
 				continue
 			}
 			if n, err := strconv.ParseInt(a.GetText(), 0, 64); err == nil {
