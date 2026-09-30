@@ -41,6 +41,13 @@ An extern without one, whose dependency has a protobuf target block, is the mess
 That is the same path the dependency's own output is written to, so the two agree.
 An extern with neither is a warning like any other.
 
+Protobuf declares services with two argument-less directives.
+A structure tagged `service` is emitted as a `service` rather than a `message`.
+A primitive tagged `rpc` takes two type arguments, the request and the response, and each field of a service is typed by one: the field becomes `rpc <Field>(<Request>) returns (<Response>);`, keeping the field's name as written.
+A primitive tagged `stream` takes one type argument, and a request or response that applies it is written with the `stream` prefix, as in `rpc Chat(stream Chunk) returns (stream Widget);`.
+Either primitive may be declared in the file or imported from another one, and the target block tags it the same way in both cases.
+The request and response, inside any `stream`, are message references, and a service field that is not an rpc is a warning that skips the service.
+
 Constraints are a warning and the declaration is still emitted, since skipping a constrained newtype would leave every field naming it undeclared.
 Validation is its own set of decisions about where a check lives.
 
@@ -158,10 +165,11 @@ An unpinned field skips a number the message reserves, and a field pinned to a r
 An inlined oneof member is held to both rules, since protobuf counts one as a field of its message.
 
 A protobuf target block takes a repeatable `import(path)` directive, and each path joins every file's imports, which are sorted and written once each.
-A protobuf field, message, enum, or enum value takes a repeatable `option(name, value)` directive.
+A protobuf field, message, enum, enum value, service, or rpc takes a repeatable `option(name, value)` directive.
 A field's or an enum value's options are written `name = value` in one bracket list in the order written, after any option the backend writes itself, such as `deprecated = true`.
 An inlined oneof member stands for its variant and the variant's one field, so it carries the options of both, the variant's first, and is deprecated when either is.
 A message's or an enum's options are each an `option name = value;` statement at the top of its body, after any `reserved` statements, in the same order.
+A service's options are statements at the top of its body the same way, and an rpc's are statements in a `{ }` body after its signature, which an rpc with no options leaves out.
 An `option("deprecated", ...)` on a deprecated node is dropped, since the backend already writes `deprecated = true` and protoc refuses an option set twice.
 
 ## Output

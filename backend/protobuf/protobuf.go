@@ -62,13 +62,22 @@ func (Backend) Describe() plugin.Description {
 			{Name: "oneof"},
 			// A file the output imports, for the options it uses.
 			{Name: "import", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Repeatable: true},
-			// An option, written `name = value` in the brackets of a field or
-			// an enum value, or as an `option` statement in a message or enum.
+			// An option, written `name = value` in the brackets of a field or an
+			// enum value, or as an `option` statement in a message, an enum, a
+			// service, or an rpc.
 			{Name: "option", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_STRING, ir.LiteralKind_LITERAL_KIND_STRING}, Repeatable: true},
 			// A message another proto file declares: the file to import and
 			// the message's fully qualified name. The declaration carrying
 			// it is not emitted.
 			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: append(str, str...)},
+			// A structure emitted as a service rather than a message.
+			{Name: "service"},
+			// A primitive of two type arguments, request and response, that
+			// a service's field applies to declare an rpc.
+			{Name: "rpc"},
+			// A primitive of one type argument that an rpc's request or
+			// response applies to mark it streamed.
+			{Name: "stream"},
 		},
 	}
 }
@@ -347,6 +356,8 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	var declared []string
 	var err error
 	switch e := d.GetEnumeration(); {
+	case e == nil && g.tagged(d.GetDirectives(), "service"):
+		declared, err = g.service(&b, d)
 	case e == nil:
 		declared, err = g.message(&b, d)
 	case emit.Fielded(e):
@@ -463,6 +474,82 @@ func (g *generator) checkReserved(owner string, slots []slot, numbers map[int64]
 		}
 	}
 	return nil
+}
+
+// service renders a structure tagged `service`. Each field is an rpc named
+// as the field is, typed by a primitive tagged `rpc` applied to the request
+// and the response.
+func (g *generator) service(b *strings.Builder, d *ir.Decl) ([]string, error) {
+	name, err := g.declName(d)
+	if err != nil {
+		return nil, err
+	}
+	comment(b, "", d.GetMeta())
+	fmt.Fprintf(b, "service %s {\n", name)
+	g.declOptions(b, d.GetMeta(), d.GetDirectives())
+	for _, f := range d.Fields() {
+		t := g.Model.Type(f.GetType())
+		if !g.ctorTagged(t, "rpc") || len(t.GetArgs()) != 2 {
+			return nil, emit.Unsupported(f.GetMeta().GetPosition(), "%s is a service, and its field %s is not an rpc", name, f.GetMeta().GetName())
+		}
+		req, err := g.rpcArg(f, t.GetArgs()[0])
+		if err != nil {
+			return nil, err
+		}
+		res, err := g.rpcArg(f, t.GetArgs()[1])
+		if err != nil {
+			return nil, err
+		}
+		comment(b, "  ", f.GetMeta())
+		end := ";"
+		if opts := g.options(f.GetMeta(), f.GetDirectives()); len(opts) > 0 {
+			end = " { option " + strings.Join(opts, "; option ") + "; }"
+		}
+		fmt.Fprintf(b, "  rpc %s(%s) returns (%s)%s\n", f.GetMeta().GetName(), req, res, end)
+	}
+	b.WriteString("}\n")
+	return []string{name}, nil
+}
+
+// rpcArg renders an rpc's request or response: a message, prefixed
+// `stream ` when a primitive tagged `stream` wraps it.
+func (g *generator) rpcArg(f *ir.Field, arg *ir.ID) (string, error) {
+	prefix := ""
+	if t := g.Model.Type(arg); len(t.GetArgs()) == 1 && g.ctorTagged(t, "stream") {
+		prefix, arg = "stream ", t.GetArgs()[0]
+	}
+	ref, err := g.Resolve(arg)
+	if err == nil {
+		ref, err = g.Expand(ref)
+	}
+	if err != nil {
+		return "", err
+	}
+	if !isMessage(ref) {
+		return "", emit.Unsupported(f.GetMeta().GetPosition(), "an rpc's request and response are messages, and %s's are not", f.GetMeta().GetName())
+	}
+	typ, err := g.single(ref, nil)
+	return prefix + typ, err
+}
+
+// ctorTagged reports whether t applies a primitive tagged name, declared
+// locally or imported as an extern.
+func (g *generator) ctorTagged(t *ir.Type, name string) bool {
+	if e := t.GetExtern(); e.Resolved() && int(e.GetIndex()) < len(g.Model.GetExterns()) {
+		return g.tagged(g.Model.GetExterns()[e.GetIndex()].GetDirectives(), name)
+	}
+	c := g.Model.Decl(t.GetCtor())
+	return c.GetPrimitive() != nil && g.tagged(c.GetDirectives(), name)
+}
+
+// tagged reports whether a node carries an argument-less directive.
+func (g *generator) tagged(all []*ir.Directive, name string) bool {
+	for _, d := range plugin.Directives(g.Target, all) {
+		if d.GetName() == name {
+			return true
+		}
+	}
+	return false
 }
 
 // enum renders an enum whose variants carry no fields.
@@ -938,7 +1025,8 @@ func (g *generator) options(meta *ir.Meta, dirs []*ir.Directive) []string {
 	return opts
 }
 
-// declOptions writes a message's or an enum's options as statements.
+// declOptions writes a message's, an enum's, or a service's options as
+// statements.
 func (g *generator) declOptions(b *strings.Builder, meta *ir.Meta, dirs []*ir.Directive) {
 	for _, o := range g.options(meta, dirs) {
 		fmt.Fprintf(b, "  option %s;\n", o)
