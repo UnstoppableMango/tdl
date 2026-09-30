@@ -70,6 +70,12 @@ var (
 var scalars = map[string]string{
 	"string":   "string",
 	"int":      "int64",
+	"int32":    "int32",
+	"uint32":   "uint32",
+	"int64":    "int64",
+	"uint64":   "uint64",
+	"float32":  "float",
+	"float64":  "double",
 	"bool":     "bool",
 	"bytes":    "bytes",
 	"decimal":  "string",
@@ -87,7 +93,10 @@ var wellKnown = map[string]string{
 
 // mapKeys is the protobuf types a map may be keyed by that this backend
 // emits: protobuf allows integral and string keys, and nothing else.
-var mapKeys = map[string]bool{"string": true, "int64": true, "bool": true}
+var mapKeys = map[string]bool{
+	"string": true, "bool": true,
+	"int32": true, "int64": true, "uint32": true, "uint64": true,
+}
 
 // editions is every edition the `edition` directive accepts.
 var editions = map[string]bool{"2023": true, "2024": true}

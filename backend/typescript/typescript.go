@@ -49,10 +49,18 @@ func (Backend) Describe() plugin.Description {
 
 // scalars maps a TDL primitive to the TypeScript type its JSON value has.
 // JSON has no bytes, decimal, UUID, or time, so each is the string a
-// consumer parses; an int is a number, which is exact to 2^53.
+// consumer parses; an int is a number, which is exact to 2^53. Every
+// fixed-width numeric is a number too, so a 64-bit value past 2^53 loses
+// precision.
 var scalars = map[string]string{
 	"string":   "string",
 	"int":      "number",
+	"int32":    "number",
+	"int64":    "number",
+	"uint32":   "number",
+	"uint64":   "number",
+	"float32":  "number",
+	"float64":  "number",
 	"bool":     "boolean",
 	"bytes":    "string",
 	"decimal":  "string",

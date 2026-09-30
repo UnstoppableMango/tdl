@@ -42,6 +42,12 @@ A TDL primitive has no Go type of its own, so each is a decision rather than a t
 | --- | --- | --- |
 | `string` | `string` | |
 | `int` | `int64` | The spec puts no width on `int`, and a model that outgrows 32 bits should not be a silent truncation. |
+| `int32` | `int32` | |
+| `uint32` | `uint32` | |
+| `int64` | `int64` | |
+| `uint64` | `uint64` | |
+| `float32` | `float32` | |
+| `float64` | `float64` | |
 | `bool` | `bool` | |
 | `bytes` | `[]byte` | |
 | `uuid` | `string` | The standard library has no UUID type, and choosing a third-party one for every consumer is not the backend's call. `foreign` is the way out, and [Foreign types](#foreign-types) is how. |

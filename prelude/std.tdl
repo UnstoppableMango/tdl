@@ -7,6 +7,24 @@ primitive int
 primitive bool
 primitive bytes
 
+/// A signed 32-bit integer.
+primitive int32
+
+/// An unsigned 32-bit integer.
+primitive uint32
+
+/// A signed 64-bit integer.
+primitive int64
+
+/// An unsigned 64-bit integer.
+primitive uint64
+
+/// An IEEE 754 single-precision float.
+primitive float32
+
+/// An IEEE 754 double-precision float.
+primitive float64
+
 /// An ordered collection, duplicates allowed. `[T]` is sugar for `List<T>`.
 primitive List: type -> type
 

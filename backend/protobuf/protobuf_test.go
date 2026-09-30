@@ -184,6 +184,71 @@ func TestMessages(t *testing.T) {
 	)
 }
 
+func TestFixedWidthNumerics(t *testing.T) {
+	b := irtest.New("shop")
+	b.Own(value("Sizes",
+		irtest.Field("a", b.Named("int32")),
+		irtest.Field("b", b.Named("uint32")),
+		irtest.Field("c", b.Named("int64")),
+		irtest.Field("d", b.Named("uint64")),
+		irtest.Field("e", b.Named("float32")),
+		irtest.Field("f", b.Named("float64")),
+	))
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	contains(t, compile(t, resp),
+		"message Sizes { int32 a = 1; uint32 b = 2; int64 c = 3; uint64 d = 4; float e = 5; double f = 6; }",
+	)
+}
+
+func TestFixedWidthIntegerMapKeys(t *testing.T) {
+	for _, key := range []string{"int32", "uint32", "int64", "uint64"} {
+		t.Run(key, func(t *testing.T) {
+			b := irtest.New("shop")
+			b.Own(value("Index", irtest.Field("m", b.Named("Map", b.Named(key), b.Named("string")))))
+
+			resp := generate(t, b)
+			if len(resp.GetDiagnostics()) != 0 {
+				t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+			}
+			contains(t, compile(t, resp), "message Index { map<"+key+", string> m = 1; }")
+		})
+	}
+}
+
+// Protobuf forbids floating-point map keys.
+func TestFloatMapKeysAreRefused(t *testing.T) {
+	for _, tt := range []struct{ key, proto string }{
+		{"float32", "float"},
+		{"float64", "double"},
+	} {
+		t.Run(tt.key, func(t *testing.T) {
+			b := irtest.New("shop")
+			b.Own(value("Fine", irtest.Field("a", b.Named("string"))))
+			b.Own(value("Index", irtest.Field("m", b.Named("Map", b.Named(tt.key), b.Named("string")))))
+
+			resp := generate(t, b)
+			diags := resp.GetDiagnostics()
+			if len(diags) != 1 {
+				t.Fatalf("want one warning for Index: %+v", diags)
+			}
+			if diags[0].GetSeverity() != plugin.Severity_SEVERITY_WARNING {
+				t.Errorf("severity = %v", diags[0].GetSeverity())
+			}
+			want := "a protobuf map key is a string, an integer, or a bool, and this one is " + tt.proto
+			if !strings.Contains(diags[0].GetMessage(), want) {
+				t.Errorf("message = %q, want it to contain %q", diags[0].GetMessage(), want)
+			}
+			src := compile(t, resp)
+			absent(t, src, "message Index")
+			contains(t, src, "message Fine")
+		})
+	}
+}
+
 func TestImportsOnlyWhatIsUsed(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(value("Note", irtest.Field("body", b.Named("string"))))

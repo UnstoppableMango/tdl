@@ -52,6 +52,12 @@ The constraint warning above is the exception: it reports what is not enforced a
 | --- | --- | --- | --- | --- | --- |
 | `string` | `string` | `string` | `String` | `String` | `string` |
 | `int` | `int64` | `i64` | `Long` | `scalar Long` | `number` |
+| `int32` | `int32` | `i32` | `Integer` | `Int` | `number` |
+| `uint32` | `uint32` | `i64` | `Long` | `scalar Long` | `number` |
+| `int64` | `int64` | `i64` | `Long` | `scalar Long` | `number` |
+| `uint64` | `uint64` | warn | `BigInteger` | `scalar UInt64` | `number` |
+| `float32` | `float` | `double` | `Float` | `Float` | `number` |
+| `float64` | `double` | `double` | `Double` | `Float` | `number` |
 | `bool` | `bool` | `bool` | `Boolean` | `Boolean` | `boolean` |
 | `bytes` | `bytes` | `binary` | `Blob` | `scalar Bytes` | `string` |
 | `decimal` | `string` | `string` | `BigDecimal` | `scalar Decimal` | `string` |
@@ -61,6 +67,8 @@ The constraint warning above is the exception: it reports what is not enforced a
 | `duration` | `google.protobuf.Duration` | `string` | `String` | `scalar Duration` | `string` |
 
 `int` has no width in the spec, so every target uses 64 bits, and GraphQL needs a custom scalar for it because its `Int` is 32.
+`uint32` widens to a signed 64-bit type in Thrift, Smithy, and GraphQL, which have no unsigned integers; Thrift has nothing wider for `uint64`, so it is a warning there.
+TypeScript's `number` is a double, so `int`, `int64`, and `uint64` lose precision above 2^53.
 `decimal` is a string wherever the target has no exact decimal, for the reason [go-backend.md](go-backend.md) gives.
 A GraphQL custom scalar is declared only when something uses it.
 

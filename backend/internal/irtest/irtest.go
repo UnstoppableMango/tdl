@@ -25,7 +25,7 @@ type Builder struct {
 // carries the primitives, Option, and Nullable.
 func New(pkg string) *Builder {
 	b := &Builder{Model: &ir.Model{Package: pkg}}
-	for _, name := range []string{"string", "int", "bool", "bytes", "decimal", "uuid", "instant", "date", "duration", "List", "Set", "Map"} {
+	for _, name := range []string{"string", "int", "int32", "uint32", "int64", "uint64", "float32", "float64", "bool", "bytes", "decimal", "uuid", "instant", "date", "duration", "List", "Set", "Map"} {
 		b.Decl(&ir.Decl{
 			Meta: &ir.Meta{Name: name, Position: &ir.Position{Filename: prelude.Name}},
 			Node: &ir.Decl_Primitive{Primitive: &ir.Primitive{}},

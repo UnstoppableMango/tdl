@@ -6,69 +6,75 @@ Model shop.orders
 │   ├── [1] primitive int  std.tdl:6:1
 │   ├── [2] primitive bool  std.tdl:7:1
 │   ├── [3] primitive bytes  std.tdl:8:1
-│   ├── [4] primitive List: type -> type  std.tdl:11:1
-│   ├── [5] primitive Set: type -> type  std.tdl:14:1
-│   ├── [6] primitive Map: type -> type -> type  std.tdl:17:1
-│   ├── [7] primitive decimal  std.tdl:20:1
-│   ├── [8] primitive uuid  std.tdl:22:1
-│   ├── [9] primitive instant  std.tdl:23:1
-│   ├── [10] primitive date  std.tdl:24:1
-│   ├── [11] primitive duration  std.tdl:25:1
-│   ├── [12] unit s  std.tdl:28:1
+│   ├── [4] primitive int32  std.tdl:11:1
+│   ├── [5] primitive uint32  std.tdl:14:1
+│   ├── [6] primitive int64  std.tdl:17:1
+│   ├── [7] primitive uint64  std.tdl:20:1
+│   ├── [8] primitive float32  std.tdl:23:1
+│   ├── [9] primitive float64  std.tdl:26:1
+│   ├── [10] primitive List: type -> type  std.tdl:29:1
+│   ├── [11] primitive Set: type -> type  std.tdl:32:1
+│   ├── [12] primitive Map: type -> type -> type  std.tdl:35:1
+│   ├── [13] primitive decimal  std.tdl:38:1
+│   ├── [14] primitive uuid  std.tdl:40:1
+│   ├── [15] primitive instant  std.tdl:41:1
+│   ├── [16] primitive date  std.tdl:42:1
+│   ├── [17] primitive duration  std.tdl:43:1
+│   ├── [18] unit s  std.tdl:46:1
 │   │   └── measures units[0] s
-│   ├── [13] unit m  std.tdl:30:1
+│   ├── [19] unit m  std.tdl:48:1
 │   │   └── measures units[1] m
-│   ├── [14] unit kg  std.tdl:31:1
+│   ├── [20] unit kg  std.tdl:49:1
 │   │   └── measures units[2] kg
-│   ├── [15] enum Option  std.tdl:34:1
-│   │   ├── param T  std.tdl:34:13
-│   │   ├── variant Some  std.tdl:35:3
-│   │   │   └── field value: types[0] T  std.tdl:35:10
-│   │   └── variant None  std.tdl:36:3
-│   ├── [16] enum Nullable  std.tdl:40:1
-│   │   ├── param T  std.tdl:40:15
-│   │   ├── variant Present  std.tdl:41:3
-│   │   │   └── field value: types[1] T  std.tdl:41:13
-│   │   └── variant Null  std.tdl:42:3
-│   ├── [17] class Entity  std.tdl:46:1
-│   ├── [18] entity Order  source.tdl:5:1
+│   ├── [21] enum Option  std.tdl:52:1
+│   │   ├── param T  std.tdl:52:13
+│   │   ├── variant Some  std.tdl:53:3
+│   │   │   └── field value: types[0] T  std.tdl:53:10
+│   │   └── variant None  std.tdl:54:3
+│   ├── [22] enum Nullable  std.tdl:58:1
+│   │   ├── param T  std.tdl:58:15
+│   │   ├── variant Present  std.tdl:59:3
+│   │   │   └── field value: types[1] T  std.tdl:59:13
+│   │   └── variant Null  std.tdl:60:3
+│   ├── [23] class Entity  std.tdl:64:1
+│   ├── [24] entity Order  source.tdl:5:1
 │   │   ├── conforms Entity  source.tdl:5:13
 │   │   ├── field id: types[2] OrderId  source.tdl:6:3
 │   │   ├── field customer: types[3] User  source.tdl:7:3
 │   │   ├── field shipping: types[5] Option<shop.common.Address>  source.tdl:8:3
 │   │   ├── field owned items: types[7] List<LineItem>  source.tdl:9:3
 │   │   └── field status: types[8] Status = Draft  source.tdl:10:3
-│   ├── [19] entity LineItem  source.tdl:13:1
+│   ├── [25] entity LineItem  source.tdl:13:1
 │   │   ├── conforms Entity  source.tdl:13:16
 │   │   ├── field order: types[9] Order  source.tdl:14:3
 │   │   ├── field sku: types[10] string  source.tdl:15:3
 │   │   └── field quantity: types[11] int  source.tdl:16:3
-│   ├── [20] entity User  source.tdl:19:1
+│   ├── [26] entity User  source.tdl:19:1
 │   │   ├── conforms Entity  source.tdl:19:12
 │   │   └── field id: types[10] string  source.tdl:20:3
-│   ├── [21] newtype OrderId  source.tdl:23:1
+│   ├── [27] newtype OrderId  source.tdl:23:1
 │   │   └── base types[10] string
-│   └── [22] enum Status  source.tdl:24:1
+│   └── [28] enum Status  source.tdl:24:1
 │       ├── variant Draft  source.tdl:24:15
 │       ├── variant Placed  source.tdl:24:21
 │       └── variant Shipped  source.tdl:24:28
 ├── Satisfies
 │   └── Entity: Order, LineItem, User
 ├── Units
-│   ├── [0] s  std.tdl:28:1
-│   ├── [1] m  std.tdl:30:1
-│   └── [2] kg  std.tdl:31:1
+│   ├── [0] s  std.tdl:46:1
+│   ├── [1] m  std.tdl:48:1
+│   └── [2] kg  std.tdl:49:1
 ├── Types
-│   ├── [0] T  named  -> param Option.T  std.tdl:35:17
-│   ├── [1] T  named  -> param Nullable.T  std.tdl:41:20
-│   ├── [2] OrderId  named  -> decls[21]  source.tdl:6:7
-│   ├── [3] User  named  -> decls[20]  source.tdl:7:13
+│   ├── [0] T  named  -> param Option.T  std.tdl:53:17
+│   ├── [1] T  named  -> param Nullable.T  std.tdl:59:20
+│   ├── [2] OrderId  named  -> decls[27]  source.tdl:6:7
+│   ├── [3] User  named  -> decls[26]  source.tdl:7:13
 │   ├── [4] shop.common.Address  named  -> externs[0]  source.tdl:8:13
-│   ├── [5] Option<shop.common.Address>  T?  -> decls[15]  source.tdl:8:13
-│   ├── [6] LineItem  named  -> decls[19]  source.tdl:9:11
-│   ├── [7] List<LineItem>  [T]  -> decls[4]  source.tdl:9:10
-│   ├── [8] Status  named  -> decls[22]  source.tdl:10:11
-│   ├── [9] Order  named  -> decls[18]  source.tdl:14:10
+│   ├── [5] Option<shop.common.Address>  T?  -> decls[21]  source.tdl:8:13
+│   ├── [6] LineItem  named  -> decls[25]  source.tdl:9:11
+│   ├── [7] List<LineItem>  [T]  -> decls[10]  source.tdl:9:10
+│   ├── [8] Status  named  -> decls[28]  source.tdl:10:11
+│   ├── [9] Order  named  -> decls[24]  source.tdl:14:10
 │   ├── [10] string  named  -> decls[0]  source.tdl:15:8
 │   └── [11] int  named  -> decls[1]  source.tdl:16:13
 └── Externs

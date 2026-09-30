@@ -164,6 +164,27 @@ func TestInterfaces(t *testing.T) {
 	)
 }
 
+// Every fixed-width numeric is a JSON number, as int is.
+func TestFixedWidthNumerics(t *testing.T) {
+	b := irtest.New("shop")
+	b.Own(value("Sizes",
+		irtest.Field("a", b.Named("int32")),
+		irtest.Field("b", b.Named("int64")),
+		irtest.Field("c", b.Named("uint32")),
+		irtest.Field("d", b.Named("uint64")),
+		irtest.Field("e", b.Named("float32")),
+		irtest.Field("f", b.Named("float64")),
+	))
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	contains(t, check(t, resp),
+		"export interface Sizes { a: number; b: number; c: number; d: number; e: number; f: number; }",
+	)
+}
+
 func TestEnums(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(enum("Status", variant("Active"), variant("InProgress")))

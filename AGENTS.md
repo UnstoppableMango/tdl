@@ -166,7 +166,7 @@ Pipeline, one package per stage:
   A field that is not optional is `@required`, and an optional element makes a list or map `@sparse`.
   There is no Go implementation of Smithy, so its tests run `smithy validate` when the CLI is on `PATH`, and `checks.gen-smithy` generates from `testdata/gen/smoke` and validates the `.smithy` files that come out regardless.
 - `backend/graphql` — the GraphQL backend: one `.graphql` schema per model, holding output types only.
-  A primitive GraphQL has no type for is a custom scalar declared only when something uses it, `int` among them because GraphQL's `Int` is 32 bits.
+  A primitive GraphQL has no type for is a custom scalar declared only when something uses it, `int`, `int64`, `uint32`, and `uint64` among them because GraphQL's `Int` is 32-bit and signed.
   An enum where any variant carries fields is a union of one object type per variant, and a variant with no fields carries a placeholder `_: Boolean`, since a GraphQL object needs a field; a map is a warning, since GraphQL has none.
   Its tests load every response with `vektah/gqlparser`, which validates the schema as well as parsing it.
 - `backend/typescript` — the TypeScript backend: one `.ts` file per model declaring JSON wire types, interfaces and type aliases with no runtime code.

@@ -172,6 +172,29 @@ func TestStructures(t *testing.T) {
 	absent(t, src, "@required note")
 }
 
+// Smithy has no unsigned types, so uint32 widens to Long, which holds every
+// value of it, and uint64 widens to BigInteger.
+func TestFixedWidthNumerics(t *testing.T) {
+	b := irtest.New("shop")
+	b.Own(value("Sizes",
+		irtest.Field("a", b.Named("int32")),
+		irtest.Field("b", b.Named("int64")),
+		irtest.Field("c", b.Named("uint32")),
+		irtest.Field("d", b.Named("uint64")),
+		irtest.Field("e", b.Named("float32")),
+		irtest.Field("f", b.Named("float64")),
+	))
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	contains(t, check(t, resp),
+		"structure Sizes { @required a: Integer @required b: Long @required c: Long "+
+			"@required d: BigInteger @required e: Float @required f: Double }",
+	)
+}
+
 // A collection shape is named for what it holds, so two fields holding the
 // same collection share one shape.
 func TestACollectionShapeIsDeclaredOnce(t *testing.T) {

@@ -194,6 +194,52 @@ func TestObject(t *testing.T) {
 	}
 }
 
+// Each fixed-width numeric is stored and typed as the nearest of int and
+// decimal: int32 is an Apex Integer, int64 and uint32 are what int is, and
+// uint64, which exceeds a Long, is a Decimal stored in the integer column.
+// A float is an Apex Double in the column decimal uses.
+func TestFixedWidthNumerics(t *testing.T) {
+	b := irtest.New("shop")
+	fields := func() []*ir.Field {
+		return []*ir.Field{
+			irtest.Field("small", b.Named("int32")),
+			irtest.Field("big", b.Named("int64")),
+			irtest.Field("count", b.Named("uint32")),
+			irtest.Field("huge", b.Named("uint64")),
+			irtest.Field("ratio", b.Named("float32")),
+			irtest.Field("score", b.Named("float64")),
+		}
+	}
+	b.Own(entity("Reading", fields()...))
+	b.Own(value("Sample", fields()...))
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	all := files(t, resp)
+
+	integer := []string{"<precision>18</precision>", "<scale>0</scale>", "<type>Number</type>"}
+	fractional := []string{"<precision>18</precision>", "<scale>6</scale>", "<type>Number</type>"}
+	for name, want := range map[string][]string{
+		"Small": integer, "Big": integer, "Count": integer, "Huge": integer,
+		"Ratio": fractional, "Score": fractional,
+	} {
+		contains(t, file(t, all, "objects/Reading__c/fields/"+name+"__c.field-meta.xml"),
+			append([]string{"<fullName>" + name + "__c</fullName>"}, want...)...)
+	}
+
+	contains(t, file(t, all, "classes/Sample.cls"),
+		"public class Sample {",
+		"public Integer small;",
+		"public Long big;",
+		"public Long count;",
+		"public Decimal huge;",
+		"public Double ratio;",
+		"public Double score;",
+	)
+}
+
 // A field no column holds is dropped from the object, which is still
 // written.
 func TestUnstorableField(t *testing.T) {

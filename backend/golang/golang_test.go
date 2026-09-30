@@ -189,6 +189,32 @@ func TestStructs(t *testing.T) {
 	)
 }
 
+// Go has a type of each fixed width, so each prelude numeric is the Go type
+// of the same name.
+func TestFixedWidthNumerics(t *testing.T) {
+	m := irtest.New("shop")
+	m.Own(structure("Sizes", nil,
+		irtest.Field("a", m.Named("int32")),
+		irtest.Field("b", m.Named("uint32")),
+		irtest.Field("c", m.Named("int64")),
+		irtest.Field("d", m.Named("uint64")),
+		irtest.Field("e", m.Named("float32")),
+		irtest.Field("f", m.Named("float64")),
+	))
+
+	resp := generate(t, m)
+	noDiagnostics(t, resp)
+	contains(t, files(t, resp)["sizes.go"],
+		"type Sizes struct {",
+		"A int32",
+		"B uint32",
+		"C int64",
+		"D uint64",
+		"E float32",
+		"F float64",
+	)
+}
+
 // The three struct kinds mean different things and emit the same shape: Go
 // has no way to say "identity that survives changes to its contents".
 func TestMixinIsAStructToo(t *testing.T) {
