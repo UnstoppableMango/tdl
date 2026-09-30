@@ -190,7 +190,6 @@ func TestDefinitionCrossesAnImport(t *testing.T) {
 
 	src := "package p\n\n" +
 		"import \"common.tdl\" as _\n\n" +
-		"primitive string\n\n" +
 		"type Order: Entity {\n" +
 		"  id: string\n" +
 		"  total: Money\n" +

@@ -837,6 +837,110 @@ type Order { ship: Address }
 	}
 }
 
+// A primitive is always exported, whatever its case, so a `_` import
+// merges a lower-case primitive.
+func TestUnderscoreImportMergesPrimitive(t *testing.T) {
+	file, err := parser.Parse("main.tdl", strings.NewReader(`
+import "dep.tdl" as _
+
+type Reading { count: int32 }
+`))
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+
+	model, diags := Lower(file, WithLoader(MapLoader{
+		"dep.tdl": "package acme.scalar\nprimitive int32\n",
+	}))
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+
+	reading, _, _ := model.FindDecl("Reading")
+	count := model.Type(reading.Fields()[0].GetType())
+	if count.GetExtern() == nil {
+		t.Fatalf("the reference is not an extern: %+v", count)
+	}
+	ext := model.GetExterns()[count.GetExtern().GetIndex()]
+	if ext.GetPackage() != "acme.scalar" || ext.GetName() != "int32" {
+		t.Errorf("extern = %+v, want acme.scalar.int32", ext)
+	}
+}
+
+// A local primitive that repeats one a `_` import merges is a collision,
+// as it is for any other merged name.
+func TestUnderscoreImportPrimitiveCollides(t *testing.T) {
+	file, err := parser.Parse("main.tdl", strings.NewReader(`
+import "dep.tdl" as _
+
+primitive int32
+`))
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+
+	_, diags := Lower(file, WithLoader(MapLoader{
+		"dep.tdl": "package acme.scalar\nprimitive int32\n",
+	}))
+	if !strings.Contains(diags.Error(), "int32 is declared twice") {
+		t.Errorf("diagnostics = %v", diags)
+	}
+}
+
+// A unit is always exported, whatever its case, so a `_` import merges a
+// lower-case unit and a type argument can name it.
+func TestUnderscoreImportMergesUnit(t *testing.T) {
+	file, err := parser.Parse("main.tdl", strings.NewReader(`
+import "dep.tdl" as _
+
+type Length { value: decimal<m> }
+`))
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+
+	model, diags := Lower(file, WithLoader(MapLoader{
+		"dep.tdl": "package acme.si\nunit m\n",
+	}))
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+
+	length, _, _ := model.FindDecl("Length")
+	args := model.Type(length.Fields()[0].GetType()).GetArgs()
+	if len(args) != 1 {
+		t.Fatalf("decimal<m> has %d arguments, want 1", len(args))
+	}
+	arg := model.Type(args[0])
+	if arg.GetExtern() == nil {
+		t.Fatalf("the unit argument is not an extern: %+v", arg)
+	}
+	ext := model.GetExterns()[arg.GetExtern().GetIndex()]
+	if ext.GetPackage() != "acme.si" || ext.GetName() != "m" {
+		t.Errorf("extern = %+v, want acme.si.m", ext)
+	}
+}
+
+// A lower-case declaration that is neither a primitive nor a unit is
+// package-private, so a `_` import does not merge it.
+func TestUnderscoreImportSkipsLowerCaseType(t *testing.T) {
+	file, err := parser.Parse("main.tdl", strings.NewReader(`
+import "dep.tdl" as _
+
+type Order { part: widget }
+`))
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+
+	_, diags := Lower(file, WithLoader(MapLoader{
+		"dep.tdl": "package acme.parts\ntype widget { }\n",
+	}))
+	if !strings.Contains(diags.Error(), "undefined: widget") {
+		t.Errorf("diagnostics = %v, want undefined: widget", diags)
+	}
+}
+
 func TestImportCycle(t *testing.T) {
 	file, err := parser.Parse("a.tdl", strings.NewReader(`import "b.tdl" as b`))
 	if err != nil {
