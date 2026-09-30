@@ -76,6 +76,11 @@ message DirectiveSpec {
   // any kind, and a list shorter than the argument count constrains only
   // the arguments it covers.
   repeated tdl.ir.v1.LiteralKind arg_kinds = 4;
+
+  // repeatable says several entries of this directive at the same
+  // specificity all reach the backend, in source order, rather than being
+  // an error.
+  bool repeatable = 5;
 }
 
 // Features are the optional parts of the protocol a backend supports.

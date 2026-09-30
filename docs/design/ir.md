@@ -187,7 +187,7 @@ This is what makes separate compilation possible, and it matches what generated 
 
 Resolved directives attach to the nodes they apply to.
 
-By the time a backend runs, the specificity ladder has been applied, class-scoped directives have been expanded across every satisfying type, and equal-specificity conflicts have already been reported as errors.
+By the time a backend runs, the specificity ladder has been applied, class-scoped directives have been expanded across every satisfying type, and entries tied at one specificity have been checked against the directives the backend declares repeatable: a tie on any other directive is an error before the backend runs, and a repeatable one reaches it as every entry in source order.
 
 Merging a dependency's target blocks is not done: it needs the dependency lowered, and nothing else does. See ir-plan.md phase 8b.
 

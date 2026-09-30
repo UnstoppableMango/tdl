@@ -1541,8 +1541,11 @@ target proto for p {
 	}
 }
 
-func TestEqualSpecificityIsAnError(t *testing.T) {
-	diags := lowerDiags(t, `
+// Two entries at the same specificity both survive lowering, in source
+// order. Whether a directive may be set twice is the backend's to say, so
+// gen.CheckDirectives reports the tie, not sema.
+func TestEqualSpecificityKeepsEveryCandidate(t *testing.T) {
+	model := lower(t, `
 class One { x: string }
 class Two { y: string }
 type Ent: Entity, One, Two { id: string x: string y: string }
@@ -1552,8 +1555,16 @@ target go for p {
   Two => rule("b")
 }
 `)
-	if !strings.Contains(diags.Error(), "same specificity") {
-		t.Errorf("diagnostics = %v", diags)
+
+	e, _, _ := model.FindDecl("Ent")
+	got := e.GetDirectives()
+	if len(got) != 2 {
+		t.Fatalf("Ent directives = %+v, want rule(\"a\") then rule(\"b\")", got)
+	}
+	for i, want := range []string{"a", "b"} {
+		if got[i].GetName() != "rule" || got[i].GetArgs()[0].GetText() != want {
+			t.Errorf("directive %d = %+v, want rule(%q)", i, got[i], want)
+		}
 	}
 }
 

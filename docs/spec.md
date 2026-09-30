@@ -592,6 +592,7 @@ target sql for billing {
 When more than one entry could apply to the same thing, the most specific wins.
 A directive on a field beats one on its type, which beats one on a class the type satisfies, and a subclass beats a class it requires.
 Two entries at the same specificity are an error rather than a silent choice.
+A directive a backend declares repeatable may appear more than once at one specificity, and every entry reaches the backend in source order.
 
 The compiler resolves every path against the model.
 A path that names nothing is an error.

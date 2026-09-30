@@ -60,6 +60,11 @@ A directive the plugin did not declare is a warning, not an error, and is passed
 Under-declaring is a plugin bug that should not break a working project, and a plugin is free to handle more than it advertises.
 The warning names the directive and its position so a typo is still visible.
 
+A plugin may also declare a directive repeatable.
+Several entries of a repeatable directive at the same specificity all reach the plugin, in source order.
+For any other directive, declared or not, two entries at the same specificity are an error, reported at the second one before anything is generated.
+Lowering keeps every entry at the winning specificity, because only the plugin knows which directives may repeat.
+
 ## Request
 
 One message carries everything:

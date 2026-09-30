@@ -37,7 +37,23 @@ func CheckDirectives(target string, model *ir.Model, desc plugin.Description) []
 	}
 
 	var problems []*plugin.Diagnostic
-	for _, d := range directivesFor(target, model) {
+	for _, block := range model.GetTargets() {
+		if block.GetMeta().GetName() == target {
+			problems = append(problems, checkEach(target, block.GetDirectives(), specs)...)
+		}
+	}
+	for _, ds := range nodeDirectives(target, model) {
+		problems = append(problems, checkEach(target, ds, specs)...)
+		problems = append(problems, checkTies(ds, specs)...)
+	}
+	return problems
+}
+
+// checkEach holds each directive to its spec, and warns about one the
+// backend did not declare.
+func checkEach(target string, ds []*ir.Directive, specs map[string]*plugin.DirectiveSpec) []*plugin.Diagnostic {
+	var problems []*plugin.Diagnostic
+	for _, d := range ds {
 		if d.GetName() == outDirective {
 			continue
 		}
@@ -50,6 +66,45 @@ func CheckDirectives(target string, model *ir.Model, desc plugin.Description) []
 		problems = append(problems, checkOne(d, spec)...)
 	}
 	return problems
+}
+
+// checkTies reports a name appearing twice on one node. Lowering keeps
+// every entry at the winning specificity, so a repeat is a tie, and only a
+// directive the backend declares repeatable may tie.
+func checkTies(ds []*ir.Directive, specs map[string]*plugin.DirectiveSpec) []*plugin.Diagnostic {
+	var problems []*plugin.Diagnostic
+	seen := map[string]bool{}
+	for _, d := range ds {
+		if seen[d.GetName()] && !specs[d.GetName()].GetRepeatable() {
+			problems = append(problems, problem(d.GetPosition(), plugin.Severity_SEVERITY_ERROR,
+				"two entries at the same specificity set %s; one of them has to go", d.GetName()))
+		}
+		seen[d.GetName()] = true
+	}
+	return problems
+}
+
+// nodeDirectives is the directives belonging to a target on each node of
+// the model's declarations, one slice per node.
+func nodeDirectives(target string, model *ir.Model) [][]*ir.Directive {
+	var nodes [][]*ir.Directive
+
+	add := func(ds []*ir.Directive) {
+		nodes = append(nodes, plugin.Directives(target, ds))
+	}
+	for _, decl := range model.GetDecls() {
+		add(decl.GetDirectives())
+		for _, f := range decl.Fields() {
+			add(f.GetDirectives())
+		}
+		for _, v := range decl.GetEnumeration().GetVariants() {
+			add(v.GetDirectives())
+			for _, f := range v.GetFields() {
+				add(f.GetDirectives())
+			}
+		}
+	}
+	return nodes
 }
 
 func checkOne(d *ir.Directive, spec *plugin.DirectiveSpec) []*plugin.Diagnostic {
@@ -77,32 +132,4 @@ func checkOne(d *ir.Directive, spec *plugin.DirectiveSpec) []*plugin.Diagnostic 
 		}
 	}
 	return problems
-}
-
-// directivesFor collects every directive belonging to a target, wherever
-// it ended up attached.
-func directivesFor(target string, model *ir.Model) []*ir.Directive {
-	var all []*ir.Directive
-
-	add := func(ds []*ir.Directive) {
-		all = append(all, plugin.Directives(target, ds)...)
-	}
-	for _, block := range model.GetTargets() {
-		if block.GetMeta().GetName() == target {
-			all = append(all, block.GetDirectives()...)
-		}
-	}
-	for _, decl := range model.GetDecls() {
-		add(decl.GetDirectives())
-		for _, f := range decl.Fields() {
-			add(f.GetDirectives())
-		}
-		for _, v := range decl.GetEnumeration().GetVariants() {
-			add(v.GetDirectives())
-			for _, f := range v.GetFields() {
-				add(f.GetDirectives())
-			}
-		}
-	}
-	return all
 }

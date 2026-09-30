@@ -139,7 +139,8 @@ Done when every constraint in the corpus reaches `ir` with its arguments and pos
 
 ## Phase 8: target resolution
 
-Path resolution against the model, the specificity ladder, class-path expansion across satisfying types, and equal-specificity conflicts as errors.
+Path resolution against the model, the specificity ladder, class-path expansion across satisfying types, and keeping every candidate at equal specificity.
+Lowering does not judge a tie: `gen.CheckDirectives` reports one as an error when the backend has not declared the directive repeatable.
 
 Directives attach to the nodes they apply to, resolved, so no backend performs a lookup.
 A directive's name may be a reserved word, since the namespace belongs to the backend; nothing about resolution should assume otherwise.
