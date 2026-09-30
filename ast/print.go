@@ -60,12 +60,26 @@ func (p *printer) flush(indent string, pos Position) {
 // node, so only the offsets say which came first.
 func (p *printer) writeLead(indent string, lead []*Comment, doc []string, docPos Position) {
 	i := 0
-	for ; i < len(lead) && lead[i].P.Offset < docPos.Offset; i++ {
-		p.writeComment(indent, lead[i])
+	for i < len(lead) && lead[i].P.Offset < docPos.Offset {
+		i++
 	}
+	p.writeComments(indent, lead[:i])
 	writeDoc(&p.b, indent, doc)
-	for ; i < len(lead); i++ {
-		p.writeComment(indent, lead[i])
+	p.writeComments(indent, lead[i:])
+}
+
+// separated reports whether the source put a blank line between line prev
+// and the later line next.
+func separated(prev, next int) bool { return next > prev+1 }
+
+// writeComments writes a run of comments, keeping a blank line the source
+// put between two of them.
+func (p *printer) writeComments(indent string, cs []*Comment) {
+	for i, c := range cs {
+		if i > 0 && separated(cs[i-1].P.Line, c.P.Line) {
+			p.b.WriteString("\n")
+		}
+		p.writeComment(indent, c)
 	}
 }
 
@@ -173,6 +187,17 @@ func Fprint(file *File) string {
 		}
 
 		p.writeLead("", lead, head.Doc, head.DocP)
+		// A comment the source separated from the declaration by a blank
+		// line keeps one; a comment directly above stays attached.
+		if n := len(lead); n > 0 && (len(head.Doc) == 0 || lead[n-1].P.Offset > head.DocP.Offset) {
+			next := decl.Pos().Line
+			if head.Dep != nil {
+				next = head.Dep.P.Line
+			}
+			if separated(lead[n-1].P.Line, next) {
+				p.b.WriteString("\n")
+			}
+		}
 		if head.Dep != nil {
 			p.b.WriteString(printDeprecated(head.Dep) + "\n")
 		}

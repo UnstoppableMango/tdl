@@ -369,3 +369,60 @@ class C<T> {
 		})
 	}
 }
+
+// A blank line the source puts between two comment groups is kept, so
+// separate comments stay visibly separate.
+func TestFprintKeepsBlankLineBetweenCommentGroups(t *testing.T) {
+	src := `package acme.v1
+
+// What this package models.
+
+// Widgets
+
+type Widget {
+  name: string
+}
+`
+	want := "// What this package models.\n\n// Widgets\n"
+
+	got := ast.Fprint(mustParse(t, src))
+	if !strings.Contains(got, want) {
+		t.Errorf("blank line between comment groups was dropped\n--- got ---\n%s\n--- want substring ---\n%s", got, want)
+	}
+}
+
+// A blank line between a top-level comment group and the declaration after
+// it is kept, collapsed to one. A comment with no blank line below it stays
+// attached to the declaration.
+func TestFprintBlankLineBetweenCommentAndDeclaration(t *testing.T) {
+	cases := []struct {
+		name string
+		src  string
+		want string
+	}{
+		{
+			name: "one blank line is kept",
+			src:  "package acme.v1\n\n// Widgets\n\ntype Widget {\n  name: string\n}\n",
+			want: "package acme.v1\n\n// Widgets\n\ntype Widget {\n  name: string\n}\n",
+		},
+		{
+			name: "no blank line stays attached",
+			src:  "package acme.v1\n\n// Widgets\ntype Widget {\n  name: string\n}\n",
+			want: "package acme.v1\n\n// Widgets\ntype Widget {\n  name: string\n}\n",
+		},
+		{
+			name: "several blank lines collapse to one",
+			src:  "package acme.v1\n\n// Widgets\n\n\n\ntype Widget {\n  name: string\n}\n",
+			want: "package acme.v1\n\n// Widgets\n\ntype Widget {\n  name: string\n}\n",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := ast.Fprint(mustParse(t, tc.src))
+			if got != tc.want {
+				t.Errorf("Fprint mismatch\n--- got ---\n%s\n--- want ---\n%s", got, tc.want)
+			}
+		})
+	}
+}

@@ -279,7 +279,8 @@ The corpus is the written-down target, not a record of what already works.
 
 Every `.tdl` file in `testdata/conformance/`, `testdata/gen/`, `prelude/`, and `examples/` is stored in canonical form: `tdl fmt <file>` must print it back byte for byte.
 `TestCorpusIsCanonical` in `parser/conformance_test.go` is what holds them to it, and `examples/` is in that list because it carries the explanatory comments the corpus does not.
-The formatter still owns blank lines, so a blank line grouping members inside a body does not survive.
+At the top level, a blank line the source put between two comment groups, or between a comment and the declaration after it, survives formatting.
+Inside a body the formatter owns blank lines, so a blank line grouping members does not survive.
 
 The protos are Protobuf Editions 2024.
 Editions default every field to explicit presence and the generated Go to the opaque API, so each file sets `features.field_presence = IMPLICIT` (what proto3 meant) and `features.(pb.go).api_level = API_OPEN` (the API these types were published with).
