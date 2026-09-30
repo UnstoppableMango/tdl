@@ -269,6 +269,51 @@ target protobuf for shop {
 	)
 }
 
+// An unpinned member of an inlined oneof skips the numbers its message
+// reserves, as an unpinned field does.
+func TestUnpinnedOneofMembersSkipReservedNumbers(t *testing.T) {
+	const model = `package shop
+
+enum Actor {
+  Contact { contact: string }
+  System { system: string }
+}
+
+type Widget {
+  id: string
+  actor: Actor
+}
+
+target protobuf for shop {
+  Widget {
+    reserved(2)
+    actor => oneof
+  }
+}
+`
+	file, err := parser.Parse("shop.tdl", strings.NewReader(model))
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	lowered, diags := sema.Lower(file)
+	if len(diags) > 0 {
+		t.Fatalf("lowering reported %v", diags)
+	}
+
+	resp, err := protobuf.Backend{}.Generate(context.Background(), &plugin.Request{Target: protobuf.Name, Model: lowered})
+	if err != nil {
+		t.Fatalf("generate: %v", err)
+	}
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v, want none", resp.GetDiagnostics())
+	}
+	contains(t, compile(t, resp),
+		"message Widget {",
+		"reserved 2;",
+		"string id = 1; oneof actor { string contact = 3; string system = 4; }",
+	)
+}
+
 // A field pinned to a number the message reserves is still refused: the pin
 // is the author's choice, so allocation does not move it.
 func TestPinnedFieldOnAReservedNumberIsRefused(t *testing.T) {
