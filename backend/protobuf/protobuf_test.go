@@ -910,3 +910,35 @@ func TestFileDirectiveOnADeclaration(t *testing.T) {
 	)
 	absent(t, cst, "message Command", "import")
 }
+
+// An import directive in the target block is written into every file, since
+// an option any file's declarations carry can need it.
+func TestImportDirectiveReachesEveryFile(t *testing.T) {
+	b := irtest.New("acme.cli.v1")
+	token := value("Token", irtest.Field("text", b.Named("string")))
+	token.Directives = []*ir.Directive{{
+		Name: "file", Target: protobuf.Name, Args: []*ir.Literal{irtest.Text("cst.proto")},
+	}}
+	b.Own(token)
+	b.Own(value("Command", irtest.Field("name", b.Named("string"))))
+	b.Model.Targets = []*ir.TargetBlock{{
+		Meta: &ir.Meta{Name: protobuf.Name},
+		Directives: []*ir.Directive{
+			{Name: "import", Target: protobuf.Name, Args: []*ir.Literal{irtest.Text("google/protobuf/empty.proto")}},
+		},
+	}}
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	files := compileAll(t, resp)
+	if len(files) != 2 {
+		t.Fatalf("files = %d, want 2: %v", len(files), files)
+	}
+	for path, src := range files {
+		if !strings.Contains(src, `import "google/protobuf/empty.proto";`) {
+			t.Errorf("%s does not import the target block's import:\n%s", path, src)
+		}
+	}
+}
