@@ -107,6 +107,59 @@ target protobuf for shop {
 			line:  5,
 			wants: []string{"Widget.legacy", "reserve"},
 		},
+		{
+			name: "an inlined oneof member's number",
+			model: `package shop
+
+enum Actor {
+  Contact { contact: string }
+  System { system: string }
+}
+
+type Widget {
+  id: string
+  actor: Actor
+}
+
+type Gadget { id: string }
+
+target protobuf for shop {
+  Widget {
+    reserved(3)
+    actor => oneof
+  }
+}
+`,
+			// The variant, numbered 3 after id and Contact.
+			line:  5,
+			wants: []string{"Widget.System", "3", "reserve"},
+		},
+		{
+			name: "an inlined oneof member's name",
+			model: `package shop
+
+enum Actor {
+  Contact { contact: string }
+  System { system: string }
+}
+
+type Widget {
+  id: string
+  actor: Actor
+}
+
+type Gadget { id: string }
+
+target protobuf for shop {
+  Widget {
+    reserved("system")
+    actor => oneof
+  }
+}
+`,
+			line:  5,
+			wants: []string{"Widget.System", "system", "reserve"},
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			file, err := parser.Parse("shop.tdl", strings.NewReader(tt.model))
