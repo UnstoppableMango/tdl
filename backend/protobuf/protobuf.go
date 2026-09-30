@@ -65,6 +65,10 @@ func (Backend) Describe() plugin.Description {
 			// An option, written `name = value` in the brackets of a field or
 			// an enum value, or as an `option` statement in a message or enum.
 			{Name: "option", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_STRING, ir.LiteralKind_LITERAL_KIND_STRING}, Repeatable: true},
+			// A message another proto file declares: the file to import and
+			// the message's fully qualified name. The declaration carrying
+			// it is not emitted.
+			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: append(str, str...)},
 		},
 	}
 }
@@ -155,6 +159,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		pkg:     req.GetModel().GetPackage(),
 		names:   map[string]string{},
 	}
+	g.Externs = true
 
 	var pkgPos *ir.Position
 	if d, ok := g.Block("package"); ok {
@@ -305,6 +310,10 @@ func (g *generator) pathOf(d *ir.Decl) (string, error) {
 func (g *generator) decl(d *ir.Decl) (string, error) {
 	pos := d.GetMeta().GetPosition()
 	name := d.GetMeta().GetName()
+
+	if _, ok := g.Find(d.GetDirectives(), "foreign"); ok {
+		return "", nil
+	}
 
 	switch {
 	case d.GetClass() != nil:
@@ -807,6 +816,20 @@ func (g *generator) single(r *emit.Ref, nested map[string]bool) (string, error) 
 		return typ, nil
 	}
 
+	if r.Form == emit.Extern {
+		f, ok := g.Find(r.Extern.GetDirectives(), "foreign")
+		if !ok {
+			return "", emit.Unsupported(r.Pos, "%s is declared in another package, and foreign types are not generated yet", r.Name)
+		}
+		g.imports[f.GetArgs()[0].GetText()] = true
+		return f.GetArgs()[1].GetText(), nil
+	}
+
+	if f, ok := g.Find(r.Decl.GetDirectives(), "foreign"); ok {
+		g.imports[f.GetArgs()[0].GetText()] = true
+		return f.GetArgs()[1].GetText(), nil
+	}
+
 	g.refs[r.Decl] = true
 	name := g.DeclName(r.Decl, emit.Pascal)
 	// Protobuf resolves a name from the innermost scope out, so inside a
@@ -821,9 +844,15 @@ func (g *generator) single(r *emit.Ref, nested map[string]bool) (string, error) 
 	return name, nil
 }
 
-func single(r *emit.Ref) bool { return r.Form == emit.Prim || r.Form == emit.Named }
+func single(r *emit.Ref) bool {
+	return r.Form == emit.Prim || r.Form == emit.Named || r.Form == emit.Extern
+}
 
 func isMessage(r *emit.Ref) bool {
+	// A foreign mapping names a message.
+	if r.Form == emit.Extern {
+		return true
+	}
 	if r.Form != emit.Named {
 		return false
 	}

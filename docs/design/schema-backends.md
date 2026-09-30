@@ -17,7 +17,7 @@ The `salesforce` backend builds on the same pieces and is mapped in [salesforce-
 
 - **Ownership.** `Own` returns the declarations the model's own file declared, recognizing the prelude by `prelude.Name` in whole, as [go-backend.md](go-backend.md) describes.
 - **Directives.** `Find`, `Text`, and `Block` read directives for the target being served and ignore every other block's.
-- **Type resolution.** `Resolve` walks a type reference into a `Ref`: a primitive by name, `List`, `Set`, `Map`, `Option`, `Nullable`, or a named declaration, with aliases expanded. It refuses a type parameter, a unit, an extern, a class, and a type applied to arguments, each with a position. Whether a target has a type for a given primitive is the backend's decision.
+- **Type resolution.** `Resolve` walks a type reference into a `Ref`: a primitive by name, `List`, `Set`, `Map`, `Option`, `Nullable`, or a named declaration, with aliases expanded. It refuses a type parameter, a unit, an extern (unless the session sets `Externs`, which returns an `Extern` ref for the backend to map), a class, and a type applied to arguments, each with a position. Whether a target has a type for a given primitive is the backend's decision.
 - **Diagnostics.** An `UnsupportedError` carries a position, and `Warn` turns it into a warning that does not stop the run.
 - **Cascade.** A declaration that cannot be generated is skipped, and `Cascade` then skips every declaration naming it, to a fixed point. Emitting a struct whose field names a skipped declaration produces output referring to something it does not declare, which no target accepts.
 - **Names.** `Words` splits a TDL name into words, and `Pascal`, `Camel`, `Snake`, and `ScreamingSnake` join them in each target's convention.
@@ -31,8 +31,12 @@ Each of these is a positioned warning, and the declaration reaching it is skippe
 - generics
 - classes
 - units
-- externs and `foreign`
+- externs and `foreign`, except in protobuf
 - entity keys
+
+Protobuf reads `foreign(file, message)` on a declaration as a message another proto file declares.
+The declaration is not emitted, every reference to it is written as `message`, and each output file referencing it gains `import "<file>";` beside the well-known type imports, once however many references there are.
+An extern carrying protobuf's `foreign(file, message)` is read the same way, and an extern without one is a warning like any other.
 
 Constraints are a warning and the declaration is still emitted, since skipping a constrained newtype would leave every field naming it undeclared.
 Validation is its own set of decisions about where a check lives.

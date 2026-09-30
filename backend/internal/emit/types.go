@@ -18,6 +18,10 @@ const (
 	Nullable
 	// Named is a struct, an enum, or a newtype. [Ref.Decl] is it.
 	Named
+	// Extern is a declaration another package owns. [Ref.Extern] is it,
+	// and [Ref.Name] is its qualified name. Only a [Session] with Externs
+	// set resolves one.
+	Extern
 )
 
 // Ref is a type reference with its aliases expanded and its prelude
@@ -36,6 +40,9 @@ type Ref struct {
 
 	// Decl is the declaration when Form is [Named].
 	Decl *ir.Decl
+
+	// Extern is the extern when Form is [Extern].
+	Extern *ir.Extern
 
 	// ID is the type table entry this was resolved from, after alias
 	// expansion.
@@ -70,6 +77,9 @@ func (s *Session) Resolve(id *ir.ID) (*Ref, error) {
 		return nil, Unsupported(pos, "a unit-typed field has no %s type yet", s.Lang)
 	case t.GetExtern() != nil:
 		ext := t.GetExtern()
+		if i := int(ext.GetIndex()); s.Externs && i >= 0 && i < len(s.Model.GetExterns()) {
+			return &Ref{Form: Extern, Name: ext.GetName(), Extern: s.Model.GetExterns()[i], ID: id, Pos: pos}, nil
+		}
 		return nil, Unsupported(pos, "%s is declared in another package, and foreign types are not generated yet", ext.GetName())
 	}
 
