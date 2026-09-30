@@ -33,10 +33,10 @@ func VariantMembers(variants []*ir.Variant) []Member {
 
 // NumberRule is what a target allows a member's number to be.
 type NumberRule struct {
-	Max      int64
-	Reserved [][2]int64 // inclusive ranges the target keeps for itself
-	// Skip is numbers unpinned members pass over. A pin on one is left to
-	// the caller to refuse.
+	Max int64
+	// Reserved is inclusive ranges that are an error to pin and skipped when allocating.
+	Reserved [][2]int64
+	// Skip is numbers allocation passes over; refusing a pin on one is the caller's job.
 	Skip map[int64]bool
 }
 
@@ -74,12 +74,15 @@ func (s *Session) Numbers(owner string, members []Member, rule NumberRule) ([]in
 		nums[i] = n
 	}
 
+	taken := func(n int64) bool {
+		return by[n] != "" || rule.Skip[n] || reserved(n, rule) != nil
+	}
 	next := int64(1)
 	for i, m := range members {
 		if nums[i] != 0 {
 			continue
 		}
-		for by[next] != "" || rule.Skip[next] || reserved(next, rule) != nil {
+		for taken(next) {
 			next++
 		}
 		if err := s.checkNumber(owner, m.Name, next, m.Position, rule); err != nil {

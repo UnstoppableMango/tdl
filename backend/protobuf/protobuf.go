@@ -459,7 +459,7 @@ func (g *generator) sum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 
 // fields renders a message body and returns the numbers it gave the
 // fields. nested is the names of the messages declared beside it, which a
-// reference has to step around.
+// reference has to step around; skip is the numbers unpinned fields pass over.
 func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*ir.Field, nested map[string]bool, skip map[int64]bool) ([]int64, error) {
 	rule := fieldNumbers
 	rule.Skip = skip
