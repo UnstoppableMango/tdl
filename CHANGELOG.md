@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.2.10](https://github.com/UnstoppableMango/tdl/compare/v0.2.9...v0.2.10) (2026-09-30)
+
+
+### Features
+
+* **gen:** let a backend declare a directive repeatable ([#881](https://github.com/UnstoppableMango/tdl/issues/881)) ([0911042](https://github.com/UnstoppableMango/tdl/commit/0911042cbca68da8979c37e7ffa4757ab7bc28a5))
+* **protobuf:** emit editions instead of proto3 ([#878](https://github.com/UnstoppableMango/tdl/issues/878)) ([2683083](https://github.com/UnstoppableMango/tdl/commit/26830832ab530dd2ffedb80f36cd0bad93558671))
+
+
+### Bug Fixes
+
+* **renovate:** reference shared presets by name ([#851](https://github.com/UnstoppableMango/tdl/issues/851)) ([4b06360](https://github.com/UnstoppableMango/tdl/commit/4b0636065f619f9f91843d86a650b2546b5d6b1b)), closes [#848](https://github.com/UnstoppableMango/tdl/issues/848)
+
+
+### Documentation
+
+* add Hercules CI badge ([#850](https://github.com/UnstoppableMango/tdl/issues/850)) ([36ae05d](https://github.com/UnstoppableMango/tdl/commit/36ae05dfa26a2caf95d438afffaa4a8620c8ff7d))
+
+
+### Dependencies
+
+* update dependency @types/node to v24 ([#860](https://github.com/UnstoppableMango/tdl/issues/860)) ([8d19155](https://github.com/UnstoppableMango/tdl/commit/8d191553bb37125a7112ef43f06404f8cef9a42b))
+* update dependency @types/vscode to ~1.138.0 ([#859](https://github.com/UnstoppableMango/tdl/issues/859)) ([0b16ee0](https://github.com/UnstoppableMango/tdl/commit/0b16ee0d2fb788a9bd7a84f69de21a8ed2deb524))
+* update dependency vscode-languageclient to v10.1.2 ([#855](https://github.com/UnstoppableMango/tdl/issues/855)) ([e5bf1ab](https://github.com/UnstoppableMango/tdl/commit/e5bf1ab4c870d7b1685defa3df9c76674af17c3c))
+* update module github.com/vektah/gqlparser/v2 to v2.5.58 ([#856](https://github.com/UnstoppableMango/tdl/issues/856)) ([a9ac723](https://github.com/UnstoppableMango/tdl/commit/a9ac7231574c814737896f258cf9ec9fb2756fac))
+
 ## [0.2.9](https://github.com/UnstoppableMango/tdl/compare/v0.2.8...v0.2.9) (2026-09-24)
 
 

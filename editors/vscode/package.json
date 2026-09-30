@@ -2,7 +2,7 @@
 	"name": "tdl",
 	"displayName": "TDL",
 	"description": "Language support for the Type Description Language: highlighting, and diagnostics, hover, go to definition, formatting, and an outline from tdl lsp",
-	"version": "0.2.9",
+	"version": "0.2.10",
 	"publisher": "unstoppablemango",
 	"license": "GPL-3.0-or-later",
 	"repository": {
