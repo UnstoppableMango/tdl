@@ -145,3 +145,33 @@ target protobuf for shop {
 		})
 	}
 }
+
+// Under an edition a reserved name is an identifier, since editions refuse
+// the quoted form proto3 uses.
+func TestReservedNameUnderAnEdition(t *testing.T) {
+	for _, edition := range []string{"2023", "2024"} {
+		t.Run(edition, func(t *testing.T) {
+			model := strings.Replace(reservedModel, "for shop {\n", "for shop {\n  edition(\""+edition+"\")\n", 1)
+			file, err := parser.Parse("shop.tdl", strings.NewReader(model))
+			if err != nil {
+				t.Fatalf("parse: %v", err)
+			}
+			lowered, diags := sema.Lower(file)
+			if len(diags) > 0 {
+				t.Fatalf("lowering reported %v", diags)
+			}
+
+			resp, err := protobuf.Backend{}.Generate(context.Background(), &plugin.Request{Target: protobuf.Name, Model: lowered})
+			if err != nil {
+				t.Fatalf("generate: %v", err)
+			}
+			if len(resp.GetDiagnostics()) != 0 {
+				t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+			}
+			contains(t, compile(t, resp),
+				`edition = "`+edition+`";`,
+				"reserved 2, 3; reserved 50, 51; reserved legacy;",
+			)
+		})
+	}
+}
