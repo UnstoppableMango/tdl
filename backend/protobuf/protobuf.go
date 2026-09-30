@@ -5,8 +5,9 @@
 // Two things are worth knowing before reading the output. An enum whose
 // variants carry fields is a message holding a oneof of one nested message
 // per variant, which is protobuf's sum type. And every field, variant, and
-// enum value is numbered by its position unless a `number` directive pins
-// it, because the IR has no numbers and protobuf cannot go without them.
+// enum value without a `number` directive takes the lowest number no pin
+// holds, in declaration order, because the IR has no numbers and protobuf
+// cannot go without them.
 package protobuf
 
 import (
@@ -301,7 +302,7 @@ func (g *generator) message(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	numbers, names := g.reserved(b, d)
 	deprecatedOption(b, "  ", d.GetMeta())
 	fields := d.Fields()
-	nums, err := g.fields(b, "  ", name, fields, nil)
+	nums, err := g.fields(b, "  ", name, fields, nil, numbers)
 	if err != nil {
 		return nil, err
 	}
@@ -344,7 +345,8 @@ func (g *generator) reserved(b *strings.Builder, d *ir.Decl) (map[int64]bool, ma
 }
 
 // checkReserved refuses a field whose number or name the message reserves,
-// since protoc rejects such a message. nums is what [generator.fields]
+// since protoc rejects such a message. Only a pin can land on a reserved
+// number, since unpinned fields skip them. nums is what [generator.fields]
 // numbered the fields.
 func (g *generator) checkReserved(owner string, fields []*ir.Field, nums []int64, numbers map[int64]bool, names map[string]bool) error {
 	for i, f := range fields {
@@ -451,7 +453,7 @@ func (g *generator) sum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	for i, v := range variants {
 		comment(b, "  ", v.GetMeta())
 		fmt.Fprintf(b, "  message %s {\n", messages[i])
-		if _, err := g.fields(b, "    ", name+"."+messages[i], v.GetFields(), nested); err != nil {
+		if _, err := g.fields(b, "    ", name+"."+messages[i], v.GetFields(), nested, nil); err != nil {
 			return nil, err
 		}
 		b.WriteString("  }\n")
@@ -466,9 +468,11 @@ func (g *generator) sum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 
 // fields renders a message body and returns the numbers it gave the
 // fields. nested is the names of the messages declared beside it, which a
-// reference has to step around.
-func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*ir.Field, nested map[string]bool) ([]int64, error) {
-	nums, err := g.Numbers(owner, emit.FieldMembers(fields), fieldNumbers)
+// reference has to step around; skip is the numbers unpinned fields pass over.
+func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*ir.Field, nested map[string]bool, skip map[int64]bool) ([]int64, error) {
+	rule := fieldNumbers
+	rule.Skip = skip
+	nums, err := g.Numbers(owner, emit.FieldMembers(fields), rule)
 	if err != nil {
 		return nil, err
 	}

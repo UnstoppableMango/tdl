@@ -182,12 +182,12 @@ func TestNumbers(t *testing.T) {
 	rule := emit.NumberRule{Max: 100, Reserved: [][2]int64{{50, 59}}}
 
 	got, err := s.Numbers("M", []emit.Member{member("a", nil), member("b", pin("10")), member("c", nil)}, rule)
-	if err != nil || !slices.Equal(got, []int64{1, 10, 3}) {
+	if err != nil || !slices.Equal(got, []int64{1, 10, 2}) {
 		t.Errorf("numbers = %v, %v", got, err)
 	}
 
 	for name, members := range map[string][]emit.Member{
-		"collision":    {member("a", nil), member("b", pin("1"))},
+		"collision":    {member("a", pin("1")), member("b", pin("1"))},
 		"reserved":     {member("a", pin("55"))},
 		"zero":         {member("a", pin("0"))},
 		"over the max": {member("a", pin("101"))},
@@ -201,5 +201,51 @@ func TestNumbers(t *testing.T) {
 	other := []*ir.Directive{{Name: "number", Target: "y", Args: []*ir.Literal{{Kind: ir.LiteralKind_LITERAL_KIND_INT, Text: "7"}}}}
 	if got, _ := s.Numbers("M", []emit.Member{member("a", other)}, rule); got[0] != 1 {
 		t.Errorf("another target's number was read: %v", got)
+	}
+}
+
+func TestNumbersAllocatesAroundPins(t *testing.T) {
+	s := session(irtest.New("shop"))
+	pin := func(n string) []*ir.Directive {
+		return []*ir.Directive{{Name: "number", Target: "x", Args: []*ir.Literal{{Kind: ir.LiteralKind_LITERAL_KIND_INT, Text: n}}}}
+	}
+	member := func(name string, dirs []*ir.Directive) emit.Member { return emit.Member{Name: name, Directives: dirs} }
+	rule := emit.NumberRule{Max: 100}
+
+	got, err := s.Numbers("M", []emit.Member{member("x", nil), member("y", nil), member("z", pin("2"))}, rule)
+	if err != nil {
+		t.Fatalf("numbers: %v", err)
+	}
+	if want := []int64{1, 3, 2}; !slices.Equal(got, want) {
+		t.Errorf("numbers = %v, want %v", got, want)
+	}
+
+	got, err = s.Numbers("M", []emit.Member{member("x", nil), member("y", nil), member("z", nil)}, rule)
+	if err != nil {
+		t.Fatalf("unpinned numbers: %v", err)
+	}
+	if want := []int64{1, 2, 3}; !slices.Equal(got, want) {
+		t.Errorf("unpinned numbers = %v, want %v", got, want)
+	}
+}
+
+func TestNumbersSkipsReservedRanges(t *testing.T) {
+	s := session(irtest.New("shop"))
+	pin := func(n string) []*ir.Directive {
+		return []*ir.Directive{{Name: "number", Target: "x", Args: []*ir.Literal{{Kind: ir.LiteralKind_LITERAL_KIND_INT, Text: n}}}}
+	}
+	member := func(name string, dirs []*ir.Directive) emit.Member { return emit.Member{Name: name, Directives: dirs} }
+	rule := emit.NumberRule{Max: 100, Reserved: [][2]int64{{3, 5}}}
+
+	got, err := s.Numbers("M", []emit.Member{member("a", nil), member("b", nil), member("c", nil)}, rule)
+	if err != nil {
+		t.Fatalf("numbers: %v", err)
+	}
+	if want := []int64{1, 2, 6}; !slices.Equal(got, want) {
+		t.Errorf("numbers = %v, want %v", got, want)
+	}
+
+	if _, err := s.Numbers("M", []emit.Member{member("a", nil), member("b", pin("4"))}, rule); err == nil {
+		t.Error("a member pinned inside a reserved range: no error")
 	}
 }

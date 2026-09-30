@@ -132,17 +132,21 @@ A value the target refuses as an identifier is a warning of its own, since a bac
 ## Numbering
 
 Protobuf fields and Thrift fields carry numbers that are the wire format, and the IR has none.
-A field is numbered by its position, from one, and a `number(n)` directive pins it.
+A `number(n)` directive pins a field's number, and each unpinned field takes, in declaration order, the lowest number from one that no pin and no earlier unpinned field holds and the target does not reserve.
 Enum values and variants are numbered the same way.
 
-Position is fragile, and pinning is the answer.
-Inserting a field anywhere but the end renumbers every field after it.
+A pinned number is never handed to an unpinned field, so a pin cannot collide with one.
+Two pins on one number are an error, and so is a pin inside a reserved range.
+
+Declaration order is fragile, and pinning is the answer.
+Inserting an unpinned field anywhere but the end renumbers every unpinned field after it.
 A mixin's fields are copied into each struct including it, so adding one renumbers every includer.
 
 Protobuf numbers run to 536870911, with 19000 to 19999 reserved by protobuf itself.
 Thrift numbers run to 32767.
 
 A protobuf message takes a repeatable `reserved` directive of numbers or names, and each one is a `reserved` statement at the top of the message, in the order written.
+An unpinned field skips a number the message reserves, and a field pinned to a reserved number or on a reserved name is refused.
 
 ## Output
 
