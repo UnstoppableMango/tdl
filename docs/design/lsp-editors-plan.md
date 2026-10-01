@@ -20,7 +20,7 @@ Anything a client would compute is something four other clients would compute di
 
 **The server is `tdl` on `PATH` unless configured otherwise.**
 Every client takes a path to the executable and defaults to `tdl`, so the version an editor runs is the version a terminal runs.
-Where home-manager configures an editor, the module sets that path to `programs.tdl.package`, so the two cannot drift.
+Where nix builds the client, the default becomes the `tdl` it was built against, which is what nixpkgs does for every extension needing a binary; a user setting is not written, since that would make home-manager own the editor's settings file.
 
 **Every client is verified by opening a conformance file.**
 Done means a file with an undefined type underlines it, hovering a name shows its declaration, and formatting rewrites a messy file, in that editor.
@@ -36,7 +36,7 @@ The entry point is bundled with esbuild into one file, because an extension that
 `nix/vscode-extension.nix` builds the bundle with `buildNpmPackage` from a committed `package-lock.json`, then hands the directory to `buildVscodeExtension` as it does today.
 `editors/vscode/install.sh` builds the bundle before packaging, so `make vscode-install` keeps working.
 
-The home-manager module sets `tdl.server.path` in each profile's user settings when both `programs.tdl.vscode.enable` and the extension are on.
+`jq` rewrites `tdl.server.path`'s default to the built `tdl` in the nix package, so an extension installed through nix needs no setting.
 
 When the executable is missing, the extension says so once with the path it tried, and highlighting keeps working, since the grammar needs no server.
 
