@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.2.11](https://github.com/UnstoppableMango/tdl/compare/v0.2.10...v0.2.11) (2026-10-01)
+
+
+### Features
+
+* **emit:** allocate unpinned members around number() pins ([#876](https://github.com/UnstoppableMango/tdl/issues/876)) ([088f200](https://github.com/UnstoppableMango/tdl/commit/088f20062e5eb779556b2e1dd656c97b5538e51d))
+* **parser:** allow a reserved word as a package path segment ([#877](https://github.com/UnstoppableMango/tdl/issues/877)) ([a95aa9d](https://github.com/UnstoppableMango/tdl/commit/a95aa9d8d28e58ae85a481418accdb1ee35c4419))
+* **prelude:** fixed-width numerics with backend mappings ([#880](https://github.com/UnstoppableMango/tdl/issues/880)) ([ab67831](https://github.com/UnstoppableMango/tdl/commit/ab67831e897570ec5f7a039e69219987ad17c934))
+* **protobuf:** a file directive names the output file and splits a package ([#885](https://github.com/UnstoppableMango/tdl/issues/885)) ([ea2ba00](https://github.com/UnstoppableMango/tdl/commit/ea2ba0022de5ec8909602b4bcb93a4d2111a322a))
+* **protobuf:** a reserved directive for retired field numbers and names ([#882](https://github.com/UnstoppableMango/tdl/issues/882)) ([4ff3b52](https://github.com/UnstoppableMango/tdl/commit/4ff3b52090f434db101c04b1d4a560327616e6c0))
+* **protobuf:** a service directive that emits function-typed fields as rpcs ([#889](https://github.com/UnstoppableMango/tdl/issues/889)) ([7db99e3](https://github.com/UnstoppableMango/tdl/commit/7db99e389e40ee1a82c982d770c7c82165911b27))
+* **protobuf:** emit an enum-typed field as a oneof in its message ([#879](https://github.com/UnstoppableMango/tdl/issues/879)) ([e7d74aa](https://github.com/UnstoppableMango/tdl/commit/e7d74aa893fc918ed910fddda356e9e89a9fb567))
+* **protobuf:** import another tdl package's generated file ([#888](https://github.com/UnstoppableMango/tdl/issues/888)) ([db31808](https://github.com/UnstoppableMango/tdl/commit/db318086b7f24a8bd30cb72f5ce5a8530279f8c2))
+* **protobuf:** map a declaration to an external proto message ([#887](https://github.com/UnstoppableMango/tdl/issues/887)) ([9a83b08](https://github.com/UnstoppableMango/tdl/commit/9a83b08b970de0366c20bd18134aba37fe0fcc2d))
+* **protobuf:** option and import directives ([#883](https://github.com/UnstoppableMango/tdl/issues/883)) ([da60760](https://github.com/UnstoppableMango/tdl/commit/da60760320f4969678f01ebf441e6112c6196502))
+* **sema:** let a target path name an imported declaration ([#886](https://github.com/UnstoppableMango/tdl/issues/886)) ([b3f5869](https://github.com/UnstoppableMango/tdl/commit/b3f586912aedcf206084410b6abfabec96267870))
+
+
+### Bug Fixes
+
+* **ast:** keep blank lines between top-level comment groups ([#875](https://github.com/UnstoppableMango/tdl/issues/875)) ([bd37c85](https://github.com/UnstoppableMango/tdl/commit/bd37c850d5bf9ef8e4bfa2c751770796060ed651))
+* be polite to consumers of the flake ([#854](https://github.com/UnstoppableMango/tdl/issues/854)) ([07e91b6](https://github.com/UnstoppableMango/tdl/commit/07e91b6c51bdd1237e42451d543bfb36631b4dd3))
+* **sema:** a _ import merges lower-case primitives and units ([#874](https://github.com/UnstoppableMango/tdl/issues/874)) ([edc675d](https://github.com/UnstoppableMango/tdl/commit/edc675dfd5411aeb316825de1d1850793afc2294))
+
+
+### Dependencies
+
+* update dependency @biomejs/biome to v2.5.15 ([#895](https://github.com/UnstoppableMango/tdl/issues/895)) ([d18a5d4](https://github.com/UnstoppableMango/tdl/commit/d18a5d4bfca39fe60b21b54d1517916aded97874))
+
 ## [0.2.10](https://github.com/UnstoppableMango/tdl/compare/v0.2.9...v0.2.10) (2026-09-30)
 
 
