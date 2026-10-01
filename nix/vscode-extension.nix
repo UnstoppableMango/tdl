@@ -44,16 +44,17 @@ let
     # what nix installed, and settings.json is left alone. A `.vsix` built by
     # editors/vscode/install.sh keeps the `tdl` a development install wants.
     #
-    # The second jq holds the rewrite to a setting that still exists: a
-    # renamed one would otherwise ship the default quietly unpatched.
+    # The first jq holds the rewrite to a setting that still exists. It reads
+    # the source, because the assignment creates any path it is given: a
+    # renamed setting would otherwise ship unpatched beside a stray one.
     installPhase = ''
       runHook preInstall
       mkdir -p $out
       cp -r language-configuration.json syntaxes dist $out/
+      jq -e '.contributes.configuration.properties | has("tdl.server.path")' \
+        package.json > /dev/null
       jq '.contributes.configuration.properties."tdl.server.path".default = $path' \
         --arg path ${lib.escapeShellArg (lib.getExe tdl)} package.json > $out/package.json
-      jq -e '.contributes.configuration.properties."tdl.server.path".default == $path' \
-        --arg path ${lib.escapeShellArg (lib.getExe tdl)} $out/package.json > /dev/null
       runHook postInstall
     '';
   };
