@@ -329,7 +329,7 @@ What it says about Go style overlaps golangci-lint, so a finding the linter does
 `main` requires no approving review and does require every review thread to be resolved, so an unanswered bot comment is what blocks a merge.
 Reply with what changed, or with why nothing did, and then resolve it.
 
-The one required status check is the `required` job in `.github/workflows/ci.yml`, which fails when any job it needs did.
+The one required status check is the `required` job in `.github/workflows/ci.yml`, which fails when any job it needs failed or was cancelled.
 A new CI job goes in its `needs` rather than in the ruleset, which `UnstoppableMango/vcs` declares in Pulumi.
 
 Pull requests here are stacked, and GitHub owns the stack: merging one rebases the rest and rewrites their branches, so a local copy is stale afterwards and is reset from the remote rather than merged into.
