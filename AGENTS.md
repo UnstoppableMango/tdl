@@ -36,7 +36,7 @@ Prefix `make` with `command` (see the shell autoload note in the global instruct
 `editors/vscode/src/` is the one TypeScript in the repository, and `editors/vscode/package-lock.json` pins its toolchain: TypeScript 7 and Biome, run through `npm run` so an editor and CI use the same versions.
 Biome is the formatter and the linter, configured once in `editors/vscode/biome.json`: treefmt reads that file into its own generated config, dropping `files`, whose globs are relative to it, and runs `biome check`, so a lint finding fails `nix flake check` too.
 Biome's JSON formatter is off, since jsonfmt owns JSON here and the two disagree about arrays.
-`make vscode-check` runs `npm ci`, `tsc --noEmit`, and `biome check`; `make lint` and the `lint` CI job include it.
+`make vscode-check` runs `npm ci`, `tsc --noEmit`, and `biome check`; `make lint` and the `test` CI job include it.
 
 Which markdown files are linted lives in `.markdownlint-cli2.yaml`, so a bare `markdownlint-cli2` locally checks what CI checks.
 `CLAUDE.md` is ignored: its whole content is an import pointing at this file, and a file that is one directive has no heading to lint.
@@ -328,6 +328,9 @@ What it says about Go style overlaps golangci-lint, so a finding the linter does
 
 `main` requires no approving review and does require every review thread to be resolved, so an unanswered bot comment is what blocks a merge.
 Reply with what changed, or with why nothing did, and then resolve it.
+
+The one required status check is the `required` job in `.github/workflows/ci.yml`, which fails when any job it needs failed or was cancelled.
+A new CI job goes in its `needs` rather than in the ruleset, which `UnstoppableMango/vcs` declares in Pulumi.
 
 Pull requests here are stacked, and GitHub owns the stack: merging one rebases the rest and rewrites their branches, so a local copy is stale afterwards and is reset from the remote rather than merged into.
 `gh pr merge` and `PUT /pulls/{n}/merge` both refuse a stacked pull request.

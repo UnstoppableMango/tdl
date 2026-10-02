@@ -8,17 +8,26 @@ on:
 permissions:
   contents: read
 
+# A push to a pull request supersedes the run before it. A push to main is
+# grouped by commit, so none replaces another.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  queue: max
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   GOMODCACHE: ${{ github.workspace }}/.go/mod
   GOCACHE: ${{ github.workspace }}/.go/build
 
+# Each job starts on an empty /nix, so a job costs one realisation of what it
+# enters. Steps sharing a closure share a job, and every check after the first
+# runs even when an earlier one failed, so one run reports all of them.
 jobs:
   build:
     runs-on: thecluster
+    # buf-action posts its lint and breaking-change summary as a PR comment.
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -30,6 +39,18 @@ jobs:
 
       # The checks are not the package, so this builds what a consumer builds.
       - run: nix build .#
+        if: ${{ !cancelled() }}
+
+      - uses: bufbuild/buf-action@85aebf73123b5c15fd5528aaecbf9129cddf7fa7 # v1.6.0
+        if: ${{ !cancelled() }}
+        with:
+          push: false
+          archive: false
+
+      # Which files to lint lives in .markdownlint-cli2.yaml, so a bare
+      # `markdownlint-cli2` locally checks exactly what this checks.
+      - uses: DavidAnson/markdownlint-cli2-action@21c1be1b93ad9ed58fa840aacc3f279cde2a72ff # v24.2.0
+        if: ${{ !cancelled() }}
 
   test:
     runs-on: thecluster
@@ -49,11 +70,27 @@ jobs:
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - run: nix develop -c go test -race -coverprofile=cover.profile ./...
+      - id: go-test
+        run: nix develop -c go test -race -coverprofile=cover.profile ./...
         env:
           CGO_ENABLED: '1'
 
+      - run: nix develop -c golangci-lint run ./...
+        if: ${{ !cancelled() }}
+
+      - run: nix develop -c make vscode-check
+        if: ${{ !cancelled() }}
+
+      # The treesitter shell is a subset of the default one realised above.
+      - run: nix develop .#treesitter --command make check-treesitter
+        if: ${{ !cancelled() }}
+
+      # Coverage follows the tests rather than the checks after them, since a
+      # failed test run leaves an incomplete profile. An outage at either
+      # coverage service is not a defect in the change.
       - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        if: ${{ !cancelled() && steps.go-test.outcome == 'success' }}
+        continue-on-error: true
         with:
           use_oidc: true
           files: cover.profile
@@ -63,6 +100,8 @@ jobs:
       # id-token permission above is for, and it runs from the repository
       # root so the paths in the profile resolve.
       - name: Upload coverage to DeepSource
+        if: ${{ !cancelled() && steps.go-test.outcome == 'success' }}
+        continue-on-error: true
         run: |
           nix develop -c deepsource report \
             --analyzer test-coverage \
@@ -70,61 +109,14 @@ jobs:
             --value-file cover.profile \
             --use-oidc
 
-  lint:
-    runs-on: thecluster
+  # The one check the main ruleset requires, so the jobs above can be renamed,
+  # split, or merged without a ruleset change. A skipped required check counts
+  # as passing, which is why this runs even when a need failed or the run was
+  # cancelled.
+  required:
+    needs: [build, test]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .go
-          key: ${{ runner.os }}-go-${{ github.job }}-${{ hashFiles('go.sum') }}
-          restore-keys: ${{ runner.os }}-go-${{ github.job }}-
-
-      - uses: unmango/actions/setup-nix@56abf92ca6c8e241831118a76b7b2ce1d3b8d414 # v1.1.1
-        with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - run: nix develop -c golangci-lint run ./...
-
-      - run: nix develop -c make vscode-check
-
-  buf:
-    runs-on: thecluster
-    # buf-action posts its lint and breaking-change summary as a PR comment.
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: bufbuild/buf-action@85aebf73123b5c15fd5528aaecbf9129cddf7fa7 # v1.6.0
-        with:
-          push: false
-          archive: false
-
-  markdown:
-    runs-on: thecluster
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      # Which files to lint lives in .markdownlint-cli2.yaml, so a bare
-      # `markdownlint-cli2` locally checks exactly what this checks.
-      - uses: DavidAnson/markdownlint-cli2-action@21c1be1b93ad9ed58fa840aacc3f279cde2a72ff # v24.2.0
-
-  treesitter:
-    runs-on: thecluster
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .go
-          key: ${{ runner.os }}-go-${{ github.job }}-${{ hashFiles('go.sum') }}
-          restore-keys: ${{ runner.os }}-go-${{ github.job }}-
-
-      - uses: unmango/actions/setup-nix@56abf92ca6c8e241831118a76b7b2ce1d3b8d414 # v1.1.1
-        with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - run: nix develop .#treesitter --command make check-treesitter
+      - if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        run: exit 1
