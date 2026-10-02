@@ -8,11 +8,10 @@ on:
 permissions:
   contents: read
 
-# A push to a pull request supersedes the run before it; every push to main
-# still gets its own run.
+# A push to a pull request supersedes the run before it. A push to main is
+# grouped by commit, so none replaces another.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  queue: max
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
