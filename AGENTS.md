@@ -54,10 +54,14 @@ After changing `go.mod` or adding dependencies, run `make tidy` so `nix/gomod2ni
 The module's `perSystem` imports nixpkgs with the overlay and reads `packages.default` and `packages.vscode-tdl` back out of it, so `nix build .#` takes the path a consumer takes rather than a second one beside it.
 The overlay composes gomod2nix's, because `tdl` is built with `buildGoApplication`: a consumer adds one overlay and gets `buildGoApplication` and `mkGoEnv` along with `tdl`.
 
-`hm-module.nix` declares `programs.tdl`: `enable` puts `package` in `home.packages`, and `vscode.enable` puts `vscode.package` in the profiles `vscode.profiles` names, defaulting to `programs.vscode.enable` and to `[ "default" ]`.
+`hm-module.nix` declares `programs.tdl`: `enable` puts `package` in `home.packages`, and `vscode.enable` puts `vscode.package` in the profiles `vscode.profiles` names, defaulting to `[ "default" ]`.
+`vscode.editors` is which editors those profiles belong to, defaulting to every VS Code-based editor that is enabled: home-manager generates `programs.vscode`, `programs.vscodium`, `programs.cursor`, `programs.windsurf`, `programs.kiro`, and `programs.antigravity` from one `mkVscodeModule`, so `profiles.<name>.extensions` means the same thing in each and one extension package serves them all.
+`vscode.enable` defaults to whether any of them is enabled, and an editor home-manager has no module for reads as disabled rather than as an evaluation error, so the module still evaluates against an older home-manager.
+An extension handed to a disabled editor is dropped without a word, so naming one in `vscode.editors` without enabling it is an assertion rather than a silent no-op.
 Both packages default to `pkgs.tdl` and `pkgs.vscode-tdl` through `mkPackageOption`, so the module names no flake input and the overlay stays the one thing a configuration adds.
 `default.nix` exports it as `flake.homeModules.default` and, under the name most configurations already reference, as `flake.homeManagerModules.default`; `tdl` is an alias of each.
-`checks.hm-module` is what holds it to that: it evaluates a minimal `homeManagerConfiguration` and asserts the two packages landed where the options promise.
+`checks.hm-module` is what holds it to that: it evaluates a minimal `homeManagerConfiguration` twice, once with VS Code enabled and once with VSCodium, and asserts the two packages landed where the options promise, that `vscode.editors` found the enabled editor, that the editor that is off was left alone, and that no user setting was written.
+VSCodium stands in for the five forks, since all six modules come from the same generator.
 It imports its own nixpkgs with `allowUnfree`, because `programs.vscode.enable` evaluates the editor, and it reads the evaluated options rather than `activationPackage`, which would build the editor to say the same thing.
 
 `flake-module.nix` is the other direction: `hm-module.nix` installs the language for a person, and this one wires it into a project that uses it.
