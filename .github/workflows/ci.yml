@@ -70,7 +70,8 @@ jobs:
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - run: nix develop -c go test -race -coverprofile=cover.profile ./...
+      - id: go-test
+        run: nix develop -c go test -race -coverprofile=cover.profile ./...
         env:
           CGO_ENABLED: '1'
 
@@ -84,9 +85,11 @@ jobs:
       - run: nix develop .#treesitter --command make check-treesitter
         if: ${{ !cancelled() }}
 
-      # An outage at either coverage service is not a defect in the change.
+      # Coverage follows the tests rather than the checks after them, since a
+      # failed test run leaves an incomplete profile. An outage at either
+      # coverage service is not a defect in the change.
       - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.go-test.outcome == 'success' }}
         continue-on-error: true
         with:
           use_oidc: true
@@ -97,7 +100,7 @@ jobs:
       # id-token permission above is for, and it runs from the repository
       # root so the paths in the profile resolve.
       - name: Upload coverage to DeepSource
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.go-test.outcome == 'success' }}
         continue-on-error: true
         run: |
           nix develop -c deepsource report \
