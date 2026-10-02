@@ -112,6 +112,25 @@ jobs:
       # `markdownlint-cli2` locally checks exactly what this checks.
       - uses: DavidAnson/markdownlint-cli2-action@21c1be1b93ad9ed58fa840aacc3f279cde2a72ff # v24.2.0
 
+  # Not a required check: it drives a whole editor, and a failure here
+  # should be read rather than block a merge the other jobs passed.
+  vscode:
+    runs-on: thecluster
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .go
+          key: ${{ runner.os }}-go-${{ github.job }}-${{ hashFiles('go.sum') }}
+          restore-keys: ${{ runner.os }}-go-${{ github.job }}-
+
+      - uses: unmango/actions/setup-nix@3ec4ed5a6af9c00f6a39e079df488573c77ebda6 # v1.0.1
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: nix develop .#vscode --command make vscode-test
+
   treesitter:
     runs-on: thecluster
     steps:
