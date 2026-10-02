@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.12](https://github.com/UnstoppableMango/tdl/compare/v0.2.11...v0.2.12) (2026-10-01)
+
+
+### Features
+
+* **nix:** default the extension's server path to the built tdl ([#844](https://github.com/UnstoppableMango/tdl/issues/844)) ([164598c](https://github.com/UnstoppableMango/tdl/commit/164598cfb1e0516751722026674641543391d50e))
+
 ## [0.2.11](https://github.com/UnstoppableMango/tdl/compare/v0.2.10...v0.2.11) (2026-10-01)
 
 
