@@ -32,6 +32,10 @@ command make check-treesitter # what CI runs: treesitter + a diff + test-treesit
 
 Prefix `make` with `command` (see the shell autoload note in the global instructions).
 
+`generate`, `treesitter`, `textmate`, `vscode-check`, and `vscode-install` name file targets for what they write, so each step reruns only when its inputs are newer.
+`check-treesitter` passes `-B`, because a fresh checkout gives every file about the same mtime and a file target would skip the regeneration the diff is meant to test.
+`editors/vscode/install.sh` packages the bundle `make` built and refuses to run without one.
+
 `nix fmt` formats Go, Nix, YAML, JSON, TOML, Markdown, protobuf, and TypeScript; `nix flake check` fails when anything is unformatted.
 
 `editors/vscode/src/` is the one TypeScript in the repository, and `editors/vscode/package-lock.json` pins its toolchain: TypeScript 7 and Biome, run through `npm run` so an editor and CI use the same versions.
