@@ -8,9 +8,9 @@ Third-party backends compile against them, in-process and over the plugin protoc
 A field may be added.
 A field number may never be renumbered or reused, and a field may not change type.
 
-CI runs `buf breaking` against the pull request's base.
-A change that has to break carries the `buf skip breaking` label, which is what `bufbuild/buf-action` reads.
-The workflow only re-runs on push, so the label goes on before the push.
+CI runs `buf breaking` against the pull request's base, in `.github/workflows/buf.yml`.
+A change that has to break carries the `buf skip breaking` label, which is what `bufbuild/buf-action` reads, and adding the label reruns the check.
+The check does not block a merge, so a failing `buf` check on a pull request without the label is worth a comment.
 
 ## Editions 2024
 

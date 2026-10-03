@@ -307,10 +307,12 @@ A field wanting presence says so itself, as `Range.low` does.
 
 After changing `proto/`, run `make generate` and commit `ir/ir.pb.go` with it.
 Field numbers are a compatibility guarantee to plugins: add fields, never renumber or reuse them.
-CI enforces that with `buf breaking` against the pull request's base, alongside `buf lint` and `buf format`; `make fmt` formats the protos and `make lint` checks them.
+`.github/workflows/buf.yml` runs `buf breaking` against the pull request's base, alongside `buf lint` and `buf format`; `make fmt` formats the protos and `make lint` checks them.
+It is its own workflow, as buf-action recommends, so that it can run on `labeled` and `unlabeled` events.
+It is advisory: the `required` job cannot need a job in another workflow and the ruleset does not name it, so a failing `buf` check does not block a merge, and a reviewer has to read it.
 
 A pull request that has to break the schema carries the `buf skip breaking` label, which is what `bufbuild/buf-action` reads.
-The workflow only re-runs on push, so label first and then push, or the run will still be working from a payload without it.
+Adding or removing the label reruns the check without a push.
 
 ## Review
 
@@ -341,6 +343,7 @@ What it says about Go style overlaps golangci-lint, so a finding the linter does
 Reply with what changed, or with why nothing did, and then resolve it.
 
 The one required status check is the `required` job in `.github/workflows/ci.yml`, which fails when any job it needs failed or was cancelled.
+The `buf` job in `.github/workflows/buf.yml` is outside it and does not block a merge.
 A new CI job goes in its `needs` rather than in the ruleset, which `UnstoppableMango/vcs` declares in Pulumi.
 
 Pull requests here are stacked, and GitHub owns the stack: merging one rebases the rest and rewrites their branches, so a local copy is stale afterwards and is reset from the remote rather than merged into.
