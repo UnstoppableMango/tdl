@@ -12,15 +12,11 @@ cover: cover.profile
 cover.profile: ${GO_SRC}
 	go test -race -coverprofile=$@ ./...
 
-# Watch a TDL file and re-render it on every save.
-# Override the target: make play FILE=examples/nested.tdl VIEWS=all
 FILE ?= examples/nested.tdl
 VIEWS ?= fmt,ast,stats
 play:
 	go run ./cmd/tdl play ${FILE} --views ${VIEWS}
 
-# Regenerate ir/ir.pb.go from proto/. The generated file is committed, so
-# this only runs when the schema changes.
 generate:
 	buf generate
 
