@@ -22,7 +22,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 if [[ ! -f dist/extension.js ]]; then
-	echo "dist/extension.js is missing: run 'make vscode-install' instead" >&2
+	echo "dist/extension.js is missing: run 'make install' instead" >&2
 	exit 1
 fi
 
