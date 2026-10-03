@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.13](https://github.com/UnstoppableMango/tdl/compare/v0.2.12...v0.2.13) (2026-10-02)
+
+
+### Continuous Integration
+
+* condense CI into build and test jobs ([#898](https://github.com/UnstoppableMango/tdl/issues/898)) ([4576edf](https://github.com/UnstoppableMango/tdl/commit/4576edf6563c4367fd2d523a827bf743479b5dca))
+
 ## [0.2.12](https://github.com/UnstoppableMango/tdl/compare/v0.2.11...v0.2.12) (2026-10-01)
 
 
