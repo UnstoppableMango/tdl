@@ -2,27 +2,23 @@
 
 Design document.
 
-Five backends turn a resolved model into a schema language rather than a programming language: `protobuf`, `thrift`, `smithy`, `graphql`, and `typescript`.
-TypeScript is on the list because what it emits here is a description of JSON on the wire, the same job the other four do.
+Five backends, each in `backend/<name>`, turn a resolved model into a schema language: `protobuf`, `thrift`, `smithy`, `graphql`, and `typescript`, whose output describes JSON on the wire.
 
-They cover the core type definitions: structs in all three kinds, both enum shapes, newtypes, aliases, the primitives, the collections, and optionality.
-
-Each is implemented in `backend/<name>`.
-The `salesforce` backend builds on the same pieces and is mapped in [salesforce-backend.md](salesforce-backend.md), since half of what it writes is an org's schema rather than a wire format.
-[go-backend.md](go-backend.md) is the model for each decision below, and where a target has no reason to differ from Go it does not.
+The `salesforce` backend builds on the same pieces and is mapped in [salesforce-backend.md](salesforce-backend.md).
+Where a target has no reason to differ from [go-backend.md](go-backend.md), it does not.
 
 ## What is shared
 
-`backend/internal/emit` holds everything that does not depend on the target language, so five backends do not each carry a copy that drifts.
+`backend/internal/emit` holds everything that does not depend on the target language:
 
-- **Ownership.** `Own` returns the declarations the model's own file declared, recognizing the prelude by `prelude.Name` in whole, as [go-backend.md](go-backend.md) describes.
+- **Ownership.** `Own` returns the declarations the model's file declared, recognizing the prelude by `prelude.Name` in whole.
 - **Directives.** `Find`, `Text`, and `Block` read directives for the target being served and ignore every other block's.
-- **Type resolution.** `Resolve` walks a type reference into a `Ref`: a primitive by name, `List`, `Set`, `Map`, `Option`, `Nullable`, or a named declaration, with aliases expanded. It refuses a type parameter, a unit, an extern (unless the session sets `Externs`, which returns an `Extern` ref for the backend to map), a class, and a type applied to arguments, each with a position. Whether a target has a type for a given primitive is the backend's decision.
+- **Type resolution.** `Resolve` walks a type reference into a `Ref`, with aliases expanded. It refuses a type parameter, a unit, a class, a type applied to arguments, and an extern unless the session sets `Externs`, each with a position.
 - **Diagnostics.** An `UnsupportedError` carries a position, and `Warn` turns it into a warning that does not stop the run.
-- **Cascade.** A declaration that cannot be generated is skipped, and `Cascade` then skips every declaration naming it, to a fixed point. Emitting a struct whose field names a skipped declaration produces output referring to something it does not declare, which no target accepts.
-- **Names.** `Words` splits a TDL name into words, and `Pascal`, `Camel`, `Snake`, and `ScreamingSnake` join them in each target's convention.
+- **Cascade.** `Cascade` skips every declaration naming a skipped one, to a fixed point, since no target accepts a reference to something the output does not declare.
+- **Names.** `Words` splits a TDL name into words, and `Pascal`, `Camel`, `Snake`, and `ScreamingSnake` join them.
 
-`backend/internal/irtest` builds models by hand for tests, so a failure in a backend's test is the backend's and not lowering's.
+`backend/internal/irtest` builds models by hand for tests.
 
 ## What is not here
 
@@ -34,33 +30,26 @@ Each of these is a positioned warning, and the declaration reaching it is skippe
 - externs and `foreign`, except in protobuf
 - entity keys
 
-Protobuf reads `foreign(file, message)` on a declaration as a message another proto file declares.
-The declaration is not emitted, every reference to it is written as `message`, and each output file referencing it gains `import "<file>";` beside the well-known type imports, once however many references there are.
-An extern carrying protobuf's `foreign(file, message)` is read the same way.
-An extern without one, whose dependency has a protobuf target block, is the message that dependency generates: it is written `<package>.<Name>` and imported from `<package dirs>/<file>`, where the package is the block's `package` directive or else the dependency's package, the file is its `file` directive or else the package's last segment with `.proto`, and the name is Pascal-cased as the backend names its own messages.
-That is the same path the dependency's own output is written to, so the two agree.
-An extern with neither is a warning like any other.
+Protobuf reads `foreign(file, message)` on a declaration or an extern as a message another proto file declares.
+The declaration is not emitted, every reference is written as `message`, and each output file referencing it imports `<file>` once.
+An extern without `foreign`, whose dependency has a protobuf target block, is the message that dependency generates: it is written `<package>.<Name>` and imported from `<package dirs>/<file>`.
+The package is the block's `package` directive or else the dependency's package, the file is its `file` directive or else the package's last segment with `.proto`, and the name is Pascal-cased, so the path matches the dependency's output.
+An extern with neither warns.
 
-Protobuf declares services with two argument-less directives.
-A structure tagged `service` is emitted as a `service` rather than a `message`.
-A primitive tagged `rpc` takes two type arguments, the request and the response, and each field of a service is typed by one: the field becomes `rpc <Field>(<Request>) returns (<Response>);`, keeping the field's name as written.
-A primitive tagged `stream` takes one type argument, and a request or response that applies it is written with the `stream` prefix, as in `rpc Chat(stream Chunk) returns (stream Widget);`.
-Either primitive may be declared in the file or imported from another one, and the target block tags it the same way in both cases.
-The request and response, inside any `stream`, are message references, and a service field that is not an rpc is a warning that skips the service.
+Protobuf declares services with three argument-less directives.
+A structure tagged `service` is emitted as a `service`, and each of its fields is typed by a primitive tagged `rpc` taking the request and response: the field becomes `rpc <Field>(<Request>) returns (<Response>);`.
+A primitive tagged `stream` wraps a request or response, as in `rpc Chat(stream Chunk) returns (stream Widget);`.
+Either primitive may be declared in the file or imported.
+The request and response must be message references, and a service field that is not an rpc warns and skips the service.
 
-Constraints are a warning and the declaration is still emitted, since skipping a constrained newtype would leave every field naming it undeclared.
-Validation is its own set of decisions about where a check lives.
+Constraints warn and the declaration is still emitted.
+`Field.default_value` and `owned` are not read, and a referenced entity is embedded by value.
 
-`Field.default_value` and `owned` are not read.
-A referenced entity is embedded by value in every target.
-
-GraphQL emits output types only.
-Input types are a second copy of every type with different rules for unions, and nothing here needs them yet.
+GraphQL emits output types only; input types would be a second copy of every type with different union rules.
 
 ## The type mapping
 
-**Warn** in the table below means a positioned warning, with the reaching declaration skipped.
-The constraint warning above is the exception: it reports what is not enforced and leaves the declaration emitted.
+**warn** below means a positioned warning, with the reaching declaration skipped.
 
 | TDL | protobuf | thrift | smithy | graphql | typescript |
 | --- | --- | --- | --- | --- | --- |
@@ -80,10 +69,10 @@ The constraint warning above is the exception: it reports what is not enforced a
 | `date` | `string` | `string` | `String` | `scalar Date` | `string` |
 | `duration` | `google.protobuf.Duration` | `string` | `String` | `scalar Duration` | `string` |
 
-`int` has no width in the spec, so every target uses 64 bits, and GraphQL needs a custom scalar for it because its `Int` is 32.
-`uint32` widens to a signed 64-bit type in Thrift, Smithy, and GraphQL, which have no unsigned integers; Thrift has nothing wider for `uint64`, so it is a warning there.
+`int` is 64 bits everywhere, and GraphQL needs a custom scalar for it because its `Int` is 32.
+Thrift, Smithy, and GraphQL have no unsigned integers, so `uint32` widens to a signed 64-bit type; Thrift has nothing wider for `uint64`.
 TypeScript's `number` is a double, so `int`, `int64`, and `uint64` lose precision above 2^53.
-`decimal` is a string wherever the target has no exact decimal, for the reason [go-backend.md](go-backend.md) gives.
+`decimal` is a string wherever the target has no exact decimal.
 A GraphQL custom scalar is declared only when something uses it.
 
 | TDL | protobuf | thrift | smithy | graphql | typescript |
@@ -96,19 +85,16 @@ A GraphQL custom scalar is declared only when something uses it.
 | `[T?]` | warn | warn | `@sparse` | `[T]` | `(T \| null)[]` |
 | `T? \| null` | warn | warn | warn | warn | `name?: T \| null` |
 
-Each target states less than TDL does somewhere.
-
-- Protobuf has no set, so a `Set` is `repeated` and uniqueness is not enforced.
+- Protobuf has no set, so uniqueness is not enforced.
   A repeated or map field cannot be optional or hold another collection, so those shapes warn.
   A map key must resolve to a string, an integer, or a bool.
-  An `edition` directive, which accepts `2023` or `2024` and reports any other value as an error, replaces `syntax = "proto3";` with that edition's header, and under an edition a `T?` or `T | null` field carries no `optional` label, since every field has explicit presence by default.
-- Smithy names every collection, so the backend synthesizes one shape per distinct collection type and names it from its element and key.
+  An `edition` directive accepts `2023` or `2024`, reports any other value as an error, and replaces `syntax = "proto3";` with that edition's header; under an edition a `T?` or `T | null` field carries no `optional` label, since every field has explicit presence.
+- Smithy names every collection, so the backend synthesizes one shape per distinct collection type, named from its element and key.
   A map key must resolve to a string or a fieldless enum.
-- GraphQL has no map.
-- TypeScript types a map key as `string` or `number`, and one that is a fieldless enum as `Partial<Record<E, V>>`.
+- TypeScript types a map key as `string` or `number`, and a fieldless enum key as `Partial<Record<E, V>>`.
 
 A field that is not optional is non-null in GraphQL and `@required` in Smithy.
-Thrift fields that are not optional use the default requiredness and never `required`, which Thrift's own guidance advises against.
+Thrift fields that are not optional use the default requiredness and never `required`, which Thrift's guidance advises against.
 
 | TDL | protobuf | thrift | smithy | graphql | typescript |
 | --- | --- | --- | --- | --- | --- |
@@ -118,65 +104,58 @@ Thrift fields that are not optional use the default requiredness and never `requ
 | newtype | expanded | `typedef` | a named simple shape | expanded | `type N = Base` |
 | alias | expanded | expanded | expanded | expanded | expanded |
 
-The three struct kinds emit the same shape, for the reason [go-backend.md](go-backend.md) gives.
 A mixin is emitted too, and a struct including it already carries its fields.
 
-A fielded enum is each target's sum type.
+A fielded enum is each target's sum type:
 
 - In protobuf, each variant is a nested message and the enum is a message holding a `oneof` of them.
   A field carrying the `oneof` directive, whose enum's variants each carry one field, is written as a `oneof` of those fields inside its message, and an enum no other field names is then not emitted.
 - In Thrift, Smithy, and GraphQL, each variant is a struct named after the enum and the variant, such as `PaymentCard`.
   Smithy targets `Unit` for a variant with no fields.
-- A GraphQL object needs at least one field, so a fieldless variant carries a placeholder `_: Boolean` that is always null.
-- In TypeScript, each variant is an interface with a `kind` field holding the variant's name. A `discriminant` directive renames the field.
+  A GraphQL object needs a field, so a fieldless variant carries a placeholder `_: Boolean` that is always null.
+- In TypeScript, each variant is an interface with a `kind` field holding the variant's name, which a `discriminant` directive renames.
 
-A protobuf enum starts with an `_UNSPECIFIED` value at zero, which protobuf requires, and its values are prefixed with the enum's name, since protobuf enum values share one scope per package.
+A protobuf enum starts with an `_UNSPECIFIED` value at zero, and its values are prefixed with the enum's name, since enum values share one scope per package.
 
-Protobuf and GraphQL expand a newtype to its base.
-A protobuf wrapper message would change the wire format, and a GraphQL custom scalar per newtype would need server code for each one.
-A TypeScript newtype is a plain alias rather than a branded type, so parsed JSON needs no cast.
+Protobuf and GraphQL expand a newtype to its base: a protobuf wrapper message would change the wire format, and a GraphQL scalar per newtype would need server code for each.
+A TypeScript newtype is a plain alias, so parsed JSON needs no cast.
 
 ## Names
 
 A declaration is Pascal case in every target.
-A protobuf field is snake case and a protobuf enum value is screaming snake case, which is the protobuf style guide.
+A protobuf field is snake case and a protobuf enum value is screaming snake case, per the protobuf style guide.
 Every other target writes a field as TDL does.
-A `name` directive replaces the name in any target, and a name that collides after conversion, with a keyword, or with a synthesized name is a warning that `name` resolves.
-A value the target refuses as an identifier is a warning of its own, since a backend styles every other name into one and a directive is the only way a name the target cannot spell reaches the file.
+A `name` directive replaces the name in any target, and a name that collides after conversion, with a keyword, or with a synthesized name warns until `name` resolves it.
+A `name` value the target cannot spell as an identifier is a warning of its own.
 
 ## Numbering
 
-Protobuf fields and Thrift fields carry numbers that are the wire format, and the IR has none.
-A `number(n)` directive pins a field's number, and each unpinned field takes, in declaration order, the lowest number from one that no pin and no earlier unpinned field holds and the target does not reserve.
+Protobuf and Thrift field numbers are the wire format, and the IR has none.
+A `number(n)` directive pins a field's number, and each unpinned field takes, in declaration order, the lowest number from one that no pin or earlier unpinned field holds and the target does not reserve.
 Enum values and variants are numbered the same way.
 
-A pinned number is never handed to an unpinned field, so a pin cannot collide with one.
 Two pins on one number are an error, and so is a pin inside a reserved range.
+Inserting an unpinned field anywhere but the end renumbers every unpinned field after it, and so does adding a field to a mixin, so a stable schema pins.
 
-Declaration order is fragile, and pinning is the answer.
-Inserting an unpinned field anywhere but the end renumbers every unpinned field after it.
-A mixin's fields are copied into each struct including it, so adding one renumbers every includer.
-
-Protobuf numbers run to 536870911, with 19000 to 19999 reserved by protobuf itself.
+Protobuf numbers run to 536870911, with 19000 to 19999 reserved by protobuf.
 Thrift numbers run to 32767.
 
-A protobuf message takes a repeatable `reserved` directive of numbers or names, and each one is a `reserved` statement at the top of the message, in the order written.
-An unpinned field skips a number the message reserves, and a field pinned to a reserved number or on a reserved name is refused.
-An inlined oneof member is held to both rules, since protobuf counts one as a field of its message.
+A protobuf message takes a repeatable `reserved` directive of numbers or names, each a `reserved` statement at the top of the message, in the order written.
+An unpinned field skips a reserved number, and a field pinned to a reserved number or on a reserved name is refused.
+An inlined oneof member is held to both rules, since protobuf counts it as a field of its message.
 
 A protobuf target block takes a repeatable `import(path)` directive, and each path joins every file's imports, which are sorted and written once each.
-A protobuf field, message, enum, enum value, service, or rpc takes a repeatable `option(name, value)` directive.
-A field's or an enum value's options are written `name = value` in one bracket list in the order written, after any option the backend writes itself, such as `deprecated = true`.
-An inlined oneof member stands for its variant and the variant's one field, so it carries the options of both, the variant's first, and is deprecated when either is.
-A message's or an enum's options are each an `option name = value;` statement at the top of its body, after any `reserved` statements, in the same order.
-A service's options are statements at the top of its body the same way, and an rpc's are statements in a `{ }` body after its signature, which an rpc with no options leaves out.
-An `option("deprecated", ...)` on a deprecated node is dropped, since the backend already writes `deprecated = true` and protoc refuses an option set twice.
+A protobuf field, message, enum, enum value, service, or rpc takes a repeatable `option(name, value)` directive:
+
+- On a field or an enum value, options are written `name = value` in one bracket list, after any the backend writes itself, such as `deprecated = true`.
+- An inlined oneof member carries its variant's options and then its field's, and is deprecated when either is.
+- On a message, an enum, or a service, each is an `option name = value;` statement at the top of the body, after any `reserved` statements; on an rpc, in a `{ }` body after its signature.
+- An `option("deprecated", ...)` on a deprecated node is dropped, since protoc refuses an option set twice.
 
 ## Output
 
-Each backend writes one file per model, since a schema language reads a package as one document and cross-file imports would be layout the consumer did not ask for.
-Protobuf is the exception when a model asks for it: a `file` directive on a declaration places that declaration in the named file of the package, beside the one the target block names or the default.
-Each file carries the header and the package line, and a file naming a declaration placed in another imports that file by its path.
+Each backend writes one file per model, since a schema language reads a package as one document.
+In protobuf, a `file` directive on a declaration places it in the named file of the package instead, and a file naming a declaration placed in another imports that file by its path.
 
 | Target | File | Namespace |
 | --- | --- | --- |
@@ -187,11 +166,11 @@ Each file carries the header and the package line, and a file naming a declarati
 | typescript | `<last segment>.ts` | none |
 
 Every file starts with `Code generated by tdl. DO NOT EDIT.` in the target's comment syntax.
-Doc comments are carried in each target's form, and a deprecation becomes each target's `deprecated` marker, with GraphQL putting a type's deprecation in its description because a type cannot carry `@deprecated`.
+Doc comments are carried in each target's form, and a deprecation becomes each target's `deprecated` marker; GraphQL puts a type's deprecation in its description because a type cannot carry `@deprecated`.
 
 ## Encodings
 
 TDL defines no wire encoding, so these backends and the Go backend can disagree about one value.
-TypeScript types a `duration` and a `date` as strings, and Go's default `encoding/json` writes a `time.Duration` as integer nanoseconds and a date as a full timestamp.
-A Go pointer marshals to `null` and TypeScript types `T?` as an absent key.
-The `tag` directive is how a Go consumer aligns them, and a wire encoding is a decision for the spec rather than for five backends separately.
+TypeScript types a `duration` and a `date` as strings, while Go's `encoding/json` writes a `time.Duration` as integer nanoseconds and a date as a full timestamp.
+A Go pointer marshals to `null`, and TypeScript types `T?` as an absent key.
+The `tag` directive is how a Go consumer aligns them; a wire encoding is a decision for the spec.

@@ -1,55 +1,32 @@
 # Backlog
 
 Work that is wanted but not scheduled.
-Anything with a plan of its own lives in [design/](design/) instead; this is the list of things that have not earned one yet.
-
-Ordered roughly by what unblocks what, not by priority.
+Anything with a plan lives in [design/](design/) instead.
 
 ## tdl fmt as a treefmt formatter
 
-`nix fmt` formats everything in the repository except `.tdl` files, which are excluded with a note pointing here.
-`tdl fmt` already produces canonical output and is idempotent, so this is a custom formatter entry in `flake.nix` and a way to run the locally built binary rather than a released one.
-
-The awkward part is bootstrapping: formatting the repository would depend on building the thing the repository is.
+`nix fmt` excludes `.tdl` files.
+Adding `tdl fmt` as a custom formatter in `flake.nix` needs the locally built binary, so formatting the repository would depend on building it.
 
 ## Anonymous union types
 
-A field wants to say `A | B` without a declaration standing behind it.
-`enum` covers the nominal case, since a variant may carry fields, but every alternative has to be named and declared in one place.
+A field wants `A | B` without a declaration; `enum` requires every alternative to be named and declared.
+`TypeRef` already admits `T | null` as sugar for `Nullable<T>`, so the general case opens up the right-hand side.
 
-The syntax is already half there.
-`TypeRef = CoreType [ "?" ] [ "|" "null" ]` admits a single `|`, and `T | null` lowers to the prelude's `Nullable<T>`, so `|` is sugar for a named generic rather than a form of its own.
-The general case is that same rule with the right-hand side opened up.
-
-The open question is arity.
-`A | B | C` wants a variadic `Union<A, B, C>`, and kinds are `type`, `unit`, and arrows between them, with nothing variadic.
-Nesting instead gives `Either<A, Either<B, C>>`, which makes one written form into two types depending on how it associates, and makes `A | B` and `B | A` distinct.
-Answering that decides whether this needs a kind-system change, which is what would earn it a plan of its own.
-
-Downstream of the answer: whether a union may appear anywhere a `TypeRef` may, what a backend receives in `ir`, and whether the recursion rules in [spec.md](spec.md) treat reaching yourself through a union the way they treat a collection or an optional.
+The open question is arity: `A | B | C` wants a variadic `Union`, and kinds have nothing variadic, while nesting into `Either` makes association and order significant.
+The answer decides whether this needs a kind-system change, and with it what `ir` carries and how the recursion rules treat a union.
 
 ## An exponent on a parenthesized unit term
 
-`docs/grammar.ebnf` says `UnitTerm = identifier [ "^" int_lit ] | "(" UnitExpr ")" .`, which gives an exponent to a name and not to a group.
-`parser.parseUnitTerm` reads the `^` after either form, so `(kg*m)^2` parses and lowers to `kg^2*m^2`.
+`docs/grammar.ebnf` has `UnitTerm = identifier [ "^" int_lit ] | "(" UnitExpr ")" .`, but `parser.parseUnitTerm` accepts `(kg*m)^2` and lowers it to `kg^2*m^2`.
+The parser is right; the fix is `UnitTerm = ( identifier | "(" UnitExpr ")" ) [ "^" int_lit ] .`, a sentence in the spec's units section, and a regenerated tree-sitter grammar.
 
-The parser is the one that is right.
-A unit expression is dimensional algebra, and a group is a term like any other; the notation reads as though the restriction were deliberate, and nothing in [spec.md](spec.md) says it is.
+## JetBrains
 
-The change is `UnitTerm = ( identifier | "(" UnitExpr ")" ) [ "^" int_lit ] .`, a sentence in the spec's units section, and a regenerated tree-sitter grammar.
-It is here rather than in a plan because it touches `docs/grammar.ebnf`, and a grammar change and the tree-sitter derivation have to land together.
-
-## Editor support
-
-Highlighting for Neovim, VS Code, Zed, and GitHub has a design of its own in [design/editors.md](design/editors.md), and the language server has one in [design/lsp.md](design/lsp.md).
-Two editors remain here, because neither is close to the other four in shape.
-
-- **JetBrains.** A plugin. The platform has its own PSI model, so this is the most work of the six; the LSP API narrows it.
-- **Emacs.** A major mode deriving from `prog-mode`, `treesit` integration, and an `eglot` entry. Close to Neovim once `treesit` has the grammar.
+A plugin over the platform's PSI model, narrowed by its LSP API.
+The other editors are planned in [design/editors-plan.md](design/editors-plan.md) and [design/lsp-editors-plan.md](design/lsp-editors-plan.md).
 
 ## MCP server
 
-An MCP server would let an agent read a resolved model rather than the source text: ask what an entity's fields are, what satisfies a class, what a target block maps.
-
-`tdl ir --format json` already emits the whole model, so a first version is a thin wrapper over the existing lowering.
-The interesting question is what tools it should offer beyond "give me the model", and that is worth answering after there is a backend to compare against.
+Lets an agent query a resolved model: an entity's fields, what satisfies a class, what a target block maps.
+`tdl ir --format json` already emits the model, so a first version is a thin wrapper; which tools to offer beyond that is the open question.

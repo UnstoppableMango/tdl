@@ -1,110 +1,93 @@
 # Taking the language server to editors
 
-An implementation plan continuing [lsp-plan.md](lsp-plan.md), whose four phases are done.
+An implementation plan continuing [lsp-plan.md](lsp-plan.md).
 Phases are ordered by priority and then by dependency, and each states what makes it done.
-This is not a task list and does not estimate anything.
+Phase 1 is done.
 
 ## Scope
 
-`tdl lsp` serves diagnostics, definition, hover, formatting, and an outline, and no editor starts it.
-The VS Code extension contributes a language and a grammar and nothing else, and there is no Neovim, Helix, Emacs, or Zed configuration anywhere in the repository.
-Every feature so far reaches only someone who wires the server up by hand, so the clients come first and the features after them.
-
-Rich editor support is a priority for this project, which is why the clients are five phases rather than one: each editor has its own way of finding a server, and a plan that covered only VS Code would leave the other four where they are.
+Clients for VS Code, Neovim, Helix, Emacs, and Zed first, since each editor finds a server differently, then the server features after them.
 
 ## Principles
 
 **The server does the work.**
-A client starts `tdl lsp` and forwards what the editor asks.
-Anything a client would compute is something four other clients would compute differently.
+A client starts `tdl lsp` and forwards requests; anything a client computed, the other clients would compute differently.
 
 **The server is `tdl` on `PATH` unless configured otherwise.**
-Every client takes a path to the executable and defaults to `tdl`, so the version an editor runs is the version a terminal runs.
-Where nix builds the client, the default becomes the `tdl` it was built against, which is what nixpkgs does for every extension needing a binary; a user setting is not written, since that would make home-manager own the editor's settings file.
+Every client takes a path to the executable and defaults to `tdl`.
+Where nix builds the client, the default is the `tdl` it was built against, and no user setting is written.
 
-**Every client is verified by opening a conformance file.**
-Done means a file with an undefined type underlines it, hovering a name shows its declaration, and formatting rewrites a messy file, in that editor.
-The server's behaviour is tested in `internal/lsp`; what a phase here proves is that the editor reached it.
+**Every client is verified in its editor on a conformance file.**
+Done means an undefined type is underlined, hovering a name shows its declaration, and formatting rewrites a messy file.
+The server's behavior is tested in `internal/lsp`; a phase here proves the editor reached it.
 
-## Phase 1: the VS Code client
+## Phase 1: the VS Code client (done)
 
-`editors/vscode/` gains an entry point that starts `tdl lsp` through `vscode-languageclient` over stdio, and a `tdl.server.path` setting defaulting to `tdl`.
-`package.json` gains `main`, the dependency, and an `engines.vscode` raised to what `vscode-languageclient` requires.
-Activation is implicit, since VS Code activates an extension for a language it contributes.
-
-The entry point is bundled with esbuild into one file, because an extension that ships `node_modules` is slower to load and larger to install.
-`nix/vscode-extension.nix` builds the bundle with `buildNpmPackage` from a committed `package-lock.json`, then hands the directory to `buildVscodeExtension` as it does today.
-`editors/vscode/install.sh` builds the bundle before packaging, so `make vscode-install` keeps working.
-
-`jq` rewrites `tdl.server.path`'s default to the built `tdl` in the nix package, so an extension installed through nix needs no setting.
-
-When the executable is missing, the extension says so once with the path it tried, and highlighting keeps working, since the grammar needs no server.
+`editors/vscode/src/extension.ts` starts `tdl lsp` through `vscode-languageclient` over stdio, reading `tdl.server.path` (default `tdl`).
+esbuild bundles it into `dist/extension.js`.
+`nix/vscode-extension.nix` builds the bundle with `buildNpmPackage` and rewrites the setting's default to the built `tdl` with `jq`.
+A missing executable produces one message naming the path tried, and highlighting keeps working.
 
 Done when `nix build .#vscode-tdl` produces an extension that shows a diagnostic, a hover, and a formatting edit on a conformance file, and a missing `tdl` produces one message rather than a crash.
 
 ## Phase 2: Neovim
 
-`README.md`'s Neovim section gains the server, using the configuration API Neovim 0.11 added:
+`README.md`'s Neovim section gains the server, using Neovim 0.11's configuration API:
 
 ```lua
 vim.lsp.config('tdl', { cmd = { 'tdl', 'lsp' }, filetypes = { 'tdl' }, root_markers = { '.git' } })
 vim.lsp.enable('tdl')
 ```
 
-`vim.filetype.add` for `*.tdl` is already in the section, and the server needs nothing more.
+The section already has `vim.filetype.add` for `*.tdl`.
+Adding `tdl` to `nvim-lspconfig` is distribution and waits.
 
-Adding `tdl` to `nvim-lspconfig` is distribution and waits, for the reason the Marketplace does in [editors-plan.md](editors-plan.md).
-
-Done when pasting the section into a configuration that has never seen TDL shows a diagnostic and a hover on a conformance file, and `:checkhealth vim.lsp` lists the client attached.
+Done when the section pasted into a fresh configuration shows a diagnostic and a hover on a conformance file, and `:checkhealth vim.lsp` lists the client attached.
 
 ## Phase 3: Helix
 
-A `languages.toml` section in `README.md`: a `[[language]]` entry for `tdl` naming the server and the comment token, a `[language-server.tdl]` entry running `tdl lsp`, and a `[[grammar]]` entry pointing at this repository with `subpath = "tree-sitter"`.
+A `languages.toml` section in `README.md`: a `[[language]]` entry for `tdl` with the comment token, a `[language-server.tdl]` entry running `tdl lsp`, and a `[[grammar]]` entry pointing at this repository with `subpath = "tree-sitter"`.
 
-Helix reads highlight queries from its runtime directory rather than from the grammar, so the section copies `tree-sitter/queries/highlights.scm` into `runtime/queries/tdl/`.
-Helix's capture names mostly match the `nvim-treesitter` names the query uses; the ones that do not are listed in the section rather than forked into a second query file.
-
-The home-manager module does not configure Helix: `programs.helix.languages` takes the same TOML as a Nix value, and the README shows it.
+Helix reads highlight queries from its runtime directory, so the section copies `tree-sitter/queries/highlights.scm` into `runtime/queries/tdl/`.
+Capture names that differ from the `nvim-treesitter` names are listed in the section rather than forked into a second query file.
+The home-manager module does not configure Helix; the README shows the `programs.helix.languages` equivalent.
 
 Done when `hx --health tdl` reports the server and the grammar, and a conformance file shows a diagnostic and a hover.
 
 ## Phase 4: Emacs
 
-`editors/emacs/tdl-mode.el`: a major mode deriving from `prog-mode` with the comment syntax, `auto-mode-alist` for `*.tdl`, and an entry in `eglot-server-programs` running `tdl lsp`.
-Eglot is built into Emacs 29, so the mode needs no dependency.
+`editors/emacs/tdl-mode.el`: a major mode deriving from `prog-mode` with the comment syntax, `auto-mode-alist` for `*.tdl`, and an `eglot-server-programs` entry running `tdl lsp`.
+Eglot is built into Emacs 29, so the mode has no dependency.
 
-The mode's font-lock rules cover keywords, comments, and literals, with the keyword list read from `lex.Keywords()` by a test so the two cannot drift.
-Colouring names by what they are is the tree-sitter grammar's job, and `tdl-ts-mode`, reading it through `treesit`, is a later addition beside this mode rather than a replacement.
+Font-lock covers keywords, comments, and literals, with a test holding the keyword list to `lex.Keywords()`.
+A `tdl-ts-mode` over the tree-sitter grammar through `treesit` can come later beside it.
 
-Done when loading the file in `emacs -Q` colours a conformance file's keywords, and running `eglot` on it shows a diagnostic and a hover.
+Done when `emacs -Q` colors a conformance file's keywords, and `eglot` on it shows a diagnostic and a hover.
 
 ## Phase 5: Zed
 
-Zed runs a language server only through an extension, and an extension naming a server is Rust compiled to WebAssembly: `language_server_command` finds `tdl` on the worktree's `PATH` and returns `tdl lsp`.
-
-It depends on phases 4 and 5 of [editors-plan.md](editors-plan.md), the grammar repository and the Zed extension carrying highlighting, and adds the server to that extension rather than making a second one.
+Zed runs a language server only through an extension, written in Rust compiled to WebAssembly: `language_server_command` finds `tdl` on the worktree's `PATH` and returns `tdl lsp`.
+It extends the Zed extension from phases 4 and 5 of [editors-plan.md](editors-plan.md).
 
 Done when the extension loaded as a dev extension shows a diagnostic and a hover on a conformance file.
 
 ## Phase 6: target-block directives
 
-`tdl gen` checks each directive against the `DirectiveSpec` its backend declares, with `gen.CheckDirectives`, and nothing checks them while editing.
+`tdl gen` checks directives with `gen.CheckDirectives` against each backend's `DirectiveSpec`; nothing checks them while editing.
 
-The server runs the same check for every target block naming a built-in backend, reading each one's `Describe` in process through `gen.Builtin`.
-An undeclared directive publishes as a warning and a wrong argument count or kind as an error, which is what `tdl gen` reports.
-A backend found on `PATH` is not started to ask, since starting an executable because a file was opened is a surprise.
-
-This is the first diagnostic the server publishes that is not an error, so `publish` gains severities here.
+The server runs the same check for every target block naming a built-in backend, reading `Describe` in process through `gen.Builtin`.
+An undeclared directive is a warning, and a wrong argument count or kind is an error, matching `tdl gen`.
+A backend on `PATH` is not started, since opening a file should not run an executable.
+This is the first non-error diagnostic, so `publish` gains severities.
 
 Done when a misspelled directive in a `target go` block is underlined as it is typed, and the corpus still publishes nothing.
 
 ## Phase 7: completion
 
-Completion needs the names in scope at a cursor, which lowering computes and discards, and it is asked while the text is being typed and so usually does not parse.
+Completion needs the names in scope at a cursor, and the text being typed usually does not parse.
 
-Two changes carry it.
-`internal/sema` gains a way to list the bindings visible from a declaration: the file scope, the prelude beneath it, and the declaration's type parameters, which is the ladder `lookup` already climbs.
-The server keeps the last snapshot that lowered, so a half-typed field completes against the model as it was a keystroke ago, with the lexer deciding the position from the tokens before the cursor.
+`internal/sema` gains a way to list the bindings visible from a declaration: the file scope, the prelude, and the declaration's type parameters.
+The server keeps the last snapshot that lowered and completes against it, with the lexer deciding the position from the tokens before the cursor.
 
 What a position offers:
 
@@ -112,46 +95,42 @@ What a position offers:
 - After `:` in a declaration head and after `requires`: classes.
 - After `include`: mixins.
 - Inside `where { }`: the standard constraint names from `internal/sema/constraint.go`, with their arity.
-- Inside a target block: declaration names, then fields and variants after `.`, and the backend's directive names from phase 6, each with its argument kinds.
+- Inside a target block: declaration names, then fields and variants after `.`, and the backend's directive names from phase 6 with their argument kinds.
 
-Each item carries its kind and, resolved lazily, the hover text phase 3 renders.
+Each item carries its kind and, resolved lazily, the phase 3 hover text.
 
-Done when typing a field's type offers the model's declarations and the prelude's, `include` offers only mixins, and a directive position in a `target go` block offers `tag` and `key`.
+Done when a field's type offers the model's and the prelude's declarations, `include` offers only mixins, and a directive position in a `target go` block offers `tag` and `key`.
 
 ## Phase 8: references, rename, and highlight
 
-The index records every resolution, and these three want every occurrence.
-`internal/sema` records the ones it misses today: a declaration's own name, a type parameter's, `include`, unit names in a unit expression, constructors in a default, and each segment of a target path, which the parser keeps as one string and so has to give positions per segment.
+These need every occurrence, and the index records every resolution.
+`internal/sema` additionally records a declaration's name, a type parameter's, `include`, unit names in a unit expression, constructors in a default, and each segment of a target path (the parser keeps a path as one string, so it has to give per-segment positions).
 
-`textDocument/references` is the records sharing a target.
-`textDocument/documentHighlight` is the same set within one file.
-`textDocument/rename` edits every one of them, after `prepareRename` refuses a cursor on the prelude, a keyword, or a qualified name into a dependency, and the new name is checked against the lexer's identifier rules and the reserved words.
-A rename that would collide with a name already in scope is refused rather than applied.
+`textDocument/references` is the records sharing a target, and `textDocument/documentHighlight` is that set within one file.
+`textDocument/rename` edits all of them.
+`prepareRename` refuses the prelude, a keyword, and a qualified name into a dependency; the new name must be a valid identifier and not reserved, and a rename that collides with a name in scope is refused.
 
-Done when renaming a declaration used in a field, an `include`, a target path, and a file importing it with `_` edits all four and the corpus still publishes nothing.
+Done when renaming a declaration used in a field, an `include`, a target path, and a file importing it with `_` edits all four, and the corpus still publishes nothing.
 
 ## Phase 9: semantic tokens
 
-Highlighting from the model rather than from a grammar: a name is coloured by what it resolved to, so a mixin, a class, an entity, and a type parameter can differ, and a reference to a deprecated declaration carries the `deprecated` modifier that editors strike through.
-
-The token types follow the captures `tree-sitter/queries/highlights.scm` already chose, so an editor using both sees the same colours.
-Keywords and literals come from the lexer, and names come from the index phase 8 completes.
+A name is colored by what it resolved to, so a mixin, a class, an entity, and a type parameter can differ, and a reference to a deprecated declaration carries the `deprecated` modifier.
+Token types follow the captures in `tree-sitter/queries/highlights.scm`.
+Keywords and literals come from the lexer; names come from the phase 8 index.
 
 Done when a reference to a deprecated declaration is struck through in VS Code and in Neovim.
 
 ## Phase 10: structured diagnostics and quick fixes
 
-`sema.Diagnostic` is a position and a message, so an editor cannot tell one kind of problem from another.
-It gains a code, a severity, and related locations: the first declaration in a duplicate, which today is text in the message.
-
-Codes are what code actions key on.
-The first fixes are the ones the model can answer: an undefined name offers the declared names closest to it, and a name another file declares offers the `_` import that brings it in.
+`sema.Diagnostic` gains a code, a severity, and related locations (such as the first declaration in a duplicate).
+Code actions key on codes.
+The first fixes: an undefined name offers the closest declared names, and a name another file declares offers the `_` import that brings it in.
 
 Done when an undefined type offers its likely spelling as a quick fix, and applying it clears the diagnostic.
 
 ## Not in this plan
 
-- **Publishing.** The Marketplace, `nvim-lspconfig`, MELPA, and the Zed registry are distribution, as [editors-plan.md](editors-plan.md) argues.
-- **JetBrains.** [backlog.md](../backlog.md) has it, and its LSP API would reuse everything here, but it is the most work of any editor.
-- **Folding, selection ranges, workspace symbols, and inlay hints.** Each is small and additive once completion and the full index exist, and none is what a person misses first.
-- **The prelude under a `tdl:` URI.** [lsp.md](lsp.md) argues hover is the answer.
+- **Publishing** to the Marketplace, `nvim-lspconfig`, MELPA, or the Zed registry.
+- **JetBrains.** In [backlog.md](../backlog.md).
+- **Folding, selection ranges, workspace symbols, and inlay hints.** Each is additive once completion and the full index exist.
+- **The prelude under a `tdl:` URI.** [lsp.md](lsp.md) explains why hover is the answer.
