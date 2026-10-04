@@ -62,10 +62,12 @@ in
       #
       # VSCodium stands in for the five forks: all six editor modules come
       # from one mkVscodeModule, so what holds for one holds for the others.
+      # `older` disables the antigravity module to stand in for a
+      # home-manager that predates it.
       checks.hm-module =
         let
           configure =
-            editor:
+            editor: disabledModules:
             inputs.home-manager.lib.homeManagerConfiguration {
               pkgs = import inputs.nixpkgs {
                 inherit system;
@@ -75,6 +77,7 @@ in
               modules = [
                 ./hm-module.nix
                 {
+                  inherit disabledModules;
                   home = {
                     username = "tdl";
                     homeDirectory = "/home/tdl";
@@ -85,8 +88,9 @@ in
                 }
               ];
             };
-          hm = configure "vscode";
-          codium = configure "vscodium";
+          hm = configure "vscode" [ ];
+          codium = configure "vscodium" [ ];
+          older = configure "vscodium" [ "programs/antigravity.nix" ];
         in
         assert pkgs.lib.assertMsg (builtins.elem pkgs.tdl hm.config.home.packages)
           "programs.tdl.enable did not add tdl to home.packages";
@@ -111,6 +115,9 @@ in
         assert pkgs.lib.assertMsg (builtins.all (
           a: a.assertion
         ) codium.config.assertions) "the module asserted something with only VSCodium enabled";
+        assert pkgs.lib.assertMsg
+          (builtins.elem pkgs.vscode-tdl older.config.programs.vscodium.profiles.default.extensions)
+          "programs.tdl.vscode did not evaluate against a home-manager with no antigravity module";
         pkgs.runCommand "tdl-hm-module" { } "touch $out";
 
       # Holds the smithy backend to output Smithy accepts. No Go library can
