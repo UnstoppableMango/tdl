@@ -28,6 +28,5 @@ buildGoApplication {
     homepage = "https://github.com/UnstoppableMango/tdl";
     mainProgram = "tdl";
     license = lib.licenses.gpl3;
-    maintainers = with lib.maintainers; [ UnstoppableMango ];
   };
 }
