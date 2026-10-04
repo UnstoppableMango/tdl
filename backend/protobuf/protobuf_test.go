@@ -701,6 +701,27 @@ func TestOneofSharesNumbers(t *testing.T) {
 	)
 }
 
+// An inlined oneof keeps its field's doc comment, written above the oneof
+// the same way a regular field's doc is written above the field.
+func TestOneofKeepsFieldDoc(t *testing.T) {
+	b := irtest.New("shop")
+	b.Own(enum("TriggerActor",
+		variant("Contact", irtest.Field("contact", b.Named("string"))),
+		variant("SystemActor", irtest.Field("system_actor", b.Named("string"))),
+	))
+	kind := irtest.Field("kind", b.Named("string"))
+	kind.Meta.Doc = []string{"What fired it."}
+	actor := irtest.Field("actor", b.Named("TriggerActor"))
+	actor.Meta.Doc = []string{"Who started it."}
+	actor.Directives = []*ir.Directive{{Name: "oneof", Target: protobuf.Name}}
+	b.Own(value("Trigger", kind, actor))
+
+	contains(t, compile(t, generate(t, b)),
+		"// What fired it. string kind = 1;",
+		"// Who started it. oneof actor { string contact = 2; string system_actor = 3; }",
+	)
+}
+
 // A oneof member pinned to the number a field of the containing message pins is
 // the same warning as two colliding fields, and the message is skipped.
 func TestOneofMemberCollides(t *testing.T) {
