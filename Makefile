@@ -9,7 +9,6 @@ gosrc = $(filter-out %_test.go,$(wildcard $(addsuffix /*.go,$(1))))
 VSCODE      := editors/vscode
 TMLANGUAGE  := ${VSCODE}/syntaxes/tdl.tmLanguage.json
 TS_GRAMMAR  := tree-sitter/grammar.js
-TS_PARSER   := tree-sitter/src/parser.c tree-sitter/src/grammar.json tree-sitter/src/node-types.json
 
 .PHONY: build test cover play generate treesitter textmate vscode-install \
 	vscode-check test-treesitter check-treesitter update lint check fmt tidy
@@ -36,13 +35,11 @@ generate: ${PROTO_GO}
 ${PROTO_GO} &: ${PROTO_SRC} buf.gen.yaml buf.yaml
 	buf generate
 
-treesitter: tree-sitter/src/parser.c
+treesitter: ${TS_GRAMMAR}
+	${MAKE} -C tree-sitter generate
 
 ${TS_GRAMMAR}: docs/grammar.ebnf $(call gosrc,lex internal/ebnf internal/treesitter tools/treesitter)
 	go run ./tools/treesitter
-
-${TS_PARSER} &: ${TS_GRAMMAR} tree-sitter/tree-sitter.json
-	cd tree-sitter && tree-sitter generate
 
 textmate: ${TMLANGUAGE}
 
@@ -56,7 +53,7 @@ vscode-check:
 	${MAKE} -C ${VSCODE} check
 
 test-treesitter:
-	./tree-sitter/corpus.sh
+	${MAKE} -C tree-sitter test
 
 check-treesitter:
 	${MAKE} -B treesitter

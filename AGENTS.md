@@ -33,7 +33,8 @@ command make check-treesitter # what CI runs: treesitter + a diff + test-treesit
 Prefix `make` with `command` (see the shell autoload note in the global instructions).
 
 `generate`, `treesitter`, and `textmate` name file targets for what they write, so each step reruns only when its inputs are newer.
-`check-treesitter` passes `-B`, because a fresh checkout gives every file about the same mtime and a file target would skip the regeneration the diff is meant to test.
+`treesitter` and `test-treesitter` delegate to `tree-sitter/Makefile`, whose `generate` target reruns `tree-sitter generate` only when `grammar.js` or `tree-sitter.json` is newer than the parser, and whose `test` target runs `corpus.sh`; the root keeps the `grammar.js` target, since its generator is a Go tool.
+`check-treesitter` passes `-B`, which reaches the sub-make through `MAKEFLAGS`, because a fresh checkout gives every file about the same mtime and a file target would skip the regeneration the diff is meant to test.
 `vscode-check` and `vscode-install` delegate to `editors/vscode/Makefile`, whose `check`, `bundle`, and `install` targets run `npm ci` and the bundle only when the lock file or the source is newer.
 `vscode-install` regenerates the TextMate grammar first, since that generator is a Go tool at the root; `install.sh` packages the bundle `make` built and refuses to run without one.
 
@@ -47,7 +48,7 @@ Biome's JSON formatter is off, since jsonfmt owns JSON here and the two disagree
 Which markdown files are linted lives in `.markdownlint-cli2.yaml`, so a bare `markdownlint-cli2` locally checks what CI checks.
 `CLAUDE.md` is ignored: its whole content is an import pointing at this file, and a file that is one directive has no heading to lint.
 `.github/copilot-instructions.md` and `.github/skills/` are prose and are linted, because they say things this file does not.
-Nine files have no formatter: `Makefile`, `editors/vscode/Makefile`, `.editorconfig`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, and `tree-sitter/src/scanner.c`.
+Ten files have no formatter: `Makefile`, `editors/vscode/Makefile`, `tree-sitter/Makefile`, `.editorconfig`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, and `tree-sitter/src/scanner.c`.
 The two grammars have no published formatter, and their column alignment is chosen per section for reading; `internal/ebnf` lints them instead.
 A skill's YAML frontmatter is how Copilot decides when to load it, and mdformat rewrites it into a thematic break.
 Deliberately excluded: `*.tdl` (until `tdl fmt` is wired in, see `docs/backlog.md`), `*.golden` and `nix/gomod2nix.toml` and `flake.lock` and `tree-sitter/src/*.json` and `editors/vscode/syntaxes/*.json` (generated), and `.claude/` (local agent settings).
