@@ -814,6 +814,8 @@ func (g *generator) inlineOneof(b *strings.Builder, indent string, f *ir.Field, 
 			meta = v.GetMeta()
 		}
 		opts := g.options(meta, append(slices.Clone(v.GetDirectives()), vf.GetDirectives()...))
+		commentLines(b, indent+"  ", emit.Doc(v.GetMeta()))
+		comment(b, indent+"  ", vf.GetMeta())
 		fmt.Fprintf(b, "%s  %s %s = %d%s;\n", indent, typ, emit.Snake(vf.GetMeta().GetName()), nums[i], brackets(opts))
 	}
 	fmt.Fprintf(b, "%s}\n", indent)
@@ -996,6 +998,11 @@ func comment(b *strings.Builder, indent string, meta *ir.Meta) {
 		}
 		lines = append(lines, "Deprecated: "+reason)
 	}
+	commentLines(b, indent, lines)
+}
+
+// commentLines writes lines as `//` comments, an empty line as a bare `//`.
+func commentLines(b *strings.Builder, indent string, lines []string) {
 	for _, line := range lines {
 		if line == "" {
 			fmt.Fprintf(b, "%s//\n", indent)
