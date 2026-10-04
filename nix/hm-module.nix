@@ -14,7 +14,7 @@
 let
   cfg = config.programs.tdl;
 
-  # Every VS Code-based editor home-manager declares a module for. All six
+  # Every VS Code-based editor home-manager declares a module for. All seven
   # come from one `mkVscodeModule`, so `profiles.<name>.extensions` means
   # the same thing in each, and one extension package serves them all.
   #
@@ -29,6 +29,7 @@ let
     "windsurf"
     "kiro"
     "antigravity"
+    "positron"
   ];
   available = lib.filter (name: options.programs ? ${name}) known;
   enabled = lib.filter (name: config.programs.${name}.enable or false) known;

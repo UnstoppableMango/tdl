@@ -60,7 +60,7 @@ in
       # thing. It gets its own nixpkgs because `programs.vscode.enable`
       # evaluates the editor, and the editor is unfree.
       #
-      # VSCodium stands in for the five forks: all six editor modules come
+      # VSCodium stands in for the six forks: all seven editor modules come
       # from one mkVscodeModule, so what holds for one holds for the others.
       # `older` disables the antigravity module to stand in for a
       # home-manager that predates it.
