@@ -2,37 +2,29 @@
 
 ## They move together
 
-`docs/spec.md` is canonical and `docs/grammar.ebnf` holds the formal grammar.
-Both must be updated alongside any grammar or lexer change.
-A change to one that should have changed the other is the thing to flag.
+`docs/spec.md` is canonical and `docs/grammar.ebnf` is the formal grammar.
+A grammar or lexer change updates both; flag a change to one that should have changed the other.
 
 ## The notation is Wirth, not ISO
 
-The dialect is the one the Go and Oberon reports use, not ISO 14977.
-A production ends with `.` rather than `;`, and items in a sequence are juxtaposed rather than separated by `,`.
-Comments are Go's `/* */` and `//`, not the ISO family's `(* *)`.
-Never suggest an ISO form; it would not lint and could not be parsed.
+The dialect is the Go and Oberon reports', not ISO 14977: productions end with `.`, sequences are juxtaposed, and comments are `/* */` and `//`.
+Never suggest an ISO form; it would not parse.
 
-`docs/notation.ebnf` describes that notation in itself, and `internal/ebnf` lints both files.
-`TestDocsAreClean` fails the build when either stops linting clean.
-
-A lexical name the lexer owns is declared as a production with no expression, which is how this notation says the name is defined elsewhere.
+`docs/notation.ebnf` defines the notation, and `TestDocsAreClean` lints both files.
+A production with no expression is a lexical name the lexer defines.
 
 ## Annotations are machine-readable
 
-A `/*@ ... */` comment is not a note.
-`internal/ebnf` reads them and `internal/treesitter` turns them into `tree-sitter/grammar.js`.
-
-A production with no expression needs a `token` binding, every name an annotation mentions has to exist, and a production added or renamed without regenerating fails CI.
+A `/*@ ... */` comment is input to `internal/treesitter`, not a note.
+A production with no expression needs a `token` binding, and every name an annotation mentions must exist.
 
 ## The grammar is held to the lexer
 
-A quoted terminal must be a spelling `lex.Lookup` knows, so a spelling the grammar invents is a rule that can never match.
-`reserved_word` is checked against `lex.Keywords` in both directions, so a keyword added to one and not the other fails the build.
+Every quoted terminal must be a spelling `lex.Lookup` knows.
+`reserved_word` must match `lex.Keywords` exactly.
 
 ## tree-sitter is derived
 
-`tree-sitter/grammar.js` and `tree-sitter/src/` come from `docs/grammar.ebnf`, and `make treesitter` regenerates both.
-A change to the derived files that is not a consequence of a change to the grammar or the emitter is the wrong place to make it.
-
-`tree-sitter/queries/highlights.scm` is hand-written, because what should be colored is a judgment rather than a fact about the grammar.
+`tree-sitter/grammar.js` and `tree-sitter/src/` come from `docs/grammar.ebnf` through `make treesitter`.
+A hand edit there is in the wrong place.
+`tree-sitter/queries/highlights.scm` is hand-written.

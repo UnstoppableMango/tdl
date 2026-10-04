@@ -5,30 +5,23 @@ description: Review a pull request against this repository's invariants. Use whe
 
 # Reviewing TDL
 
-TDL describes domain models: entities, values, enums, newtypes, classes, and collections.
-No expressions, no control flow, no runtime.
-This repository owns the specification and the reference implementation, and the pipeline is one package per stage: `lex`, `parser`, `ast`, `internal/sema`, `ir`, `plugin`.
-
-`AGENTS.md` in the repository root describes the architecture.
-This skill is about what to check, which is a different question.
+`AGENTS.md` describes the architecture.
+This skill says what to check.
 
 ## Order of work
 
-1. Read [do-not-review.md](do-not-review.md) first and drop anything on it. Most of the value of this skill is in the comments it stops.
-2. Check whether the diff touches a generated file. [generated.md](generated.md) says which files those are and what produces each. Review the input and the generator, never the output.
+1. Read [do-not-review.md](do-not-review.md) and drop anything it lists.
+2. If the diff touches a generated file, review its input and generator instead. [generated.md](generated.md) lists them.
 3. Check the invariants for the areas the diff touches:
-   - `proto/` and `ir/` — [proto.md](proto.md)
-   - `docs/spec.md`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `tree-sitter/` — [grammar.md](grammar.md)
-   - `testdata/`, `prelude/`, `examples/` — [corpora.md](corpora.md)
-   - Go under `lex/`, `parser/`, `ast/`, `internal/`, `ir/`, `plugin/` — [go.md](go.md)
-4. Check for incompleteness.
-   A change is often correct in what it touches and wrong in what it leaves behind: a proto edit without the regenerated `.pb.go`, a lowering change without regenerated goldens, a grammar change without the spec, a deleted document with links still pointing at it.
-   Nothing checks that a link resolves, so a deletion is worth grepping for.
+   - `proto/` and `ir/`: [proto.md](proto.md)
+   - `docs/spec.md`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `tree-sitter/`: [grammar.md](grammar.md)
+   - `testdata/`, `prelude/`, `examples/`: [corpora.md](corpora.md)
+   - Go code: [go.md](go.md)
+4. Check what the change left behind: a proto edit without the regenerated `.pb.go`, a lowering change without regenerated goldens, a grammar change without the spec, a deleted file with links still pointing at it.
+   Nothing checks that a link resolves, so grep for references to a deleted or renamed file.
 
-## What a good comment looks like
+## Writing comments
 
-Name the invariant, not the preference.
-Each rule in the reference files is something this repository decided and wrote down, so a comment can say which decision the change breaks and where it is recorded.
-
-Prefer one comment on the thing that will break to five on things that will not.
-A reviewer who reports nothing on a change that breaks nothing has done the job.
+Name the invariant the change breaks and where it is written down.
+One comment on something that will break beats five on things that will not.
+Reporting nothing on a change that breaks nothing is a correct review.
