@@ -795,6 +795,7 @@ func (g *generator) inlinable(f *ir.Field, ref *emit.Ref) error {
 // variants' single fields, numbered by nums in variant order.
 func (g *generator) inlineOneof(b *strings.Builder, indent string, f *ir.Field, ref *emit.Ref, nums []int64, nested map[string]bool) error {
 	variants := ref.Decl.GetEnumeration().GetVariants()
+	comment(b, indent, f.GetMeta())
 	fmt.Fprintf(b, "%soneof %s {\n", indent, emit.Snake(f.GetMeta().GetName()))
 	for i, v := range variants {
 		vf := v.GetFields()[0]
