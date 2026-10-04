@@ -160,7 +160,7 @@ Pipeline, one package per stage:
   A field carrying the `oneof` directive inlines its enum's single-field variants as a oneof in its message, and an enum named only by such fields is not emitted.
   A `number` directive pins a field, variant, or enum value, and each unpinned one takes the lowest number no pin or earlier member holds; `emit.Numbers` holds the rule.
   A `reserved` directive on a message is repeatable and writes one `reserved` statement each, an unpinned field or inlined oneof member skips a reserved number, and a field or inlined oneof member pinned to a reserved number or on a reserved name is refused.
-  A repeatable `import` directive in the target block adds an import to every file, and a repeatable `option` directive writes `name = value` in the brackets of a field, an inlined oneof member, or an enum value, or as an `option` statement in a message, enum, service, or rpc.
+  A repeatable `import` directive in the target block adds an import to every file, and a repeatable `option` directive writes `name = value` in the brackets of a field, an inlined oneof member, or an enum value, or as an `option` statement in a message, enum, service, or rpc; in the target block's scope it writes a file option in every file.
   A type tagged `service` becomes a service whose fields each apply a primitive tagged `rpc`, with arguments wrapped in a primitive tagged `stream` streamed; tagging is explicit, so no name is recognized on its own.
   Its tests compile every response with `bufbuild/protocompile`, which is the protobuf equivalent of type checking the Go backend's output.
 - `backend/thrift` — the Thrift backend: one `.thrift` file per model under `namespace *`.
