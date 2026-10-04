@@ -22,7 +22,7 @@ test:
 cover: cover.profile
 	go tool cover -func=$<
 
-cover.profile: ${GO_SRC} ${TEST_DATA}
+cover.profile: ${GO_SRC} ${PROTO_GO} ${TEST_DATA}
 	go test -race -coverprofile=$@ ./...
 
 FILE ?= examples/nested.tdl

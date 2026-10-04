@@ -43,6 +43,10 @@ in
         default = pkgs.tdl;
       };
 
+      # `nix flake check` builds checks and not packages, and building the
+      # extension is what typechecks and bundles it.
+      checks.vscode-tdl = pkgs.vscode-tdl;
+
       checks.hm-module =
         let
           pkgs = import inputs.nixpkgs {
