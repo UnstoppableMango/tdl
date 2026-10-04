@@ -1,10 +1,8 @@
-// nested.tdl with backend mapping attached. The model is unchanged;
-// everything a generator needs lives here instead.
+// nested.tdl with backend mapping attached. The model is unchanged.
 //
 // A directive's arguments are parenthesized, and a directive taking none
-// omits the parentheses. Whitespace is insignificant, so without a
-// delimiter `table snake_case` could not be told from `table` applied to
-// the entry that follows it.
+// omits the parentheses. Without them `table snake_case` could not be told
+// from `table` applied to the entry that follows it.
 package shop.nested
 
 /// Anything carrying creation and update timestamps.

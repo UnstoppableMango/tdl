@@ -1,8 +1,7 @@
 // The TDL plugin protocol: the messages a backend exchanges with tdl,
 // whether it is compiled in or run as a subprocess.
 //
-// See docs/design/plugins.md for the protocol and
-// docs/design/plugins.md for the protocol.
+// See docs/design/plugins.md for the protocol.
 edition = "2024";
 
 package tdl.plugin.v1;
@@ -10,25 +9,20 @@ package tdl.plugin.v1;
 import "google/protobuf/go_features.proto";
 import "tdl/ir/v1/ir.proto";
 
-// Editions default the generated Go to the opaque API, where every field
-// is reached through a builder. These types are constructed directly here
-// and by any backend, so they keep the open API they were published with.
+// Keep the open Go API these types were published with; backends
+// construct them directly.
 option features.(pb.go).api_level = API_OPEN;
-// Editions default to explicit presence, which would give every scalar
-// field a pointer in the generated code. Implicit presence is what
-// proto3 meant, and what this schema was written against.
+// Implicit presence, as in proto3.
 option features.field_presence = IMPLICIT;
 
 // Handshake is what tdl sends first, before any request.
 //
-// A plugin that cannot read what is coming refuses here rather than
-// silently ignoring fields it was compiled before and emitting subtly
-// wrong code with no diagnostic anywhere.
+// A plugin that cannot read what is coming refuses here instead of
+// ignoring fields it does not know and emitting wrong code.
 message Handshake {
   // framing_version is the wire framing this connection uses. Version 1 is
   // a varint length prefix followed by an encoded message, in both
-  // directions. It exists so a later version can offer something else and
-  // an older plugin can decline.
+  // directions.
   int32 framing_version = 1;
 
   // ir_version is the protobuf package the model is encoded with, such as
@@ -36,8 +30,7 @@ message Handshake {
   // fields are additive.
   string ir_version = 2;
 
-  // watch says this connection may serve more than one request, which a
-  // plugin declaring reuse should expect.
+  // watch says this connection may serve more than one request.
   bool watch = 3;
 }
 
@@ -45,15 +38,15 @@ message Handshake {
 message HandshakeReply {
   bool accepted = 1;
 
-  // refusal says what the plugin needed, when accepted is false. A
-  // refusal naming both versions is the point of the handshake.
+  // refusal says what the plugin needed, when accepted is false. It should
+  // name both versions.
   string refusal = 2;
 
   string name = 3;
   string version = 4;
 
   // directives are what this backend understands. tdl checks the target
-  // block against them before generating; see DirectiveSpec.
+  // block against them before generating.
   repeated DirectiveSpec directives = 5;
 
   Features features = 6;
@@ -61,9 +54,8 @@ message HandshakeReply {
 
 // DirectiveSpec is the shape of one directive a backend accepts.
 //
-// A directive tdl finds in a target block and does not find here is a
-// warning and is passed through anyway: under-declaring is a plugin bug
-// that should not break a working project.
+// A directive in a target block that no spec declares is a warning and is
+// passed through anyway.
 message DirectiveSpec {
   string name = 1;
   int32 min_args = 2;
@@ -78,7 +70,7 @@ message DirectiveSpec {
   repeated tdl.ir.v1.LiteralKind arg_kinds = 4;
 
   // repeatable says several entries of this directive at the same
-  // specificity all reach the backend, in source order, rather than being
+  // specificity all reach the backend in source order. Otherwise they are
   // an error.
   bool repeatable = 5;
 }
@@ -93,28 +85,24 @@ message Features {
 // Request is everything a backend needs for one generation. Nothing
 // travels in argv or environment variables.
 message Request {
-  // target names the block being served. The model carries directives for
-  // every target block in it, each tagged with the block it came from, so
-  // a backend keeps the ones matching this name.
+  // target names the block being served. A backend keeps the directives
+  // tagged with this name.
   string target = 1;
 
   // model is one package, with the prelude's declarations merged into it.
-  // See docs/design/plugins.md for what that means for a backend.
   tdl.ir.v1.Model model = 2;
 
   // out is the directory the response's paths are relative to.
   string out = 3;
 
   // dry_run says tdl will diff the response against disk rather than
-  // write it. A backend that would do expensive work it knows cannot
-  // affect the answer may skip it; one that ignores the flag is correct,
-  // only slower.
+  // write it. A backend may skip work that cannot affect the files; ignoring
+  // the flag is correct.
   bool dry_run = 4;
 }
 
-// Response is what a backend returns. It returns file contents rather
-// than writing files, which is what lets tdl enforce path confinement,
-// --verify, and --clean rather than asking every backend to honour them.
+// Response is what a backend returns: file contents, which tdl writes, so
+// tdl enforces path confinement, --verify, and --clean.
 message Response {
   repeated File files = 1;
 
@@ -143,10 +131,8 @@ enum Severity {
 
 // Diagnostic is a problem a backend found.
 //
-// It carries a position rather than a node ID: ir has three ID spaces,
-// into declarations, types, and externs, and an ID alone does not say
-// which. Every ir node carries its own position, so a backend copies the
-// one it is complaining about.
+// It carries a position rather than a node ID, because an ID alone does not
+// say which table it indexes.
 message Diagnostic {
   Severity severity = 1;
   string message = 2;

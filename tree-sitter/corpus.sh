@@ -9,17 +9,14 @@ set -uo pipefail
 cd "$(dirname "$0")"
 
 # tree-sitter warns on every invocation when no parser directory is
-# configured. The grammar here is found by path rather than by that list,
-# so the repository is the whole configuration.
+# configured.
 config=$(mktemp -d)
 trap 'rm -rf "$config"' EXIT
 printf '{"parser-directories":["%s"]}\n' "$PWD/.." >"$config/config.json"
 
 status=0
 
-# parse runs one case and reports whether the outcome was the wanted one.
-# tree-sitter parse already exits nonzero on an ERROR node, so the exit
-# code is the whole result.
+# parse runs one case. tree-sitter parse exits nonzero on an ERROR node.
 parse() {
 	local want=$1 source=$2
 	local name out
@@ -49,11 +46,8 @@ for source in ../testdata/invalid/*/source.tdl; do
 	parse error "$source"
 done
 
-# queries/highlights.scm is hand-written, so nothing regenerates it when a
-# production is renamed. Compiling it is what catches that: a node name the
-# grammar no longer has is an error rather than something quietly left
-# uncolored. TestHighlightsCoverKeywords checks the other half, the
-# anonymous tokens no tree carries the name of.
+# Compiling the hand-written queries/highlights.scm fails on a node name the
+# grammar no longer has. TestHighlightsCoverKeywords covers the keywords.
 if out=$(tree-sitter query --quiet --config-path "$config/config.json" \
 	queries/highlights.scm ../testdata/conformance/*/source.tdl 2>&1); then
 	echo "ok    highlights.scm"

@@ -45,8 +45,8 @@ vscode-utils.buildVscodeExtension {
 
   src = bundle;
 
-  # sourceRoot is the directory the unpacker copies src into, which takes
-  # the bundle's name; buildVscodeExtension defaults it to a .vsix's layout.
+  # The unpacker copies src into a directory named after the bundle;
+  # buildVscodeExtension defaults sourceRoot to a .vsix layout.
   sourceRoot = bundle.name;
 
   vscodeExtPublisher = "unstoppablemango";

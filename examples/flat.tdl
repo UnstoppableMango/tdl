@@ -1,6 +1,6 @@
 // One entity, everything inline. Optionality carries the modelling:
 // a shipped order and a draft order are the same type, distinguished by
-// which fields happen to be set.
+// which fields are set.
 package shop.flat
 
 type Order: Entity {

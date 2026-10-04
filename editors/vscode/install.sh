@@ -1,19 +1,14 @@
 #!/usr/bin/env bash
 # Package this extension and install it into a running VS Code.
 #
-# The extension is committed as a directory, and `code --install-extension`
-# wants a .vsix, so one is built here and thrown away. The language client
-# bundle in dist/ comes from make, which rebuilds it when its sources or
-# package-lock.json change. The two files a .vsix carries beyond the extension
-# itself are written below rather than by `vsce`, which would pull npm in for
-# a zip and a manifest.
+# `code --install-extension` wants a .vsix, so one is built here and
+# discarded. dist/ comes from make. The manifest and content types are
+# written below rather than by `vsce`, which would pull in npm for a zip.
 #
-# The supported way in is this command. A directory dropped into an
-# extensions folder registers on a remote server and never reaches the
-# client, which looks exactly like the grammar not working.
+# A directory copied into an extensions folder registers on a remote server
+# and never reaches the client.
 #
-# The installed copy is a copy: regenerate the grammar with `make textmate`
-# and run this again to see the change.
+# The installed copy does not track the source; rerun this after a change.
 #
 #	command make vscode-install
 
@@ -70,11 +65,9 @@ EOF
 vsix="$work/${publisher}.${name}-${version}.vsix"
 (cd "$work" && zip -qr "$vsix" extension extension.vsixmanifest '[Content_Types].xml')
 
-# The CLI talks to the window over a socket named in the environment, which
-# VS Code's own terminal sets and nothing else does. Falling back to the
-# newest socket is what makes this work from an agent's shell or a plain
-# ssh session; a stale one refuses the connection rather than installing
-# into the wrong window.
+# The CLI reaches the window through a socket that only VS Code's terminal
+# names in the environment. Elsewhere, try the newest sockets; a stale one
+# refuses the connection rather than installing into the wrong window.
 install() {
 	code --install-extension "$vsix" --force && return 0
 

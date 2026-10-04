@@ -1,22 +1,15 @@
 ; Syntax highlighting for TDL.
 ;
-; Hand-written, unlike grammar.js. What should be colored is a judgment
-; rather than a fact about the grammar, so tools/treesitter does not emit
-; this file; docs/design/treesitter.md says so.
+; Hand-written; tools/treesitter does not emit this file. Capture names are
+; the nvim-treesitter set.
 ;
-; Capture names are the nvim-treesitter set, which every consumer knows.
-;
-; Two things hold it to the language. `tree-sitter query` runs it over the
-; corpus, so a node renamed in docs/grammar.ebnf breaks the build rather
-; than quietly uncoloring something. And TestHighlightsCoverKeywords in
-; internal/treesitter checks every spelling in lex.Keywords() appears
-; below, because a keyword is an anonymous token and a missing one is
-; invisible otherwise.
+; tree-sitter/corpus.sh compiles it, so a node renamed in docs/grammar.ebnf
+; fails the build. TestHighlightsCoverKeywords in internal/treesitter checks
+; that every spelling in lex.Keywords() appears below.
 
 ; ---- keywords -------------------------------------------------------------
 ;
-; Every spelling in lex.Keywords(). `where` and `requires` introduce blocks
-; rather than declarations, and are keywords all the same.
+; Every spelling in lex.Keywords().
 
 [
   "alias"
@@ -45,8 +38,7 @@
 
 ; ---- modifiers ------------------------------------------------------------
 ;
-; Contextual rather than reserved: each is usable as a field name, and each
-; reads as an annotation on the declaration it precedes.
+; Contextual rather than reserved: each is usable as a field name.
 
 "owned" @attribute
 
@@ -75,8 +67,7 @@
 (target_decl (name) @module)
 (import_decl (identifier) @module)
 
-; A target path is the backend's namespace, and a directive is the call it
-; makes there. Both admit reserved words, which is why they are `name`.
+; Target paths and directive names admit reserved words, so they are `name`.
 (path (name) @module)
 
 (constraint (identifier) @function.call)
@@ -100,9 +91,7 @@
 
 ; ---- operators and punctuation --------------------------------------------
 ;
-; Every spelling in lex.Punctuation(), split by how it reads rather than by
-; what the lexer calls it. `*`, `/`, and `^` are unit arithmetic; `->` and
-; `=>` are kinds and functional dependencies; `..` is a range.
+; Every spelling in lex.Punctuation(), grouped by how it reads.
 
 [
   "*"
