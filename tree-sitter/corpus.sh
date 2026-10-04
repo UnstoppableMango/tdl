@@ -1,18 +1,8 @@
 #!/usr/bin/env bash
 # Run the conformance corpus through the derived parser.
 #
-# The corpus is the one parser/conformance_test.go walks, run here by
-# tree-sitter rather than by Go, so a check the reference implementation
-# passes is one the derived parser has to pass in the same terms.
-# docs/design/treesitter.md says why.
-#
-# testdata/conformance must parse with no ERROR node, and testdata/invalid
-# must produce one. The invalid half checks the ERROR and not the message:
-# error.golden is the reference implementation's wording, and a second
-# parser agreeing on the diagnosis is a different promise from agreeing
-# that the file is bad.
-#
-#	command make test-treesitter
+# testdata/conformance must parse with no ERROR node
+# testdata/invalid must produce an ERROR node.
 
 set -uo pipefail
 
