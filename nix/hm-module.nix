@@ -7,6 +7,7 @@
 {
   config,
   lib,
+  options,
   pkgs,
   ...
 }:
@@ -19,7 +20,8 @@ let
   #
   # `or false` is for a home-manager predating a module: an editor it has
   # never heard of is one this is not installed into, rather than an
-  # evaluation error.
+  # evaluation error. `available` is the same guard for the definitions:
+  # setting an undeclared option fails even under a false `mkIf`.
   known = [
     "vscode"
     "vscodium"
@@ -28,6 +30,7 @@ let
     "kiro"
     "antigravity"
   ];
+  available = lib.filter (name: options.programs ? ${name}) known;
   enabled = lib.filter (name: config.programs.${name}.enable or false) known;
 in
 {
@@ -98,7 +101,7 @@ in
             extensions = [ cfg.vscode.package ];
           });
         }
-      ) known
+      ) available
     )
   );
 }
