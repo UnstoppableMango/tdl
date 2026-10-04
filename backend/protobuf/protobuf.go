@@ -64,7 +64,8 @@ func (Backend) Describe() plugin.Description {
 			{Name: "import", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Repeatable: true},
 			// An option, written `name = value` in the brackets of a field or an
 			// enum value, or as an `option` statement in a message, an enum, a
-			// service, or an rpc.
+			// service, or an rpc. In the target block's scope it is a file
+			// option, written in every file.
 			{Name: "option", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_STRING, ir.LiteralKind_LITERAL_KIND_STRING}, Repeatable: true},
 			// A message another proto file declares: the file to import and
 			// the message's fully qualified name. The declaration carrying
@@ -251,12 +252,14 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		if block.GetMeta().GetName() != g.Target {
 			continue
 		}
-		for _, d := range plugin.Directives(g.Target, block.GetDirectives()) {
-			if d.GetName() == "import" && len(d.GetArgs()) > 0 {
-				for _, grp := range groups {
+		opts := g.options(nil, block.GetDirectives())
+		for _, grp := range groups {
+			for _, d := range plugin.Directives(g.Target, block.GetDirectives()) {
+				if d.GetName() == "import" && len(d.GetArgs()) > 0 {
 					grp.imports[d.GetArgs()[0].GetText()] = true
 				}
 			}
+			grp.options = append(grp.options, opts...)
 		}
 	}
 	if len(groups) == 0 {
@@ -270,14 +273,16 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	return g.Response(files), nil
 }
 
-// group is the declarations placed in one file and what they import.
+// group is the declarations placed in one file, what they import, and the
+// file options.
 type group struct {
 	blocks  []string
 	imports map[string]bool
+	options []string
 }
 
-// write renders one .proto file: the header, the package, the imports, and
-// the group's declarations in model order.
+// write renders one .proto file: the header, the package, the imports, the
+// file options, and the group's declarations in model order.
 func (g *generator) write(path string, grp *group) *plugin.File {
 	header := `syntax = "proto3";`
 	if g.edition != "" {
@@ -292,6 +297,12 @@ func (g *generator) write(path string, grp *group) *plugin.File {
 		b.WriteString("\n")
 		for _, imp := range slices.Sorted(maps.Keys(grp.imports)) {
 			fmt.Fprintf(&b, "import %q;\n", imp)
+		}
+	}
+	if len(grp.options) > 0 {
+		b.WriteString("\n")
+		for _, o := range grp.options {
+			fmt.Fprintf(&b, "option %s;\n", o)
 		}
 	}
 	for _, block := range grp.blocks {
