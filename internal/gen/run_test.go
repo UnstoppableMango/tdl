@@ -19,8 +19,7 @@ func block(name, out string) *ir.TargetBlock {
 	return b
 }
 
-// A target block declares where its output goes; the command line
-// overrides it for one invocation.
+// The command line overrides a target block's out directive.
 func TestTargetsReadOutDirective(t *testing.T) {
 	model := &ir.Model{Targets: []*ir.TargetBlock{block("go", "./gen/go"), block("sql", "./gen/sql")}}
 

@@ -24,8 +24,7 @@ func position(p ast.Position) *ir.Position {
 	return &ir.Position{Filename: p.Filename, Line: int32(p.Line), Column: int32(p.Col)}
 }
 
-// kind lowers a kind expression. Arrows associate to the right, which the
-// parse tree already reflects.
+// kind lowers a kind expression.
 func kind(k *ast.Kind) *ir.Kind {
 	if k == nil {
 		return nil

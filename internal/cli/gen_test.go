@@ -47,8 +47,7 @@ func TestGenWatchRegeneratesOnSave(t *testing.T) {
 	}
 }
 
-// waitForOutput polls until the generated file mentions want, since a
-// watch regenerates on its own schedule.
+// waitForOutput polls until the generated file mentions want.
 func waitForOutput(t *testing.T, path, want string) {
 	t.Helper()
 	deadline := time.Now().Add(10 * time.Second)

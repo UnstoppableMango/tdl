@@ -27,9 +27,7 @@ func TestWatchNoticesAChange(t *testing.T) {
 		mu.Unlock()
 	})
 
-	// Watch reads the file once before it starts polling. Writing before
-	// that read would make the new contents the baseline, and nothing would
-	// ever look like a change.
+	// Let Watch read its baseline before the write.
 	time.Sleep(100 * time.Millisecond)
 
 	if err := os.WriteFile(path, []byte("after"), 0o644); err != nil {
@@ -52,8 +50,7 @@ func TestWatchNoticesAChange(t *testing.T) {
 	}
 }
 
-// Contents are compared rather than timestamps, so an editor that
-// rewrites a file without changing it does not trigger a regeneration.
+// A rewrite with identical contents does not trigger.
 func TestWatchIgnoresAnIdenticalWrite(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "watched.tdl")
 	if err := os.WriteFile(path, []byte("same"), 0o644); err != nil {
@@ -72,9 +69,7 @@ func TestWatchIgnoresAnIdenticalWrite(t *testing.T) {
 	})
 	time.Sleep(100 * time.Millisecond)
 
-	// Saved by rename, the way an editor that never shows a half-written
-	// file does, so this measures the content comparison rather than a
-	// race with truncation.
+	// Save by rename, so no poll sees a truncated file.
 	for i := 0; i < 3; i++ {
 		tmp := path + ".tmp"
 		if err := os.WriteFile(tmp, []byte("same"), 0o644); err != nil {

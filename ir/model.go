@@ -1,13 +1,9 @@
-// Package ir is the resolved semantic model backends consume: what the
-// parse tree becomes once names are resolved and sugar is lowered.
-//
-// The messages are generated from proto/tdl/ir/v1/ir.proto, which is the
-// schema plugins read over the wire. The helpers here are hand written.
+// Package ir is the resolved semantic model backends consume. The messages
+// are generated from proto/tdl/ir/v1/ir.proto; the helpers are hand written.
 package ir
 
-// Unresolved is the index an [ID] carries when its name did not resolve to
-// a declaration. The name is still recorded, so a diagnostic can say what
-// was written.
+// Unresolved is the index an [ID] carries when its name did not resolve.
+// The ID keeps the name as written.
 const Unresolved = -1
 
 // Resolved reports whether id points at a table entry.
@@ -34,7 +30,7 @@ func (x *Model) Type(id *ID) *Type {
 }
 
 // FindDecl returns the declaration with the given fully qualified name and
-// its ID. It reports ok false when nothing carries that name.
+// its ID, reporting false when there is none.
 func (x *Model) FindDecl(name string) (*Decl, *ID, bool) {
 	for i, d := range x.GetDecls() {
 		if d.GetMeta().GetName() == name {
@@ -44,8 +40,8 @@ func (x *Model) FindDecl(name string) (*Decl, *ID, bool) {
 	return nil, nil, false
 }
 
-// Fields returns the fields of a declaration that has them, and nil for one
-// that does not. An enum's fields belong to its variants, not to it.
+// Fields returns a struct declaration's fields, or nil. An enum's fields
+// belong to its variants.
 func (d *Decl) Fields() []*Field {
 	if s := d.GetStructure(); s != nil {
 		return s.GetFields()
@@ -69,7 +65,7 @@ func (d *Decl) Params() []*Param {
 }
 
 // Constraints returns the `requires` clause on a declaration's type
-// parameters, or nil for a declaration that cannot carry one.
+// parameters, or nil.
 func (d *Decl) Constraints() []*ClassRef {
 	switch {
 	case d.GetNewtype() != nil:
@@ -85,13 +81,8 @@ func (d *Decl) Constraints() []*ClassRef {
 // IsDeprecated reports whether the node is marked deprecated.
 func (m *Meta) IsDeprecated() bool { return m.GetDeprecated() != nil }
 
-// Satisfying returns the declarations satisfying a class, closed over the
-// classes that class requires.
-//
-// A backend applying a class-scoped target directive reads this and never
-// reasons about instances. The index covers declarations in this model:
-// a foreign type made to satisfy a local class is in the instance table but
-// not here, because there is no local ID to name it by.
+// Satisfying returns the declarations in this model satisfying a class,
+// closed over the classes that class requires.
 func (x *Model) Satisfying(class *ID) []*ID {
 	return x.satisfaction(class).GetDecls()
 }
@@ -118,15 +109,12 @@ func (x *Model) Unit(id *ID) *Unit {
 // SatisfyingTypes returns the instantiated types that satisfy a class
 // through a conditional instance, such as `Page<Order>` given
 // `instance <T> Auditable<Page<T>> requires Auditable<T>`.
-//
-// These cannot appear in [Model.Satisfying] because they are types rather
-// than declarations: `Page` satisfies nothing on its own.
 func (x *Model) SatisfyingTypes(class *ID) []*ID {
 	return x.satisfaction(class).GetTypes()
 }
 
 // KindName is how a diagnostic names a literal kind: "a string", "an
-// integer", and so on, so a message reads as a sentence.
+// integer", and so on.
 func KindName(k LiteralKind) string {
 	switch k {
 	case LiteralKind_LITERAL_KIND_STRING:
@@ -148,7 +136,6 @@ func KindName(k LiteralKind) string {
 	case LiteralKind_LITERAL_KIND_UNSPECIFIED:
 		return "an unspecified value"
 	}
-	// A kind this build has no name for, which is what a model written
-	// against a newer schema looks like from here.
+	// A kind from a newer schema.
 	return "an unrecognized value"
 }

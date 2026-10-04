@@ -15,15 +15,9 @@ import (
 )
 
 // Hover describes the name under the cursor: the declaration it refers to
-// in canonical form, its deprecation, and its doc comment.
-//
-// A name that refers to something is answered from the index definition
-// reads, so the two cannot disagree about what a name means. The name a
-// declaration declares is not a reference, so it is found in the tree.
-//
-// A reference into the prelude hovers, which is the answer
-// docs/design/lsp.md gives for a declaration with no file to jump to: the
-// prelude is embedded, and its source is here to print.
+// in canonical form, its deprecation, and its doc comment. A reference is
+// answered from the index Definition reads, including one into the
+// prelude; a declaration's own name is found in the tree.
 func (s *Server) Hover(_ context.Context, params *protocol.HoverParams) (*protocol.Hover, error) {
 	doc := s.store.get(params.TextDocument.URI.FsPath())
 	if doc == nil {
@@ -39,9 +33,7 @@ func (s *Server) Hover(_ context.Context, params *protocol.HoverParams) (*protoc
 		if decl := s.declAt(ref.Target); decl != nil {
 			return hover(describe(decl), rng), nil
 		}
-		// A type parameter is bound where its name is written, which is
-		// no declaration's start. A name a `_` import merged in carries no
-		// model entry either, so the entry cannot tell the two apart.
+		// A type parameter starts no declaration and has no ref.Decl.
 		if ref.Decl == nil {
 			return hover("```tdl\n"+ref.Name+"\n```\n\nType parameter.", rng), nil
 		}
@@ -64,8 +56,7 @@ func (s *Server) Hover(_ context.Context, params *protocol.HoverParams) (*protoc
 }
 
 // describe renders a declaration as markdown: its canonical form, then its
-// deprecation, then its doc comment, which is the order an editor's hover
-// reads best in.
+// deprecation, then its doc comment.
 func describe(decl ast.Decl) string {
 	var b strings.Builder
 	b.WriteString("```tdl\n")
@@ -93,8 +84,7 @@ func hover(markdown string, rng protocol.Range) *protocol.Hover {
 	}
 }
 
-// declAt is the declaration that starts at pos, which is where a
-// reference's target says it was bound.
+// declAt is the declaration that starts at pos.
 func (s *Server) declAt(pos ast.Position) ast.Decl {
 	file := s.parsed(pos.Filename)
 	if file == nil {
@@ -109,11 +99,8 @@ func (s *Server) declAt(pos ast.Position) ast.Decl {
 }
 
 // parsed is the tree of the file a reference points into: the editor's
-// text when the file is open, the disk's when it is not, and the embedded
-// source for the prelude.
-//
-// A file that fails to parse still yields what the parser recovered, and a
-// declaration it recovered is still worth describing.
+// text when open, the disk's when not, and the embedded source for the
+// prelude. A file that fails to parse yields what the parser recovered.
 func (s *Server) parsed(path string) *ast.File {
 	if path == prelude.Name {
 		return preludeFile()
@@ -132,15 +119,14 @@ func (s *Server) parsed(path string) *ast.File {
 	return file
 }
 
-// preludeFile is the embedded prelude's tree, parsed once. It is the one
-// file a hover reads that never changes.
+// preludeFile is the embedded prelude's tree, parsed once.
 var preludeFile = sync.OnceValue(func() *ast.File {
 	file, _ := parser.Parse(prelude.Name, strings.NewReader(prelude.Source))
 	return file
 })
 
-// within reports whether a position falls inside a range, counting its
-// end: a cursor just past the last letter of a name is still on it.
+// within reports whether a position falls inside a range, end included,
+// so a cursor just past a name is still on it.
 func within(rng protocol.Range, pos protocol.Position) bool {
 	before := func(a, b protocol.Position) bool {
 		return a.Line < b.Line || a.Line == b.Line && a.Character <= b.Character

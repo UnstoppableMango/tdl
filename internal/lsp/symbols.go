@@ -9,10 +9,8 @@ import (
 )
 
 // DocumentSymbol is the outline of a document: each declaration, with its
-// fields and variants as children, and a variant's fields under it.
-//
-// It reads the tree rather than the model, so a file that does not parse
-// still outlines whatever the parser recovered.
+// fields and variants as children. It reads the tree, so a file that does
+// not parse still outlines what the parser recovered.
 func (s *Server) DocumentSymbol(_ context.Context, params *protocol.DocumentSymbolParams) (protocol.DocumentSymbolResult, error) {
 	doc := s.store.get(params.TextDocument.URI.FsPath())
 	if doc == nil {
@@ -66,8 +64,7 @@ func declSymbol(x *lineIndex, decl ast.Decl) protocol.DocumentSymbol {
 	return symbol(x, head, kind, detail, end, children)
 }
 
-// memberSymbols is a body's fields. An include copies a mixin's fields in
-// and declares nothing of its own, so it is not in the outline.
+// memberSymbols is a body's fields; an include declares nothing.
 func memberSymbols(x *lineIndex, members []ast.Member) []protocol.DocumentSymbol {
 	var out []protocol.DocumentSymbol
 	for _, m := range members {
@@ -90,9 +87,9 @@ func variantSymbol(x *lineIndex, v *ast.Variant) protocol.DocumentSymbol {
 	return symbol(x, &v.DeclHead, protocol.SymbolKindEnumMember, "", v.End, children)
 }
 
-// symbol builds one entry. Its range runs from where the node starts to
-// the brace closing it, or to the end of its line when it has none; the
-// selection is the name, which is what an editor highlights.
+// symbol builds one entry. Its range runs from the node's start to its
+// closing brace, or to the end of its line when it has none; the selection
+// is the name.
 func symbol(x *lineIndex, head *ast.DeclHead, kind protocol.SymbolKind, detail string, end ast.Position, children []protocol.DocumentSymbol) protocol.DocumentSymbol {
 	start := head.P.Offset
 	stop := x.lineEnd(head.P.Line - 1)

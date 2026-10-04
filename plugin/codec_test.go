@@ -35,8 +35,6 @@ func TestRoundTrip(t *testing.T) {
 	}
 }
 
-// A connection carries several messages, which is what lets the handshake
-// and the request share one stream.
 func TestSeveralMessages(t *testing.T) {
 	var buf bytes.Buffer
 	conn := plugin.NewConn(&buf, &buf)
@@ -57,7 +55,6 @@ func TestSeveralMessages(t *testing.T) {
 	}
 }
 
-// A stream that ends between messages is an ending, not a failure.
 func TestEndOfStream(t *testing.T) {
 	conn := plugin.NewConn(strings.NewReader(""), io.Discard)
 	if err := conn.Recv(&plugin.Handshake{}); !errors.Is(err, io.EOF) {
@@ -65,8 +62,7 @@ func TestEndOfStream(t *testing.T) {
 	}
 }
 
-// A stream that ends part way through a message is a truncation, and the
-// error says so rather than the read blocking forever.
+// A stream cut part way through a message is not a clean io.EOF.
 func TestTruncatedMessage(t *testing.T) {
 	var full bytes.Buffer
 	if err := plugin.NewConn(nil, &full).Send(&plugin.HandshakeReply{Name: "cut short"}); err != nil {
@@ -86,8 +82,6 @@ func TestTruncatedMessage(t *testing.T) {
 	}
 }
 
-// A length prefix is the first thing read from a stream that may be
-// anything at all, so it is checked before it is trusted.
 func TestOversizedPrefixIsRefused(t *testing.T) {
 	var prefix [binary.MaxVarintLen64]byte
 	n := binary.PutUvarint(prefix[:], uint64(plugin.MaxMessageSize)+1)

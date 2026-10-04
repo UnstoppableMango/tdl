@@ -30,9 +30,6 @@ func TestFormatting(t *testing.T) {
 	}
 }
 
-// TestFormattingLeavesCanonicalAndBrokenFilesAlone covers the two answers
-// that change nothing: text already canonical, and text that does not
-// parse, which the formatter would truncate to what the parser recovered.
 func TestFormattingLeavesCanonicalAndBrokenFilesAlone(t *testing.T) {
 	s := newSession(t)
 
@@ -49,9 +46,8 @@ func TestFormattingLeavesCanonicalAndBrokenFilesAlone(t *testing.T) {
 	}
 }
 
-// TestFormattingAgreesWithTheCorpus holds the server to what
-// TestCorpusIsCanonical holds `tdl fmt` to: every conformance case is
-// canonical, so formatting one changes nothing.
+// TestFormattingAgreesWithTheCorpus checks formatting a conformance case
+// changes nothing.
 func TestFormattingAgreesWithTheCorpus(t *testing.T) {
 	for _, dir := range subdirs(t, "../../testdata/conformance") {
 		t.Run(filepath.Base(dir), func(t *testing.T) {
@@ -112,8 +108,7 @@ func TestDocumentSymbols(t *testing.T) {
 	}
 }
 
-// outline renders symbols one per line, indented by depth, for a test to
-// compare in one piece.
+// outline renders symbols one per line, indented by depth.
 func outline(syms []protocol.DocumentSymbol, indent string) string {
 	var b strings.Builder
 	for _, sym := range syms {
@@ -140,8 +135,8 @@ func kindName(k protocol.SymbolKind) string {
 	}[k]
 }
 
-// A symbol's range has to contain its selection, or clients reject the
-// whole response. Every construct in the corpus is held to it.
+// TestDocumentSymbolRangesContainSelections checks every corpus symbol,
+// since clients reject a response where one does not.
 func TestDocumentSymbolRangesContainSelections(t *testing.T) {
 	for _, dir := range subdirs(t, "../../testdata/conformance") {
 		t.Run(filepath.Base(dir), func(t *testing.T) {

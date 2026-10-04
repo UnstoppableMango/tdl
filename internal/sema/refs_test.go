@@ -43,8 +43,6 @@ func at(t *testing.T, refs sema.References, src, needle string) sema.Reference {
 	return ref
 }
 
-// TestReferencesResolveToTheirDeclaration is the property go to definition
-// is built on: a name records where what it names was written.
 func TestReferencesResolveToTheirDeclaration(t *testing.T) {
 	const src = "package p\n\n" +
 		"primitive string\n\n" +
@@ -68,11 +66,8 @@ func TestReferencesResolveToTheirDeclaration(t *testing.T) {
 	}
 }
 
-// TestReferencesCoverEveryMention is what the type table cannot answer.
-//
-// Types are interned by structure, so the second `string` in a file is not
-// a second entry and a cursor on it would find nothing. The index records
-// the question rather than the answer, so every mention is there.
+// TestReferencesCoverEveryMention checks that a second mention of an
+// interned type is still recorded.
 func TestReferencesCoverEveryMention(t *testing.T) {
 	const src = "package p\n\n" +
 		"primitive string\n\n" +
@@ -97,8 +92,8 @@ func TestReferencesCoverEveryMention(t *testing.T) {
 	}
 }
 
-// TestReferencesFindTypeParameters checks the binding that shadows a
-// declaration: inside a parameterized declaration, T is the parameter.
+// TestReferencesFindTypeParameters checks that T resolves to the parameter
+// that shadows a declaration of that name.
 func TestReferencesFindTypeParameters(t *testing.T) {
 	const src = "package p\n\n" +
 		"primitive int\n\n" +
@@ -113,8 +108,7 @@ func TestReferencesFindTypeParameters(t *testing.T) {
 	if ref.Name != "T" {
 		t.Fatalf("name = %q, want T", ref.Name)
 	}
-	// The parameter is declared in `Page<T>` on line 5, not by a
-	// declaration of its own, so the target is where it was bound.
+	// The parameter is bound in `Page<T>` on line 5.
 	if ref.Target.Line != 5 {
 		t.Errorf("target line = %d, want 5", ref.Target.Line)
 	}
@@ -123,8 +117,6 @@ func TestReferencesFindTypeParameters(t *testing.T) {
 	}
 }
 
-// TestReferencesFindTargetPaths covers the mistake a model author actually
-// makes: a target path naming a declaration.
 func TestReferencesFindTargetPaths(t *testing.T) {
 	const src = "package p\n\n" +
 		"primitive string\n\n" +
@@ -146,9 +138,8 @@ func TestReferencesFindTargetPaths(t *testing.T) {
 	}
 }
 
-// TestReferencesCrossAnImport covers the name that is declared in another
-// file: a `_` import merges a dependency's exported names in, and what a
-// reference to one records is where that dependency declares it.
+// TestReferencesCrossAnImport checks that a name a `_` import merged in
+// targets its declaration in the dependency.
 func TestReferencesCrossAnImport(t *testing.T) {
 	dir := t.TempDir()
 	dep := filepath.Join(dir, "common.tdl")
@@ -188,11 +179,8 @@ func TestReferencesCrossAnImport(t *testing.T) {
 	}
 }
 
-// TestQualifiedReferencesHaveNoTarget is the other half of an import: an
-// aliased dependency is parsed for its names and not for its positions, so
-// a qualified reference records the question and no answer. The record
-// still earns its place, because it is what stops a cursor on
-// `common.Money` from finding whatever reference sits next to it.
+// TestQualifiedReferencesHaveNoTarget checks that a qualified reference is
+// recorded with no target.
 func TestQualifiedReferencesHaveNoTarget(t *testing.T) {
 	dir := t.TempDir()
 	write(t, filepath.Join(dir, "common.tdl"),
@@ -242,12 +230,8 @@ func write(t *testing.T, path, src string) {
 	}
 }
 
-// TestSugarRecordsNoReference holds the rule that keeps a cursor honest: a
-// name the author never wrote is not in the index.
-//
-// `[T]` lowers through the prelude's List, and recording that would put a
-// reference to List across the brackets, so a cursor on `[` would jump
-// into the prelude.
+// TestSugarRecordsNoReference checks that `[T]` records no reference to
+// the prelude's List.
 func TestSugarRecordsNoReference(t *testing.T) {
 	const src = "package p\n\n" +
 		"primitive string\n\n" +
@@ -264,8 +248,6 @@ func TestSugarRecordsNoReference(t *testing.T) {
 	}
 }
 
-// TestReferencesAreOffByDefault is why this is an option: nothing but an
-// editor wants the table, and `tdl check` should not build one.
 func TestReferencesAreOffByDefault(t *testing.T) {
 	const src = "package p\n\nprimitive string\n\ntype Email: string\n"
 
@@ -276,13 +258,9 @@ func TestReferencesAreOffByDefault(t *testing.T) {
 	if _, diags := sema.Lower(file); len(diags) > 0 {
 		t.Fatalf("unexpected diagnostics: %v", diags)
 	}
-	// Nothing to assert but that it lowers: the point is that Lower takes
-	// no sink and allocates none.
+	// Nothing to assert: Lower takes no sink.
 }
 
-// TestPreludeIsNotIndexed keeps the table to the file being edited. The
-// prelude lowers through the same lowerer, and an editor should not search
-// its names on every request.
 func TestPreludeIsNotIndexed(t *testing.T) {
 	const src = "package p\n\nprimitive string\n\ntype Email: string\n"
 

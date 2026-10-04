@@ -9,22 +9,14 @@ import (
 
 // checkRecursion enforces the spec's three recursion rules.
 //
-//   - A struct conforming to std.Entity may be mutually recursive without
-//     restriction. A cycle between entities is a graph of references,
-//     which every backend can represent.
+//   - A struct conforming to Entity may be mutually recursive without
+//     restriction.
 //   - Any other struct or enum may reach itself only through a collection
-//     or an optional, never as a bare field. `type Node { next: Node }` has
-//     no finite representation; `next: Node?` and `children: [Node]` do.
-//     An enum holds its variants' fields inline, so conforming to Entity
-//     does not exempt one.
-//   - Aliases may never be recursive, since they are expanded rather than
-//     referenced. An alias cycle does not terminate under expansion, so
-//     even a collection does not save it.
+//     or an optional: `next: Node?` is allowed, `next: Node` is not. An
+//     enum is never exempt, even conforming to Entity.
+//   - Aliases may never be recursive, even through a collection.
 //
-// The two rules differ in which edges they follow, so the walk is
-// parameterized by that rather than duplicated. It runs after
-// [lowerer.markEntities], since whether a struct is an entity is read from
-// its kind.
+// It runs after [lowerer.markEntities], which sets the entity kind.
 func (l *lowerer) checkRecursion(file *ast.File) {
 	for _, decl := range file.Decls {
 		name := decl.Name()
@@ -111,8 +103,7 @@ func (l *lowerer) edges(file *ast.File, name string, throughWrappers bool) []edg
 	return out
 }
 
-// wrapped reports whether a type reference is a collection or an optional,
-// which is what gives a recursive value a finite representation.
+// wrapped reports whether a type reference is a collection or an optional.
 func wrapped(t *ast.TypeRef) bool {
 	return t.List != nil || t.Set != nil || t.MapKey != nil || t.Optional || t.Nullable
 }

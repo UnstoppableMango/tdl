@@ -8,12 +8,9 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// Session is a plugin kept alive across generations.
-//
-// A plugin that declared reuse serves more than one request on one
-// connection, which is what makes a watch loop cheap. It must treat each
-// request as independent; carrying state between them is a plugin bug, and
-// nothing here can catch it.
+// Session is a plugin kept alive across generations. A plugin that
+// declared reuse serves many requests on one connection and must treat
+// each as independent.
 type Session struct {
 	sub      *Subprocess
 	desc     plugin.Description // what the last handshake said
@@ -22,12 +19,9 @@ type Session struct {
 	restarts int
 }
 
-// Open starts a plugin and holds the connection if it declared reuse.
-//
-// A plugin that did not gets a fresh process per generation, which is the
-// default: reuse is something a backend opts into by saying it can. The
-// one handshake answers both questions, so a plugin that will not shake
-// hands is an error here rather than a description of nothing.
+// Open starts a plugin and holds the connection if it declared reuse;
+// otherwise each generation gets a fresh process. A failed handshake is
+// an error.
 func Open(ctx context.Context, sub *Subprocess) (*Session, error) {
 	s := &Session{sub: sub}
 	if err := s.start(ctx); err != nil {
@@ -56,8 +50,7 @@ func (s *Session) start(ctx context.Context) error {
 	return nil
 }
 
-// Describe reports what the plugin said about itself when it was opened,
-// without starting another process to ask again.
+// Describe reports what the plugin said about itself when it was opened.
 func (s *Session) Describe() plugin.Description { return s.desc }
 
 // Generate serves one request, over the held connection when there is one.
@@ -79,11 +72,8 @@ func (s *Session) Generate(ctx context.Context, req *plugin.Request) (*plugin.Re
 	return &resp, nil
 }
 
-// refresh restarts a held plugin whose binary changed.
-//
-// Developing a plugin should not mean killing the watch that is exercising
-// it, and a connection to the old process would keep serving the old code
-// with nothing to say it had.
+// refresh restarts a held plugin whose binary changed, so a watch keeps
+// running while the plugin is rebuilt.
 func (s *Session) refresh(ctx context.Context) error {
 	if s.live == nil {
 		return nil
@@ -117,14 +107,11 @@ func binaryTime(path string) time.Time {
 	return info.ModTime()
 }
 
-// Reused reports whether this session is holding a connection, which is
-// what a test asserts rather than inferring from timing.
+// Reused reports whether this session is holding a connection.
 func (s *Session) Reused() bool { return s.live != nil }
 
 // Restarts counts how many times the held plugin was replaced because its
 // binary changed.
 func (s *Session) Restarts() int { return s.restarts }
 
-// A Session is a Backend, so a watch loop and a single run take the same
-// path.
 var _ plugin.Backend = (*Session)(nil)

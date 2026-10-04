@@ -5,15 +5,8 @@ import (
 )
 
 // accumulateConstraints copies a newtype's constraints down the chain it
-// builds on.
-//
-// `type WorkEmail: Email where { matches(...) }` carries Email's
-// constraints too. A newtype narrows its parent and never replaces it, so
-// a value satisfying WorkEmail satisfies Email, and a backend reading one
-// list gets the whole story rather than walking the chain itself.
-//
-// Each inherited constraint records which newtype it came from, so a
-// backend can still explain where a rule started.
+// builds on, so `type WorkEmail: Email where { ... }` carries Email's
+// constraints too, each recording the newtype it came from.
 func (l *lowerer) accumulateConstraints() {
 	done := map[int32]bool{}
 	for i := range l.model.GetDecls() {
@@ -67,11 +60,8 @@ func (l *lowerer) accumulateInto(idx int32, done, onPath map[int32]bool) {
 	}
 }
 
-// resolveNames resolves the names a field writes: a default and a
-// constraint argument each denote an enum variant, and which enum it
-// belongs to is the field's type, so this is the first point at which
-// either can be checked: the parser records the name, and nothing before
-// now knows the type.
+// resolveNames resolves a field's default and constraint arguments written
+// as names to variants of the field's enum type.
 func (l *lowerer) resolveNames() {
 	for _, decl := range l.model.GetDecls() {
 		for _, f := range decl.Fields() {
@@ -114,13 +104,9 @@ func (l *lowerer) checkDefault(f *ir.Field) {
 	l.resolveVariant(decl, enum, def)
 }
 
-// resolveConstraintArg resolves a constraint argument written as a name,
-// which denotes a variant of the field's type exactly as a default does.
-//
-// A name on a field whose type is not an enum says nothing here: the set of
-// constraint names is open, so until there are variants for a name to
-// denote it is a symbol whichever backend knows the constraint gives
-// meaning to.
+// resolveConstraintArg resolves a constraint argument written as a name to
+// a variant of the field's type. On a field whose type is not an enum the
+// name is left for the backend.
 func (l *lowerer) resolveConstraintArg(f *ir.Field, arg *ir.Literal) {
 	if arg.GetKind() != ir.LiteralKind_LITERAL_KIND_NAME {
 		return
@@ -165,8 +151,7 @@ func (l *lowerer) fieldDecl(f *ir.Field) *ir.Decl {
 	return l.model.Decl(ty.GetCtor()) // nil when already reported as undefined
 }
 
-// isOptionLike reports whether a type is the sugar for absence or null,
-// which a default looks through.
+// isOptionLike reports whether a type is Option or Nullable.
 func isOptionLike(ty *ir.Type) bool {
 	switch ty.GetWrote() {
 	case ir.SyntacticForm_SYNTACTIC_FORM_QUESTION, ir.SyntacticForm_SYNTACTIC_FORM_OR_NULL:

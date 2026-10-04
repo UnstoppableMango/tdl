@@ -37,10 +37,8 @@ func (l *lowerer) classNode(d *ast.ClassDecl) *ir.Class {
 	return c
 }
 
-// instance lowers a standalone instance declaration.
-//
-// `instance C for T` is sugar for `instance C<T>`, so the `for` form
-// becomes an argument here and there is one form from this point on.
+// instance lowers a standalone instance declaration. `instance C for T`
+// becomes `instance C<T>`.
 func (l *lowerer) instance(d *ast.InstanceDecl, order int) *ir.Instance {
 	inst := &ir.Instance{Meta: metaOf(&d.DeclHead, order)}
 
@@ -72,8 +70,7 @@ func (l *lowerer) classRefs(refs []*ast.ClassRef) []*ir.ClassRef {
 	return out
 }
 
-// classRef resolves a class name. A class is a declaration like any other,
-// so it resolves through the same scope; a qualified one is an extern.
+// classRef resolves a class name; a qualified one is an extern.
 func (l *lowerer) classRef(r *ast.ClassRef) *ir.ClassRef {
 	out := &ir.ClassRef{Position: position(r.P), Args: l.typeArgs(r.Args)}
 

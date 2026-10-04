@@ -9,8 +9,8 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// shout is a backend in full: it declares what it understands, and it
-// turns a model into files. A real one differs only in what it writes.
+// shout is a complete backend: it declares what it understands and turns
+// a model into files.
 type shout struct{}
 
 func (shout) Describe() plugin.Description {
@@ -32,8 +32,7 @@ func (shout) Generate(_ context.Context, req *plugin.Request) (*plugin.Response,
 	for _, decl := range req.GetModel().GetDecls() {
 		name := decl.GetMeta().GetName()
 
-		// A model carries directives for every target block in it. Filter,
-		// or you will act on another backend's instructions.
+		// Keep only this target's directives.
 		for _, d := range plugin.Directives(req.GetTarget(), decl.GetDirectives()) {
 			if d.GetName() == "as" && len(d.GetArgs()) == 1 {
 				name = d.GetArgs()[0].GetText()

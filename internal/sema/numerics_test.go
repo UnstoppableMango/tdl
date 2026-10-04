@@ -6,8 +6,6 @@ import (
 	"github.com/unstoppablemango/tdl/prelude"
 )
 
-// The prelude declares the fixed-width numerics, so a field may name each
-// one without the file declaring it.
 func TestFixedWidthNumericsResolveToPrelude(t *testing.T) {
 	model := lower(t, `
 type Reading {

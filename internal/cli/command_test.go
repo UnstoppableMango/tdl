@@ -9,8 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// twoFiles writes a canonical model and a broken one, and returns their
-// paths.
+// twoFiles writes a canonical model and a broken one.
 func twoFiles(t *testing.T) (good, bad string) {
 	t.Helper()
 	dir := t.TempDir()
@@ -24,8 +23,8 @@ func twoFiles(t *testing.T) (good, bad string) {
 	return good, bad
 }
 
-// run executes a command with its streams captured, the way the root
-// command runs it: a diagnostic list is the output, not cobra's usage.
+// run executes cmd with its streams captured and usage silenced, as the
+// root command runs it.
 func run(t *testing.T, cmd *cobra.Command, args ...string) (out, errOut string, err error) {
 	t.Helper()
 	cmd.SilenceUsage, cmd.SilenceErrors = true, true
@@ -35,8 +34,7 @@ func run(t *testing.T, cmd *cobra.Command, args ...string) (out, errOut string, 
 	return o.String(), e.String(), err
 }
 
-// Every command that reads a file takes a list of them, and prints a
-// banner only when there is more than one.
+// A banner is printed only when there is more than one file.
 func TestCommandsTakeSeveralFiles(t *testing.T) {
 	good, _ := twoFiles(t)
 
@@ -81,7 +79,6 @@ func TestCommandsTakeSeveralFiles(t *testing.T) {
 	}
 }
 
-// check prints nothing for a file that parses.
 func TestCheckIsSilentOnSuccess(t *testing.T) {
 	good, _ := twoFiles(t)
 
@@ -94,8 +91,7 @@ func TestCheckIsSilentOnSuccess(t *testing.T) {
 	}
 }
 
-// A broken file does not stop the ones after it, and the error counts what
-// failed rather than repeating the diagnostics already printed.
+// A broken file does not stop the rest, and the error only counts failures.
 func TestCommandsReportEveryBadFile(t *testing.T) {
 	good, bad := twoFiles(t)
 
@@ -128,7 +124,6 @@ func TestCommandsRejectNoArguments(t *testing.T) {
 	}
 }
 
-// gen --watch does not return, so there is no second file to move on to.
 func TestGenWatchTakesOneFile(t *testing.T) {
 	good, _ := twoFiles(t)
 
@@ -141,7 +136,6 @@ func TestGenWatchTakesOneFile(t *testing.T) {
 	}
 }
 
-// -w replaces the file rather than printing it, for every file given.
 func TestFmtWriteRewritesEveryFile(t *testing.T) {
 	dir := t.TempDir()
 	var paths []string
@@ -171,8 +165,6 @@ func TestFmtWriteRewritesEveryFile(t *testing.T) {
 	}
 }
 
-// gen resolves each file's target block and writes what the backend
-// returns, and --verify compares against disk instead of writing.
 func TestGenWritesAndVerifies(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "m.tdl")
@@ -181,8 +173,7 @@ func TestGenWritesAndVerifies(t *testing.T) {
 		t.Fatalf("writing the fixture: %v", err)
 	}
 
-	// -o rather than the block's own out directive, which is relative to
-	// the working directory and would write into the repository.
+	// The block's out directive is relative to the working directory.
 	out := filepath.Join(dir, "out")
 	if _, _, err := run(t, newGenCmd(), "-o", out, path); err != nil {
 		t.Fatalf("gen: %v", err)
@@ -192,12 +183,10 @@ func TestGenWritesAndVerifies(t *testing.T) {
 		t.Fatalf("gen wrote nothing: %v", err)
 	}
 
-	// What was just written is what would be generated again.
 	if _, _, err := run(t, newGenCmd(), "-o", out, "--verify", path); err != nil {
 		t.Errorf("--verify over fresh output: %v", err)
 	}
 
-	// And it notices when the output on disk no longer matches.
 	if err := os.WriteFile(written, []byte("stale\n"), 0o644); err != nil {
 		t.Fatalf("staling the output: %v", err)
 	}
@@ -206,9 +195,7 @@ func TestGenWritesAndVerifies(t *testing.T) {
 	}
 }
 
-// --clean empties an output directory once per run. Two files given the
-// same -o both write there, and cleaning before the second would delete
-// what the first just wrote.
+// --clean empties a shared output directory once per run, not once per file.
 func TestGenCleansASharedOutputDirectoryOnce(t *testing.T) {
 	dir := t.TempDir()
 	src := "package p\n\nprimitive string\n\ntarget debug for p {\n  out(\"./out\")\n}\n"
@@ -221,7 +208,6 @@ func TestGenCleansASharedOutputDirectoryOnce(t *testing.T) {
 		paths = append(paths, path)
 	}
 
-	// An earlier run left a file behind that no target writes any more.
 	out := filepath.Join(dir, "out")
 	if _, _, err := run(t, newGenCmd(), "-o", out, paths[0]); err != nil {
 		t.Fatalf("gen: %v", err)
@@ -238,9 +224,7 @@ func TestGenCleansASharedOutputDirectoryOnce(t *testing.T) {
 	if !strings.Contains(stdout, "removed "+orphan) {
 		t.Errorf("--clean did not remove the orphan:\n%s", stdout)
 	}
-	// The first clean removes the orphan and the earlier run's model.txt.
-	// A clean before the second file would remove model.txt again, once
-	// the first file had written it back.
+	// The orphan and the earlier model.txt; a second clean would make three.
 	if got := strings.Count(stdout, "removed "); got != 2 {
 		t.Errorf("%d removals, want 2 (one clean pass):\n%s", got, stdout)
 	}
@@ -252,8 +236,6 @@ func TestGenCleansASharedOutputDirectoryOnce(t *testing.T) {
 	}
 }
 
-// A file with no target block has nothing to generate, which is an error
-// rather than a silent success.
 func TestGenRejectsAFileWithNoTarget(t *testing.T) {
 	good, _ := twoFiles(t)
 

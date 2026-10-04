@@ -83,8 +83,8 @@ func newFmtCmd() *cobra.Command {
 	return cmd
 }
 
-// staleError describes what --check found. -w has nothing to write standard
-// input back to, so the hint only names it when a file on disk is stale.
+// staleError describes what --check found. The -w hint appears only when
+// a file on disk is stale.
 func staleError(files int, stdin bool) error {
 	switch {
 	case files == 0:
@@ -96,8 +96,7 @@ func staleError(files int, stdin bool) error {
 	}
 }
 
-// writeFormatted replaces path with formatted, keeping the mode the file
-// already had. Formatting is not the place to widen a file's permissions.
+// writeFormatted replaces path with formatted, keeping its mode.
 func writeFormatted(path, formatted string) error {
 	mode := os.FileMode(0o644)
 	switch info, err := os.Stat(path); {

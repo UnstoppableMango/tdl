@@ -2,11 +2,8 @@ package ir
 
 import "testing"
 
-// The unit renderers are the part of a dump the conformance goldens cannot
-// reach. A golden shows what lowering produces, and lowering never produces
-// an unresolved reference, a dimensionless quantity, or a base with no name.
-// Those branches exist for a model built by hand, which `ir` being public
-// API means anyone may do.
+// These cover unit rendering branches only a hand-built model reaches,
+// which the conformance goldens cannot.
 
 func dims(pairs ...any) *Unit {
 	u := &Unit{}
@@ -33,8 +30,6 @@ func TestDimsText(t *testing.T) {
 		{"quotient", dims("kg", 1, "m", -1, "s", -2), "kg/m/s^2"},
 		{"no numerator", dims("s", -1), "1/s"},
 		{
-			// An ID carries a name so there is something to print. `?^2`
-			// reads as a gap where a bare `^2` reads as a broken renderer.
 			"base with no name",
 			&Unit{Dims: []*Dimension{{Base: &ID{Index: 0}, Exponent: 2}}},
 			"?^2",
@@ -59,8 +54,7 @@ func TestModelUnit(t *testing.T) {
 	if got := m.Unit(&ID{Index: Unresolved}); got != nil {
 		t.Errorf("Unit(unresolved) = %v, want nil", got)
 	}
-	// An index past the table is a model that was built wrong rather than a
-	// lookup that should panic.
+	// An index past the table returns nil rather than panicking.
 	if got := m.Unit(&ID{Index: 7}); got != nil {
 		t.Errorf("Unit(7) = %v, want nil", got)
 	}

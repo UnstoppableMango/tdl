@@ -1,12 +1,7 @@
-// Package lsp serves the Language Server Protocol over a TDL model being
-// edited: what is wrong with a file, where a name under the cursor was
-// declared, what it is, the file's outline, and its canonical form.
+// Package lsp serves the Language Server Protocol for TDL: diagnostics,
+// go to definition, hover, document symbols, and formatting.
 //
-// It is private for the reason internal/sema is. `ir` and `proto` are the
-// compatibility surface, and an editor integration is not.
-//
-// See docs/design/lsp.md for the reasoning and docs/design/lsp-plan.md for
-// what each phase adds.
+// See docs/design/lsp.md and docs/design/lsp-plan.md.
 package lsp
 
 import (
@@ -22,20 +17,16 @@ import (
 	"github.com/unstoppablemango/tdl/internal/sema"
 )
 
-// source is what a diagnostic says produced it, shown by editors beside
-// the message.
+// source names this server in each diagnostic.
 const source = "tdl"
 
-// errNoClient answers a request whose context carries no client. Serve
-// puts one there, so reaching this means the server was driven by
-// something that did not.
+// errNoClient answers a request whose context carries no client, which
+// Serve always supplies.
 var errNoClient = errors.New("lsp: no client in context")
 
 // Server answers protocol requests about the documents an editor has open.
-//
-// It embeds protocol.UnimplementedServer, so a request it does not serve
-// is answered with "method not found" rather than with a panic, and adding
-// a feature is writing the method for it.
+// A request it does not implement gets "method not found" from the
+// embedded protocol.UnimplementedServer.
 type Server struct {
 	protocol.UnimplementedServer
 
@@ -43,30 +34,18 @@ type Server struct {
 	opts  []sema.Option
 }
 
-// NewServer returns a server.
-//
-// The client it publishes to comes from each request's context rather than
-// from a field, which is how protocol.NewServer hands one over: the
-// connection exists before the client dispatching across it, and the
-// server exists before the connection.
-//
-// opts are the lowering options every document is analyzed with, which is
-// how a caller replaces the prelude. The loader is not among them: the
-// server supplies its own, so an open document's unsaved text is what an
-// import of it resolves to.
+// NewServer returns a server analyzing every document with opts. The
+// server appends its own loader, so an import of an open document resolves
+// to its unsaved text. The client comes from each request's context.
 func NewServer(opts ...sema.Option) *Server {
 	s := &Server{store: newStore()}
 	s.opts = append(append([]sema.Option{}, opts...), sema.WithLoader(newOverlay(s.store)))
 	return s
 }
 
-// Initialize reports what this server serves.
-//
-// Text synchronization is full rather than incremental. A .tdl file is a
-// description of a domain model, the parser is one pass over it, and
-// incremental sync would save nothing worth measuring while adding a
-// second way for the server's copy of the text to drift from the
-// editor's.
+// Initialize reports what this server serves. Text synchronization is
+// full: a .tdl file is small, and incremental sync would add a way for the
+// server's copy to drift from the editor's.
 func (s *Server) Initialize(context.Context, *protocol.InitializeParams) (*protocol.InitializeResult, error) {
 	return &protocol.InitializeResult{
 		Capabilities: protocol.ServerCapabilities{
@@ -100,16 +79,9 @@ func (s *Server) DidOpen(ctx context.Context, params *protocol.DidOpenTextDocume
 	return s.publish(ctx, doc)
 }
 
-// DidChange replaces a document's text and re-analyzes it.
-//
-// Synchronization is full, so the last change carries the whole document,
-// which is the arm of the change union this reads. A range change is a
-// thing the server never advertised, and applying one as whole text would
-// replace the document with a fragment of itself.
-//
-// A change for a file that was never opened is dropped: the editor and the
-// server disagree about what is open, and guessing at the text is worse
-// than reporting nothing until the next didOpen.
+// DidChange replaces a document's text and re-analyzes it. With full sync
+// the last change carries the whole document; a range change was never
+// advertised and is ignored. A change for a file never opened is dropped.
 func (s *Server) DidChange(ctx context.Context, params *protocol.DidChangeTextDocumentParams) error {
 	if len(params.ContentChanges) == 0 {
 		return nil
@@ -125,9 +97,7 @@ func (s *Server) DidChange(ctx context.Context, params *protocol.DidChangeTextDo
 		return nil
 	}
 
-	// Every open document is re-analyzed, not just this one: another may
-	// import this file, and its diagnostics were computed against the text
-	// that just changed.
+	// Another open document may import this one.
 	s.store.invalidate()
 	return s.publishAll(ctx)
 }
@@ -142,11 +112,9 @@ func (s *Server) DidSave(ctx context.Context, params *protocol.DidSaveTextDocume
 	return s.publishAll(ctx)
 }
 
-// DidClose forgets a document and clears what it published.
-//
-// An import of it reads the disk from here, so every other open document
-// is re-analyzed: one of them may import this file and have been resolving
-// it against text that is no longer the server's to know.
+// DidClose forgets a document and clears what it published. Every other
+// open document is re-analyzed, since an import of this one reads the disk
+// from here on.
 func (s *Server) DidClose(ctx context.Context, params *protocol.DidCloseTextDocumentParams) error {
 	s.store.close(params.TextDocument.URI)
 	s.store.invalidate()
@@ -157,16 +125,10 @@ func (s *Server) DidClose(ctx context.Context, params *protocol.DidCloseTextDocu
 	return s.publishAll(ctx)
 }
 
-// Definition answers where the name under the cursor was declared.
-//
-// The answer comes from the index internal/sema records while it resolves,
-// so shadowing, the prelude, and `_` imports are decided by the code that
-// already decides them and are not restated here.
-//
-// Three cases return nothing, and all three are an answer rather than a
-// failure: the cursor is not on a name, the name did not resolve, or it
-// resolved into the prelude, which is embedded and has no file an editor
-// can open. docs/design/lsp.md argues the last one.
+// Definition answers where the name under the cursor was declared, read
+// from the index sema records while it resolves. It returns nothing when
+// the cursor is not on a name, the name did not resolve, or it resolved
+// into the embedded prelude.
 func (s *Server) Definition(_ context.Context, params *protocol.DefinitionParams) (protocol.DefinitionResult, error) {
 	doc := s.store.get(params.TextDocument.URI.FsPath())
 	if doc == nil {
@@ -193,13 +155,9 @@ func (s *Server) Definition(_ context.Context, params *protocol.DefinitionParams
 }
 
 // targetIndex is the line index of the file a definition points into, or
-// nil when there is none to build.
-//
-// An open document is indexed against the editor's text, and a file that
-// is not open is read from disk: a jump has to land on the name, and a
-// declaration's column is a byte offset into text the server would
-// otherwise not have. Only an absolute path is read, which is what an
-// import resolves to; the prelude's name is not a path at all.
+// nil when there is none. A file that is not open is read from disk,
+// because a declaration's column is a byte offset into its text. Only an
+// absolute path is read; the prelude's name is not one.
 func (s *Server) targetIndex(path string) *lineIndex {
 	if doc := s.store.get(path); doc != nil {
 		return s.store.analyze(doc, s.opts...).index
@@ -229,12 +187,9 @@ func (s *Server) publishAll(ctx context.Context) error {
 	return nil
 }
 
-// publish analyzes a document and sends what it found.
-//
-// Diagnostics are grouped by the file each one is about rather than sent
-// against this document's URI: a problem lowering found in an imported
-// file belongs on that file, and an import that fails to resolve belongs
-// on the file that wrote it, which is what the position already says.
+// publish analyzes a document and sends its diagnostics, grouped by the
+// file each position names, so a problem in an imported file is reported
+// on that file.
 func (s *Server) publish(ctx context.Context, doc *document) error {
 	client, ok := protocol.ClientFromContext(ctx)
 	if !ok {
@@ -244,9 +199,6 @@ func (s *Server) publish(ctx context.Context, doc *document) error {
 	snap := s.store.analyze(doc, s.opts...)
 	byFile := map[string][]protocol.Diagnostic{}
 
-	// A file that does not parse publishes syntax errors only. Lowering a
-	// tree with holes in it reports names that are undefined because the
-	// declaration naming them failed to parse, and those are noise.
 	for _, e := range snap.errs {
 		byFile[e.Pos.Filename] = append(byFile[e.Pos.Filename],
 			s.diagnostic(doc, snap, e.Pos.Filename, e.Pos.Line, e.Pos.Col, e.Msg))
@@ -273,8 +225,8 @@ func (s *Server) publish(ctx context.Context, doc *document) error {
 	return nil
 }
 
-// clear publishes an empty list, which is how the protocol says a server
-// retracts what it reported about a file.
+// clear retracts what was reported about a file by publishing an empty
+// list.
 func (s *Server) clear(ctx context.Context, u uri.URI) error {
 	client, ok := protocol.ClientFromContext(ctx)
 	if !ok {
@@ -287,13 +239,9 @@ func (s *Server) clear(ctx context.Context, u uri.URI) error {
 	})
 }
 
-// diagnostic builds one diagnostic, resolving its range against the text
-// of the file it is about.
-//
-// A position in another file is resolved against that file's text when the
-// editor has it open, and reported at the start of its line when it does
-// not: the server is not going to read a file off disk to underline a word
-// in it.
+// diagnostic builds one diagnostic, ranging over the word at its
+// position. A position in a file that is not open is reported at the start
+// of its line.
 func (s *Server) diagnostic(doc *document, snap *snapshot, path string, line, col int, msg string) protocol.Diagnostic {
 	index := snap.index
 	if path != doc.path {
@@ -321,12 +269,10 @@ func (s *Server) diagnostic(doc *document, snap *snapshot, path string, line, co
 	}
 }
 
-// ptr is what an optional protocol field takes: a property that may be
-// absent is spelled as a pointer, and a literal has no address.
+// ptr returns a pointer to v, for optional protocol fields.
 func ptr[T any](v T) *T { return &v }
 
-// lineRange is the empty range at the start of a 1-based line, for a
-// position the server cannot resolve against any text it has.
+// lineRange is the empty range at the start of a 1-based line.
 func lineRange(line int) protocol.Range {
 	if line < 1 {
 		line = 1
@@ -335,9 +281,8 @@ func lineRange(line int) protocol.Range {
 	return protocol.Range{Start: at, End: at}
 }
 
-// sortDiagnostics puts them in source order, which is the order a reader
-// expects and the order a test can assert on. Lowering reports by pass
-// rather than by position, so this is not already true.
+// sortDiagnostics puts diagnostics in source order. Lowering reports them
+// by pass.
 func sortDiagnostics(diags []protocol.Diagnostic) {
 	sort.SliceStable(diags, func(i, j int) bool {
 		a, b := diags[i].Range.Start, diags[j].Range.Start

@@ -20,12 +20,7 @@ import (
 var record = flag.Bool("record", false, "rewrite testdata/plugin exchanges")
 
 // TestRecordedExchanges replays request and response pairs kept as
-// protobuf text.
-//
-// They are the protocol written down in a form nothing in this repository
-// has to interpret, so an implementation in another language can replay
-// them and compare. A Go test asserting a Go backend against itself proves
-// less than these do.
+// protobuf text, for an implementation in another language to replay.
 func TestRecordedExchanges(t *testing.T) {
 	sources, err := filepath.Glob("../../testdata/plugin/*.tdl")
 	if err != nil || len(sources) == 0 {
@@ -82,8 +77,7 @@ func checkExchange(t *testing.T, path string, m proto.Message) {
 		t.Fatalf("reading %s: %v (run `go test ./internal/gen -record`)", path, err)
 	}
 
-	// prototext is deliberately unstable across builds, so the recorded
-	// text is compared by parsing it back rather than byte for byte.
+	// prototext output is unstable across builds, so compare parsed.
 	golden := m.ProtoReflect().New().Interface()
 	if err := prototext.Unmarshal(want, golden); err != nil {
 		t.Fatalf("parsing %s: %v", path, err)

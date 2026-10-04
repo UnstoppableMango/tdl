@@ -10,13 +10,8 @@ import (
 	"go.lsp.dev/uri"
 )
 
-// TestConformanceCorpusPublishesNothing asks the server the question
-// internal/sema/corpus_test.go asks lowering: every case in the corpus
-// lowers with no diagnostic at all.
-//
-// Asking it through the protocol is what makes it a server test. The
-// corpus is plain text rather than Go code, so adding a case adds a case
-// here the way it adds one to the parser's tests.
+// TestConformanceCorpusPublishesNothing checks every conformance case
+// publishes no diagnostic.
 func TestConformanceCorpusPublishesNothing(t *testing.T) {
 	for _, dir := range subdirs(t, "../../testdata/conformance") {
 		t.Run(filepath.Base(dir), func(t *testing.T) {
@@ -31,9 +26,8 @@ func TestConformanceCorpusPublishesNothing(t *testing.T) {
 	}
 }
 
-// TestInvalidCorpusPublishesTheError is the other half: every case in
-// testdata/invalid produces at least one diagnostic, carrying the text in
-// the sibling error.golden.
+// TestInvalidCorpusPublishesTheError checks every invalid case publishes a
+// diagnostic containing its error.golden.
 func TestInvalidCorpusPublishesTheError(t *testing.T) {
 	for _, dir := range subdirs(t, "../../testdata/invalid") {
 		t.Run(filepath.Base(dir), func(t *testing.T) {
@@ -60,12 +54,8 @@ func TestInvalidCorpusPublishesTheError(t *testing.T) {
 	}
 }
 
-// TestFixingAnErrorClearsIt is the property an editor actually shows: a
-// file that stops being wrong stops being underlined.
-//
-// The server publishes for the document it analyzed even when it found
-// nothing, which is what retracts the last report; a server that published
-// only what it found would leave the first error on screen forever.
+// TestFixingAnErrorClearsIt checks the server publishes an empty list for a
+// document that no longer has errors.
 func TestFixingAnErrorClearsIt(t *testing.T) {
 	const broken = "package p\n\ntype User: Entity {\n  id: Nope\n}\n"
 	const fixed = "package p\n\ntype User: Entity {\n  id: string\n}\n"
@@ -81,16 +71,10 @@ func TestFixingAnErrorClearsIt(t *testing.T) {
 	}
 }
 
-// TestSyntaxErrorsSuppressLoweringDiagnostics holds the rule
-// docs/design/lsp.md states: a file that does not parse publishes syntax
-// errors only.
-//
-// Lowering a tree with holes in it reports names that are undefined
-// because the declaration naming them failed to parse, and reporting those
-// beside the syntax error buries it.
+// TestSyntaxErrorsSuppressLoweringDiagnostics checks a file that does not
+// parse publishes syntax errors only.
 func TestSyntaxErrorsSuppressLoweringDiagnostics(t *testing.T) {
-	// The `{` is never closed, so the declaration does not parse and the
-	// type it names is never declared.
+	// The `{` is never closed, and `Missing` is undefined.
 	const src = "package p\n\ntype User: Entity {\n  id: Missing\n"
 
 	diags := newSession(t).open(abs(t, "broken.tdl"), src)
@@ -104,20 +88,9 @@ func TestSyntaxErrorsSuppressLoweringDiagnostics(t *testing.T) {
 	}
 }
 
-// TestDiagnosticsUseUTF16Columns is the assertion that fails silently if
-// nothing makes it.
-//
-// lex.Position counts a column in bytes and the protocol counts a
-// character in UTF-16 code units, so a diagnostic after a non-ASCII
-// character lands in the wrong place unless something converts.
-//
-// The two have to be on the same line for the difference to show, which is
-// what the second field on this one is for: whitespace is insignificant
-// and an item ends where the next begins, so a field carrying a string
-// default and a field naming an undefined type share a line. The string
-// holds a two-byte rune and a rune outside the basic multilingual plane,
-// which are the two cases that diverge: 2 bytes for 1 unit, and 4 bytes
-// for 2.
+// TestDiagnosticsUseUTF16Columns checks columns are converted from bytes
+// to UTF-16 code units. The string default holds a two-byte rune and one
+// outside the basic multilingual plane, on the same line as the error.
 func TestDiagnosticsUseUTF16Columns(t *testing.T) {
 	const src = "package p\n\ntype User: Entity {\n  a: string = \"né 🙂\" b: Nope\n}\n"
 
@@ -126,8 +99,7 @@ func TestDiagnosticsUseUTF16Columns(t *testing.T) {
 		t.Fatalf("expected one diagnostic, got %v", messages(t, diags))
 	}
 
-	// `Nope` is 28 bytes into line 3 and 25 UTF-16 code units into it, so
-	// a server that published the byte column would be off by three.
+	// `Nope` is 28 bytes and 25 UTF-16 code units into line 3.
 	got := diags[0].Range
 	if got.Start.Line != 3 || got.Start.Character != 25 {
 		t.Errorf("start = %d:%d, want 3:25", got.Start.Line, got.Start.Character)
@@ -137,12 +109,8 @@ func TestDiagnosticsUseUTF16Columns(t *testing.T) {
 	}
 }
 
-// TestDefinitionJumpsToADeclaration is the feature: a cursor on a type in
-// a field lands on the name that declares it.
-//
-// The range covers the name rather than the keyword that declares it. A
-// declaration's position is where it starts, which is `type`, and an
-// editor highlights whatever range it is handed.
+// TestDefinitionJumpsToADeclaration checks the range covers the declared
+// name rather than the `type` keyword.
 func TestDefinitionJumpsToADeclaration(t *testing.T) {
 	const src = "package p\n\n" +
 		"primitive string\n\n" +
@@ -176,13 +144,8 @@ func TestDefinitionJumpsToADeclaration(t *testing.T) {
 	}
 }
 
-// TestDefinitionCrossesAnImport is the same jump into another file, which
-// is the case the index answers and nothing in internal/lsp decides: a `_`
-// import merges the dependency's names in, and sema records where the
-// dependency declares each one.
-//
-// The dependency is on disk and not open, which is the normal case: a
-// person jumps into a file to read it and has not opened it first.
+// TestDefinitionCrossesAnImport jumps into a `_` import's file that is on
+// disk and not open.
 func TestDefinitionCrossesAnImport(t *testing.T) {
 	dir := t.TempDir()
 	dep := filepath.Join(dir, "common.tdl")
@@ -210,8 +173,7 @@ func TestDefinitionCrossesAnImport(t *testing.T) {
 		t.Errorf("uri = %s, want %s", got, uri.File(dep))
 	}
 
-	// `Money` is declared on line 5 of the dependency, five characters in,
-	// which the server knows only because it read the file.
+	// `Money` is declared on line 5 of the dependency, five characters in.
 	want := protocol.Range{
 		Start: protocol.Position{Line: 4, Character: 5},
 		End:   protocol.Position{Line: 4, Character: 10},
@@ -221,8 +183,6 @@ func TestDefinitionCrossesAnImport(t *testing.T) {
 	}
 }
 
-// TestDefinitionReturnsNothing covers the three answers that are not a
-// location, all of which are an answer rather than a failure.
 func TestDefinitionReturnsNothing(t *testing.T) {
 	const src = "package p\n\n" +
 		"primitive string\n\n" +
@@ -232,12 +192,10 @@ func TestDefinitionReturnsNothing(t *testing.T) {
 		"}\n"
 
 	cases := map[string]string{
-		// The prelude is embedded under a name that is no path, so there
-		// is no file to open. docs/design/lsp.md argues hover instead.
-		// `Entity` is the prelude's class this entity conforms to.
+		// The prelude is embedded and has no file to open.
 		"the prelude":     "Entity",
 		"an unknown name": "Nope",
-		// `type` is a keyword, and a keyword is not a name the index has.
+		// `type` is a keyword.
 		"not a name": "type User",
 	}
 
@@ -256,7 +214,6 @@ func TestDefinitionReturnsNothing(t *testing.T) {
 	}
 }
 
-// writeFile puts a file where an import can find it.
 func writeFile(t *testing.T, path, src string) {
 	t.Helper()
 
@@ -265,7 +222,6 @@ func writeFile(t *testing.T, path, src string) {
 	}
 }
 
-// messages is what a failure prints.
 func messages(t *testing.T, diags []protocol.Diagnostic) []string {
 	t.Helper()
 
@@ -276,9 +232,8 @@ func messages(t *testing.T, diags []protocol.Diagnostic) []string {
 	return out
 }
 
-// abs resolves a name against the working directory, because a document
-// URI is absolute and an import resolves relative to the file that wrote
-// it.
+// abs resolves a name against the working directory, since a document URI
+// is absolute.
 func abs(t *testing.T, name string) string {
 	t.Helper()
 

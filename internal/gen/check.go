@@ -8,12 +8,11 @@ import (
 )
 
 // outDirective is the one directive tdl reads itself: where a target
-// block's output goes. A backend never sees it and is not asked to
-// declare it.
+// block's output goes. A backend need not declare it.
 const outDirective = "out"
 
 // problem reports something wrong with a target block, found before any
-// backend runs, in the shape a backend's own diagnostics take.
+// backend runs.
 func problem(pos *ir.Position, severity plugin.Severity, format string, args ...any) *plugin.Diagnostic {
 	return &plugin.Diagnostic{Severity: severity, Message: fmt.Sprintf(format, args...), Position: pos}
 }
@@ -21,15 +20,10 @@ func problem(pos *ir.Position, severity plugin.Severity, format string, args ...
 // CheckDirectives compares the directives a target block uses against what
 // its backend says it understands.
 //
-// A declared directive used with the wrong number or kind of arguments is
-// an error, reported with the position in the .tdl file, before anything
-// is generated: the alternative is a backend discovering it half way
-// through writing files.
-//
-// A directive the backend did not declare is a warning and is passed
-// through anyway. Under-declaring is a plugin bug that should not break a
-// working project, and a backend is free to handle more than it
-// advertises. The warning still names it, so a typo stays visible.
+// A declared directive with the wrong number or kind of arguments is an
+// error, reported before anything is generated. An undeclared directive
+// is a warning and is passed through anyway, since a backend may handle
+// more than it advertises.
 func CheckDirectives(target string, model *ir.Model, desc plugin.Description) []*plugin.Diagnostic {
 	specs := map[string]*plugin.DirectiveSpec{}
 	for _, s := range desc.Directives {
@@ -49,8 +43,6 @@ func CheckDirectives(target string, model *ir.Model, desc plugin.Description) []
 	return problems
 }
 
-// checkEach holds each directive to its spec, and warns about one the
-// backend did not declare.
 func checkEach(target string, ds []*ir.Directive, specs map[string]*plugin.DirectiveSpec) []*plugin.Diagnostic {
 	var problems []*plugin.Diagnostic
 	for _, d := range ds {
@@ -69,8 +61,8 @@ func checkEach(target string, ds []*ir.Directive, specs map[string]*plugin.Direc
 }
 
 // checkTies reports a name appearing twice on one node. Lowering keeps
-// every entry at the winning specificity, so a repeat is a tie, and only a
-// directive the backend declares repeatable may tie.
+// every entry at the winning specificity, so a repeat is a tie, allowed
+// only for a directive declared repeatable.
 func checkTies(ds []*ir.Directive, specs map[string]*plugin.DirectiveSpec) []*plugin.Diagnostic {
 	var problems []*plugin.Diagnostic
 	seen := map[string]bool{}
@@ -84,8 +76,8 @@ func checkTies(ds []*ir.Directive, specs map[string]*plugin.DirectiveSpec) []*pl
 	return problems
 }
 
-// nodeDirectives is the directives belonging to a target on each node of
-// the model's declarations and externs, one slice per node.
+// nodeDirectives returns a target's directives on each declaration,
+// field, variant, and extern, one slice per node.
 func nodeDirectives(target string, model *ir.Model) [][]*ir.Directive {
 	var nodes [][]*ir.Directive
 
@@ -123,8 +115,8 @@ func checkOne(d *ir.Directive, spec *plugin.DirectiveSpec) []*plugin.Diagnostic 
 			"%s takes at most %d argument(s), got %d", d.GetName(), spec.GetMaxArgs(), n))
 	}
 
-	// arg_kinds constrains by position, and a shorter list constrains only
-	// what it covers.
+	// arg_kinds constrains by position; a shorter list constrains only the
+	// arguments it covers.
 	for i, want := range spec.GetArgKinds() {
 		if i >= len(d.GetArgs()) {
 			break

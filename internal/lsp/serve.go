@@ -12,14 +12,9 @@ import (
 
 // Serve runs a server over one connection and returns when it ends.
 //
-// The connection is built by protocol.NewServer rather than by hand,
-// because the codec it installs is what decodes a union-typed parameter
-// and is not exported to be installed separately. It puts the client in
-// the context every request is answered under, which is where this server
-// reads the one it publishes to.
-//
-// Nothing is logged. Anything written to stdout on a stdio server corrupts
-// the stream, and a library that logs by default is a library that will.
+// protocol.NewServer builds the connection because only its unexported
+// codec decodes union-typed parameters. Nothing is logged, since stdout is
+// the stream on a stdio server.
 func Serve(ctx context.Context, rwc io.ReadWriteCloser, opts ...sema.Option) error {
 	_, conn, _ := protocol.NewServer(ctx, NewServer(opts...), jsonrpc2.NewStream(rwc))
 

@@ -20,13 +20,8 @@ import (
 //	go test ./internal/sema -update
 var update = flag.Bool("update", false, "rewrite ir.golden files")
 
-// TestCorpusLowers walks the conformance corpus and checks that it lowers
-// clean.
-//
-// It used to carry a list of diagnostics lowering was still expected to
-// produce, each naming the phase that would stop producing it. Units were
-// the last entry, so the list is gone and this is the plain assertion it
-// was always going to become.
+// TestCorpusLowers checks that the conformance corpus lowers with no
+// diagnostic, matches each ir.golden, and survives a JSON round trip.
 func TestCorpusLowers(t *testing.T) {
 	dirs, err := filepath.Glob("../../testdata/conformance/*")
 	if err != nil || len(dirs) == 0 {
@@ -47,9 +42,7 @@ func TestCorpusLowers(t *testing.T) {
 
 			model, diags := Lower(file, WithLoader(caseLoader(t, dir)))
 			if len(diags) > 0 {
-				// Lower says a model that produced diagnostics is
-				// incomplete, so the golden and the round-trip below would
-				// be reporting on something nobody claimed was right.
+				// A model with diagnostics is incomplete; skip the goldens.
 				for _, d := range diags {
 					t.Errorf("unexpected diagnostic: %s", d.Error())
 				}
@@ -58,7 +51,6 @@ func TestCorpusLowers(t *testing.T) {
 
 			checkGolden(t, filepath.Join(dir, "ir.golden"), ir.Dump(model))
 
-			// What a plugin receives has to survive the trip.
 			data, merr := protojson.Marshal(model)
 			if merr != nil {
 				t.Fatalf("marshalling: %v", merr)
@@ -75,8 +67,7 @@ func TestCorpusLowers(t *testing.T) {
 }
 
 // caseLoader serves the other .tdl files in a case directory by their base
-// name, so the corpus can exercise imports while the goldens stay free of
-// machine-specific paths.
+// name, keeping machine-specific paths out of the goldens.
 func caseLoader(t *testing.T, dir string) MapLoader {
 	t.Helper()
 
@@ -120,8 +111,6 @@ func checkGolden(t *testing.T, path, got string) {
 	}
 }
 
-// TestPreludeLowers checks the prelude itself, which is the one file that
-// declares everything it uses.
 func TestPreludeLowers(t *testing.T) {
 	data, err := os.ReadFile("../../prelude/std.tdl")
 	if err != nil {

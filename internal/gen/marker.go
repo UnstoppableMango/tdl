@@ -7,12 +7,8 @@ import (
 	"path/filepath"
 )
 
-// MarkerName is the file tdl drops in a directory it writes to.
-//
-// It is how --clean knows a directory is its own. A directory holding
-// files but no marker belongs to someone else, and cleaning it is an error
-// rather than a judgment call: output directories are not always
-// exclusively owned by tdl.
+// MarkerName is the file tdl drops in a directory it writes to, so
+// --clean knows the directory is its own.
 const MarkerName = ".tdl-output"
 
 const markerContent = "This directory is written by `tdl gen`.\n" +
@@ -36,11 +32,9 @@ func Owned(out string) bool {
 	return err == nil
 }
 
-// Clean empties an output directory tdl owns, leaving the marker.
-//
-// A directory that does not exist is already clean. One that exists and is
-// empty is adopted, since there is nothing there to belong to anyone else.
-// One with contents and no marker is [ErrNotOurs].
+// Clean empties an output directory tdl owns, leaving the marker. A
+// missing or empty directory is fine; one with contents and no marker is
+// [ErrNotOurs].
 func Clean(out string) ([]string, error) {
 	entries, err := os.ReadDir(out)
 	switch {

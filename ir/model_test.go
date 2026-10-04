@@ -5,10 +5,8 @@ import (
 	"testing"
 )
 
-// KindName is read into a sentence, so every kind has to carry its article.
-// The two names that are not a literal kind at all, the zero value and one
-// this build has never heard of, are the ones a message would otherwise
-// read as "does not take unspecified".
+// Every kind, including the zero value and an unknown one, carries an
+// article.
 func TestKindNameIsASentenceFragment(t *testing.T) {
 	kinds := []LiteralKind{
 		LiteralKind_LITERAL_KIND_UNSPECIFIED,

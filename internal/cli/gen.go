@@ -43,10 +43,8 @@ func newGenCmd() *cobra.Command {
 				return fmt.Errorf("--verify writes nothing, so it cannot be combined with --clean")
 			}
 
-			// An import resolves next to the file that wrote it, and
-			// standard input has no directory: every import would quietly
-			// resolve against the working directory instead. `ir` reads a
-			// model and lives with that; gen writes files from it.
+			// Imports resolve next to the importing file, and stdin has no
+			// directory.
 			for _, path := range args {
 				if isStdin(path) {
 					return fmt.Errorf("gen needs a file on disk: an import resolves next to it, and %s has no directory", stdinName)
@@ -62,12 +60,10 @@ func newGenCmd() *cobra.Command {
 				return eachFile(cmd, args, r.generate)
 			}
 
-			// The first run reports its errors and the watch continues: a
-			// file being edited is expected to be broken between saves.
+			// Errors are reported and the watch continues.
 			path := args[0]
 			save := func() {
-				// Each save is a run of its own, so a target removed
-				// between saves has its files cleaned on the next one.
+				// Each save is its own run for --clean.
 				r.cleaned = map[string]bool{}
 				if err := r.generate(path); err != nil {
 					fmt.Fprintln(cmd.ErrOrStderr(), err)
@@ -88,8 +84,8 @@ func newGenCmd() *cobra.Command {
 	return cmd
 }
 
-// genRun is one invocation of gen: its flags, and what it holds between
-// the files or the saves it runs over.
+// genRun is one invocation of gen and the state it keeps across files or
+// saves.
 type genRun struct {
 	cmd    *cobra.Command
 	target string
@@ -98,15 +94,12 @@ type genRun struct {
 	clean  bool
 	watch  bool
 
-	// cleaned holds the output directories --clean has emptied in this
-	// run. A directory is emptied once, before the first target that
-	// writes to it: -o applies to every file given, so cleaning per target
-	// would delete what an earlier file just wrote.
+	// cleaned holds the output directories --clean has emptied in this run.
+	// Each is emptied once, since -o applies to every file given.
 	cleaned map[string]bool
 
-	// backends holds each backend resolved so far. Under --watch a plugin
-	// that declared reuse is held open here across saves, which is what
-	// the flag promises and what makes a save cheap.
+	// backends caches each resolved backend. Under --watch a plugin that
+	// declared reuse is held open here across saves.
 	backends map[string]plugin.Backend
 }
 
@@ -131,7 +124,6 @@ func (r *genRun) backend(ctx context.Context, name string) (plugin.Backend, erro
 	return b, nil
 }
 
-// close stops every plugin still held open.
 func (r *genRun) close() {
 	for _, b := range r.backends {
 		if s, ok := b.(*gen.Session); ok {
@@ -181,9 +173,8 @@ func (r *genRun) generate(path string) error {
 			return err
 		}
 
-		// What a backend understands is checked against the target block
-		// before anything runs, so a mistyped directive fails with a
-		// position rather than half way through writing files.
+		// Checked before running so a mistyped directive fails with a
+		// position instead of after some files are written.
 		problems := gen.CheckDirectives(t.Name, model, backend.Describe())
 		reportDiagnostics(cmd, problems)
 		if gen.Fatal(problems) {
@@ -217,9 +208,8 @@ func (r *genRun) generate(path string) error {
 	return nil
 }
 
-// reportDiagnostics prints what a backend said, or what was found wrong
-// with its target block, in the same shape as the compiler's own
-// diagnostics.
+// reportDiagnostics prints backend or directive diagnostics in the
+// compiler's diagnostic format.
 func reportDiagnostics(cmd *cobra.Command, diags []*plugin.Diagnostic) {
 	for _, d := range diags {
 		severity := "error"

@@ -13,17 +13,11 @@ import (
 // index of the base. It is the working form; ir.Unit holds the frozen one.
 type dims map[int32]int32
 
-// lowerUnits resolves every unit declaration in a file.
-//
-// It runs before the rest of lowering rather than as part of it, for two
-// reasons. A unit may be written after the unit that derives from it, so
-// file order is not resolution order. And a unit's reduction has to exist
-// before anything can refer to it: a type argument naming a unit interns
-// on what that unit reduces to, so the answer is computed once here rather
-// than at each use.
-//
-// Resolution is on demand with a seen set, which is also what makes a cycle
-// reportable at the declaration that closes it.
+// lowerUnits resolves every unit declaration in a file. It runs before the
+// rest of lowering, because a unit may be written after the unit deriving
+// from it and a type argument naming a unit interns on its reduction.
+// Resolution is on demand with a seen set, so a cycle is reported at the
+// declaration that closes it.
 func (l *lowerer) lowerUnits(file *ast.File) {
 	decls := map[string]*ast.UnitDecl{}
 	var order []*ast.UnitDecl
@@ -62,8 +56,7 @@ func (l *lowerer) resolveUnit(u *ast.UnitDecl, decls map[string]*ast.UnitDecl, s
 	seen[u.N] = true
 	defer delete(seen, u.N)
 
-	// A base unit measures itself, which is the dimension every derived one
-	// reduces to.
+	// A base unit measures itself.
 	if u.Expr == nil {
 		id := l.internUnit(dims{b.id.GetIndex(): 1}, u.N, u.Pos())
 		decl.Node = &ir.Decl_Unit{Unit: &ir.UnitDef{Unit: id, Base: true}}
@@ -80,12 +73,9 @@ func (l *lowerer) resolveUnit(u *ast.UnitDecl, decls map[string]*ast.UnitDecl, s
 	return id, true
 }
 
-// reduce accumulates a unit expression into acc.
-//
-// `sign` is the exponent every term in the expression is under, so a
-// parenthesized sub-expression inherits it: the `m` in `kg/(s*m)` is
-// negative because the group is divided, and both factors of `(kg*m)^2`
-// are squared because the group is.
+// reduce accumulates a unit expression into acc. `sign` is the exponent
+// the whole expression is under: the `m` in `kg/(s*m)` is negative, and
+// `(kg*m)^2` is kg^2*m^2.
 func (l *lowerer) reduce(e *ast.UnitExpr, sign int32, acc dims, decls map[string]*ast.UnitDecl, seen map[string]bool) bool {
 	ok := true
 	for _, t := range e.Terms {
@@ -94,8 +84,6 @@ func (l *lowerer) reduce(e *ast.UnitExpr, sign int32, acc dims, decls map[string
 			s = -sign
 		}
 
-		// An exponent applies to whichever form the term took, so a group
-		// carries it the way a name does: `(kg*m)^2` is kg^2*m^2.
 		if t.Paren != nil {
 			if !l.reduce(t.Paren, s*int32(t.Exp), acc, decls, seen) {
 				ok = false
@@ -124,14 +112,11 @@ func (l *lowerer) dimsOf(name string, pos ast.Position, decls map[string]*ast.Un
 		return nil, false
 	}
 
-	// Lowered already, or a unit of this file still waiting its turn.
-	// Anything else declared under that name is not a unit.
 	if def := l.model.Decl(b.id).GetUnit(); def != nil {
 		return l.dimsOfID(def.GetUnit())
 	}
-	// The name has to be bound to this very declaration: a unit written
-	// under a name an earlier declaration already took is still in `decls`,
-	// and lowering it here would make the loser of the binding a unit.
+	// The name has to be bound to this declaration, not a duplicate that
+	// lost the binding.
 	if u, found := decls[name]; found && b.pos == u.Pos() {
 		if id, resolved := l.resolveUnit(u, decls, seen); resolved {
 			return l.dimsOfID(id)
@@ -155,12 +140,8 @@ func (l *lowerer) dimsOfID(id *ir.ID) (dims, bool) {
 }
 
 // internUnit returns the ID of a quantity, adding it to the table only if
-// an equal one is not already there.
-//
-// The key is the reduced dimensions and nothing else, which is what makes
-// `decimal<N>` and `decimal<kg*m/s^2>` one type: the spec says they are the
-// same, and interning is what makes an ID comparison answer that. `wrote`
-// records the first spelling for a reader and does not take part.
+// an equal one is not already there. The key is the reduced dimensions
+// alone; `wrote` records the first spelling and does not take part.
 func (l *lowerer) internUnit(d dims, wrote string, pos ast.Position) *ir.ID {
 	frozen := l.freeze(d)
 	key := unitKey(frozen)
@@ -179,8 +160,7 @@ func (l *lowerer) internUnit(d dims, wrote string, pos ast.Position) *ir.ID {
 }
 
 // freeze canonicalizes a working quantity: cancelled dimensions are
-// dropped and the rest are ordered by base, so equal quantities have equal
-// vectors however they were written.
+// dropped and the rest are ordered by base.
 func (l *lowerer) freeze(d dims) []*ir.Dimension {
 	bases := make([]int32, 0, len(d))
 	for id, exp := range d {

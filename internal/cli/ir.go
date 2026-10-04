@@ -66,10 +66,8 @@ func newIrCmd() *cobra.Command {
 	return cmd
 }
 
-// preludeOptions turns a --prelude path into lowering options.
-//
-// The prelude is replaceable, so `[T]` means whatever the loaded prelude
-// says `List` is. Passing the empty string uses the embedded one.
+// preludeOptions turns a --prelude path into lowering options. The empty
+// string uses the embedded prelude.
 func preludeOptions(path string) ([]sema.Option, error) {
 	if path == "" {
 		return nil, nil

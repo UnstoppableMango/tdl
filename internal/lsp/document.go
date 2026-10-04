@@ -13,11 +13,8 @@ import (
 	"github.com/unstoppablemango/tdl/parser"
 )
 
-// document is one file the editor has open.
-//
-// The text is the editor's, not the disk's, which is the whole point: a
-// file being edited has not been saved, and resolving an import against
-// what is on disk would answer a question nobody asked.
+// document is one file the editor has open, holding the editor's unsaved
+// text.
 type document struct {
 	uri     uri.URI
 	path    string
@@ -27,12 +24,8 @@ type document struct {
 	snap *snapshot // nil when the text has changed since it was computed
 }
 
-// snapshot is everything derived from one version of a document's text.
-//
-// It is computed on demand and thrown away whole when the text changes.
-// Nothing here is incremental, because a .tdl file is a description of a
-// domain model rather than a program and reparsing one costs nothing worth
-// measuring.
+// snapshot is everything derived from one version of a document's text,
+// computed on demand and discarded whole when the text changes.
 type snapshot struct {
 	index *lineIndex
 	file  *ast.File
@@ -42,11 +35,8 @@ type snapshot struct {
 	refs  sema.References
 }
 
-// store holds every open document.
-//
-// It is the server's whole mutable state, so it owns the lock rather than
-// the server: every request that reads a document goes through here, and a
-// notification that replaces one does too.
+// store holds every open document. It is the server's only mutable state
+// and owns the lock.
 type store struct {
 	mu   sync.Mutex
 	docs map[string]*document // keyed by path, which is what sema works in
@@ -87,13 +77,9 @@ func (s *store) close(u uri.URI) {
 	delete(s.docs, u.FsPath())
 }
 
-// invalidate drops every snapshot.
-//
-// A snapshot depends on the imports it read as well as on its own text, so
-// a change to any open document, and a close that hands one back to the
-// disk, makes every other one stale. There are as many open documents as a
-// person has tabs, and reanalyzing one is a parse and a lowering, so
-// tracking which snapshot read which file would buy nothing yet.
+// invalidate drops every snapshot. A snapshot depends on the imports it
+// read, so a change to or close of any document makes the others stale;
+// tracking which snapshot read which file is not worth it at this scale.
 func (s *store) invalidate() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -122,13 +108,8 @@ func (s *store) paths() []string {
 }
 
 // analyze computes a document's snapshot, reusing the one it has when the
-// text has not changed.
-//
-// Lowering runs only when the file parses. A tree with holes in it reports
-// names it cannot resolve because the declaration naming them failed to
-// parse, and those are noise: sema.Diagnostics already states the same
-// rule for its own passes, that a non-empty list means no later pass
-// should run.
+// text has not changed. Lowering runs only when the file parses, since a
+// tree with holes reports spurious undefined names.
 func (s *store) analyze(doc *document, opts ...sema.Option) *snapshot {
 	s.mu.Lock()
 	if doc.snap != nil {
@@ -146,18 +127,15 @@ func (s *store) analyze(doc *document, opts ...sema.Option) *snapshot {
 	var errs parser.ErrorList
 	switch {
 	case err == nil:
-		// The options are copied rather than appended to: the slice
-		// belongs to the server and is shared by every analysis, and
-		// append would be free to write into it.
+		// Copy: opts is shared by every analysis, and append could write
+		// into it.
 		with := make([]sema.Option, 0, len(opts)+1)
 		with = append(append(with, opts...), sema.WithReferences(&snap.refs))
 		snap.model, snap.diags = sema.Lower(file, with...)
 	case errors.As(err, &errs):
 		snap.errs = errs
 	default:
-		// Parse returns an ErrorList or nothing, so this is a read error
-		// that cannot happen over a string. Report it at the top of the
-		// file rather than dropping it.
+		// A read error, which a string reader does not produce.
 		snap.errs = parser.ErrorList{{Msg: err.Error()}}
 	}
 

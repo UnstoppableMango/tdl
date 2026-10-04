@@ -10,8 +10,6 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// A directory tdl did not write is someone else's, and emptying it is an
-// error rather than a judgment call.
 func TestCleanRefusesADirectoryItDoesNotOwn(t *testing.T) {
 	out := t.TempDir()
 	handwritten := filepath.Join(out, "notes.md")
@@ -47,13 +45,11 @@ func TestCleanRemovesWhatItOwns(t *testing.T) {
 		t.Errorf("removed %v, want two entries", removed)
 	}
 
-	// The marker survives, so the directory is still recognisably ours.
 	if !gen.Owned(out) {
 		t.Error("cleaning removed the marker")
 	}
 }
 
-// An empty directory has nothing in it that could belong to anyone else.
 func TestCleanAdoptsAnEmptyDirectory(t *testing.T) {
 	if _, err := gen.Clean(t.TempDir()); err != nil {
 		t.Errorf("clean: %v", err)
@@ -103,8 +99,7 @@ func TestVerify(t *testing.T) {
 	}
 }
 
-// A file tdl wrote and would no longer write is stale too, which is what
-// catches a declaration someone deleted.
+// A file tdl wrote and would no longer write is stale.
 func TestVerifyReportsOrphans(t *testing.T) {
 	out := t.TempDir()
 	if err := gen.Mark(out); err != nil {
@@ -123,8 +118,7 @@ func TestVerifyReportsOrphans(t *testing.T) {
 	}
 }
 
-// Without the marker there is no way to tell a file tdl wrote and no
-// longer would from one that was never tdl's, so orphans are not reported.
+// Without the marker, orphans are not reported.
 func TestVerifyDoesNotClaimUnownedFiles(t *testing.T) {
 	out := t.TempDir()
 	if err := os.WriteFile(filepath.Join(out, "theirs.txt"), []byte("x"), 0o644); err != nil {

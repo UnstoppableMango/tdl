@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-// A file named `-` is read from standard input, and positions name it
-// <stdin> rather than `-`, which reads as a flag.
+// A file named `-` is read from standard input and named <stdin> in
+// positions.
 func TestLoadFileReadsStdin(t *testing.T) {
 	cmd, _, _ := newTestCmd()
 	cmd.SetIn(strings.NewReader("primitive string\n"))
@@ -36,8 +36,7 @@ func TestLoadFileReportsStdinPositions(t *testing.T) {
 	}
 }
 
-// -w has nowhere to write standard input back to, and says so rather than
-// creating a file called `-`.
+// fmt -w rejects standard input instead of creating a file called `-`.
 func TestFmtWriteRejectsStdin(t *testing.T) {
 	cmd := newFmtCmd()
 	cmd.SilenceUsage, cmd.SilenceErrors = true, true
@@ -69,8 +68,7 @@ func TestFmtFormatsStdin(t *testing.T) {
 	}
 }
 
-// --check names standard input <stdin>, and does not suggest -w for it:
-// -w has nothing to write it back to.
+// --check names standard input <stdin> and does not suggest -w for it.
 func TestFmtCheckNamesStaleStdin(t *testing.T) {
 	cmd := newFmtCmd()
 	cmd.SilenceUsage, cmd.SilenceErrors = true, true
@@ -93,8 +91,6 @@ func TestFmtCheckNamesStaleStdin(t *testing.T) {
 	}
 }
 
-// tokens reads the source without parsing it, and reads it from the
-// same place.
 func TestTokensReadsStdin(t *testing.T) {
 	cmd := newTokensCmd()
 	cmd.SilenceUsage, cmd.SilenceErrors = true, true
@@ -119,8 +115,7 @@ func TestDisplayName(t *testing.T) {
 	}
 }
 
-// gen writes files from a model, and an import resolves next to the file
-// that wrote it, so it needs one.
+// gen rejects standard input, which has no directory to resolve imports in.
 func TestGenRejectsStdin(t *testing.T) {
 	cmd := newGenCmd()
 	cmd.SilenceUsage, cmd.SilenceErrors = true, true
@@ -137,7 +132,6 @@ func TestGenRejectsStdin(t *testing.T) {
 	}
 }
 
-// ir does accept it: it reads a model rather than writing files from one.
 func TestIrAcceptsStdin(t *testing.T) {
 	cmd := newIrCmd()
 	cmd.SilenceUsage, cmd.SilenceErrors = true, true
