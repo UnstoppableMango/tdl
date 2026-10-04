@@ -8,40 +8,40 @@
 [![Last commit](https://img.shields.io/github/last-commit/UnstoppableMango/tdl)](https://github.com/UnstoppableMango/tdl/commits/main)
 [![Hercules CI](https://hercules-ci.com/api/v1/site/github/account/UnstoppableMango/project/tdl/badge)](https://hercules-ci.com/github/UnstoppableMango/tdl)
 
-TDL is a language for describing domain models.
-It says what things are, what identifies them, how they relate, and what values they may hold, and compiles them into equivalent definitions in other structured formats.
-It describes no behavior and has no expressions, control flow, or runtime.
+TDL is a language for describing domain models: what things are, what identifies them, how they relate, and what values they may hold.
+It compiles a model into equivalent definitions in other formats, such as Go, protobuf, or GraphQL.
+It has no expressions, control flow, or runtime.
 
-This repository owns the canonical [language specification](docs/spec.md) and its reference implementation, written in Go.
+This repository holds the [language specification](docs/spec.md) and its reference implementation in Go.
 
 ## Status
 
-Early and incomplete, and moving.
+Early, incomplete, and changing.
 
-**The front end is done.** The lexer and parser read the whole grammar, and `tdl check`, `tdl fmt`, `tdl ast`, and `tdl tokens` work across it.
-Nothing in [grammar.ebnf](docs/grammar.ebnf) is missing.
+- **Front end: done.** The lexer and parser read the whole [grammar](docs/grammar.ebnf).
+- **Resolved model: nearly done.** `tdl ir` resolves names, imports, mixins, class satisfaction, constraints, defaults, units, and target directives. Merging a dependency's target blocks is partial.
+- **Code generation:** Go, GraphQL, protobuf, Salesforce, Smithy, Thrift, and TypeScript. `tdl gen` also runs any `tdl-gen-<name>` plugin on `PATH`.
+- **Editors:** a language server, a tree-sitter grammar for Neovim, and a VS Code extension.
 
-**The middle is most of the way there.** `tdl ir` prints a resolved model: names, imports, mixins, class satisfaction, constraints, defaults, and target directives, all resolved.
-The support matrix below says what each construct reaches.
-Units, and merging a dependency's target blocks, are the two pieces still outstanding.
+## Documents
 
-**The back end generates Go, GraphQL, protobuf, Smithy, Thrift, and TypeScript.** `tdl gen` resolves a target's backend to a built-in or to `tdl-gen-<name>` on PATH, sends it the resolved model, and writes back the files it returns.
-The backends table below says what each one covers.
-
-The design is settled and written down:
-
-| Document | What it covers |
+| Document | Covers |
 | --- | --- |
 | [spec.md](docs/spec.md) | The language. Canonical. |
 | [grammar.ebnf](docs/grammar.ebnf) | The formal grammar. |
+| [design/workflow.md](docs/design/workflow.md) | What a model author does with all of it. |
+| [design/identity.md](docs/design/identity.md) | Identity and the `Entity` class. |
 | [design/ir.md](docs/design/ir.md) | The resolved model backends consume. |
-| [design/ir-plan.md](docs/design/ir-plan.md) | Implementing it. Everything but dependency target merging. |
 | [design/plugins.md](docs/design/plugins.md) | The backend plugin protocol. |
+| [design/go-backend.md](docs/design/go-backend.md) | The Go backend. |
+| [design/schema-backends.md](docs/design/schema-backends.md) | The protobuf, Thrift, Smithy, GraphQL, and TypeScript backends. |
+| [design/salesforce-backend.md](docs/design/salesforce-backend.md) | The Salesforce backend. |
+| [design/lsp.md](docs/design/lsp.md) | The language server. |
 | [design/treesitter.md](docs/design/treesitter.md) | Deriving the tree-sitter grammar from the EBNF. |
 | [design/editors.md](docs/design/editors.md) | Highlighting in Neovim, VS Code, Zed, and on GitHub. |
-| [design/editors-plan.md](docs/design/editors-plan.md) | Implementing it. Phases 1 to 3 of 5 done. |
-| [design/workflow.md](docs/design/workflow.md) | What a model author does with all of it. |
-| [backlog.md](docs/backlog.md) | Wanted, unscheduled: `tdl fmt` as a `treefmt` formatter, an LSP, editor support, an MCP server. |
+| [backlog.md](docs/backlog.md) | Wanted, unscheduled work. |
+
+A `*-plan.md` beside a design tracks its implementation.
 
 ## Example
 
@@ -87,15 +87,22 @@ enum Currency { USD EUR GBP }
 enum Status { Draft Placed Shipped Cancelled }
 ```
 
-Conforming to `Entity` is the modelling decision: an `Order` has identity that survives its contents changing, an `Address` does not.
-Everything a code generator needs lives in a separate `target` block, never in the model.
+`Order` conforms to `Entity`, so it has identity that survives its contents changing; `Address` does not.
+What a code generator needs goes in a separate `target` block, never in the model.
 
 ## Install
 
-`nix run github:UnstoppableMango/tdl` runs the CLI without installing it, and `nix profile install github:UnstoppableMango/tdl` installs it.
+Run it without installing:
 
-`overlays.default` is the way into a configuration.
-It adds `tdl` and `vscode-tdl` to a nixpkgs instance, and composes [gomod2nix](https://github.com/nix-community/gomod2nix)'s overlay, which `tdl` is built with, so it is the only one to add.
+```shell
+nix run github:UnstoppableMango/tdl
+```
+
+Or install it with `nix profile install github:UnstoppableMango/tdl`.
+
+### NixOS or home-manager
+
+`overlays.default` adds `pkgs.tdl` and `pkgs.vscode-tdl`, and includes the [gomod2nix](https://github.com/nix-community/gomod2nix) overlay it builds with.
 
 ```nix
 {
@@ -107,9 +114,7 @@ It adds `tdl` and `vscode-tdl` to a nixpkgs instance, and composes [gomod2nix](h
 }
 ```
 
-`homeModules.default` is a home-manager module over that overlay, exported as `homeManagerModules.default` under the older name as well.
-`programs.tdl.enable` installs the CLI, and `programs.tdl.vscode.enable` adds the extension to the profiles named in `programs.tdl.vscode.profiles`, defaulting to `default`.
-It goes to every VS Code-based editor home-manager has enabled, `programs.vscode`, `programs.vscodium`, `programs.cursor`, `programs.windsurf`, `programs.kiro`, and `programs.antigravity`; `programs.tdl.vscode.editors` narrows that to the ones named.
+The home-manager module (`homeModules.default`, also `homeManagerModules.default`) adds `programs.tdl.enable` for the CLI and `programs.tdl.vscode.enable` for the VS Code extension.
 
 ```nix
 {
@@ -120,10 +125,11 @@ It goes to every VS Code-based editor home-manager has enabled, `programs.vscode
 }
 ```
 
-`flakeModules.default` is for the other side: a [flake-parts](https://flake.parts) module a project whose sources include `.tdl` files imports into its own flake.
-`tdl.enable` defines `devShells.tdl`, a shell to pull into an existing one with `inputsFrom`.
-`tdl.files` names the models, relative to `tdl.src` rather than as paths, because an `include` resolves relative to the file that writes it.
-`checks.tdl-check` parses each one and `checks.tdl-fmt` asserts it is canonically formatted; `tdl.gen.files` adds `checks.tdl-gen`, which runs `tdl gen --verify` and fails when generated output on disk is stale.
+### In a project
+
+`flakeModules.default` is a [flake-parts](https://flake.parts) module for a project that contains `.tdl` files.
+It adds `devShells.tdl` (pull it into your shell with `inputsFrom`) and checks that each model parses, is canonically formatted, and, for `gen.files`, that generated output on disk is current.
+`files` are strings relative to `src`, so `include` paths keep resolving.
 
 ```nix
 {
@@ -145,7 +151,7 @@ It goes to every VS Code-based editor home-manager has enabled, `programs.vscode
 }
 ```
 
-A project that would rather not be held to canonical form sets `tdl.fmt.enable = false`.
+Set `tdl.fmt.enable = false` to skip the formatting check.
 
 ## Usage
 
@@ -162,12 +168,10 @@ tdl tokens ./types.tdl   # print the token stream
 tdl version              # tool and spec versions
 ```
 
-Every command that reads a file takes more than one, except `tdl gen --watch`, which does not return.
-A file that fails is reported and the rest still run, so `tdl check ./*.tdl` names every broken file rather than the first.
-`ast`, `fmt`, `ir`, and `tokens` separate their output with a `==> path <==` banner when given more than one file, and print no banner for a single file.
-`fmt` banners only what it prints: `-w` writes files and `--check` lists paths, neither with a banner.
-A file named `-` is read from standard input, so `tdl fmt -` formats an editor buffer that has not been saved.
-`fmt -w` rejects it, having nothing to write back to, and so does `gen`: an import resolves next to the file that wrote it, so reading a model from standard input would resolve every import against the working directory instead.
+Commands accept several files and report every failing file, not only the first.
+With more than one file, output is separated by `==> path <==` banners.
+A file named `-` is standard input, so `tdl fmt -` formats an unsaved editor buffer.
+`fmt -w` and `gen` reject `-`, since there is nothing to write back to and no directory to resolve imports from.
 
 ### Playground
 
@@ -180,21 +184,18 @@ tdl play ./types.tdl --once           # render and exit
 ```
 
 Views are `source`, `fmt`, `ast`, `tokens`, `stats`, or `all`; the default is `fmt,ast`.
-Parse errors render below the panes with a caret at the reported column.
+Parse errors show below the panes with a caret at the column.
 
-[`examples/`](examples/README.md) holds files to start from: the same domain modelled flat and nested, plus collections and target blocks.
+[`examples/`](examples/README.md) has files to start from.
 
 ## Editor support
 
-Highlighting comes from two derived grammars, both generated from [grammar.ebnf](docs/grammar.ebnf).
-[design/editors.md](docs/design/editors.md) says why there are two.
+Highlighting comes from two grammars generated from [grammar.ebnf](docs/grammar.ebnf); [design/editors.md](docs/design/editors.md) explains why there are two.
 
 ### Neovim
 
-The parser and its queries live in `tree-sitter/`, which is the layout `nvim-treesitter` reads with `location` and `queries`.
-The parser is built from this repository, since nothing is published yet.
-
-On `nvim-treesitter`'s `main` branch, the parser is registered in a `User TSUpdate` autocommand:
+The parser and queries are in `tree-sitter/`.
+On `nvim-treesitter`'s `main` branch, register the parser and start highlighting:
 
 ```lua
 vim.filetype.add({ extension = { tdl = 'tdl' } })
@@ -218,33 +219,22 @@ vim.api.nvim_create_autocmd('FileType', {
 })
 ```
 
-The last block is what colors a buffer.
-`nvim-treesitter` installs the parser and the queries and enables nothing, so highlighting is Neovim's `vim.treesitter.start`, called per filetype from an autocommand or from `ftplugin/tdl.lua`.
+Then run `:TSInstall tdl` (needs the `tree-sitter` CLI on `PATH`), and `:TSUpdate tdl` to pick up later revisions.
 
-The parser is named for the filetype, so `vim.treesitter.language.register` is not needed.
-
-Then `:TSInstall tdl`, which clones the repository, compiles the committed parser, and installs `highlights.scm` beside it.
-That branch builds through the `tree-sitter` CLI, so it has to be on the PATH.
-`:TSUpdate tdl` picks up a later revision.
-
-On the `master` branch the highlighting is the plugin's rather than Neovim's, enabled with `highlight = { enable = true }` in its `setup`, and the field names differ: `files = { 'src/parser.c', 'src/scanner.c' }` replaces `queries`, and the parser config is `require('nvim-treesitter.parsers').get_parser_configs().tdl`, which also takes a `filetype`.
-That branch installs no queries for a custom parser, so `tree-sitter/queries/highlights.scm` goes in `queries/tdl/highlights.scm` somewhere on the runtimepath.
-
-Both sources are compiled because the grammar has an external scanner.
+On the `master` branch, enable highlighting with `highlight = { enable = true }` in `setup`, and register the parser through `require('nvim-treesitter.parsers').get_parser_configs().tdl` with `files = { 'src/parser.c', 'src/scanner.c' }` in place of `queries`.
+That branch installs no queries for a custom parser, so copy `tree-sitter/queries/highlights.scm` to `queries/tdl/highlights.scm` on your runtimepath.
 
 ### VS Code
 
-`nix build .#vscode-tdl` builds the extension in [editors/vscode](editors/vscode), and `overlays.default` exposes it as `pkgs.vscode-tdl`.
-`programs.tdl.vscode.enable` in the home-manager module puts it in a VS Code profile; by hand, add it to `vscode-with-extensions` or to home-manager's `programs.vscode.profiles.<name>.extensions`.
-`make vscode-install` packages it as a `.vsix` and hands it to `code --install-extension`, which is the route to use when iterating on the colors.
+`nix build .#vscode-tdl` builds the extension in [editors/vscode](editors/vscode).
+Install it with `programs.tdl.vscode.enable`, by adding `pkgs.vscode-tdl` to `vscode-with-extensions` or `programs.vscode.profiles.<name>.extensions`, or with `make vscode-install`.
 
-The extension starts `tdl lsp` for diagnostics, hover, go to definition, formatting, and the outline.
-The nix build points it at the `tdl` it was built against, so nothing has to be configured; a `.vsix` from `make vscode-install` runs `tdl` from `PATH`.
-The `tdl.server.path` setting names another executable, and without one the extension says so once while highlighting keeps working.
+The extension runs `tdl lsp` for diagnostics, hover, go to definition, formatting, and the outline.
+The nix build points it at its own `tdl`; otherwise it runs `tdl` from `PATH`, or the `tdl.server.path` setting.
+Without a server, highlighting still works.
 
 ## Support matrix
 
-What each part of the language reaches today.
 `Front end` is the lexer, parser, and `tdl fmt`; `IR` is `tdl ir`, the resolved model a backend consumes.
 
 | Construct | Front end | IR |
@@ -257,36 +247,33 @@ What each part of the language reaches today.
 | `mixin`, `include` | Yes | Yes, expanded |
 | `enum`, variants with fields | Yes | Yes |
 | `class`, functional dependencies, associated types | Yes | Yes |
-| `instance`, including conditional instances | Yes | Yes, satisfaction answers for both |
+| `instance`, including conditional instances | Yes | Yes |
 | Type parameters and kinds | Yes | Yes, parameters stay parameters |
 | Collection and option sugar (`[T]`, `{T}`, `{K -> V}`, `T?`, `T \| null`) | Yes | Yes, lowered to whatever the prelude declares |
 | `where` constraints | Yes | Yes, open set: standard names checked, others passed through |
 | Field defaults | Yes | Yes, resolved against the field's type |
 | `deprecated` | Yes | Yes |
-| `target` blocks | Yes | Partial: resolved and attached, dependency blocks not merged |
-| `unit` | Yes | No: declarations pass through unlowered, unit arguments are an error |
+| `unit` | Yes | Yes, reduced to base dimensions |
+| `target` blocks | Yes | Partial: a dependency's declaration-level directives are not merged |
 
-`tdl fmt` keeps both comment forms: a `///` doc comment attaches to the declaration that follows it, and an ordinary `//` comment is placed by position, either on its own line or at the end of the line it was written on.
-Blank lines are the formatter's to decide, so a blank line grouping fields inside a body does not survive.
+`tdl fmt` keeps both comment forms: a `///` doc comment attaches to the next declaration, and a `//` comment stays on its own line or at the end of its line.
+Inside a body, the formatter decides blank lines.
 
-Backends:
+### Backends
 
-| Backend | Kind | Status |
-| --- | --- | --- |
-| `go` | Built in, also shipped as `tdl-gen-go` | Structs, entity keys, both enum shapes, newtypes, and the primitive and collection mapping |
-| `graphql` | Built in, also shipped as `tdl-gen-graphql` | Output types, both enum shapes, custom scalars, the primitive and list mapping; maps are unsupported |
-| `protobuf` | Built in, also shipped as `tdl-gen-protobuf` | Structs, both enum shapes, newtypes, the primitive and collection mapping, and `number` pins |
-| `salesforce` | Built in, also shipped as `tdl-gen-salesforce` | Salesforce DX source: a custom object per entity with a field per storable field, and Apex classes and enums for values and enums |
-| `smithy` | Built in, also shipped as `tdl-gen-smithy` | Structures, both enum shapes, a newtype over a primitive or a collection as a named shape, the primitive and collection mapping |
-| `typescript` | Built in, also shipped as `tdl-gen-typescript` | JSON wire types: interfaces, both enum shapes, newtypes as aliases, the primitive and collection mapping |
-| `thrift` | Built in, also shipped as `tdl-gen-thrift` | Structs, both enum shapes, newtypes as typedefs, the primitive and collection mapping, and `number` pins |
-| `debug` | Built in, also shipped as `tdl-gen-debug` | Prints the model it was given |
-| Anything else | `tdl-gen-<name>` on PATH | The protocol is stable |
+Each built-in backend also ships as a `tdl-gen-<name>` plugin.
 
-## Releases
-
-Versions come from [release-please](https://github.com/googleapis/release-please): a release pull request accumulates conventional commits and, when merged, tags a release and writes `CHANGELOG.md`.
-Nothing about a version is edited by hand; `toolVersion` and the Nix package version carry annotations that the release PR rewrites.
+| Backend | Generates |
+| --- | --- |
+| `go` | Structs, entity keys, both enum shapes, newtypes, generics, classes as interfaces, `Validate` methods, foreign types |
+| `graphql` | Output types, both enum shapes, custom scalars, lists; no maps |
+| `protobuf` | Messages, both enum shapes, newtypes, collections, `number` pins, services |
+| `salesforce` | Salesforce DX source: a custom object per entity, Apex for values and enums |
+| `smithy` | Structures, both enum shapes, named collection shapes |
+| `thrift` | Structs, both enum shapes, newtypes as typedefs, collections, `number` pins |
+| `typescript` | JSON wire types: interfaces, both enum shapes, newtypes as aliases |
+| `debug` | A description of the model it was given |
+| Anything else | `tdl-gen-<name>` on `PATH`, over the [plugin protocol](docs/design/plugins.md) |
 
 ## Development
 
@@ -297,12 +284,15 @@ command make lint    # nix flake check + golangci-lint + buf + markdownlint
 command make fmt     # nix fmt + buf format
 ```
 
-`go build ./...` and `go test ./...` work directly for anyone not using Nix.
+Without Nix, `go build ./...` and `go test ./...` work directly.
+[AGENTS.md](AGENTS.md) has the full command list and architecture.
 
-## Design philosophy
+Releases come from [release-please](https://github.com/googleapis/release-please); never edit a version or `CHANGELOG.md` by hand.
 
-- The language core is small. Almost everything that looks like a type system is library code written in TDL and shipped in a replaceable prelude.
-- Identity is first class, and the model is pure: a `.tdl` file describes the domain, and everything a backend needs lives in a `target` block.
-- Constraints are syntax, not semantics. The compiler parses and resolves them; backends decide what they mean.
-- A small, strict grammar with a hand-written lexer and parser. No parser generator, no YAML or JSON stand-in syntax.
-- One canonical Go implementation. The spec and the `testdata/conformance` and `testdata/invalid` corpora are the contract another implementation would satisfy, which is why they are plain text rather than Go tests.
+## Design principles
+
+- The core is small. Most of what looks like a type system is TDL code in a replaceable prelude.
+- Identity is first class, and the model is pure: what a backend needs lives in a `target` block.
+- Constraints are syntax. The compiler parses and resolves them; backends decide what they mean.
+- The grammar is small and strict, with a hand-written lexer and parser.
+- The spec and the plain-text `testdata/conformance` and `testdata/invalid` corpora are the contract another implementation would satisfy.
