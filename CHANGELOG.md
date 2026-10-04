@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.2.14](https://github.com/UnstoppableMango/tdl/compare/v0.2.13...v0.2.14) (2026-10-04)
+
+
+### Features
+
+* **protobuf:** write a block-scope option as a file option ([#917](https://github.com/UnstoppableMango/tdl/issues/917)) ([b0b35ba](https://github.com/UnstoppableMango/tdl/commit/b0b35bae0b472e3bd240731c595f189459efd8bf))
+
+
+### Bug Fixes
+
+* **protobuf:** write an inlined oneof's field doc above it ([#920](https://github.com/UnstoppableMango/tdl/issues/920)) ([5a27423](https://github.com/UnstoppableMango/tdl/commit/5a27423ac1023bbc5688bf8ea743a5b2f5d0059d))
+
+
+### Tests
+
+* **vscode:** drive the extension in a headless VSCodium ([#845](https://github.com/UnstoppableMango/tdl/issues/845)) ([30bd68f](https://github.com/UnstoppableMango/tdl/commit/30bd68f095ebe22efe20c46940eab26efd1b49a2))
+
 ## [0.2.13](https://github.com/UnstoppableMango/tdl/compare/v0.2.12...v0.2.13) (2026-10-02)
 
 
