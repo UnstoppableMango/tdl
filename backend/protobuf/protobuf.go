@@ -252,17 +252,14 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		if block.GetMeta().GetName() != g.Target {
 			continue
 		}
-		for _, d := range plugin.Directives(g.Target, block.GetDirectives()) {
-			if d.GetName() == "import" && len(d.GetArgs()) > 0 {
-				for _, grp := range groups {
+		opts := g.options(nil, block.GetDirectives())
+		for _, grp := range groups {
+			for _, d := range plugin.Directives(g.Target, block.GetDirectives()) {
+				if d.GetName() == "import" && len(d.GetArgs()) > 0 {
 					grp.imports[d.GetArgs()[0].GetText()] = true
 				}
 			}
-			if d.GetName() == "option" && len(d.GetArgs()) == 2 {
-				for _, grp := range groups {
-					grp.options = append(grp.options, d.GetArgs()[0].GetText()+" = "+d.GetArgs()[1].GetText())
-				}
-			}
+			grp.options = append(grp.options, opts...)
 		}
 	}
 	if len(groups) == 0 {
