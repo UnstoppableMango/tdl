@@ -30,8 +30,11 @@ name=$(sed -n 's/^[[:space:]]*"name": "\(.*\)".*/\1/p' package.json | head -1)
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
-mkdir -p "$work/extension"
-cp -RL package.json language-configuration.json syntaxes dist "$work/extension/"
+# dist/ also holds the test bundles `make vscode-test` writes, which an
+# installed extension has no use for.
+mkdir -p "$work/extension/dist"
+cp -RL package.json language-configuration.json syntaxes "$work/extension/"
+cp dist/extension.js "$work/extension/dist/"
 
 cat >"$work/extension.vsixmanifest" <<EOF
 <?xml version="1.0" encoding="utf-8"?>

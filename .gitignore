@@ -9,6 +9,8 @@ out/
 
 # npm, for editors/vscode
 node_modules/
+# What @vscode/test-electron writes beside the extension it tests.
+.vscode-test/
 
 # Nix
 /result*
