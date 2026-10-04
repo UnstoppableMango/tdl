@@ -13,14 +13,10 @@ import (
 	"github.com/unstoppablemango/tdl/lex"
 )
 
-// Annotations are what docs/grammar.ebnf says about itself that the
-// notation cannot: which productions are structure and which are
-// plumbing, where a parser generator needs precedence or has to consider
-// two readings, and which lex symbol defines a name the grammar leaves
-// undefined.
-//
-// They live in comments, which golang.org/x/exp/ebnf drops, so they are
-// scanned separately and attached by position. See docs/design/treesitter.md.
+// Annotations are the `/*@ ... */` comments in docs/grammar.ebnf: what a
+// parser generator needs that the notation cannot say. They are scanned
+// separately from the grammar and attached by position. See
+// docs/design/treesitter.md.
 type Annotations struct {
 	// Word is the production a generator extracts keywords from.
 	Word string
@@ -39,8 +35,7 @@ type Annotations struct {
 	// Prods holds what is said about each production, by name.
 	Prods map[string]ProdAnnotations
 
-	// extraPos remembers where each extra was named, since whether one
-	// is bound cannot be known until the whole file has been read.
+	// extraPos is where each extra was named, for check to report.
 	extraPos map[string]string
 }
 
@@ -56,11 +51,7 @@ type ProdAnnotations struct {
 }
 
 // lexSymbols maps the name an annotation uses to the lex value it means.
-//
-// Written out rather than looked up by reflection, so renaming one of
-// these in lex breaks this build rather than a generated grammar at run
-// time, which is the whole reason the annotation names a symbol instead
-// of repeating a pattern.
+// It is written out so that renaming a symbol in lex breaks this build.
 var lexSymbols = map[string]string{
 	"IdentPattern":       lex.IdentPattern,
 	"StringPattern":      lex.StringPattern,
@@ -71,16 +62,15 @@ var lexSymbols = map[string]string{
 	"LineCommentPattern": lex.LineCommentPattern,
 }
 
-// annotation is one comment, before it is understood.
+// annotation is one unparsed annotation comment.
 type annotation struct {
 	fields []string
 	line   int
 	pos    string
 }
 
-// scanAnnotations finds every `/*@ ... */` comment. It ignores the rest
-// of the file, including ordinary comments and anything inside a string,
-// which is why it tracks those rather than searching for the opener.
+// scanAnnotations finds every `/*@ ... */` comment outside a string or
+// line comment.
 func scanAnnotations(filename, src string) []annotation {
 	var out []annotation
 	line := 1
@@ -125,12 +115,9 @@ func scanAnnotations(filename, src string) []annotation {
 	return out
 }
 
-// readAnnotations understands the comments and attaches each to whatever
-// it describes.
-//
-// A production annotation belongs to the next production in the file,
-// which is what "precedes the production it describes" means once
-// comments have been dropped and only line numbers are left.
+// readAnnotations parses the comments and attaches each to what it
+// describes. A production annotation belongs to the next production in the
+// file.
 func readAnnotations(filename, src string, grammar ebnf.Grammar) (Annotations, []error) {
 	a := Annotations{
 		Tokens:   map[string]string{},
@@ -195,9 +182,7 @@ func (a *Annotations) file(ann annotation, keyword string, args []string, gramma
 		}
 		a.Extras = append(a.Extras, args...)
 	case "conflict":
-		// One name is a real entry: it says a rule cannot be decided
-		// against its own other readings, which is what a field followed
-		// by `where` is.
+		// One name is valid: a rule in conflict with its other readings.
 		if len(args) == 0 {
 			return []error{fmt.Errorf("%s: conflict takes at least one production", ann.pos)}
 		}
@@ -266,8 +251,7 @@ func (a *Annotations) prod(ann annotation, name, keyword string, args []string) 
 	return nil
 }
 
-// nextProduction finds what a production annotation describes: the first
-// production starting below it.
+// nextProduction returns the first production starting below ann.
 func nextProduction(ann annotation, grammar ebnf.Grammar) (string, error) {
 	best, bestLine := "", 0
 	for name, prod := range grammar {
@@ -282,10 +266,8 @@ func nextProduction(ann annotation, grammar ebnf.Grammar) (string, error) {
 	return best, nil
 }
 
-// check reports what only the finished file can say. Everything a single
-// annotation can get wrong is reported where it is written; what is left
-// is a binding that may not have been read yet, and a production the
-// annotations never reached.
+// check reports what needs the whole file: an unbound extra and a
+// production with no expression and no token binding.
 func (a *Annotations) check(grammar ebnf.Grammar) []error {
 	var errs []error
 
@@ -296,8 +278,6 @@ func (a *Annotations) check(grammar ebnf.Grammar) []error {
 		}
 	}
 
-	// A production with no expression is the lexer's, and the token
-	// annotation is the only thing saying which part of the lexer.
 	for _, name := range slices.Sorted(maps.Keys(grammar)) {
 		if grammar[name].Expr == nil && a.Prods[name].Token == "" {
 			errs = append(errs, fmt.Errorf("%s: %s has no expression and no token annotation",

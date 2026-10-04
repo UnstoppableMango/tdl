@@ -187,7 +187,6 @@ alias Handler = {string -> [Event]}
 	}
 }
 
-// Whitespace is insignificant: a declaration ends where the next begins.
 func TestWhitespaceInsignificant(t *testing.T) {
 	oneLine := parse(t, `primitive string primitive int alias A = string`)
 	if len(oneLine.Decls) != 3 {
@@ -211,8 +210,6 @@ func TestReservedKeywordsCannotName(t *testing.T) {
 	}
 }
 
-// Modifier and constraint names are contextual, so they stay usable as
-// ordinary identifiers.
 func TestContextualKeywordsAreIdentifiers(t *testing.T) {
 	for _, name := range []string{"owned", "deprecated", "min", "max", "length", "matches", "oneOf", "unique"} {
 		t.Run(name, func(t *testing.T) {
@@ -233,8 +230,7 @@ func TestNewtype(t *testing.T) {
 	}
 }
 
-// A body after the colon list makes it conformance; a newtype has one base
-// and no body, so a second name before anything else is an error.
+// A body makes the colon list conformance; a newtype takes one base.
 func TestTypeForms(t *testing.T) {
 	file := parse(t, `
 type Money { amount: decimal }
@@ -302,8 +298,6 @@ mixin Timestamps { createdAt: instant }
 	}
 }
 
-// `deprecated` and `owned` are contextual, so they are still legal field
-// names. A modifier is a modifier only when a colon does not follow it.
 func TestContextualModifiersAsFieldNames(t *testing.T) {
 	file := parse(t, `type V {
   deprecated: bool
@@ -391,8 +385,7 @@ func TestTargetBlock(t *testing.T) {
 		t.Fatalf("got %d entries, want 4", len(d.Entries))
 	}
 
-	// A reserved keyword is a legal directive name: the namespace belongs to
-	// the backend, not to TDL.
+	// A reserved keyword is a legal directive name.
 	if got := d.Entries[1].Directive.N; got != "package" {
 		t.Errorf("second directive = %q, want package", got)
 	}
@@ -424,8 +417,7 @@ func TestDirectiveArguments(t *testing.T) {
 	}
 }
 
-// A reserved word followed by `:` is a field name. The prelude's Option<T>
-// depends on it.
+// A reserved word followed by `:` is a field name; the prelude relies on it.
 func TestKeywordFieldNames(t *testing.T) {
 	file := parse(t, `type V {
   value: string
@@ -451,9 +443,7 @@ func TestKeywordFieldNames(t *testing.T) {
 	}
 }
 
-// A field named `where` follows a field, which is exactly where the
-// previous field looks for a constraint block. One token of lookahead
-// separates the two, the way it does for the contextual modifiers.
+// A field named `where` is not the previous field's constraint block.
 func TestWhereFieldNameAfterAField(t *testing.T) {
 	file := parse(t, `type V {
   a: string
@@ -489,9 +479,6 @@ func TestWhereFieldNameAfterAField(t *testing.T) {
 	}
 }
 
-// `union` names nothing in this language, so it is an ordinary identifier
-// and usable everywhere one is: a declaration name, a type reference, and
-// a type parameter, none of which admit a reserved word.
 func TestUnionIsAnOrdinaryIdentifier(t *testing.T) {
 	file := parse(t, `type union { x: string }
 type W<union> { u: union }`)
@@ -509,7 +496,6 @@ type W<union> { u: union }`)
 	}
 }
 
-// `include Foo` is still an include, not a field named include.
 func TestIncludeStillParses(t *testing.T) {
 	file := parse(t, `type V { include Timestamps }`)
 	if _, ok := file.Decls[0].(*ast.StructDecl).Members[0].(*ast.Include); !ok {
@@ -577,7 +563,6 @@ func TestRangeForms(t *testing.T) {
 	}
 }
 
-// The constraint set is open: the parser recognizes no name in particular.
 func TestUnknownConstraintParses(t *testing.T) {
 	file := parse(t, `type E: Entity { x: int where { between(0, 100) } }`)
 
@@ -602,16 +587,12 @@ func TestFieldConstraintsThenDefault(t *testing.T) {
 	}
 }
 
-// A constraint block must be introduced by `where`, so `{` after a type
-// reference is a body, and a constraint in it is a field missing its colon.
 func TestConstraintBlockNeedsWhere(t *testing.T) {
 	if msg := parseErr(t, "type Email: string {\n  length(3..254)\n}"); !strings.Contains(msg, "expected :") {
 		t.Errorf("error = %s", msg)
 	}
 }
 
-// `/` is division in a unit expression and a regex delimiter in a
-// constraint. Nothing before it says which, so the parser asks.
 func TestRegexVersusDivision(t *testing.T) {
 	file := parse(t, `type Path: string where { matches(/a\/b/) }`)
 
@@ -652,7 +633,6 @@ func TestClassDecl(t *testing.T) {
 	}
 }
 
-// A field named after a reserved word still works inside a class.
 func TestClassKeywordFields(t *testing.T) {
 	file := parse(t, `class C {
   type: string
@@ -700,8 +680,7 @@ instance <T> Auditable<Page<T>> requires Auditable<T>
 		t.Fatalf("got %d decls, want 4", len(file.Decls))
 	}
 
-	// `instance C<T>` and `instance C for T` mean the same thing, and the
-	// tree records which was written.
+	// The tree records which of the two equivalent forms was written.
 	args := file.Decls[0].(*ast.InstanceDecl)
 	if args.For != nil || len(args.Class.Args) != 1 {
 		t.Errorf("argument form = %+v", args)
@@ -744,8 +723,7 @@ unit Complex = (kg*m)/(s^2*m)
 		t.Errorf("base unit gained an expression: %+v", base.Expr)
 	}
 
-	// `*` and `/` associate left with equal precedence, so the expression is
-	// a flat sequence of terms carrying their own operator.
+	// A flat sequence of terms, each carrying its operator.
 	n := file.Decls[1].(*ast.UnitDecl).Expr
 	if len(n.Terms) != 3 {
 		t.Fatalf("N has %d terms, want 3", len(n.Terms))
@@ -767,8 +745,7 @@ unit Complex = (kg*m)/(s^2*m)
 	}
 }
 
-// A bare name in `<...>` could be a type or a unit, so it is recorded as a
-// type reference and the resolver picks by kind. Operators settle it.
+// A bare name in `<...>` is a type reference; an operator makes it a unit.
 func TestUnitVersusTypeArguments(t *testing.T) {
 	tests := []struct {
 		src    string

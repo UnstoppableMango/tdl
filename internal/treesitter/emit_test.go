@@ -15,10 +15,8 @@ var (
 	goldenPath  = filepath.Join("..", "..", "tree-sitter", "grammar.js")
 )
 
-// TestGrammarJS checks the committed grammar.js against the grammar it is
-// derived from. It is the check the corpus cannot make: a production that
-// reaches docs/grammar.ebnf and not the derived parser is a diff here.
-// tools/treesitter is what writes the file; this only reads it.
+// TestGrammarJS checks the committed grammar.js against docs/grammar.ebnf.
+// tools/treesitter writes the file; this only reads it.
 func TestGrammarJS(t *testing.T) {
 	got := emitDocs(t)
 
@@ -31,9 +29,6 @@ func TestGrammarJS(t *testing.T) {
 	}
 }
 
-// TestEmitIsDeterministic is what makes the check above worth making. A
-// Grammar is a map, so an emitter that iterated one would produce a
-// different file every run and the diff would say nothing.
 func TestEmitIsDeterministic(t *testing.T) {
 	if first, second := emitDocs(t), emitDocs(t); first != second {
 		t.Error("emitting the same grammar twice produced different bytes")
@@ -41,8 +36,7 @@ func TestEmitIsDeterministic(t *testing.T) {
 }
 
 func TestEmit(t *testing.T) {
-	// Every case is a whole grammar, since Emit takes one, and asserts on
-	// the one rule the case is about.
+	// Each case asserts on one rule of a whole grammar.
 	cases := []struct {
 		name string
 		src  string
@@ -94,8 +88,6 @@ func TestEmit(t *testing.T) {
 			"file: $ => $._other,",
 		},
 		{
-			// tree-sitter refuses a token in its own inline array, so the
-			// substitution happens here instead.
 			"inline",
 			"File = Other identifier .\n/*@ inline */\nOther = \"package\" .\n" + ident,
 			"file: $ => seq('package', $.identifier),",
@@ -121,8 +113,6 @@ func TestEmit(t *testing.T) {
 			"identifier: $ => /[_A-Za-z][_A-Za-z0-9]*/,",
 		},
 		{
-			// A pattern is written for Go's regexp, which needs no
-			// delimiter, so a bare '/' has to be escaped for JavaScript.
 			"pattern with a slash",
 			"/*@ extra line_comment */\n/*@ token line_comment = LineCommentPattern */\nFile = identifier .\n" + ident,
 			`line_comment: $ => /\/\/[^\n]*/,`,
@@ -138,8 +128,6 @@ func TestEmit(t *testing.T) {
 			"word: $ => $.identifier,",
 		},
 		{
-			// The externals array names it; nothing emits a rule for it,
-			// because scanner.c is what produces it.
 			"external",
 			"File = identifier regex_lit .\n" + ident + "/*@ token RegexPattern */\n/*@ external */\nregex_lit = .\n",
 			"externals: $ => [$.regex_lit],",
@@ -150,8 +138,6 @@ func TestEmit(t *testing.T) {
 			"[$.file, $.other],",
 		},
 		{
-			// One name is a rule that cannot be decided against its own
-			// other readings, which is a thing tree-sitter accepts.
 			"conflict with one production",
 			"/*@ conflict File */\nFile = identifier .\n" + ident,
 			"[$.file],",
@@ -175,7 +161,6 @@ func TestEmitDiagnostics(t *testing.T) {
 		want string
 	}{
 		{
-			// Two spellings of one rule name would silently drop a rule.
 			"colliding names",
 			"File = TypeArgs type_args .\nTypeArgs = \"package\" .\n/*@ token IdentPattern */\ntype_args = .\n",
 			"TypeArgs and type_args are both type_args",
@@ -186,8 +171,6 @@ func TestEmitDiagnostics(t *testing.T) {
 			"Other is inline and refers to itself",
 		},
 		{
-			// A lexical production has no body to substitute, so inlining
-			// one is a question with no answer rather than an empty rule.
 			"inlining a production with no expression",
 			"File = identifier .\n/*@ token IdentPattern */\n/*@ inline */\nidentifier = .\n",
 			"identifier is inline and has no expression",
@@ -208,12 +191,10 @@ func TestEmitDiagnostics(t *testing.T) {
 	}
 }
 
-// ident is the one production every test grammar needs, since File has to
-// reach something the lexer defines.
+// ident is the lexical production every test grammar needs.
 const ident = "/*@ token IdentPattern */\nidentifier = .\n"
 
-// testOptions are GrammarOptions without the check that every terminal is
-// TDL, so a case can quote whatever makes its point.
+// testOptions are GrammarOptions without the lex spelling check.
 var testOptions = ebnf.Options{Start: "File", Annotated: true}
 
 func read(t *testing.T, src string) *ebnf.File {

@@ -11,16 +11,15 @@ const (
 	ILLEGAL Kind = iota
 	EOF
 
-	IDENT  // identifiers and keywords share a scanning path; Kind distinguishes them
+	IDENT
 	DOC    // /// doc comment, text only
 	STRING // "..."
 	INT    // 123
 	FLOAT  // 1.23
 	REGEX  // /.../, scanned only on demand; see [Lexer.RescanRegexAt]
 
-	// Reserved keywords. Declaration keywords are reserved; modifiers and
-	// constraint names (owned, deprecated, min, length, ...) are contextual
-	// and lex as IDENT.
+	// Reserved keywords. Modifiers and constraint names are contextual and
+	// lex as IDENT.
 	PACKAGE
 	IMPORT
 	AS
@@ -41,8 +40,7 @@ const (
 	TRUE
 	FALSE
 
-	// Punctuation. The sentinels bound the range so [Punctuation] does not
-	// restate the list; a new operator declared between them is picked up.
+	// Punctuation. [Punctuation] and [Lookup] iterate between the sentinels.
 	punctBeg
 	LBRACE   // {
 	RBRACE   // }

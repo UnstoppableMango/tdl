@@ -1,7 +1,6 @@
 // Command treesitter derives tree-sitter/grammar.js from docs/grammar.ebnf.
 //
-// It is a build tool rather than something shipped, which is why it lives
-// under tools/ and not cmd/. Run it from the module root:
+// Run it from the module root:
 //
 //	go run ./tools/treesitter
 package main

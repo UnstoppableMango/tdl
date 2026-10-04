@@ -2,22 +2,12 @@ package lex
 
 import "sort"
 
-// The tables here describe the lexer to a program rather than to a person.
-//
-// docs/grammar.ebnf names most of its terminals by spelling and leaves the
-// six scanned by shape undefined, because both are the lexer's business.
-// A tool deriving a second parser from that file resolves them here, so a
-// keyword added to this package reaches the derived parser and a spelling
-// the grammar invents but the lexer never produces is an error rather than
-// a rule that can never match.
+// The tables here describe the lexer to a program: a tool deriving a second
+// parser from docs/grammar.ebnf resolves its terminals here.
 
-// Patterns for the token classes scanned by shape. They are the shapes
-// [Lexer.Next] and [Lexer.RescanRegexAt] accept, written as regular
-// expressions because a generator consumes them; TestPatternsMatchTheLexer
-// holds them to that, and internal/ebnf binds each to the grammar name a
-// `/*@ token ... */` annotation gives it.
-//
-// Unanchored, and a caller matching at a position anchors them itself.
+// Patterns for the token classes scanned by shape, as accepted by
+// [Lexer.Next] and [Lexer.RescanRegexAt]. TestPatternsMatchTheLexer holds
+// them to the lexer. They are unanchored.
 const (
 	IdentPattern  = `[_A-Za-z][_A-Za-z0-9]*`
 	IntPattern    = `-?[0-9]+`
@@ -26,14 +16,8 @@ const (
 	DocPattern    = `///[^\n]*`
 	RegexPattern  = `/([^/\\\n]|\\[^\n])*/`
 
-	// LineCommentPattern is the shape scanComment consumes and discards.
-	// It has no Kind, since the lexer never emits one, but it is a fact
-	// about the language a second parser has to know: tree-sitter keeps
-	// comments as extras where this one drops them.
-	//
-	// It also matches a doc comment, because `///` begins with `//`, so a
-	// consumer tries DocPattern first. Three slashes or more is a doc
-	// comment.
+	// LineCommentPattern is the comment the lexer skips; it has no Kind.
+	// It also matches a doc comment, so a consumer tries DocPattern first.
 	LineCommentPattern = `//[^\n]*`
 )
 

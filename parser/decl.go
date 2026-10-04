@@ -5,8 +5,8 @@ import (
 	"github.com/unstoppablemango/tdl/lex"
 )
 
-// parseDeprecated parses `deprecated [ "(" string ")" ]`. `deprecated` is a
-// contextual keyword, so the caller has already checked the identifier text.
+// parseDeprecated parses `deprecated [ "(" string ")" ]`; the caller has
+// already matched the contextual keyword.
 func (p *parser) parseDeprecated() *ast.Deprecation {
 	dep := &ast.Deprecation{P: p.cur.Pos}
 	p.next() // 'deprecated'
@@ -23,17 +23,13 @@ func (p *parser) parseDeprecated() *ast.Deprecation {
 	return dep
 }
 
-// atContextual reports whether the current token is the contextual keyword
-// word. Modifiers and constraint names are not reserved, so they arrive as
-// ordinary identifiers and are recognized by position.
+// atContextual reports whether the current token is the identifier word.
 func (p *parser) atContextual(word string) bool {
 	return p.cur.Kind == lex.IDENT && p.cur.Text == word
 }
 
-// parseTypeDecl parses both forms `type` introduces. A body makes it a
-// domain type and the colon list the classes it conforms to; without one it
-// is a newtype and the colon names its base. A newtype's constraints open
-// with `where`, so a `{` here can only be a body.
+// parseTypeDecl parses a domain type (a body, with the colon list naming
+// classes) or a newtype (no body, with the colon naming its base).
 func (p *parser) parseTypeDecl(head ast.DeclHead) ast.Decl {
 	head.P = p.cur.Pos
 	p.next() // 'type'
@@ -74,9 +70,8 @@ func (p *parser) parseTypeDecl(head ast.DeclHead) ast.Decl {
 	return d
 }
 
-// classRefOf reads a type reference parsed before a body said it was a
-// conformance list. A class is a name with arguments, so any other form is
-// an error rather than a class.
+// classRefOf converts a type reference that turned out to be in a
+// conformance list, rejecting forms a class cannot take.
 func (p *parser) classRefOf(t *ast.TypeRef) *ast.ClassRef {
 	if t.N == "" || t.Optional || t.Nullable {
 		p.errs.add(t.P, "expected a class, got a type")
@@ -150,9 +145,8 @@ func (p *parser) parseVariant() *ast.Variant {
 	return v
 }
 
-// parseClassRefs parses `ClassRef { "," ClassRef }` after the `:` of a
-// conformance list or the `requires` of a constraint clause, consuming
-// whichever introduced it.
+// parseClassRefs parses `ClassRef { "," ClassRef }`, consuming the
+// leading `:` or `requires`.
 func (p *parser) parseClassRefs() []*ast.ClassRef {
 	p.next() // ':' or 'requires'
 
@@ -210,8 +204,7 @@ func (p *parser) parseField() *ast.Field {
 	doc, docP := p.parseDoc()
 	f := &ast.Field{DeclHead: ast.DeclHead{Doc: doc, DocP: docP, P: p.cur.Pos}}
 
-	// `deprecated` is contextual, so a field may be named it. It is a
-	// modifier only when another token follows it before the colon.
+	// `deprecated:` is a field name, not a modifier.
 	if p.atContextual("deprecated") && p.peek.Kind != lex.COLON {
 		f.Dep = p.parseDeprecated()
 	}
@@ -224,15 +217,12 @@ func (p *parser) parseField() *ast.Field {
 	}
 	f.Type = p.parseTypeRef()
 
-	// `owned` is contextual too: a following field named `owned` would
-	// otherwise be swallowed as this field's relationship marker.
+	// `owned:` is the next field, not this field's modifier.
 	if p.atContextual("owned") && p.peek.Kind != lex.COLON {
 		f.Owned = true
 		p.next()
 	}
-	// `where` is reserved, but a reserved word before a colon is a field
-	// name, so a following field named `where` is not this field's
-	// constraint block. The modifiers above take the same lookahead.
+	// Likewise `where:` is the next field, not a constraint block.
 	if p.at(lex.WHERE) && p.peek.Kind != lex.COLON {
 		f.Constraints, f.End = p.parseConstraintBlock()
 	}
@@ -243,9 +233,7 @@ func (p *parser) parseField() *ast.Field {
 }
 
 // expectFieldName reads a field name, accepting a reserved keyword when a
-// colon follows it. `type`, `unit`, and `include` are ordinary words in a
-// domain model. One token of lookahead settles it: `include Foo` is an include,
-// `include: Foo` is a field.
+// colon follows it: `include: Foo` is a field, `include Foo` an include.
 func (p *parser) expectFieldName() string {
 	if p.cur.Kind != lex.IDENT && (!lex.IsKeyword(p.cur.Text) || p.peek.Kind != lex.COLON) {
 		p.errs.add(p.cur.Pos, "expected a field name, got %s", p.cur.Kind)
@@ -256,8 +244,7 @@ func (p *parser) expectFieldName() string {
 	return name
 }
 
-// syncMember skips to the end of the enclosing body or the start of
-// something that plausibly begins the next member.
+// syncMember skips to the end of the body or a likely next member.
 func (p *parser) syncMember() {
 	for {
 		switch p.cur.Kind {
@@ -296,8 +283,7 @@ func (p *parser) parseLiteral() *ast.Literal {
 		p.expect(lex.RBRACK)
 		return lit
 	case lex.IDENT:
-		// A name denotes an enum variant; the resolver checks it against the
-		// field's type.
+		// An enum variant, checked against the field's type in lowering.
 		lit.Kind = ast.LitName
 		lit.Text = p.parseDottedIdent()
 		return lit

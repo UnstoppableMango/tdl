@@ -9,9 +9,7 @@ import (
 	"github.com/unstoppablemango/tdl/lex"
 )
 
-// Every fixed spelling the tables report must lex back to the kind they
-// report it for. A generator reads the tables and the parser reads the
-// lexer, so a disagreement between them is a rule that can never match.
+// Every fixed spelling the tables report lexes back to its reported kind.
 func TestFixedSpellingsLexBack(t *testing.T) {
 	var all []string
 	all = append(all, lex.Keywords()...)
@@ -35,8 +33,7 @@ func TestFixedSpellingsLexBack(t *testing.T) {
 	}
 }
 
-// patterns is the class each shape pattern scans, which the lexer states
-// as constants rather than as a table.
+// patterns maps each shaped kind to its pattern.
 var patterns = map[lex.Kind]string{
 	lex.IDENT:  lex.IdentPattern,
 	lex.INT:    lex.IntPattern,
@@ -46,8 +43,7 @@ var patterns = map[lex.Kind]string{
 	lex.REGEX:  lex.RegexPattern,
 }
 
-// A class scanned by shape has a pattern and no spelling, and the two
-// answers do not overlap.
+// A shaped kind has a pattern that compiles and is not a fixed spelling.
 func TestShapedKindsHavePatterns(t *testing.T) {
 	for k, pattern := range patterns {
 		if _, err := regexp.Compile(pattern); err != nil {
@@ -64,10 +60,7 @@ func anchored(t *testing.T, k lex.Kind) *regexp.Regexp {
 	return regexp.MustCompile(`^(?:` + patterns[k] + `)`)
 }
 
-// The patterns say what the lexer accepts, so each one must match exactly
-// the text the lexer took for that kind, and reject what it would not.
-// A line comment produces no token, so the pattern is held to the lexer
-// the other way round: what it matches must leave the token stream alone.
+// Text LineCommentPattern matches produces no token.
 func TestLineCommentPatternIsSkipped(t *testing.T) {
 	re := regexp.MustCompile(`^(?:` + lex.LineCommentPattern + `)`)
 
@@ -80,9 +73,7 @@ func TestLineCommentPatternIsSkipped(t *testing.T) {
 		}
 	}
 
-	// The pattern also matches a doc comment, since `///` begins with
-	// `//`, so a consumer has to try DocPattern first. Three slashes or
-	// more is a doc comment, which is what the lexer does.
+	// Three slashes or more is a doc comment.
 	for _, src := range []string{"/// doc", "//// four"} {
 		if got := kinds(src); len(got) != 2 || got[0] != lex.DOC {
 			t.Errorf("%q produced %v, want [DOC EOF]", src, got)
@@ -126,8 +117,8 @@ func TestPatternsMatchTheLexer(t *testing.T) {
 	}
 }
 
-// lexOne returns the kind the lexer gives the whole of src. REGEX is never
-// produced by Next, so it is asked for the way the parser asks.
+// lexOne returns the kind the lexer gives the whole of src, rescanning for
+// REGEX the way the parser does.
 func lexOne(t *testing.T, want lex.Kind, src string) lex.Kind {
 	t.Helper()
 	l := lex.New("test.tdl", src)
@@ -137,8 +128,6 @@ func lexOne(t *testing.T, want lex.Kind, src string) lex.Kind {
 	return l.Next().Kind
 }
 
-// The table-driven cases are what a reader can hold; the corpus is what
-// catches a pattern that is right about them and wrong about real source.
 func TestPatternsAgreeWithTheLexerOverTheCorpus(t *testing.T) {
 	sources, err := filepath.Glob(filepath.Join("..", "testdata", "conformance", "*", "*.tdl"))
 	if err != nil {
@@ -180,8 +169,7 @@ func TestPatternsAgreeWithTheLexerOverTheCorpus(t *testing.T) {
 		}
 	}
 
-	// A pattern no corpus token exercised is a pattern this test did not
-	// check, and saying so beats a green run that proved less than it looks.
+	// Fail rather than pass vacuously when the corpus lacks a kind.
 	for _, k := range []lex.Kind{lex.IDENT, lex.STRING, lex.DOC} {
 		if seen[k] == 0 {
 			t.Errorf("no %v token in the corpus", k)

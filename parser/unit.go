@@ -19,19 +19,15 @@ func (p *parser) parseUnitDecl(head ast.DeclHead) *ast.UnitDecl {
 	return d
 }
 
-// parseUnitExpr parses `UnitTerm { ( "*" | "/" ) UnitTerm }`.
-//
-// The expression is a flat sequence rather than a tree: `*` and `/` have
-// equal precedence and associate left, so the terms carry their own
-// operator and normalizing to base dimensions is the resolver's job.
+// parseUnitExpr parses `UnitTerm { ( "*" | "/" ) UnitTerm }` as a flat
+// list of terms, each carrying its operator.
 func (p *parser) parseUnitExpr() *ast.UnitExpr {
 	e := &ast.UnitExpr{P: p.cur.Pos}
 	e.Terms = append(e.Terms, p.parseUnitTerm(""))
 	return p.parseUnitTerms(e)
 }
 
-// parseUnitTerms reads the `( "*" | "/" ) UnitTerm` pairs that follow a
-// first term.
+// parseUnitTerms reads the `( "*" | "/" ) UnitTerm` pairs after the first.
 func (p *parser) parseUnitTerms(e *ast.UnitExpr) *ast.UnitExpr {
 	for p.at(lex.STAR) || p.at(lex.SLASH) {
 		op := p.cur.Text
@@ -54,8 +50,7 @@ func (p *parser) parseUnitTerm(op string) *ast.UnitTerm {
 	return t
 }
 
-// parseExponent reads the `^ int` after a unit term, and returns 1 when
-// the term has none.
+// parseExponent reads an optional `^ int`, defaulting to 1.
 func (p *parser) parseExponent() int {
 	if !p.accept(lex.CARET) {
 		return 1
@@ -72,9 +67,8 @@ func (p *parser) parseExponent() int {
 	return exp
 }
 
-// parseTypeArgs parses a `<...>` argument list. Each argument is a type or
-// a unit, and only operators tell them apart: a bare name could be either,
-// so it is recorded as a type reference and the resolver decides by kind.
+// parseTypeArgs parses a `<...>` list of types and units. A bare name is
+// recorded as a type reference; lowering decides by kind.
 func (p *parser) parseTypeArgs() []*ast.TypeArg {
 	p.next() // '<'
 
@@ -92,8 +86,7 @@ func (p *parser) parseTypeArgs() []*ast.TypeArg {
 func (p *parser) parseTypeArg() *ast.TypeArg {
 	arg := &ast.TypeArg{P: p.cur.Pos}
 
-	// A parenthesized argument can only be a unit expression: no type
-	// reference form starts with '('.
+	// No type reference starts with '(', so this is a unit.
 	if p.at(lex.LPAREN) {
 		arg.Unit = p.parseUnitExpr()
 		return arg
@@ -101,8 +94,7 @@ func (p *parser) parseTypeArg() *ast.TypeArg {
 
 	ref := p.parseTypeRef()
 
-	// An operator makes it unambiguously a unit. A named reference with no
-	// arguments and no sugar is the only thing that can become one.
+	// An operator after a plain name makes it a unit.
 	if (p.at(lex.STAR) || p.at(lex.SLASH) || p.at(lex.CARET)) && plainName(ref) {
 		arg.Unit = p.continueUnitExpr(ref)
 		return arg
@@ -112,8 +104,7 @@ func (p *parser) parseTypeArg() *ast.TypeArg {
 	return arg
 }
 
-// plainName reports whether ref is a bare unqualified name, the only shape
-// a unit can have been written as.
+// plainName reports whether ref is a bare unqualified name.
 func plainName(ref *ast.TypeRef) bool {
 	return ref.N != "" && ref.Qualifier == "" && len(ref.Args) == 0 &&
 		!ref.Optional && !ref.Nullable

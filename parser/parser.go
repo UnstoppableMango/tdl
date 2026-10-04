@@ -1,9 +1,5 @@
-// Package parser implements a hand-written recursive-descent parser that
-// turns TDL source text into an [ast.File]. It collects every syntax error
-// it finds in one pass rather than stopping at the first, so tooling like
-// `tdl check` can report a complete list of problems.
-//
-// The parser covers the whole grammar in docs/grammar.ebnf.
+// Package parser is a recursive-descent parser turning TDL source into an
+// [ast.File]. It reports every syntax error in one pass.
 package parser
 
 import (
@@ -13,9 +9,8 @@ import (
 	"github.com/unstoppablemango/tdl/lex"
 )
 
-// Parse reads and parses a single TDL source file. On success it returns
-// the parsed [ast.File]; on failure it returns a nil file and an
-// *ErrorList describing every syntax error found.
+// Parse parses one TDL source file. On failure it returns a nil file and
+// an [ErrorList].
 func Parse(filename string, r io.Reader) (*ast.File, error) {
 	data, err := io.ReadAll(r)
 	if err != nil {
@@ -68,24 +63,17 @@ func (p *parser) expect(kind lex.Kind) bool {
 	return true
 }
 
-// expectRbrace consumes a block's closing brace and reports where it was.
-//
-// A block's end is what the formatter places a comment on the last line
-// inside it against, so every node with an End field records it: a
-// declaration, member, variant, constraint, target, class, or instance
-// body. The braces of a set or map type are read by parseCoreType and not
-// recorded, since a type is one line and nothing is placed against it. On
-// a missing brace the position of whatever was found stands in, which
-// keeps error recovery unchanged.
+// expectRbrace consumes a block's closing brace and returns its position,
+// which the formatter needs to place a comment on a block's last line. On
+// a missing brace it returns the position of the token found instead.
 func (p *parser) expectRbrace() ast.Position {
 	pos := p.cur.Pos
 	p.expect(lex.RBRACE)
 	return pos
 }
 
-// untilRbrace runs fn over a block's items until its closing brace or the
-// end of input, dropping a token whenever fn made no progress, so a bad
-// item costs one token rather than a loop that never ends.
+// untilRbrace runs fn until a closing brace or EOF, dropping a token
+// whenever fn made no progress so a bad item cannot loop forever.
 func (p *parser) untilRbrace(fn func()) {
 	for !p.at(lex.RBRACE) && !p.at(lex.EOF) {
 		before := p.cur
@@ -126,9 +114,7 @@ func declStart(kind lex.Kind) bool {
 	return false
 }
 
-// syncTop skips tokens until one that can start a top-level declaration, so
-// parseFile can recover from an unexpected token and keep collecting errors
-// rather than reporting one per token to the end of the file.
+// syncTop skips to the next token that can start a top-level declaration.
 func (p *parser) syncTop() {
 	for !declStart(p.cur.Kind) {
 		p.next()
@@ -182,8 +168,7 @@ func (p *parser) parseFile() *ast.File {
 		}
 	}
 
-	// The loop ends on EOF, so the lexer has scanned the whole file and the
-	// comment sink is complete.
+	// At EOF the lexer has collected every comment.
 	file.End = p.cur.Pos
 	for _, c := range p.lx.Comments() {
 		file.Comments = append(file.Comments, &ast.Comment{P: c.Pos, Text: c.Text})
@@ -192,9 +177,8 @@ func (p *parser) parseFile() *ast.File {
 	return file
 }
 
-// parseDoc consumes a run of `///` comment lines, reporting where the run
-// began. The position is what lets the formatter order a doc comment
-// against the ordinary comments beside it.
+// parseDoc consumes a run of `///` lines and returns where it began, which
+// the formatter uses to order it against ordinary comments.
 func (p *parser) parseDoc() ([]string, ast.Position) {
 	var doc []string
 	var pos ast.Position
@@ -214,8 +198,7 @@ func (p *parser) parsePackageDecl() *ast.PackageDecl {
 	return &ast.PackageDecl{P: pos, Path: p.parsePackagePath()}
 }
 
-// parsePackagePath parses `Name { . Name }`, the path after `package` and
-// after a target block's `for`.
+// parsePackagePath parses `Name { . Name }` after `package` or `for`.
 func (p *parser) parsePackagePath() string {
 	path := p.expectName("package name")
 	for p.at(lex.DOT) {
@@ -305,8 +288,7 @@ func (p *parser) parseTypeParams() []*ast.TypeParam {
 	return params
 }
 
-// parseKind parses `Kind = KindAtom { "->" KindAtom }`, associating to the
-// right so `type -> type -> type` is `type -> (type -> type)`.
+// parseKind parses `Kind = KindAtom { "->" KindAtom }`, right-associative.
 func (p *parser) parseKind() *ast.Kind {
 	k := &ast.Kind{P: p.cur.Pos}
 
@@ -346,9 +328,8 @@ func (p *parser) parseTypeRef() *ast.TypeRef {
 	return t
 }
 
-// parseCoreType parses the list, set, map, and named forms. The bracket
-// forms are sugar for prelude types; the parser records what was written
-// and the resolver lowers it.
+// parseCoreType parses the list, set, map, and named forms. Bracket sugar
+// is recorded as written; lowering resolves it.
 func (p *parser) parseCoreType() *ast.TypeRef {
 	pos := p.cur.Pos
 

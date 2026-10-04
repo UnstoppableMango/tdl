@@ -1,9 +1,5 @@
 // Command tdl-gen-go is the Go backend as a plugin.
-//
-// It is the same backend value the built-in registry holds, served over a
-// connection instead of called in process. That is what makes "one
-// protocol, two hosts" testable: the two paths differ in transport and in
-// nothing else.
+// It serves the backend value the built-in registry holds.
 package main
 
 import (

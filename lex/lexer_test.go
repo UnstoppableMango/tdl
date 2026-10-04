@@ -48,9 +48,7 @@ func TestKeywordsAndIdents(t *testing.T) {
 		lex.INSTANCE, lex.TARGET, lex.FOR, lex.REQUIRES, lex.WHERE,
 		lex.INCLUDE, lex.NULL, lex.TRUE, lex.FALSE)
 
-	// Modifiers and constraint names are contextual, not reserved. So are
-	// `union`, `entity`, `value`, and `key`, which nothing in the language
-	// claims.
+	// Contextual words lex as IDENT.
 	want(t, "entity value key owned deprecated min max length matches oneOf unique union",
 		lex.IDENT, lex.IDENT,
 		lex.IDENT, lex.IDENT, lex.IDENT, lex.IDENT, lex.IDENT,
@@ -92,8 +90,6 @@ func TestComments(t *testing.T) {
 	}
 }
 
-// An ordinary comment produces no token, but it is not thrown away: it is
-// collected on the lexer, which is where the parser reads it back from.
 func TestOrdinaryCommentsAreCollected(t *testing.T) {
 	lx := lex.New("t.tdl", "// one\nprimitive string // two\n")
 	for lx.Next().Kind != lex.EOF { //revive:disable-line:empty-block
@@ -111,8 +107,6 @@ func TestOrdinaryCommentsAreCollected(t *testing.T) {
 	}
 }
 
-// A doc comment belongs to the declaration that follows it, so it is a
-// token and must not also land in the sink.
 func TestDocCommentsAreNotCollected(t *testing.T) {
 	lx := lex.New("t.tdl", "/// docs\nprimitive string\n")
 	for lx.Next().Kind != lex.EOF { //revive:disable-line:empty-block
@@ -123,7 +117,6 @@ func TestDocCommentsAreNotCollected(t *testing.T) {
 	}
 }
 
-// Whitespace is insignificant and produces no tokens.
 func TestWhitespaceProducesNoTokens(t *testing.T) {
 	want(t, "primitive\n\n\tstring", lex.PRIMITIVE, lex.IDENT)
 	want(t, "primitive string primitive int",
@@ -146,8 +139,7 @@ func TestPositions(t *testing.T) {
 	}
 }
 
-// A regex literal is scanned only when the parser asks, because `/` is also
-// division in a unit expression.
+// `/` lexes as SLASH until the parser asks for a regex.
 func TestRescanRegex(t *testing.T) {
 	src := `matches /^[a-z]+$/`
 	l := lex.New("test.tdl", src)
@@ -182,9 +174,6 @@ func TestUnitDivisionStaysSlash(t *testing.T) {
 }
 
 // A token's text is a slice of the source, so scanning allocates nothing.
-// Converting a rune to a string instead would allocate once per operator,
-// which is a per-token cost on the hottest path in the lexer and the kind
-// of thing that returns quietly once it has been fixed.
 func TestScanningOperatorsDoesNotAllocate(t *testing.T) {
 	const src = "{}()[]<>:,?|^*/->=>.."
 

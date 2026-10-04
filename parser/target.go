@@ -37,8 +37,6 @@ func (p *parser) parseTargetEntries() ([]*ast.TargetEntry, ast.Position) {
 //	Path { ... }        a nested block scoping a path
 //	Path => Directive   a directive applied to that path
 //	Directive           a directive applying to the enclosing scope
-//
-// All three start with an identifier, so the token after the path decides.
 func (p *parser) parseTargetEntry() *ast.TargetEntry {
 	entry := &ast.TargetEntry{P: p.cur.Pos}
 
@@ -71,14 +69,9 @@ func (p *parser) parseDirective() *ast.Directive {
 	return p.finishDirective(pos, p.expectName("directive or path name"))
 }
 
-// expectName reads a name that may be a reserved keyword; kind describes
-// the name in the error when one is missing. Directives are opaque and their
-// namespace belongs to the backend, so `package("github.com/acme/billing")`
-// is a directive named `package` rather than a syntax error. Model paths
-// cannot collide with this: a declaration name is always an ordinary
-// identifier. A package path segment, after `package` or a target's `for`,
-// may be a keyword so that `package google.type` can mirror another schema
-// language's namespace.
+// expectName reads a name that may be a reserved keyword, as directive
+// names, target paths, and package path segments may be; kind names it in
+// the error.
 func (p *parser) expectName(kind string) string {
 	if p.cur.Kind != lex.IDENT && !lex.IsKeyword(p.cur.Text) {
 		p.errs.add(p.cur.Pos, "expected a %s, got %s", kind, p.cur.Kind)
@@ -89,9 +82,7 @@ func (p *parser) expectName(kind string) string {
 	return name
 }
 
-// finishDirective parses a directive's argument list. Arguments are
-// parenthesized: whitespace is insignificant, so an unparenthesized list
-// could not be told from the entry that follows it.
+// finishDirective parses a directive's optional argument list.
 func (p *parser) finishDirective(pos lex.Position, name string) *ast.Directive {
 	d := &ast.Directive{P: pos, N: name}
 	if !p.accept(lex.LPAREN) {

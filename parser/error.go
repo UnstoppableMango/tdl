@@ -17,9 +17,7 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("%s: %s", e.Pos, e.Msg)
 }
 
-// ErrorList is a non-empty list of parse errors, returned by [Parse] when
-// parsing fails. It reports every syntax error found in one pass rather
-// than stopping at the first.
+// ErrorList is the non-empty list of errors [Parse] returns on failure.
 type ErrorList []*Error
 
 func (el ErrorList) Error() string {

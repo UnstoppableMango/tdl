@@ -1,13 +1,7 @@
-// Package ebnf lints the grammar files under docs/.
-//
-// They are Wirth syntax notation rather than ISO 14977, so no ISO tool
-// reads them. golang.org/x/exp/ebnf does: it documents this exact dialect,
-// including the convention that an upper-case name is a nonterminal and a
-// lower-case one is lexical. Parsing and reachability come from there.
-//
-// What is here is the check no library makes. A quoted terminal has to be
-// text lex turns into exactly one token, so a spelling the grammar invents
-// is an error rather than a rule that could never match.
+// Package ebnf lints the grammar files under docs/, which are Wirth syntax
+// notation as read by golang.org/x/exp/ebnf. Parsing and reachability come
+// from that library; this package adds the check that every quoted terminal
+// is text lex turns into exactly one token.
 package ebnf
 
 import (
@@ -30,14 +24,12 @@ type Options struct {
 	Start string
 
 	// LexSpellings requires every quoted terminal to be text lex turns
-	// into exactly one token. It holds for a grammar of TDL and not for a
-	// grammar of anything else.
+	// into exactly one token.
 	LexSpellings bool
 
 	// Annotated reads the `/*@ ... */` comments and holds the file to
 	// them: every production with no expression needs a token binding,
-	// and every name an annotation mentions has to exist. A grammar
-	// carrying no annotations is not one of these.
+	// and every name an annotation mentions has to exist.
 	Annotated bool
 }
 
@@ -50,13 +42,12 @@ type File struct {
 // GrammarOptions reads docs/grammar.ebnf.
 var GrammarOptions = Options{Start: "File", LexSpellings: true, Annotated: true}
 
-// NotationOptions reads docs/notation.ebnf, which describes the notation
-// rather than TDL, so its quoted terminals are not TDL tokens.
+// NotationOptions reads docs/notation.ebnf, whose terminals are not TDL
+// tokens.
 var NotationOptions = Options{Start: "Grammar"}
 
 // ReadFile is [Read] over a file on disk, with every problem joined into
-// one error, for a generator that has nothing to do with a broken grammar
-// but report it.
+// one error.
 func ReadFile(path string, opts Options) (*File, error) {
 	src, err := os.ReadFile(path)
 	if err != nil {
@@ -70,15 +61,11 @@ func ReadFile(path string, opts Options) (*File, error) {
 }
 
 // Read parses a grammar and its annotations, reporting every problem it
-// finds along the way.
-//
-// A file that did not parse returns no grammar and its parse errors
-// alone, since nothing about its contents would be worth saying.
+// finds. A file that does not parse returns no grammar and only its parse
+// errors.
 func Read(filename, src string, opts Options) (*File, []error) {
-	// Before the library, because it hands its scanner no error handler:
-	// text/scanner then prints an unterminated comment or string to
-	// stderr and the parser reports whatever the damage looks like
-	// downstream. Saying it here keeps the diagnostic and the noise out.
+	// The library gives text/scanner no error handler, so it would print
+	// these to stderr instead of returning them.
 	if errs := checkLexical(filename, src); len(errs) > 0 {
 		return nil, errs
 	}
@@ -105,9 +92,8 @@ func Read(filename, src string, opts Options) (*File, []error) {
 	return file, errs
 }
 
-// checkLexical reports what the library's scanner would print rather
-// than return. A Go string cannot span a line, so an unterminated one is
-// a quote with no closing quote before the newline.
+// checkLexical reports an unterminated comment or string. A string cannot
+// span a line.
 func checkLexical(filename, src string) []error {
 	line, lineStart := 1, 0
 	at := func(i int) string {
@@ -155,8 +141,7 @@ func checkLexical(filename, src string) []error {
 	return nil
 }
 
-// flatten turns the library's joined error back into its parts, since a
-// list of positions reads better than one string and tests better too.
+// flatten splits the library's joined error into its parts.
 func flatten(err error) []error {
 	if err == nil {
 		return nil
@@ -167,7 +152,6 @@ func flatten(err error) []error {
 	return []error{err}
 }
 
-// checkSpellings holds the grammar to the lexer.
 func checkSpellings(grammar ebnf.Grammar) []error {
 	var errs []error
 	for _, name := range slices.Sorted(maps.Keys(grammar)) {
@@ -183,13 +167,8 @@ func checkSpellings(grammar ebnf.Grammar) []error {
 	return errs
 }
 
-// checkReservedWords holds the reserved_word production to lex.Keywords.
-// The grammar spells the set out rather than naming it, so a keyword added
-// to lex and not to the grammar, or the other way round, is an error here
-// rather than a difference nobody notices.
-//
-// A grammar without the production is not checked: not every grammar in
-// this notation is about TDL declarations.
+// checkReservedWords holds the reserved_word production, when the grammar
+// has one, to lex.Keywords.
 func checkReservedWords(grammar ebnf.Grammar) []error {
 	prod, ok := grammar["reserved_word"]
 	if !ok {
@@ -219,8 +198,7 @@ func checkReservedWords(grammar ebnf.Grammar) []error {
 }
 
 // lexesAsOneToken reports whether text is the whole of exactly one token.
-// It is not lex.Lookup, because "_" is a legal terminal the lexer scans as
-// an identifier rather than as a fixed spelling.
+// lex.Lookup would reject "_", which scans as an identifier.
 func lexesAsOneToken(text string) bool {
 	l := lex.New("grammar.ebnf", text)
 	first := l.Next()

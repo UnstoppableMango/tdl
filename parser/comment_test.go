@@ -6,8 +6,6 @@ import (
 	"github.com/unstoppablemango/tdl/ast"
 )
 
-// Ordinary comments are collected on the file rather than attached to a
-// node: one can sit anywhere, so the formatter places each by position.
 func TestCommentsAreRecordedInSourceOrder(t *testing.T) {
 	file := parse(t, `// first
 primitive string // second
@@ -37,8 +35,6 @@ type E: Entity {
 	}
 }
 
-// A doc comment belongs to its declaration and must not turn up in the
-// file's ordinary comments as well.
 func TestDocCommentsAreNotOrdinaryComments(t *testing.T) {
 	file := parse(t, `/// docs
 primitive string
@@ -52,8 +48,7 @@ primitive string
 	}
 }
 
-// A regex literal is scanned by rewinding the lexer, which can reach a
-// comment it has already passed. Recording it twice would print it twice.
+// Rescanning a regex rewinds the lexer past comments it already recorded.
 func TestCommentNearRegexIsRecordedOnce(t *testing.T) {
 	file := parse(t, `primitive string
 
@@ -74,10 +69,7 @@ type Email: string where {
 	}
 }
 
-// A comment after the last declaration is placed against the end of the
-// file, so the end has to sit past every comment. Offsets say that
-// exactly, where lines do not: the lexer stops at the final newline
-// without counting it.
+// Compares offsets, since the lexer does not count the final newline.
 func TestFileEndIsPastEveryComment(t *testing.T) {
 	src := "primitive string\n// last\n"
 	file := parse(t, src)
@@ -93,8 +85,6 @@ func TestFileEndIsPastEveryComment(t *testing.T) {
 	}
 }
 
-// Every block records where it closed, which is what a comment on the last
-// line inside it is placed against.
 func TestBlockEndPositions(t *testing.T) {
 	file := parse(t, `primitive string
 
@@ -156,7 +146,6 @@ target go for p {
 	}
 }
 
-// A field without a constraint block has no block to record.
 func TestFieldWithoutConstraintsHasNoEnd(t *testing.T) {
 	file := parse(t, "primitive string\n\ntype E: Entity {\n  id: string\n}\n")
 

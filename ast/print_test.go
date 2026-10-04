@@ -115,8 +115,7 @@ target go for example.aliases {
 	}
 }
 
-// Formatting canonical output must change nothing, and formatting anything
-// else must reach canonical output in one pass.
+// Formatting reaches canonical output in one pass.
 func TestFprintIdempotent(t *testing.T) {
 	messy := `package   p
 primitive string primitive int

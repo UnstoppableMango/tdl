@@ -54,8 +54,7 @@ func (p *parser) parseFunDeps() []*ast.FunDep {
 	}
 }
 
-// parseClassBody parses the members a class may hold: fields and associated
-// type requirements.
+// parseClassBody parses fields and associated type requirements.
 func (p *parser) parseClassBody() ([]ast.Member, ast.Position) {
 	if !p.expect(lex.LBRACE) {
 		p.syncTop()

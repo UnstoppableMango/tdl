@@ -1,13 +1,10 @@
 package ast
 
-// DeclHead is the part every declaration shares: its doc comment, its
-// position, its name, and whether it is deprecated.
+// DeclHead is the part every declaration shares.
 type DeclHead struct {
 	Doc []string
 
-	// DocP is where the doc comment was written, zero without one. The
-	// formatter orders it against the ordinary comments around it, which
-	// are placed by position and not carried by the tree.
+	// DocP is where the doc comment was written, zero without one.
 	DocP Position
 
 	P   Position
@@ -19,15 +16,13 @@ func (h *DeclHead) Pos() Position   { return h.P }
 func (h *DeclHead) Name() string    { return h.N }
 func (h *DeclHead) Head() *DeclHead { return h }
 
-// Deprecation marks a declaration, field, or variant as on its way out.
+// Deprecation marks a declaration, field, or variant as deprecated.
 type Deprecation struct {
 	P      Position
 	Reason string // "" when written without a reason
 }
 
 // ClassRef names a class, optionally qualified and applied to arguments.
-// It is syntactically a named type reference, but the two are different
-// kinds of thing and the tree keeps them apart.
 type ClassRef struct {
 	P         Position
 	Qualifier string
@@ -35,8 +30,7 @@ type ClassRef struct {
 	Args      []*TypeArg
 }
 
-// NewtypeDecl is a `type Name: Base` declaration. A newtype is distinct
-// from the type it is built on.
+// NewtypeDecl is a `type Name: Base` declaration.
 type NewtypeDecl struct {
 	DeclHead
 	Params      []*TypeParam
@@ -46,9 +40,7 @@ type NewtypeDecl struct {
 	End         Position // the constraint block's `}`; zero without one
 }
 
-// StructDecl is a declaration with a body of members: a `type` or a `mixin`.
-// The two share a shape and differ in meaning, so the keyword is recorded
-// rather than split across two identical node types.
+// StructDecl is a `type` or `mixin` declaration with a body of members.
 type StructDecl struct {
 	DeclHead
 	Keyword  string // "type" or "mixin"
@@ -59,8 +51,7 @@ type StructDecl struct {
 	End      Position // the body's `}`
 }
 
-// EnumDecl is a closed set of variants. A variant may carry fields, which
-// makes enum the language's sum type.
+// EnumDecl is a closed set of variants, each optionally carrying fields.
 type EnumDecl struct {
 	DeclHead
 	Params   []*TypeParam
@@ -70,8 +61,7 @@ type EnumDecl struct {
 	End      Position // the body's `}`
 }
 
-// TargetDecl is a `target go for billing { ... }` block. Everything a code
-// generator needs lives here rather than in the model.
+// TargetDecl is a `target go for billing { ... }` block.
 type TargetDecl struct {
 	DeclHead
 	For     string // the dotted package name the target applies to
@@ -84,8 +74,7 @@ type Member interface {
 	Pos() Position
 }
 
-// Field is a named, typed member. Its head is a declaration's: a doc
-// comment, a position, a name, and a deprecation.
+// Field is a named, typed member.
 type Field struct {
 	DeclHead
 	Owned       bool // composition rather than reference
@@ -110,9 +99,8 @@ type Variant struct {
 	End    Position // the payload's `}`; zero without one
 }
 
-// TargetEntry is one entry in a [TargetDecl]: a path scoping a nested
-// block, a path mapped to a directive, or a bare directive applying to the
-// enclosing scope.
+// TargetEntry is one entry in a [TargetDecl]: a nested block, a path
+// mapped to a directive, or a bare directive.
 type TargetEntry struct {
 	P         Position
 	Path      string         // "" for a bare directive
@@ -121,15 +109,14 @@ type TargetEntry struct {
 	End       Position       // the nested block's `}`; zero without one
 }
 
-// Directive is an opaque instruction to a backend. The compiler checks its
-// shape and hands it over; what it means is the backend's business.
+// Directive is an instruction to a backend, opaque to the compiler.
 type Directive struct {
 	P    Position
 	N    string
 	Args []*Literal
 }
 
-// LiteralKind identifies which form a [Literal] takes.
+// LiteralKind is the form a [Literal] takes.
 type LiteralKind int
 
 const (
@@ -143,8 +130,7 @@ const (
 	LitRange // 3..254, 1.., ..254
 )
 
-// Literal is a literal value: a field default, a constraint argument, or a
-// directive argument.
+// Literal is a field default, constraint argument, or directive argument.
 type Literal struct {
 	P     Position
 	Kind  LiteralKind
@@ -154,69 +140,59 @@ type Literal struct {
 	Hi    *Literal   // set for LitRange; nil when the range is open above
 }
 
-// Constraint is one entry in a `where { ... }` block.
-//
-// The set of names is open. The compiler checks the arity and argument
-// kinds of the standard names and passes everything else through, so a
-// backend may understand a constraint the compiler has never heard of.
+// Constraint is one entry in a `where { ... }` block. The set of names is
+// open.
 type Constraint struct {
 	P    Position
 	N    string
 	Args []*Literal
 }
 
-// ClassDecl is a contract. It declares nothing into the types that satisfy
-// it; conformance is nominal and always declared.
+// ClassDecl is a class. Conformance to it is nominal and always declared.
 type ClassDecl struct {
 	DeclHead
 	Params   []*TypeParam
 	FunDeps  []*FunDep
-	Conforms []*ClassRef // classes this one requires
+	Conforms []*ClassRef // superclasses
 	Requires []*ClassRef
 	Members  []Member
 	End      Position // the body's `}`
 }
 
-// FunDep states that some parameters determine others, which makes a
-// multi-parameter class a function rather than a table.
+// FunDep states that some class parameters determine others.
 type FunDep struct {
 	P    Position
 	From []string
 	To   []string
 }
 
-// AssocTypeReq is a `type Cursor` requirement: an implementor supplies a
-// type, and an instance binds it. Nothing deprecates one, so Dep is nil.
+// AssocTypeReq is a `type Cursor` requirement in a class. Dep is always
+// nil.
 type AssocTypeReq struct {
 	DeclHead
 	Kind *Kind
 }
 
 // InstanceDecl declares that a type satisfies a class.
-//
-// `instance C for T` is sugar for `instance C<T>`, available when the class
-// takes one parameter. The parser records which was written.
 type InstanceDecl struct {
 	DeclHead // N is the class name
 	Params   []*TypeParam
 	Class    *ClassRef
-	For      *TypeRef // set when written with `for`, nil when written with type arguments
+	For      *TypeRef // set for `instance C for T`, nil for `instance C<T>`
 	Requires []*ClassRef
 	Binds    []*AssocTypeBind
 	End      Position // the bind block's `}`; zero without one
 }
 
-// AssocTypeBind supplies a type for one of a class's associated type
-// requirements.
+// AssocTypeBind binds an associated type in an instance.
 type AssocTypeBind struct {
 	P      Position
 	N      string
 	Target *TypeRef
 }
 
-// UnitDecl is a `unit kg` or `unit N = kg*m/s^2` declaration. A unit
-// without an expression is a base unit; one with an expression is derived
-// and reduces to base dimensions before comparison.
+// UnitDecl is a base `unit kg` or a derived `unit N = kg*m/s^2`
+// declaration.
 type UnitDecl struct {
 	DeclHead
 	Expr *UnitExpr // nil for a base unit
@@ -237,10 +213,8 @@ type UnitTerm struct {
 	Paren *UnitExpr // set for a parenthesized sub-expression
 }
 
-// TypeArg is one argument in a `<...>` list. It is a type or a unit, and
-// the two are told apart by kind rather than by syntax: a bare name could
-// be either, so the parser records what was written and the resolver
-// decides against the declaration being applied.
+// TypeArg is one argument in a `<...>` list: a type or a unit. A bare name
+// is recorded as a type and the resolver decides.
 type TypeArg struct {
 	P    Position
 	Type *TypeRef  // set unless Unit is
