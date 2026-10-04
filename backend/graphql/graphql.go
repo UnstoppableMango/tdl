@@ -1,13 +1,5 @@
-// Package graphql generates a GraphQL schema from a resolved model.
-//
-// docs/design/schema-backends.md has the mapping and the reasons for it.
-// Three things are worth knowing before reading the output. It declares
-// output types only: an input type is a second copy of every type with its
-// own rules, and nothing here needs one yet. A primitive GraphQL has no
-// type for is a custom scalar, declared only when something uses it. And
-// an enum whose variants carry fields is a union of one object type per
-// variant, where a variant with no fields carries a placeholder field,
-// because a GraphQL object needs at least one.
+// Package graphql generates a GraphQL schema of output types from a
+// resolved model. The mapping is in docs/design/schema-backends.md.
 package graphql
 
 import (
@@ -24,8 +16,7 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// Name is what this backend is called, in a target block and as
-// tdl-gen-graphql on PATH.
+// Name names this backend in a target block and as tdl-gen-graphql.
 const Name = "graphql"
 
 // Backend implements [plugin.Backend].
@@ -35,19 +26,18 @@ func (Backend) Describe() plugin.Description {
 	return plugin.Description{
 		Name:    Name,
 		Version: "0.1.0",
-		// Each request is answered from the request alone.
+		// Each request stands alone.
 		Reuse: true,
 		Directives: []*plugin.DirectiveSpec{
-			// The GraphQL name for a type, a field, an enum value, or a
-			// variant's object type.
+			// The GraphQL name for a type, field, enum value, or variant
+			// object type.
 			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_STRING}},
 		},
 	}
 }
 
-// scalars maps a TDL primitive to the GraphQL scalar standing for it.
-// GraphQL's Int is 32 bits and TDL's int has no width, so an int is a
-// custom Long rather than a silent truncation.
+// scalars maps a TDL primitive to its GraphQL scalar. GraphQL's Int is
+// 32-bit, so a wider integer is a custom scalar.
 var scalars = map[string]string{
 	"string":   "String",
 	"int":      "Long",
@@ -66,9 +56,8 @@ var scalars = map[string]string{
 	"duration": "Duration",
 }
 
-// custom describes each scalar this backend declares. TDL defines no wire
-// encoding, so a description says what the value is and not how it is
-// written.
+// custom describes each custom scalar by meaning, since TDL defines no wire
+// encoding.
 var custom = map[string]string{
 	"Long":     "A 64-bit signed integer.",
 	"UInt64":   "A 64-bit unsigned integer.",
@@ -85,19 +74,18 @@ var builtin = map[string]bool{"String": true, "Int": true, "Float": true, "Boole
 
 var ident = regexp.MustCompile(`^[_A-Za-z][_0-9A-Za-z]*$`)
 
-// placeholder is the field a variant with no fields carries.
+// placeholder is the field a fieldless variant carries, since a GraphQL
+// object needs one.
 const placeholder = "_"
 
 type generator struct {
 	*emit.Session
 
-	// local is every type name the model's own declarations take, a
-	// variant's object type among them, which a custom scalar of the same
-	// name would collide with.
+	// local is every type name the model's declarations take, variant
+	// object types included, for a custom scalar to collide with.
 	local map[string]bool
 
-	// names is every type name declared, with the declaration that
-	// declared it.
+	// names maps each declared type name to the declaration declaring it.
 	names map[string]string
 
 	// uses is the custom scalars the declaration being rendered needs.
@@ -110,8 +98,7 @@ type rendered struct {
 	uses map[string]bool
 }
 
-// Generate returns one .graphql file holding every declaration the model
-// owns.
+// Generate returns one .graphql file holding the model's declarations.
 func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Response, error) {
 	g := &generator{
 		Session: emit.NewSession(req, "GraphQL"),
@@ -175,9 +162,8 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	return g.Response([]*plugin.File{{Path: path, Content: []byte(b.String())}}), nil
 }
 
-// declares is every type name a declaration takes, read before anything is
-// rendered so that a custom scalar sees the whole namespace rather than the
-// part of it declared so far.
+// declares is every type name a declaration takes, read before rendering
+// so a custom scalar sees the whole namespace.
 func (g *generator) declares(d *ir.Decl) []string {
 	if d.GetStructure() == nil && d.GetEnumeration() == nil {
 		return nil
@@ -213,8 +199,7 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	case d.GetUnit() != nil:
 		return "", emit.Unsupported(pos, "%s is a unit, and units are not generated yet", name)
 	case d.GetStructure() == nil && d.GetEnumeration() == nil && d.GetNewtype() == nil:
-		// An alias is expanded where it is used, and a model's own
-		// primitive names an opaque root; neither declares anything.
+		// An alias or a primitive declares nothing.
 		return "", nil
 	}
 	if len(d.Params()) > 0 {
@@ -222,8 +207,7 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	}
 
 	if n := d.GetNewtype(); n != nil {
-		// A newtype is expanded where it is used: a custom scalar per
-		// newtype would need server code for each one.
+		// A newtype is expanded, since a custom scalar would need server code.
 		ref, err := g.Resolve(n.GetBase())
 		if err == nil {
 			_, err = g.Expand(ref)
@@ -281,8 +265,7 @@ func (g *generator) typeName(name string, pos *ir.Position) error {
 	return nil
 }
 
-// object renders an object type. An entity, a value, and a mixin differ in
-// what they mean and not in what they emit.
+// object renders an entity, a value, or a mixin, which emit alike.
 func (g *generator) object(b *strings.Builder, name string, meta *ir.Meta, fields []*ir.Field) ([]string, error) {
 	if len(fields) == 0 {
 		return nil, emit.Unsupported(meta.GetPosition(), "%s has no fields, and a GraphQL object needs at least one", name)
@@ -343,7 +326,7 @@ func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 }
 
 // union renders an enum where any variant carries fields: a union of one
-// object type per variant, named for the enum and the variant.
+// object type per variant.
 func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	name := g.DeclName(d, emit.Pascal)
 	declared := []string{name}
@@ -450,8 +433,8 @@ func claim(seen map[string]bool, owner, name string, pos *ir.Position) error {
 	return nil
 }
 
-// typeDoc is a type's description. A type cannot carry @deprecated, so its
-// deprecation is said in the description instead.
+// typeDoc is a type's description, carrying its deprecation, since a type
+// cannot carry @deprecated.
 func typeDoc(meta *ir.Meta) []string {
 	lines := emit.Doc(meta)
 	if reason, ok := emit.Deprecated(meta); ok {
@@ -483,8 +466,7 @@ func description(b *strings.Builder, indent string, lines []string) {
 	fmt.Fprintf(b, "%s\"\"\"\n", indent)
 }
 
-// deprecated is the @deprecated directive for a field or an enum value, or
-// "".
+// deprecated is a field's or enum value's @deprecated directive, or "".
 func deprecated(meta *ir.Meta) string {
 	reason, ok := emit.Deprecated(meta)
 	switch {

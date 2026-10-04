@@ -75,16 +75,12 @@ func TestGenerate(t *testing.T) {
 		}
 	}
 
-	// A model carries directives for every target block, so a backend that
-	// does not filter would report another backend's.
 	if strings.Contains(out, "directive table") {
 		t.Errorf("another target's directive leaked through:\n%s", out)
 	}
 }
 
-// A backend says what it cannot handle in a diagnostic rather than by
-// returning an error, because a diagnostic reaches the user with a
-// position attached and does not stop the run.
+// A diagnostic is a positioned warning and does not suppress the output.
 func TestDiagnostics(t *testing.T) {
 	model := &ir.Model{
 		Package: "shop",
@@ -118,16 +114,12 @@ func TestDiagnostics(t *testing.T) {
 		t.Errorf("position = %+v", d.GetPosition())
 	}
 
-	// A warning does not stop a run, so the file is still there.
 	if len(resp.GetFiles()) != 1 {
 		t.Error("a warning suppressed the output")
 	}
 }
 
-// The prelude is matched by its whole name. A suffix match would also
-// claim a file of the model's own called `mystd.tdl` and report its
-// declarations as borrowed, so a name ending in the prelude's is the case
-// that tells the two apart.
+// The prelude is matched by its whole name, not as a suffix.
 func TestNearMissPreludeNameIsOwn(t *testing.T) {
 	model := &ir.Model{
 		Package: "shop",

@@ -14,30 +14,23 @@ import (
 )
 
 // A `foreign` directive maps a declaration to a type another package
-// declares: the generated package imports it and refers to it, and declares
-// nothing for it. That is what makes the decimal, uuid, and date
-// placeholders survivable, since the type a model means for them is a
-// dependency this backend must not choose.
+// declares, which the generated code imports instead of declaring. It is how
+// a model replaces the decimal, uuid, and date placeholders.
 //
-// A reference is qualified by an alias the import states, rather than by the
-// path's last segment, because a package's name is not always its last
-// segment (`gopkg.in/yaml.v3` is package `yaml`) and nothing in the model
-// says which it is.
+// Every foreign import gets an explicit alias, since a package's name is not
+// always its path's last segment (`gopkg.in/yaml.v3` is package `yaml`).
 
-// foreignType is what a mapping states, with the alias its references are
-// qualified by.
+// foreignType is a mapping and the alias its references are qualified by.
 type foreignType struct {
 	path  string
 	name  string
 	alias string
 }
 
-// ref is the Go expression naming the foreign type.
 func (f foreignType) ref() string { return f.alias + "." + f.name }
 
-// planForeign reads every mapping before anything is rendered, since a use
-// of a foreign type anywhere asks for its alias, and two packages ending in
-// one segment have to be told apart across the whole model.
+// planForeign reads every mapping before rendering, so aliases are unique
+// across the whole model.
 func (g *generator) planForeign() {
 	g.foreign = map[*ir.Decl]foreignType{}
 	g.externs = map[*ir.Extern]foreignType{}
@@ -52,7 +45,6 @@ func (g *generator) planForeign() {
 		g.foreign[d] = f
 		g.warnForeignConstraints(d)
 
-		// A key is a method, and a method is declared beside the type.
 		if key, ok := g.Find(d.GetDirectives(), "key"); ok {
 			g.Warn(emit.Unsupported(key.GetPosition(),
 				"%s is a foreign type, so its key is not generated: a method is declared beside the type",
@@ -60,8 +52,7 @@ func (g *generator) planForeign() {
 		}
 	}
 
-	// A target path can name a declaration another package owns, and its
-	// mapping is read the same way.
+	// A target path can also map a declaration another TDL package owns.
 	for _, e := range g.Model.GetExterns() {
 		if f, ok := g.mapping(e.GetDirectives(), e.GetPackage()+"."+e.GetName(), byPath); ok {
 			g.externs[e] = f
@@ -69,9 +60,9 @@ func (g *generator) planForeign() {
 	}
 }
 
-// mapping reads the foreign directive among dirs, warning when the mapping of
-// of is one the generated code could not refer to. byPath holds the alias each
-// import path already has, so one path is imported once across the model.
+// mapping reads the foreign directive among dirs, warning when it is
+// unusable. byPath holds each import path's alias, so a path is imported
+// under one alias across the model.
 func (g *generator) mapping(dirs []*ir.Directive, of string, byPath map[string]string) (foreignType, bool) {
 	dir, ok := g.Find(dirs, "foreign")
 	if !ok {
@@ -107,9 +98,8 @@ func (g *generator) externForeign(t *ir.Type) (foreignType, bool) {
 	return f, ok
 }
 
-// warnForeignConstraints says at each constraint on a foreign declaration
-// that nothing checks it: the values are another package's, and the methods
-// a check would live on are declared beside the type rather than here.
+// warnForeignConstraints warns at each constraint on a foreign declaration,
+// since a foreign type cannot carry a Validate method.
 func (g *generator) warnForeignConstraints(d *ir.Decl) {
 	of := emit.LastSegment(d.GetMeta().GetName())
 	cs := slices.Clone(d.GetNewtype().GetValueConstraints())
@@ -139,14 +129,10 @@ func foreignProblem(pos *ir.Position, of, path, name string) error {
 	return nil
 }
 
-// alias is the identifier an import of path is given, derived from the
-// segments that tell it apart from the imports already taken.
-//
-// A module's major version and a `go-` prefix are what a path carries and a
-// package name does not, so `gopkg.in/yaml.v3`, `example.com/money/v2`, and
-// `github.com/google/go-cmp` are `yaml`, `money`, and `cmp`. The alias is
-// explicit either way, so this is about what a reader expects rather than
-// about the reference resolving.
+// alias is the identifier an import of path is given, from its last one or
+// two segments, or numbered when those are taken. A major version and a
+// `go-` prefix are dropped, so `gopkg.in/yaml.v3`, `example.com/money/v2`,
+// and `github.com/google/go-cmp` are `yaml`, `money`, and `cmp`.
 func (g *generator) alias(path string) string {
 	segments := strings.Split(major.ReplaceAllString(path, ""), "/")
 	candidates := []string{identifier(last(segments, 1))}
@@ -171,12 +157,9 @@ func (g *generator) alias(path string) string {
 	}
 }
 
-// aliasTaken reports whether an alias would shadow something the generated
-// file already names: another import, a declaration, or a Go predeclared
-// identifier.
-//
-// A mapping onto a package the backend imports itself is not a collision,
-// since one import of one path is what the file writes either way.
+// aliasTaken reports whether an alias would shadow another import, a
+// declaration, or a predeclared identifier. A mapping onto a package the
+// backend imports itself is not a collision.
 func (g *generator) aliasTaken(alias, path string) bool {
 	if p, ok := importNames[alias]; ok && p != path {
 		return true
@@ -185,13 +168,11 @@ func (g *generator) aliasTaken(alias, path string) bool {
 		types.Universe.Lookup(alias) != nil || token.IsKeyword(alias) || g.declares(alias)
 }
 
-// major matches the major version a module path states, as its own segment
-// or as a suffix of the last one.
+// major matches a module path's major version suffix.
 var major = regexp.MustCompile(`(/v[0-9]+|\.v[0-9]+)$`)
 
-// identifier is a path's trailing segments as one Go identifier, with the
-// `go-` prefix a repository name often carries and whatever Go does not
-// accept in an identifier dropped: `go-cmp` is `cmp`.
+// identifier makes s a Go identifier, dropping a `go-` prefix and any
+// character an identifier cannot hold.
 func identifier(s string) string {
 	s = strings.TrimPrefix(s, "go-")
 	var b strings.Builder
@@ -215,7 +196,7 @@ func last(segments []string, n int) string {
 }
 
 // isForeign reports whether a declaration is mapped to another package's
-// type, which is what makes it something to import rather than to declare.
+// type.
 func (g *generator) isForeign(d *ir.Decl) bool {
 	_, ok := g.foreign[d]
 	return ok

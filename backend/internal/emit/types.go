@@ -18,9 +18,8 @@ const (
 	Nullable
 	// Named is a struct, an enum, or a newtype. [Ref.Decl] is it.
 	Named
-	// Extern is a declaration another package owns. [Ref.Extern] is it,
-	// and [Ref.Name] is its qualified name. Only a [Session] with Externs
-	// set resolves one.
+	// Extern is a declaration from another package; [Ref.Name] is its
+	// qualified name. Only a [Session] with Externs set resolves one.
 	Extern
 )
 
@@ -44,23 +43,18 @@ type Ref struct {
 	// Extern is the extern when Form is [Extern].
 	Extern *ir.Extern
 
-	// ID is the type table entry this was resolved from, after alias
-	// expansion.
+	// ID is the type table entry, after alias expansion.
 	ID  *ir.ID
 	Pos *ir.Position
 }
 
-// Resolve walks a type reference into a [Ref], or says why this phase
-// cannot generate it.
+// Resolve walks a type reference into a [Ref], or returns an
+// [UnsupportedError] saying why it cannot be generated.
 //
-// The prelude is replaceable, so this reads the spellings lowering itself
-// knows (List, Set, Map, Option, Nullable) rather than anything about what
-// the declarations mean. A model that redeclares `primitive string` in its
-// own file reaches the same entry, because what matters is that the
-// constructor is a primitive named `string`.
-//
-// A primitive of any name resolves; whether the target has a type for it is
-// the backend's decision.
+// It matches the spellings lowering knows (List, Set, Map, Option,
+// Nullable) by name, since the prelude is replaceable. A primitive of any
+// name resolves; whether the target has a type for it is the backend's
+// decision.
 func (s *Session) Resolve(id *ir.ID) (*Ref, error) {
 	t := s.Model.Type(id)
 	if t == nil {
@@ -70,8 +64,8 @@ func (s *Session) Resolve(id *ir.ID) (*Ref, error) {
 
 	switch {
 	case t.GetParam() != nil:
-		// Parameters survive lowering so a language with generics can emit
-		// them. No backend emits them yet.
+		// A backend with generics walks the type itself rather than
+		// through Resolve.
 		return nil, Unsupported(pos, "type parameter %s: generics are not generated yet", t.GetParam().GetName())
 	case t.GetUnit() != nil:
 		return nil, Unsupported(pos, "a unit-typed field has no %s type yet", s.Lang)
@@ -89,7 +83,6 @@ func (s *Session) Resolve(id *ir.ID) (*Ref, error) {
 	}
 	name := decl.GetMeta().GetName()
 
-	// An alias is transparent, so it is expanded rather than referenced.
 	if a := decl.GetAlias(); a != nil {
 		return s.Resolve(a.GetTarget())
 	}
@@ -126,10 +119,7 @@ func (s *Session) Resolve(id *ir.ID) (*Ref, error) {
 		return ref, nil
 	}
 
-	// Option and Nullable both mean "may be absent". SyntacticForm records
-	// which spelling was written and is deliberately not read: lowering is
-	// authoritative, and generating two shapes would make the sugar
-	// semantic after the compiler decided it was not.
+	// SyntacticForm is deliberately not read: the sugar is not semantic.
 	if decl.GetEnumeration() != nil && (name == "Option" || name == "Nullable") && len(args) == 1 {
 		ref.Form = Option
 		if name == "Nullable" {

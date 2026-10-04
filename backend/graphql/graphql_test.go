@@ -27,9 +27,8 @@ func generate(t *testing.T, b *irtest.Builder) *plugin.Response {
 	return resp
 }
 
-// check returns the response's one file, and asserts it loads as a schema.
-// Loading validates as well as parses, so a field naming a type a skipped
-// declaration left behind fails here.
+// check returns the response's one file, and asserts it loads and
+// validates as a schema, so a dangling reference fails.
 func check(t *testing.T, resp *plugin.Response) string {
 	t.Helper()
 	if len(resp.GetFiles()) != 1 {
@@ -144,8 +143,7 @@ func TestScalarsAreDeclaredOnlyWhenUsed(t *testing.T) {
 	absent(t, check(t, generate(t, b)), "scalar")
 }
 
-// GraphQL's Int is signed 32-bit, so int32 is Int. int64 and uint32 fit a
-// Long, and uint64 needs a scalar of its own.
+// int32 is Int, int64 and uint32 are Long, and uint64 is UInt64.
 func TestFixedWidthNumerics(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(value("Sizes",
@@ -197,8 +195,8 @@ func TestNewtypesExpand(t *testing.T) {
 	absent(t, src, "Sku")
 }
 
-// A shape GraphQL cannot express is a warning, the declaration reaching it
-// is skipped, and so is everything naming that declaration.
+// An inexpressible shape warns and skips its declaration and every
+// declaration naming it.
 func TestUnsupportedShapesAreSkipped(t *testing.T) {
 	for _, tt := range []struct {
 		name  string
@@ -229,8 +227,7 @@ func TestUnsupportedShapesAreSkipped(t *testing.T) {
 	}
 }
 
-// A declaration taking a built-in scalar's name, or the name of a custom
-// scalar something needs, would collide with it.
+// A declaration named like a built-in or a used custom scalar is skipped.
 func TestScalarNames(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(value("ID", irtest.Field("raw", b.Named("string"))))
@@ -246,8 +243,7 @@ func TestScalarNames(t *testing.T) {
 	contains(t, src, "type Long")
 }
 
-// A variant's object type takes a name in the same namespace the model's
-// own declarations take theirs from, so a custom scalar collides with one.
+// A custom scalar collides with a variant's object type too.
 func TestScalarNamesAgainstVariants(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(enum("Payment",
@@ -265,8 +261,6 @@ func TestScalarNamesAgainstVariants(t *testing.T) {
 	contains(t, src, "type Long")
 }
 
-// Two variants naming their object types the same would declare one type
-// twice, which the check against earlier declarations does not see.
 func TestVariantsSharingAName(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(value("Fine", irtest.Field("a", b.Named("string"))))
@@ -284,7 +278,6 @@ func TestVariantsSharingAName(t *testing.T) {
 	contains(t, src, "type Fine")
 }
 
-// GraphQL has no empty enum, so one is skipped rather than emitted.
 func TestEmptyEnumsAreSkipped(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(value("Fine", irtest.Field("a", b.Named("string"))))
@@ -332,8 +325,8 @@ func TestDocsAndDeprecation(t *testing.T) {
 	)
 }
 
-// Every case in the conformance corpus, and the smoke fixture, generates a
-// schema GraphQL loads, whatever this backend warned about.
+// Every conformance case and the smoke fixture generate a schema GraphQL
+// loads.
 func TestConformance(t *testing.T) {
 	corpus := filepath.Join("..", "..", "testdata", "conformance")
 	dirs := []string{filepath.Join("..", "..", "testdata", "gen", "smoke")}

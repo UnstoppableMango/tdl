@@ -8,22 +8,14 @@ import (
 	"github.com/unstoppablemango/tdl/ir"
 )
 
-// A class is a Go interface whose one method is unexported, and each
-// declaration satisfying the class carries that method. Conformance in TDL is
-// nominal and always declared, and an unexported method is what makes it so
-// in Go: nothing outside the package can implement the interface, and nothing
-// inside implements it without being generated to.
-//
-// A class's fields are not methods of the interface. The declarations
-// satisfying it already declare them, Go refuses a field and a method with
-// one name, and a getter under another name is API the model never asked
-// for. Generated code never calls into a type argument's values, so a
-// constraint's only job is to say which types may be arguments, and the
-// marker says exactly that.
+// A class is a Go interface with one unexported marker method, which each
+// satisfying declaration carries, keeping conformance nominal as in TDL.
+// A class's fields are not interface methods: Go refuses a field and a
+// method with one name, and generated code never calls into a type
+// argument, so the marker is all a constraint needs.
 
 // planClasses decides which classes are generated and which declarations
-// carry each marker, before anything is rendered: a use of a constrained
-// declaration anywhere in the table asks whether its argument carries one.
+// carry each marker.
 func (g *generator) planClasses() {
 	g.genClass = map[int32]bool{}
 	g.marks = map[int32][]int32{}
@@ -34,9 +26,8 @@ func (g *generator) planClasses() {
 		}
 	}
 
-	// A class reaching itself is dropped before anything asks what it
-	// requires: a Go interface cannot embed itself, directly or through
-	// another, and the rest of the plan reads the classes that remain.
+	// A Go interface cannot embed itself, so a class whose requires clause
+	// reaches itself is dropped first.
 	var cyclic []int32
 	for i := range decls {
 		if g.genClass[int32(i)] && g.requiresCycle(int32(i)) {
@@ -53,9 +44,7 @@ func (g *generator) planClasses() {
 		if !g.genClass[int32(i)] {
 			continue
 		}
-		// A class the interface cannot embed is dropped by
-		// [generator.supers], so it is reported once here rather than at
-		// each of that function's callers.
+		// Reported once here; [generator.supers] drops these silently.
 		for _, ref := range class.GetClass().GetRequiresClasses() {
 			if err := g.superProblem(class, ref); err != nil {
 				g.Warn(err)
@@ -81,8 +70,8 @@ func (g *generator) planClasses() {
 	}
 }
 
-// markerProblem says why a declaration satisfying a class cannot carry its
-// marker, or returns nil when it can.
+// markerProblem says why a declaration cannot carry a class's marker, or
+// returns nil.
 func (g *generator) markerProblem(target, class *ir.Decl) error {
 	pos := target.GetMeta().GetPosition()
 	name, cname := target.GetMeta().GetName(), class.GetMeta().GetName()
@@ -101,7 +90,7 @@ func (g *generator) markerProblem(target, class *ir.Decl) error {
 }
 
 // instanceProblem says why an instance of a generated class does not become
-// a marker, or returns nil when it does or is not this backend's to say.
+// a marker, or returns nil.
 func (g *generator) instanceProblem(inst *ir.Instance) error {
 	ref := inst.GetClass()
 	if ref.GetExtern() != nil || !g.genClass[ref.GetClass().GetIndex()] {
@@ -127,7 +116,7 @@ func (g *generator) instanceProblem(inst *ir.Instance) error {
 }
 
 // pointerOrInterface reports whether a type's Go underlying type is a pointer
-// or an interface, neither of which Go lets a declared type add methods to.
+// or an interface, which cannot carry methods.
 func (g *generator) pointerOrInterface(id *ir.ID, seen map[int32]bool) bool {
 	t := g.Model.Type(id)
 	d := g.Model.Decl(t.GetCtor())
@@ -165,8 +154,7 @@ func (g *generator) hasField(d *ir.Decl, goName string) bool {
 	return false
 }
 
-// class renders a class as the interface its satisfying declarations
-// implement, embedding the classes it requires.
+// class renders a class as an interface embedding the classes it requires.
 func (g *generator) class(b *strings.Builder, decl *ir.Decl) error {
 	pos, name := decl.GetMeta().GetPosition(), decl.GetMeta().GetName()
 	if len(decl.GetClass().GetParams()) > 0 {
@@ -193,7 +181,7 @@ func (g *generator) class(b *strings.Builder, decl *ir.Decl) error {
 }
 
 // requiresCycle reports whether a class's requires clause reaches the class
-// itself, over the classes that are candidates to be generated.
+// itself through generated classes.
 func (g *generator) requiresCycle(start int32) bool {
 	decls := g.Model.GetDecls()
 	seen := map[int32]bool{}
@@ -220,11 +208,8 @@ func (g *generator) requiresCycle(start int32) bool {
 	return reaches(start)
 }
 
-// supers is the generated classes a class requires.
-//
-// It says nothing about what it drops: [generator.planClasses] has already
-// warned about each of those once, and this is asked again for every use of
-// a constrained declaration.
+// supers is the generated classes a class requires. [generator.planClasses]
+// warns about the rest.
 func (g *generator) supers(class *ir.Decl) []int32 {
 	var out []int32
 	for _, ref := range class.GetClass().GetRequiresClasses() {
@@ -238,13 +223,8 @@ func (g *generator) supers(class *ir.Decl) []int32 {
 	return out
 }
 
-// superProblem says why a class a class requires cannot be embedded in its
-// Go interface, or returns nil when it can.
-//
-// Embedding is what makes the requirement hold, since a type satisfying the
-// interface carries the method of everything it embeds. A requirement Go
-// cannot embed is dropped and the interface is weaker than the model says,
-// which is worth saying out loud.
+// superProblem says why a required class cannot be embedded in the class's
+// interface, or returns nil. A dropped requirement weakens the interface.
 func (g *generator) superProblem(class *ir.Decl, ref *ir.ClassRef) error {
 	pos := ref.GetPosition()
 	if pos == nil {
@@ -268,8 +248,8 @@ func (g *generator) superProblem(class *ir.Decl, ref *ir.ClassRef) error {
 	return nil
 }
 
-// writeMarkers writes the method marking the declaration being rendered as
-// satisfying each class it carries.
+// writeMarkers writes a marker method for each class the declaration being
+// rendered satisfies.
 func (g *generator) writeMarkers(b *strings.Builder, recv string) {
 	for _, name := range g.markedClasses() {
 		fmt.Fprintf(b, "\nfunc (%s) is%s() {}\n", recv, name)
@@ -286,9 +266,8 @@ func (g *generator) markedClasses() []string {
 	return names
 }
 
-// hasMarker reports whether a declaration carries a class's marker and the
-// marker of every class that class requires, which is what implementing its
-// interface takes.
+// hasMarker reports whether a declaration implements a class's interface:
+// it carries the class's marker and those of every class it requires.
 func (g *generator) hasMarker(decl, class int32) bool {
 	found := false
 	for _, c := range g.marks[decl] {
@@ -305,8 +284,7 @@ func (g *generator) hasMarker(decl, class int32) bool {
 	return true
 }
 
-// implies reports whether satisfying class c means satisfying want: they are
-// one class, or c requires want, directly or through the classes it requires.
+// implies reports whether c is want or requires it, directly or not.
 func (g *generator) implies(c, want int32, seen map[int32]bool) bool {
 	if c == want {
 		return true
@@ -324,9 +302,8 @@ func (g *generator) implies(c, want int32, seen map[int32]bool) bool {
 }
 
 // paramClasses resolves a declaration's `requires` clause to the generated
-// classes constraining each parameter. With report set, an entry Go cannot
-// state is a warning; either way it is dropped, since the constraint is what
-// is missing and not the type.
+// classes constraining each parameter. An entry Go cannot state is dropped,
+// with a warning when report is set.
 func (g *generator) paramClasses(decl *ir.Decl, report bool) [][]int32 {
 	if len(decl.Params()) == 0 {
 		return nil
@@ -373,9 +350,8 @@ func (g *generator) constrains(decl *ir.Decl, ref *ir.ClassRef) (int, error) {
 		cname, decl.GetMeta().GetName())
 }
 
-// satisfies reports whether a type argument satisfies a generated class: a
-// declaration carrying its marker, or a parameter whose constraint implies
-// it.
+// satisfies reports whether a type argument carries a generated class's
+// marker, or is a parameter whose constraint implies it.
 func (g *generator) satisfies(id *ir.ID, fr *frame, class int32) bool {
 	t := g.Model.Type(id)
 	if t == nil {

@@ -27,11 +27,8 @@ func generate(t *testing.T, b *irtest.Builder) *plugin.Response {
 	return resp
 }
 
-// check returns the response's one file, and asserts Thrift accepts it.
-//
-// Parsing alone accepts a reference to a type nothing declares, which is
-// what a skipped declaration leaves behind, so the symbols are resolved and
-// the semantic checks run too.
+// check returns the response's one file, and asserts Thrift accepts it with
+// symbols resolved, so a dangling reference fails.
 func check(t *testing.T, resp *plugin.Response) string {
 	t.Helper()
 	if len(resp.GetFiles()) != 1 {
@@ -160,8 +157,7 @@ func TestStructs(t *testing.T) {
 	)
 }
 
-// Thrift has no unsigned types, so uint32 widens to i64, which holds every
-// value of it, and Thrift's one floating-point type is double.
+// uint32 widens to i64, and every float is a double.
 func TestFixedWidthNumerics(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(value("Sizes",
@@ -181,8 +177,7 @@ func TestFixedWidthNumerics(t *testing.T) {
 	)
 }
 
-// No Thrift type holds every uint64, so a field of one is a warning at the
-// reference and its declaration is skipped.
+// The warning is at the reference.
 func TestUint64IsSkipped(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(value("Fine", irtest.Field("a", b.Named("int64"))))
@@ -210,8 +205,7 @@ func TestUint64IsSkipped(t *testing.T) {
 	contains(t, src, "struct Fine { 1: i64 a }")
 }
 
-// A Thrift compiler reads a file top to bottom, so a declaration comes
-// after everything it names, whatever order the model wrote them in.
+// A declaration comes after everything it names.
 func TestDependencyOrder(t *testing.T) {
 	b := irtest.New("shop")
 	order, item := value("Order"), value("Item")
@@ -228,7 +222,7 @@ func TestDependencyOrder(t *testing.T) {
 	}
 }
 
-// A struct may name itself, and the order does not loop on it.
+// Ordering terminates on a self-referencing struct.
 func TestRecursiveStruct(t *testing.T) {
 	b := irtest.New("shop")
 	node := value("Node")
@@ -292,8 +286,7 @@ func TestAFieldIdPastI16IsSkipped(t *testing.T) {
 	contains(t, src, "struct Fine")
 }
 
-// A Thrift container holds no nulls, so an optional value inside one is a
-// warning, and whatever names the skipped declaration is skipped with it.
+// An optional inside a container warns, and the skip cascades.
 func TestUnsupportedShapesAreSkipped(t *testing.T) {
 	for _, tt := range []struct {
 		name string
@@ -338,8 +331,6 @@ func TestKeywordsAreSkipped(t *testing.T) {
 	contains(t, src, "1: string type")
 }
 
-// A `name` directive is arbitrary text, and Thrift has to read it as an
-// identifier.
 func TestNamesThriftCannotReadAreSkipped(t *testing.T) {
 	b := irtest.New("shop")
 	order := value("Order", irtest.Field("a", b.Named("string")))
@@ -361,13 +352,10 @@ func TestNamesThriftCannotReadAreSkipped(t *testing.T) {
 	contains(t, src, "struct Fine")
 }
 
-// A declaration Cascade removes does not hold the name it would have
-// declared against a declaration that survives.
 func TestACascadedNameIsFreed(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(&ir.Decl{Meta: &ir.Meta{Name: "kg"}, Node: &ir.Decl_Unit{Unit: &ir.UnitDef{}}})
-	// Weight renders, since `decimal<kg>` is a string, and then names a
-	// unit, which is not generated.
+	// Weight renders, then cascades from the unit it names.
 	b.Own(value("Weight", irtest.Field("w", b.Named("decimal", b.Named("kg")))))
 	mass := value("Mass", irtest.Field("m", b.Named("int")))
 	mass.Directives = renamed("Weight")
@@ -410,8 +398,7 @@ func TestDocsAndDeprecation(t *testing.T) {
 	)
 }
 
-// A reason is prose: it survives into the comment as it was written, and
-// into the annotation as something Thrift reads as one string.
+// The comment keeps the reason as written; the annotation escapes it.
 func TestADeprecationReasonIsQuoted(t *testing.T) {
 	b := irtest.New("shop")
 	old := irtest.Field("fax", b.Named("string"))
@@ -450,8 +437,7 @@ func TestNamespaceDirective(t *testing.T) {
 	}
 }
 
-// Every case in the conformance corpus generates something Thrift accepts,
-// whatever this backend warned about along the way.
+// Every conformance case generates something Thrift accepts.
 func TestConformance(t *testing.T) {
 	for _, c := range []string{
 		"aliases", "collections", "comments", "constraints", "deprecated", "entity",

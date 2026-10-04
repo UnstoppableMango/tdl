@@ -12,20 +12,16 @@ import (
 	"github.com/unstoppablemango/tdl/ir"
 )
 
-// frame binds a parameterized declaration's parameters to the arguments it
-// was applied to, while its body is walked: an alias being expanded, or a
-// struct or newtype being checked for comparability.
-//
-// An argument is written in the context that applied it, which is the frame
-// outside this one, or the declaration being rendered when there is none.
+// frame binds a declaration's parameters to its arguments while its body is
+// walked. An argument is resolved in outer, or in the declaration being
+// rendered when outer is nil.
 type frame struct {
 	args  []*ir.ID
 	outer *frame
 }
 
-// bind is the frame a declaration's body is walked in when it is applied to
-// args, and nil when it takes none, since its body then names nothing from
-// outside.
+// bind returns the frame for applying a declaration to args, or nil for
+// none.
 func bind(args []*ir.ID, outer *frame) *frame {
 	if len(args) == 0 {
 		return nil
@@ -65,8 +61,7 @@ func paramNames(decl *ir.Decl) []string {
 }
 
 // constraint is the Go constraint on a parameter of the declaration being
-// rendered: the classes its `requires` clause names, and comparable when Go
-// needs it to be.
+// rendered: its required classes, plus comparable when needed.
 func (g *generator) constraint(i int32) string {
 	var names []string
 	if int(i) < len(g.curClasses) {
@@ -89,23 +84,20 @@ func (g *generator) constraint(i int32) string {
 	return "interface{ " + strings.Join(names, "; ") + " }"
 }
 
-// paramComparable reports whether Go was told a parameter of the declaration
-// being rendered is comparable.
 func (g *generator) paramComparable(i int32) bool {
 	flags := g.needsComparable[g.cur]
 	return int(i) < len(flags) && flags[i]
 }
 
-// phantom reports whether a declaration's parameters are dropped: a fieldless
-// enum is constants, a Go constant cannot be generic, and nothing in it names
-// a parameter.
+// phantom reports whether a declaration's parameters are dropped, which is
+// the case for a fieldless enum, since a Go constant cannot be generic.
 func phantom(decl *ir.Decl) bool {
 	e := decl.GetEnumeration()
 	return e != nil && len(e.GetParams()) > 0 && !emit.Fielded(e)
 }
 
 // paramProblem says why a declaration's type parameters cannot be Go type
-// parameters, or returns nil when they can.
+// parameters, or returns nil.
 func (g *generator) paramProblem(decl *ir.Decl) error {
 	for _, p := range decl.Params() {
 		pos := p.GetPosition()
@@ -120,9 +112,8 @@ func (g *generator) paramProblem(decl *ir.Decl) error {
 			return emit.Unsupported(pos, "type parameter %s of %s is a unit, and units are not generated yet", name, of)
 		case token.IsKeyword(name):
 			return emit.Unsupported(pos, "type parameter %s of %s is a Go keyword", name, of)
-		// A parameter would shadow what the generated code names, and TDL
-		// never saw the clash: `int` is Go's int64, so a parameter named
-		// int64 is legal TDL and captures the field typed `int`.
+		// TDL cannot see this clash: a parameter named int64 would capture
+		// a field typed `int`.
 		case types.Universe.Lookup(name) != nil, importNames[name] != "":
 			return emit.Unsupported(pos, "type parameter %s of %s would shadow Go's %s", name, of, name)
 		case g.aliases[name]:
@@ -158,9 +149,8 @@ func (g *generator) declares(goName string) bool {
 	return false
 }
 
-// receiver names a method's receiver after its type, unless a type parameter
-// is already spelled that way: the two share a scope, and Go refuses the
-// redeclaration.
+// receiver names a method's receiver after its type, avoiding the type's
+// parameter names.
 func receiver(decl *ir.Decl, goName string) string {
 	taken := paramNames(decl)
 	if r := string(unicode.ToLower([]rune(goName)[0])); !slices.Contains(taken, r) {
@@ -178,12 +168,9 @@ func receiver(decl *ir.Decl, goName string) string {
 }
 
 // inferComparable decides which type parameters Go needs to be comparable:
-// one reaching a set element, a map key, or a key field, directly or by
-// being handed to a parameter that already has to be.
-//
-// TDL has no way to say a parameter is comparable, so this is the only way
-// `Bag<T> { items: {T} }` compiles. A declaration may hand its parameter to
-// one later in the table, so this repeats until a pass marks nothing new.
+// one reaching a set element, a map key, or a key field, directly or through
+// another comparable parameter. TDL cannot say so, so this is how
+// `Bag<T> { items: {T} }` compiles. It repeats until a pass marks nothing.
 func (g *generator) inferComparable() {
 	g.needsComparable = map[int32][]bool{}
 	decls := g.Model.GetDecls()
@@ -216,17 +203,14 @@ func (g *generator) inferComparable() {
 	}
 }
 
-// positions walks a type reference for the places Go compares a type, and
-// asks comparableIn about what reaches one, which marks the parameters that
-// do.
+// positions walks a type reference for the places Go compares a type,
+// marking the parameters that reach one.
 func (g *generator) positions(id *ir.ID, fr *frame, mark func(int32)) {
 	t := g.Model.Type(id)
 	if t == nil {
 		return
 	}
 	if ref := t.GetParam(); ref != nil {
-		// A parameter bound by an alias being expanded stands for its
-		// argument, which is walked where it was written.
 		if fr != nil && int(ref.GetIndex()) < len(fr.args) {
 			g.positions(fr.args[ref.GetIndex()], fr.outer, mark)
 		}

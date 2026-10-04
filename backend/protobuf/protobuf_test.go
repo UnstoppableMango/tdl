@@ -34,10 +34,7 @@ func generate(t *testing.T, b *irtest.Builder) *plugin.Response {
 }
 
 // compile returns the response's one file, and asserts protobuf accepts it.
-//
-// Compiling rather than parsing is the assertion that matters: a reference
-// to a message a skipped declaration left behind parses, and so does a map
-// keyed by a message.
+// Parsing would miss a dangling reference or a map keyed by a message.
 func compile(t *testing.T, resp *plugin.Response) string {
 	t.Helper()
 	return compileWith(t, resp, nil)
@@ -57,10 +54,8 @@ func compileWith(t *testing.T, resp *plugin.Response, extra map[string]string) s
 }
 
 // compileSources asserts protobuf accepts the files at paths compiled
-// together, each importing from sources or the well-known types.
-//
-// The compiler is protocompile's experimental one, which buf builds images
-// with, because it is the one that compiles edition 2024.
+// together, importing from sources or the well-known types. It uses
+// protocompile's experimental compiler, the one that handles edition 2024.
 func compileSources(t *testing.T, sources map[string]string, paths ...string) {
 	t.Helper()
 	files := source.NewMap(nil)
@@ -239,7 +234,6 @@ func TestFixedWidthIntegerMapKeys(t *testing.T) {
 	}
 }
 
-// Protobuf forbids floating-point map keys.
 func TestFloatMapKeysAreRefused(t *testing.T) {
 	for _, tt := range []struct{ key, proto string }{
 		{"float32", "float"},
@@ -286,9 +280,8 @@ func TestFieldlessEnum(t *testing.T) {
 	)
 }
 
-// An enum whose variants carry fields is a oneof of nested messages, and a
-// reference inside one to a declaration sharing a variant's name has to
-// reach past the variant.
+// A reference inside a sum type to a declaration sharing a variant's name
+// is fully qualified.
 func TestFieldedEnumIsAOneof(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(value("Card", irtest.Field("pan", b.Named("string"))))
@@ -373,8 +366,8 @@ func TestNumbersProtobufRefuses(t *testing.T) {
 	}
 }
 
-// A shape protobuf cannot express is a warning, the declaration reaching it
-// is skipped, and so is everything naming that declaration.
+// An inexpressible shape warns and skips its declaration and every
+// declaration naming it.
 func TestUnsupportedShapesAreSkipped(t *testing.T) {
 	for _, tt := range []struct {
 		name string
@@ -426,8 +419,7 @@ func TestClassesAndUnitsWarn(t *testing.T) {
 	contains(t, compile(t, resp), "message Note")
 }
 
-// Constraints are not enforced, and the backend says so rather than letting
-// the model believe they are. The declaration is still emitted.
+// The declaration is still emitted.
 func TestConstraintsWarn(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(&ir.Decl{Meta: &ir.Meta{Name: "Email"}, Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{
@@ -465,9 +457,7 @@ func TestNames(t *testing.T) {
 	absent(t, src, "Nope", "message Clash")
 }
 
-// A `name` directive is a name the model wrote rather than one the backend
-// styled, so it is the one place a name protobuf refuses can reach the file.
-// Each is a skipped declaration and not output the compiler chokes on.
+// A `name` directive protobuf refuses skips its declaration.
 func TestInvalidNames(t *testing.T) {
 	b := irtest.New("shop")
 
@@ -532,7 +522,7 @@ func TestPackageDirective(t *testing.T) {
 }
 
 // The file directive names the generated file within the package's
-// directory, and is declared so tdl does not warn about it.
+// directory.
 func TestFileDirective(t *testing.T) {
 	b := irtest.New("acme.finance.account.v1")
 	b.Own(value("Account", irtest.Field("id", b.Named("uuid"))))
@@ -563,9 +553,8 @@ func TestFileDirective(t *testing.T) {
 	}
 }
 
-// The file directive names a file within the package's directory, so a
-// value that is a path, is empty, or is not a .proto file is an error at the
-// directive, the way a package protobuf refuses is.
+// A file directive that is a path, is empty, or is not a .proto file is an
+// error at the directive.
 func TestFileDirectiveRefusesWhatIsNotAFileName(t *testing.T) {
 	for _, name := range []string{"sub/account.proto", "", "account.txt"} {
 		t.Run(strconv.Quote(name), func(t *testing.T) {
@@ -617,8 +606,7 @@ func TestDocsAndDeprecation(t *testing.T) {
 	)
 }
 
-// Every case in the conformance corpus generates something protobuf
-// accepts, whatever this backend warned about along the way.
+// Every conformance case generates something protobuf accepts.
 func TestConformance(t *testing.T) {
 	for _, c := range []string{
 		"aliases", "collections", "comments", "constraints", "deprecated", "entity",
@@ -642,9 +630,8 @@ func TestConformance(t *testing.T) {
 	}
 }
 
-// A field carrying `oneof` whose type is a sum type with one field per
-// variant is that sum type's members written inline, as a oneof named for
-// the field, each member numbered by its variant.
+// A `oneof` field inlines its sum type's single-field variants as a oneof
+// named for the field.
 func TestOneofField(t *testing.T) {
 	declared := false
 	for _, spec := range (protobuf.Backend{}).Describe().Directives {
@@ -676,8 +663,8 @@ func TestOneofField(t *testing.T) {
 	absent(t, src, "TriggerActor actor")
 }
 
-// An inlined oneof's members share the containing message's number space,
-// and the oneof itself takes no number.
+// An inlined oneof's members share the message's number space, and the
+// oneof takes no number.
 func TestOneofSharesNumbers(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(enum("TriggerActor",
@@ -775,8 +762,8 @@ func TestOneofMemberCollides(t *testing.T) {
 	contains(t, src, "message Fine")
 }
 
-// A `oneof` the backend cannot inline is a warning at the directive, and the
-// message holding it is skipped rather than written with a guess or a panic.
+// A `oneof` that cannot be inlined warns at the directive and skips the
+// message.
 func TestOneofUninlinable(t *testing.T) {
 	for _, tt := range []struct {
 		name string
@@ -841,12 +828,10 @@ func TestOneofUninlinable(t *testing.T) {
 	}
 }
 
-// A sum type every use of which is inlined as a oneof is not written as a
-// message of its own. One that anything else names still is.
 func TestOneofOnlySumTypeIsNotEmitted(t *testing.T) {
 	for _, tt := range []struct {
 		name string
-		// also declares whatever else the model holds beside Trigger.
+		// also declares the rest of the model.
 		also func(b *irtest.Builder)
 		want bool
 	}{
@@ -883,7 +868,6 @@ func TestOneofOnlySumTypeIsNotEmitted(t *testing.T) {
 	}
 }
 
-// A sum type no field inlines is written as a message, as it always was.
 func TestSumTypeNotInlinedIsEmitted(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(enum("TriggerActor",
@@ -894,8 +878,7 @@ func TestSumTypeNotInlinedIsEmitted(t *testing.T) {
 }
 
 // compileAll returns the response's files by path, and asserts protobuf
-// accepts them compiled together, so an import between two of them has to
-// resolve.
+// accepts them compiled together.
 func compileAll(t *testing.T, resp *plugin.Response) map[string]string {
 	t.Helper()
 	files := map[string]string{}
@@ -908,8 +891,8 @@ func compileAll(t *testing.T, resp *plugin.Response) map[string]string {
 	return files
 }
 
-// A file directive on a declaration places it in that file of the package,
-// and a declaration referencing one placed in another file imports it.
+// A declaration's file directive places it in that file, and a reference
+// from another file imports it.
 func TestFileDirectiveOnADeclaration(t *testing.T) {
 	b := irtest.New("acme.cli.v1")
 	token := value("Token", irtest.Field("text", b.Named("string")))
@@ -952,8 +935,6 @@ func TestFileDirectiveOnADeclaration(t *testing.T) {
 	absent(t, cst, "message Command", "import")
 }
 
-// An import directive in the target block is written into every file, since
-// an option any file's declarations carry can need it.
 func TestImportDirectiveReachesEveryFile(t *testing.T) {
 	b := irtest.New("acme.cli.v1")
 	token := value("Token", irtest.Field("text", b.Named("string")))

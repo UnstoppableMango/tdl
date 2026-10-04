@@ -1,13 +1,7 @@
-// Package emit is what every code generator in backend/ shares: which
+// Package emit holds what every code generator in backend/ shares: which
 // declarations are the model's own, reading directives for one target,
 // reporting what cannot be generated, and resolving a type reference to the
-// shapes the prelude spells.
-//
-// It knows nothing about any target language. A backend owns its type
-// mapping, its naming, and its output; this package owns the parts that
-// would otherwise be written once per backend and drift.
-//
-// It is internal to backend/ and free to change.
+// prelude's shapes. It knows nothing about any target language.
 package emit
 
 import (
@@ -21,7 +15,7 @@ import (
 )
 
 // Session is one request's state. A backend makes a fresh one per Generate
-// call, so a reused connection shares nothing between requests.
+// call.
 type Session struct {
 	Model  *ir.Model
 	Target string
@@ -30,9 +24,8 @@ type Session struct {
 	// "Protobuf", and so on.
 	Lang string
 
-	// Externs makes [Session.Resolve] return a reference to an extern as
-	// an [Extern] ref rather than refusing it, for a backend that maps
-	// externs itself.
+	// Externs makes [Session.Resolve] return an [Extern] ref for an extern
+	// rather than refusing it.
 	Externs bool
 
 	Diags []*plugin.Diagnostic
@@ -48,23 +41,12 @@ func (s *Session) Response(files []*plugin.File) *plugin.Response {
 	return &plugin.Response{Files: files, Diagnostics: s.Diags}
 }
 
-// Own returns the declarations the model's own file declared.
+// Own returns the declarations that did not come from the prelude, which is
+// merged into the declaration table untagged.
 //
-// The prelude is merged into the declaration table untagged, so a model
-// whose source declares two things arrives with twenty-one declarations. A
-// backend that emits per declaration has to decide what is the user's, and
-// which file a declaration came from is what says so.
-//
-// The embedded prelude is named [prelude.Name] and nothing else is: it is
-// parsed under that name rather than read from a path, so the comparison is
-// against the whole name and not its ending. A user's `my-std.tdl`, or a
-// `std.tdl` of their own in any directory, is theirs and is generated.
-//
-// A replacement prelude passed to `sema.WithPrelude` is named by whoever
-// passed it and is not recognized here. Marking the prelude on the wire is
-// the fix, and `plugins.md` argues the opposite, that a backend should see
-// prelude declarations as declarations like any other; until that is
-// settled, a project replacing the prelude generates it too.
+// The embedded prelude's filename is exactly [prelude.Name], so a user's
+// `std.tdl` in any directory is still generated. A replacement prelude
+// passed to `sema.WithPrelude` is not recognized and is generated too.
 func (s *Session) Own() []*ir.Decl {
 	var own []*ir.Decl
 	for _, d := range s.Model.GetDecls() {
@@ -76,19 +58,13 @@ func (s *Session) Own() []*ir.Decl {
 }
 
 // IsOwn reports whether a declaration is the model's rather than the
-// prelude's; [Session.Own] says how the two are told apart.
-//
-// It is the predicate rather than the list, for a backend walking the
-// declaration table by index because something it emits is keyed on one.
+// prelude's, by the rule [Session.Own] describes.
 func IsOwn(d *ir.Decl) bool {
 	return d.GetMeta().GetPosition().GetFilename() != prelude.Name
 }
 
-// Find returns a directive carrying at least one argument.
-//
-// A model carries directives for every target block in it, tagged with the
-// block they came from, so this filters rather than assuming what it is
-// handed is its own.
+// Find returns the session target's directive with this name carrying at
+// least one argument.
 func (s *Session) Find(all []*ir.Directive, name string) (*ir.Directive, bool) {
 	for _, d := range plugin.Directives(s.Target, all) {
 		if d.GetName() != name {
@@ -109,11 +85,8 @@ func (s *Session) Text(all []*ir.Directive, name string) (string, bool) {
 	return "", false
 }
 
-// Block reads a directive written on the target block itself rather than
-// against a node in the model.
-//
-// It returns the directive rather than its argument, because a diagnostic
-// about the value wants the position it was written at.
+// Block reads a directive written on the target block itself. It returns
+// the directive so a diagnostic about the value has its position.
 func (s *Session) Block(name string) (*ir.Directive, bool) {
 	for _, block := range s.Model.GetTargets() {
 		if block.GetMeta().GetName() != s.Target {
@@ -146,8 +119,7 @@ func (s *Session) FieldName(f *ir.Field, style func(string) string) string {
 }
 
 // UnsupportedError reports a shape the backend cannot express. It reaches
-// the user as a warning rather than stopping the run, so a model that is
-// mostly generatable generates.
+// the user as a warning.
 type UnsupportedError struct {
 	What     string
 	Position *ir.Position
@@ -160,12 +132,8 @@ func Unsupported(pos *ir.Position, format string, args ...any) error {
 	return &UnsupportedError{What: fmt.Sprintf(format, args...), Position: pos}
 }
 
-// Warn reports something the backend cannot handle, with a position when
-// the failure carried one.
-//
-// A backend says what it cannot do here rather than returning an error,
-// because this reaches the user with a position attached and does not stop
-// the run.
+// Warn reports something the backend cannot handle as a warning, with a
+// position when err is an [UnsupportedError].
 func (s *Session) Warn(err error) {
 	d := &plugin.Diagnostic{
 		Severity: plugin.Severity_SEVERITY_WARNING,
@@ -187,9 +155,8 @@ func (s *Session) Error(pos *ir.Position, format string, args ...any) {
 	})
 }
 
-// WarnWhere says out loud that a newtype's `where` constraints are not
-// enforced. The newtype is still emitted: skipping it would leave every
-// field naming it referring to something the output does not declare.
+// WarnWhere warns that a newtype's `where` constraints are not enforced.
+// The newtype is still emitted, since fields naming it need it declared.
 func (s *Session) WarnWhere(d *ir.Decl) {
 	if n := len(d.GetNewtype().GetValueConstraints()); n > 0 {
 		s.Warn(Unsupported(d.GetMeta().GetPosition(),
@@ -198,9 +165,8 @@ func (s *Session) WarnWhere(d *ir.Decl) {
 	}
 }
 
-// WarnConstraints says out loud that a declaration's constraints are not
-// enforced: a newtype's `where` block, and each field's, in a struct or in
-// an enum's variants. The declaration is still emitted.
+// WarnConstraints warns that a declaration's constraints are not enforced:
+// a newtype's `where` block and each field's, including enum variants'.
 func (s *Session) WarnConstraints(d *ir.Decl) {
 	s.WarnWhere(d)
 
@@ -217,8 +183,8 @@ func (s *Session) WarnConstraints(d *ir.Decl) {
 	}
 }
 
-// Fielded reports whether any variant of an enum carries fields, which is
-// what separates a plain enum from a sum type in every target.
+// Fielded reports whether any variant of an enum carries fields, making it
+// a sum type rather than a plain enum.
 func Fielded(e *ir.Enum) bool {
 	for _, v := range e.GetVariants() {
 		if len(v.GetFields()) > 0 {

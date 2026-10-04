@@ -1,12 +1,5 @@
 // Package smithy generates a Smithy IDL 2.0 model from a resolved model.
-//
-// docs/design/schema-backends.md has the mapping and the reasons for it.
-// Three things are worth knowing before reading the output. Smithy names
-// every collection, so a list or map a field holds is a shape the backend
-// declares, named for what it holds (`LineItemList`, `StringLongMap`) and
-// declared once however many fields use it. A newtype over a primitive or
-// a collection is a named shape of its own. And a field that is not
-// optional is `@required`, since Smithy members are optional by default.
+// The mapping is in docs/design/schema-backends.md.
 package smithy
 
 import (
@@ -23,8 +16,7 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// Name is what this backend is called, in a target block and as
-// tdl-gen-smithy on PATH.
+// Name names this backend in a target block and as tdl-gen-smithy.
 const Name = "smithy"
 
 // Backend implements [plugin.Backend].
@@ -35,21 +27,20 @@ func (Backend) Describe() plugin.Description {
 	return plugin.Description{
 		Name:    Name,
 		Version: "0.1.0",
-		// Each request is answered from the request alone.
+		// Each request stands alone.
 		Reuse: true,
 		Directives: []*plugin.DirectiveSpec{
-			// The Smithy namespace. The model's package is the default.
+			// The Smithy namespace; defaults to the model's package.
 			{Name: "package", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
-			// The Smithy name for a shape, a member, an enum member, or a
-			// variant's structure.
+			// The Smithy name for a shape, member, enum member, or variant
+			// structure.
 			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
 		},
 	}
 }
 
-// preludeShapes maps a TDL primitive to the Smithy prelude shape standing
-// for it. Smithy has no UUID and no date without a time, so each of those
-// is a String a consumer parses.
+// preludeShapes maps a TDL primitive to its Smithy prelude shape. Smithy has
+// no UUID and no bare date, so those are Strings.
 var preludeShapes = map[string]string{
 	"string":   "String",
 	"int":      "Long",
@@ -68,8 +59,7 @@ var preludeShapes = map[string]string{
 	"duration": "String",
 }
 
-// simple is the keyword declaring a simple shape of each prelude shape's
-// type, for a newtype over one.
+// simple maps a prelude shape to the keyword declaring a newtype over it.
 var simple = map[string]string{
 	"String":     "string",
 	"Long":       "long",
@@ -83,30 +73,27 @@ var simple = map[string]string{
 	"Timestamp":  "timestamp",
 }
 
-// ident is the Smithy identifier grammar: identifier-start is any number
-// of underscores and then a letter, so `_1` and `_` are not identifiers.
+// ident is the Smithy identifier grammar: underscores, then a letter, so
+// `_1` and `_` are not identifiers.
 var ident = regexp.MustCompile(`^_*[A-Za-z][A-Za-z0-9_]*$`)
 
 type generator struct {
 	*emit.Session
 
-	// local is every shape name the model's own declarations could take,
-	// which a reference to a prelude shape of the same name has to step
-	// around.
+	// local is every shape name the model's declarations could take, which a
+	// same-named prelude reference must qualify around.
 	local map[string]bool
 
-	// names is every shape name declared, by the name folded to lower
-	// case: Smithy reads two shape IDs differing only in case as one.
+	// names is every declared shape, keyed by lower case, since Smithy shape
+	// IDs are case-insensitive.
 	names map[string]shape
 
-	// shapes is every collection shape a field needed, by name.
 	shapes map[string]string
 
 	// uses is the collection shapes the declaration being rendered needs.
 	uses map[string]bool
 }
 
-// shape is a declared shape name and the declaration that declared it.
 type shape struct{ name, decl string }
 
 type rendered struct {
@@ -115,8 +102,7 @@ type rendered struct {
 	uses map[string]bool
 }
 
-// Generate returns one .smithy file holding every declaration the model
-// owns.
+// Generate returns one .smithy file holding the model's declarations.
 func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Response, error) {
 	g := &generator{
 		Session: emit.NewSession(req, "Smithy"),
@@ -129,8 +115,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	if d, ok := g.Block("package"); ok {
 		ns, nsPos = d.GetArgs()[0].GetText(), d.GetPosition()
 	}
-	// Every shape lives in the namespace, and a Smithy file has to have
-	// one, so a namespace Smithy refuses is the whole output.
+	// An invalid namespace fails the whole output.
 	if !validNamespace(ns) {
 		g.Error(nsPos, "%q is not a Smithy namespace", ns)
 		return g.Response(nil), nil
@@ -143,8 +128,8 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		}
 		name := g.DeclName(d, emit.Pascal)
 		g.local[name] = true
-		// A union variant carrying fields emits a structure of its own,
-		// which is as much one of the model's names as a declaration is.
+		// A union variant carrying fields emits a structure, which is a
+		// local name too.
 		for _, v := range d.GetEnumeration().GetVariants() {
 			if len(v.GetFields()) > 0 {
 				g.local[g.variantShape(name, v)] = true
@@ -205,8 +190,7 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	case d.GetUnit() != nil:
 		return "", emit.Unsupported(pos, "%s is a unit, and units are not generated yet", name)
 	case d.GetStructure() == nil && d.GetEnumeration() == nil && d.GetNewtype() == nil:
-		// An alias is expanded where it is used, and a model's own
-		// primitive names an opaque root; neither declares anything.
+		// An alias or a primitive declares nothing.
 		return "", nil
 	}
 	if len(d.Params()) > 0 {
@@ -247,8 +231,8 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 			return "", emit.Unsupported(pos, "%s would declare %s in Smithy, and %s declares %s, which Smithy reads as the same shape", name, n, other.decl, other.name)
 		}
 	}
-	// Nothing is committed until the whole declaration is known to be
-	// renderable, so a declaration that fails leaves no name behind.
+	// Names are committed only once the declaration renders, so a failed
+	// one leaves none behind.
 	for _, n := range declared {
 		g.names[fold(n)] = shape{n, name}
 	}
@@ -256,8 +240,7 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	return b.String(), nil
 }
 
-// structure renders a structure. An entity, a value, and a mixin differ in
-// what they mean and not in what they emit.
+// structure renders an entity, a value, or a mixin, which emit alike.
 func (g *generator) structure(b *strings.Builder, name string, meta *ir.Meta, fields []*ir.Field) ([]string, error) {
 	var body strings.Builder
 	seen := map[string]string{}
@@ -291,8 +274,7 @@ func (g *generator) structure(b *strings.Builder, name string, meta *ir.Meta, fi
 }
 
 // enum renders an enum whose variants carry no fields. Each member's value
-// is the variant's name as written, since inventing a wire format belongs
-// to the consumer.
+// is the variant's name as written.
 func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	name := g.DeclName(d, emit.Pascal)
 
@@ -318,8 +300,7 @@ func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 }
 
 // union renders an enum where any variant carries fields: a union whose
-// members target a structure per variant, and Unit for a variant with no
-// fields.
+// members target a structure per variant, or Unit for a fieldless one.
 func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	name := g.DeclName(d, emit.Pascal)
 	declared := []string{name}
@@ -354,10 +335,9 @@ func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	return declared, nil
 }
 
-// newtype renders a newtype as a shape of its own when its base is a
-// primitive or a collection. Over a structure or an enum it declares
-// nothing, and a reference to it targets the base: Smithy has no way to
-// name one structure as another.
+// newtype renders a newtype over a primitive or a collection as a shape.
+// Over a structure or an enum it declares nothing, and a reference targets
+// the base.
 func (g *generator) newtype(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	pos := d.GetMeta().GetPosition()
 	name := g.DeclName(d, emit.Pascal)
@@ -395,7 +375,7 @@ func (g *generator) newtype(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	return []string{name}, nil
 }
 
-// named reports whether a newtype declares a shape of its own.
+// named reports whether a newtype declares a shape.
 func (g *generator) named(d *ir.Decl) bool {
 	base, err := g.Resolve(d.GetNewtype().GetBase())
 	if err != nil {
@@ -408,8 +388,7 @@ func (g *generator) named(d *ir.Decl) bool {
 	return x.Form != emit.Named
 }
 
-// memberTarget returns whether a member is required, and the shape it
-// targets.
+// memberTarget returns whether a member is required, and its target.
 func (g *generator) memberTarget(r *emit.Ref) (bool, string, error) {
 	if r.Form != emit.Option && r.Form != emit.Nullable {
 		target, err := g.target(r)
@@ -439,8 +418,7 @@ func (g *generator) target(r *emit.Ref) (string, error) {
 		if g.local[name] {
 			return "", emit.Unsupported(r.Pos, "the shape %s this collection needs would collide with the declaration of that name", name)
 		}
-		// Two collections can derive one name from different elements,
-		// and the second is not the first however alike the names are.
+		// Two different collections can derive the same name.
 		if prior, ok := g.shapes[name]; ok && prior != text {
 			return "", emit.Unsupported(r.Pos, "the shape %s this collection needs is already declared holding something else", name)
 		}
@@ -462,10 +440,8 @@ func (g *generator) target(r *emit.Ref) (string, error) {
 }
 
 // collection returns the name and text of a list or map shape. A newtype
-// passes its own name; anything else is named for what it holds.
-//
-// An optional element makes the shape @sparse, which is how Smithy says a
-// list or a map may hold nulls.
+// passes its name; "" names the shape for what it holds. An optional
+// element makes the shape @sparse.
 func (g *generator) collection(r *emit.Ref, name string) (string, string, error) {
 	elem, sparse := r.Elem, false
 	if elem.Form == emit.Option || elem.Form == emit.Nullable {
@@ -518,8 +494,8 @@ func (g *generator) collection(r *emit.Ref, name string) (string, string, error)
 	return name, fmt.Sprintf("%slist %s {\n    member: %s\n}\n", traits.String(), name, value), nil
 }
 
-// preludeRef is a reference to a prelude shape, qualified when one of the
-// model's own shapes would take its name.
+// preludeRef is a reference to a prelude shape, qualified when a model
+// shape takes its name.
 func (g *generator) preludeRef(shape string) string {
 	if g.local[shape] {
 		return "smithy.api#" + shape
@@ -538,8 +514,8 @@ func sparsePrefix(sparse bool) string {
 
 func asWritten(name string) string { return name }
 
-// claim takes a member name inside a shape. Smithy member names are unique
-// without regard to case, so the name is held folded.
+// claim takes a member name inside a shape, case-insensitively, as Smithy
+// compares member names.
 func claim(seen map[string]string, owner, name string, pos *ir.Position) error {
 	if !ident.MatchString(name) {
 		return emit.Unsupported(pos, "%s.%s is not a Smithy identifier", owner, name)
@@ -554,12 +530,9 @@ func claim(seen map[string]string, owner, name string, pos *ir.Position) error {
 	return nil
 }
 
-// fold is the form two Smithy names share when Smithy cannot tell them
-// apart.
 func fold(name string) string { return strings.ToLower(name) }
 
-// variantShape is the name of the structure a variant carrying fields
-// emits, under the union named name.
+// variantShape names the structure a fielded variant of union name emits.
 func (g *generator) variantShape(name string, v *ir.Variant) string {
 	if n, ok := g.Text(v.GetDirectives(), "name"); ok {
 		return n
@@ -578,8 +551,7 @@ func comment(b *strings.Builder, indent string, meta *ir.Meta) {
 	}
 }
 
-// deprecated writes the @deprecated trait, with the reason as its message
-// when there is one.
+// deprecated writes the @deprecated trait, with any reason as its message.
 func deprecated(b *strings.Builder, indent string, meta *ir.Meta) {
 	reason, ok := emit.Deprecated(meta)
 	switch {

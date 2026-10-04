@@ -1,13 +1,6 @@
-// Package protobuf generates a proto3 schema from a resolved model, or one
-// under the edition an `edition` directive names.
-//
-// docs/design/schema-backends.md has the mapping and the reasons for it.
-// Two things are worth knowing before reading the output. An enum whose
-// variants carry fields is a message holding a oneof of one nested message
-// per variant, which is protobuf's sum type. And every field, variant, and
-// enum value without a `number` directive takes the lowest number no pin
-// holds, in declaration order, because the IR has no numbers and protobuf
-// cannot go without them.
+// Package protobuf generates a proto3 schema, or one under the edition an
+// `edition` directive names, from a resolved model. The mapping is in
+// docs/design/schema-backends.md.
 package protobuf
 
 import (
@@ -26,8 +19,7 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// Name is what this backend is called, in a target block and as
-// tdl-gen-protobuf on PATH.
+// Name names this backend in a target block and as tdl-gen-protobuf.
 const Name = "protobuf"
 
 // Backend implements [plugin.Backend].
@@ -38,61 +30,53 @@ func (Backend) Describe() plugin.Description {
 	return plugin.Description{
 		Name:    Name,
 		Version: "0.1.0",
-		// Each request is answered from the request alone.
+		// Each request stands alone.
 		Reuse: true,
 		Directives: []*plugin.DirectiveSpec{
-			// The dotted protobuf package. The model's package is the
-			// default.
+			// The dotted protobuf package; defaults to the model's.
 			{Name: "package", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
-			// The file name within the package's directories, in place of
-			// the package's last segment with .proto.
+			// The file name, in place of the package's last segment + .proto.
 			{Name: "file", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
-			// The protobuf name for a declaration, a field, an enum value, or
-			// a variant's nested message.
+			// The protobuf name for a declaration, field, enum value, or
+			// variant message.
 			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
-			// The wire number of a field, a variant, or an enum value.
+			// The wire number of a field, variant, or enum value.
 			{Name: "number", MinArgs: 1, MaxArgs: 1, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_INT}},
-			// The protobuf edition the file declares in place of proto3.
+			// The edition the file declares in place of proto3.
 			{Name: "edition", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
-			// Field numbers or names a message reserves, one `reserved`
-			// statement per directive. arg_kinds constrains by position, so
-			// it cannot say "int or string" and is left unset.
+			// Numbers or names a message reserves. arg_kinds is per position
+			// and cannot say "int or string", so it is unset.
 			{Name: "reserved", MinArgs: 1, MaxArgs: -1, Repeatable: true},
 			// Inlines a field's sum type into its message as a oneof.
 			{Name: "oneof"},
-			// A file the output imports, for the options it uses.
+			// A file every output file imports.
 			{Name: "import", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Repeatable: true},
-			// An option, written `name = value` in the brackets of a field or an
-			// enum value, or as an `option` statement in a message, an enum, a
-			// service, or an rpc. In the target block's scope it is a file
-			// option, written in every file.
+			// `name = value`, in a field's or enum value's brackets, or as an
+			// `option` statement in a message, enum, service, or rpc.
 			{Name: "option", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_STRING, ir.LiteralKind_LITERAL_KIND_STRING}, Repeatable: true},
 			// A message another proto file declares: the file to import and
-			// the message's fully qualified name. The declaration carrying
-			// it is not emitted.
+			// the message's full name. The declaration itself is not emitted.
 			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: append(str, str...)},
-			// A structure emitted as a service rather than a message.
+			// Emits a structure as a service.
 			{Name: "service"},
-			// A primitive of two type arguments, request and response, that
-			// a service's field applies to declare an rpc.
+			// Tags a primitive of two type arguments (request, response)
+			// that a service field applies to declare an rpc.
 			{Name: "rpc"},
-			// A primitive of one type argument that an rpc's request or
-			// response applies to mark it streamed.
+			// Tags a primitive of one type argument marking an rpc's request
+			// or response streamed.
 			{Name: "stream"},
 		},
 	}
 }
 
 var (
-	// fieldNumbers covers message fields and oneof members, which share a
-	// message's number space.
+	// fieldNumbers covers fields and oneof members, which share a number space.
 	fieldNumbers = emit.NumberRule{Max: 536870911, Reserved: [][2]int64{{19000, 19999}}}
-	// enumNumbers starts at one because zero is the UNSPECIFIED value
-	// protobuf requires first.
+	// enumNumbers leaves zero to the UNSPECIFIED value protobuf requires first.
 	enumNumbers = emit.NumberRule{Max: math.MaxInt32}
 )
 
-// scalars maps a prelude primitive to the protobuf type standing for it.
+// scalars maps a prelude primitive to its protobuf type.
 var scalars = map[string]string{
 	"string":   "string",
 	"int":      "int64",
@@ -111,23 +95,19 @@ var scalars = map[string]string{
 	"duration": "google.protobuf.Duration",
 }
 
-// wellKnown is the file each well-known type is imported from.
 var wellKnown = map[string]string{
 	"google.protobuf.Timestamp": "google/protobuf/timestamp.proto",
 	"google.protobuf.Duration":  "google/protobuf/duration.proto",
 }
 
-// mapKeys is the protobuf types a map may be keyed by that this backend
-// emits: protobuf allows integral and string keys, and nothing else.
 var mapKeys = map[string]bool{
 	"string": true, "bool": true,
 	"int32": true, "int64": true, "uint32": true, "uint64": true,
 }
 
-// editions is every edition the `edition` directive accepts.
 var editions = map[string]bool{"2023": true, "2024": true}
 
-// oneof is the name of the oneof a sum type's message holds.
+// oneof names the oneof in a sum type's message.
 const oneof = "variant"
 
 var ident = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
@@ -135,24 +115,24 @@ var ident = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 type generator struct {
 	*emit.Session
 	pkg string
-	// file is what the file directive names, or "" when there is none.
+	// file is the `file` directive's argument, or "".
 	file string
 
-	// edition is what the `edition` directive names, or "" for proto3.
+	// edition is "" for proto3.
 	edition string
 
-	// names is every name declared at package scope, with the declaration
-	// that declared it. Protobuf gives an enum's values package scope too.
+	// names maps each package-scope name, enum values included, to its
+	// declaration.
 	names map[string]string
 
 	// imports is what the declaration being rendered needs.
 	imports map[string]bool
-	// refs is the declarations the one being rendered names.
+	// refs is the declarations it names.
 	refs map[*ir.Decl]bool
 }
 
-// rendered is one declaration's text, held back until the cascade has
-// decided whether it is emitted.
+// rendered is one declaration's text, held until the cascade decides
+// whether it is emitted.
 type rendered struct {
 	decl    *ir.Decl
 	path    string
@@ -161,8 +141,7 @@ type rendered struct {
 	refs    map[*ir.Decl]bool
 }
 
-// Generate returns a .proto file per file name the model's declarations are
-// placed in.
+// Generate returns one .proto file per file the declarations are placed in.
 func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Response, error) {
 	g := &generator{
 		Session: emit.NewSession(req, "protobuf"),
@@ -181,8 +160,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 			return g.Response(nil), nil
 		}
 	}
-	// Every declaration lives in the package, so a name protobuf refuses is
-	// the whole output rather than one declaration to skip.
+	// An invalid package fails the whole output.
 	if !validPackage(g.pkg) {
 		g.Error(pkgPos, "%q is not a protobuf package name", g.pkg)
 		return g.Response(nil), nil
@@ -281,8 +259,6 @@ type group struct {
 	options []string
 }
 
-// write renders one .proto file: the header, the package, the imports, the
-// file options, and the group's declarations in model order.
 func (g *generator) write(path string, grp *group) *plugin.File {
 	header := `syntax = "proto3";`
 	if g.edition != "" {
@@ -312,8 +288,8 @@ func (g *generator) write(path string, grp *group) *plugin.File {
 	return &plugin.File{Path: path, Content: []byte(b.String())}
 }
 
-// pathOf is the path of the file a declaration is placed in: the one its
-// file directive names, else the model's.
+// pathOf is the file a declaration is placed in: its `file` directive's,
+// else the model's.
 func (g *generator) pathOf(d *ir.Decl) (string, error) {
 	fd, ok := g.Find(d.GetDirectives(), "file")
 	if !ok {
@@ -341,8 +317,7 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	case d.GetUnit() != nil:
 		return "", emit.Unsupported(pos, "%s is a unit, and units are not generated yet", name)
 	case d.GetStructure() == nil && d.GetEnumeration() == nil && d.GetNewtype() == nil:
-		// An alias is expanded where it is used, and a model's own
-		// primitive names an opaque root; neither declares anything.
+		// An alias or a primitive declares nothing.
 		return "", nil
 	}
 	if len(d.Params()) > 0 {
@@ -350,8 +325,8 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	}
 
 	if n := d.GetNewtype(); n != nil {
-		// A newtype is expanded where it is used, since a wrapper message
-		// would change the wire format. It still has to be expressible.
+		// A newtype is expanded where used, since a wrapper message would
+		// change the wire format. Its base must still be expressible.
 		ref, err := g.Resolve(n.GetBase())
 		if err == nil {
 			_, err = g.Expand(ref)
@@ -392,10 +367,8 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	return b.String(), nil
 }
 
-// name is what a `name` directive renames a node to, held to protobuf's
-// identifier rule, or fallback when the node carries none. A value the
-// protobuf compiler would refuse is reported rather than written out, since
-// nothing downstream reads the file again to catch it.
+// name is a node's `name` directive, held to protobuf's identifier rule, or
+// fallback when it has none.
 func (g *generator) name(all []*ir.Directive, fallback string) (string, error) {
 	d, ok := g.Find(all, "name")
 	if !ok {
@@ -408,14 +381,12 @@ func (g *generator) name(all []*ir.Directive, fallback string) (string, error) {
 	return n, nil
 }
 
-// declName is [generator.name] over a declaration, matching what
-// [emit.Session.DeclName] would return for a valid one.
+// declName is [generator.name] over a declaration.
 func (g *generator) declName(d *ir.Decl) (string, error) {
 	return g.name(d.GetDirectives(), emit.Pascal(emit.LastSegment(d.GetMeta().GetName())))
 }
 
-// message renders an entity, a value, or a mixin. The three differ in what
-// they mean and not in what they emit.
+// message renders an entity, a value, or a mixin, which emit alike.
 func (g *generator) message(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	name, err := g.declName(d)
 	if err != nil {
@@ -467,10 +438,8 @@ func (g *generator) reserved(b *strings.Builder, d *ir.Decl) (map[int64]bool, ma
 	return numbers, names
 }
 
-// checkReserved refuses a field, or an inlined oneof's member, whose number
-// or name the message reserves, since protoc rejects such a message. Only a
-// pin can land on a reserved number, since unpinned members skip them. slots
-// is what [generator.fields] gave out.
+// checkReserved refuses a slot whose number or name the message reserves,
+// since protoc rejects it. Only a pin can land on a reserved number.
 func (g *generator) checkReserved(owner string, slots []slot, numbers map[int64]bool, names map[string]bool) error {
 	for _, s := range slots {
 		if numbers[s.num] {
@@ -487,9 +456,8 @@ func (g *generator) checkReserved(owner string, slots []slot, numbers map[int64]
 	return nil
 }
 
-// service renders a structure tagged `service`. Each field is an rpc named
-// as the field is, typed by a primitive tagged `rpc` applied to the request
-// and the response.
+// service renders a structure tagged `service`: each field is an rpc,
+// typed by a primitive tagged `rpc` applied to the request and response.
 func (g *generator) service(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	name, err := g.declName(d)
 	if err != nil {
@@ -575,8 +543,7 @@ func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 		return nil, err
 	}
 
-	// Enum values share the package's scope, which is why each carries the
-	// enum's name.
+	// Enum values have package scope, so each carries the enum's name.
 	prefix := emit.ScreamingSnake(name)
 	values := []string{prefix + "_UNSPECIFIED"}
 
@@ -604,11 +571,8 @@ func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	return append([]string{name}, values...), nil
 }
 
-// sum renders an enum where any variant carries fields: a message holding
-// a oneof, with a nested message per variant.
-//
-// A variant with no fields still gets a message, empty, since a oneof
-// member is a field and a field has a type.
+// sum renders an enum where any variant carries fields: a message holding a
+// oneof of one nested message per variant, empty for a fieldless variant.
 func (g *generator) sum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	name, err := g.declName(d)
 	if err != nil {
@@ -663,21 +627,20 @@ func (g *generator) sum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	return []string{name}, nil
 }
 
-// slot is a number a message body gives out, to a field or to one member of
-// an inlined oneof, which protobuf counts as a field of the message.
+// slot is a number a message body gives out, to a field or an inlined
+// oneof member.
 type slot struct {
 	emit.Member
 	name string // the protobuf name written
 	num  int64
 }
 
-// fields renders a message body and returns the numbers it gave out, in the
-// order written. nested is the names of the messages declared beside it,
-// which a reference has to step around; skip is the numbers unpinned fields
-// and oneof members pass over.
+// fields renders a message body and returns the slots it gave out, in
+// order. nested is the sibling message names a reference must step around;
+// skip is the numbers unpinned members pass over.
 func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*ir.Field, nested map[string]bool, skip map[int64]bool) ([]slot, error) {
-	// An inlined oneof's variants take numbers in the message's space in
-	// the oneof's place, and the oneof takes none.
+	// An inlined oneof's variants take numbers in the message's space; the
+	// oneof takes none.
 	var members []emit.Member
 	first := make([]int, len(fields))
 	for i, f := range fields {
@@ -743,8 +706,8 @@ func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*i
 	return out, nil
 }
 
-// oneofDirective is a field's `oneof` directive for this target, or nil.
-// [emit.Session.Find] skips a directive that takes no argument.
+// oneofDirective is a field's `oneof` directive, or nil.
+// [emit.Session.Find] skips argument-less directives.
 func (g *generator) oneofDirective(f *ir.Field) *ir.Directive {
 	for _, d := range plugin.Directives(g.Target, f.GetDirectives()) {
 		if d.GetName() == "oneof" {
@@ -756,9 +719,8 @@ func (g *generator) oneofDirective(f *ir.Field) *ir.Directive {
 
 func (g *generator) isOneof(f *ir.Field) bool { return g.oneofDirective(f) != nil }
 
-// inlinedOnly is the sum types every use of which is a field carrying
-// `oneof`. Each such field writes the variants out itself, so the sum
-// type's message would be declared and never named.
+// inlinedOnly is the sum types used only by fields carrying `oneof`, whose
+// message would go unused.
 func (g *generator) inlinedOnly() map[*ir.Decl]bool {
 	inlined := map[*ir.Decl]bool{}
 	var named []*ir.ID
@@ -802,8 +764,8 @@ func (g *generator) inlinable(f *ir.Field, ref *emit.Ref) error {
 	return nil
 }
 
-// inlineOneof renders a field whose type is a sum type as a oneof of the
-// variants' single fields, numbered by nums in variant order.
+// inlineOneof renders a `oneof` field as a oneof of its variants' single
+// fields, numbered by nums.
 func (g *generator) inlineOneof(b *strings.Builder, indent string, f *ir.Field, ref *emit.Ref, nums []int64, nested map[string]bool) error {
 	variants := ref.Decl.GetEnumeration().GetVariants()
 	comment(b, indent, f.GetMeta())
@@ -833,11 +795,8 @@ func (g *generator) inlineOneof(b *strings.Builder, indent string, f *ir.Field, 
 	return nil
 }
 
-// fieldType returns a field's label and type.
-//
-// A repeated or map field cannot be optional and cannot hold another
-// repeated or map field, so each of those shapes is reported rather than
-// flattened into something that means less.
+// fieldType returns a field's label and type. A nested repeated, map, or
+// optional shape is reported, since protobuf cannot express it.
 func (g *generator) fieldType(r *emit.Ref, nested map[string]bool) (label, typ string, err error) {
 	if r, err = g.Expand(r); err != nil {
 		return "", "", err
@@ -856,17 +815,15 @@ func (g *generator) fieldType(r *emit.Ref, nested map[string]bool) (label, typ s
 		if err != nil {
 			return "", "", err
 		}
-		// A message field already has presence, and `optional` on one
-		// says nothing more. Under an edition every field has explicit
-		// presence by default.
+		// A message field already has presence, and under an edition every
+		// field does.
 		if g.edition != "" || isMessage(inner) {
 			return "", typ, nil
 		}
 		return "optional", typ, nil
 
 	case emit.List, emit.Set:
-		// Protobuf has no set, and a repeated field does not keep one's
-		// guarantee. docs/design/schema-backends.md says so.
+		// A repeated field does not keep a set's guarantee.
 		elem, err := g.Expand(r.Elem)
 		if err != nil {
 			return "", "", err
@@ -933,9 +890,8 @@ func (g *generator) single(r *emit.Ref, nested map[string]bool) (string, error) 
 
 	g.refs[r.Decl] = true
 	name := g.DeclName(r.Decl, emit.Pascal)
-	// Protobuf resolves a name from the innermost scope out, so inside a
-	// sum type a declaration sharing a variant's name would resolve to the
-	// variant. A fully qualified name resolves from the root.
+	// Protobuf resolves names innermost first, so inside a sum type a
+	// declaration sharing a variant's name needs its fully qualified name.
 	if nested[name] {
 		if g.pkg == "" {
 			return "." + name, nil
@@ -945,9 +901,9 @@ func (g *generator) single(r *emit.Ref, nested map[string]bool) (string, error) 
 	return name, nil
 }
 
-// externRef is the protobuf type for a declaration in another package and
-// the file it is imported from: the one a foreign directive names, else the
-// one a dependency with a protobuf target block generates.
+// externRef is the type and import for a declaration in another package:
+// its foreign directive's, else what the dependency's protobuf target block
+// generates.
 func (g *generator) externRef(r *emit.Ref) (typ, imp string, err error) {
 	if f, ok := g.Find(r.Extern.GetDirectives(), "foreign"); ok {
 		return f.GetArgs()[1].GetText(), f.GetArgs()[0].GetText(), nil
@@ -982,7 +938,7 @@ func isMessage(r *emit.Ref) bool {
 	return e == nil || emit.Fielded(e)
 }
 
-// describe names a shape for a message.
+// describe names a shape for an error message.
 func describe(r *emit.Ref) string {
 	switch r.Form {
 	case emit.List:
@@ -999,8 +955,7 @@ func describe(r *emit.Ref) string {
 	return "a value"
 }
 
-// comment writes a node's documentation, and its deprecation reason when
-// it gave one.
+// comment writes a node's documentation and deprecation reason.
 func comment(b *strings.Builder, indent string, meta *ir.Meta) {
 	lines := emit.Doc(meta)
 	if reason, ok := emit.Deprecated(meta); ok && reason != "" {
@@ -1023,10 +978,9 @@ func commentLines(b *strings.Builder, indent string, lines []string) {
 	}
 }
 
-// options is a node's options as `name = value`: `deprecated = true` when
-// the node is deprecated, then each `option` directive in source order. An
-// option directive naming deprecated is dropped when the node is already
-// deprecated, since protoc refuses an option set twice.
+// options is a node's `name = value` options: `deprecated = true` when
+// deprecated, then each `option` directive. An option naming deprecated is
+// dropped on a deprecated node, since protoc refuses an option set twice.
 func (g *generator) options(meta *ir.Meta, dirs []*ir.Directive) []string {
 	var opts []string
 	if meta.IsDeprecated() {
@@ -1044,8 +998,7 @@ func (g *generator) options(meta *ir.Meta, dirs []*ir.Directive) []string {
 	return opts
 }
 
-// declOptions writes a message's, an enum's, or a service's options as
-// statements.
+// declOptions writes a declaration's options as statements.
 func (g *generator) declOptions(b *strings.Builder, meta *ir.Meta, dirs []*ir.Directive) {
 	for _, o := range g.options(meta, dirs) {
 		fmt.Fprintf(b, "  option %s;\n", o)
@@ -1076,9 +1029,8 @@ func validFile(name string) bool {
 	return !strings.ContainsAny(name, `/\`) && strings.HasSuffix(name, ".proto")
 }
 
-// filePath places a file of pkg where buf expects a package's files to be:
-// in the directories its name spells. name is what a file directive names,
-// and the package's last segment with .proto stands in for "".
+// filePath places a file in the directories pkg spells, where buf expects
+// it. An empty name stands for the package's last segment with .proto.
 func filePath(pkg, name string) string {
 	if name == "" {
 		name = "model.proto"

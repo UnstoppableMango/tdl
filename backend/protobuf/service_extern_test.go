@@ -7,9 +7,8 @@ import (
 	"github.com/unstoppablemango/tdl/internal/gen"
 )
 
-// The rpc and stream primitives may be declared once in a shared file and
-// merged in with a `_` import; the tags attach to their externs, and the
-// service is emitted as if they were declared locally.
+// rpc and stream primitives merged in with a `_` import tag their externs,
+// and the service is emitted as if they were local.
 func TestServiceWithImportedRPCPrimitives(t *testing.T) {
 	const rpcSource = `package shim.rpc
 

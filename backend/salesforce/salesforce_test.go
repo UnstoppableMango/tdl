@@ -26,7 +26,7 @@ func generate(t *testing.T, b *irtest.Builder) *plugin.Response {
 	return resp
 }
 
-// files returns the response's files by path, each XML one checked to be
+// files returns the response's files by path, checking each XML one is
 // well formed.
 func files(t *testing.T, resp *plugin.Response) map[string]string {
 	t.Helper()
@@ -186,7 +186,7 @@ func TestObject(t *testing.T) {
 		"<deleteConstraint>Restrict</deleteConstraint>", "<referenceTo>Customer__c</referenceTo>",
 		"<relationshipName>OrderCustomer</relationshipName>", "<type>Lookup</type>")
 
-	// An entity is an SObject in Apex, so it has no class of its own.
+	// An entity is an SObject in Apex, so it has no class.
 	for p := range all {
 		if strings.HasPrefix(p, "classes/Order") || strings.HasPrefix(p, "classes/Customer") {
 			t.Errorf("entity generated %s", p)
@@ -194,10 +194,8 @@ func TestObject(t *testing.T) {
 	}
 }
 
-// Each fixed-width numeric is stored and typed as the nearest of int and
-// decimal: int32 is an Apex Integer, int64 and uint32 are what int is, and
-// uint64, which exceeds a Long, is a Decimal stored in the integer column.
-// A float is an Apex Double in the column decimal uses.
+// int32 is an Apex Integer, int64 and uint32 match int, uint64 is a Decimal
+// in the integer column, and a float is a Double in the decimal column.
 func TestFixedWidthNumerics(t *testing.T) {
 	b := irtest.New("shop")
 	fields := func() []*ir.Field {
@@ -240,8 +238,7 @@ func TestFixedWidthNumerics(t *testing.T) {
 	)
 }
 
-// A field no column holds is dropped from the object, which is still
-// written.
+// A field with no column is dropped, and the object is still written.
 func TestUnstorableField(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(value("Address", irtest.Field("line", b.Named("string"))))
@@ -419,8 +416,8 @@ func TestDocsAndDeprecation(t *testing.T) {
 	absent(t, card, "@Deprecated")
 }
 
-// Every case in the conformance corpus, and the smoke fixture, generates
-// without an error and writes only well-formed XML.
+// Every conformance case and the smoke fixture generate without error and
+// write well-formed XML.
 func TestConformance(t *testing.T) {
 	corpus := filepath.Join("..", "..", "testdata", "conformance")
 	dirs := []string{filepath.Join("..", "..", "testdata", "gen", "smoke")}

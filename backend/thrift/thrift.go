@@ -1,11 +1,5 @@
-// Package thrift generates a Thrift IDL file from a resolved model.
-//
-// docs/design/schema-backends.md has the mapping and the reasons for it.
-// Three things are worth knowing before reading the output. An enum whose
-// variants carry fields is a union of one struct per variant. A newtype is
-// a typedef, which is the one schema language here with a named alias that
-// costs nothing on the wire. And declarations are written in dependency
-// order, since a Thrift compiler reads a file top to bottom.
+// Package thrift generates a Thrift IDL file from a resolved model. The
+// mapping is in docs/design/schema-backends.md.
 package thrift
 
 import (
@@ -20,8 +14,7 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// Name is what this backend is called, in a target block and as
-// tdl-gen-thrift on PATH.
+// Name names this backend in a target block and as tdl-gen-thrift.
 const Name = "thrift"
 
 // Backend implements [plugin.Backend].
@@ -32,31 +25,30 @@ func (Backend) Describe() plugin.Description {
 	return plugin.Description{
 		Name:    Name,
 		Version: "0.1.0",
-		// Each request is answered from the request alone.
+		// Each request stands alone.
 		Reuse: true,
 		Directives: []*plugin.DirectiveSpec{
-			// The dotted namespace, written for every language as
-			// `namespace *`. The model's package is the default.
+			// The dotted namespace, written as `namespace *`; defaults to
+			// the model's package.
 			{Name: "package", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
-			// The Thrift name for a declaration, a field, an enum value, or a
-			// variant's struct.
+			// The Thrift name for a declaration, field, enum value, or
+			// variant struct.
 			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
-			// The field id of a field or a variant, or an enum value.
+			// The id of a field or variant, or an enum value.
 			{Name: "number", MinArgs: 1, MaxArgs: 1, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_INT}},
 		},
 	}
 }
 
 var (
-	// fieldNumbers is a Thrift field id, which is an i16.
+	// A Thrift field id is an i16.
 	fieldNumbers = emit.NumberRule{Max: math.MaxInt16}
 	enumNumbers  = emit.NumberRule{Max: math.MaxInt32}
 )
 
-// scalars maps a prelude primitive to the Thrift type standing for it.
-// Thrift has no decimal, UUID, or time type, so each of those is the string
-// a consumer parses. Thrift has no unsigned types, so uint32 widens to i64
-// and uint64, which no Thrift type holds, is left unmapped.
+// scalars maps a prelude primitive to its Thrift type. Thrift has no
+// decimal, UUID, time, or unsigned type: the first three are strings, uint32
+// widens to i64, and uint64 is unmapped.
 var scalars = map[string]string{
 	"string":   "string",
 	"int":      "i64",
@@ -74,7 +66,6 @@ var scalars = map[string]string{
 	"duration": "string",
 }
 
-// keywords are the words the Thrift IDL reserves.
 var keywords = map[string]bool{}
 
 func init() {
@@ -92,8 +83,7 @@ type generator struct {
 	*emit.Session
 }
 
-// Generate returns one .thrift file holding every declaration the model
-// owns.
+// Generate returns one .thrift file holding the model's declarations.
 func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Response, error) {
 	g := &generator{Session: emit.NewSession(req, "Thrift")}
 
@@ -101,8 +91,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	if d, ok := g.Block("package"); ok {
 		ns, nsPos = d.GetArgs()[0].GetText(), d.GetPosition()
 	}
-	// The namespace heads the file, so one Thrift refuses is the whole
-	// output rather than one declaration to skip.
+	// An invalid namespace fails the whole output.
 	if !validNamespace(ns) {
 		g.Error(nsPos, "%q is not a Thrift namespace", ns)
 		return g.Response(nil), nil
@@ -124,11 +113,8 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		}
 	}
 
-	// A name is claimed only for a declaration that survives, so one that
-	// [emit.Session.Cascade] removes for naming a skipped declaration does
-	// not hold its name against a later one. Claiming can skip a
-	// declaration too, which frees its names and may remove a referrer, so
-	// both run until nothing more is removed.
+	// Only a surviving declaration claims names, and a name clash skips a
+	// declaration, which can cascade, so both run to a fixed point.
 	for {
 		g.Cascade(own, skipped)
 		if !g.claim(own, texts, declared, skipped) {
@@ -158,10 +144,8 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	return g.Response([]*plugin.File{{Path: path, Content: []byte(b.String())}}), nil
 }
 
-// order is the declarations to emit with each one after everything it
-// names, keeping declaration order wherever that already holds. A cycle is
-// left in declaration order, which is as close as a file read top to bottom
-// can come.
+// order puts each declaration after everything it names; a cycle keeps
+// declaration order.
 func (g *generator) order(own []*ir.Decl, emitted func(*ir.Decl) bool) []*ir.Decl {
 	var out []*ir.Decl
 	visited := map[*ir.Decl]bool{}
@@ -187,11 +171,7 @@ func (g *generator) order(own []*ir.Decl, emitted func(*ir.Decl) bool) []*ir.Dec
 }
 
 // decl renders one declaration and the names it declares at file scope, or
-// "" for one that declares nothing.
-//
-// Whether another declaration already took one of those names is not
-// decided here: that answer depends on which declarations survive, which
-// [emit.Session.Cascade] has yet to say. [generator.claim] decides it.
+// "" for one that declares nothing. Name clashes are [generator.claim]'s.
 func (g *generator) decl(d *ir.Decl) (string, []string, error) {
 	pos := d.GetMeta().GetPosition()
 	name := d.GetMeta().GetName()
@@ -202,8 +182,7 @@ func (g *generator) decl(d *ir.Decl) (string, []string, error) {
 	case d.GetUnit() != nil:
 		return "", nil, emit.Unsupported(pos, "%s is a unit, and units are not generated yet", name)
 	case d.GetStructure() == nil && d.GetEnumeration() == nil && d.GetNewtype() == nil:
-		// An alias is expanded where it is used, and a model's own
-		// primitive names an opaque root; neither declares anything.
+		// An alias or a primitive declares nothing.
 		return "", nil, nil
 	}
 	if len(d.Params()) > 0 {
@@ -239,12 +218,8 @@ func (g *generator) decl(d *ir.Decl) (string, []string, error) {
 	return b.String(), declared, nil
 }
 
-// claim gives each surviving declaration the file-scope names it declares,
-// skipping one whose name an earlier declaration already took, and reports
-// whether it skipped anything.
-//
-// The names are claimed afresh on every call, because a declaration skipped
-// since the last one no longer holds the names it declared.
+// claim gives each surviving declaration its file-scope names, skipping one
+// whose name an earlier one took, and reports whether it skipped any.
 func (g *generator) claim(own []*ir.Decl, texts map[*ir.Decl]string, declared map[*ir.Decl][]string, skipped map[*ir.Decl]bool) bool {
 	names, changed := map[string]string{}, false
 	for _, d := range own {
@@ -272,7 +247,6 @@ func (g *generator) claim(own []*ir.Decl, texts map[*ir.Decl]string, declared ma
 	return changed
 }
 
-// typedef renders a newtype as a named alias for its base.
 func (g *generator) typedef(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	ref, err := g.Resolve(d.GetNewtype().GetBase())
 	if err != nil {
@@ -288,8 +262,7 @@ func (g *generator) typedef(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	return []string{name}, nil
 }
 
-// structure renders a struct or a union body. An entity, a value, and a
-// mixin differ in what they mean and not in what they emit.
+// structure renders a struct or a union body.
 func (g *generator) structure(b *strings.Builder, keyword, name string, meta *ir.Meta, fields []*ir.Field) ([]string, error) {
 	nums, err := g.Numbers(name, emit.FieldMembers(fields), fieldNumbers)
 	if err != nil {
@@ -313,9 +286,8 @@ func (g *generator) structure(b *strings.Builder, keyword, name string, meta *ir
 			return nil, err
 		}
 
-		// A field that is not optional keeps Thrift's default requiredness
-		// rather than `required`, which Thrift's own guidance advises
-		// against because it can never be relaxed.
+		// A non-optional field keeps default requiredness: Thrift advises
+		// against `required`, which can never be relaxed.
 		label := ""
 		if optional {
 			label = "optional "
@@ -329,8 +301,8 @@ func (g *generator) structure(b *strings.Builder, keyword, name string, meta *ir
 	return []string{name}, nil
 }
 
-// enum renders an enum whose variants carry no fields. A Thrift enum's
-// values are scoped to it, so they carry no prefix.
+// enum renders an enum whose variants carry no fields. Thrift scopes the
+// values to the enum, so they carry no prefix.
 func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	name := g.DeclName(d, emit.Pascal)
 	variants := d.GetEnumeration().GetVariants()
@@ -358,10 +330,8 @@ func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	return []string{name}, nil
 }
 
-// union renders an enum where any variant carries fields: a struct per
-// variant, named for the enum and the variant, and a union of them. A
-// variant with no fields is an empty struct, since a union member is a
-// field and a field has a type.
+// union renders an enum where any variant carries fields: a union of one
+// struct per variant, empty for a fieldless one.
 func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	name := g.DeclName(d, emit.Pascal)
 	variants := d.GetEnumeration().GetVariants()
@@ -426,7 +396,7 @@ func (g *generator) fieldType(r *emit.Ref) (bool, string, error) {
 }
 
 // typ is the Thrift type for anything but an optional, which only a field
-// can be: a Thrift container holds no nulls.
+// can be.
 func (g *generator) typ(r *emit.Ref) (string, error) {
 	switch r.Form {
 	case emit.Prim:
@@ -462,16 +432,14 @@ func (g *generator) typ(r *emit.Ref) (string, error) {
 
 func asWritten(name string) string { return name }
 
-// comment writes a node's documentation as a doc comment, with its
-// deprecation reason when it gave one.
+// comment writes a node's documentation and deprecation as a doc comment.
 func comment(b *strings.Builder, indent string, meta *ir.Meta) {
 	lines := emit.Doc(meta)
 	if reason, ok := emit.Deprecated(meta); ok && reason != "" {
 		if len(lines) > 0 {
 			lines = append(lines, "")
 		}
-		// A reason is prose and may be written over several lines, each of
-		// which needs the comment's prefix.
+		// A reason may span lines, each needing the comment prefix.
 		lines = append(lines, strings.Split("Deprecated: "+reason, "\n")...)
 	}
 	if len(lines) == 0 {
@@ -488,8 +456,7 @@ func comment(b *strings.Builder, indent string, meta *ir.Meta) {
 	fmt.Fprintf(b, "%s */\n", indent)
 }
 
-// annotation is the deprecation annotation Thrift carries through to the
-// languages it generates, or "".
+// annotation is a node's deprecation annotation, or "".
 func annotation(meta *ir.Meta) string {
 	reason, ok := emit.Deprecated(meta)
 	if !ok {
@@ -498,13 +465,8 @@ func annotation(meta *ir.Meta) string {
 	return " (deprecated = " + quote(reason) + ")"
 }
 
-// quote writes prose as a Thrift string literal.
-//
-// Thrift's lexer reads `\"` and `\\` inside one, so those two are escaped;
-// a control character has no escape a literal can carry and is written as a
-// space, which is what a reason spanning lines means on the one line an
-// annotation is. The doc comment beside the annotation carries the text as
-// it was written.
+// quote writes prose as a Thrift string literal. `\"` and `\\` are the only
+// escapes Thrift reads, so a control character becomes a space.
 func quote(s string) string {
 	var b strings.Builder
 	b.WriteByte('"')

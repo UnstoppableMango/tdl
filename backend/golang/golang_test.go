@@ -34,24 +34,13 @@ func generate(t *testing.T, m *irtest.Builder) *plugin.Response {
 	return resp
 }
 
-// sourceImporter type checks what generated code imports from GOROOT rather
-// than a build cache, so it needs nothing installed and no module on disk;
-// the generated package imports only the standard library. It is shared
-// because it keeps what it has checked, and checking fmt and regexp from
-// source for every test would dominate the run.
+// sourceImporter type checks imports from GOROOT source, so no build cache
+// or module is needed. It is shared because it caches what it has checked.
 var sourceImporter = importer.ForCompiler(token.NewFileSet(), "source", nil)
 
-// files keys a response by path, and asserts the response is a Go package
-// that compiles.
-//
-// Type checking rather than parsing is the assertion that matters. A
-// substring check can pass while the output is something go build refuses,
-// and so can parsing: `map[[]byte]struct{}` parses, and an undeclared type
-// a skipped declaration left behind parses too.
-//
-// The whole response is checked as one package, since one file per
-// declaration means a struct's field type is usually declared in another
-// file.
+// files keys a response by path and asserts it type checks as one package.
+// Parsing alone accepts `map[[]byte]struct{}` and a reference to a skipped
+// declaration.
 func files(t *testing.T, resp *plugin.Response) map[string]string {
 	t.Helper()
 	out := map[string]string{}
@@ -80,8 +69,6 @@ func files(t *testing.T, resp *plugin.Response) map[string]string {
 	return out
 }
 
-// sources returns the response's files in a stable order, for a failure to
-// print.
 func sources(out map[string]string) []string {
 	paths := keys(out)
 	sort.Strings(paths)
@@ -92,9 +79,8 @@ func sources(out map[string]string) []string {
 	return srcs
 }
 
-// contains asserts on the output with runs of whitespace collapsed, since
-// gofmt aligns a struct's field types into columns and the alignment moves
-// whenever a sibling field's name changes length.
+// contains asserts on the output with whitespace runs collapsed, since gofmt
+// realigns struct field columns.
 func contains(t *testing.T, src string, wants ...string) {
 	t.Helper()
 	flat := collapse(src)
@@ -111,8 +97,7 @@ func collapse(s string) string {
 
 func TestDescribe(t *testing.T) {
 	d := golang.Backend{}.Describe()
-	// The name is what a target block writes, and the package it lives in
-	// is called something else on purpose.
+	// The target name differs from the package name on purpose.
 	if d.Name != "go" {
 		t.Errorf("name = %q", d.Name)
 	}
@@ -189,8 +174,7 @@ func TestStructs(t *testing.T) {
 	)
 }
 
-// Go has a type of each fixed width, so each prelude numeric is the Go type
-// of the same name.
+// Each prelude numeric is the Go type of the same name.
 func TestFixedWidthNumerics(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(structure("Sizes", nil,
@@ -215,8 +199,7 @@ func TestFixedWidthNumerics(t *testing.T) {
 	)
 }
 
-// The three struct kinds mean different things and emit the same shape: Go
-// has no way to say "identity that survives changes to its contents".
+// The three struct kinds emit the same shape.
 func TestMixinIsAStructToo(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(&ir.Decl{
@@ -280,8 +263,7 @@ func TestVariantWithFieldsIsASealedInterface(t *testing.T) {
 		"Last4 string",
 		"func (PaymentCard) isPayment() {}",
 	)
-	// One variant carrying fields decides the shape for the whole enum,
-	// which is the cost of the split and the reason it is written down.
+	// One variant carrying fields decides the shape for the whole enum.
 	if strings.Contains(src, "const (") {
 		t.Errorf("an enum with a field-carrying variant should not emit constants:\n%s", src)
 	}
@@ -298,9 +280,7 @@ func TestNewtype(t *testing.T) {
 	contains(t, got["sku.go"], "type Sku string")
 }
 
-// The constraint set is open, so a name the backend does not know warns at
-// the constraint, and the checks it does know are still generated, as is
-// the type every field naming it refers to.
+// An unknown constraint warns, and the known checks are still generated.
 func TestUnknownConstraintIsAWarning(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(newtype("Quantity", m.Named("int"), where("min", 3, intArg("1")), where("shout", 8)))
@@ -313,8 +293,8 @@ func TestUnknownConstraintIsAWarning(t *testing.T) {
 	contains(t, got["order.go"], "Quantity Quantity")
 }
 
-// A newtype's constraints are a Validate method, joining every violation,
-// and an unexported validate that threads the path a container prefixes.
+// A newtype's constraints are a Validate method joining every violation,
+// plus an unexported validate that threads the path.
 func TestNewtypeMinMax(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(newtype("Quantity", m.Named("int"), where("min", 3, intArg("1")), where("max", 4, intArg("100"))))
@@ -331,9 +311,8 @@ func TestNewtypeMinMax(t *testing.T) {
 	)
 }
 
-// TestValidationRuns is where a check is shown to fail on a value violating
-// it, rather than only to compile: the generated package is built and a test
-// written against it is run.
+// TestValidationRuns builds the generated package and runs a test against
+// it, showing each check rejects a violating value.
 func TestValidationRuns(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(newtype("Quantity", m.Named("int"), where("min", 3, intArg("1")), where("max", 4, intArg("100"))))
@@ -366,7 +345,7 @@ func TestValidationRuns(t *testing.T) {
 }
 
 // validationTest is run inside the generated package by [TestValidationRuns].
-// Error lines are compared as sets, since a map is walked in no fixed order.
+// Error lines are compared as sets, since map order is not fixed.
 const validationTest = `package shop
 
 import (
@@ -444,9 +423,7 @@ func TestOrder(t *testing.T) {
 }
 `
 
-// goTest runs a test file inside the generated package, in a module of its
-// own, since type checking shows a check compiles and only running it shows
-// what it rejects.
+// goTest runs a test file inside the generated package, in its own module.
 func goTest(t *testing.T, resp *plugin.Response, test string) {
 	t.Helper()
 	if testing.Short() {
@@ -472,15 +449,13 @@ func goTest(t *testing.T, resp *plugin.Response, test string) {
 
 	cmd := exec.CommandContext(t.Context(), goBin, "test", "-count=1", ".")
 	cmd.Dir = dir
-	// The generated package imports only the standard library, so nothing
-	// here needs a network, a workspace, or another toolchain.
+	// The generated package imports only the standard library.
 	cmd.Env = append(os.Environ(), "GOFLAGS=", "GOWORK=off", "GOTOOLCHAIN=local", "GOPROXY=off", "CGO_ENABLED=0")
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("go test on the generated package: %v\n%s\n%s", err, out, strings.Join(sources(got), "\n"))
 	}
 }
 
-// newtype is a newtype owned by the model, carrying constraints.
 func newtype(declName string, base *ir.ID, cs ...*ir.Constraint) *ir.Decl {
 	return &ir.Decl{
 		Meta: &ir.Meta{Name: declName},
@@ -548,8 +523,7 @@ func TestLength(t *testing.T) {
 	contains(t, got["index.go"], "if count := len(i); count < 1 {")
 }
 
-// A range constraining nothing, or nothing at all, is a mistake in the
-// model, and a check that can never pass is not generated.
+// A check that can never pass is a warning and is not generated.
 func TestLengthThatCannotHoldIsAWarning(t *testing.T) {
 	for _, tt := range []struct {
 		name string
@@ -587,8 +561,7 @@ func TestMatches(t *testing.T) {
 	contains(t, got["quoted.go"], "var patternQuoted_0 = regexp.MustCompile(\"a`b\")")
 }
 
-// Go's regexp is RE2, which refuses what other engines accept, and a
-// pattern it refuses would panic when the package loads.
+// A pattern RE2 refuses would panic at load, so it is a warning.
 func TestMatchesGoRefusesIsAWarning(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(newtype("After", m.Named("string"), where("matches", 4, regexArg("(?<=a)b"))))
@@ -622,9 +595,6 @@ func TestOneOf(t *testing.T) {
 	)
 }
 
-// A oneOf with nothing to compare against would write an empty condition,
-// which is not Go. Every other check states what it takes, and this one
-// says so too rather than reaching the formatter.
 func TestOneOfWithoutArgumentsIsAWarning(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(structure("Order", nil,
@@ -675,10 +645,8 @@ func TestUnique(t *testing.T) {
 	contains(t, files(t, resp)["bag.go"], "seen := make(map[string]int, len(b.Tags))")
 }
 
-// A collection named without its element type reaches the backend as a
-// list with no type argument. Planning validation runs before the type is
-// rendered, so a check reading that argument decides nothing validates
-// rather than panicking, and the missing argument is what is reported.
+// A list with no type argument reports the missing argument rather than
+// panicking.
 func TestUniqueOnAnElementlessListIsAWarning(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(structure("Bag", nil,
@@ -693,8 +661,8 @@ func TestUniqueOnAnElementlessListIsAWarning(t *testing.T) {
 	}
 }
 
-// A constraint whose meaning this backend cannot give to a type warns, and
-// the rest of the type is still checked.
+// A constraint the backend cannot apply to a type warns, and the rest of the
+// type is still checked.
 func TestConstraintOnTheWrongTypeIsAWarning(t *testing.T) {
 	for _, tt := range []struct {
 		name string
@@ -721,9 +689,8 @@ func TestConstraintOnTheWrongTypeIsAWarning(t *testing.T) {
 	}
 }
 
-// A field whose type validates is validated with it, through a pointer and
-// through every collection, and a struct with nothing to check gets no
-// methods.
+// A field whose type validates is validated through a pointer and every
+// collection, and a struct with nothing to check gets no methods.
 func TestValidationRecurses(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(newtype("Email", m.Named("string"), where("length", 3, rangeArg(bound(3), nil))))
@@ -755,8 +722,7 @@ func TestValidationRecurses(t *testing.T) {
 	}
 }
 
-// Two structs reaching each other through pointers settle on both
-// validating, which a walk stopping at what it has seen would get wrong.
+// Two structs reaching each other through pointers both validate.
 func TestValidationThroughACycle(t *testing.T) {
 	m := irtest.New("shop")
 	b := &ir.Struct{}
@@ -774,9 +740,8 @@ func TestValidationThroughACycle(t *testing.T) {
 	contains(t, got["a.go"], `errs = (*a.B).validate(path+".b", errs)`)
 }
 
-// The compiler hands a newtype its whole accumulated set, so it is checked
-// in one place, and a constraint the backend cannot check warns where it
-// was written and not again where it was inherited.
+// A newtype's inherited constraints are checked in one place, and an
+// uncheckable one warns only where it was written.
 func TestNewtypeChainChecksOnce(t *testing.T) {
 	m := irtest.New("shop")
 	email := newtype("Email", m.Named("string"), where("length", 3, rangeArg(bound(3), nil)), where("shout", 4))
@@ -807,7 +772,7 @@ func TestNewtypeOverAStructValidatesIt(t *testing.T) {
 }
 
 // Go gives no method to a type whose underlying type is a pointer or an
-// interface, so such a newtype's constraints cannot be checked.
+// interface, so such a newtype's constraints are a warning.
 func TestConstrainedNewtypeOverAPointerIsAWarning(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(&ir.Decl{
@@ -825,8 +790,8 @@ func TestConstrainedNewtypeOverAPointerIsAWarning(t *testing.T) {
 	}
 }
 
-// A sealed enum is an interface, so each variant with something to check
-// carries the methods, and a field holding the enum asks the value it holds.
+// Each sealed enum variant with something to check carries the methods, and
+// a field holding the enum asks the value it holds.
 func TestSealedEnumValidation(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(enum("Payment",
@@ -851,9 +816,8 @@ func TestSealedEnumValidation(t *testing.T) {
 	)
 }
 
-// A generic struct checks its own fields and leaves its type arguments'
-// values alone, since asserting a method on a T that is a nil pointer
-// panics.
+// A generic struct leaves its type arguments' values unchecked, since a
+// method call on a nil pointer T panics.
 func TestGenericValidation(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(structure("Page", irtest.Params("T"),
@@ -870,8 +834,7 @@ func TestGenericValidation(t *testing.T) {
 	)
 }
 
-// The method's parameters and locals share a scope with the type's
-// parameters, so none may be spelled like one.
+// The method's parameters and locals avoid the type's parameter names.
 func TestLocalsAvoidTypeParams(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(structure("Box", irtest.Params("path", "errs", "count", "seen"),
@@ -883,8 +846,7 @@ func TestLocalsAvoidTypeParams(t *testing.T) {
 	contains(t, files(t, resp)["box.go"], "Validate() error {")
 }
 
-// A field Go would call Validate leaves no room for the method, which warns
-// the way a field called Key does; a key and a check live side by side.
+// A field Go would call Validate is a warning, like a field called Key.
 func TestValidateCollision(t *testing.T) {
 	m := irtest.New("shop")
 	clash := structure("Clash", nil, constrained(irtest.Field("validate", m.Named("int")), where("min", 4, intArg("1"))))
@@ -904,8 +866,7 @@ func TestValidateCollision(t *testing.T) {
 	contains(t, got["user.go"], "func (u User) Key() string {", "func (u User) Validate() error {")
 }
 
-// Go requires a map key to be comparable, so a Set or a Map that would
-// become one it refuses is reported rather than emitted.
+// A Set or Map whose Go key would not be comparable is a warning.
 func TestIncomparableKeysAreUnsupported(t *testing.T) {
 	for _, tt := range []struct {
 		name string
@@ -949,9 +910,7 @@ func TestIncomparableKeysAreUnsupported(t *testing.T) {
 	}
 }
 
-// A skipped declaration is one the package does not declare, so whatever
-// names it is skipped too, however far away, rather than emitted naming an
-// undeclared type.
+// A declaration naming a skipped one is skipped too, however indirectly.
 func TestReferringToASkippedDeclarationSkipsItToo(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(&ir.Decl{
@@ -960,9 +919,8 @@ func TestReferringToASkippedDeclarationSkipsItToo(t *testing.T) {
 			Fields: []*ir.Field{irtest.Field("by", m.Named("Set", m.Named("bytes")))},
 		}},
 	})
-	// Declared before what it names, so a single pass in declaration order
-	// would have rendered it before learning its field is skipped. Its field
-	// is attached once Top exists, since a type reference is made by name.
+	// Declared before Top, so one pass in declaration order is not enough.
+	// Its field is attached once Top exists.
 	outer := &ir.Struct{}
 	m.Own(&ir.Decl{
 		Meta: &ir.Meta{Name: "Outer", Position: &ir.Position{Filename: irtest.OwnFile, Line: 5}},
@@ -998,9 +956,8 @@ func TestReferringToASkippedDeclarationSkipsItToo(t *testing.T) {
 	}
 }
 
-// A collection's type argument and an alias's target are expanded rather
-// than named, and a skipped declaration reached through either is still one
-// the package does not declare.
+// A skipped declaration reached through a collection's type argument or an
+// alias's target still skips what names it.
 func TestASkippedDeclarationInsideAnExpansionIsSkipped(t *testing.T) {
 	for _, tt := range []struct {
 		name string
@@ -1048,9 +1005,8 @@ func TestASkippedDeclarationInsideAnExpansionIsSkipped(t *testing.T) {
 					t.Errorf("severity = %v", d.GetSeverity())
 				}
 			}
-			// The cascade warns at the declaration being skipped rather than
-			// at the reference that reached the skipped one, since a
-			// declaration may name it more than once.
+			// The cascade warns at the skipped declaration, which may name the
+			// skipped one more than once.
 			if line := resp.GetDiagnostics()[1].GetPosition().GetLine(); line != 7 {
 				t.Errorf("Catalog's warning is at line %d, want Catalog at 7", line)
 			}
@@ -1063,10 +1019,8 @@ func TestASkippedDeclarationInsideAnExpansionIsSkipped(t *testing.T) {
 	}
 }
 
-// A unit argument says what a number measures, and Go has no type that
-// carries one. Returning the bare Go type for the primitive would make
-// `decimal<kg>` and `decimal<N>` the same type, so the field warns and the
-// declaration holding it is skipped, the way an extern is.
+// Go has no type carrying a unit, so a unit argument on a primitive warns
+// and skips the declaration, keeping `decimal<kg>` and `decimal<N>` apart.
 func TestAUnitArgumentOnAPrimitiveIsSkipped(t *testing.T) {
 	m := irtest.New("probe")
 	m.Own(&ir.Decl{
@@ -1090,8 +1044,7 @@ func TestAUnitArgumentOnAPrimitiveIsSkipped(t *testing.T) {
 	})
 
 	resp := generate(t, m)
-	// One for the unit declaration, which is its own phase, and one for
-	// the field the unit argument is on.
+	// One for the unit declaration and one for the field using it.
 	if len(resp.GetDiagnostics()) != 2 {
 		t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
 	}
@@ -1112,8 +1065,6 @@ func TestAUnitArgumentOnAPrimitiveIsSkipped(t *testing.T) {
 	}
 }
 
-// Reaching the same declaration twice on separate paths is not a cycle, so
-// the walk that stops one has to unwind as it returns.
 func TestARepeatedFieldTypeIsNotACycle(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(&ir.Decl{
@@ -1145,8 +1096,8 @@ func TestARepeatedFieldTypeIsNotACycle(t *testing.T) {
 	contains(t, files(t, resp)["grid.go"], "Seen map[Point]struct{}")
 }
 
-// A comparable element is still a map, since that is the only Go shape that
-// keeps what a Set promises.
+// A Set of a comparable element is a map, the one Go shape keeping its
+// promise.
 func TestComparableSetsStillGenerate(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(&ir.Decl{
@@ -1158,9 +1109,7 @@ func TestComparableSetsStillGenerate(t *testing.T) {
 		Node: &ir.Decl_Structure{Structure: &ir.Struct{
 			Fields: []*ir.Field{
 				irtest.Field("skus", m.Named("Set", m.Named("Sku"))),
-				// A pointer is comparable whatever it points at, so an
-				// optional element is a legal key even when its element
-				// would not be.
+				// A pointer is comparable whatever it points at.
 				irtest.Field("maybe", m.Named("Set", m.Named("Option", m.Named("bytes")))),
 			},
 		}},
@@ -1176,8 +1125,6 @@ func TestComparableSetsStillGenerate(t *testing.T) {
 	)
 }
 
-// An alias is transparent, so it is expanded at every use rather than
-// declared.
 func TestAliasIsExpanded(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(&ir.Decl{
@@ -1210,9 +1157,7 @@ func TestDirectives(t *testing.T) {
 					Type: m.Named("string"),
 					Directives: []*ir.Directive{
 						{Name: "tag", Target: "go", Args: []*ir.Literal{irtest.Text(`json:"email_address"`)}},
-						// A model carries directives for every target
-						// block, so one that does not filter would read
-						// another backend's.
+						// Another target's directive is ignored.
 						{Name: "tag", Target: "sql", Args: []*ir.Literal{irtest.Text(`db:"nope"`)}},
 					},
 				},
@@ -1239,9 +1184,7 @@ func TestDirectives(t *testing.T) {
 	}
 }
 
-// A package clause is one identifier that every file carries, so a name Go
-// will not accept is an error rather than a warning: nothing is generated
-// and the host writes nothing.
+// A package name Go will not accept is an error, and nothing is generated.
 func TestAKeywordPackageNameIsAnError(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(&ir.Decl{
@@ -1276,9 +1219,7 @@ func TestAKeywordPackageNameIsAnError(t *testing.T) {
 	}
 }
 
-// A backend says what it cannot handle in a diagnostic rather than by
-// returning an error, and a warning does not stop the rest of the model
-// from generating.
+// A warning does not stop the rest of the model from generating.
 func TestUnsupportedIsAWarning(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(&ir.Decl{
@@ -1310,8 +1251,7 @@ func TestUnsupportedIsAWarning(t *testing.T) {
 	}
 }
 
-// The prelude is merged into the declaration table untagged, so a backend
-// that emits per declaration has to tell it apart from the model's own.
+// The prelude is merged into the model untagged and must not be emitted.
 func TestPreludeIsNotGenerated(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(&ir.Decl{
@@ -1327,8 +1267,7 @@ func TestPreludeIsNotGenerated(t *testing.T) {
 	}
 }
 
-// The prelude is recognized by its whole name and not by how the name ends,
-// so a user's file that happens to end the same way is still theirs.
+// The prelude is recognized by its whole name, not by a suffix.
 func TestAFileEndingInStdIsNotThePrelude(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(&ir.Decl{
@@ -1344,9 +1283,7 @@ func TestAFileEndingInStdIsNotThePrelude(t *testing.T) {
 	}
 }
 
-// An entity's key is a target directive naming fields, and it becomes a key
-// type and a method returning it, so a consumer can index entities without
-// reading the .tdl file.
+// An entity's key directive becomes a key type and a method returning it.
 func TestEntityKey(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(keyed("LineItem", []*ir.Field{
@@ -1387,9 +1324,8 @@ func TestSingleFieldKey(t *testing.T) {
 	}
 }
 
-// A key the backend cannot generate is a warning at the directive, and the
-// entity is still emitted: skipping it would leave every field naming it
-// referring to an undeclared type.
+// A key the backend cannot generate is a warning, and the entity is still
+// emitted, since fields elsewhere may name it.
 func TestKeyIsAWarningWhenItCannotBeGenerated(t *testing.T) {
 	cases := []struct {
 		name  string
@@ -1462,8 +1398,6 @@ func TestKeyIsAWarningWhenItCannotBeGenerated(t *testing.T) {
 	}
 }
 
-// A model carries directives for every target block, and another backend's
-// key is not this one's.
 func TestKeyFromAnotherTargetIsIgnored(t *testing.T) {
 	m := irtest.New("shop")
 	d := keyed("User", []*ir.Field{irtest.Field("id", m.Named("string"))}, irtest.Name("id"))
@@ -1479,9 +1413,7 @@ func TestKeyFromAnotherTargetIsIgnored(t *testing.T) {
 	}
 }
 
-// The receiver is derived from the Go name, and `irtest.Name("")` passes the
-// compiler's checks, so an empty name has to be a warning rather than an
-// index out of range.
+// An empty name warns rather than panicking when deriving the receiver.
 func TestKeyOnAnEmptyNameIsAWarning(t *testing.T) {
 	m := irtest.New("shop")
 	d := keyed("User", []*ir.Field{irtest.Field("id", m.Named("string"))}, irtest.Name("id"))
@@ -1525,7 +1457,6 @@ func keys(m map[string]string) []string {
 	return out
 }
 
-// structure is a value declaration, parameterized when ps is not empty.
 func structure(declName string, ps []*ir.Param, fields ...*ir.Field) *ir.Decl {
 	return &ir.Decl{
 		Meta: &ir.Meta{Name: declName},
@@ -1541,7 +1472,7 @@ func noDiagnostics(t *testing.T, resp *plugin.Response) {
 }
 
 // onlyWarningAt asserts the response carries one diagnostic, a warning, at
-// line; a line of 0 is a use the fixture gave no position.
+// line; 0 means the fixture gave no position.
 func onlyWarningAt(t *testing.T, resp *plugin.Response, line int32) {
 	t.Helper()
 	if len(resp.GetDiagnostics()) != 1 {
@@ -1556,8 +1487,6 @@ func onlyWarningAt(t *testing.T, resp *plugin.Response, line int32) {
 	}
 }
 
-// A parameterized declaration is a Go generic type, and applying it is
-// instantiating one.
 func TestGenericStruct(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(structure("Page", irtest.Params("T"),
@@ -1622,8 +1551,8 @@ func TestGenericNewtype(t *testing.T) {
 	contains(t, got["user.go"], "Friends Ids[string]")
 }
 
-// Go refuses a type parameter as the whole right-hand side of a type
-// declaration, so a newtype over a bare parameter has no Go shape.
+// Go refuses a bare type parameter as a declaration's underlying type, so a
+// newtype over one is a warning.
 func TestNewtypeOverABareParameterIsAWarning(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(&ir.Decl{
@@ -1639,9 +1568,8 @@ func TestNewtypeOverABareParameterIsAWarning(t *testing.T) {
 	}
 }
 
-// A fieldless enum is constants, and a constant cannot have a generic type,
-// so its parameters are dropped with a warning rather than changing the
-// enum's shape.
+// A constant cannot have a generic type, so a fieldless enum's parameters
+// are dropped with a warning.
 func TestParameterizedFieldlessEnumDropsItsParams(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(&ir.Decl{
@@ -1660,8 +1588,7 @@ func TestParameterizedFieldlessEnumDropsItsParams(t *testing.T) {
 	contains(t, got["job.go"], "Status Status")
 }
 
-// An alias is expanded at every use, so a parameterized one is expanded with
-// its arguments substituted for its parameters.
+// A parameterized alias is expanded with its arguments substituted.
 func TestParameterizedAliasIsSubstituted(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(&ir.Decl{
@@ -1716,8 +1643,8 @@ func TestAliasGivenTheWrongNumberOfArgumentsIsAWarning(t *testing.T) {
 	}
 }
 
-// A parameter Go cannot express is a warning at the parameter, and the
-// declaration taking it is skipped.
+// A parameter Go cannot express is a warning, and its declaration is
+// skipped.
 func TestParamsGoCannotExpress(t *testing.T) {
 	atom := func(a ir.KindAtom) *ir.Kind { return &ir.Kind{Atom: a} }
 	arrow := &ir.Kind{Atom: ir.KindAtom_KIND_ATOM_TYPE, Arrow: atom(ir.KindAtom_KIND_ATOM_TYPE)}
@@ -1736,14 +1663,13 @@ func TestParamsGoCannotExpress(t *testing.T) {
 		{"a predeclared type", &ir.Param{Name: "string", Position: at}, nil, 4},
 		{"a predeclared constraint", &ir.Param{Name: "any", Position: at}, nil, 4},
 		{"the time package", &ir.Param{Name: "time", Position: at}, nil, 4},
-		// Validation imports these, so a parameter spelled like one would
-		// shadow it in whichever file it lands.
+		// Validation imports these.
 		{"the fmt package", &ir.Param{Name: "fmt", Position: at}, nil, 4},
 		{"the errors package", &ir.Param{Name: "errors", Position: at}, nil, 4},
 		{"the regexp package", &ir.Param{Name: "regexp", Position: at}, nil, 4},
 		{"the utf8 package", &ir.Param{Name: "utf8", Position: at}, nil, 4},
 		{"a generated declaration", &ir.Param{Name: "Note", Position: at}, nil, 4},
-		// The kind is left to inference, and only the use says it is higher.
+		// Inferred higher-kinded from the use.
 		{"applied to arguments", &ir.Param{Name: "f"}, func(m *irtest.Builder) *ir.ID {
 			return m.Param("f", 0, m.Named("string"))
 		}, 0},
@@ -1772,8 +1698,7 @@ func TestParamsGoCannotExpress(t *testing.T) {
 	}
 }
 
-// Go needs a map key to be comparable and TDL has no way to say so, so a
-// parameter is constrained by what reaches a key.
+// A parameter reaching a map key is inferred comparable.
 func TestComparableIsInferred(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(structure("Bag", irtest.Params("T"), irtest.Field("items", m.Named("Set", m.Param("T", 0)))))
@@ -1783,8 +1708,8 @@ func TestComparableIsInferred(t *testing.T) {
 	m.Own(structure("Pairs", irtest.Params("T"), irtest.Field("seen", m.Named("Set", m.Named("Pair", m.Param("T", 0))))))
 	// A pointer is comparable whatever it points at.
 	m.Own(structure("Maybe", irtest.Params("T"), irtest.Field("seen", m.Named("Set", m.Named("Option", m.Param("T", 0))))))
-	// Declared before what makes it comparable, so one pass in declaration
-	// order is not enough. Its field is attached once Late exists.
+	// Declared before what makes it comparable; its field is attached once
+	// Late exists.
 	early := &ir.Struct{Params: irtest.Params("T")}
 	m.Own(&ir.Decl{Meta: &ir.Meta{Name: "Early"}, Node: &ir.Decl_Structure{Structure: early}})
 	m.Own(structure("Late", irtest.Params("T"), irtest.Field("items", m.Named("Set", m.Param("T", 0)))))
@@ -1804,8 +1729,8 @@ func TestComparableIsInferred(t *testing.T) {
 	contains(t, got["uses.go"], "Bag Bag[string]")
 }
 
-// An argument Go cannot compare, given to a parameter that has to be, is a
-// warning at the use, and the declaration using it is skipped.
+// An incomparable argument for a comparable parameter warns at the use,
+// and the declaration using it is skipped.
 func TestComparableArgumentsAtUse(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(structure("Bag", irtest.Params("T"), irtest.Field("items", m.Named("Set", m.Param("T", 0)))))
@@ -1827,8 +1752,7 @@ func TestComparableArgumentsAtUse(t *testing.T) {
 	contains(t, got["names.go"], "Bag Bag[string]")
 }
 
-// A generic entity's key is generic too, and a key field has to be
-// comparable, so the parameter it names is.
+// A generic entity's key is generic, and its key parameter is comparable.
 func TestGenericEntityKey(t *testing.T) {
 	m := irtest.New("shop")
 	entry := keyed("Entry", []*ir.Field{
@@ -1866,9 +1790,8 @@ func TestGenericEntityKey(t *testing.T) {
 	contains(t, got["edge.go"], "func (r Edge[e]) Key() e {", "return r.Id")
 }
 
-// A class is a contract, and conformance to it is declared, so it is an
-// interface only the declarations that said so implement: its method is
-// unexported, which seals it to the package.
+// A class is an interface with an unexported method, so only declarations
+// that declare conformance implement it.
 func TestClassIsAMarkerInterface(t *testing.T) {
 	m := irtest.New("shop")
 	m.Class("Timestamped")
@@ -1914,8 +1837,7 @@ func TestMarkersOnEveryShape(t *testing.T) {
 	noDiagnostics(t, resp)
 	got := files(t, resp)
 	contains(t, got["status.go"], "func (Status) isAuditable() {}")
-	// A sealed enum is an interface, which cannot carry a method, so it
-	// embeds the class and every variant carries the marker.
+	// A sealed enum embeds the class, and every variant carries the marker.
 	contains(t, got["payment.go"],
 		"type Payment interface { Auditable isPayment() }",
 		"func (PaymentCash) isAuditable() {}",
@@ -1925,8 +1847,8 @@ func TestMarkersOnEveryShape(t *testing.T) {
 	contains(t, got["page.go"], "func (Page[T]) isAuditable() {}")
 }
 
-// A `requires` clause is a Go constraint, since the class it names is an
-// interface, and a parameter that also has to be comparable says both.
+// A `requires` clause is a Go constraint, combined with comparable when
+// needed.
 func TestRequiresBecomesAConstraint(t *testing.T) {
 	m := irtest.New("shop")
 	m.Class("Timestamped")
@@ -1944,8 +1866,7 @@ func TestRequiresBecomesAConstraint(t *testing.T) {
 	tracked := structure("Tracked", irtest.Params("T"), irtest.Field("seen", m.Named("Set", m.Param("T", 0))))
 	tracked.GetStructure().Constraints = []*ir.ClassRef{m.Requires("Auditable", 0, m.Param("T", 0))}
 	m.Own(tracked)
-	// Auditable requires Timestamped, so a parameter that is Auditable
-	// satisfies a constraint naming either.
+	// Auditable requires Timestamped, so either constraint is satisfied.
 	forward := structure("Forward", irtest.Params("T"),
 		irtest.Field("envelope", m.Named("Envelope", m.Param("T", 0))),
 		irtest.Field("stamped", m.Named("Stamped", m.Param("T", 0))),
@@ -1970,8 +1891,7 @@ func TestRequiresBecomesAConstraint(t *testing.T) {
 }
 
 // The compiler does not check a constraint whose argument is a parameter,
-// and Go does, so the backend checks every use and skips what Go would
-// refuse.
+// so the backend checks every use and skips what Go would refuse.
 func TestConstraintViolatedAtUse(t *testing.T) {
 	m := irtest.New("shop")
 	m.Class("Auditable")
@@ -1998,8 +1918,7 @@ func TestConstraintViolatedAtUse(t *testing.T) {
 	contains(t, got["good.go"], "Envelope Envelope[Order]")
 }
 
-// What Go cannot express about a class is a warning where it was written,
-// and the rest is generated without it.
+// What Go cannot express about a class warns, and the rest is generated.
 func TestClassesGoCannotExpress(t *testing.T) {
 	at := &ir.Position{Filename: irtest.OwnFile, Line: 4}
 	instance := func(m *irtest.Builder, arg *ir.ID) *ir.Instance {
@@ -2106,9 +2025,8 @@ func TestClassesGoCannotExpress(t *testing.T) {
 	}
 }
 
-// A `requires` clause Go cannot state is a warning at the clause, and the
-// declaration is emitted without that constraint, as it is without an
-// unenforced `where`.
+// A `requires` clause Go cannot state warns, and the declaration is emitted
+// without that constraint.
 func TestUnexpressibleRequiresIsDropped(t *testing.T) {
 	cases := []struct {
 		name  string
@@ -2118,8 +2036,7 @@ func TestUnexpressibleRequiresIsDropped(t *testing.T) {
 		{"a prelude class", func(m *irtest.Builder) *ir.ClassRef {
 			return m.Requires("Entity", 4, m.Param("T", 0))
 		}, 1},
-		// The class warns where it is declared, and the clause where it is
-		// written.
+		// The class warns where declared, and the clause where written.
 		{"a class taking parameters", func(m *irtest.Builder) *ir.ClassRef {
 			d := m.Class("Projection")
 			d.GetMeta().Position = &ir.Position{Filename: irtest.OwnFile, Line: 2}
@@ -2163,10 +2080,8 @@ func TestUnexpressibleRequiresIsDropped(t *testing.T) {
 	}
 }
 
-// A class a class requires is embedded in its interface, which is what makes
-// the requirement hold. One Go cannot embed is dropped, so the interface is
-// weaker than the model says, and that is a warning at the clause rather
-// than a quieter interface.
+// A required class is embedded in the interface; one Go cannot embed is
+// dropped with a warning at the clause.
 func TestUnembeddableSuperIsAWarning(t *testing.T) {
 	cases := []struct {
 		name  string
@@ -2178,8 +2093,7 @@ func TestUnembeddableSuperIsAWarning(t *testing.T) {
 		{"a prelude class", func(m *irtest.Builder) *ir.ClassRef {
 			return m.Requires("Entity", 4)
 		}, 1, "Entity"},
-		// The class warns where it is declared, and the clause where it is
-		// written.
+		// The class warns where declared, and the clause where written.
 		{"a class taking parameters", func(m *irtest.Builder) *ir.ClassRef {
 			d := m.Class("Projection")
 			d.GetMeta().Position = &ir.Position{Filename: irtest.OwnFile, Line: 2}
@@ -2222,9 +2136,8 @@ func TestUnembeddableSuperIsAWarning(t *testing.T) {
 	}
 }
 
-// Nothing rejects a cycle in what classes require, and a Go interface cannot
-// embed itself, so each class in the cycle is dropped with a warning rather
-// than generated into a package that does not compile.
+// A Go interface cannot embed itself, so each class in a requires cycle is
+// dropped with a warning.
 func TestClassRequiresCycle(t *testing.T) {
 	at := &ir.Position{Filename: irtest.OwnFile, Line: 4}
 	m := irtest.New("shop")
@@ -2262,8 +2175,7 @@ func TestClassRequiresCycle(t *testing.T) {
 // foreignLine is where [foreign] says its directive was written.
 const foreignLine = 5
 
-// foreign maps a declaration to a Go type in another package, the way a
-// target block's foreign directive does.
+// foreign maps a declaration to a Go type in another package.
 func foreign(d *ir.Decl, path, typeName string) *ir.Decl {
 	d.Directives = append(d.Directives, &ir.Directive{
 		Name:     "foreign",
@@ -2274,8 +2186,7 @@ func foreign(d *ir.Decl, path, typeName string) *ir.Decl {
 	return d
 }
 
-// mapForeign maps a declaration the prelude owns, which a target block
-// reaches by name like any other.
+// mapForeign maps a prelude declaration by name.
 func mapForeign(m *irtest.Builder, declName, path, typeName string) {
 	d, _, ok := m.Model.FindDecl(declName)
 	if !ok {
@@ -2284,8 +2195,8 @@ func mapForeign(m *irtest.Builder, declName, path, typeName string) {
 	foreign(d, path, typeName)
 }
 
-// raw keys a response by path without type checking it, for a mapping onto
-// a package that is not on disk to import.
+// raw keys a response by path without type checking it, for output
+// importing a package that is not on disk.
 func raw(resp *plugin.Response) map[string]string {
 	out := map[string]string{}
 	for _, f := range resp.GetFiles() {
@@ -2294,8 +2205,7 @@ func raw(resp *plugin.Response) map[string]string {
 	return out
 }
 
-// A foreign declaration is a type this package imports rather than one it
-// declares, so it generates an import and a reference and no file.
+// A foreign declaration generates an import and a reference and no file.
 func TestForeignTypeIsImported(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(foreign(newtype("Money", m.Named("string")), "math/big", "Int"))
@@ -2310,8 +2220,8 @@ func TestForeignTypeIsImported(t *testing.T) {
 	contains(t, got["order.go"], `big "math/big"`, "Total big.Int")
 }
 
-// A primitive is a declaration like any other, which is what makes the
-// decimal, uuid, and date placeholders survivable.
+// A primitive can be mapped, which replaces the decimal, uuid, and date
+// placeholders.
 func TestForeignPrimitive(t *testing.T) {
 	m := irtest.New("shop")
 	mapForeign(m, "decimal", "math/big", "Float")
@@ -2322,8 +2232,7 @@ func TestForeignPrimitive(t *testing.T) {
 	contains(t, files(t, resp)["order.go"], `big "math/big"`, "Total big.Float")
 }
 
-// Two packages can end in one segment, and the alias is what keeps them
-// apart, since the qualifier is what the generated code reads.
+// Two packages ending in one segment get distinct aliases.
 func TestForeignAliasesDoNotCollide(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(foreign(newtype("Page", m.Named("string")), "text/template", "Template"))
@@ -2343,9 +2252,8 @@ func TestForeignAliasesDoNotCollide(t *testing.T) {
 	)
 }
 
-// A path's last segment is not always a Go identifier, and the alias is
-// what makes the reference one. A major version and a `go-` prefix are
-// what the segment carries and the package name does not, so they go.
+// An alias is a Go identifier: a major version and a `go-` prefix are
+// dropped from the last segment.
 func TestForeignAliasIsAnIdentifier(t *testing.T) {
 	for _, tt := range []struct {
 		path, alias string
@@ -2363,8 +2271,7 @@ func TestForeignAliasIsAnIdentifier(t *testing.T) {
 
 			resp := generate(t, m)
 			noDiagnostics(t, resp)
-			// The package is not on disk, so this reads the output rather
-			// than type checking it.
+			// The package is not on disk, so this is not type checked.
 			contains(t, raw(resp)["file.go"],
 				fmt.Sprintf("%s %q", tt.alias, tt.path),
 				"Doc "+tt.alias+".Node",
@@ -2373,9 +2280,6 @@ func TestForeignAliasIsAnIdentifier(t *testing.T) {
 	}
 }
 
-// Whether a foreign type is a legal map key is decided by the package that
-// declares it, at the consumer's build, so the backend trusts it rather
-// than refusing a Set of one.
 func TestForeignTypeIsAssumedComparable(t *testing.T) {
 	m := irtest.New("shop")
 	mapForeign(m, "uuid", "time", "Time")
@@ -2386,8 +2290,6 @@ func TestForeignTypeIsAssumedComparable(t *testing.T) {
 	contains(t, files(t, resp)["bag.go"], `time "time"`, "Ids map[time.Time]struct{}")
 }
 
-// A foreign type takes type arguments like any other, and the reference
-// carries them.
 func TestForeignTypeTakesTypeArguments(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(foreign(structure("Holder", irtest.Params("T"), irtest.Field("value", m.Param("T", 0))), "sync", "Map"))
@@ -2398,8 +2300,8 @@ func TestForeignTypeTakesTypeArguments(t *testing.T) {
 	contains(t, raw(resp)["cache.go"], `sync "sync"`, "Entries sync.Map[string]")
 }
 
-// A key is a method, and a foreign type carries none, so the entity the
-// mapping replaced says so rather than silently losing it.
+// A key on a mapped entity is a warning, since a foreign type has no
+// method.
 func TestKeyOnAForeignTypeIsAWarning(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(foreign(keyed("User", []*ir.Field{irtest.Field("id", m.Named("string"))}, irtest.Name("id")), "math/big", "Int"))
@@ -2411,8 +2313,7 @@ func TestKeyOnAForeignTypeIsAWarning(t *testing.T) {
 	contains(t, files(t, resp)["order.go"], "User big.Int")
 }
 
-// A foreign type's values belong to the package that declares them, so
-// nothing is checked against them and no method is generated for one.
+// A foreign type's values are not checked and get no method.
 func TestForeignTypeIsNotValidated(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(foreign(newtype("Money", m.Named("string"), where("length", 4, intArg("3"))), "math/big", "Int"))
@@ -2436,8 +2337,7 @@ func TestForeignTypeIsNotValidated(t *testing.T) {
 	}
 }
 
-// Go adds a method to a type its own package declares, so a foreign type
-// cannot carry a class marker and says so where the mapping was written.
+// A foreign type cannot carry a class marker, which warns at the mapping.
 func TestForeignTypeCannotCarryAMarker(t *testing.T) {
 	m := irtest.New("shop")
 	m.Class("Priced")
@@ -2451,8 +2351,6 @@ func TestForeignTypeCannotCarryAMarker(t *testing.T) {
 	contains(t, resp.GetDiagnostics()[0].GetMessage(), "Money", "Priced", "foreign")
 }
 
-// A parameter spelled like an import alias would shadow it in whichever
-// file the parameter lands in.
 func TestParamShadowingAForeignAliasIsAWarning(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(foreign(newtype("Money", m.Named("string")), "math/big", "Int"))
@@ -2469,8 +2367,8 @@ func TestParamShadowingAForeignAliasIsAWarning(t *testing.T) {
 	contains(t, resp.GetDiagnostics()[0].GetMessage(), "big")
 }
 
-// A mapping the generated code could not refer to warns where it was
-// written, and the declaration is emitted as it would have been.
+// A mapping the generated code cannot refer to warns, and the declaration
+// is emitted as if unmapped.
 func TestForeignMappingProblems(t *testing.T) {
 	for _, tt := range []struct {
 		name, path, typeName string
@@ -2497,8 +2395,8 @@ func foreignDirective(path, typeName string) *ir.Directive {
 	return foreign(&ir.Decl{}, path, typeName).GetDirectives()[0]
 }
 
-// A target path can name a declaration another package owns, and a foreign
-// mapping on it is read the way one on a local declaration is.
+// A foreign mapping on another package's declaration is read like a local
+// one.
 func TestForeignExternIsImported(t *testing.T) {
 	m := irtest.New("shop")
 	money := m.ExternIn("acme.money", "Money", foreignDirective("github.com/acme/money", "Money"))
@@ -2513,8 +2411,6 @@ func TestForeignExternIsImported(t *testing.T) {
 	contains(t, got["price.go"], `money "github.com/acme/money"`, "Amount money.Money")
 }
 
-// An extern nothing maps has no Go type, so the declaration using it is
-// skipped with a warning.
 func TestUnmappedExternIsSkipped(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(structure("Price", nil, irtest.Field("amount", m.ExternIn("acme.money", "Money"))))
@@ -2527,9 +2423,8 @@ func TestUnmappedExternIsSkipped(t *testing.T) {
 	}
 }
 
-// A mapped extern is a foreign type, and whether a foreign type is a legal
-// map key is decided by the package declaring it, so it is accepted as a Map
-// key and a Set element the way a mapped local declaration is.
+// A mapped extern is accepted as a Map key and a Set element, like any
+// foreign type.
 func TestForeignExternIsComparable(t *testing.T) {
 	m := irtest.New("shop")
 	currency := m.ExternIn("acme.money", "Currency", foreignDirective("github.com/acme/money", "Currency"))
@@ -2551,8 +2446,6 @@ func TestForeignExternIsComparable(t *testing.T) {
 	)
 }
 
-// An unmapped extern has no Go type, so a Map keyed by one is skipped with a
-// warning naming the extern.
 func TestUnmappedExternKeyIsSkipped(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(structure("Ledger", nil,

@@ -8,9 +8,8 @@ import (
 	"github.com/unstoppablemango/tdl/backend/internal/irtest"
 )
 
-// goSuffixes is what go/build matches the last underscore-separated element
-// of a file name against: the GOOS and GOARCH lists in internal/syslist,
-// plus the test suffix that leaves a file out of the package.
+// goSuffixes are the file name suffixes go/build reads: GOOS and GOARCH from
+// internal/syslist, plus test.
 var goSuffixes = []string{
 	"test",
 	"aix", "android", "darwin", "dragonfly", "freebsd", "hurd", "illumos",
@@ -22,23 +21,21 @@ var goSuffixes = []string{
 	"s390x", "sparc", "sparc64", "wasm",
 }
 
-// A declaration named FooTest is a declaration, so foo_test.go would leave
-// it out of the package, and OrderLinux is not an OS-specific type.
+// A file name never ends in a suffix go/build reads as a test file or a
+// build constraint.
 func TestFileNameAvoidsGoSuffixes(t *testing.T) {
 	m := irtest.New("shop")
 	for _, s := range goSuffixes {
 		m.Own(structure("Report_"+s, nil, irtest.Field("id", m.Named("string"))))
 	}
-	// The same suffixes reached through camel case, including the pair form
-	// go/build reads as a GOOS and a GOARCH together.
+	// Camel case, including the GOOS_GOARCH pair form.
 	for _, name := range []string{"FooTest", "OrderLinux", "ReportArm64", "JobLinuxAmd64", "TaskLinuxTest"} {
 		m.Own(structure(name, nil, irtest.Field("id", m.Named("string"))))
 	}
 
 	for path := range files(t, generate(t, m)) {
 		base := strings.TrimSuffix(path, ".go")
-		// go/build ignores everything up to the first underscore, so
-		// linux.go carries no constraint and foo_linux.go does.
+		// go/build ignores the name up to the first underscore.
 		i := strings.Index(base, "_")
 		if i < 0 {
 			continue
@@ -50,8 +47,7 @@ func TestFileNameAvoidsGoSuffixes(t *testing.T) {
 	}
 }
 
-// Only a suffix Go reads is escaped, so every other name keeps the plain
-// snake case spelling.
+// Only a suffix Go reads is escaped.
 func TestFileNameKeepsUnreservedNames(t *testing.T) {
 	m := irtest.New("shop")
 	for _, name := range []string{"Order", "Linux", "Test", "TestCase", "Arm64Report"} {

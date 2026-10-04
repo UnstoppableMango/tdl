@@ -64,8 +64,6 @@ func TestOwnSkipsThePrelude(t *testing.T) {
 	}
 }
 
-// A model carries directives for every target block, so a lookup that did
-// not filter would read another backend's.
 func TestFindFiltersByTarget(t *testing.T) {
 	s := session(irtest.New("shop"))
 	all := []*ir.Directive{
@@ -142,8 +140,7 @@ func TestResolveRefusesWithAPosition(t *testing.T) {
 	}
 }
 
-// A declaration naming a skipped one would name something the output does
-// not declare, so it is skipped too, through a collection and an alias.
+// A referrer is skipped through a collection and through an alias.
 func TestCascade(t *testing.T) {
 	b := irtest.New("shop")
 	structure := func(name string, fields ...*ir.Field) *ir.Decl {
@@ -197,7 +194,6 @@ func TestNumbers(t *testing.T) {
 		}
 	}
 
-	// Another target's pin is not this one's.
 	other := []*ir.Directive{{Name: "number", Target: "y", Args: []*ir.Literal{{Kind: ir.LiteralKind_LITERAL_KIND_INT, Text: "7"}}}}
 	if got, _ := s.Numbers("M", []emit.Member{member("a", other)}, rule); got[0] != 1 {
 		t.Errorf("another target's number was read: %v", got)

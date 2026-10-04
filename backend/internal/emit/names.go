@@ -5,9 +5,7 @@ import (
 	"unicode"
 )
 
-// LastSegment is the part of a dotted name after its last dot. A
-// declaration's name may arrive qualified, and every target writes the bare
-// name.
+// LastSegment is the part of a dotted name after its last dot.
 func LastSegment(name string) string {
 	if i := strings.LastIndex(name, "."); i >= 0 {
 		return name[i+1:]
@@ -15,14 +13,9 @@ func LastSegment(name string) string {
 	return name
 }
 
-// Words splits a name into the words a case convention joins.
-//
-// A boundary falls before an upper-case letter that follows a lower-case
-// letter or a digit, and before the last letter of an upper-case run that a
-// lower-case letter follows, so `userID` is user and ID and `HTTPServer` is
-// HTTP and Server. Anything that is not a letter or a digit separates words
-// and is dropped. A digit stays with the word it follows: `last4` is one
-// word.
+// Words splits a name into the words a case convention joins: `userID` is
+// user and ID, `HTTPServer` is HTTP and Server, and `last4` is one word.
+// Anything that is not a letter or a digit separates words and is dropped.
 func Words(name string) []string {
 	var words []string
 	var cur []rune

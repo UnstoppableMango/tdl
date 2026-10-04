@@ -13,17 +13,13 @@ import (
 )
 
 // A type with something to check gets two methods. Validate joins every
-// violation into one error, and validate threads the path a container
-// prefixes and appends to what was found so far: a container prefixing a
-// child's joined error would prefix only its first line.
+// violation into one error; validate takes the path and appends to a
+// slice, since prefixing a joined error would prefix only its first line.
 //
-// A message is `<path>: <constraint as written>: <detail>`, the path rooted
-// at the TDL name. It echoes numbers, counts, indices, and enum values, and
-// never a string's or bytes' contents, since validation errors reach logs
-// and those contents are often addresses or secrets.
+// A message is `<path>: <constraint as written>: <detail>`. It never echoes
+// a string's or bytes' contents, which may be secrets.
 
-// validKey names what carries the methods: a declaration, or one variant of
-// a sealed enum.
+// validKey is a declaration, or one variant of a sealed enum.
 type validKey struct {
 	decl    int32
 	variant int
@@ -40,10 +36,10 @@ type checkUnit struct {
 	base    *ir.ID // a newtype's base
 }
 
-// planValidation decides which types validate before anything is rendered,
-// since a container calls into what it holds. A type validates when its
-// checks render to anything, which can depend on a type later in the table,
-// so this repeats until a pass adds nothing.
+// planValidation decides which types validate, before rendering, since a
+// container calls into what it holds. A type validates when its checks
+// render to anything, which can depend on a later type, so this repeats
+// until a pass adds nothing.
 func (g *generator) planValidation() {
 	g.valid = map[validKey]bool{}
 	saved := g.Diags
@@ -73,9 +69,7 @@ func (g *generator) checkUnits(d *ir.Decl) []checkUnit {
 	if goName == "" {
 		return nil
 	}
-	// Go adds a method to a type its own package declares, so a foreign
-	// type carries none; [generator.planForeign] says so at each
-	// constraint that leaves unchecked.
+	// A foreign type cannot carry methods; [generator.planForeign] warns.
 	if _, ok := g.foreign[d]; ok {
 		return nil
 	}
@@ -100,8 +94,8 @@ func (g *generator) checkUnits(d *ir.Decl) []checkUnit {
 	return nil
 }
 
-// writeValidation writes the methods of the declaration being rendered, or
-// of one of its variants, when it has something to check.
+// writeValidation writes the methods of a declaration, or of one of its
+// variants, when it has something to check.
 func (g *generator) writeValidation(b *strings.Builder, d *ir.Decl, variant int) {
 	for _, u := range g.checkUnits(d) {
 		if u.variant != variant {
@@ -148,8 +142,8 @@ func (g *generator) checks(d *ir.Decl, u checkUnit, report bool) *checkWriter {
 		g.constrain(w, w.recv, true, u.base, nil, u.cs, root, func(c *ir.Constraint) bool {
 			return report && (c.GetFrom() == nil || !emit.IsOwn(g.Model.Decl(c.GetFrom())))
 		})
-		// The compiler hands a newtype its parents' constraints, so only
-		// what is under the chain has checks of its own.
+		// u.cs already includes the parents' constraints, so only the type
+		// under the newtype chain is visited.
 		g.visit(w, w.recv, true, g.pastNewtypes(u.base), nil, root)
 	}
 	for _, f := range u.fields {
@@ -191,8 +185,8 @@ type checkWriter struct {
 	patterns []string
 }
 
-// newCheckWriter names the receiver and parameters around a type's type
-// parameters, since the method shares a scope with them.
+// newCheckWriter names the receiver and parameters so they avoid the type's
+// type parameters.
 func newCheckWriter(d *ir.Decl, goName string) *checkWriter {
 	w := &checkWriter{b: &strings.Builder{}, goName: goName, taken: map[string]bool{}, imports: map[string]bool{}}
 	for _, n := range paramNames(d) {
@@ -204,8 +198,7 @@ func newCheckWriter(d *ir.Decl, goName string) *checkWriter {
 	return w
 }
 
-// local reserves a name spelled like base, with a number after it when that
-// is taken.
+// local reserves base, or base with a number when base is taken.
 func (w *checkWriter) local(base string) string {
 	for i := 0; ; i++ {
 		name := base
@@ -219,7 +212,6 @@ func (w *checkWriter) local(base string) string {
 	}
 }
 
-// release frees names whose scope has closed.
 func (w *checkWriter) release(names ...string) {
 	for _, n := range names {
 		delete(w.taken, n)
@@ -277,8 +269,8 @@ func escapeVerbs(s string) string {
 	return strings.ReplaceAll(s, "%", "%%")
 }
 
-// shape is what a constraint checks: the Go value under a type, through
-// aliases and newtypes.
+// shape is the kind of Go value under a type, through aliases and
+// newtypes.
 type shape int
 
 const (
@@ -319,8 +311,8 @@ type checked struct {
 	t     *ir.Type // the type with that shape, whose arguments a collection reads
 	fr    *frame
 	enum  *ir.Decl
-	// named says the value's Go type is a newtype over the shape, so a
-	// string operation converts it and an enum comparison names the enum.
+	// named says the value's Go type is a newtype over the shape and needs
+	// a conversion.
 	named bool
 }
 
@@ -406,8 +398,8 @@ func isOption(d *ir.Decl, t *ir.Type) bool {
 	return d.GetEnumeration() != nil && (name == "Option" || name == "Nullable") && len(t.GetArgs()) == 1
 }
 
-// pastNewtypes follows a type through the newtypes it is, to the first type
-// that is not one.
+// pastNewtypes follows a chain of newtypes to the first type that is not
+// one.
 func (g *generator) pastNewtypes(id *ir.ID) *ir.ID {
 	seen := map[int32]bool{}
 	for {
@@ -421,8 +413,8 @@ func (g *generator) pastNewtypes(id *ir.ID) *ir.ID {
 	}
 }
 
-// constrain writes the checks a value's constraints call for. named says
-// the value's Go type is a declared type over the one checked.
+// constrain writes the checks for a value's constraints. named says the
+// value's Go type is a declared type over the one checked.
 func (g *generator) constrain(w *checkWriter, expr string, named bool, id *ir.ID, fr *frame, cs []*ir.Constraint, p checkPath, report func(*ir.Constraint) bool) {
 	if len(cs) == 0 {
 		return
@@ -430,8 +422,7 @@ func (g *generator) constrain(w *checkWriter, expr string, named bool, id *ir.ID
 	v := g.underlying(id, fr)
 	v.named = v.named || named
 
-	// An absent value has nothing to check, so an optional one is checked
-	// through its pointer when it is there.
+	// An optional value is checked through its pointer when present.
 	if v.shape == shapeOption {
 		saved := w.b
 		w.b = &strings.Builder{}
@@ -680,13 +671,12 @@ func lengthCond(l *ir.Literal, cv string) (string, error) {
 	return "", fmt.Errorf("its length is %s", ir.KindName(l.GetKind()))
 }
 
-// visit writes the calls validating what a value holds: the value when its
-// type validates, what a pointer points at, and each element of a
-// collection. convert says the value's Go type is a newtype over the type
-// visited, so that type's method needs a conversion.
+// visit writes the calls validating what a value holds: the value itself,
+// what a pointer points at, and each element of a collection. convert says
+// the value's Go type is a newtype over the type visited.
 //
-// A type parameter's values are not visited: asserting a method on a T that
-// holds a nil pointer panics.
+// A type parameter's values are not visited: asserting a method on a T
+// holding a nil pointer panics.
 func (g *generator) visit(w *checkWriter, expr string, convert bool, id *ir.ID, fr *frame, p checkPath) {
 	if !g.needsVisit(id, fr, map[int32]bool{}) {
 		return
@@ -741,7 +731,7 @@ func (g *generator) visit(w *checkWriter, expr string, convert bool, id *ir.ID, 
 		w.release(key, val)
 	case d.GetEnumeration() != nil && emit.Fielded(d.GetEnumeration()):
 		// An interface cannot carry the methods, so the value it holds is
-		// asked; a nil interface holds nothing to ask.
+		// asked.
 		inner, ok := w.local("inner"), w.local("ok")
 		w.line("if %s, %s := %s.(interface{ validate(string, []error) []error }); %s {", inner, ok, expr, ok)
 		w.line("%s = %s.validate(%s, %s)", w.errs, inner, p.expr(w), w.errs)
@@ -757,9 +747,8 @@ func (g *generator) visit(w *checkWriter, expr string, convert bool, id *ir.ID, 
 	}
 }
 
-// keyLabel is how a path names a set element or map key: by its value when
-// that is a number or an enum's, and as ? otherwise, since a key can hold
-// what a log should not.
+// keyLabel is how a path names a set element or map key: by value for a
+// number or an enum, and as ? otherwise, since a key may be sensitive.
 func (g *generator) keyLabel(id *ir.ID, fr *frame, key string) (string, []string) {
 	switch g.underlying(id, fr).shape {
 	case shapeInt, shapeEnum:
@@ -854,8 +843,7 @@ func literalText(l *ir.Literal) string {
 	return l.GetText()
 }
 
-// tdlName is a declaration's name without its package, which is how a path
-// names it.
+// tdlName is a declaration's name without its package.
 func tdlName(name string) string {
 	if i := strings.LastIndex(name, "."); i >= 0 {
 		return name[i+1:]

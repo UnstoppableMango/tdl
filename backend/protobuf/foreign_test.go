@@ -17,8 +17,7 @@ message Condition { optional string type = 1; }
 `
 )
 
-// foreign maps a declaration to a message another proto file declares, the
-// way a target block's foreign directive does.
+// foreign maps a declaration to a message another proto file declares.
 func foreign(d *ir.Decl, file, message string) *ir.Decl {
 	d.Directives = append(d.Directives, &ir.Directive{
 		Name:     "foreign",
@@ -29,8 +28,8 @@ func foreign(d *ir.Decl, file, message string) *ir.Decl {
 	return d
 }
 
-// A foreign declaration is a message the file imports rather than one it
-// declares, so it generates an import and a fully qualified reference.
+// A foreign declaration generates an import and a fully qualified
+// reference.
 func TestForeignMessageIsImported(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(foreign(value("Condition", irtest.Field("type", b.Named("string"))),
@@ -49,14 +48,11 @@ func TestForeignMessageIsImported(t *testing.T) {
 	absent(t, src, "message Condition")
 }
 
-// foreignDirective is the directive [foreign] attaches, for a declaration
-// the model holds only as an extern.
+// foreignDirective is the directive [foreign] attaches, for an extern.
 func foreignDirective(file, message string) *ir.Directive {
 	return foreign(&ir.Decl{}, file, message).GetDirectives()[0]
 }
 
-// A target path can name a declaration another package owns, and a foreign
-// mapping on it is read the way one on a local declaration is.
 func TestForeignExternIsImported(t *testing.T) {
 	b := irtest.New("shop")
 	condition := b.ExternIn("k8s.io.apimachinery.pkg.apis.meta.v1", "Condition",
@@ -74,8 +70,7 @@ func TestForeignExternIsImported(t *testing.T) {
 	)
 }
 
-// An extern nothing maps has no protobuf message, so the declaration using
-// it is skipped with a warning naming the extern.
+// The warning names the extern.
 func TestUnmappedExternIsSkipped(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(value("Fine", irtest.Field("a", b.Named("string"))))
@@ -96,21 +91,18 @@ func TestUnmappedExternIsSkipped(t *testing.T) {
 	contains(t, src, "message Fine")
 }
 
-// newtype declares a newtype over base, owned by the model.
+// newtype declares an owned newtype over base.
 func newtype(name string, base *ir.ID) *ir.Decl {
 	return &ir.Decl{Meta: &ir.Meta{Name: name}, Node: &ir.Decl_Newtype{Newtype: &ir.Newtype{Base: base}}}
 }
 
-// at gives an interned type reference the position lowering records for
-// where it was written.
+// at gives an interned type reference a source position.
 func at(b *irtest.Builder, id *ir.ID, line int32) *ir.ID {
 	b.Model.GetTypes()[id.GetIndex()].Position = &ir.Position{Filename: irtest.OwnFile, Line: line}
 	return id
 }
 
-// A newtype over an extern nothing maps expands to nothing protobuf has, so
-// the one message using it is skipped with one warning naming the extern,
-// placed where the newtype names the extern.
+// One warning names the extern, placed where the newtype names it.
 func TestNewtypeOverUnmappedExternIsSkipped(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(newtype("Cond", at(b, b.ExternIn("k8s.io.apimachinery.pkg.apis.meta.v1", "Condition"), 3)))
@@ -134,8 +126,6 @@ func TestNewtypeOverUnmappedExternIsSkipped(t *testing.T) {
 	contains(t, src, "message Fine { string a = 1; }")
 }
 
-// A newtype over a mapped extern expands to the foreign message, the way a
-// field naming the extern directly does.
 func TestNewtypeOverForeignExternIsImported(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(newtype("Cond", b.ExternIn("k8s.io.apimachinery.pkg.apis.meta.v1", "Condition",

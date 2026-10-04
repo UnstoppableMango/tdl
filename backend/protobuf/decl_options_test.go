@@ -12,8 +12,7 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// googleAPIResource stands in for google/api/resource.proto, declaring only
-// the fields the tests set.
+// googleAPIResource stands in for google/api/resource.proto.
 var googleAPIResource = map[string]string{
 	"google/api/resource.proto": `syntax = "proto3";
 package google.api;
@@ -30,8 +29,8 @@ extend google.protobuf.MessageOptions {
 `,
 }
 
-// generateModel parses, lowers, and generates src, failing on anything but
-// a clean response.
+// generateModel parses, lowers, and generates src, failing on any
+// diagnostic.
 func generateModel(t *testing.T, src string) *plugin.Response {
 	t.Helper()
 	file, err := parser.Parse("shop.tdl", strings.NewReader(src))
