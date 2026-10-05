@@ -110,17 +110,20 @@ func TestVerify(t *testing.T) {
 	files := []*plugin.File{{Path: "a.txt", Content: []byte("current")}}
 
 	// Nothing there yet.
-	stale, err := gen.Verify(out, files)
+	stale, paths, err := gen.Verify(out, files)
 	if err != nil {
 		t.Fatalf("verify: %v", err)
 	}
 	if len(stale) != 1 || stale[0].Reason != "missing" {
 		t.Fatalf("stale = %+v", stale)
 	}
+	if len(paths) != 1 || paths[0] != filepath.Join(out, "a.txt") {
+		t.Errorf("paths = %v", paths)
+	}
 
 	// Written, so nothing to report.
 	write(t, out, files...)
-	if stale, err := gen.Verify(out, files); err != nil || len(stale) != 0 {
+	if stale, _, err := gen.Verify(out, files); err != nil || len(stale) != 0 {
 		t.Fatalf("stale = %+v, err = %v", stale, err)
 	}
 
@@ -128,7 +131,7 @@ func TestVerify(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(out, "a.txt"), []byte("stale"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	stale, err = gen.Verify(out, files)
+	stale, _, err = gen.Verify(out, files)
 	if err != nil {
 		t.Fatalf("verify: %v", err)
 	}
@@ -137,33 +140,19 @@ func TestVerify(t *testing.T) {
 	}
 }
 
-// A file tdl wrote and would no longer write is stale too, which is what
-// catches a declaration someone deleted.
-func TestVerifyReportsOrphans(t *testing.T) {
+// A file tdl wrote and nothing would write any more is stale too, which is
+// what catches a declaration someone deleted. A file the marker does not
+// list was never tdl's, so it is not an orphan.
+func TestOrphaned(t *testing.T) {
 	out := t.TempDir()
-	write(t, out, &plugin.File{Path: "gone.txt"})
+	write(t, out, &plugin.File{Path: "gone.txt"}, &plugin.File{Path: "kept.txt"})
+	handwrite(t, filepath.Join(out, "theirs.txt"))
 
-	stale, err := gen.Verify(out, []*plugin.File{{Path: "kept.txt"}})
+	stale, err := gen.Orphaned(out, map[string]bool{filepath.Join(out, "kept.txt"): true})
 	if err != nil {
-		t.Fatalf("verify: %v", err)
+		t.Fatalf("orphaned: %v", err)
 	}
-	if len(stale) != 2 {
-		t.Fatalf("stale = %+v, want the missing one and the orphan", stale)
-	}
-}
-
-// A file the marker does not list was never tdl's, so it is not an orphan.
-func TestVerifyDoesNotClaimUnownedFiles(t *testing.T) {
-	out := t.TempDir()
-	if err := os.WriteFile(filepath.Join(out, "theirs.txt"), []byte("x"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	stale, err := gen.Verify(out, nil)
-	if err != nil {
-		t.Fatalf("verify: %v", err)
-	}
-	if len(stale) != 0 {
-		t.Errorf("a file tdl never wrote was called stale: %+v", stale)
+	if len(stale) != 1 || stale[0].Path != filepath.Join(out, "gone.txt") {
+		t.Errorf("stale = %+v, want only gone.txt", stale)
 	}
 }

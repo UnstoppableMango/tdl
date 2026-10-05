@@ -241,6 +241,28 @@ func TestGenCleansASharedOutputDirectoryOnce(t *testing.T) {
 	}
 }
 
+// Two files writing into one directory each own part of it, so verifying
+// both checks the directory against everything the two generate.
+func TestGenVerifiesASharedOutputDirectoryAsAWhole(t *testing.T) {
+	dir := t.TempDir()
+	var paths []string
+	for _, name := range []string{"a", "b"} {
+		path := filepath.Join(dir, name+".tdl")
+		src := "package p\n\ntype " + strings.ToUpper(name) + " {\n  x: string\n}\n\ntarget go for p {\n  out(\"./out\")\n}\n"
+		if err := os.WriteFile(path, []byte(src), 0o644); err != nil {
+			t.Fatalf("writing the fixture: %v", err)
+		}
+		paths = append(paths, path)
+	}
+
+	if _, _, err := run(t, newGenCmd(), paths...); err != nil {
+		t.Fatalf("gen: %v", err)
+	}
+	if _, errOut, err := run(t, newGenCmd(), append([]string{"--verify"}, paths...)...); err != nil {
+		t.Fatalf("gen --verify: %v\n%s", err, errOut)
+	}
+}
+
 func TestGenRejectsAFileWithNoTarget(t *testing.T) {
 	good, _ := twoFiles(t)
 

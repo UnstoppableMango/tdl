@@ -3,7 +3,9 @@ package cli
 import (
 	"context"
 	"fmt"
+	"maps"
 	"path/filepath"
+	"slices"
 
 	"github.com/spf13/cobra"
 
@@ -58,8 +60,11 @@ func newGenCmd() *cobra.Command {
 			defer r.close()
 
 			if !r.watch {
-				r.cleaned = map[string]bool{}
-				return eachFile(cmd, args, r.generate)
+				r.cleaned, r.expected = map[string]bool{}, map[string]map[string]bool{}
+				if err := eachFile(cmd, args, r.generate); err != nil {
+					return err
+				}
+				return r.orphans()
 			}
 
 			// Errors are reported and the watch continues.
@@ -99,6 +104,10 @@ type genRun struct {
 	// cleaned holds the output directories --clean has emptied in this run.
 	// Each is emptied once, since -o applies to every file given.
 	cleaned map[string]bool
+
+	// expected holds, per output directory, every path --verify found a
+	// target would write there, known only once every file has run.
+	expected map[string]map[string]bool
 
 	// backends caches each resolved backend. Under --watch a plugin that
 	// declared reuse is held open here across saves.
@@ -162,9 +171,13 @@ func (r *genRun) generate(path string) error {
 		}
 
 		mode := gen.ModeWrite
-		switch out := filepath.Clean(t.Out); {
+		out := filepath.Clean(t.Out)
+		switch {
 		case r.verify:
 			mode = gen.ModeVerify
+			if r.expected[out] == nil {
+				r.expected[out] = map[string]bool{}
+			}
 		case r.clean && !r.cleaned[out]:
 			mode = gen.ModeClean
 			r.cleaned[out] = true
@@ -194,6 +207,9 @@ func (r *genRun) generate(path string) error {
 		for _, w := range result.Written {
 			fmt.Fprintln(cmd.OutOrStdout(), w)
 		}
+		for _, p := range result.Expected {
+			r.expected[out][p] = true
+		}
 		for _, s := range result.Stale {
 			fmt.Fprintf(cmd.ErrOrStderr(), "%s: %s\n", s.Path, s.Reason)
 		}
@@ -203,6 +219,26 @@ func (r *genRun) generate(path string) error {
 
 	if ran == 0 {
 		return fmt.Errorf("no target named %s in %s", r.target, path)
+	}
+	if stale > 0 {
+		return fmt.Errorf("%d file(s) would change; run without --verify to update them", stale)
+	}
+	return nil
+}
+
+// orphans reports, after --verify has run every file, each file tdl wrote
+// into an output directory that nothing given would write any more.
+func (r *genRun) orphans() error {
+	stale := 0
+	for _, out := range slices.Sorted(maps.Keys(r.expected)) {
+		orphans, err := gen.Orphaned(out, r.expected[out])
+		if err != nil {
+			return err
+		}
+		for _, s := range orphans {
+			fmt.Fprintf(r.cmd.ErrOrStderr(), "%s: %s\n", s.Path, s.Reason)
+		}
+		stale += len(orphans)
 	}
 	if stale > 0 {
 		return fmt.Errorf("%d file(s) would change; run without --verify to update them", stale)
