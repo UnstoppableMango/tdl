@@ -1,36 +1,29 @@
 # proto and ir
 
-`proto/` and `ir/` are the public compatibility surface.
-Third-party backends compile against them, in-process and over the plugin protocol.
+`proto/` and `ir/` are the public compatibility surface for third-party backends.
 
 ## Field numbers are a promise
 
-A field may be added.
-A field number may never be renumbered or reused, and a field may not change type.
+Fields may be added.
+A field number is never renumbered or reused, and a field never changes type.
 
-CI runs `buf breaking` against the pull request's base, in `.github/workflows/buf.yml`.
-A change that has to break carries the `buf skip breaking` label, which is what `bufbuild/buf-action` reads, and adding the label reruns the check.
-The check does not block a merge, so a failing `buf` check on a pull request without the label is worth a comment.
+`buf breaking` runs in `.github/workflows/buf.yml`.
+It does not block a merge, so a failing `buf` check without the `buf skip breaking` label is worth a comment.
 
 ## Editions 2024
 
-Editions default every field to explicit presence and the generated Go to the opaque API.
-Each file sets `features.field_presence = IMPLICIT`, which is what proto3 meant, and `features.(pb.go).api_level = API_OPEN`, the API these types were published with.
-A field that wants presence says so itself, as `Range.low` does.
-A new file missing either option is a bug.
+Each file sets `features.field_presence = IMPLICIT` and `features.(pb.go).api_level = API_OPEN`.
+A new file missing either is a bug.
+A field that needs presence sets it itself, as `Range.low` does.
 
-`go_package` lives in `buf.gen.yaml` under managed mode, never in the proto files.
+`go_package` lives in `buf.gen.yaml`, never in a proto file.
 
 ## Completeness
 
-A change to `proto/` is incomplete without the regenerated `.pb.go` committed alongside it.
-`make generate` produces both.
+A change to `proto/` ships with the `.pb.go` that `make generate` produces.
 
-## Conventions in the schema
+## IDs
 
-An `ID` is an index paired with a fully qualified name, and which table it indexes is fixed by the field holding it rather than by the ID.
-Every `ID` field says which table in a trailing comment.
-A new one without that comment is a gap, because nothing else in the schema records the answer.
-
-An index of `-1` means the name did not resolve.
-Code reading an `ID` checks `Resolved()` rather than assuming.
+An `ID` is an index plus a fully qualified name; the field holding it decides which table it indexes.
+Every `ID` field names its table in a trailing comment, and a new one without that comment is a gap.
+An index of `-1` means unresolved, so code checks `Resolved()`.

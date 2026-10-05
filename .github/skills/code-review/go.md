@@ -1,46 +1,40 @@
 # Go
 
-Formatting and lint are covered elsewhere. Comment on behavior.
+Comment on behavior; formatting and lint are covered.
 
 ## Diagnostics accumulate
 
 The parser and `internal/sema` report every problem in one pass, each with a position.
-`parser` collects into an `ErrorList` and `syncTop` resynchronizes at the next declaration, so one bad line does not swallow the rest of the file.
-
-A new error path that returns on the first problem, or that reports without a position, is a regression.
-
-A form the compiler does not handle yet reports a diagnostic naming the deferral rather than dropping the input silently.
+A new error path that stops at the first problem, or reports without a position, is a regression.
 
 ## Commands return errors
 
-A command under `internal/cli` returns an error rather than printing it.
-The root silences cobra's error printing so a diagnostic list renders as itself, and `cmd/tdl` prints whatever a command returns.
+A command in `internal/cli` returns its error rather than printing it; `cmd/tdl` prints it.
 
 ## Boundaries
 
-`ir` and `plugin` are public API that third-party backends compile against, so a change to an exported name there is a compatibility question.
-`internal/` is private and free to change.
+`ir` and `plugin` are public API that third-party backends compile against.
+A change to an exported name there is a compatibility question.
+`internal/` is free to change.
 
 `internal/sema` touches no filesystem.
-Imported sources arrive through a `Loader`, with `FSLoader` for real files and `MapLoader` for tests.
-A direct `os.Open` in that package breaks the tests' ability to supply sources.
+Sources arrive through a `Loader`: `FSLoader` for real files, `MapLoader` in tests.
+A direct `os.Open` there is a bug.
 
 ## Interning
 
-`internal/sema` interns the type table, which is what makes an ID comparison a type comparison.
-A change that adds a way to build a type without going through `intern` breaks that property everywhere.
+`internal/sema` interns types so that comparing IDs compares types.
+Building a type without going through `intern` breaks that everywhere.
 
-The interning key and the display name are different things.
-The key separates `[T]` from `List<T>`, which are the same type written two ways and must stay two entries; the name is what a person reads.
+The interning key and the display name differ.
+`[T]` and `List<T>` are one type written two ways and stay two entries.
 
 ## Completeness
 
-Changing lowering or `ir.Dump` means regenerating goldens with `go test ./internal/sema -update`.
-Changing `internal/gen` means `go test ./internal/gen -record`.
-A behavior change arriving without them is incomplete, and the reviewer sees it as a test that did not run.
+A change to lowering or `ir.Dump` needs `go test ./internal/sema -update`.
+A change to `internal/gen` needs `go test ./internal/gen -record`.
 
 ## Comments
 
-Doc comments describe the current state, as if it had always been that way.
-Flag temporal or narrative language: "now", "previously", "this was changed to", "recently added", or a comment that explains the diff rather than the code.
-It rots, and the next change has to clean it up.
+Comments describe the current state.
+Flag temporal language ("now", "previously", "recently added") and comments that explain the diff rather than the code.
