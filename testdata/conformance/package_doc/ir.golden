@@ -1,4 +1,5 @@
 Model shop.orders
+├── Doc (2 lines)
 ├── Decls
 │   ├── [0] primitive string  std.tdl:4:1
 │   ├── [1] primitive int  std.tdl:6:1

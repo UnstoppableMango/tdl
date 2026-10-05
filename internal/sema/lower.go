@@ -73,6 +73,7 @@ func Lower(file *ast.File, opts ...Option) (*ir.Model, Diagnostics) {
 	l.refs = cfg.refs
 	if file.Package != nil {
 		l.model.Package = file.Package.Path
+		l.model.Doc = file.Package.Doc
 	}
 
 	// Imports come first, so a `_` import's names are in scope.

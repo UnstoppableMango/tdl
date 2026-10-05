@@ -48,6 +48,20 @@ func lowerDiags(t *testing.T, src string) Diagnostics {
 	return diags
 }
 
+func TestPackageDocReachesTheModel(t *testing.T) {
+	file, err := parser.Parse("test.tdl", strings.NewReader("/// What this package models.\npackage p\n"))
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+	model, diags := Lower(file)
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+	if got := model.GetDoc(); len(got) != 1 || got[0] != "What this package models." {
+		t.Errorf("model doc = %v, want [What this package models.]", got)
+	}
+}
+
 func TestDeclarationTable(t *testing.T) {
 	model := lower(t, `
 alias Names = [string]
