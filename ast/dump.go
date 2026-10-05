@@ -127,8 +127,7 @@ func Dump(file *File) string {
 	return b.String()
 }
 
-// fieldSummary renders a field on one line, counting its constraints
-// rather than expanding them.
+// fieldSummary renders a field on one line with a constraint count.
 func fieldSummary(f *Field) string {
 	s := printFieldHead(f)
 	if n := len(f.Constraints); n > 0 {
@@ -184,8 +183,8 @@ func params(ps []*TypeParam) []child {
 	return kids
 }
 
-// targetChildren flattens nested entries onto one level, prefixing each with
-// the path that scopes it, so the dump stays one node per line.
+// targetChildren flattens nested entries, prefixing each with its scoping
+// path.
 func targetChildren(entries []*TargetEntry) []child {
 	var kids []child
 	for _, e := range entries {

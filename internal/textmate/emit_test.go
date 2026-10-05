@@ -19,10 +19,8 @@ var (
 	treeSitterPath = filepath.Join("..", "..", "tree-sitter", "tree-sitter.json")
 )
 
-// TestTmLanguage checks the committed grammar against the file it is
-// derived from. A keyword that reaches lex and not the colors is a diff
-// here, which is the whole reason the grammar is derived.
-// tools/textmate is what writes the file; this only reads it.
+// TestTmLanguage checks the committed grammar is up to date. Only
+// tools/textmate writes it.
 func TestTmLanguage(t *testing.T) {
 	got := emitDocs(t)
 
@@ -35,21 +33,14 @@ func TestTmLanguage(t *testing.T) {
 	}
 }
 
-// TestEmitIsDeterministic is what makes the check above worth making. A
-// Grammar is a map, and so is a set of spellings.
 func TestEmitIsDeterministic(t *testing.T) {
 	if first, second := emitDocs(t), emitDocs(t); first != second {
 		t.Error("emitting the same grammar twice produced different bytes")
 	}
 }
 
-// TestEveryKeywordIsColored holds the grammar to lex.Keywords the way
-// internal/treesitter holds highlights.scm to it.
-//
-// A new keyword is colored by the emitter rather than by hand, so what
-// this catches is the other direction: a spelling colored as a keyword
-// that lex does not reserve, and a keyword landing in both groups. What
-// makes a new keyword visible at all is the golden check above.
+// TestEveryKeywordIsColored checks each lex keyword lands in exactly one
+// group and nothing else is colored as a keyword.
 func TestEveryKeywordIsColored(t *testing.T) {
 	values := alternatives(t, ruleFor(t, "constant.language.tdl"))
 	keywords := alternatives(t, ruleFor(t, "keyword.control.tdl"))
@@ -72,7 +63,6 @@ func TestEveryKeywordIsColored(t *testing.T) {
 	}
 }
 
-// TestEveryPunctuationIsColored is the same check for lex.Punctuation.
 func TestEveryPunctuationIsColored(t *testing.T) {
 	ops := alternatives(t, ruleFor(t, "keyword.operator.tdl"))
 	delims := alternatives(t, ruleFor(t, "punctuation.tdl"))
@@ -88,9 +78,6 @@ func TestEveryPunctuationIsColored(t *testing.T) {
 	}
 }
 
-// TestModifiersAreContextual checks the modifiers come from the grammar
-// rather than from a list here, which is what makes a new one colored
-// without a change to the emitter.
 func TestModifiersAreContextual(t *testing.T) {
 	mods := alternatives(t, ruleFor(t, "storage.modifier.tdl"))
 
@@ -106,12 +93,8 @@ func TestModifiersAreContextual(t *testing.T) {
 	}
 }
 
-// TestDeclarationKeywordsComeFromTheGrammar checks the one name TextMate
-// can find without a parse is found for every declaration that spells one.
-//
-// The keywords are read from the productions rather than listed, so this
-// is the check that the reading is right: a form docs/grammar.ebnf spells
-// as a keyword and an identifier colors its name.
+// TestDeclarationKeywordsComeFromTheGrammar checks every keyword followed
+// by an identifier in docs/grammar.ebnf colors the declared name.
 func TestDeclarationKeywordsComeFromTheGrammar(t *testing.T) {
 	declares := alternatives(t, captureRuleFor(t, "entity.name.type.tdl"))
 
@@ -124,8 +107,6 @@ func TestDeclarationKeywordsComeFromTheGrammar(t *testing.T) {
 		}
 	}
 
-	// import and instance name something other than a fresh identifier,
-	// and coloring the next word after either would be wrong.
 	for _, unwanted := range []string{"import", "instance", "package"} {
 		if declares[unwanted] {
 			t.Errorf("%q does not introduce a declaration name", unwanted)
@@ -139,11 +120,7 @@ func TestDeclarationKeywordsComeFromTheGrammar(t *testing.T) {
 }
 
 // TestTypeReferenceKeywordsComeFromTheGrammar is the same check for the
-// keywords naming a type rather than declaring one.
-//
-// What tells the two apart is the production that follows the keyword: an
-// identifier is a name being introduced, and a NamedType or a ClassRef is
-// one being used.
+// keywords followed by a type reference.
 func TestTypeReferenceKeywordsComeFromTheGrammar(t *testing.T) {
 	refers := alternatives(t, ruleCapturing(t, "keyword.control.tdl", "support.type.tdl"))
 
@@ -153,8 +130,6 @@ func TestTypeReferenceKeywordsComeFromTheGrammar(t *testing.T) {
 		}
 	}
 
-	// package takes a path rather than a type, and coloring one as the
-	// other is what naming the productions above avoids.
 	for _, unwanted := range []string{"package", "import", "entity", "type"} {
 		if refers[unwanted] {
 			t.Errorf("%q does not name a type", unwanted)
@@ -162,10 +137,8 @@ func TestTypeReferenceKeywordsComeFromTheGrammar(t *testing.T) {
 	}
 }
 
-// TestPatternsComeFromLex holds the copied shapes to the originals. They
-// are Oniguruma in the output and Go's regexp in lex, and the two agree on
-// everything these six use; a pattern that stopped being copyable would
-// show up as a difference here.
+// TestPatternsComeFromLex checks every lex pattern appears verbatim in the
+// output.
 func TestPatternsComeFromLex(t *testing.T) {
 	out := emitDocs(t)
 
@@ -178,15 +151,11 @@ func TestPatternsComeFromLex(t *testing.T) {
 		"RegexPattern":       lex.RegexPattern,
 		"LineCommentPattern": lex.LineCommentPattern,
 	} {
-		// JSON escapes every backslash, and the patterns are full of them.
 		escaped, err := json.Marshal(pattern)
 		if err != nil {
 			t.Fatal(err)
 		}
-		// One delimiter at each end, not every quote there: a string
-		// pattern ends in an escaped one, and trimming that leaves a
-		// needle ending in a bare backslash, which the file contains
-		// wherever the pattern does and the check stops meaning anything.
+		// Trim one quote per end: StringPattern ends in an escaped quote.
 		quoted := strings.TrimSuffix(strings.TrimPrefix(string(escaped), `"`), `"`)
 
 		if !strings.Contains(out, quoted) {
@@ -195,9 +164,8 @@ func TestPatternsComeFromLex(t *testing.T) {
 	}
 }
 
-// TestTargetPathsAreColored checks the entry rule reads both shapes a
-// target entry takes, since a path colored in one and not the other would
-// look like the grammar losing track inside a block.
+// TestTargetPathsAreColored checks the path rule reads entries ending in
+// both `=>` and `{`.
 func TestTargetPathsAreColored(t *testing.T) {
 	match := ruleFor(t, "entity.name.namespace.tdl")
 
@@ -208,14 +176,9 @@ func TestTargetPathsAreColored(t *testing.T) {
 	}
 }
 
-// TestEnumBodyColorsItsVariants checks the one region the grammar has.
-//
-// A variant has no token beside it to read, so what makes it a name is the
-// block, and a block is a begin and an end rather than a match. The
-// keyword opening it comes from EnumDecl, so renaming the production is an
-// error and renaming the keyword is a diff in the output.
+// TestEnumBodyColorsItsVariants checks the enum region colors both bare
+// variants and variants carrying fields.
 func TestEnumBodyColorsItsVariants(t *testing.T) {
-	// The one region that names a declaration, which is the enum's.
 	var regions []pattern
 	for _, rule := range parse(t).Patterns {
 		if rule.BeginCaptures["2"].Name == "entity.name.type.tdl" {
@@ -249,13 +212,9 @@ func TestEnumBodyColorsItsVariants(t *testing.T) {
 	}
 }
 
-// TestEveryOpenBraceIsClosedByItsRegion is the invariant a region has to
-// keep: a rule that reads a `{` reads the `}` closing it too.
-//
-// A region ends at the first `}` it sees. A brace left to the punctuation
-// rule inside one therefore ends it early, and everything after the block
-// loses its colors, which is what a set type inside an enum's variant did
-// before the brace regions existed.
+// TestEveryOpenBraceIsClosedByItsRegion checks a rule reading `{` also
+// reads its `}` and includes $self, so a nested brace cannot end a region
+// early.
 func TestEveryOpenBraceIsClosedByItsRegion(t *testing.T) {
 	var check func(rules []pattern)
 	check = func(rules []pattern) {
@@ -276,9 +235,6 @@ func TestEveryOpenBraceIsClosedByItsRegion(t *testing.T) {
 	check(parse(t).Patterns)
 }
 
-// includesSelf reports whether a region's patterns recurse through the
-// whole grammar. Without it a nested brace has no region of its own, and
-// the punctuation rule hands the `}` closing it to the enclosing region.
 func includesSelf(rules []pattern) bool {
 	for _, rule := range rules {
 		if rule.Include == "$self" {
@@ -288,9 +244,6 @@ func includesSelf(rules []pattern) bool {
 	return false
 }
 
-// TestScopeNameMatchesTreeSitter checks the two derived grammars name the
-// language the same thing. An editor keying a theme or an injection off
-// the scope reads one name, and there is only one language.
 func TestScopeNameMatchesTreeSitter(t *testing.T) {
 	var config struct {
 		Grammars []struct {
@@ -307,7 +260,7 @@ func TestScopeNameMatchesTreeSitter(t *testing.T) {
 	}
 }
 
-// A file is the shape of the emitted grammar a test reads back.
+// A file is the emitted grammar as the tests read it back.
 type file struct {
 	ScopeName string    `json:"scopeName"`
 	Patterns  []pattern `json:"patterns"`
@@ -373,8 +326,7 @@ func ruleFor(t *testing.T, scope string) string {
 	return found[0]
 }
 
-// captureRuleFor is the match of the one rule coloring a scope through a
-// capture rather than as a whole.
+// captureRuleFor is the match of the one rule capturing a scope.
 func captureRuleFor(t *testing.T, scope string) string {
 	t.Helper()
 
@@ -392,9 +344,8 @@ func captureRuleFor(t *testing.T, scope string) string {
 	return found[0]
 }
 
-// ruleCapturing is the match of the one rule coloring two scopes in
-// order, which is how a rule that reads a keyword and the name after it
-// is told from the several coloring the same name after punctuation.
+// ruleCapturing is the match of the one rule capturing first and second
+// as groups 1 and 2.
 func ruleCapturing(t *testing.T, first, second string) string {
 	t.Helper()
 
@@ -410,15 +361,11 @@ func ruleCapturing(t *testing.T, first, second string) string {
 	return found[0]
 }
 
-// alternatives are the spellings in a rule's alternation, still escaped.
-//
-// Read rather than matched: the patterns are Oniguruma and use lookaround
-// Go's regexp cannot compile, so nothing here can run one.
+// alternatives are the escaped spellings in a rule's first group. Parsed by
+// hand, since Go's regexp cannot compile the lookaround.
 func alternatives(t *testing.T, match string) map[string]bool {
 	t.Helper()
 
-	// The group is capturing when the rule colors it separately and
-	// non-capturing when it does not; either way it is the first one.
 	start := strings.Index(match, "(")
 	if start < 0 {
 		t.Fatalf("%q is not an alternation", match)
@@ -455,8 +402,7 @@ func alternatives(t *testing.T, match string) map[string]bool {
 	return out
 }
 
-// split breaks an alternation on the `|` between its parts, which is not
-// the `|` lex produces as a token.
+// split breaks an alternation on unescaped `|`.
 func split(body string) []string {
 	var out []string
 	var current strings.Builder

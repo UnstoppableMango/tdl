@@ -20,9 +20,7 @@ func read(t *testing.T, src string) (*ebnf.File, []string) {
 	return file, out
 }
 
-// The whole of phase 2 has to be readable from Go, which is what makes
-// the emitter possible. This asserts against the real file rather than a
-// fixture, since drifting from it is the failure that matters.
+// The annotations in docs/grammar.ebnf read as expected.
 func TestGrammarAnnotationsAreRead(t *testing.T) {
 	b, err := os.ReadFile(filepath.Join("..", "..", "docs", "grammar.ebnf"))
 	if err != nil {
@@ -44,8 +42,7 @@ func TestGrammarAnnotationsAreRead(t *testing.T) {
 		t.Errorf("conflicts = %v, want three", a.Conflicts)
 	}
 
-	// A token binding resolves to the pattern, not to the symbol name, so
-	// a caller never has to know lex to use one.
+	// A token binding resolves to the pattern, not the symbol name.
 	if got := a.Tokens["doc_comment"]; got != lex.DocPattern {
 		t.Errorf("doc_comment = %q, want lex.DocPattern", got)
 	}
@@ -78,8 +75,7 @@ func TestGrammarAnnotationsAreRead(t *testing.T) {
 }
 
 func TestAnnotationDiagnostics(t *testing.T) {
-	// Every case is a legal grammar carrying one bad annotation, so what
-	// fails is the annotation and not the productions around it.
+	// Each case is a legal grammar with one bad annotation.
 	const prelude = "File = identifier .\n/*@ token IdentPattern */\nidentifier = .\n"
 
 	cases := []struct {
@@ -106,8 +102,7 @@ func TestAnnotationDiagnostics(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			_, got := read(t, c.src)
 
-			// Every one of these has to say where, which is the whole
-			// difference between a diagnostic and a complaint.
+			// Every diagnostic carries a position.
 			for _, d := range got {
 				if !strings.HasPrefix(d, "test.ebnf:") {
 					t.Errorf("%q carries no position", d)
@@ -124,8 +119,8 @@ func TestAnnotationDiagnostics(t *testing.T) {
 	}
 }
 
-// An annotation attaches to the production below it, so two in a row
-// both describe the same one. regex_lit depends on it.
+// Two annotations in a row describe the same production. regex_lit uses
+// this.
 func TestStackedAnnotationsAttachTogether(t *testing.T) {
 	file, errs := read(t, "File = identifier .\n/*@ token IdentPattern */\n/*@ external */\nidentifier = .\n")
 	if len(errs) != 0 {
@@ -136,11 +131,8 @@ func TestStackedAnnotationsAttachTogether(t *testing.T) {
 	}
 }
 
-// Ordinary comments are not annotations, and an annotation written
-// inside a line comment or a string literal is not one either.
-//
-// The spelling check is off here: `/*@ word Nope */` is not text the
-// lexer produces, which is the point of putting it in a terminal.
+// Ordinary comments, and annotation text inside a line comment or a
+// string, are not read. The spelling check is off so the terminal is legal.
 func TestOnlyAnnotationCommentsAreRead(t *testing.T) {
 	opts := ebnf.Options{Start: "File", Annotated: true}
 	src := "/* hidden */\n// /*@ word Nope */\nFile = \"/*@ word Nope */\" .\n"

@@ -7,11 +7,8 @@ import (
 	"unicode/utf8"
 )
 
-// Lexer scans TDL source text into a stream of [Token]s.
-//
-// Whitespace is insignificant in TDL: the lexer emits no newline tokens
-// and the parser has no separator rules. An item ends where the next
-// begins.
+// Lexer scans TDL source text into a stream of [Token]s. It emits no
+// newline tokens; whitespace is insignificant.
 type Lexer struct {
 	filename string
 	src      string
@@ -27,23 +24,17 @@ type Lexer struct {
 	seen     int // offset after the last comment recorded
 }
 
-// Comment is an ordinary `//` comment, which [Lexer.Next] skips.
-//
-// A doc comment is a DOC token instead, because it belongs to the
-// declaration it precedes and the parser attaches it there. An ordinary
-// comment belongs to nobody, so it is collected here and the formatter
-// places it by position. Nothing between the two stages has to know it
-// exists.
+// Comment is an ordinary `//` comment, which [Lexer.Next] skips and
+// collects for the formatter to place by position. A `///` doc comment is a
+// DOC token instead.
 type Comment struct {
 	Text string // the text after the slashes, with one leading space removed
 	Pos  Position
 	End  int // offset just past the comment's last character
 }
 
-// Comments returns every ordinary comment scanned so far, in source order.
-//
-// It is a copy, so a caller that edits what it gets does not edit what the
-// next caller gets.
+// Comments returns a copy of every ordinary comment scanned so far, in
+// source order.
 func (l *Lexer) Comments() []Comment { return slices.Clone(l.comments) }
 
 // New returns a Lexer over src, reporting positions against filename.
@@ -151,9 +142,8 @@ func (l *Lexer) scanComment(pos Position) (Token, bool) {
 		return Token{Kind: DOC, Text: text, Pos: pos}, true
 	}
 
-	// RescanRegexAt rewinds the lexer, so a comment already passed can be
-	// reached a second time. Recording the offset the last one ended at is
-	// what keeps it from being collected twice.
+	// RescanRegexAt rewinds the lexer; seen keeps a comment from being
+	// collected twice.
 	if l.offset > l.seen {
 		l.comments = append(l.comments, Comment{Text: text, Pos: pos, End: l.offset})
 		l.seen = l.offset
@@ -190,11 +180,8 @@ func (l *Lexer) scanOperator() Token {
 		return Token{Kind: DOT, Text: ".", Pos: pos}
 	}
 
-	// Every remaining operator is one character, so its spelling is its
-	// kind's name in the table. The text is a slice of the source rather
-	// than a conversion of the rune, the way scanIdent takes its own: a
-	// slice shares the source's bytes and a conversion allocates, and an
-	// illegal character wider than a byte reaches the token whole.
+	// Every remaining operator is one character. Slicing the source avoids
+	// an allocation and keeps a multi-byte illegal character whole.
 	text := l.src[pos.Offset:l.offset]
 	if kind, ok := Lookup(text); ok {
 		return Token{Kind: kind, Text: text, Pos: pos}
@@ -211,9 +198,8 @@ func (l *Lexer) scanIdent(pos Position) Token {
 	return Token{Kind: LookupIdent(text), Text: text, Pos: pos}
 }
 
-// scanNumber scans an integer or float. `1..2` is an integer followed by a
-// range operator, not a malformed float, so a '.' only continues the number
-// when a digit follows it.
+// scanNumber scans an integer or float. A '.' continues the number only
+// when a digit follows, so `1..2` is an integer and a range operator.
 func (l *Lexer) scanNumber(pos Position, negative bool) Token {
 	start := pos.Offset
 	if !negative {
@@ -275,11 +261,8 @@ func (l *Lexer) scanString(pos Position) Token {
 // RescanRegexAt rescans the input from pos as a regex literal and leaves the
 // lexer positioned after it.
 //
-// `/` is division in a unit expression and the delimiter of a regex literal,
-// and nothing local to the token tells them apart: `matches` is a contextual
-// keyword, so the preceding token is an ordinary identifier either way. The
-// parser knows which it wants, so it asks. Every other token is scanned by
-// [Lexer.Next] without context.
+// `/` is also division in a unit expression, and only the parser knows
+// which one it wants. Every other token is scanned without context.
 func (l *Lexer) RescanRegexAt(pos Position) Token {
 	l.reset(pos)
 	if l.ch != '/' {

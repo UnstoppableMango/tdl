@@ -12,16 +12,9 @@ import (
 
 var highlightsPath = filepath.Join("..", "..", "tree-sitter", "queries", "highlights.scm")
 
-// TestHighlightsCoverKeywords holds the hand-written highlight query to the
-// lexer, the way internal/ebnf holds the grammar's quoted terminals to it.
-//
-// A keyword is an anonymous token, so nothing in the tree carries its name
-// and `tree-sitter query` cannot tell a missing one from a deliberate
-// omission. A keyword added to lex and not to the query is therefore
-// invisible until someone opens a file and notices the color.
-//
-// The query is read as text rather than parsed, since this asserts that a
-// spelling is present and not where it sits.
+// TestHighlightsCoverKeywords checks that queries/highlights.scm spells
+// every lex keyword. A keyword is an anonymous token, so compiling the query
+// cannot catch a missing one.
 func TestHighlightsCoverKeywords(t *testing.T) {
 	src, err := os.ReadFile(highlightsPath)
 	if err != nil {

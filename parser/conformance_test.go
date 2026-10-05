@@ -11,15 +11,8 @@ import (
 	"github.com/unstoppablemango/tdl/parser"
 )
 
-// TestConformanceCorpusParses walks testdata/conformance and checks that
-// every source.tdl parses without error. This corpus is plain text data,
-// not Go code, so a future non-Go TDL implementation can run the same
-// check against the same files (see docs/spec.md).
-//
-// A case directory containing a `pending` file describes a construct the
-// parser cannot read yet and is skipped. The change that implements the
-// construct deletes the marker, so the corpus can hold a case before the
-// parser reads it.
+// TestConformanceCorpusParses checks every testdata/conformance source.tdl
+// parses. A case directory holding a `pending` file is skipped.
 func TestConformanceCorpusParses(t *testing.T) {
 	for _, dir := range subdirs(t, "../testdata/conformance") {
 		t.Run(filepath.Base(dir), func(t *testing.T) {
@@ -35,9 +28,8 @@ func TestConformanceCorpusParses(t *testing.T) {
 	}
 }
 
-// TestInvalidCorpusFails walks testdata/invalid and checks that every
-// source.tdl fails to parse with an error containing the text in the
-// sibling error.golden file.
+// TestInvalidCorpusFails checks every testdata/invalid source.tdl fails
+// with an error containing its sibling error.golden.
 func TestInvalidCorpusFails(t *testing.T) {
 	for _, dir := range subdirs(t, "../testdata/invalid") {
 		t.Run(filepath.Base(dir), func(t *testing.T) {
@@ -62,13 +54,8 @@ func TestInvalidCorpusFails(t *testing.T) {
 	}
 }
 
-// TestCorpusIsCanonical checks that every .tdl file the repository holds to
-// canonical form is stored that way: `tdl fmt` over it must print it back
+// TestCorpusIsCanonical checks `tdl fmt` prints each stored .tdl file back
 // byte for byte.
-//
-// docs/spec.md states the property and AGENTS.md names the files, and
-// nothing else asserts it. It is also what says a change to the printer
-// left existing output alone.
 func TestCorpusIsCanonical(t *testing.T) {
 	for _, dir := range subdirs(t, "../testdata/conformance") {
 		t.Run(filepath.Base(dir), func(t *testing.T) {
@@ -77,9 +64,7 @@ func TestCorpusIsCanonical(t *testing.T) {
 		})
 	}
 
-	// examples/ carries the explanatory comments the corpus does not, so
-	// it is what says a comment survives a round trip through the
-	// formatter on a real file rather than only on a fixture.
+	// examples/ covers comments surviving a round trip on a real file.
 	for _, dir := range []string{"../prelude", "../examples", "../testdata/gen/smoke"} {
 		t.Run(filepath.Base(dir), func(t *testing.T) {
 			matches, err := filepath.Glob(filepath.Join(dir, "*.tdl"))
@@ -98,8 +83,6 @@ func TestCorpusIsCanonical(t *testing.T) {
 	}
 }
 
-// assertCanonical parses path and compares ast.Fprint against the bytes on
-// disk, reporting the first line that differs.
 func assertCanonical(t *testing.T, path string) {
 	t.Helper()
 	data, err := os.ReadFile(path)
@@ -121,8 +104,7 @@ func assertCanonical(t *testing.T, path string) {
 		path, path, firstDiff(got, want))
 }
 
-// firstDiff names the line where two renderings part ways, so a failure
-// points at a line rather than at two whole files.
+// firstDiff describes the first line where got and want differ.
 func firstDiff(got, want string) string {
 	g, w := strings.Split(got, "\n"), strings.Split(want, "\n")
 	for i := 0; i < len(g) && i < len(w); i++ {
@@ -133,8 +115,8 @@ func firstDiff(got, want string) string {
 	return fmt.Sprintf("end of file: got %d lines, want %d", len(g), len(w))
 }
 
-// skipPending skips a corpus case whose directory holds a `pending` file,
-// reporting the reason it records.
+// skipPending skips a case holding a `pending` file, with its text as the
+// reason.
 func skipPending(t *testing.T, dir string) {
 	t.Helper()
 	reason, err := os.ReadFile(filepath.Join(dir, "pending"))

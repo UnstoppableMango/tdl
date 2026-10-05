@@ -2,14 +2,11 @@ package treesitter
 
 import "strings"
 
-// wrapWidth is where a rule stops fitting on one line. The grammar's own
-// alternations are long enough that a flat file would be unreadable, and a
-// generator nobody reads is a generator nobody checks.
+// wrapWidth is where a rule stops fitting on one line.
 const wrapWidth = 96
 
 // An expr is a piece of the emitted grammar.js. It renders flat when it
-// fits and broken over lines when it does not, which is the only thing
-// about the output that is not a direct transcription.
+// fits and broken over lines when it does not.
 type expr interface {
 	flat() string
 	write(b *strings.Builder, indent string, used int)
@@ -65,8 +62,7 @@ func render(e expr, indent, prefix string) string {
 	return b.String()
 }
 
-// quote spells a terminal as a JavaScript string. The grammar's terminals
-// are punctuation and keywords, but nothing stops one holding a quote.
+// quote spells a terminal as a JavaScript string.
 func quote(text string) string {
 	var b strings.Builder
 	b.WriteByte('\'')
@@ -81,9 +77,8 @@ func quote(text string) string {
 	return b.String()
 }
 
-// regex spells a lex pattern as a JavaScript regular expression literal.
-// The patterns are written for Go's regexp, which needs no delimiter, so a
-// '/' in one is bare and has to be escaped here.
+// regex spells a lex pattern as a JavaScript regular expression literal,
+// escaping a bare '/'.
 func regex(pattern string) string {
 	var b strings.Builder
 	b.WriteByte('/')

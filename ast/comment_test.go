@@ -7,9 +7,7 @@ import (
 	"github.com/unstoppablemango/tdl/ast"
 )
 
-// An ordinary comment survives formatting, wherever it was written. A
-// comment attaches to no node, so this is the property the position-driven
-// placement exists to hold.
+// An ordinary comment survives formatting wherever it was written.
 func TestFprintKeepsComments(t *testing.T) {
 	src := `// before the package
 package p
@@ -75,8 +73,7 @@ min(0)}// five
 	}
 }
 
-// A one-line block has nowhere to put a comment, so one inside forces the
-// expanded form.
+// A comment inside a block forces the expanded form.
 func TestFprintExpandsBlocksHoldingComments(t *testing.T) {
 	cases := []struct {
 		name string
@@ -140,8 +137,7 @@ func TestFprintExpandsBlocksHoldingComments(t *testing.T) {
 	}
 }
 
-// A doc comment still belongs to its declaration, and is not written twice
-// now that ordinary comments are written at all.
+// A doc comment is written once, beside ordinary comments.
 func TestFprintDocAndOrdinaryCommentsCoexist(t *testing.T) {
 	src := `package p
 
@@ -159,8 +155,6 @@ primitive string
 	}
 }
 
-// Formatting a commented file twice must reach the same text, or a comment
-// would drift a line on every run.
 func TestFprintIdempotentWithComments(t *testing.T) {
 	messy := `// header
 package   p
@@ -181,9 +175,8 @@ C }
 	}
 }
 
-// A comment after a block's closing brace stays there when the formatter
-// opens the block up. It shares a source line with the first item inside,
-// and the item's line is not where it belongs.
+// A comment after a one-line block's closing brace stays after it when
+// the block opens up.
 func TestFprintKeepsTrailingCommentAfterBlock(t *testing.T) {
 	cases := []struct {
 		name string
@@ -217,10 +210,8 @@ func TestFprintKeepsTrailingCommentAfterBlock(t *testing.T) {
 	}
 }
 
-// A comment sharing a source line with a block's first item belongs to that
-// item, not to the opening brace. The whole block is on one line until the
-// formatter opens it up, so the brace and the item start out on the line
-// the comment was written on, and only the item follows it.
+// In a one-line block, a comment after the first item folds onto that
+// item, not the opening brace.
 func TestFprintBindsCommentToFirstItem(t *testing.T) {
 	cases := []struct {
 		name string
@@ -267,8 +258,6 @@ func TestFprintBindsCommentToFirstItem(t *testing.T) {
 	}
 }
 
-// A comment written before a block's first item belongs to the brace, and
-// stays folded onto it.
 func TestFprintKeepsCommentOnOpeningBrace(t *testing.T) {
 	src := "package p\nprimitive string\ntype E: Entity { // c\n  a: string\n}\n"
 	want := "type E: Entity {  // c\n  a: string\n}\n"
@@ -278,10 +267,8 @@ func TestFprintKeepsCommentOnOpeningBrace(t *testing.T) {
 	}
 }
 
-// A doc comment and an ordinary comment written above the same item keep
-// the order they were written in. The doc comment lives on the node while
-// an ordinary comment is placed by position, so holding this order is what
-// the doc comment's own position is for.
+// A doc comment and an ordinary comment above the same item keep their
+// order.
 func TestFprintKeepsDocAndCommentOrder(t *testing.T) {
 	tests := map[string]string{
 		"declaration, doc first": `package p
@@ -370,8 +357,6 @@ class C<T> {
 	}
 }
 
-// A blank line the source puts between two comment groups is kept, so
-// separate comments stay visibly separate.
 func TestFprintKeepsBlankLineBetweenCommentGroups(t *testing.T) {
 	src := `package acme.v1
 
@@ -391,9 +376,8 @@ type Widget {
 	}
 }
 
-// A blank line between a top-level comment group and the declaration after
-// it is kept, collapsed to one. A comment with no blank line below it stays
-// attached to the declaration.
+// Blank lines between a top-level comment and its declaration collapse to
+// one; a comment directly above stays attached.
 func TestFprintBlankLineBetweenCommentAndDeclaration(t *testing.T) {
 	cases := []struct {
 		name string

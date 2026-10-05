@@ -6,9 +6,6 @@ import (
 )
 
 // parseConstraintBlock parses `where "{" { Constraint } "}"`.
-//
-// The `where` prefix is what keeps `{` unambiguous: after a complete type
-// reference it could otherwise open a set type, a declaration body, or this.
 func (p *parser) parseConstraintBlock() ([]*ast.Constraint, ast.Position) {
 	p.next() // 'where'
 
@@ -22,11 +19,7 @@ func (p *parser) parseConstraintBlock() ([]*ast.Constraint, ast.Position) {
 }
 
 // parseConstraint parses `identifier [ "(" [ Arg { "," Arg } ] ")" ]`.
-//
-// Constraint names are ordinary identifiers, not keywords: the set is open,
-// so the parser recognizes no name in particular. Arguments are
-// parenthesized for the same reason a directive's are, since without a
-// delimiter `min 0 max 100` could not be split.
+// The set of names is open, so none is recognized here.
 func (p *parser) parseConstraint() *ast.Constraint {
 	c := &ast.Constraint{P: p.cur.Pos}
 	c.N = p.expectIdent()
@@ -54,9 +47,7 @@ func (p *parser) parseConstraintArg() *ast.Literal {
 		return &ast.Literal{P: pos, Kind: ast.LitRange, Hi: p.parseRangeBound()}
 	}
 
-	// A regex is scanned on request: `/` is also division in a unit
-	// expression, and the token before it is an ordinary identifier either
-	// way.
+	// `/` is also unit division, so a regex is rescanned on request.
 	if p.at(lex.SLASH) {
 		tok := p.rescanRegexAtCurrent()
 		p.next()
@@ -73,7 +64,7 @@ func (p *parser) parseConstraintArg() *ast.Literal {
 	return lit
 }
 
-// parseRangeBound reads the upper bound of a range, which may be absent.
+// parseRangeBound reads a range's optional upper bound.
 func (p *parser) parseRangeBound() *ast.Literal {
 	if !p.at(lex.INT) {
 		return nil
@@ -83,8 +74,8 @@ func (p *parser) parseRangeBound() *ast.Literal {
 	return lit
 }
 
-// rescanRegexAtCurrent rescans the input from the current token as a regex
-// literal and re-primes the lookahead behind it.
+// rescanRegexAtCurrent rescans the current token as a regex literal and
+// refills the lookahead.
 func (p *parser) rescanRegexAtCurrent() lex.Token {
 	tok := p.lx.RescanRegexAt(p.cur.Pos)
 	if tok.Kind == lex.ILLEGAL {

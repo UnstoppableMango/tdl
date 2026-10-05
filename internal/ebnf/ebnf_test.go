@@ -72,9 +72,7 @@ func TestDiagnostics(t *testing.T) {
 	}
 }
 
-// `_` is a terminal the lexer scans as an identifier rather than as a
-// fixed spelling, so lex.Lookup alone would reject a grammar that is
-// right. ImportDecl depends on it.
+// `_` scans as an identifier, not a fixed spelling. ImportDecl uses it.
 func TestUnderscoreIsALegalTerminal(t *testing.T) {
 	if got := lint(`File = "import" ( identifier | "_" ) .
 /*@ token IdentPattern */
@@ -84,16 +82,12 @@ identifier = .
 	}
 }
 
-// A lexical production carries no expression: the name is the lexer's and
-// the grammar only says it exists.
 func TestLexicalProductionsNeedNoBody(t *testing.T) {
 	if got := lint("File = identifier .\n/*@ token IdentPattern */\nidentifier = .\n"); len(got) != 0 {
 		t.Errorf("got %v, want none", got)
 	}
 }
 
-// The grammar spells the reserved words out, so the linter is what keeps
-// that list and lex from drifting apart.
 func TestReservedWordsMatchTheLexer(t *testing.T) {
 	full := func(words []string) string {
 		return "File = reserved_word .\nreserved_word = " +

@@ -1,7 +1,5 @@
 // Command tdl-gen-thrift is the Thrift backend as a plugin.
-//
-// It is the same backend value the built-in registry holds, served over a
-// connection instead of called in process.
+// It serves the backend value the built-in registry holds.
 package main
 
 import (
