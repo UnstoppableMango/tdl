@@ -1,40 +1,37 @@
 # TDL Specification
 
-TDL is a language for describing domain models.
-It says what things are, what identifies them, how they relate, and what values they may hold.
-It does not describe behavior, and it has no expressions, control flow, or runtime.
+TDL describes domain models: what things are, what identifies them, how they relate, and what values they may hold.
+It has no behavior, expressions, control flow, or runtime.
 
 The formal grammar is in [grammar.ebnf](grammar.ebnf).
 This document is canonical where the two disagree.
 
 ## Design commitments
 
-The language core is small.
-Almost everything that looks like a type system is library code written in TDL and shipped in a replaceable prelude.
+The core is small: most of what looks like a type system is TDL library code in a replaceable prelude.
 
 1. **Identity is first class.** A type conforming to the prelude's `Entity` class has identity that persists across changes to its contents. Any other type is defined entirely by its contents.
 1. **The model is pure.** A `.tdl` file describes the domain. Everything a code generator needs lives in a separate `target` block.
-1. **Constraints are syntax, not semantics.** The compiler parses and resolves constraints. It does not evaluate or interpret them. Backends decide what a constraint means.
+1. **Constraints are syntax, not semantics.** The compiler parses and resolves constraints but does not evaluate them. Backends decide what a constraint means.
 1. **Behavior belongs to backends.** `owned` says a child is part of its parent. It does not say what happens on delete.
-1. **Abstraction is library-level.** Generics, kinds, classes, and instances exist so that shared structure is declared once and reused, rather than copied between declarations or re-encoded in every backend.
+1. **Abstraction is library-level.** Generics, kinds, classes, and instances let shared structure be declared once instead of copied between declarations or re-encoded in every backend.
 
 ## Lexical structure
 
 Identifiers are letters, digits, and underscore, not starting with a digit.
 Declaration keywords are reserved; modifiers and constraint names are not, so `owned`, `length`, and `min` remain usable as field names.
-A reserved word followed by `:` is a field name, which is why a field may be called `type`.
-Inside a target block a directive name and a path segment may be reserved words outright, since that namespace belongs to the backend rather than to the language.
-A package path segment may be a reserved word too, so `package google.type` can mirror a namespace from another schema language, and `target protobuf for google.type` can name that package.
+A reserved word followed by `:` is a field name, so a field may be called `type`.
+Inside a target block, a directive name or path segment may be a reserved word, since that namespace belongs to the backend.
+A package path segment may also be a reserved word, so `package google.type` and `target protobuf for google.type` can mirror another schema's namespace.
 Every other name is an ordinary identifier, so `type type { ... }` and `x: type` are both errors.
 Comments run from `//` to end of line.
-A comment beginning `///` is a doc comment: it attaches to the declaration, field, or variant that follows, is carried through to the model, and is available to every target.
+A `///` comment is a doc comment: it attaches to the following declaration, field, or variant and is carried into the model for every target.
 Literals are strings (`"..."`), integers, floats, booleans, regexes (`/.../`), and bracketed lists.
 
-Whitespace is insignificant.
-A declaration, field, or variant ends where the next one begins, so line breaks carry no meaning and `enum Role { admin member guest }` is as valid as the expanded form.
+Whitespace, including line breaks, is insignificant.
+A declaration, field, or variant ends where the next begins, so `enum Role { admin member guest }` is valid on one line.
 
-Commas separate items inside `<...>`, conformance lists, and list literals, where they are required.
-They are not separators inside `{ ... }` blocks and are not permitted there.
+Commas are required between items inside `<...>`, conformance lists, and list literals, and are not permitted inside `{ ... }` blocks.
 
 ## Packages and imports
 
@@ -48,24 +45,22 @@ import "std/si" as si
 A file declares at most one package.
 An import binds a path to a local name; `_` merges the imported names into the current scope without a qualifier.
 
-There is no version syntax.
-Versioning a schema is the job of the repository that holds it.
+There is no version syntax; the repository holding a schema versions it.
 
 ### Visibility
 
 A declaration whose name begins with an upper-case letter is exported from its package.
 Everything else is package-private.
 
-Visibility is a property of declarations only.
-Fields are always visible wherever their declaration is, because a field that no backend can see is not something a schema can usefully say.
+Visibility applies to declarations only; a field is visible wherever its declaration is.
 
 `primitive` and `unit` declarations are always exported.
-Units are exempt because their casing carries meaning: `m` and `M` are metre and mega, and forcing a unit to capitalize would change what it denotes.
+A unit's casing carries meaning (`m` is metre, `M` is mega), so it cannot also signal visibility.
 
 ## Roots and the prelude
 
 No type is built in.
-A root type is introduced with `primitive`, which tells the compiler only that the type is opaque and irreducible.
+`primitive` introduces a root type, telling the compiler only that it is opaque and irreducible.
 
 ```tdl
 primitive string
@@ -89,8 +84,7 @@ primitive Map:  type -> type -> type
 ```
 
 The standard prelude declares these roots and the ordinary types built on them (`decimal`, `uuid`, `instant`, `date`, `duration`).
-A project may import a different prelude.
-The compiler has no opinion about which types exist.
+A project may import a different prelude; the compiler does not decide which types exist.
 
 ## Types
 
@@ -107,13 +101,11 @@ type Email: string where {
 type UserId: uuid
 ```
 
-A newtype is not interchangeable with the type it is built on.
-`UserId` and `OrderId` are different types even though both are `uuid`.
+A newtype is not interchangeable with the type it is built on: `UserId` and `OrderId` are different types though both are `uuid`.
 
 ### Aliases
 
-`alias` declares a transparent abbreviation.
-An alias is not a new type; it is expanded before any comparison, so `Handler` and its expansion are the same type.
+`alias` declares a transparent abbreviation, expanded before any comparison, so `Handler` and its expansion are the same type.
 
 ```tdl
 alias Handler = {string -> [Event]}
@@ -121,8 +113,6 @@ alias Result<T> = Either<Error, T>
 ```
 
 Aliases may take parameters, which are applied by substitution.
-Recursive aliases are an error.
-
 Use `type` when the distinction should be enforced and `alias` when it should not.
 
 ### Values
@@ -141,7 +131,7 @@ A newtype's constraints open with `where`, so a `{` after the name, the conforma
 
 ### Entities
 
-A type conforming to the prelude's `Entity` class has identity that survives changes to its contents.
+A type conforming to the prelude's `Entity` class is an entity: its identity survives changes to its contents.
 
 ```tdl
 type Order: Entity {
@@ -158,10 +148,10 @@ type LineItem: Entity {
 }
 ```
 
-Conformance may also come from an instance or from a class that requires `Entity`; either makes the type an entity.
-A file declaring its own class named `Entity` shadows the prelude's, and conforming to that one confers no identity.
+Conformance through an instance, or through a class that requires `Entity`, also makes a type an entity.
+A class named `Entity` declared in a file shadows the prelude's, and conforming to it confers no identity.
 
-`: Entity` says nothing about which fields identify an entity.
+`: Entity` does not say which fields identify an entity.
 That is a backend decision, written in a target block when a backend needs it:
 
 ```tdl
@@ -174,7 +164,6 @@ target sql for shop {
 
 An enum is a closed set of variants.
 A variant may carry fields, which makes `enum` the language's sum type.
-Variants without fields are the degenerate case.
 
 ```tdl
 enum Payment {
@@ -186,14 +175,11 @@ enum Payment {
 enum Currency { USD EUR GBP }
 ```
 
-Enums are sealed.
-The set of variants is fixed by the declaring package, and no other package may extend it.
-This is what allows a backend to generate exhaustive handling.
+Enums are sealed: the declaring package fixes the variants and no other package may extend them, so a backend can generate exhaustive handling.
 
 ### Recursion
 
-Entities may be mutually recursive without restriction.
-A cycle between entities is a graph of references, which every backend can represent.
+Entities may be mutually recursive without restriction, since a cycle between entities is a graph of references.
 
 ```tdl
 type Order: Entity { items: [LineItem] owned }
@@ -202,7 +188,7 @@ type LineItem: Entity { order: Order }
 
 A value or an enum may only reach itself through a collection or an optional, never as a bare field.
 An enum holds its variants' fields inline, so conforming to `Entity` does not exempt one.
-`type Node { next: Node }` is an error because it has no finite representation; `next: Node?` and `children: [Node]` are both fine.
+`type Node { next: Node }` has no finite representation and is an error; `next: Node?` and `children: [Node]` are fine.
 
 Aliases may never be recursive, since they are expanded rather than referenced.
 
@@ -217,8 +203,7 @@ type Page<T> {
 }
 ```
 
-A parameter has a kind.
-There are two base kinds, `type` and `unit`, and arrows between them.
+A parameter has a kind: one of the two base kinds, `type` and `unit`, or an arrow between kinds.
 
 | Kind | Inhabited by |
 | --- | --- |
@@ -235,7 +220,7 @@ type Collection<f, T> {
 }
 ```
 
-An explicit annotation is permitted, and is worth writing when a parameter is never applied or when the inferred kind would be surprising.
+An explicit annotation is permitted.
 
 ```tdl
 type Collection<f: type -> type, T: type> {
@@ -243,20 +228,16 @@ type Collection<f: type -> type, T: type> {
 }
 ```
 
-Kinds also decide what `<...>` means.
-An argument of kind `unit` attaches a unit; an argument of kind `type` fills a declared parameter.
-This is why unit application is not a special case in the grammar.
+Kinds also decide what `<...>` means: an argument of kind `unit` attaches a unit, and one of kind `type` fills a declared parameter.
+Unit application is therefore not a special case in the grammar.
 
 ## Classes, mixins, and instances
 
-Contracts and reuse are separate mechanisms, because they solve different problems.
-A class says what a type must provide.
-A mixin provides it.
+Contracts and reuse are separate mechanisms: a class says what a type must provide, and a mixin provides it.
 
 ### Classes
 
-A class is a contract.
-It declares nothing into the types that satisfy it.
+A class is a contract and declares nothing into the types that satisfy it.
 
 ```tdl
 class Auditable {
@@ -274,13 +255,13 @@ class Paged {
 }
 ```
 
-A class may require other classes, which makes satisfying it require satisfying them.
+A class may require other classes; satisfying it requires satisfying them.
 
 ```tdl
 class Auditable: Timestamped { ... }
 ```
 
-A class may take parameters, including higher-kinded ones, which lets a target dispatch on structure rather than on a named type.
+A class may take parameters, including higher-kinded ones, so a target can dispatch on structure instead of on a named type.
 
 ```tdl
 class Container<f: type -> type> { }
@@ -290,7 +271,7 @@ type Page<f, T> requires Container<f> {
 }
 ```
 
-A class may take more than one parameter, which states a relationship between types rather than a property of one.
+A class with more than one parameter states a relationship between types.
 
 ```tdl
 class Projection<from, to> { }
@@ -298,21 +279,19 @@ class Projection<from, to> { }
 instance Projection<Order, OrderSummary>
 ```
 
-A multi-parameter class declares no fields on either participant.
-Its content is the relationship itself, which backends read.
+A multi-parameter class declares no fields on either participant; backends read the relationship itself.
 
-A functional dependency states that some parameters determine others, which makes the relationship a function rather than a table.
+A functional dependency states that some parameters determine others.
 
 ```tdl
 class Projection<from, to> | from -> to { }
 ```
 
-With that dependency, `Projection<Order, OrderSummary>` and `Projection<Order, OrderBrief>` cannot both exist, so a backend asking for "the projection of `Order`" always gets one answer.
+With that dependency, `Projection<Order, OrderSummary>` and `Projection<Order, OrderBrief>` cannot both exist, so `Order` has one projection.
 
 ### Constraints on parameters
 
-A `requires` clause constrains parameters.
-It applies to any declaration that takes parameters.
+A `requires` clause constrains the parameters of any declaration that takes them.
 
 ```tdl
 type Envelope<T> requires Auditable<T> {
@@ -321,13 +300,12 @@ type Envelope<T> requires Auditable<T> {
 }
 ```
 
-`Entity` is a class declared by the prelude, so "any entity" is `requires Entity<T>` without a special form.
+`Entity` is a prelude class, so "any entity" is `requires Entity<T>` without a special form.
 A class requiring `Entity` says an implementor must have identity, never which field carries it.
 
 ### Mixins
 
-A mixin is reuse.
-`include` copies its fields into the including declaration.
+A mixin is reuse: `include` copies its fields into the including declaration.
 
 ```tdl
 mixin Timestamps {
@@ -342,15 +320,13 @@ type User: Entity, Auditable {
 }
 ```
 
-Including a mixin is how a type usually comes to satisfy a class, but the two are independent: a type may satisfy `Auditable` by declaring the fields itself.
+Including a mixin and satisfying a class are independent: a type may satisfy `Auditable` by declaring the fields itself.
 
 ### Instances
 
-Conformance is nominal, never inferred from shape.
-A type that happens to have the right fields does not satisfy a class until it says so.
+Conformance is nominal: a type with the right fields does not satisfy a class until it says so.
 
-Conformance is declared in one of two places.
-On the declaration:
+Conformance is declared on the declaration:
 
 ```tdl
 type User: Entity, Auditable { ... }
@@ -374,19 +350,17 @@ instance Paged for OrderList {
 }
 ```
 
-An instance may itself be parameterized and conditional, which is how generic types participate in classes.
+An instance may be parameterized and conditional, which is how generic types participate in classes.
 
 ```tdl
 instance <T> Auditable<Page<T>> requires Auditable<T>
 ```
 
 That reads: a page of auditable things is auditable.
-Resolving a conditional instance is a search, so two rules keep it finite.
-An instance head must be a type constructor applied to distinct parameters, and every constraint in the `requires` clause must be structurally smaller than the head.
-An instance that would require unbounded search is rejected at the point of declaration rather than at use.
+Two rules keep the search for a conditional instance finite: an instance head must be a type constructor applied to distinct parameters, and every constraint in the `requires` clause must be structurally smaller than the head.
+An instance that would require unbounded search is rejected where it is declared, not where it is used.
 
-A separate instance is legal only in the package that declares the class or the package that declares the type.
-Instances belonging to neither are rejected, so an instance is always findable from one end of the relationship.
+A separate instance is legal only in the package that declares the class or the package that declares the type, so it is always findable from one end of the relationship.
 
 ## Type references
 
@@ -398,15 +372,12 @@ Instances belonging to neither are rejected, so an instance is always findable f
 | `{T}` | unordered set | `Set<T>` |
 | `{K -> V}` | map | `Map<K, V>` |
 
-Collections are prelude types, not built-ins, and the bracket forms are sugar.
-This is what allows `List` and `Set` to be passed to a higher-kinded parameter, and what allows a replacement prelude to change what a collection is.
+Collections are prelude types and the bracket forms are sugar, so `List` and `Set` can be passed to a higher-kinded parameter and a replacement prelude can change what a collection is.
 
-Cardinality is not separate syntax.
-It falls out of the collection form, optionality, and the `length` constraint: `items: [LineItem] where { length(1..) }` is one-or-more.
+Cardinality has no separate syntax.
+It comes from the collection form, optionality, and the `length` constraint: `items: [LineItem] where { length(1..) }` is one-or-more.
 
 ### Optional and nullable
-
-These are different questions and get different syntax.
 
 | Form | Meaning |
 | --- | --- |
@@ -415,10 +386,9 @@ These are different questions and get different syntax.
 | `T \| null` | present, may be null |
 | `T? \| null` | may be absent, and may be null when present |
 
-The distinction matters for partial updates and for formats that can express both, and is preserved through to backends.
+The distinction is preserved through to backends.
 
-Neither is primitive.
-The prelude declares them as ordinary types, and the syntax is sugar:
+Neither is primitive; the prelude declares both, and the syntax is sugar:
 
 ```tdl
 enum Option<T>   { Some { value: T } None }
@@ -451,10 +421,9 @@ type Weight {
 Unit expressions are normalized to base dimensions before comparison, so `decimal<N>` and `decimal<kg*m/s^2>` are the same type.
 `decimal<kg>`, `decimal<m>`, and `decimal` are three different types.
 
-Units may be applied to any type.
-The compiler cannot know which types are numeric, because the prelude is replaceable, so it does not try.
+Units may be applied to any type, since with a replaceable prelude the compiler cannot know which types are numeric.
 
-`<...>` is a single syntactic form covering both type arguments and unit arguments.
+`<...>` is one syntactic form for both type arguments and unit arguments.
 The parser does not distinguish them; the resolver does, against the declaration being applied.
 
 ## Relationships
@@ -487,14 +456,13 @@ type User: Entity {
 }
 ```
 
-The prefix is what keeps `{` unambiguous.
-Without it, `email: {string} { length 3..254 }` would open a set type and a constraint block with the same token in the same position.
+The prefix keeps `{` unambiguous: without it, `email: {string} { length 3..254 }` would open a set type and a constraint block with the same token in the same position.
 
 The compiler checks that constraints are well formed and that any names they mention resolve.
 It does not check that they are satisfiable, consistent, or meaningful for the type they are attached to.
 
 A constraint's arguments are parenthesized, and a constraint taking none omits the parentheses.
-This is the rule directives follow, for the same reason: the set of constraint names is open, so nothing tells the parser how many arguments `min` takes, and `min 0 max 100` would be ambiguous.
+The set of constraint names is open, so the parser cannot know how many arguments `min` takes, and `min 0 max 100` would be ambiguous.
 
 | Constraint | Form |
 | --- | --- |
@@ -505,9 +473,7 @@ This is the rule directives follow, for the same reason: the set of constraint n
 | `oneOf` | `oneOf("a", "b")` |
 | `unique` | `unique` |
 
-The set is open.
-The compiler checks the arity and argument kinds of the standard names above and passes every other name through to backends untouched, which is what "constraints are syntax, not semantics" means in practice.
-A backend that understands a constraint TDL has never heard of needs no change to the compiler.
+The compiler checks the arity and argument kinds of the standard names above and passes every other name through to backends untouched.
 
 Constraints accumulate down a chain of newtypes.
 
@@ -518,7 +484,7 @@ type WorkEmail: Email where { matches(/@acme\.com$/) }
 
 `WorkEmail` carries both constraints.
 A newtype narrows its parent and never replaces it, so a value satisfying `WorkEmail` always satisfies `Email`.
-The compiler collects the accumulated set and hands it to backends; it does not check that the set is satisfiable, since it does not interpret constraints.
+The compiler hands the accumulated set to backends without checking that it is satisfiable.
 
 ## Defaults
 
@@ -531,15 +497,15 @@ type Order: Entity {
 }
 ```
 
-A default is part of the model rather than a backend setting, because it states something about the domain: what this field means when nothing said otherwise.
+A default is part of the model rather than a backend setting, because it states what the field means when nothing says otherwise.
 
 A default is a literal or a name.
 A name denotes an enum variant, and may be qualified when the reference is ambiguous to a reader.
-There are no expressions, so `now` and `uuid()` are not defaults but backend directives.
+There are no expressions, so `now` and `uuid()` are backend directives, not defaults.
 
 ## Deprecation
 
-`deprecated` marks a declaration, field, or variant as on its way out, optionally with a reason.
+`deprecated` marks a declaration, field, or variant, optionally with a reason.
 
 ```tdl
 deprecated("use billingEmail")
@@ -551,10 +517,9 @@ type User: Entity {
 }
 ```
 
-Deprecation is in the language rather than in a target, so `tdl check` can report uses of deprecated names and every backend can carry the marker into generated code without being told how.
+Deprecation is in the language rather than a target, so `tdl check` can report uses of deprecated names and every backend can carry the marker into generated code.
 
-Marking something deprecated changes nothing else.
-It remains part of the model until it is removed.
+Marking something deprecated changes nothing else; it remains part of the model until it is removed.
 
 ## Targets
 
@@ -584,10 +549,9 @@ A path names a declaration, then optionally one of its fields.
 For an enum, the second segment names a variant, and a third may name one of that variant's fields, so `Payment.Card => number(4)` and `Payment.Card.last4 => number(2)` each reach one node.
 
 A directive's arguments are parenthesized, and a directive taking none omits the parentheses.
-Whitespace is insignificant, so without a delimiter `table snake_case` followed by another entry could not be told from `table` applied to three arguments.
+Without the parentheses, `table snake_case` followed by another entry could not be told from `table` applied to three arguments.
 
 A path may name a class, which applies the directive to every type satisfying it.
-This is the main practical payoff of classes: a rule is written once rather than repeated per type.
 
 ```tdl
 target sql for billing {
@@ -598,12 +562,11 @@ target sql for billing {
 
 When more than one entry could apply to the same thing, the most specific wins.
 A directive on a field beats one on its type, which beats one on a class the type satisfies, and a subclass beats a class it requires.
-Two entries at the same specificity are an error rather than a silent choice.
+Two entries at the same specificity are an error.
 A directive a backend declares repeatable may appear more than once at one specificity, and every entry reaches the backend in source order.
 
-The compiler resolves every path against the model.
-A path that names nothing is an error.
-Directives themselves are opaque: the compiler checks their shape and hands them to the backend.
+The compiler resolves every path against the model, and a path that names nothing is an error.
+Directives are opaque: the compiler checks their shape and hands them to the backend.
 
 Target blocks may appear in a `.tdl` file or in a separate file.
 The standard library ships a target for each supported language, and a project may replace any of them.
@@ -612,6 +575,6 @@ The standard library ships a target for each supported language, and a project m
 
 `tdl fmt` produces canonical output and is idempotent: formatting canonical output changes nothing.
 
-Because whitespace is insignificant, the formatter owns layout entirely.
+The formatter owns layout, except that a blank line at the top level between two comment groups, or between a comment and the declaration after it, survives.
 A block stays on one line when it fits within the column limit and expands to one member per line when it does not.
-The decision depends only on content, never on how the input was written, which is what makes it idempotent.
+The decision depends only on content, never on how the input was written.
