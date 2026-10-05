@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.15](https://github.com/UnstoppableMango/tdl/compare/v0.2.14...v0.2.15) (2026-10-05)
+
+
+### Features
+
+* **nix:** install the extension into every enabled VS Code-based editor ([#847](https://github.com/UnstoppableMango/tdl/issues/847)) ([05b821e](https://github.com/UnstoppableMango/tdl/commit/05b821eba709f7e093c50cdd5ed1dc0677e8d318))
+
 ## [0.2.14](https://github.com/UnstoppableMango/tdl/compare/v0.2.13...v0.2.14) (2026-10-04)
 
 
