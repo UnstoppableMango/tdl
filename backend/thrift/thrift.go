@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
@@ -348,6 +349,9 @@ func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, error) {
 		structName := name + emit.Pascal(v.GetMeta().GetName())
 		if n, ok := g.Text(v.GetDirectives(), "name"); ok {
 			structName = n
+		}
+		if slices.Contains(declared, structName) {
+			return nil, emit.Unsupported(pos, "%s.%s would declare %s in Thrift, which %s already declares", name, v.GetMeta().GetName(), structName, name)
 		}
 		if _, err := g.structure(b, "struct", structName, v.GetMeta(), v.GetFields()); err != nil {
 			return nil, err

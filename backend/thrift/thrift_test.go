@@ -352,6 +352,35 @@ func TestNamesThriftCannotReadAreSkipped(t *testing.T) {
 	contains(t, src, "struct Fine")
 }
 
+// Two variants renamed alike, or one renamed after its union, would declare
+// one name twice in a file, which Thrift refuses.
+func TestAVariantNameTakenInItsUnionIsSkipped(t *testing.T) {
+	for _, tt := range []struct{ name, first, second string }{
+		{"two variants", "Offline", "Offline"},
+		{"a variant and its union", "Broken", "Cash"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			b := irtest.New("shop")
+			card := variant("card", irtest.Field("last4", b.Named("string")))
+			card.Directives = renamed(tt.first)
+			cash := variant("cash", irtest.Field("note", b.Named("string")))
+			cash.Directives = renamed(tt.second)
+			b.Own(enum("Broken", card, cash))
+			b.Own(value("Fine", irtest.Field("a", b.Named("string"))))
+
+			resp := generate(t, b)
+			if len(resp.GetDiagnostics()) != 1 {
+				t.Errorf("want one warning for Broken: %+v", resp.GetDiagnostics())
+			}
+			src := check(t, resp)
+			absent(t, src, "union Broken")
+			contains(t, src, "struct Fine")
+		})
+	}
+}
+
+// A declaration Cascade removes does not hold the name it would have
+// declared against a declaration that survives.
 func TestACascadedNameIsFreed(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(&ir.Decl{Meta: &ir.Meta{Name: "kg"}, Node: &ir.Decl_Unit{Unit: &ir.UnitDef{}}})
