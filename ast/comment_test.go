@@ -345,6 +345,48 @@ class C<T> {
   type Cursor
 }
 `,
+		"declaration, comment inside": `package p
+
+/// what it is
+// how it got here
+/// and more
+primitive string
+`,
+		"import, comment inside": `package p
+
+/// what it is
+// how it got here
+/// and more
+import "common.tdl" as common
+`,
+		"field, comment inside": `package p
+
+type E: Entity {
+  /// what it is
+  // how it got here
+  /// and more
+  id: string
+}
+`,
+		"variant, comment inside": `package p
+
+enum Color {
+  /// what it is
+  // how it got here
+  /// and more
+  Red
+  Blue
+}
+`,
+		"associated type, comment inside": `package p
+
+class C<T> {
+  /// what it is
+  // how it got here
+  /// and more
+  type Cursor
+}
+`,
 	}
 
 	for name, src := range tests {

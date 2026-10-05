@@ -80,7 +80,7 @@ func (p *parser) parseClassBody() ([]ast.Member, ast.Position) {
 			f := p.parseField()
 			if len(doc) > 0 {
 				f.Doc = append(doc, f.Doc...)
-				f.DocP = docP
+				f.DocP = append(docP, f.DocP...)
 			}
 			members = append(members, f)
 		}
