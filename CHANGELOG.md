@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.2.16](https://github.com/UnstoppableMango/tdl/compare/v0.2.15...v0.2.16) (2026-10-05)
+
+
+### Documentation
+
+* trim AGENTS.md and the review skill ([#903](https://github.com/UnstoppableMango/tdl/issues/903)) ([52fea36](https://github.com/UnstoppableMango/tdl/commit/52fea36d9e92f746b87847499aa039284065cbc6))
+* trim backend code comments ([#909](https://github.com/UnstoppableMango/tdl/issues/909)) ([d3f351e](https://github.com/UnstoppableMango/tdl/commit/d3f351ed0f09f8f79905a95c0aac7f916f5c1a1f))
+* trim design docs and backlog ([#906](https://github.com/UnstoppableMango/tdl/issues/906)) ([600679d](https://github.com/UnstoppableMango/tdl/commit/600679d616f6d7e426b1b12f42258a37611664c1))
+* trim front-end code comments ([#907](https://github.com/UnstoppableMango/tdl/issues/907)) ([a45d871](https://github.com/UnstoppableMango/tdl/commit/a45d8719bcdb820b39162f8f6f5ebfce3013c37a))
+* trim nix, proto, editor, and config comments ([#910](https://github.com/UnstoppableMango/tdl/issues/910)) ([b939a9c](https://github.com/UnstoppableMango/tdl/commit/b939a9cb6ccde6b816ac527ce80fe8ed7223deca))
+* trim README and user-facing docs ([#904](https://github.com/UnstoppableMango/tdl/issues/904)) ([b835785](https://github.com/UnstoppableMango/tdl/commit/b8357853ce8d64868203c1d1813ddb4ba98b6a8a))
+* trim sema, ir, plugin, cli, gen, and lsp comments ([#908](https://github.com/UnstoppableMango/tdl/issues/908)) ([922b970](https://github.com/UnstoppableMango/tdl/commit/922b970d3f93a171e87294099027a642b5589cb5))
+* trim spec and grammar comments ([#905](https://github.com/UnstoppableMango/tdl/issues/905)) ([fc03faa](https://github.com/UnstoppableMango/tdl/commit/fc03faa88be5e5ee8f7bd8421b6e4c04b58eae2f))
+
+
+### Code Refactoring
+
+* **nix:** extract home-manager module check to separate file ([db6912a](https://github.com/UnstoppableMango/tdl/commit/db6912aa5a5c738ffbc92ea0d049f7ee94287bf9))
+
 ## [0.2.15](https://github.com/UnstoppableMango/tdl/compare/v0.2.14...v0.2.15) (2026-10-05)
 
 
