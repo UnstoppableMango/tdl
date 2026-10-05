@@ -36,6 +36,9 @@ type Decl interface {
 
 // PackageDecl is a `package <dotted.ident>` declaration.
 type PackageDecl struct {
+	Doc  []string
+	DocP []Position // where each Doc line was written
+
 	P    Position
 	Path string // dotted, e.g. "shop.orders"
 }

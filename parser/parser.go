@@ -124,10 +124,6 @@ func (p *parser) syncTop() {
 func (p *parser) parseFile() *ast.File {
 	file := &ast.File{Filename: p.filename}
 
-	if p.at(lex.PACKAGE) {
-		file.Package = p.parsePackageDecl()
-	}
-
 	for !p.at(lex.EOF) {
 		doc, docP := p.parseDoc()
 		head := ast.DeclHead{Doc: doc, DocP: docP}
@@ -157,8 +153,12 @@ func (p *parser) parseFile() *ast.File {
 		case lex.TARGET:
 			file.Decls = append(file.Decls, p.parseTargetDecl(head))
 		case lex.PACKAGE:
-			p.errs.add(p.cur.Pos, "unexpected second 'package' declaration")
-			p.parsePackageDecl()
+			pkg := p.parsePackageDecl(head)
+			if file.Package == nil && len(file.Imports) == 0 && len(file.Decls) == 0 && head.Dep == nil {
+				file.Package = pkg
+			} else {
+				p.errs.add(pkg.P, "unexpected second 'package' declaration")
+			}
 		case lex.EOF:
 			p.errs.add(p.cur.Pos, "doc comment at end of file, attached to nothing")
 		default:
@@ -190,10 +190,10 @@ func (p *parser) parseDoc() ([]string, []ast.Position) {
 	return doc, pos
 }
 
-func (p *parser) parsePackageDecl() *ast.PackageDecl {
+func (p *parser) parsePackageDecl(head ast.DeclHead) *ast.PackageDecl {
 	pos := p.cur.Pos
 	p.next() // 'package'
-	return &ast.PackageDecl{P: pos, Path: p.parsePackagePath()}
+	return &ast.PackageDecl{Doc: head.Doc, DocP: head.DocP, P: pos, Path: p.parsePackagePath()}
 }
 
 // parsePackagePath parses `Name { . Name }` after `package` or `for`.

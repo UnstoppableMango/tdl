@@ -387,6 +387,14 @@ class C<T> {
   type Cursor
 }
 `,
+		"package, doc first": `/// what it is
+// how it got here
+package p
+`,
+		"package, comment first": `// how it got here
+/// what it is
+package p
+`,
 	}
 
 	for name, src := range tests {
@@ -415,6 +423,14 @@ type Widget {
 	got := ast.Fprint(mustParse(t, src))
 	if !strings.Contains(got, want) {
 		t.Errorf("blank line between comment groups was dropped\n--- got ---\n%s\n--- want substring ---\n%s", got, want)
+	}
+}
+
+func TestFprintKeepsBlankLineBetweenCommentGroupsAbovePackage(t *testing.T) {
+	src := "// License header.\n\n// What this package models.\npackage acme.v1\n"
+
+	if got := ast.Fprint(mustParse(t, src)); got != src {
+		t.Errorf("Fprint mismatch\n--- got ---\n%s\n--- want ---\n%s", got, src)
 	}
 }
 

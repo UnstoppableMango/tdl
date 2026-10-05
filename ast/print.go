@@ -136,9 +136,9 @@ func (p *printer) render(f func(*printer)) string {
 func Fprint(file *File) string {
 	p := &printer{comments: file.Comments}
 
-	if file.Package != nil {
-		p.flush("", file.Package.P)
-		p.line("package "+file.Package.Path, file.Package.P.Line, anywhere)
+	if pkg := file.Package; pkg != nil {
+		p.lead("", pkg.P, pkg.Doc, pkg.DocP)
+		p.line("package "+pkg.Path, pkg.P.Line, anywhere)
 	}
 
 	if len(file.Imports) > 0 {

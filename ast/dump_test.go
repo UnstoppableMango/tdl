@@ -32,3 +32,23 @@ alias Pair<T> = Map<string, T>
 		}
 	}
 }
+
+func TestDumpPackageDoc(t *testing.T) {
+	file := mustParse(t, `/// What this package models.
+/// Second line.
+package p
+`)
+
+	got := ast.Dump(file)
+	want := "└── Package p  test.tdl:3:1\n    └── Doc (2 lines)  test.tdl:1:1\n"
+	if !strings.HasSuffix(got, want) {
+		t.Errorf("dump does not end with %q:\n%s", want, got)
+	}
+}
+
+func TestDumpWithoutPackageDoc(t *testing.T) {
+	got := ast.Dump(mustParse(t, "package p\n"))
+	if strings.Contains(got, "Doc") {
+		t.Errorf("dump of an undocumented package has a Doc line:\n%s", got)
+	}
+}

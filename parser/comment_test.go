@@ -35,6 +35,39 @@ type E: Entity {
 	}
 }
 
+func TestDocCommentAbovePackageDocumentsThePackage(t *testing.T) {
+	file := parse(t, `/// What this package models.
+// how it got here
+package p
+
+/// What the import is for.
+import "common.tdl" as common
+`)
+
+	if got := file.Package.Doc; len(got) != 1 || got[0] != "What this package models." {
+		t.Errorf("package doc = %v, want [What this package models.]", got)
+	}
+	if got := file.Package.DocP[0].Line; got != 1 {
+		t.Errorf("package doc on line %d, want 1", got)
+	}
+	if got := file.Imports[0].Doc; len(got) != 1 || got[0] != "What the import is for." {
+		t.Errorf("import doc = %v, want [What the import is for.]", got)
+	}
+}
+
+func TestDocCommentWithoutPackageDocumentsTheImport(t *testing.T) {
+	file := parse(t, `/// What the import is for.
+import "common.tdl" as common
+`)
+
+	if file.Package != nil {
+		t.Errorf("package = %+v, want nil", file.Package)
+	}
+	if got := file.Imports[0].Doc; len(got) != 1 || got[0] != "What the import is for." {
+		t.Errorf("import doc = %v, want [What the import is for.]", got)
+	}
+}
+
 func TestDocCommentsAreNotOrdinaryComments(t *testing.T) {
 	file := parse(t, `/// docs
 primitive string
