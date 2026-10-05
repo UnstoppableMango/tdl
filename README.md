@@ -103,6 +103,8 @@ Or install it with `nix profile install github:UnstoppableMango/tdl`.
 ### NixOS or home-manager
 
 `overlays.default` adds `pkgs.tdl` and `pkgs.vscode-tdl`, and includes the [gomod2nix](https://github.com/nix-community/gomod2nix) overlay it builds with.
+It builds `tdl` with `go_1_27`, so the nixpkgs it is applied to has to provide that attribute.
+On an older nixpkgs, use `inputs.tdl.packages.${system}.default`, which builds against the nixpkgs tdl's lock file pins, and do not set `inputs.tdl.inputs.nixpkgs.follows`.
 
 ```nix
 {
