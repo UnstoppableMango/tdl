@@ -1,33 +1,28 @@
 // The TDL intermediate representation: the resolved semantic model that
 // backends consume, in-process and over the plugin protocol.
 //
-// See docs/design/ir.md for the decisions this schema encodes and
-// docs/design/ir-plan.md for what is implemented so far. The schema grows
-// one phase at a time.
+// See docs/design/ir.md for the decisions this schema encodes.
 edition = "2024";
 
 package tdl.ir.v1;
 
 import "google/protobuf/go_features.proto";
 
-// Editions default the generated Go to the opaque API, where every field
-// is reached through a builder. These types are constructed directly here
-// and by any backend, so they keep the open API they were published with.
+// Keep the open Go API these types were published with; backends
+// construct them directly.
 option features.(pb.go).api_level = API_OPEN;
-// Editions default to explicit presence, which would give every scalar
-// field a pointer in the generated code. Implicit presence is what
-// proto3 meant, and what this schema was written against.
+// Implicit presence, as in proto3. A field wanting presence says so.
 option features.field_presence = IMPLICIT;
 
 // ID references a node by its index into a table and by its fully qualified
 // name.
 //
-// The index is what lookups use. The name is what appears in diagnostics,
-// in dumps, and in target paths, and it is stable across edits in a way the
-// index is not. Which table an ID indexes is fixed by the field holding it.
+// Lookups use the index. Diagnostics, dumps, and target paths use the name,
+// which is stable across edits. The field holding an ID fixes which table it
+// indexes.
 //
-// An index of -1 means the name did not resolve. Name resolution turns that
-// into a diagnostic; until then it records what was written.
+// An index of -1 means the name did not resolve; lowering reports it, and
+// the name records what was written.
 message ID {
   int32 index = 1;
   string name = 2;
@@ -46,11 +41,9 @@ message Deprecation {
   Position position = 2;
 }
 
-// Meta is the source fidelity every node carries: what it is called, what
-// was written about it, where it came from, whether it is deprecated, and
-// where it sat among its siblings.
+// Meta is the source information every node carries.
 //
-// Declaration order is kept so generated output is stable and diffable.
+// order is the position among siblings, so generated output is stable.
 message Meta {
   string name = 1; // fully qualified for a declaration, bare for a member
   repeated string doc = 2;
@@ -62,7 +55,7 @@ message Meta {
 // Model is one package: every declaration in it, and every type reference
 // those declarations use.
 //
-// Two flat tables, two ID spaces. Declarations from imported packages are
+// Each table is its own ID space. Declarations from imported packages are
 // not inlined; a reference into a dependency is an ID whose name carries
 // that package.
 message Model {
@@ -79,10 +72,8 @@ message Model {
 
 // TargetBlock is one `target go for billing { ... }` block.
 //
-// Its resolved directives are attached to the nodes they apply to, so a
-// backend never performs a lookup. What is left here is the block itself
-// and the directives that apply to the package rather than to anything in
-// it.
+// Resolved directives are attached to the nodes they apply to. This holds
+// only the directives that apply to the package as a whole.
 message TargetBlock {
   Meta meta = 1; // name is the target name, such as "go"
   string for_package = 2;
@@ -90,28 +81,24 @@ message TargetBlock {
 }
 
 // Directive is an opaque instruction to a backend. The compiler checks its
-// shape, resolves the path it was written against, and hands it over; what
-// it means is the backend's business.
+// shape and resolves its path; the backend decides what it means.
 message Directive {
   string name = 1;
   repeated Literal args = 2;
   Position position = 3;
 
-  // target names the block this came from, since a model may carry
-  // directives for several backends at once.
+  // target names the block this came from.
   string target = 4;
 
   // from_class is set when the directive was written against a class and
-  // expanded onto everything satisfying it, which is what makes a rule
-  // written once apply to many types.
+  // expanded onto everything satisfying it.
   ID from_class = 5; // indexes Model.decls
 }
 
 // Instance declares that a type satisfies a class.
 //
-// `instance C for T` is sugar for `instance C<T>`, and lowering normalizes
-// it: by here there is one form. An instance is not a type name, so it
-// lives in its own table rather than among the declarations.
+// `instance C for T` is lowered to `instance C<T>`. An instance is not a
+// type name, so it has its own table.
 message Instance {
   Meta meta = 1;
   repeated Param params = 2;
@@ -139,9 +126,8 @@ message ClassRef {
 // Satisfaction is the computed answer to "what satisfies this class",
 // closed over the classes a class requires.
 //
-// A backend applying a class-scoped target directive reads this and never
-// reasons about instances. The declared instances are still in the model
-// for one that wants them.
+// A backend applying a class-scoped target directive reads this instead
+// of reasoning about instances.
 message Satisfaction {
   ID class = 1; // indexes Model.decls
   repeated ID decls = 2; // indexes Model.decls
@@ -150,8 +136,7 @@ message Satisfaction {
   // conditional instance, as in `Page<Order>` given
   // `instance <T> Auditable<Page<T>> requires Auditable<T>`.
   //
-  // A declaration cannot stand in for these: `Page` satisfies nothing on
-  // its own, and `Page<Order>` is a type rather than a declaration.
+  // `Page` alone satisfies nothing, so these cannot be listed in decls.
   repeated ID types = 3; // indexes Model.types
 }
 
@@ -163,16 +148,14 @@ message Import {
   Position position = 4;
 
   // directives are the block-scope directives of the dependency's target
-  // blocks, each naming its target, so a backend can refer to the
-  // dependency the way the dependency says it is generated.
+  // blocks, so a backend can refer to the dependency as it is generated.
   repeated Directive directives = 5;
 }
 
 // Extern is a declaration in another package that this one refers to.
 //
-// Dependencies are not inlined: a backend either resolves an extern
-// through the import table and generates a reference, or treats it as
-// foreign and maps it with a target directive.
+// A backend either resolves an extern through the import table and
+// generates a reference, or maps it with a target directive.
 message Extern {
   string package = 1; // the declaring package
   string name = 2; // the declaration's name within it
@@ -180,10 +163,8 @@ message Extern {
   repeated Directive directives = 4; // resolved target directives whose path names this extern
 }
 
-// Decl is one declaration. The forms split by nature rather than
-// collapsing into one tagged message or fragmenting into eight: everything
-// with fields shares a shape, and a form that has no fields does not carry
-// the machinery for them.
+// Decl is one declaration. Entities, values, and mixins share Struct; each
+// other form has its own message.
 message Decl {
   Meta meta = 1;
   repeated Directive directives = 8;
@@ -199,8 +180,7 @@ message Decl {
   }
 }
 
-// Class is a contract. It declares nothing into the types that satisfy it;
-// conformance is nominal and always declared.
+// Class is a contract. Conformance is nominal and always declared.
 message Class {
   repeated Param params = 1;
   repeated FunDep fun_deps = 2;
@@ -213,8 +193,7 @@ message Class {
   reserved requires_key;
 }
 
-// FunDep states that some parameters determine others, which makes a
-// multi-parameter class a function rather than a table.
+// FunDep states that some parameters determine others.
 message FunDep {
   repeated string from = 1;
   repeated string to = 2;
@@ -234,10 +213,8 @@ message Primitive {
 
 // UnitDef is a `unit kg` or `unit N = kg*m/s^2` declaration.
 //
-// The declaration and the unit are separate: this is the name the source
-// gave, and `unit` points at the entry in Model.units that says what it
-// measures. A base unit and the dimension of itself are one entry apart
-// for the same reason a newtype and its base are.
+// This is the name the source gave; `unit` points at the entry in
+// Model.units that says what it measures.
 message UnitDef {
   ID unit = 1; // indexes Model.units
   bool base = 2; // written without an expression
@@ -251,14 +228,11 @@ message Dimension {
 
 // Unit is a quantity reduced to base dimensions.
 //
-// Reduction is what makes the table meaningful: the spec says decimal<N>
-// and decimal<kg*m/s^2> are the same type, so a unit is interned on `dims`
-// and nothing else, and both spellings reach one entry. `decl` and `wrote`
-// record where that entry came from first, for a reader and a diagnostic;
-// neither participates in identity.
+// A unit is interned on `dims` alone, so decimal<N> and decimal<kg*m/s^2>
+// reach one entry. `decl` and `wrote` record the first spelling and take no
+// part in identity.
 //
-// `dims` is sorted by base index with zero exponents removed, so equal
-// quantities have equal vectors however they were written.
+// `dims` is sorted by base index with zero exponents removed.
 message Unit {
   repeated Dimension dims = 1;
   ID decl = 2; // the UnitDef first naming this quantity; unset for a bare expression
@@ -316,17 +290,14 @@ message Range {
 // Constraint is one entry in a `where { ... }` block.
 //
 // The set of names is open. The compiler checks the arity and argument
-// kinds of the standard names and passes everything else through, so a
-// backend may understand a constraint the compiler has never heard of.
+// kinds of the standard names and passes everything else through.
 message Constraint {
   string name = 1;
   repeated Literal args = 2;
   Position position = 3;
 
   // from names the newtype a constraint was inherited from, unset for one
-  // written on this declaration. A newtype narrows its parent and never
-  // replaces it, so the accumulated set is what a backend needs and the
-  // origin is what it needs to explain itself.
+  // written on this declaration.
   ID from = 4; // indexes Model.decls
 }
 
@@ -374,9 +345,8 @@ message Field {
   Literal default_value = 7; // unset when the field has no default
   repeated Directive directives = 8;
 
-  // included_from names the mixin a field was copied from, so a backend
-  // that can express the grouping does not have to reconstruct it. Unset
-  // for a field the declaration wrote itself.
+  // included_from names the mixin a field was copied from, unset for a
+  // field the declaration wrote itself.
   ID included_from = 5; // indexes Model.decls
 
   reserved 3;
@@ -407,10 +377,9 @@ message Kind {
 
 // SyntacticForm records how a type reference was written.
 //
-// Lowering is authoritative: `[T]` is `List<T>` and `T?` is `Option<T>`
-// whatever this says. The form is advisory, for a backend that wants `*T`
-// for `T?` and a wrapper for an explicit `Option<T>`. A backend that treats
-// them alike ignores it.
+// The form is advisory: `[T]` is `List<T>` and `T?` is `Option<T>`
+// regardless. A backend may use it to emit `*T` for `T?` and a wrapper for
+// an explicit `Option<T>`.
 enum SyntacticForm {
   SYNTACTIC_FORM_UNSPECIFIED = 0;
   SYNTACTIC_FORM_NAMED = 1; // User, List<T>
@@ -424,8 +393,7 @@ enum SyntacticForm {
 // Type is one interned type reference: a constructor applied to arguments,
 // or a reference to a type parameter.
 //
-// Lowering interns, so two occurrences of the same type share an entry and
-// an ID comparison is a type comparison.
+// Equal types share an entry, so comparing IDs compares types.
 message Type {
   ID ctor = 1; // indexes Model.decls; unset when param or extern is set
   repeated ID args = 2; // indexes Model.types
@@ -438,9 +406,8 @@ message Type {
 
 // ParamRef is a use of a type parameter.
 //
-// Parameters survive rather than being monomorphized away, so a backend
-// with native generics emits them and one without instantiates on its own
-// terms.
+// Parameters are not monomorphized; a backend without generics
+// instantiates them itself.
 message ParamRef {
   string name = 1;
   int32 index = 2; // into the declaring node's params

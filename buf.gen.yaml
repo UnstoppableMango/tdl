@@ -1,12 +1,9 @@
 version: v2
 
-# The go_package option lives here rather than in each .proto. A file
-# should say what it describes, not where one language's generated code
-# happens to go; managed mode is where that belongs.
+# go_package lives here rather than in each .proto.
 #
-# The default would be the prefix joined to the file's path, giving
-# tdl/ir/v1 under the module. These packages are imported by name from
-# every backend, so they keep the short paths they were published with.
+# The overrides keep the short import paths these packages were published
+# with, instead of the default tdl/ir/v1 under the module.
 managed:
   enabled: true
   override:

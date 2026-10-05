@@ -12,14 +12,9 @@
     let
       cfg = config.tdl;
 
-      # Every check runs from inside `src` rather than over a copied file:
-      # an `include` resolves relative to the file that writes it, so a model
-      # split across files needs its tree intact.
-      #
-      # Each is a single invocation over the whole list rather than a shell
-      # loop: the CLI walks its arguments itself, reporting every file that
-      # fails rather than stopping at the first, so a loop here would only
-      # make the output worse.
+      # Checks run inside `src`, since an `include` resolves relative to the
+      # file that writes it. Each is one invocation over the whole list; the
+      # CLI reports every failing file.
       runIn =
         name: extraInputs: body:
         pkgs.runCommand name { nativeBuildInputs = [ cfg.package ] ++ extraInputs; } ''

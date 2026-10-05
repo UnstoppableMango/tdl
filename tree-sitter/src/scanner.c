@@ -1,20 +1,15 @@
-// External scanner for the tokens the built-in lexer cannot produce.
+// External scanner for regex_lit, the one token the generated lexer cannot
+// produce.
 //
-// `/` opens a regex literal and divides a unit expression, and nothing
-// local to the token tells them apart: `matches` is a contextual keyword,
-// so the token before the slash is an ordinary identifier either way.
+// `/` opens a regex literal and divides a unit expression, and the token
+// before it does not tell them apart. The reference parser calls
+// lex.RescanRegexAt when it wants a regex; here `valid_symbols` says
+// whether the grammar admits one at this position.
 //
-// The reference implementation answers this by asking rather than
-// guessing. lex.Lexer scans every other token without context, and the
-// parser calls lex.RescanRegexAt when it wants a regex. tree-sitter's
-// `valid_symbols` is the same question from the other side: it says
-// whether the grammar admits a regex at this position, so the scanner
-// produces one only where the parser would have asked for one.
+// The shape scanned is lex.RegexPattern, `/([^/\\\n]|\\[^\n])*/`, and the
+// loop below follows lex.RescanRegexAt.
 //
-// The shape scanned here is lex.RegexPattern, `/([^/\\\n]|\\[^\n])*/`,
-// and the loop below is lex.RescanRegexAt read across.
-//
-// Hand-written, unlike the rest of src/. tools/treesitter never touches it.
+// Hand-written, unlike the rest of src/.
 
 #include "tree_sitter/parser.h"
 
@@ -30,8 +25,7 @@ void tree_sitter_tdl_external_scanner_destroy(void *payload) {
 	(void)payload;
 }
 
-// The scanner reads no state across tokens, so an edit leaves it nothing
-// to carry. Both halves stay for the ABI, which calls them regardless.
+// The scanner keeps no state. The ABI requires both functions.
 unsigned tree_sitter_tdl_external_scanner_serialize(void *payload, char *buffer) {
 	(void)payload;
 	(void)buffer;
@@ -55,8 +49,7 @@ bool tree_sitter_tdl_external_scanner_scan(void *payload, TSLexer *lexer, const 
 		return false;
 	}
 
-	// Whitespace between the previous token and the slash belongs to the
-	// extras rather than to the literal, so it is advanced over as skipped.
+	// Leading whitespace is skipped as extras, not part of the literal.
 	while (is_space(lexer->lookahead)) {
 		lexer->advance(lexer, true);
 	}
@@ -67,10 +60,8 @@ bool tree_sitter_tdl_external_scanner_scan(void *payload, TSLexer *lexer, const 
 	lexer->advance(lexer, false);
 
 	while (lexer->lookahead != '/') {
-		// A regex does not span a line, so end of line and end of file are
-		// both unterminated. Returning false leaves the slash to the
-		// built-in lexer, which is what makes it an ERROR rather than a
-		// literal running to the end of the file.
+		// A regex does not span a line. Returning false leaves the slash to
+		// the built-in lexer, which makes it an ERROR.
 		if (lexer->eof(lexer) || lexer->lookahead == '\n') {
 			return false;
 		}

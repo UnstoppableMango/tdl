@@ -1,5 +1,5 @@
-// Starts `tdl lsp` for .tdl files. The server does the work; this finds it,
-// starts it, and restarts it when the configured path changes.
+// Starts `tdl lsp` for .tdl files and restarts it when tdl.server.path
+// changes.
 
 import { constants } from "node:fs";
 import { access } from "node:fs/promises";
@@ -9,10 +9,9 @@ import { LanguageClient, type LanguageClientOptions, type ServerOptions } from "
 
 let client: LanguageClient | undefined;
 
-// Every start and stop runs through one chain, so two configuration
-// changes arriving together restart the server once each, in order, rather
-// than both clearing `client` and then both assigning it. A step that
-// fails does not block the ones after it.
+// Every start and stop runs through one chain, so overlapping configuration
+// changes restart the server in order. A failed step does not block the
+// next.
 let lifecycle: Promise<void> = Promise.resolve();
 
 function enqueue(step: () => Promise<void>): Promise<void> {
@@ -46,9 +45,8 @@ function report(err: unknown): void {
 async function start(): Promise<void> {
 	const configured = workspace.getConfiguration("tdl").get<string>("server.path") || "tdl";
 
-	// The executable is looked up here rather than left to the client, which
-	// reports a missing one as a connection failure and retries. Highlighting
-	// needs no server, so a missing one is one message and nothing else.
+	// Look the executable up here: the client reports a missing one as a
+	// connection failure and retries.
 	const command = await resolve(configured);
 	if (command === undefined) {
 		void window.showErrorMessage(
@@ -78,9 +76,8 @@ async function stop(): Promise<void> {
 	await running?.stop();
 }
 
-// resolve finds an executable the way a shell would: a path with a
-// separator in it is used as written, and a bare name is searched for on
-// PATH.
+// resolve finds an executable the way a shell would: a name with a
+// separator is used as written, and a bare name is searched for on PATH.
 async function resolve(name: string): Promise<string | undefined> {
 	const candidates = name.includes(path.sep) || name.includes("/") ? [name] : onPath(name);
 	for (const candidate of candidates) {

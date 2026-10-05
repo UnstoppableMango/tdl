@@ -59,9 +59,8 @@ in
           inherit (inputs.home-manager.lib) homeManagerConfiguration;
         };
 
-      # Holds the smithy backend to output Smithy accepts. No Go library can
-      # say so, which is why this is a check rather than a Go test: it
-      # generates from the smoke fixture and hands the result to the CLI.
+      # Validates the smithy backend's output with the Smithy CLI, since no Go
+      # library can.
       checks.gen-smithy =
         pkgs.runCommand "tdl-gen-smithy"
           {
@@ -78,8 +77,7 @@ in
             touch $out
           '';
 
-      # Holds the typescript backend to declarations tsc accepts under
-      # --strict, for the same reason gen-smithy exists.
+      # Type checks the typescript backend's output with tsc --strict.
       checks.gen-typescript =
         pkgs.runCommand "tdl-gen-typescript"
           {
@@ -95,9 +93,8 @@ in
             touch $out
           '';
 
-      # Holds the salesforce backend to well-formed metadata XML. Apex has
-      # no parser outside an org, so the classes are checked by deploying,
-      # which no check can do.
+      # Checks the salesforce backend's metadata XML is well formed. Nothing
+      # checks the Apex, which has no parser outside an org.
       checks.gen-salesforce =
         pkgs.runCommand "tdl-gen-salesforce"
           {
@@ -114,12 +111,9 @@ in
             touch $out
           '';
 
-      # Holds the flake-parts module to what it promises, by evaluating a
-      # consumer flake that imports it and building what came out. The
-      # fixture is a conformance case because the corpus is already held to
-      # both properties asserted here: it parses clean and it is stored in
-      # canonical form. tdl-gen is not built, since --verify compares against
-      # generated output on disk and no fixture here has any.
+      # Evaluates a consumer flake that imports flake-module.nix and builds
+      # its outputs. tdl-gen is left out: --verify compares against generated
+      # output on disk, and the fixture has none.
       checks.flake-module =
         let
           consumer =

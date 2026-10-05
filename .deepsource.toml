@@ -1,9 +1,6 @@
 version = 1
 
-# Generated files, committed because a consumer reads them without running
-# the generator: ir.pb.go and plugin.pb.go come from buf, the tree-sitter
-# parser from `tree-sitter generate`, and the TextMate grammar from
-# internal/textmate. scanner.c is hand-written and stays in.
+# Generated files. tree-sitter/src/scanner.c is hand-written and stays in.
 exclude_patterns = [
   "ir/ir.pb.go",
   "plugin/plugin.pb.go",
@@ -14,8 +11,7 @@ exclude_patterns = [
   "editors/vscode/syntaxes/**",
 ]
 
-# The conformance corpus is input to the tests rather than source, and the
-# playground files exist to be experimented with.
+# Test input and playground files, not source.
 test_patterns = ["**/*_test.go", "testdata/**", "examples/**"]
 
 [[analyzers]]
@@ -25,8 +21,7 @@ enabled = true
 [analyzers.meta]
 import_root = "github.com/unstoppablemango/tdl"
 
-# tree-sitter/corpus.sh and editors/vscode/install.sh, the two files treefmt
-# has no formatter for.
+# tree-sitter/corpus.sh and editors/vscode/install.sh.
 [[analyzers]]
 name = "shell"
 enabled = true
@@ -35,8 +30,7 @@ enabled = true
 name = "secrets"
 enabled = true
 
-# Reported from the Test job in .github/workflows/ci.yml, which writes
-# cover.profile.
+# Reported by the test job in .github/workflows/ci.yml.
 [[analyzers]]
 name = "test-coverage"
 enabled = true
