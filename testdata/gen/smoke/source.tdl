@@ -89,3 +89,8 @@ target graphql for smoke {
 target typescript for smoke {
   out("typescript")
 }
+
+target jsonschema for smoke {
+  out("jsonschema")
+  root("Order")
+}

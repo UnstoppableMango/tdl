@@ -93,6 +93,23 @@ in
             touch $out
           '';
 
+      # Checks the jsonschema backend's document against its metaschema,
+      # with a second implementation beside the one its tests use.
+      checks.gen-jsonschema =
+        pkgs.runCommand "tdl-gen-jsonschema"
+          {
+            nativeBuildInputs = [
+              pkgs.tdl
+              pkgs.check-jsonschema
+            ];
+          }
+          ''
+            cp ${../testdata/gen/smoke/source.tdl} source.tdl
+            tdl gen --target jsonschema -o out source.tdl
+            check-jsonschema --check-metaschema out/*.schema.json
+            touch $out
+          '';
+
       # Checks the salesforce backend's metadata XML is well formed. Nothing
       # checks the Apex, which has no parser outside an org.
       checks.gen-salesforce =

@@ -16,6 +16,7 @@ buildGoApplication {
     "cmd/tdl-gen-debug"
     "cmd/tdl-gen-go"
     "cmd/tdl-gen-graphql"
+    "cmd/tdl-gen-jsonschema"
     "cmd/tdl-gen-protobuf"
     "cmd/tdl-gen-salesforce"
     "cmd/tdl-gen-smithy"
