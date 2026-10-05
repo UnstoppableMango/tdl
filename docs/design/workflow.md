@@ -99,7 +99,8 @@ target go for billing {
 }
 ```
 
-`-o` overrides `out` for one invocation.
+`out` is relative to the file declaring the target block, as an `import` or an `include` is, so a model generates into the same place wherever `tdl gen` runs.
+`-o` overrides `out` for one invocation, relative to the working directory.
 Nothing else about a target is configurable from the command line, so every mapping is reviewed and versioned in the model.
 
 ### File layout
