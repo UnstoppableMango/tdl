@@ -2,10 +2,11 @@
 # Package this extension and install it into a running VS Code.
 #
 # The extension is committed as a directory, and `code --install-extension`
-# wants a .vsix, so one is built here and thrown away. The language client is
-# bundled first, with the dependencies package-lock.json pins. The two files a
-# .vsix carries beyond the extension itself are written below rather than
-# by `vsce`, which would pull npm in for a zip and a manifest.
+# wants a .vsix, so one is built here and thrown away. The language client
+# bundle in dist/ comes from make, which rebuilds it when its sources or
+# package-lock.json change. The two files a .vsix carries beyond the extension
+# itself are written below rather than by `vsce`, which would pull npm in for
+# a zip and a manifest.
 #
 # The supported way in is this command. A directory dropped into an
 # extensions folder registers on a remote server and never reaches the
@@ -20,8 +21,10 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-npm ci --no-audit --no-fund
-npm run bundle
+if [[ ! -f dist/extension.js ]]; then
+	echo "dist/extension.js is missing: run 'make install' instead" >&2
+	exit 1
+fi
 
 version=$(sed -n 's/^[[:space:]]*"version": "\(.*\)".*/\1/p' package.json | head -1)
 publisher=$(sed -n 's/^[[:space:]]*"publisher": "\(.*\)".*/\1/p' package.json | head -1)

@@ -32,6 +32,12 @@ command make check-treesitter # what CI runs: treesitter + a diff + test-treesit
 
 Prefix `make` with `command` (see the shell autoload note in the global instructions).
 
+`generate`, `treesitter`, and `textmate` name file targets for what they write, so each step reruns only when its inputs are newer.
+`treesitter` and `test-treesitter` delegate to `tree-sitter/Makefile`, whose `generate` target reruns `tree-sitter generate` only when `grammar.js` or `tree-sitter.json` is newer than the parser, and whose `test` target runs `corpus.sh`; the root keeps the `grammar.js` target, since its generator is a Go tool.
+`check-treesitter` passes `-B`, which reaches the sub-make through `MAKEFLAGS`, because a fresh checkout gives every file about the same mtime and a file target would skip the regeneration the diff is meant to test.
+`vscode-check` and `vscode-install` delegate to `editors/vscode/Makefile`, whose `check`, `bundle`, and `install` targets run `npm ci` and the bundle only when the lock file or the source is newer.
+`vscode-install` regenerates the TextMate grammar first, since that generator is a Go tool at the root; `install.sh` packages the bundle `make` built and refuses to run without one.
+
 `nix fmt` formats Go, Nix, YAML, JSON, TOML, Markdown, protobuf, and TypeScript; `nix flake check` fails when anything is unformatted.
 
 `editors/vscode/src/` is the one TypeScript in the repository, and `editors/vscode/package-lock.json` pins its toolchain: TypeScript 7 and Biome, run through `npm run` so an editor and CI use the same versions.
@@ -42,7 +48,7 @@ Biome's JSON formatter is off, since jsonfmt owns JSON here and the two disagree
 Which markdown files are linted lives in `.markdownlint-cli2.yaml`, so a bare `markdownlint-cli2` locally checks what CI checks.
 `CLAUDE.md` is ignored: its whole content is an import pointing at this file, and a file that is one directive has no heading to lint.
 `.github/copilot-instructions.md` and `.github/skills/` are prose and are linted, because they say things this file does not.
-Eight files have no formatter: `Makefile`, `.editorconfig`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, and `tree-sitter/src/scanner.c`.
+Ten files have no formatter: `Makefile`, `editors/vscode/Makefile`, `tree-sitter/Makefile`, `.editorconfig`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, and `tree-sitter/src/scanner.c`.
 The two grammars have no published formatter, and their column alignment is chosen per section for reading; `internal/ebnf` lints them instead.
 A skill's YAML frontmatter is how Copilot decides when to load it, and mdformat rewrites it into a thematic break.
 Deliberately excluded: `*.tdl` (until `tdl fmt` is wired in, see `docs/backlog.md`), `*.golden` and `nix/gomod2nix.toml` and `flake.lock` and `tree-sitter/src/*.json` and `editors/vscode/syntaxes/*.json` (generated), and `.claude/` (local agent settings).
@@ -307,10 +313,12 @@ A field wanting presence says so itself, as `Range.low` does.
 
 After changing `proto/`, run `make generate` and commit `ir/ir.pb.go` with it.
 Field numbers are a compatibility guarantee to plugins: add fields, never renumber or reuse them.
-CI enforces that with `buf breaking` against the pull request's base, alongside `buf lint` and `buf format`; `make fmt` formats the protos and `make lint` checks them.
+`.github/workflows/buf.yml` runs `buf breaking` against the pull request's base, alongside `buf lint` and `buf format`; `make fmt` formats the protos and `make lint` checks them.
+It is its own workflow, as buf-action recommends, so that it can run on `labeled` and `unlabeled` events.
+It is advisory: the `required` job cannot need a job in another workflow and the ruleset does not name it, so a failing `buf` check does not block a merge, and a reviewer has to read it.
 
 A pull request that has to break the schema carries the `buf skip breaking` label, which is what `bufbuild/buf-action` reads.
-The workflow only re-runs on push, so label first and then push, or the run will still be working from a payload without it.
+Adding or removing the label reruns the check without a push.
 
 ## Review
 
@@ -341,6 +349,7 @@ What it says about Go style overlaps golangci-lint, so a finding the linter does
 Reply with what changed, or with why nothing did, and then resolve it.
 
 The one required status check is the `required` job in `.github/workflows/ci.yml`, which fails when any job it needs failed or was cancelled.
+The `buf` job in `.github/workflows/buf.yml` is outside it and does not block a merge.
 A new CI job goes in its `needs` rather than in the ruleset, which `UnstoppableMango/vcs` declares in Pulumi.
 
 Pull requests here are stacked, and GitHub owns the stack: merging one rebases the rest and rewrites their branches, so a local copy is stale afterwards and is reset from the remote rather than merged into.

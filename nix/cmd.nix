@@ -23,7 +23,10 @@ buildGoApplication {
     "cmd/tdl-gen-typescript"
   ];
 
-  # Nine binaries are installed, so lib.getExe needs telling which one is the
-  # program; nix/vscode-extension.nix reads it.
-  meta.mainProgram = "tdl";
+  meta = {
+    description = "Type Description Language";
+    homepage = "https://github.com/UnstoppableMango/tdl";
+    mainProgram = "tdl";
+    license = lib.licenses.gpl3;
+  };
 }

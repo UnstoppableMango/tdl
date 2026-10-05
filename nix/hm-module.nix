@@ -1,9 +1,6 @@
 # The home-manager module: `programs.tdl` installs the CLI, and
-# `programs.tdl.vscode` hands the extension to every VS Code-based editor
-# that is enabled. Both packages are read out of `pkgs` rather than out of
-# the flake that exports this file, so the module evaluates anywhere the
-# overlay has been added and `nixpkgs.overlays` stays the one thing a
-# consumer wires up.
+# `programs.tdl.vscode` hands the extension to every enabled VS Code-based
+# editor.
 {
   config,
   lib,
@@ -77,9 +74,6 @@ in
         { home.packages = [ cfg.package ]; }
 
         (lib.mkIf cfg.vscode.enable {
-          # An extension handed to a disabled editor is dropped without a
-          # word, so say so rather than leaving the user to find it in the
-          # editor.
           assertions = [
             {
               assertion = cfg.vscode.editors != [ ];

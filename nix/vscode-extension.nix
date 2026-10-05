@@ -1,7 +1,3 @@
-# The VS Code extension, installed through nix rather than the Marketplace:
-# programs.tdl.vscode.enable in the home-manager module puts it in a profile,
-# and it can be added to vscode-with-extensions or to home-manager's
-# programs.vscode.profiles.<name>.extensions by hand.
 {
   lib,
   buildNpmPackage,
@@ -12,11 +8,6 @@
   version,
 }:
 let
-  # The language client bundled into one file, with what the extension
-  # ships beside it. importNpmLock fetches each package by the integrity
-  # hash package-lock.json already records, so a dependency update needs no
-  # hash edited here. node_modules and dist are gitignored, so a flake's
-  # copy of the directory never carries a local install.
   bundle = buildNpmPackage {
     pname = "vscode-tdl-bundle";
     inherit version;
@@ -27,9 +18,6 @@ let
     npmConfigHook = importNpmLock.npmConfigHook;
     npmBuildScript = "bundle";
 
-    # The typecheck runs here, so `nix flake check` holds the extension to
-    # it. Biome is not run: npm's binary is linked against a loader the
-    # sandbox does not have, and treefmt already runs nixpkgs' biome check.
     doCheck = true;
     checkPhase = ''
       runHook preCheck
@@ -39,14 +27,6 @@ let
 
     nativeBuildInputs = [ jq ];
 
-    # The server path defaults to the tdl this was built against, which is
-    # how nixpkgs wires an extension to the binary it needs: the editor runs
-    # what nix installed, and settings.json is left alone. A `.vsix` built by
-    # editors/vscode/install.sh keeps the `tdl` a development install wants.
-    #
-    # The first jq holds the rewrite to a setting that still exists. It reads
-    # the source, because the assignment creates any path it is given: a
-    # renamed setting would otherwise ship unpatched beside a stray one.
     installPhase = ''
       runHook preInstall
       mkdir -p $out

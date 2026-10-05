@@ -1,4 +1,17 @@
-GO_SRC ?= $(shell find . -name '*.go')
+PROTO_GO  := ir/ir.pb.go plugin/plugin.pb.go
+PROTO_SRC ?= $(shell git ls-files proto)
+GO_SRC    ?= $(filter-out ${PROTO_GO},$(shell git ls-files '*.go'))
+TEST_DATA ?= $(shell git ls-files testdata prelude)
+
+# The non-test Go files in the given package directories.
+gosrc = $(filter-out %_test.go,$(wildcard $(addsuffix /*.go,$(1))))
+
+VSCODE      := editors/vscode
+TMLANGUAGE  := ${VSCODE}/syntaxes/tdl.tmLanguage.json
+TS_GRAMMAR  := tree-sitter/grammar.js
+
+.PHONY: build test cover play generate treesitter textmate vscode-install \
+	vscode-check test-treesitter check-treesitter update lint check fmt tidy
 
 build:
 	nix build .#
@@ -9,56 +22,41 @@ test:
 cover: cover.profile
 	go tool cover -func=$<
 
-cover.profile: ${GO_SRC}
+cover.profile: ${GO_SRC} ${PROTO_GO} ${TEST_DATA}
 	go test -race -coverprofile=$@ ./...
 
-# Watch a TDL file and re-render it on every save.
-# Override the target: make play FILE=examples/nested.tdl VIEWS=all
 FILE ?= examples/nested.tdl
 VIEWS ?= fmt,ast,stats
 play:
 	go run ./cmd/tdl play ${FILE} --views ${VIEWS}
 
-# Regenerate ir/ir.pb.go from proto/. The generated file is committed, so
-# this only runs when the schema changes.
-generate:
+generate: ${PROTO_GO}
+
+${PROTO_GO} &: ${PROTO_SRC} buf.gen.yaml buf.yaml
 	buf generate
 
-# Regenerate tree-sitter/grammar.js from docs/grammar.ebnf and the parser
-# from grammar.js. Both are committed, so this only runs when the grammar
-# changes; read the diff rather than trusting it.
-treesitter:
-	go run ./tools/treesitter
-	cd tree-sitter && tree-sitter generate
+treesitter: ${TS_GRAMMAR}
+	${MAKE} -C tree-sitter generate
 
-# Regenerate the VS Code TextMate grammar from docs/grammar.ebnf. Committed
-# like grammar.js, so this only runs when the grammar or the lexer changes.
-textmate:
+${TS_GRAMMAR}: docs/grammar.ebnf $(call gosrc,lex internal/ebnf internal/treesitter tools/treesitter)
+	go run ./tools/treesitter
+
+textmate: ${TMLANGUAGE}
+
+${TMLANGUAGE}: docs/grammar.ebnf $(call gosrc,lex internal/ebnf internal/textmate tools/textmate)
 	go run ./tools/textmate
 
-# Package editors/vscode and install it into a running VS Code. The
-# grammar it carries is whatever `make textmate` last wrote.
-vscode-install:
-	./editors/vscode/install.sh
+vscode-install: ${TMLANGUAGE}
+	${MAKE} -C ${VSCODE} install
 
-# Typecheck and lint the extension's TypeScript with the versions its lock
-# file pins. `nix fmt` formats it; this is what an editor reports.
 vscode-check:
-	cd editors/vscode && npm ci --no-audit --no-fund && npm run typecheck && npm run check
+	${MAKE} -C ${VSCODE} check
 
-# Drive the extension in a headless editor against a freshly built server.
-# Run it in `nix develop .#vscode`, which sets VS_CODE and has xvfb-run.
-vscode-test:
-	go build -o bin/tdl ./cmd/tdl
-	cd editors/vscode && npm ci --no-audit --no-fund && TDL=${CURDIR}/bin/tdl xvfb-run -a npm test
-
-# The conformance corpus, run by tree-sitter rather than by Go.
 test-treesitter:
-	./tree-sitter/corpus.sh
+	${MAKE} -C tree-sitter test
 
-# What CI holds the derived parser to: regenerate, fail on a diff, then run
-# both corpora through it.
-check-treesitter: treesitter
+check-treesitter:
+	${MAKE} -B treesitter
 	git diff --exit-code -- tree-sitter
 	${MAKE} test-treesitter
 

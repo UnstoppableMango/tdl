@@ -1,9 +1,7 @@
 # The flake-parts module a project *using* TDL imports into its own flake.
 # `hm-module.nix` installs the language for a person; this one wires it into a
-# repository: the CLI in a devShell, and a check per property a model should
-# hold. The package is read out of `pkgs` for the same reason it is there, so
-# the overlay stays the one thing a consumer adds.
-_: {
+# repository.
+{
   perSystem =
     {
       config,
