@@ -294,7 +294,7 @@ func TestVariantNameDirective(t *testing.T) {
 	})
 
 	m.Own(structure("Check", nil,
-		constrained(irtest.Field("health", m.Named("Health")), where("oneOf", 3, irtest.Name("ok")))))
+		constrained(irtest.Field("health", m.Named("Health")), where("oneOf", 3, irtest.Variant("ok", 0)))))
 
 	got := files(t, generate(t, m))
 	contains(t, got["health.go"],
@@ -370,7 +370,7 @@ func TestValidationRuns(t *testing.T) {
 		constrained(irtest.Field("quantity", m.Named("int")), where("min", 9, intArg("1")), where("max", 9, intArg("100"))),
 		constrained(irtest.Field("size", m.Named("string")), where("oneOf", 10, irtest.Text("S"), irtest.Text("M"), irtest.Text("L"))),
 		constrained(irtest.Field("tags", m.Named("List", m.Named("string"))), where("unique", 11)),
-		constrained(irtest.Field("status", m.Named("Status")), where("oneOf", 12, irtest.Name("Active"), irtest.Name("Pending"))),
+		constrained(irtest.Field("status", m.Named("Status")), where("oneOf", 12, irtest.Variant("Active", 0), irtest.Variant("Pending", 1))),
 		constrained(irtest.Field("note", m.Named("Option", m.Named("string"))), where("length", 13, rangeArg(bound(1), bound(5)))),
 		irtest.Field("contact", m.Named("Email")),
 	))
@@ -621,7 +621,7 @@ func TestOneOf(t *testing.T) {
 		constrained(irtest.Field("level", m.Named("int")), where("oneOf", 4, intArg("1"), intArg("2"))),
 		constrained(irtest.Field("ratio", m.Named("int")), where("oneOf", 5, floatArg("0.5"))),
 		constrained(irtest.Field("flag", m.Named("bool")), where("oneOf", 6, boolArg("true"))),
-		constrained(irtest.Field("status", m.Named("Status")), where("oneOf", 7, irtest.Name("Active"))),
+		constrained(irtest.Field("status", m.Named("Status")), where("oneOf", 7, irtest.Variant("Active", 0))),
 	))
 
 	resp := generate(t, m)
@@ -653,7 +653,6 @@ func TestOneOfItCannotCheckIsAWarning(t *testing.T) {
 		typ  string
 		arg  *ir.Literal
 	}{
-		{"a variant the enum lacks", "Status", irtest.Name("Closed")},
 		{"a quoted variant", "Status", irtest.Text("Active")},
 		{"a list", "string", &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_LIST, Items: []*ir.Literal{irtest.Text("a")}}},
 		{"an integer for a string", "string", intArg("1")},

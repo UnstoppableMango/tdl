@@ -605,17 +605,12 @@ func (g *generator) oneOfCond(expr string, v checked, a *ir.Literal) (string, er
 		return expr + " != " + a.GetText(), nil
 	case v.shape == shapeEnum && kind == ir.LiteralKind_LITERAL_KIND_NAME:
 		enumGo := g.declName(v.enum)
-		for _, variant := range v.enum.GetEnumeration().GetVariants() {
-			if variant.GetMeta().GetName() != a.GetText() {
-				continue
-			}
-			lhs := expr
-			if v.named {
-				lhs = enumGo + "(" + expr + ")"
-			}
-			return lhs + " != " + g.variantName(enumGo, variant), nil
+		variant := v.enum.GetEnumeration().GetVariants()[a.GetVariant().GetIndex()]
+		lhs := expr
+		if v.named {
+			lhs = enumGo + "(" + expr + ")"
 		}
-		return "", fmt.Errorf("%s has no variant %s", v.enum.GetMeta().GetName(), a.GetText())
+		return lhs + " != " + g.variantName(enumGo, variant), nil
 	case v.shape == shapeEnum && kind == ir.LiteralKind_LITERAL_KIND_STRING:
 		return "", errors.New("name the enum's variants rather than quoting them")
 	}
