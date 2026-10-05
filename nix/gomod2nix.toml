@@ -77,6 +77,10 @@ schema = 3
     version = 'v1.0.1'
     hash = 'sha256-CtRJbhTw/TlvSxoYzmU5zMh5JGpoq1O4GSqX2wzL/IQ='
 
+  [mod.'go.yaml.in/yaml/v3']
+    version = 'v3.0.5'
+    hash = 'sha256-ygho+GU5kE7vPMx+dZYyNfCaeMjNxj66XmrcVf3afFE='
+
   [mod.'golang.org/x/exp']
     version = 'v0.0.0-20260908205506-85c1c2202aba'
     hash = 'sha256-g/gNDzulP2hxBtZf3w2cASzcWbUAI6r0Q9zy5Q/wrRQ='
