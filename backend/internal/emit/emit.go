@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -194,11 +195,12 @@ func Fielded(e *ir.Enum) bool {
 	return false
 }
 
-// Doc returns a node's documentation, one trimmed line per entry.
+// Doc returns a node's documentation, one line per entry, with trailing
+// whitespace removed and indentation kept.
 func Doc(m *ir.Meta) []string {
 	lines := make([]string, len(m.GetDoc()))
 	for i, line := range m.GetDoc() {
-		lines[i] = trim(line)
+		lines[i] = strings.TrimRight(line, " \t")
 	}
 	return lines
 }
