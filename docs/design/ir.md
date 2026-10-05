@@ -1,16 +1,15 @@
 # The ir package
 
 Design document.
-Nothing here is implemented; the pipeline currently stops at `ast`.
+[ir-plan.md](ir-plan.md) tracks the implementation.
 
 `ir` is the resolved semantic model: what `ast` becomes after names are resolved, sugar is lowered, and instances are checked.
-It is the only thing a backend sees.
-Two consumers share it, in-process backends importing the Go package, and plugin executables reading a protobuf off stdin.
+It is the only thing a backend sees, whether it imports the Go package in process or reads a protobuf from stdin as a plugin.
 
 ## What resolution does
 
 `ast` mirrors source one-to-one and leaves every name unresolved.
-Lowering to `ir` does four things and no more:
+Lowering to `ir` does four things:
 
 1. Resolves every name to a declaration, across imports.
 1. Lowers collection and optionality sugar to prelude types.
@@ -28,12 +27,12 @@ type Model struct {
     Decls []Decl // every declaration, in source order
     Types []Type // type references, interned
     Units []Unit // quantities, interned on their reduced dimensions
+    Externs []Extern // declarations in dependencies, see Scope
 }
 ```
 
-Three tables, three ID spaces.
-One declaration table rather than one per kind, because an index has to say which table it indexes and a single space needs no discriminator.
-The by-nature split lives inside `Decl`, whose node is a `oneof`.
+Each table is its own ID space.
+There is one declaration table rather than one per kind, so an index needs no discriminator; `Decl`'s node is a `oneof`.
 
 Every reference is an `ID`, an integer index paired with the node's fully qualified name:
 
@@ -44,60 +43,41 @@ type ID struct {
 }
 ```
 
-An index of `-1` means the name did not resolve.
-The name is kept regardless, so a diagnostic can say what was written.
-
-The index is what lookups use.
-The name is what appears in diagnostics, in ir dumps, and in target paths, and it is stable across edits in a way the index is not.
-Carrying both means a dump is readable and a hot loop is still an array index.
+An index of `-1` means the name did not resolve, and the name is kept so a diagnostic can say what was written.
+Lookups use the index; diagnostics, dumps, and target paths use the name, which is stable across edits where the index is not.
 
 Flat tables serialize with no cycle handling and survive the recursion the spec permits in entities and values.
 
 ## Units
 
-A third table, and the reason `Type` has a fourth alternative to `ctor`.
-
-A unit is a quantity reduced to base dimensions: a list of base units and their exponents, sorted, with cancelled dimensions dropped.
+A unit is a quantity reduced to base dimensions: a sorted list of base units and their exponents, with cancelled dimensions dropped.
 A base unit is the dimension of itself, and a derived one reduces to the bases it was written over.
 
-Reduction is what makes the table worth having.
-The spec says `decimal<N>` and `decimal<kg*m/s^2>` are the same type, so a unit is interned on its dimensions and nothing else, and every spelling of one quantity reaches one entry.
-Interning is already what makes an ID comparison a type comparison, and this is that rule applied one level down.
+The spec says `decimal<N>` and `decimal<kg*m/s^2>` are the same type, so a unit is interned on its dimensions alone, and every spelling of one quantity reaches one entry.
 
-A unit's declaration and what it measures are separate nodes, the way a newtype is separate from its base.
-`UnitDef` is the name the source gave; `Unit` is the quantity, and two declarations of the same quantity share one.
-The unit records the first spelling that reached it, so a dump can print `kg/m/s^2 (N/m^2)` rather than making a reader reduce it, but the spelling takes no part in identity.
+`UnitDef` is the declaration the source wrote; `Unit` is the quantity, and two declarations of the same quantity share one.
+The unit records the first spelling that reached it, so a dump can print `kg/m/s^2 (N/m^2)`, but the spelling takes no part in identity.
 
-A unit argument is an entry in the type table with `unit` set where a named type sets `ctor`, so `Type.Args` needed no change: a unit argument is an ordinary argument.
-
-`<...>` is one syntactic form covering type and unit arguments, and the parser does not tell them apart.
-Lowering does, against the declaration each name resolves to.
+A unit argument is an entry in the type table with `unit` set where a named type sets `ctor`, so it is an ordinary entry in `Type.Args`.
+The parser does not tell type and unit arguments apart inside `<...>`; lowering does, against the declaration each name resolves to.
 
 ### Declaration shapes
 
-Declarations split by nature rather than collapsing into one tagged message or fragmenting into eight:
+Declarations split by nature:
 
-- `Struct` covers a `type` with a body and a `mixin`, which share a shape and differ in meaning. A `StructKind` records which: `MIXIN` for a mixin, `ENTITY` for a type satisfying `std.Entity`, and `VALUE` for the rest.
+- `Struct` covers a `type` with a body and a `mixin`. A `StructKind` records which: `MIXIN` for a mixin, `ENTITY` for a type satisfying `std.Entity`, and `VALUE` for the rest.
 - `Class` shares that shape and adds what only a contract has.
-- `Enum` is its own message: variants, each with optional payload fields and the directives a target block attached to it.
+- `Enum` holds variants, each with optional payload fields and the directives a target block attached to it.
 - `Alias`, `Newtype`, and `Primitive` are their own, being neither structured nor enumerated.
-
-The shared source fidelity, name, doc, position, deprecation, and declaration order, lives in a `Meta` every node carries.
-
-A backend iterating "everything with fields" iterates one shape.
-A backend that only handles enums never touches a field that doesn't apply to enums.
 
 ### Source fidelity
 
-Every node carries its doc comment, its source position, its deprecation state and message, and its source declaration order.
-Doc comments and deprecation are in the spec's contract with backends.
-Positions let a backend's own errors point into the `.tdl` file.
-Order makes generated output stable and diffs reviewable.
+Every node carries a `Meta` with its name, doc comment, source position, deprecation state and message, and declaration order.
+Positions let a backend's errors point into the `.tdl` file, and order keeps generated output stable.
 
 ## Sugar
 
-Collection and optionality sugar is lowered.
-`[T]` becomes `List<T>`, `{K -> V}` becomes `Map<K, V>`, `T?` becomes `Option<T>`, `T | null` becomes `Nullable<T>`.
+`[T]` becomes `List<T>`, `{K -> V}` becomes `Map<K, V>`, `T?` becomes `Option<T>`, and `T | null` becomes `Nullable<T>`.
 
 The syntactic form is recorded alongside:
 
@@ -109,51 +89,40 @@ type Type struct {
 }
 ```
 
-The written form is part of a type's identity for interning.
-`[T]` and `List<T>` mean the same type and stay separate entries, because folding them would throw the distinction away the moment a model used both.
+A type parameter, an extern, or a unit is set instead of `Ctor`.
 
-A backend that treats all optionality identically ignores `Wrote`.
-A Go backend that wants `*T` for `T?` and a wrapper for an explicit `Option<T>` reads it.
-The lowering is authoritative; the syntactic form is advisory and never changes what a type *is*.
+The written form is part of a type's interning key, so `[T]` and `List<T>` are separate entries for the same type.
+The lowering is authoritative and the form is advisory: a backend that distinguishes spellings reads `Wrote`, and every backend here ignores it.
 
 ## Parameters and classes
 
-Type parameters survive.
-`Box<T>` reaches a backend as `Box<T>` with `T`'s kind and constraints attached, not as one entry per instantiation found in the model.
-A Go or TypeScript backend emits native generics.
-A SQL backend monomorphizes on its own terms, which are not the same terms another backend would pick.
+Type parameters survive: `Box<T>` reaches a backend with `T`'s kind and constraints attached, not as one entry per instantiation.
+A language with generics emits them natively, and a backend that monomorphizes does so on its own terms.
 
-Classes, mixins, and declared instances are all present as written.
-Alongside them, `ir` ships the computed satisfaction index:
+Classes, mixins, and declared instances are all present as written, alongside the computed satisfaction index:
 
 ```go
 func (m *Model) Satisfying(class ID) []ID
 ```
 
-A plugin that only needs "which types are `Auditable`" for a class-scoped target directive reads the index and never implements instance resolution.
-A backend doing something more involved has the declarations.
+A backend that only needs "which types are `Auditable`" reads the index and never implements instance resolution.
 
-The index has two halves, because the question has two shapes.
+The index has two halves:
 
-`Satisfying` answers about declarations, from ground facts: a declaration that says it conforms, and an instance with concrete arguments, closed over the classes a class requires.
+- `Satisfying` answers about declarations, from ground facts: a declaration that says it conforms, and an instance with concrete arguments, closed over the classes a class requires.
+- `SatisfyingTypes` answers about instantiated types, from the conditional instance search. Given `instance <T> Auditable<Page<T>> requires Auditable<T>`, `Page` satisfies nothing on its own and `Page<Order>` is a type rather than a declaration. The search matches an instance head against a type and discharges the conditions, and the spec's two rules on an instance are checked where it is written so the search terminates.
 
-`SatisfyingTypes` answers about instantiated types, from the conditional instance search.
-A declaration cannot stand in for these: given `instance <T> Auditable<Page<T>> requires Auditable<T>`, `Page` satisfies nothing on its own and `Page<Order>` is a type rather than a declaration.
-The search matches an instance head against a type and discharges the conditions under the binding, and the spec's two rules on an instance are checked where it is written so the search terminates.
-
-Neither half lists a foreign type: an entry names something by ID, and a dependency's declarations are not in this table.
+Neither half lists a dependency's declaration, since those are not in the declaration table.
 
 ## Aliases
 
-Aliases are preserved, and every reference to one carries the resolved underlying type too.
-
-A Go backend emits `type Money decimal` from the alias.
-A JSON Schema backend ignores the alias and uses the expansion.
-Neither has to walk a chain, and constraint accumulation through newtype chains is resolved before a backend sees it.
+An alias is preserved as a declaration, and a reference to it names the alias; the alias's `target` is its expansion.
+`emit.Resolve` expands aliases for a backend that wants the underlying type.
+Constraints accumulated through a newtype chain are resolved before a backend sees them, in `Newtype.value_constraints`.
 
 ## Constraints
 
-Constraints are name plus literal arguments:
+Constraints are a name plus literal arguments:
 
 ```go
 type Constraint struct {
@@ -163,60 +132,45 @@ type Constraint struct {
 }
 ```
 
-Not a closed set of typed variants.
-The spec commits to constraints being syntax that backends interpret, and a closed enum makes every new constraint a change to `ir`, a change to the protobuf, and a version bump for every plugin.
+The set is open: the spec treats constraints as syntax that backends interpret, and a closed enum would make every new constraint a change to `ir`, the protobuf, and every plugin.
 
-The standard constraints are specified: `min`, `max`, `length`, `matches`, `oneOf`, `unique`, with their argument shapes.
-A backend can rely on those.
-The compiler checks arity and literal kind against the spec and passes everything through.
+The standard constraints, `min`, `max`, `length`, `matches`, `oneOf`, and `unique`, are specified with their argument shapes.
+The compiler checks their arity and literal kinds and passes every other name through.
 
 ## Scope
 
 A backend receives one package.
 
 Declarations from imported packages are not inlined.
-A reference into a dependency is an `ID` into an `externs` table, one entry per foreign declaration this model mentions, carrying the declaring package and the name.
-A backend either resolves that through the model's import table or treats it as foreign and maps it with a `foreign` directive.
-A target path naming a declaration that a `_` import merged in resolves to its `Extern` entry, and the winning directives are recorded in that entry's `directives` field.
-Such a path reaches the extern and nothing beneath it, since its fields are declared in the dependency.
+A reference into a dependency is an `ID` into an `externs` table, one entry per foreign declaration the model mentions, carrying the declaring package and the name.
+A backend resolves it through the model's import table or maps it with a `foreign` directive.
+A target path naming a declaration a `_` import merged in resolves to its `Extern` entry, whose `directives` field holds the winning directives; the path reaches nothing beneath it.
 
-Whether the dependency actually declares that name is not checked.
-Doing so would mean resolving every reachable package to lower one file, and the reference carries enough for a backend to resolve or reject it.
+Whether the dependency declares that name is not checked, since that would mean resolving every reachable package to lower one file.
 
-This is what makes separate compilation possible, and it matches what generated code usually wants: an import, not a copy.
+This allows separate compilation, and generated code usually wants an import rather than a copy.
 
 ## Targets
 
 Resolved directives attach to the nodes they apply to.
 
-By the time a backend runs, the specificity ladder has been applied, class-scoped directives have been expanded across every satisfying type, and entries tied at one specificity have been checked against the directives the backend declares repeatable: a tie on any other directive is an error before the backend runs, and a repeatable one reaches it as every entry in source order.
+By the time a backend runs, the specificity ladder has been applied and class-scoped directives have been expanded across every satisfying declaration.
+Entries tied at one specificity are checked against the directives the backend declares repeatable: a tie on any other directive is an error before the backend runs, and a repeatable one reaches it as every entry in source order.
 
 An `Import` carries its dependency's block-scope directives: the bare directives at the top level of each of the dependency's target blocks for its own package, each naming the block's target.
-A backend generating a reference into the dependency reads from them where the dependency says its declarations are generated, such as a protobuf `file` or `package`.
+A backend generating a reference into the dependency reads from them where the dependency's declarations are generated, such as a protobuf `file` or `package`.
 They are read from the dependency's parse tree, so none of the dependency is lowered.
+Merging a dependency's declaration-level directives is not done; see [ir-plan.md](ir-plan.md) phase 8b.
 
-Merging a dependency's declaration-level directives is not done: it needs the dependency lowered, and nothing else does. See ir-plan.md phase 8b.
+A `Decl`, a `Field`, an enum variant, and an `Extern` each carry their directives, so a backend never does a lookup or a precedence computation.
 
-An `Entity` carries its directives; so does each `Field`, and so does each `Extern`.
-A backend reads one field on the node in front of it, and never does a lookup or a precedence computation.
-
-The spec's "the model is pure" commitment is about the source language, where directives may not appear in a declaration.
-It is not a claim about the compiler's internal representation, where joining them back together is the whole job.
+The spec's "the model is pure" commitment is about the source language, where directives may not appear in a declaration; joining them back together is the compiler's job.
 
 ## Wire format
 
-The schema is protobuf, in `proto/`.
-The Go types in `ir/` are protoc output, with hand-written methods and index construction in the same package.
-
-Protobuf rather than JSON because plugins are separately compiled programs in unknown languages, on their own release cadence, and field-number compatibility is a real guarantee rather than a convention.
-
-### Handshake
-
-Before the model is sent, `tdl` writes a version message and waits for the plugin to reply.
-The plugin either accepts or refuses with a message naming the version it wanted.
-
-A plugin compiled against an older `ir` fails with a sentence a person can act on, rather than silently ignoring the fields it doesn't recognize and emitting subtly wrong code.
-Field-number discipline still applies; the handshake is for the cases discipline cannot cover, like a field that changed meaning.
+The schema is protobuf, in `proto/`, and the Go types in `ir/` are protoc output with hand-written methods beside them.
+Plugins are separately compiled programs in unknown languages, so field-number compatibility is a real guarantee where a JSON convention would not be.
+[plugins.md](plugins.md) describes the handshake that refuses a model a plugin cannot read.
 
 ## Placement
 
@@ -226,9 +180,4 @@ ir/        # generated Go plus helpers, public API
 ```
 
 Third parties write in-process backends against `ir`, so it is a supported Go API.
-The lowering from `ast` is not: it lives elsewhere and changes freely.
-
-## Deferred
-
-Nothing.
-Units were the last entry here; [the units section](#units) says what landed.
+The lowering from `ast` lives in `internal/sema` and changes freely.
