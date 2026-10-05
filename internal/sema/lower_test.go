@@ -1452,6 +1452,41 @@ func TestBadNameConstraintArgs(t *testing.T) {
 	}
 }
 
+// An alias is transparent and a newtype narrows its base, so a name written
+// against either denotes a variant of the enum underneath, the same enum a
+// backend reads through them.
+func TestNamesThroughAliasAndNewtype(t *testing.T) {
+	model := lower(t, `
+enum Status { Draft Placed }
+alias S = Status
+type Code: Status where { oneOf(Placed) }
+type Holder {
+  a: S where { oneOf(Placed) } = Placed
+  c: Code? where { oneOf(Placed) } = Placed
+}
+`)
+
+	var lits []*ir.Literal
+	code, _, _ := model.FindDecl("Code")
+	lits = append(lits, code.GetNewtype().GetValueConstraints()[0].GetArgs()...)
+	holder, _, _ := model.FindDecl("Holder")
+	for _, f := range holder.Fields() {
+		lits = append(lits, f.GetDefaultValue(), f.GetConstraints()[0].GetArgs()[0])
+	}
+	for _, lit := range lits {
+		if got := lit.GetVariant(); got.GetName() != "Placed" || got.GetIndex() != 1 {
+			t.Errorf("%s at %v resolved to %+v, want variant 1 Placed", lit.GetText(), lit.GetPosition(), got)
+		}
+	}
+}
+
+func TestBadNameOnNewtype(t *testing.T) {
+	diags := lowerDiags(t, "enum Status { Draft }\ntype Code: Status where { oneOf(Missing) }\ntype Narrow: Code where { oneOf(Draft) }")
+	if got := strings.Count(diags.Error(), "Status has no variant Missing"); got != 1 {
+		t.Errorf("want the bad name reported once, got %d: %v", got, diags)
+	}
+}
+
 func TestLiteralDefaults(t *testing.T) {
 	model := lower(t, `type Holder { n: int = 3 s: string = "x" b: bool = true xs: [string] = [] }`)
 

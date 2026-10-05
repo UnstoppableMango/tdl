@@ -1959,7 +1959,8 @@ type Literal struct {
 	Range    *Range                 `protobuf:"bytes,4,opt,name=range" json:"range,omitempty"` // set for RANGE
 	Position *Position              `protobuf:"bytes,5,opt,name=position" json:"position,omitempty"`
 	// variant names the enum variant a NAME literal resolves to, checked
-	// against the field's type. Unset when it did not resolve.
+	// against the type it constrains, through an alias, a newtype, and
+	// optionality. Unset when it did not resolve.
 	Variant       *ID `protobuf:"bytes,6,opt,name=variant" json:"variant,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
