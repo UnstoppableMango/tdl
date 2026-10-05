@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
-	"path/filepath"
+	"slices"
 
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -47,26 +48,22 @@ func Verify(out string, files []*plugin.File) ([]Stale, error) {
 	return append(stale, orphans...), nil
 }
 
-// orphaned lists files this generation would not write, only in a
-// directory carrying the marker, since otherwise a file may not be tdl's.
+// orphaned lists the files the marker lists that this generation would not
+// write and that are still there. An unlisted file is not tdl's.
 func orphaned(out string, expected map[string]bool) ([]Stale, error) {
-	if !Owned(out) {
-		return nil, nil
+	owned, err := Owned(out)
+	if err != nil {
+		return nil, err
 	}
 
 	var stale []Stale
-	err := filepath.WalkDir(out, func(path string, d os.DirEntry, err error) error {
-		switch {
-		case err != nil:
-			return err
-		case d.IsDir(), filepath.Base(path) == MarkerName, expected[path]:
-			return nil
+	for _, path := range slices.Sorted(maps.Keys(owned)) {
+		if expected[path] {
+			continue
 		}
-		stale = append(stale, Stale{Path: path, Reason: "no longer generated"})
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("walking %s: %w", out, err)
+		if _, err := os.Stat(path); err == nil {
+			stale = append(stale, Stale{Path: path, Reason: "no longer generated"})
+		}
 	}
 	return stale, nil
 }

@@ -2,6 +2,7 @@ package gen
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"slices"
@@ -109,14 +110,10 @@ func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.M
 		}
 	}
 
-	// Mark first, so a partly written directory is still recognisable.
-	if err := Mark(target.Out); err != nil {
-		return result, fmt.Errorf("target %s: %w", target.Name, err)
-	}
-
+	// Written files are listed even when writing fails part way.
 	written, err := Write(target.Out, resp.GetFiles())
 	result.Written = written
-	if err != nil {
+	if err := errors.Join(err, Mark(target.Out, written)); err != nil {
 		return result, fmt.Errorf("target %s: %w", target.Name, err)
 	}
 	return result, nil

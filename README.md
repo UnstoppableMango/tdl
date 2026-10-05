@@ -161,7 +161,7 @@ tdl fmt ./types.tdl      # print canonical formatting; -w writes in place
                          # --check lists what is not canonical and exits non-zero
 tdl ast ./types.tdl      # print the parse tree
 tdl gen ./types.tdl      # run every target block; --target narrows, -o overrides
-                         # --verify checks, --clean empties first, --watch reruns
+                         # --verify checks, --clean removes old output, --watch reruns
 tdl ir ./types.tdl       # print the resolved model; --format json for the plugin view
                          # --prelude lowers against a replacement prelude
 tdl tokens ./types.tdl   # print the token stream

@@ -10,14 +10,21 @@ import (
 )
 
 // Write puts a response's files under out. A path is relative to out; an
-// absolute one or one climbing out with ".." is refused before anything
-// is written.
+// absolute one, one climbing out with "..", or a file already there that
+// the marker does not list is refused before anything is written.
 func Write(out string, files []*plugin.File) ([]string, error) {
+	owned, err := Owned(out)
+	if err != nil {
+		return nil, err
+	}
 	cleaned := make([]string, len(files))
 	for i, f := range files {
 		path, err := resolve(out, f.GetPath())
 		if err != nil {
 			return nil, err
+		}
+		if _, err := os.Stat(path); err == nil && !owned[path] {
+			return nil, fmt.Errorf("%s: tdl did not write this file, so it will not overwrite it", path)
 		}
 		cleaned[i] = path
 	}
