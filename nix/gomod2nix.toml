@@ -58,8 +58,8 @@ schema = 3
     hash = 'sha256-QsYonFnbD/zaxUYAJMzDNI3ju0TjcBJrh8/DBhaJfbM='
 
   [mod.'github.com/vektah/gqlparser/v2']
-    version = 'v2.5.58'
-    hash = 'sha256-48MUGiyex9u4IuOniZptPSMJ+OwETLUGdpjWzvneRnQ='
+    version = 'v2.5.60'
+    hash = 'sha256-kki+oeLmChfbCy0nwK8PHiQMyUfNRaCvZISbxZMWP0U='
 
   [mod.'go.lsp.dev/jsonrpc2']
     version = 'v1.0.1'
