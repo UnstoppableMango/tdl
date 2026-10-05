@@ -84,7 +84,7 @@ func (g *generator) checkUnits(d *ir.Decl) []checkUnit {
 		for i, v := range d.GetEnumeration().GetVariants() {
 			out = append(out, checkUnit{
 				variant: i,
-				goName:  goName + exported(v.GetMeta().GetName()),
+				goName:  g.variantName(goName, v),
 				root:    root + "." + v.GetMeta().GetName(),
 				fields:  v.GetFields(),
 			})
@@ -613,7 +613,7 @@ func (g *generator) oneOfCond(expr string, v checked, a *ir.Literal) (string, er
 			if v.named {
 				lhs = enumGo + "(" + expr + ")"
 			}
-			return lhs + " != " + enumGo + exported(a.GetText()), nil
+			return lhs + " != " + g.variantName(enumGo, variant), nil
 		}
 		return "", fmt.Errorf("%s has no variant %s", v.enum.GetMeta().GetName(), a.GetText())
 	case v.shape == shapeEnum && kind == ir.LiteralKind_LITERAL_KIND_STRING:
