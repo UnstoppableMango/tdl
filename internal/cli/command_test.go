@@ -91,6 +91,23 @@ func TestCheckIsSilentOnSuccess(t *testing.T) {
 	}
 }
 
+// check lowers what parses, so a file whose names do not resolve fails
+// even though its syntax is fine.
+func TestCheckReportsLoweringDiagnostics(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "dup.tdl")
+	if err := os.WriteFile(path, []byte("package t\n\nprimitive foo\nunit foo\n"), 0o644); err != nil {
+		t.Fatalf("writing the fixture: %v", err)
+	}
+
+	_, errOut, err := run(t, newCheckCmd(), path)
+	if err == nil {
+		t.Fatal("expected an error")
+	}
+	if !strings.Contains(errOut, "foo is declared twice") {
+		t.Errorf("stderr does not name the duplicate:\n%s", errOut)
+	}
+}
+
 // A broken file does not stop the rest, and the error only counts failures.
 func TestCommandsReportEveryBadFile(t *testing.T) {
 	good, bad := twoFiles(t)

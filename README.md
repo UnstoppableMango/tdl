@@ -128,7 +128,7 @@ The home-manager module (`homeModules.default`, also `homeManagerModules.default
 ### In a project
 
 `flakeModules.default` is a [flake-parts](https://flake.parts) module for a project that contains `.tdl` files.
-It adds `devShells.tdl` (pull it into your shell with `inputsFrom`) and checks that each model parses, is canonically formatted, and, for `gen.files`, that generated output on disk is current.
+It adds `devShells.tdl` (pull it into your shell with `inputsFrom`) and checks that each model parses and lowers, is canonically formatted, and, for `gen.files`, that generated output on disk is current.
 `files` are strings relative to `src`, so `include` paths keep resolving.
 
 ```nix
@@ -156,7 +156,7 @@ Set `tdl.fmt.enable = false` to skip the formatting check.
 ## Usage
 
 ```shell
-tdl check ./types.tdl    # parse and report syntax errors
+tdl check ./types.tdl    # parse and lower, and report every problem
 tdl fmt ./types.tdl      # print canonical formatting; -w writes in place
                          # --check lists what is not canonical and exits non-zero
 tdl ast ./types.tdl      # print the parse tree
