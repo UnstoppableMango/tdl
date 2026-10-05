@@ -38,12 +38,8 @@ func check(t *testing.T, resp *plugin.Response) string {
 	return string(f.GetContent())
 }
 
-// typecheck runs `tsc --noEmit --strict` over a file.
-//
-// TypeScript has no Go implementation, so without tsc these tests check
-// declarations by substring alone. The devShell puts it on PATH, and the
-// nix check gen-typescript runs it over the smoke fixture whether or not
-// anyone ran these tests with it.
+// typecheck runs `tsc --noEmit --strict` over a file. Without tsc these
+// tests check substrings only; checks.gen-typescript runs it regardless.
 func typecheck(t *testing.T, f *plugin.File) {
 	t.Helper()
 	tsc, err := exec.LookPath("tsc")
@@ -164,7 +160,7 @@ func TestInterfaces(t *testing.T) {
 	)
 }
 
-// Every fixed-width numeric is a JSON number, as int is.
+// Every fixed-width numeric is a number.
 func TestFixedWidthNumerics(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(value("Sizes",
@@ -201,8 +197,8 @@ func TestEnums(t *testing.T) {
 	)
 }
 
-// The discriminant is `kind` unless the target block says otherwise, and
-// an enum's own directive beats the block's.
+// The discriminant defaults to `kind`, the target block overrides it, and
+// an enum's directive overrides the block's.
 func TestDiscriminant(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(enum("Payment", variant("Card", irtest.Field("last4", b.Named("string"))), variant("Cash")))
@@ -348,8 +344,8 @@ func TestDocsAndDeprecation(t *testing.T) {
 	)
 }
 
-// Every case in the conformance corpus, and the smoke fixture, generates
-// declarations tsc accepts, whatever this backend warned about.
+// Every conformance case and the smoke fixture generate declarations tsc
+// accepts.
 func TestConformance(t *testing.T) {
 	corpus := filepath.Join("..", "..", "testdata", "conformance")
 	dirs := []string{filepath.Join("..", "..", "testdata", "gen", "smoke")}

@@ -24,8 +24,8 @@ func (s sources) Load(_, path string) (string, string, error) {
 	return path, src, nil
 }
 
-// lower parses and lowers src as name, resolving its imports from deps, and
-// fails the test on any diagnostic.
+// lower parses and lowers src as name, importing from deps, and fails on
+// any diagnostic.
 func lower(t *testing.T, name, src string, deps sources) *ir.Model {
 	t.Helper()
 	file, err := parser.Parse(name, strings.NewReader(src))
@@ -39,7 +39,7 @@ func lower(t *testing.T, name, src string, deps sources) *ir.Model {
 	return model
 }
 
-// generateIR runs the backend over a model lowering produced.
+// generateIR runs the backend over a lowered model.
 func generateIR(t *testing.T, model *ir.Model) *plugin.Response {
 	t.Helper()
 	resp, err := protobuf.Backend{}.Generate(context.Background(), &plugin.Request{
@@ -61,9 +61,7 @@ type Price { amount: money.Money }
 type Fine { a: string }
 `
 
-// A dependency with a protobuf target block says where its messages are
-// generated, so a reference into it is that message, imported from the
-// file the dependency generates.
+// A reference into the dependency imports the file it generates.
 func TestDependencyWithProtobufBlockIsImported(t *testing.T) {
 	const moneySource = `package acme.money.v1
 
@@ -100,8 +98,6 @@ target protobuf for acme.money.v1 {
 	absent(t, src, "message Money")
 }
 
-// A dependency without a protobuf target block says nothing about where its
-// messages are, so a reference into it is skipped with a warning.
 func TestDependencyWithoutProtobufBlockIsSkipped(t *testing.T) {
 	deps := sources{"dep/money.tdl": `package acme.money.v1
 

@@ -12,8 +12,7 @@ import (
 )
 
 // Conformance parses and lowers the source.tdl of a conformance case
-// directory, reading its imports from beside it. The corpus lowers with no
-// diagnostic, so any diagnostic fails the test.
+// directory, failing the test on any diagnostic.
 func Conformance(t testing.TB, dir string) *ir.Model {
 	t.Helper()
 

@@ -14,8 +14,7 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// googleAPI stands in for the two googleapis files the options come from,
-// declaring only the extensions the tests use.
+// googleAPI stands in for the googleapis files the options come from.
 var googleAPI = map[string]string{
 	"google/api/field_behavior.proto": `syntax = "proto3";
 package google.api;
@@ -97,8 +96,8 @@ func option(name, value string) *ir.Directive {
 	return &ir.Directive{Name: "option", Target: protobuf.Name, Args: []*ir.Literal{irtest.Text(name), irtest.Text(value)}}
 }
 
-// An inlined oneof member stands for its variant's one field, so it carries
-// that field's options and deprecation, and its variant's too.
+// An inlined oneof member carries the options and deprecation of both its
+// variant and the variant's field.
 func TestOptionsOnAnInlinedOneofMember(t *testing.T) {
 	b := irtest.New("shop")
 	contact := variant("Contact", irtest.Field("contact", b.Named("string")))

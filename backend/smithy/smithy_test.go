@@ -38,12 +38,8 @@ func check(t *testing.T, resp *plugin.Response) string {
 	return string(f.GetContent())
 }
 
-// validate runs `smithy validate` over a file.
-//
-// Smithy has no Go implementation, so without the CLI these tests check
-// shapes by substring alone. The devShell puts it on PATH, and the nix
-// check gen-smithy runs it over the smoke fixture whether or not anyone ran
-// these tests with it.
+// validate runs `smithy validate` over a file. Without the CLI these tests
+// check substrings only; checks.gen-smithy validates regardless.
 func validate(t *testing.T, f *plugin.File) {
 	t.Helper()
 	cli, err := exec.LookPath("smithy")
@@ -172,8 +168,7 @@ func TestStructures(t *testing.T) {
 	absent(t, src, "@required note")
 }
 
-// Smithy has no unsigned types, so uint32 widens to Long, which holds every
-// value of it, and uint64 widens to BigInteger.
+// uint32 widens to Long, and uint64 to BigInteger.
 func TestFixedWidthNumerics(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(value("Sizes",
@@ -195,8 +190,6 @@ func TestFixedWidthNumerics(t *testing.T) {
 	)
 }
 
-// A collection shape is named for what it holds, so two fields holding the
-// same collection share one shape.
 func TestACollectionShapeIsDeclaredOnce(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(value("A", irtest.Field("x", b.Named("List", b.Named("string")))))
@@ -222,9 +215,8 @@ func TestEnums(t *testing.T) {
 	)
 }
 
-// A newtype over a primitive or a collection is a shape of its own, and one
-// over a structure is the structure, since Smithy cannot name one structure
-// as another.
+// A newtype over a primitive or a collection is a shape, and one over a
+// structure is the structure.
 func TestNewtypes(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(newtype("Email", b.Named("string")))
@@ -270,8 +262,6 @@ func TestMapKeys(t *testing.T) {
 	absent(t, src, "structure Broken")
 }
 
-// A shape of the model's own that takes a prelude shape's name shadows it,
-// so a reference to the prelude's is qualified.
 func TestAPreludeNameTheModelTakesIsQualified(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(value("String", irtest.Field("raw", b.Named("bytes"))))
@@ -294,8 +284,6 @@ func TestACollectionShapeCollidingWithADeclarationIsSkipped(t *testing.T) {
 	contains(t, src, "structure StringList")
 }
 
-// Two collections deriving the same name from different elements are two
-// shapes, and the second cannot silently replace the first.
 func TestTwoCollectionsWantingOneNameAreSkipped(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(value("String", irtest.Field("raw", b.Named("bytes"))))
@@ -311,8 +299,6 @@ func TestTwoCollectionsWantingOneNameAreSkipped(t *testing.T) {
 	contains(t, src, "structure Prelude", "list StringList { member: smithy.api#String }")
 }
 
-// A union variant's structure is one of the model's own shape names too, so
-// a prelude shape it takes the name of is qualified where it is referenced.
 func TestAPreludeNameAVariantStructureTakesIsQualified(t *testing.T) {
 	b := irtest.New("shop")
 	v := variant("Raw", irtest.Field("body", b.Named("string")))
@@ -329,8 +315,6 @@ func TestAPreludeNameAVariantStructureTakesIsQualified(t *testing.T) {
 	)
 }
 
-// Smithy reads two names differing only in case as one name, so a model
-// that would emit both says nothing Smithy can read.
 func TestNamesSmithyCannotTellApartAreSkipped(t *testing.T) {
 	for _, tt := range []struct {
 		name string
@@ -399,8 +383,6 @@ func TestUnsupportedShapesAreSkipped(t *testing.T) {
 	}
 }
 
-// A name directive is taken verbatim, so every shape name a declaration
-// would emit has to be a Smithy identifier.
 func TestNamesSmithyCannotReadAreSkipped(t *testing.T) {
 	for _, tt := range []struct {
 		name string
@@ -492,7 +474,7 @@ func TestNamespace(t *testing.T) {
 	resp := generate(t, b)
 	contains(t, check(t, resp), "namespace acme.billing")
 
-	// A Smithy file has to have a namespace.
+	// A Smithy file requires a namespace.
 	b.Model.Targets = nil
 	b.Model.Package = ""
 	resp = generate(t, b)
@@ -502,8 +484,8 @@ func TestNamespace(t *testing.T) {
 	}
 }
 
-// Every case in the conformance corpus, and the smoke fixture, generates
-// something Smithy accepts, whatever this backend warned about.
+// Every conformance case and the smoke fixture generate something Smithy
+// accepts.
 func TestConformance(t *testing.T) {
 	corpus := filepath.Join("..", "..", "testdata", "conformance")
 	dirs := []string{filepath.Join("..", "..", "testdata", "gen", "smoke")}

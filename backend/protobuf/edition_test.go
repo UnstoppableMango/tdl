@@ -12,8 +12,7 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// An `edition` directive replaces the proto3 syntax line with an edition
-// header.
+// The edition header replaces the proto3 syntax line.
 func TestEditionDirective(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(value("Note", irtest.Field("body", b.Named("string"))))
@@ -38,8 +37,8 @@ func TestEditionDirective(t *testing.T) {
 	absent(t, src, "syntax")
 }
 
-// Under an edition a scalar or enum field has explicit presence by default,
-// so `T?` and `T | null` emit no `optional` label, the same as a bare `T`.
+// Under an edition `T?` and `T | null` emit no `optional` label, since
+// every field has explicit presence.
 func TestEditionOptionalIsBare(t *testing.T) {
 	for _, edition := range []string{"2023", "2024"} {
 		t.Run(edition, func(t *testing.T) {
@@ -73,9 +72,8 @@ func TestEditionOptionalIsBare(t *testing.T) {
 	}
 }
 
-// The `edition` directive accepts only the editions protobuf defines. Any
-// other value is an error at the directive and nothing is written, the same
-// as a package protobuf refuses.
+// An edition protobuf does not define is an error at the directive, and
+// nothing is written.
 func TestEditionValues(t *testing.T) {
 	pos := &ir.Position{Filename: "shop.tdl", Line: 2, Column: 3}
 	for _, c := range []struct {
@@ -127,8 +125,7 @@ func TestEditionValues(t *testing.T) {
 	}
 }
 
-// Every file a `file` directive splits out declares the edition, since each
-// is compiled on its own.
+// Every file a `file` directive splits out declares the edition.
 func TestEditionInEveryFile(t *testing.T) {
 	b := irtest.New("acme.cli.v1")
 	token := value("Token", irtest.Field("text", b.Named("string")))

@@ -54,8 +54,8 @@ func TestReservedOnAMessage(t *testing.T) {
 	)
 }
 
-// A field a message reserves, by number or by name, is refused: protoc
-// rejects the message, so it is skipped and its siblings still generate.
+// A field on a reserved number or name skips its message; siblings still
+// generate.
 func TestReservedFieldIsRefused(t *testing.T) {
 	for _, tt := range []struct {
 		name  string
@@ -202,8 +202,7 @@ target protobuf for shop {
 	}
 }
 
-// Under an edition a reserved name is an identifier, since editions refuse
-// the quoted form proto3 uses.
+// Under an edition a reserved name is unquoted.
 func TestReservedNameUnderAnEdition(t *testing.T) {
 	for _, edition := range []string{"2023", "2024"} {
 		t.Run(edition, func(t *testing.T) {
@@ -232,8 +231,6 @@ func TestReservedNameUnderAnEdition(t *testing.T) {
 	}
 }
 
-// Unpinned fields skip the numbers a message reserves, as they skip pins and
-// the range protobuf keeps for itself.
 func TestUnpinnedFieldsSkipReservedNumbers(t *testing.T) {
 	const model = `package shop
 
@@ -272,8 +269,6 @@ target protobuf for shop {
 	)
 }
 
-// An unpinned member of an inlined oneof skips the numbers its message
-// reserves, as an unpinned field does.
 func TestUnpinnedOneofMembersSkipReservedNumbers(t *testing.T) {
 	const model = `package shop
 
@@ -317,8 +312,6 @@ target protobuf for shop {
 	)
 }
 
-// A field pinned to a number the message reserves is still refused: the pin
-// is the author's choice, so allocation does not move it.
 func TestPinnedFieldOnAReservedNumberIsRefused(t *testing.T) {
 	const model = `package shop
 

@@ -1,13 +1,6 @@
-// Package typescript generates TypeScript type declarations from a
-// resolved model.
-//
-// docs/design/schema-backends.md has the mapping and the reasons for it.
-// What it emits describes JSON on the wire rather than runtime objects:
-// interfaces and type aliases, no classes, and no code. That is why a set
-// is an array, a map is a Record, and every primitive TypeScript has no
-// JSON form for is a string. An enum whose variants carry fields is a
-// discriminated union on a `kind` field holding the variant's name, which
-// a `discriminant` directive renames.
+// Package typescript generates TypeScript declarations of JSON wire types
+// from a resolved model: interfaces and type aliases, with no runtime code.
+// The mapping is in docs/design/schema-backends.md.
 package typescript
 
 import (
@@ -22,8 +15,7 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// Name is what this backend is called, in a target block and as
-// tdl-gen-typescript on PATH.
+// Name names this backend in a target block and as tdl-gen-typescript.
 const Name = "typescript"
 
 // Backend implements [plugin.Backend].
@@ -34,24 +26,20 @@ func (Backend) Describe() plugin.Description {
 	return plugin.Description{
 		Name:    Name,
 		Version: "0.1.0",
-		// Each request is answered from the request alone.
+		// Each request stands alone.
 		Reuse: true,
 		Directives: []*plugin.DirectiveSpec{
-			// The TypeScript name for a type, a property, or a variant's
-			// interface.
+			// The TypeScript name for a type, property, or variant interface.
 			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
-			// The property a discriminated union switches on. Written on the
-			// target block it is the default, and on an enum it wins.
+			// The property a discriminated union switches on: the default on
+			// the target block, an override on an enum.
 			{Name: "discriminant", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
 		},
 	}
 }
 
-// scalars maps a TDL primitive to the TypeScript type its JSON value has.
-// JSON has no bytes, decimal, UUID, or time, so each is the string a
-// consumer parses; an int is a number, which is exact to 2^53. Every
-// fixed-width numeric is a number too, so a 64-bit value past 2^53 loses
-// precision.
+// scalars maps a TDL primitive to the TypeScript type of its JSON value.
+// Every numeric is a number, exact only to 2^53.
 var scalars = map[string]string{
 	"string":   "string",
 	"int":      "number",
@@ -70,8 +58,8 @@ var scalars = map[string]string{
 	"duration": "string",
 }
 
-// reserved is the words TypeScript does not accept as a type's name.
-// An emitted file is a module, where `await` is reserved too.
+// reserved is the words TypeScript refuses as a type name, `await`
+// included, since an emitted file is a module.
 var reserved = map[string]bool{}
 
 func init() {
@@ -88,8 +76,6 @@ func init() {
 
 var ident = regexp.MustCompile(`^[A-Za-z_$][A-Za-z0-9_$]*$`)
 
-// defaultDiscriminant is the property a discriminated union switches on
-// when no directive names one.
 const defaultDiscriminant = "kind"
 
 type generator struct {
@@ -98,12 +84,11 @@ type generator struct {
 	// discriminant is the target block's default.
 	discriminant string
 
-	// names is every type name declared, with the declaration that
-	// declared it.
+	// names maps each declared type name to the declaration declaring it.
 	names map[string]string
 }
 
-// Generate returns one .ts file holding every declaration the model owns.
+// Generate returns one .ts file holding the model's declarations.
 func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Response, error) {
 	g := &generator{
 		Session:      emit.NewSession(req, "TypeScript"),
@@ -163,8 +148,7 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	case d.GetUnit() != nil:
 		return "", emit.Unsupported(pos, "%s is a unit, and units are not generated yet", name)
 	case d.GetStructure() == nil && d.GetEnumeration() == nil && d.GetNewtype() == nil:
-		// An alias is expanded where it is used, and a model's own
-		// primitive names an opaque root; neither declares anything.
+		// An alias or a primitive declares nothing.
 		return "", nil
 	}
 	if len(d.Params()) > 0 {
@@ -209,7 +193,7 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 }
 
 // newtype renders a newtype as an alias for its base. A branded type would
-// say more, and would make every value parsed from JSON need a cast.
+// make every value parsed from JSON need a cast.
 func (g *generator) newtype(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	ref, err := g.Resolve(d.GetNewtype().GetBase())
 	if err != nil {
@@ -225,9 +209,8 @@ func (g *generator) newtype(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	return []string{name}, nil
 }
 
-// iface renders an interface. An entity, a value, and a mixin differ in
-// what they mean and not in what they emit. A variant's interface passes
-// the discriminant and its value, which come first.
+// iface renders an entity, a value, or a mixin as an interface. A variant
+// passes the discriminant and its value, which come first.
 func (g *generator) iface(b *strings.Builder, name string, meta *ir.Meta, disc, tag string, fields []*ir.Field) ([]string, error) {
 	var body strings.Builder
 	seen := map[string]bool{}
@@ -264,8 +247,7 @@ func (g *generator) iface(b *strings.Builder, name string, meta *ir.Meta, disc, 
 	return []string{name}, nil
 }
 
-// literals renders an enum whose variants carry no fields as a union of
-// their names, which is what one looks like in JSON.
+// literals renders a fieldless enum as a union of its variant names.
 func (g *generator) literals(b *strings.Builder, d *ir.Decl) []string {
 	name := g.DeclName(d, emit.Pascal)
 	variants := d.GetEnumeration().GetVariants()
@@ -284,9 +266,8 @@ func (g *generator) literals(b *strings.Builder, d *ir.Decl) []string {
 	return []string{name}
 }
 
-// union renders an enum where any variant carries fields: an interface per
-// variant, each holding the discriminant with the variant's name as its
-// value, and a union of them.
+// union renders an enum where any variant carries fields: a union of one
+// interface per variant, each with the discriminant set to its name.
 func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	name := g.DeclName(d, emit.Pascal)
 	disc := g.discriminant
@@ -343,8 +324,8 @@ func (g *generator) property(name string, r *emit.Ref) (string, error) {
 	return fmt.Sprintf("%s%s: %s;", property(name), q, typ), nil
 }
 
-// typ is the TypeScript type for a reference. An optional value inside a
-// collection is one that may be null, since JSON has no absent element.
+// typ is the TypeScript type for a reference. An optional collection
+// element may be null, since JSON has no absent element.
 func (g *generator) typ(r *emit.Ref) (string, error) {
 	switch r.Form {
 	case emit.Prim:
@@ -377,9 +358,8 @@ func (g *generator) typ(r *emit.Ref) (string, error) {
 	return g.DeclName(r.Decl, emit.Pascal), nil
 }
 
-// record renders a map as a Record. A JSON object's keys are strings, so a
-// key is anything that is a string or a number in JSON, or a fieldless
-// enum, whose Record is Partial because a map need not hold every variant.
+// record renders a map as a Record keyed by a string, a number, or a
+// fieldless enum, whose Record is Partial.
 func (g *generator) record(r *emit.Ref) (string, error) {
 	kx, err := g.Expand(r.Key)
 	if err != nil {
@@ -413,8 +393,7 @@ func property(name string) string {
 	return strconv.Quote(name)
 }
 
-// comment writes a node's documentation, and its deprecation, as a JSDoc
-// comment, which is what an editor reads.
+// comment writes a node's documentation and deprecation as a JSDoc comment.
 func comment(b *strings.Builder, indent string, meta *ir.Meta) {
 	lines := emit.Doc(meta)
 	if reason, ok := emit.Deprecated(meta); ok {

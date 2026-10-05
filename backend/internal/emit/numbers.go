@@ -34,21 +34,18 @@ func VariantMembers(variants []*ir.Variant) []Member {
 // NumberRule is what a target allows a member's number to be.
 type NumberRule struct {
 	Max int64
-	// Reserved is inclusive ranges that are an error to pin and skipped when allocating.
+	// Reserved is inclusive ranges that are refused as pins and skipped
+	// when allocating.
 	Reserved [][2]int64
-	// Skip is numbers allocation passes over; refusing a pin on one is the caller's job.
+	// Skip is numbers allocation passes over; the caller refuses pins.
 	Skip map[int64]bool
 }
 
 // Numbers assigns each member its wire number. A `number` directive pins a
 // member's number; each unpinned member, in declaration order, takes the
 // lowest number from 1 that no pin or earlier member holds and the rule does
-// not reserve or skip. A number the rule refuses, or two pins sharing one, is an
-// [UnsupportedError].
-//
-// Pins keep a wire format stable while the source moves: inserting an
-// unpinned member anywhere but the end renumbers every unpinned member after
-// it.
+// not reserve or skip. A number the rule refuses, or two pins sharing one,
+// is an [UnsupportedError].
 func (s *Session) Numbers(owner string, members []Member, rule NumberRule) ([]int64, error) {
 	nums := make([]int64, len(members))
 	by := map[int64]string{}

@@ -1,9 +1,6 @@
-// Package debug is a backend that describes the model it was given.
-//
-// Its output is not useful, and that is the point. It exercises every part
-// of the protocol, in process and over a subprocess, without anyone first
-// having to agree what generated Go should look like. Real backends are
-// each their own plan; this one exists to keep the protocol honest.
+// Package debug is a backend that describes the model it was given. It
+// exercises the plugin protocol, in process and over a subprocess, without
+// generating code.
 package debug
 
 import (
@@ -27,12 +24,10 @@ func (Backend) Describe() plugin.Description {
 	return plugin.Description{
 		Name:    Name,
 		Version: "0.1.0",
-		// Each request is answered from the request alone, so serving
-		// several on one connection is safe.
+		// Requests share no state.
 		Reuse: true,
 		Directives: []*plugin.DirectiveSpec{
-			// `note("...")` gives a target block something to say that this
-			// backend can echo, so directive plumbing has a user.
+			// `note("...")` exists to exercise directive plumbing.
 			{
 				Name:     "note",
 				MinArgs:  1,
@@ -52,10 +47,6 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	fmt.Fprintf(&b, "target %s\n", req.GetTarget())
 	fmt.Fprintf(&b, "\n")
 
-	// The prelude is merged into the declaration table, so a model whose
-	// source declares two things arrives with twenty-one declarations. A
-	// backend that emits per declaration has to decide what is the user's;
-	// this one splits by which file a declaration came from.
 	own, borrowed := partition(model)
 	fmt.Fprintf(&b, "declarations: %d own, %d from the prelude\n", len(own), len(borrowed))
 	fmt.Fprintf(&b, "types: %d\n", len(model.GetTypes()))
@@ -81,9 +72,8 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	}, nil
 }
 
-// notes reports something about the model, so the diagnostic path has a
-// user. A backend says what it cannot handle here rather than returning an
-// error, because this reaches the user with a position attached.
+// notes warns about each fieldless declaration, to exercise the diagnostic
+// path.
 func notes(own []*ir.Decl) []*plugin.Diagnostic {
 	var diags []*plugin.Diagnostic
 	for _, d := range own {
@@ -99,13 +89,9 @@ func notes(own []*ir.Decl) []*plugin.Diagnostic {
 	return diags
 }
 
-// partition splits declarations by whether they came from the file being
-// generated or from the prelude merged into it, which is the one file
-// whose name a backend can know in advance.
-//
-// The name is matched whole. A suffix match would also claim a file of the
-// model's own called `mystd.tdl`, and report its declarations as the
-// prelude's.
+// partition splits declarations into the model's and the prelude's. The
+// prelude's name is matched whole, so a model file `mystd.tdl` is the
+// model's.
 func partition(model *ir.Model) (own, borrowed []*ir.Decl) {
 	for _, d := range model.GetDecls() {
 		if d.GetMeta().GetPosition().GetFilename() == prelude.Name {

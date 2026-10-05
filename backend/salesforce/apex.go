@@ -11,8 +11,8 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// apexTypes maps a TDL primitive to its Apex type. Apex has no UUID or
-// duration, so each is the string it would be in JSON.
+// apexTypes maps a TDL primitive to its Apex type. A UUID and a duration
+// are Strings.
 var apexTypes = map[string]string{
 	"string":   "String",
 	"int":      "Long",
@@ -31,13 +31,12 @@ var apexTypes = map[string]string{
 	"duration": "String",
 }
 
-// reserved is the words Apex refuses as an identifier, in lower case since
-// Apex reads identifiers without case.
+// reserved is the words Apex refuses as an identifier, lower case since
+// Apex ignores case.
 var reserved = map[string]bool{}
 
-// standard is the types an org already declares that a model is likely to
-// name too. An Apex class named like one shadows it in every class that
-// could have used it.
+// standard is the org types a model is likely to name too, which an Apex
+// class of the same name would shadow.
 var standard = map[string]bool{}
 
 func init() {
@@ -95,9 +94,8 @@ func (g *generator) declare(d *ir.Decl) (string, error) {
 	return n, claim(g.classes, pos, name, n)
 }
 
-// class renders a value or a mixin as an Apex class with a public member
-// per field. Members keep their TDL names, so JSON.serialize writes what
-// the other wire backends describe.
+// class renders a value or a mixin as an Apex class. Members keep their TDL
+// names, so JSON.serialize matches the other wire backends.
 func (g *generator) class(d *ir.Decl) ([]*plugin.File, error) {
 	n, err := g.declare(d)
 	if err != nil {
@@ -113,8 +111,8 @@ func (g *generator) class(d *ir.Decl) ([]*plugin.File, error) {
 	return g.apex(n, b.String()), nil
 }
 
-// enum renders a fieldless enum. Values keep their TDL names, which are
-// also the picklist values an object field holding the enum accepts.
+// enum renders a fieldless enum. Values keep their TDL names, matching the
+// picklist values of an object field holding the enum.
 func (g *generator) enum(d *ir.Decl) ([]*plugin.File, error) {
 	n, err := g.declare(d)
 	if err != nil {
@@ -130,10 +128,9 @@ func (g *generator) enum(d *ir.Decl) ([]*plugin.File, error) {
 	return g.apex(n, b.String()), nil
 }
 
-// sum renders an enum whose variants carry fields. Apex has no union, so it
-// is a class holding a `kind` naming the variant and a member per variant
-// with fields, each an inner class; the member for the kind not chosen is
-// null. That is a protobuf oneof's shape.
+// sum renders an enum whose variants carry fields as a class holding a
+// `kind` and a member per fielded variant, each an inner class, null unless
+// chosen.
 func (g *generator) sum(d *ir.Decl) ([]*plugin.File, error) {
 	n, err := g.declare(d)
 	if err != nil {
@@ -166,8 +163,8 @@ func (g *generator) sum(d *ir.Decl) ([]*plugin.File, error) {
 		if err := ident(pos, name+"."+vn, cls); err != nil {
 			return nil, err
 		}
-		// A member may share its type's name, as `Card card` does, so one
-		// check covers both: Kind, the class itself, and each variant.
+		// A member may share its type's name (`Card card`), so one check
+		// covers both.
 		if other, ok := taken[strings.ToLower(cls)]; ok {
 			return nil, emit.Unsupported(pos, "%s.%s would be named %s in Apex, which %s already is", name, vn, cls, other)
 		}
@@ -238,8 +235,8 @@ func (g *generator) members(b *strings.Builder, indent, owner string, fields []*
 	return nil
 }
 
-// apexType is the Apex type for a reference. Every Apex variable may be
-// null, so an optional type is the type it wraps.
+// apexType is the Apex type for a reference. Every Apex variable is
+// nullable, so an optional is the type it wraps.
 func (g *generator) apexType(r *emit.Ref) (string, error) {
 	r, err := g.Expand(r)
 	if err != nil {
@@ -298,9 +295,8 @@ func (g *generator) apex(n, src string) []*plugin.File {
 
 func asWritten(name string) string { return name }
 
-// comment writes a node's documentation, and its deprecation, as ApexDoc.
-// An @Deprecated annotation is only legal in a managed package, so the
-// deprecation is a tag in the comment instead.
+// comment writes a node's documentation and deprecation as ApexDoc, since
+// @Deprecated is legal only in a managed package.
 func comment(b *strings.Builder, indent string, meta *ir.Meta) {
 	lines := emit.Doc(meta)
 	if reason, ok := emit.Deprecated(meta); ok {

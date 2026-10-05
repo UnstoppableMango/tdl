@@ -8,8 +8,8 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// A service is declared by tags: service on the type holding the methods,
-// and rpc on the primitive each method's field is typed with.
+// A service is a type tagged service whose fields apply a primitive
+// tagged rpc.
 func TestTaggedServiceIsEmitted(t *testing.T) {
 	const src = `package acme.widgets.v1
 
@@ -44,8 +44,6 @@ target protobuf for acme.widgets.v1 {
 	absent(t, out, "message WidgetService")
 }
 
-// A primitive of kind type -> type tagged stream marks the request or the
-// response it is applied to as streamed.
 func TestStreamTaggedArgumentIsStreamed(t *testing.T) {
 	const src = `package acme.widgets.v1
 
@@ -90,8 +88,7 @@ target protobuf for acme.widgets.v1 {
 	)
 }
 
-// A service field that is not an rpc skips the service with a warning placed
-// at the field, and the messages beside it still generate.
+// The warning is at the field, and sibling messages still generate.
 func TestServiceFieldThatIsNotAnRPCIsSkipped(t *testing.T) {
 	const src = `package acme.widgets.v1
 
@@ -159,7 +156,7 @@ target protobuf for acme.widgets.v1 {
 	)
 }
 
-// A deprecated rpc field carries the option in the rpc's body.
+// The option goes in the rpc's body.
 func TestDeprecatedRPCIsMarked(t *testing.T) {
 	const src = `package acme.widgets.v1
 
@@ -191,7 +188,6 @@ target protobuf for acme.widgets.v1 {
 	absent(t, out, "rpc GetWidget(GetWidgetRequest) returns (Widget);")
 }
 
-// Doc comments on a service and on its rpc fields are written above them.
 func TestServiceDocCommentsAreWritten(t *testing.T) {
 	const src = `package acme.widgets.v1
 
@@ -221,8 +217,7 @@ target protobuf for acme.widgets.v1 {
 	)
 }
 
-// googleAPIClient stands in for google/api/client.proto, declaring only the
-// service option the tests set.
+// googleAPIClient stands in for google/api/client.proto.
 var googleAPIClient = map[string]string{
 	"google/api/client.proto": `syntax = "proto3";
 package google.api;
@@ -233,8 +228,7 @@ extend google.protobuf.ServiceOptions {
 `,
 }
 
-// An option directive on a service is an option statement in its body,
-// after the one its deprecation writes.
+// An option directive on a service follows the deprecation option.
 func TestServiceOptionIsWritten(t *testing.T) {
 	const src = `package acme.widgets.v1
 
@@ -273,8 +267,7 @@ target protobuf for acme.widgets.v1 {
 	)
 }
 
-// An option directive on an rpc field is an option statement in the rpc's
-// body, beside the one its deprecation writes.
+// An option directive on an rpc field is a statement in the rpc's body.
 func TestRPCOptionIsWritten(t *testing.T) {
 	const src = `package acme.widgets.v1
 
