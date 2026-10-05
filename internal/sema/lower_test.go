@@ -9,9 +9,8 @@ import (
 	"github.com/unstoppablemango/tdl/parser"
 )
 
-// preamble declares the placeholder names these tests use as stand-in
-// types. The prelude supplies everything else: `string`, `List`, `Option`,
-// and the rest are loaded, not declared here.
+// preamble declares the placeholder types these tests use; the prelude
+// supplies the rest.
 const preamble = `package p
 
 primitive T
@@ -104,8 +103,6 @@ enum Status { Draft Placed }
 	}
 }
 
-// A reference to a declaration further down the file resolves like one
-// above it, which is why the table is collected before anything is lowered.
 func TestForwardReference(t *testing.T) {
 	model := lower(t, `
 type A { b: B }
@@ -149,9 +146,7 @@ func TestSugarLowering(t *testing.T) {
 	}
 }
 
-// `[T]` and `List<T>` mean the same type and differ only in how they were
-// written, so they stay separate entries: folding them would throw the
-// distinction away the moment a model used both.
+// `[T]` and `List<T>` stay separate entries.
 func TestSyntacticFormIsPartOfIdentity(t *testing.T) {
 	model := lower(t, `
 alias A = [T]
@@ -170,7 +165,7 @@ alias B = List<T>
 	}
 }
 
-// `T? | null` is Nullable<Option<T>>, two entries, each recording its form.
+// `T? | null` is Nullable<Option<T>>, each entry recording its form.
 func TestOptionalAndNullable(t *testing.T) {
 	model := lower(t, `alias X = T? | null`)
 
@@ -188,8 +183,7 @@ func TestOptionalAndNullable(t *testing.T) {
 	}
 }
 
-// Lowering the same type twice yields one entry, which is what makes an ID
-// comparison a type comparison.
+// Lowering the same type twice yields one entry.
 func TestInterning(t *testing.T) {
 	model := lower(t, `
 type A { x: [string] }
@@ -216,8 +210,7 @@ type B { y: [string] }
 	}
 }
 
-// An unresolved name is a diagnostic, and the ID keeps the text so later
-// output can say what was written.
+// An unresolved name is a diagnostic, and the ID keeps the text.
 func TestUndefinedName(t *testing.T) {
 	diags := lowerDiags(t, `type A { x: Missing }`)
 	if !strings.Contains(diags.Error(), "undefined: Missing") {
@@ -244,8 +237,8 @@ type Order: Entity {
 	if !m.IsDeprecated() || m.GetDeprecated().GetReason() != "use PurchaseOrder" {
 		t.Errorf("deprecation = %+v", m.GetDeprecated())
 	}
-	// The position is the declaration keyword, not the doc comment or the
-	// deprecation that precede it.
+	// The position is the declaration keyword, not the doc comment or
+	// deprecation before it.
 	if m.GetPosition().GetLine() != preambleLines+4 {
 		t.Errorf("position = %+v", m.GetPosition())
 	}
@@ -272,9 +265,7 @@ type A { y: string }
 	}
 }
 
-// The spec says decimal<N> and decimal<kg*m/s^2> are the same type, and
-// interning is what makes an ID comparison answer that. Every spelling of
-// one quantity reaches one entry in the type table.
+// decimal<N> and decimal<kg*m/s^2> are one entry in the type table.
 func TestUnitSpellingsInternTogether(t *testing.T) {
 	model := lower(t, `
 primitive decimal
@@ -303,8 +294,7 @@ type W {
 	}
 }
 
-// A unit argument is an ordinary entry in the type table, with `unit` set
-// where a named type would set `ctor`.
+// A unit argument is a type table entry with `unit` set instead of `ctor`.
 func TestUnitArgumentIsAType(t *testing.T) {
 	model := lower(t, `
 primitive decimal
@@ -322,8 +312,6 @@ type W { net: decimal<kg> }`)
 	}
 }
 
-// A base unit measures itself, which is the dimension every derived unit
-// reduces to.
 func TestBaseUnitMeasuresItself(t *testing.T) {
 	model := lower(t, `unit kg`)
 
@@ -341,8 +329,6 @@ func TestBaseUnitMeasuresItself(t *testing.T) {
 	}
 }
 
-// File order is not resolution order: a unit may derive from one written
-// after it.
 func TestDerivedUnitResolvesForward(t *testing.T) {
 	model := lower(t, `
 unit N = kg*m/s^2
@@ -356,8 +342,7 @@ unit s`)
 	}
 }
 
-// An exponent applies to whichever form the term took, so a parenthesized
-// group carries it the way a name does.
+// An exponent applies to a parenthesized group the way it does to a name.
 func TestParenthesizedUnitExponent(t *testing.T) {
 	model := lower(t, `
 unit kg
@@ -379,8 +364,7 @@ unit Twice = ((kg/m)^2)^2`)
 	}
 }
 
-// A unit that reaches itself has no reduction, so it is an error at the
-// declaration that closes the cycle.
+// The error is at the declaration that closes the cycle.
 func TestUnitCycleIsAnError(t *testing.T) {
 	diags := lowerDiags(t, `
 unit m
@@ -401,9 +385,8 @@ unit A = string`)
 	}
 }
 
-// A unit sharing its name with an earlier declaration loses the binding,
-// so the name stays what won it: the duplicate never reaches the unit
-// table and a type argument naming it is an ordinary type argument.
+// A unit losing its name to an earlier declaration never reaches the unit
+// table, and a type argument naming it is a type argument.
 func TestUnitNameBoundToANonUnit(t *testing.T) {
 	file, err := parser.Parse("test.tdl", strings.NewReader(preamble+`
 primitive foo
@@ -437,8 +420,7 @@ type W { a: decimal<foo> }`))
 	}
 }
 
-// A unit expression names the declaration a name is bound to, so a
-// duplicate unit is not a unit there either.
+// A duplicate unit is not a unit inside a unit expression either.
 func TestUnitExpressionNamingADuplicateUnit(t *testing.T) {
 	diags := lowerDiags(t, `
 primitive foo
@@ -466,8 +448,7 @@ func dimsText(t *testing.T, model *ir.Model, decl *ir.Decl) string {
 	return strings.Join(parts, " ")
 }
 
-// A type parameter shadows a declaration of the same name, inside the
-// declaration that declares it and nowhere else.
+// A type parameter shadows a declaration only inside its own declaration.
 func TestTypeParameterShadowing(t *testing.T) {
 	model := lower(t, `
 type Box<string> { held: string }
@@ -523,8 +504,7 @@ func TestDuplicateField(t *testing.T) {
 	}
 }
 
-// Entities may be mutually recursive without restriction: a cycle between
-// them is a graph of references, which every backend can represent.
+// Entities may be mutually recursive without restriction.
 func TestEntityRecursionAllowed(t *testing.T) {
 	lower(t, `
 type Order: Entity { items: [LineItem] owned self: Order }
@@ -554,7 +534,7 @@ type B { a: A }`,
 }
 
 // A struct's kind comes from satisfying the prelude's Entity, however that
-// satisfaction arises, and only an entity is exempt from the value rule.
+// arises, and only an entity is exempt from the value recursion rule.
 func TestEntityKindFromConformance(t *testing.T) {
 	model := lower(t, `
 class Aggregate: Entity { }
@@ -580,8 +560,7 @@ mixin Stamped: Entity { }
 	}
 }
 
-// Identity is the prelude's Entity. A file declaring its own class of that
-// name shadows it, and conforming to that says nothing about identity.
+// Conforming to a file's class named Entity says nothing about identity.
 func TestShadowedEntityIsNotIdentity(t *testing.T) {
 	diags := lowerDiags(t, `
 class Entity { }
@@ -591,8 +570,8 @@ type Node: Entity { next: Node }`)
 	}
 }
 
-// An enum holds its variants' fields inline, so conforming to Entity does
-// not make a cycle through one a reference.
+// An enum conforming to Entity still holds its variants' fields inline,
+// so a cycle through one is not a reference.
 func TestEntityEnumRecursion(t *testing.T) {
 	diags := lowerDiags(t, `enum Tree: Entity { Branch { left: Tree } }`)
 	if !strings.Contains(diags.Error(), "Tree contains itself") {
@@ -600,8 +579,7 @@ func TestEntityEnumRecursion(t *testing.T) {
 	}
 }
 
-// Aliases are expanded rather than referenced, so no cycle terminates,
-// not even one through a collection.
+// An alias cycle is an error even through a collection.
 func TestAliasRecursion(t *testing.T) {
 	for _, src := range []string{
 		`alias A = A`,
@@ -618,8 +596,7 @@ alias B = A`,
 	}
 }
 
-// Without a loader, an import is a diagnostic rather than a filesystem
-// read nobody asked for.
+// Without a loader, an import is a diagnostic.
 func TestImportNeedsALoader(t *testing.T) {
 	diags := lowerDiags(t, `import "common.tdl" as common`)
 	if !strings.Contains(diags.Error(), "imports need a loader") {
@@ -634,7 +611,6 @@ func TestUndefinedImportAlias(t *testing.T) {
 	}
 }
 
-// Every diagnostic in a pass is reported, not just the first.
 func TestDiagnosticsAccumulate(t *testing.T) {
 	diags := lowerDiags(t, `type Holder { a: Missing b: AlsoMissing }`)
 	if len(diags) != 2 {
@@ -642,8 +618,8 @@ func TestDiagnosticsAccumulate(t *testing.T) {
 	}
 }
 
-// An instance names the class it is about, not itself, so several
-// instances of one class do not collide and none collides with the class.
+// Several instances of one class collide neither with each other nor
+// with the class.
 func TestInstancesAreNotTypeNames(t *testing.T) {
 	model := lower(t, `
 class Auditable { createdAt: string }
@@ -658,8 +634,7 @@ type B { x: string }
 	}
 }
 
-// A target block names a backend, not a type, so it does not collide with
-// a declaration of the same name.
+// A target block does not collide with a declaration of the same name.
 func TestTargetsAreNotTypeNames(t *testing.T) {
 	model := lower(t, `
 type go { x: string }
@@ -674,8 +649,7 @@ target go for p { out("./gen") }
 	}
 }
 
-// A type ID's name is what a person reads; the interning key is what
-// separates entries. `[T]` and `List<T>` are two entries with one name.
+// `[T]` and `List<T>` are two entries with one name.
 func TestTypeIDNameIsReadable(t *testing.T) {
 	model := lower(t, `
 alias A = [string]
@@ -701,8 +675,7 @@ alias C = {string -> [string]}
 	}
 }
 
-// Interning keys use argument indices, so two types that differ only in an
-// argument's written form stay apart.
+// Two types differing only in an argument's written form stay apart.
 func TestInterningDistinguishesArgumentForms(t *testing.T) {
 	model := lower(t, `
 alias A = Set<[string]>
@@ -716,8 +689,7 @@ alias B = Set<List<string>>
 	}
 }
 
-// The prelude is replaceable: `[T]` means whatever the loaded prelude says
-// `List` is, and nothing in lowering knows more than the spelling.
+// `[T]` means whatever the loaded prelude says `List` is.
 func TestPreludeIsReplaceable(t *testing.T) {
 	file, err := parser.Parse("test.tdl", strings.NewReader(`type V { items: [string] }`))
 	if err != nil {
@@ -748,7 +720,6 @@ primitive Nullable: type -> type
 	}
 }
 
-// A file may declare a name the prelude already has, and its own wins.
 func TestFileShadowsPrelude(t *testing.T) {
 	model := lower(t, `
 primitive string
@@ -762,8 +733,8 @@ type Shadowed { s: string }
 	}
 }
 
-// A qualified reference carries the dependency's package, and the
-// declaration is not inlined.
+// A qualified reference carries the dependency's package and is not
+// inlined.
 func TestCrossPackageReference(t *testing.T) {
 	file, err := parser.Parse("main.tdl", strings.NewReader(`
 package shop
@@ -800,14 +771,12 @@ type Order { ship: common.Address }
 		t.Errorf("extern = %+v", ext)
 	}
 
-	// Not inlined: the dependency's declaration is not in this table.
 	if _, _, ok := model.FindDecl("Address"); ok {
 		t.Error("the dependency's declaration was inlined")
 	}
 }
 
-// A `_` import merges the dependency's exported names, so it has to know
-// what they are. Package-private names are not merged.
+// A `_` import merges the dependency's exported names only.
 func TestUnderscoreImportMerges(t *testing.T) {
 	file, err := parser.Parse("main.tdl", strings.NewReader(`
 import "common.tdl" as _
@@ -837,8 +806,7 @@ type Order { ship: Address }
 	}
 }
 
-// A primitive is always exported, whatever its case, so a `_` import
-// merges a lower-case primitive.
+// A primitive is exported whatever its case.
 func TestUnderscoreImportMergesPrimitive(t *testing.T) {
 	file, err := parser.Parse("main.tdl", strings.NewReader(`
 import "dep.tdl" as _
@@ -867,8 +835,7 @@ type Reading { count: int32 }
 	}
 }
 
-// A local primitive that repeats one a `_` import merges is a collision,
-// as it is for any other merged name.
+// A local primitive repeating one a `_` import merges is a collision.
 func TestUnderscoreImportPrimitiveCollides(t *testing.T) {
 	file, err := parser.Parse("main.tdl", strings.NewReader(`
 import "dep.tdl" as _
@@ -887,8 +854,7 @@ primitive int32
 	}
 }
 
-// A unit is always exported, whatever its case, so a `_` import merges a
-// lower-case unit and a type argument can name it.
+// A unit is exported whatever its case, and a type argument can name it.
 func TestUnderscoreImportMergesUnit(t *testing.T) {
 	file, err := parser.Parse("main.tdl", strings.NewReader(`
 import "dep.tdl" as _
@@ -921,8 +887,6 @@ type Length { value: decimal<m> }
 	}
 }
 
-// A lower-case declaration that is neither a primitive nor a unit is
-// package-private, so a `_` import does not merge it.
 func TestUnderscoreImportSkipsLowerCaseType(t *testing.T) {
 	file, err := parser.Parse("main.tdl", strings.NewReader(`
 import "dep.tdl" as _
@@ -968,7 +932,6 @@ func TestMissingImport(t *testing.T) {
 	}
 }
 
-// Two occurrences of one foreign declaration share an extern entry.
 func TestExternsAreInterned(t *testing.T) {
 	file, err := parser.Parse("main.tdl", strings.NewReader(`
 import "common.tdl" as common
@@ -1019,8 +982,7 @@ class Projection<from, to> | from -> to { }
 	}
 }
 
-// `instance C for T` is sugar for `instance C<T>`, so lowering normalizes
-// it and there is one form from here on.
+// `instance C for T` lowers to the same form as `instance C<T>`.
 func TestInstanceFormsNormalize(t *testing.T) {
 	model := lower(t, `
 class Auditable { createdAt: string }
@@ -1040,8 +1002,8 @@ instance Auditable for A
 	}
 }
 
-// Satisfaction comes from declared conformance and ground instances, and
-// closes over the classes a class requires.
+// Satisfaction comes from declared conformance and ground instances and
+// closes over required classes.
 func TestSatisfaction(t *testing.T) {
 	model := lower(t, `
 class Timestamped { createdAt: string }
@@ -1070,8 +1032,6 @@ instance Auditable<ByInstance>
 	}
 }
 
-// Including a mixin does not confer conformance: the spec says the two are
-// independent and conformance is nominal.
 func TestIncludeDoesNotConfer(t *testing.T) {
 	model := lower(t, `
 class Auditable { createdAt: string }
@@ -1085,8 +1045,7 @@ type Uses { include Stamps }
 	}
 }
 
-// A conditional instance stands for a family of types rather than one, so
-// it is recorded but does not name a satisfying declaration.
+// A conditional instance is recorded but names no satisfying declaration.
 func TestConditionalInstanceNotIndexed(t *testing.T) {
 	model := lower(t, `
 class Auditable { createdAt: string }
@@ -1139,9 +1098,8 @@ type Uses { include Outer c: string }
 	}
 }
 
-// `include` copies a field, and a field's constraints and default are part of
-// it, so a backend checking the including declaration sees what the mixin
-// declared, however many mixins it passed through.
+// `include` copies a field's constraints and default through any number
+// of mixins.
 func TestIncludeCopiesConstraintsAndDefaults(t *testing.T) {
 	model := lower(t, `
 mixin Audited { note: string where { length(1..280) } = "none" }
@@ -1175,8 +1133,7 @@ type Uses { include NotAMixin }
 	}
 }
 
-// A `requires` clause says nothing checkable until a type is instantiated,
-// so the diagnostic points at the use site.
+// The diagnostic points at the use site.
 func TestRequiresCheckedAtUse(t *testing.T) {
 	diags := lowerDiags(t, `
 class Auditable { createdAt: string }
@@ -1198,8 +1155,7 @@ type Holder { e: Envelope<Audited> }
 `)
 }
 
-// An argument that is still a parameter is not checked here: whether it
-// satisfies anything is the outer instantiation's business.
+// An argument that is still a parameter is not checked.
 func TestRequiresDefersToOuterInstantiation(t *testing.T) {
 	lower(t, `
 class Auditable { createdAt: string }
@@ -1225,8 +1181,8 @@ func contains(names []string, want string) bool {
 	return false
 }
 
-// A conditional instance makes an instantiated type satisfy a class, which
-// a declaration cannot stand in for: `Page` satisfies nothing on its own.
+// An instantiated type satisfies a class through a conditional instance;
+// `Page` alone satisfies nothing.
 func TestConditionalInstanceSearch(t *testing.T) {
 	model := lower(t, `
 class Auditable { createdAt: string }
@@ -1256,7 +1212,7 @@ type Uses {
 	}
 }
 
-// The search recurses: a page of pages of auditable things is auditable.
+// A page of pages of auditable things is auditable.
 func TestConditionalInstanceNests(t *testing.T) {
 	model := lower(t, `
 class Auditable { createdAt: string }
@@ -1278,8 +1234,6 @@ type Uses { nested: Page<Page<Audited>> }
 	}
 }
 
-// A `requires` clause is discharged through the search, so an instantiated
-// argument satisfies it.
 func TestRequiresThroughConditionalInstance(t *testing.T) {
 	lower(t, `
 class Auditable { createdAt: string }
@@ -1293,8 +1247,8 @@ type Holder { e: Envelope<Page<Audited>> }
 `)
 }
 
-// The spec's two rules are checked where the instance is written, not
-// where it is used.
+// The spec's instance head rules are checked where the instance is
+// written.
 func TestInstanceHeadMustBeAConstructor(t *testing.T) {
 	diags := lowerDiags(t, `
 class Auditable { createdAt: string }
@@ -1380,7 +1334,7 @@ type Capped: string where { length(..64) }
 	}
 }
 
-// The standard names are checked; everything else is passed through.
+// The standard constraint names are checked; others pass through.
 func TestStandardConstraintChecking(t *testing.T) {
 	tests := []struct{ src, want string }{
 		{`type W: string where { unique(1) }`, "unique takes 0 arguments"},
@@ -1399,8 +1353,7 @@ func TestStandardConstraintChecking(t *testing.T) {
 	}
 }
 
-// A newtype narrows its parent and never replaces it, so the accumulated
-// set is what a backend reads and the origin is what explains it.
+// A newtype's constraints accumulate its parent's, each with its origin.
 func TestConstraintAccumulation(t *testing.T) {
 	model := lower(t, `
 type Email: string where { length(3..254) }
@@ -1426,8 +1379,7 @@ type SeniorEmail: WorkEmail where { unique }
 	}
 }
 
-// A name default denotes an enum variant, and which enum is the field's
-// type, so nothing before now could check it.
+// A name default must be a variant of the field's enum type.
 func TestNameDefaults(t *testing.T) {
 	model := lower(t, `
 enum Status { Draft Placed }
@@ -1459,9 +1411,7 @@ func TestBadNameDefaults(t *testing.T) {
 	}
 }
 
-// A name in a constraint argument denotes an enum variant the same way a
-// default does, so lowering resolves it once rather than every backend
-// resolving it again.
+// A name in a constraint argument resolves to an enum variant.
 func TestNameConstraintArgs(t *testing.T) {
 	model := lower(t, `
 enum Status { Draft Placed }
@@ -1553,8 +1503,7 @@ target go for p {
 	}
 }
 
-// A path naming a class applies to everything satisfying it, which is what
-// lets a rule be written once rather than repeated per type.
+// A path naming a class applies to everything satisfying it.
 func TestClassPathExpands(t *testing.T) {
 	model := lower(t, `
 class Auditable { createdAt: string }
@@ -1584,8 +1533,8 @@ target sql for p {
 	}
 }
 
-// The ladder: a directive on a field beats one on its type, and a subclass
-// beats a class it requires.
+// A directive on a field beats one on its type, and a subclass beats a
+// class it requires.
 func TestSpecificityLadder(t *testing.T) {
 	model := lower(t, `
 class Base { x: string }
@@ -1607,8 +1556,7 @@ target go for p {
 	}
 }
 
-// A path reaches an enum's variant and a field of that variant, which is
-// where a backend numbering a sum type reads its numbers from.
+// A path reaches an enum's variant and a field of that variant.
 func TestVariantDirectivesAttach(t *testing.T) {
 	model := lower(t, `
 enum Payment {
@@ -1645,9 +1593,8 @@ target proto for p {
 	}
 }
 
-// Two entries at the same specificity both survive lowering, in source
-// order. Whether a directive may be set twice is the backend's to say, so
-// gen.CheckDirectives reports the tie, not sema.
+// Both entries survive, in source order; gen.CheckDirectives reports the
+// tie.
 func TestEqualSpecificityKeepsEveryCandidate(t *testing.T) {
 	model := lower(t, `
 class One { x: string }
@@ -1699,8 +1646,6 @@ func TestTargetForAnotherPackage(t *testing.T) {
 	}
 }
 
-// A directive name may be a reserved word: the namespace belongs to the
-// backend.
 func TestDirectiveNameMayBeAKeyword(t *testing.T) {
 	model := lower(t, `target go for p { package("github.com/acme/x") }`)
 
@@ -1709,16 +1654,8 @@ func TestDirectiveNameMayBeAKeyword(t *testing.T) {
 	}
 }
 
-// hops reports the shortest `requires` chain, so a class reachable by two
-// routes is measured by the shorter one. The walk marks the path it is on
-// rather than everything it has ever seen: sharing one set across sibling
-// branches lets the first, longer route claim a class and the shorter one
-// then find it already taken.
-//
-// Here Top reaches Root at four steps through Long and at three through
-// Short, and Long is written first. classDistance turns the answer into
-// directive specificity, so a long answer is a directive winning that
-// should not.
+// Top reaches Root in four steps through Long, written first, and in three
+// through Short.
 func TestHopsTakesTheShortestRequiresChain(t *testing.T) {
 	model := lower(t, `
 class Root { }
@@ -1743,10 +1680,7 @@ class Top: Long, Short { }`)
 	}
 }
 
-// A modifier on a named reference makes it a type reference, whatever the
-// name resolves to. Reading `kg?` as a bare unit drops the `?` and interns
-// the same entry a plain `kg` reaches, so the two spellings would become
-// one type.
+// `kg?` is a type reference and does not intern the same entry as `kg`.
 func TestModifiedUnitNameIsNotABareUnit(t *testing.T) {
 	model := lower(t, `
 primitive decimal
@@ -1763,9 +1697,8 @@ type W {
 	}
 }
 
-// A target path may name a declaration a `_` import merged in. The name is
-// an extern rather than a declaration, so the directive is carried on the
-// extern entry, where a backend mapping the foreign type reads it.
+// A directive on a path naming a `_`-merged declaration is carried on the
+// extern entry.
 func TestTargetPathNamesUnderscoreImport(t *testing.T) {
 	file, err := parser.Parse("main.tdl", strings.NewReader(`
 package shop

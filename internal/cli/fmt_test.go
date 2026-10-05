@@ -6,8 +6,7 @@ import (
 	"testing"
 )
 
-// Formatting must not widen a file's permissions. The mode a file is
-// stored with is the author's decision, not the formatter's.
+// Formatting keeps a file's permissions.
 func TestWriteFormattedKeepsMode(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "types.tdl")
 	if err := os.WriteFile(path, []byte("primitive string\n"), 0o600); err != nil {
@@ -42,9 +41,7 @@ func TestWriteFormattedCreatesMissingFile(t *testing.T) {
 		t.Fatalf("writeFormatted: %v", err)
 	}
 
-	// The mode a new file gets is 0644 narrowed by the umask, so the
-	// expectation is read from a file created the same way rather than
-	// written down.
+	// A new file's mode depends on the umask, so read it from one.
 	reference := filepath.Join(filepath.Dir(path), "reference.tdl")
 	if err := os.WriteFile(reference, nil, 0o644); err != nil {
 		t.Fatalf("writing the reference: %v", err)
@@ -54,7 +51,6 @@ func TestWriteFormattedCreatesMissingFile(t *testing.T) {
 	}
 }
 
-// mode is the permission bits of path.
 func mode(t *testing.T, path string) os.FileMode {
 	t.Helper()
 	info, err := os.Stat(path)
@@ -64,8 +60,7 @@ func mode(t *testing.T, path string) os.FileMode {
 	return info.Mode().Perm()
 }
 
-// --check lists the files that need formatting and exits non-zero, and
-// says nothing about the ones that do not.
+// --check lists only the files that need formatting and exits non-zero.
 func TestFmtCheckListsOnlyStaleFiles(t *testing.T) {
 	dir := t.TempDir()
 	canonical := filepath.Join(dir, "canonical.tdl")
@@ -78,8 +73,7 @@ func TestFmtCheckListsOnlyStaleFiles(t *testing.T) {
 	}
 
 	cmd := newFmtCmd()
-	// The root command is what silences these; a command run on its own
-	// would otherwise print its usage over the output under test.
+	// The root command normally silences these.
 	cmd.SilenceUsage, cmd.SilenceErrors = true, true
 	out, errOut := captureCmd(cmd)
 	cmd.SetArgs([]string{"--check", canonical, messy})
@@ -94,7 +88,7 @@ func TestFmtCheckListsOnlyStaleFiles(t *testing.T) {
 		t.Errorf("expected nothing on stderr, got %q", errOut)
 	}
 
-	// The check must write nothing: the messy file is still messy.
+	// The check writes nothing.
 	data, err := os.ReadFile(messy)
 	if err != nil {
 		t.Fatalf("reading back: %v", err)

@@ -6,11 +6,8 @@ import (
 	"strings"
 )
 
-// Dump renders a model as an indented tree, one node per line: the output
-// of `tdl ir`.
-//
-// It matches the conventions of `tdl ast`, so the two can be read side by
-// side to see what resolution did.
+// Dump renders a model as an indented tree, one node per line, in the
+// conventions of `tdl ast`. It is the output of `tdl ir`.
 func Dump(m *Model) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Model %s\n", m.GetPackage())
@@ -286,8 +283,7 @@ func (d *dumper) classRef(r *ClassRef) string {
 	return name + d.args(r.GetArgs())
 }
 
-// args renders a `<...>` argument list through the table, or nothing for
-// a name applied to none.
+// args renders a `<...>` argument list through the table, or "" for none.
 func (d *dumper) args(ids []*ID) string {
 	if len(ids) == 0 {
 		return ""
@@ -318,8 +314,7 @@ func (d *dumper) typeLine(index int, t *Type) string {
 	return fmt.Sprintf("[%d] %s  %s  %s", index, d.render(t), form(t.GetWrote()), origin)
 }
 
-// ref renders a type by index and by what it says, so a field line reads
-// without chasing the table.
+// ref renders a type by index and expanded.
 func (d *dumper) ref(id *ID) string {
 	if !id.Resolved() {
 		return "?"
@@ -327,8 +322,7 @@ func (d *dumper) ref(id *ID) string {
 	return fmt.Sprintf("types[%d] %s", id.GetIndex(), d.render(d.model.Type(id)))
 }
 
-// unitRef renders a unit by index and by what it reduces to, so a line
-// reads without chasing the table. It is `ref` for the other one.
+// unitRef renders a unit by index and by what it reduces to.
 func (d *dumper) unitRef(id *ID) string {
 	if !id.Resolved() {
 		return "?"
@@ -359,8 +353,8 @@ func (d *dumper) render(t *Type) string {
 	return name + d.args(t.GetArgs())
 }
 
-// constraintText renders a constraint, noting the newtype it came from
-// when it was inherited rather than written here.
+// constraintText renders a constraint, noting the newtype it was
+// inherited from.
 func constraintText(c *Constraint) string {
 	text := c.GetName()
 	if len(c.GetArgs()) > 0 {
@@ -478,9 +472,8 @@ func pad(last bool) string {
 	return "│   "
 }
 
-// dimsText renders reduced dimensions as a product, `kg*m/s^2` written the
-// way the source would have written it: positive exponents first, negative
-// ones after a slash, and an exponent of one left off.
+// dimsText renders reduced dimensions such as `kg*m/s^2`: positive
+// exponents first, negative ones after a slash, an exponent of one omitted.
 func dimsText(u *Unit) string {
 	if u == nil {
 		return "?"
@@ -492,9 +485,7 @@ func dimsText(u *Unit) string {
 	var num, den []string
 	for _, dim := range u.GetDims() {
 		exp := int(dim.GetExponent())
-		// An ID carries a name for exactly this: something to print. A
-		// hand-built model may leave it out, and `?^2` reads as a gap
-		// where a bare `^2` reads as a bug in the renderer.
+		// A hand-built model may leave the name out.
 		name := dim.GetBase().GetName()
 		if name == "" {
 			name = "?"

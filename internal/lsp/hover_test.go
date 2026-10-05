@@ -6,8 +6,6 @@ import (
 	"testing"
 )
 
-// TestHover is the feature: a cursor on a name shows the declaration it
-// refers to in canonical form, then its deprecation, then its doc comment.
 func TestHover(t *testing.T) {
 	const src = "package p\n\n" +
 		"primitive string\n\n" +
@@ -64,8 +62,8 @@ func TestHover(t *testing.T) {
 	}
 }
 
-// TestHoverCrossesAnImport describes a declaration in a file the editor
-// does not have open, which the server reads from disk.
+// TestHoverCrossesAnImport describes a declaration in a file that is not
+// open.
 func TestHoverCrossesAnImport(t *testing.T) {
 	dir := t.TempDir()
 	dep := filepath.Join(dir, "common.tdl")

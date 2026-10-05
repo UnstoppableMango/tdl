@@ -20,8 +20,8 @@ var buildOnce struct {
 	err error
 }
 
-// pluginDir builds every backend tdl ships as a plugin and returns the
-// directory holding them, so a test can put it on PATH.
+// pluginDir builds every shipped backend as a plugin and returns the
+// directory holding them.
 func pluginDir(t *testing.T) string {
 	t.Helper()
 
@@ -78,8 +78,7 @@ func TestFindReportsAMissingPlugin(t *testing.T) {
 	}
 }
 
-// A plugin that dies before answering leaves a read error describing a
-// pipe; its stderr is usually the actual answer, so it is attached.
+// A plugin that dies before answering has its stderr attached to the error.
 func TestPluginThatDies(t *testing.T) {
 	dir := t.TempDir()
 	script := filepath.Join(dir, gen.CommandPrefix+"dies")
@@ -105,8 +104,6 @@ func TestPluginThatDies(t *testing.T) {
 	}
 }
 
-// A plugin that refuses the handshake fails with both versions named,
-// rather than silently ignoring what it cannot read.
 func TestPluginThatRefuses(t *testing.T) {
 	dir := t.TempDir()
 	script := filepath.Join(dir, gen.CommandPrefix+"refuses")
@@ -138,8 +135,7 @@ func goBin(t *testing.T) string {
 	return path
 }
 
-// refuserPath writes a plugin that always refuses, since a real backend
-// has no reason to.
+// refuserPath writes a plugin that always refuses the handshake.
 func refuserPath(t *testing.T) string {
 	t.Helper()
 

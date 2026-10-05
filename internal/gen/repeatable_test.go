@@ -12,8 +12,7 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// twoReserved sets reserved twice at one specificity: both entries are in
-// the Widget scope.
+// twoReserved sets reserved twice at one specificity.
 const twoReserved = `package p
 
 type Widget { id: string }
@@ -89,8 +88,8 @@ func TestUnrepeatableDirectiveTiedIsAnError(t *testing.T) {
 	}
 }
 
-// twoClassRules reaches Ent through two classes it satisfies at the same
-// distance, so both entries tie.
+// twoClassRules reaches Ent through two classes at the same distance, so
+// both entries tie.
 const twoClassRules = `package p
 
 class One { x: string }
@@ -126,8 +125,7 @@ func TestUnrepeatableDirectiveTiedThroughClassesIsAnError(t *testing.T) {
 	}
 }
 
-// A directive the backend does not declare cannot be repeatable, so a tie
-// on it is an error on top of the undeclared warning.
+// A tie on an undeclared directive is an error as well as a warning.
 func TestUndeclaredDirectiveTiedIsAnError(t *testing.T) {
 	model := lowerClean(t, twoReserved)
 
@@ -142,7 +140,6 @@ func TestUndeclaredDirectiveTiedIsAnError(t *testing.T) {
 	}
 }
 
-// depLoader serves the one dependency twoExternRules imports.
 type depLoader struct{}
 
 func (depLoader) Load(_, path string) (string, string, error) {
@@ -152,8 +149,7 @@ func (depLoader) Load(_, path string) (string, string, error) {
 	return path, "package dep\ntype Money { units: int }\n", nil
 }
 
-// twoExternRules sets rule twice on a declaration a `_` import merged in,
-// both at the specificity of a path naming it.
+// twoExternRules sets rule twice on a declaration a `_` import merged in.
 const twoExternRules = `package p
 
 import "dep.tdl" as _
@@ -166,8 +162,7 @@ target t for p {
 }
 `
 
-// An extern's directives follow the same rule as a declaration's: lowering
-// keeps both tied entries, and the backend's spec decides whether a tie is
+// An extern keeps both tied entries, and the spec decides whether a tie is
 // an error.
 func TestTiedDirectiveOnAnExtern(t *testing.T) {
 	file, err := parser.Parse("test.tdl", strings.NewReader(twoExternRules))

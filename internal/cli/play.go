@@ -19,8 +19,7 @@ import (
 	"github.com/unstoppablemango/tdl/parser"
 )
 
-// scratchTemplate seeds a new playground file with one of everything the
-// parser reads today, so there is something to twist immediately.
+// scratchTemplate seeds a new playground file with one of each construct.
 const scratchTemplate = `package scratch
 
 primitive string
@@ -48,7 +47,7 @@ target go for scratch {
 }
 `
 
-// playViews are the panes tdl play can render, in the order they appear.
+// playViews are the panes tdl play can render, in display order.
 var playViews = []string{"source", "fmt", "ast", "tokens", "stats"}
 
 func newPlayCmd() *cobra.Command {
@@ -107,7 +106,7 @@ func newPlayCmd() *cobra.Command {
 }
 
 // resolveViews validates the requested view names and returns them in
-// canonical order, so --views output is stable regardless of flag order.
+// canonical order.
 func resolveViews(requested []string) ([]string, error) {
 	want := map[string]bool{}
 	for _, v := range requested {
@@ -138,8 +137,7 @@ func resolveViews(requested []string) ([]string, error) {
 }
 
 // seedScratch writes the starter template when the playground file does
-// not exist. An explicitly named file that is missing is an error rather
-// than an invitation to create it.
+// not exist. A missing file named explicitly is an error.
 func seedScratch(path string, explicit bool) error {
 	if _, err := os.Stat(path); err == nil {
 		return nil
@@ -153,8 +151,7 @@ func seedScratch(path string, explicit bool) error {
 }
 
 // watch polls path and re-renders whenever its contents change, until ctx
-// is cancelled. Polling keeps the playground dependency-free and is
-// plenty responsive at human typing speed.
+// is cancelled.
 func watch(ctx context.Context, out io.Writer, path string, views []string, interval time.Duration, clear bool) error {
 	var last []byte
 	first := true
@@ -189,7 +186,6 @@ func watch(ctx context.Context, out io.Writer, path string, views []string, inte
 	}
 }
 
-// render writes every selected view for src to out.
 func render(out io.Writer, path, src string, views []string) {
 	file, parseErr := parser.Parse(path, strings.NewReader(src))
 
@@ -229,7 +225,6 @@ func section(out io.Writer, name string) {
 	fmt.Fprintf(out, "\n── %s %s\n\n", name, strings.Repeat("─", max(0, 60-len(name))))
 }
 
-// numberLines prefixes each line of src with its 1-based line number.
 func numberLines(src string) string {
 	lines := strings.Split(strings.TrimRight(src, "\n"), "\n")
 	width := len(strconv.Itoa(len(lines)))
@@ -241,8 +236,8 @@ func numberLines(src string) string {
 	return b.String()
 }
 
-// annotateErrors renders each parse error with the offending source line
-// and a caret under the reported column.
+// annotateErrors renders each parse error with its source line and a caret
+// under the column.
 func annotateErrors(src string, err error) string {
 	var list parser.ErrorList
 	if !errors.As(err, &list) {
@@ -263,8 +258,7 @@ func annotateErrors(src string, err error) string {
 	return b.String()
 }
 
-// stats summarizes the shape of a parsed file: enough numbers to feel the
-// difference between two ways of modelling the same data.
+// stats counts the declarations and members in a parsed file.
 func stats(file *ast.File) string {
 	var primitives, types, mixins, enums, newtypes, aliases, targets int
 	var fields, optional, variants int

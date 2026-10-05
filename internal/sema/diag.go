@@ -17,12 +17,8 @@ func (d *Diagnostic) Error() string {
 	return fmt.Sprintf("%s: %s", d.Pos, d.Msg)
 }
 
-// Diagnostics is every problem one pass found.
-//
-// A pass reports all of them rather than stopping at the first, the way the
-// parser reports every syntax error. A non-empty list means no later pass
-// should run: every diagnostic it produced against a model this one
-// rejected would be noise.
+// Diagnostics is every problem one pass found. A non-empty list means no
+// later pass should run.
 type Diagnostics []*Diagnostic
 
 func (ds Diagnostics) Error() string {

@@ -8,19 +8,11 @@ import (
 )
 
 // expandIncludes copies a mixin's fields into the declarations that include
-// it.
-//
-// The copy runs after every declaration is lowered, so a mixin may be
-// included before it is declared and a mixin may include another. Each
-// copied field records the mixin it came from, so a backend that can
-// express the grouping does not have to reconstruct it.
-//
-// Including a mixin is not what makes a type satisfy a class. The spec says
-// the two are independent, and conformance is nominal and declared, so
-// nothing here touches the satisfaction index.
+// it, recording on each copy the mixin it came from. It runs after every
+// declaration is lowered, so a mixin may be included before it is declared.
+// Including a mixin does not confer class satisfaction.
 func (l *lowerer) expandIncludes(file *ast.File) {
-	// A mixin including a mixin has to be expanded before its own fields are
-	// copied onward, so declarations are visited in dependency order.
+	// Dependency order, so a mixin including a mixin is expanded first.
 	done := map[string]bool{}
 	for _, decl := range file.Decls {
 		l.expandInto(file, decl.Name(), done, map[string]bool{})
@@ -103,19 +95,11 @@ func (l *lowerer) includedMixin(inc *ast.Include) (*ir.Decl, *ir.ID, bool) {
 
 // buildSatisfaction computes, per class, the declarations that satisfy it.
 //
-// Satisfaction comes from two places and no others: a declaration that says
-// it conforms, and a standalone instance with concrete arguments.
-// Including a mixin does not confer it, because the spec says conformance
-// is nominal and declared.
-//
-// The result is closed over the classes a class requires: conforming to
-// Auditable when Auditable requires Timestamped means satisfying
-// Timestamped too.
-//
-// Conditional instances are recorded in the model but not expanded here.
-// Answering `Satisfying(Auditable)` for `Page<Order>` given
-// `instance <T> Auditable<Page<T>> requires Auditable<T>` is a search, and
-// it has a phase of its own.
+// Satisfaction comes only from a declaration that says it conforms and from
+// a standalone instance with concrete arguments. The result is closed over
+// the classes a class requires: conforming to Auditable when Auditable
+// requires Timestamped means satisfying Timestamped too. Conditional
+// instances are left to searchSatisfaction.
 func (l *lowerer) buildSatisfaction() {
 	direct := map[int32]map[int32]bool{}
 
@@ -137,9 +121,7 @@ func (l *lowerer) buildSatisfaction() {
 	}
 
 	for _, inst := range l.model.GetInstances() {
-		// A conditional instance has parameters and stands for a family of
-		// types rather than one, so it does not name a satisfying
-		// declaration.
+		// A conditional instance names no single satisfying declaration.
 		if len(inst.GetParams()) > 0 || len(inst.GetRequires()) > 0 {
 			continue
 		}
@@ -152,10 +134,7 @@ func (l *lowerer) buildSatisfaction() {
 		}
 	}
 
-	// Every class gets an entry, not only the ones something conforms to
-	// directly: a class nothing names may still be satisfied through a class
-	// that requires it, and a backend asking about it deserves an answer
-	// rather than a missing key.
+	// Every class gets an entry, even one nothing conforms to directly.
 	for i, decl := range l.model.GetDecls() {
 		if decl.GetClass() == nil {
 			continue
@@ -217,9 +196,8 @@ func (l *lowerer) hops(from *ir.ID, to int32, depth int, seen map[int32]bool) in
 		return depth
 	}
 
-	// seen marks the path being walked and not everything ever walked: a
-	// sibling branch may reach the same class in fewer steps, and a shared
-	// set would prune the shorter route and report the longer one.
+	// seen marks the current path only; a sibling branch may reach the
+	// same class in fewer steps.
 	seen[from.GetIndex()] = true
 	defer delete(seen, from.GetIndex())
 
@@ -244,16 +222,8 @@ func conformsOf(decl *ir.Decl) []*ir.ClassRef {
 }
 
 // checkConstraints reports a `requires` clause that an instantiation does
-// not satisfy.
-//
-// `type Envelope<T> requires Auditable<T>` says nothing checkable until
-// someone writes `Envelope<Order>`, so the check happens at the use site
-// and the diagnostic points there.
-//
-// An argument that is itself a parameter is not checked: whether it
-// satisfies anything depends on the outer instantiation, and checking it
-// here would reject `type Outer<T> requires Auditable<T> { e: Envelope<T> }`
-// which is exactly what the constraint is for.
+// not satisfy, at the use site such as `Envelope<Order>`. An argument that
+// is itself a parameter is not checked; the outer instantiation decides.
 func (l *lowerer) checkConstraints() {
 	for _, use := range l.model.GetTypes() {
 		decl := l.model.Decl(use.GetCtor())
@@ -275,8 +245,6 @@ func (l *lowerer) checkConstraint(use *ir.Type, params []*ir.Param, want *ir.Cla
 			continue // a parameter, or something that did not resolve
 		}
 
-		// A concrete argument answers from the ground index; an instantiated
-		// one, as in `Envelope<Page<Order>>`, needs the search.
 		if l.satisfiesType(want.GetClass(), subject, 0) {
 			continue
 		}
@@ -286,8 +254,7 @@ func (l *lowerer) checkConstraint(use *ir.Type, params []*ir.Param, want *ir.Cla
 }
 
 // substitute maps a constraint argument through an instantiation: given
-// `Envelope<Order>` and the constraint argument `T`, it returns the type ID
-// standing in for `T`.
+// `Envelope<Order>` and `T`, it returns the ID of `Order`.
 func (l *lowerer) substitute(use *ir.Type, params []*ir.Param, arg *ir.ID) *ir.ID {
 	ty := l.model.Type(arg)
 	if ty == nil {
@@ -309,8 +276,7 @@ func (l *lowerer) substitute(use *ir.Type, params []*ir.Param, arg *ir.ID) *ir.I
 	return actual
 }
 
-// satisfies reports whether a declaration satisfies a class, reading the
-// index rather than reasoning about instances.
+// satisfies reports whether a declaration satisfies a class, by the index.
 func (l *lowerer) satisfies(class, decl *ir.ID) bool {
 	if !class.Resolved() || !decl.Resolved() {
 		return true // unresolved names are already reported

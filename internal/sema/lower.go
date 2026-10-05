@@ -1,14 +1,7 @@
 // Package sema lowers a parse tree to the resolved semantic model in the ir
 // package: it resolves names, lowers sugar to prelude types, and interns
-// type references.
-//
-// It is private and free to change. `ir` and `proto` are the compatibility
-// surface, not this.
-//
-// See docs/design/ir-plan.md for what each pass adds: the declaration
-// table, the interned type and unit tables, scopes and shadowing, the
-// recursion rules, imports, classes and instances, constraints, and
-// targets.
+// type references. It is private and free to change; see
+// docs/design/ir-plan.md for what each pass adds.
 package sema
 
 import (
@@ -20,9 +13,7 @@ import (
 	"github.com/unstoppablemango/tdl/prelude"
 )
 
-// The names sugar lowers to. Lowering knows the spellings because the
-// grammar has the sugar; it does not know what they mean, which is why the
-// prelude declares them and a replacement may declare them differently.
+// The names sugar lowers to. The prelude declares what they mean.
 const (
 	preludeList     = "List"
 	preludeSet      = "Set"
@@ -43,8 +34,7 @@ type config struct {
 }
 
 // WithPrelude lowers against the given prelude source instead of the
-// embedded one. Pointing at a replacement is what makes the prelude
-// replaceable rather than built in.
+// embedded one.
 func WithPrelude(name, src string) Option {
 	return func(c *config) {
 		c.preludeName, c.preludeSrc = name, src
@@ -52,18 +42,16 @@ func WithPrelude(name, src string) Option {
 }
 
 // WithLoader supplies the [Loader] that reads imported files. Without one,
-// a file that imports anything is a diagnostic rather than a filesystem
-// read nobody asked for.
+// any import is a diagnostic.
 func WithLoader(l Loader) Option {
 	return func(c *config) { c.loader = l }
 }
 
-// Lower turns a parsed file into a model. It returns the model and every
-// diagnostic the pass produced; a non-empty diagnostic list means the model
-// is incomplete and no later pass should run against it.
+// Lower turns a parsed file into a model and every diagnostic the pass
+// produced. A non-empty diagnostic list means the model is incomplete.
 //
-// The prelude is loaded into an outer scope, so a file may declare a name
-// the prelude already has and its own declaration wins.
+// The prelude is loaded into an outer scope, so a file's declaration
+// shadows a prelude name.
 func Lower(file *ast.File, opts ...Option) (*ir.Model, Diagnostics) {
 	cfg := config{preludeName: prelude.Name, preludeSrc: prelude.Source}
 	for _, opt := range opts {
@@ -81,21 +69,16 @@ func Lower(file *ast.File, opts ...Option) (*ir.Model, Diagnostics) {
 	l.file = newScope(l.loadPrelude(cfg))
 	l.scope = l.file
 
-	// Recording starts after the prelude, which is lowered through this
-	// same lowerer: the names inside prelude.tdl resolve against a file
-	// nobody is editing, and an index of them is noise an editor would
-	// search through on every request.
+	// Recording starts after the prelude, so its references are not indexed.
 	l.refs = cfg.refs
 	if file.Package != nil {
 		l.model.Package = file.Package.Path
 	}
 
-	// Imports are walked before the file's own declarations, so a `_`
-	// import's names are in scope by the time anything refers to them.
+	// Imports come first, so a `_` import's names are in scope.
 	l.loadImports(file)
 
-	// Declarations are collected before anything is lowered, so a reference
-	// to a declaration further down the file resolves like one above it.
+	// Collecting first lets a reference resolve a declaration below it.
 	l.collect(file)
 	l.lowerUnits(file)
 	l.lower(file)
@@ -117,12 +100,8 @@ func Lower(file *ast.File, opts ...Option) (*ir.Model, Diagnostics) {
 }
 
 // loadPrelude parses and lowers the prelude into the model, returning the
-// scope its declarations bind in. That scope is the parent of the file's,
-// so a file may shadow a prelude name.
-//
-// The prelude's declarations are merged untagged: to a backend they are
-// declarations like any other, which is what lets a replacement prelude
-// change what a collection is without every backend learning about it.
+// scope its declarations bind in, the parent of the file's. Its
+// declarations are merged untagged, so a backend sees them as any other.
 func (l *lowerer) loadPrelude(cfg config) *scope {
 	if cfg.preludeSrc == "" {
 		return nil
@@ -157,15 +136,10 @@ type lowerer struct {
 
 // collect fills the declaration table with an empty entry per declaration,
 // so every name in the file is known before any type reference is resolved.
-//
-// Only declarations that introduce a type name are bound. An instance is
-// not named, it names the class it is about, and a target block names a
-// backend rather than a type; both live in tables of their own and neither
-// belongs in the type namespace.
 func (l *lowerer) collect(file *ast.File) {
 	for i, decl := range file.Decls {
 		if !namesAType(decl) {
-			continue // instances and targets have tables of their own
+			continue
 		}
 		name := decl.Name()
 		idx := int32(len(l.model.Decls))
@@ -181,10 +155,8 @@ func (l *lowerer) collect(file *ast.File) {
 	}
 }
 
-// namesAType reports whether a declaration introduces a name other
-// declarations can refer to. An instance names the class it is about and a
-// target block names a backend; neither belongs in the type namespace, and
-// both have tables of their own.
+// namesAType reports whether a declaration binds a name in the type
+// namespace. Instances and target blocks have tables of their own.
 func namesAType(decl ast.Decl) bool {
 	switch decl.(type) {
 	case *ast.InstanceDecl, *ast.TargetDecl:
@@ -210,15 +182,13 @@ func (l *lowerer) lower(file *ast.File) {
 	}
 }
 
-// declID returns the ID of a declaration by name, for use as a parameter's
-// owner. Every name here has already been collected.
+// declID returns the ID of a collected declaration by name.
 func (l *lowerer) declID(name string) *ir.ID {
 	b, _ := l.file.lookup(name)
 	return b.id
 }
 
-// inScope lowers within a scope and restores the previous one, so a
-// declaration's type parameters are visible in its body and nowhere else.
+// inScope lowers within a scope and restores the previous one.
 func (l *lowerer) inScope(s *scope, f func()) {
 	prev := l.scope
 	l.scope = s
@@ -226,8 +196,7 @@ func (l *lowerer) inScope(s *scope, f func()) {
 	l.scope = prev
 }
 
-// setNode fills in the oneof. The generated interface behind it is
-// unexported, so the wrapper is assigned here rather than returned.
+// setNode fills in the oneof, whose generated interface is unexported.
 func (l *lowerer) setNode(out *ir.Decl, decl ast.Decl) {
 	switch d := decl.(type) {
 	case *ast.PrimitiveDecl:
@@ -284,8 +253,7 @@ func (l *lowerer) setNode(out *ir.Decl, decl ast.Decl) {
 		})
 
 	case *ast.UnitDecl:
-		// Already lowered by lowerUnits, which runs first because file order
-		// is not resolution order for units.
+		// Already lowered by lowerUnits.
 	}
 }
 
@@ -299,8 +267,7 @@ func structKind(keyword string) ir.StructKind {
 }
 
 // markEntities makes an entity of every value satisfying the prelude's
-// Entity. Conformance may come from an instance anywhere in the package, so
-// this reads the satisfaction index rather than the declaration.
+// Entity, reading the satisfaction index so an instance counts.
 func (l *lowerer) markEntities() {
 	b, ok := l.file.parent.lookup(preludeEntity)
 	if !ok || b.kind != bindDecl {
@@ -319,14 +286,12 @@ func (l *lowerer) fields(members []ast.Member) []*ir.Field {
 		if f, ok := m.(*ast.Field); ok {
 			in = append(in, f)
 		}
-		// `include` is expanded in phase 6, alongside class satisfaction.
+		// `include` is expanded by expandIncludes.
 	}
 	return l.variantFields(in)
 }
 
-// variantFields lowers a field list, reporting a name used twice. Field
-// names share one namespace per body, so the check is the same wherever
-// fields appear.
+// variantFields lowers a field list, reporting a name used twice.
 func (l *lowerer) variantFields(in []*ast.Field) []*ir.Field {
 	seen := map[string]ast.Position{}
 	var fields []*ir.Field

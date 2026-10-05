@@ -8,10 +8,8 @@ import (
 	"github.com/unstoppablemango/tdl/ir"
 )
 
-// standard describes the constraints the spec specifies. The set of names
-// is open, so this is what the compiler checks rather than what it allows:
-// a name that is not here passes through untouched, for a backend that
-// knows what it means.
+// standard describes the constraints the spec specifies. A name that is
+// not here passes through unchecked.
 var standard = map[string]struct {
 	min, max int // argument count; max -1 for any number
 	kinds    []ir.LiteralKind
@@ -42,7 +40,7 @@ func (l *lowerer) constraints(in []*ast.Constraint) []*ir.Constraint {
 }
 
 // checkStandard reports a standard constraint used with the wrong number or
-// kind of arguments. It says nothing about any other name.
+// kind of arguments.
 func (l *lowerer) checkStandard(src *ast.Constraint, c *ir.Constraint) {
 	spec, known := standard[c.GetName()]
 	if !known {
@@ -109,8 +107,7 @@ func (l *lowerer) literal(lit *ast.Literal) *ir.Literal {
 	return out
 }
 
-// bound parses one end of a range, which is absent when the range is open
-// on that side.
+// bound parses one end of a range, absent when that side is open.
 func (l *lowerer) bound(lit *ast.Literal) *int64 {
 	if lit == nil {
 		return nil

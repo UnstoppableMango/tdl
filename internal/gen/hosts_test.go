@@ -55,10 +55,8 @@ var shipped = []struct {
 	{backend: typescript.Backend{}, model: orderModel, packaged: true},
 }
 
-// The protocol's one real claim: a compiled-in backend and the same
-// backend as a subprocess produce the same thing. A plan that shipped only
-// the in-process path could state that and never check it, and a code
-// generator is where it would break first.
+// A compiled-in backend and the same backend as a subprocess produce the
+// same bytes.
 func TestHostsAgree(t *testing.T) {
 	onPath(t, pluginDir(t))
 
@@ -102,8 +100,7 @@ func TestHostsAgree(t *testing.T) {
 	}
 }
 
-// A description survives the wire, so tdl can check a target block against
-// what a plugin says it understands.
+// A description survives the wire.
 func TestDescribeOverTheWire(t *testing.T) {
 	onPath(t, pluginDir(t))
 
@@ -159,9 +156,7 @@ func TestEveryBuiltinHasARow(t *testing.T) {
 	}
 }
 
-// A backend that is compiled in but missing from the package still works
-// for `tdl gen`, and is absent for anyone who wanted it as a plugin, which
-// nothing else would notice.
+// Every packaged backend is listed in nix/cmd.nix's subPackages.
 func TestPackagedBackendsShip(t *testing.T) {
 	src, err := os.ReadFile("../../nix/cmd.nix")
 	if err != nil {
@@ -178,8 +173,7 @@ func TestPackagedBackendsShip(t *testing.T) {
 	}
 }
 
-// orderModel is a model with one keyed entity, enough for every backend to
-// generate a file from.
+// orderModel is a model with one keyed entity.
 func orderModel() *ir.Model {
 	return &ir.Model{
 		Package: "shop",
@@ -211,14 +205,10 @@ func orderModel() *ir.Model {
 	}
 }
 
-// goModel is [orderModel] with a generic struct added, so the Go row covers
-// both of the paths a declaration takes through that backend. It is the Go
-// backend's own because it is the only one that generates a parameterized
-// declaration rather than skipping it.
+// goModel is [orderModel] with a generic struct, a constraint, and a
+// foreign mapping, which only the Go backend generates.
 func goModel() *ir.Model {
 	m := orderModel()
-	// A check brings imports and a compiled pattern, which the pipe has to
-	// carry byte for byte too.
 	m.Decls[1].GetStructure().Fields[0].Constraints = []*ir.Constraint{{
 		Name: "matches",
 		Args: []*ir.Literal{{Kind: ir.LiteralKind_LITERAL_KIND_REGEX, Text: "^[a-z0-9-]+$"}},
@@ -235,8 +225,6 @@ func goModel() *ir.Model {
 	})
 	m.Types = append(m.Types, &ir.Type{Param: &ir.ParamRef{Name: "T"}})
 
-	// A foreign mapping brings an aliased import and no file of its own,
-	// which the pipe has to carry byte for byte too.
 	m.Decls = append(m.Decls, &ir.Decl{
 		Meta: &ir.Meta{Name: "Money", Position: &ir.Position{Filename: "shop.tdl"}},
 		Directives: []*ir.Directive{{
@@ -274,7 +262,6 @@ func compileProto(t *testing.T, f *plugin.File) {
 	}
 }
 
-// irText is a string literal, which a directive argument is.
 func irText(s string) *ir.Literal {
 	return &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_STRING, Text: s}
 }
@@ -290,8 +277,8 @@ func checkThrift(t *testing.T, f *plugin.File) {
 	}
 }
 
-// parseXML checks that Salesforce metadata is well formed. An Apex class
-// has no Go parser, so a .cls file is not checked.
+// parseXML checks that Salesforce metadata is well formed; Apex is not
+// checked.
 func parseXML(t *testing.T, f *plugin.File) {
 	t.Helper()
 	if !strings.HasSuffix(f.GetPath(), ".xml") {

@@ -5,11 +5,8 @@ import (
 	"path/filepath"
 )
 
-// Loader reads the source of an imported file.
-//
-// Lowering does not touch the filesystem itself, so a caller can supply
-// dependency roots, an in-memory tree, or a vendored directory without
-// lowering knowing about any of it.
+// Loader reads the source of an imported file. Lowering does not touch the
+// filesystem itself.
 type Loader interface {
 	// Load returns the resolved name of the file imported as path from the
 	// file at from, and its source.
@@ -17,7 +14,7 @@ type Loader interface {
 }
 
 // FSLoader resolves an import as a filesystem path relative to the file
-// that imports it, which is what the spec says a bare path means.
+// that imports it.
 type FSLoader struct{}
 
 func (FSLoader) Load(from, path string) (string, string, error) {

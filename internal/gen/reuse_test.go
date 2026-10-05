@@ -12,8 +12,6 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// A plugin that declared reuse serves several requests on one connection,
-// which is what makes a watch loop cheap.
 func TestSessionServesSeveralRequests(t *testing.T) {
 	onPath(t, pluginDir(t))
 
@@ -45,8 +43,8 @@ func TestSessionServesSeveralRequests(t *testing.T) {
 	}
 }
 
-// Reuse is opt-in. A backend that does not declare it gets a fresh
-// process per generation.
+// A backend that does not declare reuse gets a fresh process per
+// generation.
 func TestSessionWithoutReuse(t *testing.T) {
 	dir := t.TempDir()
 	script := filepath.Join(dir, gen.CommandPrefix+"once")
@@ -70,7 +68,6 @@ func TestSessionWithoutReuse(t *testing.T) {
 		t.Error("a backend that did not declare reuse was held open")
 	}
 
-	// It still works; it just costs a process each time.
 	for i := 0; i < 2; i++ {
 		if _, err := session.Generate(context.Background(), &plugin.Request{Target: "once"}); err != nil {
 			t.Fatalf("request %d: %v", i, err)
@@ -78,8 +75,7 @@ func TestSessionWithoutReuse(t *testing.T) {
 	}
 }
 
-// Developing a plugin should not mean killing the watch exercising it, so
-// a held connection is dropped when the binary underneath changes.
+// A held connection restarts when the binary underneath changes.
 func TestSessionRestartsOnANewBinary(t *testing.T) {
 	dir := t.TempDir()
 	binary := filepath.Join(dir, gen.CommandPrefix+debug.Name)
@@ -100,8 +96,7 @@ func TestSessionRestartsOnANewBinary(t *testing.T) {
 		t.Fatalf("first request: %v", err)
 	}
 
-	// Replace it. A connection to the old process would keep serving the
-	// old code with nothing to say it had.
+	// Replace it.
 	future := time.Now().Add(2 * time.Second)
 	if err := os.Chtimes(binary, future, future); err != nil {
 		t.Fatal(err)

@@ -4,27 +4,18 @@ import (
 	"github.com/unstoppablemango/tdl/ir"
 )
 
-// searchDepth bounds the conditional instance search.
-//
-// The spec's two rules on an instance are what make the search finite, and
-// they are checked at the declaration. This is a backstop for the case
-// where those checks and the search disagree: it turns a hang into a
-// diagnostic, and reaching it is a bug rather than a user error.
+// searchDepth bounds the conditional instance search. validateInstances
+// already makes the search finite, so reaching it is a bug.
 const searchDepth = 32
 
 // validateInstances enforces the spec's two rules on a conditional
-// instance, at the point of declaration rather than at use.
-//
-// An instance head must be a type constructor applied to distinct
-// parameters, and every constraint in the `requires` clause must be
-// structurally smaller than the head. Without the first, matching a head
-// is not a decidable pattern match; without the second, discharging a
-// condition can produce a goal no smaller than the one it came from, and
-// the search does not terminate.
+// instance at its declaration: the head must be a type constructor applied
+// to distinct parameters, and every `requires` constraint must be
+// structurally smaller than the head, so the search terminates.
 func (l *lowerer) validateInstances() {
 	for _, inst := range l.model.GetInstances() {
 		if len(inst.GetParams()) == 0 {
-			continue // a ground instance matches itself and asks nothing
+			continue // a ground instance
 		}
 
 		headSize := 0
@@ -100,8 +91,8 @@ func (l *lowerer) ground(id *ir.ID) bool {
 	return true
 }
 
-// typeSize counts the constructors and parameters in a type, which is the
-// measure "structurally smaller" refers to.
+// typeSize counts the constructors and parameters in a type, the measure
+// of "structurally smaller".
 func (l *lowerer) typeSize(id *ir.ID) int {
 	ty := l.model.Type(id)
 	if ty == nil {
@@ -116,11 +107,8 @@ func (l *lowerer) typeSize(id *ir.ID) int {
 }
 
 // searchSatisfaction fills in the types that satisfy each class through a
-// conditional instance.
-//
-// Every type in the table is tried against every class. The table holds
-// only types the model actually mentions, so this asks the question that
-// can come up rather than enumerating a space.
+// conditional instance, trying every ground type the model mentions against
+// every class.
 func (l *lowerer) searchSatisfaction() {
 	if len(l.model.GetInstances()) == 0 {
 		return
@@ -129,14 +117,11 @@ func (l *lowerer) searchSatisfaction() {
 	for _, sat := range l.model.GetSatisfies() {
 		for i, ty := range l.model.GetTypes() {
 			if len(ty.GetArgs()) == 0 {
-				continue // a bare name is a declaration question, already answered
+				continue // answered by buildSatisfaction
 			}
 
 			id := &ir.ID{Index: int32(i), Name: typeName(ty)}
 			if !l.ground(id) {
-				// An open type like `Page<T>` is the instance head itself, or
-				// a use inside a generic declaration. Whether it satisfies
-				// anything depends on what T becomes, so it is not an answer.
 				continue
 			}
 			if l.satisfiesType(sat.GetClass(), id, 0) {
@@ -146,12 +131,9 @@ func (l *lowerer) searchSatisfaction() {
 	}
 }
 
-// satisfiesType reports whether a type satisfies a class.
-//
-// A type whose constructor is a declaration answers from the ground index.
-// Anything else is matched against the class's conditional instances: bind
-// the head's parameters to the type's arguments, then discharge each
-// condition under that binding.
+// satisfiesType reports whether a type satisfies a class, from the ground
+// index or by matching a conditional instance and discharging its
+// conditions.
 func (l *lowerer) satisfiesType(class, id *ir.ID, depth int) bool {
 	if depth > searchDepth {
 		l.diags.add(positionOf(l.model.Type(id).GetPosition()),
@@ -188,8 +170,7 @@ func (l *lowerer) satisfiesType(class, id *ir.ID, depth int) bool {
 }
 
 // match unifies an instance head against a type, returning the parameter
-// binding it implies. The head is a constructor applied to distinct
-// parameters, so this is a shallow match rather than full unification.
+// binding it implies. A validated head makes this a shallow match.
 func (l *lowerer) match(head, subject *ir.ID) (map[string]*ir.ID, bool) {
 	h, s := l.model.Type(head), l.model.Type(subject)
 	if h == nil || s == nil {

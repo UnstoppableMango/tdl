@@ -35,8 +35,6 @@ func TestWrite(t *testing.T) {
 	}
 }
 
-// A backend cannot reach outside the directory the project pointed it at,
-// whatever it intends.
 func TestWriteRefusesEscapingPaths(t *testing.T) {
 	tests := []struct{ name, path string }{
 		{"absolute", "/etc/passwd"},
@@ -63,8 +61,7 @@ func TestWriteRefusesEscapingPaths(t *testing.T) {
 	}
 }
 
-// Every path is checked before any file is written, so a response with one
-// bad path writes nothing rather than half of itself.
+// A response with one bad path writes nothing.
 func TestWriteIsAllOrNothing(t *testing.T) {
 	out := t.TempDir()
 	_, err := gen.Write(out, []*plugin.File{

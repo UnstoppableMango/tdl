@@ -9,14 +9,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// newTestCmd returns a command whose output and error streams are captured.
 func newTestCmd() (*cobra.Command, *bytes.Buffer, *bytes.Buffer) {
 	cmd := &cobra.Command{}
 	out, errOut := captureCmd(cmd)
 	return cmd, out, errOut
 }
 
-// captureCmd redirects a command's streams into buffers the test can read.
 func captureCmd(cmd *cobra.Command) (out, errOut *bytes.Buffer) {
 	out, errOut = &bytes.Buffer{}, &bytes.Buffer{}
 	cmd.SetOut(out)
@@ -24,8 +22,7 @@ func captureCmd(cmd *cobra.Command) (out, errOut *bytes.Buffer) {
 	return out, errOut
 }
 
-// A bad file must not stop the walk: a run over several files says which of
-// them failed, not which one failed first.
+// A bad file does not stop the walk.
 func TestEachFileReportsEveryFailure(t *testing.T) {
 	cmd, _, errOut := newTestCmd()
 
@@ -77,7 +74,6 @@ func TestEachFileCountsOneFailure(t *testing.T) {
 	}
 }
 
-// One file prints no banner, so output stays pipeable in the common case.
 func TestHeaderSingleFileIsSilent(t *testing.T) {
 	cmd, out, _ := newTestCmd()
 
@@ -88,8 +84,7 @@ func TestHeaderSingleFileIsSilent(t *testing.T) {
 	}
 }
 
-// Two or more files are separated the way head(1) separates them, with a
-// blank line before every banner but the first.
+// A blank line goes before every banner but the first.
 func TestHeaderSeparatesFiles(t *testing.T) {
 	cmd, out, _ := newTestCmd()
 
@@ -105,9 +100,8 @@ func TestHeaderSeparatesFiles(t *testing.T) {
 	}
 }
 
-// The blank line separates output from output, not file from file: a
-// first file that failed before printing anything leaves no gap before
-// the first banner.
+// A first file that failed before printing leaves no gap before the first
+// banner.
 func TestHeaderSkipsFailedFiles(t *testing.T) {
 	cmd, out, _ := newTestCmd()
 

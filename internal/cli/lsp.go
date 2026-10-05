@@ -36,8 +36,7 @@ func newLspCmd() *cobra.Command {
 	return cmd
 }
 
-// stdio is the connection an editor speaks over: this process's input and
-// output as one stream.
+// stdio is this process's standard input and output as one stream.
 type stdio struct {
 	in  io.Reader
 	out io.Writer
@@ -46,6 +45,5 @@ type stdio struct {
 func (s stdio) Read(p []byte) (int, error)  { return s.in.Read(p) }
 func (s stdio) Write(p []byte) (int, error) { return s.out.Write(p) }
 
-// Close closes nothing. The streams belong to the process, which exits
-// when the connection ends.
+// Close closes nothing; the process exits when the connection ends.
 func (stdio) Close() error { return nil }

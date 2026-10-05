@@ -9,13 +9,9 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// Write puts a response's files under out.
-//
-// A backend returns contents rather than writing them, which is what lets
-// this enforce where they land. A path is relative to out, and an absolute
-// one or one climbing out with ".." is refused before anything is written:
-// a plugin cannot reach outside the directory the project pointed it at,
-// whatever it intends.
+// Write puts a response's files under out. A path is relative to out; an
+// absolute one or one climbing out with ".." is refused before anything
+// is written.
 func Write(out string, files []*plugin.File) ([]string, error) {
 	cleaned := make([]string, len(files))
 	for i, f := range files {
@@ -39,10 +35,8 @@ func Write(out string, files []*plugin.File) ([]string, error) {
 	return written, nil
 }
 
-// resolve turns a response path into a real one, or reports why it cannot.
-//
-// Every path is checked before any file is written, so a response with one
-// bad path writes nothing rather than half of itself.
+// resolve turns a response path into one under out, or reports why it
+// cannot.
 func resolve(out, path string) (string, error) {
 	switch {
 	case path == "":

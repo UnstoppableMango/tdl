@@ -17,20 +17,11 @@ import (
 	"github.com/unstoppablemango/tdl/internal/lsp"
 )
 
-// publishWait is how long a test waits for a notification.
-//
-// A notification has no reply to synchronize on, so a test that wants to
-// see what a didOpen produced has to wait for it. The value is generous
-// because it is a failure timeout rather than a delay: a passing test
-// never spends it.
+// publishWait is how long a test waits for a notification. It is a
+// failure timeout; a passing test never spends it.
 const publishWait = 10 * time.Second
 
-// session is a client and a server talking over a pipe.
-//
-// The test speaks real JSON-RPC to the real handler rather than calling
-// its methods, which is what internal/gen/subprocess_test.go does for the
-// plugin protocol: a surface only the in-process caller reaches is one
-// nothing keeps honest.
+// session is a client and a server speaking JSON-RPC over a pipe.
 type session struct {
 	t      *testing.T
 	server protocol.Server
@@ -113,10 +104,6 @@ func (s *session) change(path, text string, version int32) []protocol.Diagnostic
 
 // definition sends a textDocument/definition with the cursor on the first
 // occurrence of needle in text.
-//
-// The cursor is computed from the text the test wrote rather than passed
-// as a line and a column, so a case says which name it is asking about and
-// not where that name happens to sit.
 func (s *session) definition(path, text, needle string) protocol.LocationSlice {
 	s.t.Helper()
 
@@ -133,8 +120,6 @@ func (s *session) definition(path, text, needle string) protocol.LocationSlice {
 		return nil
 	}
 
-	// The server answers with the LocationSlice arm of the union, and
-	// nothing here asks a question the other two arms answer.
 	slice, ok := locs.(protocol.LocationSlice)
 	if !ok {
 		s.t.Fatalf("definition answered %T, want protocol.LocationSlice", locs)
@@ -169,7 +154,6 @@ func (s *session) hover(path, text, needle string) string {
 	return mc.Value
 }
 
-// format sends a textDocument/formatting.
 func (s *session) format(path string) []protocol.TextEdit {
 	s.t.Helper()
 
@@ -182,7 +166,6 @@ func (s *session) format(path string) []protocol.TextEdit {
 	return edits
 }
 
-// symbols sends a textDocument/documentSymbol.
 func (s *session) symbols(path string) protocol.DocumentSymbolSlice {
 	s.t.Helper()
 
@@ -199,10 +182,8 @@ func (s *session) symbols(path string) protocol.DocumentSymbolSlice {
 	return slice
 }
 
-// message is a diagnostic's text.
-//
-// The protocol says a message is a string or markup, so the field is a
-// union; this server only ever writes the string arm.
+// message is a diagnostic's text, which this server always writes as a
+// string.
 func message(t *testing.T, d protocol.Diagnostic) string {
 	t.Helper()
 
@@ -213,11 +194,8 @@ func message(t *testing.T, d protocol.Diagnostic) string {
 	return string(s)
 }
 
-// cursor is the protocol position of the first occurrence of needle.
-//
-// Every caller writes ASCII, where a byte and a UTF-16 code unit are the
-// same thing; TestDiagnosticsUseUTF16Columns is what covers the conversion
-// itself.
+// cursor is the protocol position of the first occurrence of needle,
+// which must be in ASCII text.
 func cursor(t *testing.T, text, needle string) protocol.Position {
 	t.Helper()
 
@@ -232,9 +210,6 @@ func cursor(t *testing.T, text, needle string) protocol.Position {
 }
 
 // testClient records what the server publishes.
-//
-// Only PublishDiagnostics is interesting; protocol.UnimplementedClient
-// answers the rest of the interface.
 type testClient struct {
 	protocol.UnimplementedClient
 
@@ -243,9 +218,8 @@ type testClient struct {
 	waiting   map[string]chan []protocol.Diagnostic
 }
 
-// expect arms a wait for the next publish against u, before the request
-// that causes it is sent, so a publish that arrives immediately is not
-// missed.
+// expect arms a wait for the next publish against u. Call it before
+// sending the request, so an immediate publish is not missed.
 func (c *testClient) expect(u uri.URI) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -289,8 +263,7 @@ func (c *testClient) PublishDiagnostics(_ context.Context, params *protocol.Publ
 
 var _ protocol.Client = (*testClient)(nil)
 
-// corpusFile reads a case's source.tdl, skipping a pending one the way the
-// parser's conformance test does.
+// corpusFile reads a case's source.tdl, skipping a pending one.
 func corpusFile(t *testing.T, dir string) (string, string) {
 	t.Helper()
 

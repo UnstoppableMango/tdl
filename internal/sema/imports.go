@@ -9,14 +9,7 @@ import (
 )
 
 // loadImports walks the import graph from file, recording each import in
-// the model and reporting cycles.
-//
-// A dependency is parsed but not lowered. What the walk needs from it is
-// its package name, its own imports, the block-scope directives of its
-// target blocks, and, for a `_` import, the names it exports. Whether a
-// qualified reference names something that dependency actually declares is
-// not checked here: the reference carries the dependency's package to the
-// backend, which is what ir.md asks for.
+// the model and reporting cycles. A dependency is parsed but not lowered.
 func (l *lowerer) loadImports(file *ast.File) {
 	if len(file.Imports) == 0 {
 		return
@@ -31,9 +24,8 @@ func (l *lowerer) loadImports(file *ast.File) {
 	l.walkImports(file, file.Filename, map[string]bool{file.Filename: true}, []string{file.Filename}, true)
 }
 
-// walkImports records file's imports and recurses. `root` says whether
-// these imports are the ones the model should list: a dependency's own
-// imports are walked for cycle detection but do not appear in this model.
+// walkImports records file's imports and recurses. Only `root` imports are
+// listed in the model; a dependency's are walked for cycle detection.
 func (l *lowerer) walkImports(file *ast.File, from string, onPath map[string]bool, chain []string, root bool) {
 	for _, imp := range file.Imports {
 		name, src, err := l.loader.Load(from, imp.Path)
@@ -76,8 +68,8 @@ func (l *lowerer) walkImports(file *ast.File, from string, onPath map[string]boo
 }
 
 // depDirectives collects the block-scope directives of a dependency's
-// target blocks for its own package: the bare directives at a block's top
-// level, each naming the block's target.
+// target blocks for its package: the bare directives at a block's top
+// level.
 func (l *lowerer) depDirectives(dep *ast.File, pkg string) []*ir.Directive {
 	var out []*ir.Directive
 	for _, decl := range dep.Decls {
@@ -94,12 +86,8 @@ func (l *lowerer) depDirectives(dep *ast.File, pkg string) []*ir.Directive {
 	return out
 }
 
-// bindImport binds what an import brings into scope.
-//
-// An aliased import binds the alias to a package, and a qualified
-// reference through it becomes an extern. A `_` import merges the
-// dependency's exported names directly, so it has to know what they are:
-// nothing else can tell what a bare name in this file refers to.
+// bindImport binds what an import brings into scope: an alias to a
+// package, or for a `_` import, the dependency's exported names.
 func (l *lowerer) bindImport(imp *ast.ImportDecl, pkg string, dep *ast.File) {
 	if imp.Alias != "_" {
 		if prev, ok := l.aliases[imp.Alias]; ok {
@@ -115,10 +103,7 @@ func (l *lowerer) bindImport(imp *ast.ImportDecl, pkg string, dep *ast.File) {
 		if !exported(decl) || !namesAType(decl) {
 			continue
 		}
-		// The position is the declaration's own, in the dependency, rather
-		// than the import that merged it in: it is where the name was
-		// declared, which is where a reader asking about the name wants to
-		// be taken and what a collision with it should name.
+		// The position is the declaration's, in the dependency.
 		if _, ok := l.file.bind(name, binding{
 			kind: bindExtern,
 			id:   l.extern(pkg, name, imp.P),
@@ -129,10 +114,8 @@ func (l *lowerer) bindImport(imp *ast.ImportDecl, pkg string, dep *ast.File) {
 	}
 }
 
-// exported reports whether decl is visible outside its package: a name
-// beginning with an upper-case letter is exported, and everything else is
-// package-private. Primitive and unit declarations are always exported,
-// whatever their case.
+// exported reports whether decl is visible outside its package: an
+// upper-case name, or any primitive or unit declaration.
 func exported(decl ast.Decl) bool {
 	switch decl.(type) {
 	case *ast.PrimitiveDecl, *ast.UnitDecl:

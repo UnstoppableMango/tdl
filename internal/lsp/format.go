@@ -9,14 +9,9 @@ import (
 )
 
 // Formatting is `tdl fmt` over the editor's text, returned as one edit
-// replacing the whole document.
-//
-// The formatter owns layout entirely, so the client's tab size and
-// whitespace preferences are not read: formatting in an editor has to
-// produce what `tdl fmt --check` accepts.
-//
-// A file that does not parse is left alone. The tree has holes in it, and
-// printing one would delete whatever the parser could not read.
+// replacing the whole document. The client's formatting options are
+// ignored. A file that does not parse is left alone, since printing its
+// tree would delete what the parser could not read.
 func (s *Server) Formatting(_ context.Context, params *protocol.DocumentFormattingParams) ([]protocol.TextEdit, error) {
 	doc := s.store.get(params.TextDocument.URI.FsPath())
 	if doc == nil {

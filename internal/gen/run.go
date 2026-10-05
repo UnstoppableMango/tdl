@@ -17,10 +17,8 @@ type Target struct {
 }
 
 // Targets returns the target blocks in a model, with their output
-// directories read from each block's `out` directive.
-//
-// The directive is where workflow.md puts it: a target block declares
-// where its output goes, and the command line overrides it.
+// directories read from each block's `out` directive unless override is
+// set.
 func Targets(model *ir.Model, override string) ([]Target, error) {
 	var targets []Target
 	for _, block := range model.GetTargets() {
@@ -106,8 +104,7 @@ func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.M
 		}
 	}
 
-	// The marker goes down before the files, so a directory tdl wrote is
-	// recognisable even if writing fails part way through.
+	// Mark first, so a partly written directory is still recognisable.
 	if err := Mark(target.Out); err != nil {
 		return result, fmt.Errorf("target %s: %w", target.Name, err)
 	}

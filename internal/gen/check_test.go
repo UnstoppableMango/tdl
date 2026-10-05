@@ -89,8 +89,6 @@ func TestDirectiveArgumentKind(t *testing.T) {
 	}
 }
 
-// Under-declaring is a plugin bug that should not break a working
-// project, so an undeclared directive warns and passes through.
 func TestUndeclaredDirectiveWarns(t *testing.T) {
 	model := modelWith(&ir.Directive{Name: "surprise", Target: "t"})
 
@@ -106,8 +104,6 @@ func TestUndeclaredDirectiveWarns(t *testing.T) {
 	}
 }
 
-// A model carries every target block's directives, so checking one
-// backend must not complain about another's.
 func TestAnotherTargetsDirectivesAreNotChecked(t *testing.T) {
 	model := modelWith(&ir.Directive{Name: "whatever", Target: "other"})
 	if problems := gen.CheckDirectives("t", model, spec()); len(problems) != 0 {
@@ -115,8 +111,7 @@ func TestAnotherTargetsDirectivesAreNotChecked(t *testing.T) {
 	}
 }
 
-// `out` is tdl's own, read before any backend runs, so a backend is not
-// asked to declare it.
+// A backend need not declare `out`.
 func TestCompilerDirectivesAreExempt(t *testing.T) {
 	model := &ir.Model{
 		Targets: []*ir.TargetBlock{{
@@ -146,8 +141,6 @@ func TestFieldDirectivesAreChecked(t *testing.T) {
 	}
 }
 
-// A variant and a variant's field are addressable from a target block, so
-// what lands on them is checked like any other directive.
 func TestVariantDirectivesAreChecked(t *testing.T) {
 	model := &ir.Model{Decls: []*ir.Decl{{
 		Meta: &ir.Meta{Name: "Payment"},

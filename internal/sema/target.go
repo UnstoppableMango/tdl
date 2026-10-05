@@ -15,9 +15,8 @@ type candidate struct {
 	spec      int // higher wins
 }
 
-// Specificity, as the spec's ladder: a directive on a field beats one on
-// its type, which beats one on a class the type satisfies, and a subclass
-// beats a class it requires.
+// Specificity, as the spec's ladder: field beats type beats class, and a
+// subclass beats a class it requires.
 const (
 	specClass = 100 // minus the distance from the conforming class
 	specDecl  = 1000
@@ -25,8 +24,7 @@ const (
 )
 
 // targetPass is the walk over every target block in a file. Candidates are
-// collected before any are applied, because deciding which of two entries
-// wins needs both of them.
+// all collected before any are applied.
 type targetPass struct {
 	*lowerer
 	byDecl   map[int32][]candidate
@@ -42,13 +40,9 @@ type memberKey struct {
 }
 
 // lowerTargets resolves every target block against the model and attaches
-// each directive to the node it applies to.
-//
-// By the time a backend runs, paths are resolved, class paths are expanded
-// across everything satisfying them, and the ladder has been applied. Ties
-// at one specificity are kept in source order for gen.CheckDirectives to
-// judge against the backend's DirectiveSpec. A backend reads one field on
-// the node in front of it.
+// each directive to the node it applies to, with class paths expanded and
+// the ladder applied. Ties are kept in source order for
+// gen.CheckDirectives.
 func (l *lowerer) lowerTargets(file *ast.File) {
 	t := &targetPass{
 		lowerer:  l,
@@ -108,14 +102,8 @@ func (t *targetPass) walkEntries(block *ast.TargetDecl, scope string, entries []
 			path = scope + "." + path
 		}
 
-		// The first segment of a top-level entry is a declaration name,
-		// written at the entry's position, so `User.email => tag(...)`
-		// reaches User from a cursor on it.
-		//
-		// Only the first segment, and only at the top level. A nested
-		// entry's first segment is a member of the path it sits under, and
-		// ast.TargetEntry keeps the path as one string, so the later
-		// segments have no position of their own to record.
+		// Only a top-level entry's first segment is recorded: it names a
+		// declaration, and later segments have no position of their own.
 		if scope == "" && entry.Path != "" {
 			head, _, _ := strings.Cut(entry.Path, ".")
 			t.recordLookup(entry.P, head)
@@ -151,8 +139,7 @@ func (t *targetPass) attach(path string, pos ast.Position, d *ir.Directive) {
 
 	b, ok := t.scope.lookup(head)
 
-	// A name a `_` import merged in is an extern. Its members are declared
-	// in the dependency, so the path reaches the extern and no further.
+	// A path to an extern reaches no further than the extern.
 	if ok && b.kind == bindExtern {
 		if member != "" {
 			t.diags.add(pos, "target path %s names nothing: %s is imported, and its members are not visible here", path, head)
@@ -170,8 +157,7 @@ func (t *targetPass) attach(path string, pos ast.Position, d *ir.Directive) {
 	idx := b.id.GetIndex()
 	decl := t.model.GetDecls()[idx]
 
-	// A path naming a class applies to everything satisfying it, which is
-	// what lets a rule be written once rather than repeated per type.
+	// A path naming a class applies to everything satisfying it.
 	if decl.GetClass() != nil {
 		if sub != "" {
 			t.diags.add(pos, "target path %s names nothing: a class path reaches a field and no further", path)
@@ -215,10 +201,7 @@ func (t *targetPass) attach(path string, pos ast.Position, d *ir.Directive) {
 }
 
 // expandClass applies a directive to every declaration satisfying a class.
-//
-// A closer class wins: a directive on Auditable beats one on the
-// Timestamped it requires, because a type conforming to Auditable is more
-// specifically that than it is timestamped.
+// A closer class wins: Auditable beats the Timestamped it requires.
 func (t *targetPass) expandClass(class *ir.ID, member string, d *ir.Directive) {
 	for _, id := range t.model.Satisfying(class) {
 		idx := id.GetIndex()
@@ -260,10 +243,8 @@ func (l *lowerer) classDistance(decl *ir.Decl, class *ir.ID) int {
 }
 
 // resolveConflicts applies the ladder: per directive name, the most
-// specific candidates win, and every candidate at that specificity is kept
-// in source order. Whether a directive may appear more than once is the
-// backend's to say, so gen.CheckDirectives reports ties rather than
-// lowering.
+// specific candidates win, all kept in source order. gen.CheckDirectives
+// reports ties.
 func (l *lowerer) resolveConflicts(cands []candidate) []*ir.Directive {
 	key := func(c candidate) string { return c.directive.GetTarget() + "\x00" + c.directive.GetName() }
 	best := map[string]int{}

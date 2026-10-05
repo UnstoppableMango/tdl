@@ -18,10 +18,7 @@ type Stale struct {
 }
 
 // Verify compares a response against what is on disk without writing.
-//
-// The backend still produces contents: a dry run is about not writing,
-// not about producing less. That is what makes the check meaningful, since
-// the only way to know whether output is stale is to generate it.
+// The backend still produces full contents on a dry run.
 func Verify(out string, files []*plugin.File) ([]Stale, error) {
 	var stale []Stale
 
@@ -50,12 +47,8 @@ func Verify(out string, files []*plugin.File) ([]Stale, error) {
 	return append(stale, orphans...), nil
 }
 
-// orphaned lists files under a directory tdl owns that this generation
-// would not write.
-//
-// It only looks in a directory carrying the marker. Without one there is
-// no way to tell a file tdl wrote and no longer would from a file that was
-// never tdl's, and reporting the second as stale would be wrong.
+// orphaned lists files this generation would not write, only in a
+// directory carrying the marker, since otherwise a file may not be tdl's.
 func orphaned(out string, expected map[string]bool) ([]Stale, error) {
 	if !Owned(out) {
 		return nil, nil

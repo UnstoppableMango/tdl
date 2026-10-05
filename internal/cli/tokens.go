@@ -18,9 +18,8 @@ func newTokensCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			header := newHeader(args)
 			return eachFile(cmd, args, func(path string) error {
-				// The lexer is the stage under test here, so this stops
-				// short of loadFile, which would parse the file and fail on
-				// one whose tokens are worth seeing.
+				// Not loadFile: a file that fails to parse still has
+				// tokens worth seeing.
 				data, err := readSource(cmd, path)
 				if err != nil {
 					return err
@@ -34,8 +33,8 @@ func newTokensCmd() *cobra.Command {
 	}
 }
 
-// dumpTokens lexes src to completion and renders one aligned row per
-// token: position, kind, and the literal text the lexer captured.
+// dumpTokens lexes src and writes one aligned row per token: position,
+// kind, and literal.
 func dumpTokens(filename, src string) string {
 	var b bytes.Buffer
 	w := tabwriter.NewWriter(&b, 0, 0, 2, ' ', 0)

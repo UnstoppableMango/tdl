@@ -12,18 +12,15 @@ import (
 	"github.com/unstoppablemango/tdl/parser"
 )
 
-// stdinArg is the path that names standard input, the convention every
-// tool that reads a file list uses.
+// stdinArg is the path that names standard input.
 const stdinArg = "-"
 
-// stdinName is what standard input is called in a position and in an error,
-// since `-` reads as a flag and as a file that is not there.
+// stdinName names standard input in positions and errors, since `-` reads
+// as a flag.
 const stdinName = "<stdin>"
 
-// isStdin reports whether path names standard input.
 func isStdin(path string) bool { return path == stdinArg }
 
-// displayName is what a path is called in output.
 func displayName(path string) string {
 	if isStdin(path) {
 		return stdinName
@@ -32,15 +29,13 @@ func displayName(path string) string {
 }
 
 // loadFile reads and parses one source file. Every command that works on a
-// parse tree starts here, so they agree on how a file is read, on what
-// reading `-` means, and on what a parse error looks like.
+// parse tree goes through it.
 func loadFile(cmd *cobra.Command, path string) (*ast.File, error) {
 	_, file, err := readFile(cmd, path)
 	return file, err
 }
 
-// readFile is loadFile with the source text it read, for a caller that has
-// to compare against what was on disk rather than only against the tree.
+// readFile is loadFile that also returns the source text.
 func readFile(cmd *cobra.Command, path string) (string, *ast.File, error) {
 	data, err := readSource(cmd, path)
 	if err != nil {
@@ -51,8 +46,7 @@ func readFile(cmd *cobra.Command, path string) (string, *ast.File, error) {
 	return string(data), file, err
 }
 
-// readSource is what readFile reads, before it is parsed, for a command
-// that works on the text or the tokens rather than the tree.
+// readSource reads path, or standard input for `-`, without parsing.
 func readSource(cmd *cobra.Command, path string) ([]byte, error) {
 	if isStdin(path) {
 		return io.ReadAll(cmd.InOrStdin())
@@ -60,14 +54,9 @@ func readSource(cmd *cobra.Command, path string) ([]byte, error) {
 	return os.ReadFile(path)
 }
 
-// eachFile runs fn over every path given.
-//
-// A failing file is reported and the walk continues, the way the parser
-// reports every syntax error in a file rather than the first: a run over
-// twenty files says which of them are broken, not which one is broken
-// first. The error returned counts them rather than repeating them, since
-// a diagnostic and an os.PathError both already name the file they are
-// about.
+// eachFile runs fn over every path, printing each failure and continuing.
+// The returned error only counts failures, since each printed error already
+// names its file.
 func eachFile(cmd *cobra.Command, paths []string, fn func(path string) error) error {
 	failed := 0
 	for _, path := range paths {
@@ -87,24 +76,19 @@ func eachFile(cmd *cobra.Command, paths []string, fn func(path string) error) er
 	}
 }
 
-// header separates the output of several files with a `==> path <==`
-// banner, the way head(1) separates the files it was given.
-//
-// It writes nothing for a single file, so output stays pipeable in the
-// common case. A blank line goes before every banner after the first one
-// written, rather than before every file after the first one given: a file
-// that fails before printing anything leaves no gap.
+// header writes a `==> path <==` banner before each file's output, as
+// head(1) does, and nothing for a single file. The blank line goes before
+// every banner after the first one written, so a file that failed before
+// printing leaves no gap.
 type header struct {
 	several bool
 	written bool
 }
 
-// newHeader returns a header for the files a command was given.
 func newHeader(paths []string) *header {
 	return &header{several: len(paths) > 1}
 }
 
-// write prints the banner for path.
 func (h *header) write(cmd *cobra.Command, path string) {
 	if !h.several {
 		return

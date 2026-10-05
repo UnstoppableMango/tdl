@@ -8,9 +8,6 @@ import (
 	"github.com/unstoppablemango/tdl/parser"
 )
 
-// A dependency's block-scope directives reach the import that brought it
-// in, so a backend generating a reference into the dependency knows which
-// file and package the dependency says its declarations live in.
 func TestDependencyBlockDirectivesReachTheImport(t *testing.T) {
 	file, err := parser.Parse("main.tdl", strings.NewReader(`
 package acme.billing.v1

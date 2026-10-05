@@ -22,10 +22,8 @@ type binding struct {
 	pos   ast.Position // where the name was declared, in whichever file declares it
 }
 
-// scope is a chain of name bindings. The file's declarations sit at the
-// root; a declaration's type parameters sit in a child scope, so a
-// parameter named the same as a declaration shadows it inside that
-// declaration and nowhere else.
+// scope is a chain of name bindings: the prelude, then the file, then a
+// declaration's type parameters.
 type scope struct {
 	parent *scope
 	names  map[string]binding
