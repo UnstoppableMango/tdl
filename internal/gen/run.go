@@ -3,6 +3,7 @@ package gen
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"slices"
 
 	"github.com/unstoppablemango/tdl/ir"
@@ -18,13 +19,17 @@ type Target struct {
 
 // Targets returns the target blocks in a model, with their output
 // directories read from each block's `out` directive unless override is
-// set.
+// set. A relative directive is relative to the file declaring the block,
+// as an import or an include is.
 func Targets(model *ir.Model, override string) ([]Target, error) {
 	var targets []Target
 	for _, block := range model.GetTargets() {
 		out := override
 		if out == "" {
 			out = outOf(block)
+			if file := block.GetMeta().GetPosition().GetFilename(); out != "" && file != "" && !filepath.IsAbs(out) {
+				out = filepath.Join(filepath.Dir(file), out)
+			}
 		}
 		if out == "" {
 			return nil, fmt.Errorf("target %s has no out directive and no -o was given", block.GetMeta().GetName())

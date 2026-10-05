@@ -23,8 +23,9 @@ func newGenCmd() *cobra.Command {
 			"generates; --target narrows a run to one backend.\n\n" +
 			"A target tdl has no backend for resolves to tdl-gen-<name> on\n" +
 			"PATH. Both kinds speak the same protocol.\n\n" +
-			"Where output goes comes from the block's own `out` directive, and\n" +
-			"-o overrides it for one invocation.\n\n" +
+			"Where output goes comes from the block's own `out` directive,\n" +
+			"relative to the file declaring the block, and -o, relative to the\n" +
+			"working directory, overrides it for one invocation.\n\n" +
 			"--verify generates and compares against disk without writing,\n" +
 			"exiting non-zero when they differ. --clean empties the output\n" +
 			"directory first, and refuses one tdl did not write.\n\n" +
