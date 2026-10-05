@@ -2962,8 +2962,8 @@ const file_tdl_ir_v1_ir_proto_rawDesc = "" +
 	"\x15SYNTACTIC_FORM_BRACES\x10\x03\x12\x18\n" +
 	"\x14SYNTACTIC_FORM_ARROW\x10\x04\x12\x1b\n" +
 	"\x17SYNTACTIC_FORM_QUESTION\x10\x05\x12\x1a\n" +
-	"\x16SYNTACTIC_FORM_OR_NULL\x10\x06B\x8c\x01\n" +
-	"\rcom.tdl.ir.v1B\aIrProtoP\x01Z\"github.com/unstoppablemango/tdl/ir\xa2\x02\x03TIX\xaa\x02\tTdl.Ir.V1\xca\x02\tTdl\\Ir\\V1\xe2\x02\x15Tdl\\Ir\\V1\\GPBMetadata\xea\x02\vTdl::Ir::V1\x92\x03\a\xd2>\x02\x10\x01\b\x02b\beditionsp\xe9\a"
+	"\x16SYNTACTIC_FORM_OR_NULL\x10\x06B\x8a\x01\n" +
+	"\rcom.tdl.ir.v1B\aIrProtoZ\"github.com/unstoppablemango/tdl/ir\xa2\x02\x03TIX\xaa\x02\tTdl.Ir.V1\xca\x02\tTdl\\Ir\\V1\xe2\x02\x15Tdl\\Ir\\V1\\GPBMetadata\xea\x02\vTdl::Ir::V1\x92\x03\a\xd2>\x02\x10\x01\b\x02b\beditionsp\xe9\a"
 
 var (
 	file_tdl_ir_v1_ir_proto_rawDescOnce sync.Once
