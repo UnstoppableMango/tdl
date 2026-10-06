@@ -245,3 +245,11 @@ func TestNumbersSkipsReservedRanges(t *testing.T) {
 		t.Error("a member pinned inside a reserved range: no error")
 	}
 }
+
+func TestDocKeepsIndentation(t *testing.T) {
+	meta := &ir.Meta{Doc: []string{"A list:", "  - one ", "", "\tdone"}}
+	want := []string{"A list:", "  - one", "", "\tdone"}
+	if got := emit.Doc(meta); !slices.Equal(got, want) {
+		t.Errorf("Doc = %q, want %q", got, want)
+	}
+}
