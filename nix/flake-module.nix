@@ -59,7 +59,7 @@
         check.enable = lib.mkOption {
           type = lib.types.bool;
           default = true;
-          description = "Define `checks.tdl-check`, which parses every file in `files`.";
+          description = "Define `checks.tdl-check`, which parses and lowers every file in `files`.";
         };
 
         fmt.enable = lib.mkOption {

@@ -75,7 +75,7 @@ It is exported as `homeModules.default` and `homeManagerModules.default`, each w
 `checks.hm-module` evaluates a minimal configuration and asserts both packages land where the options say; it uses `allowUnfree` because `programs.vscode.enable` evaluates the editor.
 
 `flake-module.nix` declares `perSystem.tdl`.
-`enable` defines `devShells.tdl` for `inputsFrom`, plus one check per property a model should hold: `tdl-check` parses, `tdl-fmt` runs `tdl fmt --check`, and `tdl-gen` runs `tdl gen --verify`.
+`enable` defines `devShells.tdl` for `inputsFrom`, plus one check per property a model should hold: `tdl-check` parses and lowers, `tdl-fmt` runs `tdl fmt --check`, and `tdl-gen` runs `tdl gen --verify`.
 Each check is one invocation over all files.
 `files` is a list of strings relative to one `src`, because a `path` is copied into the store alone and an `include` would stop resolving.
 `gen.files` is separate and empty by default, because `tdl gen` fails on a file with no target block.
