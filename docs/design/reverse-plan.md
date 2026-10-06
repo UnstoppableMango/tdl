@@ -42,11 +42,11 @@ In order: `protobuf`, `thrift`, `graphql`, `go`, `typescript`, `smithy`.
 Each is:
 
 1. loss warnings generating;
-2. `roundtrip` annotations;
-3. the reader;
-4. import served by `cmd/tdl-gen-<name>`;
-5. corpus cases in both directions;
-6. a section in the target's design document.
+1. `roundtrip` annotations;
+1. the reader;
+1. import served by `cmd/tdl-gen-<name>`;
+1. corpus cases in both directions;
+1. a section in the target's design document.
 
 Done, for a target, when its corpus passes and `testdata/gen/smoke` round-trips with no warning.
 
