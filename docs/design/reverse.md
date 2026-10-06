@@ -4,11 +4,11 @@ Design document.
 [reverse-plan.md](reverse-plan.md) orders the work.
 
 A backend reads a model and writes a target language.
-A reverse backend reads the target language and writes a model, so `tdl import` turns a `.proto`, `.thrift`, `.smithy`, `.graphql`, `.ts`, Go package, or Salesforce DX source into TDL.
+A reverse backend reads the target language and writes a model, so `tdl import` turns a `.proto`, `.thrift`, `.smithy`, `.graphql`, `.ts`, `.schema.json`, Go package, or Salesforce DX source into TDL.
 
 ## Goal
 
-Every backend round-trips, in both directions:
+Every backend except `debug` round-trips, in both directions:
 
 - **Model first.** `tdl` to target to `tdl` lowers to an IR equal to the original, positions ignored.
 - **Schema first.** A hand-written schema imports to TDL and regenerates to a schema equal to the original under the backend's normalizer (see [Equality](#equality)).
@@ -86,6 +86,7 @@ Without it, output is unchanged and each lost fact is a loss warning.
 | `smithy` | traits in the `tdl` namespace, defined in a generated `tdl.smithy` |
 | `graphql` | an `@tdl` directive, defined in the schema it is used in |
 | `typescript` | JSDoc `@tdl` tags |
+| `jsonschema` | `x-tdl` keywords, which validators ignore |
 | `go` | `//tdl:` comment directives |
 | `salesforce` | a `tdl:` tail in an XML `description`, and `@tdl` ApexDoc tags |
 
@@ -131,6 +132,7 @@ tdl import --from <target> [-o out.tdl] [--package <path>] [--allow-lossy <code>
 | `go` | `go/parser` and `go/types` |
 | `typescript` | the TypeScript compiler API, run by an embedded script under `node` |
 | `smithy` | `smithy ast`, the CLI's JSON AST |
+| `jsonschema` | `encoding/json`, after `santhosh-tekuri/jsonschema` compiles the document |
 | `salesforce` | `encoding/xml` and a recognizer for Apex |
 
 `typescript` and `smithy` need `node` and the Smithy CLI on `PATH`, and say so when either is missing.
@@ -150,6 +152,7 @@ Schema-first tests compare each schema in a normal form:
 | `go` | declarations through `go/format`, keeping doc comments only |
 | `typescript` | the compiler API's JSON |
 | `smithy` | the `smithy ast` JSON |
+| `jsonschema` | the parsed document with object keys sorted |
 | `salesforce` | the parsed XML, and the Apex recognizer's output |
 
 Formatting and ordinary comments are not part of a model, so they are not compared.
