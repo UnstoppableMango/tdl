@@ -144,7 +144,7 @@ The plugin protocol in `docs/design/plugins.md` is complete.
 
 Every backend reports what it cannot generate as a positioned warning rather than emitting something wrong, and skips a declaration that names a skipped one, so its output compiles.
 
-- `backend/golang` (`go`): one file per declaration.
+- `backend/golang` (`go`): one file per declaration, or one file for the whole target that a `file` directive in the target block names.
   `types.go` maps IR types to Go and walks types itself, since `Resolve` refuses type parameters.
   `generics.go` maps type parameters and infers `comparable` for map keys; `classes.go` makes a class an interface with one unexported marker method; `validate.go` turns `where` constraints into `Validate`; `foreign.go` maps a declaration to another package's type.
   An enum with no variant fields is a string type with constants; otherwise a sealed interface with a struct per variant.

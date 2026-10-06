@@ -1219,6 +1219,46 @@ func TestAKeywordPackageNameIsAnError(t *testing.T) {
 	}
 }
 
+// A target-scope file directive writes every declaration into that one
+// file, with one import block, so a target can generate into a package
+// that also holds hand-written code.
+func TestFileDirectiveWritesOneFile(t *testing.T) {
+	m := irtest.New("shop")
+	m.Own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Order"},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{
+			Fields: []*ir.Field{irtest.Field("placed", m.Named("instant"))},
+		}},
+	})
+	note := &ir.Decl{
+		Meta: &ir.Meta{Name: "Note"},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{
+			Fields: []*ir.Field{irtest.Field("at", m.Named("instant"))},
+		}},
+		Directives: []*ir.Directive{{
+			Name: "file", Target: "go", Args: []*ir.Literal{irtest.Text("note.go")},
+			Position: &ir.Position{Filename: irtest.OwnFile, Line: 9},
+		}},
+	}
+	m.Own(note)
+	m.Model.Targets = []*ir.TargetBlock{{
+		Meta:       &ir.Meta{Name: "go"},
+		Directives: []*ir.Directive{{Name: "file", Target: "go", Args: []*ir.Literal{irtest.Text("model.go")}}},
+	}}
+
+	resp := generate(t, m)
+	onlyWarningAt(t, resp, 9)
+	got := files(t, resp)
+	if len(got) != 1 {
+		t.Fatalf("files = %v, want only model.go", keys(got))
+	}
+	src := got["model.go"]
+	contains(t, src, "type Order struct {", "type Note struct {")
+	if n := strings.Count(src, "import"); n != 1 {
+		t.Errorf("%d import blocks, want 1:\n%s", n, src)
+	}
+}
+
 // A warning does not stop the rest of the model from generating.
 func TestUnsupportedIsAWarning(t *testing.T) {
 	m := irtest.New("shop")
