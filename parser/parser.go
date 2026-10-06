@@ -177,16 +177,14 @@ func (p *parser) parseFile() *ast.File {
 	return file
 }
 
-// parseDoc consumes a run of `///` lines and returns where it began, which
-// the formatter uses to order it against ordinary comments.
-func (p *parser) parseDoc() ([]string, ast.Position) {
+// parseDoc consumes a run of `///` lines and returns where each was written,
+// which the formatter uses to order them against ordinary comments.
+func (p *parser) parseDoc() ([]string, []ast.Position) {
 	var doc []string
-	var pos ast.Position
+	var pos []ast.Position
 	for p.at(lex.DOC) {
-		if len(doc) == 0 {
-			pos = p.cur.Pos
-		}
 		doc = append(doc, p.cur.Text)
+		pos = append(pos, p.cur.Pos)
 		p.next()
 	}
 	return doc, pos

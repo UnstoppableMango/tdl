@@ -356,7 +356,7 @@ Directive and constraint arguments are parenthesized and comma separated, since 
 The parser calls `lex.RescanRegexAt` when it wants a regex; nothing else in the lexer takes context.
 
 Comments survive formatting.
-A `///` doc comment is a token attached to the next declaration, in `DeclHead.Doc` with its position in `DeclHead.DocP`.
+A `///` doc comment is a token attached to the next declaration, in `DeclHead.Doc` with each line's position in `DeclHead.DocP`.
 A `//` comment is collected on the side into `ast.File.Comments` in source order.
 `ast.Fprint` places each by position, on its own line or at the end of the line it was on; a block holding one does not collapse to a line.
 Doc and ordinary comments are merged by offset, so they keep their order.
