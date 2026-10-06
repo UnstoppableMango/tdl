@@ -192,6 +192,7 @@ Every backend reports what it cannot generate as a positioned warning rather tha
 A backend added to the registry needs a row in the `shipped` table in `internal/gen/hosts_test.go` (`TestEveryBuiltinHasARow`) and, if shipped, an entry in `nix/cmd.nix` (`TestPackagedBackendsShip`).
 
 `docs/design/schema-backends.md` maps the six schema backends.
+`docs/design/reverse.md` is the import direction, target language to TDL, and `reverse-plan.md` orders it.
 `testdata/gen/smoke/source.tdl` exercises the whole mapping, with a target block for each schema backend and for `salesforce`; the nix checks generate from it and run each language's tool on the output.
 
 ### Tests and goldens
