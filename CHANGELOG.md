@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/UnstoppableMango/tdl/compare/v0.3.0...v0.3.1) (2026-10-06)
+
+
+### Features
+
+* **jsonschema:** add a JSON Schema backend ([#954](https://github.com/UnstoppableMango/tdl/issues/954)) ([a3d56ca](https://github.com/UnstoppableMango/tdl/commit/a3d56ca9e98f0bd837587d925112686ffac25413))
+
 ## [0.3.0](https://github.com/UnstoppableMango/tdl/compare/v0.2.16...v0.3.0) (2026-10-06)
 
 
