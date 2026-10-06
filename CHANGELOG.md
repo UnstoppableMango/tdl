@@ -1,5 +1,38 @@
 # Changelog
 
+## [0.3.0](https://github.com/UnstoppableMango/tdl/compare/v0.2.16...v0.3.0) (2026-10-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* **gen:** a relative out directive resolves against the directory of the .tdl file declaring the target block rather than the working directory.
+
+### Features
+
+* **cli:** tdl check lowers each file and reports its diagnostics ([#946](https://github.com/UnstoppableMango/tdl/issues/946)) ([0456ff3](https://github.com/UnstoppableMango/tdl/commit/0456ff3844515b6193b3f97bf6eebf8ee6f38956))
+* **go:** a file directive writes the whole target into one file ([#955](https://github.com/UnstoppableMango/tdl/issues/955)) ([f9713d6](https://github.com/UnstoppableMango/tdl/commit/f9713d6221514d1385a214d051d0be45122b7f47))
+
+
+### Bug Fixes
+
+* **gen:** own the files tdl wrote rather than the whole directory ([#948](https://github.com/UnstoppableMango/tdl/issues/948)) ([907b149](https://github.com/UnstoppableMango/tdl/commit/907b1495688eb1ef6dd573c96327a18c03b5cbaa))
+* **gen:** resolve out against the file declaring the target block ([#947](https://github.com/UnstoppableMango/tdl/issues/947)) ([dc766ad](https://github.com/UnstoppableMango/tdl/commit/dc766adbbd4baeefb5aa60de3912ca46b99c9a31))
+* **gen:** verify a shared output directory against every file given ([#949](https://github.com/UnstoppableMango/tdl/issues/949)) ([d923a4e](https://github.com/UnstoppableMango/tdl/commit/d923a4ea211c96db023256bf2af0d87bf0878749))
+* **nix:** regenerate gomod2nix.toml and have Renovate keep it current ([#958](https://github.com/UnstoppableMango/tdl/issues/958)) ([4eb5077](https://github.com/UnstoppableMango/tdl/commit/4eb5077e5511177c1d35a8d864151d9c5e27bdbf))
+* **thrift:** skip a union whose variant name its union already declares ([#945](https://github.com/UnstoppableMango/tdl/issues/945)) ([86d28dd](https://github.com/UnstoppableMango/tdl/commit/86d28dd90061b7b863fc0776268fd367208b9d60))
+
+
+### Documentation
+
+* design a likec4 backend ([#976](https://github.com/UnstoppableMango/tdl/issues/976)) ([e4aa14b](https://github.com/UnstoppableMango/tdl/commit/e4aa14ba0d4dcab7093961c1ff6786157bf8e7a9))
+* design target profiles ([#975](https://github.com/UnstoppableMango/tdl/issues/975)) ([79b4f1d](https://github.com/UnstoppableMango/tdl/commit/79b4f1da198568f1c501ceb2324d865eeab61b2b))
+
+
+### Dependencies
+
+* update dependency @types/vscode to ~1.140.0 ([#932](https://github.com/UnstoppableMango/tdl/issues/932)) ([5da6c8e](https://github.com/UnstoppableMango/tdl/commit/5da6c8ecba1d53ed7a5a0063e49fd3f1fabbbc2f))
+* update module github.com/vektah/gqlparser/v2 to v2.5.60 ([#931](https://github.com/UnstoppableMango/tdl/issues/931)) ([71f5995](https://github.com/UnstoppableMango/tdl/commit/71f5995cf1990197a3675d93e43474b40c896e3c))
+
 ## [0.2.16](https://github.com/UnstoppableMango/tdl/compare/v0.2.15...v0.2.16) (2026-10-05)
 
 
