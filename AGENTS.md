@@ -122,8 +122,11 @@ The plugin protocol in `docs/design/plugins.md` is complete.
   It touches no filesystem: a `Loader` supplies imports, `FSLoader` for real files and `MapLoader` in tests.
   `refs.go` records every name resolution when `WithReferences` is set, for the language server, by hooking the places lowering already resolves names.
   Private.
+- `internal/unlower`: ir to ast, the reverse of `sema`, for reverse backends.
+  It writes the model's own declarations and leaves to lowering what lowering computes: inherited constraints, mixin fields, struct kinds, and a class directive's expansion.
+  `TestCorpusRoundTrips` holds it to lowering the printed corpus back to an equal model.
 - `ir`: the resolved model backends consume.
-  `ir.pb.go` is generated from `proto/tdl/ir/v1/ir.proto`; `model.go` holds hand-written lookups.
+  `ir.pb.go` is generated from `proto/tdl/ir/v1/ir.proto`; `model.go` holds hand-written lookups, and `WithoutPositions` clears positions so `proto.Equal` compares two models.
   Three interned tables, each its own ID space: `Decls`, `Types`, `Units`.
   A unit is interned on its base dimensions, so `decimal<N>` and `decimal<kg*m/s^2>` are one entry in `Types`; `UnitDef` is the declaration and `Unit` what it measures.
   `proto/` and `ir/` are the public compatibility surface.

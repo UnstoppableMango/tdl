@@ -3,15 +3,17 @@
 An implementation plan for [reverse.md](reverse.md).
 Phases are ordered by dependency, and each states what makes it done.
 
-No phase is done.
+Phase 1 is done.
 
 ## Phase 1: unlower
 
-`internal/unlower` turns an `ir.Model` into an `*ast.File`, and a comparison ignores positions: an `ir.Dump` option that omits them, or protobuf equality after clearing them.
+`internal/unlower` turns an `ir.Model` into an `*ast.File`, and `ir.WithoutPositions` clears positions so `proto.Equal` compares two models.
 
-A variant's payload prints expanded only when `Variant.End.Line` is set (`ast/print.go`), so unlowering sets positions or the printer decides from content.
+What lowering computes is left for it to compute again: inherited newtype constraints, mixin fields, the struct kind, satisfaction, and a class directive's expansion, which is written back once on the class.
+`instance C for T` comes back as `instance C<T>`, the form lowering rewrites it to.
+A unit argument prints as the name of a unit declaration measuring it, or else in the spelling that first named it.
 
-Done when every `testdata/conformance/*/source.tdl` parses, lowers, unlowers, prints, parses, and lowers to an equal model.
+Done: `TestCorpusRoundTrips` takes every `testdata/conformance/*/source.tdl` through lowering, unlowering, printing, and lowering again to an equal model, and checks the printed file is canonical.
 
 ## Phase 2: protocol, loss codes, and configuration
 
@@ -38,7 +40,7 @@ Done when the harness runs an empty corpus for every target.
 
 ## Phase 4: one target at a time
 
-In order: `protobuf`, `thrift`, `graphql`, `go`, `typescript`, `smithy`.
+In order: `protobuf`, `thrift`, `graphql`, `go`, `typescript`, `smithy`, `jsonschema`.
 Each is:
 
 1. loss warnings generating;
