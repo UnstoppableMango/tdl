@@ -25,6 +25,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/golang"
 	"github.com/unstoppablemango/tdl/backend/graphql"
 	"github.com/unstoppablemango/tdl/backend/jsonschema"
+	"github.com/unstoppablemango/tdl/backend/likec4"
 	"github.com/unstoppablemango/tdl/backend/openapi"
 	"github.com/unstoppablemango/tdl/backend/protobuf"
 	"github.com/unstoppablemango/tdl/backend/salesforce"
@@ -53,6 +54,7 @@ var shipped = []struct {
 	{backend: golang.Backend{}, model: goModel, packaged: true, valid: parseGo},
 	{backend: graphql.Backend{}, model: orderModel, packaged: true, valid: loadGraphQL},
 	{backend: jsonschema.Backend{}, model: orderModel, packaged: true, valid: compileJSONSchema},
+	{backend: likec4.Backend{}, model: orderModel, packaged: true},
 	{backend: openapi.Backend{}, model: orderModel, packaged: true, valid: parseYAML},
 	{backend: protobuf.Backend{}, model: orderModel, packaged: true, valid: compileProto},
 	{backend: salesforce.Backend{}, model: orderModel, packaged: true, valid: parseXML},
