@@ -683,8 +683,8 @@ const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
 	"\bSeverity\x12\x18\n" +
 	"\x14SEVERITY_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eSEVERITY_ERROR\x10\x01\x12\x14\n" +
-	"\x10SEVERITY_WARNING\x10\x02B\xa8\x01\n" +
-	"\x11com.tdl.plugin.v1B\vPluginProtoP\x01Z&github.com/unstoppablemango/tdl/plugin\xa2\x02\x03TPX\xaa\x02\rTdl.Plugin.V1\xca\x02\rTdl\\Plugin\\V1\xe2\x02\x19Tdl\\Plugin\\V1\\GPBMetadata\xea\x02\x0fTdl::Plugin::V1\x92\x03\a\xd2>\x02\x10\x01\b\x02b\beditionsp\xe9\a"
+	"\x10SEVERITY_WARNING\x10\x02B\xa6\x01\n" +
+	"\x11com.tdl.plugin.v1B\vPluginProtoZ&github.com/unstoppablemango/tdl/plugin\xa2\x02\x03TPX\xaa\x02\rTdl.Plugin.V1\xca\x02\rTdl\\Plugin\\V1\xe2\x02\x19Tdl\\Plugin\\V1\\GPBMetadata\xea\x02\x0fTdl::Plugin::V1\x92\x03\a\xd2>\x02\x10\x01\b\x02b\beditionsp\xe9\a"
 
 var (
 	file_tdl_plugin_v1_plugin_proto_rawDescOnce sync.Once
