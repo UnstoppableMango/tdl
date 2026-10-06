@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.4](https://github.com/UnstoppableMango/tdl/compare/v0.3.3...v0.3.4) (2026-10-06)
+
+
+### Features
+
+* **likec4:** a likec4 backend writing one element per declaration ([#984](https://github.com/UnstoppableMango/tdl/issues/984)) ([1594d9b](https://github.com/UnstoppableMango/tdl/commit/1594d9b077ebdf285be0526d01fa9e013587f656))
+* **unlower:** turn a model back into TDL source ([#983](https://github.com/UnstoppableMango/tdl/issues/983)) ([3281643](https://github.com/UnstoppableMango/tdl/commit/32816436e5e4b3ffb20b4e3045b6fa18d7cbe0f1)), closes [#960](https://github.com/UnstoppableMango/tdl/issues/960)
+
+
+### Continuous Integration
+
+* raise the Codecov project target to 85% ([#987](https://github.com/UnstoppableMango/tdl/issues/987)) ([989cd5d](https://github.com/UnstoppableMango/tdl/commit/989cd5dd086136dfaec92786b31cf714424901e7))
+
 ## [0.3.3](https://github.com/UnstoppableMango/tdl/compare/v0.3.2...v0.3.3) (2026-10-06)
 
 
