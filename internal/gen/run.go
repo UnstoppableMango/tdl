@@ -69,10 +69,12 @@ const (
 
 // Result is what one target produced.
 type Result struct {
-	Target      string
-	Written     []string
-	Removed     []string
-	Stale       []Stale
+	Target   string
+	Written  []string
+	Removed  []string
+	Stale    []Stale
+	Expected []string // what a verify run would write
+
 	Diagnostics []*plugin.Diagnostic
 }
 
@@ -94,8 +96,8 @@ func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.M
 	}
 
 	if mode == ModeVerify {
-		stale, err := Verify(target.Out, resp.GetFiles())
-		result.Stale = stale
+		stale, expected, err := Verify(target.Out, resp.GetFiles())
+		result.Stale, result.Expected = stale, expected
 		if err != nil {
 			return result, fmt.Errorf("target %s: %w", target.Name, err)
 		}
