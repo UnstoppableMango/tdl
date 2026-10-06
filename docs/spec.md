@@ -43,6 +43,7 @@ import "std/si" as si
 ```
 
 A file declares at most one package.
+A doc comment above `package` documents the package.
 An import binds a path to a local name; `_` merges the imported names into the current scope without a qualifier.
 
 There is no version syntax; the repository holding a schema versions it.
