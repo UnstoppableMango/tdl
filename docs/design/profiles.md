@@ -18,7 +18,6 @@ package std.likec4
 profile services for likec4 {
   @*      => element(none)
   @entity => element(entity)
-  views(false)
 }
 ```
 
@@ -34,7 +33,7 @@ A path in a profile is one of:
 - a prelude type, such as `decimal => foreign("github.com/shopspring/decimal", "Decimal")`.
 
 A path with a field segment is an error, since a profile knows no fields.
-A bare directive applies to the block, as it does in a target block.
+A bare directive applies to the block, as it does in a target block, so `edition("2024")` in a profile sets the edition of every block applying it.
 
 ## Kind selectors
 
@@ -73,7 +72,7 @@ A block applies at most one profile.
 A profile may apply another with `with` in its own header, so conventions compose as a chain.
 A cycle is an error at the `with` that closes it.
 
-`with` is contextual: it is recognized only between a target block's package and its `{`, so it remains a valid name everywhere else.
+`with` is contextual: it is recognized only before the `{` of a target block or a profile header, so it remains a valid name everywhere else.
 
 ## Precedence
 
@@ -134,4 +133,5 @@ A value that differs per project, such as the Salesforce `prefix` or a Go `packa
 
 - **Parameters.** `with std.salesforce.namespaced("acme")` would let a profile carry a per-project value; it would need a syntax for referring to the argument inside the body.
 - **Several profiles per block.** `with a, b` needs an order between `a` and `b`; a chain covers the same need with an explicit order.
+- **Removing a repeatable entry.** A repeatable directive reaches the backend from every layer, so a block cannot drop a `link` its profile adds; it would need a way to say "none from below".
 - **Block-scope `out`.** A profile could set a conventional `out`; whether a profile may set where files are written is unsettled.
