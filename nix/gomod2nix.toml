@@ -45,6 +45,10 @@ schema = 3
     version = 'v0.4.7'
     hash = 'sha256-rDcdNYH6ZD8KouyyiZCUEy8JrjOQoAkxHBhugrfHjFo='
 
+  [mod.'github.com/santhosh-tekuri/jsonschema/v6']
+    version = 'v6.0.2'
+    hash = 'sha256-rPRYeV00NRyt6rb+gFJRK1K4TlVxy92cocRK/X9Wef4='
+
   [mod.'github.com/spf13/cobra']
     version = 'v1.10.2'
     hash = 'sha256-nbRCTFiDCC2jKK7AHi79n7urYCMP5yDZnWtNVJrDi+k='
@@ -80,6 +84,10 @@ schema = 3
   [mod.'golang.org/x/sync']
     version = 'v0.23.0'
     hash = 'sha256-nF8YZFVC+TitjkderlqgGwJkuMqJCxI+fIElVLjBT2M='
+
+  [mod.'golang.org/x/text']
+    version = 'v0.36.0'
+    hash = 'sha256-/0t9C6Mc8kYjxweFB0us2lGKo8GovHhBiq5nlMOppC0='
 
   [mod.'google.golang.org/protobuf']
     version = 'v1.36.12'

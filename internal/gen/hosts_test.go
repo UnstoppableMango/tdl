@@ -15,6 +15,7 @@ import (
 	"github.com/bufbuild/protocompile"
 	thriftparser "github.com/cloudwego/thriftgo/parser"
 	"github.com/cloudwego/thriftgo/semantic"
+	sjs "github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/vektah/gqlparser/v2"
 	gqlast "github.com/vektah/gqlparser/v2/ast"
 	"google.golang.org/protobuf/proto"
@@ -22,6 +23,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/debug"
 	"github.com/unstoppablemango/tdl/backend/golang"
 	"github.com/unstoppablemango/tdl/backend/graphql"
+	"github.com/unstoppablemango/tdl/backend/jsonschema"
 	"github.com/unstoppablemango/tdl/backend/protobuf"
 	"github.com/unstoppablemango/tdl/backend/salesforce"
 	"github.com/unstoppablemango/tdl/backend/smithy"
@@ -48,6 +50,7 @@ var shipped = []struct {
 	{backend: debug.Backend{}, model: sampleModel, packaged: true},
 	{backend: golang.Backend{}, model: goModel, packaged: true, valid: parseGo},
 	{backend: graphql.Backend{}, model: orderModel, packaged: true, valid: loadGraphQL},
+	{backend: jsonschema.Backend{}, model: orderModel, packaged: true, valid: compileJSONSchema},
 	{backend: protobuf.Backend{}, model: orderModel, packaged: true, valid: compileProto},
 	{backend: salesforce.Backend{}, model: orderModel, packaged: true, valid: parseXML},
 	{backend: smithy.Backend{}, model: orderModel, packaged: true},
@@ -299,5 +302,22 @@ func loadGraphQL(t *testing.T, f *plugin.File) {
 	t.Helper()
 	if _, err := gqlparser.LoadSchema(&gqlast.Source{Name: f.GetPath(), Input: string(f.GetContent())}); err != nil {
 		t.Errorf("%s does not load: %v\n%s", f.GetPath(), err, f.GetContent())
+	}
+}
+
+func compileJSONSchema(t *testing.T, f *plugin.File) {
+	t.Helper()
+	doc, err := sjs.UnmarshalJSON(bytes.NewReader(f.GetContent()))
+	if err != nil {
+		t.Errorf("%s is not JSON: %v\n%s", f.GetPath(), err, f.GetContent())
+		return
+	}
+	c := sjs.NewCompiler()
+	loc := "file:///" + f.GetPath()
+	if err := c.AddResource(loc, doc); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.Compile(loc); err != nil {
+		t.Errorf("%s does not compile: %v\n%s", f.GetPath(), err, f.GetContent())
 	}
 }

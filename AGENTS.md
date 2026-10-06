@@ -59,7 +59,7 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 
 `nix/` holds the packaging:
 
-- `cmd.nix`: the CLI. `meta.mainProgram` is what `lib.getExe` reads, since the package installs nine binaries.
+- `cmd.nix`: the CLI. `meta.mainProgram` is what `lib.getExe` reads, since the package installs ten binaries.
 - `vscode-extension.nix`: the editor extension (see [VS Code](#vs-code)).
 - `overlay.nix`: names both packages and composes gomod2nix's overlay, so a consumer adding it also gets `buildGoApplication` and `mkGoEnv`.
 - `hm-module.nix`: the home-manager module.
@@ -175,6 +175,11 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   A set is an array, a map a `Record`, unrepresentable primitives a string, a newtype a plain alias.
   A fielded enum is a union discriminated on `kind`, renamed by a `discriminant` directive.
   Tests run `tsc --noEmit --strict` when it is on `PATH`; `checks.gen-typescript` always does.
+- `backend/jsonschema`: one `.schema.json` document per model, every declaration under `$defs`.
+  A fielded enum is a `oneOf` discriminated on `kind`, as in TypeScript; a newtype is a definition with its own constraints, and a base newtype is a `$ref`.
+  `where` constraints become keywords (`minimum`, `pattern`, `minLength`, ...) chosen by what the constrained type holds, and one with no keyword warns.
+  `draft` picks 2020-12 or draft-07, `root` names the declaration the document validates, `id` sets `$id`, and `closed` refuses undeclared properties.
+  Tests compile every response with `santhosh-tekuri/jsonschema` and validate instances against it; `checks.gen-jsonschema` runs `check-jsonschema`.
 - `backend/salesforce`: Salesforce DX source, one file per component.
   An entity is a custom object, with a warning for each field that has no column; values, mixins, and enums are Apex.
   A `key` directive makes a field a unique external ID.
@@ -186,7 +191,7 @@ Every backend reports what it cannot generate as a positioned warning rather tha
 `TestHostsAgree` in `internal/gen` holds each to producing the same bytes in process and over a pipe.
 A backend added to the registry needs a row in the `shipped` table in `internal/gen/hosts_test.go` (`TestEveryBuiltinHasARow`) and, if shipped, an entry in `nix/cmd.nix` (`TestPackagedBackendsShip`).
 
-`docs/design/schema-backends.md` maps the five schema backends.
+`docs/design/schema-backends.md` maps the six schema backends.
 `testdata/gen/smoke/source.tdl` exercises the whole mapping, with a target block for each schema backend and for `salesforce`; the nix checks generate from it and run each language's tool on the output.
 
 ### Tests and goldens
