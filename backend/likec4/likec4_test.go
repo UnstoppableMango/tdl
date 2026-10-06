@@ -82,10 +82,10 @@ func absent(t *testing.T, src string, unwanted ...string) {
 
 func collapse(s string) string { return strings.Join(strings.Fields(s), " ") }
 
-func structure(kind ir.StructKind, name string, fields ...*ir.Field) *ir.Decl {
+func structure(kind ir.StructKind, name string) *ir.Decl {
 	return &ir.Decl{
 		Meta: &ir.Meta{Name: name},
-		Node: &ir.Decl_Structure{Structure: &ir.Struct{Kind: kind, Fields: fields}},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{Kind: kind}},
 	}
 }
 
