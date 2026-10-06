@@ -50,6 +50,7 @@ Files with no formatter: the three Makefiles, `.editorconfig`, `docs/grammar.ebn
 Also excluded from formatting: `*.tdl` (until `tdl fmt` is wired in, see `docs/backlog.md`), generated files, and `.claude/`.
 
 After changing `go.mod`, run `make tidy` so `nix/gomod2nix.toml` stays in sync; otherwise `nix build` fails.
+Renovate does the same for its own updates through the `gomod2nix` preset in `.github/renovate.json`.
 
 Neither `gomod2nix` nor `protoc-gen-go` is on `PATH`.
 Run generators through the devShell: `nix develop --command make tidy`, and `buf generate` inside `nix develop` or with `PATH="$(go env GOPATH)/bin:$PATH"`.

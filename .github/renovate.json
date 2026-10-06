@@ -3,6 +3,7 @@
 	"extends": [
 		"github>UnstoppableMango/renovate-config",
 		"github>UnstoppableMango/renovate-config:release-please",
+		"github>UnstoppableMango/renovate-config:gomod2nix(nix)",
 		"schedule:monthly"
 	],
 	"automerge": true,
