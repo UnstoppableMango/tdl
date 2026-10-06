@@ -537,6 +537,7 @@ type Model struct {
 	Satisfies     []*Satisfaction        `protobuf:"bytes,7,rep,name=satisfies" json:"satisfies,omitempty"`
 	Targets       []*TargetBlock         `protobuf:"bytes,8,rep,name=targets" json:"targets,omitempty"`
 	Units         []*Unit                `protobuf:"bytes,9,rep,name=units" json:"units,omitempty"` // the interned unit table
+	Doc           []string               `protobuf:"bytes,10,rep,name=doc" json:"doc,omitempty"`    // the doc comment above `package`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -630,6 +631,13 @@ func (x *Model) GetTargets() []*TargetBlock {
 func (x *Model) GetUnits() []*Unit {
 	if x != nil {
 		return x.Units
+	}
+	return nil
+}
+
+func (x *Model) GetDoc() []string {
+	if x != nil {
+		return x.Doc
 	}
 	return nil
 }
@@ -2764,7 +2772,7 @@ const file_tdl_ir_v1_ir_proto_rawDesc = "" +
 	"\n" +
 	"deprecated\x18\x04 \x01(\v2\x16.tdl.ir.v1.DeprecationR\n" +
 	"deprecated\x12\x14\n" +
-	"\x05order\x18\x05 \x01(\x05R\x05order\"\x8c\x03\n" +
+	"\x05order\x18\x05 \x01(\x05R\x05order\"\x9e\x03\n" +
 	"\x05Model\x12\x18\n" +
 	"\apackage\x18\x01 \x01(\tR\apackage\x12%\n" +
 	"\x05decls\x18\x02 \x03(\v2\x0f.tdl.ir.v1.DeclR\x05decls\x12%\n" +
@@ -2774,7 +2782,9 @@ const file_tdl_ir_v1_ir_proto_rawDesc = "" +
 	"\tinstances\x18\x06 \x03(\v2\x13.tdl.ir.v1.InstanceR\tinstances\x125\n" +
 	"\tsatisfies\x18\a \x03(\v2\x17.tdl.ir.v1.SatisfactionR\tsatisfies\x120\n" +
 	"\atargets\x18\b \x03(\v2\x16.tdl.ir.v1.TargetBlockR\atargets\x12%\n" +
-	"\x05units\x18\t \x03(\v2\x0f.tdl.ir.v1.UnitR\x05units\"\x89\x01\n" +
+	"\x05units\x18\t \x03(\v2\x0f.tdl.ir.v1.UnitR\x05units\x12\x10\n" +
+	"\x03doc\x18\n" +
+	" \x03(\tR\x03doc\"\x89\x01\n" +
 	"\vTargetBlock\x12#\n" +
 	"\x04meta\x18\x01 \x01(\v2\x0f.tdl.ir.v1.MetaR\x04meta\x12\x1f\n" +
 	"\vfor_package\x18\x02 \x01(\tR\n" +
