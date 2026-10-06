@@ -111,7 +111,8 @@ There is no `layout` directive; a different layout needs a different backend.
 ### Stale output
 
 `tdl gen` only writes, so a deleted type leaves its file until `tdl gen --clean` removes it.
-`--clean` deletes only inside a directory carrying the `.tdl-output` marker the first `tdl gen` into it writes (`internal/gen/marker.go`); cleaning a directory with files and no marker is an error.
+An output directory may also hold hand-written code, so `tdl gen` lists each file it writes in a `.tdl-output` marker there (`internal/gen/marker.go`).
+`--clean` removes only listed files, `--verify` reports only a listed file as no longer generated, and `tdl gen` refuses to overwrite a file the marker does not list.
 
 ## Backends
 

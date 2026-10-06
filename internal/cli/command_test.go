@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/spf13/cobra"
+
+	"github.com/unstoppablemango/tdl/internal/gen"
 )
 
 // twoFiles writes a canonical model and a broken one.
@@ -215,6 +217,9 @@ func TestGenCleansASharedOutputDirectoryOnce(t *testing.T) {
 	orphan := filepath.Join(out, "orphan.txt")
 	if err := os.WriteFile(orphan, []byte("old\n"), 0o644); err != nil {
 		t.Fatalf("writing the orphan: %v", err)
+	}
+	if err := gen.Mark(out, []string{orphan}); err != nil {
+		t.Fatalf("listing the orphan: %v", err)
 	}
 
 	stdout, _, err := run(t, newGenCmd(), append([]string{"-o", out, "--clean"}, paths...)...)

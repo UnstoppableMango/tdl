@@ -27,8 +27,9 @@ func newGenCmd() *cobra.Command {
 			"relative to the file declaring the block, and -o, relative to the\n" +
 			"working directory, overrides it for one invocation.\n\n" +
 			"--verify generates and compares against disk without writing,\n" +
-			"exiting non-zero when they differ. --clean empties the output\n" +
-			"directory first, and refuses one tdl did not write.\n\n" +
+			"exiting non-zero when they differ. --clean first removes the files\n" +
+			"an earlier run wrote, which .tdl-output in the directory lists.\n" +
+			"A file there that tdl did not write is never overwritten or removed.\n\n" +
 			"--watch regenerates when the file changes, holding open any\n" +
 			"plugin that declared it can serve more than one request. It\n" +
 			"takes a single file, since it does not return.",
@@ -80,7 +81,7 @@ func newGenCmd() *cobra.Command {
 	cmd.Flags().StringVar(&r.target, "target", "", "generate only this target")
 	cmd.Flags().StringVarP(&r.out, "out", "o", "", "write here instead of the target block's out directive")
 	cmd.Flags().BoolVar(&r.verify, "verify", false, "generate and compare against disk without writing")
-	cmd.Flags().BoolVar(&r.clean, "clean", false, "empty the output directory before writing")
+	cmd.Flags().BoolVar(&r.clean, "clean", false, "remove the files tdl wrote before writing")
 	cmd.Flags().BoolVar(&r.watch, "watch", false, "regenerate when the file changes")
 	return cmd
 }
