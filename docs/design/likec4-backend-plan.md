@@ -3,7 +3,7 @@
 An implementation plan for [likec4-backend.md](likec4-backend.md).
 Phases are ordered by dependency, and each states what makes it done.
 
-No phase is done.
+Phase 1 is done.
 Phases 1 through 4 need nothing from [profiles.md](profiles.md); phase 5 needs [profiles-plan.md](profiles-plan.md) phases 1 through 3.
 
 ## Scope

@@ -65,7 +65,7 @@ The `description` is markdown:
 
 1. the doc comment;
 1. the deprecation, with its reason;
-1. one line per field, `- quantity: int where min(1)`, or per variant, `- Card { last4: string }`.
+1. one line per field, `- quantity: int where min(1)`, or per variant, `- Card { last4: string }`, with a mixin's fields as one `- include Timestamps`.
 
 A type is written in TDL spelling, so the description reads like the source, and a constraint is listed rather than warned about, since a diagram enforces nothing.
 
