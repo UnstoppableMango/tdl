@@ -384,8 +384,8 @@ A message is the path, the constraint as written, and a detail, as in Go and Has
 
 A string's length counts characters, as in Go: OCaml decodes with `String.get_utf_8_uchar`, F# counts `EnumerateRunes`, and Standard ML counts bytes that do not begin `10` through a helper the structure declares once.
 
-F# generates `matches` with `Regex` under `RegexOptions.ECMAScript`, which makes `\d` and `\w` ASCII as RE2 does, compiled once per namespace.
-The backend parses the pattern with Go's `regexp/syntax` first, so a pattern RE2 refuses warns rather than failing when the module loads.
+F# generates `matches` with `Regex`, compiled once per namespace, from the pattern printed in .NET syntax as [csharp-backend.md](csharp-backend.md#validation) describes.
+A pattern RE2 refuses, or a script class .NET cannot spell, warns rather than failing when the module loads.
 OCaml's `Str` and every Standard ML regex library have their own dialects, so `matches` warns there and the rest of the type's constraints are generated, as in Haskell.
 
 ## Units

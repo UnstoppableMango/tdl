@@ -299,8 +299,12 @@ The path uses the model's spelling, not the property's, so it reads the same in 
 | `unique` | A list's elements, through the record equality above |
 
 A string's length counts characters by `EnumerateRunes`, as F# does, rather than `Length`, which counts UTF-16 code units.
-`matches` compiles once per namespace with `RegexOptions.ECMAScript`, which makes `\d` and `\w` ASCII as RE2 does, after the backend parses the pattern with Go's `regexp/syntax`, so a pattern RE2 refuses warns rather than throwing when the type loads.
-The bounds come from `emit.Length` and the RE2 check from `emit.Pattern`, as in every backend; counting runes and choosing `RegexOptions.ECMAScript` are .NET's, in `backend/internal/dotnet` with F#.
+`matches` is not passed through as written, because .NET's dialect differs from RE2's in both directions.
+The backend parses the pattern with Go's `regexp/syntax` and prints the tree in .NET syntax, compiled once per namespace with `RegexOptions.CultureInvariant`.
+`\d`, `\w`, `\s`, and the POSIX classes become explicit ASCII sets, as RE2 means them, and `\b` a lookaround over the ASCII word set; general categories such as `\p{Lu}` pass through; `.` and a negated class match a surrogate pair as one character, since RE2 matches code points.
+`RegexOptions.ECMAScript` would make the Perl classes ASCII too, but it refuses `\p` entirely.
+A script class such as `\p{Greek}` has no .NET spelling, since .NET names Unicode blocks rather than scripts, so it warns, as does a pattern RE2 refuses; neither throws when the type loads.
+The bounds come from `emit.Length` and the RE2 check from `emit.Pattern`, as in every backend; counting runes and printing the tree for .NET's engine are .NET's, in `backend/internal/dotnet` with F#.
 
 A type validates the values it holds at any depth, a newtype checks the set the compiler accumulated down its chain, and a generic type does not check its type arguments' values, all as in Go.
 A record with nothing to check gets none of the methods.
@@ -428,7 +432,7 @@ So a C# service and an F# client agree on bytes because both agree with TypeScri
 | The namespace derived from a package | `shop.billing` is `Shop.Billing` in both |
 | `foreign(namespace, type)` and its validation | One directive, one shape, one meaning |
 | `attribute(namespace, name)` | One directive, one shape |
-| `RegexOptions.ECMAScript` for an `emit.Pattern`-checked pattern, and `length` counted with `EnumerateRunes` | One engine, one string type |
+| An `emit.Pattern`-checked pattern printed in .NET syntax, and `length` counted with `EnumerateRunes` | One engine, one string type |
 | The `json` directive's argument and what `stj` names | One serializer, written through two libraries |
 
 Suppressing obsolete use inside a generated file, `CS0612` and `CS0618` here and `FS0044` there, is one rule but no code.

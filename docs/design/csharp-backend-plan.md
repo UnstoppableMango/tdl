@@ -60,9 +60,9 @@ Done when every class in the conformance corpus generates or warns and builds, a
 ## Phase 4: validation
 
 `Validate`, `ValidateAt`, `Create`, and `TryCreate` for each standard constraint, the content checks reaching through containers at any depth, and the accumulated set on a newtype.
-`length` from `emit.Length`, counted by runes, and `matches` checked by `emit.Pattern` and compiled with `RegexOptions.ECMAScript` from `backend/internal/dotnet`.
+`length` from `emit.Length`, counted by runes, and `matches` checked by `emit.Pattern` and printed in .NET syntax by `backend/internal/dotnet`.
 
-Done when each standard constraint is rejected under `TestValidationRuns`, a string of four emoji passes `length(4)`, and a pattern RE2 refuses warns at generation time.
+Done when each standard constraint is rejected under `TestValidationRuns`, a string of four emoji passes `length(4)`, `\d` refuses a non-ASCII digit, `\p{Lu}` accepts `Ä`, and a pattern RE2 refuses or a script class warns at generation time.
 
 ## Phase 5: serialization
 
