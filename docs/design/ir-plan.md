@@ -83,7 +83,7 @@ Done when declared instances survive into `ir`, `Satisfying` answers correctly f
 
 ## Phase 6b: conditional instance search (done)
 
-Answering whether `Page<Order>` satisfies `Auditable` through `instance <T> Auditable<Page<T>> requires Auditable<T>` means matching the head and discharging the condition.
+Answering whether `Page<Order>` satisfies `Archived` through `instance <T> Archived<Page<T>> requires Archived<T>` means matching the head and discharging the condition.
 The spec's termination rules, an instance head applied to distinct parameters and every constraint structurally smaller than the head, keep the search finite.
 
 Done when the index answers for an instantiated generic type, a search that would not terminate is rejected at the instance, and the corpus covers a conditional instance that applies and one that does not.

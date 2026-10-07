@@ -155,10 +155,7 @@ func (g *generator) sum(d *ir.Decl) ([]*plugin.File, error) {
 		}
 		pos := v.GetMeta().GetPosition()
 		vn := v.GetMeta().GetName()
-		cls := emit.Pascal(vn)
-		if s, ok := g.Text(v.GetDirectives(), "name"); ok {
-			cls = s
-		}
+		cls := g.VariantName(v, emit.Pascal)
 		member := emit.Camel(cls)
 		if err := ident(pos, name+"."+vn, cls); err != nil {
 			return nil, err

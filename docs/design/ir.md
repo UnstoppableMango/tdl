@@ -110,7 +110,7 @@ A backend that only needs "which types are `Auditable`" reads the index and neve
 The index has two halves:
 
 - `Satisfying` answers about declarations, from ground facts: a declaration that says it conforms, and an instance with concrete arguments, closed over the classes a class requires.
-- `SatisfyingTypes` answers about instantiated types, from the conditional instance search. Given `instance <T> Auditable<Page<T>> requires Auditable<T>`, `Page` satisfies nothing on its own and `Page<Order>` is a type rather than a declaration. The search matches an instance head against a type and discharges the conditions, and the spec's two rules on an instance are checked where it is written so the search terminates.
+- `SatisfyingTypes` answers about instantiated types, from the conditional instance search. Given `instance <T> Archived<Page<T>> requires Archived<T>`, `Page` satisfies nothing on its own and `Page<Order>` is a type rather than a declaration. The search matches an instance head against a type and discharges the conditions, and the spec's two rules on an instance are checked where it is written so the search terminates.
 
 Neither half lists a dependency's declaration, since those are not in the declaration table.
 

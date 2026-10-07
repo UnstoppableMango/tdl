@@ -60,8 +60,8 @@ func (l *lowerer) accumulateInto(idx int32, done, onPath map[int32]bool) {
 	}
 }
 
-// resolveNames resolves a field's default and constraint arguments written
-// as names to variants of the field's enum type.
+// resolveNames resolves a default or a constraint argument written as a
+// name, on a field or a newtype, to a variant of the enum it constrains.
 func (l *lowerer) resolveNames() {
 	for _, decl := range l.model.GetDecls() {
 		for _, f := range decl.Fields() {
@@ -72,16 +72,15 @@ func (l *lowerer) resolveNames() {
 				l.resolveFieldNames(f)
 			}
 		}
+		if nt := decl.GetNewtype(); nt != nil {
+			l.resolveConstraintArgs(nt.GetBase(), nt.GetValueConstraints())
+		}
 	}
 }
 
 func (l *lowerer) resolveFieldNames(f *ir.Field) {
 	l.checkDefault(f)
-	for _, c := range f.GetConstraints() {
-		for _, arg := range c.GetArgs() {
-			l.resolveConstraintArg(f, arg)
-		}
-	}
+	l.resolveConstraintArgs(f.GetType(), f.GetConstraints())
 }
 
 func (l *lowerer) checkDefault(f *ir.Field) {
@@ -90,7 +89,7 @@ func (l *lowerer) checkDefault(f *ir.Field) {
 		return
 	}
 
-	decl := l.fieldDecl(f)
+	decl := l.valueDecl(f.GetType())
 	if decl == nil {
 		return // a parameter, a foreign type, or already reported as undefined
 	}
@@ -104,17 +103,25 @@ func (l *lowerer) checkDefault(f *ir.Field) {
 	l.resolveVariant(decl, enum, def)
 }
 
-// resolveConstraintArg resolves a constraint argument written as a name to
-// a variant of the field's type. On a field whose type is not an enum the
-// name is left for the backend.
-func (l *lowerer) resolveConstraintArg(f *ir.Field, arg *ir.Literal) {
-	if arg.GetKind() != ir.LiteralKind_LITERAL_KIND_NAME {
+// resolveConstraintArgs resolves each constraint argument written as a
+// name to a variant of the type's enum, skipping one a newtype inherited,
+// which is resolved where it was written. On a type that is not an enum
+// the name is left for the backend.
+func (l *lowerer) resolveConstraintArgs(id *ir.ID, cs []*ir.Constraint) {
+	decl := l.valueDecl(id)
+	enum := decl.GetEnumeration()
+	if enum == nil {
 		return
 	}
-
-	decl := l.fieldDecl(f)
-	if enum := decl.GetEnumeration(); enum != nil {
-		l.resolveVariant(decl, enum, arg)
+	for _, c := range cs {
+		if c.GetFrom() != nil {
+			continue
+		}
+		for _, arg := range c.GetArgs() {
+			if arg.GetKind() == ir.LiteralKind_LITERAL_KIND_NAME {
+				l.resolveVariant(decl, enum, arg)
+			}
+		}
 	}
 }
 
@@ -131,24 +138,34 @@ func (l *lowerer) resolveVariant(decl *ir.Decl, enum *ir.Enum, lit *ir.Literal) 
 		decl.GetMeta().GetName(), lit.GetText())
 }
 
-// fieldDecl is the declaration a field's type names, or nil when there is
-// nothing local to resolve a name against.
-func (l *lowerer) fieldDecl(f *ir.Field) *ir.Decl {
-	ty := l.model.Type(f.GetType())
-	if ty == nil || ty.GetParam() != nil || ty.GetExtern() != nil {
-		return nil // a parameter or a foreign type: nothing local to check against
-	}
-
-	// Look through the optionality sugar: `status: Status? = Draft` names a
-	// variant of Status.
-	for len(ty.GetArgs()) == 1 && isOptionLike(ty) {
-		ty = l.model.Type(ty.GetArgs()[0])
-		if ty == nil {
-			return nil
+// valueDecl is the declaration whose values a type holds, looking through
+// optionality, aliases, and newtypes, or nil when there is nothing local to
+// resolve a name against.
+func (l *lowerer) valueDecl(id *ir.ID) *ir.Decl {
+	seen := map[int32]bool{}
+	for {
+		ty := l.model.Type(id)
+		if ty == nil || ty.GetParam() != nil || ty.GetExtern() != nil {
+			return nil // a parameter or a foreign type: nothing local to check against
+		}
+		if len(ty.GetArgs()) == 1 && isOptionLike(ty) {
+			id = ty.GetArgs()[0]
+			continue
+		}
+		decl := l.model.Decl(ty.GetCtor()) // nil when already reported as undefined
+		if decl == nil || seen[ty.GetCtor().GetIndex()] {
+			return decl // a cycle is already reported by the recursion check
+		}
+		seen[ty.GetCtor().GetIndex()] = true
+		switch {
+		case decl.GetAlias() != nil:
+			id = decl.GetAlias().GetTarget()
+		case decl.GetNewtype() != nil:
+			id = decl.GetNewtype().GetBase()
+		default:
+			return decl
 		}
 	}
-
-	return l.model.Decl(ty.GetCtor()) // nil when already reported as undefined
 }
 
 // isOptionLike reports whether a type is Option or Nullable.

@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/unstoppablemango/tdl/internal/config"
 	"github.com/unstoppablemango/tdl/internal/gen"
 	"github.com/unstoppablemango/tdl/internal/sema"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -34,7 +35,10 @@ func newGenCmd() *cobra.Command {
 			"A file there that tdl did not write is never overwritten or removed.\n\n" +
 			"--watch regenerates when the file changes, holding open any\n" +
 			"plugin that declared it can serve more than one request. It\n" +
-			"takes a single file, since it does not return.",
+			"takes a single file, since it does not return.\n\n" +
+			"A warning naming a loss code, such as lossy.collection, is\n" +
+			"silenced by the [lossy] table of the nearest tdl.toml above the\n" +
+			"file, or by --allow-lossy.",
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if r.watch && r.verify {
@@ -88,6 +92,7 @@ func newGenCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&r.verify, "verify", false, "generate and compare against disk without writing")
 	cmd.Flags().BoolVar(&r.clean, "clean", false, "remove the files tdl wrote before writing")
 	cmd.Flags().BoolVar(&r.watch, "watch", false, "regenerate when the file changes")
+	cmd.Flags().StringSliceVar(&r.allowLossy, "allow-lossy", nil, "silence warnings with these loss codes")
 	return cmd
 }
 
@@ -100,6 +105,10 @@ type genRun struct {
 	verify bool
 	clean  bool
 	watch  bool
+
+	// allowLossy holds the loss codes --allow-lossy silences, beside those
+	// tdl.toml allows.
+	allowLossy []string
 
 	// cleaned holds the output directories --clean has emptied in this run.
 	// Each is emptied once, since -o applies to every file given.
@@ -156,6 +165,11 @@ func (r *genRun) generate(path string) error {
 		return diags
 	}
 
+	cfg, err := config.Find(filepath.Dir(path))
+	if err != nil {
+		return err
+	}
+
 	targets, err := gen.Targets(model, r.out)
 	if err != nil {
 		return err
@@ -197,7 +211,7 @@ func (r *genRun) generate(path string) error {
 		}
 
 		result, err := gen.Run(cmd.Context(), backend, t, model, mode)
-		reportDiagnostics(cmd, result.Diagnostics)
+		reportDiagnostics(cmd, gen.Silence(result.Diagnostics, slices.Concat(cfg.Allowed(t.Name), r.allowLossy)))
 		if err != nil {
 			return err
 		}
@@ -254,8 +268,12 @@ func reportDiagnostics(cmd *cobra.Command, diags []*plugin.Diagnostic) {
 		if d.GetSeverity() == plugin.Severity_SEVERITY_WARNING {
 			severity = "warning"
 		}
+		msg := d.GetMessage()
+		if code := d.GetCode(); code != "" {
+			msg += " (" + code + ")"
+		}
 		pos := d.GetPosition()
 		fmt.Fprintf(cmd.ErrOrStderr(), "%s:%d:%d: %s: %s\n",
-			pos.GetFilename(), pos.GetLine(), pos.GetColumn(), severity, d.GetMessage())
+			pos.GetFilename(), pos.GetLine(), pos.GetColumn(), severity, msg)
 	}
 }

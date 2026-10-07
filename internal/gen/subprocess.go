@@ -23,8 +23,9 @@ const CommandPrefix = "tdl-gen-"
 const DefaultTimeout = 2 * time.Minute
 
 // Subprocess is a backend running as tdl-gen-<name>. It implements
-// [plugin.Backend], so callers treat a plugin and a compiled-in backend
-// the same way.
+// [plugin.Backend] and [plugin.Importer], so callers treat a plugin and a
+// compiled-in backend the same way; [plugin.Description.Reverse] says
+// whether the plugin answers Import.
 type Subprocess struct {
 	Name    string
 	Path    string
@@ -61,7 +62,7 @@ func (s *Subprocess) describe() (plugin.Description, error) {
 	}
 	defer session.close()
 
-	reply, err := session.shake(false)
+	reply, err := session.shake(false, plugin.Mode_MODE_UNSPECIFIED)
 	if err != nil {
 		return plugin.Description{}, err
 	}
@@ -74,6 +75,7 @@ func description(reply *plugin.HandshakeReply) plugin.Description {
 		Version:    reply.GetVersion(),
 		Directives: reply.GetDirectives(),
 		Reuse:      reply.GetFeatures().GetReuse(),
+		Reverse:    reply.GetFeatures().GetReverse(),
 	}
 }
 
@@ -88,7 +90,7 @@ func (s *Subprocess) Generate(ctx context.Context, req *plugin.Request) (*plugin
 	}
 	defer session.close()
 
-	if _, err := session.shake(false); err != nil {
+	if _, err := session.shake(false, plugin.Mode_MODE_UNSPECIFIED); err != nil {
 		return nil, err
 	}
 	if err := session.conn.Send(req); err != nil {
@@ -96,6 +98,38 @@ func (s *Subprocess) Generate(ctx context.Context, req *plugin.Request) (*plugin
 	}
 
 	var resp plugin.Response
+	if err := session.conn.Recv(&resp); err != nil {
+		return nil, session.wrap(err)
+	}
+	return &resp, nil
+}
+
+// Import runs one import request through the plugin. A plugin whose
+// handshake reply does not declare reverse is never sent the request, so
+// one built before import mode existed fails here rather than reading an
+// ImportRequest as a Request.
+func (s *Subprocess) Import(ctx context.Context, req *plugin.ImportRequest) (*plugin.ImportResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, s.timeout())
+	defer cancel()
+
+	session, err := s.start(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer session.close()
+
+	reply, err := session.shake(false, plugin.Mode_MODE_IMPORT)
+	if err != nil {
+		return nil, err
+	}
+	if !reply.GetFeatures().GetReverse() {
+		return nil, fmt.Errorf("%s does not import; it generates only", s.Name)
+	}
+	if err := session.conn.Send(req); err != nil {
+		return nil, session.wrap(err)
+	}
+
+	var resp plugin.ImportResponse
 	if err := session.conn.Recv(&resp); err != nil {
 		return nil, session.wrap(err)
 	}
@@ -175,11 +209,12 @@ func (s *Subprocess) start(ctx context.Context) (*session, error) {
 
 // shake sends the handshake and reads the reply, refusing a plugin that
 // will not accept what is about to be sent.
-func (s *session) shake(watch bool) (*plugin.HandshakeReply, error) {
+func (s *session) shake(watch bool, mode plugin.Mode) (*plugin.HandshakeReply, error) {
 	err := s.conn.Send(&plugin.Handshake{
 		FramingVersion: plugin.FramingVersion,
 		IrVersion:      plugin.IRVersion,
 		Watch:          watch,
+		Mode:           mode,
 	})
 	if err != nil {
 		return nil, s.wrap(err)
@@ -190,6 +225,9 @@ func (s *session) shake(watch bool) (*plugin.HandshakeReply, error) {
 		return nil, s.wrap(err)
 	}
 	if !reply.GetAccepted() {
+		if mode == plugin.Mode_MODE_IMPORT {
+			return nil, fmt.Errorf("%s refused to import: %s", s.name, reply.GetRefusal())
+		}
 		return nil, fmt.Errorf("%s refused framing %d and %s: %s",
 			s.name, plugin.FramingVersion, plugin.IRVersion, reply.GetRefusal())
 	}

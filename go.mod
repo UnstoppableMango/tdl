@@ -3,6 +3,7 @@ module github.com/unstoppablemango/tdl
 go 1.27
 
 require (
+	github.com/BurntSushi/toml v1.6.0
 	github.com/bufbuild/protocompile v0.14.2-0.20260917202354-386f9fcfc7b9
 	github.com/cloudwego/thriftgo v0.4.5
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2

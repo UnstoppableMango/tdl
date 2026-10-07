@@ -256,6 +256,9 @@ class Paged {
 }
 ```
 
+A required field binds every type satisfying the class: the type declares a field of that name and type, itself or through an `include`.
+A type that conforms without one is an error where it conforms, so a backend can read a field through the class.
+
 A class may require other classes; satisfying it requires satisfying them.
 
 ```tdl
@@ -325,7 +328,7 @@ Including a mixin and satisfying a class are independent: a type may satisfy `Au
 
 ### Instances
 
-Conformance is nominal: a type with the right fields does not satisfy a class until it says so.
+Conformance is nominal: a type with the right fields does not satisfy a class until it says so, and a type that says so must have them.
 
 Conformance is declared on the declaration:
 
@@ -354,10 +357,13 @@ instance Paged for OrderList {
 An instance may be parameterized and conditional, which is how generic types participate in classes.
 
 ```tdl
-instance <T> Auditable<Page<T>> requires Auditable<T>
+class Archived { }
+
+instance <T> Archived<Page<T>> requires Archived<T>
 ```
 
-That reads: a page of auditable things is auditable.
+That reads: a page of archived things is archived.
+An instance supplies no fields, so its head's constructor must declare every field the class requires, as any satisfying type does, and a conditional instance is most useful for a class that requires none.
 Two rules keep the search for a conditional instance finite: an instance head must be a type constructor applied to distinct parameters, and every constraint in the `requires` clause must be structurally smaller than the head.
 An instance that would require unbounded search is rejected where it is declared, not where it is used.
 

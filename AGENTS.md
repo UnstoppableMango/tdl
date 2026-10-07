@@ -135,8 +135,10 @@ The plugin protocol in `docs/design/plugins.md` is complete.
   Lowering knows the sugar's spellings (`List`, `Option`, ...) but not their meaning, so the prelude is replaceable.
 - `plugin`: the backend wire protocol, generated from `proto/tdl/plugin/v1/plugin.proto`, plus the framing codec.
   Public.
-- `internal/gen`: the compiler side of the plugin protocol: the backend registry, request building, and writing returned files.
-- `internal/cli`: cobra commands (`ast`, `check`, `fmt`, `gen`, `ir`, `lsp`, `play`, `tokens`, `version`). See [CLI](#cli).
+- `internal/gen`: the compiler side of the plugin protocol: the backend registry, request building, writing returned files, and `Silence`, which drops warnings with an allowed loss code.
+  `internal/gen/echo` is a test backend that writes a model as JSON and imports it back; it is not compiled into `tdl`.
+- `internal/config`: reads the nearest `tdl.toml` above a file; only its `[lossy]` table so far.
+- `internal/cli`: cobra commands (`ast`, `check`, `fmt`, `gen`, `import`, `ir`, `lsp`, `play`, `tokens`, `version`). See [CLI](#cli).
 - `internal/lsp`: the language server. See [Language server](#language-server).
 - `cmd/tdl`: main.
 
@@ -198,10 +200,13 @@ Every backend reports what it cannot generate as a positioned warning rather tha
 
 `cmd/tdl-gen-<name>` serves each backend as a plugin.
 `TestHostsAgree` in `internal/gen` holds each to producing the same bytes in process and over a pipe.
+A backend that imports implements `plugin.Importer`, declares `Reverse`, and has a `reverse` column in `shipped`, which `TestImportHostsAgree` runs; `TestReverseIsDeclared` keeps the three in step.
+A warning a user can silence carries a loss code, written with `emit.Session.Lossy`; `emit.LossCodes` must match the table in `reverse.md`.
 A backend added to the registry needs a row in the `shipped` table in `internal/gen/hosts_test.go` (`TestEveryBuiltinHasARow`) and, if shipped, an entry in `nix/cmd.nix` (`TestPackagedBackendsShip`).
 
 `docs/design/schema-backends.md` maps the seven schema backends.
 `docs/design/reverse.md` is the import direction, target language to TDL, and `reverse-plan.md` orders it.
+`backend/internal/roundtrip` runs a backend forward and back over `testdata/roundtrip/<target>/<case>/`; its `targets` table holds every backend but `debug`, with each one's normal form, and `TestEveryTargetIsCovered` checks it against `cmd/`.
 `testdata/gen/smoke/source.tdl` exercises the whole mapping, with a target block for each schema backend and for `salesforce`; the nix checks generate from it and run each language's tool on the output.
 
 ### Tests and goldens
@@ -229,7 +234,10 @@ With more than one file, output is separated by a `==> path <==` banner; `gen` p
 
 A file named `-` is standard input, shown as `<stdin>` in positions.
 `fmt -w` rejects it, and so does `gen`, because imports resolve relative to the importing file and stdin has no directory.
-`ir` accepts it.
+`ir` and `import` accept it.
+
+`import --from <target>` asks a backend for a model, prints it through `internal/unlower`, and lowers the printed source again, writing nothing when that fails.
+`gen` and `import` both drop warnings whose loss code `tdl.toml` or `--allow-lossy` allows, and print a code after the message.
 
 `examples/` holds files to experiment with and is outside the conformance corpus.
 

@@ -59,3 +59,14 @@ func Resolve(name string) (plugin.Backend, error) {
 func BuiltinNames() []string {
 	return slices.Sorted(maps.Keys(builtin))
 }
+
+// ReverseNames lists the compiled-in backends that import, sorted.
+func ReverseNames() []string {
+	var names []string
+	for _, name := range BuiltinNames() {
+		if _, ok := builtin[name].(plugin.Importer); ok && builtin[name].Describe().Reverse {
+			names = append(names, name)
+		}
+	}
+	return names
+}
