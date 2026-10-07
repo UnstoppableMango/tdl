@@ -357,10 +357,7 @@ func (b *Builder) union(s *Object, d *ir.Decl, name string) ([]def, error) {
 			continue
 		}
 
-		vn := name + emit.Pascal(tag)
-		if n, ok := b.Text(v.GetDirectives(), "name"); ok {
-			vn = n
-		}
+		vn := b.VariantName(v, func(s string) string { return name + emit.Pascal(s) })
 		if err := b.free(v.GetMeta().GetPosition(), owner+"."+tag, vn); err != nil {
 			return nil, err
 		}
