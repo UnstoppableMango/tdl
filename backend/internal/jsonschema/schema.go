@@ -7,18 +7,19 @@ import (
 	"strings"
 )
 
-// object is a JSON object that keeps its keys in the order they were set,
+// Object is a JSON object that keeps its keys in the order they were set,
 // so a schema reads in declaration order and the output is stable.
-type object struct {
+type Object struct {
 	keys []string
 	vals map[string]any
 }
 
-func newObject() *object { return &object{vals: map[string]any{}} }
+// NewObject returns an empty object.
+func NewObject() *Object { return &Object{vals: map[string]any{}} }
 
-// set adds or replaces a key. A value is a string, a bool, an int64, a
-// float64, a json.Number, an *object, or a []any of those.
-func (o *object) set(key string, v any) *object {
+// Set adds or replaces a key. A value is a string, a bool, an int64, a
+// float64, a json.Number, an *Object, or a []any of those.
+func (o *Object) Set(key string, v any) *Object {
 	if _, ok := o.vals[key]; !ok {
 		o.keys = append(o.keys, key)
 	}
@@ -26,12 +27,19 @@ func (o *object) set(key string, v any) *object {
 	return o
 }
 
-func (o *object) get(key string) (any, bool) {
+// Get returns a key's value.
+func (o *Object) Get(key string) (any, bool) {
 	v, ok := o.vals[key]
 	return v, ok
 }
 
-func (o *object) del(key string) {
+// Keys returns the keys in the order they were set.
+func (o *Object) Keys() []string { return o.keys }
+
+// Len is the number of keys.
+func (o *Object) Len() int { return len(o.keys) }
+
+func (o *Object) del(key string) {
 	if _, ok := o.vals[key]; !ok {
 		return
 	}
@@ -44,10 +52,12 @@ func (o *object) del(key string) {
 	}
 }
 
-// write renders a value as JSON indented by two spaces.
+// WriteJSON renders a value as JSON indented by two spaces.
+func WriteJSON(b *bytes.Buffer, v any) { write(b, v, "") }
+
 func write(b *bytes.Buffer, v any, indent string) {
 	switch v := v.(type) {
-	case *object:
+	case *Object:
 		if len(v.keys) == 0 {
 			b.WriteString("{}")
 			return
@@ -55,7 +65,7 @@ func write(b *bytes.Buffer, v any, indent string) {
 		b.WriteString("{\n")
 		for i, k := range v.keys {
 			b.WriteString(indent + "  ")
-			writeString(b, k)
+			WriteString(b, k)
 			b.WriteString(": ")
 			write(b, v.vals[k], indent+"  ")
 			if i < len(v.keys)-1 {
@@ -80,7 +90,7 @@ func write(b *bytes.Buffer, v any, indent string) {
 		}
 		b.WriteString(indent + "]")
 	case string:
-		writeString(b, v)
+		WriteString(b, v)
 	case bool, int64, float64, json.Number:
 		fmt.Fprint(b, v)
 	default:
@@ -88,9 +98,9 @@ func write(b *bytes.Buffer, v any, indent string) {
 	}
 }
 
-// writeString writes a JSON string without escaping <, >, and &, which
+// WriteString writes a JSON string without escaping <, >, and &, which
 // encoding/json does by default and a pattern would read badly with.
-func writeString(b *bytes.Buffer, s string) {
+func WriteString(b *bytes.Buffer, s string) {
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	enc.SetEscapeHTML(false)

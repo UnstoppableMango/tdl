@@ -4,8 +4,8 @@ package ast
 type DeclHead struct {
 	Doc []string
 
-	// DocP is where the doc comment was written, zero without one.
-	DocP Position
+	// DocP holds where each Doc line was written.
+	DocP []Position
 
 	P   Position
 	N   string

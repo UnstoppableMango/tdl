@@ -24,11 +24,11 @@ const (
 
 // kindOf reads what a reference holds, through any newtype and any
 // optionality.
-func (g *generator) kindOf(r *emit.Ref) kind {
+func (b *Builder) kindOf(r *emit.Ref) kind {
 	for r.Form == emit.Option || r.Form == emit.Nullable {
 		r = r.Elem
 	}
-	x, err := g.Expand(r)
+	x, err := b.Expand(r)
 	if err != nil {
 		return other
 	}
@@ -55,10 +55,10 @@ func (g *generator) kindOf(r *emit.Ref) kind {
 // constrain writes each constraint as the keyword that checks it on a value
 // of kind k. One JSON Schema cannot say is a warning, and the schema is
 // still written without it.
-func (g *generator) constrain(s *object, k kind, owner string, cs []*ir.Constraint) {
+func (b *Builder) constrain(s *Object, k kind, owner string, cs []*ir.Constraint) {
 	for _, c := range cs {
-		if err := g.constraint(s, k, c); err != nil {
-			g.Warn(emit.Unsupported(c.GetPosition(), "%s: %v", owner, err))
+		if err := b.constraint(s, k, c); err != nil {
+			b.Warn(emit.Unsupported(c.GetPosition(), "%s: %v", owner, err))
 		}
 	}
 }
@@ -67,7 +67,7 @@ type constraintError string
 
 func (e constraintError) Error() string { return string(e) }
 
-func (g *generator) constraint(s *object, k kind, c *ir.Constraint) error {
+func (b *Builder) constraint(s *Object, k kind, c *ir.Constraint) error {
 	name, args := c.GetName(), c.GetArgs()
 	misplaced := constraintError(name + " has no JSON Schema keyword for this type")
 
@@ -80,7 +80,7 @@ func (g *generator) constraint(s *object, k kind, c *ir.Constraint) error {
 		if !ok {
 			return constraintError(name + " takes a number")
 		}
-		s.set(map[string]string{"min": "minimum", "max": "maximum"}[name], n)
+		s.Set(map[string]string{"min": "minimum", "max": "maximum"}[name], n)
 	case "length":
 		var lo, hi string
 		switch k {
@@ -102,13 +102,13 @@ func (g *generator) constraint(s *object, k kind, c *ir.Constraint) error {
 			if err != nil {
 				return constraintError("length takes an integer")
 			}
-			s.set(lo, n).set(hi, n)
+			s.Set(lo, n).Set(hi, n)
 		case ir.LiteralKind_LITERAL_KIND_RANGE:
 			if r := a.GetRange(); r.Low != nil {
-				s.set(lo, r.GetLow())
+				s.Set(lo, r.GetLow())
 			}
 			if r := a.GetRange(); r.High != nil {
-				s.set(hi, r.GetHigh())
+				s.Set(hi, r.GetHigh())
 			}
 		default:
 			return constraintError("length takes an integer or a range")
@@ -117,7 +117,7 @@ func (g *generator) constraint(s *object, k kind, c *ir.Constraint) error {
 		if k != text || len(args) != 1 || args[0].GetKind() != ir.LiteralKind_LITERAL_KIND_REGEX {
 			return misplaced
 		}
-		s.set("pattern", args[0].GetText())
+		s.Set("pattern", args[0].GetText())
 	case "oneOf":
 		if k != numeric && k != text && k != fieldless {
 			return misplaced
@@ -130,12 +130,12 @@ func (g *generator) constraint(s *object, k kind, c *ir.Constraint) error {
 			}
 			values = append(values, v)
 		}
-		s.set("enum", values)
+		s.Set("enum", values)
 	case "unique":
 		if k != array {
 			return misplaced
 		}
-		s.set("uniqueItems", true)
+		s.Set("uniqueItems", true)
 	default:
 		return constraintError(name + " is not a constraint JSON Schema knows")
 	}

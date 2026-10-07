@@ -59,7 +59,7 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 
 `nix/` holds the packaging:
 
-- `cmd.nix`: the CLI. `meta.mainProgram` is what `lib.getExe` reads, since the package installs ten binaries.
+- `cmd.nix`: the CLI. `meta.mainProgram` is what `lib.getExe` reads, since the package installs eleven binaries.
 - `vscode-extension.nix`: the editor extension (see [VS Code](#vs-code)).
 - `overlay.nix`: names both packages and composes gomod2nix's overlay, so a consumer adding it also gets `buildGoApplication` and `mkGoEnv`.
 - `hm-module.nix`: the home-manager module.
@@ -122,8 +122,11 @@ The plugin protocol in `docs/design/plugins.md` is complete.
   It touches no filesystem: a `Loader` supplies imports, `FSLoader` for real files and `MapLoader` in tests.
   `refs.go` records every name resolution when `WithReferences` is set, for the language server, by hooking the places lowering already resolves names.
   Private.
+- `internal/unlower`: ir to ast, the reverse of `sema`, for reverse backends.
+  It writes the model's own declarations and leaves to lowering what lowering computes: inherited constraints, mixin fields, struct kinds, and a class directive's expansion.
+  `TestCorpusRoundTrips` holds it to lowering the printed corpus back to an equal model.
 - `ir`: the resolved model backends consume.
-  `ir.pb.go` is generated from `proto/tdl/ir/v1/ir.proto`; `model.go` holds hand-written lookups.
+  `ir.pb.go` is generated from `proto/tdl/ir/v1/ir.proto`; `model.go` holds hand-written lookups, and `WithoutPositions` clears positions so `proto.Equal` compares two models.
   Three interned tables, each its own ID space: `Decls`, `Types`, `Units`.
   A unit is interned on its base dimensions, so `decimal<N>` and `decimal<kg*m/s^2>` are one entry in `Types`; `UnitDef` is the declaration and `Unit` what it measures.
   `proto/` and `ir/` are the public compatibility surface.
@@ -132,8 +135,10 @@ The plugin protocol in `docs/design/plugins.md` is complete.
   Lowering knows the sugar's spellings (`List`, `Option`, ...) but not their meaning, so the prelude is replaceable.
 - `plugin`: the backend wire protocol, generated from `proto/tdl/plugin/v1/plugin.proto`, plus the framing codec.
   Public.
-- `internal/gen`: the compiler side of the plugin protocol: the backend registry, request building, and writing returned files.
-- `internal/cli`: cobra commands (`ast`, `check`, `fmt`, `gen`, `ir`, `lsp`, `play`, `tokens`, `version`). See [CLI](#cli).
+- `internal/gen`: the compiler side of the plugin protocol: the backend registry, request building, writing returned files, and `Silence`, which drops warnings with an allowed loss code.
+  `internal/gen/echo` is a test backend that writes a model as JSON and imports it back; it is not compiled into `tdl`.
+- `internal/config`: reads the nearest `tdl.toml` above a file; only its `[lossy]` table so far.
+- `internal/cli`: cobra commands (`ast`, `check`, `fmt`, `gen`, `import`, `ir`, `lsp`, `play`, `tokens`, `version`). See [CLI](#cli).
 - `internal/lsp`: the language server. See [Language server](#language-server).
 - `cmd/tdl`: main.
 
@@ -180,6 +185,12 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   `where` constraints become keywords (`minimum`, `pattern`, `minLength`, ...) chosen by what the constrained type holds, and one with no keyword warns.
   `draft` picks 2020-12 or draft-07, `root` names the declaration the document validates, `id` sets `$id`, and `closed` refuses undeclared properties.
   Tests compile every response with `santhosh-tekuri/jsonschema` and validate instances against it; `checks.gen-jsonschema` runs `check-jsonschema`.
+  The definitions come from `backend/internal/jsonschema`, shared with `openapi`; a `Dialect` there states what differs between the documents the two write.
+- `backend/openapi`: one OpenAPI document per model holding schemas and an empty `paths`, YAML by default or JSON under `format("json")`.
+  `openapi` picks the version: `3.1` (the default, JSON Schema 2020-12), `3.0` (`nullable`, no `$ref` siblings), or `2.0` (`definitions`, `x-nullable`).
+  A fielded enum is a `oneOf` of one component per variant with a `discriminator`; 2.0 has no `oneOf`, so there it warns and is skipped.
+  `title` and `version` set `info`; `name`, `discriminant`, and `closed` mean what they mean in `jsonschema`.
+  Tests validate every response against the OpenAPI Initiative's schema for its version, vendored in `backend/openapi/testdata/`; `checks.gen-openapi` runs `vacuum lint` on all three versions.
 - `backend/salesforce`: Salesforce DX source, one file per component.
   An entity is a custom object, with a warning for each field that has no column; values, mixins, and enums are Apex.
   A `key` directive makes a field a unique external ID.
@@ -189,9 +200,12 @@ Every backend reports what it cannot generate as a positioned warning rather tha
 
 `cmd/tdl-gen-<name>` serves each backend as a plugin.
 `TestHostsAgree` in `internal/gen` holds each to producing the same bytes in process and over a pipe.
+A backend that imports implements `plugin.Importer`, declares `Reverse`, and has a `reverse` column in `shipped`, which `TestImportHostsAgree` runs; `TestReverseIsDeclared` keeps the three in step.
+A warning a user can silence carries a loss code, written with `emit.Session.Lossy`; `emit.LossCodes` must match the table in `reverse.md`.
 A backend added to the registry needs a row in the `shipped` table in `internal/gen/hosts_test.go` (`TestEveryBuiltinHasARow`) and, if shipped, an entry in `nix/cmd.nix` (`TestPackagedBackendsShip`).
 
-`docs/design/schema-backends.md` maps the six schema backends.
+`docs/design/schema-backends.md` maps the seven schema backends.
+`docs/design/reverse.md` is the import direction, target language to TDL, and `reverse-plan.md` orders it.
 `testdata/gen/smoke/source.tdl` exercises the whole mapping, with a target block for each schema backend and for `salesforce`; the nix checks generate from it and run each language's tool on the output.
 
 ### Tests and goldens
@@ -219,7 +233,10 @@ With more than one file, output is separated by a `==> path <==` banner; `gen` p
 
 A file named `-` is standard input, shown as `<stdin>` in positions.
 `fmt -w` rejects it, and so does `gen`, because imports resolve relative to the importing file and stdin has no directory.
-`ir` accepts it.
+`ir` and `import` accept it.
+
+`import --from <target>` asks a backend for a model, prints it through `internal/unlower`, and lowers the printed source again, writing nothing when that fails.
+`gen` and `import` both drop warnings whose loss code `tdl.toml` or `--allow-lossy` allows, and print a code after the message.
 
 `examples/` holds files to experiment with and is outside the conformance corpus.
 
@@ -355,7 +372,7 @@ Directive and constraint arguments are parenthesized and comma separated, since 
 The parser calls `lex.RescanRegexAt` when it wants a regex; nothing else in the lexer takes context.
 
 Comments survive formatting.
-A `///` doc comment is a token attached to the next declaration, in `DeclHead.Doc` with its position in `DeclHead.DocP`.
+A `///` doc comment is a token attached to the next declaration, in `DeclHead.Doc` with each line's position in `DeclHead.DocP`.
 A `//` comment is collected on the side into `ast.File.Comments` in source order.
 `ast.Fprint` places each by position, on its own line or at the end of the line it was on; a block holding one does not collapse to a line.
 Doc and ordinary comments are merged by offset, so they keep their order.
@@ -371,7 +388,7 @@ CodeRabbit reviews only the tip of a stack.
 A lower pull request with no comments may be unreviewed; check the CodeRabbit check, not the thread count.
 
 DeepSource (`.deepsource.toml`) runs the `go`, `shell`, `secrets`, and `test-coverage` analyzers.
-Coverage comes from the Test job's `cover.profile`, authenticated with OIDC; the CLI comes from the devShell.
+Coverage comes from the `check` job's `cover.profile`, authenticated with OIDC; the CLI comes from the devShell.
 Check a Go style finding against `.golangci.yml` before acting on it.
 
 `main` requires every review thread resolved and no approval.

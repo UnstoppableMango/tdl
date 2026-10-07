@@ -280,8 +280,9 @@ The backend understands five and declares all five in its handshake, so the comp
 - `package("github.com/acme/billing")`, on the target block.
   The package clause is the last path segment; the import path is what a consumer writes, and the clause derives from it.
   A last segment that is a Go keyword, as in `github.com/acme/type`, is an error, since every file carries the clause.
-- `name("Account")`, on a declaration or a field.
+- `name("Account")`, on a declaration, a field, or an enum variant.
   Overrides the Go identifier without renaming the model.
+  On a variant it replaces the whole identifier, enum prefix included, and a constant's value stays the variant's TDL name.
 - `tag("json:\"email_address\"")`, on a field.
   Emitted verbatim as the struct tag; a struct tag is an open convention, so the backend does not parse it.
 - `key(order, sku)`, on an entity.

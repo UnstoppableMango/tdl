@@ -1,0 +1,8 @@
+/// Orders placed in the shop.
+/// A doc comment above the package clause documents the package.
+package shop.orders
+
+/// One placed order.
+type Order: Entity {
+  id: string
+}

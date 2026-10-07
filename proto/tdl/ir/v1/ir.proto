@@ -68,6 +68,7 @@ message Model {
   repeated Satisfaction satisfies = 7;
   repeated TargetBlock targets = 8;
   repeated Unit units = 9; // the interned unit table
+  repeated string doc = 10; // the doc comment above `package`
 }
 
 // TargetBlock is one `target go for billing { ... }` block.

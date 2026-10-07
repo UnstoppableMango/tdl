@@ -11,6 +11,9 @@ import (
 func Dump(m *Model) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Model %s\n", m.GetPackage())
+	if n := len(m.GetDoc()); n > 0 {
+		fmt.Fprintf(&b, "%sDoc (%d lines)\n", branch(false), n)
+	}
 
 	d := &dumper{model: m, b: &b}
 	if len(m.GetImports()) > 0 {

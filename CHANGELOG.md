@@ -1,5 +1,51 @@
 # Changelog
 
+## [0.3.4](https://github.com/UnstoppableMango/tdl/compare/v0.3.3...v0.3.4) (2026-10-06)
+
+
+### Features
+
+* **likec4:** a likec4 backend writing one element per declaration ([#984](https://github.com/UnstoppableMango/tdl/issues/984)) ([1594d9b](https://github.com/UnstoppableMango/tdl/commit/1594d9b077ebdf285be0526d01fa9e013587f656))
+* **unlower:** turn a model back into TDL source ([#983](https://github.com/UnstoppableMango/tdl/issues/983)) ([3281643](https://github.com/UnstoppableMango/tdl/commit/32816436e5e4b3ffb20b4e3045b6fa18d7cbe0f1)), closes [#960](https://github.com/UnstoppableMango/tdl/issues/960)
+
+
+### Continuous Integration
+
+* raise the Codecov project target to 85% ([#987](https://github.com/UnstoppableMango/tdl/issues/987)) ([989cd5d](https://github.com/UnstoppableMango/tdl/commit/989cd5dd086136dfaec92786b31cf714424901e7))
+
+## [0.3.3](https://github.com/UnstoppableMango/tdl/compare/v0.3.2...v0.3.3) (2026-10-06)
+
+
+### Features
+
+* **openapi:** add an OpenAPI backend for 3.1, 3.0, and 2.0 ([#973](https://github.com/UnstoppableMango/tdl/issues/973)) ([f657c99](https://github.com/UnstoppableMango/tdl/commit/f657c99e5c3feb4c127cab6b8fd28d41b884eb68))
+
+## [0.3.2](https://github.com/UnstoppableMango/tdl/compare/v0.3.1...v0.3.2) (2026-10-06)
+
+
+### Features
+
+* **ir:** carry the package doc comment in Model.doc ([#952](https://github.com/UnstoppableMango/tdl/issues/952)) ([6b66837](https://github.com/UnstoppableMango/tdl/commit/6b66837c5dc298e98a960b3d70650cfbd312eee9)), closes [#923](https://github.com/UnstoppableMango/tdl/issues/923)
+* **parser:** a doc comment above package documents the package ([#951](https://github.com/UnstoppableMango/tdl/issues/951)) ([d1f8415](https://github.com/UnstoppableMango/tdl/commit/d1f8415ac08e6996ad322664fac0763aed4e72ef))
+
+
+### Bug Fixes
+
+* **emit:** keep a doc line's indentation ([#937](https://github.com/UnstoppableMango/tdl/issues/937)) ([2ba3420](https://github.com/UnstoppableMango/tdl/commit/2ba3420895fc1d19e547e86b5ad7662e626a6b16))
+* **fmt:** keep a comment between doc comment lines in place ([#956](https://github.com/UnstoppableMango/tdl/issues/956)) ([b2a287c](https://github.com/UnstoppableMango/tdl/commit/b2a287c1459c3d4e28242d629a1ec4969d6dab26)), closes [#823](https://github.com/UnstoppableMango/tdl/issues/823)
+
+
+### Documentation
+
+* state the nixpkgs overlays.default needs ([#942](https://github.com/UnstoppableMango/tdl/issues/942)) ([9b4b572](https://github.com/UnstoppableMango/tdl/commit/9b4b5728fd6dde2eda7dd3e4ed73f25cb4cbad85))
+
+## [0.3.1](https://github.com/UnstoppableMango/tdl/compare/v0.3.0...v0.3.1) (2026-10-06)
+
+
+### Features
+
+* **jsonschema:** add a JSON Schema backend ([#954](https://github.com/UnstoppableMango/tdl/issues/954)) ([a3d56ca](https://github.com/UnstoppableMango/tdl/commit/a3d56ca9e98f0bd837587d925112686ffac25413))
+
 ## [0.3.0](https://github.com/UnstoppableMango/tdl/compare/v0.2.16...v0.3.0) (2026-10-06)
 
 

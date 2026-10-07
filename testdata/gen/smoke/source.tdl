@@ -94,3 +94,7 @@ target jsonschema for smoke {
   out("jsonschema")
   root("Order")
 }
+
+target openapi for smoke {
+  out("openapi")
+}

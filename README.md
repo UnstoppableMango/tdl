@@ -20,7 +20,7 @@ Early, incomplete, and changing.
 
 - **Front end: done.** The lexer and parser read the whole [grammar](docs/grammar.ebnf).
 - **Resolved model: nearly done.** `tdl ir` resolves names, imports, mixins, class satisfaction, constraints, defaults, units, and target directives. Merging a dependency's target blocks is partial.
-- **Code generation:** Go, GraphQL, JSON Schema, protobuf, Salesforce, Smithy, Thrift, and TypeScript. `tdl gen` also runs any `tdl-gen-<name>` plugin on `PATH`.
+- **Code generation:** Go, GraphQL, JSON Schema, OpenAPI, protobuf, Salesforce, Smithy, Thrift, and TypeScript. `tdl gen` also runs any `tdl-gen-<name>` plugin on `PATH`.
 - **Editors:** a language server, a tree-sitter grammar for Neovim, and a VS Code extension.
 
 ## Documents
@@ -34,7 +34,7 @@ Early, incomplete, and changing.
 | [design/ir.md](docs/design/ir.md) | The resolved model backends consume. |
 | [design/plugins.md](docs/design/plugins.md) | The backend plugin protocol. |
 | [design/go-backend.md](docs/design/go-backend.md) | The Go backend. |
-| [design/schema-backends.md](docs/design/schema-backends.md) | The protobuf, Thrift, Smithy, GraphQL, TypeScript, and JSON Schema backends. |
+| [design/schema-backends.md](docs/design/schema-backends.md) | The protobuf, Thrift, Smithy, GraphQL, TypeScript, JSON Schema, and OpenAPI backends. |
 | [design/salesforce-backend.md](docs/design/salesforce-backend.md) | The Salesforce backend. |
 | [design/lsp.md](docs/design/lsp.md) | The language server. |
 | [design/treesitter.md](docs/design/treesitter.md) | Deriving the tree-sitter grammar from the EBNF. |
@@ -103,6 +103,8 @@ Or install it with `nix profile install github:UnstoppableMango/tdl`.
 ### NixOS or home-manager
 
 `overlays.default` adds `pkgs.tdl` and `pkgs.vscode-tdl`, and includes the [gomod2nix](https://github.com/nix-community/gomod2nix) overlay it builds with.
+It builds `tdl` with `go_1_27`, so the nixpkgs it is applied to has to provide that attribute.
+On an older nixpkgs, use `inputs.tdl.packages.${system}.default`, which builds against the nixpkgs tdl's lock file pins, and do not set `inputs.tdl.inputs.nixpkgs.follows`.
 
 ```nix
 {
@@ -268,6 +270,7 @@ Each built-in backend also ships as a `tdl-gen-<name>` plugin.
 | `go` | Structs, entity keys, both enum shapes, newtypes, generics, classes as interfaces, `Validate` methods, foreign types |
 | `graphql` | Output types, both enum shapes, custom scalars, lists; no maps |
 | `jsonschema` | A JSON Schema document: definitions, both enum shapes, constraints as keywords |
+| `openapi` | An OpenAPI 3.1, 3.0, or 2.0 document of schemas in YAML or JSON: both enum shapes (no fielded enums in 2.0), constraints as keywords; no paths |
 | `protobuf` | Messages, both enum shapes, newtypes, collections, `number` pins, services |
 | `salesforce` | Salesforce DX source: a custom object per entity, Apex for values and enums |
 | `smithy` | Structures, both enum shapes, named collection shapes |

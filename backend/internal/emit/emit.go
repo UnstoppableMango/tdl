@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -118,6 +119,15 @@ func (s *Session) FieldName(f *ir.Field, style func(string) string) string {
 	return style(f.GetMeta().GetName())
 }
 
+// VariantName is an enum variant's name in the target language, by the same
+// rule as [Session.DeclName].
+func (s *Session) VariantName(v *ir.Variant, style func(string) string) string {
+	if n, ok := s.Text(v.GetDirectives(), "name"); ok {
+		return n
+	}
+	return style(v.GetMeta().GetName())
+}
+
 // UnsupportedError reports a shape the backend cannot express. It reaches
 // the user as a warning.
 type UnsupportedError struct {
@@ -194,11 +204,12 @@ func Fielded(e *ir.Enum) bool {
 	return false
 }
 
-// Doc returns a node's documentation, one trimmed line per entry.
+// Doc returns a node's documentation, one line per entry, with trailing
+// whitespace removed and indentation kept.
 func Doc(m *ir.Meta) []string {
 	lines := make([]string, len(m.GetDoc()))
 	for i, line := range m.GetDoc() {
-		lines[i] = trim(line)
+		lines[i] = strings.TrimRight(line, " \t")
 	}
 	return lines
 }

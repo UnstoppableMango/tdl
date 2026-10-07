@@ -9,6 +9,10 @@ schema = 3
     version = 'v1.36.12-20260709200747-435963d16310.1'
     hash = 'sha256-ZqFd1TpWPNhTxlYwhT3305ow9ZVqvzfGxlV5z6lxQRY='
 
+  [mod.'github.com/BurntSushi/toml']
+    version = 'v1.6.0'
+    hash = 'sha256-ptdUJvuc21ixeLt+M5way/na3aCnCO4MYHWulWp8NEY='
+
   [mod.'github.com/agnivade/levenshtein']
     version = 'v1.2.1'
     hash = 'sha256-3XnCzf7tFgEE0MmjxvjfWaw6qK6mKLabFZ3c23JIH9Y='
@@ -76,6 +80,10 @@ schema = 3
   [mod.'go.lsp.dev/uri']
     version = 'v1.0.1'
     hash = 'sha256-CtRJbhTw/TlvSxoYzmU5zMh5JGpoq1O4GSqX2wzL/IQ='
+
+  [mod.'go.yaml.in/yaml/v3']
+    version = 'v3.0.5'
+    hash = 'sha256-ygho+GU5kE7vPMx+dZYyNfCaeMjNxj66XmrcVf3afFE='
 
   [mod.'golang.org/x/exp']
     version = 'v0.0.0-20260908205506-85c1c2202aba'

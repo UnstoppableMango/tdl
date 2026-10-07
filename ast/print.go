@@ -48,14 +48,18 @@ func (p *printer) flush(indent string, pos Position) {
 	}
 }
 
-// writeLead interleaves collected comments with a doc comment by offset.
-func (p *printer) writeLead(indent string, lead []*Comment, doc []string, docPos Position) {
+// writeLead interleaves collected comments with doc comment lines by offset.
+func (p *printer) writeLead(indent string, lead []*Comment, doc []string, docPos []Position) {
 	i := 0
-	for i < len(lead) && lead[i].P.Offset < docPos.Offset {
-		i++
+	for j, line := range doc {
+		k := i
+		for k < len(lead) && lead[k].P.Offset < docPos[j].Offset {
+			k++
+		}
+		p.writeComments(indent, lead[i:k])
+		i = k
+		p.writeDoc(indent, line)
 	}
-	p.writeComments(indent, lead[:i])
-	writeDoc(&p.b, indent, doc)
 	p.writeComments(indent, lead[i:])
 }
 
@@ -73,12 +77,16 @@ func (p *printer) writeComments(indent string, cs []*Comment) {
 }
 
 // lead writes the comments and doc comment in front of an item at pos.
-func (p *printer) lead(indent string, pos Position, doc []string, docPos Position) {
+func (p *printer) lead(indent string, pos Position, doc []string, docPos []Position) {
 	p.writeLead(indent, p.take(pos), doc, docPos)
 }
 
 func (p *printer) writeComment(indent string, c *Comment) {
 	p.b.WriteString(strings.TrimRight(indent+"// "+c.Text, " ") + "\n")
+}
+
+func (p *printer) writeDoc(indent, line string) {
+	p.b.WriteString(strings.TrimRight(indent+"/// "+line, " ") + "\n")
 }
 
 // trailing returns the comment on line and before until, formatted to fold
@@ -128,9 +136,9 @@ func (p *printer) render(f func(*printer)) string {
 func Fprint(file *File) string {
 	p := &printer{comments: file.Comments}
 
-	if file.Package != nil {
-		p.flush("", file.Package.P)
-		p.line("package "+file.Package.Path, file.Package.P.Line, anywhere)
+	if pkg := file.Package; pkg != nil {
+		p.lead("", pkg.P, pkg.Doc, pkg.DocP)
+		p.line("package "+pkg.Path, pkg.P.Line, anywhere)
 	}
 
 	if len(file.Imports) > 0 {
@@ -160,7 +168,7 @@ func Fprint(file *File) string {
 
 		p.writeLead("", lead, head.Doc, head.DocP)
 		// A blank line between a comment and the declaration survives.
-		if n := len(lead); n > 0 && (len(head.Doc) == 0 || lead[n-1].P.Offset > head.DocP.Offset) {
+		if n := len(lead); n > 0 && (len(head.Doc) == 0 || lead[n-1].P.Offset > head.DocP[len(head.DocP)-1].Offset) {
 			next := decl.Pos().Line
 			if head.Dep != nil {
 				next = head.Dep.P.Line
@@ -250,12 +258,6 @@ func (p *printer) constrained(head string, cs []*Constraint, indent string, head
 		line = end.Line
 	}
 	p.line(head+block, line, anywhere)
-}
-
-func writeDoc(b *strings.Builder, indent string, doc []string) {
-	for _, line := range doc {
-		b.WriteString(strings.TrimRight(indent+"/// "+line, " ") + "\n")
-	}
 }
 
 func printDeprecated(dep *Deprecation) string {

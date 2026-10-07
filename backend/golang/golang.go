@@ -394,8 +394,8 @@ func (g *generator) enumeration(b *strings.Builder, decl *ir.Decl) error {
 		fmt.Fprintf(b, "type %s string\n\nconst (\n", name)
 		for _, v := range variants {
 			// The value is the variant's name as written.
-			fmt.Fprintf(b, "\t%s%s %s = %q\n",
-				name, exported(v.GetMeta().GetName()), name, v.GetMeta().GetName())
+			fmt.Fprintf(b, "\t%s %s = %q\n",
+				g.variantName(name, v), name, v.GetMeta().GetName())
 		}
 		b.WriteString(")\n")
 		g.writeMarkers(b, name)
@@ -425,7 +425,7 @@ func (g *generator) enumeration(b *strings.Builder, decl *ir.Decl) error {
 	}
 
 	for i, v := range variants {
-		variant := name + exported(v.GetMeta().GetName())
+		variant := g.variantName(name, v)
 		b.WriteString("\n")
 		g.doc(b, v.GetMeta())
 		fmt.Fprintf(b, "type %s%s struct {\n", variant, params)
@@ -537,4 +537,9 @@ func (g *generator) declName(decl *ir.Decl) string {
 
 func (g *generator) fieldName(f *ir.Field) string {
 	return g.FieldName(f, exported)
+}
+
+// variantName is the Go identifier for a variant of the enum named enum.
+func (g *generator) variantName(enum string, v *ir.Variant) string {
+	return g.VariantName(v, func(s string) string { return enum + exported(s) })
 }
