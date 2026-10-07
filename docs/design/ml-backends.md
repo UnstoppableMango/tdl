@@ -98,7 +98,7 @@ A model with no package and no `module` directive is an error, as in Haskell.
 A model is one file because entities may be mutually recursive and none of these languages lets two files refer to each other.
 The backends write no `dune`, `.fsproj`, `.mlb`, or `.cm` file; the consumer's build lists the module, and in F# and Standard ML a dependency's file is listed before its importer's.
 
-The output needs OCaml 4.14, .NET 6 with F# 6, or an SML '97 implementation with the optional `Int64`, `Word64`, and `Real32` structures, which MLton, Poly/ML, and SML/NJ all provide.
+The output needs OCaml 4.14, .NET 6 with F# 6, or an SML '97 implementation with the optional `Int64`, `Word64`, and `Real32` structures, which MLton, Poly/ML, and SML/NJ all provide; a model holding a set or map also needs the SML/NJ library, which rules out Poly/ML.
 Reason output needs Reason 3.8.
 
 ## Order and recursion
@@ -144,16 +144,52 @@ Collections:
 | TDL | OCaml | Reason | F# | Standard ML |
 | --- | --- | --- | --- | --- |
 | `List<T>`, `[T]` | `t list` | `list(t)` | `T list` | `t list` |
-| `Set<T>`, `{T}` | `t list` | `list(t)` | `Set<T>` | `t list` |
-| `Map<K, V>`, `{K -> V}` | `(k * v) list` | `list((k, v))` | `Map<K, V>` | `(k * v) list` |
+| `Set<T>`, `{T}` | `T_set.t` | `TSet.t` | `Set<T>` | `TSet.set` |
+| `Map<K, V>`, `{K -> V}` | `v K_map.t` | `KMap.t(v)` | `Map<K, V>` | `v KMap.map` |
 | `Option<T>`, `T?` | `t option` | `option(t)` | `T option` | `t option` |
 | `Nullable<T>`, `T \| null` | `t option` | `option(t)` | `T option` | `t option` |
 
-OCaml's `Set` and `Map` are functors, so a set of `sku` needs a module `Sku_set = Set.Make (...)` declared before the record holding it.
-A set of a type in the record's own recursive group cannot be declared first at all without recursive modules.
-So a set is a list and a map an association list, and the validator checks that a set's elements and a map's keys are distinct, using structural `compare`.
-Standard ML's Basis has no set or map, and makes the same choice.
 F#'s `Set` and `Map` are built in and need only `comparison`, which every generated record and union has.
+
+OCaml's `Set` and `Map` are functors rather than parameterized types, so a set is a module applied once per element type, and a map once per key type:
+
+```ocaml
+module Sku_set = Set.Make (struct type t = sku let compare = compare_sku end)
+module Status_map = Map.Make (struct type t = status let compare = compare_status end)
+
+type order = { skus : Sku_set.t; byStatus : int Status_map.t }
+```
+
+A primitive uses the standard library's module, as in `Set.Make (String)`.
+Each module is written after the group declaring its element and before the first group holding it.
+
+Polymorphic `compare` looks at a balanced tree's shape rather than its elements, so two equal sets can compare unequal, and a set of records holding sets would hold duplicates.
+The backend therefore writes `compare_<name>` for every declaration used as an element or key, field by field, calling a set's or map's own `compare` for a field holding one and polymorphic `compare` elsewhere.
+It writes `equal_<name>` for every declaration holding a set or map at any depth, since `=` on one has the same flaw; [Directives](#directives) says what this changes for a consumer.
+
+An element in its holder's own recursive group, such as an `order` holding a set of `order`, cannot have its module declared first.
+That group becomes recursive modules, which is the OCaml manual's own example of them:
+
+```ocaml
+module rec Order : sig
+  type t = { id : string; related : Order_set.t }
+  val compare : t -> t -> int
+end = struct
+  type t = { id : string; related : Order_set.t }
+  let compare a b = ...
+end
+
+and Order_set : Set.S with type elt = Order.t = Set.Make (Order)
+```
+
+Only that group changes: its types are spelled `Order.t` everywhere, including in instance modules and validation, and every other declaration stays a plain type.
+
+A set or map whose element or key names a type parameter, as a `Page<T>` holding `{T}` does, has no single type to apply the functor to.
+It warns and skips its declaration; [Open questions](#open-questions) has the alternative.
+
+Standard ML's Basis has no set or map.
+The `sml` target uses the `ORD_SET` and `ORD_MAP` functors from the SML/NJ library, `RedBlackSetFn` and `RedBlackMapFn`, which ship with SML/NJ and MLton and are a dependency the output names only when the model holds a set or map.
+Standard ML has no polymorphic comparison, so `compare` is generated for every element and key type, and has no recursive modules, so an element in its holder's recursive group warns and skips the group.
 
 `T? | null` is `t option option`, as in Haskell.
 
@@ -347,9 +383,6 @@ F# generates `matches` with `Regex` under `RegexOptions.ECMAScript`, which makes
 The backend parses the pattern with Go's `regexp/syntax` first, so a pattern RE2 refuses warns rather than failing when the module loads.
 OCaml's `Str` and every Standard ML regex library have their own dialects, so `matches` warns there and the rest of the type's constraints are generated, as in Haskell.
 
-A record holding a set or a map validates its distinctness even with no `where`, since the type no longer says it.
-Standard ML compares with `=`, which `real`, `Time.time`, and `Date.date` do not admit, so a set of one of those warns and is not checked.
-
 ## Units
 
 F# has units of measure, and they are TDL's: declared, derived, and normalized before comparison.
@@ -387,7 +420,9 @@ The type's spelling then comes from the block's own dialect, so an OCaml model n
 | `derive("yojson")` | a declaration or the target block, repeatable | `ocaml`, `reason` | adds the name to `[@@deriving ...]` on each type in the group |
 | `attribute("System.Text.Json.Serialization", "JsonFSharpConverter")` | a declaration or the target block, repeatable | `fsharp` | writes `[<JsonFSharpConverter>]`, opening the namespace |
 
-OCaml has polymorphic equality and comparison, F# derives structural equality and comparison for every record and union, and Standard ML's datatypes admit `=` where their contents do, so no target needs a directive for either.
+F# derives structural equality and comparison for every record and union, and OCaml's polymorphic `=` and `compare` serve every declaration except one holding a set or map, which gets the `equal_` and `compare_` functions [the type mapping](#the-type-mapping) describes.
+The names are ppx_deriving's, so a declaration carrying `derive("eq")` or `derive("ord")` gets the ppx's function instead of the backend's, and a consumer reads the same name either way.
+Standard ML's datatypes admit `=` where their contents do, and its sets and maps are compared with the generated functions.
 
 ## Names
 
@@ -418,10 +453,10 @@ F# writes every .NET type fully qualified and opens nothing.
 
 ## Diagnostics
 
-These warn with the node's position, and the declaration reaching one is skipped: an extern with no mapping, a parameter of arrow kind on a type, a name that cannot be escaped, an `sml` constructor collision, and an OCaml `uint64` with no `foreign`.
+These warn with the node's position, and the declaration reaching one is skipped: an extern with no mapping, a parameter of arrow kind on a type, a name that cannot be escaped, an `sml` constructor collision, an OCaml `uint64` with no `foreign`, a set or map over a type parameter outside F#, and an `sml` set or map whose element is in its holder's recursive group.
 `emit.Cascade` then skips every declaration naming a skipped one.
 
-These warn and the declaration is still emitted: `matches` outside F#, a constraint the backend gives no meaning to, a `requires` clause on a type, a `requires` naming `Entity`, a unit outside F# or on a non-numeric F# type, an F# instance the table above refuses, and an `sml` set the backend cannot check.
+These warn and the declaration is still emitted: `matches` outside F#, a constraint the backend gives no meaning to, a `requires` clause on a type, a `requires` naming `Entity`, a unit outside F# or on a non-numeric F# type, and an F# instance the table above refuses.
 
 An error stops the run, and only a module name the language refuses earns one.
 
@@ -434,7 +469,7 @@ Each target's tests check every response with its compiler when it is on `PATH`,
 | `ocaml` | `ocamlc -c -warn-error +a` |
 | `reason` | `refmt --print ml`, then the OCaml check |
 | `fsharp` | `dotnet fsi --warnaserror+` over a script loading the file |
-| `sml` | `mlton -stop tc` over a `.mlb` naming the Basis and the file |
+| `sml` | `mlton -stop tc` over a `.mlb` naming the Basis, the SML/NJ library, and the file |
 
 The backends run no formatter.
 
@@ -447,6 +482,6 @@ No reverse backend is planned, for the reason Haskell gives: each language's par
 - **Several targets per profile.** `profile ptime for ocaml, reason` would remove the duplicated profiles. It needs a profile's directive shapes checked against every target it names.
 - **Higher kinds in OCaml.** A declaration with an arrow-kind parameter could be a functor over `sig type 'a t end` producing the type. It generates where today warns, and gives a consumer a module to apply instead of a type to name.
 - **Phantom units.** OCaml, Reason, and Standard ML could tag a quantity with an empty type per named unit, `type kg`, as Haskell's phase 6 weighs; a unit expression has no name to tag with.
-- **Functorized sets.** A `set` directive could write `Set.Make` for an element outside the holder's recursive group, giving OCaml a real set where it can have one.
+- **Sets over a type parameter.** A declaration holding `{T}` could become a functor over `T`'s ordering, `module Page (T : Set.OrderedType) = struct type t = { items : Set.Make(T).t } end`, generating where today warns, at the cost of the declaration no longer being a type a consumer names directly. The same move answers higher kinds above.
 - **ReScript.** It began as Reason and now differs in its standard library, its integers, and its records. It would be a fifth dialect of the core, not a printer over `reason`.
 - **Defaults and serialization.** As in Haskell: `Field.default_value` is not read, and JSON is the consumer's, through `derive` or `attribute`.

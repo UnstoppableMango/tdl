@@ -42,11 +42,11 @@ It skips under `-short` and when the runner is not on `PATH`.
 ## Phase 1: the core and OCaml types
 
 `backend/internal/ml` with the syntax tree, the `Dialect`, the strongly connected components and their order, and the expansion of an alias inside a group.
-`backend/ocaml` with records, enums, newtypes, and aliases, the type mapping, names and escaping, the predefined-type rule, the module name, doc comments, and deprecation.
+`backend/ocaml` with records, enums, newtypes, and aliases, the type mapping, sets and maps as functor applications with their `compare_` and `equal_` functions and recursive modules for a self-holding group, names and escaping, the predefined-type rule, the module name, doc comments, and deprecation.
 The backend is registered in `internal/gen/registry.go`, has a row in the `shipped` table in `internal/gen/hosts_test.go`, is served by `cmd/tdl-gen-ocaml`, and is listed in `nix/cmd.nix`.
 `testdata/gen/smoke/source.tdl` gains `target ocaml for smoke { out("ocaml") }`, `nix/default.nix` gains `checks.gen-ocaml`, and AGENTS.md gains a bullet under Backends.
 
-Done when the smoke model generates one module that compiles with warnings as errors, a model with two mutually recursive entities generates one `and` group, and both hosts return byte-identical files.
+Done when the smoke model generates one module that compiles with warnings as errors, a model with two mutually recursive entities generates one `and` group, an entity holding a set of itself compiles as recursive modules, a set of records holding sets keeps one copy of equal elements, and both hosts return byte-identical files.
 
 ## Phase 2: OCaml identity, foreign types, and derive
 
@@ -63,10 +63,10 @@ Done when every class in the conformance corpus generates or warns, and the spec
 
 ## Phase 4: OCaml validation
 
-`validate_<name>`, `validate_<name>_at`, and `make_<name>` for each standard constraint but `matches`, which warns, and the distinctness check for sets and maps.
+`validate_<name>`, `validate_<name>_at`, and `make_<name>` for each standard constraint but `matches`, which warns.
 A container calls what it holds, at any depth, a newtype checks its accumulated set, and the functions follow the core's recursive groups.
 
-Done when each standard constraint, and a duplicated set element, is rejected under `TestValidationRuns`.
+Done when each standard constraint is rejected under `TestValidationRuns`.
 
 ## Phase 5: Reason
 
@@ -77,9 +77,9 @@ Done when the smoke model and the class cases convert with `refmt --print ml` an
 
 ## Phase 6: Standard ML
 
-`backend/sml`: its type mapping, records as one-constructor datatypes, the constructor-collision warning, top-level signatures and functors around the model's structure, the `result` datatype, the UTF-8 length helper, and the equality-type warning on sets.
+`backend/sml`: its type mapping, records as one-constructor datatypes, the constructor-collision warning, top-level signatures and functors around the model's structure, the `result` datatype, the UTF-8 length helper, and sets and maps through the SML/NJ library's functors with generated `compare` functions.
 
-Done when the smoke model and the class cases pass `mlton -stop tc`, and validation runs under MLton.
+Done when the smoke model and the class cases pass `mlton -stop tc` with the SML/NJ library on the `.mlb`, and validation runs under MLton.
 
 ## Phase 7: F\#
 
