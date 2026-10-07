@@ -36,6 +36,9 @@ type Decl interface {
 
 // PackageDecl is a `package <dotted.ident>` declaration.
 type PackageDecl struct {
+	Doc  []string
+	DocP []Position // where each Doc line was written
+
 	P    Position
 	Path string // dotted, e.g. "shop.orders"
 }
@@ -43,7 +46,7 @@ type PackageDecl struct {
 // ImportDecl is an `import "path.tdl" as alias` declaration.
 type ImportDecl struct {
 	Doc  []string
-	DocP Position // where the doc comment was written; zero without one
+	DocP []Position // where each Doc line was written
 
 	P     Position
 	Path  string

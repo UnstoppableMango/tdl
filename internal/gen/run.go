@@ -2,7 +2,9 @@ package gen
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"path/filepath"
 	"slices"
 
 	"github.com/unstoppablemango/tdl/ir"
@@ -18,13 +20,17 @@ type Target struct {
 
 // Targets returns the target blocks in a model, with their output
 // directories read from each block's `out` directive unless override is
-// set.
+// set. A relative directive is relative to the file declaring the block,
+// as an import or an include is.
 func Targets(model *ir.Model, override string) ([]Target, error) {
 	var targets []Target
 	for _, block := range model.GetTargets() {
 		out := override
 		if out == "" {
 			out = outOf(block)
+			if file := block.GetMeta().GetPosition().GetFilename(); out != "" && file != "" && !filepath.IsAbs(out) {
+				out = filepath.Join(filepath.Dir(file), out)
+			}
 		}
 		if out == "" {
 			return nil, fmt.Errorf("target %s has no out directive and no -o was given", block.GetMeta().GetName())
@@ -63,10 +69,12 @@ const (
 
 // Result is what one target produced.
 type Result struct {
-	Target      string
-	Written     []string
-	Removed     []string
-	Stale       []Stale
+	Target   string
+	Written  []string
+	Removed  []string
+	Stale    []Stale
+	Expected []string // what a verify run would write
+
 	Diagnostics []*plugin.Diagnostic
 }
 
@@ -88,8 +96,8 @@ func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.M
 	}
 
 	if mode == ModeVerify {
-		stale, err := Verify(target.Out, resp.GetFiles())
-		result.Stale = stale
+		stale, expected, err := Verify(target.Out, resp.GetFiles())
+		result.Stale, result.Expected = stale, expected
 		if err != nil {
 			return result, fmt.Errorf("target %s: %w", target.Name, err)
 		}
@@ -104,14 +112,10 @@ func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.M
 		}
 	}
 
-	// Mark first, so a partly written directory is still recognisable.
-	if err := Mark(target.Out); err != nil {
-		return result, fmt.Errorf("target %s: %w", target.Name, err)
-	}
-
+	// Written files are listed even when writing fails part way.
 	written, err := Write(target.Out, resp.GetFiles())
 	result.Written = written
-	if err != nil {
+	if err := errors.Join(err, Mark(target.Out, written)); err != nil {
 		return result, fmt.Errorf("target %s: %w", target.Name, err)
 	}
 	return result, nil
@@ -121,5 +125,14 @@ func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.M
 func Fatal(diags []*plugin.Diagnostic) bool {
 	return slices.ContainsFunc(diags, func(d *plugin.Diagnostic) bool {
 		return d.GetSeverity() == plugin.Severity_SEVERITY_ERROR
+	})
+}
+
+// Silence drops the warnings whose loss code is allowed. An error is never
+// dropped, and neither is a warning with no code.
+func Silence(diags []*plugin.Diagnostic, allowed []string) []*plugin.Diagnostic {
+	return slices.DeleteFunc(slices.Clone(diags), func(d *plugin.Diagnostic) bool {
+		return d.GetSeverity() == plugin.Severity_SEVERITY_WARNING &&
+			d.GetCode() != "" && slices.Contains(allowed, d.GetCode())
 	})
 }

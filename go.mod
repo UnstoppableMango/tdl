@@ -3,14 +3,17 @@ module github.com/unstoppablemango/tdl
 go 1.27
 
 require (
+	github.com/BurntSushi/toml v1.6.0
 	github.com/bufbuild/protocompile v0.14.2-0.20260917202354-386f9fcfc7b9
 	github.com/cloudwego/thriftgo v0.4.5
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/spf13/cobra v1.10.2
-	github.com/vektah/gqlparser/v2 v2.5.60
+	github.com/vektah/gqlparser/v2 v2.5.61
 	go.lsp.dev/jsonrpc2 v1.0.1
 	go.lsp.dev/protocol v1.0.1
 	go.lsp.dev/uri v1.0.1
-	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba
+	go.yaml.in/yaml/v3 v3.0.5
+	golang.org/x/exp v0.0.0-20261005173118-76772065c9b0
 	google.golang.org/protobuf v1.36.12
 )
 
@@ -27,4 +30,5 @@ require (
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/tidwall/btree v1.8.1 // indirect
 	golang.org/x/sync v0.23.0 // indirect
+	golang.org/x/text v0.36.0 // indirect
 )

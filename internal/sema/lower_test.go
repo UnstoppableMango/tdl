@@ -48,6 +48,20 @@ func lowerDiags(t *testing.T, src string) Diagnostics {
 	return diags
 }
 
+func TestPackageDocReachesTheModel(t *testing.T) {
+	file, err := parser.Parse("test.tdl", strings.NewReader("/// What this package models.\npackage p\n"))
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+	model, diags := Lower(file)
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+	if got := model.GetDoc(); len(got) != 1 || got[0] != "What this package models." {
+		t.Errorf("model doc = %v, want [What this package models.]", got)
+	}
+}
+
 func TestDeclarationTable(t *testing.T) {
 	model := lower(t, `
 alias Names = [string]
@@ -625,8 +639,8 @@ func TestInstancesAreNotTypeNames(t *testing.T) {
 class Auditable { createdAt: string }
 instance Auditable for A
 instance Auditable for B
-type A { x: string }
-type B { x: string }
+type A { createdAt: string }
+type B { createdAt: string }
 `)
 
 	if got := len(model.GetInstances()); got != 2 {
@@ -986,7 +1000,7 @@ class Projection<from, to> | from -> to { }
 func TestInstanceFormsNormalize(t *testing.T) {
 	model := lower(t, `
 class Auditable { createdAt: string }
-type A { x: string }
+type A { createdAt: string }
 
 instance Auditable<A>
 instance Auditable for A
@@ -1009,8 +1023,15 @@ func TestSatisfaction(t *testing.T) {
 class Timestamped { createdAt: string }
 class Auditable: Timestamped { updatedAt: string }
 
-type Declared: Entity, Auditable { id: string }
-type ByInstance { x: string }
+type Declared: Entity, Auditable {
+  id: string
+  createdAt: string
+  updatedAt: string
+}
+type ByInstance {
+  createdAt: string
+  updatedAt: string
+}
 type Neither { x: string }
 
 instance Auditable<ByInstance>
@@ -1048,7 +1069,7 @@ type Uses { include Stamps }
 // A conditional instance is recorded but names no satisfying declaration.
 func TestConditionalInstanceNotIndexed(t *testing.T) {
 	model := lower(t, `
-class Auditable { createdAt: string }
+class Auditable { }
 type Page<T> { items: [T] }
 
 instance <T> Auditable<Page<T>> requires Auditable<T>
@@ -1185,7 +1206,7 @@ func contains(names []string, want string) bool {
 // `Page` alone satisfies nothing.
 func TestConditionalInstanceSearch(t *testing.T) {
 	model := lower(t, `
-class Auditable { createdAt: string }
+class Auditable { }
 type Page<P> { items: [P] }
 type Audited: Auditable { createdAt: string }
 type Plain { x: string }
@@ -1215,7 +1236,7 @@ type Uses {
 // A page of pages of auditable things is auditable.
 func TestConditionalInstanceNests(t *testing.T) {
 	model := lower(t, `
-class Auditable { createdAt: string }
+class Auditable { }
 type Page<P> { items: [P] }
 type Audited: Auditable { createdAt: string }
 
@@ -1236,7 +1257,7 @@ type Uses { nested: Page<Page<Audited>> }
 
 func TestRequiresThroughConditionalInstance(t *testing.T) {
 	lower(t, `
-class Auditable { createdAt: string }
+class Auditable { }
 type Page<P> { items: [P] }
 type Audited: Auditable { createdAt: string }
 type Envelope<P> requires Auditable<P> { body: P }
@@ -1435,6 +1456,41 @@ func TestBadNameConstraintArgs(t *testing.T) {
 	diags := lowerDiags(t, "enum Status { Draft }\ntype Holder { s: Status where { oneOf(Draft, Missing) } }")
 	if !strings.Contains(diags.Error(), "Status has no variant Missing") {
 		t.Errorf("diagnostics = %v", diags)
+	}
+}
+
+// An alias is transparent and a newtype narrows its base, so a name written
+// against either denotes a variant of the enum underneath, the same enum a
+// backend reads through them.
+func TestNamesThroughAliasAndNewtype(t *testing.T) {
+	model := lower(t, `
+enum Status { Draft Placed }
+alias S = Status
+type Code: Status where { oneOf(Placed) }
+type Holder {
+  a: S where { oneOf(Placed) } = Placed
+  c: Code? where { oneOf(Placed) } = Placed
+}
+`)
+
+	var lits []*ir.Literal
+	code, _, _ := model.FindDecl("Code")
+	lits = append(lits, code.GetNewtype().GetValueConstraints()[0].GetArgs()...)
+	holder, _, _ := model.FindDecl("Holder")
+	for _, f := range holder.Fields() {
+		lits = append(lits, f.GetDefaultValue(), f.GetConstraints()[0].GetArgs()[0])
+	}
+	for _, lit := range lits {
+		if got := lit.GetVariant(); got.GetName() != "Placed" || got.GetIndex() != 1 {
+			t.Errorf("%s at %v resolved to %+v, want variant 1 Placed", lit.GetText(), lit.GetPosition(), got)
+		}
+	}
+}
+
+func TestBadNameOnNewtype(t *testing.T) {
+	diags := lowerDiags(t, "enum Status { Draft }\ntype Code: Status where { oneOf(Missing) }\ntype Narrow: Code where { oneOf(Draft) }")
+	if got := strings.Count(diags.Error(), "Status has no variant Missing"); got != 1 {
+		t.Errorf("want the bad name reported once, got %d: %v", got, diags)
 	}
 }
 

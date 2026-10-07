@@ -2,7 +2,8 @@
 
 Design document.
 
-Five backends, each in `backend/<name>`, turn a resolved model into a schema language: `protobuf`, `thrift`, `smithy`, `graphql`, and `typescript`, whose output describes JSON on the wire.
+Seven backends, each in `backend/<name>`, turn a resolved model into a schema language: `protobuf`, `thrift`, `smithy`, `graphql`, `typescript`, `jsonschema`, and `openapi`.
+The last three describe JSON on the wire.
 
 The `salesforce` backend builds on the same pieces and is mapped in [salesforce-backend.md](salesforce-backend.md).
 Where a target has no reason to differ from [go-backend.md](go-backend.md), it does not.
@@ -17,6 +18,8 @@ Where a target has no reason to differ from [go-backend.md](go-backend.md), it d
 - **Diagnostics.** An `UnsupportedError` carries a position, and `Warn` turns it into a warning that does not stop the run.
 - **Cascade.** `Cascade` skips every declaration naming a skipped one, to a fixed point, since no target accepts a reference to something the output does not declare.
 - **Names.** `Words` splits a TDL name into words, and `Pascal`, `Camel`, `Snake`, and `ScreamingSnake` join them.
+
+`backend/internal/jsonschema` builds JSON Schema definitions for `jsonschema` and `openapi`, with a `Dialect` stating what differs between the documents they write ([OpenAPI](#openapi) has the table).
 
 `backend/internal/irtest` builds models by hand for tests.
 
@@ -42,7 +45,7 @@ A primitive tagged `stream` wraps a request or response, as in `rpc Chat(stream 
 Either primitive may be declared in the file or imported.
 The request and response must be message references, and a service field that is not an rpc warns and skips the service.
 
-Constraints warn and the declaration is still emitted.
+Constraints warn and the declaration is still emitted, except in JSON Schema, which has a keyword for each standard one (see [Constraints](#constraints)).
 `Field.default_value` and `owned` are not read, and a referenced entity is embedded by value.
 
 GraphQL emits output types only; input types would be a second copy of every type with different union rules.
@@ -51,23 +54,23 @@ GraphQL emits output types only; input types would be a second copy of every typ
 
 **warn** below means a positioned warning, with the reaching declaration skipped.
 
-| TDL | protobuf | thrift | smithy | graphql | typescript |
-| --- | --- | --- | --- | --- | --- |
-| `string` | `string` | `string` | `String` | `String` | `string` |
-| `int` | `int64` | `i64` | `Long` | `scalar Long` | `number` |
-| `int32` | `int32` | `i32` | `Integer` | `Int` | `number` |
-| `uint32` | `uint32` | `i64` | `Long` | `scalar Long` | `number` |
-| `int64` | `int64` | `i64` | `Long` | `scalar Long` | `number` |
-| `uint64` | `uint64` | warn | `BigInteger` | `scalar UInt64` | `number` |
-| `float32` | `float` | `double` | `Float` | `Float` | `number` |
-| `float64` | `double` | `double` | `Double` | `Float` | `number` |
-| `bool` | `bool` | `bool` | `Boolean` | `Boolean` | `boolean` |
-| `bytes` | `bytes` | `binary` | `Blob` | `scalar Bytes` | `string` |
-| `decimal` | `string` | `string` | `BigDecimal` | `scalar Decimal` | `string` |
-| `uuid` | `string` | `string` | `String` | `scalar UUID` | `string` |
-| `instant` | `google.protobuf.Timestamp` | `string` | `Timestamp` | `scalar DateTime` | `string` |
-| `date` | `string` | `string` | `String` | `scalar Date` | `string` |
-| `duration` | `google.protobuf.Duration` | `string` | `String` | `scalar Duration` | `string` |
+| TDL | protobuf | thrift | smithy | graphql | typescript | jsonschema |
+| --- | --- | --- | --- | --- | --- | --- |
+| `string` | `string` | `string` | `String` | `String` | `string` | `string` |
+| `int` | `int64` | `i64` | `Long` | `scalar Long` | `number` | `integer` |
+| `int32` | `int32` | `i32` | `Integer` | `Int` | `number` | `integer`, 32-bit bounds |
+| `uint32` | `uint32` | `i64` | `Long` | `scalar Long` | `number` | `integer`, 32-bit unsigned bounds |
+| `int64` | `int64` | `i64` | `Long` | `scalar Long` | `number` | `integer` |
+| `uint64` | `uint64` | warn | `BigInteger` | `scalar UInt64` | `number` | `integer`, `minimum: 0` |
+| `float32` | `float` | `double` | `Float` | `Float` | `number` | `number` |
+| `float64` | `double` | `double` | `Double` | `Float` | `number` | `number` |
+| `bool` | `bool` | `bool` | `Boolean` | `Boolean` | `boolean` | `boolean` |
+| `bytes` | `bytes` | `binary` | `Blob` | `scalar Bytes` | `string` | `string`, `contentEncoding: base64` |
+| `decimal` | `string` | `string` | `BigDecimal` | `scalar Decimal` | `string` | `string` |
+| `uuid` | `string` | `string` | `String` | `scalar UUID` | `string` | `string`, `format: uuid` |
+| `instant` | `google.protobuf.Timestamp` | `string` | `Timestamp` | `scalar DateTime` | `string` | `string`, `format: date-time` |
+| `date` | `string` | `string` | `String` | `scalar Date` | `string` | `string`, `format: date` |
+| `duration` | `google.protobuf.Duration` | `string` | `String` | `scalar Duration` | `string` | `string`, `format: duration` |
 
 `int` is 64 bits everywhere, and GraphQL needs a custom scalar for it because its `Int` is 32.
 Thrift, Smithy, and GraphQL have no unsigned integers, so `uint32` widens to a signed 64-bit type; Thrift has nothing wider for `uint64`.
@@ -75,15 +78,15 @@ TypeScript's `number` is a double, so `int`, `int64`, and `uint64` lose precisio
 `decimal` is a string wherever the target has no exact decimal.
 A GraphQL custom scalar is declared only when something uses it.
 
-| TDL | protobuf | thrift | smithy | graphql | typescript |
-| --- | --- | --- | --- | --- | --- |
-| `List<T>` | `repeated T` | `list<T>` | a `list` shape | `[T!]` | `T[]` |
-| `Set<T>` | `repeated T` | `set<T>` | a `@uniqueItems` `list` shape | `[T!]` | `T[]` |
-| `Map<K, V>` | `map<K, V>` | `map<K, V>` | a `map` shape | warn | `Record<K, V>` |
-| `T?` field | `optional` | `optional` | no `@required` | `T` | `name?: T` |
-| `T \| null` field | `optional` | `optional` | no `@required` | `T` | `name: T \| null` |
-| `[T?]` | warn | warn | `@sparse` | `[T]` | `(T \| null)[]` |
-| `T? \| null` | warn | warn | warn | warn | `name?: T \| null` |
+| TDL | protobuf | thrift | smithy | graphql | typescript | jsonschema |
+| --- | --- | --- | --- | --- | --- | --- |
+| `List<T>` | `repeated T` | `list<T>` | a `list` shape | `[T!]` | `T[]` | `array` |
+| `Set<T>` | `repeated T` | `set<T>` | a `@uniqueItems` `list` shape | `[T!]` | `T[]` | `array`, `uniqueItems` |
+| `Map<K, V>` | `map<K, V>` | `map<K, V>` | a `map` shape | warn | `Record<K, V>` | `object`, `additionalProperties: V` |
+| `T?` field | `optional` | `optional` | no `@required` | `T` | `name?: T` | not `required` |
+| `T \| null` field | `optional` | `optional` | no `@required` | `T` | `name: T \| null` | `required`, `anyOf` with `null` |
+| `[T?]` | warn | warn | `@sparse` | `[T]` | `(T \| null)[]` | `items` `anyOf` with `null` |
+| `T? \| null` | warn | warn | warn | warn | `name?: T \| null` | not `required`, `anyOf` with `null` |
 
 - Protobuf has no set, so uniqueness is not enforced.
   A repeated or map field cannot be optional or hold another collection, so those shapes warn.
@@ -92,17 +95,19 @@ A GraphQL custom scalar is declared only when something uses it.
 - Smithy names every collection, so the backend synthesizes one shape per distinct collection type, named from its element and key.
   A map key must resolve to a string or a fieldless enum.
 - TypeScript types a map key as `string` or `number`, and a fieldless enum key as `Partial<Record<E, V>>`.
+- JSON Schema checks a map key with `propertyNames`: a newtype over a string is a `$ref` to it, a string is unchecked, an integer key is a pattern of decimal digits, and a fieldless enum key is a `$ref` to the enum.
+  Any other key warns.
 
 A field that is not optional is non-null in GraphQL and `@required` in Smithy.
 Thrift fields that are not optional use the default requiredness and never `required`, which Thrift's guidance advises against.
 
-| TDL | protobuf | thrift | smithy | graphql | typescript |
-| --- | --- | --- | --- | --- | --- |
-| entity, value, mixin | `message` | `struct` | `structure` | `type` | `interface` |
-| fieldless enum | `enum` | `enum` | `enum` | `enum` | a union of string literals |
-| fielded enum | a `message` with a `oneof` | a `union` | a `union` | a `union` | a discriminated union |
-| newtype | expanded | `typedef` | a named simple shape | expanded | `type N = Base` |
-| alias | expanded | expanded | expanded | expanded | expanded |
+| TDL | protobuf | thrift | smithy | graphql | typescript | jsonschema |
+| --- | --- | --- | --- | --- | --- | --- |
+| entity, value, mixin | `message` | `struct` | `structure` | `type` | `interface` | `object` |
+| fieldless enum | `enum` | `enum` | `enum` | `enum` | a union of string literals | `string` with `enum` |
+| fielded enum | a `message` with a `oneof` | a `union` | a `union` | a `union` | a discriminated union | a discriminated `oneOf` |
+| newtype | expanded | `typedef` | a named simple shape | expanded | `type N = Base` | a definition |
+| alias | expanded | expanded | expanded | expanded | expanded | expanded |
 
 A mixin is emitted too, and a struct including it already carries its fields.
 
@@ -114,11 +119,33 @@ A fielded enum is each target's sum type:
   Smithy targets `Unit` for a variant with no fields.
   A GraphQL object needs a field, so a fieldless variant carries a placeholder `_: Boolean` that is always null.
 - In TypeScript, each variant is an interface with a `kind` field holding the variant's name, which a `discriminant` directive renames.
+- In JSON Schema, the enum is a `oneOf` of one object per variant, titled with the variant's name, and the discriminant is a required property holding a `const` of that name, renamed the same way.
 
 A protobuf enum starts with an `_UNSPECIFIED` value at zero, and its values are prefixed with the enum's name, since enum values share one scope per package.
 
 Protobuf and GraphQL expand a newtype to its base: a protobuf wrapper message would change the wire format, and a GraphQL scalar per newtype would need server code for each.
 A TypeScript newtype is a plain alias, so parsed JSON needs no cast.
+A JSON Schema newtype is a definition holding its base and the constraints it writes itself; a base that is another newtype is a `$ref`, which checks the constraints inherited from it.
+
+A JSON Schema object is open: it accepts properties it does not declare, so a newer producer adding a field still validates.
+A `closed` directive on a struct or an enum, or on the target block for every one, writes `additionalProperties: false`.
+
+## Constraints
+
+JSON Schema writes each standard constraint as the keyword that checks it, chosen by what the constrained type holds once newtypes are expanded.
+
+| Constraint | number | string | list or set | map |
+| --- | --- | --- | --- | --- |
+| `min(n)`, `max(n)` | `minimum`, `maximum` | warn | warn | warn |
+| `length(n)`, `length(a..b)` | warn | `minLength`, `maxLength` | `minItems`, `maxItems` | `minProperties`, `maxProperties` |
+| `matches(/re/)` | warn | `pattern` | warn | warn |
+| `oneOf(...)` | `enum` | `enum` | warn | warn |
+| `unique` | warn | warn | `uniqueItems` | warn |
+
+`oneOf` also applies to a fieldless enum, where it narrows the variants a field accepts.
+Here **warn** leaves the declaration emitted without the keyword, as a constraint warns in every other target, and so does a constraint name the spec does not define.
+A constraint on a `T?` or `T | null` field applies to the value when one is present.
+`matches` copies the pattern as written, and JSON Schema reads it as an ECMA-262 regular expression.
 
 ## Names
 
@@ -127,6 +154,7 @@ A protobuf field is snake case and a protobuf enum value is screaming snake case
 Every other target writes a field as TDL does.
 A `name` directive replaces the name in any target, and a name that collides after conversion, with a keyword, or with a synthesized name warns until `name` resolves it.
 A `name` value the target cannot spell as an identifier is a warning of its own.
+A JSON Schema definition name is held to letters, digits, `_`, `.`, and `-`, since it is written into a URI fragment unescaped.
 
 ## Numbering
 
@@ -164,9 +192,46 @@ In protobuf, a `file` directive on a declaration places it in the named file of 
 | smithy | `<last segment>.smithy` | `namespace` from the `package` directive, else the model's package |
 | graphql | `<last segment>.graphql` | none |
 | typescript | `<last segment>.ts` | none |
+| jsonschema | `<last segment>.schema.json` | none |
+| openapi | `<last segment>.openapi.yaml`, or `.openapi.json` under `format("json")` | none |
 
 Every file starts with `Code generated by tdl. DO NOT EDIT.` in the target's comment syntax.
+JSON has no comments, so a JSON Schema document carries it in `$comment`.
+
+A JSON Schema document holds every declaration under `$defs`, and validates nothing itself unless the target block's `root` directive names the declaration it does, which becomes a top-level `$ref`.
+An `id` directive sets the document's `$id`.
+A `draft` directive picks the dialect, `2020-12` by default or `draft-07`, and reports any other value as an error.
+Under `draft-07` the definitions are under `definitions`, a `$ref` beside other keywords moves into an `allOf`, since that draft ignores a `$ref`'s siblings, and a deprecation is written into the description, since that draft has no `deprecated` keyword.
 Doc comments are carried in each target's form, and a deprecation becomes each target's `deprecated` marker; GraphQL puts a type's deprecation in its description because a type cannot carry `@deprecated`.
+
+## OpenAPI
+
+An OpenAPI document holds the model's schemas and no operations: `paths` is empty, since TDL has no HTTP method or route to write one from.
+Every declaration is a schema under `components.schemas`, or `definitions` in 2.0, mapped as JSON Schema maps it, constraints included, in the dialect the version speaks.
+
+An `openapi` directive on the target block picks the version, `3.1` by default, `3.0`, or `2.0`, and reports any other value as an error.
+A `format` directive picks `yaml`, the default, or `json`.
+`title` and `version` directives set `info.title` and `info.version`, which default to the model's package and `0.0.0`.
+A YAML document carries the generated-code line as a comment, and a JSON one carries it in an `x-generated` extension.
+
+| | 3.1 | 3.0 | 2.0 |
+| --- | --- | --- | --- |
+| `openapi` or `swagger` | `3.1.1` | `3.0.4` | `2.0` |
+| schemas under | `components.schemas` | `components.schemas` | `definitions` |
+| `T \| null` | `anyOf` with `null` | `nullable: true` | `x-nullable: true` |
+| a `$ref` beside other keywords | kept | moved into an `allOf` | moved into an `allOf` |
+| deprecation | `deprecated: true` | `deprecated: true` | written into the description |
+| discriminant value | `const` | one-member `enum` | none |
+| `bytes` | `contentEncoding: base64` | `format: byte` | `format: byte` |
+| map key schema | `propertyNames` | none | none |
+| fielded enum | `oneOf` with a `discriminator` | `oneOf` with a `discriminator` | warn |
+
+A schema of every version carries OpenAPI's width formats: `int32`, `int64` for `int`, `int64`, and `uint32`, `float`, and `double`.
+An `int32` writes no bounds beside its format, which already says them.
+
+A fielded enum is a `oneOf` of one schema per variant, each its own component named as TypeScript names the variant's interface, such as `PaymentCard`, and a `name` directive on the variant renames it.
+The `discriminator` names the discriminant property and maps each variant's name to its schema, which is the shape OpenAPI code generators read.
+OpenAPI 2.0 has no `oneOf`, so there a fielded enum warns and is skipped, along with every declaration naming it.
 
 ## Encodings
 

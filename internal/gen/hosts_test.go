@@ -15,13 +15,18 @@ import (
 	"github.com/bufbuild/protocompile"
 	thriftparser "github.com/cloudwego/thriftgo/parser"
 	"github.com/cloudwego/thriftgo/semantic"
+	sjs "github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/vektah/gqlparser/v2"
 	gqlast "github.com/vektah/gqlparser/v2/ast"
+	"go.yaml.in/yaml/v3"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/unstoppablemango/tdl/backend/debug"
 	"github.com/unstoppablemango/tdl/backend/golang"
 	"github.com/unstoppablemango/tdl/backend/graphql"
+	"github.com/unstoppablemango/tdl/backend/jsonschema"
+	"github.com/unstoppablemango/tdl/backend/likec4"
+	"github.com/unstoppablemango/tdl/backend/openapi"
 	"github.com/unstoppablemango/tdl/backend/protobuf"
 	"github.com/unstoppablemango/tdl/backend/salesforce"
 	"github.com/unstoppablemango/tdl/backend/smithy"
@@ -44,10 +49,17 @@ var shipped = []struct {
 
 	// valid checks that a file is something the target language accepts.
 	valid func(t *testing.T, f *plugin.File)
+
+	// reverse is the source a backend that imports reads in
+	// [TestImportHostsAgree]. It is nil for one that only generates.
+	reverse func() []*plugin.File
 }{
 	{backend: debug.Backend{}, model: sampleModel, packaged: true},
 	{backend: golang.Backend{}, model: goModel, packaged: true, valid: parseGo},
 	{backend: graphql.Backend{}, model: orderModel, packaged: true, valid: loadGraphQL},
+	{backend: jsonschema.Backend{}, model: orderModel, packaged: true, valid: compileJSONSchema},
+	{backend: likec4.Backend{}, model: orderModel, packaged: true},
+	{backend: openapi.Backend{}, model: orderModel, packaged: true, valid: parseYAML},
 	{backend: protobuf.Backend{}, model: orderModel, packaged: true, valid: compileProto},
 	{backend: salesforce.Backend{}, model: orderModel, packaged: true, valid: parseXML},
 	{backend: smithy.Backend{}, model: orderModel, packaged: true},
@@ -299,5 +311,32 @@ func loadGraphQL(t *testing.T, f *plugin.File) {
 	t.Helper()
 	if _, err := gqlparser.LoadSchema(&gqlast.Source{Name: f.GetPath(), Input: string(f.GetContent())}); err != nil {
 		t.Errorf("%s does not load: %v\n%s", f.GetPath(), err, f.GetContent())
+	}
+}
+
+func compileJSONSchema(t *testing.T, f *plugin.File) {
+	t.Helper()
+	doc, err := sjs.UnmarshalJSON(bytes.NewReader(f.GetContent()))
+	if err != nil {
+		t.Errorf("%s is not JSON: %v\n%s", f.GetPath(), err, f.GetContent())
+		return
+	}
+	c := sjs.NewCompiler()
+	loc := "file:///" + f.GetPath()
+	if err := c.AddResource(loc, doc); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.Compile(loc); err != nil {
+		t.Errorf("%s does not compile: %v\n%s", f.GetPath(), err, f.GetContent())
+	}
+}
+
+// parseYAML checks an OpenAPI document is YAML; backend/openapi's tests
+// validate it against the OpenAPI schema.
+func parseYAML(t *testing.T, f *plugin.File) {
+	t.Helper()
+	var v any
+	if err := yaml.Unmarshal(f.GetContent(), &v); err != nil {
+		t.Errorf("%s is not YAML: %v\n%s", f.GetPath(), err, f.GetContent())
 	}
 }

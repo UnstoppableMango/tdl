@@ -269,6 +269,46 @@ func TestVariantWithFieldsIsASealedInterface(t *testing.T) {
 	}
 }
 
+func TestVariantNameDirective(t *testing.T) {
+	name := func(s string) []*ir.Directive {
+		return []*ir.Directive{{Name: "name", Target: "go", Args: []*ir.Literal{irtest.Text(s)}}}
+	}
+	m := irtest.New("shop")
+	m.Own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Health"},
+		Node: &ir.Decl_Enumeration{Enumeration: &ir.Enum{
+			Variants: []*ir.Variant{
+				{Meta: &ir.Meta{Name: "ok"}, Directives: name("HealthOK")},
+				{Meta: &ir.Meta{Name: "bad"}},
+			},
+		}},
+	})
+	m.Own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Payment"},
+		Node: &ir.Decl_Enumeration{Enumeration: &ir.Enum{
+			Variants: []*ir.Variant{
+				{Meta: &ir.Meta{Name: "atm"}, Directives: name("PaymentATM")},
+				{Meta: &ir.Meta{Name: "card"}, Fields: []*ir.Field{irtest.Field("last4", m.Named("string"))}},
+			},
+		}},
+	})
+
+	m.Own(structure("Check", nil,
+		constrained(irtest.Field("health", m.Named("Health")), where("oneOf", 3, irtest.Name("ok")))))
+
+	got := files(t, generate(t, m))
+	contains(t, got["health.go"],
+		`HealthOK  Health = "ok"`,
+		`HealthBad Health = "bad"`,
+	)
+	contains(t, got["payment.go"],
+		"type PaymentATM struct {",
+		"func (PaymentATM) isPayment() {}",
+		"type PaymentCard struct {",
+	)
+	contains(t, got["check.go"], "if c.Health != HealthOK {")
+}
+
 func TestNewtype(t *testing.T) {
 	m := irtest.New("shop")
 	m.Own(&ir.Decl{
@@ -1216,6 +1256,46 @@ func TestAKeywordPackageNameIsAnError(t *testing.T) {
 	}
 	if d.GetPosition().GetLine() != 2 {
 		t.Errorf("position = %+v, and the directive is what to point at", d.GetPosition())
+	}
+}
+
+// A target-scope file directive writes every declaration into that one
+// file, with one import block, so a target can generate into a package
+// that also holds hand-written code.
+func TestFileDirectiveWritesOneFile(t *testing.T) {
+	m := irtest.New("shop")
+	m.Own(&ir.Decl{
+		Meta: &ir.Meta{Name: "Order"},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{
+			Fields: []*ir.Field{irtest.Field("placed", m.Named("instant"))},
+		}},
+	})
+	note := &ir.Decl{
+		Meta: &ir.Meta{Name: "Note"},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{
+			Fields: []*ir.Field{irtest.Field("at", m.Named("instant"))},
+		}},
+		Directives: []*ir.Directive{{
+			Name: "file", Target: "go", Args: []*ir.Literal{irtest.Text("note.go")},
+			Position: &ir.Position{Filename: irtest.OwnFile, Line: 9},
+		}},
+	}
+	m.Own(note)
+	m.Model.Targets = []*ir.TargetBlock{{
+		Meta:       &ir.Meta{Name: "go"},
+		Directives: []*ir.Directive{{Name: "file", Target: "go", Args: []*ir.Literal{irtest.Text("model.go")}}},
+	}}
+
+	resp := generate(t, m)
+	onlyWarningAt(t, resp, 9)
+	got := files(t, resp)
+	if len(got) != 1 {
+		t.Fatalf("files = %v, want only model.go", keys(got))
+	}
+	src := got["model.go"]
+	contains(t, src, "type Order struct {", "type Note struct {")
+	if n := strings.Count(src, "import"); n != 1 {
+		t.Errorf("%d import blocks, want 1:\n%s", n, src)
 	}
 }
 

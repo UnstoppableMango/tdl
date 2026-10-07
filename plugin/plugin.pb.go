@@ -28,6 +28,57 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Mode is the direction of a connection.
+type Mode int32
+
+const (
+	// MODE_UNSPECIFIED generates: it reads a model and writes the target
+	// language. It is what a host sent before import mode existed.
+	Mode_MODE_UNSPECIFIED Mode = 0
+	// MODE_IMPORT reads the target language and writes a model. The host
+	// sends it only to a plugin whose reply declared Features.reverse.
+	Mode_MODE_IMPORT Mode = 1
+)
+
+// Enum value maps for Mode.
+var (
+	Mode_name = map[int32]string{
+		0: "MODE_UNSPECIFIED",
+		1: "MODE_IMPORT",
+	}
+	Mode_value = map[string]int32{
+		"MODE_UNSPECIFIED": 0,
+		"MODE_IMPORT":      1,
+	}
+)
+
+func (x Mode) Enum() *Mode {
+	p := new(Mode)
+	*p = x
+	return p
+}
+
+func (x Mode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Mode) Descriptor() protoreflect.EnumDescriptor {
+	return file_tdl_plugin_v1_plugin_proto_enumTypes[0].Descriptor()
+}
+
+func (Mode) Type() protoreflect.EnumType {
+	return &file_tdl_plugin_v1_plugin_proto_enumTypes[0]
+}
+
+func (x Mode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Mode.Descriptor instead.
+func (Mode) EnumDescriptor() ([]byte, []int) {
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{0}
+}
+
 // Severity is how much a diagnostic matters.
 type Severity int32
 
@@ -62,11 +113,11 @@ func (x Severity) String() string {
 }
 
 func (Severity) Descriptor() protoreflect.EnumDescriptor {
-	return file_tdl_plugin_v1_plugin_proto_enumTypes[0].Descriptor()
+	return file_tdl_plugin_v1_plugin_proto_enumTypes[1].Descriptor()
 }
 
 func (Severity) Type() protoreflect.EnumType {
-	return &file_tdl_plugin_v1_plugin_proto_enumTypes[0]
+	return &file_tdl_plugin_v1_plugin_proto_enumTypes[1]
 }
 
 func (x Severity) Number() protoreflect.EnumNumber {
@@ -75,7 +126,7 @@ func (x Severity) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Severity.Descriptor instead.
 func (Severity) EnumDescriptor() ([]byte, []int) {
-	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{0}
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{1}
 }
 
 // Handshake is what tdl sends first, before any request.
@@ -93,7 +144,10 @@ type Handshake struct {
 	// fields are additive.
 	IrVersion string `protobuf:"bytes,2,opt,name=ir_version,json=irVersion" json:"ir_version,omitempty"`
 	// watch says this connection may serve more than one request.
-	Watch         bool `protobuf:"varint,3,opt,name=watch" json:"watch,omitempty"`
+	Watch bool `protobuf:"varint,3,opt,name=watch" json:"watch,omitempty"`
+	// mode says which requests follow: Request, or ImportRequest under
+	// MODE_IMPORT.
+	Mode          Mode `protobuf:"varint,4,opt,name=mode,enum=tdl.plugin.v1.Mode" json:"mode,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -147,6 +201,13 @@ func (x *Handshake) GetWatch() bool {
 		return x.Watch
 	}
 	return false
+}
+
+func (x *Handshake) GetMode() Mode {
+	if x != nil {
+		return x.Mode
+	}
+	return Mode_MODE_UNSPECIFIED
 }
 
 // HandshakeReply is the plugin's answer.
@@ -331,7 +392,10 @@ type Features struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// reuse says the plugin can serve more than one request on a
 	// connection. It must treat each as independent.
-	Reuse         bool `protobuf:"varint,1,opt,name=reuse" json:"reuse,omitempty"`
+	Reuse bool `protobuf:"varint,1,opt,name=reuse" json:"reuse,omitempty"`
+	// reverse says the plugin answers MODE_IMPORT, reading its target
+	// language back into a model.
+	Reverse       bool `protobuf:"varint,2,opt,name=reverse" json:"reverse,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -369,6 +433,13 @@ func (*Features) Descriptor() ([]byte, []int) {
 func (x *Features) GetReuse() bool {
 	if x != nil {
 		return x.Reuse
+	}
+	return false
+}
+
+func (x *Features) GetReverse() bool {
+	if x != nil {
+		return x.Reverse
 	}
 	return false
 }
@@ -570,22 +641,149 @@ func (x *File) GetContent() []byte {
 	return nil
 }
 
+// ImportRequest is everything a reverse backend needs to read one set of
+// source files back into a model.
+type ImportRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// target names the backend's language, as in Request.target. Directives
+	// the backend writes into the model's target blocks name it.
+	Target string `protobuf:"bytes,1,opt,name=target" json:"target,omitempty"`
+	// files are the source files to read, with the paths the user gave.
+	Files []*File `protobuf:"bytes,2,rep,name=files" json:"files,omitempty"`
+	// allow_lossy are the loss codes the user allowed. tdl drops warnings
+	// carrying them, so a backend may skip the work of finding them; ignoring
+	// the list is correct.
+	AllowLossy    []string `protobuf:"bytes,3,rep,name=allow_lossy,json=allowLossy" json:"allow_lossy,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ImportRequest) Reset() {
+	*x = ImportRequest{}
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImportRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImportRequest) ProtoMessage() {}
+
+func (x *ImportRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImportRequest.ProtoReflect.Descriptor instead.
+func (*ImportRequest) Descriptor() ([]byte, []int) {
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ImportRequest) GetTarget() string {
+	if x != nil {
+		return x.Target
+	}
+	return ""
+}
+
+func (x *ImportRequest) GetFiles() []*File {
+	if x != nil {
+		return x.Files
+	}
+	return nil
+}
+
+func (x *ImportRequest) GetAllowLossy() []string {
+	if x != nil {
+		return x.AllowLossy
+	}
+	return nil
+}
+
+// ImportResponse is what a reverse backend returns: a model, which tdl
+// turns into TDL source and lowers again before writing it.
+type ImportResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// model holds the declarations read, in the shape lowering produces.
+	// tdl prints only the declarations not positioned in the prelude.
+	Model         *ir.Model     `protobuf:"bytes,1,opt,name=model" json:"model,omitempty"`
+	Diagnostics   []*Diagnostic `protobuf:"bytes,2,rep,name=diagnostics" json:"diagnostics,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ImportResponse) Reset() {
+	*x = ImportResponse{}
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImportResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImportResponse) ProtoMessage() {}
+
+func (x *ImportResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImportResponse.ProtoReflect.Descriptor instead.
+func (*ImportResponse) Descriptor() ([]byte, []int) {
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ImportResponse) GetModel() *ir.Model {
+	if x != nil {
+		return x.Model
+	}
+	return nil
+}
+
+func (x *ImportResponse) GetDiagnostics() []*Diagnostic {
+	if x != nil {
+		return x.Diagnostics
+	}
+	return nil
+}
+
 // Diagnostic is a problem a backend found.
 //
 // It carries a position rather than a node ID, because an ID alone does not
 // say which table it indexes.
 type Diagnostic struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Severity      Severity               `protobuf:"varint,1,opt,name=severity,enum=tdl.plugin.v1.Severity" json:"severity,omitempty"`
-	Message       string                 `protobuf:"bytes,2,opt,name=message" json:"message,omitempty"`
-	Position      *ir.Position           `protobuf:"bytes,3,opt,name=position" json:"position,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Severity Severity               `protobuf:"varint,1,opt,name=severity,enum=tdl.plugin.v1.Severity" json:"severity,omitempty"`
+	Message  string                 `protobuf:"bytes,2,opt,name=message" json:"message,omitempty"`
+	Position *ir.Position           `protobuf:"bytes,3,opt,name=position" json:"position,omitempty"`
+	// code names the kind of problem, such as "lossy.collection". A warning
+	// a user can silence carries one; see docs/design/reverse.md.
+	Code          string `protobuf:"bytes,4,opt,name=code" json:"code,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Diagnostic) Reset() {
 	*x = Diagnostic{}
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[7]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -597,7 +795,7 @@ func (x *Diagnostic) String() string {
 func (*Diagnostic) ProtoMessage() {}
 
 func (x *Diagnostic) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[7]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -610,7 +808,7 @@ func (x *Diagnostic) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Diagnostic.ProtoReflect.Descriptor instead.
 func (*Diagnostic) Descriptor() ([]byte, []int) {
-	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{7}
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *Diagnostic) GetSeverity() Severity {
@@ -634,16 +832,24 @@ func (x *Diagnostic) GetPosition() *ir.Position {
 	return nil
 }
 
+func (x *Diagnostic) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
 var File_tdl_plugin_v1_plugin_proto protoreflect.FileDescriptor
 
 const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
 	"\n" +
-	"\x1atdl/plugin/v1/plugin.proto\x12\rtdl.plugin.v1\x1a!google/protobuf/go_features.proto\x1a\x12tdl/ir/v1/ir.proto\"i\n" +
+	"\x1atdl/plugin/v1/plugin.proto\x12\rtdl.plugin.v1\x1a!google/protobuf/go_features.proto\x1a\x12tdl/ir/v1/ir.proto\"\x92\x01\n" +
 	"\tHandshake\x12'\n" +
 	"\x0fframing_version\x18\x01 \x01(\x05R\x0eframingVersion\x12\x1d\n" +
 	"\n" +
 	"ir_version\x18\x02 \x01(\tR\tirVersion\x12\x14\n" +
-	"\x05watch\x18\x03 \x01(\bR\x05watch\"\xe7\x01\n" +
+	"\x05watch\x18\x03 \x01(\bR\x05watch\x12'\n" +
+	"\x04mode\x18\x04 \x01(\x0e2\x13.tdl.plugin.v1.ModeR\x04mode\"\xe7\x01\n" +
 	"\x0eHandshakeReply\x12\x1a\n" +
 	"\baccepted\x18\x01 \x01(\bR\baccepted\x12\x18\n" +
 	"\arefusal\x18\x02 \x01(\tR\arefusal\x12\x12\n" +
@@ -660,9 +866,10 @@ const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
 	"\targ_kinds\x18\x04 \x03(\x0e2\x16.tdl.ir.v1.LiteralKindR\bargKinds\x12\x1e\n" +
 	"\n" +
 	"repeatable\x18\x05 \x01(\bR\n" +
-	"repeatable\" \n" +
+	"repeatable\":\n" +
 	"\bFeatures\x12\x14\n" +
-	"\x05reuse\x18\x01 \x01(\bR\x05reuse\"t\n" +
+	"\x05reuse\x18\x01 \x01(\bR\x05reuse\x12\x18\n" +
+	"\areverse\x18\x02 \x01(\bR\areverse\"t\n" +
 	"\aRequest\x12\x16\n" +
 	"\x06target\x18\x01 \x01(\tR\x06target\x12&\n" +
 	"\x05model\x18\x02 \x01(\v2\x10.tdl.ir.v1.ModelR\x05model\x12\x10\n" +
@@ -674,17 +881,29 @@ const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
 	"\vdiagnostics\x18\x03 \x03(\v2\x19.tdl.plugin.v1.DiagnosticR\vdiagnostics\"4\n" +
 	"\x04File\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x18\n" +
-	"\acontent\x18\x02 \x01(\fR\acontent\"\x8c\x01\n" +
+	"\acontent\x18\x02 \x01(\fR\acontent\"s\n" +
+	"\rImportRequest\x12\x16\n" +
+	"\x06target\x18\x01 \x01(\tR\x06target\x12)\n" +
+	"\x05files\x18\x02 \x03(\v2\x13.tdl.plugin.v1.FileR\x05files\x12\x1f\n" +
+	"\vallow_lossy\x18\x03 \x03(\tR\n" +
+	"allowLossy\"u\n" +
+	"\x0eImportResponse\x12&\n" +
+	"\x05model\x18\x01 \x01(\v2\x10.tdl.ir.v1.ModelR\x05model\x12;\n" +
+	"\vdiagnostics\x18\x02 \x03(\v2\x19.tdl.plugin.v1.DiagnosticR\vdiagnostics\"\xa0\x01\n" +
 	"\n" +
 	"Diagnostic\x123\n" +
 	"\bseverity\x18\x01 \x01(\x0e2\x17.tdl.plugin.v1.SeverityR\bseverity\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12/\n" +
-	"\bposition\x18\x03 \x01(\v2\x13.tdl.ir.v1.PositionR\bposition*N\n" +
+	"\bposition\x18\x03 \x01(\v2\x13.tdl.ir.v1.PositionR\bposition\x12\x12\n" +
+	"\x04code\x18\x04 \x01(\tR\x04code*-\n" +
+	"\x04Mode\x12\x14\n" +
+	"\x10MODE_UNSPECIFIED\x10\x00\x12\x0f\n" +
+	"\vMODE_IMPORT\x10\x01*N\n" +
 	"\bSeverity\x12\x18\n" +
 	"\x14SEVERITY_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eSEVERITY_ERROR\x10\x01\x12\x14\n" +
-	"\x10SEVERITY_WARNING\x10\x02B\xa8\x01\n" +
-	"\x11com.tdl.plugin.v1B\vPluginProtoP\x01Z&github.com/unstoppablemango/tdl/plugin\xa2\x02\x03TPX\xaa\x02\rTdl.Plugin.V1\xca\x02\rTdl\\Plugin\\V1\xe2\x02\x19Tdl\\Plugin\\V1\\GPBMetadata\xea\x02\x0fTdl::Plugin::V1\x92\x03\a\xd2>\x02\x10\x01\b\x02b\beditionsp\xe9\a"
+	"\x10SEVERITY_WARNING\x10\x02B\xa6\x01\n" +
+	"\x11com.tdl.plugin.v1B\vPluginProtoZ&github.com/unstoppablemango/tdl/plugin\xa2\x02\x03TPX\xaa\x02\rTdl.Plugin.V1\xca\x02\rTdl\\Plugin\\V1\xe2\x02\x19Tdl\\Plugin\\V1\\GPBMetadata\xea\x02\x0fTdl::Plugin::V1\x92\x03\a\xd2>\x02\x10\x01\b\x02b\beditionsp\xe9\a"
 
 var (
 	file_tdl_plugin_v1_plugin_proto_rawDescOnce sync.Once
@@ -698,36 +917,43 @@ func file_tdl_plugin_v1_plugin_proto_rawDescGZIP() []byte {
 	return file_tdl_plugin_v1_plugin_proto_rawDescData
 }
 
-var file_tdl_plugin_v1_plugin_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_tdl_plugin_v1_plugin_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_tdl_plugin_v1_plugin_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_tdl_plugin_v1_plugin_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_tdl_plugin_v1_plugin_proto_goTypes = []any{
-	(Severity)(0),          // 0: tdl.plugin.v1.Severity
-	(*Handshake)(nil),      // 1: tdl.plugin.v1.Handshake
-	(*HandshakeReply)(nil), // 2: tdl.plugin.v1.HandshakeReply
-	(*DirectiveSpec)(nil),  // 3: tdl.plugin.v1.DirectiveSpec
-	(*Features)(nil),       // 4: tdl.plugin.v1.Features
-	(*Request)(nil),        // 5: tdl.plugin.v1.Request
-	(*Response)(nil),       // 6: tdl.plugin.v1.Response
-	(*File)(nil),           // 7: tdl.plugin.v1.File
-	(*Diagnostic)(nil),     // 8: tdl.plugin.v1.Diagnostic
-	(ir.LiteralKind)(0),    // 9: tdl.ir.v1.LiteralKind
-	(*ir.Model)(nil),       // 10: tdl.ir.v1.Model
-	(*ir.Position)(nil),    // 11: tdl.ir.v1.Position
+	(Mode)(0),              // 0: tdl.plugin.v1.Mode
+	(Severity)(0),          // 1: tdl.plugin.v1.Severity
+	(*Handshake)(nil),      // 2: tdl.plugin.v1.Handshake
+	(*HandshakeReply)(nil), // 3: tdl.plugin.v1.HandshakeReply
+	(*DirectiveSpec)(nil),  // 4: tdl.plugin.v1.DirectiveSpec
+	(*Features)(nil),       // 5: tdl.plugin.v1.Features
+	(*Request)(nil),        // 6: tdl.plugin.v1.Request
+	(*Response)(nil),       // 7: tdl.plugin.v1.Response
+	(*File)(nil),           // 8: tdl.plugin.v1.File
+	(*ImportRequest)(nil),  // 9: tdl.plugin.v1.ImportRequest
+	(*ImportResponse)(nil), // 10: tdl.plugin.v1.ImportResponse
+	(*Diagnostic)(nil),     // 11: tdl.plugin.v1.Diagnostic
+	(ir.LiteralKind)(0),    // 12: tdl.ir.v1.LiteralKind
+	(*ir.Model)(nil),       // 13: tdl.ir.v1.Model
+	(*ir.Position)(nil),    // 14: tdl.ir.v1.Position
 }
 var file_tdl_plugin_v1_plugin_proto_depIdxs = []int32{
-	3,  // 0: tdl.plugin.v1.HandshakeReply.directives:type_name -> tdl.plugin.v1.DirectiveSpec
-	4,  // 1: tdl.plugin.v1.HandshakeReply.features:type_name -> tdl.plugin.v1.Features
-	9,  // 2: tdl.plugin.v1.DirectiveSpec.arg_kinds:type_name -> tdl.ir.v1.LiteralKind
-	10, // 3: tdl.plugin.v1.Request.model:type_name -> tdl.ir.v1.Model
-	7,  // 4: tdl.plugin.v1.Response.files:type_name -> tdl.plugin.v1.File
-	8,  // 5: tdl.plugin.v1.Response.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
-	0,  // 6: tdl.plugin.v1.Diagnostic.severity:type_name -> tdl.plugin.v1.Severity
-	11, // 7: tdl.plugin.v1.Diagnostic.position:type_name -> tdl.ir.v1.Position
-	8,  // [8:8] is the sub-list for method output_type
-	8,  // [8:8] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	0,  // 0: tdl.plugin.v1.Handshake.mode:type_name -> tdl.plugin.v1.Mode
+	4,  // 1: tdl.plugin.v1.HandshakeReply.directives:type_name -> tdl.plugin.v1.DirectiveSpec
+	5,  // 2: tdl.plugin.v1.HandshakeReply.features:type_name -> tdl.plugin.v1.Features
+	12, // 3: tdl.plugin.v1.DirectiveSpec.arg_kinds:type_name -> tdl.ir.v1.LiteralKind
+	13, // 4: tdl.plugin.v1.Request.model:type_name -> tdl.ir.v1.Model
+	8,  // 5: tdl.plugin.v1.Response.files:type_name -> tdl.plugin.v1.File
+	11, // 6: tdl.plugin.v1.Response.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
+	8,  // 7: tdl.plugin.v1.ImportRequest.files:type_name -> tdl.plugin.v1.File
+	13, // 8: tdl.plugin.v1.ImportResponse.model:type_name -> tdl.ir.v1.Model
+	11, // 9: tdl.plugin.v1.ImportResponse.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
+	1,  // 10: tdl.plugin.v1.Diagnostic.severity:type_name -> tdl.plugin.v1.Severity
+	14, // 11: tdl.plugin.v1.Diagnostic.position:type_name -> tdl.ir.v1.Position
+	12, // [12:12] is the sub-list for method output_type
+	12, // [12:12] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_tdl_plugin_v1_plugin_proto_init() }
@@ -740,8 +966,8 @@ func file_tdl_plugin_v1_plugin_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tdl_plugin_v1_plugin_proto_rawDesc), len(file_tdl_plugin_v1_plugin_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   8,
+			NumEnums:      2,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

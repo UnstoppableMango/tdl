@@ -9,6 +9,10 @@ schema = 3
     version = 'v1.36.12-20260709200747-435963d16310.1'
     hash = 'sha256-ZqFd1TpWPNhTxlYwhT3305ow9ZVqvzfGxlV5z6lxQRY='
 
+  [mod.'github.com/BurntSushi/toml']
+    version = 'v1.6.0'
+    hash = 'sha256-ptdUJvuc21ixeLt+M5way/na3aCnCO4MYHWulWp8NEY='
+
   [mod.'github.com/agnivade/levenshtein']
     version = 'v1.2.1'
     hash = 'sha256-3XnCzf7tFgEE0MmjxvjfWaw6qK6mKLabFZ3c23JIH9Y='
@@ -45,6 +49,10 @@ schema = 3
     version = 'v0.4.7'
     hash = 'sha256-rDcdNYH6ZD8KouyyiZCUEy8JrjOQoAkxHBhugrfHjFo='
 
+  [mod.'github.com/santhosh-tekuri/jsonschema/v6']
+    version = 'v6.0.3'
+    hash = 'sha256-r/1mhajjfamfJZpu+CeUYr7bTQGQEkmF2f4UcSQZEbA='
+
   [mod.'github.com/spf13/cobra']
     version = 'v1.10.2'
     hash = 'sha256-nbRCTFiDCC2jKK7AHi79n7urYCMP5yDZnWtNVJrDi+k='
@@ -58,8 +66,8 @@ schema = 3
     hash = 'sha256-QsYonFnbD/zaxUYAJMzDNI3ju0TjcBJrh8/DBhaJfbM='
 
   [mod.'github.com/vektah/gqlparser/v2']
-    version = 'v2.5.58'
-    hash = 'sha256-48MUGiyex9u4IuOniZptPSMJ+OwETLUGdpjWzvneRnQ='
+    version = 'v2.5.61'
+    hash = 'sha256-TRwxW+hkQ6XnRKhX544Lztbd9RvnWlnTIVMk9rbPIsc='
 
   [mod.'go.lsp.dev/jsonrpc2']
     version = 'v1.0.1'
@@ -73,13 +81,21 @@ schema = 3
     version = 'v1.0.1'
     hash = 'sha256-CtRJbhTw/TlvSxoYzmU5zMh5JGpoq1O4GSqX2wzL/IQ='
 
+  [mod.'go.yaml.in/yaml/v3']
+    version = 'v3.0.5'
+    hash = 'sha256-ygho+GU5kE7vPMx+dZYyNfCaeMjNxj66XmrcVf3afFE='
+
   [mod.'golang.org/x/exp']
-    version = 'v0.0.0-20260908205506-85c1c2202aba'
-    hash = 'sha256-g/gNDzulP2hxBtZf3w2cASzcWbUAI6r0Q9zy5Q/wrRQ='
+    version = 'v0.0.0-20261005173118-76772065c9b0'
+    hash = 'sha256-fUIMzHbfZDKihbK0oUGtBk2xId07eus3Z9k4sFU24h0='
 
   [mod.'golang.org/x/sync']
     version = 'v0.23.0'
     hash = 'sha256-nF8YZFVC+TitjkderlqgGwJkuMqJCxI+fIElVLjBT2M='
+
+  [mod.'golang.org/x/text']
+    version = 'v0.36.0'
+    hash = 'sha256-/0t9C6Mc8kYjxweFB0us2lGKo8GovHhBiq5nlMOppC0='
 
   [mod.'google.golang.org/protobuf']
     version = 'v1.36.12'

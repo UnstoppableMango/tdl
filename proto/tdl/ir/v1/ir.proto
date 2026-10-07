@@ -68,6 +68,7 @@ message Model {
   repeated Satisfaction satisfies = 7;
   repeated TargetBlock targets = 8;
   repeated Unit units = 9; // the interned unit table
+  repeated string doc = 10; // the doc comment above `package`
 }
 
 // TargetBlock is one `target go for billing { ... }` block.
@@ -277,7 +278,8 @@ message Literal {
   Position position = 5;
 
   // variant names the enum variant a NAME literal resolves to, checked
-  // against the field's type. Unset when it did not resolve.
+  // against the type it constrains, through an alias, a newtype, and
+  // optionality. Unset when it did not resolve.
   ID variant = 6;
 }
 

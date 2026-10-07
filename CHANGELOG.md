@@ -1,5 +1,106 @@
 # Changelog
 
+## [0.3.5](https://github.com/UnstoppableMango/tdl/compare/v0.3.4...v0.3.5) (2026-10-07)
+
+
+### Features
+
+* **import:** import mode in the plugin protocol, loss codes, and tdl import ([#998](https://github.com/UnstoppableMango/tdl/issues/998)) ([f61890d](https://github.com/UnstoppableMango/tdl/commit/f61890db5ccabe889e1b274eab4d535f004926f0))
+
+
+### Bug Fixes
+
+* **go:** honour a name directive on an enum variant ([#938](https://github.com/UnstoppableMango/tdl/issues/938)) ([d54984c](https://github.com/UnstoppableMango/tdl/commit/d54984ceca003a4231afdea302501381507bd187))
+
+
+### Documentation
+
+* design a haskell backend ([#997](https://github.com/UnstoppableMango/tdl/issues/997)) ([d91b3b0](https://github.com/UnstoppableMango/tdl/commit/d91b3b02684ad0371220faa76758b15a22324e08))
+
+
+### Continuous Integration
+
+* run build and test as one job without setup-nix ([#989](https://github.com/UnstoppableMango/tdl/issues/989)) ([44f6115](https://github.com/UnstoppableMango/tdl/commit/44f611551cafc8df4c7ef0dfa826c60137f83304))
+
+## [0.3.4](https://github.com/UnstoppableMango/tdl/compare/v0.3.3...v0.3.4) (2026-10-06)
+
+
+### Features
+
+* **likec4:** a likec4 backend writing one element per declaration ([#984](https://github.com/UnstoppableMango/tdl/issues/984)) ([1594d9b](https://github.com/UnstoppableMango/tdl/commit/1594d9b077ebdf285be0526d01fa9e013587f656))
+* **unlower:** turn a model back into TDL source ([#983](https://github.com/UnstoppableMango/tdl/issues/983)) ([3281643](https://github.com/UnstoppableMango/tdl/commit/32816436e5e4b3ffb20b4e3045b6fa18d7cbe0f1)), closes [#960](https://github.com/UnstoppableMango/tdl/issues/960)
+
+
+### Continuous Integration
+
+* raise the Codecov project target to 85% ([#987](https://github.com/UnstoppableMango/tdl/issues/987)) ([989cd5d](https://github.com/UnstoppableMango/tdl/commit/989cd5dd086136dfaec92786b31cf714424901e7))
+
+## [0.3.3](https://github.com/UnstoppableMango/tdl/compare/v0.3.2...v0.3.3) (2026-10-06)
+
+
+### Features
+
+* **openapi:** add an OpenAPI backend for 3.1, 3.0, and 2.0 ([#973](https://github.com/UnstoppableMango/tdl/issues/973)) ([f657c99](https://github.com/UnstoppableMango/tdl/commit/f657c99e5c3feb4c127cab6b8fd28d41b884eb68))
+
+## [0.3.2](https://github.com/UnstoppableMango/tdl/compare/v0.3.1...v0.3.2) (2026-10-06)
+
+
+### Features
+
+* **ir:** carry the package doc comment in Model.doc ([#952](https://github.com/UnstoppableMango/tdl/issues/952)) ([6b66837](https://github.com/UnstoppableMango/tdl/commit/6b66837c5dc298e98a960b3d70650cfbd312eee9)), closes [#923](https://github.com/UnstoppableMango/tdl/issues/923)
+* **parser:** a doc comment above package documents the package ([#951](https://github.com/UnstoppableMango/tdl/issues/951)) ([d1f8415](https://github.com/UnstoppableMango/tdl/commit/d1f8415ac08e6996ad322664fac0763aed4e72ef))
+
+
+### Bug Fixes
+
+* **emit:** keep a doc line's indentation ([#937](https://github.com/UnstoppableMango/tdl/issues/937)) ([2ba3420](https://github.com/UnstoppableMango/tdl/commit/2ba3420895fc1d19e547e86b5ad7662e626a6b16))
+* **fmt:** keep a comment between doc comment lines in place ([#956](https://github.com/UnstoppableMango/tdl/issues/956)) ([b2a287c](https://github.com/UnstoppableMango/tdl/commit/b2a287c1459c3d4e28242d629a1ec4969d6dab26)), closes [#823](https://github.com/UnstoppableMango/tdl/issues/823)
+
+
+### Documentation
+
+* state the nixpkgs overlays.default needs ([#942](https://github.com/UnstoppableMango/tdl/issues/942)) ([9b4b572](https://github.com/UnstoppableMango/tdl/commit/9b4b5728fd6dde2eda7dd3e4ed73f25cb4cbad85))
+
+## [0.3.1](https://github.com/UnstoppableMango/tdl/compare/v0.3.0...v0.3.1) (2026-10-06)
+
+
+### Features
+
+* **jsonschema:** add a JSON Schema backend ([#954](https://github.com/UnstoppableMango/tdl/issues/954)) ([a3d56ca](https://github.com/UnstoppableMango/tdl/commit/a3d56ca9e98f0bd837587d925112686ffac25413))
+
+## [0.3.0](https://github.com/UnstoppableMango/tdl/compare/v0.2.16...v0.3.0) (2026-10-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* **gen:** a relative out directive resolves against the directory of the .tdl file declaring the target block rather than the working directory.
+
+### Features
+
+* **cli:** tdl check lowers each file and reports its diagnostics ([#946](https://github.com/UnstoppableMango/tdl/issues/946)) ([0456ff3](https://github.com/UnstoppableMango/tdl/commit/0456ff3844515b6193b3f97bf6eebf8ee6f38956))
+* **go:** a file directive writes the whole target into one file ([#955](https://github.com/UnstoppableMango/tdl/issues/955)) ([f9713d6](https://github.com/UnstoppableMango/tdl/commit/f9713d6221514d1385a214d051d0be45122b7f47))
+
+
+### Bug Fixes
+
+* **gen:** own the files tdl wrote rather than the whole directory ([#948](https://github.com/UnstoppableMango/tdl/issues/948)) ([907b149](https://github.com/UnstoppableMango/tdl/commit/907b1495688eb1ef6dd573c96327a18c03b5cbaa))
+* **gen:** resolve out against the file declaring the target block ([#947](https://github.com/UnstoppableMango/tdl/issues/947)) ([dc766ad](https://github.com/UnstoppableMango/tdl/commit/dc766adbbd4baeefb5aa60de3912ca46b99c9a31))
+* **gen:** verify a shared output directory against every file given ([#949](https://github.com/UnstoppableMango/tdl/issues/949)) ([d923a4e](https://github.com/UnstoppableMango/tdl/commit/d923a4ea211c96db023256bf2af0d87bf0878749))
+* **nix:** regenerate gomod2nix.toml and have Renovate keep it current ([#958](https://github.com/UnstoppableMango/tdl/issues/958)) ([4eb5077](https://github.com/UnstoppableMango/tdl/commit/4eb5077e5511177c1d35a8d864151d9c5e27bdbf))
+* **thrift:** skip a union whose variant name its union already declares ([#945](https://github.com/UnstoppableMango/tdl/issues/945)) ([86d28dd](https://github.com/UnstoppableMango/tdl/commit/86d28dd90061b7b863fc0776268fd367208b9d60))
+
+
+### Documentation
+
+* design a likec4 backend ([#976](https://github.com/UnstoppableMango/tdl/issues/976)) ([e4aa14b](https://github.com/UnstoppableMango/tdl/commit/e4aa14ba0d4dcab7093961c1ff6786157bf8e7a9))
+* design target profiles ([#975](https://github.com/UnstoppableMango/tdl/issues/975)) ([79b4f1d](https://github.com/UnstoppableMango/tdl/commit/79b4f1da198568f1c501ceb2324d865eeab61b2b))
+
+
+### Dependencies
+
+* update dependency @types/vscode to ~1.140.0 ([#932](https://github.com/UnstoppableMango/tdl/issues/932)) ([5da6c8e](https://github.com/UnstoppableMango/tdl/commit/5da6c8ecba1d53ed7a5a0063e49fd3f1fabbbc2f))
+* update module github.com/vektah/gqlparser/v2 to v2.5.60 ([#931](https://github.com/UnstoppableMango/tdl/issues/931)) ([71f5995](https://github.com/UnstoppableMango/tdl/commit/71f5995cf1990197a3675d93e43474b40c896e3c))
+
 ## [0.2.16](https://github.com/UnstoppableMango/tdl/compare/v0.2.15...v0.2.16) (2026-10-05)
 
 

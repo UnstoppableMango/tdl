@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/spf13/cobra"
+
+	"github.com/unstoppablemango/tdl/internal/gen"
 )
 
 // twoFiles writes a canonical model and a broken one.
@@ -88,6 +90,23 @@ func TestCheckIsSilentOnSuccess(t *testing.T) {
 	}
 	if out != "" || errOut != "" {
 		t.Errorf("expected no output, got stdout %q stderr %q", out, errOut)
+	}
+}
+
+// check lowers what parses, so a file whose names do not resolve fails
+// even though its syntax is fine.
+func TestCheckReportsLoweringDiagnostics(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "dup.tdl")
+	if err := os.WriteFile(path, []byte("package t\n\nprimitive foo\nunit foo\n"), 0o644); err != nil {
+		t.Fatalf("writing the fixture: %v", err)
+	}
+
+	_, errOut, err := run(t, newCheckCmd(), path)
+	if err == nil {
+		t.Fatal("expected an error")
+	}
+	if !strings.Contains(errOut, "foo is declared twice") {
+		t.Errorf("stderr does not name the duplicate:\n%s", errOut)
 	}
 }
 
@@ -216,6 +235,9 @@ func TestGenCleansASharedOutputDirectoryOnce(t *testing.T) {
 	if err := os.WriteFile(orphan, []byte("old\n"), 0o644); err != nil {
 		t.Fatalf("writing the orphan: %v", err)
 	}
+	if err := gen.Mark(out, []string{orphan}); err != nil {
+		t.Fatalf("listing the orphan: %v", err)
+	}
 
 	stdout, _, err := run(t, newGenCmd(), append([]string{"-o", out, "--clean"}, paths...)...)
 	if err != nil {
@@ -233,6 +255,28 @@ func TestGenCleansASharedOutputDirectoryOnce(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(out, "model.txt")); err != nil {
 		t.Errorf("model.txt missing after the run: %v", err)
+	}
+}
+
+// Two files writing into one directory each own part of it, so verifying
+// both checks the directory against everything the two generate.
+func TestGenVerifiesASharedOutputDirectoryAsAWhole(t *testing.T) {
+	dir := t.TempDir()
+	var paths []string
+	for _, name := range []string{"a", "b"} {
+		path := filepath.Join(dir, name+".tdl")
+		src := "package p\n\ntype " + strings.ToUpper(name) + " {\n  x: string\n}\n\ntarget go for p {\n  out(\"./out\")\n}\n"
+		if err := os.WriteFile(path, []byte(src), 0o644); err != nil {
+			t.Fatalf("writing the fixture: %v", err)
+		}
+		paths = append(paths, path)
+	}
+
+	if _, _, err := run(t, newGenCmd(), paths...); err != nil {
+		t.Fatalf("gen: %v", err)
+	}
+	if _, errOut, err := run(t, newGenCmd(), append([]string{"--verify"}, paths...)...); err != nil {
+		t.Fatalf("gen --verify: %v\n%s", err, errOut)
 	}
 }
 

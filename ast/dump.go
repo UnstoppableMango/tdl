@@ -19,7 +19,13 @@ func Dump(file *File) string {
 	var entries []entry
 
 	if pkg := file.Package; pkg != nil {
-		entries = append(entries, entry{fmt.Sprintf("Package %s", pkg.Path), pkg.P, nil})
+		var kids func(string)
+		if len(pkg.Doc) > 0 {
+			kids = func(prefix string) {
+				writeChildren(&b, prefix, []child{{fmt.Sprintf("Doc (%d lines)", len(pkg.Doc)), pkg.DocP[0]}})
+			}
+		}
+		entries = append(entries, entry{fmt.Sprintf("Package %s", pkg.Path), pkg.P, kids})
 	}
 	for _, imp := range file.Imports {
 		entries = append(entries, entry{fmt.Sprintf("Import %q as %s", imp.Path, imp.Alias), imp.P, nil})

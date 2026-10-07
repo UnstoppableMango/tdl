@@ -12,6 +12,9 @@ import (
 	"github.com/unstoppablemango/tdl/backend/debug"
 	"github.com/unstoppablemango/tdl/backend/golang"
 	"github.com/unstoppablemango/tdl/backend/graphql"
+	"github.com/unstoppablemango/tdl/backend/jsonschema"
+	"github.com/unstoppablemango/tdl/backend/likec4"
+	"github.com/unstoppablemango/tdl/backend/openapi"
 	"github.com/unstoppablemango/tdl/backend/protobuf"
 	"github.com/unstoppablemango/tdl/backend/salesforce"
 	"github.com/unstoppablemango/tdl/backend/smithy"
@@ -26,6 +29,9 @@ var builtin = map[string]plugin.Backend{
 	debug.Name:      debug.Backend{},
 	golang.Name:     golang.Backend{},
 	graphql.Name:    graphql.Backend{},
+	jsonschema.Name: jsonschema.Backend{},
+	likec4.Name:     likec4.Backend{},
+	openapi.Name:    openapi.Backend{},
 	protobuf.Name:   protobuf.Backend{},
 	salesforce.Name: salesforce.Backend{},
 	smithy.Name:     smithy.Backend{},
@@ -52,4 +58,15 @@ func Resolve(name string) (plugin.Backend, error) {
 // BuiltinNames lists the compiled-in backends, sorted.
 func BuiltinNames() []string {
 	return slices.Sorted(maps.Keys(builtin))
+}
+
+// ReverseNames lists the compiled-in backends that import, sorted.
+func ReverseNames() []string {
+	var names []string
+	for _, name := range BuiltinNames() {
+		if _, ok := builtin[name].(plugin.Importer); ok && builtin[name].Describe().Reverse {
+			names = append(names, name)
+		}
+	}
+	return names
 }

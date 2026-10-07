@@ -93,6 +93,60 @@ in
             touch $out
           '';
 
+      # Checks the jsonschema backend's document against its metaschema,
+      # with a second implementation beside the one its tests use.
+      checks.gen-jsonschema =
+        pkgs.runCommand "tdl-gen-jsonschema"
+          {
+            nativeBuildInputs = [
+              pkgs.tdl
+              pkgs.check-jsonschema
+            ];
+          }
+          ''
+            cp ${../testdata/gen/smoke/source.tdl} source.tdl
+            tdl gen --target jsonschema -o out source.tdl
+            check-jsonschema --check-metaschema out/*.schema.json
+            touch $out
+          '';
+
+      # Lints the openapi backend's document in each version with vacuum,
+      # a second implementation beside the schemas its tests validate
+      # against. The rules turned off are ones a document holding schemas
+      # and no paths cannot satisfy, and any other warning fails.
+      checks.gen-openapi =
+        let
+          ruleset = pkgs.writeText "vacuum-ruleset.yaml" ''
+            extends: [[vacuum:oas, recommended]]
+            rules:
+              info-description: off
+              component-description: off
+              oas3-api-servers: off
+              oas3-missing-example: off
+              oas3-unused-component: off
+              oas2-api-host: off
+              oas2-api-schemes: off
+              oas2-unused-definition: off
+          '';
+        in
+        pkgs.runCommand "tdl-gen-openapi"
+          {
+            nativeBuildInputs = [
+              pkgs.tdl
+              pkgs.vacuum-go
+            ];
+          }
+          ''
+            for v in 3.1 3.0 2.0; do
+              sed "s/out(\"openapi\")/out(\"openapi\") openapi(\"$v\")/" \
+                ${../testdata/gen/smoke/source.tdl} > source.tdl
+              tdl gen --target openapi -o "out-$v" source.tdl
+              vacuum lint --no-banner --no-style --details --fail-severity warn \
+                --ruleset ${ruleset} "out-$v"/*.openapi.yaml
+            done
+            touch $out
+          '';
+
       # Checks the salesforce backend's metadata XML is well formed. Nothing
       # checks the Apex, which has no parser outside an org.
       checks.gen-salesforce =

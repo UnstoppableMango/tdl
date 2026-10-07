@@ -345,6 +345,56 @@ class C<T> {
   type Cursor
 }
 `,
+		"declaration, comment inside": `package p
+
+/// what it is
+// how it got here
+/// and more
+primitive string
+`,
+		"import, comment inside": `package p
+
+/// what it is
+// how it got here
+/// and more
+import "common.tdl" as common
+`,
+		"field, comment inside": `package p
+
+type E: Entity {
+  /// what it is
+  // how it got here
+  /// and more
+  id: string
+}
+`,
+		"variant, comment inside": `package p
+
+enum Color {
+  /// what it is
+  // how it got here
+  /// and more
+  Red
+  Blue
+}
+`,
+		"associated type, comment inside": `package p
+
+class C<T> {
+  /// what it is
+  // how it got here
+  /// and more
+  type Cursor
+}
+`,
+		"package, doc first": `/// what it is
+// how it got here
+package p
+`,
+		"package, comment first": `// how it got here
+/// what it is
+package p
+`,
 	}
 
 	for name, src := range tests {
@@ -373,6 +423,14 @@ type Widget {
 	got := ast.Fprint(mustParse(t, src))
 	if !strings.Contains(got, want) {
 		t.Errorf("blank line between comment groups was dropped\n--- got ---\n%s\n--- want substring ---\n%s", got, want)
+	}
+}
+
+func TestFprintKeepsBlankLineBetweenCommentGroupsAbovePackage(t *testing.T) {
+	src := "// License header.\n\n// What this package models.\npackage acme.v1\n"
+
+	if got := ast.Fprint(mustParse(t, src)); got != src {
+		t.Errorf("Fprint mismatch\n--- got ---\n%s\n--- want ---\n%s", got, src)
 	}
 }
 

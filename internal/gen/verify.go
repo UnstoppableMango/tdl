@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
-	"path/filepath"
+	"slices"
 
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -17,56 +18,48 @@ type Stale struct {
 	Reason string
 }
 
-// Verify compares a response against what is on disk without writing.
-// The backend still produces full contents on a dry run.
-func Verify(out string, files []*plugin.File) ([]Stale, error) {
+// Verify compares a response against what is on disk without writing, and
+// returns the paths it would write. The backend still produces full
+// contents on a dry run. [Orphaned] finds what nothing would write.
+func Verify(out string, files []*plugin.File) ([]Stale, []string, error) {
 	var stale []Stale
-
-	expected := map[string]bool{}
+	var paths []string
 	for _, f := range files {
 		path, err := resolve(out, f.GetPath())
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		expected[path] = true
+		paths = append(paths, path)
 
 		switch got, err := os.ReadFile(path); {
 		case errors.Is(err, os.ErrNotExist):
 			stale = append(stale, Stale{Path: path, Reason: "missing"})
 		case err != nil:
-			return nil, fmt.Errorf("reading %s: %w", path, err)
+			return nil, nil, fmt.Errorf("reading %s: %w", path, err)
 		case !bytes.Equal(got, f.GetContent()):
 			stale = append(stale, Stale{Path: path, Reason: "differs"})
 		}
 	}
 
-	orphans, err := orphaned(out, expected)
+	return stale, paths, nil
+}
+
+// Orphaned lists the files the marker in out lists that are still there and
+// that nothing would write. An unlisted file is not tdl's.
+func Orphaned(out string, expected map[string]bool) ([]Stale, error) {
+	owned, err := Owned(out)
 	if err != nil {
 		return nil, err
 	}
-	return append(stale, orphans...), nil
-}
-
-// orphaned lists files this generation would not write, only in a
-// directory carrying the marker, since otherwise a file may not be tdl's.
-func orphaned(out string, expected map[string]bool) ([]Stale, error) {
-	if !Owned(out) {
-		return nil, nil
-	}
 
 	var stale []Stale
-	err := filepath.WalkDir(out, func(path string, d os.DirEntry, err error) error {
-		switch {
-		case err != nil:
-			return err
-		case d.IsDir(), filepath.Base(path) == MarkerName, expected[path]:
-			return nil
+	for _, path := range slices.Sorted(maps.Keys(owned)) {
+		if expected[path] {
+			continue
 		}
-		stale = append(stale, Stale{Path: path, Reason: "no longer generated"})
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("walking %s: %w", out, err)
+		if _, err := os.Stat(path); err == nil {
+			stale = append(stale, Stale{Path: path, Reason: "no longer generated"})
+		}
 	}
 	return stale, nil
 }

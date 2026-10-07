@@ -19,26 +19,11 @@ env:
   GOCACHE: ${{ github.workspace }}/.go/build
 
 jobs:
-  build:
-    runs-on: thecluster
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - uses: unmango/actions/setup-nix@e8bbcbd12a2c521c5cb36957c00a7a8f4fe2e766 # v2.0.0
-        with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-
-      - run: nix flake check
-
-      - run: nix build .#
-        if: ${{ !cancelled() }}
-
-      - uses: DavidAnson/markdownlint-cli2-action@21c1be1b93ad9ed58fa840aacc3f279cde2a72ff # v24.2.0
-        if: ${{ !cancelled() }}
-
-  test:
+  # One job rather than a build and a test job: each job on a fresh runner
+  # pays to fetch nixpkgs and evaluate the flake, and the checks and the
+  # devShell share most of their closure (go, node, typescript, smithy).
+  # The runner image ships Nix with the cluster's substituter configured.
+  check:
     runs-on: thecluster
     permissions:
       contents: read
@@ -51,24 +36,29 @@ jobs:
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .go
-          key: ${{ runner.os }}-go-${{ github.job }}-${{ hashFiles('go.sum') }}
-          restore-keys: ${{ runner.os }}-go-${{ github.job }}-
+          key: ${{ runner.os }}-go-test-${{ hashFiles('go.sum') }}
+          restore-keys: ${{ runner.os }}-go-test-
 
-      - uses: unmango/actions/setup-nix@e8bbcbd12a2c521c5cb36957c00a7a8f4fe2e766 # v2.0.0
-        with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - run: nix flake check
 
-      - run: nix develop -c go test -race -coverprofile=cover.profile ./...
+      - run: nix build .#
+        if: ${{ !cancelled() }}
+
+      - id: test
+        run: nix develop -c go test -race -coverprofile=cover.profile ./...
+        if: ${{ !cancelled() }}
         env:
           CGO_ENABLED: "1"
 
       - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        if: ${{ !cancelled() && steps.test.outcome == 'success' }}
         continue-on-error: true
         with:
           use_oidc: true
           files: cover.profile
 
       - name: Upload coverage to DeepSource
+        if: ${{ !cancelled() && steps.test.outcome == 'success' }}
         continue-on-error: true
         run: |
           nix develop -c deepsource report \
@@ -87,8 +77,11 @@ jobs:
       - run: nix develop .#treesitter --command make check-treesitter
         if: ${{ !cancelled() }}
 
+      - uses: DavidAnson/markdownlint-cli2-action@21c1be1b93ad9ed58fa840aacc3f279cde2a72ff # v24.2.0
+        if: ${{ !cancelled() }}
+
   required:
-    needs: [build, test]
+    needs: [check]
     if: always()
     runs-on: ubuntu-latest
     steps:

@@ -32,6 +32,20 @@ message Handshake {
 
   // watch says this connection may serve more than one request.
   bool watch = 3;
+
+  // mode says which requests follow: Request, or ImportRequest under
+  // MODE_IMPORT.
+  Mode mode = 4;
+}
+
+// Mode is the direction of a connection.
+enum Mode {
+  // MODE_UNSPECIFIED generates: it reads a model and writes the target
+  // language. It is what a host sent before import mode existed.
+  MODE_UNSPECIFIED = 0;
+  // MODE_IMPORT reads the target language and writes a model. The host
+  // sends it only to a plugin whose reply declared Features.reverse.
+  MODE_IMPORT = 1;
 }
 
 // HandshakeReply is the plugin's answer.
@@ -80,6 +94,10 @@ message Features {
   // reuse says the plugin can serve more than one request on a
   // connection. It must treat each as independent.
   bool reuse = 1;
+
+  // reverse says the plugin answers MODE_IMPORT, reading its target
+  // language back into a model.
+  bool reverse = 2;
 }
 
 // Request is everything a backend needs for one generation. Nothing
@@ -122,6 +140,32 @@ message File {
   bytes content = 2;
 }
 
+// ImportRequest is everything a reverse backend needs to read one set of
+// source files back into a model.
+message ImportRequest {
+  // target names the backend's language, as in Request.target. Directives
+  // the backend writes into the model's target blocks name it.
+  string target = 1;
+
+  // files are the source files to read, with the paths the user gave.
+  repeated File files = 2;
+
+  // allow_lossy are the loss codes the user allowed. tdl drops warnings
+  // carrying them, so a backend may skip the work of finding them; ignoring
+  // the list is correct.
+  repeated string allow_lossy = 3;
+}
+
+// ImportResponse is what a reverse backend returns: a model, which tdl
+// turns into TDL source and lowers again before writing it.
+message ImportResponse {
+  // model holds the declarations read, in the shape lowering produces.
+  // tdl prints only the declarations not positioned in the prelude.
+  tdl.ir.v1.Model model = 1;
+
+  repeated Diagnostic diagnostics = 2;
+}
+
 // Severity is how much a diagnostic matters.
 enum Severity {
   SEVERITY_UNSPECIFIED = 0;
@@ -137,4 +181,8 @@ message Diagnostic {
   Severity severity = 1;
   string message = 2;
   tdl.ir.v1.Position position = 3;
+
+  // code names the kind of problem, such as "lossy.collection". A warning
+  // a user can silence carries one; see docs/design/reverse.md.
+  string code = 4;
 }

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
@@ -314,10 +315,7 @@ func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	var body strings.Builder
 	seen := map[string]bool{}
 	for i, v := range variants {
-		value := emit.ScreamingSnake(v.GetMeta().GetName())
-		if n, ok := g.Text(v.GetDirectives(), "name"); ok {
-			value = n
-		}
+		value := g.VariantName(v, emit.ScreamingSnake)
 		if err := g.member(seen, name, value, v.GetMeta().GetPosition()); err != nil {
 			return nil, err
 		}
@@ -345,9 +343,9 @@ func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	seen := map[string]bool{}
 	for i, v := range variants {
 		pos := v.GetMeta().GetPosition()
-		structName := name + emit.Pascal(v.GetMeta().GetName())
-		if n, ok := g.Text(v.GetDirectives(), "name"); ok {
-			structName = n
+		structName := g.VariantName(v, func(s string) string { return name + emit.Pascal(s) })
+		if slices.Contains(declared, structName) {
+			return nil, emit.Unsupported(pos, "%s.%s would declare %s in Thrift, which %s already declares", name, v.GetMeta().GetName(), structName, name)
 		}
 		if _, err := g.structure(b, "struct", structName, v.GetMeta(), v.GetFields()); err != nil {
 			return nil, err

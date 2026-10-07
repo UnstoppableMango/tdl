@@ -3,10 +3,13 @@ package cli
 import (
 	"context"
 	"fmt"
+	"maps"
 	"path/filepath"
+	"slices"
 
 	"github.com/spf13/cobra"
 
+	"github.com/unstoppablemango/tdl/internal/config"
 	"github.com/unstoppablemango/tdl/internal/gen"
 	"github.com/unstoppablemango/tdl/internal/sema"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -23,14 +26,19 @@ func newGenCmd() *cobra.Command {
 			"generates; --target narrows a run to one backend.\n\n" +
 			"A target tdl has no backend for resolves to tdl-gen-<name> on\n" +
 			"PATH. Both kinds speak the same protocol.\n\n" +
-			"Where output goes comes from the block's own `out` directive, and\n" +
-			"-o overrides it for one invocation.\n\n" +
+			"Where output goes comes from the block's own `out` directive,\n" +
+			"relative to the file declaring the block, and -o, relative to the\n" +
+			"working directory, overrides it for one invocation.\n\n" +
 			"--verify generates and compares against disk without writing,\n" +
-			"exiting non-zero when they differ. --clean empties the output\n" +
-			"directory first, and refuses one tdl did not write.\n\n" +
+			"exiting non-zero when they differ. --clean first removes the files\n" +
+			"an earlier run wrote, which .tdl-output in the directory lists.\n" +
+			"A file there that tdl did not write is never overwritten or removed.\n\n" +
 			"--watch regenerates when the file changes, holding open any\n" +
 			"plugin that declared it can serve more than one request. It\n" +
-			"takes a single file, since it does not return.",
+			"takes a single file, since it does not return.\n\n" +
+			"A warning naming a loss code, such as lossy.collection, is\n" +
+			"silenced by the [lossy] table of the nearest tdl.toml above the\n" +
+			"file, or by --allow-lossy.",
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if r.watch && r.verify {
@@ -56,8 +64,11 @@ func newGenCmd() *cobra.Command {
 			defer r.close()
 
 			if !r.watch {
-				r.cleaned = map[string]bool{}
-				return eachFile(cmd, args, r.generate)
+				r.cleaned, r.expected = map[string]bool{}, map[string]map[string]bool{}
+				if err := eachFile(cmd, args, r.generate); err != nil {
+					return err
+				}
+				return r.orphans()
 			}
 
 			// Errors are reported and the watch continues.
@@ -79,8 +90,9 @@ func newGenCmd() *cobra.Command {
 	cmd.Flags().StringVar(&r.target, "target", "", "generate only this target")
 	cmd.Flags().StringVarP(&r.out, "out", "o", "", "write here instead of the target block's out directive")
 	cmd.Flags().BoolVar(&r.verify, "verify", false, "generate and compare against disk without writing")
-	cmd.Flags().BoolVar(&r.clean, "clean", false, "empty the output directory before writing")
+	cmd.Flags().BoolVar(&r.clean, "clean", false, "remove the files tdl wrote before writing")
 	cmd.Flags().BoolVar(&r.watch, "watch", false, "regenerate when the file changes")
+	cmd.Flags().StringSliceVar(&r.allowLossy, "allow-lossy", nil, "silence warnings with these loss codes")
 	return cmd
 }
 
@@ -94,9 +106,17 @@ type genRun struct {
 	clean  bool
 	watch  bool
 
+	// allowLossy holds the loss codes --allow-lossy silences, beside those
+	// tdl.toml allows.
+	allowLossy []string
+
 	// cleaned holds the output directories --clean has emptied in this run.
 	// Each is emptied once, since -o applies to every file given.
 	cleaned map[string]bool
+
+	// expected holds, per output directory, every path --verify found a
+	// target would write there, known only once every file has run.
+	expected map[string]map[string]bool
 
 	// backends caches each resolved backend. Under --watch a plugin that
 	// declared reuse is held open here across saves.
@@ -145,6 +165,11 @@ func (r *genRun) generate(path string) error {
 		return diags
 	}
 
+	cfg, err := config.Find(filepath.Dir(path))
+	if err != nil {
+		return err
+	}
+
 	targets, err := gen.Targets(model, r.out)
 	if err != nil {
 		return err
@@ -160,9 +185,13 @@ func (r *genRun) generate(path string) error {
 		}
 
 		mode := gen.ModeWrite
-		switch out := filepath.Clean(t.Out); {
+		out := filepath.Clean(t.Out)
+		switch {
 		case r.verify:
 			mode = gen.ModeVerify
+			if r.expected[out] == nil {
+				r.expected[out] = map[string]bool{}
+			}
 		case r.clean && !r.cleaned[out]:
 			mode = gen.ModeClean
 			r.cleaned[out] = true
@@ -182,7 +211,7 @@ func (r *genRun) generate(path string) error {
 		}
 
 		result, err := gen.Run(cmd.Context(), backend, t, model, mode)
-		reportDiagnostics(cmd, result.Diagnostics)
+		reportDiagnostics(cmd, gen.Silence(result.Diagnostics, slices.Concat(cfg.Allowed(t.Name), r.allowLossy)))
 		if err != nil {
 			return err
 		}
@@ -191,6 +220,9 @@ func (r *genRun) generate(path string) error {
 		}
 		for _, w := range result.Written {
 			fmt.Fprintln(cmd.OutOrStdout(), w)
+		}
+		for _, p := range result.Expected {
+			r.expected[out][p] = true
 		}
 		for _, s := range result.Stale {
 			fmt.Fprintf(cmd.ErrOrStderr(), "%s: %s\n", s.Path, s.Reason)
@@ -208,6 +240,26 @@ func (r *genRun) generate(path string) error {
 	return nil
 }
 
+// orphans reports, after --verify has run every file, each file tdl wrote
+// into an output directory that nothing given would write any more.
+func (r *genRun) orphans() error {
+	stale := 0
+	for _, out := range slices.Sorted(maps.Keys(r.expected)) {
+		orphans, err := gen.Orphaned(out, r.expected[out])
+		if err != nil {
+			return err
+		}
+		for _, s := range orphans {
+			fmt.Fprintf(r.cmd.ErrOrStderr(), "%s: %s\n", s.Path, s.Reason)
+		}
+		stale += len(orphans)
+	}
+	if stale > 0 {
+		return fmt.Errorf("%d file(s) would change; run without --verify to update them", stale)
+	}
+	return nil
+}
+
 // reportDiagnostics prints backend or directive diagnostics in the
 // compiler's diagnostic format.
 func reportDiagnostics(cmd *cobra.Command, diags []*plugin.Diagnostic) {
@@ -216,8 +268,12 @@ func reportDiagnostics(cmd *cobra.Command, diags []*plugin.Diagnostic) {
 		if d.GetSeverity() == plugin.Severity_SEVERITY_WARNING {
 			severity = "warning"
 		}
+		msg := d.GetMessage()
+		if code := d.GetCode(); code != "" {
+			msg += " (" + code + ")"
+		}
 		pos := d.GetPosition()
 		fmt.Fprintf(cmd.ErrOrStderr(), "%s:%d:%d: %s: %s\n",
-			pos.GetFilename(), pos.GetLine(), pos.GetColumn(), severity, d.GetMessage())
+			pos.GetFilename(), pos.GetLine(), pos.GetColumn(), severity, msg)
 	}
 }

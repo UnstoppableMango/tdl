@@ -182,10 +182,7 @@ func (g *generator) declares(d *ir.Decl) []string {
 
 // memberName is the object type a variant of a union becomes.
 func (g *generator) memberName(union string, v *ir.Variant) string {
-	if n, ok := g.Text(v.GetDirectives(), "name"); ok {
-		return n
-	}
-	return union + emit.Pascal(v.GetMeta().GetName())
+	return g.VariantName(v, func(s string) string { return union + emit.Pascal(s) })
 }
 
 // decl renders one declaration, or "" for one that declares nothing.
@@ -306,10 +303,7 @@ func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	var body strings.Builder
 	seen := map[string]bool{}
 	for _, v := range d.GetEnumeration().GetVariants() {
-		value := emit.ScreamingSnake(v.GetMeta().GetName())
-		if n, ok := g.Text(v.GetDirectives(), "name"); ok {
-			value = n
-		}
+		value := g.VariantName(v, emit.ScreamingSnake)
 		if value == "true" || value == "false" || value == "null" {
 			return nil, emit.Unsupported(v.GetMeta().GetPosition(), "%s.%s is not a GraphQL enum value", name, value)
 		}
