@@ -96,22 +96,15 @@ func (b *Builder) constraint(s *Object, k kind, c *ir.Constraint) error {
 		if len(args) != 1 {
 			return constraintError("length takes one argument")
 		}
-		switch a := args[0]; a.GetKind() {
-		case ir.LiteralKind_LITERAL_KIND_INT:
-			n, err := strconv.ParseInt(a.GetText(), 10, 64)
-			if err != nil {
-				return constraintError("length takes an integer")
-			}
-			s.Set(lo, n).Set(hi, n)
-		case ir.LiteralKind_LITERAL_KIND_RANGE:
-			if r := a.GetRange(); r.Low != nil {
-				s.Set(lo, r.GetLow())
-			}
-			if r := a.GetRange(); r.High != nil {
-				s.Set(hi, r.GetHigh())
-			}
-		default:
-			return constraintError("length takes an integer or a range")
+		low, high, err := emit.Length(args[0])
+		if err != nil {
+			return constraintError("length " + err.Error())
+		}
+		if low != nil {
+			s.Set(lo, *low)
+		}
+		if high != nil {
+			s.Set(hi, *high)
 		}
 	case "matches":
 		if k != text || len(args) != 1 || args[0].GetKind() != ir.LiteralKind_LITERAL_KIND_REGEX {

@@ -17,29 +17,15 @@ import (
 // planClasses decides which classes are generated and which declarations
 // carry each marker.
 func (g *generator) planClasses() {
-	g.genClass = map[int32]bool{}
-	g.marks = map[int32][]int32{}
+	plan := g.PlanInterfaces(emit.InterfaceRules{
+		// A Go interface states no relationship between types.
+		Generates: func(d *ir.Decl) bool { return len(d.GetClass().GetParams()) == 0 && g.declName(d) != "" },
+		Carry:     g.markerProblem,
+	})
+	g.classes = plan
+	g.genClass, g.classCycle, g.marks = plan.Classes, plan.Cyclic, plan.Implements
+
 	decls := g.Model.GetDecls()
-	for i, d := range decls {
-		if c := d.GetClass(); c != nil && emit.IsOwn(d) && len(c.GetParams()) == 0 && g.declName(d) != "" {
-			g.genClass[int32(i)] = true
-		}
-	}
-
-	// A Go interface cannot embed itself, so a class whose requires clause
-	// reaches itself is dropped first.
-	var cyclic []int32
-	for i := range decls {
-		if g.genClass[int32(i)] && g.requiresCycle(int32(i)) {
-			cyclic = append(cyclic, int32(i))
-		}
-	}
-	g.classCycle = map[int32]bool{}
-	for _, i := range cyclic {
-		g.classCycle[i] = true
-		delete(g.genClass, i)
-	}
-
 	for i, class := range decls {
 		if !g.genClass[int32(i)] {
 			continue
@@ -49,17 +35,6 @@ func (g *generator) planClasses() {
 			if err := g.superProblem(class, ref); err != nil {
 				g.Warn(err)
 			}
-		}
-		for _, id := range g.Model.Satisfying(&ir.ID{Index: int32(i)}) {
-			target := g.Model.Decl(id)
-			if target == nil || !emit.IsOwn(target) {
-				continue
-			}
-			if err := g.markerProblem(target, class); err != nil {
-				g.Warn(err)
-				continue
-			}
-			g.marks[id.GetIndex()] = append(g.marks[id.GetIndex()], int32(i))
 		}
 	}
 
@@ -92,27 +67,20 @@ func (g *generator) markerProblem(target, class *ir.Decl) error {
 // instanceProblem says why an instance of a generated class does not become
 // a marker, or returns nil.
 func (g *generator) instanceProblem(inst *ir.Instance) error {
-	ref := inst.GetClass()
-	if ref.GetExtern() != nil || !g.genClass[ref.GetClass().GetIndex()] {
+	refusal, typ := g.classes.Instance(g.Model, inst)
+	if refusal == emit.Implemented {
 		return nil
 	}
 	pos := inst.GetMeta().GetPosition()
-	cname := g.Model.Decl(ref.GetClass()).GetMeta().GetName()
-
-	if len(inst.GetParams()) > 0 || len(inst.GetRequires()) > 0 {
+	cname := g.Model.Decl(inst.GetClass().GetClass()).GetMeta().GetName()
+	switch refusal {
+	case emit.Conditional:
 		return emit.Unsupported(pos, "a conditional instance of %s holds for some type arguments, and Go cannot give a method to only some instantiations", cname)
+	case emit.ForeignType:
+		return emit.Unsupported(pos, "%s is declared in another package, and Go cannot add %s's method to it", typ, cname)
+	default:
+		return emit.Unsupported(pos, "%s is declared by the prelude, and Go cannot add %s's method to it", typ, cname)
 	}
-	if len(ref.GetArgs()) != 1 {
-		return nil
-	}
-	t := g.Model.Type(ref.GetArgs()[0])
-	if ext := t.GetExtern(); ext != nil {
-		return emit.Unsupported(pos, "%s is declared in another package, and Go cannot add %s's method to it", ext.GetName(), cname)
-	}
-	if d := g.Model.Decl(t.GetCtor()); d != nil && !emit.IsOwn(d) {
-		return emit.Unsupported(pos, "%s is declared by the prelude, and Go cannot add %s's method to it", d.GetMeta().GetName(), cname)
-	}
-	return nil
 }
 
 // pointerOrInterface reports whether a type's Go underlying type is a pointer
@@ -178,34 +146,6 @@ func (g *generator) class(b *strings.Builder, decl *ir.Decl) error {
 	}
 	fmt.Fprintf(b, "\tis%s()\n}\n", goName)
 	return nil
-}
-
-// requiresCycle reports whether a class's requires clause reaches the class
-// itself through generated classes.
-func (g *generator) requiresCycle(start int32) bool {
-	decls := g.Model.GetDecls()
-	seen := map[int32]bool{}
-	var reaches func(int32) bool
-	reaches = func(i int32) bool {
-		for _, ref := range decls[i].GetClass().GetRequiresClasses() {
-			next := ref.GetClass()
-			if next == nil || !g.genClass[next.GetIndex()] {
-				continue
-			}
-			if next.GetIndex() == start {
-				return true
-			}
-			if seen[next.GetIndex()] {
-				continue
-			}
-			seen[next.GetIndex()] = true
-			if reaches(next.GetIndex()) {
-				return true
-			}
-		}
-		return false
-	}
-	return reaches(start)
 }
 
 // supers is the generated classes a class requires. [generator.planClasses]
