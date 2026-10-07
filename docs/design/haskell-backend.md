@@ -208,9 +208,7 @@ instance Auditable Order
 A satisfying declaration gets an empty instance, which compiles only when the declaration has the fields.
 A field is required through `HasField` rather than a method, because a method is a module-wide name and two classes requiring `createdAt` would collide.
 
-The compiler does not check that a satisfying type has its class's fields, and GHC does.
-So the backend checks each instance, and one whose type lacks a required field, or holds it at another type, warns and is not generated.
-The spec's own conditional instance, `instance <T> Auditable<Page<T>> requires Auditable<T>`, is one: `Page` has no `createdAt`.
+The compiler already refuses a satisfying type that lacks one of its class's fields, as GHC does, so every generated instance compiles.
 
 The rest of the spec's class features map directly:
 
@@ -221,7 +219,7 @@ The rest of the spec's class features map directly:
 | `type Cursor` in a class | `type Cursor a` |
 | `instance Projection<Order, OrderSummary>` | `instance Projection Order OrderSummary` |
 | `type Cursor = OrderCursor` in an instance | `type Cursor OrderList = OrderCursor` |
-| `instance <T> Auditable<Page<T>> requires Auditable<T>` | `instance (Auditable t) => Auditable (Page t)` |
+| `instance <T> Archived<Page<T>> requires Archived<T>` | `instance (Archived t) => Archived (Page t)` |
 | `class C<T> requires D<T>` | `class (D t) => C t` |
 
 A class declared without parameters takes one in Haskell, named `a`, or the first unused of `b`, `c`, and so on when a field type spells `a`.
@@ -347,7 +345,7 @@ The pragma names a field by its label alone, so a deprecated field whose label a
 These warn with the node's position, and the declaration reaching one is skipped: an extern with no mapping, a unit-typed field until phase 6, a parameter or field whose name cannot be escaped, a constructor collision, and a field two variants spell with different types.
 `emit.Cascade` then skips every declaration naming a skipped one.
 
-These warn and the declaration is still emitted: an instance whose type lacks a field its class requires, `matches`, a `where` constraint the backend gives no meaning to, a `requires` clause on a type, a `requires` naming `Entity`, and a `key` the backend cannot generate.
+These warn and the declaration is still emitted: `matches`, a `where` constraint the backend gives no meaning to, a `requires` clause on a type, a `requires` naming `Entity`, and a `key` the backend cannot generate.
 
 An error stops the run, and only a module name Haskell refuses earns one.
 
@@ -365,8 +363,6 @@ Reading Haskell takes a Haskell parser, which in practice is GHC, and [reverse.m
 
 ## Open questions
 
-- **Class fields.** The compiler accepts a satisfying type that lacks its class's fields, and the spec's conditional-instance example relies on it.
-  Either a class's fields bind every satisfying type, and the compiler should check them as GHC will, or a conditional instance means the fields are reached through the parameter, which no target spells; the backend warns until the spec says.
 - **Units.** See phase 6 of the plan.
 - **`requires` on a type.** A GADT constructor carrying the constraint, `Envelope :: Auditable t => ... -> Envelope t`, would enforce what the warning reports, at the cost of standalone deriving on every constrained type.
 - **Defaults.** `Field.default_value` is not read. A `default<Name>` value exists only when every field has a default, which is rare enough that a partial record function may serve better.

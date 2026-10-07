@@ -57,7 +57,7 @@ Done when `Page<T>`, `Collection<f, T>`, and a generic enum compile, and `Page` 
 A class as a type class with `HasField` superclasses, an instance per satisfying declaration, multi-parameter classes, functional dependencies, associated types and their bindings, conditional instances, and class contexts.
 `requires` on a type is written on the type's generated functions and warns.
 
-Done when every class in the conformance corpus generates or warns, an instance whose type lacks a required field warns rather than reaching GHC, and an associated type binding compiles.
+Done when every class in the conformance corpus generates and compiles, an associated type binding included.
 This is the phase where the Haskell backend generates what the Go backend warns about, so its tests carry a case for each row of [go-backend.md](go-backend.md#classes)'s warning table that Haskell expresses.
 
 ## Phase 5: validation
