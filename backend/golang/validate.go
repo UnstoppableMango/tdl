@@ -335,7 +335,7 @@ func (c checked) describe() string {
 	case shapeEnum:
 		return "an enum"
 	case shapeDecimal:
-		return "a decimal, which is a placeholder string until foreign types"
+		return "a decimal, which is a placeholder string unless a `foreign` directive names its type"
 	case shapeTime:
 		return "a time"
 	case shapeParam:
