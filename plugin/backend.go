@@ -20,12 +20,27 @@ type Backend interface {
 	Generate(ctx context.Context, req *Request) (*Response, error)
 }
 
+// Importer is a backend that also reads its target language back into a
+// model, for `tdl import`. A backend implementing it declares Reverse in
+// its description.
+type Importer interface {
+	Backend
+
+	// Import returns the model the request's files describe. It returns an
+	// error only when it cannot produce a response at all; a problem with
+	// the files belongs in ImportResponse.diagnostics.
+	Import(ctx context.Context, req *ImportRequest) (*ImportResponse, error)
+}
+
 // Description is what a backend says about itself.
 type Description struct {
 	Name       string
 	Version    string
 	Directives []*DirectiveSpec
 	Reuse      bool
+
+	// Reverse says the backend is an [Importer].
+	Reverse bool
 }
 
 // Reply turns a description into the handshake reply that carries it.
@@ -35,7 +50,7 @@ func (d Description) Reply() *HandshakeReply {
 		Name:       d.Name,
 		Version:    d.Version,
 		Directives: d.Directives,
-		Features:   &Features{Reuse: d.Reuse},
+		Features:   &Features{Reuse: d.Reuse, Reverse: d.Reverse},
 	}
 }
 

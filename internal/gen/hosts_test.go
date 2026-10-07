@@ -49,6 +49,10 @@ var shipped = []struct {
 
 	// valid checks that a file is something the target language accepts.
 	valid func(t *testing.T, f *plugin.File)
+
+	// reverse is the source a backend that imports reads in
+	// [TestImportHostsAgree]. It is nil for one that only generates.
+	reverse func() []*plugin.File
 }{
 	{backend: debug.Backend{}, model: sampleModel, packaged: true},
 	{backend: golang.Backend{}, model: goModel, packaged: true, valid: parseGo},

@@ -38,7 +38,7 @@ func (s *Session) start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	reply, err := live.shake(true)
+	reply, err := live.shake(true, plugin.Mode_MODE_UNSPECIFIED)
 	if err != nil {
 		live.close()
 		return err

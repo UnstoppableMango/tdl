@@ -9,6 +9,10 @@ schema = 3
     version = 'v1.36.12-20260709200747-435963d16310.1'
     hash = 'sha256-ZqFd1TpWPNhTxlYwhT3305ow9ZVqvzfGxlV5z6lxQRY='
 
+  [mod.'github.com/BurntSushi/toml']
+    version = 'v1.6.0'
+    hash = 'sha256-ptdUJvuc21ixeLt+M5way/na3aCnCO4MYHWulWp8NEY='
+
   [mod.'github.com/agnivade/levenshtein']
     version = 'v1.2.1'
     hash = 'sha256-3XnCzf7tFgEE0MmjxvjfWaw6qK6mKLabFZ3c23JIH9Y='

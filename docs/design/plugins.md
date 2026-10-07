@@ -30,6 +30,7 @@ The handshake declares the framing version, so a future `tdl` can offer gRPC and
 - framing version
 - ir schema version
 - whether this is a watch session
+- the mode: generate, or import for `tdl import`
 
 The ir schema version is the protobuf package, `tdl.ir.v1`.
 Within a version, field numbers are never reused and new fields are additive, so a plugin built against an older `v1` keeps working.
@@ -39,7 +40,7 @@ The plugin replies:
 - accept, or refuse with the version it needs
 - its name and version
 - directives it understands, each with arity and expected literal kinds
-- optional features it supports, such as reuse across requests
+- optional features it supports, such as reuse across requests and import
 
 A refusal is a readable failure naming both versions, where a plugin silently ignoring fields it was compiled before would produce wrong code with no diagnostic.
 
@@ -120,9 +121,18 @@ The allowlist is a record of what a build runs, not a security boundary, since t
 The plugin still returns file contents, and `tdl` diffs them against disk.
 A backend may skip expensive work it knows cannot affect the answer; one that ignores the flag is correct, only slower.
 
+## Import
+
+A handshake in import mode is followed by an `ImportRequest` rather than a `Request`: the target name, the source files, and the loss codes the user allowed.
+The plugin answers with an `ImportResponse`, a model and diagnostics, and `tdl` prints the model as TDL.
+A plugin declares the `reverse` feature to receive one; `tdl` sends no request to a plugin whose reply lacks it, and a plugin that does not import refuses the mode.
+In Go, such a backend also implements `plugin.Importer`.
+[reverse.md](reverse.md) is the design.
+
 ## Diagnostics
 
-The response carries diagnostics: a message, a severity, and a source position.
+The response carries diagnostics: a message, a severity, a source position, and optionally a code.
+A loss warning carries a code such as `lossy.collection`, which `tdl.toml` or `--allow-lossy` can silence; see [reverse.md](reverse.md#loss-codes).
 A position rather than an `ir` node ID, because `ir` has several ID spaces and an ID alone does not say which; a plugin copies the position of the node it is complaining about, and `tdl` prints it like its own errors.
 
 If a plugin exits non-zero or dies before responding, `tdl` relays its stderr verbatim and names the plugin.
