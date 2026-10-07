@@ -24,7 +24,7 @@ func ServeConn(ctx context.Context, b Backend, conn *Conn) error {
 	desc := b.Describe()
 	importer, imports := b.(Importer)
 	reason, ok := compatible(&hello)
-	if ok && hello.GetMode() == Mode_MODE_IMPORT && !(imports && desc.Reverse) {
+	if ok && hello.GetMode() == Mode_MODE_IMPORT && (!imports || !desc.Reverse) {
 		reason, ok = desc.Name+" does not import; it generates only", false
 	}
 	if !ok {

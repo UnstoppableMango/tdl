@@ -25,11 +25,11 @@ type Order {
 }
 `
 
-// echoFile writes the model src lowers to as the echo backend's JSON, in a
-// directory of its own.
-func echoFile(t *testing.T, src string) string {
+// echoFile writes the model shopSource lowers to as the echo backend's
+// JSON, in a directory of its own.
+func echoFile(t *testing.T) string {
 	t.Helper()
-	file, err := parser.Parse("shop.tdl", strings.NewReader(src))
+	file, err := parser.Parse("shop.tdl", strings.NewReader(shopSource))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +58,7 @@ func echoResolver(string) (plugin.Backend, error) { return echo.Backend{}, nil }
 // Importing what echo wrote prints the source it came from, and the loss
 // warning names its code.
 func TestImportPrintsTDL(t *testing.T) {
-	out, errOut, err := run(t, importCmd(echoResolver), "--from", "echo", echoFile(t, shopSource))
+	out, errOut, err := run(t, importCmd(echoResolver), "--from", "echo", echoFile(t))
 	if err != nil {
 		t.Fatalf("import: %v\n%s", err, errOut)
 	}
@@ -73,7 +73,7 @@ func TestImportPrintsTDL(t *testing.T) {
 // An allowed code prints nothing, whether tdl.toml or the flag allows it.
 func TestImportSilencesAllowedCodes(t *testing.T) {
 	t.Run("tdl.toml", func(t *testing.T) {
-		path := echoFile(t, shopSource)
+		path := echoFile(t)
 		manifest := filepath.Join(filepath.Dir(path), config.FileName)
 		if err := os.WriteFile(manifest, []byte("[lossy.echo]\nallow = [\"lossy.order\"]\n"), 0o644); err != nil {
 			t.Fatal(err)
@@ -85,7 +85,7 @@ func TestImportSilencesAllowedCodes(t *testing.T) {
 	})
 
 	t.Run("flag", func(t *testing.T) {
-		_, errOut, err := run(t, importCmd(echoResolver), "--from", "echo", "--allow-lossy", "lossy.doc,lossy.order", echoFile(t, shopSource))
+		_, errOut, err := run(t, importCmd(echoResolver), "--from", "echo", "--allow-lossy", "lossy.doc,lossy.order", echoFile(t))
 		if err != nil || errOut != "" {
 			t.Errorf("err = %v, stderr = %q, want neither", err, errOut)
 		}
@@ -94,7 +94,7 @@ func TestImportSilencesAllowedCodes(t *testing.T) {
 
 func TestImportWritesAFile(t *testing.T) {
 	dest := filepath.Join(t.TempDir(), "imported.tdl")
-	out, _, err := run(t, importCmd(echoResolver), "--from", "echo", "--package", "store", "-o", dest, echoFile(t, shopSource))
+	out, _, err := run(t, importCmd(echoResolver), "--from", "echo", "--package", "store", "-o", dest, echoFile(t))
 	if err != nil {
 		t.Fatal(err)
 	}
