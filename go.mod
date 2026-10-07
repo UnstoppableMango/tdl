@@ -13,7 +13,7 @@ require (
 	go.lsp.dev/protocol v1.0.1
 	go.lsp.dev/uri v1.0.1
 	go.yaml.in/yaml/v3 v3.0.5
-	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba
+	golang.org/x/exp v0.0.0-20261005173118-76772065c9b0
 	google.golang.org/protobuf v1.36.12
 )
 
