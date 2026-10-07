@@ -10,8 +10,7 @@ No phase is done.
 This plan builds the `java` backend.
 It speaks the protocol in [plugins.md](plugins.md) unchanged.
 
-It also moves the class plan, the JSON wire convention, and the `matches` and `length` rules out of `backend/internal/dotnet` into `backend/internal/emit`, as [java-backend.md](java-backend.md#overlap-with-other-targets) says.
-If `backend/internal/dotnet` does not exist yet when a phase needs one of them, that phase writes it in `emit` directly, and [csharp-backend-plan.md](csharp-backend-plan.md) imports it from there.
+It reads the class plan, the JSON wire convention, and the `matches` and `length` rules from `backend/internal/emit`, where [java-backend.md](java-backend.md#overlap-with-other-targets) says they live, and adds what Java needs to them.
 
 ## Layout
 
@@ -57,7 +56,7 @@ Done when `Page<T>` and a generic enum compile, and `Envelope<Long>` fails to co
 
 ## Phase 4: classes
 
-The class plan moves to `backend/internal/emit`, gaining the associated-type row, and `backend/internal/dotnet` reads it from there if it exists.
+`emit.PlanInterfaces` gains the associated-type row.
 Interfaces with accessor methods, `implements` clauses, a fielded enum's interface extending a class, associated types as interface parameters, and `Projection<To>` for a class with a dependency.
 
 Done when every class in the conformance corpus generates or warns and compiles, an associated type binding compiles, and the shared plan's tests cover each row for every target reading it.
@@ -65,14 +64,14 @@ Done when every class in the conformance corpus generates or warns and compiles,
 ## Phase 5: constraints
 
 Each standard constraint checked in the constructor of the type it is written on, every violation collected before throwing, a newtype checking only its own, and `violations` on a constrained newtype.
-`matches` with the RE2 pre-check and `length` by code points, both moved to `backend/internal/emit`.
+`matches` through `emit.Pattern` and `length` through `emit.Length`, counting code points.
 
 Done when each standard constraint is refused under `TestConstructionRefuses`, a string of four emoji passes `length(4)`, a `WorkEmail` built from a valid `Email` checks only its own pattern, and a pattern RE2 refuses warns at generation time.
 
 ## Phase 6: serialization
 
 `json("jackson")` and `discriminant`: renamed properties and constants, polymorphic fielded enums, newtypes as bare values, absent optionals, required nullables, unsigned converters, and the defaulting creator.
-The wire convention moves to `backend/internal/emit`, where the C# and F# serializers read it too.
+The discriminant and tags come from `emit.Discriminant` and `emit.Tag`, as the C# and F# serializers' do.
 
 Done when a test serializes a value of every smoke declaration with Jackson 3, validates the output against the `jsonschema` backend's schema for the smoke model, and deserializes it back to an equal value, and an invalid payload's error names the path to the field.
 

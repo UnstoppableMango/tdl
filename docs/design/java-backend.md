@@ -495,19 +495,18 @@ The constraints are code in a constructor and do not survive, which [reverse.md]
 ### With C# and F\#
 
 Java shares no runtime with .NET, so it does not import `backend/internal/dotnet`.
-It does share decisions with it, and two of them are not about .NET at all:
+It does share decisions with it, and two of them are not about .NET at all, so they live in `backend/internal/emit` rather than there:
 
-| Decision | Where it lives now | Who reads it |
+| Decision | In `emit` | Who reads it |
 | --- | --- | --- |
-| The class plan: which instances an interface can carry, and the warning table | `backend/internal/dotnet` | C#, F#, Java, and Go's table differs only in its marker rows |
-| The JSON wire convention: names as the model spells them, `kind`, internal tagging, a newtype as its bare value | `backend/internal/dotnet` | C#, F#, Java, TypeScript, JSON Schema, OpenAPI |
+| The class plan: which classes become interfaces, which declarations implement them, and which instances an interface cannot carry | `PlanInterfaces`, `InterfacePlan.Instance` | Go today; C#, F#, and Java, each adding its own refusals |
+| The JSON wire convention: names as the model spells them, internal tagging under `kind`, a newtype as its bare value | `Discriminant`, `Tag` | TypeScript and JSON Schema today; C#, F#, and Java under `json` |
 
-Both move to `backend/internal/emit`, the class plan as a decision over the model and the wire convention as a description each serializer printer reads.
 `backend/internal/dotnet` keeps what is true of .NET: the base class library mapping, namespaces, `RegexOptions.ECMAScript`.
 Java's one class-plan difference, an associated type as a type parameter, is available to C# and F# too, since both have generic interfaces; it becomes a row of the shared plan and the .NET targets may adopt it.
 
-Two smaller rules are already written three times, in Go, C#, and Haskell: `matches` parsed with `regexp/syntax` at generation time, and `length` counting code points.
-They move to `emit` with the class plan.
+Two smaller rules were written once per target: `matches` parsed with `regexp/syntax` at generation time, and a `length` argument read as bounds.
+They are `emit.Pattern` and `emit.Length`, and a string's length counts code points in every target.
 
 ### With Kotlin and Scala
 
