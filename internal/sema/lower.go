@@ -88,6 +88,7 @@ func Lower(file *ast.File, opts ...Option) (*ir.Model, Diagnostics) {
 	l.resolveNames()
 	l.validateInstances()
 	l.buildSatisfaction()
+	l.checkClassFields()
 	l.markEntities()
 	l.checkRecursion(file)
 	l.searchSatisfaction()

@@ -639,8 +639,8 @@ func TestInstancesAreNotTypeNames(t *testing.T) {
 class Auditable { createdAt: string }
 instance Auditable for A
 instance Auditable for B
-type A { x: string }
-type B { x: string }
+type A { createdAt: string }
+type B { createdAt: string }
 `)
 
 	if got := len(model.GetInstances()); got != 2 {
@@ -1000,7 +1000,7 @@ class Projection<from, to> | from -> to { }
 func TestInstanceFormsNormalize(t *testing.T) {
 	model := lower(t, `
 class Auditable { createdAt: string }
-type A { x: string }
+type A { createdAt: string }
 
 instance Auditable<A>
 instance Auditable for A
@@ -1023,8 +1023,15 @@ func TestSatisfaction(t *testing.T) {
 class Timestamped { createdAt: string }
 class Auditable: Timestamped { updatedAt: string }
 
-type Declared: Entity, Auditable { id: string }
-type ByInstance { x: string }
+type Declared: Entity, Auditable {
+  id: string
+  createdAt: string
+  updatedAt: string
+}
+type ByInstance {
+  createdAt: string
+  updatedAt: string
+}
 type Neither { x: string }
 
 instance Auditable<ByInstance>
@@ -1062,7 +1069,7 @@ type Uses { include Stamps }
 // A conditional instance is recorded but names no satisfying declaration.
 func TestConditionalInstanceNotIndexed(t *testing.T) {
 	model := lower(t, `
-class Auditable { createdAt: string }
+class Auditable { }
 type Page<T> { items: [T] }
 
 instance <T> Auditable<Page<T>> requires Auditable<T>
@@ -1199,7 +1206,7 @@ func contains(names []string, want string) bool {
 // `Page` alone satisfies nothing.
 func TestConditionalInstanceSearch(t *testing.T) {
 	model := lower(t, `
-class Auditable { createdAt: string }
+class Auditable { }
 type Page<P> { items: [P] }
 type Audited: Auditable { createdAt: string }
 type Plain { x: string }
@@ -1229,7 +1236,7 @@ type Uses {
 // A page of pages of auditable things is auditable.
 func TestConditionalInstanceNests(t *testing.T) {
 	model := lower(t, `
-class Auditable { createdAt: string }
+class Auditable { }
 type Page<P> { items: [P] }
 type Audited: Auditable { createdAt: string }
 
@@ -1250,7 +1257,7 @@ type Uses { nested: Page<Page<Audited>> }
 
 func TestRequiresThroughConditionalInstance(t *testing.T) {
 	lower(t, `
-class Auditable { createdAt: string }
+class Auditable { }
 type Page<P> { items: [P] }
 type Audited: Auditable { createdAt: string }
 type Envelope<P> requires Auditable<P> { body: P }
