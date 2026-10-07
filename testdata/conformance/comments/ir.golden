@@ -49,7 +49,7 @@ Model shop.comments
 │   │   └── variant Custom  source.tdl:26:3
 │   │       └── field reason: types[2] string  source.tdl:28:5
 │   └── [28] class Auditable  source.tdl:32:1
-│       └── field createdAt: types[2] string  source.tdl:34:3
+│       └── field id: types[2] string  source.tdl:34:3
 ├── Instances
 │   └── instance Auditable<Order>  source.tdl:37:1
 │       └── type Cursor = types[2] string  source.tdl:39:3

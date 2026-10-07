@@ -11,6 +11,9 @@ class Paged {
   pageSize: int
 }
 
+/// Declares no fields, so a conditional instance can satisfy it.
+class Archived { }
+
 instance Auditable<shipping.Address>
 instance Auditable for shipping.Address
 
@@ -18,8 +21,11 @@ instance Paged for OrderList {
   type Cursor = OrderCursor
 }
 
-instance <T> Auditable<Page<T>> requires Auditable<T>
-type OrderList { }
+instance <T> Archived<Page<T>> requires Archived<T>
+
+type OrderList {
+  pageSize: int
+}
 
 type OrderCursor {
   token: string
@@ -29,7 +35,7 @@ type Page<T> {
   items: [T]
 }
 
-type Audited: Auditable {
+type Audited: Auditable, Archived {
   createdAt: instant
 }
 
