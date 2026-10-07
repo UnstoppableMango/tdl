@@ -3,7 +3,7 @@
 An implementation plan for [reverse.md](reverse.md).
 Phases are ordered by dependency, and each states what makes it done.
 
-Phase 1 is done.
+Phases 1 and 2 are done.
 
 ## Phase 1: unlower
 
@@ -24,7 +24,8 @@ Done: `TestCorpusRoundTrips` takes every `testdata/conformance/*/source.tdl` thr
 - `tdl import`.
 - `TestImportHostsAgree`, beside `TestHostsAgree`, reads a reverse column in the `shipped` table.
 
-Done when a test backend imports the same model in process and over a pipe, and an allowed code prints nothing.
+Done: `TestImportHostsAgree` imports through `internal/gen/echo`, a test backend that writes a model as JSON and reads it back, in process and as `tdl-gen-echo`, and `TestImportSilencesAllowedCodes` shows an allowed code prints nothing.
+No shipped backend has a reverse column yet.
 
 ## Phase 3: round-trip harness
 

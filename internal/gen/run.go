@@ -127,3 +127,12 @@ func Fatal(diags []*plugin.Diagnostic) bool {
 		return d.GetSeverity() == plugin.Severity_SEVERITY_ERROR
 	})
 }
+
+// Silence drops the warnings whose loss code is allowed. An error is never
+// dropped, and neither is a warning with no code.
+func Silence(diags []*plugin.Diagnostic, allowed []string) []*plugin.Diagnostic {
+	return slices.DeleteFunc(slices.Clone(diags), func(d *plugin.Diagnostic) bool {
+		return d.GetSeverity() == plugin.Severity_SEVERITY_WARNING &&
+			d.GetCode() != "" && slices.Contains(allowed, d.GetCode())
+	})
+}

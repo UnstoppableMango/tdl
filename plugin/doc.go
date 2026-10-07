@@ -41,6 +41,15 @@
 // conditional instance: a directive on Auditable reaches Audited and not
 // the Page<Audited> that satisfies Auditable through an instance.
 //
+// # Importing
+//
+// A backend that also reads its target language back into a model, for
+// `tdl import`, implements [Importer] and sets Reverse in its description.
+// tdl then shakes hands in [Mode_MODE_IMPORT] and sends [ImportRequest]
+// messages instead of [Request] ones. A warning about a fact the
+// conversion loses carries a code, such as "lossy.collection", which the
+// user can silence; docs/design/reverse.md lists them.
+//
 // # The wire
 //
 // Messages are protobuf, framed with a varint length prefix, in both

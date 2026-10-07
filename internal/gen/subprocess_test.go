@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/unstoppablemango/tdl/internal/gen"
+	"github.com/unstoppablemango/tdl/internal/gen/echo"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -20,8 +21,8 @@ var buildOnce struct {
 	err error
 }
 
-// pluginDir builds every shipped backend as a plugin and returns the
-// directory holding them.
+// pluginDir builds every shipped backend and the echo test backend as
+// plugins and returns the directory holding them.
 func pluginDir(t *testing.T) string {
 	t.Helper()
 
@@ -41,6 +42,15 @@ func pluginDir(t *testing.T) string {
 				t.Logf("building %s: %s", binary, out)
 				return
 			}
+		}
+		// The echo test backend, which imports, is not shipped.
+		cmd := exec.Command("go", "build", "-o",
+			filepath.Join(dir, gen.CommandPrefix+echo.Name),
+			"github.com/unstoppablemango/tdl/internal/gen/echo/"+gen.CommandPrefix+echo.Name)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			buildOnce.err = err
+			t.Logf("building the echo backend: %s", out)
+			return
 		}
 		buildOnce.dir = dir
 	})

@@ -33,7 +33,7 @@ It writes only the declarations `emit.IsOwn` reports, so the prelude is never pr
 
 [plugins.md](plugins.md) is extended rather than forked, and every change is additive.
 
-- `Handshake.mode` is `GENERATE`, the zero value, or `IMPORT`.
+- `Handshake.mode` is `MODE_UNSPECIFIED`, the zero value, which generates, or `MODE_IMPORT`.
 - `Features.reverse` declares that a plugin answers `IMPORT`.
   The host refuses import mode when the reply lacks it, so a plugin that ignores `mode` is never sent an `ImportRequest`.
 - `ImportRequest` carries the target name, the source files, and the loss codes the user allowed.
@@ -69,7 +69,8 @@ In Go, `plugin.Importer` is an optional interface beside `plugin.Backend`.
 | `lossy.unit` | a unit |
 | `lossy.unsupported` | a target construct TDL cannot express |
 
-`Session.Lossy(code, position, message)` writes the warning.
+`Session.Lossy(code, position, format, args...)` writes the warning.
+The host drops a warning whose code is allowed, so a backend may ignore the allowed list.
 
 Generating, a backend warns once per lost fact.
 Importing, a backend warns when the source leaves a fact ambiguous and when a construct has no TDL form.
@@ -98,7 +99,8 @@ A reverse backend writes only directives its forward twin declares.
 
 ## Configuration
 
-`tdl.toml` is found by walking up from the input file.
+`tdl.toml` is found by walking up from the input file; the nearest one is read, and one further up is not merged in.
+`tdl import` walks up from its first file.
 This design reads one table of it:
 
 ```toml
