@@ -295,8 +295,10 @@ Jackson supplies that path itself, as the reference chain on the exception wrapp
 | `unique` | A list's elements, through `equals` |
 
 A string's length counts code points, as C# counts runes, rather than `length()`, which counts UTF-16 units.
-A pattern is compiled once, as a `private static final Pattern` on the record, after the backend parses it with Go's `regexp/syntax`; a pattern RE2 refuses warns rather than throwing when the class loads.
-`java.util.regex` accepts every RE2 pattern with the same meaning for the constructs RE2 has, and `\d` and `\w` are ASCII in both.
+`matches` is not passed through as written, because `java.util.regex` differs from RE2: it refuses `(?P<name>...)`, reads a POSIX class such as `[[:alpha:]]` as a set of punctuation and letters, and spells a script `\p{IsGreek}` where RE2 writes `\p{Greek}`.
+The backend parses the pattern with `emit.Pattern` and prints the tree in Java syntax, compiled once as a `private static final Pattern` on the record.
+A POSIX class becomes an explicit ASCII set and a script class gains `Is`; `\d`, `\w`, `\s`, and `\b` are already ASCII in Java without `UNICODE_CHARACTER_CLASS`, and `.` and a negated class already match a code point, as RE2's do.
+A pattern RE2 refuses warns rather than throwing when the class loads.
 
 A newtype checks only the constraints written on it, since its parent checked the rest, and a generic type checks its own fields and not its type arguments' values.
 
@@ -502,11 +504,14 @@ It does share decisions with it, and two of them are not about .NET at all, so t
 | The class plan: which classes become interfaces, which declarations implement them, and which instances an interface cannot carry | `PlanInterfaces`, `InterfacePlan.Instance` | Go today; C#, F#, and Java, each adding its own refusals |
 | The JSON wire convention: names as the model spells them, internal tagging under `kind`, a newtype as its bare value | `Discriminant`, `Tag` | TypeScript and JSON Schema today; C#, F#, and Java under `json` |
 
-`backend/internal/dotnet` keeps what is true of .NET: the base class library mapping, namespaces, `RegexOptions.ECMAScript`.
+`backend/internal/dotnet` keeps what is true of .NET: the base class library mapping, namespaces, and printing a pattern for .NET's engine.
 Java's one class-plan difference, an associated type as a type parameter, is available to C# and F# too, since both have generic interfaces; it becomes a row of the shared plan and the .NET targets may adopt it.
 
 Two smaller rules were written once per target: `matches` parsed with `regexp/syntax` at generation time, and a `length` argument read as bounds.
 They are `emit.Pattern` and `emit.Length`, and a string's length counts code points in every target.
+
+C# and Java each print the parsed pattern for their own engine, and the two printers share most of their rules: walking the tree, ASCII sets for the POSIX classes, and refusing what neither spells.
+A printer over `regexp/syntax` with a small per-engine table belongs in `emit` beside `Pattern`, and the first of the two targets built writes it.
 
 ### With Kotlin and Scala
 
