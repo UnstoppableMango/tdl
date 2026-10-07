@@ -287,7 +287,7 @@ Instance structures go inside the model's structure.
 
 `Entity` is the prelude's and is not generated, so `class Auditable requires Entity` is emitted without the include and warns, as in Go and Haskell.
 
-### As interfaces: F#
+### As interfaces: F\#
 
 F# has modules without functors or signatures to ascribe, and .NET's interfaces are its contracts.
 A class is an interface whose members are its fields' getters, and a type satisfying it implements the interface in its own declaration:
@@ -395,7 +395,7 @@ OCaml has polymorphic equality and comparison, F# derives structural equality an
 | --- | --- | --- | --- | --- | --- |
 | OCaml | `line_item` | `Card` | as written | `Order_auditable` | `type_` |
 | Reason | `lineItem` | `Card` | as written | `OrderAuditable` | `type_` |
-| F# | `LineItem` | `Card` | as written | `OrderAuditable` | ` ``type`` ` |
+| F# | `LineItem` | `Card` | as written | `OrderAuditable` | ``` ``type`` ``` |
 | Standard ML | `line_item` | `Card` | as written | `OrderAuditable` | `type'` |
 
 A field keeps its spelling, with the first letter lower-cased in OCaml, Reason, and Standard ML, which require it.

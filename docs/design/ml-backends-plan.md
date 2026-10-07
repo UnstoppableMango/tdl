@@ -81,7 +81,7 @@ Done when the smoke model and the class cases convert with `refmt --print ml` an
 
 Done when the smoke model and the class cases pass `mlton -stop tc`, and validation runs under MLton.
 
-## Phase 7: F#
+## Phase 7: F\#
 
 `backend/fsharp`: its type mapping, `namespace rec`, companion modules for validation, keys as members, `attribute`, classes as interfaces with the warnings ml-backends.md lists, units of measure, and `matches` through `Regex`.
 
