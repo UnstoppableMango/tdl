@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/bufbuild/protocompile v0.14.2-0.20260917202354-386f9fcfc7b9
 	github.com/cloudwego/thriftgo v0.4.5
-	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/spf13/cobra v1.10.2
 	github.com/vektah/gqlparser/v2 v2.5.60
 	go.lsp.dev/jsonrpc2 v1.0.1

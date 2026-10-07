@@ -50,8 +50,8 @@ schema = 3
     hash = 'sha256-rDcdNYH6ZD8KouyyiZCUEy8JrjOQoAkxHBhugrfHjFo='
 
   [mod.'github.com/santhosh-tekuri/jsonschema/v6']
-    version = 'v6.0.2'
-    hash = 'sha256-rPRYeV00NRyt6rb+gFJRK1K4TlVxy92cocRK/X9Wef4='
+    version = 'v6.0.3'
+    hash = 'sha256-r/1mhajjfamfJZpu+CeUYr7bTQGQEkmF2f4UcSQZEbA='
 
   [mod.'github.com/spf13/cobra']
     version = 'v1.10.2'
