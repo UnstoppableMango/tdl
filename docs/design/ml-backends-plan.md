@@ -88,7 +88,7 @@ The .NET pieces come from `backend/internal/dotnet`, shared with [csharp-backend
 
 Done when the smoke model, the class cases, and a model with derived units load in `dotnet fsi` with warnings as errors, `decimal<N>` and `decimal<kg*m/s^2>` are one F# type in a test that assigns one to the other, and an F# model naming a C# dependency's type builds against it.
 
-## Phase 7b: F\# serialization
+## Phase 7b: F# serialization
 
 `json("stj")` and `discriminant` through FSharp.SystemTextJson, with the wire convention read from `backend/internal/dotnet`.
 This follows phase 5 of csharp-backend-plan.md, which states the convention.

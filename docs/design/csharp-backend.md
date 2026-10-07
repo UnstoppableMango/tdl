@@ -442,11 +442,11 @@ Whichever of `csharp` and `fsharp` is built first creates it, and the other impo
 ### What this changed in ml-backends.md
 
 1. **F# builds on `backend/internal/dotnet`** for the pieces above, beside `backend/internal/ml`.
-2. **F# writes `requires` on a type** as `type Envelope<'T when 'T :> Auditable>`, where it had warned.
-3. **F# reads `json("stj")` and `discriminant`.** FSharp.SystemTextJson's default union encoding is an adjacent `Case` and `Fields` pair, so an F# and a C# service generated from one model would have disagreed on every fielded enum. F# now writes the converter with `InternalTag`, `NamedFields`, and `UnionTagName = "kind"`, and the two profiles have one body.
-4. **F# resolves an extern through a `csharp` block** when the dependency has no `fsharp` one. F# consumes C# records and interfaces directly; the reverse needs `FSharp.Core` and reads unions through generated `Is` and `New` members, so `csharp` never reads an `fsharp` block.
-5. **The floor is .NET 8 with F# 8,** up from .NET 6, which is out of support, so both checks share one SDK.
-6. **F# writes `#nowarn "44"`** in the generated file, since a companion module's validation reads a deprecated field.
+1. **F# writes `requires` on a type** as `type Envelope<'T when 'T :> Auditable>`, where it had warned.
+1. **F# reads `json("stj")` and `discriminant`.** FSharp.SystemTextJson's default union encoding is an adjacent `Case` and `Fields` pair, so an F# and a C# service generated from one model would have disagreed on every fielded enum. F# now writes the converter with `InternalTag`, `NamedFields`, and `UnionTagName = "kind"`, and the two profiles have one body.
+1. **F# resolves an extern through a `csharp` block** when the dependency has no `fsharp` one. F# consumes C# records and interfaces directly; the reverse needs `FSharp.Core` and reads unions through generated `Is` and `New` members, so `csharp` never reads an `fsharp` block.
+1. **The floor is .NET 8 with F# 8,** up from .NET 6, which is out of support, so both checks share one SDK.
+1. **F# writes `#nowarn "44"`** in the generated file, since a companion module's validation reads a deprecated field.
 
 ## Open questions
 
