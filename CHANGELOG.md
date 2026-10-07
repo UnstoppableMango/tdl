@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.3.5](https://github.com/UnstoppableMango/tdl/compare/v0.3.4...v0.3.5) (2026-10-07)
+
+
+### Features
+
+* **import:** import mode in the plugin protocol, loss codes, and tdl import ([#998](https://github.com/UnstoppableMango/tdl/issues/998)) ([f61890d](https://github.com/UnstoppableMango/tdl/commit/f61890db5ccabe889e1b274eab4d535f004926f0))
+
+
+### Bug Fixes
+
+* **go:** honour a name directive on an enum variant ([#938](https://github.com/UnstoppableMango/tdl/issues/938)) ([d54984c](https://github.com/UnstoppableMango/tdl/commit/d54984ceca003a4231afdea302501381507bd187))
+
+
+### Documentation
+
+* design a haskell backend ([#997](https://github.com/UnstoppableMango/tdl/issues/997)) ([d91b3b0](https://github.com/UnstoppableMango/tdl/commit/d91b3b02684ad0371220faa76758b15a22324e08))
+
+
+### Continuous Integration
+
+* run build and test as one job without setup-nix ([#989](https://github.com/UnstoppableMango/tdl/issues/989)) ([44f6115](https://github.com/UnstoppableMango/tdl/commit/44f611551cafc8df4c7ef0dfa826c60137f83304))
+
 ## [0.3.4](https://github.com/UnstoppableMango/tdl/compare/v0.3.3...v0.3.4) (2026-10-06)
 
 
