@@ -3,7 +3,7 @@
 An implementation plan for [reverse.md](reverse.md).
 Phases are ordered by dependency, and each states what makes it done.
 
-Phases 1 and 2 are done.
+Phases 1, 2, and 3 are done.
 
 ## Phase 1: unlower
 
@@ -37,7 +37,12 @@ Its corpus is `testdata/roundtrip/<target>/<case>/`:
 
 `testdata/gen/smoke/source.tdl` is a model-first case for every target.
 
-Done when the harness runs an empty corpus for every target.
+A case runs one direction, and `testdata/roundtrip/README.md` describes the layout.
+The harness adds the `roundtrip` directive itself, so a model-first source needs no block for its target, and ignores the directive coming back.
+A missing `lossy.golden` lists no codes, and `-update` rewrites it and `expected.tdl`.
+A target's normal form arrives with its reader in phase 4; until then files compare as bytes.
+
+Done: `TestCorpus` runs every target but `debug` over its directory and the smoke model, skipping smoke for a target that does not import, and `TestHarness` runs both directions against `internal/gen/echo`.
 
 ## Phase 4: one target at a time
 

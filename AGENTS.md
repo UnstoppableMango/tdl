@@ -206,6 +206,7 @@ A backend added to the registry needs a row in the `shipped` table in `internal/
 
 `docs/design/schema-backends.md` maps the seven schema backends.
 `docs/design/reverse.md` is the import direction, target language to TDL, and `reverse-plan.md` orders it.
+`backend/internal/roundtrip` runs a backend forward and back over `testdata/roundtrip/<target>/<case>/`; its `targets` table holds every backend but `debug`, with each one's normal form, and `TestEveryTargetIsCovered` checks it against `cmd/`.
 `testdata/gen/smoke/source.tdl` exercises the whole mapping, with a target block for each schema backend and for `salesforce`; the nix checks generate from it and run each language's tool on the output.
 
 ### Tests and goldens
