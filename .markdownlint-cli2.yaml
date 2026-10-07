@@ -6,6 +6,8 @@ globs:
 ignores:
   - ".direnv"
   - "**/node_modules"
+  # CI's Go module and build cache, restored into the workspace.
+  - ".go"
   # Written by release-please.
   - "CHANGELOG.md"
   # One import directive, with no heading to lint.
