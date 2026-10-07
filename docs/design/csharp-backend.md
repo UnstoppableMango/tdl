@@ -9,7 +9,7 @@ It is called `csharp` in a target block, ships compiled into `tdl` and as `tdl-g
 C# and F# compile to one runtime and share its base class library, its serializer, its attributes, and its interfaces.
 They share nothing else a backend cares about: C# has no type declaration order, no `and` groups, no modules, and no sum types.
 So the two share a .NET layer, `backend/internal/dotnet`, and C# does not build on the ML core.
-[Overlap with F#](#overlap-with-f) says where the line falls and what it asks of [ml-backends.md](ml-backends.md).
+[Overlap with F#](#overlap-with-f) says where the line falls and what it changed in [ml-backends.md](ml-backends.md).
 
 Where C# has no reason to differ from [go-backend.md](go-backend.md), the closest in shape, it does not.
 
@@ -439,16 +439,14 @@ Whichever of `csharp` and `fsharp` is built first creates it, and the other impo
 | Validation | methods on the type | companion module |
 | Namespace directive | `namespace` | `module`, shared with its ML siblings |
 
-### What this asks of ml-backends.md
+### What this changed in ml-backends.md
 
-Each is a small change to the F# design, proposed here rather than made, since that design is in review on its own.
-
-1. **Build on `backend/internal/dotnet`** for the pieces above, beside `backend/internal/ml`.
-1. **Write `requires` on a type.** ml-backends.md says it has nowhere to go in any of the four, but F# states it, `type Envelope<'T when 'T :> Auditable>`, as C# does.
-1. **Share the wire convention.** `std.fsharp.stj` sets only `JsonFSharpConverter`, whose default union encoding is an adjacent `Case` and `Fields` pair, so an F# and a C# service generated from one model would disagree on every fielded enum. F# reading `json("stj")` and `discriminant`, and writing the converter with `InternalTag`, `NamedFields`, and `UnionTagName = "kind"`, makes the two agree with each other and with TypeScript and JSON Schema. The two profiles then have one body.
-1. **Resolve an extern through a `csharp` block** when the dependency has no `fsharp` one. F# consumes C# records and interfaces directly; the reverse needs `FSharp.Core` and reads unions through generated `Is` and `New` members, so `csharp` never reads an `fsharp` block.
-1. **Raise the floor to .NET 8.** ml-backends.md names .NET 6, which is out of support; one floor lets both checks share one SDK.
-1. **Suppress `FS0044` in the generated file,** since a companion module's validation reads a deprecated field.
+1. **F# builds on `backend/internal/dotnet`** for the pieces above, beside `backend/internal/ml`.
+2. **F# writes `requires` on a type** as `type Envelope<'T when 'T :> Auditable>`, where it had warned.
+3. **F# reads `json("stj")` and `discriminant`.** FSharp.SystemTextJson's default union encoding is an adjacent `Case` and `Fields` pair, so an F# and a C# service generated from one model would have disagreed on every fielded enum. F# now writes the converter with `InternalTag`, `NamedFields`, and `UnionTagName = "kind"`, and the two profiles have one body.
+4. **F# resolves an extern through a `csharp` block** when the dependency has no `fsharp` one. F# consumes C# records and interfaces directly; the reverse needs `FSharp.Core` and reads unions through generated `Is` and `New` members, so `csharp` never reads an `fsharp` block.
+5. **The floor is .NET 8 with F# 8,** up from .NET 6, which is out of support, so both checks share one SDK.
+6. **F# writes `#nowarn "44"`** in the generated file, since a companion module's validation reads a deprecated field.
 
 ## Open questions
 

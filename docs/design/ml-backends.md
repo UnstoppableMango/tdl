@@ -32,6 +32,9 @@ The core builds a small ML syntax tree: type groups, records, variants, abbrevia
 Each dialect prints it.
 Nothing in the core knows whether a record is written `{ id : string; }`, `{id: string}`, or `{ id: string }`.
 
+F# also builds on `backend/internal/dotnet`, which it shares with the `csharp` target of [csharp-backend.md](csharp-backend.md).
+That layer holds what is true of .NET rather than of ML: the primitive mapping as base class library types, the namespace derived from a package, `foreign` and `attribute`, which instances an interface can carry, `matches` and `length`, and the JSON wire convention.
+
 ### Why not one `ml` target
 
 A single target with a `dialect("fsharp")` directive would let a [profile](profiles.md) pick the language, `profile fsharp for ml { dialect("fsharp") }`.
@@ -72,9 +75,9 @@ profile ptime for ocaml {
 ```tdl
 package std.fsharp
 
-/// JSON through FSharp.SystemTextJson.
+/// JSON through FSharp.SystemTextJson, on the wire C# writes.
 profile stj for fsharp {
-  attribute("System.Text.Json.Serialization", "JsonFSharpConverter")
+  json("stj")
 }
 ```
 
@@ -98,7 +101,7 @@ A model with no package and no `module` directive is an error, as in Haskell.
 A model is one file because entities may be mutually recursive and none of these languages lets two files refer to each other.
 The backends write no `dune`, `.fsproj`, `.mlb`, or `.cm` file; the consumer's build lists the module, and in F# and Standard ML a dependency's file is listed before its importer's.
 
-The output needs OCaml 4.14, .NET 6 with F# 6, or an SML '97 implementation with the optional `Int64`, `Word64`, and `Real32` structures, which MLton, Poly/ML, and SML/NJ all provide; a model holding a set or map also needs the SML/NJ library, which rules out Poly/ML.
+The output needs OCaml 4.14, .NET 8 with F# 8, the oldest .NET in support and the floor C# shares, or an SML '97 implementation with the optional `Int64`, `Word64`, and `Real32` structures, which MLton, Poly/ML, and SML/NJ all provide; a model holding a set or map also needs the SML/NJ library, which rules out Poly/ML.
 Reason output needs Reason 3.8.
 
 ## Order and recursion
@@ -266,7 +269,8 @@ A type parameter is a type variable: `'t` in OCaml and Standard ML, `'T` in F#, 
 None of the four takes a type constructor as a parameter of a type declaration, so a parameter of arrow kind, as in `Collection<f, T>`, warns and skips its declaration.
 OCaml could spell one as a functor over a module holding `'a t`, at the cost of the declaration no longer being a type; [Open questions](#open-questions) has it.
 
-`requires` on a type has nowhere to go in any of the four, and warns once at the clause, as in Haskell.
+`requires` on a type has nowhere to go in OCaml, Reason, or Standard ML, and warns once at the clause, as in Haskell.
+F# states it as a constraint, `type Envelope<'T when 'T :> Auditable>`, as C# writes `where T : IAuditable`.
 
 ## Classes
 
@@ -408,6 +412,28 @@ It has the shape it has in Go and Haskell.
 An extern resolves through its dependency's target block of the same name, as in Haskell, with one exception: `ocaml` and `reason` read each other's blocks, since both compile to one module system.
 The type's spelling then comes from the block's own dialect, so an OCaml model naming a Reason dependency's `lineItem` writes `ShopOrders.lineItem`.
 
+`fsharp` reads a dependency's `csharp` block when it has no `fsharp` one, since F# consumes C# records, enums, and interfaces directly.
+`csharp` never reads an `fsharp` block, because a C# consumer of F# types needs `FSharp.Core` and reads a union through generated `Is` and `New` members.
+
+## Serialization
+
+Without a directive, the output carries no serializer attributes, and JSON is the consumer's, through `derive` or `attribute`.
+
+`json("stj")` on an `fsharp` block writes the wire convention [csharp-backend.md](csharp-backend.md#serialization) writes, which is the one the TypeScript and JSON Schema backends write, through FSharp.SystemTextJson:
+
+| Construct | Attribute |
+| --- | --- |
+| A record | `[<JsonFSharpConverter>]` |
+| A fielded union | `[<JsonFSharpConverter(UnionEncoding = JsonUnionEncoding.InternalTag \|\|\| JsonUnionEncoding.NamedFields, UnionTagName = "kind")>]` |
+| A fieldless union | `[<JsonFSharpConverter(UnionEncoding = JsonUnionEncoding.UnwrapFieldlessTags)>]` |
+| A newtype | `[<JsonFSharpConverter(UnionEncoding = JsonUnionEncoding.UnwrapSingleCaseUnions)>]` |
+| A field or case whose F# name differs from the model's | `[<JsonPropertyName("...")>]` or `[<JsonName("...")>]` |
+
+So `Card` is `{"kind": "Card", "last4": "4242"}`, `Cash` is `{"kind": "Cash"}`, a fieldless `Status` is `"Draft"`, and an `Email` is `"a@b.c"`, byte for byte what a C# service generated from the same model reads.
+FSharp.SystemTextJson's default encoding is an adjacent `Case` and `Fields` pair, which is why the directive spells every option rather than leaving the attribute bare.
+`discriminant("type")`, on an enum or the target block, renames `kind`.
+The rules live in `backend/internal/dotnet`, so the two targets cannot drift; `json` takes its library as an argument for the same reason C# gives.
+
 ## Directives
 
 | Directive | On | Targets | Does |
@@ -418,7 +444,9 @@ The type's spelling then comes from the block's own dialect, so an OCaml model n
 | `key(order, sku)` | an entity | all | the fields identifying it |
 | `prefix` | an enum or the target block | all | writes variants with the enum's name in front |
 | `derive("yojson")` | a declaration or the target block, repeatable | `ocaml`, `reason` | adds the name to `[@@deriving ...]` on each type in the group |
-| `attribute("System.Text.Json.Serialization", "JsonFSharpConverter")` | a declaration or the target block, repeatable | `fsharp` | writes `[<JsonFSharpConverter>]`, opening the namespace |
+| `attribute("System.Runtime.Serialization", "DataContract")` | a declaration or the target block, repeatable | `fsharp` | writes `[<System.Runtime.Serialization.DataContract>]` |
+| `json("stj")` | the target block | `fsharp` | the serializer attributes under [Serialization](#serialization) |
+| `discriminant("type")` | an enum or the target block | `fsharp` | the discriminator's property name under `json` |
 
 F# derives structural equality and comparison for every record and union, and OCaml's polymorphic `=` and `compare` serve every declaration except one holding a set or map, which gets the `equal_` and `compare_` functions [the type mapping](#the-type-mapping) describes.
 The names are ppx_deriving's, so a declaration carrying `derive("eq")` or `derive("ord")` gets the ppx's function instead of the backend's, and a consumer reads the same name either way.
@@ -451,12 +479,15 @@ F# writes every .NET type fully qualified and opens nothing.
 | F# | `/// ...` | `[<System.Obsolete("...")>]` |
 | Standard ML | `(* ... *)` | the reason in the comment only |
 
+An F# file writes `#nowarn "44"` after its header, since a companion module's validation reads a deprecated field; a consumer's own use still warns.
+C# does the same with `CS0612` and `CS0618`.
+
 ## Diagnostics
 
 These warn with the node's position, and the declaration reaching one is skipped: an extern with no mapping, a parameter of arrow kind on a type, a name that cannot be escaped, an `sml` constructor collision, an OCaml `uint64` with no `foreign`, a set or map over a type parameter outside F#, and an `sml` set or map whose element is in its holder's recursive group.
 `emit.Cascade` then skips every declaration naming a skipped one.
 
-These warn and the declaration is still emitted: `matches` outside F#, a constraint the backend gives no meaning to, a `requires` clause on a type, a `requires` naming `Entity`, a unit outside F# or on a non-numeric F# type, and an F# instance the table above refuses.
+These warn and the declaration is still emitted: `matches` outside F#, a constraint the backend gives no meaning to, a `requires` clause on a type outside F#, a `requires` naming `Entity`, a unit outside F# or on a non-numeric F# type, and an F# instance the table above refuses.
 
 An error stops the run, and only a module name the language refuses earns one.
 
@@ -479,9 +510,9 @@ No reverse backend is planned, for the reason Haskell gives: each language's par
 
 ## Open questions
 
-- **Several targets per profile.** `profile ptime for ocaml, reason` would remove the duplicated profiles. It needs a profile's directive shapes checked against every target it names.
+- **Several targets per profile.** `profile ptime for ocaml, reason` would remove the duplicated profiles, and so would `profile stj for csharp, fsharp`, now that both bodies are `json("stj")`. It needs a profile's directive shapes checked against every target it names.
 - **Higher kinds in OCaml.** A declaration with an arrow-kind parameter could be a functor over `sig type 'a t end` producing the type. It generates where today warns, and gives a consumer a module to apply instead of a type to name.
 - **Phantom units.** OCaml, Reason, and Standard ML could tag a quantity with an empty type per named unit, `type kg`, as Haskell's phase 6 weighs; a unit expression has no name to tag with.
 - **Sets over a type parameter.** A declaration holding `{T}` could become a functor over `T`'s ordering, `module Page (T : Set.OrderedType) = struct type t = { items : Set.Make(T).t } end`, generating where today warns, at the cost of the declaration no longer being a type a consumer names directly. The same move answers higher kinds above.
 - **ReScript.** It began as Reason and now differs in its standard library, its integers, and its records. It would be a fifth dialect of the core, not a printer over `reason`.
-- **Defaults and serialization.** As in Haskell: `Field.default_value` is not read, and JSON is the consumer's, through `derive` or `attribute`.
+- **Defaults.** As in Haskell, `Field.default_value` is not read. OCaml and Reason JSON is the consumer's, through `derive`.

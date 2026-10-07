@@ -66,7 +66,7 @@ Done when each standard constraint is rejected under `TestValidationRuns`, a str
 ## Phase 5: serialization
 
 `json("stj")` and `discriminant`: property names, string enums, polymorphic fielded enums, and newtype converters.
-The wire convention is stated in `backend/internal/dotnet`, so `fsharp` can read the same directives.
+The wire convention is stated in `backend/internal/dotnet`, where phase 7b of ml-backends-plan.md reads it for `fsharp`.
 
 Done when a test serializes a value of every smoke declaration with `System.Text.Json` and validates the output against the `jsonschema` backend's schema for the smoke model, and deserializes it back to an equal value.
 
@@ -80,5 +80,4 @@ Done when the smoke check also runs once with each profile applied, and the outp
 ## Decisions deferred
 
 - **Project files.** A `.csproj` directive, decided together with F#'s `.fsproj`.
-- **Cross-language externs.** An `fsharp` model resolving through a `csharp` block, which is ml-backends.md's to adopt; its test is an F# project referencing a C# one, both generated from one model.
 - **Serializer contexts.** A `JsonSerializerContext` under `json("stj")`, for trimming and AOT.
