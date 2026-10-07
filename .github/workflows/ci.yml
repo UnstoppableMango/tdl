@@ -51,14 +51,14 @@ jobs:
           CGO_ENABLED: "1"
 
       - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-        if: ${{ steps.test.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.test.outcome == 'success' }}
         continue-on-error: true
         with:
           use_oidc: true
           files: cover.profile
 
       - name: Upload coverage to DeepSource
-        if: ${{ steps.test.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.test.outcome == 'success' }}
         continue-on-error: true
         run: |
           nix develop -c deepsource report \
