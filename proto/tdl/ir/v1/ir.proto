@@ -278,7 +278,8 @@ message Literal {
   Position position = 5;
 
   // variant names the enum variant a NAME literal resolves to, checked
-  // against the field's type. Unset when it did not resolve.
+  // against the type it constrains, through an alias, a newtype, and
+  // optionality. Unset when it did not resolve.
   ID variant = 6;
 }
 
