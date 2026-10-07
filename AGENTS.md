@@ -381,7 +381,7 @@ CodeRabbit reviews only the tip of a stack.
 A lower pull request with no comments may be unreviewed; check the CodeRabbit check, not the thread count.
 
 DeepSource (`.deepsource.toml`) runs the `go`, `shell`, `secrets`, and `test-coverage` analyzers.
-Coverage comes from the Test job's `cover.profile`, authenticated with OIDC; the CLI comes from the devShell.
+Coverage comes from the `check` job's `cover.profile`, authenticated with OIDC; the CLI comes from the devShell.
 Check a Go style finding against `.golangci.yml` before acting on it.
 
 `main` requires every review thread resolved and no approval.
