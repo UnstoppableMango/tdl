@@ -279,10 +279,7 @@ func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	var members []string
 	var ifaces strings.Builder
 	for _, v := range d.GetEnumeration().GetVariants() {
-		member := name + emit.Pascal(v.GetMeta().GetName())
-		if n, ok := g.Text(v.GetDirectives(), "name"); ok {
-			member = n
-		}
+		member := g.VariantName(v, func(s string) string { return name + emit.Pascal(s) })
 		ifaces.WriteString("\n")
 		if _, err := g.iface(&ifaces, member, v.GetMeta(), disc, v.GetMeta().GetName(), v.GetFields()); err != nil {
 			return nil, err

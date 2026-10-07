@@ -281,10 +281,7 @@ func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	var body strings.Builder
 	seen := map[string]string{}
 	for _, v := range d.GetEnumeration().GetVariants() {
-		member := emit.ScreamingSnake(v.GetMeta().GetName())
-		if n, ok := g.Text(v.GetDirectives(), "name"); ok {
-			member = n
-		}
+		member := g.VariantName(v, emit.ScreamingSnake)
 		if err := claim(seen, name, member, v.GetMeta().GetPosition()); err != nil {
 			return nil, err
 		}
@@ -534,10 +531,7 @@ func fold(name string) string { return strings.ToLower(name) }
 
 // variantShape names the structure a fielded variant of union name emits.
 func (g *generator) variantShape(name string, v *ir.Variant) string {
-	if n, ok := g.Text(v.GetDirectives(), "name"); ok {
-		return n
-	}
-	return name + emit.Pascal(v.GetMeta().GetName())
+	return g.VariantName(v, func(s string) string { return name + emit.Pascal(s) })
 }
 
 // comment writes a node's documentation as Smithy doc comments.
