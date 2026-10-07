@@ -105,6 +105,14 @@ func Name(s string) *ir.Literal {
 	return &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_NAME, Text: s}
 }
 
+// Variant is a bare identifier resolved to the variant at index, as
+// lowering records it.
+func Variant(s string, index int32) *ir.Literal {
+	lit := Name(s)
+	lit.Variant = &ir.ID{Index: index, Name: s}
+	return lit
+}
+
 // Ref is the ID of a declaration, as a class reference and the
 // satisfaction index name one.
 func (b *Builder) Ref(declName string) *ir.ID {
