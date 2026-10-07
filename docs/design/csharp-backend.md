@@ -8,7 +8,7 @@ It is called `csharp` in a target block, ships compiled into `tdl` and as `tdl-g
 
 C# and F# compile to one runtime and share its base class library, its serializer, its attributes, and its interfaces.
 They share nothing else a backend cares about: C# has no type declaration order, no `and` groups, no modules, and no sum types.
-So the two share a .NET layer, `backend/internal/dotnet`, and C# does not build on the ML core.
+So C# does not build on the ML core: it reads the rules every backend shares from `backend/internal/emit`, and shares only what is true of .NET with F#, in `backend/internal/dotnet`.
 [Overlap with F#](#overlap-with-f) says where the line falls and what it changed in [ml-backends.md](ml-backends.md).
 
 Where C# has no reason to differ from [go-backend.md](go-backend.md), the closest in shape, it does not.
@@ -249,7 +249,8 @@ A class with no fields, such as the spec's `Archived`, is an empty marker interf
 An interface is named `I` and the class's name, the .NET convention; `name` overrides it.
 A fielded enum lists the interface on its abstract record, and a newtype on its struct.
 
-What an interface cannot express warns where it was written, and these are F#'s rows, decided once in `backend/internal/dotnet`:
+What an interface cannot express warns where it was written.
+The plan is `emit.PlanInterfaces`, which Go and F# read too; the multi-parameter rows are C#'s own `InterfaceRules`, and F#'s are the same:
 
 | Case | Result |
 | --- | --- |
@@ -297,7 +298,7 @@ The path uses the model's spelling, not the property's, so it reads the same in 
 
 A string's length counts characters by `EnumerateRunes`, as F# does, rather than `Length`, which counts UTF-16 code units.
 `matches` compiles once per namespace with `RegexOptions.ECMAScript`, which makes `\d` and `\w` ASCII as RE2 does, after the backend parses the pattern with Go's `regexp/syntax`, so a pattern RE2 refuses warns rather than throwing when the type loads.
-Both are F#'s rules, and live in `backend/internal/dotnet`.
+The bounds come from `emit.Length` and the RE2 check from `emit.Pattern`, as in every backend; counting runes and choosing `RegexOptions.ECMAScript` are .NET's, in `backend/internal/dotnet` with F#.
 
 A type validates the values it holds at any depth, a newtype checks the set the compiler accumulated down its chain, and a generic type does not check its type arguments' values, all as in Go.
 A record with nothing to check gets none of the methods.
@@ -321,6 +322,7 @@ Without a directive, the output carries no serializer attributes, and `System.Te
 | A fielded enum | `[JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]` and a `[JsonDerivedType(typeof(Payment.Card), "Card")]` per variant |
 | A newtype | `[JsonConverter]` naming a nested converter that writes the bare base value |
 
+The property and the tag come from `emit.Discriminant` and `emit.Tag`, so a variant's tag is its model name whatever `name` says, as in every backend writing JSON.
 So `Payment.Card` is `{"kind": "Card", "last4": "4242"}` and an `Email` is `"a@b.c"`, matching what the `jsonschema` backend's schema for the same model accepts.
 `discriminant("type")`, on an enum or the target block, renames `kind`, as in TypeScript and JSON Schema.
 `System.Text.Json` reads a discriminator only as an object's first property unless the consumer sets `AllowOutOfOrderMetadataProperties`, which is theirs to choose.
@@ -402,9 +404,21 @@ No reverse backend is planned in Go, since reading C# takes Roslyn.
 ## Overlap with F\#
 
 Yes, there is overlap, and all of it is below the language.
-The two targets would share the runtime's types, its attributes, its interfaces, and its regular expressions; they would share nothing about how a declaration is spelled.
+The two targets share the runtime's types, its attributes, and its regular expressions; they share nothing about how a declaration is spelled.
+Some of what they share is not .NET's at all, and every backend reads it from `backend/internal/emit`.
 
-### Shared, in `backend/internal/dotnet`
+### Shared with every backend, in `backend/internal/emit`
+
+| Piece | Read by |
+| --- | --- |
+| `PlanInterfaces`: which classes become interfaces, which declarations implement each, and the refusals | Go, C#, F#, and any target writing a class as a nominal interface |
+| `Discriminant` and `Tag`: the wire convention, names as the model spells them, `kind` unless renamed, internal tagging | TypeScript, JSON Schema, OpenAPI, C# and F# under `json` |
+| `Length`: a `length` constraint's bounds, counted in code points | Every backend that validates |
+| `Pattern`: the RE2 check on a `matches` pattern | Every backend that validates `matches` |
+
+So a C# service and an F# client agree on bytes because both agree with TypeScript and JSON Schema, not because they share a package.
+
+### Shared with F#, in `backend/internal/dotnet`
 
 | Piece | Why both need it |
 | --- | --- |
@@ -412,12 +426,10 @@ The two targets would share the runtime's types, its attributes, its interfaces,
 | The namespace derived from a package | `shop.billing` is `Shop.Billing` in both |
 | `foreign(namespace, type)` and its validation | One directive, one shape, one meaning |
 | `attribute(namespace, name)` | One directive, one shape |
-| The class plan: which instances an interface can carry, and the warning table | Both map a class to an interface, under the same runtime rules |
-| `matches`: the RE2 pre-check and `RegexOptions.ECMAScript` | One engine, one rule for what passes |
-| `length` by runes | One string type |
-| The wire convention under `json`: names as the model spells them, `kind`, internal tagging | So a C# service and an F# client agree on bytes |
-| Suppressing obsolete use inside a generated file | `CS0612` and `CS0618` here, `FS0044` there, for the same reason |
+| `RegexOptions.ECMAScript` for an `emit.Pattern`-checked pattern, and `length` counted with `EnumerateRunes` | One engine, one string type |
+| The `json` directive's argument and what `stj` names | One serializer, written through two libraries |
 
+Suppressing obsolete use inside a generated file, `CS0612` and `CS0618` here and `FS0044` there, is one rule but no code.
 `backend/internal/dotnet` holds decisions, not syntax, the way `backend/internal/emit` does; each printer stays in its own backend.
 Whichever of `csharp` and `fsharp` is built first creates it, and the other imports it.
 
@@ -441,7 +453,7 @@ Whichever of `csharp` and `fsharp` is built first creates it, and the other impo
 
 ### What this changed in ml-backends.md
 
-1. **F# builds on `backend/internal/dotnet`** for the pieces above, beside `backend/internal/ml`.
+1. **F# builds on `backend/internal/dotnet`** for the .NET pieces above, beside `backend/internal/ml`, and reads the class plan and the wire convention from `backend/internal/emit`.
 1. **F# writes `requires` on a type** as `type Envelope<'T when 'T :> Auditable>`, where it had warned.
 1. **F# reads `json("stj")` and `discriminant`.** FSharp.SystemTextJson's default union encoding is an adjacent `Case` and `Fields` pair, so an F# and a C# service generated from one model would have disagreed on every fielded enum. F# now writes the converter with `InternalTag`, `NamedFields`, and `UnionTagName = "kind"`, and the two profiles have one body.
 1. **F# resolves an extern through a `csharp` block** when the dependency has no `fsharp` one. F# consumes C# records and interfaces directly; the reverse needs `FSharp.Core` and reads unions through generated `Is` and `New` members, so `csharp` never reads an `fsharp` block.

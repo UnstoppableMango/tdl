@@ -8,6 +8,7 @@ No phase is done.
 ## Scope
 
 This plan builds `backend/internal/dotnet` and the `csharp` backend.
+The class plan, the wire convention, `Length`, and `Pattern` come from `backend/internal/emit`, which every backend shares.
 It speaks the protocol in [plugins.md](plugins.md) unchanged.
 
 `backend/internal/dotnet` is shared with the `fsharp` target of [ml-backends-plan.md](ml-backends-plan.md).
@@ -16,7 +17,7 @@ Whichever plan reaches its .NET work first creates the package; the other import
 ## Layout
 
 ```text
-backend/internal/dotnet/   # shared with fsharp: primitives, namespaces, foreign, attribute, the class plan, regex, json
+backend/internal/dotnet/   # shared with fsharp: primitives, namespaces, foreign, attribute, the regex engine, json
 backend/csharp/            # package csharp, name "csharp"
 cmd/tdl-gen-csharp/        # the same value served as a subprocess
 ```
@@ -24,7 +25,7 @@ cmd/tdl-gen-csharp/        # the same value served as a subprocess
 ## Testing
 
 The unit tests build `*ir.Model` values with `backend/internal/irtest` and assert on the generated text.
-`backend/internal/dotnet`'s tests assert on decisions, such as which instances an interface carries, so one test covers both targets.
+`backend/internal/dotnet`'s tests assert on decisions, such as a primitive's base class library type, so one test covers both targets.
 No Go library type checks C#, so the tests also run `dotnet build` over every response, in a throwaway project with `Nullable` enabled and warnings as errors, when `dotnet` is on `PATH`.
 `checks.gen-csharp` always does, over `testdata/gen/smoke`, with `dotnet-sdk` from nixpkgs.
 
@@ -52,21 +53,21 @@ Done when a two-package model generated into one project builds, `instant => for
 ## Phase 3: generics and classes
 
 Type parameters, `requires` as a `where` constraint, the higher-kind and unit-kind warnings, and the optional-bare-parameter warning.
-The class plan in `backend/internal/dotnet`: interfaces, which instances an interface can carry, and the warning table; then C#'s interfaces, base lists, and `IProjection<TTo>` for a class with a dependency.
+Classes through `emit.PlanInterfaces`, with C#'s `InterfaceRules` for the multi-parameter rows; then C#'s interfaces, base lists, and `IProjection<TTo>` for a class with a dependency.
 
 Done when every class in the conformance corpus generates or warns and builds, and `Envelope<int>` fails to build in a test where `Envelope<T> requires Auditable<T>`.
 
 ## Phase 4: validation
 
 `Validate`, `ValidateAt`, `Create`, and `TryCreate` for each standard constraint, the content checks reaching through containers at any depth, and the accumulated set on a newtype.
-`length` by runes and `matches` through `RegexOptions.ECMAScript` with the RE2 pre-check, both in `backend/internal/dotnet`.
+`length` from `emit.Length`, counted by runes, and `matches` checked by `emit.Pattern` and compiled with `RegexOptions.ECMAScript` from `backend/internal/dotnet`.
 
 Done when each standard constraint is rejected under `TestValidationRuns`, a string of four emoji passes `length(4)`, and a pattern RE2 refuses warns at generation time.
 
 ## Phase 5: serialization
 
 `json("stj")` and `discriminant`: property names, string enums, polymorphic fielded enums, and newtype converters.
-The wire convention is stated in `backend/internal/dotnet`, where phase 7b of ml-backends-plan.md reads it for `fsharp`.
+The discriminant and tags come from `emit.Discriminant` and `emit.Tag`, which phase 7b of ml-backends-plan.md reads for `fsharp` too.
 
 Done when a test serializes a value of every smoke declaration with `System.Text.Json` and validates the output against the `jsonschema` backend's schema for the smoke model, and deserializes it back to an equal value.
 
