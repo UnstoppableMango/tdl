@@ -1,5 +1,43 @@
 # Changelog
 
+## [0.4.0](https://github.com/UnstoppableMango/tdl/compare/v0.3.5...v0.4.0) (2026-10-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sema:** require a class's fields on every type satisfying it ([#1000](https://github.com/UnstoppableMango/tdl/issues/1000))
+
+### Features
+
+* **sema:** require a class's fields on every type satisfying it ([#1000](https://github.com/UnstoppableMango/tdl/issues/1000)) ([9051053](https://github.com/UnstoppableMango/tdl/commit/90510533cf357306bbda61d2bb45752792ad2ec3))
+
+
+### Bug Fixes
+
+* **sema:** resolve a variant name through an alias or a newtype ([#943](https://github.com/UnstoppableMango/tdl/issues/943)) ([6a0aea6](https://github.com/UnstoppableMango/tdl/commit/6a0aea6ab8060b632d90e0d0a59a448d03d8d441))
+
+
+### Documentation
+
+* design the ML backends ([#1001](https://github.com/UnstoppableMango/tdl/issues/1001)) ([75f5790](https://github.com/UnstoppableMango/tdl/commit/75f579061629f62678fe77f3aa7c97fcda980991))
+
+
+### Code Refactoring
+
+* **emit:** read a variant's name directive through VariantName ([#939](https://github.com/UnstoppableMango/tdl/issues/939)) ([45c6b4d](https://github.com/UnstoppableMango/tdl/commit/45c6b4d370dd8e705f00378f60599a9daef2bc3a))
+
+
+### Tests
+
+* **roundtrip:** a harness running every backend forward and back ([#1002](https://github.com/UnstoppableMango/tdl/issues/1002)) ([4f57f90](https://github.com/UnstoppableMango/tdl/commit/4f57f900f4da4c14efe60b3f2d5a0a75ec49b788))
+
+
+### Dependencies
+
+* update golang.org/x/exp digest to 7677206 ([#1007](https://github.com/UnstoppableMango/tdl/issues/1007)) ([dd86159](https://github.com/UnstoppableMango/tdl/commit/dd86159940f2fd1b20a355c592cf92a6f87e27ca))
+* update module github.com/santhosh-tekuri/jsonschema/v6 to v6.0.3 ([#1008](https://github.com/UnstoppableMango/tdl/issues/1008)) ([024b56e](https://github.com/UnstoppableMango/tdl/commit/024b56e401a025163e4ea0e7525e54aadbcd9dda))
+* update module github.com/vektah/gqlparser/v2 to v2.5.61 ([#1009](https://github.com/UnstoppableMango/tdl/issues/1009)) ([9f0f3e6](https://github.com/UnstoppableMango/tdl/commit/9f0f3e62d315f4db5b53cd2d8cbd0f9de35e6adb))
+
 ## [0.3.5](https://github.com/UnstoppableMango/tdl/compare/v0.3.4...v0.3.5) (2026-10-07)
 
 
