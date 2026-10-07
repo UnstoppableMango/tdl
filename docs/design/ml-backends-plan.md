@@ -94,7 +94,7 @@ Done when the smoke model, the class cases, and a model with derived units load 
 `json("stj")` and `discriminant` through FSharp.SystemTextJson, with the discriminant and tags from `emit.Discriminant` and `emit.Tag`.
 This follows phase 5 of csharp-backend-plan.md, which states the convention.
 
-Done when a test serializes a value of every smoke declaration and validates it against the `jsonschema` backend's schema for the smoke model, and a value C# serialized deserializes in F# to an equal one.
+Done when a test serializes a value of every smoke declaration and validates it against the `jsonschema` backend's schema for the smoke model, a value C# serialized deserializes in F# to an equal one, and a value F# serialized deserializes in C# to an equal one.
 
 ## Phase 8: shipped profiles
 

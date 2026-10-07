@@ -77,6 +77,8 @@ Collections:
 A record's properties are `init`-only, so it promises not to change once built.
 `IReadOnlyList<T>` is a view of a list someone else may still mutate, which would change a record's hash while it sits in a dictionary.
 The immutable interfaces keep the promise, ship with the runtime, and are read and written by `System.Text.Json` on every supported .NET; `IReadOnlySet<T>` is not read until .NET 11.
+`bytes` is the exception: a `byte[]` property is `init`-only, but its contents are not, and generated equality and hashing read them.
+A caller must not change the bytes of a record used as a set element or a map key; [Immutable bytes](#open-questions) asks whether to hold something else.
 
 Optionality is a property's nullability and whether it is `required`:
 
@@ -466,6 +468,7 @@ Whichever of `csharp` and `fsharp` is built first creates it, and the other impo
 - **Project files and NuGet.** A `.csproj` and a `.fsproj` are one concern: a directive naming a package id and version would make a model a NuGet package, and Nix's `buildDotnetModule` would build it. Deferred in both, as in ml-backends-plan.md.
 - **Instances across packages.** Two packages generated into one assembly could carry an instance for another package's type as a `partial` declaration in that type's namespace. The backend cannot know two outputs share an assembly, so it warns today.
 - **Entity equality.** A record compares every field, which is a value's equality; an entity with a `key` could compare its key alone, which is what identity means, at the cost of surprising anyone comparing two versions of one order.
+- **Immutable bytes.** `ImmutableArray<byte>` or `ReadOnlyMemory<byte>` would keep a record's promise for `bytes` too, at the cost of a conversion wherever an API takes a `byte[]`.
 - **Values as structs.** A `struct` directive could make a small value a `readonly record struct`, which saves an allocation and makes `default` a valid, empty value.
 - **DataAnnotations.** Implementing `IValidatableObject` would let ASP.NET call `Validate` during model binding. The attributes, `[Range]` and `[StringLength]`, count UTF-16 code units and carry no path, so they cannot replace the methods.
 - **Source generation.** Under `json("stj")`, a `JsonSerializerContext` naming every type would make the model trimmable and AOT-safe. A Roslyn incremental generator reading `.tdl` files would remove the checked-in output entirely, at the cost of the hermetic Nix workflow.
