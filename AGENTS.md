@@ -145,6 +145,7 @@ The plugin protocol in `docs/design/plugins.md` is complete.
 ### Backends
 
 `backend/internal/emit` holds what every generator shares: which declarations belong to the model, reading one target's directives, positioned warnings, case helpers, `Numbers` for field numbering, `Cascade` (skip every declaration naming a skipped one), and `Resolve`, which expands a type reference to the prelude shape or declaration it names.
+It also holds the rules more than one target reads: the JSON wire convention (`Discriminant`, `Tag`), `Length` and `Pattern` for the `length` and `matches` constraints, and `PlanInterfaces`, the class plan for a target that writes a class as a nominal interface.
 `Resolve` refuses type parameters and arguments, since only Go generates generics.
 `backend/internal/irtest` builds `*ir.Model` values for backend tests, seeded with the prelude and the `Entity` class.
 

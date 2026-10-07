@@ -76,13 +76,8 @@ func init() {
 
 var ident = regexp.MustCompile(`^[A-Za-z_$][A-Za-z0-9_$]*$`)
 
-const defaultDiscriminant = "kind"
-
 type generator struct {
 	*emit.Session
-
-	// discriminant is the target block's default.
-	discriminant string
 
 	// names maps each declared type name to the declaration declaring it.
 	names map[string]string
@@ -91,12 +86,8 @@ type generator struct {
 // Generate returns one .ts file holding the model's declarations.
 func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Response, error) {
 	g := &generator{
-		Session:      emit.NewSession(req, "TypeScript"),
-		discriminant: defaultDiscriminant,
-		names:        map[string]string{},
-	}
-	if d, ok := g.Block("discriminant"); ok {
-		g.discriminant = d.GetArgs()[0].GetText()
+		Session: emit.NewSession(req, "TypeScript"),
+		names:   map[string]string{},
 	}
 
 	own := g.Own()
@@ -270,10 +261,7 @@ func (g *generator) literals(b *strings.Builder, d *ir.Decl) []string {
 // interface per variant, each with the discriminant set to its name.
 func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	name := g.DeclName(d, emit.Pascal)
-	disc := g.discriminant
-	if s, ok := g.Text(d.GetDirectives(), "discriminant"); ok {
-		disc = s
-	}
+	disc := g.Discriminant(d)
 
 	declared := []string{name}
 	var members []string
@@ -284,7 +272,7 @@ func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, error) {
 			member = n
 		}
 		ifaces.WriteString("\n")
-		if _, err := g.iface(&ifaces, member, v.GetMeta(), disc, v.GetMeta().GetName(), v.GetFields()); err != nil {
+		if _, err := g.iface(&ifaces, member, v.GetMeta(), disc, emit.Tag(v), v.GetFields()); err != nil {
 			return nil, err
 		}
 		members = append(members, member)

@@ -64,6 +64,8 @@ type generator struct {
 	// parameters Go needs to be comparable.
 	needsComparable map[int32][]bool
 
+	// classes is the shared class plan.
+	classes *emit.InterfacePlan
 	// genClass holds the classes generated as interfaces; marks holds the
 	// classes whose marker each declaration carries. Both are by index.
 	genClass map[int32]bool

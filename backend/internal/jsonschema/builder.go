@@ -110,17 +110,11 @@ var scalars = map[string]scalar{
 // pointer inside a URI fragment, where anything else needs escaping.
 var defName = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_.-]*$`)
 
-// DefaultDiscriminant is the property a fielded enum's variants carry when
-// no directive names one.
-const DefaultDiscriminant = "kind"
-
 // Builder turns declarations into definitions in one dialect.
 type Builder struct {
 	*emit.Session
 	Dialect Dialect
 
-	// Discriminant is the target block's default.
-	Discriminant string
 	// Closed is whether the target block closes every object.
 	Closed bool
 
@@ -128,13 +122,9 @@ type Builder struct {
 	names map[string]string
 }
 
-// New returns a builder reading the target block's `discriminant` and
-// `closed` directives.
+// New returns a builder reading the target block's `closed` directive.
 func New(s *emit.Session, d Dialect) *Builder {
-	b := &Builder{Session: s, Dialect: d, Discriminant: DefaultDiscriminant, names: map[string]string{}}
-	if d, ok := b.Block("discriminant"); ok {
-		b.Discriminant = d.GetArgs()[0].GetText()
-	}
+	b := &Builder{Session: s, Dialect: d, names: map[string]string{}}
 	b.Closed = b.BlockTagged("closed")
 	return b
 }
@@ -332,10 +322,7 @@ func (b *Builder) union(s *Object, d *ir.Decl, name string) ([]def, error) {
 		return nil, emit.Unsupported(d.GetMeta().GetPosition(),
 			"%s has variants carrying fields, and %s has no oneOf to write them with", owner, b.Dialect.Name)
 	}
-	disc := b.Discriminant
-	if t, ok := b.Text(d.GetDirectives(), "discriminant"); ok {
-		disc = t
-	}
+	disc := b.Discriminant(d)
 	closed := b.Closed || b.Tagged(d.GetDirectives(), "closed")
 
 	var members []any
@@ -343,7 +330,7 @@ func (b *Builder) union(s *Object, d *ir.Decl, name string) ([]def, error) {
 	mapping := NewObject()
 	taken := map[string]bool{name: true}
 	for _, v := range d.GetEnumeration().GetVariants() {
-		tag := v.GetMeta().GetName()
+		tag := emit.Tag(v)
 		m := NewObject()
 		if b.Dialect.Unions == UnionsInline {
 			m.Set("title", tag)

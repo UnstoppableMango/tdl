@@ -3,7 +3,6 @@ package golang
 import (
 	"errors"
 	"fmt"
-	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -507,14 +506,14 @@ func (g *generator) constraintCheck(w *checkWriter, c *ir.Constraint, expr strin
 		if v.shape != shapeString {
 			return refuse("it matches a string, and this is %s", v.describe())
 		}
-		if len(args) != 1 || args[0].GetKind() != ir.LiteralKind_LITERAL_KIND_REGEX {
+		if len(args) != 1 {
 			return refuse("it takes one pattern")
 		}
 		// A pattern Go's regexp refuses would panic when the package loads.
-		pat := args[0].GetText()
-		if _, err := regexp.Compile(pat); err != nil {
-			return refuse("Go's regexp refuses the pattern: %v", err)
+		if _, err := emit.Pattern(args[0]); err != nil {
+			return refuse("%v", err)
 		}
+		pat := args[0].GetText()
 		name := w.pattern(pat)
 		w.line("if !%s.MatchString(%s) {", name, str)
 		w.errorf(p, text, "no match")
@@ -643,32 +642,19 @@ func number(l *ir.Literal) (string, bool, error) {
 
 // lengthCond is the condition that a count breaks a length.
 func lengthCond(l *ir.Literal, cv string) (string, error) {
-	switch l.GetKind() {
-	case ir.LiteralKind_LITERAL_KIND_INT:
-		n, err := strconv.ParseInt(l.GetText(), 0, 64)
-		if err != nil {
-			return "", fmt.Errorf("%s does not fit in an int64", l.GetText())
-		}
-		return fmt.Sprintf("%s != %d", cv, n), nil
-	case ir.LiteralKind_LITERAL_KIND_RANGE:
-		r := l.GetRange()
-		var low, high *int64
-		if r != nil {
-			low, high = r.Low, r.High
-		}
-		switch {
-		case low == nil && high == nil:
-			return "", errors.New("a range with neither end constrains nothing")
-		case low != nil && high != nil && *low > *high:
-			return "", fmt.Errorf("%d..%d can never hold", *low, *high)
-		case low == nil:
-			return fmt.Sprintf("%s > %d", cv, *high), nil
-		case high == nil:
-			return fmt.Sprintf("%s < %d", cv, *low), nil
-		}
-		return fmt.Sprintf("%s < %d || %s > %d", cv, *low, cv, *high), nil
+	low, high, err := emit.Length(l)
+	if err != nil {
+		return "", err
 	}
-	return "", fmt.Errorf("its length is %s", ir.KindName(l.GetKind()))
+	switch {
+	case low != nil && high != nil && *low == *high:
+		return fmt.Sprintf("%s != %d", cv, *low), nil
+	case low == nil:
+		return fmt.Sprintf("%s > %d", cv, *high), nil
+	case high == nil:
+		return fmt.Sprintf("%s < %d", cv, *low), nil
+	}
+	return fmt.Sprintf("%s < %d || %s > %d", cv, *low, cv, *high), nil
 }
 
 // visit writes the calls validating what a value holds: the value itself,
