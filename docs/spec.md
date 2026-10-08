@@ -239,6 +239,7 @@ Contracts and reuse are separate mechanisms: a class says what a type must provi
 ### Classes
 
 A class is a contract and declares nothing into the types that satisfy it.
+A class is not a type, so naming one where a type belongs, as a field's type or a type argument, is an error.
 
 ```tdl
 class Auditable {

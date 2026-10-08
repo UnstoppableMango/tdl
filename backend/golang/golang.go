@@ -194,6 +194,7 @@ func (g *generator) source(pkg, path string, pos *ir.Position, pieces ...*piece)
 
 // piece renders one declaration, or nil for one that generates nothing.
 func (g *generator) piece(decl *ir.Decl) (*piece, error) {
+	g.strayTags(decl)
 	if _, ok := g.foreign[decl]; ok {
 		return nil, nil
 	}
@@ -231,6 +232,24 @@ func (g *generator) piece(decl *ir.Decl) (*piece, error) {
 	}
 
 	return &piece{decl: decl, body: body.String(), imports: g.imports}, nil
+}
+
+// strayTags warns at a `tag` on a declaration or a variant, which has no
+// struct tag to set. It is easy to write by accident: in `f => name("F")
+// tag("...")`, only the first directive belongs to f.
+func (g *generator) strayTags(decl *ir.Decl) {
+	stray := func(ds []*ir.Directive, name, kind string) {
+		if d, ok := g.Find(ds, "tag"); ok {
+			g.Warn(emit.Unsupported(d.GetPosition(),
+				"tag sets a field's struct tag, and %s is a %s, so it is ignored; a field takes several directives in a block, as in f { name(...) tag(...) }",
+				name, kind))
+		}
+	}
+	name := decl.GetMeta().GetName()
+	stray(decl.GetDirectives(), name, "declaration")
+	for _, v := range decl.GetEnumeration().GetVariants() {
+		stray(v.GetDirectives(), name+"."+v.GetMeta().GetName(), "variant")
+	}
 }
 
 // structure renders an entity, a value, or a mixin. All three emit the same

@@ -154,10 +154,15 @@ func (p *parser) parseFile() *ast.File {
 			file.Decls = append(file.Decls, p.parseTargetDecl(head))
 		case lex.PACKAGE:
 			pkg := p.parsePackageDecl(head)
-			if file.Package == nil && len(file.Imports) == 0 && len(file.Decls) == 0 && head.Dep == nil {
-				file.Package = pkg
-			} else {
+			switch {
+			case file.Package != nil:
 				p.errs.add(pkg.P, "unexpected second 'package' declaration")
+			case head.Dep != nil:
+				p.errs.add(pkg.P, "a 'package' declaration cannot be deprecated")
+			case len(file.Imports) > 0 || len(file.Decls) > 0:
+				p.errs.add(pkg.P, "'package' must come before imports and declarations")
+			default:
+				file.Package = pkg
 			}
 		case lex.EOF:
 			p.errs.add(p.cur.Pos, "doc comment at end of file, attached to nothing")

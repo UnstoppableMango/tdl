@@ -44,8 +44,8 @@ type NumberRule struct {
 // Numbers assigns each member its wire number. A `number` directive pins a
 // member's number; each unpinned member, in declaration order, takes the
 // lowest number from 1 that no pin or earlier member holds and the rule does
-// not reserve or skip. A number the rule refuses, or two pins sharing one,
-// is an [UnsupportedError].
+// not reserve or skip. A pin the rule refuses, or two pins sharing one, is
+// an [InvalidError]; running out of numbers is an [UnsupportedError].
 func (s *Session) Numbers(owner string, members []Member, rule NumberRule) ([]int64, error) {
 	nums := make([]int64, len(members))
 	by := map[int64]string{}
@@ -59,13 +59,13 @@ func (s *Session) Numbers(owner string, members []Member, rule NumberRule) ([]in
 		pos := d.GetPosition()
 		n, err := strconv.ParseInt(arg.GetText(), 0, 64)
 		if arg.GetKind() != ir.LiteralKind_LITERAL_KIND_INT || err != nil {
-			return nil, Unsupported(pos, "%s.%s is numbered %q, and a number is an integer", owner, m.Name, arg.GetText())
+			return nil, Invalid(pos, "%s.%s is numbered %q, and a number is an integer", owner, m.Name, arg.GetText())
 		}
-		if err := s.checkNumber(owner, m.Name, n, pos, rule); err != nil {
+		if err := s.checkNumber(owner, m.Name, n, pos, rule, Invalid); err != nil {
 			return nil, err
 		}
 		if other, ok := by[n]; ok {
-			return nil, Unsupported(pos, "%s.%s and %s.%s are both numbered %d", owner, other, owner, m.Name, n)
+			return nil, Invalid(pos, "%s.%s and %s.%s are both numbered %d", owner, other, owner, m.Name, n)
 		}
 		by[n] = m.Name
 		nums[i] = n
@@ -82,7 +82,7 @@ func (s *Session) Numbers(owner string, members []Member, rule NumberRule) ([]in
 		for taken(next) {
 			next++
 		}
-		if err := s.checkNumber(owner, m.Name, next, m.Position, rule); err != nil {
+		if err := s.checkNumber(owner, m.Name, next, m.Position, rule, Unsupported); err != nil {
 			return nil, err
 		}
 		by[next] = m.Name
@@ -91,12 +91,13 @@ func (s *Session) Numbers(owner string, members []Member, rule NumberRule) ([]in
 	return nums, nil
 }
 
-func (s *Session) checkNumber(owner, name string, n int64, pos *ir.Position, rule NumberRule) error {
+// checkNumber refuses a number the rule does not allow, through report.
+func (s *Session) checkNumber(owner, name string, n int64, pos *ir.Position, rule NumberRule, report func(*ir.Position, string, ...any) error) error {
 	if n < 1 || n > rule.Max {
-		return Unsupported(pos, "%s.%s is numbered %d, and %s numbers run from 1 to %d", owner, name, n, s.Lang, rule.Max)
+		return report(pos, "%s.%s is numbered %d, and %s numbers run from 1 to %d", owner, name, n, s.Lang, rule.Max)
 	}
 	if r := reserved(n, rule); r != nil {
-		return Unsupported(pos, "%s.%s is numbered %d, which %s reserves (%d to %d)", owner, name, n, s.Lang, r[0], r[1])
+		return report(pos, "%s.%s is numbered %d, which %s reserves (%d to %d)", owner, name, n, s.Lang, r[0], r[1])
 	}
 	return nil
 }

@@ -285,6 +285,7 @@ The backend understands five and declares all five in its handshake, so the comp
   On a variant it replaces the whole identifier, enum prefix included, and a constant's value stays the variant's TDL name.
 - `tag("json:\"email_address\"")`, on a field.
   Emitted verbatim as the struct tag; a struct tag is an open convention, so the backend does not parse it.
+  On a declaration or a variant it has nothing to set, so it warns at the directive.
 - `key(order, sku)`, on an entity.
   The fields identifying it, as bare names, generating the `Key()` method under [Structs](#structs).
   The handshake declares any number of arguments and no kinds, since `arg_kinds` constrains by position; the backend checks that each is a name.

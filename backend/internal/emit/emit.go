@@ -142,8 +142,24 @@ func Unsupported(pos *ir.Position, format string, args ...any) error {
 	return &UnsupportedError{What: fmt.Sprintf(format, args...), Position: pos}
 }
 
+// InvalidError reports a directive the user got wrong, such as two fields
+// pinned to one number. Unlike an [UnsupportedError], it reaches the user as
+// an error, so the host writes nothing.
+type InvalidError struct {
+	What     string
+	Position *ir.Position
+}
+
+func (e *InvalidError) Error() string { return e.What }
+
+// Invalid returns an [InvalidError] at a position.
+func Invalid(pos *ir.Position, format string, args ...any) error {
+	return &InvalidError{What: fmt.Sprintf(format, args...), Position: pos}
+}
+
 // Warn reports something the backend cannot handle as a warning, with a
-// position when err is an [UnsupportedError].
+// position when err is an [UnsupportedError]. An [InvalidError] is reported
+// as an error instead.
 func (s *Session) Warn(err error) {
 	d := &plugin.Diagnostic{
 		Severity: plugin.Severity_SEVERITY_WARNING,
@@ -151,6 +167,10 @@ func (s *Session) Warn(err error) {
 	}
 	if u, ok := errors.AsType[*UnsupportedError](err); ok {
 		d.Position = u.Position
+	}
+	if v, ok := errors.AsType[*InvalidError](err); ok {
+		d.Severity = plugin.Severity_SEVERITY_ERROR
+		d.Position = v.Position
 	}
 	s.Diags = append(s.Diags, d)
 }

@@ -60,6 +60,8 @@ func (d *Decl) Params() []*Param {
 		return d.GetStructure().GetParams()
 	case d.GetEnumeration() != nil:
 		return d.GetEnumeration().GetParams()
+	case d.GetClass() != nil:
+		return d.GetClass().GetParams()
 	}
 	return nil
 }
@@ -74,6 +76,8 @@ func (d *Decl) Constraints() []*ClassRef {
 		return d.GetStructure().GetConstraints()
 	case d.GetEnumeration() != nil:
 		return d.GetEnumeration().GetConstraints()
+	case d.GetClass() != nil:
+		return d.GetClass().GetConstraints()
 	}
 	return nil
 }
