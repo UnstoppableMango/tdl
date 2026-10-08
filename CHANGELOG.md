@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.4.1](https://github.com/UnstoppableMango/tdl/compare/v0.4.0...v0.4.1) (2026-10-08)
+
+
+### Bug Fixes
+
+* **go:** a decimal warning no longer says foreign types are unbuilt ([#936](https://github.com/UnstoppableMango/tdl/issues/936)) ([1b11e6f](https://github.com/UnstoppableMango/tdl/commit/1b11e6fbc28f71cd4a8c20bffb6a6b0c61e3e420))
+
+
+### Documentation
+
+* design a C# backend ([#1003](https://github.com/UnstoppableMango/tdl/issues/1003)) ([874584e](https://github.com/UnstoppableMango/tdl/commit/874584eb4e3f5d62161e8cafbfbf668585b51653))
+* design a java backend ([#1005](https://github.com/UnstoppableMango/tdl/issues/1005)) ([0a366ac](https://github.com/UnstoppableMango/tdl/commit/0a366ac8eca709dd524bceee9be6c90662c8a185))
+
+
+### Code Refactoring
+
+* **emit:** share the wire convention, length, pattern, and class plan ([#1006](https://github.com/UnstoppableMango/tdl/issues/1006)) ([cf4ef4e](https://github.com/UnstoppableMango/tdl/commit/cf4ef4e0673e7dc9c0ef336b756db4ec8bda4fdb))
+* **go:** read a oneOf argument's resolved variant ([#944](https://github.com/UnstoppableMango/tdl/issues/944)) ([cda2093](https://github.com/UnstoppableMango/tdl/commit/cda20936a92501407bf030b26fa67fb417cb2fb5))
+
+
+### Dependencies
+
+* update golang.org/x/exp digest to f45ad48 ([#1014](https://github.com/UnstoppableMango/tdl/issues/1014)) ([10f5163](https://github.com/UnstoppableMango/tdl/commit/10f5163200957d236b6e2e40e8d17aa8be7d69e2))
+
 ## [0.4.0](https://github.com/UnstoppableMango/tdl/compare/v0.3.5...v0.4.0) (2026-10-07)
 
 
