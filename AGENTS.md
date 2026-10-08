@@ -82,6 +82,8 @@ Each check is one invocation over all files.
 `gen.files` is separate and empty by default, because `tdl gen` fails on a file with no target block.
 It is exported as `flakeModules.default` with a `tdl` alias.
 `checks.flake-module` evaluates a consumer flake against `testdata/conformance/entity` and builds the result, without `tdl-gen`, which needs generated output on disk.
+`nix/default.nix` also imports the module itself, so `models/` gets `checks.tdl-check`, `tdl-fmt`, and `tdl-gen` the way a consumer's model would.
+`checks.models-types` holds the TypeScript generated from `models/` to DefinitelyTyped's declarations; see `models/README.md`.
 
 ## Architecture
 
@@ -241,6 +243,7 @@ A file named `-` is standard input, shown as `<stdin>` in positions.
 `gen` and `import` both drop warnings whose loss code `tdl.toml` or `--allow-lossy` allows, and print a code after the message.
 
 `examples/` holds files to experiment with and is outside the conformance corpus.
+`models/` holds TDL descriptions of other projects' schemas (unist, mdast, hast), with the Go and TypeScript they generate committed beside them; regenerate after changing one.
 
 ## Language server
 
@@ -330,7 +333,7 @@ After regenerating the grammar, reinstall and reload the window.
 Both are plain text so other implementations can run them, and `parser/conformance_test.go` walks them, so adding a directory adds a case.
 A case holding a `pending` file is skipped with its text as the reason; the phase implementing the construct deletes it.
 
-Every `.tdl` file in `testdata/conformance/`, `testdata/gen/`, `prelude/`, and `examples/` is canonical: `tdl fmt <file>` prints it back byte for byte (`TestCorpusIsCanonical`).
+Every `.tdl` file in `testdata/conformance/`, `testdata/gen/`, `prelude/`, `examples/`, and `models/` is canonical: `tdl fmt <file>` prints it back byte for byte (`TestCorpusIsCanonical`).
 `tdl fmt` is idempotent.
 At the top level, a blank line between comment groups, or between a comment and the following declaration, survives formatting.
 Inside a body, the formatter owns blank lines.

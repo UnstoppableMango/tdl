@@ -1,0 +1,51 @@
+// unist, the universal syntax tree: the node shape every unified tree
+// shares. https://github.com/syntax-tree/unist
+//
+// unist's Parent and Literal are not declared here. Each tree spells out
+// its own children and value, since a mixin cannot say what a child is
+// and unist's own Literal holds any JSON value.
+//
+// mdast.tdl and hast.tdl repeat Point, Position, and Data rather than
+// import them, because the go and typescript backends do not generate a
+// type from another package yet.
+/// The universal syntax tree.
+package unist
+
+/// One place in a source file.
+type Point {
+  /// The 1-indexed line.
+  line: int where { min(1) }
+  /// The 1-indexed column.
+  column: int where { min(1) }
+  /// The 0-indexed offset into the file.
+  offset: int? where { min(0) }
+}
+
+/// The span of a node in its source file. A generated node has none.
+type Position {
+  /// The place of the first character of the node.
+  start: Point
+  /// The place after the last character of the node.
+  end: Point
+}
+
+/// Information from the ecosystem. It is empty here, and a plugin
+/// extends it.
+type Data { }
+
+/// The fields every node carries besides its `type`.
+mixin Node {
+  /// Information from the ecosystem.
+  data: Data?
+  /// Where the node came from. Absent when it was generated.
+  position: Position?
+}
+
+target go for unist {
+  out(".")
+  package("github.com/unstoppablemango/tdl/models/unist")
+}
+
+target typescript for unist {
+  out("ts")
+}

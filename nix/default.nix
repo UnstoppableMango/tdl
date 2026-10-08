@@ -12,6 +12,10 @@ let
   };
 in
 {
+  # The repository is its own consumer: models/ is checked the way a project
+  # importing the module checks its own.
+  imports = [ ./flake-module.nix ];
+
   flake = {
     overlays.default = overlay;
 
@@ -164,6 +168,42 @@ in
             find out -name '*.xml' -exec xmllint --noout {} +
             touch $out
           '';
+
+      # models/ holds TDL descriptions of other projects' schemas, with the
+      # code they generate committed beside them.
+      tdl = {
+        enable = true;
+        src = ../models;
+        files = [
+          "unist/unist.tdl"
+          "mdast/mdast.tdl"
+          "hast/hast.tdl"
+        ];
+        gen.files = [
+          "unist/unist.tdl"
+          "mdast/mdast.tdl"
+          "hast/hast.tdl"
+        ];
+        devShell.enable = false;
+      };
+
+      # Holds the TypeScript generated from models/ to DefinitelyTyped's
+      # declarations for the same trees; see models/check/check.ts.
+      checks.models-types =
+        let
+          nodeModules = pkgs.importNpmLock.buildNodeModules {
+            npmRoot = ../models/check;
+            inherit (pkgs) nodejs;
+          };
+        in
+        pkgs.runCommand "tdl-models-types" { nativeBuildInputs = [ pkgs.nodejs ]; } ''
+          cp -r ${../models} models
+          chmod -R u+w models
+          ln -s ${nodeModules}/node_modules models/check/node_modules
+          cd models/check
+          npm run check
+          touch $out
+        '';
 
       # Evaluates a consumer flake that imports flake-module.nix and builds
       # its outputs. tdl-gen is left out: --verify compares against generated

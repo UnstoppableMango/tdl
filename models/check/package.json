@@ -1,0 +1,16 @@
+{
+	"name": "tdl-models-check",
+	"private": true,
+	"description": "Checks the generated unist, mdast, and hast TypeScript against DefinitelyTyped's declarations",
+	"license": "MIT",
+	"type": "module",
+	"scripts": {
+		"check": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@types/hast": "^3.0.4",
+		"@types/mdast": "^4.0.4",
+		"@types/unist": "^3.0.3",
+		"typescript": "^7.0.2"
+	}
+}
