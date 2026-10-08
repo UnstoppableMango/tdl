@@ -4,7 +4,7 @@
 	"description": "Language support for the Type Description Language: highlighting, and diagnostics, hover, go to definition, formatting, and an outline from tdl lsp",
 	"version": "0.4.1",
 	"publisher": "unstoppablemango",
-	"license": "GPL-3.0-or-later",
+	"license": "MIT",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/UnstoppableMango/tdl.git"
