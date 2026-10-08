@@ -57,6 +57,22 @@ type Money { units: int }
 	}
 }
 
+func TestMisplacedPackage(t *testing.T) {
+	cases := []struct{ name, src, want string }{
+		{"second", "package p\npackage q\n", "unexpected second 'package' declaration"},
+		{"deprecated", "deprecated package p\n", "'package' declaration cannot be deprecated"},
+		{"after import", "import \"other.tdl\" as other\npackage p\n", "'package' must come before imports and declarations"},
+		{"after decl", "type T { }\npackage p\n", "'package' must come before imports and declarations"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := parseErr(t, c.src); !strings.Contains(got, c.want) {
+				t.Errorf("error = %q, want it to contain %q", got, c.want)
+			}
+		})
+	}
+}
+
 func TestTargetPackageKeywordSegment(t *testing.T) {
 	file := parse(t, `target protobuf for google.type { }`)
 
