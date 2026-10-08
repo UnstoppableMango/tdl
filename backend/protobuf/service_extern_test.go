@@ -41,8 +41,8 @@ target protobuf for acme.widgets.v1 {
 	}
 
 	resp := generateIR(t, model)
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 	}
 	out := compile(t, resp)
 	contains(t, out,

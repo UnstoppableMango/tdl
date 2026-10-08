@@ -1,0 +1,16 @@
+package shop
+
+type Event {
+  payload: Any
+  extra: Struct
+}
+
+type Any { }
+type Struct { }
+
+target protobuf for shop {
+  file("types.proto")
+  import("google/protobuf/empty.proto")
+  Any => foreign("google/protobuf/any.proto", "google.protobuf.Any")
+  Struct => foreign("google/protobuf/struct.proto", "google.protobuf.Struct")
+}

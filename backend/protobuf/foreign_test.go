@@ -37,8 +37,8 @@ func TestForeignMessageIsImported(t *testing.T) {
 	b.Own(value("Widget", irtest.Field("conditions", b.Named("List", b.Named("Condition")))))
 
 	resp := generate(t, b)
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 	}
 	src := compileWith(t, resp, map[string]string{metaV1File: metaV1Stub})
 	contains(t, src,
@@ -60,8 +60,8 @@ func TestForeignExternIsImported(t *testing.T) {
 	b.Own(value("Widget", irtest.Field("conditions", b.Named("List", condition))))
 
 	resp := generate(t, b)
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 	}
 	src := compileWith(t, resp, map[string]string{metaV1File: metaV1Stub})
 	contains(t, src,
@@ -78,7 +78,7 @@ func TestUnmappedExternIsSkipped(t *testing.T) {
 		b.Named("List", b.ExternIn("k8s.io.apimachinery.pkg.apis.meta.v1", "Condition")))))
 
 	resp := generate(t, b)
-	diags := resp.GetDiagnostics()
+	diags := uncoded(resp.GetDiagnostics())
 	if len(diags) != 1 {
 		t.Fatalf("diagnostics = %+v, want one warning", diags)
 	}
@@ -110,7 +110,7 @@ func TestNewtypeOverUnmappedExternIsSkipped(t *testing.T) {
 	b.Own(value("Widget", irtest.Field("condition", at(b, b.Named("Cond"), 9))))
 
 	resp := generate(t, b)
-	diags := resp.GetDiagnostics()
+	diags := uncoded(resp.GetDiagnostics())
 	if len(diags) != 1 {
 		t.Fatalf("diagnostics = %+v, want one warning", diags)
 	}
@@ -133,8 +133,8 @@ func TestNewtypeOverForeignExternIsImported(t *testing.T) {
 	b.Own(value("Widget", irtest.Field("condition", b.Named("Cond"))))
 
 	resp := generate(t, b)
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 	}
 	src := compileWith(t, resp, map[string]string{metaV1File: metaV1Stub})
 	contains(t, src,

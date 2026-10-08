@@ -110,3 +110,37 @@ func reserved(n int64, rule NumberRule) *[2]int64 {
 	}
 	return nil
 }
+
+// Pins is which members need a `number` directive for [Session.Numbers] to
+// assign them nums, the numbers a schema already gives them: the fewest,
+// found by pinning the first member allocation gets wrong until none is.
+// A number the rule refuses is pinned, and [Session.Numbers] refuses it.
+func Pins(nums []int64, rule NumberRule) []bool {
+	pinned := make([]bool, len(nums))
+	for {
+		by := map[int64]bool{}
+		for i, n := range nums {
+			if pinned[i] {
+				by[n] = true
+			}
+		}
+		next, wrong := int64(1), -1
+		for i, n := range nums {
+			if pinned[i] {
+				continue
+			}
+			for by[next] || rule.Skip[next] || reserved(next, rule) != nil {
+				next++
+			}
+			if next != n {
+				wrong = i
+				break
+			}
+			by[next] = true
+		}
+		if wrong < 0 {
+			return pinned
+		}
+		pinned[wrong] = true
+	}
+}

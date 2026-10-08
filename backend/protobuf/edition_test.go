@@ -29,8 +29,8 @@ func TestEditionDirective(t *testing.T) {
 	}
 
 	resp := generate(t, b)
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 	}
 	src := compile(t, resp)
 	contains(t, src, `edition = "2023";`, "message Note { string body = 1; }")
@@ -59,8 +59,8 @@ func TestEditionOptionalIsBare(t *testing.T) {
 			}}
 
 			resp := generate(t, b)
-			if len(resp.GetDiagnostics()) != 0 {
-				t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+			if len(uncoded(resp.GetDiagnostics())) != 0 {
+				t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 			}
 			src := compile(t, resp)
 			contains(t, src,
@@ -100,8 +100,8 @@ func TestEditionValues(t *testing.T) {
 			resp := generate(t, b)
 
 			if c.header != "" {
-				if len(resp.GetDiagnostics()) != 0 {
-					t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+				if len(uncoded(resp.GetDiagnostics())) != 0 {
+					t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 				}
 				contains(t, compile(t, resp), c.header)
 				return
@@ -110,7 +110,7 @@ func TestEditionValues(t *testing.T) {
 			if len(resp.GetFiles()) != 0 {
 				t.Errorf("files = %d, want none", len(resp.GetFiles()))
 			}
-			diags := resp.GetDiagnostics()
+			diags := uncoded(resp.GetDiagnostics())
 			if len(diags) != 1 {
 				t.Fatalf("diagnostics = %+v, want one error", diags)
 			}
@@ -144,8 +144,8 @@ func TestEditionInEveryFile(t *testing.T) {
 	}}
 
 	resp := generate(t, b)
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 	}
 	files := compileAll(t, resp)
 	if len(files) != 2 {

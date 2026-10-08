@@ -1,0 +1,61 @@
+// A schema written by hand, in the layout buf expects.
+syntax = "proto3";
+
+// Orders and what is in them.
+package shop.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "example.com/shop/v1;shopv1";
+option java_multiple_files = true;
+
+// The state an order is in.
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;
+  ORDER_STATUS_PLACED = 1;
+  ORDER_STATUS_SHIPPED = 2;
+  // Deprecated: orders are no longer held
+  ORDER_STATUS_HELD = 5 [deprecated = true];
+  CANCELLED = 6;
+}
+
+// An order a customer placed.
+//
+// It is never deleted.
+message Order {
+  reserved 4, 8 to 9;
+  reserved "legacy";
+
+  string id = 1;
+  repeated LineItem items = 2;
+  map<string, int64> counts = 3;
+  optional string note = 5;
+  google.protobuf.Timestamp placed_at = 6;
+  OrderStatus status = 7;
+  oneof contact {
+    string email = 10;
+    string phone = 11 [deprecated = true];
+  }
+  string customerRef = 12 [json_name = "customer"];
+  int32 HTTPCode = 20;
+}
+
+message LineItem {
+  string sku = 1;
+  uint32 quantity = 2;
+  double price = 3;
+  bytes thumbnail = 4; // a small image
+}
+
+// How an order was paid.
+message Payment {
+  // Paid by card.
+  message Card {
+    string last4 = 1;
+  }
+  message Cash {}
+  oneof variant {
+    Card card = 1;
+    Cash cash = 3 [deprecated = true];
+  }
+}

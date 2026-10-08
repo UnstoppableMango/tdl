@@ -1,0 +1,40 @@
+// What protobuf loses, one fact at a time. Each is a warning without
+// annotations and comes back with them.
+package shop
+
+/// An identifier.
+type OrderId: uuid where { length(36) }
+
+alias Labels = {string}
+
+class Audited {
+  createdAt: instant
+}
+
+mixin Stamped {
+  createdAt: instant
+}
+
+unit kg
+
+type Parcel: Entity, Audited {
+  id: OrderId
+  include Stamped
+  count: int
+  labels: Labels
+  uniques: {string}
+  note: string | null
+  weight: decimal<kg>
+  parts: List<string>
+  owner: Parcel? owned
+  retries: int32 = 3
+  byKey: Map<string, int64>
+}
+
+type Box<T> {
+  item: T
+}
+
+type Crate {
+  box: Box<string>
+}

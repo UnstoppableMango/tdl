@@ -1,0 +1,17 @@
+// A oneof directive inlines an enum, which is not emitted, so its name and
+// its variants' names are made up again on import.
+package shop
+
+/// Who started it.
+enum Actor {
+  User { userId: string }
+  System { process: string }
+}
+
+type Trigger {
+  actor: Actor
+}
+
+target protobuf for shop {
+  Trigger.actor => oneof
+}

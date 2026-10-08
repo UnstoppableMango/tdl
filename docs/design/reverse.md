@@ -82,7 +82,7 @@ Without it, output is unchanged and each lost fact is a loss warning.
 
 | Backend | Annotation |
 | --- | --- |
-| `protobuf` | custom options declared in `tdl/annotations.proto`, such as `[(tdl.type) = "uuid"]` and `option (tdl.kind) = ENTITY;` |
+| `protobuf` | custom options declared in `tdl/annotations.proto`, such as `[(tdl.field) = {source: "id: uuid"}]` and `option (tdl.message) = {kind: KIND_ENTITY};` |
 | `thrift` | annotations, such as `(tdl.type = "uuid")` |
 | `smithy` | traits in the `tdl` namespace, defined in a generated `tdl.smithy` |
 | `graphql` | an `@tdl` directive, defined in the schema it is used in |
@@ -92,6 +92,8 @@ Without it, output is unchanged and each lost fact is a loss warning.
 | `salesforce` | a `tdl:` tail in an XML `description`, and `@tdl` ApexDoc tags |
 
 The Go reverse also reads what the output already says: a constraint from the `fmt.Errorf` text in `Validate`, which writes it as TDL, and a `key` from `Key()`.
+
+A declaration the target cannot express at all, which generating skips with a warning, is carried whole as TDL, so a `roundtrip` output warns about nothing it carries.
 
 A schema written by hand carries no annotations and needs none.
 It imports to TDL plus a target block holding what regeneration reads: `number`, `name`, `option`, `file`, `package`, `edition`, `discriminant`, and the like.

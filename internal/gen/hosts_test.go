@@ -60,11 +60,25 @@ var shipped = []struct {
 	{backend: jsonschema.Backend{}, model: orderModel, packaged: true, valid: compileJSONSchema},
 	{backend: likec4.Backend{}, model: orderModel, packaged: true},
 	{backend: openapi.Backend{}, model: orderModel, packaged: true, valid: parseYAML},
-	{backend: protobuf.Backend{}, model: orderModel, packaged: true, valid: compileProto},
+	{backend: protobuf.Backend{}, model: orderModel, packaged: true, valid: compileProto, reverse: protoSource},
 	{backend: salesforce.Backend{}, model: orderModel, packaged: true, valid: parseXML},
 	{backend: smithy.Backend{}, model: orderModel, packaged: true},
 	{backend: thrift.Backend{}, model: orderModel, packaged: true, valid: checkThrift},
 	{backend: typescript.Backend{}, model: orderModel, packaged: true},
+}
+
+// protoSource is a schema for the protobuf reverse to read.
+func protoSource() []*plugin.File {
+	return []*plugin.File{{Path: "shop/shop.proto", Content: []byte(`syntax = "proto3";
+
+package shop;
+
+// An order.
+message Order {
+  string id = 1;
+  repeated string tags = 2;
+}
+`)}}
 }
 
 // A compiled-in backend and the same backend as a subprocess produce the

@@ -14,7 +14,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/unstoppablemango/tdl/ast"
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
+	"github.com/unstoppablemango/tdl/internal/unlower"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -65,7 +67,11 @@ func (Backend) Describe() plugin.Description {
 			// Tags a primitive of one type argument marking an rpc's request
 			// or response streamed.
 			{Name: "stream"},
+			// Writes, as custom options from tdl/annotations.proto, every
+			// fact the schema alone would lose, so import rebuilds the model.
+			{Name: "roundtrip"},
 		},
+		Reverse: true,
 	}
 }
 
@@ -129,16 +135,28 @@ type generator struct {
 	imports map[string]bool
 	// refs is the declarations it names.
 	refs map[*ir.Decl]bool
+
+	// roundtrip writes annotations in place of loss warnings.
+	roundtrip bool
+	// multi is set when the declarations are placed in more than one file.
+	multi bool
+	// annotated is set when the declaration being rendered wrote an
+	// annotation.
+	annotated bool
+	// source is the model unlowered, read for the TDL an annotation
+	// carries.
+	source *ast.File
 }
 
 // rendered is one declaration's text, held until the cascade decides
 // whether it is emitted.
 type rendered struct {
-	decl    *ir.Decl
-	path    string
-	text    string
-	imports map[string]bool
-	refs    map[*ir.Decl]bool
+	decl      *ir.Decl
+	path      string
+	text      string
+	imports   map[string]bool
+	refs      map[*ir.Decl]bool
+	annotated bool
 }
 
 // Generate returns one .proto file per file the declarations are placed in.
@@ -173,33 +191,61 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		}
 	}
 
+	g.roundtrip = g.bare("roundtrip")
+	if g.pkg != req.GetModel().GetPackage() {
+		g.lose(emit.LossName, pkgPos, "package %s is written %s, which reads back as the package", req.GetModel().GetPackage(), g.pkg)
+	}
+	if len(req.GetModel().GetDoc()) > 0 && g.pkg == "" {
+		g.Lossy(emit.LossDoc, nil, "the package's doc comment has no package statement to precede")
+	}
+
 	own := g.Own()
 	inlinedOnly := g.inlinedOnly()
+	g.multi = g.spansFiles(own)
 	skipped := map[*ir.Decl]bool{}
 	var out []rendered
+	// Each declaration's warnings are held until the cascade decides
+	// whether it is emitted, since a skipped one loses everything at once.
+	held := map[*ir.Decl][]*plugin.Diagnostic{}
 	for _, d := range own {
 		if inlinedOnly[d] {
 			continue
 		}
 		g.imports = map[string]bool{}
 		g.refs = map[*ir.Decl]bool{}
+		g.annotated = false
+		mark := len(g.Diags)
 		path, err := g.pathOf(d)
 		if err != nil {
-			g.Warn(err)
+			g.Diags = g.Diags[:mark]
+			g.skip(err)
 			skipped[d] = true
 			continue
 		}
 		text, err := g.decl(d)
 		if err != nil {
-			g.Warn(err)
+			g.Diags = g.Diags[:mark]
+			g.skip(err)
 			skipped[d] = true
 			continue
 		}
+		held[d] = slices.Clone(g.Diags[mark:])
+		g.Diags = g.Diags[:mark]
 		if text != "" {
-			out = append(out, rendered{d, path, text, g.imports, g.refs})
+			out = append(out, rendered{d, path, text, g.imports, g.refs, g.annotated})
 		}
 	}
+	mark := len(g.Diags)
 	g.Cascade(own, skipped)
+	if g.roundtrip {
+		// A skipped declaration is carried as TDL, so nothing is lost.
+		g.Diags = g.Diags[:mark]
+	}
+	for _, d := range own {
+		if !skipped[d] {
+			g.Diags = append(g.Diags, held[d]...)
+		}
+	}
 
 	placed := map[*ir.Decl]string{}
 	for _, r := range out {
@@ -209,21 +255,39 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	}
 
 	groups := map[string]*group{}
+	add := func(path string) *group {
+		grp := groups[path]
+		if grp == nil {
+			grp = &group{imports: map[string]bool{}}
+			groups[path] = grp
+		}
+		return grp
+	}
 	for _, r := range out {
 		if skipped[r.decl] {
 			continue
 		}
-		grp := groups[r.path]
-		if grp == nil {
-			grp = &group{imports: map[string]bool{}}
-			groups[r.path] = grp
-		}
+		grp := add(r.path)
 		grp.blocks = append(grp.blocks, r.text)
 		maps.Copy(grp.imports, r.imports)
 		for ref := range r.refs {
 			if other, ok := placed[ref]; ok && other != r.path {
 				grp.imports[other] = true
 			}
+		}
+		if r.annotated {
+			grp.imports[annotationsFile] = true
+		}
+	}
+	if g.roundtrip {
+		if ann := g.fileAnnotation(placed); ann != "" {
+			first := filePath(g.pkg, g.file)
+			if len(groups) > 0 {
+				first = slices.Sorted(maps.Keys(groups))[0]
+			}
+			grp := add(first)
+			grp.annotation = ann
+			grp.imports[annotationsFile] = true
 		}
 	}
 	for _, block := range req.GetModel().GetTargets() {
@@ -245,8 +309,13 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	}
 
 	var files []*plugin.File
+	annotations := false
 	for _, p := range slices.Sorted(maps.Keys(groups)) {
 		files = append(files, g.write(p, groups[p]))
+		annotations = annotations || groups[p].imports[annotationsFile]
+	}
+	if annotations {
+		files = append(files, &plugin.File{Path: annotationsFile, Content: annotationsProto})
 	}
 	return g.Response(files), nil
 }
@@ -257,6 +326,8 @@ type group struct {
 	blocks  []string
 	imports map[string]bool
 	options []string
+	// annotation is the file's (tdl.file) option, or "".
+	annotation string
 }
 
 func (g *generator) write(path string, grp *group) *plugin.File {
@@ -267,7 +338,9 @@ func (g *generator) write(path string, grp *group) *plugin.File {
 	var b strings.Builder
 	fmt.Fprintf(&b, "// Code generated by tdl. DO NOT EDIT.\n\n%s\n", header)
 	if g.pkg != "" {
-		fmt.Fprintf(&b, "\npackage %s;\n", g.pkg)
+		b.WriteString("\n")
+		commentLines(&b, "", emit.Doc(&ir.Meta{Doc: g.Model.GetDoc()}))
+		fmt.Fprintf(&b, "package %s;\n", g.pkg)
 	}
 	if len(grp.imports) > 0 {
 		b.WriteString("\n")
@@ -275,10 +348,13 @@ func (g *generator) write(path string, grp *group) *plugin.File {
 			fmt.Fprintf(&b, "import %q;\n", imp)
 		}
 	}
-	if len(grp.options) > 0 {
+	if len(grp.options) > 0 || grp.annotation != "" {
 		b.WriteString("\n")
 		for _, o := range grp.options {
 			fmt.Fprintf(&b, "option %s;\n", o)
+		}
+		if grp.annotation != "" {
+			fmt.Fprintf(&b, "option %s;\n", grp.annotation)
 		}
 	}
 	for _, block := range grp.blocks {
@@ -313,15 +389,21 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 
 	switch {
 	case d.GetClass() != nil:
-		return "", emit.Unsupported(pos, "%s is a class, and classes are not generated yet", name)
+		return "", emit.Lost(emit.LossClass, pos, "%s is a class, and classes are not generated yet", name)
 	case d.GetUnit() != nil:
-		return "", emit.Unsupported(pos, "%s is a unit, and units are not generated yet", name)
+		return "", emit.Lost(emit.LossUnit, pos, "%s is a unit, and units are not generated yet", name)
+	case d.GetAlias() != nil:
+		if len(d.Params()) == 0 {
+			g.lose(emit.LossAlias, pos, "alias %s is expanded where used", name)
+			g.typeLosses(d.GetAlias().GetTarget(), nil)
+		}
+		return "", nil
 	case d.GetStructure() == nil && d.GetEnumeration() == nil && d.GetNewtype() == nil:
-		// An alias or a primitive declares nothing.
+		// A primitive declares nothing.
 		return "", nil
 	}
 	if len(d.Params()) > 0 {
-		return "", emit.Unsupported(pos, "%s is parameterized, and generics are not generated yet", name)
+		return "", emit.Lost(emit.LossGeneric, pos, "%s is parameterized, and generics are not generated yet", name)
 	}
 
 	if n := d.GetNewtype(); n != nil {
@@ -334,7 +416,11 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		g.WarnWhere(d)
+		g.lose(emit.LossNewtype, pos, "newtype %s is expanded to its base where used", name)
+		g.typeLosses(n.GetBase(), nil)
+		if !g.roundtrip {
+			g.WarnWhere(d)
+		}
 		return "", nil
 	}
 
@@ -363,7 +449,9 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	for _, n := range declared {
 		g.names[n] = name
 	}
-	g.WarnConstraints(d)
+	if !g.roundtrip {
+		g.WarnConstraints(d)
+	}
 	return b.String(), nil
 }
 
@@ -395,7 +483,7 @@ func (g *generator) message(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	comment(b, "", d.GetMeta())
 	fmt.Fprintf(b, "message %s {\n", name)
 	numbers, names := g.reserved(b, d)
-	g.declOptions(b, d.GetMeta(), d.GetDirectives())
+	g.declOptions(b, d.GetMeta(), d.GetDirectives(), g.structAnnotation(d, name))
 	slots, err := g.fields(b, "  ", name, d.Fields(), nil, numbers)
 	if err != nil {
 		return nil, err
@@ -465,7 +553,7 @@ func (g *generator) service(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	}
 	comment(b, "", d.GetMeta())
 	fmt.Fprintf(b, "service %s {\n", name)
-	g.declOptions(b, d.GetMeta(), d.GetDirectives())
+	g.declOptions(b, d.GetMeta(), d.GetDirectives(), g.serviceAnnotation(d))
 	for _, f := range d.Fields() {
 		t := g.Model.Type(f.GetType())
 		if !g.ctorTagged(t, "rpc") || len(t.GetArgs()) != 2 {
@@ -542,6 +630,7 @@ func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	g.checkPins(name, emit.VariantMembers(variants), nums, enumNumbers)
 
 	// Enum values have package scope, so each carries the enum's name.
 	prefix := emit.ScreamingSnake(name)
@@ -559,13 +648,20 @@ func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 		}
 		values = append(values, value)
 
+		opts := g.options(v.GetMeta(), v.GetDirectives())
+		if back, renamed := valueBack(prefix, value); back != v.GetMeta().GetName() {
+			g.lose(emit.LossName, v.GetMeta().GetPosition(), "%s.%s is written %s, which reads back as %s", name, v.GetMeta().GetName(), value, back)
+			opts = g.annotate(opts, "value", text("name", v.GetMeta().GetName()))
+		} else {
+			g.checkRenamed(v.GetDirectives(), renamed, "%s.%s", name, v.GetMeta().GetName())
+		}
 		comment(&body, "  ", v.GetMeta())
-		fmt.Fprintf(&body, "  %s = %d%s;\n", value, nums[i], brackets(g.options(v.GetMeta(), v.GetDirectives())))
+		fmt.Fprintf(&body, "  %s = %d%s;\n", value, nums[i], brackets(opts))
 	}
 
 	comment(b, "", d.GetMeta())
 	fmt.Fprintf(b, "enum %s {\n", name)
-	g.declOptions(b, d.GetMeta(), d.GetDirectives())
+	g.declOptions(b, d.GetMeta(), d.GetDirectives(), g.declAnnotation("enum", d, name))
 	b.WriteString(body.String())
 	b.WriteString("}\n")
 	return append([]string{name}, values...), nil
@@ -583,6 +679,7 @@ func (g *generator) sum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	g.checkPins(name, emit.VariantMembers(variants), nums, fieldNumbers)
 
 	nested := map[string]bool{}
 	messages := make([]string, len(variants))
@@ -608,10 +705,18 @@ func (g *generator) sum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 
 	comment(b, "", d.GetMeta())
 	fmt.Fprintf(b, "message %s {\n", name)
-	g.declOptions(b, d.GetMeta(), d.GetDirectives())
+	g.declOptions(b, d.GetMeta(), d.GetDirectives(), g.declAnnotation("message", d, name))
 	for i, v := range variants {
 		comment(b, "  ", v.GetMeta())
 		fmt.Fprintf(b, "  message %s {\n", messages[i])
+		if messages[i] != v.GetMeta().GetName() {
+			g.lose(emit.LossName, v.GetMeta().GetPosition(), "%s.%s is written %s, which reads back as the variant's name", name, v.GetMeta().GetName(), messages[i])
+			if a := g.annotation("message", text("name", v.GetMeta().GetName())); a != "" {
+				fmt.Fprintf(b, "    option %s;\n", a)
+			}
+		} else {
+			g.checkRenamed(v.GetDirectives(), emit.Pascal(messages[i]) != messages[i], "%s.%s", name, v.GetMeta().GetName())
+		}
 		if _, err := g.fields(b, "    ", name+"."+messages[i], v.GetFields(), nested, nil); err != nil {
 			return nil, err
 		}
@@ -664,6 +769,13 @@ func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*i
 	if err != nil {
 		return nil, err
 	}
+	g.checkPins(owner, members, nums, rule)
+	includes := unlower.Includes(g.Model, fields)
+	for i, inc := range includes {
+		if inc != "" && (i == 0 || includes[i-1] != inc) {
+			g.lose(emit.LossInclude, fields[i].GetMeta().GetPosition(), "%s's include of %s is flattened into its fields", owner, inc)
+		}
+	}
 
 	seen := map[string]bool{}
 	out := make([]slot, 0, len(members))
@@ -673,7 +785,7 @@ func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*i
 			return nil, err
 		}
 		if g.isOneof(f) {
-			if err := g.inlineOneof(b, indent, f, ref, nums[first[i]:], nested); err != nil {
+			if err := g.inlineOneof(b, indent, owner, f, ref, nums[first[i]:], nested, includes[i]); err != nil {
 				return nil, err
 			}
 			for j, v := range ref.Decl.GetEnumeration().GetVariants() {
@@ -696,11 +808,13 @@ func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*i
 		}
 		seen[name] = true
 
+		opts := g.options(f.GetMeta(), f.GetDirectives())
+		opts = g.fieldLosses(opts, owner, f, ref, name, includes[i])
 		comment(b, indent, f.GetMeta())
 		if label != "" {
 			label += " "
 		}
-		fmt.Fprintf(b, "%s%s%s %s = %d%s;\n", indent, label, typ, name, nums[first[i]], brackets(g.options(f.GetMeta(), f.GetDirectives())))
+		fmt.Fprintf(b, "%s%s%s %s = %d%s;\n", indent, label, typ, name, nums[first[i]], brackets(opts))
 		out = append(out, slot{members[first[i]], name, nums[first[i]]})
 	}
 	return out, nil
@@ -766,10 +880,13 @@ func (g *generator) inlinable(f *ir.Field, ref *emit.Ref) error {
 
 // inlineOneof renders a `oneof` field as a oneof of its variants' single
 // fields, numbered by nums.
-func (g *generator) inlineOneof(b *strings.Builder, indent string, f *ir.Field, ref *emit.Ref, nums []int64, nested map[string]bool) error {
+func (g *generator) inlineOneof(b *strings.Builder, indent, owner string, f *ir.Field, ref *emit.Ref, nums []int64, nested map[string]bool, include string) error {
 	variants := ref.Decl.GetEnumeration().GetVariants()
 	comment(b, indent, f.GetMeta())
 	fmt.Fprintf(b, "%soneof %s {\n", indent, emit.Snake(f.GetMeta().GetName()))
+	if a := g.oneofLosses(owner, f, ref.Decl, include); a != "" {
+		fmt.Fprintf(b, "%s  option %s;\n", indent, a)
+	}
 	for i, v := range variants {
 		vf := v.GetFields()[0]
 		r, err := g.Resolve(vf.GetType())
@@ -998,10 +1115,14 @@ func (g *generator) options(meta *ir.Meta, dirs []*ir.Directive) []string {
 	return opts
 }
 
-// declOptions writes a declaration's options as statements.
-func (g *generator) declOptions(b *strings.Builder, meta *ir.Meta, dirs []*ir.Directive) {
+// declOptions writes a declaration's options as statements, then its
+// annotation when it has one.
+func (g *generator) declOptions(b *strings.Builder, meta *ir.Meta, dirs []*ir.Directive, annotation string) {
 	for _, o := range g.options(meta, dirs) {
 		fmt.Fprintf(b, "  option %s;\n", o)
+	}
+	if annotation != "" {
+		fmt.Fprintf(b, "  option %s;\n", annotation)
 	}
 }
 

@@ -6,7 +6,7 @@ Each target has a directory named for it, and each case is a directory inside th
 A case runs one direction:
 
 - **Model first.** `source.tdl` is generated without annotations and must warn exactly the loss codes in `lossy.golden`, one per line, sorted.
-  Generated again with a `roundtrip` directive in its target block, it must import back to an equal model, positions aside.
+  Generated again with a `roundtrip` directive in its target block, it must warn about nothing and import back to an equal model, positions aside.
 - **Schema first.** Every other file is the target's own source.
   It must import to `expected.tdl`, warning exactly the codes in `lossy.golden`, and `expected.tdl` must regenerate it, equal under the target's normal form.
 
