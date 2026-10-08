@@ -133,17 +133,8 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	pos := d.GetMeta().GetPosition()
 	name := d.GetMeta().GetName()
 
-	switch {
-	case d.GetClass() != nil:
-		return "", emit.Unsupported(pos, "%s is a class, and classes are not generated yet", name)
-	case d.GetUnit() != nil:
-		return "", emit.Unsupported(pos, "%s is a unit, and units are not generated yet", name)
-	case d.GetStructure() == nil && d.GetEnumeration() == nil && d.GetNewtype() == nil:
-		// An alias or a primitive declares nothing.
-		return "", nil
-	}
-	if len(d.Params()) > 0 {
-		return "", emit.Unsupported(pos, "%s is parameterized, and generics are not generated yet", name)
+	if ok, err := emit.Declares(d); !ok {
+		return "", err
 	}
 
 	var b strings.Builder
@@ -195,7 +186,7 @@ func (g *generator) newtype(b *strings.Builder, d *ir.Decl) ([]string, error) {
 		return nil, err
 	}
 	name := g.DeclName(d, emit.Pascal)
-	comment(b, "", d.GetMeta())
+	emit.DocComment(b, "", d.GetMeta())
 	fmt.Fprintf(b, "export type %s = %s;\n", name, base)
 	return []string{name}, nil
 }
@@ -229,11 +220,11 @@ func (g *generator) iface(b *strings.Builder, name string, meta *ir.Meta, disc, 
 		if err != nil {
 			return nil, err
 		}
-		comment(&body, "  ", f.GetMeta())
+		emit.DocComment(&body, "  ", f.GetMeta())
 		fmt.Fprintf(&body, "  %s\n", line)
 	}
 
-	comment(b, "", meta)
+	emit.DocComment(b, "", meta)
 	fmt.Fprintf(b, "export interface %s {\n%s}\n", name, body.String())
 	return []string{name}, nil
 }
@@ -252,7 +243,7 @@ func (g *generator) literals(b *strings.Builder, d *ir.Decl) []string {
 		typ = "never"
 	}
 
-	comment(b, "", d.GetMeta())
+	emit.DocComment(b, "", d.GetMeta())
 	fmt.Fprintf(b, "export type %s = %s;\n", name, typ)
 	return []string{name}
 }
@@ -276,7 +267,7 @@ func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, error) {
 		declared = append(declared, member)
 	}
 
-	comment(b, "", d.GetMeta())
+	emit.DocComment(b, "", d.GetMeta())
 	fmt.Fprintf(b, "export type %s = %s;\n", name, strings.Join(members, " | "))
 	b.WriteString(ifaces.String())
 	return declared, nil
@@ -376,27 +367,4 @@ func property(name string) string {
 		return name
 	}
 	return strconv.Quote(name)
-}
-
-// comment writes a node's documentation and deprecation as a JSDoc comment.
-func comment(b *strings.Builder, indent string, meta *ir.Meta) {
-	lines := emit.Doc(meta)
-	if reason, ok := emit.Deprecated(meta); ok {
-		if len(lines) > 0 {
-			lines = append(lines, "")
-		}
-		lines = append(lines, strings.TrimSpace("@deprecated "+reason))
-	}
-	if len(lines) == 0 {
-		return
-	}
-	fmt.Fprintf(b, "%s/**\n", indent)
-	for _, line := range lines {
-		if line == "" {
-			fmt.Fprintf(b, "%s *\n", indent)
-			continue
-		}
-		fmt.Fprintf(b, "%s * %s\n", indent, strings.ReplaceAll(line, "*/", "* /"))
-	}
-	fmt.Fprintf(b, "%s */\n", indent)
 }

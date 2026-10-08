@@ -102,7 +102,7 @@ func (g *generator) class(d *ir.Decl) ([]*plugin.File, error) {
 		return nil, err
 	}
 	var b strings.Builder
-	comment(&b, "", d.GetMeta())
+	emit.DocComment(&b, "", d.GetMeta())
 	fmt.Fprintf(&b, "public class %s {\n", n)
 	if err := g.members(&b, "    ", d.GetMeta().GetName(), d.Fields()); err != nil {
 		return nil, err
@@ -119,7 +119,7 @@ func (g *generator) enum(d *ir.Decl) ([]*plugin.File, error) {
 		return nil, err
 	}
 	var b strings.Builder
-	comment(&b, "", d.GetMeta())
+	emit.DocComment(&b, "", d.GetMeta())
 	fmt.Fprintf(&b, "public enum %s {\n", n)
 	if err := g.variants(&b, "    ", d); err != nil {
 		return nil, err
@@ -139,7 +139,7 @@ func (g *generator) sum(d *ir.Decl) ([]*plugin.File, error) {
 	name := d.GetMeta().GetName()
 
 	var b strings.Builder
-	comment(&b, "", d.GetMeta())
+	emit.DocComment(&b, "", d.GetMeta())
 	fmt.Fprintf(&b, "public class %s {\n", n)
 	b.WriteString("    public enum Kind {\n")
 	if err := g.variants(&b, "        ", d); err != nil {
@@ -167,7 +167,7 @@ func (g *generator) sum(d *ir.Decl) ([]*plugin.File, error) {
 		}
 		taken[strings.ToLower(cls)] = vn
 
-		comment(&b, "    ", v.GetMeta())
+		emit.DocComment(&b, "    ", v.GetMeta())
 		fmt.Fprintf(&b, "    public %s %s;\n", cls, member)
 		fmt.Fprintf(&inner, "\n    public class %s {\n", cls)
 		if err := g.members(&inner, "        ", name+"."+vn, v.GetFields()); err != nil {
@@ -193,7 +193,7 @@ func (g *generator) variants(b *strings.Builder, indent string, d *ir.Decl) erro
 			return emit.Unsupported(v.GetMeta().GetPosition(), "%s has two values named %s in Apex", d.GetMeta().GetName(), vn)
 		}
 		seen[strings.ToLower(vn)] = true
-		comment(b, indent, v.GetMeta())
+		emit.DocComment(b, indent, v.GetMeta())
 		sep := ","
 		if i == len(vs)-1 {
 			sep = ""
@@ -226,7 +226,7 @@ func (g *generator) members(b *strings.Builder, indent, owner string, fields []*
 		if err != nil {
 			return err
 		}
-		comment(b, indent, f.GetMeta())
+		emit.DocComment(b, indent, f.GetMeta())
 		fmt.Fprintf(b, "%spublic %s %s;\n", indent, typ, n)
 	}
 	return nil
@@ -291,27 +291,3 @@ func (g *generator) apex(n, src string) []*plugin.File {
 }
 
 func asWritten(name string) string { return name }
-
-// comment writes a node's documentation and deprecation as ApexDoc, since
-// @Deprecated is legal only in a managed package.
-func comment(b *strings.Builder, indent string, meta *ir.Meta) {
-	lines := emit.Doc(meta)
-	if reason, ok := emit.Deprecated(meta); ok {
-		if len(lines) > 0 {
-			lines = append(lines, "")
-		}
-		lines = append(lines, strings.TrimSpace("@deprecated "+reason))
-	}
-	if len(lines) == 0 {
-		return
-	}
-	fmt.Fprintf(b, "%s/**\n", indent)
-	for _, line := range lines {
-		if line == "" {
-			fmt.Fprintf(b, "%s *\n", indent)
-			continue
-		}
-		fmt.Fprintf(b, "%s * %s\n", indent, strings.ReplaceAll(line, "*/", "* /"))
-	}
-	fmt.Fprintf(b, "%s */\n", indent)
-}

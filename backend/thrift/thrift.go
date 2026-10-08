@@ -177,17 +177,8 @@ func (g *generator) decl(d *ir.Decl) (string, []string, error) {
 	pos := d.GetMeta().GetPosition()
 	name := d.GetMeta().GetName()
 
-	switch {
-	case d.GetClass() != nil:
-		return "", nil, emit.Unsupported(pos, "%s is a class, and classes are not generated yet", name)
-	case d.GetUnit() != nil:
-		return "", nil, emit.Unsupported(pos, "%s is a unit, and units are not generated yet", name)
-	case d.GetStructure() == nil && d.GetEnumeration() == nil && d.GetNewtype() == nil:
-		// An alias or a primitive declares nothing.
-		return "", nil, nil
-	}
-	if len(d.Params()) > 0 {
-		return "", nil, emit.Unsupported(pos, "%s is parameterized, and generics are not generated yet", name)
+	if ok, err := emit.Declares(d); !ok {
+		return "", nil, err
 	}
 
 	var b strings.Builder
@@ -440,18 +431,7 @@ func comment(b *strings.Builder, indent string, meta *ir.Meta) {
 		// A reason may span lines, each needing the comment prefix.
 		lines = append(lines, strings.Split("Deprecated: "+reason, "\n")...)
 	}
-	if len(lines) == 0 {
-		return
-	}
-	fmt.Fprintf(b, "%s/**\n", indent)
-	for _, line := range lines {
-		if line == "" {
-			fmt.Fprintf(b, "%s *\n", indent)
-			continue
-		}
-		fmt.Fprintf(b, "%s * %s\n", indent, strings.ReplaceAll(line, "*/", "* /"))
-	}
-	fmt.Fprintf(b, "%s */\n", indent)
+	emit.BlockComment(b, indent, lines)
 }
 
 // annotation is a node's deprecation annotation, or "".
