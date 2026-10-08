@@ -83,9 +83,18 @@ Done when the smoke model and the class cases pass `mlton -stop tc` with the SML
 
 ## Phase 7: F\#
 
-`backend/fsharp`: its type mapping, `namespace rec`, companion modules for validation, keys as members, `attribute`, classes as interfaces with the warnings ml-backends.md lists, units of measure, and `matches` through `Regex`.
+`backend/fsharp`: its type mapping, `namespace rec`, companion modules for validation, keys as members, `attribute`, classes as interfaces with the warnings ml-backends.md lists, `requires` on a type as a constraint, units of measure, `matches` through `Regex`, `#nowarn "44"`, and an extern resolved through a `csharp` block.
+The .NET pieces come from `backend/internal/dotnet`, shared with [csharp-backend-plan.md](csharp-backend-plan.md); whichever plan reaches them first creates the package.
+Classes as interfaces read `emit.PlanInterfaces`, with F#'s `InterfaceRules` for the multi-parameter rows.
 
-Done when the smoke model, the class cases, and a model with derived units load in `dotnet fsi` with warnings as errors, and `decimal<N>` and `decimal<kg*m/s^2>` are one F# type in a test that assigns one to the other.
+Done when the smoke model, the class cases, and a model with derived units load in `dotnet fsi` with warnings as errors, `decimal<N>` and `decimal<kg*m/s^2>` are one F# type in a test that assigns one to the other, and an F# model naming a C# dependency's type builds against it.
+
+## Phase 7b: F# serialization
+
+`json("stj")` and `discriminant` through FSharp.SystemTextJson, with the discriminant and tags from `emit.Discriminant` and `emit.Tag`.
+This follows phase 5 of csharp-backend-plan.md, which states the convention.
+
+Done when a test serializes a value of every smoke declaration and validates it against the `jsonschema` backend's schema for the smoke model, a value C# serialized deserializes in F# to an equal one, and a value F# serialized deserializes in C# to an equal one.
 
 ## Phase 8: shipped profiles
 
