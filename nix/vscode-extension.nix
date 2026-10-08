@@ -58,6 +58,6 @@ vscode-utils.buildVscodeExtension {
   meta = {
     description = "Language support for the Type Description Language";
     homepage = "https://github.com/UnstoppableMango/tdl";
-    license = lib.licenses.gpl3Plus;
+    license = lib.licenses.mit;
   };
 }

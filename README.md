@@ -4,7 +4,7 @@
 [![Codecov](https://img.shields.io/codecov/c/github/UnstoppableMango/tdl)](https://app.codecov.io/gh/UnstoppableMango/tdl)
 [![Built with Nix](https://img.shields.io/badge/Built%20with-Nix-5277C3?logo=nixos&logoColor=white)](https://nixos.org)
 [![Go Reference](https://pkg.go.dev/badge/github.com/unstoppablemango/tdl.svg)](https://pkg.go.dev/github.com/unstoppablemango/tdl)
-[![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Last commit](https://img.shields.io/github/last-commit/UnstoppableMango/tdl)](https://github.com/UnstoppableMango/tdl/commits/main)
 [![Hercules CI](https://hercules-ci.com/api/v1/site/github/account/UnstoppableMango/project/tdl/badge)](https://hercules-ci.com/github/UnstoppableMango/tdl)
 

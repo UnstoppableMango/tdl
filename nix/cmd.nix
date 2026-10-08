@@ -30,6 +30,6 @@ buildGoApplication {
     description = "Type Description Language";
     homepage = "https://github.com/UnstoppableMango/tdl";
     mainProgram = "tdl";
-    license = lib.licenses.gpl3;
+    license = lib.licenses.mit;
   };
 }
