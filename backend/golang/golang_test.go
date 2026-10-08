@@ -1223,6 +1223,40 @@ func TestDirectives(t *testing.T) {
 	}
 }
 
+// A tag on a declaration or a variant has no struct tag to set, so it warns
+// at the directive and the declaration is still generated.
+func TestStrayTagWarns(t *testing.T) {
+	tag := func(line int32) []*ir.Directive {
+		return []*ir.Directive{{Name: "tag", Target: "go", Args: []*ir.Literal{irtest.Text(`json:"x"`)}, Position: &ir.Position{Line: line}}}
+	}
+	m := irtest.New("shop")
+	m.Own(&ir.Decl{
+		Meta:       &ir.Meta{Name: "Cluster"},
+		Directives: tag(1),
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{
+			Fields: []*ir.Field{irtest.Field("cpuPct", m.Named("float64"))},
+		}},
+	})
+	paid := variant("Paid", irtest.Field("at", m.Named("string")))
+	paid.Directives = tag(2)
+	m.Own(enum("Status", paid))
+
+	resp := generate(t, m)
+	var lines []int32
+	for _, d := range resp.GetDiagnostics() {
+		if d.GetSeverity() != plugin.Severity_SEVERITY_WARNING || !strings.Contains(d.GetMessage(), "struct tag") {
+			t.Errorf("unexpected diagnostic: %v", d)
+			continue
+		}
+		lines = append(lines, d.GetPosition().GetLine())
+	}
+	if !slices.Equal(lines, []int32{1, 2}) {
+		t.Errorf("warned on lines %v, want [1 2]", lines)
+	}
+	got := files(t, resp)
+	contains(t, got["cluster.go"], "CpuPct float64")
+}
+
 // A package name Go will not accept is an error, and nothing is generated.
 func TestAKeywordPackageNameIsAnError(t *testing.T) {
 	m := irtest.New("shop")

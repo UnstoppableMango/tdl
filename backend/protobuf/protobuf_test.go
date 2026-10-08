@@ -731,7 +731,7 @@ func TestOneofMemberKeepsVariantDoc(t *testing.T) {
 }
 
 // A oneof member pinned to the number a field of the containing message pins is
-// the same warning as two colliding fields, and the message is skipped.
+// the same error as two colliding fields, and the message is skipped.
 func TestOneofMemberCollides(t *testing.T) {
 	b := irtest.New("shop")
 	contact := variant("Contact", irtest.Field("contact", b.Named("string")))
@@ -750,9 +750,9 @@ func TestOneofMemberCollides(t *testing.T) {
 	resp := generate(t, b)
 	diags := uncoded(resp.GetDiagnostics())
 	if len(diags) != 1 {
-		t.Fatalf("want one warning, for the collision: %+v", diags)
+		t.Fatalf("want one error, for the collision: %+v", diags)
 	}
-	if diags[0].GetSeverity() != plugin.Severity_SEVERITY_WARNING {
+	if diags[0].GetSeverity() != plugin.Severity_SEVERITY_ERROR {
 		t.Errorf("severity = %v", diags[0].GetSeverity())
 	}
 	if !strings.Contains(diags[0].GetMessage(), "both numbered 1") {

@@ -527,7 +527,8 @@ func (g *generator) reserved(b *strings.Builder, d *ir.Decl) (map[int64]bool, ma
 }
 
 // checkReserved refuses a slot whose number or name the message reserves,
-// since protoc rejects it. Only a pin can land on a reserved number.
+// since protoc rejects it. Only a pin can land on a reserved number, so
+// either is a mistake in the model and an [emit.InvalidError].
 func (g *generator) checkReserved(owner string, slots []slot, numbers map[int64]bool, names map[string]bool) error {
 	for _, s := range slots {
 		if numbers[s.num] {
@@ -535,10 +536,10 @@ func (g *generator) checkReserved(owner string, slots []slot, numbers map[int64]
 			if p, ok := g.Find(s.Directives, "number"); ok {
 				pos = p.GetPosition()
 			}
-			return emit.Unsupported(pos, "%s.%s is numbered %d, which the message reserves", owner, s.Name, s.num)
+			return emit.Invalid(pos, "%s.%s is numbered %d, which the message reserves", owner, s.Name, s.num)
 		}
 		if names[s.name] {
-			return emit.Unsupported(s.Position, "%s.%s is named %s, which the message reserves", owner, s.Name, s.name)
+			return emit.Invalid(s.Position, "%s.%s is named %s, which the message reserves", owner, s.Name, s.name)
 		}
 	}
 	return nil

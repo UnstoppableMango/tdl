@@ -109,20 +109,8 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 
 // decl renders one declaration into its files, if any.
 func (g *generator) decl(d *ir.Decl) ([]*plugin.File, error) {
-	pos := d.GetMeta().GetPosition()
-	name := d.GetMeta().GetName()
-
-	switch {
-	case d.GetClass() != nil:
-		return nil, emit.Unsupported(pos, "%s is a class, and classes are not generated yet", name)
-	case d.GetUnit() != nil:
-		return nil, emit.Unsupported(pos, "%s is a unit, and units are not generated yet", name)
-	case d.GetStructure() == nil && d.GetEnumeration() == nil && d.GetNewtype() == nil:
-		// An alias or a primitive declares nothing.
-		return nil, nil
-	}
-	if len(d.Params()) > 0 {
-		return nil, emit.Unsupported(pos, "%s is parameterized, and generics are not generated yet", name)
+	if ok, err := emit.Declares(d); !ok {
+		return nil, err
 	}
 
 	var files []*plugin.File

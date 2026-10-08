@@ -92,6 +92,7 @@ func Lower(file *ast.File, opts ...Option) (*ir.Model, Diagnostics) {
 	l.markEntities()
 	l.checkRecursion(file)
 	l.searchSatisfaction()
+	l.checkTypePositions()
 	l.checkConstraints()
 	l.lowerTargets(file)
 

@@ -46,7 +46,10 @@ Model example.classes
 │   │   ├── type Cursor  source.tdl:16:3
 │   │   └── field pageSize: types[4] int  source.tdl:17:3
 │   ├── [28] class Container  source.tdl:20:1
+│   │   └── param f: type -> type  source.tdl:20:17
 │   ├── [29] class Projection  source.tdl:21:1
+│   │   ├── param from  source.tdl:21:18
+│   │   ├── param to  source.tdl:21:24
 │   │   └── fundep from -> to  source.tdl:21:30
 │   ├── [30] value Page  source.tdl:23:1
 │   │   ├── param f  source.tdl:23:11

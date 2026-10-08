@@ -54,8 +54,8 @@ func TestReservedOnAMessage(t *testing.T) {
 	)
 }
 
-// A field on a reserved number or name skips its message; siblings still
-// generate.
+// A field on a reserved number or name is an error, which skips its message;
+// siblings still generate.
 func TestReservedFieldIsRefused(t *testing.T) {
 	for _, tt := range []struct {
 		name  string
@@ -180,11 +180,11 @@ target protobuf for shop {
 			}
 			ds := uncoded(resp.GetDiagnostics())
 			if len(ds) != 1 {
-				t.Fatalf("diagnostics = %+v, want one warning", ds)
+				t.Fatalf("diagnostics = %+v, want one error", ds)
 			}
 			d := ds[0]
-			if d.GetSeverity() != plugin.Severity_SEVERITY_WARNING {
-				t.Errorf("severity = %v, want a warning", d.GetSeverity())
+			if d.GetSeverity() != plugin.Severity_SEVERITY_ERROR {
+				t.Errorf("severity = %v, want an error", d.GetSeverity())
 			}
 			if d.GetPosition().GetFilename() != "shop.tdl" || d.GetPosition().GetLine() != tt.line {
 				t.Errorf("position = %v, want shop.tdl:%d", d.GetPosition(), tt.line)
@@ -345,11 +345,11 @@ target protobuf for shop {
 	}
 	ds := uncoded(resp.GetDiagnostics())
 	if len(ds) != 1 {
-		t.Fatalf("diagnostics = %+v, want one warning", ds)
+		t.Fatalf("diagnostics = %+v, want one error", ds)
 	}
 	d := ds[0]
-	if d.GetSeverity() != plugin.Severity_SEVERITY_WARNING {
-		t.Errorf("severity = %v, want a warning", d.GetSeverity())
+	if d.GetSeverity() != plugin.Severity_SEVERITY_ERROR {
+		t.Errorf("severity = %v, want an error", d.GetSeverity())
 	}
 	// The pin's directive.
 	if d.GetPosition().GetFilename() != "shop.tdl" || d.GetPosition().GetLine() != 14 {

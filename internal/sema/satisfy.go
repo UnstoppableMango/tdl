@@ -221,18 +221,29 @@ func conformsOf(decl *ir.Decl) []*ir.ClassRef {
 	return nil
 }
 
+// checkTypePositions reports a class written where a type belongs, such as
+// a field typed `Show<string>`. A class is a contract a type satisfies, and
+// no value has one as its type.
+func (l *lowerer) checkTypePositions() {
+	for _, use := range l.model.GetTypes() {
+		if decl := l.model.Decl(use.GetCtor()); decl.GetClass() != nil {
+			l.diags.add(positionOf(use.GetPosition()), "%s is a class, not a type", use.GetCtor().GetName())
+		}
+	}
+}
+
 // checkConstraints reports a `requires` clause that an instantiation does
 // not satisfy, at the use site such as `Envelope<Order>`. An argument that
 // is itself a parameter is not checked; the outer instantiation decides.
 func (l *lowerer) checkConstraints() {
 	for _, use := range l.model.GetTypes() {
 		decl := l.model.Decl(use.GetCtor())
-		if decl == nil || len(use.GetArgs()) == 0 {
-			continue
+		if decl == nil || decl.GetClass() != nil || len(use.GetArgs()) == 0 {
+			continue // checkTypePositions reports a class
 		}
 
 		params := decl.Params()
-		for _, want := range constraintsOf(decl) {
+		for _, want := range decl.Constraints() {
 			l.checkConstraint(use, params, want)
 		}
 	}
@@ -284,22 +295,6 @@ func (l *lowerer) satisfies(class, decl *ir.ID) bool {
 	return slices.ContainsFunc(l.model.Satisfying(class), func(d *ir.ID) bool {
 		return d.GetIndex() == decl.GetIndex()
 	})
-}
-
-// constraintsOf returns the `requires` clause on a declaration's
-// parameters.
-func constraintsOf(decl *ir.Decl) []*ir.ClassRef {
-	switch {
-	case decl.GetStructure() != nil:
-		return decl.GetStructure().GetConstraints()
-	case decl.GetEnumeration() != nil:
-		return decl.GetEnumeration().GetConstraints()
-	case decl.GetNewtype() != nil:
-		return decl.GetNewtype().GetConstraints()
-	case decl.GetClass() != nil:
-		return decl.GetClass().GetConstraints()
-	}
-	return nil
 }
 
 func positionOf(p *ir.Position) ast.Position {

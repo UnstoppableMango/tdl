@@ -3,6 +3,7 @@ package protobuf
 import (
 	"cmp"
 	_ "embed"
+	"errors"
 	"fmt"
 	"slices"
 	"strconv"
@@ -42,9 +43,10 @@ func (g *generator) lose(code string, pos *ir.Position, format string, args ...a
 }
 
 // skip reports a declaration that is not generated. Under roundtrip it is
-// carried as TDL instead, so nothing is reported.
+// carried as TDL instead, so nothing is reported, unless the model is
+// invalid.
 func (g *generator) skip(err error) {
-	if !g.roundtrip {
+	if _, invalid := errors.AsType[*emit.InvalidError](err); !g.roundtrip || invalid {
 		g.Warn(err)
 	}
 }

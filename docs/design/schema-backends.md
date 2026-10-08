@@ -169,7 +169,7 @@ Protobuf numbers run to 536870911, with 19000 to 19999 reserved by protobuf.
 Thrift numbers run to 32767.
 
 A protobuf message takes a repeatable `reserved` directive of numbers or names, each a `reserved` statement at the top of the message, in the order written.
-An unpinned field skips a reserved number, and a field pinned to a reserved number or on a reserved name is refused.
+An unpinned field skips a reserved number, and a field pinned to a reserved number or on a reserved name is an error.
 An inlined oneof member is held to both rules, since protobuf counts it as a field of its message.
 
 A protobuf target block takes a repeatable `import(path)` directive, and each path joins every file's imports, which are sorted and written once each.
