@@ -34,21 +34,19 @@ The parser needs two tokens of lookahead to end a directive list; `docs/grammar.
 
 Done when the #922 reproduction applies both directives to the field, a late block-scope directive fails with an error naming the entry, and the corpus is unchanged.
 
-## Phase 3: access modifiers and modifier groups
+## Phase 3: access in the model
 
-`readonly`, `writeonly`, and `immutable` join `owned` as contextual field modifiers, and a modifier followed by `{` opens a group.
-`proto/tdl/ir/v1/ir.proto` gains an `Access` enum and `Field.access` and `Field.immutable` on numbers no field has used, and a group's doc comment on `Field.section_doc` of the group's first field.
-`internal/unlower` prints a run of fields sharing modifiers as a group.
-
-Done when conformance cases `access` and `access_groups` lower to goldens carrying the access on every field, `readonly: bool` is still a field, and `TestCorpusRoundTrips` passes.
+Undecided: how a field's access is spelled, and how that relates to `owned`, are open ([targets.md](targets.md#access)).
+This phase is written once that is settled.
+It adds the syntax, carries access on `ir.Field`, and teaches `internal/unlower` to print it.
 
 ## Phase 4: presence and access conventions
 
-Each backend in the [conventions table](targets.md#conventions) writes presence and access.
+Each backend in the [conventions table](targets.md#conventions) writes presence, and access once phase 3 lands.
 jsonschema, openapi, and typescript do so by default; protobuf under `field_behavior("google")` or `field_behavior("marked")`.
 A collection without `length(1..)` counts as absent-able.
 
-Done when `testdata/gen/smoke` generates `readOnly` in JSON Schema and OpenAPI, `readonly` in TypeScript, and `OUTPUT_ONLY` in protobuf from one `readonly` field, and an explicit `field_behavior` option wins with a warning.
+Done when `testdata/gen/smoke` generates `OPTIONAL` in protobuf and leaves a `T?` field out of `required` in JSON Schema and OpenAPI, an output-only field generates `readOnly`, `readonly`, and `OUTPUT_ONLY` once phase 3 lands, and an explicit `field_behavior` option wins with a warning.
 
 ## Phase 5: field selectors
 
@@ -80,5 +78,5 @@ Each phase lands in apis as its own pull request, regenerating with no diff in `
 
 1. Typed references and `resource`, package by package.
 1. Late `edition(...)` lines move to the top of each target block.
-1. Fields gain `?` and modifiers, and protobuf switches to `field_behavior("marked")`; once the protobuf importer (#963) lands, it can propose the modifiers from the existing options.
+1. Fields gain `?` and modifiers, and protobuf switches to `field_behavior("marked")`; once the protobuf importer (#963) lands, it can propose each field's access from the existing options.
 1. Field numbers move into the model, and the target blocks shrink to `foreign`, `resource`, `file`, and the few options with no convention.

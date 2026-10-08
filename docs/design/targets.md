@@ -48,7 +48,7 @@ By that test, four facts the apis target blocks restate belong in the model:
 | Fact | Backends that read it |
 | --- | --- |
 | A field may be absent | all, already as `T?` |
-| A field is set by the system and never by a writer | protobuf, jsonschema, openapi, typescript, graphql, smithy |
+| A field is set by the system and never by a writer, or only once | protobuf, jsonschema, openapi, typescript, graphql, smithy |
 | A field names an entity rather than containing one | protobuf, jsonschema, openapi, smithy, salesforce, sql |
 | A field's number on the wire | protobuf, thrift |
 
@@ -61,31 +61,12 @@ How each is spelled in a language stays in the target, and a convention a target
 `T` is present and `T?` may be absent; this exists and stays.
 A collection may always be empty, so `[T]`, `{T}`, and `{K -> V}` are absent-able without `?`, and `where { length(1..) }` makes one required.
 
-### Access modifiers
+### Access
 
-Three contextual field modifiers join `owned`:
+The model needs to say that a field is set by the system and never by a writer, set by a writer and never read back, or set once at creation.
+How it says so is undecided, and so is how it relates to `owned`, which is being reconsidered alongside it.
 
-| Modifier | Meaning |
-| --- | --- |
-| `readonly` | The system sets it; a writer never does. |
-| `writeonly` | A writer sets it; it is never read back. |
-| `immutable` | Set once, when the value is created, and never changed. |
-
-```tdl
-type Commit: Entity {
-  revision: string readonly
-  message: string immutable
-  summary: string readonly
-}
-```
-
-They are contextual, like `owned`, so each is still a valid field name.
-`readonly` and `writeonly` exclude each other, and `immutable` combines with either.
-
-### Modifier groups
-
-Fields that share modifiers usually sit together, and apis already separates them with banner comments (`// Derived.`).
-A modifier followed by `{` applies it to every field inside:
+One candidate is three contextual modifiers beside `owned`, `readonly`, `writeonly`, and `immutable`, with a modifier followed by `{` applying it to a group of fields:
 
 ```tdl
 type Commit: Entity {
@@ -96,27 +77,25 @@ type Commit: Entity {
   readonly {
     summary: string
     kind: CommitKind
-    parent_count: int32
   }
 }
 ```
 
-A group is not a scope and adds no name; its fields belong to the enclosing declaration in source order.
-A doc comment on a group is carried to backends as a section comment, which gives the banners apis writes today a home in generated output.
-`readonly {` and `readonly:` differ in the token after the modifier, so one token of lookahead keeps `readonly` usable as a field name.
+A group would also give apis's banner comments (`// Derived.`) a doc comment that reaches generated output.
+Whatever the spelling, the conventions below read three facts per field: whether it may be absent, who writes it, and whether it changes after creation.
 
 ### Conventions
 
 Each backend states a convention for writing presence and access, and reads it from a block-scope directive so a project picks one:
 
-| Backend | Directive | `T?` | `T` | `readonly` | `writeonly` | `immutable` |
+| Backend | Directive | `T?` | `T` | output-only | input-only | set once |
 | --- | --- | --- | --- | --- | --- | --- |
 | protobuf | `field_behavior("google")` | `OPTIONAL` | `REQUIRED` | `OUTPUT_ONLY` | `INPUT_ONLY` | `IMMUTABLE` |
 | jsonschema, openapi | on by default | not in `required` | in `required` | `readOnly` | `writeOnly` | none |
 | typescript | on by default | `?:` | `:` | `readonly` | none | `readonly` |
 
 `field_behavior("google")` writes `(google.api.field_behavior)` and imports its file.
-`field_behavior("marked")` writes only for fields carrying `?` or a modifier, so a project moving to the convention can leave its unannotated fields unannotated.
+`field_behavior("marked")` writes only for fields carrying `?` or an access, so a project moving to the convention can leave its unannotated fields unannotated.
 A field that also carries an explicit `option("(google.api.field_behavior)", ...)` keeps the explicit one, and the backend warns.
 
 ## References
@@ -144,11 +123,11 @@ A reference to an entity carrying `resource` gains `(google.api.resource_referen
 
 ```tdl
 type Commit: Entity {
-  repository: Repository readonly
+  repository: Repository
 }
 ```
 
-generates the field apis writes today by hand, including both options.
+generates the field apis writes today by hand, with its `resource_reference`; its `field_behavior` follows once [Access](#access) is settled.
 
 A reference to any entity at all, apis's `resource_reference.type = "*"`, stays an explicit option on a field typed with the reference message.
 See [Open questions](#open-questions).
@@ -168,11 +147,11 @@ A field or variant may be prefixed with its number:
 
 ```tdl
 type Commit: Entity {
-  1 revision: string readonly
+  1 revision: string
   reserved 2, 3, 6..7, 9..10
   4 labels: {string -> string}
   5 annotations: {string -> string}
-  8 commit_time: instant readonly
+  8 commit_time: instant
 }
 
 enum CommitKind {
@@ -245,7 +224,7 @@ The model and its target blocks stay apart, so an editor shows them together (#9
 ## Out of scope
 
 - Imports and `out` against a project root (#995) belong to the `tdl.toml` work in [workflow.md](workflow.md).
-- Ordinary `//` comments in generated output (#996); modifier group docs and `reserved` docs cover the two cases apis loses most.
+- Ordinary `//` comments in generated output (#996); `reserved` docs, and group docs if [Access](#access) adopts groups, cover the two cases apis loses most.
 - `foreign` mappings repeated in every importer, which is #916.
 
 ## Open questions
@@ -253,4 +232,4 @@ The model and its target blocks stay apart, so an editor shows them together (#9
 - **Any-entity references.** `refs: [Entity]` would say "a reference to some entity" if a class could be a field type. It cannot today; until it can, `"*"` stays an explicit option.
 - **Import cycles.** Two domains referencing each other's entities import each other. Whether that is allowed decides whether typed references can replace `ref.ObjectReference` everywhere apis uses it.
 - **Variants.** A number on a fielded variant numbers the variant in a oneof; whether its fields number from 1 again or continue the enclosing message's numbers is a protobuf question the backend answers today, and the syntax should not settle it.
-- **Groups and `deprecated`.** `deprecated { ... }` would fit the modifier group syntax, and is left out until a model wants it.
+- **Spelling access, and `owned`.** See [Access](#access). Undecided, and to be settled together with whether `owned` stays a field modifier.
