@@ -50,7 +50,7 @@ By that test, four facts the apis target blocks restate belong in the model:
 | A field may be absent | all, already as `T?` |
 | A field is set by the system and never by a writer, or only once | protobuf, jsonschema, openapi, typescript, graphql, smithy |
 | A field names an entity rather than containing one | protobuf, jsonschema, openapi, smithy, salesforce, sql |
-| A field's number on the wire | protobuf, thrift |
+| A field's number on the wire, from field order unless pinned | protobuf, thrift |
 
 How each is spelled in a language stays in the target, and a convention a target applies by default writes it with no entry at all.
 
@@ -63,36 +63,52 @@ A collection may always be empty, so `[T]`, `{T}`, and `{K -> V}` are absent-abl
 
 ### Access
 
-The model needs to say that a field is set by the system and never by a writer, set by a writer and never read back, or set once at creation.
+The model needs to say that a field is set by the system and never by a writer, or set once at creation.
 How it says so is undecided, and so is how it relates to `owned`, which is being reconsidered alongside it.
+A keyword or contextual modifier is not the answer: presence and identity are both prelude declarations the compiler knows by name, and access should be the same kind of thing.
 
-One candidate is three contextual modifiers beside `owned`, `readonly`, `writeonly`, and `immutable`, with a modifier followed by `{` applying it to a group of fields:
+apis shows how far access already follows from structure.
+Of its 1,155 `OUTPUT_ONLY` fields, 650 are in the `50+` observed band, which holds 651 fields, and 450 are five identity fields every resource repeats: `uid`, `generation`, `create_time`, `update_time`, and `delete_time`.
+So access belongs to groups of fields more than to fields, and the remaining 55 sit in the assigned band and declared state.
 
-```tdl
-type Commit: Entity {
-  revision: string readonly
-  message: string immutable
+Two candidates use only existing syntax:
 
-  /// Computed by whoever indexes the graph, not part of the hash.
-  readonly {
-    summary: string
-    kind: CommitKind
+- **A prelude type**, as `T?` is `Option<T>`.
+  The prelude declares `Derived<T>` for a field the system sets and `Fixed<T>` for one set once, and backends recognize them by name the way they recognize `Option`.
+  A replacement prelude may change what they mean or drop them.
+  A mixin carries them with its fields, so apis writes its identity band once:
+
+  ```tdl
+  mixin Meta {
+    name: string
+    uid: Derived<string>
+    create_time: Derived<instant>
   }
-}
-```
 
-A group would also give apis's banner comments (`// Derived.`) a doc comment that reaches generated output.
+  type Commit: Entity {
+    include Meta
+    message: Fixed<string>
+    summary: Derived<string>
+  }
+  ```
+
+- **A group the target names.**
+  Access stays out of the model, and a convention maps a class or mixin to an access, so a field arriving through `include Observed` is output-only.
+  This writes nothing per field, but the observed band differs on every kind, so apis would need a mixin per kind used once, and every backend's convention would have to agree.
+
+The first keeps access in the model for every backend; the second keeps the model unchanged.
+Neither infers access from position: apis's bands are its own convention, and a model without them would get nothing.
 Whatever the spelling, the conventions below read three facts per field: whether it may be absent, who writes it, and whether it changes after creation.
 
 ### Conventions
 
 Each backend states a convention for writing presence and access, and reads it from a block-scope directive so a project picks one:
 
-| Backend | Directive | `T?` | `T` | output-only | input-only | set once |
-| --- | --- | --- | --- | --- | --- | --- |
-| protobuf | `field_behavior("google")` | `OPTIONAL` | `REQUIRED` | `OUTPUT_ONLY` | `INPUT_ONLY` | `IMMUTABLE` |
-| jsonschema, openapi | on by default | not in `required` | in `required` | `readOnly` | `writeOnly` | none |
-| typescript | on by default | `?:` | `:` | `readonly` | none | `readonly` |
+| Backend | Directive | `T?` | `T` | output-only | set once |
+| --- | --- | --- | --- | --- | --- |
+| protobuf | `field_behavior("google")` | `OPTIONAL` | `REQUIRED` | `OUTPUT_ONLY` | `IMMUTABLE` |
+| jsonschema, openapi | on by default | not in `required` | in `required` | `readOnly` | none |
+| typescript | on by default | `?:` | `:` | `readonly` | `readonly` |
 
 `field_behavior("google")` writes `(google.api.field_behavior)` and imports its file.
 `field_behavior("marked")` writes only for fields carrying `?` or an access, so a project moving to the convention can leave its unannotated fields unannotated.
@@ -143,33 +159,46 @@ That is the point of the change, but it means cross-package imports must stay ch
 A field's number is its identity on the wire across versions of a schema, the same for protobuf and thrift, and a compatibility promise rather than a generator preference.
 It is a fact about the model's history, which makes it the same kind of fact as `deprecated`.
 
-A field or variant may be prefixed with its number:
+### Numbers come from field order
+
+By default a member's number is its place in the declaration: the first field is 1, the next 2.
+Numbering in the model is opt-in, for a model whose numbers cannot follow its order.
+
+A field or variant may be prefixed with a number, which pins it, and each unpinned member after it continues from the member before it.
+Abridged from apis's `Commit`:
 
 ```tdl
 type Commit: Entity {
-  1 revision: string
   reserved 2, 3, 6..7, 9..10
-  4 labels: {string -> string}
-  5 annotations: {string -> string}
-  8 commit_time: instant
-}
-
-enum CommitKind {
-  1 Root
-  2 Normal
+  revision: string // 1
+  labels: {string -> string} // 4, past the reserved 2 and 3
+  annotations: {string -> string} // 5
+  commit_time: instant // 8
+  repository: Repository // 11
+  parent_revisions: [string] // 12
+  50 summary: string
+  kind: CommitKind // 51
 }
 ```
 
+The reserved numbers do the identity band's work, and the one pin starts the derived band.
+
+Today an unpinned member takes the lowest number no other member holds, so a pin anywhere fills the gaps before it.
+Continuing from the previous member keeps a group of fields together after one pin, which is what a model with numbered bands needs: apis's 3,481 numbered type fields would need at most 156 pins, where lowest-free allocation needs about 900 and the target blocks write all 3,481.
+A model with no pins numbers exactly as today.
+A model that pins out of order may number differently, so the change ships as a `fix!`.
+
 A leading integer cannot begin any other member, so one token decides it.
-`reserved` followed by a number or a string is a member listing numbers and names that no field may take; it is contextual, so `reserved: bool` is still a field.
+`reserved` followed by a number or a string lists numbers and names that no member may take, and allocation skips them; it is contextual, so `reserved: bool` is still a field.
 A `///` doc comment on a `reserved` member says why, and backends carry it.
 
 Lowering checks that no two members share a number and that none takes a reserved one.
 Both are errors in `tdl check`, so they surface while editing rather than as a backend warning that skips the declaration (#991).
 
-An unnumbered member is allocated by the backend as today, so a model that never numbers its fields is unchanged.
-A target `number` directive on a member the model numbers is an error: one fact, one home.
-The protobuf `reserved` directive likewise stays for models that do not number their members.
+Reordering unpinned fields renumbers them, which breaks the wire format.
+A project that publishes a schema pins what it has shipped, or relies on its target's own check, such as `buf breaking`.
+A target `number` directive on a member the model pins is an error: one fact, one home.
+The `number` and `reserved` directives stay for models that number in the target.
 
 ## Reaching many nodes
 
@@ -195,22 +224,23 @@ It may name one after a class, a kind selector, or `*`, since those name no decl
 
 ### Several directives on one path
 
-`path => a(...) b(...)` applies both directives to `path` (#922).
-Today the second attaches to the enclosing scope, because a block-scope directive may appear anywhere in a block.
-
-A block-scope directive must now come before the first entry in its block.
-With that rule, a directive after `=>` is followed by another directive of the same entry until a token begins a new entry: a name followed by `=>`, `{`, or `.`, or a `*`, `@`, or integer.
+`=>` applies exactly one directive.
+Several use the nested block the grammar already has:
 
 ```tdl
 target protobuf for unmango.vcs.commit.v1alpha1 {
   edition("2024")
-  Commit.tree_uri => number(18) option("(buf.validate.field).string.uri", "true")
+  Commit.tree_uri {
+    number(18)
+    option("(buf.validate.field).string.uri", "true")
+  }
   Fn => rpc
 }
 ```
 
-A block-scope directive after an entry is an error naming the entry it would otherwise have joined.
-Existing files that put one late, such as apis's `edition("2024")` after its `foreign` entries, move it to the top of the block once.
+The trap in #922 is `path => a(...) b(...)`, which reads as two directives on `path` but attaches `b` to the enclosing block, since a block-scope directive may appear anywhere in it.
+`tdl fmt` moves every block-scope directive above the first entry of its block, in source order.
+That changes no meaning, because a block-scope directive applies to its whole block wherever it is written, and it moves `b` to where it visibly applies, so the mistake shows in the diff and `tdl fmt --check` fails on it.
 
 ## Editors
 
@@ -219,12 +249,12 @@ The model and its target blocks stay apart, so an editor shows them together (#9
 - Hover on a field, variant, or declaration lists the directives each target block in scope resolves onto it, per target.
 - Inlay hints show a member's number where the model does not write one and a backend allocates it.
 - Go to definition on each segment of a target path, and on a selector, which lists every node it matches.
-- A code action on a field with no number adds the lowest free one.
+- A code action on an unpinned member pins the number it has now, before a reorder would move it.
 
 ## Out of scope
 
 - Imports and `out` against a project root (#995) belong to the `tdl.toml` work in [workflow.md](workflow.md).
-- Ordinary `//` comments in generated output (#996); `reserved` docs, and group docs if [Access](#access) adopts groups, cover the two cases apis loses most.
+- Ordinary `//` comments in generated output (#996); `reserved` docs cover the case apis loses most.
 - `foreign` mappings repeated in every importer, which is #916.
 
 ## Open questions
@@ -232,4 +262,5 @@ The model and its target blocks stay apart, so an editor shows them together (#9
 - **Any-entity references.** `refs: [Entity]` would say "a reference to some entity" if a class could be a field type. It cannot today; until it can, `"*"` stays an explicit option.
 - **Import cycles.** Two domains referencing each other's entities import each other. Whether that is allowed decides whether typed references can replace `ref.ObjectReference` everywhere apis uses it.
 - **Variants.** A number on a fielded variant numbers the variant in a oneof; whether its fields number from 1 again or continue the enclosing message's numbers is a protobuf question the backend answers today, and the syntax should not settle it.
-- **Spelling access, and `owned`.** See [Access](#access). Undecided, and to be settled together with whether `owned` stays a field modifier.
+- **Spelling access, and `owned`.** See [Access](#access). Undecided, and to be settled together with whether `owned` stays a field modifier; if access becomes a prelude type, composition may be one too.
+- **Input-only fields.** A field a writer sets and never reads back (`INPUT_ONLY`, `writeOnly`) has no use in apis, so neither candidate spells it yet.

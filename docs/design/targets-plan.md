@@ -28,17 +28,16 @@ Done when a reference in `testdata/gen/smoke` generates the configured reference
 
 ## Phase 2: several directives on one path
 
-`TargetEntry`'s `=>` form takes one or more directives, and a block-scope directive after an entry is an error (#922).
-The parser needs two tokens of lookahead to end a directive list; `docs/grammar.ebnf` states the rule in a comment, since EBNF cannot.
-`ast.Fprint` keeps a path's directives on one line when they fit.
+The grammar is unchanged: `=>` applies one directive, and a nested block applies several.
+`ast.Fprint` moves each block-scope directive above the first entry of its block, keeping their source order (#922).
 
-Done when the #922 reproduction applies both directives to the field, a late block-scope directive fails with an error naming the entry, and the corpus is unchanged.
+Done when the #922 reproduction formats with the second directive at the top of its block, formatting it again changes nothing, and the corpus is unchanged.
 
 ## Phase 3: access in the model
 
 Undecided: how a field's access is spelled, and how that relates to `owned`, are open ([targets.md](targets.md#access)).
 This phase is written once that is settled.
-It adds the syntax, carries access on `ir.Field`, and teaches `internal/unlower` to print it.
+If access is a prelude type, as presence is, it adds the declarations to the prelude and teaches `emit.Resolve` to recognize them, and the grammar and the IR do not change.
 
 ## Phase 4: presence and access conventions
 
@@ -58,12 +57,15 @@ Done when `*.page_token` and `Entity.conditions` reach every matching field in a
 
 ## Phase 6: wire identity
 
-A leading integer numbers a field or variant, and `reserved` followed by a number or string lists retired numbers and names.
+`emit.Numbers` gives an unpinned member the number after the previous member's, skipping reserved and taken numbers, rather than the lowest free one; with no pins the output is unchanged.
+This changes output for a model that pins out of order, so it lands as a `fix!` with a release note.
+
+A leading integer pins a field or variant, and `reserved` followed by a number or string lists retired numbers and names.
 Lowering reports a duplicate number and a reserved number as errors, which `tdl check` and the language server show (#991).
-`ir.Field.number`, `ir.Variant.number`, and `ir.Struct.reserved` carry them; `emit.Numbers` reads the model's number before the `number` directive, and refuses both on one member.
+`ir.Field.number`, `ir.Variant.number`, and `ir.Struct.reserved` carry them; `emit.Numbers` reads the model's pin before the `number` directive, and refuses both on one member.
 protobuf and thrift write a `reserved` member's doc comment above the statement.
 
-Done when apis's `Commit` numbered in the model generates the same `commit.proto`, a duplicate number fails `tdl check`, and `TestCorpusRoundTrips` round-trips numbers.
+Done when apis's `Commit` with one pin and a `reserved` member generates the same `commit.proto`, a duplicate number fails `tdl check`, and `TestCorpusRoundTrips` round-trips pins.
 
 ## Phase 7: editors
 
@@ -77,6 +79,6 @@ Done when hovering `Commit.summary` in apis shows its number and options, and go
 Each phase lands in apis as its own pull request, regenerating with no diff in `proto/unmango`:
 
 1. Typed references and `resource`, package by package.
-1. Late `edition(...)` lines move to the top of each target block.
-1. Fields gain `?` and modifiers, and protobuf switches to `field_behavior("marked")`; once the protobuf importer (#963) lands, it can propose each field's access from the existing options.
-1. Field numbers move into the model, and the target blocks shrink to `foreign`, `resource`, `file`, and the few options with no convention.
+1. `tdl fmt` moves late `edition(...)` lines to the top of each target block.
+1. Fields gain `?` and access, and protobuf switches to `field_behavior("marked")`; once the protobuf importer (#963) lands, it can propose each field's access from the existing options.
+1. `number` entries give way to a `reserved` member and a pin at the start of each band, and the target blocks shrink to `foreign`, `resource`, `file`, and the few options with no convention.
