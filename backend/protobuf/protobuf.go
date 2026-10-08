@@ -311,17 +311,8 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 		return "", nil
 	}
 
-	switch {
-	case d.GetClass() != nil:
-		return "", emit.Unsupported(pos, "%s is a class, and classes are not generated yet", name)
-	case d.GetUnit() != nil:
-		return "", emit.Unsupported(pos, "%s is a unit, and units are not generated yet", name)
-	case d.GetStructure() == nil && d.GetEnumeration() == nil && d.GetNewtype() == nil:
-		// An alias or a primitive declares nothing.
-		return "", nil
-	}
-	if len(d.Params()) > 0 {
-		return "", emit.Unsupported(pos, "%s is parameterized, and generics are not generated yet", name)
+	if ok, err := emit.Declares(d); !ok {
+		return "", err
 	}
 
 	if n := d.GetNewtype(); n != nil {

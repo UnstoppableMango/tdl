@@ -193,6 +193,29 @@ func (s *Session) WarnConstraints(d *ir.Decl) {
 	}
 }
 
+// Declares reports whether a schema backend writes anything for a
+// declaration, or why it cannot generate one: an alias is expanded where it
+// is used and a primitive names an opaque type, so neither declares
+// anything, while classes, units, and type parameters are not generated
+// yet.
+func Declares(d *ir.Decl) (bool, error) {
+	pos := d.GetMeta().GetPosition()
+	name := d.GetMeta().GetName()
+
+	switch {
+	case d.GetClass() != nil:
+		return false, Unsupported(pos, "%s is a class, and classes are not generated yet", name)
+	case d.GetUnit() != nil:
+		return false, Unsupported(pos, "%s is a unit, and units are not generated yet", name)
+	case d.GetStructure() == nil && d.GetEnumeration() == nil && d.GetNewtype() == nil:
+		return false, nil
+	}
+	if len(d.Params()) > 0 {
+		return false, Unsupported(pos, "%s is parameterized, and generics are not generated yet", name)
+	}
+	return true, nil
+}
+
 // Fielded reports whether any variant of an enum carries fields, making it
 // a sum type rather than a plain enum.
 func Fielded(e *ir.Enum) bool {
@@ -212,6 +235,37 @@ func Doc(m *ir.Meta) []string {
 		lines[i] = strings.TrimRight(line, " \t")
 	}
 	return lines
+}
+
+// DocComment writes a node's documentation and deprecation as a /** */
+// block, the deprecation as an @deprecated tag, as JSDoc and ApexDoc read
+// it.
+func DocComment(b *strings.Builder, indent string, m *ir.Meta) {
+	lines := Doc(m)
+	if reason, ok := Deprecated(m); ok {
+		if len(lines) > 0 {
+			lines = append(lines, "")
+		}
+		lines = append(lines, strings.TrimSpace("@deprecated "+reason))
+	}
+	BlockComment(b, indent, lines)
+}
+
+// BlockComment writes lines as a /** */ block, or nothing when there are
+// none. An empty line is a bare " *".
+func BlockComment(b *strings.Builder, indent string, lines []string) {
+	if len(lines) == 0 {
+		return
+	}
+	fmt.Fprintf(b, "%s/**\n", indent)
+	for _, line := range lines {
+		if line == "" {
+			fmt.Fprintf(b, "%s *\n", indent)
+			continue
+		}
+		fmt.Fprintf(b, "%s * %s\n", indent, strings.ReplaceAll(line, "*/", "* /"))
+	}
+	fmt.Fprintf(b, "%s */\n", indent)
 }
 
 // Deprecated returns the reason a node is deprecated, which may be empty,

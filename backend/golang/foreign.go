@@ -112,7 +112,7 @@ func (g *generator) warnForeignConstraints(d *ir.Decl) {
 	}
 	for _, c := range cs {
 		g.Warn(emit.Unsupported(c.GetPosition(),
-			"%s is not checked: %s is a foreign type, whose values another package decides", constraintText(c), of))
+			"%s is not checked: %s is a foreign type, whose values another package decides", emit.ConstraintText(c), of))
 	}
 }
 

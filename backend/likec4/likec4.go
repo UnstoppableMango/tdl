@@ -233,12 +233,12 @@ func (g *generator) field(f *ir.Field) string {
 	if cs := f.GetConstraints(); len(cs) > 0 {
 		texts := make([]string, len(cs))
 		for i, c := range cs {
-			texts[i] = constraint(c)
+			texts[i] = emit.ConstraintText(c)
 		}
 		s += " where " + strings.Join(texts, " ")
 	}
 	if def := f.GetDefaultValue(); def != nil {
-		s += " = " + literal(def)
+		s += " = " + emit.LiteralText(def)
 	}
 	return s
 }
@@ -324,43 +324,6 @@ func generic(args []string) string {
 		return ""
 	}
 	return "<" + strings.Join(args, ", ") + ">"
-}
-
-func constraint(c *ir.Constraint) string {
-	if len(c.GetArgs()) == 0 {
-		return c.GetName()
-	}
-	args := make([]string, len(c.GetArgs()))
-	for i, a := range c.GetArgs() {
-		args[i] = literal(a)
-	}
-	return c.GetName() + "(" + strings.Join(args, ", ") + ")"
-}
-
-// literal writes a literal as TDL source writes it.
-func literal(l *ir.Literal) string {
-	switch l.GetKind() {
-	case ir.LiteralKind_LITERAL_KIND_STRING:
-		return fmt.Sprintf("%q", l.GetText())
-	case ir.LiteralKind_LITERAL_KIND_REGEX:
-		return "/" + l.GetText() + "/"
-	case ir.LiteralKind_LITERAL_KIND_LIST:
-		items := make([]string, len(l.GetItems()))
-		for i, item := range l.GetItems() {
-			items[i] = literal(item)
-		}
-		return "[" + strings.Join(items, ", ") + "]"
-	case ir.LiteralKind_LITERAL_KIND_RANGE:
-		var lo, hi string
-		if r := l.GetRange(); r.Low != nil {
-			lo = fmt.Sprint(r.GetLow())
-		}
-		if r := l.GetRange(); r.High != nil {
-			hi = fmt.Sprint(r.GetHigh())
-		}
-		return lo + ".." + hi
-	}
-	return l.GetText()
 }
 
 // quote writes a single-quoted LikeC4 string.

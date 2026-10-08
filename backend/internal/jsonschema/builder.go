@@ -176,18 +176,8 @@ func (b *Builder) decl(d *ir.Decl) ([]def, error) {
 	pos := d.GetMeta().GetPosition()
 	name := d.GetMeta().GetName()
 
-	switch {
-	case d.GetClass() != nil:
-		return nil, emit.Unsupported(pos, "%s is a class, and classes are not generated yet", name)
-	case d.GetUnit() != nil:
-		return nil, emit.Unsupported(pos, "%s is a unit, and units are not generated yet", name)
-	case d.GetStructure() == nil && d.GetEnumeration() == nil && d.GetNewtype() == nil:
-		// An alias is expanded where it is used, and a model's own
-		// primitive names an opaque root; neither declares anything.
-		return nil, nil
-	}
-	if len(d.Params()) > 0 {
-		return nil, emit.Unsupported(pos, "%s is parameterized, and generics are not generated yet", name)
+	if ok, err := emit.Declares(d); !ok {
+		return nil, err
 	}
 
 	n := b.DeclName(d, emit.Pascal)
