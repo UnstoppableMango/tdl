@@ -1167,6 +1167,24 @@ type Holder { e: Envelope<Plain> }
 	}
 }
 
+// A class is a contract, so it cannot type a field, bare or applied.
+func TestClassIsNotAType(t *testing.T) {
+	for _, field := range []string{"a: Auditable", "w: [Wrap<string>]"} {
+		diags := lowerDiags(t, `
+class Show<a> { }
+class Wrap<a> requires Show<a> { }
+class Auditable { createdAt: string }
+type Holder { `+field+` }
+`)
+		if !strings.Contains(diags.Error(), "is a class, not a type") {
+			t.Errorf("%s: diagnostics = %v", field, diags)
+		}
+		if strings.Contains(diags.Error(), "does not satisfy") {
+			t.Errorf("%s: the class's requires clause was checked too: %v", field, diags)
+		}
+	}
+}
+
 func TestRequiresSatisfied(t *testing.T) {
 	lower(t, `
 class Auditable { createdAt: string }
