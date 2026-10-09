@@ -224,7 +224,11 @@ func ParseConforms(src string) ([]*ast.ClassRef, error) {
 	if err != nil {
 		return nil, err
 	}
-	return d.(*ast.StructDecl).Conforms, nil
+	s, ok := d.(*ast.StructDecl)
+	if !ok {
+		return nil, fmt.Errorf("%q is not a conformance list", src)
+	}
+	return s.Conforms, nil
 }
 
 // StrLit is a string literal.

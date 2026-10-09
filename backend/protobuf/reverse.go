@@ -428,11 +428,11 @@ func (r *reader) message(s *protoFile, p []int32, scope string, m *descriptorpb.
 		decl.Keyword = "mixin"
 	}
 	if src := str(ann, "conforms"); src != "" {
-		parsed, err := reverse.ParseItem("type T: " + src + " {}")
+		conforms, err := reverse.ParseConforms(src)
 		if err != nil {
 			return nil, reverse.Failf(s.pos(p...), "the (tdl.message) conforms of %s is not a TDL conformance list: %v", m.GetName(), err)
 		}
-		decl.Conforms = parsed.(*ast.StructDecl).Conforms
+		decl.Conforms = conforms
 	}
 	skip := r.reserved(s, p, name, m)
 	r.options(m.GetOptions(), name)

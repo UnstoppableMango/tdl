@@ -47,6 +47,9 @@ func TestImportRefusesWhatItCannotRead(t *testing.T) {
 
 	_, diags = importThrift(t, "include \"other.thrift\"\nstruct A {}")
 	failed(t, diags, "includes are not imported yet")
+
+	_, diags = importThrift(t, "struct A {} (tdl.conforms = \"string where\")")
+	failed(t, diags, "not a TDL conformance list")
 }
 
 // What a handwritten file holds that TDL has no form for, or that
