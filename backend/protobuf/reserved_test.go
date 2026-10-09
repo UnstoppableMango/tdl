@@ -43,8 +43,8 @@ func TestReservedOnAMessage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("generate: %v", err)
 	}
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 	}
 	// Widget is the file's one message, so the directives landed in it.
 	contains(t, compile(t, resp),
@@ -178,7 +178,7 @@ target protobuf for shop {
 			if err != nil {
 				t.Fatalf("generate: %v", err)
 			}
-			ds := resp.GetDiagnostics()
+			ds := uncoded(resp.GetDiagnostics())
 			if len(ds) != 1 {
 				t.Fatalf("diagnostics = %+v, want one error", ds)
 			}
@@ -220,8 +220,8 @@ func TestReservedNameUnderAnEdition(t *testing.T) {
 			if err != nil {
 				t.Fatalf("generate: %v", err)
 			}
-			if len(resp.GetDiagnostics()) != 0 {
-				t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+			if len(uncoded(resp.GetDiagnostics())) != 0 {
+				t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 			}
 			contains(t, compile(t, resp),
 				`edition = "`+edition+`";`,
@@ -259,8 +259,8 @@ target protobuf for shop {
 	if err != nil {
 		t.Fatalf("generate: %v", err)
 	}
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v, want none", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v, want none", uncoded(resp.GetDiagnostics()))
 	}
 	contains(t, compile(t, resp),
 		"message Widget {",
@@ -302,8 +302,8 @@ target protobuf for shop {
 	if err != nil {
 		t.Fatalf("generate: %v", err)
 	}
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v, want none", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v, want none", uncoded(resp.GetDiagnostics()))
 	}
 	contains(t, compile(t, resp),
 		"message Widget {",
@@ -343,7 +343,7 @@ target protobuf for shop {
 	if err != nil {
 		t.Fatalf("generate: %v", err)
 	}
-	ds := resp.GetDiagnostics()
+	ds := uncoded(resp.GetDiagnostics())
 	if len(ds) != 1 {
 		t.Fatalf("diagnostics = %+v, want one error", ds)
 	}

@@ -41,6 +41,7 @@ A case runs one direction, and `testdata/roundtrip/README.md` describes the layo
 The harness adds the `roundtrip` directive itself, so a model-first source needs no block for its target, and ignores the directive coming back.
 A missing `lossy.golden` lists no codes, and `-update` rewrites it and `expected.tdl`.
 A target's normal form arrives with its reader in phase 4; until then files compare as bytes.
+A normal form is given every file of a case at once, since one may import another.
 
 Done: `TestCorpus` runs every target but `debug` over its directory and the smoke model, skipping smoke for a target that does not import, and `TestHarness` runs both directions against `internal/gen/echo`.
 
@@ -57,6 +58,9 @@ Each is:
 1. a section in the target's design document.
 
 Done, for a target, when its corpus passes and `testdata/gen/smoke` round-trips with no warning.
+
+`protobuf` is done.
+Every conformance case that imports nothing also comes back through it, in `TestConformanceComesBack`; a model with an import does not yet, since a reverse backend is given no file the import names.
 
 ## Phase 5: Salesforce
 

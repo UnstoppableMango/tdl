@@ -45,7 +45,7 @@ jobs:
         if: ${{ !cancelled() }}
 
       - id: test
-        run: nix develop -c go test -race -coverprofile=cover.profile ./...
+        run: nix develop -c go test -race -coverpkg=./... -coverprofile=cover.profile ./...
         if: ${{ !cancelled() }}
         env:
           CGO_ENABLED: "1"

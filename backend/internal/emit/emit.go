@@ -133,6 +133,8 @@ func (s *Session) VariantName(v *ir.Variant, style func(string) string) string {
 type UnsupportedError struct {
 	What     string
 	Position *ir.Position
+	// Code is the loss code the warning carries, or "" for none.
+	Code string
 }
 
 func (e *UnsupportedError) Error() string { return e.What }
@@ -140,6 +142,12 @@ func (e *UnsupportedError) Error() string { return e.What }
 // Unsupported returns an [UnsupportedError] at a position.
 func Unsupported(pos *ir.Position, format string, args ...any) error {
 	return &UnsupportedError{What: fmt.Sprintf(format, args...), Position: pos}
+}
+
+// Lost returns an [UnsupportedError] carrying a loss code, for a shape
+// whose omission a user may choose to allow.
+func Lost(code string, pos *ir.Position, format string, args ...any) error {
+	return &UnsupportedError{What: fmt.Sprintf(format, args...), Position: pos, Code: code}
 }
 
 // InvalidError reports a directive the user got wrong, such as two fields
@@ -166,7 +174,7 @@ func (s *Session) Warn(err error) {
 		Message:  err.Error(),
 	}
 	if u, ok := errors.AsType[*UnsupportedError](err); ok {
-		d.Position = u.Position
+		d.Position, d.Code = u.Position, u.Code
 	}
 	if v, ok := errors.AsType[*InvalidError](err); ok {
 		d.Severity = plugin.Severity_SEVERITY_ERROR
@@ -189,9 +197,9 @@ func (s *Session) Error(pos *ir.Position, format string, args ...any) {
 // The newtype is still emitted, since fields naming it need it declared.
 func (s *Session) WarnWhere(d *ir.Decl) {
 	if n := len(d.GetNewtype().GetValueConstraints()); n > 0 {
-		s.Warn(Unsupported(d.GetMeta().GetPosition(),
+		s.Lossy(LossConstraint, d.GetMeta().GetPosition(),
 			"%s carries %d where constraint(s), and validation is not generated yet",
-			d.GetMeta().GetName(), n))
+			d.GetMeta().GetName(), n)
 	}
 }
 
@@ -206,9 +214,9 @@ func (s *Session) WarnConstraints(d *ir.Decl) {
 	}
 	for _, f := range fields {
 		if n := len(f.GetConstraints()); n > 0 {
-			s.Warn(Unsupported(f.GetMeta().GetPosition(),
+			s.Lossy(LossConstraint, f.GetMeta().GetPosition(),
 				"%s.%s carries %d constraint(s), and validation is not generated yet",
-				LastSegment(d.GetMeta().GetName()), f.GetMeta().GetName(), n))
+				LastSegment(d.GetMeta().GetName()), f.GetMeta().GetName(), n)
 		}
 	}
 }

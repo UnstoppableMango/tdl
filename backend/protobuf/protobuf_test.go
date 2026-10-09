@@ -44,7 +44,7 @@ func compile(t *testing.T, resp *plugin.Response) string {
 func compileWith(t *testing.T, resp *plugin.Response, extra map[string]string) string {
 	t.Helper()
 	if len(resp.GetFiles()) != 1 {
-		t.Fatalf("files = %d, diagnostics = %+v", len(resp.GetFiles()), resp.GetDiagnostics())
+		t.Fatalf("files = %d, diagnostics = %+v", len(resp.GetFiles()), uncoded(resp.GetDiagnostics()))
 	}
 	f := resp.GetFiles()[0]
 	sources := map[string]string{f.GetPath(): string(f.GetContent())}
@@ -170,8 +170,8 @@ func TestMessages(t *testing.T) {
 	))
 
 	resp := generate(t, b)
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 	}
 	src := compile(t, resp)
 	if path := resp.GetFiles()[0].GetPath(); path != "shop/billing/billing.proto" {
@@ -211,8 +211,8 @@ func TestFixedWidthNumerics(t *testing.T) {
 	))
 
 	resp := generate(t, b)
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 	}
 	contains(t, compile(t, resp),
 		"message Sizes { int32 a = 1; uint32 b = 2; int64 c = 3; uint64 d = 4; float e = 5; double f = 6; }",
@@ -226,8 +226,8 @@ func TestFixedWidthIntegerMapKeys(t *testing.T) {
 			b.Own(value("Index", irtest.Field("m", b.Named("Map", b.Named(key), b.Named("string")))))
 
 			resp := generate(t, b)
-			if len(resp.GetDiagnostics()) != 0 {
-				t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+			if len(uncoded(resp.GetDiagnostics())) != 0 {
+				t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 			}
 			contains(t, compile(t, resp), "message Index { map<"+key+", string> m = 1; }")
 		})
@@ -245,7 +245,7 @@ func TestFloatMapKeysAreRefused(t *testing.T) {
 			b.Own(value("Index", irtest.Field("m", b.Named("Map", b.Named(tt.key), b.Named("string")))))
 
 			resp := generate(t, b)
-			diags := resp.GetDiagnostics()
+			diags := uncoded(resp.GetDiagnostics())
 			if len(diags) != 1 {
 				t.Fatalf("want one warning for Index: %+v", diags)
 			}
@@ -356,8 +356,8 @@ func TestNumbersProtobufRefuses(t *testing.T) {
 			b.Own(value("Fine", irtest.Field("a", b.Named("string"))))
 
 			resp := generate(t, b)
-			if len(resp.GetDiagnostics()) != 1 {
-				t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+			if len(uncoded(resp.GetDiagnostics())) != 1 {
+				t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 			}
 			src := compile(t, resp)
 			absent(t, src, "message Broken")
@@ -392,10 +392,10 @@ func TestUnsupportedShapesAreSkipped(t *testing.T) {
 			b.Own(value("Holder", irtest.Field("broken", b.Named("Broken"))))
 
 			resp := generate(t, b)
-			if len(resp.GetDiagnostics()) != 2 {
-				t.Errorf("want a warning for Broken and one for Holder: %+v", resp.GetDiagnostics())
+			if len(uncoded(resp.GetDiagnostics())) != 2 {
+				t.Errorf("want a warning for Broken and one for Holder: %+v", uncoded(resp.GetDiagnostics()))
 			}
-			for _, d := range resp.GetDiagnostics() {
+			for _, d := range uncoded(resp.GetDiagnostics()) {
 				if d.GetSeverity() != plugin.Severity_SEVERITY_WARNING {
 					t.Errorf("severity = %v", d.GetSeverity())
 				}
@@ -413,7 +413,8 @@ func TestClassesAndUnitsWarn(t *testing.T) {
 	b.Own(value("Note", irtest.Field("body", b.Named("string"))))
 
 	resp := generate(t, b)
-	if len(resp.GetDiagnostics()) != 1 || resp.GetDiagnostics()[0].GetPosition().GetLine() != 4 {
+	diags := coded(resp.GetDiagnostics(), "lossy.class")
+	if len(diags) != 1 || diags[0].GetPosition().GetLine() != 4 {
 		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
 	}
 	contains(t, compile(t, resp), "message Note")
@@ -431,7 +432,7 @@ func TestConstraintsWarn(t *testing.T) {
 	b.Own(value("Line", qty, irtest.Field("email", b.Named("Email"))))
 
 	resp := generate(t, b)
-	if len(resp.GetDiagnostics()) != 2 {
+	if diags := coded(resp.GetDiagnostics(), "lossy.constraint"); len(diags) != 2 {
 		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
 	}
 	contains(t, compile(t, resp), "int64 quantity = 1;", "string email = 2;")
@@ -449,8 +450,8 @@ func TestNames(t *testing.T) {
 	b.Own(value("Clash", irtest.Field("userId", b.Named("string")), irtest.Field("user_id", b.Named("string"))))
 
 	resp := generate(t, b)
-	if len(resp.GetDiagnostics()) != 1 {
-		t.Errorf("want one warning, for the clash: %+v", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 1 {
+		t.Errorf("want one warning, for the clash: %+v", uncoded(resp.GetDiagnostics()))
 	}
 	src := compile(t, resp)
 	contains(t, src, "message Account { string email_address = 1; }")
@@ -480,10 +481,10 @@ func TestInvalidNames(t *testing.T) {
 	b.Own(value("Good", irtest.Field("body", b.Named("string"))))
 
 	resp := generate(t, b)
-	if len(resp.GetDiagnostics()) != 4 {
-		t.Errorf("want a warning per invalid name: %+v", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 4 {
+		t.Errorf("want a warning per invalid name: %+v", uncoded(resp.GetDiagnostics()))
 	}
-	for _, d := range resp.GetDiagnostics() {
+	for _, d := range uncoded(resp.GetDiagnostics()) {
 		if d.GetPosition().GetLine() != 7 {
 			t.Errorf("a name is reported where it was written: %+v", d)
 		}
@@ -515,8 +516,8 @@ func TestPackageDirective(t *testing.T) {
 
 	b.Model.Targets = block("acme-billing")
 	resp = generate(t, b)
-	if len(resp.GetFiles()) != 0 || len(resp.GetDiagnostics()) != 1 ||
-		resp.GetDiagnostics()[0].GetSeverity() != plugin.Severity_SEVERITY_ERROR {
+	if len(resp.GetFiles()) != 0 || len(uncoded(resp.GetDiagnostics())) != 1 ||
+		uncoded(resp.GetDiagnostics())[0].GetSeverity() != plugin.Severity_SEVERITY_ERROR {
 		t.Errorf("a package protobuf refuses should be an error and nothing else: %+v", resp)
 	}
 }
@@ -544,8 +545,8 @@ func TestFileDirective(t *testing.T) {
 		t.Errorf("file directive problems = %+v", problems)
 	}
 	resp = generate(t, b)
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 	}
 	compile(t, resp)
 	if path := resp.GetFiles()[0].GetPath(); path != "acme/finance/account/v1/account.proto" {
@@ -572,10 +573,10 @@ func TestFileDirectiveRefusesWhatIsNotAFileName(t *testing.T) {
 			if len(resp.GetFiles()) != 0 {
 				t.Errorf("files = %+v, want none", resp.GetFiles())
 			}
-			if len(resp.GetDiagnostics()) != 1 {
-				t.Fatalf("diagnostics = %+v, want one error", resp.GetDiagnostics())
+			if len(uncoded(resp.GetDiagnostics())) != 1 {
+				t.Fatalf("diagnostics = %+v, want one error", uncoded(resp.GetDiagnostics()))
 			}
-			d := resp.GetDiagnostics()[0]
+			d := uncoded(resp.GetDiagnostics())[0]
 			if d.GetSeverity() != plugin.Severity_SEVERITY_ERROR {
 				t.Errorf("severity = %v, want %v", d.GetSeverity(), plugin.Severity_SEVERITY_ERROR)
 			}
@@ -618,7 +619,7 @@ func TestConformance(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			for _, d := range resp.GetDiagnostics() {
+			for _, d := range uncoded(resp.GetDiagnostics()) {
 				if d.GetSeverity() == plugin.Severity_SEVERITY_ERROR {
 					t.Errorf("error: %s", d.GetMessage())
 				}
@@ -680,8 +681,8 @@ func TestOneofSharesNumbers(t *testing.T) {
 	))
 
 	resp := generate(t, b)
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 	}
 	contains(t, compile(t, resp),
 		"message Trigger { string kind = 1; oneof actor { string contact = 2; string system_actor = 3; } string note = 4; }",
@@ -747,7 +748,7 @@ func TestOneofMemberCollides(t *testing.T) {
 	b.Own(value("Fine", irtest.Field("a", b.Named("string"))))
 
 	resp := generate(t, b)
-	diags := resp.GetDiagnostics()
+	diags := uncoded(resp.GetDiagnostics())
 	if len(diags) != 1 {
 		t.Fatalf("want one error, for the collision: %+v", diags)
 	}
@@ -811,7 +812,7 @@ func TestOneofUninlinable(t *testing.T) {
 				resp = generate(t, b)
 			}()
 
-			diags := resp.GetDiagnostics()
+			diags := uncoded(resp.GetDiagnostics())
 			if len(diags) != 1 {
 				t.Fatalf("want one warning, for the oneof: %+v", diags)
 			}
@@ -852,8 +853,8 @@ func TestOneofOnlySumTypeIsNotEmitted(t *testing.T) {
 			tt.also(b)
 
 			resp := generate(t, b)
-			if len(resp.GetDiagnostics()) != 0 {
-				t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+			if len(uncoded(resp.GetDiagnostics())) != 0 {
+				t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 			}
 			src := compile(t, resp)
 			contains(t, src,
@@ -904,8 +905,8 @@ func TestFileDirectiveOnADeclaration(t *testing.T) {
 	b.Own(value("Command", irtest.Field("tokens", b.Named("List", b.Named("Token")))))
 
 	resp := generate(t, b)
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 	}
 	if len(resp.GetFiles()) != 2 {
 		t.Fatalf("files = %d, want 2: %+v", len(resp.GetFiles()), resp.GetFiles())
@@ -951,8 +952,8 @@ func TestImportDirectiveReachesEveryFile(t *testing.T) {
 	}}
 
 	resp := generate(t, b)
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 	}
 	files := compileAll(t, resp)
 	if len(files) != 2 {
@@ -963,4 +964,27 @@ func TestImportDirectiveReachesEveryFile(t *testing.T) {
 			t.Errorf("%s does not import the target block's import:\n%s", path, src)
 		}
 	}
+}
+
+// coded keeps the warnings carrying one loss code.
+func coded(diags []*plugin.Diagnostic, code string) []*plugin.Diagnostic {
+	var out []*plugin.Diagnostic
+	for _, d := range diags {
+		if d.GetCode() == code {
+			out = append(out, d)
+		}
+	}
+	return out
+}
+
+// uncoded drops the warnings carrying a loss code, which lossy_test.go
+// covers, so a test can assert on the rest.
+func uncoded(diags []*plugin.Diagnostic) []*plugin.Diagnostic {
+	var out []*plugin.Diagnostic
+	for _, d := range diags {
+		if d.GetCode() == "" {
+			out = append(out, d)
+		}
+	}
+	return out
 }

@@ -49,9 +49,11 @@ const Directive = "roundtrip"
 type Target struct {
 	Backend plugin.Backend
 
-	// Normalize puts a file into the target's normal form, so two files
-	// that mean the same compare equal. Nil compares bytes.
-	Normalize func(path string, content []byte) ([]byte, error)
+	// Normalize puts files into the target's normal form, so two sets of
+	// files that mean the same compare equal. It is given every file at
+	// once, since one may import another, and returns them by the same
+	// paths. Nil compares bytes.
+	Normalize func(files []*plugin.File) ([]*plugin.File, error)
 }
 
 // Run runs every case in dir, a target's directory of the corpus, and
@@ -141,14 +143,19 @@ func modelFirst(t *testing.T, target Target, importer plugin.Importer, source st
 	comesBack(t, target, importer, source, model)
 }
 
-// comesBack generates model with the roundtrip directive on and imports the
-// files, which must print to TDL lowering to the same model.
+// comesBack generates model with the roundtrip directive on, which must
+// warn about nothing, and imports the files, which must print to TDL
+// lowering to the same model.
 func comesBack(t *testing.T, target Target, importer plugin.Importer, source string, model *ir.Model) {
 	t.Helper()
 	name := target.Backend.Describe().Name
 
 	annotated := withDirective(model, name)
 	resp := generate(t, target, annotated)
+	// The annotations carry every fact, so nothing is lost to warn about.
+	for _, d := range resp.GetDiagnostics() {
+		t.Errorf("generating %s with %s warns: %s", source, Directive, d.GetMessage())
+	}
 
 	imported := importFiles(t, importer, name, resp.GetFiles())
 	printed := ast.Fprint(unlower.File(imported.GetModel()))
@@ -221,8 +228,8 @@ func same(t *testing.T, target Target, want, got []*plugin.File) {
 	t.Helper()
 	index := func(files []*plugin.File) map[string][]byte {
 		m := map[string][]byte{}
-		for _, f := range files {
-			m[f.GetPath()] = normal(t, target, f)
+		for _, f := range normal(t, target, files) {
+			m[f.GetPath()] = f.GetContent()
 		}
 		return m
 	}
@@ -237,14 +244,14 @@ func same(t *testing.T, target Target, want, got []*plugin.File) {
 	}
 }
 
-func normal(t *testing.T, target Target, f *plugin.File) []byte {
+func normal(t *testing.T, target Target, files []*plugin.File) []*plugin.File {
 	t.Helper()
 	if target.Normalize == nil {
-		return f.GetContent()
+		return files
 	}
-	out, err := target.Normalize(f.GetPath(), f.GetContent())
+	out, err := target.Normalize(files)
 	if err != nil {
-		t.Fatalf("normalizing %s: %v", f.GetPath(), err)
+		t.Fatalf("normalizing: %v", err)
 	}
 	return out
 }

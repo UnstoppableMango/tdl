@@ -25,6 +25,7 @@ import (
 	"github.com/unstoppablemango/tdl/internal/sema"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/parser"
+	"github.com/unstoppablemango/tdl/plugin"
 )
 
 const (
@@ -33,14 +34,14 @@ const (
 )
 
 // targets is every backend the round-trip goal covers, which is every one
-// but debug. A target's normal form arrives with its reader.
+// but debug, with its normal form once it has a reader.
 var targets = []roundtrip.Target{
 	{Backend: golang.Backend{}},
 	{Backend: graphql.Backend{}},
 	{Backend: jsonschema.Backend{}},
 	{Backend: likec4.Backend{}},
 	{Backend: openapi.Backend{}},
-	{Backend: protobuf.Backend{}},
+	{Backend: protobuf.Backend{}, Normalize: protobuf.Normalize},
 	{Backend: salesforce.Backend{}},
 	{Backend: smithy.Backend{}},
 	{Backend: thrift.Backend{}},
@@ -54,6 +55,42 @@ func TestCorpus(t *testing.T) {
 		name := target.Backend.Describe().Name
 		t.Run(name, func(t *testing.T) {
 			roundtrip.Run(t, target, filepath.Join(corpus, name), smoke)
+		})
+	}
+}
+
+// Every conformance case that imports nothing comes back from every target
+// that imports, with annotations, the way smoke does. An import names a
+// file a reverse backend is not given.
+func TestConformanceComesBack(t *testing.T) {
+	sources, err := filepath.Glob("../../../testdata/conformance/*/source.tdl")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var standalone []string
+	for _, path := range sources {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		file, err := parser.Parse(path, strings.NewReader(string(data)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(file.Imports) == 0 {
+			standalone = append(standalone, path)
+		}
+	}
+	for _, target := range targets {
+		if !target.Backend.Describe().Reverse {
+			continue
+		}
+		t.Run(target.Backend.Describe().Name, func(t *testing.T) {
+			for _, path := range standalone {
+				t.Run(filepath.Base(filepath.Dir(path)), func(t *testing.T) {
+					roundtrip.Run(t, target, filepath.Join(t.TempDir(), "none"), path)
+				})
+			}
 		})
 	}
 }
@@ -126,12 +163,20 @@ target echo for shop {
 
 // normalizeModel is echo's normal form: the model without positions, in
 // deterministic binary.
-func normalizeModel(_ string, content []byte) ([]byte, error) {
-	var m ir.Model
-	if err := protojson.Unmarshal(content, &m); err != nil {
-		return nil, err
+func normalizeModel(files []*plugin.File) ([]*plugin.File, error) {
+	out := make([]*plugin.File, len(files))
+	for i, f := range files {
+		var m ir.Model
+		if err := protojson.Unmarshal(f.GetContent(), &m); err != nil {
+			return nil, err
+		}
+		data, err := proto.MarshalOptions{Deterministic: true}.Marshal(ir.WithoutPositions(&m))
+		if err != nil {
+			return nil, err
+		}
+		out[i] = &plugin.File{Path: f.GetPath(), Content: data}
 	}
-	return proto.MarshalOptions{Deterministic: true}.Marshal(ir.WithoutPositions(&m))
+	return out, nil
 }
 
 func lowerFile(t *testing.T, path, src string) *ir.Model {

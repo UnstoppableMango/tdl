@@ -1,0 +1,13 @@
+package shop.v1
+
+type Item {
+  sku: string
+  note: string
+  sizes: [int32]
+}
+
+target protobuf for shop.v1 {
+  edition("2023")
+  option("features", "{field_presence:IMPLICIT}")
+  Item.note => option("features", "{field_presence:EXPLICIT}")
+}

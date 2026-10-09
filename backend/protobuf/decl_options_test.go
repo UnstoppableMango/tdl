@@ -48,8 +48,8 @@ func generateModel(t *testing.T, src string) *plugin.Response {
 	if err != nil {
 		t.Fatalf("generate: %v", err)
 	}
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 	}
 	return resp
 }

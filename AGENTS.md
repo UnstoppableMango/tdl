@@ -13,7 +13,7 @@ go build ./...
 
 command make build            # nix build .#
 command make test             # go test ./...
-command make cover            # go test -race -coverprofile=cover.profile ./... + go tool cover -func
+command make cover            # go test -race -coverpkg=./... -coverprofile=cover.profile ./... + go tool cover -func
 command make play             # watch examples/nested.tdl; FILE=scratch.tdl VIEWS=all to override
 command make lint             # nix flake check + golangci-lint + buf + markdownlint
 command make check            # nix flake check alone, the fast subset of lint
@@ -166,6 +166,8 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   Target-block `import` adds an import to every file; `option` writes a field, value, or statement option.
   A type tagged `service` becomes a service; its fields apply primitives tagged `rpc`, with arguments in a `stream`-tagged primitive streamed.
   Tests compile every response with `bufbuild/protocompile`.
+  It imports: `reverse.go` reads files compiled by `compile.go` into an `ast.File` and lowers it, and `annotate.go` writes the loss warnings and, under `roundtrip`, the options `tdl/annotations.proto` declares.
+  `Normalize` is its normal form for the round-trip corpus.
 - `backend/thrift`: one `.thrift` file per model under `namespace *`, in dependency order.
   A fielded enum is a union of per-variant structs; a newtype is a `typedef`; field ids come from `emit.Numbers`.
   Tests parse and resolve every response with thriftgo.
@@ -208,6 +210,7 @@ A backend added to the registry needs a row in the `shipped` table in `internal/
 `docs/design/schema-backends.md` maps the seven schema backends.
 `docs/design/reverse.md` is the import direction, target language to TDL, and `reverse-plan.md` orders it.
 `backend/internal/roundtrip` runs a backend forward and back over `testdata/roundtrip/<target>/<case>/`; its `targets` table holds every backend but `debug`, with each one's normal form, and `TestEveryTargetIsCovered` checks it against `cmd/`.
+`TestConformanceComesBack` also takes every conformance case without an import through each target that imports.
 `testdata/gen/smoke/source.tdl` exercises the whole mapping, with a target block for each schema backend and for `salesforce`; the nix checks generate from it and run each language's tool on the output.
 
 ### Tests and goldens

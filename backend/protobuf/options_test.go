@@ -81,8 +81,8 @@ func TestOptionsOnAField(t *testing.T) {
 	if err != nil {
 		t.Fatalf("generate: %v", err)
 	}
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 	}
 	contains(t, compileWith(t, resp, googleAPI),
 		`import "google/api/field_behavior.proto";`,
@@ -121,8 +121,8 @@ func TestOptionsOnAnInlinedOneofMember(t *testing.T) {
 	}}
 
 	resp := generate(t, b)
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 	}
 	contains(t, compileWith(t, resp, googleAPI),
 		`oneof actor {

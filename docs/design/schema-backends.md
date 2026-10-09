@@ -233,6 +233,42 @@ A fielded enum is a `oneOf` of one schema per variant, each its own component na
 The `discriminator` names the discriminant property and maps each variant's name to its schema, which is the shape OpenAPI code generators read.
 OpenAPI 2.0 has no `oneOf`, so there a fielded enum warns and is skipped, along with every declaration naming it.
 
+## Import
+
+`tdl import --from protobuf` reads `.proto` files of one package, compiled together by `bufbuild/protocompile`, and [reverse.md](reverse.md) describes the rest of the direction.
+
+| protobuf | TDL |
+| --- | --- |
+| message | struct |
+| message holding only a oneof named `variant` of its own nested messages, each member named for its message | enum with fields |
+| enum, its zero value dropped and its values unprefixed | enum |
+| other oneof | a field of a made-up enum, one variant per member, with a `oneof` directive |
+| `repeated T`, `map<K, V>`, `optional T` | `[T]`, `{K -> V}`, `T?` |
+| `google.protobuf.Timestamp`, `google.protobuf.Duration` | `instant`, `duration` |
+| `sint`, `fixed`, and `sfixed` integers | the integer of the same width, with `lossy.primitive` |
+| a wrapper such as `google.protobuf.StringValue` | `T?`, with `lossy.optional` |
+| another file's message | an empty struct with a `foreign` directive |
+| nested message or enum | hoisted to the top level, with `lossy.unsupported` |
+| service | `lossy.unsupported` |
+
+A field's name is its camel case, an enum value's is its Pascal case after the enum's prefix, and a message keeps its own.
+A leading comment is a doc comment, and a `Deprecated:` line ending one is the reason of a `deprecated` option.
+
+The target block holds what regeneration reads: a `name` directive where the convention would write another name, a `number` directive on each member allocation would number otherwise, `reserved`, `edition`, `file`, `option` for each option but `deprecated`, and `import` for an import nothing uses.
+
+Generating, every fact the schema cannot hold warns with its loss code: an `int`, `uuid`, `decimal`, or `date` written as another primitive, a set, a newtype or alias expanded, `T | null`, a `T?` with presence it already had, an entity or a mixin, an include, a constraint, `owned`, a default, a name or number that reads back otherwise, a class, a unit, and generics.
+
+Under a `roundtrip` directive, each of those is written instead as a custom option declared in `tdl/annotations.proto`, which the output includes:
+
+- `(tdl.file)` on the first file: the TDL package when `package` renames it, the imports, and every top-level item with no protobuf form, as TDL with its index among the file's declarations. A newtype, an alias, a class, a unit, an instance, a target block, and a declaration protobuf cannot express are each one.
+- `(tdl.message)` and `(tdl.enum)`: the TDL name, the kind (`KIND_ENTITY` or `KIND_MIXIN`), the conformance list beyond `Entity`, and an index when the output spans files.
+- `(tdl.field)` and `(tdl.oneof)`: the field as TDL where the schema reads back differently, and the mixin whose include copied it.
+- `(tdl.value)`: an enum variant's name.
+- `(tdl.service)`: the service's declaration as TDL, since a service is not read yet.
+
+Reading annotated files, the reader takes the annotations and infers no directive, so the target blocks come back from `(tdl.file)` as they were written.
+The normal form for comparing schemas is each file's `FileDescriptorProto` without source info, its imports sorted and reserved ranges merged.
+
 ## Encodings
 
 TDL defines no wire encoding, so these backends and the Go backend can disagree about one value.

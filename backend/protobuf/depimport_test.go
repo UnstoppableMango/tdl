@@ -74,8 +74,8 @@ target protobuf for acme.money.v1 {
 	deps := sources{"dep/money.tdl": moneySource}
 
 	depResp := generateIR(t, lower(t, "dep/money.tdl", moneySource, nil))
-	if len(depResp.GetDiagnostics()) != 0 {
-		t.Fatalf("dependency diagnostics = %+v", depResp.GetDiagnostics())
+	if len(uncoded(depResp.GetDiagnostics())) != 0 {
+		t.Fatalf("dependency diagnostics = %+v", uncoded(depResp.GetDiagnostics()))
 	}
 	if len(depResp.GetFiles()) != 1 {
 		t.Fatalf("dependency files = %d", len(depResp.GetFiles()))
@@ -86,8 +86,8 @@ target protobuf for acme.money.v1 {
 	}
 
 	resp := generateIR(t, lower(t, "main.tdl", shopSource, deps))
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 	}
 	src := compileWith(t, resp, map[string]string{depFile.GetPath(): string(depFile.GetContent())})
 	contains(t, src,
@@ -105,7 +105,7 @@ type Money { units: int }
 `}
 
 	resp := generateIR(t, lower(t, "main.tdl", shopSource, deps))
-	diags := resp.GetDiagnostics()
+	diags := uncoded(resp.GetDiagnostics())
 	if len(diags) != 1 {
 		t.Fatalf("diagnostics = %+v, want one warning", diags)
 	}

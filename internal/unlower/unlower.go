@@ -22,13 +22,7 @@ import (
 // declarations, instances, and target blocks. Prelude declarations are
 // left out, since lowering loads the prelude beneath every file.
 func File(m *ir.Model) *ast.File {
-	u := &unlowerer{model: m, aliases: map[string]string{}}
-	for _, imp := range m.GetImports() {
-		if _, seen := u.aliases[imp.GetPackage()]; !seen && imp.GetAlias() != "_" {
-			u.aliases[imp.GetPackage()] = imp.GetAlias()
-		}
-	}
-
+	u := newUnlowerer(m)
 	f := &ast.File{}
 	if m.GetPackage() != "" || len(m.GetDoc()) > 0 {
 		f.Package = &ast.PackageDecl{Doc: m.GetDoc(), DocP: docPositions(m.GetDoc()), Path: m.GetPackage()}
@@ -38,6 +32,47 @@ func File(m *ir.Model) *ast.File {
 	}
 	f.Decls = u.decls()
 	return f
+}
+
+// Field rebuilds one field of a model's declaration, as it would be
+// written in the file [File] rebuilds.
+func Field(m *ir.Model, f *ir.Field) *ast.Field {
+	return newUnlowerer(m).field(f)
+}
+
+// Includes names, for each field of a struct, the mixin whose `include`
+// [File] writes for it, or "" for a field written in place.
+func Includes(m *ir.Model, fields []*ir.Field) []string {
+	u := newUnlowerer(m)
+	out := make([]string, len(fields))
+	var included []int
+	for i, f := range fields {
+		if f.GetIncludedFrom() != nil {
+			included = append(included, i)
+		}
+	}
+	for len(included) > 0 {
+		run := make([]*ir.Field, len(included))
+		for i, idx := range included {
+			run[i] = fields[idx]
+		}
+		name, n := u.include(run)
+		for _, idx := range included[:n] {
+			out[idx] = name
+		}
+		included = included[n:]
+	}
+	return out
+}
+
+func newUnlowerer(m *ir.Model) *unlowerer {
+	u := &unlowerer{model: m, aliases: map[string]string{}}
+	for _, imp := range m.GetImports() {
+		if _, seen := u.aliases[imp.GetPackage()]; !seen && imp.GetAlias() != "_" {
+			u.aliases[imp.GetPackage()] = imp.GetAlias()
+		}
+	}
+	return u
 }
 
 type unlowerer struct {

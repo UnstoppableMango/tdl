@@ -1,0 +1,12 @@
+// Under an edition every field has presence, so an optional one loses its
+// question mark.
+package shop.v1
+
+type Item {
+  sku: string
+  note: string?
+}
+
+target protobuf for shop.v1 {
+  edition("2023")
+}

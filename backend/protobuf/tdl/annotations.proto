@@ -1,0 +1,93 @@
+// The custom options tdl's protobuf backend writes under a `roundtrip`
+// directive. Each carries a fact protobuf has no form for, so `tdl import`
+// rebuilds the model the schema was generated from. An option is written
+// only where the schema alone would read back differently.
+// docs/design/reverse.md describes the round trip.
+syntax = "proto3";
+
+package tdl;
+
+import "google/protobuf/descriptor.proto";
+
+// A file's annotation, written in the first file of the output.
+message FileAnnotation {
+  // The TDL package, which a `package` directive may have renamed.
+  string package = 1;
+  // Each TDL import, as written.
+  repeated string imports = 2;
+  // What protobuf declares nothing for.
+  repeated Item items = 3;
+}
+
+// One top-level TDL declaration or target block protobuf declares nothing
+// for: a newtype, an alias, a class, a target block, and so on.
+message Item {
+  // The item's index among the file's declarations.
+  int32 at = 1;
+  // The item as TDL.
+  string source = 2;
+}
+
+// What a struct is, beyond the value a message reads as.
+enum Kind {
+  KIND_UNSPECIFIED = 0;
+  KIND_ENTITY = 1;
+  KIND_MIXIN = 2;
+}
+
+// A declaration's annotation, on a message, enum, or service.
+message DeclAnnotation {
+  // The TDL name, where the protobuf name does not read back as it.
+  string name = 1;
+  Kind kind = 2;
+  // The declaration's index among the file's declarations, written when
+  // the output spans more than one file.
+  optional int32 at = 3;
+  // The declaration as TDL, for a service.
+  string source = 4;
+  // The classes a struct conforms to, as TDL, when they are not just
+  // the Entity its kind implies.
+  string conforms = 5;
+}
+
+// A field's annotation, on a field or a oneof.
+message FieldAnnotation {
+  // The field as TDL, where the protobuf field does not read back as it.
+  string source = 1;
+  // The mixin whose include copied the field.
+  string include = 2;
+}
+
+// An enum value's annotation.
+message ValueAnnotation {
+  // The TDL variant name, where the value's name does not read back as it.
+  string name = 1;
+}
+
+extend google.protobuf.FileOptions {
+  FileAnnotation file = 51000;
+}
+
+extend google.protobuf.MessageOptions {
+  DeclAnnotation message = 51000;
+}
+
+extend google.protobuf.EnumOptions {
+  DeclAnnotation enum = 51000;
+}
+
+extend google.protobuf.ServiceOptions {
+  DeclAnnotation service = 51000;
+}
+
+extend google.protobuf.FieldOptions {
+  FieldAnnotation field = 51000;
+}
+
+extend google.protobuf.OneofOptions {
+  FieldAnnotation oneof = 51000;
+}
+
+extend google.protobuf.EnumValueOptions {
+  ValueAnnotation value = 51000;
+}

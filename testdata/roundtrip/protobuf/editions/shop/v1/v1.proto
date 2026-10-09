@@ -1,0 +1,11 @@
+edition = "2023";
+
+package shop.v1;
+
+option features.field_presence = IMPLICIT;
+
+message Item {
+  string sku = 1;
+  string note = 2 [features.field_presence = EXPLICIT];
+  repeated int32 sizes = 3;
+}

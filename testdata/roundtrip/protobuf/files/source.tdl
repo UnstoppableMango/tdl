@@ -1,0 +1,19 @@
+// Declarations placed in two files lose their order across them.
+package shop.v1
+
+enum Color {
+  Red
+  Green
+}
+
+type Paint {
+  color: Color
+}
+
+type Brush {
+  width: int32
+}
+
+target protobuf for shop.v1 {
+  Brush => file("brush.proto")
+}

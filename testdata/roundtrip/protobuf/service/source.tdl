@@ -1,0 +1,21 @@
+// A service reads back only from its annotation.
+package widgets
+
+primitive Fn: type -> type -> type
+
+type Widget {
+  id: string
+}
+
+type GetWidgetRequest {
+  id: string
+}
+
+type WidgetService {
+  getWidget: Fn<GetWidgetRequest, Widget>
+}
+
+target protobuf for widgets {
+  Fn => rpc
+  WidgetService => service
+}

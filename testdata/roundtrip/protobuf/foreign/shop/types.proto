@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package shop;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/struct.proto";
+
+message Event {
+  google.protobuf.Any payload = 1;
+  google.protobuf.Struct extra = 2;
+}

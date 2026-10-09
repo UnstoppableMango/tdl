@@ -1,0 +1,60 @@
+/// Orders and what is in them.
+package shop.v1
+
+/// The state an order is in.
+enum OrderStatus {
+  Placed
+  Shipped
+  deprecated("orders are no longer held") Held
+  Cancelled
+}
+
+/// An order a customer placed.
+///
+/// It is never deleted.
+type Order {
+  id: string
+  items: [LineItem]
+  counts: {string -> int64}
+  note: string?
+  placedAt: instant
+  status: OrderStatus
+  contact: Contact
+  customerRef: string
+  httpCode: int32
+}
+
+enum Contact {
+  Email { email: string }
+  Phone { deprecated phone: string }
+}
+
+type LineItem {
+  sku: string
+  quantity: uint32
+  price: float64
+  thumbnail: bytes
+}
+
+/// How an order was paid.
+enum Payment {
+  /// Paid by card.
+  Card { last4: string }
+  deprecated Cash
+}
+
+target protobuf for shop.v1 {
+  option("java_multiple_files", "true")
+  option("go_package", "\"example.com/shop/v1;shopv1\"")
+  OrderStatus.Held => number(5)
+  OrderStatus.Cancelled => name("CANCELLED")
+  OrderStatus.Cancelled => number(6)
+  Order => reserved(4, 8, 9)
+  Order => reserved("legacy")
+  Order.contact => oneof
+  Order.customerRef => name("customerRef")
+  Order.customerRef => option("json_name", "\"customer\"")
+  Order.httpCode => name("HTTPCode")
+  Order.httpCode => number(20)
+  Payment.Cash => number(3)
+}

@@ -381,6 +381,13 @@ func (p *printer) fieldTail(f *Field, indent string) string {
 	return s
 }
 
+// PrintField renders a field as one struct member, with its deprecation and
+// without its doc comment or indent. A constraint block of two or more
+// constraints spans lines.
+func PrintField(f *Field) string {
+	return (&printer{}).fieldTail(f, "")
+}
+
 // printFieldHead renders a field up to its constraint block. [Dump] uses
 // it to keep a field on one line.
 func printFieldHead(f *Field) string {

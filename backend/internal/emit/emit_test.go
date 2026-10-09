@@ -253,3 +253,24 @@ func TestDocKeepsIndentation(t *testing.T) {
 		t.Errorf("Doc = %q, want %q", got, want)
 	}
 }
+
+// Pins pins the fewest members that make allocation give every member its
+// number.
+func TestPins(t *testing.T) {
+	rule := emit.NumberRule{Max: 100, Skip: map[int64]bool{3: true}}
+	cases := []struct {
+		nums []int64
+		want []bool
+	}{
+		{[]int64{1, 2, 4}, []bool{false, false, false}},
+		{[]int64{1, 2, 3}, []bool{false, false, true}},
+		{[]int64{2, 1}, []bool{true, false}},
+		{[]int64{1, 9, 2}, []bool{false, true, false}},
+		{nil, []bool{}},
+	}
+	for _, c := range cases {
+		if got := emit.Pins(c.nums, rule); !slices.Equal(got, c.want) {
+			t.Errorf("Pins(%v) = %v, want %v", c.nums, got, c.want)
+		}
+	}
+}

@@ -30,3 +30,13 @@ The other editors are planned in [design/editors-plan.md](design/editors-plan.md
 
 Lets an agent query a resolved model: an entity's fields, what satisfies a class, what a target block maps.
 `tdl ir --format json` already emits the model, so a first version is a thin wrapper; which tools to offer beyond that is the open question.
+
+## Importing a model with imports
+
+A reverse backend is given only the target's files, so a model that imports another TDL file does not come back: its imports print, and lowering them needs the files they name.
+`ImportRequest` could carry the imported TDL, or the host could lower the printed file itself.
+
+## Importing protobuf services and nested types
+
+`tdl import --from protobuf` warns and skips a service written by hand, and hoists a nested message or enum to the top level.
+A service wants the `rpc` and `stream` primitives made up, as a oneof's enum is; a nested type wants a TDL spelling for nesting, or a `name` directive Generate reads.

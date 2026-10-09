@@ -32,8 +32,8 @@ target protobuf for acme.widgets.v1 {
 	}
 
 	resp := generateIR(t, model)
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 	}
 	out := compile(t, resp)
 	contains(t, out,
@@ -77,8 +77,8 @@ target protobuf for acme.widgets.v1 {
 	}
 
 	resp := generateIR(t, model)
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 	}
 	out := compile(t, resp)
 	contains(t, out,
@@ -109,7 +109,7 @@ target protobuf for acme.widgets.v1 {
 }
 `
 	resp := generateIR(t, lower(t, "widgets.tdl", src, nil))
-	diags := resp.GetDiagnostics()
+	diags := uncoded(resp.GetDiagnostics())
 	if len(diags) != 1 {
 		t.Fatalf("diagnostics = %+v, want one warning", diags)
 	}
@@ -148,8 +148,8 @@ target protobuf for acme.widgets.v1 {
 }
 `
 	resp := generateIR(t, lower(t, "widgets.tdl", src, nil))
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 	}
 	contains(t, compile(t, resp),
 		"// Deprecated: use v2\nservice WidgetService { option deprecated = true; rpc GetWidget(GetWidgetRequest) returns (Widget); }",
@@ -177,8 +177,8 @@ target protobuf for acme.widgets.v1 {
 }
 `
 	resp := generateIR(t, lower(t, "widgets.tdl", src, nil))
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 	}
 	out := compile(t, resp)
 	contains(t, out,
@@ -209,8 +209,8 @@ target protobuf for acme.widgets.v1 {
 }
 `
 	resp := generateIR(t, lower(t, "widgets.tdl", src, nil))
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 	}
 	contains(t, compile(t, resp),
 		"// Serves widgets.\nservice WidgetService {\n  // Fetches one widget by name.\n  rpc GetWidget(GetWidgetRequest) returns (Widget);\n}",
@@ -255,8 +255,8 @@ target protobuf for acme.widgets.v1 {
 		t.Errorf("directive problems = %+v", problems)
 	}
 	resp := generateIR(t, model)
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 	}
 	contains(t, compileWith(t, resp, googleAPIClient),
 		`service WidgetService {
@@ -294,8 +294,8 @@ target protobuf for acme.widgets.v1 {
 		t.Errorf("directive problems = %+v", problems)
 	}
 	resp := generateIR(t, model)
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
 	}
 	contains(t, compile(t, resp),
 		"rpc GetWidget(GetWidgetRequest) returns (Widget) { option deprecated = true; option idempotency_level = NO_SIDE_EFFECTS; }",
