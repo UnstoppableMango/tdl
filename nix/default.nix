@@ -169,8 +169,9 @@ in
             touch $out
           '';
 
-      # models/ holds TDL descriptions of other projects' schemas, with the
-      # code they generate committed beside them.
+      # models/ holds TDL descriptions of other projects' schemas. Their
+      # generated code is not committed, so tdl-gen has nothing to verify;
+      # models-types generates it and checks it instead.
       tdl = {
         enable = true;
         src = ../models;
@@ -179,15 +180,10 @@ in
           "mdast/mdast.tdl"
           "hast/hast.tdl"
         ];
-        gen.files = [
-          "unist/unist.tdl"
-          "mdast/mdast.tdl"
-          "hast/hast.tdl"
-        ];
         devShell.enable = false;
       };
 
-      checks.models-types = pkgs.callPackage ./checks/models-types { };
+      checks.models-types = pkgs.callPackage ./checks/models-types { go = pkgs.go_1_27; };
 
       # Evaluates a consumer flake that imports flake-module.nix and builds
       # its outputs. tdl-gen is left out: --verify compares against generated

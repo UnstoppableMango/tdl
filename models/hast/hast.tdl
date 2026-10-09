@@ -95,8 +95,6 @@ enum Nodes {
 }
 
 target go for hast {
-  out(".")
-  package("github.com/unstoppablemango/tdl/models/hast")
   Nodes.root => name("Root")
   Nodes.element => name("Element")
   Nodes.text => name("Text")
@@ -105,7 +103,6 @@ target go for hast {
 }
 
 target typescript for hast {
-  out("ts")
   discriminant("type")
   Nodes.root => name("Root")
   Nodes.element => name("Element")

@@ -1,8 +1,0 @@
-# Written by `tdl gen`, which owns the files listed below.
-# `tdl gen --clean` removes them; anything else here is left alone.
-align_type.go
-data.go
-nodes.go
-point.go
-position.go
-reference_type.go

@@ -1,28 +1,32 @@
 # Models
 
-TDL descriptions of other projects' schemas, with the code each generates committed beside it.
-Unlike `examples/`, these are meant to be imported: a Go program uses `github.com/unstoppablemango/tdl/models/mdast`, and TypeScript reads `mdast/ts/mdast.ts`.
+TDL descriptions of other projects' schemas.
+Only the `.tdl` files are committed: `checks.models-types` generates Go and TypeScript from them, vets the Go, and holds the TypeScript to DefinitelyTyped's declarations.
 
-| Model | Describes | Go package | TypeScript |
-| --- | --- | --- | --- |
-| `unist/unist.tdl` | [unist](https://github.com/syntax-tree/unist), the node shape every unified tree shares | `models/unist` | `unist/ts/unist.ts` |
-| `mdast/mdast.tdl` | [mdast](https://github.com/syntax-tree/mdast), markdown as remark parses it | `models/mdast` | `mdast/ts/mdast.ts` |
-| `hast/hast.tdl` | [hast](https://github.com/syntax-tree/hast), HTML as rehype parses it | `models/hast` | `hast/ts/hast.ts` |
+| Model | Describes |
+| --- | --- |
+| `unist/unist.tdl` | [unist](https://github.com/syntax-tree/unist), the node shape every unified tree shares |
+| `mdast/mdast.tdl` | [mdast](https://github.com/syntax-tree/mdast), markdown as remark parses it |
+| `hast/hast.tdl` | [hast](https://github.com/syntax-tree/hast), HTML as rehype parses it |
 
-## Regenerating
+The target blocks have no `out` directive, so `tdl gen` needs `-o`:
 
 ```shell
-tdl gen models/unist/unist.tdl models/mdast/mdast.tdl models/hast/hast.tdl
+tdl gen --target go -o out/mdast models/mdast/mdast.tdl
 ```
 
-`nix flake check` runs `tdl check`, `tdl fmt --check`, and `tdl gen --verify` over every model through `nix/flake-module.nix`, the way a consuming project would.
+`nix flake check` also runs `tdl check` and `tdl fmt --check` over every model through `nix/flake-module.nix`, the way a consuming project would.
 
 ## Checking against DefinitelyTyped
 
-`nix/checks/models-types/check.ts` holds the generated TypeScript to `@types/unist`, `@types/mdast`, and `@types/hast`, and `checks.models-types` runs it.
+`nix/checks/models-types/check.ts` holds the generated TypeScript to `@types/unist`, `@types/mdast`, and `@types/hast`.
 Every tree DefinitelyTyped accepts must be one the generated types accept, and each generated node must be one DefinitelyTyped accepts, apart from what a model knowingly loosens.
+To run it outside Nix, generate into the check's ignored `out/` first:
 
 ```shell
+for t in unist mdast hast; do
+  tdl gen --target typescript -o nix/checks/models-types/out/$t models/$t/$t.tdl
+done
 cd nix/checks/models-types && npm ci && npm run check
 ```
 

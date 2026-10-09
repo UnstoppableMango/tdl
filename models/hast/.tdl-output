@@ -1,7 +1,0 @@
-# Written by `tdl gen`, which owns the files listed below.
-# `tdl gen --clean` removes them; anything else here is left alone.
-data.go
-nodes.go
-point.go
-position.go
-property_value.go

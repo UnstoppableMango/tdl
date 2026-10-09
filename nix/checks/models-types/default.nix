@@ -1,9 +1,13 @@
-# Holds the TypeScript generated from models/ to DefinitelyTyped's
-# declarations for the same trees; check.ts says what is compared.
+# Generates Go and TypeScript from models/, builds the Go, and holds the
+# TypeScript to DefinitelyTyped's declarations for the same trees; check.ts
+# says what is compared. Nothing generated is committed, so this is where
+# the models' output is checked.
 {
+  go,
   importNpmLock,
   nodejs,
   runCommand,
+  tdl,
 }:
 let
   nodeModules = importNpmLock.buildNodeModules {
@@ -11,15 +15,28 @@ let
     inherit nodejs;
   };
 in
-# The tree is rebuilt as it is in the repository, since tsconfig.json reaches
-# the models by a relative path.
-runCommand "tdl-models-types" { nativeBuildInputs = [ nodejs ]; } ''
-  mkdir -p nix/checks
-  cp -r ${../../../models} models
-  cp -r ${./.} nix/checks/models-types
-  chmod -R u+w nix
-  ln -s ${nodeModules}/node_modules nix/checks/models-types/node_modules
-  cd nix/checks/models-types
-  npm run check
-  touch $out
-''
+runCommand "tdl-models-types"
+  {
+    nativeBuildInputs = [
+      go
+      nodejs
+      tdl
+    ];
+  }
+  ''
+    export HOME=$TMPDIR GOCACHE=$TMPDIR/go-cache
+    cp -r ${./.} check
+    chmod -R u+w check
+    ln -s ${nodeModules}/node_modules check/node_modules
+
+    mkdir models
+    printf 'module models\n\ngo 1.24\n' > models/go.mod
+    for tree in unist mdast hast; do
+      tdl gen --target go -o "models/$tree" ${../../../models}/$tree/$tree.tdl
+      tdl gen --target typescript -o "check/out/$tree" ${../../../models}/$tree/$tree.tdl
+    done
+
+    (cd models && go vet ./...)
+    (cd check && npm run check)
+    touch $out
+  ''

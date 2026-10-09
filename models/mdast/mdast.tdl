@@ -335,8 +335,6 @@ enum Nodes {
 }
 
 target go for mdast {
-  out(".")
-  package("github.com/unstoppablemango/tdl/models/mdast")
   Nodes.root => name("Root")
   Nodes.blockquote => name("Blockquote")
   Nodes.break => name("Break")
@@ -366,7 +364,6 @@ target go for mdast {
 }
 
 target typescript for mdast {
-  out("ts")
   discriminant("type")
   Nodes.root => name("Root")
   Nodes.blockquote => name("Blockquote")
