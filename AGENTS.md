@@ -171,6 +171,8 @@ Every backend reports what it cannot generate as a positioned warning rather tha
 - `backend/thrift`: one `.thrift` file per model under `namespace *`, in dependency order.
   A fielded enum is a union of per-variant structs; a newtype is a `typedef`; field ids come from `emit.Numbers`.
   Tests parse and resolve every response with thriftgo.
+  It imports one file: `reverse.go` reads thriftgo's AST, which has no positions, so `locate` scans the source for each definition's keyword; `annotate.go` writes the loss warnings and, under `roundtrip`, `tdl.*` annotations, encoding a value so thriftgo's partial unescaping reads it back.
+  `Normalize` is its normal form for the round-trip corpus.
 - `backend/smithy`: one Smithy IDL 2.0 file per model.
   Each list or map a field holds becomes a named shape (`LineItemList`, `StringLongMap`); a shadowed prelude shape is written `smithy.api#`.
   Non-optional fields are `@required`, and an optional element makes a collection `@sparse`.

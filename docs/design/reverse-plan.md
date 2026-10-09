@@ -59,8 +59,8 @@ Each is:
 
 Done, for a target, when its corpus passes and `testdata/gen/smoke` round-trips with no warning.
 
-`protobuf` is done.
-Every conformance case that imports nothing also comes back through it, in `TestConformanceComesBack`; a model with an import does not yet, since a reverse backend is given no file the import names.
+`protobuf` and `thrift` are done.
+Every conformance case that imports nothing also comes back through each, in `TestConformanceComesBack`; a model with an import does not yet, since a reverse backend is given no file the import names.
 
 ## Phase 5: Salesforce
 

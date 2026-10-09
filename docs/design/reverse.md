@@ -83,7 +83,7 @@ Without it, output is unchanged and each lost fact is a loss warning.
 | Backend | Annotation |
 | --- | --- |
 | `protobuf` | custom options declared in `tdl/annotations.proto`, such as `[(tdl.field) = {source: "id: uuid"}]` and `option (tdl.message) = {kind: KIND_ENTITY};` |
-| `thrift` | annotations, such as `(tdl.type = "uuid")` |
+| `thrift` | annotations with `tdl.` keys, such as `(tdl.source = "id: uuid")` and `(tdl.kind = "entity")` |
 | `smithy` | traits in the `tdl` namespace, defined in a generated `tdl.smithy` |
 | `graphql` | an `@tdl` directive, defined in the schema it is used in |
 | `typescript` | JSDoc `@tdl` tags |
@@ -151,7 +151,7 @@ Schema-first tests compare each schema in a normal form:
 | Target | Normal form |
 | --- | --- |
 | `protobuf` | `FileDescriptorProto` without source info |
-| `thrift` | the thriftgo AST without positions |
+| `thrift` | the thriftgo AST as JSON without comments, each kind of definition sorted by name |
 | `graphql` | the `gqlparser` schema, formatted |
 | `go` | declarations through `go/format`, keeping doc comments only |
 | `typescript` | the compiler API's JSON |

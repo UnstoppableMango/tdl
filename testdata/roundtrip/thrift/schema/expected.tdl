@@ -1,0 +1,39 @@
+package shop.v1
+
+/// A line on an order.
+type LineItem {
+  sku: string
+  quantity: int32
+  price: float64?
+}
+
+enum Status { Draft Placed Cancelled OnHold }
+
+enum Payment {
+  Card { last4: string }
+  Cash
+  BankTransfer { iban: string }
+}
+
+type Sku: string
+
+type order_summary {
+  items: [LineItem]
+  skus: {Sku}
+  totals: {string -> int64}
+  deprecated("use state") status: Status
+  payment: Payment
+  receipt: bytes
+  paid: bool
+  Note: string
+}
+
+target thrift for shop.v1 {
+  LineItem.price => number(5)
+  Status.Cancelled => number(10)
+  Status.OnHold => name("on_hold")
+  Status.OnHold => number(11)
+  Payment.Card => name("CardPayment")
+  Payment.BankTransfer => number(4)
+  order_summary => name("order_summary")
+}

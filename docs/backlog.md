@@ -40,3 +40,9 @@ A reverse backend is given only the target's files, so a model that imports anot
 
 `tdl import --from protobuf` warns and skips a service written by hand, and hoists a nested message or enum to the top level.
 A service wants the `rpc` and `stream` primitives made up, as a oneof's enum is; a nested type wants a TDL spelling for nesting, or a `name` directive Generate reads.
+
+## Importing what Thrift has and TDL does not
+
+`tdl import --from thrift` warns and skips a const, a service, a union that is not a fielded enum's shape, and an `include`, which fails the import.
+An exception is read as a struct, and `required`, a default, and annotations other than `deprecated` are dropped.
+A union of primitives could be an enum whose variants hold one field each, if Generate wrote that shape back; defaults are a TDL field's `= value`, if Generate wrote them.

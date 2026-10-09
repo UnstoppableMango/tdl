@@ -235,6 +235,8 @@ OpenAPI 2.0 has no `oneOf`, so there a fielded enum warns and is skipped, along 
 
 ## Import
 
+### Protobuf
+
 `tdl import --from protobuf` reads `.proto` files of one package, compiled together by `bufbuild/protocompile`, and [reverse.md](reverse.md) describes the rest of the direction.
 
 | protobuf | TDL |
@@ -268,6 +270,40 @@ Under a `roundtrip` directive, each of those is written instead as a custom opti
 
 Reading annotated files, the reader takes the annotations and infers no directive, so the target blocks come back from `(tdl.file)` as they were written.
 The normal form for comparing schemas is each file's `FileDescriptorProto` without source info, its imports sorted and reserved ranges merged.
+
+### Thrift
+
+`tdl import --from thrift` reads one `.thrift` file, parsed by `cloudwego/thriftgo`; an `include` fails the import.
+
+| Thrift | TDL |
+| --- | --- |
+| struct | struct |
+| union whose every member is a struct nothing else names | enum with fields, one variant per member |
+| enum, its values from screaming snake case | enum |
+| typedef | newtype |
+| `list<T>`, `set<T>`, `map<K, V>`, `optional T` | `[T]`, `{T}`, `{K -> V}`, `T?` |
+| `i32`, `i64`, `double`, `binary` | `int32`, `int64`, `float64`, `bytes` |
+| `byte`, `i8`, `i16` | `int32`, with `lossy.primitive` |
+| exception | struct, with `lossy.unsupported` |
+| other union, const, service, `required`, an annotation, a namespace for one language | `lossy.unsupported` |
+| a default | `lossy.default` |
+
+A field keeps its name, and a variant's is what its struct's name adds to the union's when the member is that in camel case, and otherwise the member's Pascal case.
+The last comment before a node is its doc comment when it is a `/** */` block, and a `Deprecated:` paragraph ending one is the reason of a `deprecated` annotation.
+The target block holds a `name` directive where the convention would write another name and a `number` directive on each member allocation would number otherwise.
+
+Generating, every fact the IDL cannot hold warns with its loss code: an `int`, `uint32`, `float32`, `decimal`, `uuid`, `instant`, `date`, or `duration` written as another primitive, collection sugar written by name, `T | null`, an alias expanded, an entity or a mixin, an include, a constraint, `owned`, a default, a name or number that reads back otherwise, the order dependencies impose, a doc comment a `/** */` block cannot hold, a class, a unit, and generics.
+
+Under a `roundtrip` directive, each of those is written instead as an annotation whose key starts `tdl.`:
+
+- on `namespace *`, or `namespace tdl tdl` without a package: `tdl.package` when `package` renames it, `tdl.doc` for the package's doc comment, `tdl.import` for each import, and `tdl.item` for each top-level item with no Thrift form, as its index among the file's declarations and the item as TDL.
+- on a definition: `tdl.name`, `tdl.kind` (`entity` or `mixin`), `tdl.conforms`, and `tdl.at`, its index, when the output reorders the declarations.
+- on a typedef and a field: `tdl.source`, the newtype or field as TDL where the IDL reads back differently, and on a field `tdl.include`, the mixin whose include copied it.
+- on an enum value and a union member: `tdl.name`.
+- on any node: `tdl.doc` and `tdl.reason` where its comment does not read back as its doc comment and deprecation.
+
+thriftgo unescapes only `\"` in a literal, so in an annotation's value a backslash before a quote or at the end is written `%5C`, and a percent sign `%25`.
+The normal form for comparing schemas is the thriftgo AST as JSON, without comments, each kind of definition sorted by name.
 
 ## Encodings
 

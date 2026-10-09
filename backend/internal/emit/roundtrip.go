@@ -81,14 +81,25 @@ func IsDecl(d ast.Decl) bool {
 	return true
 }
 
-// Conforms is a struct's conformance list as TDL: `Entity, Auditable`.
+// Conforms is a struct's or an enum's conformance list as TDL:
+// `Entity, Auditable`.
 func (s *Session) Conforms(name string) string {
 	for _, decl := range s.Unlowered().Decls {
-		if sd, ok := decl.(*ast.StructDecl); ok && sd.N == name {
-			head := ast.PrintDecl(&ast.StructDecl{DeclHead: ast.DeclHead{N: "T"}, Keyword: "type", Conforms: sd.Conforms})
-			head = strings.TrimPrefix(head, "type T: ")
-			return strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(head), "{ }"))
+		var conforms []*ast.ClassRef
+		switch d := decl.(type) {
+		case *ast.StructDecl:
+			conforms = d.Conforms
+		case *ast.EnumDecl:
+			conforms = d.Conforms
+		default:
+			continue
 		}
+		if decl.Name() != name {
+			continue
+		}
+		head := ast.PrintDecl(&ast.StructDecl{DeclHead: ast.DeclHead{N: "T"}, Keyword: "type", Conforms: conforms})
+		head = strings.TrimPrefix(head, "type T: ")
+		return strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(head), "{ }"))
 	}
 	return ""
 }

@@ -63,7 +63,7 @@ var shipped = []struct {
 	{backend: protobuf.Backend{}, model: orderModel, packaged: true, valid: compileProto, reverse: protoSource},
 	{backend: salesforce.Backend{}, model: orderModel, packaged: true, valid: parseXML},
 	{backend: smithy.Backend{}, model: orderModel, packaged: true},
-	{backend: thrift.Backend{}, model: orderModel, packaged: true, valid: checkThrift},
+	{backend: thrift.Backend{}, model: orderModel, packaged: true, valid: checkThrift, reverse: thriftSource},
 	{backend: typescript.Backend{}, model: orderModel, packaged: true},
 }
 
@@ -77,6 +77,18 @@ package shop;
 message Order {
   string id = 1;
   repeated string tags = 2;
+}
+`)}}
+}
+
+// thriftSource is a schema for the thrift reverse to read.
+func thriftSource() []*plugin.File {
+	return []*plugin.File{{Path: "shop.thrift", Content: []byte(`namespace * shop
+
+/** An order. */
+struct Order {
+  1: string id
+  2: list<string> tags
 }
 `)}}
 }

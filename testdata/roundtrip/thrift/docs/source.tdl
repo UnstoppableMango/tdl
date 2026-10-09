@@ -1,0 +1,36 @@
+/// The shop's model.
+///
+/// It spans two paragraphs.
+package shop
+
+/// A comment that closes */ early.
+type Note {
+  /// Indented:
+  ///   one
+  ///   two
+  body: string
+
+  deprecated("first line\nsecond line") old: string
+
+  /// Deprecated: not a deprecation.
+  text: string
+}
+
+deprecated
+type Retired {
+  id: string
+}
+
+/// Kept.
+deprecated("for a reason with a \"quote\" and a \\ backslash")
+enum Mood {
+  /// Happy.
+  Happy
+  deprecated Sad
+}
+
+enum Event {
+  /// Opened.
+  Opened { at: instant }
+  deprecated("use Opened") Closed
+}
