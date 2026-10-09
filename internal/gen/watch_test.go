@@ -112,3 +112,29 @@ func TestWatchStops(t *testing.T) {
 		t.Fatal("the watch did not stop")
 	}
 }
+
+// A change made before the watch starts is compared against the
+// contents the caller read, so it is not lost.
+func TestWatchFromNoticesAnEarlierChange(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "watched.tdl")
+	if err := os.WriteFile(path, []byte("after"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	done := make(chan struct{})
+	defer close(done)
+
+	changed := make(chan struct{}, 1)
+	go gen.WatchFrom(done, path, []byte("before"), func() {
+		select {
+		case changed <- struct{}{}:
+		default:
+		}
+	})
+
+	select {
+	case <-changed:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the earlier change was never noticed")
+	}
+}
