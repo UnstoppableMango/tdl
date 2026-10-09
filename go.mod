@@ -8,7 +8,7 @@ require (
 	github.com/cloudwego/thriftgo v0.4.5
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/spf13/cobra v1.10.2
-	github.com/vektah/gqlparser/v2 v2.5.61
+	github.com/vektah/gqlparser/v2 v2.5.62
 	go.lsp.dev/jsonrpc2 v1.0.1
 	go.lsp.dev/protocol v1.0.1
 	go.lsp.dev/uri v1.0.1
