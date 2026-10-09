@@ -182,6 +182,7 @@ Every backend reports what it cannot generate as a positioned warning rather tha
 - `backend/typescript`: one `.ts` file per model of JSON wire types, no runtime code.
   A set is an array, a map a `Record`, unrepresentable primitives a string, a newtype a plain alias.
   A fielded enum is a union discriminated on `kind`, renamed by a `discriminant` directive.
+  `narrow.go` writes a `oneOf`, or an integer `min`/`max` pair spanning at most 16 values, as a literal union, which does not warn.
   Tests run `tsc --noEmit --strict` when it is on `PATH`; `checks.gen-typescript` always does.
 - `backend/jsonschema`: one `.schema.json` document per model, every declaration under `$defs`.
   A fielded enum is a `oneOf` discriminated on `kind`, as in TypeScript; a newtype is a definition with its own constraints, and a base newtype is a `$ref`.
