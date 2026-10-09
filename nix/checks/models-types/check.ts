@@ -10,9 +10,9 @@
 import type * as hast from "hast";
 import type * as mdast from "mdast";
 import type * as unist from "unist";
-import type * as genHast from "../hast/ts/hast.js";
-import type * as genMdast from "../mdast/ts/mdast.js";
-import type * as genUnist from "../unist/ts/unist.js";
+import type * as genHast from "../../../models/hast/ts/hast.js";
+import type * as genMdast from "../../../models/mdast/ts/mdast.js";
+import type * as genUnist from "../../../models/unist/ts/unist.js";
 
 type Assert<T extends true> = T;
 type Extends<A, B> = [A] extends [B] ? true : false;

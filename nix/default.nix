@@ -187,23 +187,7 @@ in
         devShell.enable = false;
       };
 
-      # Holds the TypeScript generated from models/ to DefinitelyTyped's
-      # declarations for the same trees; see models/check/check.ts.
-      checks.models-types =
-        let
-          nodeModules = pkgs.importNpmLock.buildNodeModules {
-            npmRoot = ../models/check;
-            inherit (pkgs) nodejs;
-          };
-        in
-        pkgs.runCommand "tdl-models-types" { nativeBuildInputs = [ pkgs.nodejs ]; } ''
-          cp -r ${../models} models
-          chmod -R u+w models
-          ln -s ${nodeModules}/node_modules models/check/node_modules
-          cd models/check
-          npm run check
-          touch $out
-        '';
+      checks.models-types = pkgs.callPackage ./checks/models-types { };
 
       # Evaluates a consumer flake that imports flake-module.nix and builds
       # its outputs. tdl-gen is left out: --verify compares against generated

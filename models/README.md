@@ -19,11 +19,11 @@ tdl gen models/unist/unist.tdl models/mdast/mdast.tdl models/hast/hast.tdl
 
 ## Checking against DefinitelyTyped
 
-`check/check.ts` holds the generated TypeScript to `@types/unist`, `@types/mdast`, and `@types/hast`, and `checks.models-types` runs it.
+`nix/checks/models-types/check.ts` holds the generated TypeScript to `@types/unist`, `@types/mdast`, and `@types/hast`, and `checks.models-types` runs it.
 Every tree DefinitelyTyped accepts must be one the generated types accept, and each generated node must be one DefinitelyTyped accepts, apart from what a model knowingly loosens.
 
 ```shell
-cd models/check && npm ci && npm run check
+cd nix/checks/models-types && npm ci && npm run check
 ```
 
 ## What the models loosen
