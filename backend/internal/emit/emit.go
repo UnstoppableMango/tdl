@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/unstoppablemango/tdl/ast"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 	"github.com/unstoppablemango/tdl/prelude"
@@ -29,7 +30,13 @@ type Session struct {
 	// rather than refusing it.
 	Externs bool
 
+	// Roundtrip makes [Session.Lose] and [Session.Skip] report nothing,
+	// since annotations carry what they would.
+	Roundtrip bool
+
 	Diags []*plugin.Diagnostic
+
+	unlowered *ast.File
 }
 
 // NewSession starts a session for one request.

@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"context"
 	"errors"
-	"fmt"
 	"path"
 	"slices"
 	"strconv"
@@ -17,9 +16,8 @@ import (
 
 	"github.com/unstoppablemango/tdl/ast"
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
-	"github.com/unstoppablemango/tdl/internal/sema"
+	"github.com/unstoppablemango/tdl/backend/internal/reverse"
 	"github.com/unstoppablemango/tdl/ir"
-	"github.com/unstoppablemango/tdl/parser"
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
@@ -37,42 +35,13 @@ func (Backend) Import(ctx context.Context, req *plugin.ImportRequest) (*plugin.I
 		foreign: map[string]string{},
 		uses:    map[string]map[string]bool{},
 	}
-	model, err := r.read(ctx, req.GetFiles())
-	var failed *readError
-	if errors.As(err, &failed) {
-		r.diags = append(r.diags, &plugin.Diagnostic{
-			Severity: plugin.Severity_SEVERITY_ERROR,
-			Message:  failed.msg,
-			Position: failed.pos,
-		})
-		return &plugin.ImportResponse{Diagnostics: r.diags}, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	return &plugin.ImportResponse{Model: model, Diagnostics: r.diags}, nil
-}
-
-// readError is a problem with the input, reported as a diagnostic.
-type readError struct {
-	msg string
-	pos *ir.Position
-}
-
-func (e *readError) Error() string { return e.msg }
-
-func failf(pos *ir.Position, format string, args ...any) error {
-	return &readError{fmt.Sprintf(format, args...), pos}
+	return r.Response(r.read(ctx, req.GetFiles()))
 }
 
 type reader struct {
-	c     *compiled
-	diags []*plugin.Diagnostic
-
-	// roundtrip is set when a file carries the (tdl.file) annotation, so
-	// annotations are read and no directive is inferred.
-	roundtrip bool
-	pkg       string
+	reverse.Reader
+	c   *compiled
+	pkg string
 
 	// files is the files being imported, by path.
 	files []*protoFile
@@ -92,7 +61,6 @@ type reader struct {
 	enums    map[string]*descriptorpb.EnumDescriptorProto
 	declared map[string]string // full name to the file declaring it
 
-	entries []*ast.TargetEntry
 	// extra holds what reading the current declaration added: hoisted
 	// nested types and stand-ins for foreign ones.
 	extra []ast.Decl
@@ -147,23 +115,6 @@ const (
 	enumValue   = 2
 )
 
-func (r *reader) warn(code string, pos *ir.Position, format string, args ...any) {
-	r.diags = append(r.diags, &plugin.Diagnostic{
-		Severity: plugin.Severity_SEVERITY_WARNING,
-		Message:  fmt.Sprintf(format, args...),
-		Position: pos,
-		Code:     code,
-	})
-}
-
-// item is a top-level declaration read from a file, with the index an
-// annotation gave it, or -1.
-type item struct {
-	decl  ast.Decl
-	at    int
-	extra []ast.Decl
-}
-
 func (r *reader) read(ctx context.Context, files []*plugin.File) (*ir.Model, error) {
 	sources := map[string]string{}
 	var paths []string
@@ -175,14 +126,14 @@ func (r *reader) read(ctx context.Context, files []*plugin.File) (*ir.Model, err
 		paths = append(paths, f.GetPath())
 	}
 	if len(paths) == 0 {
-		return nil, failf(nil, "no .proto files to import")
+		return nil, reverse.Failf(nil, "no .proto files to import")
 	}
 	slices.Sort(paths)
 
 	c, err := compile(ctx, sources, paths, true)
 	var bad *compileError
 	if errors.As(err, &bad) {
-		return nil, failf(nil, "the files do not compile:\n%s", bad.text)
+		return nil, reverse.Failf(nil, "the files do not compile:\n%s", bad.text)
 	}
 	if err != nil {
 		return nil, err
@@ -200,21 +151,21 @@ func (r *reader) read(ctx context.Context, files []*plugin.File) (*ir.Model, err
 		}
 		r.files = append(r.files, s)
 		if r.ext(fd.GetOptions(), "file") != nil {
-			r.roundtrip = true
+			r.Roundtrip = true
 		}
 	}
 
 	r.pkg = r.files[0].fd.GetPackage()
 	for _, s := range r.files[1:] {
 		if s.fd.GetPackage() != r.pkg {
-			return nil, failf(s.pos(filePackage), "%s declares package %s and %s declares %s; import one package at a time",
+			return nil, reverse.Failf(s.pos(filePackage), "%s declares package %s and %s declares %s; import one package at a time",
 				r.files[0].fd.GetName(), r.pkg, s.fd.GetName(), s.fd.GetPackage())
 		}
 	}
 
 	file := &ast.File{Filename: paths[0]}
 	tdlPkg := r.pkg
-	var items []item
+	var items []reverse.Item
 	for _, s := range r.files {
 		ann := r.ext(s.fd.GetOptions(), "file")
 		if ann == nil {
@@ -224,18 +175,18 @@ func (r *reader) read(ctx context.Context, files []*plugin.File) (*ir.Model, err
 			tdlPkg = p
 		}
 		for _, src := range strs(ann, "imports") {
-			f, err := parser.Parse(annotationsFile, strings.NewReader(src))
-			if err != nil || len(f.Imports) != 1 {
-				return nil, failf(s.pos(), "(tdl.file) import %q is not one TDL import: %v", src, err)
+			imp, err := reverse.ParseImport(src)
+			if err != nil {
+				return nil, reverse.Failf(s.pos(), "(tdl.file) import %q is not one TDL import: %v", src, err)
 			}
-			file.Imports = append(file.Imports, f.Imports[0])
+			file.Imports = append(file.Imports, imp)
 		}
 		for _, it := range list(ann, "items") {
-			decl, err := parseItem(str(it, "source"))
+			decl, err := reverse.ParseItem(str(it, "source"))
 			if err != nil {
-				return nil, failf(s.pos(), "a (tdl.file) item is not TDL: %v", err)
+				return nil, reverse.Failf(s.pos(), "a (tdl.file) item is not TDL: %v", err)
 			}
-			items = append(items, item{decl: decl, at: int(num(it, "at"))})
+			items = append(items, reverse.Item{Decl: decl, At: int(num(it, "at"))})
 		}
 	}
 	var doc []string
@@ -250,7 +201,7 @@ func (r *reader) read(ctx context.Context, files []*plugin.File) (*ir.Model, err
 
 	r.nameAll()
 
-	var emitted []item
+	var emitted []reverse.Item
 	for _, s := range r.files {
 		decls, err := r.file(s)
 		if err != nil {
@@ -258,66 +209,16 @@ func (r *reader) read(ctx context.Context, files []*plugin.File) (*ir.Model, err
 		}
 		emitted = append(emitted, decls...)
 	}
-	if !r.roundtrip {
+	if !r.Roundtrip {
 		r.block(file)
 	}
 
-	file.Decls = arrange(emitted, items)
-	if len(r.entries) > 0 {
-		file.Decls = append(file.Decls, &ast.TargetDecl{DeclHead: ast.DeclHead{N: Name}, For: tdlPkg, Entries: r.entries})
+	file.Decls = reverse.Arrange(emitted, items)
+	if len(r.Entries) > 0 {
+		file.Decls = append(file.Decls, &ast.TargetDecl{DeclHead: ast.DeclHead{N: Name}, For: tdlPkg, Entries: r.Entries})
 	}
 
-	model, diags := sema.Lower(file)
-	if len(diags) > 0 {
-		d := diags[0]
-		return nil, failf(&ir.Position{Filename: d.Pos.Filename, Line: int32(d.Pos.Line), Column: int32(d.Pos.Col)},
-			"the model read from the files does not lower: %s", diags.Error())
-	}
-	return model, nil
-}
-
-// arrange interleaves declarations read from messages and enums with the
-// items an annotation carries: each item, and each declaration given one,
-// at its index, and the rest of the declarations in the gaps, in order.
-func arrange(emitted, items []item) []ast.Decl {
-	n := len(emitted) + len(items)
-	slots := make([]*item, n)
-	var rest []*item
-	place := func(it *item) {
-		if it.at >= 0 && it.at < n && slots[it.at] == nil {
-			slots[it.at] = it
-			return
-		}
-		rest = append(rest, it)
-	}
-	for i := range items {
-		place(&items[i])
-	}
-	var free []*item
-	for i := range emitted {
-		if emitted[i].at >= 0 {
-			place(&emitted[i])
-		} else {
-			free = append(free, &emitted[i])
-		}
-	}
-	free = append(free, rest...)
-	var out []ast.Decl
-	for _, s := range slots {
-		if s == nil {
-			if len(free) == 0 {
-				continue
-			}
-			s, free = free[0], free[1:]
-		}
-		out = append(out, s.decl)
-		out = append(out, s.extra...)
-	}
-	for _, s := range free {
-		out = append(out, s.decl)
-		out = append(out, s.extra...)
-	}
-	return out
+	return reverse.Lower(file)
 }
 
 // index records every compiled message and enum by full name.
@@ -435,30 +336,30 @@ func (r *reader) isSum(full string, m *descriptorpb.DescriptorProto) bool {
 }
 
 // file reads one file's top-level declarations in source order.
-func (r *reader) file(s *protoFile) ([]item, error) {
+func (r *reader) file(s *protoFile) ([]reverse.Item, error) {
 	type top struct {
 		line int32
-		read func() (*item, error)
+		read func() (*reverse.Item, error)
 	}
 	var tops []top
 	line := func(p ...int32) int32 { return s.pos(p...).GetLine() }
 	for i, m := range s.fd.GetMessageType() {
 		p := []int32{fileMessage, int32(i)}
-		tops = append(tops, top{line(p...), func() (*item, error) { return r.message(s, p, r.scope(), m) }})
+		tops = append(tops, top{line(p...), func() (*reverse.Item, error) { return r.message(s, p, r.scope(), m) }})
 	}
 	for i, e := range s.fd.GetEnumType() {
 		p := []int32{fileEnum, int32(i)}
-		tops = append(tops, top{line(p...), func() (*item, error) {
+		tops = append(tops, top{line(p...), func() (*reverse.Item, error) {
 			return r.enum(s, p, r.scope()+"."+e.GetName(), e), nil
 		}})
 	}
 	for i, svc := range s.fd.GetService() {
 		p := []int32{fileService, int32(i)}
-		tops = append(tops, top{line(p...), func() (*item, error) { return r.service(s, p, svc) }})
+		tops = append(tops, top{line(p...), func() (*reverse.Item, error) { return r.service(s, p, svc) }})
 	}
 	slices.SortStableFunc(tops, func(a, b top) int { return cmp.Compare(a.line, b.line) })
 
-	var out []item
+	var out []reverse.Item
 	for _, t := range tops {
 		r.extra = nil
 		it, err := t.read()
@@ -468,10 +369,10 @@ func (r *reader) file(s *protoFile) ([]item, error) {
 		if it == nil {
 			continue
 		}
-		it.extra = r.extra
+		it.Extra = r.extra
 		out = append(out, *it)
-		if !r.roundtrip && len(r.files) > 1 {
-			r.directive(it.decl.Name(), "file", strLit(path.Base(s.fd.GetName())))
+		if !r.Roundtrip && len(r.files) > 1 {
+			r.Directive(it.Decl.Name(), "file", reverse.StrLit(path.Base(s.fd.GetName())))
 		}
 	}
 	return out, nil
@@ -483,30 +384,6 @@ func at(ann protoreflect.Message) int {
 		return -1
 	}
 	return int(num(ann, "at"))
-}
-
-// head reads a node's doc comment and deprecation. Generate writes a
-// deprecation's reason as the comment's last paragraph.
-func head(name string, l *descriptorpb.SourceCodeInfo_Location, pos ast.Position, deprecated bool) ast.DeclHead {
-	doc := comments(l)
-	h := ast.DeclHead{N: name, P: pos}
-	if deprecated {
-		h.Dep = &ast.Deprecation{}
-		if n := len(doc); n > 0 {
-			if reason, ok := strings.CutPrefix(doc[n-1], "Deprecated: "); ok {
-				h.Dep.Reason = reason
-				doc = doc[:n-1]
-				if n := len(doc); n > 0 && doc[n-1] == "" {
-					doc = doc[:n-1]
-				}
-			}
-		}
-	}
-	h.Doc, h.DocP = doc, make([]ast.Position, len(doc))
-	if len(doc) == 0 {
-		h.Doc, h.DocP = nil, nil
-	}
-	return h
 }
 
 // comments is a location's leading comment, one line per entry, each with
@@ -525,23 +402,23 @@ func comments(l *descriptorpb.SourceCodeInfo_Location) []string {
 
 // message reads a top-level or hoisted message: a struct, or an enum with
 // fields when it is written as one.
-func (r *reader) message(s *protoFile, p []int32, scope string, m *descriptorpb.DescriptorProto) (*item, error) {
+func (r *reader) message(s *protoFile, p []int32, scope string, m *descriptorpb.DescriptorProto) (*reverse.Item, error) {
 	full := scope + "." + m.GetName()
 	name := r.names[full]
 	ann := r.ext(m.GetOptions(), "message")
-	if !r.roundtrip && emit.Pascal(m.GetName()) != m.GetName() {
-		r.directive(name, "name", strLit(m.GetName()))
+	if !r.Roundtrip && emit.Pascal(m.GetName()) != m.GetName() {
+		r.Directive(name, "name", reverse.StrLit(m.GetName()))
 	}
 	if r.isSum(full, m) {
 		decl, err := r.sum(s, p, full, name, m)
 		if err != nil {
 			return nil, err
 		}
-		return &item{decl: decl, at: at(ann)}, nil
+		return &reverse.Item{Decl: decl, At: at(ann)}, nil
 	}
 
 	decl := &ast.StructDecl{
-		DeclHead: head(name, s.loc(p...), s.astPos(p...), m.GetOptions().GetDeprecated()),
+		DeclHead: reverse.Head(name, comments(s.loc(p...)), s.astPos(p...), m.GetOptions().GetDeprecated()),
 		Keyword:  "type",
 	}
 	switch enumValueName(ann, "kind") {
@@ -551,9 +428,9 @@ func (r *reader) message(s *protoFile, p []int32, scope string, m *descriptorpb.
 		decl.Keyword = "mixin"
 	}
 	if src := str(ann, "conforms"); src != "" {
-		parsed, err := parseItem("type T: " + src + " {}")
+		parsed, err := reverse.ParseItem("type T: " + src + " {}")
 		if err != nil {
-			return nil, failf(s.pos(p...), "the (tdl.message) conforms of %s is not a TDL conformance list: %v", m.GetName(), err)
+			return nil, reverse.Failf(s.pos(p...), "the (tdl.message) conforms of %s is not a TDL conformance list: %v", m.GetName(), err)
 		}
 		decl.Conforms = parsed.(*ast.StructDecl).Conforms
 	}
@@ -596,22 +473,22 @@ func (r *reader) message(s *protoFile, p []int32, scope string, m *descriptorpb.
 			continue
 		}
 		np := child(p, msgNested, int32(i))
-		r.warn(emit.LossUnsupported, s.pos(np...), "%s is nested in %s, and is read as %s at the top level", n.GetName(), m.GetName(), r.names[full+"."+n.GetName()])
+		r.Warn(emit.LossUnsupported, s.pos(np...), "%s is nested in %s, and is read as %s at the top level", n.GetName(), m.GetName(), r.names[full+"."+n.GetName()])
 		it, err := r.message(s, np, full, n)
 		if err != nil {
 			return nil, err
 		}
-		r.extra = append(r.extra, it.decl)
+		r.extra = append(r.extra, it.Decl)
 	}
 	for i, e := range m.GetEnumType() {
 		ep := child(p, msgEnum, int32(i))
-		r.warn(emit.LossUnsupported, s.pos(ep...), "%s is nested in %s, and is read as %s at the top level", e.GetName(), m.GetName(), r.names[full+"."+e.GetName()])
-		r.extra = append(r.extra, r.enum(s, ep, full+"."+e.GetName(), e).decl)
+		r.Warn(emit.LossUnsupported, s.pos(ep...), "%s is nested in %s, and is read as %s at the top level", e.GetName(), m.GetName(), r.names[full+"."+e.GetName()])
+		r.extra = append(r.extra, r.enum(s, ep, full+"."+e.GetName(), e).Decl)
 	}
 	if len(m.GetExtension()) > 0 || len(m.GetExtensionRange()) > 0 {
-		r.warn(emit.LossUnsupported, s.pos(p...), "%s declares extensions, which TDL has no form for", m.GetName())
+		r.Warn(emit.LossUnsupported, s.pos(p...), "%s declares extensions, which TDL has no form for", m.GetName())
 	}
-	return &item{decl: decl, at: at(ann)}, nil
+	return &reverse.Item{Decl: decl, At: at(ann)}, nil
 }
 
 // member adds a field to a struct body, or the include that copied it.
@@ -632,7 +509,7 @@ func (r *reader) member(members []ast.Member, f *ast.Field, ann protoreflect.Mes
 // pins writes a number directive on each slot whose number allocation
 // would not give it.
 func (r *reader) pins(slots []slot, rule emit.NumberRule, skip map[int64]bool) {
-	if r.roundtrip || len(slots) == 0 {
+	if r.Roundtrip || len(slots) == 0 {
 		return
 	}
 	rule.Skip = skip
@@ -642,7 +519,7 @@ func (r *reader) pins(slots []slot, rule emit.NumberRule, skip map[int64]bool) {
 	}
 	for i, pinned := range emit.Pins(nums, rule) {
 		if pinned {
-			r.directive(slots[i].Name, "number", &ast.Literal{Kind: ast.LitInt, Text: strconv.FormatInt(slots[i].num, 10)})
+			r.Directive(slots[i].Name, "number", &ast.Literal{Kind: ast.LitInt, Text: strconv.FormatInt(slots[i].num, 10)})
 		}
 	}
 }
@@ -654,7 +531,7 @@ func (r *reader) reserved(s *protoFile, p []int32, name string, m *descriptorpb.
 	var args []*ast.Literal
 	for _, rr := range m.GetReservedRange() {
 		if rr.GetEnd()-rr.GetStart() > 64 {
-			r.warn(emit.LossUnsupported, s.pos(p...), "%s reserves %d to %d, and a reserved directive lists numbers one by one", m.GetName(), rr.GetStart(), rr.GetEnd()-1)
+			r.Warn(emit.LossUnsupported, s.pos(p...), "%s reserves %d to %d, and a reserved directive lists numbers one by one", m.GetName(), rr.GetStart(), rr.GetEnd()-1)
 			continue
 		}
 		for n := rr.GetStart(); n < rr.GetEnd(); n++ {
@@ -664,14 +541,14 @@ func (r *reader) reserved(s *protoFile, p []int32, name string, m *descriptorpb.
 	}
 	// protobuf keeps reserved numbers and names in separate statements.
 	if len(args) > 0 {
-		r.directive(name, "reserved", args...)
+		r.Directive(name, "reserved", args...)
 	}
 	var names []*ast.Literal
 	for _, n := range m.GetReservedName() {
-		names = append(names, strLit(n))
+		names = append(names, reverse.StrLit(n))
 	}
 	if len(names) > 0 {
-		r.directive(name, "reserved", names...)
+		r.Directive(name, "reserved", names...)
 	}
 	return numbers
 }
@@ -682,9 +559,9 @@ func (r *reader) field(s *protoFile, p []int32, f *descriptorpb.FieldDescriptorP
 	pos := s.astPos(p...)
 	var out *ast.Field
 	if src := str(r.ext(f.GetOptions(), "field"), "source"); src != "" {
-		parsed, err := parseField(src)
+		parsed, err := reverse.ParseField(src)
 		if err != nil {
-			return nil, failf(s.pos(p...), "the (tdl.field) source of %s.%s is not a TDL field: %v", owner, f.GetName(), err)
+			return nil, reverse.Failf(s.pos(p...), "the (tdl.field) source of %s.%s is not a TDL field: %v", owner, f.GetName(), err)
 		}
 		out = parsed
 	} else {
@@ -694,15 +571,15 @@ func (r *reader) field(s *protoFile, p []int32, f *descriptorpb.FieldDescriptorP
 		}
 		out = &ast.Field{Type: typ}
 		out.N = emit.Camel(f.GetName())
-		if !r.roundtrip && emit.Snake(out.N) != f.GetName() {
-			r.directive(owner+"."+out.N, "name", strLit(f.GetName()))
+		if !r.Roundtrip && emit.Snake(out.N) != f.GetName() {
+			r.Directive(owner+"."+out.N, "name", reverse.StrLit(f.GetName()))
 		}
 	}
-	h := head(out.N, s.loc(p...), pos, f.GetOptions().GetDeprecated())
+	h := reverse.Head(out.N, comments(s.loc(p...)), pos, f.GetOptions().GetDeprecated())
 	out.DeclHead = h
 	r.fieldOptions(f, owner+"."+out.N)
-	if t := s.loc(p...).GetTrailingComments(); t != "" && !r.roundtrip {
-		r.warn(emit.LossDoc, s.pos(p...), "%s.%s's trailing comment is not a doc comment, and is dropped", owner, out.N)
+	if t := s.loc(p...).GetTrailingComments(); t != "" && !r.Roundtrip {
+		r.Warn(emit.LossDoc, s.pos(p...), "%s.%s's trailing comment is not a doc comment, and is dropped", owner, out.N)
 	}
 	return out, nil
 }
@@ -710,12 +587,12 @@ func (r *reader) field(s *protoFile, p []int32, f *descriptorpb.FieldDescriptorP
 // fieldOptions writes a field's options other than deprecated, and a JSON
 // name protobuf would not derive, as option directives.
 func (r *reader) fieldOptions(f *descriptorpb.FieldDescriptorProto, at string) {
-	if r.roundtrip {
+	if r.Roundtrip {
 		return
 	}
 	r.options(f.GetOptions(), at)
 	if j := f.GetJsonName(); j != "" && j != jsonName(f.GetName()) {
-		r.directive(at, "option", strLit("json_name"), strLit(quote(j)))
+		r.Directive(at, "option", reverse.StrLit("json_name"), reverse.StrLit(quote(j)))
 	}
 }
 
@@ -751,12 +628,12 @@ func (r *reader) oneof(s *protoFile, p []int32, k int32, owner string, m *descri
 	}
 
 	if src := str(r.ext(o.GetOptions(), "oneof"), "source"); src != "" {
-		field, err := parseField(src)
+		field, err := reverse.ParseField(src)
 		if err != nil {
-			return nil, nil, failf(s.pos(op...), "the (tdl.oneof) source of %s.%s is not a TDL field: %v", owner, o.GetName(), err)
+			return nil, nil, reverse.Failf(s.pos(op...), "the (tdl.oneof) source of %s.%s is not a TDL field: %v", owner, o.GetName(), err)
 		}
 		dep := field.Dep
-		field.DeclHead = head(field.N, s.loc(op...), s.astPos(op...), false)
+		field.DeclHead = reverse.Head(field.N, comments(s.loc(op...)), s.astPos(op...), false)
 		field.Dep = dep
 		return field, nil, nil
 	}
@@ -765,7 +642,7 @@ func (r *reader) oneof(s *protoFile, p []int32, k int32, owner string, m *descri
 	r.taken[enumName] = true
 	fieldName := emit.Camel(o.GetName())
 	if emit.Snake(fieldName) != o.GetName() {
-		r.warn(emit.LossName, s.pos(op...), "oneof %s regenerates as %s", o.GetName(), emit.Snake(fieldName))
+		r.Warn(emit.LossName, s.pos(op...), "oneof %s regenerates as %s", o.GetName(), emit.Snake(fieldName))
 	}
 	e := &ast.EnumDecl{DeclHead: ast.DeclHead{N: enumName, P: s.astPos(op...)}}
 	var slots []slot
@@ -781,24 +658,24 @@ func (r *reader) oneof(s *protoFile, p []int32, k int32, owner string, m *descri
 			continue
 		}
 		if emit.Snake(vf.N) != f.GetName() {
-			r.warn(emit.LossName, s.pos(fp...), "oneof member %s regenerates as %s", f.GetName(), emit.Snake(vf.N))
+			r.Warn(emit.LossName, s.pos(fp...), "oneof member %s regenerates as %s", f.GetName(), emit.Snake(vf.N))
 		}
 		e.Variants = append(e.Variants, &ast.Variant{DeclHead: ast.DeclHead{N: variant, P: vf.P}, Fields: []*ast.Field{vf}, End: vf.P})
 		slots = append(slots, slot{Member: emit.Member{Name: enumName + "." + variant}, num: int64(f.GetNumber())})
 	}
 	r.extra = append(r.extra, e)
 	if hasOptions(o.GetOptions()) {
-		r.warn(emit.LossUnsupported, s.pos(op...), "oneof %s's options have no TDL form", o.GetName())
+		r.Warn(emit.LossUnsupported, s.pos(op...), "oneof %s's options have no TDL form", o.GetName())
 	}
 
-	field := &ast.Field{DeclHead: head(fieldName, s.loc(op...), s.astPos(op...), false), Type: &ast.TypeRef{N: enumName}}
-	r.entries = append(r.entries, &ast.TargetEntry{Path: owner + "." + fieldName, Directive: &ast.Directive{N: "oneof"}})
+	field := &ast.Field{DeclHead: reverse.Head(fieldName, comments(s.loc(op...)), s.astPos(op...), false), Type: &ast.TypeRef{N: enumName}}
+	r.Entries = append(r.Entries, &ast.TargetEntry{Path: owner + "." + fieldName, Directive: &ast.Directive{N: "oneof"}})
 	return field, slots, nil
 }
 
 // sum reads a message written as a fielded enum.
 func (r *reader) sum(s *protoFile, p []int32, full, name string, m *descriptorpb.DescriptorProto) (*ast.EnumDecl, error) {
-	decl := &ast.EnumDecl{DeclHead: head(name, s.loc(p...), s.astPos(p...), m.GetOptions().GetDeprecated())}
+	decl := &ast.EnumDecl{DeclHead: reverse.Head(name, comments(s.loc(p...)), s.astPos(p...), m.GetOptions().GetDeprecated())}
 	r.options(m.GetOptions(), name)
 	var slots []slot
 	for _, f := range m.GetField() {
@@ -808,12 +685,12 @@ func (r *reader) sum(s *protoFile, p []int32, full, name string, m *descriptorpb
 		np := child(p, msgNested, int32(j))
 		vname := r.declName(n.GetOptions(), "message", n.GetName())
 		path := name + "." + vname
-		if !r.roundtrip && emit.Pascal(n.GetName()) != n.GetName() {
-			r.directive(path, "name", strLit(n.GetName()))
+		if !r.Roundtrip && emit.Pascal(n.GetName()) != n.GetName() {
+			r.Directive(path, "name", reverse.StrLit(n.GetName()))
 		}
-		v := &ast.Variant{DeclHead: head(vname, s.loc(np...), s.astPos(np...), f.GetOptions().GetDeprecated())}
-		if !r.roundtrip && hasOptions(f.GetOptions(), "deprecated") {
-			r.warn(emit.LossUnsupported, s.pos(np...), "%s's member %s carries options a variant has no form for", m.GetName(), f.GetName())
+		v := &ast.Variant{DeclHead: reverse.Head(vname, comments(s.loc(np...)), s.astPos(np...), f.GetOptions().GetDeprecated())}
+		if !r.Roundtrip && hasOptions(f.GetOptions(), "deprecated") {
+			r.Warn(emit.LossUnsupported, s.pos(np...), "%s's member %s carries options a variant has no form for", m.GetName(), f.GetName())
 		}
 		var fields []slot
 		for k, vf := range n.GetField() {
@@ -831,7 +708,7 @@ func (r *reader) sum(s *protoFile, p []int32, full, name string, m *descriptorpb
 		}
 		r.pins(fields, fieldNumbers, nil)
 		if len(n.GetOneofDecl()) > 0 || len(n.GetNestedType()) > 0 || len(n.GetEnumType()) > 0 {
-			r.warn(emit.LossUnsupported, s.pos(np...), "variant %s holds a oneof or a nested type, which are not read", vname)
+			r.Warn(emit.LossUnsupported, s.pos(np...), "variant %s holds a oneof or a nested type, which are not read", vname)
 		}
 		decl.Variants = append(decl.Variants, v)
 		slots = append(slots, slot{Member: emit.Member{Name: path}, num: int64(f.GetNumber())})
@@ -841,20 +718,20 @@ func (r *reader) sum(s *protoFile, p []int32, full, name string, m *descriptorpb
 }
 
 // enum reads an enum, dropping the zero value Generate writes first.
-func (r *reader) enum(s *protoFile, p []int32, full string, e *descriptorpb.EnumDescriptorProto) *item {
+func (r *reader) enum(s *protoFile, p []int32, full string, e *descriptorpb.EnumDescriptorProto) *reverse.Item {
 	name := r.names[full]
 	ann := r.ext(e.GetOptions(), "enum")
-	decl := &ast.EnumDecl{DeclHead: head(name, s.loc(p...), s.astPos(p...), e.GetOptions().GetDeprecated())}
-	if !r.roundtrip {
+	decl := &ast.EnumDecl{DeclHead: reverse.Head(name, comments(s.loc(p...)), s.astPos(p...), e.GetOptions().GetDeprecated())}
+	if !r.Roundtrip {
 		if emit.Pascal(e.GetName()) != e.GetName() {
-			r.directive(name, "name", strLit(e.GetName()))
+			r.Directive(name, "name", reverse.StrLit(e.GetName()))
 		}
 		r.options(e.GetOptions(), name, "allow_alias")
 		if e.GetOptions().GetAllowAlias() {
-			r.warn(emit.LossUnsupported, s.pos(p...), "%s allows aliases, which TDL has no form for", e.GetName())
+			r.Warn(emit.LossUnsupported, s.pos(p...), "%s allows aliases, which TDL has no form for", e.GetName())
 		}
 		if len(e.GetReservedRange()) > 0 || len(e.GetReservedName()) > 0 {
-			r.warn(emit.LossUnsupported, s.pos(p...), "%s reserves values, which TDL has no form for", e.GetName())
+			r.Warn(emit.LossUnsupported, s.pos(p...), "%s reserves values, which TDL has no form for", e.GetName())
 		}
 	}
 	prefix := emit.ScreamingSnake(e.GetName())
@@ -862,8 +739,8 @@ func (r *reader) enum(s *protoFile, p []int32, full string, e *descriptorpb.Enum
 	for i, v := range e.GetValue() {
 		vp := child(p, enumValue, int32(i))
 		if v.GetNumber() == 0 {
-			if v.GetName() != prefix+"_UNSPECIFIED" && !r.roundtrip {
-				r.warn(emit.LossName, s.pos(vp...), "%s's zero value %s regenerates as %s_UNSPECIFIED", e.GetName(), v.GetName(), prefix)
+			if v.GetName() != prefix+"_UNSPECIFIED" && !r.Roundtrip {
+				r.Warn(emit.LossName, s.pos(vp...), "%s's zero value %s regenerates as %s_UNSPECIFIED", e.GetName(), v.GetName(), prefix)
 			}
 			continue
 		}
@@ -872,32 +749,32 @@ func (r *reader) enum(s *protoFile, p []int32, full string, e *descriptorpb.Enum
 			vname = n
 		}
 		path := name + "." + vname
-		if !r.roundtrip {
+		if !r.Roundtrip {
 			if renamed {
-				r.directive(path, "name", strLit(v.GetName()))
+				r.Directive(path, "name", reverse.StrLit(v.GetName()))
 			}
 			r.options(v.GetOptions(), path)
 		}
-		decl.Variants = append(decl.Variants, &ast.Variant{DeclHead: head(vname, s.loc(vp...), s.astPos(vp...), v.GetOptions().GetDeprecated())})
+		decl.Variants = append(decl.Variants, &ast.Variant{DeclHead: reverse.Head(vname, comments(s.loc(vp...)), s.astPos(vp...), v.GetOptions().GetDeprecated())})
 		slots = append(slots, slot{Member: emit.Member{Name: path}, num: int64(v.GetNumber())})
 	}
 	r.pins(slots, enumNumbers, nil)
-	return &item{decl: decl, at: at(ann)}
+	return &reverse.Item{Decl: decl, At: at(ann)}
 }
 
 // service reads a service, which only an annotation carries yet.
-func (r *reader) service(s *protoFile, p []int32, svc *descriptorpb.ServiceDescriptorProto) (*item, error) {
+func (r *reader) service(s *protoFile, p []int32, svc *descriptorpb.ServiceDescriptorProto) (*reverse.Item, error) {
 	ann := r.ext(svc.GetOptions(), "service")
 	src := str(ann, "source")
 	if src == "" {
-		r.warn(emit.LossUnsupported, s.pos(p...), "service %s is not imported yet", svc.GetName())
+		r.Warn(emit.LossUnsupported, s.pos(p...), "service %s is not imported yet", svc.GetName())
 		return nil, nil
 	}
-	decl, err := parseItem(src)
+	decl, err := reverse.ParseItem(src)
 	if err != nil {
-		return nil, failf(s.pos(p...), "the (tdl.service) source of %s is not TDL: %v", svc.GetName(), err)
+		return nil, reverse.Failf(s.pos(p...), "the (tdl.service) source of %s is not TDL: %v", svc.GetName(), err)
 	}
-	return &item{decl: decl, at: at(ann)}, nil
+	return &reverse.Item{Decl: decl, At: at(ann)}, nil
 }
 
 var wrappers = map[string]string{
@@ -931,7 +808,7 @@ func (r *reader) typeRef(s *protoFile, p []int32, f *descriptorpb.FieldDescripto
 		return &ast.TypeRef{List: t}
 	}
 	if f.GetLabel() == descriptorpb.FieldDescriptorProto_LABEL_REQUIRED {
-		r.warn(emit.LossUnsupported, s.pos(p...), "%s is required, which regenerates as an ordinary field", f.GetName())
+		r.Warn(emit.LossUnsupported, s.pos(p...), "%s is required, which regenerates as an ordinary field", f.GetName())
 	}
 	if f.GetProto3Optional() {
 		t.Optional = true
@@ -967,13 +844,13 @@ func (r *reader) single(s *protoFile, p []int32, f *descriptorpb.FieldDescriptor
 		return &ast.TypeRef{N: n}
 	}
 	if n, ok := encodings[f.GetType()]; ok {
-		r.warn(emit.LossPrimitive, s.pos(p...), "%s is %s, which regenerates as %s", f.GetName(), strings.ToLower(strings.TrimPrefix(f.GetType().String(), "TYPE_")), scalars[n])
+		r.Warn(emit.LossPrimitive, s.pos(p...), "%s is %s, which regenerates as %s", f.GetName(), strings.ToLower(strings.TrimPrefix(f.GetType().String(), "TYPE_")), scalars[n])
 		return &ast.TypeRef{N: n}
 	}
 	switch f.GetType() {
 	case descriptorpb.FieldDescriptorProto_TYPE_MESSAGE, descriptorpb.FieldDescriptorProto_TYPE_ENUM:
 	default:
-		r.warn(emit.LossUnsupported, s.pos(p...), "%s is a %s, which TDL has no form for", f.GetName(), f.GetType())
+		r.Warn(emit.LossUnsupported, s.pos(p...), "%s is a %s, which TDL has no form for", f.GetName(), f.GetType())
 		return nil
 	}
 
@@ -994,10 +871,10 @@ func (r *reader) single(s *protoFile, p []int32, f *descriptorpb.FieldDescriptor
 		return &ast.TypeRef{N: "duration"}
 	}
 	if n, ok := wrappers[full]; ok {
-		r.warn(emit.LossOptional, s.pos(p...), "%s is a %s, which regenerates as optional %s", f.GetName(), strings.TrimPrefix(full, "."), scalars[n])
+		r.Warn(emit.LossOptional, s.pos(p...), "%s is a %s, which regenerates as optional %s", f.GetName(), strings.TrimPrefix(full, "."), scalars[n])
 		return &ast.TypeRef{N: n, Optional: true}
 	}
-	if r.roundtrip {
+	if r.Roundtrip {
 		return &ast.TypeRef{N: emit.LastSegment(full)}
 	}
 	return &ast.TypeRef{N: r.stand(full)}
@@ -1016,7 +893,7 @@ func (r *reader) stand(full string) string {
 	r.foreign[full] = name
 	r.taken[name] = true
 	r.extra = append(r.extra, &ast.StructDecl{DeclHead: ast.DeclHead{N: name}, Keyword: "type"})
-	r.directive(name, "foreign", strLit(r.declared[full]), strLit(strings.TrimPrefix(full, ".")))
+	r.Directive(name, "foreign", reverse.StrLit(r.declared[full]), reverse.StrLit(strings.TrimPrefix(full, ".")))
 	return name
 }
 
@@ -1031,9 +908,9 @@ func (r *reader) block(file *ast.File) {
 	switch first.GetSyntax() {
 	case "proto3":
 	case "editions":
-		bare("edition", strLit(strings.TrimPrefix(first.GetEdition().String(), "EDITION_")))
+		bare("edition", reverse.StrLit(strings.TrimPrefix(first.GetEdition().String(), "EDITION_")))
 	default:
-		r.warn(emit.LossUnsupported, r.files[0].pos(), "%s is proto2, and regenerates as proto3", first.GetName())
+		r.Warn(emit.LossUnsupported, r.files[0].pos(), "%s is proto2, and regenerates as proto3", first.GetName())
 	}
 
 	pkg := ""
@@ -1043,15 +920,15 @@ func (r *reader) block(file *ast.File) {
 	want := filePath(pkg, "")
 	for _, s := range r.files {
 		if dir := path.Dir(s.fd.GetName()); dir != path.Dir(want) {
-			r.warn(emit.LossName, s.pos(), "%s regenerates in %s, the directory its package spells", s.fd.GetName(), path.Dir(want))
+			r.Warn(emit.LossName, s.pos(), "%s regenerates in %s, the directory its package spells", s.fd.GetName(), path.Dir(want))
 		}
 	}
 	if len(r.files) == 1 && path.Base(first.GetName()) != path.Base(want) {
-		bare("file", strLit(path.Base(first.GetName())))
+		bare("file", reverse.StrLit(path.Base(first.GetName())))
 	}
 
 	for _, o := range r.optionList(first.GetOptions()) {
-		bare("option", strLit(o[0]), strLit(o[1]))
+		bare("option", reverse.StrLit(o[0]), reverse.StrLit(o[1]))
 	}
 
 	var unused []string
@@ -1063,24 +940,16 @@ func (r *reader) block(file *ast.File) {
 		}
 	}
 	for _, dep := range unused {
-		bare("import", strLit(dep))
+		bare("import", reverse.StrLit(dep))
 	}
-	r.entries = append(block, r.entries...)
-}
-
-// directive adds `path => name(args)` to the target block.
-func (r *reader) directive(path, name string, args ...*ast.Literal) {
-	if r.roundtrip {
-		return
-	}
-	r.entries = append(r.entries, &ast.TargetEntry{Path: path, Directive: &ast.Directive{N: name, Args: args}})
+	r.Entries = append(block, r.Entries...)
 }
 
 // options writes a node's options as option directives, leaving out
 // deprecated, which is a deprecation, and the annotations.
 func (r *reader) options(opts proto.Message, at string, skip ...string) {
 	for _, o := range r.optionList(opts, skip...) {
-		r.directive(at, "option", strLit(o[0]), strLit(o[1]))
+		r.Directive(at, "option", reverse.StrLit(o[0]), reverse.StrLit(o[1]))
 	}
 }
 
@@ -1244,32 +1113,4 @@ func enumValueName(m protoreflect.Message, name string) string {
 		return string(ev.Name())
 	}
 	return ""
-}
-
-func strLit(s string) *ast.Literal { return &ast.Literal{Kind: ast.LitString, Text: s} }
-
-// parseItem parses one top-level TDL item an annotation carries.
-func parseItem(src string) (ast.Decl, error) {
-	f, err := parser.Parse(annotationsFile, strings.NewReader(src))
-	if err != nil {
-		return nil, err
-	}
-	if len(f.Decls) != 1 {
-		return nil, fmt.Errorf("%d declarations, want one", len(f.Decls))
-	}
-	return f.Decls[0], nil
-}
-
-// parseField parses one struct member an annotation carries.
-func parseField(src string) (*ast.Field, error) {
-	f, err := parser.Parse(annotationsFile, strings.NewReader("type T {\n"+src+"\n}\n"))
-	if err != nil {
-		return nil, err
-	}
-	if s, ok := f.Decls[0].(*ast.StructDecl); ok && len(s.Members) == 1 {
-		if field, ok := s.Members[0].(*ast.Field); ok {
-			return field, nil
-		}
-	}
-	return nil, fmt.Errorf("want one field")
 }
