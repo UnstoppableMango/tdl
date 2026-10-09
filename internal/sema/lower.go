@@ -31,7 +31,8 @@ type config struct {
 	preludeSrc  string
 	loader      Loader
 	refs        *References
-	checkDeps   bool // lower a dependency to check an instance for one of its types
+	checkDeps   bool                // check an instance for an imported type against its dependency
+	deps        map[string]*lowerer // shared by the lowerers of one lowering; see [lowerer.dependency]
 }
 
 // WithPrelude lowers against the given prelude source instead of the
@@ -54,7 +55,7 @@ func WithLoader(l Loader) Option {
 // The prelude is loaded into an outer scope, so a file's declaration
 // shadows a prelude name.
 func Lower(file *ast.File, opts ...Option) (*ir.Model, Diagnostics) {
-	cfg := config{preludeName: prelude.Name, preludeSrc: prelude.Source, checkDeps: true}
+	cfg := config{preludeName: prelude.Name, preludeSrc: prelude.Source, checkDeps: true, deps: map[string]*lowerer{}}
 	for _, opt := range opts {
 		opt(&cfg)
 	}
@@ -73,7 +74,7 @@ func lowerFile(file *ast.File, cfg config) *lowerer {
 		externs:  map[string]int32{},
 		depDecls: map[string][]*ir.Directive{},
 		depFiles: map[string]*ast.File{},
-		deps:     map[string]*lowerer{},
+		deps:     cfg.deps,
 		loader:   cfg.loader,
 		cfg:      cfg,
 	}
@@ -144,7 +145,7 @@ type lowerer struct {
 	externs  map[string]int32           // "pkg.Name" to index
 	depDecls map[string][]*ir.Directive // "pkg.Name" to its dependency's declaration-level directives
 	depFiles map[string]*ast.File       // package to the parse tree of a root import declaring it
-	deps     map[string]*lowerer        // package to its lowered dependency, nil when it has no file
+	deps     map[string]*lowerer        // package to its lowered dependency, nil while it is lowered
 	loader   Loader
 	cfg      config
 	// preludeDecls is how many of Model.decls the prelude declares.

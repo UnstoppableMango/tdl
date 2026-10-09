@@ -137,6 +137,9 @@ func (l *lowerer) expandAlias(t *ir.Type) *ir.Type {
 // package. Its fields are in the dependency's model, so field types are
 // compared by what they name rather than by index.
 func (l *lowerer) checkExternFields(ext *ir.ID, ref *ir.ClassRef) {
+	if !l.cfg.checkDeps {
+		return
+	}
 	extern := l.model.GetExterns()[ext.GetIndex()]
 	dep := l.dependency(extern.GetPackage())
 	if dep == nil {
@@ -169,19 +172,24 @@ func (l *lowerer) checkExternFields(ext *ir.ID, ref *ir.ClassRef) {
 	}
 }
 
-// dependency lowers the root import declaring pkg, once. A dependency is
-// lowered without checking its own imports' types, so a cycle ends, and
-// its diagnostics are its own.
+// dependency lowers the import declaring pkg, once across every lowerer
+// in one lowering: a dependency shares the root's table, so a package
+// reached twice is lowered once. A dependency's diagnostics are its own,
+// and it checks no instance for its own imports' types, since only the
+// root's instances are reported. A package being lowered is in the table
+// as nil, so a cycle ends.
 func (l *lowerer) dependency(pkg string) *lowerer {
 	if dep, ok := l.deps[pkg]; ok {
 		return dep
 	}
-	var dep *lowerer
-	if file, ok := l.depFiles[pkg]; ok && l.cfg.checkDeps {
-		cfg := l.cfg
-		cfg.checkDeps, cfg.refs = false, nil
-		dep = lowerFile(file, cfg)
+	file, ok := l.depFiles[pkg]
+	if !ok {
+		return nil
 	}
+	l.deps[pkg] = nil
+	cfg := l.cfg
+	cfg.checkDeps, cfg.refs = false, nil
+	dep := lowerFile(file, cfg)
 	l.deps[pkg] = dep
 	return dep
 }

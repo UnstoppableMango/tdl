@@ -245,3 +245,34 @@ instance Wide for shipping.Crate
 		})
 	}
 }
+
+// A unit the dependency names through its own import reduces the same way
+// in both models.
+func TestClassFieldsOfAnImportedTypeThroughATransitiveUnit(t *testing.T) {
+	deps := MapLoader{
+		"dep/q.tdl": `package q
+
+unit N = kg*m/s^2
+`,
+		"dep/p.tdl": `package p
+
+import "dep/q.tdl" as q
+
+type Push { force: decimal<q.N> }
+`,
+	}
+	file, err := parser.Parse("main.tdl", strings.NewReader(`package root
+
+import "dep/p.tdl" as p
+import "dep/q.tdl" as q
+
+class Pushed { force: decimal<q.N> }
+instance Pushed for p.Push
+`))
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+	if _, diags := Lower(file, WithLoader(deps)); len(diags) > 0 {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+}
