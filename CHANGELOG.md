@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.4.2](https://github.com/UnstoppableMango/tdl/compare/v0.4.1...v0.4.2) (2026-10-09)
+
+
+### Features
+
+* **protobuf:** import protobuf schemas into TDL ([#1018](https://github.com/UnstoppableMango/tdl/issues/1018)) ([5a7b77c](https://github.com/UnstoppableMango/tdl/commit/5a7b77c1ffa1ebef5b16da06a56998307709db77))
+* **thrift:** import Thrift IDL into TDL ([#1036](https://github.com/UnstoppableMango/tdl/issues/1036)) ([221d184](https://github.com/UnstoppableMango/tdl/commit/221d184ce0abfd5d96b5fa9dc17fba6a8c34ad91))
+
+
+### Bug Fixes
+
+* easy wins from the open issues ([#1020](https://github.com/UnstoppableMango/tdl/issues/1020)) ([e93f527](https://github.com/UnstoppableMango/tdl/commit/e93f52725a18d5caa52f19c6be47a25960c33629))
+* **protobuf:** import an extern from its dependency's per-declaration file ([#1038](https://github.com/UnstoppableMango/tdl/issues/1038)) ([832b99a](https://github.com/UnstoppableMango/tdl/commit/832b99a3b3150ff51c78130d0d521e4f58bf2a7c)), closes [#916](https://github.com/UnstoppableMango/tdl/issues/916)
+
+
+### Code Refactoring
+
+* **backend:** share repeated helpers through emit ([#1015](https://github.com/UnstoppableMango/tdl/issues/1015)) ([bda0293](https://github.com/UnstoppableMango/tdl/commit/bda029323dce28996b824dffdd14d2b7a04465dd))
+
+
+### Dependencies
+
+* update module github.com/vektah/gqlparser/v2 to v2.5.62 ([#1035](https://github.com/UnstoppableMango/tdl/issues/1035)) ([059d1b7](https://github.com/UnstoppableMango/tdl/commit/059d1b799c4470bab68e853b8e1b92f4a8355415))
+
 ## [0.4.1](https://github.com/UnstoppableMango/tdl/compare/v0.4.0...v0.4.1) (2026-10-08)
 
 
