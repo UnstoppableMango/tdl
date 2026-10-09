@@ -64,6 +64,7 @@ func Lower(file *ast.File, opts ...Option) (*ir.Model, Diagnostics) {
 		unitKeys: map[string]int32{},
 		aliases:  map[string]string{},
 		externs:  map[string]int32{},
+		depDecls: map[string][]*ir.Directive{},
 		loader:   cfg.loader,
 	}
 	l.file = newScope(l.loadPrelude(cfg))
@@ -126,10 +127,11 @@ func (l *lowerer) loadPrelude(cfg config) *scope {
 
 type lowerer struct {
 	model    *ir.Model
-	types    map[string]int32  // interning key to index
-	unitKeys map[string]int32  // reduced dimensions to Model.units index
-	aliases  map[string]string // import alias to package name
-	externs  map[string]int32  // "pkg.Name" to index
+	types    map[string]int32           // interning key to index
+	unitKeys map[string]int32           // reduced dimensions to Model.units index
+	aliases  map[string]string          // import alias to package name
+	externs  map[string]int32           // "pkg.Name" to index
+	depDecls map[string][]*ir.Directive // "pkg.Name" to its dependency's declaration-level directives
 	loader   Loader
 	file     *scope // the file's declarations
 	scope    *scope // the scope a type reference resolves against

@@ -116,7 +116,10 @@ Done when a dependency's directives reach the root model's nodes, a root entry b
 
 Block-scope directives are done: each `ir.Import` carries the bare top-level directives of its dependency's target blocks for the dependency's package, read from the parse tree without lowering the dependency, and `ir.Dump` prints them.
 The protobuf backend reads them to import an extern from the file its dependency generates.
-Declaration-level directives and precedence between origins are not done, since they need the dependency lowered.
+Declaration-level directives reach the extern naming the declaration: a dependency's `Decl => d(...)` entry, and the bare directives of a `Decl { ... }` block, read from the parse tree the same way.
+A root entry naming the extern beats the dependency's, whatever its specificity.
+An entry reaching beneath a declaration is not carried, since an extern is referred to only as a whole.
+A transitive dependency's entries, and a conflict between two dependencies, are not done.
 
 ## Phase 9: units (done)
 

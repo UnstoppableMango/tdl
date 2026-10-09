@@ -1021,21 +1021,33 @@ func (g *generator) single(r *emit.Ref, nested map[string]bool) (string, error) 
 
 // externRef is the type and import for a declaration in another package:
 // its foreign directive's, else what the dependency's protobuf target block
-// generates.
+// generates. The extern's own `file` and `name`, from the dependency's
+// entry for the declaration or the root's, outrank the block's.
 func (g *generator) externRef(r *emit.Ref) (typ, imp string, err error) {
-	if f, ok := g.Find(r.Extern.GetDirectives(), "foreign"); ok {
+	own := r.Extern.GetDirectives()
+	if f, ok := g.Find(own, "foreign"); ok {
 		return f.GetArgs()[1].GetText(), f.GetArgs()[0].GetText(), nil
 	}
 	for _, dep := range g.Model.GetImports() {
-		if dep.GetPackage() != r.Extern.GetPackage() || len(plugin.Directives(g.Target, dep.GetDirectives())) == 0 {
+		if dep.GetPackage() != r.Extern.GetPackage() {
+			continue
+		}
+		if len(plugin.Directives(g.Target, dep.GetDirectives())) == 0 && len(plugin.Directives(g.Target, own)) == 0 {
 			continue
 		}
 		pkg, _ := g.Text(dep.GetDirectives(), "package")
 		if pkg == "" {
 			pkg = dep.GetPackage()
 		}
-		file, _ := g.Text(dep.GetDirectives(), "file")
-		return pkg + "." + emit.Pascal(emit.LastSegment(r.Extern.GetName())), filePath(pkg, file), nil
+		file, ok := g.Text(own, "file")
+		if !ok {
+			file, _ = g.Text(dep.GetDirectives(), "file")
+		}
+		name, err := g.name(own, emit.Pascal(emit.LastSegment(r.Extern.GetName())))
+		if err != nil {
+			return "", "", err
+		}
+		return pkg + "." + name, filePath(pkg, file), nil
 	}
 	return "", "", emit.Unsupported(r.Pos, "%s is declared in another package, and foreign types are not generated yet", r.Name)
 }

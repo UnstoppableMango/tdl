@@ -152,7 +152,7 @@ Both workflows are supported and neither is the default.
 ## Targets from dependencies
 
 A dependency may ship target blocks, so shared types can say how they appear in Go without every consumer restating it.
-Those entries merge with the root project's (partly built: a dependency's block-scope directives reach its `ir.Import`, and its declaration-level directives do not).
+Those entries merge with the root project's (partly built: a dependency's block-scope directives reach its `ir.Import`, and its declaration-level directives the `ir.Extern` naming the declaration; a transitive dependency's do not).
 
 Origin outranks specificity: any root entry beats any dependency entry, whatever the spec's field-over-type-over-class ladder says, and the ladder decides among entries of the same origin.
 A dependency author cannot rely on a narrow rule surviving, and in exchange a consumer's file always wins.

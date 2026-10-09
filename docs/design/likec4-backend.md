@@ -206,8 +206,8 @@ The `likec4` CLI is not in nixpkgs, so the check takes it from the `unmango/pkgs
 - **Which block's service tags.** `service`, `rpc`, and `stream` are directives, and a backend reads only its own target's, so a `likec4` block does not see the tags a `protobuf` block sets.
   Either the backend also reads the `protobuf` block's tags, which [Services](#services) assumes, or a `likec4` block restates them.
   A profile cannot restate them, since `rpc` and `stream` tag primitives the model declares and a profile cannot name a model's declarations.
-- **Omitted and renamed externs.** `ir.Import` carries only a dependency's block-scope directives, so a relationship into a dependency cannot see that the dependency omits its target with `element(none)` or renames it with `name`, and LikeC4 rejects a relationship to an element that does not exist.
-  It needs declaration-level directives on an import, the unfinished half of [ir-plan.md](ir-plan.md) phase 8b, or the warning-and-drop rule extended to every extern.
+- **Omitted and renamed externs.** A relationship into a dependency does not read the extern's directives, so it cannot see that the dependency omits its target with `element(none)` or renames it with `name`, and LikeC4 rejects a relationship to an element that does not exist.
+  The extern carries the dependency's declaration-level directives ([ir-plan.md](ir-plan.md) phase 8b), so the backend can read them there, or the warning-and-drop rule can be extended to every extern.
   A dependency whose `likec4` block holds no block-scope directive is also invisible, since nothing of it reaches the import.
 - **Package ids.** Joining segments with `_` sends `a.b_c` and `a_b.c` to the same id, and a package whose id is a LikeC4 keyword breaks the id rule.
   `id` resolves both by hand; the backend could instead detect them and warn, as it does for declarations.

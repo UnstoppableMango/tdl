@@ -157,7 +157,7 @@ sql = { command = "tdl-gen-sql", timeout = "5m" }
 
 ## What a plugin will not see
 
-**A dependency's declaration-level directives.** An `ir.Import` carries the block-scope directives of its dependency's target blocks, and nothing beneath them; see [ir-plan.md](ir-plan.md) phase 8b.
+**A dependency's directives beneath a declaration.** An `ir.Import` carries the block-scope directives of its dependency's target blocks, and an `ir.Extern` the declaration-level ones for the declaration it names; an entry for a field of it, and a transitive dependency's entries, reach nothing. See [ir-plan.md](ir-plan.md) phase 8b.
 
 **Class-scoped directives on instantiated types.** A class path expands across the declarations satisfying the class, not across types that satisfy it only through a conditional instance: given `instance <T> Archived<Page<T>>`, a directive on `Archived` reaches `Audited` and not `Page<Audited>`. `SatisfyingTypes` has the answer, and target resolution does not read it.
 

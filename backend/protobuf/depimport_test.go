@@ -118,3 +118,88 @@ type Money { units: int }
 	absent(t, src, "message Price", "import ")
 	contains(t, src, "message Fine { string a = 1; }")
 }
+
+// A dependency splitting its declarations across files is imported from
+// the file each declaration is placed in, under the name it generates.
+func TestDependencyDeclFileIsImported(t *testing.T) {
+	const cliSource = `package unmango.cli.v1alpha1
+
+type Utility { name: string }
+
+type Tool { name: string }
+
+target protobuf for unmango.cli.v1alpha1 {
+  Utility => file("cli.proto")
+  Tool {
+    file("tool.proto")
+    name("Instrument")
+  }
+}
+`
+	depResp := generateIR(t, lower(t, "dep/cli.tdl", cliSource, nil))
+	if len(uncoded(depResp.GetDiagnostics())) != 0 {
+		t.Fatalf("dependency diagnostics = %+v", uncoded(depResp.GetDiagnostics()))
+	}
+	files := map[string]string{}
+	for _, f := range depResp.GetFiles() {
+		files[f.GetPath()] = string(f.GetContent())
+	}
+
+	for _, imp := range []string{`as cli`, `as _`} {
+		t.Run(imp, func(t *testing.T) {
+			prefix := ""
+			if imp == `as cli` {
+				prefix = "cli."
+			}
+			resp := generateIR(t, lower(t, "main.tdl", `package unmango.cmd.v1alpha1
+
+import "dep/cli.tdl" `+imp+`
+
+type Command {
+  utility: `+prefix+`Utility
+  tool: `+prefix+`Tool
+}
+`, sources{"dep/cli.tdl": cliSource}))
+			if len(uncoded(resp.GetDiagnostics())) != 0 {
+				t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
+			}
+			src := compileWith(t, resp, files)
+			contains(t, src,
+				`import "unmango/cli/v1alpha1/cli.proto";`,
+				`import "unmango/cli/v1alpha1/tool.proto";`,
+				"unmango.cli.v1alpha1.Utility utility = 1;",
+				"unmango.cli.v1alpha1.Instrument tool = 2;",
+			)
+			absent(t, src, "v1alpha1.proto")
+		})
+	}
+}
+
+// The root's entry for an extern outranks the dependency's.
+func TestRootFileEntryOutranksDependency(t *testing.T) {
+	const cliSource = `package unmango.cli.v1alpha1
+
+type Utility { name: string }
+
+target protobuf for unmango.cli.v1alpha1 {
+  Utility => file("cli.proto")
+}
+`
+	resp := generateIR(t, lower(t, "main.tdl", `package unmango.cmd.v1alpha1
+
+import "dep/cli.tdl" as _
+
+type Command { utility: Utility }
+
+target protobuf for unmango.cmd.v1alpha1 {
+  Utility => file("other.proto")
+}
+`, sources{"dep/cli.tdl": cliSource}))
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
+		t.Errorf("diagnostics = %+v", uncoded(resp.GetDiagnostics()))
+	}
+	src := compileWith(t, resp, map[string]string{
+		"unmango/cli/v1alpha1/other.proto": "syntax = \"proto3\";\npackage unmango.cli.v1alpha1;\nmessage Utility { string name = 1; }\n",
+	})
+	contains(t, src, `import "unmango/cli/v1alpha1/other.proto";`)
+}

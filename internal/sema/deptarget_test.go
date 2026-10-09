@@ -62,3 +62,89 @@ target protobuf for acme.money.v1 {
 		}
 	}
 }
+
+func TestDependencyDeclDirectivesReachTheExtern(t *testing.T) {
+	deps := MapLoader{
+		"dep/cli.tdl": `package acme.cli.v1
+
+type Utility { name: string }
+type Tool { name: string }
+type Kit { name: string }
+
+target protobuf for acme.cli.v1 {
+  Utility => file("cli.proto")
+  Utility.name => number(4)
+  Tool {
+    file("tool.proto")
+    name("Instrument")
+  }
+  Kit => file("kit.proto")
+}
+`,
+	}
+
+	tests := []struct {
+		name, src string
+		want      map[string][]string // extern to its directives, as name(arg)
+	}{
+		{
+			name: "alias",
+			src: `package acme.ops.v1
+
+import "dep/cli.tdl" as cli
+
+type Job { utility: cli.Utility  tool: cli.Tool }
+`,
+			want: map[string][]string{
+				"Utility": {`file("cli.proto")`},
+				"Tool":    {`file("tool.proto")`, `name("Instrument")`},
+			},
+		},
+		{
+			name: "the root's entry wins",
+			src: `package acme.ops.v1
+
+import "dep/cli.tdl" as _
+
+type Job { utility: Utility  kit: Kit }
+
+target protobuf for acme.ops.v1 {
+  Kit => file("mine.proto")
+}
+`,
+			want: map[string][]string{
+				"Utility": {`file("cli.proto")`},
+				"Tool":    {`file("tool.proto")`, `name("Instrument")`},
+				"Kit":     {`file("mine.proto")`},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			file, err := parser.Parse("main.tdl", strings.NewReader(tt.src))
+			if err != nil {
+				t.Fatalf("unexpected parse error: %v", err)
+			}
+			model, diags := Lower(file, WithLoader(deps))
+			if len(diags) > 0 {
+				t.Fatalf("unexpected diagnostics: %v", diags)
+			}
+
+			got := map[string][]string{}
+			for _, ext := range model.GetExterns() {
+				for _, d := range ext.GetDirectives() {
+					got[ext.GetName()] = append(got[ext.GetName()], d.GetName()+`("`+d.GetArgs()[0].GetText()+`")`)
+				}
+			}
+			if len(got) != len(tt.want) {
+				t.Fatalf("extern directives = %v, want %v", got, tt.want)
+			}
+			for name, want := range tt.want {
+				if strings.Join(got[name], " ") != strings.Join(want, " ") {
+					t.Errorf("%s directives = %v, want %v", name, got[name], want)
+				}
+			}
+		})
+	}
+}
