@@ -58,6 +58,7 @@ func (l *lowerer) walkImports(file *ast.File, from string, onPath map[string]boo
 				Position:   position(imp.P),
 				Directives: l.depDirectives(dep, pkg),
 			})
+			l.depDeclDirectives(dep, pkg)
 			l.bindImport(imp, pkg, dep)
 		}
 
@@ -84,6 +85,43 @@ func (l *lowerer) depDirectives(dep *ast.File, pkg string) []*ir.Directive {
 		}
 	}
 	return out
+}
+
+// depDeclDirectives records the declaration-level directives of a
+// dependency's target blocks for its package, by the extern key of the
+// declaration they name: `Decl => d(...)` and the bare directives of a
+// `Decl { ... }` block. A path reaching a member is left out, since an
+// extern is referred to only as a whole.
+func (l *lowerer) depDeclDirectives(dep *ast.File, pkg string) {
+	found := map[string][]*ir.Directive{}
+	for _, decl := range dep.Decls {
+		block, ok := decl.(*ast.TargetDecl)
+		if !ok || block.For != pkg {
+			continue
+		}
+		for _, entry := range block.Entries {
+			if entry.Path == "" || strings.Contains(entry.Path, ".") {
+				continue
+			}
+			key := pkg + "." + entry.Path
+			if entry.Entries == nil {
+				found[key] = append(found[key], l.directive(block.N, entry.Directive))
+				continue
+			}
+			for _, sub := range entry.Entries {
+				if sub.Entries == nil && sub.Path == "" {
+					found[key] = append(found[key], l.directive(block.N, sub.Directive))
+				}
+			}
+		}
+	}
+
+	// A dependency imported twice, as an alias and as `_`, is recorded once.
+	for key, ds := range found {
+		if _, ok := l.depDecls[key]; !ok {
+			l.depDecls[key] = ds
+		}
+	}
 }
 
 // bindImport binds what an import brings into scope: an alias to a

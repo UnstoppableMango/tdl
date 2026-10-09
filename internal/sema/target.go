@@ -18,9 +18,10 @@ type candidate struct {
 // Specificity, as the spec's ladder: field beats type beats class, and a
 // subclass beats a class it requires.
 const (
-	specClass = 100 // minus the distance from the conforming class
-	specDecl  = 1000
-	specField = 2000
+	specDependency = -1  // a dependency's entry loses to any of the root's
+	specClass      = 100 // minus the distance from the conforming class
+	specDecl       = 1000
+	specField      = 2000
 )
 
 // targetPass is the walk over every target block in a file. Candidates are
@@ -49,6 +50,14 @@ func (l *lowerer) lowerTargets(file *ast.File) {
 		byDecl:   map[int32][]candidate{},
 		byMember: map[memberKey][]candidate{},
 		byExtern: map[int32][]candidate{},
+	}
+
+	// Origin outranks specificity: what a dependency's own target blocks
+	// say about a declaration reaches its extern beneath the root's entries.
+	for idx, ext := range l.model.GetExterns() {
+		for _, d := range l.depDecls[ext.GetPackage()+"."+ext.GetName()] {
+			t.byExtern[int32(idx)] = append(t.byExtern[int32(idx)], candidate{directive: d, spec: specDependency})
+		}
 	}
 
 	for _, decl := range file.Decls {

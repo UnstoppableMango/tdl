@@ -91,7 +91,7 @@ This repository holds the specification and the reference implementation.
 
 The parser reads the whole grammar, and the conformance corpus lowers to `ir` with no diagnostic.
 `docs/design/ir-plan.md` phases 1 through 9 are done.
-Phase 8b is partial: a dependency's block-scope target directives reach its `ir.Import`, and its declaration-level directives do not.
+Phase 8b is partial: a dependency's block-scope target directives reach its `ir.Import`, and its declaration-level directives reach the `ir.Extern` naming the declaration; a transitive dependency's do not, and two dependencies are never compared.
 The plugin protocol in `docs/design/plugins.md` is complete.
 
 ### Front end
