@@ -44,7 +44,7 @@ var targets = []roundtrip.Target{
 	{Backend: protobuf.Backend{}, Normalize: protobuf.Normalize},
 	{Backend: salesforce.Backend{}},
 	{Backend: smithy.Backend{}},
-	{Backend: thrift.Backend{}},
+	{Backend: thrift.Backend{}, Normalize: thrift.Normalize},
 	{Backend: typescript.Backend{}},
 }
 

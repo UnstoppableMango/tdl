@@ -9,6 +9,7 @@ import (
 	"github.com/cloudwego/thriftgo/parser"
 	"github.com/cloudwego/thriftgo/semantic"
 
+	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/backend/internal/irtest"
 	"github.com/unstoppablemango/tdl/backend/thrift"
 	"github.com/unstoppablemango/tdl/ir"
@@ -134,8 +135,8 @@ func TestStructs(t *testing.T) {
 	))
 
 	resp := generate(t, b)
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	if d := uncoded(resp.GetDiagnostics()); len(d) != 0 {
+		t.Errorf("diagnostics = %+v", d)
 	}
 	src := check(t, resp)
 	if path := resp.GetFiles()[0].GetPath(); path != "billing.thrift" {
@@ -169,8 +170,8 @@ func TestFixedWidthNumerics(t *testing.T) {
 	))
 
 	resp := generate(t, b)
-	if len(resp.GetDiagnostics()) != 0 {
-		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	if d := uncoded(resp.GetDiagnostics()); len(d) != 0 {
+		t.Errorf("diagnostics = %+v", d)
 	}
 	contains(t, check(t, resp),
 		"struct Sizes { 1: i32 a 2: i64 b 3: i64 c 4: double d 5: double e }",
@@ -391,8 +392,8 @@ func TestACascadedNameIsFreed(t *testing.T) {
 	b.Own(mass)
 
 	resp := generate(t, b)
-	if len(resp.GetDiagnostics()) != 2 {
-		t.Errorf("want a warning for kg and one for Weight: %+v", resp.GetDiagnostics())
+	if diags := resp.GetDiagnostics(); len(coded(diags, emit.LossUnit)) != 1 || len(uncoded(diags)) != 1 {
+		t.Errorf("want a warning for kg and one for Weight: %+v", diags)
 	}
 	contains(t, check(t, resp), "struct Weight { 1: i64 m }")
 }
@@ -404,7 +405,7 @@ func TestConstraintsWarn(t *testing.T) {
 	b.Own(value("Line", qty))
 
 	resp := generate(t, b)
-	if len(resp.GetDiagnostics()) != 1 {
+	if d := coded(resp.GetDiagnostics(), emit.LossConstraint); len(d) != 1 {
 		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
 	}
 	contains(t, check(t, resp), "1: i64 quantity")
@@ -486,4 +487,21 @@ func TestConformance(t *testing.T) {
 			check(t, resp)
 		})
 	}
+}
+
+// coded is the warnings carrying a loss code.
+func coded(diags []*plugin.Diagnostic, code string) []*plugin.Diagnostic {
+	var out []*plugin.Diagnostic
+	for _, d := range diags {
+		if d.GetCode() == code {
+			out = append(out, d)
+		}
+	}
+	return out
+}
+
+// uncoded drops the warnings carrying a loss code, which the round-trip
+// corpus covers, so a test can assert on the rest.
+func uncoded(diags []*plugin.Diagnostic) []*plugin.Diagnostic {
+	return coded(diags, "")
 }

@@ -1,0 +1,39 @@
+// Names and numbers Thrift keeps, and ones it reads back differently.
+package shop
+
+type order_line {
+  sku: string
+  qty: int32
+}
+
+enum Level {
+  HTTPError
+  Low
+}
+
+enum Payment {
+  Card { last4: string }
+  ACHTransfer { routing: string }
+  Cash
+}
+
+type Account {
+  email: string
+  id: string
+}
+
+type Ledger {
+  payments: [Payment]
+  levels: {Level -> int64}
+}
+
+target thrift for shop {
+  package("shop.v1")
+  Account => name("User")
+  Account.email => name("email_address")
+  Account.id => number(1)
+  order_line.qty => number(9)
+  Level.Low => name("LOWEST")
+  Payment.Cash => number(7)
+  Payment.Card => name("CardPayment")
+}

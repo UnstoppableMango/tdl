@@ -14,7 +14,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/unstoppablemango/tdl/ast"
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/internal/unlower"
 	"github.com/unstoppablemango/tdl/ir"
@@ -136,16 +135,11 @@ type generator struct {
 	// refs is the declarations it names.
 	refs map[*ir.Decl]bool
 
-	// roundtrip writes annotations in place of loss warnings.
-	roundtrip bool
 	// multi is set when the declarations are placed in more than one file.
 	multi bool
 	// annotated is set when the declaration being rendered wrote an
 	// annotation.
 	annotated bool
-	// source is the model unlowered, read for the TDL an annotation
-	// carries.
-	source *ast.File
 }
 
 // rendered is one declaration's text, held until the cascade decides
@@ -191,9 +185,9 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		}
 	}
 
-	g.roundtrip = g.bare("roundtrip")
+	g.Roundtrip = g.Bare("roundtrip")
 	if g.pkg != req.GetModel().GetPackage() {
-		g.lose(emit.LossName, pkgPos, "package %s is written %s, which reads back as the package", req.GetModel().GetPackage(), g.pkg)
+		g.Lose(emit.LossName, pkgPos, "package %s is written %s, which reads back as the package", req.GetModel().GetPackage(), g.pkg)
 	}
 	if len(req.GetModel().GetDoc()) > 0 && g.pkg == "" {
 		g.Lossy(emit.LossDoc, nil, "the package's doc comment has no package statement to precede")
@@ -218,14 +212,14 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		path, err := g.pathOf(d)
 		if err != nil {
 			g.Diags = g.Diags[:mark]
-			g.skip(err)
+			g.Skip(err)
 			skipped[d] = true
 			continue
 		}
 		text, err := g.decl(d)
 		if err != nil {
 			g.Diags = g.Diags[:mark]
-			g.skip(err)
+			g.Skip(err)
 			skipped[d] = true
 			continue
 		}
@@ -237,7 +231,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	}
 	mark := len(g.Diags)
 	g.Cascade(own, skipped)
-	if g.roundtrip {
+	if g.Roundtrip {
 		// A skipped declaration is carried as TDL, so nothing is lost.
 		g.Diags = g.Diags[:mark]
 	}
@@ -279,7 +273,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 			grp.imports[annotationsFile] = true
 		}
 	}
-	if g.roundtrip {
+	if g.Roundtrip {
 		if ann := g.fileAnnotation(placed); ann != "" {
 			first := filePath(g.pkg, g.file)
 			if len(groups) > 0 {
@@ -394,7 +388,7 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 		return "", emit.Lost(emit.LossUnit, pos, "%s is a unit, and units are not generated yet", name)
 	case d.GetAlias() != nil:
 		if len(d.Params()) == 0 {
-			g.lose(emit.LossAlias, pos, "alias %s is expanded where used", name)
+			g.Lose(emit.LossAlias, pos, "alias %s is expanded where used", name)
 			g.typeLosses(d.GetAlias().GetTarget(), nil)
 		}
 		return "", nil
@@ -416,9 +410,9 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		g.lose(emit.LossNewtype, pos, "newtype %s is expanded to its base where used", name)
+		g.Lose(emit.LossNewtype, pos, "newtype %s is expanded to its base where used", name)
 		g.typeLosses(n.GetBase(), nil)
-		if !g.roundtrip {
+		if !g.Roundtrip {
 			g.WarnWhere(d)
 		}
 		return "", nil
@@ -428,7 +422,7 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	var declared []string
 	var err error
 	switch e := d.GetEnumeration(); {
-	case e == nil && g.tagged(d.GetDirectives(), "service"):
+	case e == nil && g.Tagged(d.GetDirectives(), "service"):
 		declared, err = g.service(&b, d)
 	case e == nil:
 		declared, err = g.message(&b, d)
@@ -449,7 +443,7 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	for _, n := range declared {
 		g.names[n] = name
 	}
-	if !g.roundtrip {
+	if !g.Roundtrip {
 		g.WarnConstraints(d)
 	}
 	return b.String(), nil
@@ -604,20 +598,10 @@ func (g *generator) rpcArg(f *ir.Field, arg *ir.ID) (string, error) {
 // locally or imported as an extern.
 func (g *generator) ctorTagged(t *ir.Type, name string) bool {
 	if e := t.GetExtern(); e.Resolved() && int(e.GetIndex()) < len(g.Model.GetExterns()) {
-		return g.tagged(g.Model.GetExterns()[e.GetIndex()].GetDirectives(), name)
+		return g.Tagged(g.Model.GetExterns()[e.GetIndex()].GetDirectives(), name)
 	}
 	c := g.Model.Decl(t.GetCtor())
-	return c.GetPrimitive() != nil && g.tagged(c.GetDirectives(), name)
-}
-
-// tagged reports whether a node carries an argument-less directive.
-func (g *generator) tagged(all []*ir.Directive, name string) bool {
-	for _, d := range plugin.Directives(g.Target, all) {
-		if d.GetName() == name {
-			return true
-		}
-	}
-	return false
+	return c.GetPrimitive() != nil && g.Tagged(c.GetDirectives(), name)
 }
 
 // enum renders an enum whose variants carry no fields.
@@ -631,7 +615,7 @@ func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	g.checkPins(name, emit.VariantMembers(variants), nums, enumNumbers)
+	g.CheckPins(name, emit.VariantMembers(variants), nums, enumNumbers)
 
 	// Enum values have package scope, so each carries the enum's name.
 	prefix := emit.ScreamingSnake(name)
@@ -651,10 +635,10 @@ func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 
 		opts := g.options(v.GetMeta(), v.GetDirectives())
 		if back, renamed := valueBack(prefix, value); back != v.GetMeta().GetName() {
-			g.lose(emit.LossName, v.GetMeta().GetPosition(), "%s.%s is written %s, which reads back as %s", name, v.GetMeta().GetName(), value, back)
+			g.Lose(emit.LossName, v.GetMeta().GetPosition(), "%s.%s is written %s, which reads back as %s", name, v.GetMeta().GetName(), value, back)
 			opts = g.annotate(opts, "value", text("name", v.GetMeta().GetName()))
 		} else {
-			g.checkRenamed(v.GetDirectives(), renamed, "%s.%s", name, v.GetMeta().GetName())
+			g.CheckRenamed(v.GetDirectives(), renamed, "%s.%s", name, v.GetMeta().GetName())
 		}
 		comment(&body, "  ", v.GetMeta())
 		fmt.Fprintf(&body, "  %s = %d%s;\n", value, nums[i], brackets(opts))
@@ -680,7 +664,7 @@ func (g *generator) sum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	g.checkPins(name, emit.VariantMembers(variants), nums, fieldNumbers)
+	g.CheckPins(name, emit.VariantMembers(variants), nums, fieldNumbers)
 
 	nested := map[string]bool{}
 	messages := make([]string, len(variants))
@@ -711,12 +695,12 @@ func (g *generator) sum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 		comment(b, "  ", v.GetMeta())
 		fmt.Fprintf(b, "  message %s {\n", messages[i])
 		if messages[i] != v.GetMeta().GetName() {
-			g.lose(emit.LossName, v.GetMeta().GetPosition(), "%s.%s is written %s, which reads back as the variant's name", name, v.GetMeta().GetName(), messages[i])
+			g.Lose(emit.LossName, v.GetMeta().GetPosition(), "%s.%s is written %s, which reads back as the variant's name", name, v.GetMeta().GetName(), messages[i])
 			if a := g.annotation("message", text("name", v.GetMeta().GetName())); a != "" {
 				fmt.Fprintf(b, "    option %s;\n", a)
 			}
 		} else {
-			g.checkRenamed(v.GetDirectives(), emit.Pascal(messages[i]) != messages[i], "%s.%s", name, v.GetMeta().GetName())
+			g.CheckRenamed(v.GetDirectives(), emit.Pascal(messages[i]) != messages[i], "%s.%s", name, v.GetMeta().GetName())
 		}
 		if _, err := g.fields(b, "    ", name+"."+messages[i], v.GetFields(), nested, nil); err != nil {
 			return nil, err
@@ -770,11 +754,11 @@ func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*i
 	if err != nil {
 		return nil, err
 	}
-	g.checkPins(owner, members, nums, rule)
+	g.CheckPins(owner, members, nums, rule)
 	includes := unlower.Includes(g.Model, fields)
 	for i, inc := range includes {
 		if inc != "" && (i == 0 || includes[i-1] != inc) {
-			g.lose(emit.LossInclude, fields[i].GetMeta().GetPosition(), "%s's include of %s is flattened into its fields", owner, inc)
+			g.Lose(emit.LossInclude, fields[i].GetMeta().GetPosition(), "%s's include of %s is flattened into its fields", owner, inc)
 		}
 	}
 

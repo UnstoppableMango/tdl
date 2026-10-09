@@ -1,0 +1,14 @@
+package shop
+
+/// An order.
+type Order {
+  id: string
+  tags: [string]
+  status: Status?
+}
+
+enum Status { Open Shipped Done }
+
+target thrift for shop {
+  Order.id => number(2)
+}
