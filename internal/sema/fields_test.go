@@ -3,6 +3,8 @@ package sema
 import (
 	"strings"
 	"testing"
+
+	"github.com/unstoppablemango/tdl/parser"
 )
 
 func TestClassFieldsAreRequired(t *testing.T) {
@@ -128,6 +130,118 @@ instance <T> Archived<Page<T>> requires Archived<T>
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			lower(t, tt.src)
+		})
+	}
+}
+
+func TestClassFieldsOfAnImportedType(t *testing.T) {
+	deps := MapLoader{
+		"dep/shipping.tdl": `package shop.shipping
+
+unit cm
+unit N = kg*m/s^2
+
+type Address { line1: string  createdAt: instant  width: decimal<cm> }
+type Parcel { line1: string }
+type Stamp { createdAt: string }
+type Box { width: decimal<cm> }
+type Crate { width: decimal<m> }
+type Push { force: decimal<kg*m/s^2> }
+type Labelled { tags: [string]  owner: Address }
+`,
+	}
+
+	tests := []struct {
+		name string
+		src  string
+		want string // empty when the file lowers cleanly
+	}{
+		{
+			name: "has the field",
+			src: `
+import "dep/shipping.tdl" as shipping
+class Auditable { createdAt: instant }
+instance Auditable for shipping.Address
+`,
+		},
+		{
+			name: "missing field",
+			src: `
+import "dep/shipping.tdl" as shipping
+class Auditable { createdAt: instant }
+instance Auditable<shipping.Parcel>
+`,
+			want: "shop.shipping.Parcel has no field createdAt, required by Auditable",
+		},
+		{
+			name: "a required class's field, through a _ import",
+			src: `
+import "dep/shipping.tdl" as _
+class Timestamped { createdAt: instant }
+class Auditable: Timestamped { }
+instance Auditable for Parcel
+`,
+			want: "shop.shipping.Parcel has no field createdAt, required by Timestamped",
+		},
+		{
+			name: "wrong type",
+			src: `
+import "dep/shipping.tdl" as shipping
+class Auditable { createdAt: instant }
+instance Auditable for shipping.Stamp
+`,
+			want: "shop.shipping.Stamp.createdAt is string, but Auditable requires instant",
+		},
+		{
+			name: "types naming the dependency's own declarations",
+			src: `
+import "dep/shipping.tdl" as shipping
+class Tagged { tags: [string]  owner: shipping.Address }
+instance Tagged for shipping.Labelled
+`,
+		},
+		{
+			name: "a unit the dependency declares",
+			src: `
+import "dep/shipping.tdl" as shipping
+class Wide { width: decimal<shipping.cm> }
+instance Wide for shipping.Box
+`,
+		},
+		{
+			name: "a derived unit, spelled two ways",
+			src: `
+import "dep/shipping.tdl" as shipping
+class Pushed { force: decimal<shipping.N> }
+instance Pushed for shipping.Push
+`,
+		},
+		{
+			name: "a different unit",
+			src: `
+import "dep/shipping.tdl" as shipping
+class Wide { width: decimal<shipping.cm> }
+instance Wide for shipping.Crate
+`,
+			want: "shop.shipping.Crate.width is decimal<m>, but Wide requires decimal<shop.shipping.cm>",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			file, err := parser.Parse("main.tdl", strings.NewReader("package shop.audit\n"+tt.src))
+			if err != nil {
+				t.Fatalf("unexpected parse error: %v", err)
+			}
+			_, diags := Lower(file, WithLoader(deps))
+			if tt.want == "" {
+				if len(diags) > 0 {
+					t.Fatalf("unexpected diagnostics: %v", diags)
+				}
+				return
+			}
+			if len(diags) != 1 || !strings.Contains(diags[0].Error(), tt.want) {
+				t.Fatalf("diagnostics = %v, want one containing %q", diags, tt.want)
+			}
 		})
 	}
 }

@@ -3,4 +3,5 @@ package shop.shipping
 type Address {
   line1: string
   city: string
+  createdAt: instant
 }
