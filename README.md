@@ -12,6 +12,8 @@ TDL is a language for describing domain models: what things are, what identifies
 It compiles a model into equivalent definitions in other formats, such as Go, protobuf, or GraphQL.
 It has no expressions, control flow, or runtime.
 
+![tdl generating Go and TypeScript from a model](docs/demo/demo.gif)
+
 This repository holds the [language specification](docs/spec.md) and its reference implementation in Go.
 
 ## Status

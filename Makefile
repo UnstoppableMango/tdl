@@ -10,7 +10,7 @@ VSCODE      := editors/vscode
 TMLANGUAGE  := ${VSCODE}/syntaxes/tdl.tmLanguage.json
 TS_GRAMMAR  := tree-sitter/grammar.js
 
-.PHONY: build test cover play generate treesitter textmate vscode-install \
+.PHONY: build test cover play demo generate treesitter textmate vscode-install \
 	vscode-check test-treesitter check-treesitter update lint check fmt tidy
 
 build:
@@ -29,6 +29,10 @@ FILE ?= examples/nested.tdl
 VIEWS ?= fmt,ast,stats
 play:
 	go run ./cmd/tdl play ${FILE} --views ${VIEWS}
+
+demo:
+	nix build .#demo -o result-demo
+	install -m 644 result-demo/demo.gif docs/demo/demo.gif
 
 generate: ${PROTO_GO}
 

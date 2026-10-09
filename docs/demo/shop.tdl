@@ -1,0 +1,27 @@
+package shop
+
+type Order: Entity {
+  id: OrderId
+  customer: Email
+  note: string?
+  items: [LineItem]
+  status: Status
+}
+
+type LineItem {
+  sku: string
+  quantity: int32
+}
+
+type OrderId: uuid
+type Email: string
+enum Status { Draft Placed Shipped }
+
+target go for shop {
+  out("go")
+  package("example.com/shop")
+}
+
+target typescript for shop {
+  out("ts")
+}

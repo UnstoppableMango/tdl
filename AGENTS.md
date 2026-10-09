@@ -15,6 +15,7 @@ command make build            # nix build .#
 command make test             # go test ./...
 command make cover            # go test -race -coverpkg=./... -coverprofile=cover.profile ./... + go tool cover -func
 command make play             # watch examples/nested.tdl; FILE=scratch.tdl VIEWS=all to override
+command make demo             # render docs/demo/demo.tape with VHS into docs/demo/demo.gif
 command make lint             # nix flake check + golangci-lint + buf + markdownlint
 command make check            # nix flake check alone, the fast subset of lint
 command make fmt              # nix fmt (treefmt) + buf format
@@ -45,7 +46,7 @@ Prefix `make` with `command` (see the shell autoload note in the global instruct
 Biome's JSON formatter is off, because jsonfmt owns JSON.
 
 `.markdownlint-cli2.yaml` lists which markdown files are linted, so a bare `markdownlint-cli2` checks what CI checks.
-Files with no formatter: the three Makefiles, `.editorconfig`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md` (mdformat would break the frontmatter), `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, and `tree-sitter/src/scanner.c`.
+Files with no formatter: the three Makefiles, `.editorconfig`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md` (mdformat would break the frontmatter), `docs/demo/demo.tape`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, and `tree-sitter/src/scanner.c`.
 `internal/ebnf` lints the two grammars instead, and their column alignment is deliberate.
 Also excluded from formatting: `*.tdl` (until `tdl fmt` is wired in, see `docs/backlog.md`), generated files, and `.claude/`.
 
@@ -61,6 +62,7 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 
 - `cmd.nix`: the CLI. `meta.mainProgram` is what `lib.getExe` reads, since the package installs eleven binaries.
 - `vscode-extension.nix`: the editor extension (see [VS Code](#vs-code)).
+- `demo.nix`: renders `docs/demo/demo.tape`, the README's GIF, with VHS. It is a package and not a check, since it runs a browser.
 - `overlay.nix`: names both packages and composes gomod2nix's overlay, so a consumer adding it also gets `buildGoApplication` and `mkGoEnv`.
 - `hm-module.nix`: the home-manager module.
 - `flake-module.nix`: the flake-parts module a consuming project imports.

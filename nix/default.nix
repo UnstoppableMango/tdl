@@ -41,6 +41,8 @@ in
       packages = {
         inherit (pkgs) tdl vscode-tdl;
         default = pkgs.tdl;
+        # The README's demo GIF; `make demo` copies it into docs/demo.
+        demo = pkgs.callPackage ./demo.nix { };
       };
 
       # `nix flake check` builds checks and not packages, and building the
