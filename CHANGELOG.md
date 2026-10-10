@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.4.6](https://github.com/UnstoppableMango/tdl/compare/v0.4.5...v0.4.6) (2026-10-10)
+
+
+### Features
+
+* give positions an end and add ast.Inspect ([#1059](https://github.com/UnstoppableMango/tdl/issues/1059)) ([f7b046a](https://github.com/UnstoppableMango/tdl/commit/f7b046a3b29cb82a35731a58bf0e336cc5eb9907))
+* **go:** opt in to the JSON wire convention ([#1053](https://github.com/UnstoppableMango/tdl/issues/1053)) ([e6a01d9](https://github.com/UnstoppableMango/tdl/commit/e6a01d93e16db05eeed825da6703e1e10d34504a))
+* **go:** refer to an extern through its dependency's go target block ([#1052](https://github.com/UnstoppableMango/tdl/issues/1052)) ([ad4a293](https://github.com/UnstoppableMango/tdl/commit/ad4a2937170fccf44bc07c74f530af82c13ace0f))
+* **models:** describe unist, mdast, and hast in TDL ([#1028](https://github.com/UnstoppableMango/tdl/issues/1028)) ([ecaba0c](https://github.com/UnstoppableMango/tdl/commit/ecaba0cc22229a5f1d151187c2a64dc914dfaa11))
+* **typescript:** import TypeScript back to TDL ([#1058](https://github.com/UnstoppableMango/tdl/issues/1058)) ([72b3f53](https://github.com/UnstoppableMango/tdl/commit/72b3f53a100991835ba574bb8bcb1f5c55c09326))
+
+
+### Bug Fixes
+
+* **sema:** let a value reach itself through a spelled-out collection ([#1054](https://github.com/UnstoppableMango/tdl/issues/1054)) ([09563e4](https://github.com/UnstoppableMango/tdl/commit/09563e47b2ff213156a6a2bca4ac3a572d59a333))
+
+
+### Documentation
+
+* **agents:** bring AGENTS.md up to date ([#1051](https://github.com/UnstoppableMango/tdl/issues/1051)) ([d019fec](https://github.com/UnstoppableMango/tdl/commit/d019fec276aac7750ca34fbd9ff3be9b3996fdbb))
+* design transform plugins ([#1055](https://github.com/UnstoppableMango/tdl/issues/1055)) ([e276c6f](https://github.com/UnstoppableMango/tdl/commit/e276c6f5856634f68b486bcaf3168a6d6707058c))
+
+
+### Continuous Integration
+
+* skip the external tool checks in the coverage run ([#1060](https://github.com/UnstoppableMango/tdl/issues/1060)) ([5b74140](https://github.com/UnstoppableMango/tdl/commit/5b74140fe4c4d2b424920efa70b3c3b79be2f2a4))
+
 ## [0.4.5](https://github.com/UnstoppableMango/tdl/compare/v0.4.4...v0.4.5) (2026-10-10)
 
 
