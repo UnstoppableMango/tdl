@@ -360,7 +360,7 @@ The package clause is the TDL package, except `main`, which is none.
 
 A field's name is its Go name with the leading capitals lower case, but for one starting the next word, so `ID` is `id` and `HTTPServer` is `httpServer`.
 A variant's name is a constant's value, or what its struct's name adds to the interface's.
-A doc comment is the Go one's text, and a last paragraph starting `Deprecated: ` is the deprecation, its lines the reason's.
+A doc comment is the Go one's text, and a last paragraph starting with `Deprecated:` and a space is the deprecation, its lines the reason's.
 
 What Generate writes is read back as the model it says:
 
