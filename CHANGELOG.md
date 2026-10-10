@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.3](https://github.com/UnstoppableMango/tdl/compare/v0.4.2...v0.4.3) (2026-10-10)
+
+
+### Features
+
+* **typescript:** narrow a small integer range or oneOf to a literal union ([#1040](https://github.com/UnstoppableMango/tdl/issues/1040)) ([dfabd09](https://github.com/UnstoppableMango/tdl/commit/dfabd091c315ea0fa816ac94ff73301f06f3c8e8)), closes [#1033](https://github.com/UnstoppableMango/tdl/issues/1033)
+
+
+### Bug Fixes
+
+* **sema:** check class fields on an instance for an imported type ([#1039](https://github.com/UnstoppableMango/tdl/issues/1039)) ([3afc74b](https://github.com/UnstoppableMango/tdl/commit/3afc74bedaf2235ac8889998625658dc7f0b1424))
+
 ## [0.4.2](https://github.com/UnstoppableMango/tdl/compare/v0.4.1...v0.4.2) (2026-10-09)
 
 
