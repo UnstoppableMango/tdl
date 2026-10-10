@@ -147,6 +147,7 @@ A backend resolves it through the model's import table or maps it with a `foreig
 A target path naming a declaration a `_` import merged in resolves to its `Extern` entry, whose `directives` field holds the winning directives; the path reaches nothing beneath it.
 
 Whether the dependency declares that name is not checked, since that would mean resolving every reachable package to lower one file.
+The one exception is an instance for an extern: the class's fields bind it, so the dependency declaring it is lowered on demand and its fields are checked against the class, compared by the declarations their types name.
 
 This allows separate compilation, and generated code usually wants an import rather than a copy.
 

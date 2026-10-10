@@ -31,6 +31,8 @@ type config struct {
 	preludeSrc  string
 	loader      Loader
 	refs        *References
+	checkDeps   bool                // check an instance for an imported type against its dependency
+	deps        map[string]*lowerer // shared by the lowerers of one lowering; see [lowerer.dependency]
 }
 
 // WithPrelude lowers against the given prelude source instead of the
@@ -53,11 +55,17 @@ func WithLoader(l Loader) Option {
 // The prelude is loaded into an outer scope, so a file's declaration
 // shadows a prelude name.
 func Lower(file *ast.File, opts ...Option) (*ir.Model, Diagnostics) {
-	cfg := config{preludeName: prelude.Name, preludeSrc: prelude.Source}
+	cfg := config{preludeName: prelude.Name, preludeSrc: prelude.Source, checkDeps: true, deps: map[string]*lowerer{}}
 	for _, opt := range opts {
 		opt(&cfg)
 	}
+	l := lowerFile(file, cfg)
+	return l.model, l.diags
+}
 
+// lowerFile runs every pass over file, returning the lowerer so a caller can
+// read its scopes as well as its model.
+func lowerFile(file *ast.File, cfg config) *lowerer {
 	l := &lowerer{
 		model:    &ir.Model{},
 		types:    map[string]int32{},
@@ -65,10 +73,14 @@ func Lower(file *ast.File, opts ...Option) (*ir.Model, Diagnostics) {
 		aliases:  map[string]string{},
 		externs:  map[string]int32{},
 		depDecls: map[string][]*ir.Directive{},
+		depFiles: map[string]*ast.File{},
+		deps:     cfg.deps,
 		loader:   cfg.loader,
+		cfg:      cfg,
 	}
 	l.file = newScope(l.loadPrelude(cfg))
 	l.scope = l.file
+	l.preludeDecls = len(l.model.GetDecls())
 
 	// Recording starts after the prelude, so its references are not indexed.
 	l.refs = cfg.refs
@@ -100,7 +112,7 @@ func Lower(file *ast.File, opts ...Option) (*ir.Model, Diagnostics) {
 	if l.refs != nil {
 		l.refs.sort()
 	}
-	return l.model, l.diags
+	return l
 }
 
 // loadPrelude parses and lowers the prelude into the model, returning the
@@ -132,11 +144,16 @@ type lowerer struct {
 	aliases  map[string]string          // import alias to package name
 	externs  map[string]int32           // "pkg.Name" to index
 	depDecls map[string][]*ir.Directive // "pkg.Name" to its dependency's declaration-level directives
+	depFiles map[string]*ast.File       // package to the parse tree of a root import declaring it
+	deps     map[string]*lowerer        // package to its lowered dependency, nil while it is lowered
 	loader   Loader
-	file     *scope // the file's declarations
-	scope    *scope // the scope a type reference resolves against
-	diags    Diagnostics
-	refs     *References // nil unless the caller asked for them
+	cfg      config
+	// preludeDecls is how many of Model.decls the prelude declares.
+	preludeDecls int
+	file         *scope // the file's declarations
+	scope        *scope // the scope a type reference resolves against
+	diags        Diagnostics
+	refs         *References // nil unless the caller asked for them
 }
 
 // collect fills the declaration table with an empty entry per declaration,

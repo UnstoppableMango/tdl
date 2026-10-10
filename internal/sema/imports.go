@@ -60,6 +60,9 @@ func (l *lowerer) walkImports(file *ast.File, from string, onPath map[string]boo
 			})
 			l.depDeclDirectives(dep, pkg)
 			l.bindImport(imp, pkg, dep)
+			if _, ok := l.depFiles[pkg]; !ok {
+				l.depFiles[pkg] = dep
+			}
 		}
 
 		onPath[name] = true
