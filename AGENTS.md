@@ -48,7 +48,7 @@ CI runs them as two steps.
 Biome's JSON formatter is off, because jsonfmt owns JSON.
 
 `.markdownlint-cli2.yaml` lists which markdown files are linted, so a bare `markdownlint-cli2` checks what CI checks.
-Files with no formatter: the three Makefiles, `.editorconfig`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md` (mdformat would break the frontmatter), `docs/demo/demo.tape`, `docs/demo/demo.bash`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, and `tree-sitter/src/scanner.c`.
+Files with no formatter: the three Makefiles, `.editorconfig`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md` (mdformat would break the frontmatter), `docs/demo/demo.tape`, `docs/demo/demo.bash`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, `backend/typescript/outline.js`, and `tree-sitter/src/scanner.c`.
 `internal/ebnf` lints the two grammars instead, and their column alignment is deliberate.
 Also excluded from formatting: `*.tdl` (until `tdl fmt` is wired in, see `docs/backlog.md`), generated files, and `.claude/`.
 
@@ -192,8 +192,11 @@ Every backend reports what it cannot generate as a positioned warning rather tha
 - `backend/typescript`: one `.ts` file per model of JSON wire types, no runtime code.
   A set is an array, a map a `Record`, unrepresentable primitives a string, a newtype a plain alias.
   A fielded enum is a union discriminated on `kind`, renamed by a `discriminant` directive.
-  `narrow.go` writes a `oneOf`, or an integer `min`/`max` pair spanning at most 16 values, as a literal union, which does not warn.
+  `narrow.go` writes a `oneOf`, or an integer `min`/`max` pair spanning at most 16 values, as a literal union, which warns only that it reads back as `oneOf`.
   Tests run `tsc --noEmit --strict` when it is on `PATH`; `checks.gen-typescript` always does.
+  It imports one file: `reverse.go` runs the embedded `outline.js` under `node` with the `typescript` package found from `tsc` on `PATH`, and reads the JSON outline it writes; without both, import and its tests skip.
+  `annotate.go` writes the loss warnings and, under `roundtrip`, JSDoc `@tdl` tags, carrying a declaration whole where it loses anything.
+  `Normalize` is its normal form for the round-trip corpus.
 - `backend/jsonschema`: one `.schema.json` document per model, every declaration under `$defs`.
   A fielded enum is a `oneOf` discriminated on `kind`, as in TypeScript; a newtype is a definition with its own constraints, and a base newtype is a `$ref`.
   `where` constraints become keywords (`minimum`, `pattern`, `minLength`, ...) chosen by what the constrained type holds, and one with no keyword warns.

@@ -1,0 +1,47 @@
+package shop
+
+/// An order, identified by its id.
+type Order {
+  id: string
+  /// When it was placed.
+  placedAt: string
+  lines: [OrderLine]
+  notes: [string?]?
+  gift: bool | null
+  payment: Payment
+  status: Status
+  totals: {string -> float64}
+  deprecated("nobody has one") fax: string?
+  lineCount: float64
+  priority: float64 where { oneOf(1, 2, 3) }
+}
+
+type OrderLine {
+  sku: string
+  quantity: float64
+  grid: [[float64]]
+}
+
+/// Where an order is.
+deprecated("use Order.status")
+enum Status { Draft Placed lowest }
+
+type Currency: string where { oneOf("usd", "eur-cents") }
+type Sku: string
+
+/// How an order is paid.
+enum Payment {
+  /// A card on file.
+  Card { last4: string }
+  Wire {
+    iban: string
+    /// The bank's code.
+    bic: string?
+  }
+}
+
+target typescript for shop {
+  Order.lineCount => name("line-count")
+  Payment => discriminant("type")
+  Payment.Wire => name("Wire")
+}

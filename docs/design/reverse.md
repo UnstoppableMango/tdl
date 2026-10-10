@@ -139,7 +139,7 @@ tdl import --from <target> [-o out.tdl] [--package <path>] [--allow-lossy <code>
 | `jsonschema` | `encoding/json`, after `santhosh-tekuri/jsonschema` compiles the document |
 | `salesforce` | `encoding/xml` and a recognizer for Apex |
 
-`typescript` and `smithy` need `node` and the Smithy CLI on `PATH`, and say so when either is missing.
+`typescript` needs `node` and `tsc` on `PATH`, and `smithy` the Smithy CLI, and each says so when one is missing.
 Each is replaced by a Go parser: Smithy IDL is small enough to parse from its published grammar, and TypeScript moves to `microsoft/typescript-go` once its AST is importable.
 
 ## Equality
@@ -154,7 +154,7 @@ Schema-first tests compare each schema in a normal form:
 | `thrift` | the thriftgo AST as JSON without comments, each kind of definition sorted by name |
 | `graphql` | the `gqlparser` schema document, formatted without comments, its definitions sorted by name and its scalars without descriptions |
 | `go` | declarations through `go/format`, keeping doc comments only |
-| `typescript` | the compiler API's JSON |
+| `typescript` | the compiler API's outline as JSON, without positions, its JSDoc read into doc comments and tags |
 | `smithy` | the `smithy ast` JSON |
 | `jsonschema` | the parsed document with object keys sorted |
 | `salesforce` | the parsed XML, and the Apex recognizer's output |

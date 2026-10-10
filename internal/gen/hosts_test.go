@@ -53,6 +53,10 @@ var shipped = []struct {
 	// reverse is the source a backend that imports reads in
 	// [TestImportHostsAgree]. It is nil for one that only generates.
 	reverse func() []*plugin.File
+
+	// needs reports what the reverse needs that the machine may lack; the
+	// import test skips when it returns an error.
+	needs func() error
 }{
 	{backend: debug.Backend{}, model: sampleModel, packaged: true},
 	{backend: golang.Backend{}, model: goModel, packaged: true, valid: parseGo, reverse: goSource},
@@ -64,7 +68,7 @@ var shipped = []struct {
 	{backend: salesforce.Backend{}, model: orderModel, packaged: true, valid: parseXML},
 	{backend: smithy.Backend{}, model: orderModel, packaged: true},
 	{backend: thrift.Backend{}, model: orderModel, packaged: true, valid: checkThrift, reverse: thriftSource},
-	{backend: typescript.Backend{}, model: orderModel, packaged: true},
+	{backend: typescript.Backend{}, model: orderModel, packaged: true, reverse: typescriptSource, needs: typescriptCompiler},
 }
 
 // protoSource is a schema for the protobuf reverse to read.
@@ -115,6 +119,23 @@ struct Order {
   2: list<string> tags
 }
 `)}}
+}
+
+// typescriptSource is a file for the typescript reverse to read.
+func typescriptSource() []*plugin.File {
+	return []*plugin.File{{Path: "shop.ts", Content: []byte(`/** An order. */
+export interface Order {
+  id: string;
+  tags: string[];
+}
+`)}}
+}
+
+// typescriptCompiler reports whether node and the TypeScript compiler the
+// typescript reverse runs are installed.
+func typescriptCompiler() error {
+	_, _, err := typescript.Compiler()
+	return err
 }
 
 // A compiled-in backend and the same backend as a subprocess produce the

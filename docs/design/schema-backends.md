@@ -346,6 +346,42 @@ Under a `roundtrip` directive, each of those is written instead as a `@tdl` dire
 
 The normal form for comparing schemas is gqlparser's schema document, formatted without comments, its definitions sorted by name and its scalars without descriptions, since no model carries a scalar's.
 
+### TypeScript
+
+`tdl import --from typescript` reads one `.ts` file, parsed by the TypeScript compiler, which an embedded script runs under `node`; both `node` and `tsc` must be on `PATH`.
+The file's name is the package, except `model`, the name of a model without one.
+
+| TypeScript | TDL |
+| --- | --- |
+| interface | struct |
+| union of interfaces nothing else names, each tagged by one string-literal property | enum with fields, one variant per member, discriminated on that property |
+| union of string literals, each a TDL name | enum |
+| `never` | enum without variants |
+| any other type alias | newtype |
+| `p?: T`, `p: T \| null`, `p?: T \| null` | `T?`, `T \| null`, `T? \| null` |
+| `T \| null` in an element or a value | `T?` |
+| `T[]`, `Array<T>`, `ReadonlyArray<T>` | `[T]` |
+| `Record<K, V>`, `Partial<Record<K, V>>` | `{K -> V}` |
+| `string`, `number`, `boolean` | `string`, `float64`, `bool` |
+| a union of string or number literals | `string` or `float64`, `where { oneOf(...) }` |
+| TypeScript `enum` | enum, with `lossy.unsupported` |
+| a class, a method, an index signature, an object literal type, another union or type, `extends`, `readonly` | `lossy.unsupported` |
+| a declaration not exported | the declaration, with `lossy.unsupported` |
+
+A property keeps its name, unless it is not a TDL identifier: then it reads in camel case with a `name` directive.
+A variant's name is what its interface's name adds to the union's, or else the interface's own, with a `name` directive.
+The last `/** */` comment is a doc comment: its lines before the first tag are the doc, and `@deprecated` the deprecation; any other tag warns `lossy.doc`.
+The target block holds `name` and `discriminant` directives where the convention would write another.
+
+Generating, every fact the file cannot hold warns with its loss code: a primitive written as `string` or `number` that reads back as another, a set, collection sugar written by name, an option or nullable chain the file cannot write, a newtype or alias expanded, an entity or a mixin, an include, a constraint, `owned`, a default, a name that reads back otherwise, a package the file's name does not hold, a doc comment JSDoc cannot hold, a class, a unit, and generics.
+
+Under a `roundtrip` directive, each is written instead as a JSDoc `@tdl <key> <value>` tag, its value a Go string literal with `*/` written `*\u002f`:
+
+- `source` on a declaration that loses anything: the declaration as TDL.
+- on an `export {};` at the end of the file: `package` when the file's name does not hold it, `doc` for the package's doc comment, `import` for each import, and `item` for each top-level item with no TypeScript form, as its index among the file's declarations and the item as TDL.
+
+The normal form for comparing files is the compiler's outline as JSON, without positions, each JSDoc comment read into its doc, deprecation, and tags, without whether a property's name is quoted, and with `Array<T>` written `T[]`.
+
 ## Encodings
 
 TDL defines no wire encoding, so these backends and the Go backend can disagree about one value.
