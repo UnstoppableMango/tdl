@@ -45,7 +45,10 @@ var targets = []roundtrip.Target{
 	{Backend: salesforce.Backend{}},
 	{Backend: smithy.Backend{}},
 	{Backend: thrift.Backend{}, Normalize: thrift.Normalize},
-	{Backend: typescript.Backend{}},
+	{Backend: typescript.Backend{}, Normalize: typescript.Normalize, Needs: func() error {
+		_, _, err := typescript.Compiler()
+		return err
+	}},
 }
 
 // TestCorpus runs every target's cases in testdata/roundtrip/<target>, and

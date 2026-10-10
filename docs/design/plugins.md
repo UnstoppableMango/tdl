@@ -129,6 +129,12 @@ A plugin declares the `reverse` feature to receive one; `tdl` sends no request t
 In Go, such a backend also implements `plugin.Importer`.
 [reverse.md](reverse.md) is the design.
 
+## Transform
+
+Not built.
+A third mode sends a `TransformRequest`, a model, and expects a `TransformResponse`, a model or nothing plus diagnostics, so a project can lint or rewrite its model between lowering and generation.
+[transforms.md](transforms.md) is the design.
+
 ## Diagnostics
 
 The response carries diagnostics: a message, a severity, a source position, and optionally a code.

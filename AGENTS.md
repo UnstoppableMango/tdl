@@ -36,6 +36,8 @@ Prefix `make` with `command` (see the shell autoload note in the global instruct
 `generate`, `treesitter`, and `textmate` are file targets, so each reruns only when its inputs are newer.
 `tree-sitter/Makefile` and `editors/vscode/Makefile` hold the targets for their directories; the root delegates to them.
 `check-treesitter` passes `-B`, because a fresh checkout gives every file the same mtime and a file target would skip the regeneration the diff is meant to test.
+Never combine `-race` with `-coverpkg`: every covered statement becomes an atomic the race detector tracks, and the protocompile tests time out.
+CI runs them as two steps.
 `vscode-install` regenerates the TextMate grammar first, and `install.sh` refuses to run without a bundle built by `make`.
 
 `nix fmt` formats Go, Nix, YAML, JSON, TOML, Markdown, protobuf, and TypeScript, and `nix flake check` fails on anything unformatted.
@@ -46,7 +48,7 @@ Prefix `make` with `command` (see the shell autoload note in the global instruct
 Biome's JSON formatter is off, because jsonfmt owns JSON.
 
 `.markdownlint-cli2.yaml` lists which markdown files are linted, so a bare `markdownlint-cli2` checks what CI checks.
-Files with no formatter: the three Makefiles, `.editorconfig`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md` (mdformat would break the frontmatter), `.graphifyignore`, `docs/demo/demo.tape`, `docs/demo/demo.bash`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, and `tree-sitter/src/scanner.c`.
+Files with no formatter: the three Makefiles, `.editorconfig`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md` (mdformat would break the frontmatter), `.graphifyignore`, `docs/demo/demo.tape`, `docs/demo/demo.bash`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, `backend/typescript/outline.js`, and `tree-sitter/src/scanner.c`.
 `internal/ebnf` lints the two grammars instead, and their column alignment is deliberate.
 Also excluded from formatting: `*.tdl` (until `tdl fmt` is wired in, see `docs/backlog.md`), generated files, and `.claude/`.
 
@@ -60,7 +62,7 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 
 `nix/` holds the packaging:
 
-- `cmd.nix`: the CLI. `meta.mainProgram` is what `lib.getExe` reads, since the package installs eleven binaries.
+- `cmd.nix`: the CLI. `meta.mainProgram` is what `lib.getExe` reads, since the package installs twelve binaries.
 - `vscode-extension.nix`: the editor extension (see [VS Code](#vs-code)).
 - `demo.nix`: renders `docs/demo/demo.tape`, the README's GIF, with VHS. It is a package and not a check, since it runs a browser.
   The tape's `cat`, from `docs/demo/demo.bash`, highlights TDL with the tree-sitter grammar and the theme in `themes/tree-sitter/`, and everything else with bat.
@@ -190,8 +192,11 @@ Every backend reports what it cannot generate as a positioned warning rather tha
 - `backend/typescript`: one `.ts` file per model of JSON wire types, no runtime code.
   A set is an array, a map a `Record`, unrepresentable primitives a string, a newtype a plain alias.
   A fielded enum is a union discriminated on `kind`, renamed by a `discriminant` directive.
-  `narrow.go` writes a `oneOf`, or an integer `min`/`max` pair spanning at most 16 values, as a literal union, which does not warn.
+  `narrow.go` writes a `oneOf`, or an integer `min`/`max` pair spanning at most 16 values, as a literal union, which warns only that it reads back as `oneOf`.
   Tests run `tsc --noEmit --strict` when it is on `PATH`; `checks.gen-typescript` always does.
+  It imports one file: `reverse.go` runs the embedded `outline.js` under `node` with the `typescript` package found from `tsc` on `PATH`, and reads the JSON outline it writes; without both, import and its tests skip.
+  `annotate.go` writes the loss warnings and, under `roundtrip`, JSDoc `@tdl` tags, carrying a declaration whole where it loses anything.
+  `Normalize` is its normal form for the round-trip corpus.
 - `backend/jsonschema`: one `.schema.json` document per model, every declaration under `$defs`.
   A fielded enum is a `oneOf` discriminated on `kind`, as in TypeScript; a newtype is a definition with its own constraints, and a base newtype is a `$ref`.
   `where` constraints become keywords (`minimum`, `pattern`, `minLength`, ...) chosen by what the constrained type holds, and one with no keyword warns.
@@ -208,6 +213,9 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   A `key` directive makes a field a unique external ID.
   Tests check the XML is well formed and `checks.gen-salesforce` runs `xmllint`; nothing checks the Apex.
   See `docs/design/salesforce-backend.md`.
+- `backend/likec4`: LikeC4 source for an architecture diagram: `tdl.c4`, the specification of element kinds, the same bytes for every model, and one `<package>.c4` holding a package element and one element per structure, enum, newtype, or class; aliases, primitives, and units have none.
+  Only phase 1 of `likec4-backend-plan.md` is built: no relationships or views yet.
+  No Go library parses LikeC4, so tests compare text, and also run `likec4 validate --no-layout` when `likec4` is on `PATH`.
 - `backend/debug`: describes the model it was given, to exercise the protocol.
 
 `cmd/tdl-gen-<name>` serves each backend as a plugin.
@@ -230,7 +238,8 @@ After any change to lowering or `ir.Dump`, run `go test ./internal/sema -update`
 
 ### Docs
 
-`docs/design/` holds designs and plans; each `*-plan.md` names what its phases add.
+`docs/design/` holds designs and plans; each `*-plan.md` names what its phases add, and its opening lines say which are done.
+Read those before assuming a design is built: the C#, Haskell, Java, ML-family, and profiles designs have no code yet.
 A design describes the target, not the implementation.
 `workflow.md` is furthest ahead: its `tdl.toml` project model is unbuilt.
 `docs/backlog.md` is wanted, unscheduled work.

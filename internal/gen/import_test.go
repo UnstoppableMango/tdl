@@ -18,6 +18,7 @@ import (
 type importRow struct {
 	backend plugin.Backend
 	files   []*plugin.File
+	needs   func() error
 }
 
 // importers are every shipped row with a reverse column, and the echo test
@@ -29,10 +30,10 @@ func importers(t *testing.T) []importRow {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rows := []importRow{{echo.Backend{}, []*plugin.File{{Path: echo.File, Content: data}}}}
+	rows := []importRow{{echo.Backend{}, []*plugin.File{{Path: echo.File, Content: data}}, nil}}
 	for _, row := range shipped {
 		if row.reverse != nil {
-			rows = append(rows, importRow{row.backend, row.reverse()})
+			rows = append(rows, importRow{row.backend, row.reverse(), row.needs})
 		}
 	}
 	return rows
@@ -46,6 +47,11 @@ func TestImportHostsAgree(t *testing.T) {
 	for _, row := range importers(t) {
 		name := row.backend.Describe().Name
 		t.Run(name, func(t *testing.T) {
+			if row.needs != nil {
+				if err := row.needs(); err != nil {
+					t.Skip(err)
+				}
+			}
 			importer, ok := row.backend.(plugin.Importer)
 			if !ok {
 				t.Fatalf("%s has a reverse column and does not implement plugin.Importer", name)
