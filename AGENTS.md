@@ -62,7 +62,8 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 
 - `cmd.nix`: the CLI. `meta.mainProgram` is what `lib.getExe` reads, since the package installs eleven binaries.
 - `vscode-extension.nix`: the editor extension (see [VS Code](#vs-code)).
-- `demo.nix`: renders `docs/demo/demo.tape`, `docs/demo/demo.bash`, the README's GIF, with VHS. It is a package and not a check, since it runs a browser.
+- `demo.nix`: renders `docs/demo/demo.tape`, the README's GIF, with VHS. It is a package and not a check, since it runs a browser.
+  The tape's `cat`, from `docs/demo/demo.bash`, highlights TDL with the tree-sitter grammar and the theme in `themes/tree-sitter/`, and everything else with bat.
 - `overlay.nix`: names both packages and composes gomod2nix's overlay, so a consumer adding it also gets `buildGoApplication` and `mkGoEnv`.
 - `hm-module.nix`: the home-manager module.
 - `flake-module.nix`: the flake-parts module a consuming project imports.

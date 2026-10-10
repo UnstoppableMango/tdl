@@ -1,7 +1,6 @@
 # Renders docs/demo/demo.tape, the README's demo GIF, with VHS.
 # `make demo` builds it and copies the GIF into docs/demo.
 {
-  lib,
   runCommandCC,
   linkFarm,
   writeText,
@@ -24,37 +23,10 @@ let
     }
   ];
 
-  # Catppuccin Mocha, the tape's theme and the one bat uses for Go and
-  # TypeScript, for each capture tree-sitter/queries/highlights.scm names.
   treeSitterConfig = writeText "config.json" (
     builtins.toJSON {
       parser-directories = [ parsers ];
-      theme = {
-        keyword = "#cba6f7";
-        type = "#f9e2af";
-        property = "#b4befe";
-        module = "#fab387";
-        string = "#a6e3a1";
-        "string.regex" = "#f5c2e7";
-        number = "#fab387";
-        boolean = "#fab387";
-        "constant.builtin" = "#fab387";
-        constructor = "#94e2d5";
-        "function.call" = "#89b4fa";
-        attribute = "#f5c2e7";
-        "variable.parameter" = "#eba0ac";
-        operator = "#89dceb";
-        "punctuation.bracket" = "#9399b2";
-        "punctuation.delimiter" = "#9399b2";
-        comment = {
-          color = "#6c7086";
-          italic = true;
-        };
-        "comment.documentation" = {
-          color = "#6c7086";
-          italic = true;
-        };
-      };
+      theme = import ./themes/tree-sitter/catppuccin-mocha.nix;
     }
   );
 in
