@@ -393,11 +393,13 @@ Doc and ordinary comments are merged by offset, so they keep their order.
 
 ## Knowledge graph
 
-graphify (`uv tool install graphifyy`) builds a graph of the code that an agent queries instead of grepping.
+graphify, in the devShell, builds a graph of the code that an agent queries instead of grepping.
 `graphify update .` rebuilds it from the syntax tree alone into `graphify-out/`, which is gitignored; it needs no API key.
 `graphify query "<question>"`, `graphify path "<A>" "<B>"`, and `graphify explain "<name>"` return a scoped subgraph.
-`.graphifyignore` leaves out generated code and fixtures, which keeps the graph near 3,000 nodes, under the 25,000 the hosted free plan allows.
+`.graphifyignore` leaves out generated code and fixtures, which keeps the graph below 4,000 nodes, against the 25,000 the hosted free plan allows.
 Semantic extraction, `graphify extract` without `--code-only` or `/graphify .` in an assistant, reads the docs through a model and spends tokens; the code graph does not.
+`.mcp.json` serves the graph to Claude Code over stdio with `graphify-mcp`, so it needs the devShell on `PATH` and a built graph.
+The devShell's graphify sets `PYTHONHASHSEED`, because graphify otherwise re-executes itself through a bare interpreter that cannot import it.
 `graphify claude install` and `graphify hook install` write `.claude/settings.json` and `.git/hooks`, which stay local.
 
 ## Review

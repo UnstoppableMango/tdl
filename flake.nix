@@ -63,6 +63,18 @@
               deepsource
               zip
               biome
+              # graphify-mcp, which .mcp.json runs, needs the mcp extra.
+              # graphify re-executes itself as `python -m graphify` to pin the
+              # hash seed, and the bare interpreter cannot import it; setting
+              # the seed skips the re-exec.
+              (graphify.overridePythonAttrs (old: {
+                dependencies = old.dependencies ++ old.optional-dependencies.mcp;
+                makeWrapperArgs = (old.makeWrapperArgs or [ ]) ++ [
+                  "--set-default"
+                  "PYTHONHASHSEED"
+                  "0"
+                ];
+              }))
             ];
           };
 
