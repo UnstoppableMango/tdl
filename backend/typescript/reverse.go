@@ -533,7 +533,7 @@ func (r *reader) statement(s *statement, doc *jsdoc, carried ast.Decl) (ast.Decl
 			d.Members = append(d.Members, f)
 		}
 		if len(d.Members) > 0 {
-			d.End = d.P
+			d.Rbrace = d.P
 		}
 		return d, nil
 	case "enum":
@@ -598,7 +598,7 @@ func (r *reader) alias(s *statement, head ast.DeclHead) (ast.Decl, error) {
 	}
 	d := &ast.NewtypeDecl{DeclHead: head, Base: typ, Constraints: cs}
 	if len(cs) > 0 {
-		d.End = d.P
+		d.Rbrace = d.P
 	}
 	return d, nil
 }
@@ -628,7 +628,7 @@ func (r *reader) union(s *statement, head ast.DeclHead, sm *sum) (ast.Decl, erro
 			return nil, err
 		}
 		if len(v.Fields) > 0 {
-			v.End = v.P
+			v.Rbrace = v.P
 		}
 		d.Variants = append(d.Variants, v)
 	}
@@ -681,7 +681,7 @@ func (r *reader) fields(members []*member, owner, disc string) ([]*ast.Field, er
 		}
 		f := &ast.Field{DeclHead: r.head(name, doc, m.Line, m.Col), Type: typ, Constraints: cs}
 		if len(cs) > 0 {
-			f.End = f.P
+			f.Rbrace = f.P
 		}
 		out = append(out, f)
 	}
