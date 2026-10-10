@@ -11,7 +11,7 @@ import (
 // specVersion tracks docs/spec.md and must not be given the annotation: a
 // release that changes no spec text has not changed the spec.
 const (
-	toolVersion = "0.4.5" // x-release-please-version
+	toolVersion = "0.4.6" // x-release-please-version
 	specVersion = "0.1.0-draft"
 )
 
