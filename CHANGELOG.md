@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.4.4](https://github.com/UnstoppableMango/tdl/compare/v0.4.3...v0.4.4) (2026-10-10)
+
+
+### Features
+
+* **graphql:** import GraphQL schemas into TDL ([#1044](https://github.com/UnstoppableMango/tdl/issues/1044)) ([bcd0d76](https://github.com/UnstoppableMango/tdl/commit/bcd0d76f8b45be6e28c79b6bc2a9e3b6d610b4ab))
+
+
+### Bug Fixes
+
+* **gen:** read the watch baseline before the first run ([#1042](https://github.com/UnstoppableMango/tdl/issues/1042)) ([2b7e4cf](https://github.com/UnstoppableMango/tdl/commit/2b7e4cf19ac93ac265fa5e758ca66f5aa213d6a0))
+
+
+### Documentation
+
+* add a VHS demo GIF to the README ([#1041](https://github.com/UnstoppableMango/tdl/issues/1041)) ([969d8c8](https://github.com/UnstoppableMango/tdl/commit/969d8c88893fd02a7cb91ff42a8753db22ace495))
+
+
+### Continuous Integration
+
+* run the race detector and coverage separately ([#1045](https://github.com/UnstoppableMango/tdl/issues/1045)) ([9670dbe](https://github.com/UnstoppableMango/tdl/commit/9670dbe479372e1f79c50475d677564e5b5fa5a7))
+
 ## [0.4.3](https://github.com/UnstoppableMango/tdl/compare/v0.4.2...v0.4.3) (2026-10-10)
 
 
