@@ -46,7 +46,7 @@ Prefix `make` with `command` (see the shell autoload note in the global instruct
 Biome's JSON formatter is off, because jsonfmt owns JSON.
 
 `.markdownlint-cli2.yaml` lists which markdown files are linted, so a bare `markdownlint-cli2` checks what CI checks.
-Files with no formatter: the three Makefiles, `.editorconfig`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md` (mdformat would break the frontmatter), `docs/demo/demo.tape`, `docs/demo/demo.bash`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, and `tree-sitter/src/scanner.c`.
+Files with no formatter: the three Makefiles, `.editorconfig`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md` (mdformat would break the frontmatter), `.graphifyignore`, `docs/demo/demo.tape`, `docs/demo/demo.bash`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, and `tree-sitter/src/scanner.c`.
 `internal/ebnf` lints the two grammars instead, and their column alignment is deliberate.
 Also excluded from formatting: `*.tdl` (until `tdl fmt` is wired in, see `docs/backlog.md`), generated files, and `.claude/`.
 
@@ -390,6 +390,15 @@ A `///` doc comment is a token attached to the next declaration, in `DeclHead.Do
 A `//` comment is collected on the side into `ast.File.Comments` in source order.
 `ast.Fprint` places each by position, on its own line or at the end of the line it was on; a block holding one does not collapse to a line.
 Doc and ordinary comments are merged by offset, so they keep their order.
+
+## Knowledge graph
+
+graphify (`uv tool install graphifyy`) builds a graph of the code that an agent queries instead of grepping.
+`graphify update .` rebuilds it from the syntax tree alone into `graphify-out/`, which is gitignored; it needs no API key.
+`graphify query "<question>"`, `graphify path "<A>" "<B>"`, and `graphify explain "<name>"` return a scoped subgraph.
+`.graphifyignore` leaves out generated code and fixtures, which keeps the graph near 3,000 nodes, under the 25,000 the hosted free plan allows.
+Semantic extraction, `graphify extract` without `--code-only` or `/graphify .` in an assistant, reads the docs through a model and spends tokens; the code graph does not.
+`graphify claude install` and `graphify hook install` write `.claude/settings.json` and `.git/hooks`, which stay local.
 
 ## Review
 
