@@ -15,7 +15,8 @@ Set Padding 24
 Set Theme "Catppuccin Mocha"
 Set TypingSpeed 45ms
 
-# demo.bash makes `cat` highlight syntax, and Go indents with tabs.
+# demo.bash makes `cat` highlight syntax and print a line at a time, so
+# each file scrolls the last one up. Go indents with tabs.
 Hide
 Type "source demo.bash && tabs -4 && clear"
 Enter
@@ -26,11 +27,6 @@ Sleep 400ms
 Enter
 Sleep 4s
 
-Hide
-Type "clear"
-Enter
-Show
-
 Type "tdl gen shop.tdl"
 Sleep 400ms
 Enter
@@ -40,11 +36,6 @@ Type "cat ts/shop.ts"
 Sleep 400ms
 Enter
 Sleep 4s
-
-Hide
-Type "clear"
-Enter
-Show
 
 Type "cat go/order.go go/status.go"
 Sleep 400ms
