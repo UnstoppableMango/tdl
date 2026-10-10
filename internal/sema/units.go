@@ -50,7 +50,7 @@ func (l *lowerer) resolveUnit(u *ast.UnitDecl, decls map[string]*ast.UnitDecl, s
 	}
 
 	if seen[u.N] {
-		l.diags.add(u.Pos(), "unit %s is defined in terms of itself", u.N)
+		l.diags.add(u, "unit %s is defined in terms of itself", u.N)
 		return unresolvedUnit(), false
 	}
 	seen[u.N] = true
@@ -58,7 +58,7 @@ func (l *lowerer) resolveUnit(u *ast.UnitDecl, decls map[string]*ast.UnitDecl, s
 
 	// A base unit measures itself.
 	if u.Expr == nil {
-		id := l.internUnit(dims{b.id.GetIndex(): 1}, u.N, u.Pos())
+		id := l.internUnit(dims{b.id.GetIndex(): 1}, u.N, u)
 		decl.Node = &ir.Decl_Unit{Unit: &ir.UnitDef{Unit: id, Base: true}}
 		return id, true
 	}
@@ -68,7 +68,7 @@ func (l *lowerer) resolveUnit(u *ast.UnitDecl, decls map[string]*ast.UnitDecl, s
 		decl.Node = &ir.Decl_Unit{Unit: &ir.UnitDef{Unit: unresolvedUnit()}}
 		return unresolvedUnit(), false
 	}
-	id := l.internUnit(acc, ast.PrintUnitExpr(u.Expr), u.Expr.P)
+	id := l.internUnit(acc, ast.PrintUnitExpr(u.Expr), u.Expr)
 	decl.Node = &ir.Decl_Unit{Unit: &ir.UnitDef{Unit: id}}
 	return id, true
 }
@@ -108,7 +108,7 @@ func (l *lowerer) reduce(e *ast.UnitExpr, sign int32, acc dims, decls map[string
 func (l *lowerer) dimsOf(name string, pos ast.Position, decls map[string]*ast.UnitDecl, seen map[string]bool) (dims, bool) {
 	b, ok := l.scope.lookup(name)
 	if !ok || b.kind != bindDecl {
-		l.diags.add(pos, "undefined unit: %s", name)
+		l.diags.add(word(pos, name), "undefined unit: %s", name)
 		return nil, false
 	}
 
@@ -123,7 +123,7 @@ func (l *lowerer) dimsOf(name string, pos ast.Position, decls map[string]*ast.Un
 		}
 		return nil, false
 	}
-	l.diags.add(pos, "%s is not a unit", name)
+	l.diags.add(word(pos, name), "%s is not a unit", name)
 	return nil, false
 }
 
@@ -142,7 +142,7 @@ func (l *lowerer) dimsOfID(id *ir.ID) (dims, bool) {
 // internUnit returns the ID of a quantity, adding it to the table only if
 // an equal one is not already there. The key is the reduced dimensions
 // alone; `wrote` records the first spelling and does not take part.
-func (l *lowerer) internUnit(d dims, wrote string, pos ast.Position) *ir.ID {
+func (l *lowerer) internUnit(d dims, wrote string, at ast.Node) *ir.ID {
 	frozen := l.freeze(d)
 	key := unitKey(frozen)
 	if idx, ok := l.unitKeys[key]; ok {
@@ -154,7 +154,7 @@ func (l *lowerer) internUnit(d dims, wrote string, pos ast.Position) *ir.ID {
 	l.model.Units = append(l.model.Units, &ir.Unit{
 		Dims:     frozen,
 		Wrote:    wrote,
-		Position: position(pos),
+		Position: position(at),
 	})
 	return &ir.ID{Index: idx, Name: wrote}
 }

@@ -29,6 +29,7 @@ type parser struct {
 	lx       *lex.Lexer
 	cur      lex.Token
 	peek     lex.Token
+	prev     ast.Position // just past the last token consumed
 	errs     ErrorList
 }
 
@@ -40,8 +41,25 @@ func newParser(filename, src string) *parser {
 }
 
 func (p *parser) next() {
+	p.prev = p.cur.End
 	p.cur = p.peek
 	p.peek = p.lx.Next()
+}
+
+// endOf is where a node that started at start ends: just past the last
+// token consumed, or start itself when the node consumed none.
+func (p *parser) endOf(start ast.Position) ast.Position {
+	if p.prev.Line == 0 || p.prev.Offset < start.Offset {
+		return start
+	}
+	return p.prev
+}
+
+// endDecl records where a declaration ends and returns it.
+func (p *parser) endDecl(d ast.Decl) ast.Decl {
+	h := d.Head()
+	h.E = p.endOf(h.P)
+	return d
 }
 
 func (p *parser) at(kind lex.Kind) bool { return p.cur.Kind == kind }
@@ -135,23 +153,23 @@ func (p *parser) parseFile() *ast.File {
 		case lex.IMPORT:
 			file.Imports = append(file.Imports, p.parseImportDecl(head))
 		case lex.PRIMITIVE:
-			file.Decls = append(file.Decls, p.parsePrimitiveDecl(head))
+			file.Decls = append(file.Decls, p.endDecl(p.parsePrimitiveDecl(head)))
 		case lex.ALIAS:
-			file.Decls = append(file.Decls, p.parseAliasDecl(head))
+			file.Decls = append(file.Decls, p.endDecl(p.parseAliasDecl(head)))
 		case lex.UNIT:
-			file.Decls = append(file.Decls, p.parseUnitDecl(head))
+			file.Decls = append(file.Decls, p.endDecl(p.parseUnitDecl(head)))
 		case lex.TYPE:
-			file.Decls = append(file.Decls, p.parseTypeDecl(head))
+			file.Decls = append(file.Decls, p.endDecl(p.parseTypeDecl(head)))
 		case lex.MIXIN:
-			file.Decls = append(file.Decls, p.parseStructDecl(head))
+			file.Decls = append(file.Decls, p.endDecl(p.parseStructDecl(head)))
 		case lex.ENUM:
-			file.Decls = append(file.Decls, p.parseEnumDecl(head))
+			file.Decls = append(file.Decls, p.endDecl(p.parseEnumDecl(head)))
 		case lex.CLASS:
-			file.Decls = append(file.Decls, p.parseClassDecl(head))
+			file.Decls = append(file.Decls, p.endDecl(p.parseClassDecl(head)))
 		case lex.INSTANCE:
-			file.Decls = append(file.Decls, p.parseInstanceDecl(head))
+			file.Decls = append(file.Decls, p.endDecl(p.parseInstanceDecl(head)))
 		case lex.TARGET:
-			file.Decls = append(file.Decls, p.parseTargetDecl(head))
+			file.Decls = append(file.Decls, p.endDecl(p.parseTargetDecl(head)))
 		case lex.PACKAGE:
 			pkg := p.parsePackageDecl(head)
 			switch {
@@ -174,7 +192,7 @@ func (p *parser) parseFile() *ast.File {
 	}
 
 	// At EOF the lexer has collected every comment.
-	file.End = p.cur.Pos
+	file.EOF = p.cur.Pos
 	for _, c := range p.lx.Comments() {
 		file.Comments = append(file.Comments, &ast.Comment{P: c.Pos, Text: c.Text})
 	}
@@ -198,7 +216,9 @@ func (p *parser) parseDoc() ([]string, []ast.Position) {
 func (p *parser) parsePackageDecl(head ast.DeclHead) *ast.PackageDecl {
 	pos := p.cur.Pos
 	p.next() // 'package'
-	return &ast.PackageDecl{Doc: head.Doc, DocP: head.DocP, P: pos, Path: p.parsePackagePath()}
+	d := &ast.PackageDecl{Doc: head.Doc, DocP: head.DocP, P: pos, Path: p.parsePackagePath()}
+	d.E = p.endOf(pos)
+	return d
 }
 
 // parsePackagePath parses `Name { . Name }` after `package` or `for`.
@@ -225,6 +245,7 @@ func (p *parser) parseImportDecl(head ast.DeclHead) *ast.ImportDecl {
 	p.next() // 'import'
 
 	imp := &ast.ImportDecl{Doc: head.Doc, DocP: head.DocP, P: pos}
+	defer func() { imp.E = p.endOf(pos) }()
 	if p.at(lex.STRING) {
 		imp.Path = p.cur.Text
 		p.next()
@@ -281,6 +302,7 @@ func (p *parser) parseTypeParams() []*ast.TypeParam {
 		if p.accept(lex.COLON) {
 			param.Kind = p.parseKind()
 		}
+		param.E = p.endOf(param.P)
 		params = append(params, param)
 
 		if !p.accept(lex.COMMA) {
@@ -294,6 +316,7 @@ func (p *parser) parseTypeParams() []*ast.TypeParam {
 // parseKind parses `Kind = KindAtom { "->" KindAtom }`, right-associative.
 func (p *parser) parseKind() *ast.Kind {
 	k := &ast.Kind{P: p.cur.Pos}
+	defer func() { k.E = p.endOf(k.P) }()
 
 	switch {
 	case p.at(lex.TYPE), p.at(lex.UNIT):
@@ -317,6 +340,7 @@ func (p *parser) parseKind() *ast.Kind {
 // parseTypeRef parses `TypeRef = CoreType [ "?" ] [ "|" "null" ]`.
 func (p *parser) parseTypeRef() *ast.TypeRef {
 	t := p.parseCoreType()
+	defer func() { t.E = p.endOf(t.P) }()
 
 	if p.accept(lex.QUESTION) {
 		t.Optional = true
@@ -340,6 +364,7 @@ func (p *parser) parseCoreType() *ast.TypeRef {
 	case p.accept(lex.LBRACK):
 		t := &ast.TypeRef{P: pos, List: p.parseTypeRef()}
 		p.expect(lex.RBRACK)
+		t.E = p.endOf(pos)
 		return t
 
 	case p.accept(lex.LBRACE):
@@ -351,6 +376,7 @@ func (p *parser) parseCoreType() *ast.TypeRef {
 			t.Set = inner
 		}
 		p.expect(lex.RBRACE)
+		t.E = p.endOf(pos)
 		return t
 	}
 
@@ -359,5 +385,6 @@ func (p *parser) parseCoreType() *ast.TypeRef {
 	if p.at(lex.LT) {
 		t.Args = p.parseTypeArgs()
 	}
+	t.E = p.endOf(pos)
 	return t
 }

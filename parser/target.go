@@ -17,7 +17,7 @@ func (p *parser) parseTargetDecl(head ast.DeclHead) *ast.TargetDecl {
 		return d
 	}
 	d.For = p.parsePackagePath()
-	d.Entries, d.End = p.parseTargetEntries()
+	d.Entries, d.Rbrace = p.parseTargetEntries()
 	return d
 }
 
@@ -39,6 +39,7 @@ func (p *parser) parseTargetEntries() ([]*ast.TargetEntry, ast.Position) {
 //	Directive           a directive applying to the enclosing scope
 func (p *parser) parseTargetEntry() *ast.TargetEntry {
 	entry := &ast.TargetEntry{P: p.cur.Pos}
+	defer func() { entry.E = p.endOf(entry.P) }()
 
 	pos := p.cur.Pos
 	name := p.expectName("directive or path name")
@@ -51,7 +52,7 @@ func (p *parser) parseTargetEntry() *ast.TargetEntry {
 	switch {
 	case p.at(lex.LBRACE):
 		entry.Path = dotted
-		entry.Entries, entry.End = p.parseTargetEntries()
+		entry.Entries, entry.Rbrace = p.parseTargetEntries()
 	case p.accept(lex.FATARROW):
 		entry.Path = dotted
 		entry.Directive = p.parseDirective()
@@ -85,6 +86,7 @@ func (p *parser) expectName(kind string) string {
 // finishDirective parses a directive's optional argument list.
 func (p *parser) finishDirective(pos lex.Position, name string) *ast.Directive {
 	d := &ast.Directive{P: pos, N: name}
+	defer func() { d.E = p.endOf(pos) }()
 	if !p.accept(lex.LPAREN) {
 		return d
 	}

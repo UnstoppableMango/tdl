@@ -23,7 +23,7 @@ func (p *parser) parseClassDecl(head ast.DeclHead) *ast.ClassDecl {
 	if p.at(lex.REQUIRES) {
 		d.Requires = p.parseClassRefs()
 	}
-	d.Members, d.End = p.parseClassBody()
+	d.Members, d.Rbrace = p.parseClassBody()
 	return d
 }
 
@@ -40,12 +40,14 @@ func (p *parser) parseFunDeps() []*ast.FunDep {
 			p.next()
 		}
 		if !p.expect(lex.ARROW) {
+			dep.E = p.endOf(dep.P)
 			return append(deps, dep)
 		}
 		for p.at(lex.IDENT) {
 			dep.To = append(dep.To, p.cur.Text)
 			p.next()
 		}
+		dep.E = p.endOf(dep.P)
 		deps = append(deps, dep)
 
 		if !p.accept(lex.COMMA) {
@@ -74,6 +76,7 @@ func (p *parser) parseClassBody() ([]ast.Member, ast.Position) {
 			if p.accept(lex.COLON) {
 				req.Kind = p.parseKind()
 			}
+			req.E = p.endOf(req.P)
 			members = append(members, req)
 
 		default:
@@ -101,11 +104,13 @@ func (p *parser) parseInstanceDecl(head ast.DeclHead) *ast.InstanceDecl {
 
 	d.Class = &ast.ClassRef{P: p.cur.Pos}
 	d.Class.Qualifier, d.Class.N = p.parseQualified()
+	d.Class.E = p.endOf(d.Class.P)
 	d.N = d.Class.N
 
 	switch {
 	case p.at(lex.LT):
 		d.Class.Args = p.parseTypeArgs()
+		d.Class.E = p.endOf(d.Class.P)
 	case p.accept(lex.FOR):
 		d.For = p.parseCoreType()
 	default:
@@ -118,7 +123,7 @@ func (p *parser) parseInstanceDecl(head ast.DeclHead) *ast.InstanceDecl {
 		d.Requires = p.parseClassRefs()
 	}
 	if p.at(lex.LBRACE) {
-		d.Binds, d.End = p.parseAssocTypeBinds()
+		d.Binds, d.Rbrace = p.parseAssocTypeBinds()
 	}
 	return d
 }
@@ -134,6 +139,7 @@ func (p *parser) parseAssocTypeBinds() ([]*ast.AssocTypeBind, ast.Position) {
 			if p.expect(lex.EQUAL) {
 				bind.Target = p.parseTypeRef()
 			}
+			bind.E = p.endOf(bind.P)
 			binds = append(binds, bind)
 		}
 	})

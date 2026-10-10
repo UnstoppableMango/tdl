@@ -184,11 +184,11 @@ func Fprint(file *File) string {
 		prevMultiline = multiline || annotated
 	}
 
-	if p.before(file.End) {
+	if p.before(file.EOF) {
 		if p.b.Len() > 0 {
 			p.b.WriteString("\n")
 		}
-		p.flush("", file.End)
+		p.flush("", file.EOF)
 	}
 
 	return p.b.String()
@@ -216,22 +216,22 @@ func (p *printer) decl(decl Decl) {
 
 	case *NewtypeDecl:
 		head := "type " + d.N + printParams(d.Params) + ": " + printTypeRef(d.Base) + printRequires(d.Requires)
-		p.constrained(head, d.Constraints, "", d.P.Line, d.End)
+		p.constrained(head, d.Constraints, "", d.P.Line, d.Rbrace)
 
 	case *StructDecl:
 		p.b.WriteString(d.Keyword + " " + d.N + printParams(d.Params) +
 			printConforms(d.Conforms) + printRequires(d.Requires))
-		p.members(d.Members, d.P.Line, d.End)
+		p.members(d.Members, d.P.Line, d.Rbrace)
 
 	case *EnumDecl:
 		p.b.WriteString("enum " + d.N + printParams(d.Params) +
 			printConforms(d.Conforms) + printRequires(d.Requires))
-		p.variants(d.Variants, d.P.Line, d.End)
+		p.variants(d.Variants, d.P.Line, d.Rbrace)
 
 	case *ClassDecl:
 		p.b.WriteString("class " + d.N + printParams(d.Params) + printFunDeps(d.FunDeps) +
 			printConforms(d.Conforms) + printRequires(d.Requires))
-		p.members(d.Members, d.P.Line, d.End)
+		p.members(d.Members, d.P.Line, d.Rbrace)
 
 	case *InstanceDecl:
 		p.instance(d)
@@ -245,7 +245,7 @@ func (p *printer) decl(decl Decl) {
 
 	case *TargetDecl:
 		p.b.WriteString("target " + d.N + " for " + d.For)
-		p.entries(d.Entries, "", d.P.Line, d.End, anywhere)
+		p.entries(d.Entries, "", d.P.Line, d.Rbrace, anywhere)
 	}
 }
 
@@ -318,18 +318,18 @@ func (p *printer) instance(d *InstanceDecl) {
 	s += printRequires(d.Requires)
 
 	// An empty bind block without comments is dropped.
-	if len(d.Binds) == 0 && !p.before(d.End) {
+	if len(d.Binds) == 0 && !p.before(d.Rbrace) {
 		p.line(s, d.P.Line, anywhere)
 		return
 	}
 
-	p.b.WriteString(s + " {" + p.trailing(d.P.Line, firstPos(d.Binds, func(b *AssocTypeBind) Position { return b.P }, d.End)) + "\n")
+	p.b.WriteString(s + " {" + p.trailing(d.P.Line, firstPos(d.Binds, func(b *AssocTypeBind) Position { return b.P }, d.Rbrace)) + "\n")
 	for _, bind := range d.Binds {
 		p.flush("  ", bind.P)
-		p.line("  type "+bind.N+" = "+printTypeRef(bind.Target), bind.P.Line, d.End)
+		p.line("  type "+bind.N+" = "+printTypeRef(bind.Target), bind.P.Line, d.Rbrace)
 	}
-	p.flush("  ", d.End)
-	p.line("}", d.End.Line, anywhere)
+	p.flush("  ", d.Rbrace)
+	p.line("}", d.Rbrace.Line, anywhere)
 }
 
 // members writes a declaration body. An empty one without comments
@@ -366,7 +366,7 @@ func (p *printer) field(f *Field, indent string, until Position) {
 	tail := p.fieldTail(f, indent)
 	line := f.P.Line
 	if strings.Contains(tail, "\n") {
-		line = f.End.Line
+		line = f.Rbrace.Line
 	}
 	p.line(indent+tail, line, until)
 }
@@ -374,7 +374,7 @@ func (p *printer) field(f *Field, indent string, until Position) {
 // fieldTail renders a field without indent or trailing comment. The
 // constraint block may span lines, so the caller places the comment.
 func (p *printer) fieldTail(f *Field, indent string) string {
-	s := printFieldHead(f) + p.constraints(f.Constraints, indent, f.End)
+	s := printFieldHead(f) + p.constraints(f.Constraints, indent, f.Rbrace)
 	if f.Default != nil {
 		s += " = " + printLiteral(f.Default)
 	}
@@ -437,13 +437,13 @@ func (p *printer) variants(variants []*Variant, headLine int, end Position) {
 		s += v.N
 
 		if p.expands(v) {
-			p.b.WriteString(s + " {" + p.trailing(v.P.Line, firstPos(v.Fields, func(f *Field) Position { return f.P }, v.End)) + "\n")
+			p.b.WriteString(s + " {" + p.trailing(v.P.Line, firstPos(v.Fields, func(f *Field) Position { return f.P }, v.Rbrace)) + "\n")
 			for _, f := range v.Fields {
 				p.lead("    ", f.P, f.Doc, f.DocP)
-				p.field(f, "    ", v.End)
+				p.field(f, "    ", v.Rbrace)
 			}
-			p.flush("    ", v.End)
-			p.line("  }", v.End.Line, end)
+			p.flush("    ", v.Rbrace)
+			p.line("  }", v.Rbrace.Line, end)
 			continue
 		}
 
@@ -454,8 +454,8 @@ func (p *printer) variants(variants []*Variant, headLine int, end Position) {
 				parts[i] = p.fieldTail(f, "  ")
 			}
 			s += " { " + strings.Join(parts, " ") + " }"
-			if v.End.Line != 0 {
-				line = v.End.Line
+			if v.Rbrace.Line != 0 {
+				line = v.Rbrace.Line
 			}
 		}
 		p.line(s, line, end)
@@ -467,10 +467,10 @@ func (p *printer) variants(variants []*Variant, headLine int, end Position) {
 // expands reports whether a variant's payload needs several lines: it
 // holds a comment, a documented field, or a multi-line constraint block.
 func (p *printer) expands(v *Variant) bool {
-	if v.End.Line == 0 {
+	if v.Rbrace.Line == 0 {
 		return false
 	}
-	if p.before(v.End) {
+	if p.before(v.Rbrace) {
 		return true
 	}
 	// With no comment in the payload, measuring a tail consumes nothing.
@@ -497,7 +497,7 @@ func (p *printer) entries(entries []*TargetEntry, indent string, headLine int, e
 		switch {
 		case e.Entries != nil:
 			p.b.WriteString(inner + e.Path)
-			p.entries(e.Entries, inner, e.P.Line, e.End, end)
+			p.entries(e.Entries, inner, e.P.Line, e.Rbrace, end)
 		case e.Path != "":
 			p.line(inner+e.Path+" => "+printDirective(e.Directive), e.P.Line, end)
 		default:

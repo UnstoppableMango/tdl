@@ -47,9 +47,9 @@ func (l *lowerer) findCycle(file *ast.File, start, at string, seen map[string]bo
 	for _, next := range l.edges(file, at, throughWrappers) {
 		if next.name == start {
 			if start == at {
-				l.diags.add(next.pos, "%s contains itself", start)
+				l.diags.add(next.at, "%s contains itself", start)
 			} else {
-				l.diags.add(next.pos, "%s and %s contain each other", start, at)
+				l.diags.add(next.at, "%s and %s contain each other", start, at)
 			}
 			return
 		}
@@ -59,7 +59,7 @@ func (l *lowerer) findCycle(file *ast.File, start, at string, seen map[string]bo
 
 type edge struct {
 	name string
-	pos  ast.Position
+	at   ast.Node
 }
 
 // edges returns the declarations a declaration reaches directly.
@@ -78,7 +78,7 @@ func (l *lowerer) edges(file *ast.File, name string, throughWrappers bool) []edg
 			return // the wrapper gives it a finite representation
 		}
 		for _, n := range reachedNames(t, throughWrappers) {
-			out = append(out, edge{name: n, pos: t.P})
+			out = append(out, edge{name: n, at: t})
 		}
 	}
 

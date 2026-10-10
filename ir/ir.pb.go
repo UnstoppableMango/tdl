@@ -327,12 +327,19 @@ func (x *ID) GetName() string {
 	return ""
 }
 
-// Position is a location in a source file.
+// Position is where a node was written in a source file.
+//
+// line and column are where it starts. end_line and end_column are just
+// past its last character, as in unist, so the two bound its text; both are
+// zero when only the start is known. Lines and columns count from 1, and a
+// column counts bytes.
 type Position struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Filename      string                 `protobuf:"bytes,1,opt,name=filename" json:"filename,omitempty"`
 	Line          int32                  `protobuf:"varint,2,opt,name=line" json:"line,omitempty"`
 	Column        int32                  `protobuf:"varint,3,opt,name=column" json:"column,omitempty"`
+	EndLine       int32                  `protobuf:"varint,4,opt,name=end_line,json=endLine" json:"end_line,omitempty"`
+	EndColumn     int32                  `protobuf:"varint,5,opt,name=end_column,json=endColumn" json:"end_column,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -384,6 +391,20 @@ func (x *Position) GetLine() int32 {
 func (x *Position) GetColumn() int32 {
 	if x != nil {
 		return x.Column
+	}
+	return 0
+}
+
+func (x *Position) GetEndLine() int32 {
+	if x != nil {
+		return x.EndLine
+	}
+	return 0
+}
+
+func (x *Position) GetEndColumn() int32 {
+	if x != nil {
+		return x.EndColumn
 	}
 	return 0
 }
@@ -2758,11 +2779,14 @@ const file_tdl_ir_v1_ir_proto_rawDesc = "" +
 	"\x12tdl/ir/v1/ir.proto\x12\ttdl.ir.v1\x1a!google/protobuf/go_features.proto\".\n" +
 	"\x02ID\x12\x14\n" +
 	"\x05index\x18\x01 \x01(\x05R\x05index\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\"R\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"\x8c\x01\n" +
 	"\bPosition\x12\x1a\n" +
 	"\bfilename\x18\x01 \x01(\tR\bfilename\x12\x12\n" +
 	"\x04line\x18\x02 \x01(\x05R\x04line\x12\x16\n" +
-	"\x06column\x18\x03 \x01(\x05R\x06column\"V\n" +
+	"\x06column\x18\x03 \x01(\x05R\x06column\x12\x19\n" +
+	"\bend_line\x18\x04 \x01(\x05R\aendLine\x12\x1d\n" +
+	"\n" +
+	"end_column\x18\x05 \x01(\x05R\tendColumn\"V\n" +
 	"\vDeprecation\x12\x16\n" +
 	"\x06reason\x18\x01 \x01(\tR\x06reason\x12/\n" +
 	"\bposition\x18\x02 \x01(\v2\x13.tdl.ir.v1.PositionR\bposition\"\xab\x01\n" +

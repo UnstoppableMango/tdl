@@ -8,23 +8,25 @@ type DeclHead struct {
 	DocP []Position
 
 	P   Position
+	E   Position // just past the last token
 	N   string
 	Dep *Deprecation
 }
 
-func (h *DeclHead) Pos() Position   { return h.P }
 func (h *DeclHead) Name() string    { return h.N }
 func (h *DeclHead) Head() *DeclHead { return h }
 
 // Deprecation marks a declaration, field, or variant as deprecated.
 type Deprecation struct {
 	P      Position
-	Reason string // "" when written without a reason
+	E      Position // just past the last token
+	Reason string   // "" when written without a reason
 }
 
 // ClassRef names a class, optionally qualified and applied to arguments.
 type ClassRef struct {
 	P         Position
+	E         Position // just past the last token
 	Qualifier string
 	N         string
 	Args      []*TypeArg
@@ -37,7 +39,7 @@ type NewtypeDecl struct {
 	Base        *TypeRef
 	Requires    []*ClassRef
 	Constraints []*Constraint
-	End         Position // the constraint block's `}`; zero without one
+	Rbrace      Position // the constraint block's `}`; zero without one
 }
 
 // StructDecl is a `type` or `mixin` declaration with a body of members.
@@ -48,7 +50,7 @@ type StructDecl struct {
 	Conforms []*ClassRef
 	Requires []*ClassRef
 	Members  []Member
-	End      Position // the body's `}`
+	Rbrace   Position // the body's `}`
 }
 
 // EnumDecl is a closed set of variants, each optionally carrying fields.
@@ -58,7 +60,7 @@ type EnumDecl struct {
 	Conforms []*ClassRef
 	Requires []*ClassRef
 	Variants []*Variant
-	End      Position // the body's `}`
+	Rbrace   Position // the body's `}`
 }
 
 // TargetDecl is a `target go for billing { ... }` block.
@@ -66,12 +68,12 @@ type TargetDecl struct {
 	DeclHead
 	For     string // the dotted package name the target applies to
 	Entries []*TargetEntry
-	End     Position // the block's `}`
+	Rbrace  Position // the block's `}`
 }
 
 // Member is one item in a [StructDecl] body: a [Field] or an [Include].
 type Member interface {
-	Pos() Position
+	Node
 }
 
 // Field is a named, typed member.
@@ -81,37 +83,38 @@ type Field struct {
 	Type        *TypeRef
 	Constraints []*Constraint
 	Default     *Literal
-	End         Position // the constraint block's `}`; zero without one
+	Rbrace      Position // the constraint block's `}`; zero without one
 }
 
 // Include copies a mixin's fields into the including declaration.
 type Include struct {
 	P    Position
+	E    Position // just past the last token
 	Type *ClassRef
 }
-
-func (i *Include) Pos() Position { return i.P }
 
 // Variant is one alternative in an [EnumDecl].
 type Variant struct {
 	DeclHead
 	Fields []*Field // nil for a variant without a payload
-	End    Position // the payload's `}`; zero without one
+	Rbrace Position // the payload's `}`; zero without one
 }
 
 // TargetEntry is one entry in a [TargetDecl]: a nested block, a path
 // mapped to a directive, or a bare directive.
 type TargetEntry struct {
 	P         Position
+	E         Position       // just past the last token
 	Path      string         // "" for a bare directive
 	Directive *Directive     // nil when Entries is set
 	Entries   []*TargetEntry // nil when Directive is set
-	End       Position       // the nested block's `}`; zero without one
+	Rbrace    Position       // the nested block's `}`; zero without one
 }
 
 // Directive is an instruction to a backend, opaque to the compiler.
 type Directive struct {
 	P    Position
+	E    Position // just past the last token
 	N    string
 	Args []*Literal
 }
@@ -133,6 +136,7 @@ const (
 // Literal is a field default, constraint argument, or directive argument.
 type Literal struct {
 	P     Position
+	E     Position // just past the last token
 	Kind  LiteralKind
 	Text  string     // decoded for LitString, pattern body for LitRegex, source text otherwise
 	Items []*Literal // set for LitList
@@ -144,6 +148,7 @@ type Literal struct {
 // open.
 type Constraint struct {
 	P    Position
+	E    Position // just past the last token
 	N    string
 	Args []*Literal
 }
@@ -156,12 +161,13 @@ type ClassDecl struct {
 	Conforms []*ClassRef // superclasses
 	Requires []*ClassRef
 	Members  []Member
-	End      Position // the body's `}`
+	Rbrace   Position // the body's `}`
 }
 
 // FunDep states that some class parameters determine others.
 type FunDep struct {
 	P    Position
+	E    Position // just past the last token
 	From []string
 	To   []string
 }
@@ -181,12 +187,13 @@ type InstanceDecl struct {
 	For      *TypeRef // set for `instance C for T`, nil for `instance C<T>`
 	Requires []*ClassRef
 	Binds    []*AssocTypeBind
-	End      Position // the bind block's `}`; zero without one
+	Rbrace   Position // the bind block's `}`; zero without one
 }
 
 // AssocTypeBind binds an associated type in an instance.
 type AssocTypeBind struct {
 	P      Position
+	E      Position // just past the last token
 	N      string
 	Target *TypeRef
 }
@@ -201,12 +208,14 @@ type UnitDecl struct {
 // UnitExpr is a product and quotient of unit terms.
 type UnitExpr struct {
 	P     Position
+	E     Position // just past the last token
 	Terms []*UnitTerm
 }
 
 // UnitTerm is one factor of a [UnitExpr].
 type UnitTerm struct {
 	P     Position
+	E     Position  // just past the last token
 	Op    string    // "" for the first term, otherwise "*" or "/"
 	N     string    // unit name; "" when Paren is set
 	Exp   int       // exponent; 1 when written without one
@@ -217,6 +226,7 @@ type UnitTerm struct {
 // is recorded as a type and the resolver decides.
 type TypeArg struct {
 	P    Position
+	E    Position  // just past the last token
 	Type *TypeRef  // set unless Unit is
 	Unit *UnitExpr // set only when operators made the argument unambiguous
 }

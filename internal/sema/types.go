@@ -22,18 +22,18 @@ func (l *lowerer) typeRef(t *ast.TypeRef) *ir.ID {
 	id := l.coreType(t)
 	if t.Optional {
 		id = l.intern(&ir.Type{
-			Ctor:     l.ctor(preludeOption, t.P),
+			Ctor:     l.ctor(preludeOption, t),
 			Args:     []*ir.ID{id},
 			Wrote:    ir.SyntacticForm_SYNTACTIC_FORM_QUESTION,
-			Position: position(t.P),
+			Position: position(t),
 		})
 	}
 	if t.Nullable {
 		id = l.intern(&ir.Type{
-			Ctor:     l.ctor(preludeNullable, t.P),
+			Ctor:     l.ctor(preludeNullable, t),
 			Args:     []*ir.ID{id},
 			Wrote:    ir.SyntacticForm_SYNTACTIC_FORM_OR_NULL,
-			Position: position(t.P),
+			Position: position(t),
 		})
 	}
 	return id
@@ -43,26 +43,26 @@ func (l *lowerer) coreType(t *ast.TypeRef) *ir.ID {
 	switch {
 	case t.List != nil:
 		return l.intern(&ir.Type{
-			Ctor:     l.ctor(preludeList, t.P),
+			Ctor:     l.ctor(preludeList, t),
 			Args:     []*ir.ID{l.typeRef(t.List)},
 			Wrote:    ir.SyntacticForm_SYNTACTIC_FORM_BRACKETS,
-			Position: position(t.P),
+			Position: position(t),
 		})
 
 	case t.Set != nil:
 		return l.intern(&ir.Type{
-			Ctor:     l.ctor(preludeSet, t.P),
+			Ctor:     l.ctor(preludeSet, t),
 			Args:     []*ir.ID{l.typeRef(t.Set)},
 			Wrote:    ir.SyntacticForm_SYNTACTIC_FORM_BRACES,
-			Position: position(t.P),
+			Position: position(t),
 		})
 
 	case t.MapKey != nil:
 		return l.intern(&ir.Type{
-			Ctor:     l.ctor(preludeMap, t.P),
+			Ctor:     l.ctor(preludeMap, t),
 			Args:     []*ir.ID{l.typeRef(t.MapKey), l.typeRef(t.MapValue)},
 			Wrote:    ir.SyntacticForm_SYNTACTIC_FORM_ARROW,
-			Position: position(t.P),
+			Position: position(t),
 		})
 	}
 
@@ -71,7 +71,7 @@ func (l *lowerer) coreType(t *ast.TypeRef) *ir.ID {
 			Extern:   l.qualified(t),
 			Args:     l.typeArgs(t.Args),
 			Wrote:    ir.SyntacticForm_SYNTACTIC_FORM_NAMED,
-			Position: position(t.P),
+			Position: position(t),
 		})
 	}
 
@@ -83,7 +83,7 @@ func (l *lowerer) coreType(t *ast.TypeRef) *ir.ID {
 			Extern:   b.id,
 			Args:     l.typeArgs(t.Args),
 			Wrote:    ir.SyntacticForm_SYNTACTIC_FORM_NAMED,
-			Position: position(t.P),
+			Position: position(t),
 		})
 	}
 
@@ -95,21 +95,21 @@ func (l *lowerer) coreType(t *ast.TypeRef) *ir.ID {
 				Param:    &ir.ParamRef{Name: t.N, Index: b.index, Owner: b.owner},
 				Args:     l.typeArgs(t.Args),
 				Wrote:    ir.SyntacticForm_SYNTACTIC_FORM_NAMED,
-				Position: position(t.P),
+				Position: position(t),
 			})
 		}
 		return l.intern(&ir.Type{
 			Param:    &ir.ParamRef{Name: t.N, Index: b.index, Owner: b.owner},
 			Wrote:    ir.SyntacticForm_SYNTACTIC_FORM_NAMED,
-			Position: position(t.P),
+			Position: position(t),
 		})
 	}
 
 	return l.intern(&ir.Type{
-		Ctor:     l.ctor(t.N, t.P),
+		Ctor:     l.ctor(t.N, word(t.P, t.N)),
 		Args:     l.typeArgs(t.Args),
 		Wrote:    ir.SyntacticForm_SYNTACTIC_FORM_NAMED,
-		Position: position(t.P),
+		Position: position(t),
 	})
 }
 
@@ -120,7 +120,7 @@ func (l *lowerer) typeArgs(args []*ast.TypeArg) []*ir.ID {
 	for _, a := range args {
 		switch {
 		case a.Unit != nil:
-			out = append(out, l.unitArg(a.Unit, a.P))
+			out = append(out, l.unitArg(a.Unit, a))
 		default:
 			if id, ok := l.namedUnit(a.Type); ok {
 				out = append(out, id)
@@ -135,12 +135,12 @@ func (l *lowerer) typeArgs(args []*ast.TypeArg) []*ir.ID {
 // unitArg interns a unit expression written in an argument list, such as
 // the `kg*m/s^2` in `decimal<kg*m/s^2>`. It shares the unit table entry of
 // a declaration measuring the same quantity.
-func (l *lowerer) unitArg(e *ast.UnitExpr, pos ast.Position) *ir.ID {
+func (l *lowerer) unitArg(e *ast.UnitExpr, at ast.Node) *ir.ID {
 	acc := dims{}
 	if !l.reduce(e, 1, acc, nil, map[string]bool{}) {
 		return &ir.ID{Index: ir.Unresolved}
 	}
-	return l.unitType(l.internUnit(acc, ast.PrintUnitExpr(e), pos), pos)
+	return l.unitType(l.internUnit(acc, ast.PrintUnitExpr(e), at), at)
 }
 
 // namedUnit interns a bare name that resolves to a unit declaration. A unit
@@ -165,15 +165,15 @@ func (l *lowerer) namedUnit(t *ast.TypeRef) (*ir.ID, bool) {
 	if !def.GetUnit().Resolved() {
 		return &ir.ID{Index: ir.Unresolved}, true
 	}
-	return l.unitType(def.GetUnit(), t.P), true
+	return l.unitType(def.GetUnit(), t), true
 }
 
 // unitType wraps a unit in a type-table entry, so it can sit in Type.args.
-func (l *lowerer) unitType(unit *ir.ID, pos ast.Position) *ir.ID {
+func (l *lowerer) unitType(unit *ir.ID, at ast.Node) *ir.ID {
 	return l.intern(&ir.Type{
 		Unit:     unit,
 		Wrote:    ir.SyntacticForm_SYNTACTIC_FORM_NAMED,
-		Position: position(pos),
+		Position: position(at),
 	})
 }
 
@@ -186,19 +186,19 @@ func (l *lowerer) qualified(t *ast.TypeRef) *ir.ID {
 
 	pkg, ok := l.aliases[t.Qualifier]
 	if !ok {
-		l.diags.add(t.P, "undefined import alias: %s", t.Qualifier)
+		l.diags.add(t, "undefined import alias: %s", t.Qualifier)
 		return &ir.ID{Index: ir.Unresolved, Name: t.Qualifier + "." + t.N}
 	}
-	return l.extern(pkg, t.N, t.P)
+	return l.extern(pkg, t.N, t)
 }
 
 // ctor resolves a constructor name against the enclosing scope. An
 // undefined name is a diagnostic and an unresolved ID that keeps the text.
-func (l *lowerer) ctor(name string, pos ast.Position) *ir.ID {
+func (l *lowerer) ctor(name string, at ast.Node) *ir.ID {
 	if b, ok := l.scope.lookup(name); ok && b.kind == bindDecl {
 		return b.id
 	}
-	l.diags.add(pos, "undefined: %s", name)
+	l.diags.add(at, "undefined: %s", name)
 	return &ir.ID{Index: ir.Unresolved, Name: name}
 }
 
