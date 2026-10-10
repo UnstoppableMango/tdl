@@ -1,0 +1,47 @@
+package shop
+
+/// An order, identified by its id.
+type Order {
+  id: string
+  /// When it was placed.
+  placedAt: instant
+  lines: [order_line]
+  notes: [string?]?
+  gift: bool?
+  payment: Payment
+  status: Status
+  deprecated("nobody has one") fax: string?
+}
+
+type order_line {
+  sku: string
+  quantity: int64
+  grid: [[int32]]
+}
+
+/// Where an order is.
+deprecated("use Order.status")
+enum Status {
+  /// Not yet sent.
+  Draft
+  Placed
+  Lowest
+  deprecated Old
+}
+
+/// How an order is paid.
+enum Payment {
+  /// A card on file.
+  Card { last4: string }
+  Wire {
+    iban: string
+    /// The bank's code.
+    bic: string?
+  }
+}
+
+target graphql for shop {
+  order_line => name("order_line")
+  Status.Lowest => name("lowest")
+  Payment.Wire => name("Wire")
+}

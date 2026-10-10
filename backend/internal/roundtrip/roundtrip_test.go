@@ -37,7 +37,7 @@ const (
 // but debug, with its normal form once it has a reader.
 var targets = []roundtrip.Target{
 	{Backend: golang.Backend{}},
-	{Backend: graphql.Backend{}},
+	{Backend: graphql.Backend{}, Normalize: graphql.Normalize},
 	{Backend: jsonschema.Backend{}},
 	{Backend: likec4.Backend{}},
 	{Backend: openapi.Backend{}},

@@ -1,0 +1,57 @@
+// What GraphQL loses, one fact at a time. Each is a warning without
+// annotations and comes back with them.
+package shop
+
+/// An identifier.
+type OrderId: uuid where { length(36) }
+
+alias Labels = {string}
+
+class Audited {
+  createdAt: instant
+}
+
+class Tagged {}
+
+mixin Stamped {
+  createdAt: instant
+}
+
+unit kg
+
+type Parcel: Entity, Audited {
+  id: OrderId
+  include Stamped
+  count: int
+  small: uint32
+  ratio: float32
+  labels: Labels
+  note: string | null
+  maybe: Option<string>
+  weight: decimal<kg>
+  parts: List<string>
+  tags: Set<string>
+  owner: Parcel? owned
+  retries: int32 = 3
+}
+
+type Index {
+  byKey: {string -> int64}
+}
+
+enum Shape: Tagged {
+  Round
+  Square
+}
+
+type Box<T> {
+  item: T
+}
+
+type Crate {
+  box: Box<string>
+}
+
+type Sparse {
+  values: [int32?]
+}

@@ -152,7 +152,7 @@ Schema-first tests compare each schema in a normal form:
 | --- | --- |
 | `protobuf` | `FileDescriptorProto` without source info |
 | `thrift` | the thriftgo AST as JSON without comments, each kind of definition sorted by name |
-| `graphql` | the `gqlparser` schema, formatted |
+| `graphql` | the `gqlparser` schema document, formatted without comments, its definitions sorted by name and its scalars without descriptions |
 | `go` | declarations through `go/format`, keeping doc comments only |
 | `typescript` | the compiler API's JSON |
 | `smithy` | the `smithy ast` JSON |
