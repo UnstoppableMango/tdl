@@ -9,6 +9,8 @@ model:  {
         filename:  "std.tdl"
         line:  4
         column:  1
+        end_line:  4
+        end_column:  17
       }
     }
     primitive:  {}
@@ -20,6 +22,8 @@ model:  {
         filename:  "std.tdl"
         line:  6
         column:  1
+        end_line:  6
+        end_column:  14
       }
       order:  1
     }
@@ -32,6 +36,8 @@ model:  {
         filename:  "std.tdl"
         line:  7
         column:  1
+        end_line:  7
+        end_column:  15
       }
       order:  2
     }
@@ -44,6 +50,8 @@ model:  {
         filename:  "std.tdl"
         line:  8
         column:  1
+        end_line:  8
+        end_column:  16
       }
       order:  3
     }
@@ -57,6 +65,8 @@ model:  {
         filename:  "std.tdl"
         line:  11
         column:  1
+        end_line:  11
+        end_column:  16
       }
       order:  4
     }
@@ -70,6 +80,8 @@ model:  {
         filename:  "std.tdl"
         line:  14
         column:  1
+        end_line:  14
+        end_column:  17
       }
       order:  5
     }
@@ -83,6 +95,8 @@ model:  {
         filename:  "std.tdl"
         line:  17
         column:  1
+        end_line:  17
+        end_column:  16
       }
       order:  6
     }
@@ -96,6 +110,8 @@ model:  {
         filename:  "std.tdl"
         line:  20
         column:  1
+        end_line:  20
+        end_column:  17
       }
       order:  7
     }
@@ -109,6 +125,8 @@ model:  {
         filename:  "std.tdl"
         line:  23
         column:  1
+        end_line:  23
+        end_column:  18
       }
       order:  8
     }
@@ -122,6 +140,8 @@ model:  {
         filename:  "std.tdl"
         line:  26
         column:  1
+        end_line:  26
+        end_column:  18
       }
       order:  9
     }
@@ -135,6 +155,8 @@ model:  {
         filename:  "std.tdl"
         line:  29
         column:  1
+        end_line:  29
+        end_column:  29
       }
       order:  10
     }
@@ -155,6 +177,8 @@ model:  {
         filename:  "std.tdl"
         line:  32
         column:  1
+        end_line:  32
+        end_column:  28
       }
       order:  11
     }
@@ -175,6 +199,8 @@ model:  {
         filename:  "std.tdl"
         line:  35
         column:  1
+        end_line:  35
+        end_column:  36
       }
       order:  12
     }
@@ -198,6 +224,8 @@ model:  {
         filename:  "std.tdl"
         line:  38
         column:  1
+        end_line:  38
+        end_column:  18
       }
       order:  13
     }
@@ -210,6 +238,8 @@ model:  {
         filename:  "std.tdl"
         line:  40
         column:  1
+        end_line:  40
+        end_column:  15
       }
       order:  14
     }
@@ -222,6 +252,8 @@ model:  {
         filename:  "std.tdl"
         line:  41
         column:  1
+        end_line:  41
+        end_column:  18
       }
       order:  15
     }
@@ -234,6 +266,8 @@ model:  {
         filename:  "std.tdl"
         line:  42
         column:  1
+        end_line:  42
+        end_column:  15
       }
       order:  16
     }
@@ -246,6 +280,8 @@ model:  {
         filename:  "std.tdl"
         line:  43
         column:  1
+        end_line:  43
+        end_column:  19
       }
       order:  17
     }
@@ -259,6 +295,8 @@ model:  {
         filename:  "std.tdl"
         line:  46
         column:  1
+        end_line:  46
+        end_column:  7
       }
       order:  18
     }
@@ -276,6 +314,8 @@ model:  {
         filename:  "std.tdl"
         line:  48
         column:  1
+        end_line:  48
+        end_column:  7
       }
       order:  19
     }
@@ -294,6 +334,8 @@ model:  {
         filename:  "std.tdl"
         line:  49
         column:  1
+        end_line:  49
+        end_column:  8
       }
       order:  20
     }
@@ -313,6 +355,8 @@ model:  {
         filename:  "std.tdl"
         line:  52
         column:  1
+        end_line:  55
+        end_column:  2
       }
       order:  21
     }
@@ -323,6 +367,8 @@ model:  {
           filename:  "std.tdl"
           line:  52
           column:  13
+          end_line:  52
+          end_column:  14
         }
       }
       variants:  {
@@ -332,6 +378,8 @@ model:  {
             filename:  "std.tdl"
             line:  53
             column:  3
+            end_line:  53
+            end_column:  20
           }
         }
         fields:  {
@@ -341,6 +389,8 @@ model:  {
               filename:  "std.tdl"
               line:  53
               column:  10
+              end_line:  53
+              end_column:  18
             }
           }
           type:  {
@@ -355,6 +405,8 @@ model:  {
             filename:  "std.tdl"
             line:  54
             column:  3
+            end_line:  54
+            end_column:  7
           }
           order:  1
         }
@@ -369,6 +421,8 @@ model:  {
         filename:  "std.tdl"
         line:  58
         column:  1
+        end_line:  61
+        end_column:  2
       }
       order:  22
     }
@@ -379,6 +433,8 @@ model:  {
           filename:  "std.tdl"
           line:  58
           column:  15
+          end_line:  58
+          end_column:  16
         }
       }
       variants:  {
@@ -388,6 +444,8 @@ model:  {
             filename:  "std.tdl"
             line:  59
             column:  3
+            end_line:  59
+            end_column:  23
           }
         }
         fields:  {
@@ -397,6 +455,8 @@ model:  {
               filename:  "std.tdl"
               line:  59
               column:  13
+              end_line:  59
+              end_column:  21
             }
           }
           type:  {
@@ -412,6 +472,8 @@ model:  {
             filename:  "std.tdl"
             line:  60
             column:  3
+            end_line:  60
+            end_column:  7
           }
           order:  1
         }
@@ -426,6 +488,8 @@ model:  {
         filename:  "std.tdl"
         line:  64
         column:  1
+        end_line:  64
+        end_column:  17
       }
       order:  23
     }
@@ -438,6 +502,8 @@ model:  {
         filename:  "shop.tdl"
         line:  3
         column:  1
+        end_line:  6
+        end_column:  2
       }
     }
     directives:  {
@@ -449,12 +515,16 @@ model:  {
           filename:  "shop.tdl"
           line:  11
           column:  17
+          end_line:  11
+          end_column:  38
         }
       }
       position:  {
         filename:  "shop.tdl"
         line:  11
         column:  12
+        end_line:  11
+        end_column:  39
       }
       target:  "debug"
     }
@@ -467,6 +537,8 @@ model:  {
             filename:  "shop.tdl"
             line:  4
             column:  3
+            end_line:  4
+            end_column:  13
           }
         }
         type:  {
@@ -481,6 +553,8 @@ model:  {
             filename:  "shop.tdl"
             line:  5
             column:  3
+            end_line:  5
+            end_column:  13
           }
           order:  1
         }
@@ -498,6 +572,8 @@ model:  {
           filename:  "shop.tdl"
           line:  3
           column:  13
+          end_line:  3
+          end_column:  19
         }
       }
     }
@@ -508,6 +584,8 @@ model:  {
       filename:  "std.tdl"
       line:  53
       column:  17
+      end_line:  53
+      end_column:  18
     }
     param:  {
       name:  "T"
@@ -523,6 +601,8 @@ model:  {
       filename:  "std.tdl"
       line:  59
       column:  20
+      end_line:  59
+      end_column:  21
     }
     param:  {
       name:  "T"
@@ -541,6 +621,8 @@ model:  {
       filename:  "shop.tdl"
       line:  4
       column:  7
+      end_line:  4
+      end_column:  13
     }
   }
   types:  {
@@ -553,6 +635,8 @@ model:  {
       filename:  "shop.tdl"
       line:  5
       column:  10
+      end_line:  5
+      end_column:  13
     }
   }
   satisfies:  {
@@ -572,6 +656,8 @@ model:  {
         filename:  "shop.tdl"
         line:  8
         column:  1
+        end_line:  12
+        end_column:  2
       }
     }
     for_package:  "shop"
@@ -584,12 +670,16 @@ model:  {
           filename:  "shop.tdl"
           line:  9
           column:  7
+          end_line:  9
+          end_column:  14
         }
       }
       position:  {
         filename:  "shop.tdl"
         line:  9
         column:  3
+        end_line:  9
+        end_column:  15
       }
       target:  "debug"
     }
@@ -607,6 +697,8 @@ model:  {
       filename:  "std.tdl"
       line:  46
       column:  1
+      end_line:  46
+      end_column:  7
     }
   }
   units:  {
@@ -622,6 +714,8 @@ model:  {
       filename:  "std.tdl"
       line:  48
       column:  1
+      end_line:  48
+      end_column:  7
     }
   }
   units:  {
@@ -637,6 +731,8 @@ model:  {
       filename:  "std.tdl"
       line:  49
       column:  1
+      end_line:  49
+      end_column:  8
     }
   }
 }

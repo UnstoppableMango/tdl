@@ -12,6 +12,10 @@ let
   };
 in
 {
+  # The repository is its own consumer: models/ is checked the way a project
+  # importing the module checks its own.
+  imports = [ ./flake-module.nix ];
+
   flake = {
     overlays.default = overlay;
 
@@ -166,6 +170,22 @@ in
             find out -name '*.xml' -exec xmllint --noout {} +
             touch $out
           '';
+
+      # models/ holds TDL descriptions of other projects' schemas. Their
+      # generated code is not committed, so tdl-gen has nothing to verify;
+      # models-types generates it and checks it instead.
+      tdl = {
+        enable = true;
+        src = ../models;
+        files = [
+          "unist/unist.tdl"
+          "mdast/mdast.tdl"
+          "hast/hast.tdl"
+        ];
+        devShell.enable = false;
+      };
+
+      checks.models-types = pkgs.callPackage ./checks/models-types { go = pkgs.go_1_27; };
 
       # Evaluates a consumer flake that imports flake-module.nix and builds
       # its outputs. tdl-gen is left out: --verify compares against generated

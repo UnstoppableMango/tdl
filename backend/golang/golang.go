@@ -52,6 +52,13 @@ func (Backend) Describe() plugin.Description {
 			// Writes, as //tdl: comment directives, every fact the Go
 			// source alone would lose, so import rebuilds the model.
 			{Name: "roundtrip"},
+			// Opts in to the JSON wire convention: json struct tags, and
+			// methods encoding and decoding a fielded enum by its
+			// discriminant.
+			{Name: "json"},
+			// The property a fielded enum is tagged by under json: the
+			// default on the target block, an override on an enum.
+			{Name: "discriminant", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
 		},
 		Reverse: true,
 	}
@@ -60,6 +67,9 @@ func (Backend) Describe() plugin.Description {
 // generator holds the state for one request.
 type generator struct {
 	*emit.Session
+
+	// wire is set by a json directive on the target block.
+	wire bool
 
 	// cur is the index of the declaration being rendered.
 	cur int32
@@ -109,6 +119,7 @@ type generator struct {
 func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Response, error) {
 	g := &generator{Session: emit.NewSession(req, "Go")}
 	g.Roundtrip = g.Bare("roundtrip")
+	g.wire = g.Bare("json")
 
 	pkg := packageClause(g.Model.GetPackage())
 	var pkgPos *ir.Position
@@ -353,6 +364,11 @@ func (g *generator) structure(b *strings.Builder, decl *ir.Decl) error {
 		return err
 	}
 	b.WriteString("}\n")
+	if g.wire {
+		if err := g.writeUnmarshal(b, decl, name, decl.Fields()); err != nil {
+			return err
+		}
+	}
 
 	keyed := false
 	if d, ok := g.Find(decl.GetDirectives(), "key"); ok {
@@ -475,7 +491,11 @@ func (g *generator) fields(b *strings.Builder, fields []*ir.Field) error {
 
 		g.doc(b, f.GetMeta())
 		fmt.Fprintf(b, "\t%s %s", g.fieldName(f), goType)
-		if tag, ok := g.Text(f.GetDirectives(), "tag"); ok {
+		tag, ok := g.Text(f.GetDirectives(), "tag")
+		if !ok && g.wire {
+			tag, ok = g.jsonTag(f), true
+		}
+		if ok {
 			fmt.Fprintf(b, " %s", quoteTag(tag))
 		}
 		b.WriteString("\n")
@@ -551,8 +571,16 @@ func (g *generator) enumeration(b *strings.Builder, decl *ir.Decl) error {
 		}
 		b.WriteString("}\n\n")
 		fmt.Fprintf(b, "func (%s%s) %s {}\n", variant, args, sealed)
+		if g.wire {
+			if err := g.writeUnmarshal(b, decl, variant, v.GetFields()); err != nil {
+				return err
+			}
+		}
 		g.writeMarkers(b, variant+args)
 		g.writeValidation(b, decl, i)
+	}
+	if g.wire {
+		return g.writeEnumJSON(b, decl, name)
 	}
 	return nil
 }
@@ -621,6 +649,7 @@ func (g *generator) useAs(path, alias string) {
 var importNames = map[string]string{
 	"errors": "errors",
 	"fmt":    "fmt",
+	"json":   "encoding/json",
 	"regexp": "regexp",
 	"time":   "time",
 	"utf8":   "unicode/utf8",

@@ -14,6 +14,7 @@ import (
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 
+	"github.com/unstoppablemango/tdl/ast"
 	"github.com/unstoppablemango/tdl/internal/sema"
 )
 
@@ -201,11 +202,11 @@ func (s *Server) publish(ctx context.Context, doc *document) error {
 
 	for _, e := range snap.errs {
 		byFile[e.Pos.Filename] = append(byFile[e.Pos.Filename],
-			s.diagnostic(doc, snap, e.Pos.Filename, e.Pos.Line, e.Pos.Col, e.Msg))
+			s.diagnostic(doc, snap, e.Pos, ast.Position{}, e.Msg))
 	}
 	for _, d := range snap.diags {
 		byFile[d.Pos.Filename] = append(byFile[d.Pos.Filename],
-			s.diagnostic(doc, snap, d.Pos.Filename, d.Pos.Line, d.Pos.Col, d.Msg))
+			s.diagnostic(doc, snap, d.Pos, d.End, d.Msg))
 	}
 
 	// This document always publishes, so fixing its last error clears it.
@@ -239,10 +240,12 @@ func (s *Server) clear(ctx context.Context, u uri.URI) error {
 	})
 }
 
-// diagnostic builds one diagnostic, ranging over the word at its
-// position. A position in a file that is not open is reported at the start
-// of its line.
-func (s *Server) diagnostic(doc *document, snap *snapshot, path string, line, col int, msg string) protocol.Diagnostic {
+// diagnostic builds one diagnostic, ranging from pos to end when the two
+// are on one line and over the word at pos otherwise, so a problem with a
+// whole declaration marks where it starts rather than every line of it. A
+// position in a file that is not open is reported at the start of its line.
+func (s *Server) diagnostic(doc *document, snap *snapshot, pos, end ast.Position, msg string) protocol.Diagnostic {
+	path, line, col := pos.Filename, pos.Line, pos.Col
 	index := snap.index
 	if path != doc.path {
 		other := s.store.get(path)
@@ -260,6 +263,9 @@ func (s *Server) diagnostic(doc *document, snap *snapshot, path string, line, co
 	rng := lineRange(line)
 	if off := index.offset(line, col); off >= 0 {
 		rng = index.wordSpan(off)
+		if end.Line == line && end.Col > col && index.offset(line, end.Col) >= 0 {
+			rng = index.span(off, end.Col-col)
+		}
 	}
 	return protocol.Diagnostic{
 		Range:    rng,

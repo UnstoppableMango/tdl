@@ -361,7 +361,7 @@ func (r *reader) structure(def *gqlast.Definition) (ast.Decl, error) {
 		}
 	}
 	if len(decl.Members) > 0 {
-		decl.End = decl.P
+		decl.Rbrace = decl.P
 	}
 	return decl, nil
 }
@@ -491,7 +491,7 @@ func (r *reader) union(def *gqlast.Definition) (ast.Decl, error) {
 				v.Fields = append(v.Fields, f.field)
 			}
 			if len(v.Fields) > 0 {
-				v.End = v.P
+				v.Rbrace = v.P
 			}
 		}
 		decl.Variants = append(decl.Variants, v)

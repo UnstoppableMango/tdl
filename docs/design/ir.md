@@ -74,6 +74,7 @@ Declarations split by nature:
 
 Every node carries a `Meta` with its name, doc comment, source position, deprecation state and message, and declaration order.
 Positions let a backend's errors point into the `.tdl` file, and order keeps generated output stable.
+A position is a range, as a unist position is: where the node starts and just past where it ends, so an error can mark the whole node.
 
 ## Sugar
 

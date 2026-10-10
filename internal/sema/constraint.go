@@ -28,7 +28,7 @@ func (l *lowerer) constraints(in []*ast.Constraint) []*ir.Constraint {
 	for _, c := range in {
 		lowered := &ir.Constraint{
 			Name:     c.N,
-			Position: position(c.P),
+			Position: position(c),
 		}
 		for _, a := range c.Args {
 			lowered.Args = append(lowered.Args, l.literal(a))
@@ -50,10 +50,10 @@ func (l *lowerer) checkStandard(src *ast.Constraint, c *ir.Constraint) {
 	n := len(c.GetArgs())
 	switch {
 	case spec.max < 0 && n < spec.min:
-		l.diags.add(src.P, "%s takes at least %d argument%s, got %d", c.GetName(), spec.min, plural(spec.min), n)
+		l.diags.add(src, "%s takes at least %d argument%s, got %d", c.GetName(), spec.min, plural(spec.min), n)
 		return
 	case spec.max >= 0 && (n < spec.min || n > spec.max):
-		l.diags.add(src.P, "%s takes %d argument%s, got %d", c.GetName(), spec.min, plural(spec.min), n)
+		l.diags.add(src, "%s takes %d argument%s, got %d", c.GetName(), spec.min, plural(spec.min), n)
 		return
 	}
 
@@ -80,7 +80,7 @@ func (l *lowerer) literal(lit *ast.Literal) *ir.Literal {
 		return nil
 	}
 
-	out := &ir.Literal{Text: lit.Text, Position: position(lit.P)}
+	out := &ir.Literal{Text: lit.Text, Position: position(lit)}
 	switch lit.Kind {
 	case ast.LitString:
 		out.Kind = ir.LiteralKind_LITERAL_KIND_STRING
@@ -114,7 +114,7 @@ func (l *lowerer) bound(lit *ast.Literal) *int64 {
 	}
 	n, err := strconv.ParseInt(lit.Text, 10, 64)
 	if err != nil {
-		l.diags.add(lit.P, "range bound out of range: %s", lit.Text)
+		l.diags.add(lit, "range bound out of range: %s", lit.Text)
 		return nil
 	}
 	return &n

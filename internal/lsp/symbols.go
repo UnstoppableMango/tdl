@@ -39,27 +39,27 @@ func declSymbol(x *lineIndex, decl ast.Decl) protocol.DocumentSymbol {
 	case *ast.AliasDecl:
 		detail = "= " + ast.PrintTypeRef(d.Target)
 	case *ast.NewtypeDecl:
-		detail, end = ast.PrintTypeRef(d.Base), d.End
+		detail, end = ast.PrintTypeRef(d.Base), d.Rbrace
 	case *ast.StructDecl:
-		kind, detail, end = protocol.SymbolKindStruct, d.Keyword, d.End
+		kind, detail, end = protocol.SymbolKindStruct, d.Keyword, d.Rbrace
 		children = memberSymbols(x, d.Members)
 	case *ast.EnumDecl:
-		kind, end = protocol.SymbolKindEnum, d.End
+		kind, end = protocol.SymbolKindEnum, d.Rbrace
 		for _, v := range d.Variants {
 			children = append(children, variantSymbol(x, v))
 		}
 	case *ast.ClassDecl:
-		kind, detail, end = protocol.SymbolKindInterface, "class", d.End
+		kind, detail, end = protocol.SymbolKindInterface, "class", d.Rbrace
 		children = memberSymbols(x, d.Members)
 	case *ast.InstanceDecl:
-		kind, detail, end = protocol.SymbolKindObject, "instance", d.End
+		kind, detail, end = protocol.SymbolKindObject, "instance", d.Rbrace
 	case *ast.UnitDecl:
 		kind, detail = protocol.SymbolKindConstant, "unit"
 		if d.Expr != nil {
 			detail = "= " + ast.PrintUnitExpr(d.Expr)
 		}
 	case *ast.TargetDecl:
-		kind, detail, end = protocol.SymbolKindNamespace, "target for "+d.For, d.End
+		kind, detail, end = protocol.SymbolKindNamespace, "target for "+d.For, d.Rbrace
 	}
 	return symbol(x, head, kind, detail, end, children)
 }
@@ -76,7 +76,7 @@ func memberSymbols(x *lineIndex, members []ast.Member) []protocol.DocumentSymbol
 }
 
 func fieldSymbol(x *lineIndex, f *ast.Field) protocol.DocumentSymbol {
-	return symbol(x, &f.DeclHead, protocol.SymbolKindField, ast.PrintTypeRef(f.Type), f.End, nil)
+	return symbol(x, &f.DeclHead, protocol.SymbolKindField, ast.PrintTypeRef(f.Type), f.Rbrace, nil)
 }
 
 func variantSymbol(x *lineIndex, v *ast.Variant) protocol.DocumentSymbol {
@@ -84,7 +84,7 @@ func variantSymbol(x *lineIndex, v *ast.Variant) protocol.DocumentSymbol {
 	for _, f := range v.Fields {
 		children = append(children, fieldSymbol(x, f))
 	}
-	return symbol(x, &v.DeclHead, protocol.SymbolKindEnumMember, "", v.End, children)
+	return symbol(x, &v.DeclHead, protocol.SymbolKindEnumMember, "", v.Rbrace, children)
 }
 
 // symbol builds one entry. Its range runs from the node's start to its

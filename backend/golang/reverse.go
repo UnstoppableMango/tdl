@@ -617,7 +617,7 @@ func (r *reader) decl(t *typeInfo) ast.Decl {
 			d.Members = append(d.Members, f)
 		}
 		if len(d.Members) > 0 {
-			d.End = d.P
+			d.Rbrace = d.P
 		}
 		return d
 	case roleEnum:
@@ -652,7 +652,7 @@ func (r *reader) decl(t *typeInfo) ast.Decl {
 		d := &ast.NewtypeDecl{DeclHead: head, Params: params, Base: base, Requires: requires}
 		d.Constraints = r.ownConstraints(t, r.validate(t)[""])
 		if len(d.Constraints) > 0 {
-			d.End = d.P
+			d.Rbrace = d.P
 		}
 		return d
 	case roleAlias:
@@ -884,7 +884,7 @@ func (r *reader) fields(list *goast.FieldList, owner string, scope map[string]bo
 			read[name] = true
 			field := &ast.Field{DeclHead: r.head(name, f.Doc, n.Pos()), Type: typ, Constraints: cs[name]}
 			if len(field.Constraints) > 0 {
-				field.End = field.P
+				field.Rbrace = field.P
 			}
 			out = append(out, field)
 		}
@@ -1024,7 +1024,7 @@ func (r *reader) enum(t *typeInfo, head ast.DeclHead) ast.Decl {
 		d.Variants = append(d.Variants, &ast.Variant{DeclHead: r.head(value, c.Doc, c.Pos())})
 	}
 	if len(d.Variants) > 0 {
-		d.End = d.P
+		d.Rbrace = d.P
 	}
 	return d
 }
@@ -1047,12 +1047,12 @@ func (r *reader) sealed(t *typeInfo, head ast.DeclHead, params []*ast.TypeParam,
 		variant := &ast.Variant{DeclHead: r.head(vname, v.doc, v.spec.Pos())}
 		variant.Fields = r.fields(v.spec.Type.(*goast.StructType).Fields, path, scope, r.validate(v))
 		if len(variant.Fields) > 0 {
-			variant.End = variant.P
+			variant.Rbrace = variant.P
 		}
 		d.Variants = append(d.Variants, variant)
 	}
 	if len(d.Variants) > 0 {
-		d.End = d.P
+		d.Rbrace = d.P
 	}
 	return d
 }

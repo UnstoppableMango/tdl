@@ -9,6 +9,7 @@ import (
 // already matched the contextual keyword.
 func (p *parser) parseDeprecated() *ast.Deprecation {
 	dep := &ast.Deprecation{P: p.cur.Pos}
+	defer func() { dep.E = p.endOf(dep.P) }()
 	p.next() // 'deprecated'
 
 	if p.accept(lex.LPAREN) {
@@ -56,7 +57,7 @@ func (p *parser) parseTypeDecl(head ast.DeclHead) ast.Decl {
 		for _, r := range refs {
 			d.Conforms = append(d.Conforms, p.classRefOf(r))
 		}
-		d.Members, d.End = p.parseBody()
+		d.Members, d.Rbrace = p.parseBody()
 		return d
 	}
 
@@ -65,7 +66,7 @@ func (p *parser) parseTypeDecl(head ast.DeclHead) ast.Decl {
 	}
 	d := &ast.NewtypeDecl{DeclHead: head, Params: params, Base: refs[0], Requires: requires}
 	if p.at(lex.WHERE) {
-		d.Constraints, d.End = p.parseConstraintBlock()
+		d.Constraints, d.Rbrace = p.parseConstraintBlock()
 	}
 	return d
 }
@@ -76,7 +77,7 @@ func (p *parser) classRefOf(t *ast.TypeRef) *ast.ClassRef {
 	if t.N == "" || t.Optional || t.Nullable {
 		p.errs.add(t.P, "expected a class, got a type")
 	}
-	return &ast.ClassRef{P: t.P, Qualifier: t.Qualifier, N: t.N, Args: t.Args}
+	return &ast.ClassRef{P: t.P, E: t.E, Qualifier: t.Qualifier, N: t.N, Args: t.Args}
 }
 
 func (p *parser) parseStructDecl(head ast.DeclHead) *ast.StructDecl {
@@ -94,7 +95,7 @@ func (p *parser) parseStructDecl(head ast.DeclHead) *ast.StructDecl {
 	if p.at(lex.REQUIRES) {
 		d.Requires = p.parseClassRefs()
 	}
-	d.Members, d.End = p.parseBody()
+	d.Members, d.Rbrace = p.parseBody()
 	return d
 }
 
@@ -119,13 +120,14 @@ func (p *parser) parseEnumDecl(head ast.DeclHead) *ast.EnumDecl {
 		return d
 	}
 	p.untilRbrace(func() { d.Variants = append(d.Variants, p.parseVariant()) })
-	d.End = p.expectRbrace()
+	d.Rbrace = p.expectRbrace()
 	return d
 }
 
 func (p *parser) parseVariant() *ast.Variant {
 	doc, docP := p.parseDoc()
 	v := &ast.Variant{DeclHead: ast.DeclHead{Doc: doc, DocP: docP, P: p.cur.Pos}}
+	defer func() { v.E = p.endOf(v.P) }()
 	if p.atContextual("deprecated") {
 		v.Dep = p.parseDeprecated()
 		v.P = p.cur.Pos
@@ -140,7 +142,7 @@ func (p *parser) parseVariant() *ast.Variant {
 	}
 	if p.accept(lex.LBRACE) {
 		v.Fields = p.parseFields()
-		v.End = p.expectRbrace()
+		v.Rbrace = p.expectRbrace()
 	}
 	return v
 }
@@ -165,6 +167,7 @@ func (p *parser) parseClassRef() *ast.ClassRef {
 	if p.at(lex.LT) {
 		ref.Args = p.parseTypeArgs()
 	}
+	ref.E = p.endOf(ref.P)
 	return ref
 }
 
@@ -179,7 +182,9 @@ func (p *parser) parseBody() ([]ast.Member, ast.Position) {
 		if p.at(lex.INCLUDE) && p.peek.Kind != lex.COLON {
 			pos := p.cur.Pos
 			p.next()
-			members = append(members, &ast.Include{P: pos, Type: p.parseClassRef()})
+			inc := &ast.Include{P: pos, Type: p.parseClassRef()}
+			inc.E = p.endOf(pos)
+			members = append(members, inc)
 		} else {
 			members = append(members, p.parseField())
 		}
@@ -198,11 +203,12 @@ func (p *parser) parseField() *ast.Field {
 	if p.at(lex.COMMA) {
 		p.errs.add(p.cur.Pos, "unexpected comma: commas are not separators inside a block")
 		p.next()
-		return &ast.Field{DeclHead: ast.DeclHead{P: p.cur.Pos}}
+		return &ast.Field{DeclHead: ast.DeclHead{P: p.cur.Pos, E: p.cur.Pos}}
 	}
 
 	doc, docP := p.parseDoc()
 	f := &ast.Field{DeclHead: ast.DeclHead{Doc: doc, DocP: docP, P: p.cur.Pos}}
+	defer func() { f.E = p.endOf(f.P) }()
 
 	// `deprecated:` is a field name, not a modifier.
 	if p.atContextual("deprecated") && p.peek.Kind != lex.COLON {
@@ -224,7 +230,7 @@ func (p *parser) parseField() *ast.Field {
 	}
 	// Likewise `where:` is the next field, not a constraint block.
 	if p.at(lex.WHERE) && p.peek.Kind != lex.COLON {
-		f.Constraints, f.End = p.parseConstraintBlock()
+		f.Constraints, f.Rbrace = p.parseConstraintBlock()
 	}
 	if p.accept(lex.EQUAL) {
 		f.Default = p.parseLiteral()
@@ -260,6 +266,7 @@ func (p *parser) syncMember() {
 
 func (p *parser) parseLiteral() *ast.Literal {
 	lit := &ast.Literal{P: p.cur.Pos, Text: p.cur.Text}
+	defer func() { lit.E = p.endOf(lit.P) }()
 
 	switch p.cur.Kind {
 	case lex.STRING:

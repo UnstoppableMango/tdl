@@ -11,17 +11,26 @@ func metaOf(h *ast.DeclHead, order int) *ir.Meta {
 	m := &ir.Meta{
 		Name:     h.N,
 		Doc:      h.Doc,
-		Position: position(h.P),
+		Position: position(h),
 		Order:    int32(order),
 	}
 	if h.Dep != nil {
-		m.Deprecated = &ir.Deprecation{Reason: h.Dep.Reason, Position: position(h.Dep.P)}
+		m.Deprecated = &ir.Deprecation{Reason: h.Dep.Reason, Position: position(h.Dep)}
 	}
 	return m
 }
 
-func position(p ast.Position) *ir.Position {
-	return &ir.Position{Filename: p.Filename, Line: int32(p.Line), Column: int32(p.Col)}
+// position records where n was written: where it starts and, when the
+// parser recorded it, where it ends.
+func position(n ast.Node) *ir.Position {
+	start, end := n.Pos(), n.End()
+	return &ir.Position{
+		Filename:  start.Filename,
+		Line:      int32(start.Line),
+		Column:    int32(start.Col),
+		EndLine:   int32(end.Line),
+		EndColumn: int32(end.Col),
+	}
 }
 
 // kind lowers a kind expression.

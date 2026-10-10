@@ -34,6 +34,7 @@ func (p *parser) parseUnitTerms(e *ast.UnitExpr) *ast.UnitExpr {
 		p.next()
 		e.Terms = append(e.Terms, p.parseUnitTerm(op))
 	}
+	e.E = p.endOf(e.P)
 	return e
 }
 
@@ -47,6 +48,7 @@ func (p *parser) parseUnitTerm(op string) *ast.UnitTerm {
 		t.N = p.expectIdent()
 	}
 	t.Exp = p.parseExponent()
+	t.E = p.endOf(t.P)
 	return t
 }
 
@@ -85,6 +87,7 @@ func (p *parser) parseTypeArgs() []*ast.TypeArg {
 
 func (p *parser) parseTypeArg() *ast.TypeArg {
 	arg := &ast.TypeArg{P: p.cur.Pos}
+	defer func() { arg.E = p.endOf(arg.P) }()
 
 	// No type reference starts with '(', so this is a unit.
 	if p.at(lex.LPAREN) {
@@ -114,5 +117,6 @@ func plainName(ref *ast.TypeRef) bool {
 // consumed as a type reference.
 func (p *parser) continueUnitExpr(first *ast.TypeRef) *ast.UnitExpr {
 	term := &ast.UnitTerm{P: first.P, N: first.N, Exp: p.parseExponent()}
+	term.E = p.endOf(term.P)
 	return p.parseUnitTerms(&ast.UnitExpr{P: first.P, Terms: []*ast.UnitTerm{term}})
 }

@@ -230,6 +230,22 @@ func TestUndefinedName(t *testing.T) {
 	if !strings.Contains(diags.Error(), "undefined: Missing") {
 		t.Errorf("diagnostics = %v", diags)
 	}
+	// It ranges over the name.
+	if d := diags[0]; d.End.Line != d.Pos.Line || d.End.Col-d.Pos.Col != len("Missing") {
+		t.Errorf("diagnostic spans %s to %s, want the name", d.Pos, d.End)
+	}
+}
+
+// A diagnostic found on the model ranges over the node it names.
+func TestDiagnosticRangesOverTheNode(t *testing.T) {
+	diags := lowerDiags(t, `enum Status { Open }
+type A { s: Status = Shut }`)
+	if !strings.Contains(diags.Error(), "Status has no variant Shut") {
+		t.Fatalf("diagnostics = %v", diags)
+	}
+	if d := diags[0]; d.End.Line != d.Pos.Line || d.End.Col-d.Pos.Col != len("Shut") {
+		t.Errorf("diagnostic spans %s to %s, want the literal", d.Pos, d.End)
+	}
 }
 
 func TestSourceFidelity(t *testing.T) {
@@ -255,6 +271,13 @@ type Order: Entity {
 	// deprecation before it.
 	if m.GetPosition().GetLine() != preambleLines+4 {
 		t.Errorf("position = %+v", m.GetPosition())
+	}
+	// It ends just past the body's closing brace.
+	if p := m.GetPosition(); p.GetEndLine() != preambleLines+8 || p.GetEndColumn() != 2 {
+		t.Errorf("position = %+v, want it to end at %d:2", p, preambleLines+8)
+	}
+	if p := order.Fields()[0].GetMeta().GetPosition(); p.GetEndLine() != p.GetLine() || p.GetEndColumn() != 13 {
+		t.Errorf("field position = %+v, want it to end at column 13", p)
 	}
 
 	fields := order.Fields()

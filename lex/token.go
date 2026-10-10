@@ -167,4 +167,5 @@ type Token struct {
 	Kind Kind
 	Text string // literal source text; decoded for STRING, body only for DOC and REGEX
 	Pos  Position
+	End  Position // just past the token's last byte
 }

@@ -660,7 +660,7 @@ func (r *reader) oneof(s *protoFile, p []int32, k int32, owner string, m *descri
 		if emit.Snake(vf.N) != f.GetName() {
 			r.Warn(emit.LossName, s.pos(fp...), "oneof member %s regenerates as %s", f.GetName(), emit.Snake(vf.N))
 		}
-		e.Variants = append(e.Variants, &ast.Variant{DeclHead: ast.DeclHead{N: variant, P: vf.P}, Fields: []*ast.Field{vf}, End: vf.P})
+		e.Variants = append(e.Variants, &ast.Variant{DeclHead: ast.DeclHead{N: variant, P: vf.P}, Fields: []*ast.Field{vf}, Rbrace: vf.P})
 		slots = append(slots, slot{Member: emit.Member{Name: enumName + "." + variant}, num: int64(f.GetNumber())})
 	}
 	r.extra = append(r.extra, e)
@@ -704,7 +704,7 @@ func (r *reader) sum(s *protoFile, p []int32, full, name string, m *descriptorpb
 			}
 		}
 		if len(v.Fields) > 0 {
-			v.End = v.P
+			v.Rbrace = v.P
 		}
 		r.pins(fields, fieldNumbers, nil)
 		if len(n.GetOneofDecl()) > 0 || len(n.GetNestedType()) > 0 || len(n.GetEnumType()) > 0 {

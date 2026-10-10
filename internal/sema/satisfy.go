@@ -22,7 +22,7 @@ func (l *lowerer) expandIncludes(file *ast.File) {
 func (l *lowerer) expandInto(file *ast.File, name string, done, onPath map[string]bool) {
 	if done[name] || onPath[name] {
 		if onPath[name] {
-			l.diags.add(ast.Position{}, "include cycle through %s", name)
+			l.diags.add(span{}, "include cycle through %s", name)
 		}
 		return
 	}
@@ -81,13 +81,13 @@ func (l *lowerer) expandInto(file *ast.File, name string, done, onPath map[strin
 func (l *lowerer) includedMixin(inc *ast.Include) (*ir.Decl, *ir.ID, bool) {
 	b, ok := l.scope.lookup(inc.Type.N)
 	if !ok || b.kind != bindDecl {
-		l.diags.add(inc.P, "undefined mixin: %s", inc.Type.N)
+		l.diags.add(inc, "undefined mixin: %s", inc.Type.N)
 		return nil, nil, false
 	}
 
 	decl := l.model.Decl(b.id)
 	if decl.GetStructure().GetKind() != ir.StructKind_STRUCT_KIND_MIXIN {
-		l.diags.add(inc.P, "%s is not a mixin", inc.Type.N)
+		l.diags.add(inc, "%s is not a mixin", inc.Type.N)
 		return nil, nil, false
 	}
 	return decl, b.id, true
@@ -297,10 +297,9 @@ func (l *lowerer) satisfies(class, decl *ir.ID) bool {
 	})
 }
 
-func positionOf(p *ir.Position) ast.Position {
-	return ast.Position{
-		Filename: p.GetFilename(),
-		Line:     int(p.GetLine()),
-		Col:      int(p.GetColumn()),
+func positionOf(p *ir.Position) span {
+	return span{
+		start: ast.Position{Filename: p.GetFilename(), Line: int(p.GetLine()), Col: int(p.GetColumn())},
+		end:   ast.Position{Filename: p.GetFilename(), Line: int(p.GetEndLine()), Col: int(p.GetEndColumn())},
 	}
 }

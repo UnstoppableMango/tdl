@@ -28,11 +28,18 @@ message ID {
   string name = 2;
 }
 
-// Position is a location in a source file.
+// Position is where a node was written in a source file.
+//
+// line and column are where it starts. end_line and end_column are just
+// past its last character, as in unist, so the two bound its text; both are
+// zero when only the start is known. Lines and columns count from 1, and a
+// column counts bytes.
 message Position {
   string filename = 1;
   int32 line = 2;
   int32 column = 3;
+  int32 end_line = 4;
+  int32 end_column = 5;
 }
 
 // Deprecation marks a node as on its way out.

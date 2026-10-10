@@ -109,6 +109,26 @@ func TestDiagnosticsUseUTF16Columns(t *testing.T) {
 	}
 }
 
+// TestDiagnosticsRangeOverTheNode checks a diagnostic about a node on one
+// line covers all of it, not only its first word.
+func TestDiagnosticsRangeOverTheNode(t *testing.T) {
+	const src = "package p\n\ntype User: Entity {\n  a: int where { min(\"two words\") }\n}\n"
+
+	diags := newSession(t).open(abs(t, "span.tdl"), src)
+	if len(diags) != 1 {
+		t.Fatalf("expected one diagnostic, got %v", messages(t, diags))
+	}
+
+	// `"two words"` starts 21 bytes into line 3 and is 11 long.
+	want := protocol.Range{
+		Start: protocol.Position{Line: 3, Character: 21},
+		End:   protocol.Position{Line: 3, Character: 32},
+	}
+	if got := diags[0].Range; got != want {
+		t.Errorf("range = %v, want %v (%s)", got, want, message(t, diags[0]))
+	}
+}
+
 // TestDefinitionJumpsToADeclaration checks the range covers the declared
 // name rather than the `type` keyword.
 func TestDefinitionJumpsToADeclaration(t *testing.T) {

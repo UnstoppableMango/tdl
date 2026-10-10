@@ -18,7 +18,7 @@ type File struct {
 	// comments live in the Doc of the declaration they precede.
 	Comments []*Comment
 
-	End Position
+	EOF Position // where the input ended
 }
 
 // Comment is one ordinary `//` comment.
@@ -29,7 +29,7 @@ type Comment struct {
 
 // Decl is a top-level declaration. Every form embeds [DeclHead].
 type Decl interface {
-	Pos() Position
+	Node
 	Name() string
 	Head() *DeclHead
 }
@@ -40,7 +40,8 @@ type PackageDecl struct {
 	DocP []Position // where each Doc line was written
 
 	P    Position
-	Path string // dotted, e.g. "shop.orders"
+	E    Position // just past the last token
+	Path string   // dotted, e.g. "shop.orders"
 }
 
 // ImportDecl is an `import "path.tdl" as alias` declaration.
@@ -49,6 +50,7 @@ type ImportDecl struct {
 	DocP []Position // where each Doc line was written
 
 	P     Position
+	E     Position // just past the last token
 	Path  string
 	Alias string // "_" merges the imported names into the current scope
 }
@@ -71,6 +73,7 @@ type AliasDecl struct {
 // TypeParam is one parameter in a `<...>` parameter list.
 type TypeParam struct {
 	P    Position
+	E    Position // just past the last token
 	N    string
 	Kind *Kind // nil when inferred from use
 }
@@ -78,7 +81,8 @@ type TypeParam struct {
 // Kind is a kind expression. Arrow associates to the right.
 type Kind struct {
 	P     Position
-	N     string // "type" or "unit"; empty when Paren is set
+	E     Position // just past the last token
+	N     string   // "type" or "unit"; empty when Paren is set
 	Paren *Kind
 	Arrow *Kind // `left -> Arrow`; nil for a bare atom
 }
@@ -87,6 +91,7 @@ type Kind struct {
 // recorded as written. The resolver lowers it to prelude types.
 type TypeRef struct {
 	P Position
+	E Position // just past the last token
 
 	Qualifier string // "" if unqualified; set for "alias.Type"
 	N         string // "" for the collection forms below

@@ -94,7 +94,7 @@ func (t *targetPass) block(block *ast.TargetDecl) {
 	t.model.Targets = append(t.model.Targets, out)
 
 	if block.For != t.model.GetPackage() {
-		t.diags.add(block.P, "target %s is for package %s, not %s",
+		t.diags.add(block, "target %s is for package %s, not %s",
 			block.N, block.For, t.model.GetPackage())
 		return
 	}
@@ -130,17 +130,17 @@ func (t *targetPass) walkEntries(block *ast.TargetDecl, scope string, entries []
 				out.Directives = append(out.Directives, d)
 				continue
 			}
-			t.attach(scope, entry.P, d)
+			t.attach(scope, entry, d)
 
 		default:
-			t.attach(path, entry.P, t.directive(block.N, entry.Directive))
+			t.attach(path, entry, t.directive(block.N, entry.Directive))
 		}
 	}
 }
 
 // attach resolves a path and records the directive as a candidate for every
 // node it reaches.
-func (t *targetPass) attach(path string, pos ast.Position, d *ir.Directive) {
+func (t *targetPass) attach(path string, at ast.Node, d *ir.Directive) {
 	// A path is a declaration and one of its fields, or an enum, one of its
 	// variants, and one of that variant's fields.
 	head, rest, _ := strings.Cut(path, ".")
@@ -151,7 +151,7 @@ func (t *targetPass) attach(path string, pos ast.Position, d *ir.Directive) {
 	// A path to an extern reaches no further than the extern.
 	if ok && b.kind == bindExtern {
 		if member != "" {
-			t.diags.add(pos, "target path %s names nothing: %s is imported, and its members are not visible here", path, head)
+			t.diags.add(at, "target path %s names nothing: %s is imported, and its members are not visible here", path, head)
 			return
 		}
 		idx := b.id.GetIndex()
@@ -160,7 +160,7 @@ func (t *targetPass) attach(path string, pos ast.Position, d *ir.Directive) {
 	}
 
 	if !ok || b.kind != bindDecl {
-		t.diags.add(pos, "target path %s names nothing", path)
+		t.diags.add(at, "target path %s names nothing", path)
 		return
 	}
 	idx := b.id.GetIndex()
@@ -169,7 +169,7 @@ func (t *targetPass) attach(path string, pos ast.Position, d *ir.Directive) {
 	// A path naming a class applies to everything satisfying it.
 	if decl.GetClass() != nil {
 		if sub != "" {
-			t.diags.add(pos, "target path %s names nothing: a class path reaches a field and no further", path)
+			t.diags.add(at, "target path %s names nothing: a class path reaches a field and no further", path)
 			return
 		}
 		t.expandClass(b.id, member, d)
@@ -185,24 +185,24 @@ func (t *targetPass) attach(path string, pos ast.Position, d *ir.Directive) {
 	if e := decl.GetEnumeration(); e != nil {
 		key.variant = slices.IndexFunc(e.GetVariants(), func(v *ir.Variant) bool { return v.GetMeta().GetName() == member })
 		if key.variant < 0 {
-			t.diags.add(pos, "target path %s names nothing: %s has no variant %s", path, head, member)
+			t.diags.add(at, "target path %s names nothing: %s has no variant %s", path, head, member)
 			return
 		}
 		if sub != "" {
 			key.field = slices.IndexFunc(e.GetVariants()[key.variant].GetFields(), func(f *ir.Field) bool { return f.GetMeta().GetName() == sub })
 			if key.field < 0 {
-				t.diags.add(pos, "target path %s names nothing: %s.%s has no field %s", path, head, member, sub)
+				t.diags.add(at, "target path %s names nothing: %s.%s has no field %s", path, head, member, sub)
 				return
 			}
 		}
 	} else {
 		key.field = fieldIndex(decl, member)
 		if key.field < 0 {
-			t.diags.add(pos, "target path %s names nothing: %s has no field %s", path, head, member)
+			t.diags.add(at, "target path %s names nothing: %s has no field %s", path, head, member)
 			return
 		}
 		if sub != "" {
-			t.diags.add(pos, "target path %s names nothing: %s.%s is a field, and nothing is beneath a field", path, head, member)
+			t.diags.add(at, "target path %s names nothing: %s.%s is a field, and nothing is beneath a field", path, head, member)
 			return
 		}
 	}
@@ -277,7 +277,7 @@ func (l *lowerer) resolveConflicts(cands []candidate) []*ir.Directive {
 func (l *lowerer) directive(target string, d *ast.Directive) *ir.Directive {
 	out := &ir.Directive{
 		Name:     d.N,
-		Position: position(d.P),
+		Position: position(d),
 		Target:   target,
 	}
 	for _, a := range d.Args {

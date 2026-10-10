@@ -201,6 +201,27 @@ What Go cannot express warns where it was written:
 `Entity` is the prelude's and is not generated, so `requires Entity<T>` is the second-to-last row and `class Auditable requires Entity` is the last.
 Both warn, because an interface missing its embed is satisfied by types that do not satisfy what the model requires.
 
+## JSON
+
+A bare `json` directive on the target block opts in to the JSON wire convention the TypeScript, JSON Schema, and OpenAPI backends share: a property is named as the model spells it, and a fielded enum is tagged internally by its discriminant, `kind` or the `discriminant` directive's.
+Without it, the generated types carry no `encoding/json` opinion.
+
+Every field gets a `json` struct tag holding its name in the model, with `omitempty` when it is `T?`.
+A `tag` directive on a field replaces its tag, and decoding reads the property that tag names.
+
+Each variant of a fielded enum gets a `MarshalJSON` writing the discriminant before its fields, and `Unmarshal<Enum>` decodes one by it:
+
+```go
+func UnmarshalShape(data []byte) (Shape, error)
+```
+
+`encoding/json` cannot decode an interface, so a struct or variant holding a fielded enum, directly or in a list, map, option, or newtype, gets an `UnmarshalJSON` that decodes those fields with it and every other field as usual.
+A struct holding only fields `encoding/json` decodes gets nothing.
+
+What the convention cannot carry warns: a variant field named like the discriminant skips the enum, a `Set` is a Go map, which `encoding/json` writes as an object rather than an array, and a generic declaration applied to a fielded enum decodes it as a plain value.
+A type parameter named like a local of the generated methods (`plain`, `data`, `raw`, `err`, `v`) skips the declaration.
+Import does not read `json` back: the tags return as `tag` directives, and the methods warn.
+
 ## Validation
 
 `where` constraints are a pair of methods on the type they check:
@@ -279,7 +300,7 @@ An extern nothing maps has no Go type, so a declaration naming it warns and is s
 
 ## Directives
 
-The backend understands seven and declares all seven in its handshake, so the compiler checks them before generating.
+The backend understands nine and declares all nine in its handshake, so the compiler checks them before generating.
 
 - `package("github.com/acme/billing")`, on the target block.
   The package clause is the last path segment; the import path is what a consumer writes, and the clause derives from it.
@@ -298,6 +319,10 @@ The backend understands seven and declares all seven in its handshake, so the co
   Two arguments, because splitting one string on its last dot would get `gopkg.in/yaml.v3` wrong.
 - `file("model.go")`, on the target block.
   Writes every declaration into that one file, sharing one import block; on a declaration it warns.
+- `json`, bare, on the target block.
+  Opts in to the JSON wire convention, under [JSON](#json).
+- `discriminant("type")`, on the target block or a fielded enum.
+  The property a fielded enum is tagged by under `json`.
 - `roundtrip`, bare, on the target block.
   Writes as `//tdl:` comment directives what import would not read back, under [Import](#import).
 

@@ -125,7 +125,7 @@ func (l *lowerer) loadPrelude(cfg config) *scope {
 
 	file, err := parser.Parse(cfg.preludeName, strings.NewReader(cfg.preludeSrc))
 	if err != nil {
-		l.diags.add(ast.Position{Filename: cfg.preludeName}, "the prelude does not parse: %v", err)
+		l.diags.add(point(ast.Position{Filename: cfg.preludeName}), "the prelude does not parse: %v", err)
 		return nil
 	}
 
@@ -170,7 +170,7 @@ func (l *lowerer) collect(file *ast.File) {
 			id:   &ir.ID{Index: idx, Name: name},
 			pos:  decl.Pos(),
 		}); !ok {
-			l.diags.add(decl.Pos(), "%s is declared twice, first at %s", name, prev.pos)
+			l.diags.add(decl, "%s is declared twice, first at %s", name, prev.pos)
 			continue
 		}
 		l.model.Decls = append(l.model.Decls, &ir.Decl{Meta: metaOf(decl.Head(), i)})
@@ -319,7 +319,7 @@ func (l *lowerer) variantFields(in []*ast.Field) []*ir.Field {
 	var fields []*ir.Field
 	for i, f := range in {
 		if prev, dup := seen[f.N]; dup {
-			l.diags.add(f.P, "field %s is declared twice, first at %s", f.N, prev)
+			l.diags.add(f, "field %s is declared twice, first at %s", f.N, prev)
 			continue
 		}
 		seen[f.N] = f.P
@@ -344,7 +344,7 @@ func (l *lowerer) params(in []*ast.TypeParam) []*ir.Param {
 		params = append(params, &ir.Param{
 			Name:     p.N,
 			Kind:     kind(p.Kind),
-			Position: position(p.P),
+			Position: position(p),
 		})
 	}
 	return params

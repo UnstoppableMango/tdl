@@ -7,7 +7,7 @@ Guidance for coding agents working in this repository.
 ```shell
 go test ./...                      # all tests
 go test -race ./...                # what CI runs; the plugin subprocess needs it
-go test -short ./...               # skips TestValidationRuns, which runs go on generated code
+go test -short ./...               # skips running go, smithy, tsc, and likec4 on generated code
 go test ./parser -run TestConformanceCorpusParses   # a single test
 go build ./...
 
@@ -87,6 +87,8 @@ Each check is one invocation over all files.
 `gen.files` is separate and empty by default, because `tdl gen` fails on a file with no target block.
 It is exported as `flakeModules.default` with a `tdl` alias.
 `checks.flake-module` evaluates a consumer flake against `testdata/conformance/entity` and builds the result, without `tdl-gen`, which needs generated output on disk.
+`nix/default.nix` also imports the module itself, so `models/` gets `checks.tdl-check` and `tdl-fmt` the way a consumer's model would.
+`checks.models-types` generates Go and TypeScript from `models/`, vets the Go, and holds the TypeScript to DefinitelyTyped's declarations; see `models/README.md`.
 
 ## Architecture
 
@@ -109,6 +111,9 @@ The plugin protocol in `docs/design/plugins.md` is complete.
   Errors accumulate in an `ErrorList`; `syncTop` resynchronizes at the next declaration.
 - `ast`: parse tree mirroring the source, names unresolved.
   `ast.Fprint` is the canonical formatting used by `tdl fmt`.
+  Every node is an `ast.Node`: `Pos` is where its first token starts and `End` is just past its last, from the lexer's `Token.End`; a block's closing brace is `Rbrace`.
+  A doc comment and a `deprecated` modifier come before `Pos`.
+  `ast.Inspect` walks a tree in source order as `go/ast.Inspect` does, and `TestChildrenCoverEveryField` keeps `ast.Children` in step with the node types.
 - `internal/ebnf`: linter for `docs/grammar.ebnf` and `docs/notation.ebnf`, built on `golang.org/x/exp/ebnf`.
   It also checks every quoted terminal against `lex`, and reports unterminated comments and strings itself because the library's scanner prints them to stderr.
 - `internal/treesitter`: emits `tree-sitter/grammar.js` from the grammar.
@@ -158,7 +163,7 @@ Every backend reports what it cannot generate as a positioned warning rather tha
 
 - `backend/golang` (`go`): one file per declaration, or one file for the whole target that a `file` directive in the target block names.
   `types.go` maps IR types to Go and walks types itself, since `Resolve` refuses type parameters.
-  `generics.go` maps type parameters and infers `comparable` for map keys; `classes.go` makes a class an interface with one unexported marker method; `validate.go` turns `where` constraints into `Validate`; `foreign.go` maps a declaration to another package's type, and an extern to the type its dependency's `go` block generates.
+  `generics.go` maps type parameters and infers `comparable` for map keys; `classes.go` makes a class an interface with one unexported marker method; `validate.go` turns `where` constraints into `Validate`; `json.go` writes the JSON wire convention under a `json` directive; `foreign.go` maps a declaration to another package's type, and an extern to the type its dependency's `go` block generates.
   An enum with no variant fields is a string type with constants; otherwise a sealed interface with a struct per variant.
   `decimal`, `uuid`, and `date` map to placeholders unless a `foreign` directive names a type.
   A `key` directive becomes a `Key()` method, returning a `<Name>Key` struct for several fields.
@@ -262,6 +267,7 @@ A file named `-` is standard input, shown as `<stdin>` in positions.
 `gen` and `import` both drop warnings whose loss code `tdl.toml` or `--allow-lossy` allows, and print a code after the message.
 
 `examples/` holds files to experiment with and is outside the conformance corpus.
+`models/` holds TDL descriptions of other projects' schemas (unist, mdast, hast); their generated code is not committed.
 
 ## Language server
 
@@ -351,7 +357,7 @@ After regenerating the grammar, reinstall and reload the window.
 Both are plain text so other implementations can run them, and `parser/conformance_test.go` walks them, so adding a directory adds a case.
 A case holding a `pending` file is skipped with its text as the reason; the phase implementing the construct deletes it.
 
-Every `.tdl` file in `testdata/conformance/`, `testdata/gen/`, `prelude/`, and `examples/` is canonical: `tdl fmt <file>` prints it back byte for byte (`TestCorpusIsCanonical`).
+Every `.tdl` file in `testdata/conformance/`, `testdata/gen/`, `prelude/`, `examples/`, and `models/` is canonical: `tdl fmt <file>` prints it back byte for byte (`TestCorpusIsCanonical`).
 `tdl fmt` is idempotent.
 At the top level, a blank line between comment groups, or between a comment and the following declaration, survives formatting.
 Inside a body, the formatter owns blank lines.

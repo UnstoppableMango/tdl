@@ -181,7 +181,7 @@ func (u *unlowerer) decl(d *ir.Decl) ast.Decl {
 				// The printer expands a payload only for a variant that ends
 				// somewhere, which is what lets a documented field keep its
 				// doc comment.
-				variant.End = ast.Position{Line: 1}
+				variant.Rbrace = ast.Position{Line: 1}
 			}
 			out.Variants = append(out.Variants, variant)
 		}

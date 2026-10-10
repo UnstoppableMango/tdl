@@ -66,7 +66,7 @@ func (l *lowerer) paramScope(owner *ir.ID, params []*ast.TypeParam) *scope {
 			index: int32(i),
 			pos:   p.P,
 		}); !ok {
-			l.diags.add(p.P, "type parameter %s is declared twice, first at %s", p.N, prev.pos)
+			l.diags.add(p, "type parameter %s is declared twice, first at %s", p.N, prev.pos)
 		}
 	}
 	return s
