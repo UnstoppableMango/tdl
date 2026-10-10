@@ -27,7 +27,19 @@ type foreignType struct {
 	alias string
 }
 
-func (f foreignType) ref() string { return f.alias + "." + f.name }
+func (f foreignType) ref() string {
+	if f.alias == "" {
+		return f.name
+	}
+	return f.alias + "." + f.name
+}
+
+// useForeign imports the package a mapping names, unless it is the generated one.
+func (g *generator) useForeign(f foreignType) {
+	if f.path != "" {
+		g.useAs(f.path, f.alias)
+	}
+}
 
 // planForeign reads every mapping before rendering, so aliases are unique
 // across the whole model.
@@ -52,12 +64,45 @@ func (g *generator) planForeign() {
 		}
 	}
 
-	// A target path can also map a declaration another TDL package owns.
+	// A target path can also map a declaration another TDL package owns,
+	// and otherwise the dependency's own go target block places it.
 	for _, e := range g.Model.GetExterns() {
 		if f, ok := g.mapping(e.GetDirectives(), e.GetPackage()+"."+e.GetName(), byPath); ok {
 			g.externs[e] = f
+		} else if f, ok := g.dependency(e, byPath); ok {
+			g.externs[e] = f
 		}
 	}
+}
+
+// dependency is the type an extern's own package generates, when that
+// package's go target block names its import path. The extern's `name`,
+// from the dependency's entry for the declaration or the root's, is the
+// type's identifier. A dependency generated into this package is referred
+// to unqualified.
+func (g *generator) dependency(e *ir.Extern, byPath map[string]string) (foreignType, bool) {
+	for _, dep := range g.Model.GetImports() {
+		if dep.GetPackage() != e.GetPackage() {
+			continue
+		}
+		path, ok := g.Text(dep.GetDirectives(), "package")
+		if !ok {
+			return foreignType{}, false
+		}
+		name, ok := g.Text(e.GetDirectives(), "name")
+		if !ok {
+			name = exported(e.GetName())
+		}
+		if err := foreignProblem(e.GetPosition(), e.GetPackage()+"."+e.GetName(), path, name); err != nil {
+			g.Warn(err)
+			return foreignType{}, false
+		}
+		if own, ok := g.Block("package"); ok && own.GetArgs()[0].GetText() == path {
+			return foreignType{name: name}, true
+		}
+		return foreignType{path: path, name: name, alias: g.aliasFor(path, byPath)}, true
+	}
+	return foreignType{}, false
 }
 
 // mapping reads the foreign directive among dirs, warning when it is
@@ -79,13 +124,18 @@ func (g *generator) mapping(dirs []*ir.Directive, of string, byPath map[string]s
 		g.Warn(err)
 		return foreignType{}, false
 	}
+	return foreignType{path: path, name: name, alias: g.aliasFor(path, byPath)}, true
+}
+
+// aliasFor is the alias path is imported under, the same one each time.
+func (g *generator) aliasFor(path string, byPath map[string]string) string {
 	alias, ok := byPath[path]
 	if !ok {
 		alias = g.alias(path)
 		byPath[path] = alias
 		g.aliases[alias] = true
 	}
-	return foreignType{path: path, name: name, alias: alias}, true
+	return alias
 }
 
 // externForeign is the mapping of the extern a type refers to, if any.

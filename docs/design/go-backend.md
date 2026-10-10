@@ -273,6 +273,8 @@ Go declares a method beside its type, so a foreign type gets none: a `where` con
 A mapping the backend cannot refer to, with no import path or naming something that is not an exported Go identifier, warns and the declaration is generated as though it were unmapped.
 
 An extern, a declaration an imported TDL package owns, is mapped the same way: a target path can name a declaration a `_` import merged in, so `Money => foreign("github.com/acme/money", "Money")` reaches it.
+An extern without `foreign`, whose dependency has a `go` target block with a `package` directive, is the type that block generates: it is imported from that path and named by the extern's `name` directive, or else its name exported.
+A dependency generated into the same import path as the model is referred to unqualified.
 An extern nothing maps has no Go type, so a declaration naming it warns and is skipped, and so is each declaration naming that one.
 
 ## Directives
