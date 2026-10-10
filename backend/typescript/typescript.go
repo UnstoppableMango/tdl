@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -34,7 +35,11 @@ func (Backend) Describe() plugin.Description {
 			// The property a discriminated union switches on: the default on
 			// the target block, an override on an enum.
 			{Name: "discriminant", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			// Writes, as JSDoc @tdl tags, every fact the declarations alone
+			// would lose, so import rebuilds the model.
+			{Name: "roundtrip"},
 		},
+		Reverse: true,
 	}
 }
 
@@ -84,6 +89,11 @@ type generator struct {
 
 	// enforced holds each constraint a literal union enforces.
 	enforced map[*ir.Constraint]bool
+
+	// lost is whether the declaration being rendered loses a fact, and
+	// tags the @tdl tags its JSDoc carries.
+	lost bool
+	tags []string
 }
 
 // Generate returns one .ts file holding the model's declarations.
@@ -94,25 +104,61 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		enforced: map[*ir.Constraint]bool{},
 	}
 
+	g.Roundtrip = g.Bare("roundtrip")
+
+	pkg := req.GetModel().GetPackage()
+	path := defaultFile + ".ts"
+	if pkg != "" {
+		path = emit.LastSegment(pkg) + ".ts"
+	}
+	if back := packageBack(path); back != pkg {
+		g.Lose(emit.LossName, nil, "package %s is written %s, which reads back as package %q", pkg, path, back)
+	}
+	if len(req.GetModel().GetDoc()) > 0 {
+		g.Lose(emit.LossDoc, nil, "TypeScript has no place for the package's doc comment")
+	}
+
 	own := g.Own()
 	texts := map[*ir.Decl]string{}
 	skipped := map[*ir.Decl]bool{}
+	// Each declaration's warnings are held until the cascade decides
+	// whether it is emitted, since a skipped one loses everything at once.
+	held := map[*ir.Decl][]*plugin.Diagnostic{}
 	for _, d := range own {
+		mark := len(g.Diags)
 		text, err := g.decl(d)
 		if err != nil {
-			g.Warn(err)
+			g.Diags = g.Diags[:mark]
+			g.Skip(err)
 			skipped[d] = true
 			continue
 		}
+		held[d] = slices.Clone(g.Diags[mark:])
+		g.Diags = g.Diags[:mark]
 		texts[d] = text
 	}
+	mark := len(g.Diags)
 	g.Cascade(own, skipped)
+	if g.Roundtrip {
+		// A skipped declaration is carried as TDL, so nothing is lost.
+		g.Diags = g.Diags[:mark]
+	}
+	for _, d := range own {
+		if !skipped[d] {
+			g.Diags = append(g.Diags, held[d]...)
+		}
+	}
 
 	var blocks []string
+	emitted := map[string]bool{}
 	for _, d := range own {
 		if text := texts[d]; text != "" && !skipped[d] {
 			blocks = append(blocks, text)
+			emitted[d.GetMeta().GetName()] = true
 		}
+	}
+	if footer := g.footer(path, emitted); footer != "" {
+		blocks = append(blocks, footer)
 	}
 	if len(blocks) == 0 {
 		return g.Response(nil), nil
@@ -124,11 +170,6 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		b.WriteString("\n")
 		b.WriteString(block)
 	}
-
-	path := "model.ts"
-	if pkg := req.GetModel().GetPackage(); pkg != "" {
-		path = emit.LastSegment(pkg) + ".ts"
-	}
 	return g.Response([]*plugin.File{{Path: path, Content: []byte(b.String())}}), nil
 }
 
@@ -137,25 +178,37 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	pos := d.GetMeta().GetPosition()
 	name := d.GetMeta().GetName()
 
-	if ok, err := emit.Declares(d); !ok {
-		return "", err
+	switch {
+	case d.GetClass() != nil:
+		return "", emit.Lost(emit.LossClass, pos, "%s is a class, and classes are not generated yet", name)
+	case d.GetUnit() != nil:
+		return "", emit.Lost(emit.LossUnit, pos, "%s is a unit, and units are not generated yet", name)
+	case d.GetAlias() != nil:
+		if len(d.Params()) == 0 {
+			g.Lose(emit.LossAlias, pos, "alias %s is expanded where used", name)
+			g.typeLosses(d.GetAlias().GetTarget(), nil, modeProperty)
+		}
+		return "", nil
+	case d.GetStructure() == nil && d.GetEnumeration() == nil && d.GetNewtype() == nil:
+		// A primitive declares nothing.
+		return "", nil
+	}
+	if len(d.Params()) > 0 {
+		return "", emit.Lost(emit.LossGeneric, pos, "%s is parameterized, and generics are not generated yet", name)
 	}
 
-	var b strings.Builder
-	var declared []string
-	var err error
-	switch e := d.GetEnumeration(); {
-	case d.GetNewtype() != nil:
-		declared, err = g.newtype(&b, d)
-	case d.GetStructure() != nil:
-		declared, err = g.iface(&b, g.DeclName(d, emit.Pascal), d.GetMeta(), "", "", d.Fields())
-	case emit.Fielded(e):
-		declared, err = g.union(&b, d)
-	default:
-		declared = g.literals(&b, d)
-	}
+	g.lost, g.tags = false, nil
+	text, declared, err := g.render(d)
 	if err != nil {
 		return "", err
+	}
+	g.losses(d)
+	if tags := g.source(d); tags != nil {
+		g.tags = tags
+		if text, declared, err = g.render(d); err != nil {
+			return "", err
+		}
+		g.tags = nil
 	}
 
 	local := map[string]bool{}
@@ -174,8 +227,101 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	for _, n := range declared {
 		g.names[n] = name
 	}
-	g.WarnUnenforced(d, func(c *ir.Constraint) bool { return g.enforced[c] })
-	return b.String(), nil
+	if !g.Roundtrip {
+		g.WarnUnenforced(d, func(c *ir.Constraint) bool { return g.enforced[c] })
+	}
+	return text, nil
+}
+
+// render writes a declaration, returning the type names it declares.
+func (g *generator) render(d *ir.Decl) (string, []string, error) {
+	var b strings.Builder
+	var declared []string
+	var err error
+	switch e := d.GetEnumeration(); {
+	case d.GetNewtype() != nil:
+		declared, err = g.newtype(&b, d)
+	case d.GetStructure() != nil:
+		declared, err = g.iface(&b, g.DeclName(d, emit.Pascal), d.GetMeta(), g.tags, "", "", d.Fields())
+	case emit.Fielded(e):
+		declared, err = g.union(&b, d)
+	default:
+		declared = g.literals(&b, d)
+	}
+	return b.String(), declared, err
+}
+
+// losses warns about each fact a declaration loses, and records whether
+// it loses any.
+func (g *generator) losses(d *ir.Decl) {
+	name := d.GetMeta().GetName()
+	written := g.DeclName(d, emit.Pascal)
+	g.declLosses(d, written)
+
+	fields := d.Fields()
+	switch e := d.GetEnumeration(); {
+	case d.GetNewtype() != nil:
+		if ref, err := g.Resolve(d.GetNewtype().GetBase()); err == nil {
+			g.newtypeLosses(d, ref)
+		}
+	case d.GetStructure() != nil:
+		g.includeLosses(name, fields)
+		g.fieldsLosses(name, fields)
+	case emit.Fielded(e):
+		disc := g.Discriminant(d)
+		dir, own := g.Find(d.GetDirectives(), "discriminant")
+		switch {
+		case own && disc == emit.DefaultDiscriminant:
+			g.lose(emit.LossName, dir.GetPosition(), "%s's discriminant directive restates the default, and does not read back", name)
+		case !own && disc != emit.DefaultDiscriminant:
+			g.lose(emit.LossName, d.GetMeta().GetPosition(), "%s's discriminant %s reads back as a directive on the enum", name, disc)
+		}
+		for _, v := range e.GetVariants() {
+			vname := v.GetMeta().GetName()
+			member := g.VariantName(v, func(s string) string { return written + emit.Pascal(s) })
+			g.renamed(v.GetDirectives(), member != written+emit.Pascal(vname), "%s.%s", name, vname)
+			g.docLoss(v.GetMeta())
+			g.fieldsLosses(name+"."+vname, v.GetFields())
+			fields = append(fields, v.GetFields()...)
+		}
+	default:
+		for _, v := range e.GetVariants() {
+			vname, pos := v.GetMeta().GetName(), v.GetMeta().GetPosition()
+			if len(v.GetMeta().GetDoc()) > 0 || v.GetMeta().GetDeprecated() != nil {
+				g.lose(emit.LossDoc, pos, "%s.%s's doc comment has no place in a union of string literals", name, vname)
+			}
+			if dir, ok := g.Find(v.GetDirectives(), "name"); ok {
+				g.lose(emit.LossName, dir.GetPosition(), "%s.%s is written by its name, and its name directive does not read back", name, vname)
+			}
+		}
+	}
+
+	cs := slices.Clone(d.GetNewtype().GetValueConstraints())
+	for _, f := range fields {
+		cs = append(cs, f.GetConstraints()...)
+	}
+	for _, c := range cs {
+		if !g.enforced[c] {
+			// WarnUnenforced warns about each.
+			g.lost = true
+		}
+	}
+}
+
+// fieldsLosses runs [generator.fieldLosses] over each field.
+func (g *generator) fieldsLosses(owner string, fields []*ir.Field) {
+	for _, f := range fields {
+		ref, err := g.Resolve(f.GetType())
+		if err != nil {
+			continue
+		}
+		if f.GetIncludedFrom() != nil {
+			// The mixin warns about its own fields; the include is lost.
+			g.lost = true
+			continue
+		}
+		g.fieldLosses(owner, f, ref)
+	}
 }
 
 // newtype renders a newtype as an alias for its base, or for the literal
@@ -194,14 +340,14 @@ func (g *generator) newtype(b *strings.Builder, d *ir.Decl) ([]string, error) {
 		base = lits
 	}
 	name := g.DeclName(d, emit.Pascal)
-	emit.DocComment(b, "", d.GetMeta())
+	docComment(b, d.GetMeta(), g.tags...)
 	fmt.Fprintf(b, "export type %s = %s;\n", name, base)
 	return []string{name}, nil
 }
 
 // iface renders an entity, a value, or a mixin as an interface. A variant
 // passes the discriminant and its value, which come first.
-func (g *generator) iface(b *strings.Builder, name string, meta *ir.Meta, disc, tag string, fields []*ir.Field) ([]string, error) {
+func (g *generator) iface(b *strings.Builder, name string, meta *ir.Meta, tags []string, disc, tag string, fields []*ir.Field) ([]string, error) {
 	var body strings.Builder
 	seen := map[string]bool{}
 	if disc != "" {
@@ -232,7 +378,7 @@ func (g *generator) iface(b *strings.Builder, name string, meta *ir.Meta, disc, 
 		fmt.Fprintf(&body, "  %s\n", line)
 	}
 
-	emit.DocComment(b, "", meta)
+	docComment(b, meta, tags...)
 	fmt.Fprintf(b, "export interface %s {\n%s}\n", name, body.String())
 	return []string{name}, nil
 }
@@ -251,7 +397,7 @@ func (g *generator) literals(b *strings.Builder, d *ir.Decl) []string {
 		typ = "never"
 	}
 
-	emit.DocComment(b, "", d.GetMeta())
+	docComment(b, d.GetMeta(), g.tags...)
 	fmt.Fprintf(b, "export type %s = %s;\n", name, typ)
 	return []string{name}
 }
@@ -268,14 +414,14 @@ func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	for _, v := range d.GetEnumeration().GetVariants() {
 		member := g.VariantName(v, func(s string) string { return name + emit.Pascal(s) })
 		ifaces.WriteString("\n")
-		if _, err := g.iface(&ifaces, member, v.GetMeta(), disc, emit.Tag(v), v.GetFields()); err != nil {
+		if _, err := g.iface(&ifaces, member, v.GetMeta(), nil, disc, emit.Tag(v), v.GetFields()); err != nil {
 			return nil, err
 		}
 		members = append(members, member)
 		declared = append(declared, member)
 	}
 
-	emit.DocComment(b, "", d.GetMeta())
+	docComment(b, d.GetMeta(), g.tags...)
 	fmt.Fprintf(b, "export type %s = %s;\n", name, strings.Join(members, " | "))
 	b.WriteString(ifaces.String())
 	return declared, nil

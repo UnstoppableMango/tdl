@@ -1,0 +1,36 @@
+// Names TypeScript keeps, and ones it reads back differently.
+package shop.v1
+
+type order_line {
+  sku: string
+  qty: int32
+}
+
+enum Level {
+  HTTPError
+  Low
+}
+
+enum Payment {
+  Card { last4: string }
+  ACHTransfer { routing: string }
+  Cash
+}
+
+type Account {
+  email: string
+  id: string
+}
+
+type Ledger {
+  payments: [Payment]
+  levels: [Level]
+}
+
+target typescript for shop.v1 {
+  discriminant("type")
+  Account => name("User")
+  Account.email => name("email-address")
+  Level.Low => name("lowest")
+  Payment.Card => name("CardPayment")
+}

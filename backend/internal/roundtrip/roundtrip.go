@@ -54,6 +54,10 @@ type Target struct {
 	// once, since one may import another, and returns them by the same
 	// paths. Nil compares bytes.
 	Normalize func(files []*plugin.File) ([]*plugin.File, error)
+
+	// Needs says why the target's reader cannot run here, such as a tool
+	// missing from PATH, which skips its cases. Nil needs nothing.
+	Needs func() error
 }
 
 // Run runs every case in dir, a target's directory of the corpus, and
@@ -61,6 +65,11 @@ type Target struct {
 // A backend that does not import may have no cases, and skips smoke.
 func Run(t *testing.T, target Target, dir string, smoke ...string) {
 	t.Helper()
+	if target.Needs != nil {
+		if err := target.Needs(); err != nil {
+			t.Skip(err)
+		}
+	}
 
 	cases, err := cases(dir)
 	if err != nil {

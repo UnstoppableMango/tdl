@@ -3,7 +3,7 @@
 An implementation plan for [reverse.md](reverse.md).
 Phases are ordered by dependency, and each states what makes it done.
 
-Phases 1, 2, and 3 are done.
+Phases 1, 2, and 3 are done, and phase 4 is done for `protobuf`, `thrift`, `graphql`, `go`, and `typescript`.
 
 ## Phase 1: unlower
 
@@ -59,7 +59,7 @@ Each is:
 
 Done, for a target, when its corpus passes and `testdata/gen/smoke` round-trips with no warning.
 
-`protobuf`, `thrift`, `graphql`, and `go` are done.
+`protobuf`, `thrift`, `graphql`, `go`, and `typescript` are done.
 Every conformance case that imports nothing also comes back through each, in `TestConformanceComesBack`; a model with an import does not yet, since a reverse backend is given no file the import names.
 
 ## Phase 5: Salesforce
