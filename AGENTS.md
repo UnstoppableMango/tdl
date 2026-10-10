@@ -156,7 +156,7 @@ Every backend reports what it cannot generate as a positioned warning rather tha
 
 - `backend/golang` (`go`): one file per declaration, or one file for the whole target that a `file` directive in the target block names.
   `types.go` maps IR types to Go and walks types itself, since `Resolve` refuses type parameters.
-  `generics.go` maps type parameters and infers `comparable` for map keys; `classes.go` makes a class an interface with one unexported marker method; `validate.go` turns `where` constraints into `Validate`; `foreign.go` maps a declaration to another package's type, and an extern to the type its dependency's `go` block generates.
+  `generics.go` maps type parameters and infers `comparable` for map keys; `classes.go` makes a class an interface with one unexported marker method; `validate.go` turns `where` constraints into `Validate`; `json.go` writes the JSON wire convention under a `json` directive; `foreign.go` maps a declaration to another package's type, and an extern to the type its dependency's `go` block generates.
   An enum with no variant fields is a string type with constants; otherwise a sealed interface with a struct per variant.
   `decimal`, `uuid`, and `date` map to placeholders unless a `foreign` directive names a type.
   A `key` directive becomes a `Key()` method, returning a `<Name>Key` struct for several fields.
