@@ -1,0 +1,13 @@
+lossy.alias
+lossy.class
+lossy.collection
+lossy.constraint
+lossy.default
+lossy.generic
+lossy.include
+lossy.optional
+lossy.order
+lossy.owned
+lossy.primitive
+lossy.struct-kind
+lossy.unit

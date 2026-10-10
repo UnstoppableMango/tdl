@@ -33,14 +33,14 @@ func (g *generator) planClasses() {
 		// Reported once here; [generator.supers] drops these silently.
 		for _, ref := range class.GetClass().GetRequiresClasses() {
 			if err := g.superProblem(class, ref); err != nil {
-				g.Warn(err)
+				g.lose(emit.LossClass, err)
 			}
 		}
 	}
 
 	for _, inst := range g.Model.GetInstances() {
 		if err := g.instanceProblem(inst); err != nil {
-			g.Warn(err)
+			g.lose(emit.LossClass, err)
 		}
 	}
 }
@@ -126,7 +126,7 @@ func (g *generator) hasField(d *ir.Decl, goName string) bool {
 func (g *generator) class(b *strings.Builder, decl *ir.Decl) error {
 	pos, name := decl.GetMeta().GetPosition(), decl.GetMeta().GetName()
 	if len(decl.GetClass().GetParams()) > 0 {
-		return emit.Unsupported(pos, "%s takes type parameters, and a Go interface cannot state a relationship between types", name)
+		return emit.Lost(emit.LossClass, pos, "%s takes type parameters, and a Go interface cannot state a relationship between types", name)
 	}
 	goName := g.declName(decl)
 	if goName == "" {
@@ -136,10 +136,11 @@ func (g *generator) class(b *strings.Builder, decl *ir.Decl) error {
 		return emit.Unsupported(pos, "%s requires itself, directly or through another class, and a Go interface cannot embed itself", name)
 	}
 	if len(decl.GetClass().GetAssocTypes()) > 0 {
-		g.Warn(emit.Unsupported(pos, "%s requires associated types, and a Go interface cannot bind one, so it is generated without them", name))
+		g.Lose(emit.LossClass, pos, "%s requires associated types, and a Go interface cannot bind one, so it is generated without them", name)
 	}
 
 	g.doc(b, decl.GetMeta())
+	g.annotate(b, decl)
 	fmt.Fprintf(b, "type %s interface {\n", goName)
 	for _, s := range g.supers(decl) {
 		fmt.Fprintf(b, "\t%s\n", g.declName(g.Model.GetDecls()[s]))
@@ -253,7 +254,7 @@ func (g *generator) paramClasses(decl *ir.Decl, report bool) [][]int32 {
 		i, err := g.constrains(decl, ref)
 		if err != nil {
 			if report {
-				g.Warn(err)
+				g.lose(emit.LossGeneric, err)
 			}
 			continue
 		}

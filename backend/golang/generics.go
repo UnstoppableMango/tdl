@@ -107,19 +107,19 @@ func (g *generator) paramProblem(decl *ir.Decl) error {
 		name, of := p.GetName(), decl.GetMeta().GetName()
 		switch {
 		case higherKinded(p.GetKind()):
-			return emit.Unsupported(pos, "type parameter %s of %s takes type arguments, and Go has no higher-kinded type parameters", name, of)
+			return emit.Lost(emit.LossGeneric, pos, "type parameter %s of %s takes type arguments, and Go has no higher-kinded type parameters", name, of)
 		case unitKinded(p.GetKind()):
-			return emit.Unsupported(pos, "type parameter %s of %s is a unit, and units are not generated yet", name, of)
+			return emit.Lost(emit.LossGeneric, pos, "type parameter %s of %s is a unit, and units are not generated yet", name, of)
 		case token.IsKeyword(name):
-			return emit.Unsupported(pos, "type parameter %s of %s is a Go keyword", name, of)
+			return emit.Lost(emit.LossGeneric, pos, "type parameter %s of %s is a Go keyword", name, of)
 		// TDL cannot see this clash: a parameter named int64 would capture
 		// a field typed `int`.
 		case types.Universe.Lookup(name) != nil, importNames[name] != "":
-			return emit.Unsupported(pos, "type parameter %s of %s would shadow Go's %s", name, of, name)
+			return emit.Lost(emit.LossGeneric, pos, "type parameter %s of %s would shadow Go's %s", name, of, name)
 		case g.aliases[name]:
-			return emit.Unsupported(pos, "type parameter %s of %s would shadow the import named %s", name, of, name)
+			return emit.Lost(emit.LossGeneric, pos, "type parameter %s of %s would shadow the import named %s", name, of, name)
 		case g.declares(name):
-			return emit.Unsupported(pos, "type parameter %s of %s would shadow the generated declaration %s", name, of, name)
+			return emit.Lost(emit.LossGeneric, pos, "type parameter %s of %s would shadow the generated declaration %s", name, of, name)
 		}
 	}
 	return nil

@@ -36,7 +36,7 @@ const (
 // targets is every backend the round-trip goal covers, which is every one
 // but debug, with its normal form once it has a reader.
 var targets = []roundtrip.Target{
-	{Backend: golang.Backend{}},
+	{Backend: golang.Backend{}, Normalize: golang.Normalize},
 	{Backend: graphql.Backend{}, Normalize: graphql.Normalize},
 	{Backend: jsonschema.Backend{}},
 	{Backend: likec4.Backend{}},

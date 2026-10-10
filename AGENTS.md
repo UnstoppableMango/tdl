@@ -160,6 +160,8 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   An enum with no variant fields is a string type with constants; otherwise a sealed interface with a struct per variant.
   `decimal`, `uuid`, and `date` map to placeholders unless a `foreign` directive names a type.
   A `key` directive becomes a `Key()` method, returning a `<Name>Key` struct for several fields.
+  It imports: `reverse.go` reads a package with `go/parser`, taking constraints back from `validate`'s messages and keys from `Key`; `annotate.go` writes the loss warnings and, under `roundtrip`, `//tdl:` comment directives, carrying a declaration whole where reading the unannotated files back misses something.
+  `Normalize` is its normal form for the round-trip corpus.
   See `docs/design/go-backend.md` and `go-backend-plan.md`.
 - `backend/protobuf`: `.proto` files in the directories the package spells, named for its last segment unless a `file` directive says otherwise.
   Proto3 unless an `edition` directive names one; under an edition, `T?` carries no `optional`.

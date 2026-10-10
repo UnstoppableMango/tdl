@@ -1,0 +1,54 @@
+/// The shop's model.
+///
+/// It spans two paragraphs.
+package shop
+
+/// A note.
+type Note {
+  /// Indented:
+  ///   one
+  ///   two
+  body: string
+
+  deprecated("first line\nsecond line") old: string
+
+  /// A list:
+  /// - one
+  /// - two
+  text: string
+}
+
+deprecated
+type Retired {
+  id: string
+}
+
+/// Kept.
+deprecated("for a reason with a \"quote\" and a \\ backslash")
+enum Mood {
+  /// Happy.
+  Happy
+  deprecated Sad
+}
+
+/// Deprecated: not a deprecation.
+type Plain {
+  id: string
+}
+
+deprecated("this declaration is on its way out.")
+type Moved {
+  id: string
+}
+
+enum Event {
+  /// Opened.
+  Opened { at: instant }
+  deprecated("use Opened") Closed
+}
+
+/// Run it:
+///   go test ./...
+type Command {
+  line: string
+}

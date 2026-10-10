@@ -55,7 +55,7 @@ var shipped = []struct {
 	reverse func() []*plugin.File
 }{
 	{backend: debug.Backend{}, model: sampleModel, packaged: true},
-	{backend: golang.Backend{}, model: goModel, packaged: true, valid: parseGo},
+	{backend: golang.Backend{}, model: goModel, packaged: true, valid: parseGo, reverse: goSource},
 	{backend: graphql.Backend{}, model: orderModel, packaged: true, valid: loadGraphQL, reverse: graphqlSource},
 	{backend: jsonschema.Backend{}, model: orderModel, packaged: true, valid: compileJSONSchema},
 	{backend: likec4.Backend{}, model: orderModel, packaged: true},
@@ -89,6 +89,18 @@ An order.
 type Order {
   id: String!
   tags: [String!]!
+}
+`)}}
+}
+
+// goSource is a package for the go reverse to read.
+func goSource() []*plugin.File {
+	return []*plugin.File{{Path: "order.go", Content: []byte(`package shop
+
+// An order.
+type Order struct {
+	Id   string
+	Tags []string
 }
 `)}}
 }

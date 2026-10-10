@@ -51,7 +51,7 @@ func (g *generator) typeIn(id *ir.ID, fr *frame) (string, error) {
 	case t.GetParam() != nil:
 		ref := t.GetParam()
 		if len(t.GetArgs()) > 0 {
-			return "", emit.Unsupported(pos, "type parameter %s is applied to type arguments, and Go has no higher-kinded type parameters", ref.GetName())
+			return "", emit.Lost(emit.LossGeneric, pos, "type parameter %s is applied to type arguments, and Go has no higher-kinded type parameters", ref.GetName())
 		}
 		if fr == nil {
 			// Outside any frame a parameter belongs to the rendered
@@ -63,7 +63,7 @@ func (g *generator) typeIn(id *ir.ID, fr *frame) (string, error) {
 		}
 		return g.typeIn(fr.args[ref.GetIndex()], fr.outer)
 	case t.GetUnit() != nil:
-		return "", emit.Unsupported(pos, "a unit-typed field has no Go type yet")
+		return "", emit.Lost(emit.LossUnit, pos, "a unit-typed field has no Go type yet")
 	case t.GetExtern() != nil:
 		ext := t.GetExtern()
 		if f, ok := g.externForeign(t); ok {
@@ -108,7 +108,7 @@ func (g *generator) typeIn(id *ir.ID, fr *frame) (string, error) {
 				if _, err := g.typeIn(args[0], fr); err != nil {
 					return "", err
 				}
-				return "", emit.Unsupported(pos,
+				return "", emit.Lost(emit.LossUnit, pos,
 					"%s is applied to a type argument, and Go has no type carrying one", name)
 			}
 			if strings.HasPrefix(goName, "time.") {
@@ -136,7 +136,7 @@ func (g *generator) typeIn(id *ir.ID, fr *frame) (string, error) {
 		return "", emit.Unsupported(pos, "%s is a class, and a class is not a Go type", name)
 	}
 	if decl.GetUnit() != nil {
-		return "", emit.Unsupported(pos, "%s is a unit, and units are not generated yet", name)
+		return "", emit.Lost(emit.LossUnit, pos, "%s is a unit, and units are not generated yet", name)
 	}
 
 	return g.apply(decl, t, fr)

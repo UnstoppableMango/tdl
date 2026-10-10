@@ -1,0 +1,39 @@
+// Names Go keeps, and ones it reads back differently.
+package shop.v1
+
+type order_line {
+  sku: string
+  qty: int32
+  ID: string
+}
+
+enum Level {
+  HTTPError
+  Low
+}
+
+enum Payment {
+  Card { last4: string }
+  ACHTransfer { routing: string }
+  cash
+}
+
+type Account {
+  email: string
+  id: string
+  kind: string
+}
+
+type Ledger {
+  payments: [Payment]
+  levels: [Level]
+}
+
+target go for shop.v1 {
+  Account => name("User")
+  Account.email => name("EmailAddress")
+  Account.id => name("Id")
+  Account.kind => tag("json:\"kind\"")
+  Level.Low => name("LevelLowest")
+  Payment.Card => name("CardPayment")
+}

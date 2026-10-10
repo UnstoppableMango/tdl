@@ -11,6 +11,7 @@ Both are the same value behind [`plugin.Backend`](../../plugin/backend.go), as `
 ## What it emits
 
 One package, in one file per declaration the model owns, named after the declaration in snake case.
+The package's doc comment goes on the package clause of the first file by path.
 [workflow.md](workflow.md) leaves layout to the backend.
 One file per declaration keeps a diff of the generated tree local to the declaration that changed.
 A `file` directive in the target block writes every declaration into that one file instead, for a target generating into a package that also holds hand-written code.
@@ -119,6 +120,7 @@ Always emitting the interface would make `Status` unusable as a map key or a con
 The cost is that adding a field to one variant changes the generated Go for the whole enum, which is a breaking change to the model anyway.
 
 A fieldless variant's string is its name as written; a consumer states a wire format with `tag`.
+A variant's doc comment and deprecation go on its constant.
 
 A generic enum with a field-carrying variant is a generic interface whose marker takes the enum's parameters, so a `ResultOk[int]` does not satisfy `Result[string]`:
 
@@ -275,7 +277,7 @@ An extern nothing maps has no Go type, so a declaration naming it warns and is s
 
 ## Directives
 
-The backend understands five and declares all five in its handshake, so the compiler checks them before generating.
+The backend understands seven and declares all seven in its handshake, so the compiler checks them before generating.
 
 - `package("github.com/acme/billing")`, on the target block.
   The package clause is the last path segment; the import path is what a consumer writes, and the clause derives from it.
@@ -294,6 +296,8 @@ The backend understands five and declares all five in its handshake, so the comp
   Two arguments, because splitting one string on its last dot would get `gopkg.in/yaml.v3` wrong.
 - `file("model.go")`, on the target block.
   Writes every declaration into that one file, sharing one import block; on a declaration it warns.
+- `roundtrip`, bare, on the target block.
+  Writes as `//tdl:` comment directives what import would not read back, under [Import](#import).
 
 A directive the backend does not declare is a compiler warning and is passed through anyway.
 
@@ -327,6 +331,55 @@ These warn and the declaration is still emitted:
 
 A warning does not stop a run, so a model that is mostly generatable generates.
 An error stops it, and only two things earn one: output `go/format` cannot parse, and a package clause Go will not accept.
+Under `roundtrip`, a keyword clause gets a trailing underscore instead, since an annotation carries the package.
+
+A warning about something the model loses carries a loss code from [reverse.md](reverse.md), so `tdl.toml` can silence it; [Import](#import) lists the ones only import would notice.
+
+## Import
+
+`tdl import --from go` reads the `.go` files of one package with `go/parser`, sorted by path, without type checking.
+A `_test.go` file warns and is not read.
+The package clause is the TDL package, except `main`, which is none.
+
+| Go | TDL |
+| --- | --- |
+| struct | struct, conforming to `Entity` when it has a `Key` method |
+| named `string` type with typed string constants | enum, each constant's value a variant |
+| interface whose only method is the marker `is<Name>`, carried by structs named `<Name><Variant>` that nothing else names | enum with fields, one variant per struct |
+| any other interface whose only method is its marker | class, its embedded interfaces its superclasses |
+| `isX()` on a type, for a class `X` | conformance to `X` |
+| any other named type | newtype |
+| `type T = X` | alias |
+| `[T any]`, `[T comparable]`, `[T C]`, `[T interface{ comparable; C }]` | `<T>`, with `requires C<T>` for a class |
+| `[]T`, `map[K]struct{}`, `map[K]V`, `*T`, `G[A]` | `[T]`, `{K}`, `{K -> V}`, `T?`, `G<A>` |
+| `string`, `bool`, `int32`, `int64`, `uint32`, `uint64`, `float32`, `float64`, `[]byte` | the primitive of that name, `bytes` for `[]byte` |
+| `int`, `int8`, `int16`, `rune`, `uint`, `uint8`, `uint16`, `uintptr` | the nearest wider primitive, with `lossy.primitive` |
+| `time.Time`, `time.Duration` | `instant`, `duration` |
+| another package's `pkg.T` | an empty struct `T`, with a `foreign` directive |
+| a func, a var, a const of another kind, a method Generate does not write, an embedded field, an array, a channel, a func type, an anonymous struct or interface, a pointer to a pointer | `lossy.unsupported` |
+
+A field's name is its Go name with the leading capitals lower case, but for one starting the next word, so `ID` is `id` and `HTTPServer` is `httpServer`.
+A variant's name is a constant's value, or what its struct's name adds to the interface's.
+A doc comment is the Go one's text, and a last paragraph starting `Deprecated: ` is the deprecation, its lines the reason's.
+
+What Generate writes is read back as the model it says:
+
+- a constraint, from the message `validate` writes, `%s.<field>: <constraint>: <detail>`, since the constraint is written as TDL; a newtype's inherited constraints, which `validate` checks again, are dropped for lowering to add back;
+- a `key`, from what `Key` returns: one field, or the fields of the `<Name>Key` struct, which is not a declaration of its own.
+
+The target block holds a `name` directive where the convention would write another name, a struct field's `tag`, a `key`, a `foreign` mapping, and a `file` directive when one file holds declarations not named for it; several such files warn, since they regenerate one per declaration.
+
+Generating, every fact the package cannot hold warns with its loss code: `int`, `uuid`, `decimal`, and `date` written as another primitive, collection sugar written by name, `T | null` and `Option<T>`, an alias expanded, an entity without a key or a mixin, an include, a constraint not checked, `owned`, a default, a name or a package clause that reads back otherwise, a doc comment gofmt changes, conformance its markers do not say, a key not generated, a foreign declaration that is not an empty struct, a class's fields, a unit, generics Go cannot state, and files whose path order is not the model's.
+
+Under a `roundtrip` directive, each of those is carried instead as a `//tdl:` comment directive, which a doc comment's text leaves out, its value a Go string literal:
+
+- on a declaration's type: `source`, the declaration as TDL, and `at`, its index among the file's items when the files' order is not the model's;
+- on the first file's package clause: `package` when the clause does not hold it, `doc` for the package's doc comment when the Go one does not read back, `import` for each import, and `item` for each top-level item with no Go type, as its index and the item as TDL. An alias, a unit, an instance, a target block, a foreign declaration, and a declaration Go cannot express are each one.
+
+Which declarations carry a `source` is decided by reading the unannotated files back as import would, so a declaration is carried whole exactly when its Go reads back otherwise.
+A model with nothing in a file still has its package's annotations, in `tdl.go`.
+
+The normal form for comparing packages is each file through `go/format`, keeping doc comments only.
 
 ## Formatting
 

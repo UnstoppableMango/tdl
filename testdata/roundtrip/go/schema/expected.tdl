@@ -1,0 +1,58 @@
+package shop
+
+/// An address to write to.
+type Email: string where {
+  matches(/^[^@]+@[^@]+$/)
+  length(3..254)
+}
+
+type LineItem: Entity {
+  order: string
+  sku: string
+  quantity: int64 where { min(1) }
+}
+
+/// An order, identified by its id.
+type Order: Entity {
+  id: string
+  /// When it was placed.
+  placedAt: instant
+  items: [LineItem] where { length(1..) }
+  tags: {string}
+  note: string?
+  contact: Email
+  status: Status
+  payment: Payment?
+  deprecated("nobody has one") fax: string?
+  attrs: {string -> int64}
+  took: duration
+  receipt: bytes
+}
+
+type Page<T> requires Priced<T> {
+  items: [T]
+  next: string?
+}
+
+/// How an order is paid.
+enum Payment: Priced {
+  Card { last4: string where { length(4) } }
+  Cash
+}
+
+class Priced { }
+
+/// Where an order is.
+enum Status {
+  /// Not yet sent.
+  Draft
+  Placed
+  Lowest
+}
+
+target go for shop {
+  LineItem => key(order, sku)
+  Order => key(id)
+  Order.id => tag("json:\"id\"")
+  Status.Lowest => name("StatusLow")
+}

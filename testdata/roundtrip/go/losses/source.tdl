@@ -1,0 +1,76 @@
+// What Go loses, one fact at a time. Each is a warning without
+// annotations and comes back with them.
+package shop
+
+/// An identifier.
+type OrderId: uuid where { length(36) }
+
+alias Labels = {string}
+
+class Audited {
+  createdAt: instant
+}
+
+class Tagged {}
+
+class Paged {
+  type Cursor
+}
+
+mixin Stamped {
+  createdAt: instant
+}
+
+unit kg
+
+type Parcel: Entity, Audited {
+  id: OrderId
+  include Stamped
+  count: int
+  sent: date
+  price: decimal
+  labels: Labels
+  note: string | null
+  maybe: Option<string>
+  parts: List<string>
+  tags: Set<string>
+  totals: Map<string, int64>
+  owner: Parcel? owned
+  retries: int32 = 3
+  ratio: int32 where { between(0, 100) }
+}
+
+type Weighed {
+  weight: decimal<kg>
+}
+
+type Account: Entity {
+  id: string
+  name: string where { length(1..64) }
+}
+
+enum Shape: Tagged {
+  Round
+  Square
+}
+
+enum Flag<T> {
+  On
+  Off
+}
+
+type Box<T> {
+  item: T
+}
+
+type Wrapped<f, T> {
+  items: f<T>
+}
+
+type Crate {
+  box: Box<string>
+}
+
+target go for shop {
+  Account => key(id)
+}
