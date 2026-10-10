@@ -10,6 +10,7 @@ import (
 	gqlast "github.com/vektah/gqlparser/v2/ast"
 
 	"github.com/unstoppablemango/tdl/backend/graphql"
+	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/backend/internal/irtest"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -92,7 +93,7 @@ func TestDescribe(t *testing.T) {
 	if d.Name != "graphql" || !d.Reuse {
 		t.Errorf("description = %+v", d)
 	}
-	if len(d.Directives) != 1 || d.Directives[0].GetName() != "name" {
+	if len(d.Directives) != 2 || d.Directives[0].GetName() != "name" || d.Directives[1].GetName() != "roundtrip" || !d.Reverse {
 		t.Errorf("directives = %v", d.Directives)
 	}
 }
@@ -112,7 +113,7 @@ func TestObjects(t *testing.T) {
 	))
 
 	resp := generate(t, b)
-	if len(resp.GetDiagnostics()) != 0 {
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
 		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
 	}
 	src := check(t, resp)
@@ -156,7 +157,7 @@ func TestFixedWidthNumerics(t *testing.T) {
 	))
 
 	resp := generate(t, b)
-	if len(resp.GetDiagnostics()) != 0 {
+	if len(uncoded(resp.GetDiagnostics())) != 0 {
 		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
 	}
 	src := check(t, resp)
@@ -253,7 +254,7 @@ func TestScalarNamesAgainstVariants(t *testing.T) {
 	b.Own(value("Counter", irtest.Field("n", b.Named("int"))))
 
 	resp := generate(t, b)
-	if len(resp.GetDiagnostics()) != 1 {
+	if len(uncoded(resp.GetDiagnostics())) != 1 {
 		t.Errorf("want a warning for Counter: %+v", resp.GetDiagnostics())
 	}
 	src := check(t, resp)
@@ -299,7 +300,7 @@ func TestConstraintsWarn(t *testing.T) {
 	b.Own(value("Line", qty))
 
 	resp := generate(t, b)
-	if len(resp.GetDiagnostics()) != 1 {
+	if len(coded(resp.GetDiagnostics(), emit.LossConstraint)) != 1 {
 		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
 	}
 	contains(t, check(t, resp), "quantity: Long!")
@@ -354,4 +355,20 @@ func TestConformance(t *testing.T) {
 			}
 		})
 	}
+}
+
+func coded(diags []*plugin.Diagnostic, code string) []*plugin.Diagnostic {
+	var out []*plugin.Diagnostic
+	for _, d := range diags {
+		if d.GetCode() == code {
+			out = append(out, d)
+		}
+	}
+	return out
+}
+
+// uncoded drops the warnings carrying a loss code, which the round-trip
+// corpus covers, so a test can assert on the rest.
+func uncoded(diags []*plugin.Diagnostic) []*plugin.Diagnostic {
+	return coded(diags, "")
 }

@@ -180,6 +180,7 @@ Every backend reports what it cannot generate as a positioned warning rather tha
 - `backend/graphql`: one schema per model, output types only.
   Primitives GraphQL lacks, including 64-bit and unsigned integers, become custom scalars declared on use.
   A fielded enum is a union of object types; a fieldless variant gets `_: Boolean`; a map is a warning.
+  It imports one file: `reverse.go` reads gqlparser's schema document, taking the package from the file's name; `annotate.go` writes the loss warnings and, under `roundtrip`, `@tdl` directives, which the schema then defines.
   Tests validate every response with `vektah/gqlparser`.
 - `backend/typescript`: one `.ts` file per model of JSON wire types, no runtime code.
   A set is an array, a map a `Record`, unrepresentable primitives a string, a newtype a plain alias.

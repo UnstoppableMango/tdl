@@ -305,6 +305,39 @@ Under a `roundtrip` directive, each of those is written instead as an annotation
 thriftgo unescapes only `\"` in a literal, so in an annotation's value a backslash before a quote or at the end is written `%5C`, and a percent sign `%25`.
 The normal form for comparing schemas is the thriftgo AST as JSON, without comments, each kind of definition sorted by name.
 
+### GraphQL
+
+`tdl import --from graphql` reads one schema, parsed and validated by `vektah/gqlparser/v2`.
+The file's name is the package, except `schema`, the name of a model without one.
+
+| GraphQL | TDL |
+| --- | --- |
+| object type | struct |
+| union whose every member is an object type nothing else names | enum with fields, one variant per member |
+| object type holding only a nullable `_: Boolean`, as a union member | variant without fields |
+| enum, its values from screaming snake case | enum |
+| `T!`, `T`, `[T]` | `T`, `T?`, `[T?]?` |
+| `String`, `Int`, `Float`, `Boolean` | `string`, `int32`, `float64`, `bool` |
+| `Long`, `UInt64`, `Bytes`, `Decimal`, `UUID`, `DateTime`, `Date`, `Duration` | `int64`, `uint64`, `bytes`, `decimal`, `uuid`, `instant`, `date`, `duration` |
+| `ID` | `string`, with `lossy.primitive` |
+| interface, input type, another scalar, other union, type extension, a field's arguments, the root operation types, a directive | `lossy.unsupported` |
+
+A field keeps its name, and a variant's is what its object type's name adds to the union's, or else the type's own.
+A description is a doc comment, and a type's ending in a `Deprecated:` paragraph, or `Deprecated.`, is its deprecation; `@deprecated` is a field's or an enum value's.
+The target block holds a `name` directive where the convention would write another name.
+
+Generating, every fact the schema cannot hold warns with its loss code: an `int`, `uint32`, or `float32` written as another primitive, a set, collection sugar written by name, `T | null`, a newtype or alias expanded, an entity or a mixin, an include, a constraint, `owned`, a default, a name that reads back otherwise, a package the file's name does not hold, a doc comment a description cannot hold, a class, a unit, and generics.
+
+Under a `roundtrip` directive, each of those is written instead as a `@tdl` directive, which the schema defines, with one argument per use:
+
+- on `extend schema`: `package` when the file's name does not hold it, `doc` for the package's doc comment, `import` for each import, and `item` for each top-level item with no GraphQL type, as its index among the file's declarations and the item as TDL. A newtype, an alias, a class, a unit, an instance, a target block, and a declaration GraphQL cannot express are each one.
+- on a type: `name`, `kind` (`entity` or `mixin`), and `conforms`.
+- on a field: `source`, the field as TDL where the schema reads back differently, and `include`, the mixin whose include copied it.
+- on an enum value and a variant's object type: `name`.
+- on any node: `doc`, and `reason` when it is deprecated, where its description does not read back as its doc comment and deprecation.
+
+The normal form for comparing schemas is gqlparser's schema document, formatted without comments, its definitions sorted by name and its scalars without descriptions, since no model carries a scalar's.
+
 ## Encodings
 
 TDL defines no wire encoding, so these backends and the Go backend can disagree about one value.

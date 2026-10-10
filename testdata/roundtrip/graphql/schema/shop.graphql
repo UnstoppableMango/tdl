@@ -1,0 +1,56 @@
+# A schema written by hand, in the shapes the generator writes.
+
+scalar DateTime
+scalar Long
+
+"""
+An order, identified by its id.
+"""
+type Order {
+  id: String!
+  "When it was placed."
+  placedAt: DateTime!
+  lines: [order_line!]!
+  notes: [String]
+  gift: Boolean
+  payment: Payment!
+  status: Status!
+  fax: String @deprecated(reason: "nobody has one")
+}
+
+type order_line {
+  sku: String!
+  quantity: Long!
+  grid: [[Int!]!]!
+}
+
+"""
+Where an order is.
+
+Deprecated: use Order.status
+"""
+enum Status {
+  "Not yet sent."
+  DRAFT
+  PLACED
+  lowest
+  OLD @deprecated
+}
+
+"""
+How an order is paid.
+"""
+union Payment = PaymentCard | Wire
+
+"""
+A card on file.
+"""
+type PaymentCard {
+  last4: String!
+}
+
+type Wire {
+  iban: String!
+  "The bank's code."
+  bic: String
+}

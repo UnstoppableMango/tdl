@@ -46,3 +46,9 @@ A service wants the `rpc` and `stream` primitives made up, as a oneof's enum is;
 `tdl import --from thrift` warns and skips a const, a service, a union that is not a fielded enum's shape, and an `include`, which fails the import.
 An exception is read as a struct, and `required`, a default, and annotations other than `deprecated` are dropped.
 A union of primitives could be an enum whose variants hold one field each, if Generate wrote that shape back; defaults are a TDL field's `= value`, if Generate wrote them.
+
+## Importing what GraphQL has and TDL does not
+
+`tdl import --from graphql` warns and skips an interface, an input type, a custom scalar it does not know, a union that is not a fielded enum's shape, a type extension, and a directive other than `@deprecated`.
+A field's arguments are dropped, so a `Query` type reads as a struct, and the schema's root operation types are not kept.
+An interface could be a class, as [reverse.md](design/reverse.md) suggests, and a field with arguments wants TDL surface for operations, which Smithy and protobuf services want too.

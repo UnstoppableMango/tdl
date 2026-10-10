@@ -3,15 +3,16 @@
 package graphql
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"maps"
 	"regexp"
 	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
+	"github.com/unstoppablemango/tdl/internal/unlower"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -32,7 +33,11 @@ func (Backend) Describe() plugin.Description {
 			// The GraphQL name for a type, field, enum value, or variant
 			// object type.
 			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_STRING}},
+			// Writes, as @tdl directives, every fact the schema alone would
+			// lose, so import rebuilds the model.
+			{Name: "roundtrip"},
 		},
+		Reverse: true,
 	}
 }
 
@@ -90,6 +95,10 @@ type generator struct {
 
 	// uses is the custom scalars the declaration being rendered needs.
 	uses map[string]bool
+
+	// annotated is whether any @tdl directive is written, which the schema
+	// must then define.
+	annotated bool
 }
 
 type rendered struct {
@@ -98,12 +107,24 @@ type rendered struct {
 	uses map[string]bool
 }
 
+// defaultFile names the file of a model without a package.
+const defaultFile = "schema"
+
 // Generate returns one .graphql file holding the model's declarations.
 func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Response, error) {
 	g := &generator{
 		Session: emit.NewSession(req, "GraphQL"),
 		local:   map[string]bool{},
 		names:   map[string]string{},
+	}
+	g.Roundtrip = g.Bare("roundtrip")
+
+	pkg := req.GetModel().GetPackage()
+	if back := packageBack(pkg); back != pkg {
+		g.Lose(emit.LossName, nil, "package %s names the file %s.graphql, which reads back as package %q", pkg, cmp.Or(back, defaultFile), back)
+	}
+	if len(req.GetModel().GetDoc()) > 0 {
+		g.Lose(emit.LossDoc, nil, "GraphQL has no place for the package's doc comment")
 	}
 
 	own := g.Own()
@@ -114,31 +135,51 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	}
 
 	skipped := map[*ir.Decl]bool{}
+	// Each declaration's warnings are held until the cascade decides
+	// whether it is emitted, since a skipped one loses everything at once.
+	held := map[*ir.Decl][]*plugin.Diagnostic{}
 	var out []rendered
 	for _, d := range own {
 		g.uses = map[string]bool{}
+		mark := len(g.Diags)
 		text, err := g.decl(d)
 		if err != nil {
-			g.Warn(err)
+			g.Diags = g.Diags[:mark]
+			g.Skip(err)
 			skipped[d] = true
 			continue
 		}
+		held[d] = slices.Clone(g.Diags[mark:])
+		g.Diags = g.Diags[:mark]
 		if text != "" {
 			out = append(out, rendered{d, text, g.uses})
 		}
 	}
+	mark := len(g.Diags)
 	g.Cascade(own, skipped)
+	if g.Roundtrip {
+		// A skipped declaration is carried as TDL, so nothing is lost.
+		g.Diags = g.Diags[:mark]
+	}
+	for _, d := range own {
+		if !skipped[d] {
+			g.Diags = append(g.Diags, held[d]...)
+		}
+	}
 
 	var blocks []string
 	need := map[string]bool{}
+	emitted := map[string]bool{}
 	for _, r := range out {
 		if skipped[r.decl] {
 			continue
 		}
 		blocks = append(blocks, r.text)
 		maps.Copy(need, r.uses)
+		emitted[r.decl.GetMeta().GetName()] = true
 	}
-	if len(blocks) == 0 {
+	header := g.schemaExtension(emitted)
+	if len(blocks) == 0 && header == "" {
 		return g.Response(nil), nil
 	}
 	for _, s := range slices.Sorted(maps.Keys(need)) {
@@ -146,6 +187,12 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		description(&b, "", []string{custom[s]})
 		fmt.Fprintf(&b, "scalar %s\n", s)
 		blocks = append(blocks, b.String())
+	}
+	if header != "" {
+		blocks = append([]string{header}, blocks...)
+	}
+	if g.annotated {
+		blocks = append([]string{definition}, blocks...)
 	}
 
 	var b strings.Builder
@@ -155,8 +202,8 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		b.WriteString(block)
 	}
 
-	path := "schema.graphql"
-	if pkg := req.GetModel().GetPackage(); pkg != "" {
+	path := defaultFile + ".graphql"
+	if pkg != "" {
 		path = emit.LastSegment(pkg) + ".graphql"
 	}
 	return g.Response([]*plugin.File{{Path: path, Content: []byte(b.String())}}), nil
@@ -190,8 +237,23 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	pos := d.GetMeta().GetPosition()
 	name := d.GetMeta().GetName()
 
-	if ok, err := emit.Declares(d); !ok {
-		return "", err
+	switch {
+	case d.GetClass() != nil:
+		return "", emit.Lost(emit.LossClass, pos, "%s is a class, and classes are not generated yet", name)
+	case d.GetUnit() != nil:
+		return "", emit.Lost(emit.LossUnit, pos, "%s is a unit, and units are not generated yet", name)
+	case d.GetAlias() != nil:
+		if len(d.Params()) == 0 {
+			g.Lose(emit.LossAlias, pos, "alias %s is expanded where used", name)
+			g.typeLosses(d.GetAlias().GetTarget(), nil)
+		}
+		return "", nil
+	case d.GetStructure() == nil && d.GetEnumeration() == nil && d.GetNewtype() == nil:
+		// A primitive declares nothing.
+		return "", nil
+	}
+	if len(d.Params()) > 0 {
+		return "", emit.Lost(emit.LossGeneric, pos, "%s is parameterized, and generics are not generated yet", name)
 	}
 
 	if n := d.GetNewtype(); n != nil {
@@ -203,7 +265,11 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		g.WarnWhere(d)
+		g.Lose(emit.LossNewtype, pos, "newtype %s is expanded where used", name)
+		g.typeLosses(n.GetBase(), nil)
+		if !g.Roundtrip {
+			g.WarnWhere(d)
+		}
 		return "", nil
 	}
 
@@ -212,7 +278,8 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	var err error
 	switch e := d.GetEnumeration(); {
 	case e == nil:
-		declared, err = g.object(&b, g.DeclName(d, emit.Pascal), d.GetMeta(), d.Fields())
+		written := g.DeclName(d, emit.Pascal)
+		declared, err = g.object(&b, written, d.GetMeta(), d.Fields(), object, g.structKVs(d, written))
 	case emit.Fielded(e):
 		declared, err = g.union(&b, d)
 	default:
@@ -238,7 +305,9 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	for _, n := range declared {
 		g.names[n] = name
 	}
-	g.WarnConstraints(d)
+	if !g.Roundtrip {
+		g.WarnConstraints(d)
+	}
 	return b.String(), nil
 }
 
@@ -253,15 +322,25 @@ func (g *generator) typeName(name string, pos *ir.Position) error {
 	return nil
 }
 
-// object renders an entity, a value, or a mixin, which emit alike.
-func (g *generator) object(b *strings.Builder, name string, meta *ir.Meta, fields []*ir.Field) ([]string, error) {
+// object renders an entity, a value, a mixin, or a variant's object type,
+// which emit alike. kind says which, and kvs are its own annotations.
+func (g *generator) object(b *strings.Builder, name string, meta *ir.Meta, fields []*ir.Field, kind node, kvs []kv) ([]string, error) {
 	if len(fields) == 0 {
 		return nil, emit.Unsupported(meta.GetPosition(), "%s has no fields, and a GraphQL object needs at least one", name)
+	}
+	includes := make([]string, len(fields))
+	if kind == object {
+		includes = unlower.Includes(g.Model, fields)
+	}
+	for i, inc := range includes {
+		if inc != "" && (i == 0 || includes[i-1] != inc) {
+			g.Lose(emit.LossInclude, fields[i].GetMeta().GetPosition(), "%s's include of %s is flattened into its fields", name, inc)
+		}
 	}
 
 	var body strings.Builder
 	seen := map[string]bool{}
-	for _, f := range fields {
+	for i, f := range fields {
 		ref, err := g.Resolve(f.GetType())
 		if err != nil {
 			return nil, err
@@ -275,12 +354,16 @@ func (g *generator) object(b *strings.Builder, name string, meta *ir.Meta, field
 		if err := claim(seen, name, field, f.GetMeta().GetPosition()); err != nil {
 			return nil, err
 		}
-		description(&body, "  ", emit.Doc(f.GetMeta()))
-		fmt.Fprintf(&body, "  %s: %s%s\n", field, typ, deprecated(f.GetMeta()))
+		doc := emit.Doc(f.GetMeta())
+		fkvs := append(g.fieldKVs(name, f, ref, field, includes[i]), g.docKVs(f.GetMeta(), member, "  ", doc)...)
+		description(&body, "  ", doc)
+		fmt.Fprintf(&body, "  %s: %s%s%s\n", field, typ, deprecated(f.GetMeta()), g.annotations(fkvs))
 	}
 
-	description(b, "", typeDoc(meta))
-	fmt.Fprintf(b, "type %s {\n%s}\n", name, body.String())
+	doc := typeDoc(meta)
+	kvs = append(kvs, g.docKVs(meta, kind, "", doc)...)
+	description(b, "", doc)
+	fmt.Fprintf(b, "type %s%s {\n%s}\n", name, g.annotations(kvs), body.String())
 	return []string{name}, nil
 }
 
@@ -301,12 +384,23 @@ func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 		if err := claim(seen, name, value, v.GetMeta().GetPosition()); err != nil {
 			return nil, err
 		}
-		description(&body, "  ", emit.Doc(v.GetMeta()))
-		fmt.Fprintf(&body, "  %s%s\n", value, deprecated(v.GetMeta()))
+		var kvs []kv
+		if back := emit.FromScreaming(value); back != v.GetMeta().GetName() {
+			g.Lose(emit.LossName, v.GetMeta().GetPosition(), "%s.%s is written %s, which reads back as %s", name, v.GetMeta().GetName(), value, back)
+			kvs = append(kvs, kv{"name", v.GetMeta().GetName()})
+		} else {
+			g.CheckRenamed(v.GetDirectives(), emit.ScreamingSnake(back) != value, "%s.%s", name, v.GetMeta().GetName())
+		}
+		doc := emit.Doc(v.GetMeta())
+		kvs = append(kvs, g.docKVs(v.GetMeta(), member, "  ", doc)...)
+		description(&body, "  ", doc)
+		fmt.Fprintf(&body, "  %s%s%s\n", value, deprecated(v.GetMeta()), g.annotations(kvs))
 	}
 
-	description(b, "", typeDoc(d.GetMeta()))
-	fmt.Fprintf(b, "enum %s {\n%s}\n", name, body.String())
+	doc := typeDoc(d.GetMeta())
+	kvs := append(append(g.nameKVs(d, name), g.conformsKV(d)...), g.docKVs(d.GetMeta(), object, "", doc)...)
+	description(b, "", doc)
+	fmt.Fprintf(b, "enum %s%s {\n%s}\n", name, g.annotations(kvs), body.String())
 	return []string{name}, nil
 }
 
@@ -320,23 +414,47 @@ func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	var members []string
 	for _, v := range d.GetEnumeration().GetVariants() {
 		member := g.memberName(name, v)
+		vname := v.GetMeta().GetName()
+		var kvs []kv
+		if back := variantBack(name, member); back != vname {
+			g.Lose(emit.LossName, v.GetMeta().GetPosition(), "%s.%s is written %s, which reads back as %s", name, vname, member, back)
+			kvs = append(kvs, kv{"name", vname})
+		} else {
+			g.CheckRenamed(v.GetDirectives(), member != name+emit.Pascal(back), "%s.%s", name, vname)
+		}
 		types.WriteString("\n")
 
 		if len(v.GetFields()) == 0 {
-			doc := append(typeDoc(v.GetMeta()), "", fmt.Sprintf("The %s variant, which carries nothing. `%s` is always null: a GraphQL object needs at least one field.", v.GetMeta().GetName(), placeholder))
+			doc := typeDoc(v.GetMeta())
+			if len(doc) > 0 {
+				doc = append(doc, "")
+			}
+			doc = append(doc, placeholderNote(vname))
+			kvs = append(kvs, g.docKVs(v.GetMeta(), empty, "", doc)...)
 			description(&types, "", doc)
-			fmt.Fprintf(&types, "type %s {\n  %s: Boolean\n}\n", member, placeholder)
-		} else if _, err := g.object(&types, member, v.GetMeta(), v.GetFields()); err != nil {
+			fmt.Fprintf(&types, "type %s%s {\n  %s: Boolean\n}\n", member, g.annotations(kvs), placeholder)
+		} else if _, err := g.object(&types, member, v.GetMeta(), v.GetFields(), object, kvs); err != nil {
 			return nil, err
 		}
 		members = append(members, member)
 		declared = append(declared, member)
 	}
 
-	description(b, "", typeDoc(d.GetMeta()))
-	fmt.Fprintf(b, "union %s = %s\n", name, strings.Join(members, " | "))
+	doc := typeDoc(d.GetMeta())
+	kvs := append(append(g.nameKVs(d, name), g.conformsKV(d)...), g.docKVs(d.GetMeta(), object, "", doc)...)
+	description(b, "", doc)
+	fmt.Fprintf(b, "union %s%s = %s\n", name, g.annotations(kvs), strings.Join(members, " | "))
 	b.WriteString(types.String())
 	return declared, nil
+}
+
+// variantBack is the variant a union member reads back as: what its name
+// adds to the union's, or else its own.
+func variantBack(union, member string) string {
+	if rest, ok := strings.CutPrefix(member, union); ok && rest != "" {
+		return rest
+	}
+	return member
 }
 
 // fieldType returns a field's type: non-null unless the field is optional.
@@ -460,5 +578,5 @@ func deprecated(meta *ir.Meta) string {
 	case reason == "":
 		return " @deprecated"
 	}
-	return " @deprecated(reason: " + strconv.Quote(reason) + ")"
+	return " @deprecated(reason: " + literal(reason) + ")"
 }

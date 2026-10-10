@@ -56,7 +56,7 @@ var shipped = []struct {
 }{
 	{backend: debug.Backend{}, model: sampleModel, packaged: true},
 	{backend: golang.Backend{}, model: goModel, packaged: true, valid: parseGo},
-	{backend: graphql.Backend{}, model: orderModel, packaged: true, valid: loadGraphQL},
+	{backend: graphql.Backend{}, model: orderModel, packaged: true, valid: loadGraphQL, reverse: graphqlSource},
 	{backend: jsonschema.Backend{}, model: orderModel, packaged: true, valid: compileJSONSchema},
 	{backend: likec4.Backend{}, model: orderModel, packaged: true},
 	{backend: openapi.Backend{}, model: orderModel, packaged: true, valid: parseYAML},
@@ -77,6 +77,18 @@ package shop;
 message Order {
   string id = 1;
   repeated string tags = 2;
+}
+`)}}
+}
+
+// graphqlSource is a schema for the graphql reverse to read.
+func graphqlSource() []*plugin.File {
+	return []*plugin.File{{Path: "shop.graphql", Content: []byte(`"""
+An order.
+"""
+type Order {
+  id: String!
+  tags: [String!]!
 }
 `)}}
 }
