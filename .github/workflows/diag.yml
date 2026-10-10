@@ -1,0 +1,53 @@
+name: diag
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  GOMODCACHE: ${{ github.workspace }}/.go/mod
+  GOCACHE: ${{ github.workspace }}/.go/build
+
+jobs:
+  diag:
+    runs-on: thecluster
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .go
+          key: ${{ runner.os }}-go-test-${{ hashFiles('go.sum') }}
+          restore-keys: ${{ runner.os }}-go-test-
+      - name: machine
+        run: |
+          set -x
+          uname -a; nproc; cat /proc/cpuinfo | grep -m3 -E "model name|flags" | cut -c1-300
+          cat /sys/fs/cgroup/cpu.max /sys/fs/cgroup/memory.max /sys/fs/cgroup/cpu.stat 2>&1 || true
+          free -m; ulimit -a
+          cat /proc/sys/kernel/randomize_va_space /sys/kernel/mm/transparent_hugepage/enabled 2>&1 || true
+          env | sort | grep -iE "^(GO|CGO|TSAN|NIX_|LD_)" || true
+      - name: protobuf tests, timed
+        env:
+          CGO_ENABLED: "1"
+        run: |
+          nix develop -c bash -c '
+            set -x
+            go version; go env GOARCH GOAMD64 CC CGO_ENABLED
+            go test -c -o /tmp/pb.norace ./backend/protobuf
+            go test -race -c -o /tmp/pb.race ./backend/protobuf
+            cd backend/protobuf
+            cat > /tmp/gmp.go <<EOF
+          package main
+          import ("fmt";"runtime")
+          func main(){fmt.Println("GOMAXPROCS", runtime.GOMAXPROCS(0), "NumCPU", runtime.NumCPU())}
+          EOF
+            go run /tmp/gmp.go
+            time /tmp/pb.norace -test.count=1
+            time timeout 240 /tmp/pb.race -test.count=1 -test.run "TestRootFileEntryOutranksDependency|TestConformance" -test.v -test.cpuprofile /tmp/cpu.out
+            go tool pprof -top -nodecount=40 /tmp/pb.race /tmp/cpu.out | head -60
+            time GOMAXPROCS=1 timeout 240 /tmp/pb.race -test.count=1 -test.run "TestRootFileEntryOutranksDependency|TestConformance" -test.v
+          '
