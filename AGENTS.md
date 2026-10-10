@@ -210,9 +210,9 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   A `key` directive makes a field a unique external ID.
   Tests check the XML is well formed and `checks.gen-salesforce` runs `xmllint`; nothing checks the Apex.
   See `docs/design/salesforce-backend.md`.
-- `backend/likec4`: LikeC4 source for an architecture diagram: `tdl.c4`, the specification of element kinds, the same bytes for every model, and one `<package>.c4` holding a package element and one element per declaration.
+- `backend/likec4`: LikeC4 source for an architecture diagram: `tdl.c4`, the specification of element kinds, the same bytes for every model, and one `<package>.c4` holding a package element and one element per structure, enum, newtype, or class; aliases, primitives, and units have none.
   Only phase 1 of `likec4-backend-plan.md` is built: no relationships or views yet.
-  No Go library parses LikeC4, so tests compare text, and nothing runs the `likec4` CLI yet.
+  No Go library parses LikeC4, so tests compare text, and also run `likec4 validate --no-layout` when `likec4` is on `PATH`.
 - `backend/debug`: describes the model it was given, to exercise the protocol.
 
 `cmd/tdl-gen-<name>` serves each backend as a plugin.
