@@ -41,9 +41,12 @@ func model(t *testing.T, resp *plugin.Response) (string, string) {
 }
 
 // validate runs `likec4 validate` over the files as one project. Without
-// the CLI these tests check substrings only.
+// the CLI, or under -short, these tests check substrings only.
 func validate(t *testing.T, files []*plugin.File) {
 	t.Helper()
+	if testing.Short() {
+		return
+	}
 	cli, err := exec.LookPath("likec4")
 	if err != nil {
 		return

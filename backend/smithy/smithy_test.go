@@ -38,10 +38,14 @@ func check(t *testing.T, resp *plugin.Response) string {
 	return string(f.GetContent())
 }
 
-// validate runs `smithy validate` over a file. Without the CLI these tests
-// check substrings only; checks.gen-smithy validates regardless.
+// validate runs `smithy validate` over a file. Without the CLI, or under
+// -short, these tests check substrings only; checks.gen-smithy validates
+// regardless.
 func validate(t *testing.T, f *plugin.File) {
 	t.Helper()
+	if testing.Short() {
+		return
+	}
 	cli, err := exec.LookPath("smithy")
 	if err != nil {
 		return
