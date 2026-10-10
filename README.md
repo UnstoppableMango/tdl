@@ -14,6 +14,8 @@ It has no expressions, control flow, or runtime.
 
 ![tdl generating Go and TypeScript from a model](docs/demo/demo.gif)
 
+Made with [VHS](https://github.com/charmbracelet/vhs) ([view source](docs/demo/demo.tape)).
+
 This repository holds the [language specification](docs/spec.md) and its reference implementation in Go.
 
 ## Status
