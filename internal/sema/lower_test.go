@@ -530,10 +530,20 @@ type LineItem: Entity { order: Order }
 func TestValueRecursion(t *testing.T) {
 	lower(t, `
 type Ok { next: Ok? children: [Ok] byName: {string -> Ok} }
+type Spelled {
+  next: Option<Spelled>
+  prev: Nullable<Spelled>
+  children: List<Spelled>
+  peers: Set<Spelled>
+  byName: Map<string, Spelled>
+}
+enum Tree { Leaf Branch { children: List<Tree> } }
 `)
 
 	for _, src := range []string{
 		`type Node { next: Node }`,
+		`type Node { next: Holder<Node> }
+type Holder<T> { value: T }`,
 		`type A { b: B }
 type B { a: A }`,
 		`enum Tree { Branch { left: Tree } }`,
@@ -598,6 +608,7 @@ func TestAliasRecursion(t *testing.T) {
 	for _, src := range []string{
 		`alias A = A`,
 		`alias A = [A]`,
+		`alias A = List<A>`,
 		`alias A = B
 alias B = A`,
 	} {

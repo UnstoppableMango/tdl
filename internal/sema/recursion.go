@@ -103,9 +103,28 @@ func (l *lowerer) edges(file *ast.File, name string, throughWrappers bool) []edg
 	return out
 }
 
-// wrapped reports whether a type reference is a collection or an optional.
+// wrapped reports whether a type reference is a collection or an optional,
+// as sugar or spelled out. `List<T>` names what `[T]` lowers to, so the two
+// wrap alike.
 func wrapped(t *ast.TypeRef) bool {
-	return t.List != nil || t.Set != nil || t.MapKey != nil || t.Optional || t.Nullable
+	return t.List != nil || t.Set != nil || t.MapKey != nil || t.Optional || t.Nullable || spelledWrapper(t)
+}
+
+// spelledWrapper reports whether a type reference names, with its
+// arguments, a declaration sugar lowers to.
+func spelledWrapper(t *ast.TypeRef) bool {
+	if t.Qualifier != "" {
+		return false
+	}
+	want := 1
+	switch t.N {
+	case preludeList, preludeSet, preludeOption, preludeNullable:
+	case preludeMap:
+		want = 2
+	default:
+		return false
+	}
+	return len(t.Args) == want
 }
 
 // reachedNames returns the declaration names a type reference mentions.
@@ -134,6 +153,9 @@ func reachedNames(t *ast.TypeRef, throughWrappers bool) []string {
 
 	if t.Qualifier != "" {
 		return nil // another package, and imports are not resolved yet
+	}
+	if !throughWrappers && spelledWrapper(t) {
+		return nil
 	}
 
 	names := []string{t.N}
