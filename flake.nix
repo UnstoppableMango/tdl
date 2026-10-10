@@ -21,6 +21,15 @@
       inputs.flake-utils.inputs.systems.follows = "systems";
     };
 
+    # graphify for the devShell. TODO: track main once unmango/pkgs#140 merges.
+    mangopkgs = {
+      url = "github:unmango/pkgs/claude/project-thread-eh2w5a";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "systems";
+      inputs.flake-parts.follows = "flake-parts";
+      inputs.treefmt-nix.follows = "treefmt-nix";
+    };
+
     # Only checks.hm-module evaluates this; the module itself takes no input.
     home-manager = {
       url = "github:nix-community/home-manager";
@@ -42,7 +51,7 @@
       _module.args.version = "0.4.5"; # x-release-please-version
 
       perSystem =
-        { pkgs, ... }:
+        { inputs', pkgs, ... }:
         {
           devShells.default = pkgs.mkShell {
             packages = with pkgs; [
@@ -63,18 +72,7 @@
               deepsource
               zip
               biome
-              # graphify-mcp, which .mcp.json runs, needs the mcp extra.
-              # graphify re-executes itself as `python -m graphify` to pin the
-              # hash seed, and the bare interpreter cannot import it; setting
-              # the seed skips the re-exec.
-              (graphify.overridePythonAttrs (old: {
-                dependencies = old.dependencies ++ old.optional-dependencies.mcp;
-                makeWrapperArgs = (old.makeWrapperArgs or [ ]) ++ [
-                  "--set-default"
-                  "PYTHONHASHSEED"
-                  "0"
-                ];
-              }))
+              inputs'.mangopkgs.packages.graphify
             ];
           };
 
