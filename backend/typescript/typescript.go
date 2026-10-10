@@ -81,13 +81,17 @@ type generator struct {
 
 	// names maps each declared type name to the declaration declaring it.
 	names map[string]string
+
+	// enforced holds each constraint a literal union enforces.
+	enforced map[*ir.Constraint]bool
 }
 
 // Generate returns one .ts file holding the model's declarations.
 func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Response, error) {
 	g := &generator{
-		Session: emit.NewSession(req, "TypeScript"),
-		names:   map[string]string{},
+		Session:  emit.NewSession(req, "TypeScript"),
+		names:    map[string]string{},
+		enforced: map[*ir.Constraint]bool{},
 	}
 
 	own := g.Own()
@@ -170,12 +174,13 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	for _, n := range declared {
 		g.names[n] = name
 	}
-	g.WarnConstraints(d)
+	g.WarnUnenforced(d, func(c *ir.Constraint) bool { return g.enforced[c] })
 	return b.String(), nil
 }
 
-// newtype renders a newtype as an alias for its base. A branded type would
-// make every value parsed from JSON need a cast.
+// newtype renders a newtype as an alias for its base, or for the literal
+// union its constraints spell. A branded type would make every value parsed
+// from JSON need a cast.
 func (g *generator) newtype(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	ref, err := g.Resolve(d.GetNewtype().GetBase())
 	if err != nil {
@@ -184,6 +189,9 @@ func (g *generator) newtype(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	base, err := g.typ(ref)
 	if err != nil {
 		return nil, err
+	}
+	if lits := g.narrow(ref, d.GetNewtype().GetValueConstraints(), nil); lits != "" {
+		base = lits
 	}
 	name := g.DeclName(d, emit.Pascal)
 	emit.DocComment(b, "", d.GetMeta())
@@ -216,7 +224,7 @@ func (g *generator) iface(b *strings.Builder, name string, meta *ir.Meta, disc, 
 		}
 		seen[prop] = true
 
-		line, err := g.property(prop, ref)
+		line, err := g.property(prop, ref, f.GetConstraints())
 		if err != nil {
 			return nil, err
 		}
@@ -274,8 +282,9 @@ func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, error) {
 }
 
 // property renders a property: `?` when the key may be absent, and
-// `| null` when the value may be null.
-func (g *generator) property(name string, r *emit.Ref) (string, error) {
+// `| null` when the value may be null. A constraint spelling a literal
+// union narrows the value.
+func (g *generator) property(name string, r *emit.Ref, cs []*ir.Constraint) (string, error) {
 	optional, nullable := false, false
 	for r.Form == emit.Option || r.Form == emit.Nullable {
 		if r.Form == emit.Option {
@@ -289,6 +298,9 @@ func (g *generator) property(name string, r *emit.Ref) (string, error) {
 	typ, err := g.typ(r)
 	if err != nil {
 		return "", err
+	}
+	if lits := g.narrow(r, cs, r.Decl.GetNewtype().GetValueConstraints()); lits != "" {
+		typ = lits
 	}
 	if nullable {
 		typ += " | null"

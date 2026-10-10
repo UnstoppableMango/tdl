@@ -45,7 +45,7 @@ A primitive tagged `stream` wraps a request or response, as in `rpc Chat(stream 
 Either primitive may be declared in the file or imported.
 The request and response must be message references, and a service field that is not an rpc warns and skips the service.
 
-Constraints warn and the declaration is still emitted, except in JSON Schema, which has a keyword for each standard one (see [Constraints](#constraints)).
+Constraints warn and the declaration is still emitted, except in JSON Schema, which has a keyword for each standard one, and where TypeScript has an exact literal type (see [Constraints](#constraints)).
 `Field.default_value` and `owned` are not read, and a referenced entity is embedded by value.
 
 GraphQL emits output types only; input types would be a second copy of every type with different union rules.
@@ -146,6 +146,14 @@ JSON Schema writes each standard constraint as the keyword that checks it, chose
 Here **warn** leaves the declaration emitted without the keyword, as a constraint warns in every other target, and so does a constraint name the spec does not define.
 A constraint on a `T?` or `T | null` field applies to the value when one is present.
 `matches` copies the pattern as written, and JSON Schema reads it as an ECMA-262 regular expression.
+
+TypeScript writes a constraint as a literal union where one is exact, and warns for the rest:
+
+- `oneOf` on a string, a number, or a fieldless enum is the union of its values: `"open" | "closed"`, `1 | 2`.
+- An integer bounded by both `min` and `max`, with at most 16 values between them, is the union of every one: `min(1) max(6)` is `1 | 2 | 3 | 4 | 5 | 6`.
+  A `min` and `max` beside a `oneOf` are enforced when every value lies between them.
+
+A field's own constraints combine with those of the newtype it names, so `tinier: Small where { max(2) }` over `type Small: int where { min(1) max(3) }` is `1 | 2`, and a field with none of its own keeps the newtype's name.
 
 ## Names
 

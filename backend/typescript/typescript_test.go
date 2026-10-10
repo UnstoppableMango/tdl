@@ -374,3 +374,85 @@ func TestConformance(t *testing.T) {
 		})
 	}
 }
+
+func constraint(name string, args ...*ir.Literal) *ir.Constraint {
+	return &ir.Constraint{Name: name, Args: args}
+}
+
+func integer(n string) *ir.Literal {
+	return &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_INT, Text: n}
+}
+
+func float(n string) *ir.Literal {
+	return &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_FLOAT, Text: n}
+}
+
+// A constraint with an exact TypeScript type narrows to a literal union
+// and does not warn. Any other still warns.
+func TestConstraintsNarrowToLiterals(t *testing.T) {
+	b := irtest.New("shop")
+	field := func(name string, typ *ir.ID, cs ...*ir.Constraint) *ir.Field {
+		f := irtest.Field(name, typ)
+		f.Constraints = cs
+		return f
+	}
+
+	small := newtype("Small", b.Named("int"))
+	small.GetNewtype().ValueConstraints = []*ir.Constraint{constraint("min", integer("1")), constraint("max", integer("3"))}
+	b.Own(small)
+	b.Own(newtype("Grade", b.Named("string")))
+	b.Model.Decls[len(b.Model.Decls)-1].GetNewtype().ValueConstraints = []*ir.Constraint{constraint("oneOf", irtest.Text("A"), irtest.Text("B"))}
+	b.Own(enum("Size", variant("S"), variant("M"), variant("L")))
+
+	b.Own(value("Heading",
+		field("depth", b.Named("int"), constraint("min", integer("1")), constraint("max", integer("6"))),
+		field("level", b.Named("Option", b.Named("int")), constraint("min", integer("-1")), constraint("max", integer("1"))),
+		field("mode", b.Named("string"), constraint("oneOf", irtest.Text("open"), irtest.Text("closed"))),
+		field("ratio", b.Named("float64"), constraint("oneOf", float("0.5"), integer("2"))),
+		field("size", b.Named("Size"), constraint("oneOf", irtest.Variant("S", 0), irtest.Variant("M", 1))),
+		field("tiny", b.Named("Small")),
+		field("tinier", b.Named("Small"), constraint("max", integer("2"))),
+		field("grade", b.Named("Grade")),
+		field("wide", b.Named("int"), constraint("min", integer("0")), constraint("max", integer("16"))),
+		field("floor", b.Named("int"), constraint("min", integer("0"))),
+		field("off", b.Named("int"), constraint("oneOf", integer("1"), integer("9")), constraint("max", integer("5"))),
+	))
+
+	resp := generate(t, b)
+	src := check(t, resp)
+	contains(t, src,
+		"export type Small = 1 | 2 | 3;",
+		`export type Grade = "A" | "B";`,
+		"depth: 1 | 2 | 3 | 4 | 5 | 6;",
+		"level?: -1 | 0 | 1;",
+		`mode: "open" | "closed";`,
+		"ratio: 0.5 | 2;",
+		`size: "S" | "M";`,
+		"tiny: Small;",
+		"tinier: 1 | 2;",
+		"grade: Grade;",
+		"wide: number;",
+		"floor: number;",
+		"off: 1 | 9;",
+	)
+
+	// wide's range has 17 values, floor has no upper bound, and off's max
+	// excludes a value of its oneOf.
+	var warned []string
+	for _, d := range resp.GetDiagnostics() {
+		warned = append(warned, d.GetMessage())
+	}
+	want := []string{
+		"Heading.wide carries 2 constraint(s)",
+		"Heading.floor carries 1 constraint(s)",
+		"Heading.off carries 1 constraint(s)",
+	}
+	if len(warned) != len(want) {
+		t.Fatalf("diagnostics = %q, want %q", warned, want)
+	}
+	for i := range want {
+		if !strings.Contains(warned[i], want[i]) {
+			t.Errorf("diagnostic %d = %q, want %q", i, warned[i], want[i])
+		}
+	}
+}

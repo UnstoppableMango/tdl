@@ -203,7 +203,11 @@ func (s *Session) Error(pos *ir.Position, format string, args ...any) {
 // WarnWhere warns that a newtype's `where` constraints are not enforced.
 // The newtype is still emitted, since fields naming it need it declared.
 func (s *Session) WarnWhere(d *ir.Decl) {
-	if n := len(d.GetNewtype().GetValueConstraints()); n > 0 {
+	s.warnWhere(d, nil)
+}
+
+func (s *Session) warnWhere(d *ir.Decl, enforced func(*ir.Constraint) bool) {
+	if n := unenforced(d.GetNewtype().GetValueConstraints(), enforced); n > 0 {
 		s.Lossy(LossConstraint, d.GetMeta().GetPosition(),
 			"%s carries %d where constraint(s), and validation is not generated yet",
 			d.GetMeta().GetName(), n)
@@ -213,19 +217,37 @@ func (s *Session) WarnWhere(d *ir.Decl) {
 // WarnConstraints warns that a declaration's constraints are not enforced:
 // a newtype's `where` block and each field's, including enum variants'.
 func (s *Session) WarnConstraints(d *ir.Decl) {
-	s.WarnWhere(d)
+	s.WarnUnenforced(d, nil)
+}
+
+// WarnUnenforced is [Session.WarnConstraints] for a target whose types
+// enforce some constraints themselves: enforced reports those, which do
+// not warn. A nil enforced enforces none.
+func (s *Session) WarnUnenforced(d *ir.Decl, enforced func(*ir.Constraint) bool) {
+	s.warnWhere(d, enforced)
 
 	fields := slices.Clone(d.Fields())
 	for _, v := range d.GetEnumeration().GetVariants() {
 		fields = append(fields, v.GetFields()...)
 	}
 	for _, f := range fields {
-		if n := len(f.GetConstraints()); n > 0 {
+		if n := unenforced(f.GetConstraints(), enforced); n > 0 {
 			s.Lossy(LossConstraint, f.GetMeta().GetPosition(),
 				"%s.%s carries %d constraint(s), and validation is not generated yet",
 				LastSegment(d.GetMeta().GetName()), f.GetMeta().GetName(), n)
 		}
 	}
+}
+
+// unenforced counts the constraints enforced does not report.
+func unenforced(cs []*ir.Constraint, enforced func(*ir.Constraint) bool) int {
+	n := 0
+	for _, c := range cs {
+		if enforced == nil || !enforced(c) {
+			n++
+		}
+	}
+	return n
 }
 
 // Declares reports whether a schema backend writes anything for a
