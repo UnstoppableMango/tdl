@@ -179,6 +179,20 @@ func TestImportReadsTheLayout(t *testing.T) {
 	if len(diags) != 1 || diags[0].GetCode() != emit.LossUnsupported {
 		t.Errorf("diagnostics = %v, want the layout's warning", diags)
 	}
+
+	// The layout reads the files' names, not the directories they were
+	// given in.
+	src, diags = importGo(t, map[string]string{
+		"shop/a.go": "package shop\n\ntype A struct{ B string }\n",
+		"shop/c.go": "package shop\n\ntype C struct{ D string }\n",
+	})
+	if len(diags) > 0 || strings.Contains(src, "target") {
+		t.Errorf("a file per declaration in a directory imports as\n%s%v", src, diags)
+	}
+	src, diags = importGo(t, map[string]string{"shop/models.go": "package shop\n\ntype A struct{ B string }\n"})
+	if len(diags) > 0 || !strings.Contains(src, `file("models.go")`) {
+		t.Errorf("one file in a directory imports as\n%s%v", src, diags)
+	}
 }
 
 // A constraint comes back from the message validate writes, and one it
@@ -203,11 +217,15 @@ func (a A) validate(path string, errs []error) []error {
 	if a.Code == "" {
 		errs = append(errs, fmt.Errorf("code is empty"))
 	}
+	if a.Pct < 0 {
+		errs = append(errs, fmt.Errorf("%s.percent: min(0): got %d", path, a.Pct))
+	}
 	return errs
 }
 `})
-	if len(diags) != 1 || diags[0].GetCode() != emit.LossConstraint {
-		t.Errorf("diagnostics = %v, want one lossy.constraint", diags)
+	// The unreadable check, and the one naming a field A lacks.
+	if len(diags) != 2 || diags[0].GetCode() != emit.LossConstraint || diags[1].GetCode() != emit.LossConstraint {
+		t.Errorf("diagnostics = %v, want two lossy.constraint", diags)
 	}
 	for _, s := range []string{"pct: int64 where { max(100) }", `code: string where { oneOf("x: y", "100%") }`} {
 		if !strings.Contains(src, s) {

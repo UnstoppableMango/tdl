@@ -9,6 +9,7 @@ import (
 	"go/format"
 	goparser "go/parser"
 	"go/token"
+	"maps"
 	"path"
 	"slices"
 	"strconv"
@@ -852,6 +853,7 @@ func (r *reader) key(t *typeInfo, name string) []string {
 // by field name.
 func (r *reader) fields(list *goast.FieldList, owner string, scope map[string]bool, cs map[string][]*ast.Constraint) []*ast.Field {
 	var out []*ast.Field
+	read := map[string]bool{}
 	for _, f := range list.List {
 		if len(f.Names) == 0 {
 			r.Warn(emit.LossUnsupported, r.pos(f.Pos()), "%s embeds %s, which TDL has no form for", owner, exprString(f.Type))
@@ -879,11 +881,17 @@ func (r *reader) fields(list *goast.FieldList, owner string, scope map[string]bo
 					r.Directive(path, "tag", reverse.StrLit(tag))
 				}
 			}
+			read[name] = true
 			field := &ast.Field{DeclHead: r.head(name, f.Doc, n.Pos()), Type: typ, Constraints: cs[name]}
 			if len(field.Constraints) > 0 {
 				field.End = field.P
 			}
 			out = append(out, field)
+		}
+	}
+	for _, name := range slices.Sorted(maps.Keys(cs)) {
+		if !read[name] {
+			r.Warn(emit.LossConstraint, r.pos(list.Pos()), "%s's validate checks %q, which names none of its fields", owner, name)
 		}
 	}
 	return out
@@ -1255,7 +1263,7 @@ func (r *reader) layout() {
 	held := map[string]int{}
 	for _, t := range r.primary {
 		held[t.file.path]++
-		perDecl = perDecl && t.file.path == fileName(r.names[t.name])
+		perDecl = perDecl && path.Base(t.file.path) == fileName(r.names[t.name])
 	}
 	for _, f := range r.files {
 		perDecl = perDecl && held[f.path] == 1
@@ -1263,7 +1271,7 @@ func (r *reader) layout() {
 	switch {
 	case perDecl:
 	case len(r.files) == 1:
-		r.Directive("", "file", reverse.StrLit(r.files[0].path))
+		r.Directive("", "file", reverse.StrLit(path.Base(r.files[0].path)))
 	default:
 		r.Warn(emit.LossUnsupported, nil, "the package's files regenerate as one file per declaration")
 	}
