@@ -21,6 +21,15 @@
       inputs.flake-utils.inputs.systems.follows = "systems";
     };
 
+    # graphify for the devShell
+    mangopkgs = {
+      url = "github:unmango/pkgs";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "systems";
+      inputs.flake-parts.follows = "flake-parts";
+      inputs.treefmt-nix.follows = "treefmt-nix";
+    };
+
     # Only checks.hm-module evaluates this; the module itself takes no input.
     home-manager = {
       url = "github:nix-community/home-manager";
@@ -42,7 +51,7 @@
       _module.args.version = "0.4.5"; # x-release-please-version
 
       perSystem =
-        { pkgs, ... }:
+        { inputs', pkgs, ... }:
         {
           devShells.default = pkgs.mkShell {
             packages = with pkgs; [
@@ -63,6 +72,7 @@
               deepsource
               zip
               biome
+              inputs'.mangopkgs.packages.graphify
             ];
           };
 

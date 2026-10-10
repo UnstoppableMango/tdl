@@ -1,0 +1,12 @@
+# graphify reads .gitignore too; this file adds what is tracked but not worth graphing.
+
+# Generated
+*.pb.go
+tree-sitter/grammar.js
+tree-sitter/src/*
+!tree-sitter/src/scanner.c
+editors/vscode/syntaxes/
+
+# Fixtures and recorded output
+testdata/
+*.golden
