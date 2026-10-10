@@ -131,9 +131,9 @@ func (g *generator) checks(d *ir.Decl, u checkUnit, report bool) *checkWriter {
 	if u.base != nil {
 		if g.pointerOrInterface(u.base, map[int32]bool{}) {
 			if report && len(u.cs) > 0 {
-				g.Warn(emit.Unsupported(d.GetMeta().GetPosition(),
+				g.Lose(emit.LossConstraint, d.GetMeta().GetPosition(),
 					"%s is a newtype over a pointer or an interface, which Go gives no methods, so its constraints are not checked",
-					d.GetMeta().GetName()))
+					d.GetMeta().GetName())
 			}
 			return nil
 		}
@@ -162,9 +162,9 @@ func (g *generator) checks(d *ir.Decl, u checkUnit, report bool) *checkWriter {
 	for _, f := range u.fields {
 		if n := g.fieldName(f); n == "Validate" || n == "validate" {
 			if report {
-				g.Warn(emit.Unsupported(d.GetMeta().GetPosition(),
+				g.Lose(emit.LossConstraint, d.GetMeta().GetPosition(),
 					"%s has a field named %s, which the Validate method would collide with, so its constraints are not checked",
-					d.GetMeta().GetName(), n))
+					d.GetMeta().GetName(), n)
 			}
 			return nil
 		}
@@ -291,6 +291,8 @@ const (
 
 var primitiveShapes = map[string]shape{
 	"int":      shapeInt,
+	"int32":    shapeInt,
+	"int64":    shapeInt,
 	"string":   shapeString,
 	"uuid":     shapeString,
 	"bool":     shapeBool,
@@ -438,7 +440,7 @@ func (g *generator) constrain(w *checkWriter, expr string, named bool, id *ir.ID
 
 	for _, c := range cs {
 		if err := g.constraintCheck(w, c, expr, v, p); err != nil && report(c) {
-			g.Warn(err)
+			g.lose(emit.LossConstraint, err)
 		}
 	}
 }

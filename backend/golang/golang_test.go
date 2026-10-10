@@ -17,11 +17,14 @@ import (
 	"testing"
 
 	"github.com/unstoppablemango/tdl/backend/golang"
+	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/backend/internal/irtest"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
+// generate generates m, dropping the warnings about what import would not
+// read back, which these tests do not assert; reverse_test.go does.
 func generate(t *testing.T, m *irtest.Builder) *plugin.Response {
 	t.Helper()
 	resp, err := golang.Backend{}.Generate(context.Background(), &plugin.Request{
@@ -31,7 +34,22 @@ func generate(t *testing.T, m *irtest.Builder) *plugin.Response {
 	if err != nil {
 		t.Fatalf("generate: %v", err)
 	}
+	resp.Diagnostics = slices.DeleteFunc(resp.Diagnostics, readsBackOtherwise)
 	return resp
+}
+
+// readsBackOtherwise reports whether a warning says only that import would
+// read the output back as another model.
+func readsBackOtherwise(d *plugin.Diagnostic) bool {
+	switch d.GetCode() {
+	case emit.LossOrder, emit.LossPrimitive, emit.LossCollection, emit.LossOptional, emit.LossAlias,
+		emit.LossName, emit.LossDoc, emit.LossStructKind, emit.LossInclude, emit.LossOwned,
+		emit.LossDefault, emit.LossUnsupported:
+		return true
+	case emit.LossClass:
+		return strings.Contains(d.GetMessage(), "markers read back")
+	}
+	return false
 }
 
 // sourceImporter type checks imports from GOROOT source, so no build cache

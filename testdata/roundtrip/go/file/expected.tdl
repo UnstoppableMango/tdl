@@ -1,0 +1,17 @@
+package billing
+
+type Invoice {
+  number: string
+  lines: [Line]
+  state: State
+}
+
+type Line {
+  amount: int64
+}
+
+enum State { Open Paid }
+
+target go for billing {
+  file("models.go")
+}

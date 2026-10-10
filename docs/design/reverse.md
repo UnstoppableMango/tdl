@@ -133,7 +133,7 @@ tdl import --from <target> [-o out.tdl] [--package <path>] [--allow-lossy <code>
 | `protobuf` | `bufbuild/protocompile` |
 | `thrift` | `cloudwego/thriftgo` |
 | `graphql` | `vektah/gqlparser/v2` |
-| `go` | `go/parser` and `go/types` |
+| `go` | `go/parser` |
 | `typescript` | the TypeScript compiler API, run by an embedded script under `node` |
 | `smithy` | `smithy ast`, the CLI's JSON AST |
 | `jsonschema` | `encoding/json`, after `santhosh-tekuri/jsonschema` compiles the document |

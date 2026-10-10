@@ -49,7 +49,11 @@ func (Backend) Describe() plugin.Description {
 			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{str[0], str[0]}},
 			// One file for every declaration of the target, in the target block.
 			{Name: "file", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			// Writes, as //tdl: comment directives, every fact the Go
+			// source alone would lose, so import rebuilds the model.
+			{Name: "roundtrip"},
 		},
+		Reverse: true,
 	}
 }
 
@@ -89,12 +93,22 @@ type generator struct {
 	foreign map[*ir.Decl]foreignType
 	externs map[*ir.Extern]foreignType
 	aliases map[string]bool
+
+	// emitted is the declarations rendered, in model order, and reordered
+	// whether import reads them in another.
+	emitted   []*piece
+	reordered bool
+	// notes holds each declaration's annotations, and header the
+	// package's.
+	notes  map[*ir.Decl][]kv
+	header []kv
 }
 
 // Generate returns one Go file per declaration the model owns, or one file
 // holding them all when the target block names it.
 func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Response, error) {
 	g := &generator{Session: emit.NewSession(req, "Go")}
+	g.Roundtrip = g.Bare("roundtrip")
 
 	pkg := packageClause(g.Model.GetPackage())
 	var pkgPos *ir.Position
@@ -102,11 +116,16 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		pkg, pkgPos = packageClause(d.GetArgs()[0].GetText()), d.GetPosition()
 	}
 
-	// Every file carries the package clause, so a bad one is an error.
+	// Every file carries the package clause, so a bad one is an error,
+	// unless an annotation carries the package.
 	if token.IsKeyword(pkg) {
-		g.Error(pkgPos, "%q is a Go keyword and cannot be a package name", pkg)
-		return g.Response(nil), nil
+		if !g.Roundtrip {
+			g.Error(pkgPos, "%q is a Go keyword and cannot be a package name", pkg)
+			return g.Response(nil), nil
+		}
+		pkg += "_"
 	}
+	g.packageLosses(pkg, pkgPos)
 
 	// Rendering any declaration may consult these plans.
 	g.planForeign()
@@ -114,29 +133,60 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	g.inferComparable()
 	g.planValidation()
 
+	start := len(g.Diags)
+	files := g.render(pkg)
+	if g.Roundtrip {
+		// What import would read from the files decides what the
+		// annotations carry, so they are rendered again with them.
+		g.simulate(files, pkg)
+		g.Diags = g.Diags[:start]
+		files = g.render(pkg)
+	}
+	return g.Response(files), nil
+}
+
+// render renders every declaration the model owns into files.
+func (g *generator) render(pkg string) []*plugin.File {
 	skipped := map[*ir.Decl]bool{}
 	rendered := map[*ir.Decl]*piece{}
+	// Each declaration's warnings are held until the cascade decides
+	// whether it is emitted, since a skipped one loses everything at once.
+	held := map[*ir.Decl][]*plugin.Diagnostic{}
 	for i, decl := range g.Model.GetDecls() {
 		if !emit.IsOwn(decl) {
 			continue
 		}
+		mark := len(g.Diags)
 		if d, ok := g.Find(decl.GetDirectives(), "file"); ok {
 			g.Warn(emit.Unsupported(d.GetPosition(), "file names one file for the whole target, so it belongs in the target block"))
 		}
 		g.cur = int32(i)
 		p, err := g.piece(decl)
 		if err != nil {
-			g.Warn(err)
+			g.Diags = g.Diags[:mark]
+			g.Skip(err)
 			skipped[decl] = true
 			continue
 		}
+		held[decl] = slices.Clone(g.Diags[mark:])
+		g.Diags = g.Diags[:mark]
 		if p != nil {
 			rendered[decl] = p
 		}
 	}
 
 	own := g.Own()
+	mark := len(g.Diags)
 	g.Cascade(own, skipped)
+	if g.Roundtrip {
+		// A skipped declaration is carried as TDL, so nothing is lost.
+		g.Diags = g.Diags[:mark]
+	}
+	for _, d := range own {
+		if !skipped[d] {
+			g.Diags = append(g.Diags, held[d]...)
+		}
+	}
 
 	var pieces []*piece
 	for _, decl := range own {
@@ -144,20 +194,52 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 			pieces = append(pieces, p)
 		}
 	}
+	g.emitted = pieces
 
 	// One file holds the whole target when the block names it, and
 	// otherwise each declaration has its own.
+	type group struct {
+		path   string
+		pos    *ir.Position
+		pieces []*piece
+	}
+	var groups []group
 	if d, ok := g.Block("file"); ok {
-		if len(pieces) == 0 {
-			return g.Response(nil), nil
+		if len(pieces) > 0 || g.hasHeader() {
+			groups = append(groups, group{d.GetArgs()[0].GetText(), d.GetPosition(), pieces})
 		}
-		return g.Response([]*plugin.File{g.source(pkg, d.GetArgs()[0].GetText(), d.GetPosition(), pieces...)}), nil
+	} else {
+		for _, p := range pieces {
+			groups = append(groups, group{fileName(p.decl.GetMeta().GetName()), p.decl.GetMeta().GetPosition(), []*piece{p}})
+		}
+		if len(groups) == 0 && g.hasHeader() {
+			groups = append(groups, group{path: headerFile})
+		}
+	}
+	g.orderLosses(pieces, func(p *piece) string {
+		for _, gr := range groups {
+			if slices.Contains(gr.pieces, p) {
+				return gr.path
+			}
+		}
+		return ""
+	})
+
+	first := ""
+	for _, gr := range groups {
+		if first == "" || gr.path < first {
+			first = gr.path
+		}
 	}
 	var files []*plugin.File
-	for _, p := range pieces {
-		files = append(files, g.source(pkg, fileName(p.decl.GetMeta().GetName()), p.decl.GetMeta().GetPosition(), p))
+	for _, gr := range groups {
+		head := ""
+		if gr.path == first {
+			head = g.headerComment()
+		}
+		files = append(files, g.source(pkg, gr.path, gr.pos, head, gr.pieces...))
 	}
-	return g.Response(files), nil
+	return files
 }
 
 // piece is one declaration rendered, with the imports it uses.
@@ -168,7 +250,8 @@ type piece struct {
 }
 
 // source assembles pieces into one formatted Go file at path.
-func (g *generator) source(pkg, path string, pos *ir.Position, pieces ...*piece) *plugin.File {
+// head is the package doc comment, written above the package clause.
+func (g *generator) source(pkg, path string, pos *ir.Position, head string, pieces ...*piece) *plugin.File {
 	imports := map[string]string{}
 	for _, p := range pieces {
 		maps.Copy(imports, p.imports)
@@ -176,6 +259,7 @@ func (g *generator) source(pkg, path string, pos *ir.Position, pieces ...*piece)
 
 	var b strings.Builder
 	b.WriteString("// Code generated by tdl. DO NOT EDIT.\n\n")
+	b.WriteString(head)
 	fmt.Fprintf(&b, "package %s\n", pkg)
 	writeImports(&b, imports)
 	for _, p := range pieces {
@@ -195,9 +279,11 @@ func (g *generator) source(pkg, path string, pos *ir.Position, pieces ...*piece)
 // piece renders one declaration, or nil for one that generates nothing.
 func (g *generator) piece(decl *ir.Decl) (*piece, error) {
 	g.strayTags(decl)
-	if _, ok := g.foreign[decl]; ok {
+	if f, ok := g.foreign[decl]; ok {
+		g.foreignLoss(decl, f)
 		return nil, nil
 	}
+	g.declLosses(decl)
 	g.imports = map[string]string{}
 	g.curClasses = g.paramClasses(decl, true)
 
@@ -223,7 +309,7 @@ func (g *generator) piece(decl *ir.Decl) (*piece, error) {
 			return nil, err
 		}
 	case decl.GetUnit() != nil:
-		return nil, emit.Unsupported(decl.GetMeta().GetPosition(),
+		return nil, emit.Lost(emit.LossUnit, decl.GetMeta().GetPosition(),
 			"%s is a unit, and units are not generated yet", decl.GetMeta().GetName())
 	case decl.GetPrimitive() != nil:
 		return nil, nil
@@ -261,16 +347,23 @@ func (g *generator) structure(b *strings.Builder, decl *ir.Decl) error {
 
 	name := g.declName(decl)
 	g.doc(b, decl.GetMeta())
+	g.annotate(b, decl)
 	fmt.Fprintf(b, "type %s%s struct {\n", name, g.typeParams(decl))
 	if err := g.fields(b, decl.Fields()); err != nil {
 		return err
 	}
 	b.WriteString("}\n")
 
+	keyed := false
 	if d, ok := g.Find(decl.GetDirectives(), "key"); ok {
 		if err := g.key(b, decl, name, d); err != nil {
-			g.Warn(err)
+			g.lose(emit.LossKey, err)
+		} else {
+			keyed = true
 		}
+	}
+	if decl.GetStructure().GetKind() == ir.StructKind_STRUCT_KIND_ENTITY && !keyed {
+		g.Lose(emit.LossStructKind, decl.GetMeta().GetPosition(), "%s is an entity without a key, and reads back as a value", decl.GetMeta().GetName())
 	}
 	g.writeValidation(b, decl, -1)
 	g.writeMarkers(b, name+typeArgs(decl))
@@ -407,13 +500,15 @@ func (g *generator) enumeration(b *strings.Builder, decl *ir.Decl) error {
 
 	if !emit.Fielded(decl.GetEnumeration()) {
 		if len(decl.Params()) > 0 {
-			g.Warn(emit.Unsupported(decl.GetMeta().GetPosition(),
+			g.Lose(emit.LossGeneric, decl.GetMeta().GetPosition(),
 				"%s takes type parameters and none of its variants carries a field, so it is constants, and a Go constant cannot be generic: its parameters are dropped",
-				decl.GetMeta().GetName()))
+				decl.GetMeta().GetName())
 		}
 		g.doc(b, decl.GetMeta())
+		g.annotate(b, decl)
 		fmt.Fprintf(b, "type %s string\n\nconst (\n", name)
 		for _, v := range variants {
+			g.doc(b, v.GetMeta())
 			// The value is the variant's name as written.
 			fmt.Fprintf(b, "\t%s %s = %q\n",
 				g.variantName(name, v), name, v.GetMeta().GetName())
@@ -433,6 +528,7 @@ func (g *generator) enumeration(b *strings.Builder, decl *ir.Decl) error {
 	sealed := "is" + name + "(" + strings.Join(paramNames(decl), ", ") + ")"
 	params, args := g.typeParams(decl), typeArgs(decl)
 	g.doc(b, decl.GetMeta())
+	g.annotate(b, decl)
 	// An interface cannot carry a class's marker, so it embeds the class and
 	// each variant carries the marker.
 	if embeds := g.markedClasses(); len(embeds) == 0 {
@@ -473,12 +569,13 @@ func (g *generator) newtype(b *strings.Builder, decl *ir.Decl) error {
 	}
 	// Go refuses `type N[T any] T`.
 	if slices.Contains(paramNames(decl), base) {
-		return emit.Unsupported(decl.GetMeta().GetPosition(),
+		return emit.Lost(emit.LossGeneric, decl.GetMeta().GetPosition(),
 			"%s is a newtype over its type parameter %s, and Go cannot declare a type that is only a type parameter",
 			decl.GetMeta().GetName(), base)
 	}
 
 	g.doc(b, decl.GetMeta())
+	g.annotate(b, decl)
 	fmt.Fprintf(b, "type %s%s %s\n", g.declName(decl), g.typeParams(decl), base)
 	g.writeValidation(b, decl, -1)
 	g.writeMarkers(b, g.declName(decl)+typeArgs(decl))
@@ -496,9 +593,15 @@ func (g *generator) doc(b *strings.Builder, meta *ir.Meta) {
 			b.WriteString("//\n")
 		}
 		if reason == "" {
-			reason = "this declaration is on its way out."
+			reason = defaultReason
 		}
-		fmt.Fprintf(b, "// Deprecated: %s\n", reason)
+		// A reason holding a newline continues the paragraph.
+		for i, line := range strings.Split(reason, "\n") {
+			if i == 0 {
+				line = "Deprecated: " + line
+			}
+			fmt.Fprintf(b, "// %s\n", line)
+		}
 	}
 }
 
