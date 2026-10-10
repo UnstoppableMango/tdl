@@ -1,8 +1,8 @@
 # The README's demo. Render it with `make demo`, which builds
 # `nix build .#demo` and copies the GIF beside this file.
 #
-# It runs in a scratch directory holding a copy of shop.tdl, with `tdl` on
-# PATH, so `tdl gen` writes nowhere in the repository.
+# It runs in a scratch directory holding copies of shop.tdl and demo.bash,
+# with `tdl` on PATH, so `tdl gen` writes nowhere in the repository.
 
 Output demo.gif
 
@@ -15,9 +15,9 @@ Set Padding 24
 Set Theme "Catppuccin Mocha"
 Set TypingSpeed 45ms
 
-# Go indents with tabs.
+# demo.bash makes `cat` highlight syntax, and Go indents with tabs.
 Hide
-Type "tabs -4 && clear"
+Type "source demo.bash && tabs -4 && clear"
 Enter
 Show
 
