@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"os"
 	"path/filepath"
 	"slices"
 
@@ -80,9 +81,11 @@ func newGenCmd() *cobra.Command {
 					fmt.Fprintln(cmd.ErrOrStderr(), err)
 				}
 			}
+			// Read before the first run, so a save during it is not missed.
+			last, _ := os.ReadFile(path)
 			save()
 			fmt.Fprintf(cmd.ErrOrStderr(), "watching %s\n", path)
-			gen.Watch(cmd.Context().Done(), path, save)
+			gen.WatchFrom(cmd.Context().Done(), path, last, save)
 			return nil
 		},
 	}

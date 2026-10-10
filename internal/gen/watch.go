@@ -14,7 +14,13 @@ const WatchInterval = time.Second
 // see a truncated file; the next poll corrects it.
 func Watch(done <-chan struct{}, path string, onChange func()) {
 	last, _ := os.ReadFile(path)
+	WatchFrom(done, path, last, onChange)
+}
 
+// WatchFrom is Watch with the contents to compare the first poll against.
+// A caller that acts on the file before watching reads them first, so a
+// save landing between that action and the watch is still noticed.
+func WatchFrom(done <-chan struct{}, path string, last []byte, onChange func()) {
 	ticker := time.NewTicker(WatchInterval)
 	defer ticker.Stop()
 
