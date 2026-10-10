@@ -16,7 +16,7 @@ func (l *lowerer) loadImports(file *ast.File) {
 	}
 	if l.loader == nil {
 		for _, imp := range file.Imports {
-			l.diags.add(imp.P, "imports need a loader: %q", imp.Path)
+			l.diags.add(imp, "imports need a loader: %q", imp.Path)
 		}
 		return
 	}
@@ -30,18 +30,18 @@ func (l *lowerer) walkImports(file *ast.File, from string, onPath map[string]boo
 	for _, imp := range file.Imports {
 		name, src, err := l.loader.Load(from, imp.Path)
 		if err != nil {
-			l.diags.add(imp.P, "cannot read import %q: %v", imp.Path, err)
+			l.diags.add(imp, "cannot read import %q: %v", imp.Path, err)
 			continue
 		}
 
 		if onPath[name] {
-			l.diags.add(imp.P, "import cycle: %s", strings.Join(append(chain, name), " -> "))
+			l.diags.add(imp, "import cycle: %s", strings.Join(append(chain, name), " -> "))
 			continue
 		}
 
 		dep, perr := parser.Parse(name, strings.NewReader(src))
 		if perr != nil {
-			l.diags.add(imp.P, "import %q does not parse: %v", imp.Path, perr)
+			l.diags.add(imp, "import %q does not parse: %v", imp.Path, perr)
 			continue
 		}
 
@@ -55,7 +55,7 @@ func (l *lowerer) walkImports(file *ast.File, from string, onPath map[string]boo
 				Path:       imp.Path,
 				Alias:      imp.Alias,
 				Package:    pkg,
-				Position:   position(imp.P),
+				Position:   position(imp),
 				Directives: l.depDirectives(dep, pkg),
 			})
 			l.depDeclDirectives(dep, pkg)
@@ -132,7 +132,7 @@ func (l *lowerer) depDeclDirectives(dep *ast.File, pkg string) {
 func (l *lowerer) bindImport(imp *ast.ImportDecl, pkg string, dep *ast.File) {
 	if imp.Alias != "_" {
 		if prev, ok := l.aliases[imp.Alias]; ok {
-			l.diags.add(imp.P, "import alias %s is bound twice, first to %s", imp.Alias, prev)
+			l.diags.add(imp, "import alias %s is bound twice, first to %s", imp.Alias, prev)
 			return
 		}
 		l.aliases[imp.Alias] = pkg
@@ -147,10 +147,10 @@ func (l *lowerer) bindImport(imp *ast.ImportDecl, pkg string, dep *ast.File) {
 		// The position is the declaration's, in the dependency.
 		if _, ok := l.file.bind(name, binding{
 			kind: bindExtern,
-			id:   l.extern(pkg, name, imp.P),
+			id:   l.extern(pkg, name, imp),
 			pos:  decl.Pos(),
 		}); !ok {
-			l.diags.add(imp.P, "%s from %q is already declared here", name, imp.Path)
+			l.diags.add(imp, "%s from %q is already declared here", name, imp.Path)
 		}
 	}
 }
@@ -168,7 +168,7 @@ func exported(decl ast.Decl) bool {
 
 // extern returns the ID of a foreign declaration, adding it to the table
 // only if it is not already there.
-func (l *lowerer) extern(pkg, name string, pos ast.Position) *ir.ID {
+func (l *lowerer) extern(pkg, name string, at ast.Node) *ir.ID {
 	key := pkg + "." + name
 	if idx, ok := l.externs[key]; ok {
 		return &ir.ID{Index: idx, Name: key}
@@ -179,7 +179,7 @@ func (l *lowerer) extern(pkg, name string, pos ast.Position) *ir.ID {
 	l.model.Externs = append(l.model.Externs, &ir.Extern{
 		Package:  pkg,
 		Name:     name,
-		Position: position(pos),
+		Position: position(at),
 	})
 	return &ir.ID{Index: idx, Name: key}
 }

@@ -89,6 +89,12 @@ func isDigit(ch rune) bool {
 // Next scans and returns the next token. It returns an EOF token forever
 // once the end of input is reached.
 func (l *Lexer) Next() Token {
+	tok := l.scan()
+	tok.End = l.pos()
+	return tok
+}
+
+func (l *Lexer) scan() Token {
 	for {
 		l.skipSpace()
 
@@ -264,6 +270,12 @@ func (l *Lexer) scanString(pos Position) Token {
 // `/` is also division in a unit expression, and only the parser knows
 // which one it wants. Every other token is scanned without context.
 func (l *Lexer) RescanRegexAt(pos Position) Token {
+	tok := l.rescanRegexAt(pos)
+	tok.End = l.pos()
+	return tok
+}
+
+func (l *Lexer) rescanRegexAt(pos Position) Token {
 	l.reset(pos)
 	if l.ch != '/' {
 		return Token{Kind: ILLEGAL, Text: string(l.ch), Pos: pos}

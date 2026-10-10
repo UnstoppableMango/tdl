@@ -22,6 +22,7 @@ func (p *parser) parseConstraintBlock() ([]*ast.Constraint, ast.Position) {
 // The set of names is open, so none is recognized here.
 func (p *parser) parseConstraint() *ast.Constraint {
 	c := &ast.Constraint{P: p.cur.Pos}
+	defer func() { c.E = p.endOf(c.P) }()
 	c.N = p.expectIdent()
 
 	if !p.accept(lex.LPAREN) {
@@ -44,14 +45,16 @@ func (p *parser) parseConstraintArg() *ast.Literal {
 	// `..254`: a range open below.
 	if p.at(lex.RANGE) {
 		p.next()
-		return &ast.Literal{P: pos, Kind: ast.LitRange, Hi: p.parseRangeBound()}
+		lit := &ast.Literal{P: pos, Kind: ast.LitRange, Hi: p.parseRangeBound()}
+		lit.E = p.endOf(pos)
+		return lit
 	}
 
 	// `/` is also unit division, so a regex is rescanned on request.
 	if p.at(lex.SLASH) {
 		tok := p.rescanRegexAtCurrent()
 		p.next()
-		return &ast.Literal{P: tok.Pos, Kind: ast.LitRegex, Text: tok.Text}
+		return &ast.Literal{P: tok.Pos, E: p.endOf(tok.Pos), Kind: ast.LitRegex, Text: tok.Text}
 	}
 
 	lit := p.parseLiteral()
@@ -59,7 +62,9 @@ func (p *parser) parseConstraintArg() *ast.Literal {
 	// `3..254` and `1..`: a range that started with its lower bound.
 	if lit.Kind == ast.LitInt && p.at(lex.RANGE) {
 		p.next()
-		return &ast.Literal{P: pos, Kind: ast.LitRange, Lo: lit, Hi: p.parseRangeBound()}
+		lit = &ast.Literal{P: pos, Kind: ast.LitRange, Lo: lit, Hi: p.parseRangeBound()}
+		lit.E = p.endOf(pos)
+		return lit
 	}
 	return lit
 }
@@ -71,6 +76,7 @@ func (p *parser) parseRangeBound() *ast.Literal {
 	}
 	lit := &ast.Literal{P: p.cur.Pos, Kind: ast.LitInt, Text: p.cur.Text}
 	p.next()
+	lit.E = p.endOf(lit.P)
 	return lit
 }
 

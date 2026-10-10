@@ -107,14 +107,14 @@ func TestFileEndIsPastEveryComment(t *testing.T) {
 	src := "primitive string\n// last\n"
 	file := parse(t, src)
 
-	if got, want := file.End.Offset, len(src); got != want {
+	if got, want := file.EOF.Offset, len(src); got != want {
 		t.Errorf("file end at offset %d, want %d", got, want)
 	}
 	if len(file.Comments) != 1 {
 		t.Fatalf("got %d comments, want 1", len(file.Comments))
 	}
-	if got := file.Comments[0].P.Offset; got >= file.End.Offset {
-		t.Errorf("comment at offset %d is not before the end of the file at %d", got, file.End.Offset)
+	if got := file.Comments[0].P.Offset; got >= file.EOF.Offset {
+		t.Errorf("comment at offset %d is not before the end of the file at %d", got, file.EOF.Offset)
 	}
 }
 
@@ -144,7 +144,7 @@ target go for p {
 	if !ok {
 		t.Fatalf("decl 1 is %T, want *ast.StructDecl", file.Decls[1])
 	}
-	if got, want := e.End.Line, 8; got != want {
+	if got, want := e.Rbrace.Line, 8; got != want {
 		t.Errorf("entity body closed on line %d, want %d", got, want)
 	}
 
@@ -152,7 +152,7 @@ target go for p {
 	if !ok {
 		t.Fatalf("member 1 is %T, want *ast.Field", e.Members[1])
 	}
-	if got, want := field.End.Line, 7; got != want {
+	if got, want := field.Rbrace.Line, 7; got != want {
 		t.Errorf("constraint block closed on line %d, want %d", got, want)
 	}
 
@@ -160,10 +160,10 @@ target go for p {
 	if !ok {
 		t.Fatalf("decl 2 is %T, want *ast.EnumDecl", file.Decls[2])
 	}
-	if got, want := enum.End.Line, 13; got != want {
+	if got, want := enum.Rbrace.Line, 13; got != want {
 		t.Errorf("enum body closed on line %d, want %d", got, want)
 	}
-	if got, want := enum.Variants[1].End.Line, 12; got != want {
+	if got, want := enum.Variants[1].Rbrace.Line, 12; got != want {
 		t.Errorf("variant payload closed on line %d, want %d", got, want)
 	}
 
@@ -171,10 +171,10 @@ target go for p {
 	if !ok {
 		t.Fatalf("decl 3 is %T, want *ast.TargetDecl", file.Decls[3])
 	}
-	if got, want := target.End.Line, 19; got != want {
+	if got, want := target.Rbrace.Line, 19; got != want {
 		t.Errorf("target block closed on line %d, want %d", got, want)
 	}
-	if got, want := target.Entries[0].End.Line, 18; got != want {
+	if got, want := target.Entries[0].Rbrace.Line, 18; got != want {
 		t.Errorf("nested target block closed on line %d, want %d", got, want)
 	}
 }
@@ -183,7 +183,7 @@ func TestFieldWithoutConstraintsHasNoEnd(t *testing.T) {
 	file := parse(t, "primitive string\n\ntype E: Entity {\n  id: string\n}\n")
 
 	e := file.Decls[1].(*ast.StructDecl)
-	if got := e.Members[0].(*ast.Field).End; got.Line != 0 {
+	if got := e.Members[0].(*ast.Field).Rbrace; got.Line != 0 {
 		t.Errorf("field end = %v, want the zero position", got)
 	}
 }

@@ -109,6 +109,9 @@ The plugin protocol in `docs/design/plugins.md` is complete.
   Errors accumulate in an `ErrorList`; `syncTop` resynchronizes at the next declaration.
 - `ast`: parse tree mirroring the source, names unresolved.
   `ast.Fprint` is the canonical formatting used by `tdl fmt`.
+  Every node is an `ast.Node`: `Pos` is where its first token starts and `End` is just past its last, from the lexer's `Token.End`; a block's closing brace is `Rbrace`.
+  A doc comment and a `deprecated` modifier come before `Pos`.
+  `ast.Inspect` walks a tree in source order as `go/ast.Inspect` does, and `TestChildrenCoverEveryField` keeps `ast.Children` in step with the node types.
 - `internal/ebnf`: linter for `docs/grammar.ebnf` and `docs/notation.ebnf`, built on `golang.org/x/exp/ebnf`.
   It also checks every quoted terminal against `lex`, and reports unterminated comments and strings itself because the library's scanner prints them to stderr.
 - `internal/treesitter`: emits `tree-sitter/grammar.js` from the grammar.

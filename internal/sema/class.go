@@ -17,7 +17,7 @@ func (l *lowerer) classNode(d *ast.ClassDecl) *ir.Class {
 		c.FunDeps = append(c.FunDeps, &ir.FunDep{
 			From:     dep.From,
 			To:       dep.To,
-			Position: position(dep.P),
+			Position: position(dep),
 		})
 	}
 
@@ -55,7 +55,7 @@ func (l *lowerer) instance(d *ast.InstanceDecl, order int) *ir.Instance {
 			inst.Binds = append(inst.Binds, &ir.AssocBind{
 				Name:     b.N,
 				Type:     l.typeRef(b.Target),
-				Position: position(b.P),
+				Position: position(b),
 			})
 		}
 	})
@@ -72,17 +72,17 @@ func (l *lowerer) classRefs(refs []*ast.ClassRef) []*ir.ClassRef {
 
 // classRef resolves a class name; a qualified one is an extern.
 func (l *lowerer) classRef(r *ast.ClassRef) *ir.ClassRef {
-	out := &ir.ClassRef{Position: position(r.P), Args: l.typeArgs(r.Args)}
+	out := &ir.ClassRef{Position: position(r), Args: l.typeArgs(r.Args)}
 
 	if r.Qualifier != "" {
 		l.record(r.P, r.Qualifier+"."+r.N, binding{}, false)
 
 		pkg, ok := l.aliases[r.Qualifier]
 		if !ok {
-			l.diags.add(r.P, "undefined import alias: %s", r.Qualifier)
+			l.diags.add(r, "undefined import alias: %s", r.Qualifier)
 			return out
 		}
-		out.Extern = l.extern(pkg, r.N, r.P)
+		out.Extern = l.extern(pkg, r.N, r)
 		return out
 	}
 
@@ -95,7 +95,7 @@ func (l *lowerer) classRef(r *ast.ClassRef) *ir.ClassRef {
 	case ok && b.kind == bindDecl:
 		out.Class = b.id
 	default:
-		l.diags.add(r.P, "undefined class: %s", r.N)
+		l.diags.add(r, "undefined class: %s", r.N)
 		out.Class = &ir.ID{Index: ir.Unresolved, Name: r.N}
 	}
 	return out

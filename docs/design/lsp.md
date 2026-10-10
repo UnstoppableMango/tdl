@@ -47,7 +47,8 @@ Lowering a tree with holes reports names as undefined only because their declara
 
 Diagnostics are grouped by the filename in each position rather than published against the request's URI, so a problem lowering found in an imported file lands on that file.
 
-A diagnostic's range covers the word at its position, or is empty when there is none, which editors render as a caret.
+A diagnostic's range covers the node it is about when that node is on one line, and otherwise the word at its position, so a problem with a whole declaration marks where it starts rather than every line of it.
+A diagnostic with no word at its position has an empty range, which editors render as a caret.
 
 ## Go to definition
 

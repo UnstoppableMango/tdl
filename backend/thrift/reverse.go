@@ -409,7 +409,7 @@ func (r *reader) structure(s *parser.StructLike) (*reverse.Item, error) {
 		}
 	}
 	if len(decl.Members) > 0 {
-		decl.End = pos
+		decl.Rbrace = pos
 	}
 	return &reverse.Item{Decl: decl, At: at(s.Annotations)}, nil
 }
@@ -579,7 +579,7 @@ func (r *reader) union(u *parser.StructLike) (*reverse.Item, error) {
 			v.Fields = append(v.Fields, f.field)
 		}
 		if len(v.Fields) > 0 {
-			v.End = v.P
+			v.Rbrace = v.P
 		}
 		decl.Variants = append(decl.Variants, v)
 		names = append(names, path)
