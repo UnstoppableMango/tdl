@@ -1,0 +1,394 @@
+// mdast, the markdown abstract syntax tree, as remark produces it.
+// https://github.com/syntax-tree/mdast
+//
+// Every node is a variant of Nodes, tagged by `type` as on the wire.
+// mdast narrows what each parent may hold (a paragraph holds phrasing
+// content, a table holds rows), and TDL has no way to name a subset of an
+// enum's variants yet, so children are Nodes and the doc comment says what
+// mdast allows.
+//
+// Point, Position, and Data repeat unist.tdl, since the go and typescript
+// backends do not generate a type from another package yet.
+/// The markdown abstract syntax tree.
+package mdast
+
+/// One place in a source file.
+type Point {
+  /// The 1-indexed line.
+  line: int where { min(1) }
+  /// The 1-indexed column.
+  column: int where { min(1) }
+  /// The 0-indexed offset into the file.
+  offset: int? where { min(0) }
+}
+
+/// The span of a node in its source file. A generated node has none.
+type Position {
+  /// The place of the first character of the node.
+  start: Point
+  /// The place after the last character of the node.
+  end: Point
+}
+
+/// Information from the ecosystem. It is empty here, and a plugin
+/// extends it.
+type Data { }
+
+/// How a table column aligns its cells.
+enum AlignType { left right center }
+
+/// How explicit a reference is.
+enum ReferenceType {
+  /// Implicit: `[foo]`.
+  shortcut
+  /// Explicit, with the identifier left out: `[foo][]`.
+  collapsed
+  /// Explicit, with the identifier given: `[foo][bar]`.
+  full
+}
+
+/// Every mdast node.
+enum Nodes {
+  /// The whole document.
+  root {
+    /// Any content. https://github.com/syntax-tree/mdast#rootcontent
+    children: [Nodes]
+    /// Information from the ecosystem.
+    data: Data?
+    /// Where the node came from. Absent when it was generated.
+    position: Position?
+  }
+  /// A section quoted from somewhere else.
+  blockquote {
+    /// Flow content: block content and definitions.
+    children: [Nodes]
+    /// Information from the ecosystem.
+    data: Data?
+    /// Where the node came from. Absent when it was generated.
+    position: Position?
+  }
+  /// A line break, as in poems or addresses.
+  break {
+    /// Information from the ecosystem.
+    data: Data?
+    /// Where the node came from. Absent when it was generated.
+    position: Position?
+  }
+  /// A block of preformatted text, such as code.
+  code {
+    /// The language of the code, from the info string.
+    lang: string? | null
+    /// The rest of the info string, after lang.
+    meta: string? | null
+    /// The text of the node.
+    value: string
+    /// Information from the ecosystem.
+    data: Data?
+    /// Where the node came from. Absent when it was generated.
+    position: Position?
+  }
+  /// A resource, referenced by a linkReference or imageReference.
+  definition {
+    /// The normalized identifier the association matches on.
+    identifier: string
+    /// The identifier as written in the source.
+    label: string? | null
+    /// A URL to the referenced resource.
+    url: string
+    /// Advisory information for the resource, such as a tooltip.
+    title: string? | null
+    /// Information from the ecosystem.
+    data: Data?
+    /// Where the node came from. Absent when it was generated.
+    position: Position?
+  }
+  /// Content that is no longer accurate or relevant.
+  delete {
+    /// Phrasing content: text and its markup.
+    children: [Nodes]
+    /// Information from the ecosystem.
+    data: Data?
+    /// Where the node came from. Absent when it was generated.
+    position: Position?
+  }
+  /// Stress emphasis of its contents.
+  emphasis {
+    /// Phrasing content: text and its markup.
+    children: [Nodes]
+    /// Information from the ecosystem.
+    data: Data?
+    /// Where the node came from. Absent when it was generated.
+    position: Position?
+  }
+  /// Content of a footnote, referenced by a footnoteReference.
+  footnoteDefinition {
+    /// The normalized identifier the association matches on.
+    identifier: string
+    /// The identifier as written in the source.
+    label: string? | null
+    /// Flow content: block content and definitions.
+    children: [Nodes]
+    /// Information from the ecosystem.
+    data: Data?
+    /// Where the node came from. Absent when it was generated.
+    position: Position?
+  }
+  /// A marker associated with a footnoteDefinition.
+  footnoteReference {
+    /// The normalized identifier the association matches on.
+    identifier: string
+    /// The identifier as written in the source.
+    label: string? | null
+    /// Information from the ecosystem.
+    data: Data?
+    /// Where the node came from. Absent when it was generated.
+    position: Position?
+  }
+  /// The heading of a section.
+  heading {
+    /// The rank of the heading, 1 the highest.
+    depth: int where {
+      min(1)
+      max(6)
+    }
+    /// Phrasing content: text and its markup.
+    children: [Nodes]
+    /// Information from the ecosystem.
+    data: Data?
+    /// Where the node came from. Absent when it was generated.
+    position: Position?
+  }
+  /// A fragment of raw HTML.
+  html {
+    /// The text of the node.
+    value: string
+    /// Information from the ecosystem.
+    data: Data?
+    /// Where the node came from. Absent when it was generated.
+    position: Position?
+  }
+  /// An image.
+  image {
+    /// A URL to the referenced resource.
+    url: string
+    /// Advisory information for the resource, such as a tooltip.
+    title: string? | null
+    /// Equivalent content for environments that cannot show the node.
+    alt: string? | null
+    /// Information from the ecosystem.
+    data: Data?
+    /// Where the node came from. Absent when it was generated.
+    position: Position?
+  }
+  /// An image through association, or its original source when there is no association.
+  imageReference {
+    /// The normalized identifier the association matches on.
+    identifier: string
+    /// The identifier as written in the source.
+    label: string? | null
+    /// The explicitness of the reference.
+    referenceType: ReferenceType
+    /// Equivalent content for environments that cannot show the node.
+    alt: string? | null
+    /// Information from the ecosystem.
+    data: Data?
+    /// Where the node came from. Absent when it was generated.
+    position: Position?
+  }
+  /// A fragment of computer code, such as a file name or a command.
+  inlineCode {
+    /// The text of the node.
+    value: string
+    /// Information from the ecosystem.
+    data: Data?
+    /// Where the node came from. Absent when it was generated.
+    position: Position?
+  }
+  /// A hyperlink.
+  link {
+    /// A URL to the referenced resource.
+    url: string
+    /// Advisory information for the resource, such as a tooltip.
+    title: string? | null
+    /// Phrasing content: text and its markup.
+    children: [Nodes]
+    /// Information from the ecosystem.
+    data: Data?
+    /// Where the node came from. Absent when it was generated.
+    position: Position?
+  }
+  /// A hyperlink through association, or its original source when there is no association.
+  linkReference {
+    /// The normalized identifier the association matches on.
+    identifier: string
+    /// The identifier as written in the source.
+    label: string? | null
+    /// The explicitness of the reference.
+    referenceType: ReferenceType
+    /// Phrasing content: text and its markup.
+    children: [Nodes]
+    /// Information from the ecosystem.
+    data: Data?
+    /// Where the node came from. Absent when it was generated.
+    position: Position?
+  }
+  /// A list of items.
+  list {
+    /// Whether the items are in order rather than unordered.
+    ordered: bool? | null
+    /// The number of the first item of an ordered list.
+    start: int? | null
+    /// Whether items are separated by blank lines.
+    spread: bool? | null
+    /// List items.
+    children: [Nodes]
+    /// Information from the ecosystem.
+    data: Data?
+    /// Where the node came from. Absent when it was generated.
+    position: Position?
+  }
+  /// An item in a list.
+  listItem {
+    /// Whether the item is done, when it is a task; absent otherwise.
+    checked: bool? | null
+    /// Whether items are separated by blank lines.
+    spread: bool? | null
+    /// Flow content: block content and definitions.
+    children: [Nodes]
+    /// Information from the ecosystem.
+    data: Data?
+    /// Where the node came from. Absent when it was generated.
+    position: Position?
+  }
+  /// A unit of discourse dealing with a particular point or idea.
+  paragraph {
+    /// Phrasing content: text and its markup.
+    children: [Nodes]
+    /// Information from the ecosystem.
+    data: Data?
+    /// Where the node came from. Absent when it was generated.
+    position: Position?
+  }
+  /// Strong importance, seriousness, or urgency for its contents.
+  strong {
+    /// Phrasing content: text and its markup.
+    children: [Nodes]
+    /// Information from the ecosystem.
+    data: Data?
+    /// Where the node came from. Absent when it was generated.
+    position: Position?
+  }
+  /// Two-dimensional data.
+  table {
+    /// How each column aligns; null for a column with no alignment.
+    align: [AlignType | null]? | null
+    /// Table rows.
+    children: [Nodes]
+    /// Information from the ecosystem.
+    data: Data?
+    /// Where the node came from. Absent when it was generated.
+    position: Position?
+  }
+  /// A header cell in a table, if its row is the first, or a data cell otherwise.
+  tableCell {
+    /// Phrasing content: text and its markup.
+    children: [Nodes]
+    /// Information from the ecosystem.
+    data: Data?
+    /// Where the node came from. Absent when it was generated.
+    position: Position?
+  }
+  /// A row of cells in a table.
+  tableRow {
+    /// Table cells.
+    children: [Nodes]
+    /// Information from the ecosystem.
+    data: Data?
+    /// Where the node came from. Absent when it was generated.
+    position: Position?
+  }
+  /// Everything that is just text.
+  text {
+    /// The text of the node.
+    value: string
+    /// Information from the ecosystem.
+    data: Data?
+    /// Where the node came from. Absent when it was generated.
+    position: Position?
+  }
+  /// A thematic break, such as a scene change in a story.
+  thematicBreak {
+    /// Information from the ecosystem.
+    data: Data?
+    /// Where the node came from. Absent when it was generated.
+    position: Position?
+  }
+  /// A collection of metadata for the document in YAML.
+  yaml {
+    /// The text of the node.
+    value: string
+    /// Information from the ecosystem.
+    data: Data?
+    /// Where the node came from. Absent when it was generated.
+    position: Position?
+  }
+}
+
+target go for mdast {
+  Nodes.root => name("Root")
+  Nodes.blockquote => name("Blockquote")
+  Nodes.break => name("Break")
+  Nodes.code => name("Code")
+  Nodes.definition => name("Definition")
+  Nodes.delete => name("Delete")
+  Nodes.emphasis => name("Emphasis")
+  Nodes.footnoteDefinition => name("FootnoteDefinition")
+  Nodes.footnoteReference => name("FootnoteReference")
+  Nodes.heading => name("Heading")
+  Nodes.html => name("Html")
+  Nodes.image => name("Image")
+  Nodes.imageReference => name("ImageReference")
+  Nodes.inlineCode => name("InlineCode")
+  Nodes.link => name("Link")
+  Nodes.linkReference => name("LinkReference")
+  Nodes.list => name("List")
+  Nodes.listItem => name("ListItem")
+  Nodes.paragraph => name("Paragraph")
+  Nodes.strong => name("Strong")
+  Nodes.table => name("Table")
+  Nodes.tableCell => name("TableCell")
+  Nodes.tableRow => name("TableRow")
+  Nodes.text => name("Text")
+  Nodes.thematicBreak => name("ThematicBreak")
+  Nodes.yaml => name("Yaml")
+}
+
+target typescript for mdast {
+  discriminant("type")
+  Nodes.root => name("Root")
+  Nodes.blockquote => name("Blockquote")
+  Nodes.break => name("Break")
+  Nodes.code => name("Code")
+  Nodes.definition => name("Definition")
+  Nodes.delete => name("Delete")
+  Nodes.emphasis => name("Emphasis")
+  Nodes.footnoteDefinition => name("FootnoteDefinition")
+  Nodes.footnoteReference => name("FootnoteReference")
+  Nodes.heading => name("Heading")
+  Nodes.html => name("Html")
+  Nodes.image => name("Image")
+  Nodes.imageReference => name("ImageReference")
+  Nodes.inlineCode => name("InlineCode")
+  Nodes.link => name("Link")
+  Nodes.linkReference => name("LinkReference")
+  Nodes.list => name("List")
+  Nodes.listItem => name("ListItem")
+  Nodes.paragraph => name("Paragraph")
+  Nodes.strong => name("Strong")
+  Nodes.table => name("Table")
+  Nodes.tableCell => name("TableCell")
+  Nodes.tableRow => name("TableRow")
+  Nodes.text => name("Text")
+  Nodes.thematicBreak => name("ThematicBreak")
+  Nodes.yaml => name("Yaml")
+}

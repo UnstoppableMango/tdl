@@ -65,7 +65,10 @@ func TestCorpusIsCanonical(t *testing.T) {
 	}
 
 	// examples/ covers comments surviving a round trip on a real file.
-	for _, dir := range []string{"../prelude", "../examples", "../testdata/gen/smoke"} {
+	for _, dir := range []string{
+		"../prelude", "../examples", "../testdata/gen/smoke",
+		"../models/unist", "../models/mdast", "../models/hast",
+	} {
 		t.Run(filepath.Base(dir), func(t *testing.T) {
 			matches, err := filepath.Glob(filepath.Join(dir, "*.tdl"))
 			if err != nil {
