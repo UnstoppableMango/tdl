@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.5](https://github.com/UnstoppableMango/tdl/compare/v0.4.4...v0.4.5) (2026-10-10)
+
+
+### Features
+
+* **go:** import Go packages and round-trip through them ([#1048](https://github.com/UnstoppableMango/tdl/issues/1048)) ([147afca](https://github.com/UnstoppableMango/tdl/commit/147afca5222d913aa82e27021f35ef03d178857f))
+
+
+### Dependencies
+
+* update golang.org/x/exp digest to ca0d7ba ([#1049](https://github.com/UnstoppableMango/tdl/issues/1049)) ([198556f](https://github.com/UnstoppableMango/tdl/commit/198556ff8590a7a2b7914bb4cfe3cce335bd6186))
+
 ## [0.4.4](https://github.com/UnstoppableMango/tdl/compare/v0.4.3...v0.4.4) (2026-10-10)
 
 
