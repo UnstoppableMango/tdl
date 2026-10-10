@@ -47,14 +47,16 @@ jobs:
       # The race detector and coverage run separately. Together, every
       # covered statement increments an atomic counter the race detector
       # tracks, which on the runner made the protocompile tests over ten
-      # times slower and timed them out.
+      # times slower and timed them out. The coverage run is -short: the
+      # race run already ran go, smithy, tsc, and likec4 on generated code,
+      # and test code is outside the coverage profile.
       - run: nix develop -c go test -race ./...
         if: ${{ !cancelled() }}
         env:
           CGO_ENABLED: "1"
 
       - id: test
-        run: nix develop -c go test -coverpkg=./... -coverprofile=cover.profile ./...
+        run: nix develop -c go test -short -coverpkg=./... -coverprofile=cover.profile ./...
         if: ${{ !cancelled() }}
 
       - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1

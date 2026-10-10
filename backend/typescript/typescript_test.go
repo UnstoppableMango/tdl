@@ -54,10 +54,14 @@ func check(t *testing.T, resp *plugin.Response) string {
 	return string(f.GetContent())
 }
 
-// typecheck runs `tsc --noEmit --strict` over a file. Without tsc these
-// tests check substrings only; checks.gen-typescript runs it regardless.
+// typecheck runs `tsc --noEmit --strict` over a file. Without tsc, or
+// under -short, these tests check substrings only; checks.gen-typescript
+// runs it regardless.
 func typecheck(t *testing.T, f *plugin.File) {
 	t.Helper()
+	if testing.Short() {
+		return
+	}
 	tsc, err := exec.LookPath("tsc")
 	if err != nil {
 		return

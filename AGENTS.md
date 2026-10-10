@@ -7,7 +7,7 @@ Guidance for coding agents working in this repository.
 ```shell
 go test ./...                      # all tests
 go test -race ./...                # what CI runs; the plugin subprocess needs it
-go test -short ./...               # skips TestValidationRuns, which runs go on generated code
+go test -short ./...               # skips running go, smithy, tsc, and likec4 on generated code
 go test ./parser -run TestConformanceCorpusParses   # a single test
 go build ./...
 
