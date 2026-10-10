@@ -13,7 +13,7 @@ go build ./...
 
 command make build            # nix build .#
 command make test             # go test ./...
-command make cover            # go test -race -coverpkg=./... -coverprofile=cover.profile ./... + go tool cover -func
+command make cover            # go test -coverpkg=./... -coverprofile=cover.profile ./... + go tool cover -func
 command make play             # watch examples/nested.tdl; FILE=scratch.tdl VIEWS=all to override
 command make lint             # nix flake check + golangci-lint + buf + markdownlint
 command make check            # nix flake check alone, the fast subset of lint

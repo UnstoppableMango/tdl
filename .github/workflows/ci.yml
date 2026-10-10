@@ -44,11 +44,18 @@ jobs:
       - run: nix build .#
         if: ${{ !cancelled() }}
 
-      - id: test
-        run: nix develop -c go test -race -coverpkg=./... -coverprofile=cover.profile ./...
+      # The race detector and coverage run separately. Together, every
+      # covered statement increments an atomic counter the race detector
+      # tracks, which on the runner made the protocompile tests over ten
+      # times slower and timed them out.
+      - run: nix develop -c go test -race ./...
         if: ${{ !cancelled() }}
         env:
           CGO_ENABLED: "1"
+
+      - id: test
+        run: nix develop -c go test -coverpkg=./... -coverprofile=cover.profile ./...
+        if: ${{ !cancelled() }}
 
       - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         if: ${{ !cancelled() && steps.test.outcome == 'success' }}

@@ -23,7 +23,7 @@ cover: cover.profile
 	go tool cover -func=$<
 
 cover.profile: ${GO_SRC} ${PROTO_GO} ${TEST_DATA}
-	go test -race -coverpkg=./... -coverprofile=$@ ./...
+	go test -coverpkg=./... -coverprofile=$@ ./...
 
 FILE ?= examples/nested.tdl
 VIEWS ?= fmt,ast,stats
