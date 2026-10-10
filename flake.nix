@@ -21,9 +21,9 @@
       inputs.flake-utils.inputs.systems.follows = "systems";
     };
 
-    # graphify for the devShell. TODO: track main once unmango/pkgs#140 merges.
+    # graphify for the devShell
     mangopkgs = {
-      url = "github:unmango/pkgs/claude/project-thread-eh2w5a";
+      url = "github:unmango/pkgs";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.systems.follows = "systems";
       inputs.flake-parts.follows = "flake-parts";

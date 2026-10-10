@@ -143,16 +143,15 @@
         ]
       },
       "locked": {
-        "lastModified": 1791660356,
+        "lastModified": 1791672017,
         "narHash": "sha256-ri8GOqEkXb2EFLlzOll3hs0PdoW0kovaHsIJm1mcOPA=",
         "owner": "unmango",
         "repo": "pkgs",
-        "rev": "4e83ea72c3ee55930f58e3a0f44c4654fe25187d",
+        "rev": "d840df73c3c94058045a56f75ba45e0784ddabea",
         "type": "github"
       },
       "original": {
         "owner": "unmango",
-        "ref": "claude/project-thread-eh2w5a",
         "repo": "pkgs",
         "type": "github"
       }
