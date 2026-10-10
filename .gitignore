@@ -27,3 +27,6 @@ scratch.tdl
 .envrc
 .claude/*
 !.claude/skills/
+
+# graphify, see the knowledge graph section of AGENTS.md
+graphify-out/
