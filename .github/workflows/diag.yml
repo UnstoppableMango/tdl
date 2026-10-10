@@ -30,20 +30,18 @@ jobs:
           free -m; ulimit -a
           cat /proc/sys/kernel/randomize_va_space /sys/kernel/mm/transparent_hugepage/enabled 2>&1 || true
           env | sort | grep -iE "^(GO|CGO|TSAN|NIX_|LD_)" || true
-      - name: full test run, sampled
+      - name: protobuf variants
         env:
           CGO_ENABLED: "1"
         run: |
-          nix develop -c true
-          (
-            while true; do
-              echo "=== $(date +%T) cpu: $(grep -E 'usage_usec|nr_throttled|throttled_usec' /sys/fs/cgroup/cpu.stat | tr '\n' ' ')"
-              echo "    mem.current=$(( $(cat /sys/fs/cgroup/memory.current) / 1048576 ))MB $(grep -E '^(anon|file|pgmajfault) ' /sys/fs/cgroup/memory.stat | tr '\n' ' ')"
-              echo "    cpu.pressure: $(head -1 /sys/fs/cgroup/cpu.pressure)  mem.pressure: $(head -1 /sys/fs/cgroup/memory.pressure)"
-              ps -eo pcpu,rss,nlwp,etimes,args --sort=-pcpu | head -12 | cut -c1-200
-              sleep 15
-            done
-          ) &
-          sampler=$!
-          nix develop -c go test -race -coverpkg=./... -coverprofile=cover.profile ./... 2>&1 | grep -E '^(ok|FAIL|---|panic)|running tests|^\s+Test' || true
-          kill $sampler
+          nix develop -c bash -c '
+            set -x
+            go test -race -count=1 -coverpkg=./... -coverprofile=/tmp/a.out ./backend/protobuf -run "TestConformance|TestRootFile" -v 2>&1 | grep -E "^(ok|FAIL|---)" | head -5
+            go test -race -count=1 -coverprofile=/tmp/b.out ./backend/protobuf -run "TestConformance|TestRootFile" 2>&1 | tail -2
+            go test -count=1 -coverpkg=./... -coverprofile=/tmp/c.out ./backend/protobuf -run "TestConformance|TestRootFile" 2>&1 | tail -2
+            go test -race -count=1 -coverpkg=./... -c -o /tmp/pbcov ./backend/protobuf
+            mkdir -p /tmp/gcd
+            cd backend/protobuf
+            time timeout 300 /tmp/pbcov -test.count=1 -test.run "TestConformance|TestRootFile" -test.gocoverdir=/tmp/gcd -test.coverprofile=/tmp/d.out -test.cpuprofile=/tmp/cpu.out | tail -2
+            go tool pprof -top -cum -nodecount=45 /tmp/pbcov /tmp/cpu.out 2>&1 | cut -c1-220
+          '
