@@ -67,7 +67,7 @@ func (g *generator) typeIn(id *ir.ID, fr *frame) (string, error) {
 	case t.GetExtern() != nil:
 		ext := t.GetExtern()
 		if f, ok := g.externForeign(t); ok {
-			g.useAs(f.path, f.alias)
+			g.useForeign(f)
 			args, err := g.typeArgsIn(t, fr)
 			if err != nil {
 				return "", err
@@ -84,7 +84,7 @@ func (g *generator) typeIn(id *ir.ID, fr *frame) (string, error) {
 	name := decl.GetMeta().GetName()
 
 	if f, ok := g.foreign[decl]; ok {
-		g.useAs(f.path, f.alias)
+		g.useForeign(f)
 		args, err := g.typeArgsIn(t, fr)
 		if err != nil {
 			return "", err
