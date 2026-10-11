@@ -435,7 +435,7 @@ func (g *generator) backType(r *emit.Ref, m mode) *ast.TypeRef {
 		return inner
 	}
 	if r.Form == emit.Extern {
-		return &ast.TypeRef{N: emit.LastSegment(r.Extern.GetName())}
+		return &ast.TypeRef{N: g.externName(r)}
 	}
 	return &ast.TypeRef{N: r.Decl.GetMeta().GetName()}
 }

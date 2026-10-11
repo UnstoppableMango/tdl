@@ -234,3 +234,82 @@ target typescript for acme.shop {
 }
 `, "which Money declares")
 }
+
+func TestAnOutWithoutAPathIsSkipped(t *testing.T) {
+	skipped(t, moneySource, `package acme.shop
+
+import "money.tdl" as money
+
+type Order { total: money.Money }
+
+target typescript for acme.shop {
+  out()
+}
+`, "this target block has no out directive")
+}
+
+func TestAnImportCollidingWithAVariantIsSkipped(t *testing.T) {
+	skipped(t, `package acme.money
+
+type ShapeCircle { units: int }
+
+target typescript for acme.money {
+  out("gen/money")
+}
+`, `package acme.shop
+
+import "money.tdl" as money
+
+enum Shape {
+  Circle { r: int }
+}
+
+type Order { total: money.ShapeCircle }
+
+target typescript for acme.shop {
+  out("gen/shop")
+}
+`, "which Shape declares")
+}
+
+// An import belongs to the declarations written, so one a skipped
+// declaration would have made takes no name.
+func TestASkippedDeclarationReservesNoImport(t *testing.T) {
+	d := deps{
+		"money.tdl": moneySource,
+		"unist.tdl": `package unist
+
+type Money { line: int }
+
+target typescript for unist {
+  Money => foreign("unist", "Money")
+}
+`,
+	}
+	model := lowerSource(t, "shop.tdl", `package acme.shop
+
+import "money.tdl" as money
+import "unist.tdl" as unist
+
+type Broken { a: string }
+
+type Draft {
+  total: unist.Money
+  broken: Broken
+}
+
+type Order { total: money.Money }
+
+target typescript for acme.shop {
+  out("gen/shop")
+  Broken => name("await")
+}
+`, d)
+	resp := generateModel(t, model)
+	if len(resp.GetFiles()) != 1 {
+		t.Fatalf("files = %d, diagnostics = %+v", len(resp.GetFiles()), resp.GetDiagnostics())
+	}
+	src := string(resp.GetFiles()[0].GetContent())
+	contains(t, src, `import type { Money } from "../money/money.js";`, "total: Money;")
+	absent(t, src, `"unist"`, "Draft")
+}

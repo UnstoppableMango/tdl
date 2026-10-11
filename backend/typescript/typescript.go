@@ -99,10 +99,10 @@ type generator struct {
 	lost bool
 	tags []string
 
-	// imports holds every type an extern brings in, by name; uses holds
-	// those the declaration being rendered refers to.
-	imports map[string]imported
-	uses    map[string]imported
+	// declares holds the type names each rendered declaration declares;
+	// uses holds the imports the declaration being rendered refers to.
+	declares map[*ir.Decl][]string
+	uses     map[string]imported
 }
 
 // Generate returns one .ts file holding the model's declarations.
@@ -111,7 +111,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		Session:  emit.NewSession(req, "TypeScript"),
 		names:    map[string]string{},
 		enforced: map[*ir.Constraint]bool{},
-		imports:  map[string]imported{},
+		declares: map[*ir.Decl][]string{},
 	}
 	g.Externs = true
 
@@ -152,7 +152,12 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		texts[d] = text
 	}
 	mark := len(g.Diags)
-	g.Cascade(own, skipped)
+	for {
+		g.Cascade(own, skipped)
+		if !g.importConflicts(own, skipped, uses) {
+			break
+		}
+	}
 	if g.Roundtrip {
 		// A skipped declaration is carried as TDL, so nothing is lost.
 		g.Diags = g.Diags[:mark]
@@ -246,6 +251,7 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	for _, n := range declared {
 		g.names[n] = name
 	}
+	g.declares[d] = declared
 	if !g.Roundtrip {
 		g.WarnUnenforced(d, func(c *ir.Constraint) bool { return g.enforced[c] })
 	}
