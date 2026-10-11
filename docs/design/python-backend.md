@@ -86,8 +86,10 @@ Collections:
 
 Every generated struct is frozen and hashable (see [Structs](#structs)), so what it holds must not change after it is built: a `list` would let a caller append to an order's items and change its hash while it sits in a set.
 A tuple and a frozenset are immutable and hashable.
-The standard library has no immutable mapping, so a map is annotated `Mapping`, which has no mutating methods for the checker to accept, and its field is left out of the struct's hash, which keeps equal values hashing equal.
-A set element or map key whose type holds a map warns and the declaration is skipped, since it cannot be hashed.
+The standard library has no immutable mapping, so a map is annotated `Mapping`, which has no mutating methods for the checker to accept, and cannot be hashed.
+A field whose type reaches a map other than through a generated declaration, as `{K -> V}`, `[{K -> V}]`, or `{K -> V}?` do, is left out of its struct's hash with `field(hash=False)`, which keeps equal values hashing equal.
+A field holding a generated struct needs nothing, since that struct already leaves its own map fields out, so every generated type is hashable.
+A set element or map key whose type reaches a map the same way warns and the declaration is skipped, since it cannot be hashed.
 
 Absence:
 
@@ -328,7 +330,7 @@ class LineItemKey:
 ```
 
 A method and a field share a Python class's namespace, so an entity with a field named `key` warns and is emitted without the method.
-A key field holding a map warns, since the key could not be hashed, and so does a key class named like a declaration; the entity is emitted without its key.
+A key field reaching a map, by the rule under [The type mapping](#the-type-mapping), warns, since the key could not be hashed, and so does a key class named like a declaration; the entity is emitted without its key.
 
 ## Generics
 
@@ -402,7 +404,7 @@ Without a directive, the output carries no serializer: a dataclass is what `data
 | Construct | Under `json("pydantic")` |
 | --- | --- |
 | A struct, a variant, a wrapper newtype | `pydantic.dataclasses.dataclass` instead of the standard decorator, so construction also checks every field's type at runtime |
-| A field whose Python name differs from the model's | `Field(validation_alias="createdAt", serialization_alias="createdAt")`, so the constructor keeps the Python name |
+| A field whose Python name differs from the model's | `Field(validation_alias="createdAt", serialization_alias="createdAt")`, with `validate_by_name`, `validate_by_alias`, and `serialize_by_alias` set in the dataclass config, so the constructor keeps the Python name and the wire reads and writes the model's |
 | `T?` | left out of the output when `None` |
 | A fieldless enum | its `StrEnum` values, which are the tags already |
 | A fielded enum | `Annotated[Card \| Cash, Field(discriminator="kind")]`, with a `kind: Literal["Card"]` field defaulted to its tag on each variant |
@@ -474,7 +476,7 @@ Python has no deprecation for a dataclass field or an enum member, so a deprecat
 
 ## Diagnostics
 
-These warn with the node's position, and the declaration reaching one is skipped: an extern with no mapping, a higher-kinded parameter, a set element or map key holding a map, a variant field named like the discriminant under `json`, and a name collision.
+These warn with the node's position, and the declaration reaching one is skipped: an extern with no mapping, a higher-kinded parameter, a set element or map key reaching a map, a variant field named like the discriminant under `json`, and a name collision.
 `emit.Cascade` then skips every declaration naming a skipped one.
 
 These warn and the declaration is still emitted: a unit until phase 6, a `matches` pattern RE2 refuses, a `where` constraint the backend gives no meaning to, a `oneOf` argument another constraint excludes, a default that fails its field's check, a default on a foreign type, a conditional instance, a class with no fields, a class's associated types, a `requires` naming `Entity`, and a `key` it cannot generate.

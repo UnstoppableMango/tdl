@@ -34,8 +34,8 @@ It skips under `-short` and when `python3` is not on `PATH`.
 ## Phase 1: the module, structs, enums, and the type mapping
 
 The module path from the package or `module`, the `__init__.py` layout, the header and its aliased imports, and the order that puts a base class before its subclasses.
-Frozen, slotted, keyword-only dataclasses in all three struct kinds, a map field left out of the hash, `StrEnum` for a fieldless enum, a union of variant classes behind a `type` alias for a fielded one, subclass and wrapper newtypes, a newtype over a newtype, and aliases as `type` statements.
-The primitive, collection, and absence mappings, `Unset`, and a set element or map key holding a map skipped.
+Frozen, slotted, keyword-only dataclasses in all three struct kinds, a field reaching a map left out of the hash, `StrEnum` for a fieldless enum, a union of variant classes behind a `type` alias for a fielded one, subclass and wrapper newtypes, a newtype over a newtype, and aliases as `type` statements.
+The primitive, collection, and absence mappings, `Unset`, and a set element or map key reaching a map skipped.
 `name`, `prefix`, snake-case fields, screaming-snake members, keyword escaping, the collisions, docstrings, and `warnings.deprecated`.
 The fixed-width integers are plain `int` until phase 4, a `where` constraint warns that it is not enforced yet, and a unit-typed field is its base type with a warning.
 The backend is registered in `internal/gen/registry.go`, has a row in the `shipped` table in `internal/gen/hosts_test.go`, is served by `cmd/tdl-gen-python`, and is listed in `nix/cmd.nix`.
@@ -68,7 +68,7 @@ Done when each standard constraint is rejected under `TestValidationRuns`, `Line
 
 ## Phase 5: serialization
 
-`json("pydantic")`: Pydantic dataclasses, aliases carrying the model's spelling, the discriminated union and each variant's `kind` field, `__get_pydantic_core_schema__` on every checked type, base64 bytes, and leaving out an absent `T?`.
+`json("pydantic")`: Pydantic dataclasses, aliases carrying the model's spelling with the config that keeps the Python name in the constructor, the discriminated union and each variant's `kind` field, `__get_pydantic_core_schema__` on every checked type, base64 bytes, and leaving out an absent `T?`.
 The discriminant and tags come from `emit.Discriminant` and `emit.Tag`, and `discriminant` renames the property.
 
 Done when a test serializes a value of every smoke declaration and validates the output against the `jsonschema` backend's schema for the smoke model, decodes it back to an equal value, and refuses a payload that omits a `T | null` field or holds a value violating a constraint.
