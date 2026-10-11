@@ -30,7 +30,7 @@ Each of these is a positioned warning, and the declaration reaching it is skippe
 - generics
 - classes
 - units
-- externs and `foreign`, except in protobuf
+- externs and `foreign`, except in protobuf and TypeScript
 - entity keys
 
 Protobuf reads `foreign(file, message)` on a declaration or an extern as a message another proto file declares.
@@ -38,6 +38,11 @@ The declaration is not emitted, every reference is written as `message`, and eac
 An extern without `foreign`, whose dependency has a protobuf target block, is the message that dependency generates: it is written `<package>.<Name>` and imported from `<package dirs>/<file>`.
 The package is the block's `package` directive or else the dependency's package, the file is its `file` directive or else the package's last segment with `.proto`, and the name is Pascal-cased, so the path matches the dependency's output.
 An extern with neither warns.
+
+TypeScript reads `foreign(module, name)` on an extern as a type a hand-written module exports, imported with `import type { name } from "module"`.
+An extern without `foreign`, whose dependency has a typescript target block, is the type that dependency generates, named as that block names it.
+It is imported from the dependency's file by a path relative to this one, ending in `.js` as Node's module resolution requires; the path comes from both blocks' `out` directives, each relative to the file declaring the block.
+Without both `out` directives, or with neither mapping, the extern warns; so does an import whose name another import or a declaration already takes.
 
 Protobuf declares services with three argument-less directives.
 A structure tagged `service` is emitted as a `service`, and each of its fields is typed by a primitive tagged `rpc` taking the request and response: the field becomes `rpc <Field>(<Request>) returns (<Response>);`.

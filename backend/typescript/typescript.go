@@ -6,6 +6,7 @@ package typescript
 import (
 	"context"
 	"fmt"
+	"maps"
 	"regexp"
 	"slices"
 	"strconv"
@@ -35,6 +36,9 @@ func (Backend) Describe() plugin.Description {
 			// The property a discriminated union switches on: the default on
 			// the target block, an override on an enum.
 			{Name: "discriminant", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			// A module and the type it exports, for a declaration another
+			// package owns.
+			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{str[0], str[0]}},
 			// Writes, as JSDoc @tdl tags, every fact the declarations alone
 			// would lose, so import rebuilds the model.
 			{Name: "roundtrip"},
@@ -94,6 +98,11 @@ type generator struct {
 	// tags the @tdl tags its JSDoc carries.
 	lost bool
 	tags []string
+
+	// declares holds the type names each rendered declaration declares;
+	// uses holds the imports the declaration being rendered refers to.
+	declares map[*ir.Decl][]string
+	uses     map[string]imported
 }
 
 // Generate returns one .ts file holding the model's declarations.
@@ -102,7 +111,9 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		Session:  emit.NewSession(req, "TypeScript"),
 		names:    map[string]string{},
 		enforced: map[*ir.Constraint]bool{},
+		declares: map[*ir.Decl][]string{},
 	}
+	g.Externs = true
 
 	g.Roundtrip = g.Bare("roundtrip")
 
@@ -124,9 +135,12 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	// Each declaration's warnings are held until the cascade decides
 	// whether it is emitted, since a skipped one loses everything at once.
 	held := map[*ir.Decl][]*plugin.Diagnostic{}
+	uses := map[*ir.Decl]map[string]imported{}
 	for _, d := range own {
 		mark := len(g.Diags)
+		g.uses = map[string]imported{}
 		text, err := g.decl(d)
+		uses[d] = g.uses
 		if err != nil {
 			g.Diags = g.Diags[:mark]
 			g.Skip(err)
@@ -138,7 +152,12 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		texts[d] = text
 	}
 	mark := len(g.Diags)
-	g.Cascade(own, skipped)
+	for {
+		g.Cascade(own, skipped)
+		if !g.importConflicts(own, skipped, uses) {
+			break
+		}
+	}
 	if g.Roundtrip {
 		// A skipped declaration is carried as TDL, so nothing is lost.
 		g.Diags = g.Diags[:mark]
@@ -151,11 +170,16 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 
 	var blocks []string
 	emitted := map[string]bool{}
+	imports := map[string]imported{}
 	for _, d := range own {
 		if text := texts[d]; text != "" && !skipped[d] {
 			blocks = append(blocks, text)
 			emitted[d.GetMeta().GetName()] = true
+			maps.Copy(imports, uses[d])
 		}
+	}
+	if lines := importLines(imports); lines != "" {
+		blocks = append([]string{lines}, blocks...)
 	}
 	if footer := g.footer(path, emitted); footer != "" {
 		blocks = append(blocks, footer)
@@ -227,6 +251,7 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	for _, n := range declared {
 		g.names[n] = name
 	}
+	g.declares[d] = declared
 	if !g.Roundtrip {
 		g.WarnUnenforced(d, func(c *ir.Constraint) bool { return g.enforced[c] })
 	}
@@ -488,6 +513,8 @@ func (g *generator) typ(r *emit.Ref) (string, error) {
 			return inner, nil
 		}
 		return inner + " | null", nil
+	case emit.Extern:
+		return g.externType(r)
 	}
 	return g.DeclName(r.Decl, emit.Pascal), nil
 }
