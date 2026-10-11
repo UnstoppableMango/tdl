@@ -60,6 +60,7 @@
               gomod2nix
               gopls
               golangci-lint
+              ghc
               gnumake
               nixfmt
               nodejs

@@ -7,7 +7,7 @@ Guidance for coding agents working in this repository.
 ```shell
 go test ./...                      # all tests
 go test -race ./...                # what CI runs; the plugin subprocess needs it
-go test -short ./...               # skips running go, smithy, tsc, and likec4 on generated code
+go test -short ./...               # skips running go, smithy, tsc, ghc, and likec4 on generated code
 go test ./parser -run TestConformanceCorpusParses   # a single test
 go build ./...
 
@@ -62,7 +62,7 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 
 `nix/` holds the packaging:
 
-- `cmd.nix`: the CLI. `meta.mainProgram` is what `lib.getExe` reads, since the package installs twelve binaries.
+- `cmd.nix`: the CLI. `meta.mainProgram` is what `lib.getExe` reads, since the package installs thirteen binaries.
 - `vscode-extension.nix`: the editor extension (see [VS Code](#vs-code)).
 - `demo.nix`: renders `docs/demo/demo.tape`, the README's GIF, with VHS. It is a package and not a check, since it runs a browser.
   The tape's `cat`, from `docs/demo/demo.bash`, highlights TDL with the tree-sitter grammar and the theme in `themes/tree-sitter/`, and everything else with bat.
@@ -217,6 +217,12 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   A `key` directive makes a field a unique external ID.
   Tests check the XML is well formed and `checks.gen-salesforce` runs `xmllint`; nothing checks the Apex.
   See `docs/design/salesforce-backend.md`.
+- `backend/haskell`: one module per model, `Shop/Billing.hs` for package `shop.billing` unless a `module` directive names it.
+  A struct is a record, an enum a sum type, a newtype a `newtype`, and an alias a `type` synonym; fields keep the model's names under `NoFieldSelectors` and `DuplicateRecordFields`.
+  Every import has an explicit list, and one bringing in a name the module declares is qualified instead; references are placeholders until the module is rendered, so that is decided once.
+  Constructors share a namespace, so a later declaration taking one is skipped; `prefix` writes variants behind their enum's name.
+  Only phase 1 of `haskell-backend-plan.md` is built: classes, generics, units, `foreign`, `key`, and validation warn.
+  Tests run `ghc -fno-code -Wall -Werror` when `ghc` is on `PATH`; `checks.gen-haskell` always does.
 - `backend/likec4`: LikeC4 source for an architecture diagram: `tdl.c4`, the specification of element kinds, the same bytes for every model, and one `<package>.c4` holding a package element and one element per structure, enum, newtype, or class; aliases, primitives, and units have none.
   Only phase 1 of `likec4-backend-plan.md` is built: no relationships or views yet.
   No Go library parses LikeC4, so tests compare text, and also run `likec4 validate --no-layout` when `likec4` is on `PATH`.
@@ -243,7 +249,7 @@ After any change to lowering or `ir.Dump`, run `go test ./internal/sema -update`
 ### Docs
 
 `docs/design/` holds designs and plans; each `*-plan.md` names what its phases add, and its opening lines say which are done.
-Read those before assuming a design is built: the C#, Haskell, Java, ML-family, and profiles designs have no code yet.
+Read those before assuming a design is built: the C#, Java, ML-family, and profiles designs have no code yet, and Haskell has only phase 1.
 A design describes the target, not the implementation.
 `workflow.md` is furthest ahead: its `tdl.toml` project model is unbuilt.
 `docs/backlog.md` is wanted, unscheduled work.

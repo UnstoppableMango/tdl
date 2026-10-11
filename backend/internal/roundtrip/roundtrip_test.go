@@ -12,6 +12,7 @@ import (
 
 	"github.com/unstoppablemango/tdl/backend/golang"
 	"github.com/unstoppablemango/tdl/backend/graphql"
+	"github.com/unstoppablemango/tdl/backend/haskell"
 	"github.com/unstoppablemango/tdl/backend/internal/roundtrip"
 	"github.com/unstoppablemango/tdl/backend/jsonschema"
 	"github.com/unstoppablemango/tdl/backend/likec4"
@@ -38,6 +39,7 @@ const (
 var targets = []roundtrip.Target{
 	{Backend: golang.Backend{}, Normalize: golang.Normalize},
 	{Backend: graphql.Backend{}, Normalize: graphql.Normalize},
+	{Backend: haskell.Backend{}},
 	{Backend: jsonschema.Backend{}},
 	{Backend: likec4.Backend{}},
 	{Backend: openapi.Backend{}},

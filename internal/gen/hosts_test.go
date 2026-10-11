@@ -24,6 +24,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/debug"
 	"github.com/unstoppablemango/tdl/backend/golang"
 	"github.com/unstoppablemango/tdl/backend/graphql"
+	"github.com/unstoppablemango/tdl/backend/haskell"
 	"github.com/unstoppablemango/tdl/backend/jsonschema"
 	"github.com/unstoppablemango/tdl/backend/likec4"
 	"github.com/unstoppablemango/tdl/backend/openapi"
@@ -61,6 +62,7 @@ var shipped = []struct {
 	{backend: debug.Backend{}, model: sampleModel, packaged: true},
 	{backend: golang.Backend{}, model: goModel, packaged: true, valid: parseGo, reverse: goSource},
 	{backend: graphql.Backend{}, model: orderModel, packaged: true, valid: loadGraphQL, reverse: graphqlSource},
+	{backend: haskell.Backend{}, model: orderModel, packaged: true},
 	{backend: jsonschema.Backend{}, model: orderModel, packaged: true, valid: compileJSONSchema},
 	{backend: likec4.Backend{}, model: orderModel, packaged: true},
 	{backend: openapi.Backend{}, model: orderModel, packaged: true, valid: parseYAML},

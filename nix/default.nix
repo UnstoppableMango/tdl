@@ -95,6 +95,22 @@ in
             touch $out
           '';
 
+      # Type checks the haskell backend's module with every warning an error.
+      checks.gen-haskell =
+        pkgs.runCommand "tdl-gen-haskell"
+          {
+            nativeBuildInputs = [
+              pkgs.tdl
+              pkgs.ghc
+            ];
+          }
+          ''
+            cp ${../testdata/gen/smoke/source.tdl} source.tdl
+            tdl gen --target haskell -o out source.tdl
+            ghc -fno-code -Wall -Werror out/*.hs
+            touch $out
+          '';
+
       # Checks the jsonschema backend's document against its metaschema,
       # with a second implementation beside the one its tests use.
       checks.gen-jsonschema =

@@ -12,6 +12,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/debug"
 	"github.com/unstoppablemango/tdl/backend/golang"
 	"github.com/unstoppablemango/tdl/backend/graphql"
+	"github.com/unstoppablemango/tdl/backend/haskell"
 	"github.com/unstoppablemango/tdl/backend/jsonschema"
 	"github.com/unstoppablemango/tdl/backend/likec4"
 	"github.com/unstoppablemango/tdl/backend/openapi"
@@ -29,6 +30,7 @@ var builtin = map[string]plugin.Backend{
 	debug.Name:      debug.Backend{},
 	golang.Name:     golang.Backend{},
 	graphql.Name:    graphql.Backend{},
+	haskell.Name:    haskell.Backend{},
 	jsonschema.Name: jsonschema.Backend{},
 	likec4.Name:     likec4.Backend{},
 	openapi.Name:    openapi.Backend{},
