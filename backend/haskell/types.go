@@ -65,6 +65,10 @@ var placeholder = regexp.MustCompile(refStart + `([^` + refSep + `]*)` + refSep 
 
 // use records an import and returns the placeholder for it.
 func (g *generator) use(i imported) string {
+	if i.module == g.self {
+		// A mapping onto the generated module itself imports nothing.
+		return i.name
+	}
 	if g.uses[i.module] == nil {
 		g.uses[i.module] = map[string]bool{}
 	}
@@ -88,12 +92,20 @@ func (g *generator) typ(id *ir.ID) (hsType, error) {
 	case t.GetUnit() != nil:
 		return hsType{}, emit.Lost(emit.LossUnit, pos, "a unit-typed field has no Haskell type yet")
 	case t.GetExtern() != nil:
-		return hsType{}, emit.Unsupported(pos, "%s is declared in another package, and foreign types are not generated yet", t.GetExtern().GetName())
+		f, ok := g.extern(t)
+		if !ok {
+			return hsType{}, emit.Unsupported(pos,
+				"%s is declared in another package, which has no haskell target block, and no foreign directive maps it", t.GetExtern().GetName())
+		}
+		return g.applied(f, t.GetArgs())
 	}
 
 	decl := g.Model.Decl(t.GetCtor())
 	if decl == nil {
 		return hsType{}, emit.Unsupported(pos, "type %s did not resolve", t.GetCtor().GetName())
+	}
+	if f, ok := g.foreign[decl]; ok {
+		return g.applied(f, t.GetArgs())
 	}
 	name := decl.GetMeta().GetName()
 	args := t.GetArgs()
@@ -168,6 +180,19 @@ func (g *generator) typ(id *ir.ID) (hsType, error) {
 		return hsType{}, emit.Lost(emit.LossGeneric, pos, "%s is applied to type arguments, and generics are not generated yet", name)
 	}
 	return hsType{text: g.DeclName(decl, upperFirst), atom: true}, nil
+}
+
+// applied is an imported type applied to type arguments.
+func (g *generator) applied(f imported, args []*ir.ID) (hsType, error) {
+	text := g.use(f)
+	for _, a := range args {
+		t, err := g.typ(a)
+		if err != nil {
+			return hsType{}, err
+		}
+		text += " " + t.arg()
+	}
+	return hsType{text: text, atom: len(args) == 0}, nil
 }
 
 // imports writes the module's import declarations and replaces each

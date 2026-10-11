@@ -51,29 +51,23 @@ func escape(s string) string {
 	return s
 }
 
-// moduleName is the module a model generates: the target block's `module`
+// module is the module a model generates: the target block's `module`
 // directive, or else the package's segments with each first letter
 // upper-cased. It is an error when there is neither or Haskell refuses the
 // name.
-func (g *generator) moduleName() (string, error) {
+func (g *generator) module() (string, error) {
 	var name string
 	var pos *ir.Position
 	if dir, ok := g.Block("module"); ok {
 		name, pos = dir.GetArgs()[0].GetText(), dir.GetPosition()
 	} else if pkg := g.Model.GetPackage(); pkg != "" {
-		segs := strings.Split(pkg, ".")
-		for i, s := range segs {
-			segs[i] = upperFirst(s)
-		}
-		name = strings.Join(segs, ".")
+		name = packageModule(pkg)
 	}
-	if name == "" {
+	switch {
+	case name == "":
 		return "", emit.Invalid(pos, "a Haskell module needs a name: give the model a package, or the haskell target block a module directive")
-	}
-	for seg := range strings.SplitSeq(name, ".") {
-		if !conid.MatchString(seg) {
-			return "", emit.Invalid(pos, "%s is not a Haskell module name", name)
-		}
+	case !moduleName(name):
+		return "", emit.Invalid(pos, "%s is not a Haskell module name", name)
 	}
 	return name, nil
 }
