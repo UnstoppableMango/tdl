@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.7](https://github.com/UnstoppableMango/tdl/compare/v0.4.6...v0.4.7) (2026-10-11)
+
+
+### Features
+
+* **haskell:** generate records, enums, newtypes, and aliases ([#1067](https://github.com/UnstoppableMango/tdl/issues/1067)) ([b6c5cc9](https://github.com/UnstoppableMango/tdl/commit/b6c5cc9684c97e5330ca152fa16aad41f213d41e))
+* **typescript:** import externs from foreign modules and dependencies ([#1065](https://github.com/UnstoppableMango/tdl/issues/1065)) ([2ce02b4](https://github.com/UnstoppableMango/tdl/commit/2ce02b458672e525a4ba0da3aa74098d739dc37d))
+
+
+### Code Refactoring
+
+* **models:** move unist, mdast, and hast to unmango/treespec ([#1062](https://github.com/UnstoppableMango/tdl/issues/1062)) ([b3bd9bd](https://github.com/UnstoppableMango/tdl/commit/b3bd9bd04dcd37ff53874b209c94f427671fd0cb))
+
 ## [0.4.6](https://github.com/UnstoppableMango/tdl/compare/v0.4.5...v0.4.6) (2026-10-10)
 
 
