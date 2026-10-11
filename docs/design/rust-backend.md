@@ -43,7 +43,7 @@ Every file starts the same way:
 #![allow(non_camel_case_types, clippy::upper_case_acronyms, clippy::large_enum_variant)]
 ```
 
-Under `layout("module")` the inner attributes are written on the items instead, since a module file is not a crate root.
+Under `layout("module")` the module file starts with the same inner attributes, which apply to that module as they would to a crate.
 The two naming lints are allowed because a type keeps the model's spelling (see [Names](#names)), and rustc would warn on `Line_Item` and Clippy on `URL`.
 `large_enum_variant` is allowed because boxing a variant is a representation choice the model does not make; the `boxed` directive makes it where a consumer wants it.
 
@@ -245,6 +245,7 @@ impl From<Email> for String { ... }
 `new` checks every constraint before failing, and `tdl::Violations` lists each, so a consumer sees all of them at once.
 `check` runs the same checks without building, for a consumer who wants to show a user what is wrong with a value they cannot hold.
 There is no `new_unchecked`: the guarantee is that a value which exists satisfies its model, and an escape hatch would make every `Email` a maybe.
+The guarantee covers what the backend writes; `derive` and `attribute` are escape hatches a model author trusts, so `derive("Default")` on a checked type would add an unchecked constructor, and it warns (see [Deriving](#deriving)).
 
 A constraint on a field is carried by a type named for the struct and the field, declared beside the struct:
 
@@ -315,6 +316,8 @@ A type parameter adds nothing to the decision: `derive` already bounds each impl
 
 `derive("schemars::JsonSchema")`, on a declaration or the target block, adds one derive; it is repeatable, and on the target block it applies to every declaration.
 `attribute("...")` writes an outer attribute verbatim, for what `derive` cannot say.
+Both are trusted: the backend cannot see what a derive or attribute expands to, so it cannot promise a checked type stays checked under one.
+It warns on the derives it knows build values, `Default` and serde's `Deserialize`, on a checked type, and otherwise passes what it is given through.
 A foreign type is assumed to implement all seven, as Go assumes a foreign type is comparable, and a mapping that is wrong about it fails at the consumer's build.
 
 ## Identity
