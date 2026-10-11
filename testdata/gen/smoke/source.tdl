@@ -98,3 +98,7 @@ target jsonschema for smoke {
 target openapi for smoke {
   out("openapi")
 }
+
+target haskell for smoke {
+  out("haskell")
+}

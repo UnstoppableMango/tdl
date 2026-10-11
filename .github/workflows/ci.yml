@@ -48,7 +48,7 @@ jobs:
       # covered statement increments an atomic counter the race detector
       # tracks, which on the runner made the protocompile tests over ten
       # times slower and timed them out. The coverage run is -short: the
-      # race run already ran go, smithy, tsc, and likec4 on generated code,
+      # race run already ran go, smithy, tsc, ghc, and likec4 on generated code,
       # and test code is outside the coverage profile.
       - run: nix develop -c go test -race ./...
         if: ${{ !cancelled() }}
