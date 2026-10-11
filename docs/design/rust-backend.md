@@ -7,7 +7,8 @@ The Rust backend turns a resolved model into a Rust library crate.
 It is called `rust` in a target block, ships compiled into `tdl` and as `tdl-gen-rust`, and is implemented in `backend/rust`.
 
 Rust has most of what TDL draws from Haskell and ML: sum types, newtypes that cost nothing, traits with associated types, impls conditional on their parameters, and a `match` the compiler checks for exhaustiveness.
-It adds one thing no other target has, privacy that a value cannot get around: a struct whose field is private can be built only by the functions its module writes, and no deserializer, reflection, or default value reaches past them.
+It adds one thing no other target has, privacy that a value cannot get around: a struct whose field is private can be built only by code in its own module, and Rust has no reflection or zero value that reaches past it.
+A deserializer is code in that module too, so a derived `Deserialize` would write the field unchecked; the backend never derives one on a checked type, and writes one that goes through the check instead (see [Serialization](#serialization)).
 So this backend puts every `where` constraint into a type, as [java-backend.md](java-backend.md) puts it into a constructor, and there is no `validate` method anywhere in the output.
 [Constraints](#constraints) says how, and what it costs.
 
