@@ -72,6 +72,31 @@ type Order: Auditable { createdAt: instant? }
 `,
 			want: "Order.createdAt is Option<instant>, but Auditable requires instant",
 		},
+		{
+			name: "a field of a parameter's type",
+			src: `
+class Auditable { createdAt: instant }
+type Stamped<T>: Auditable { createdAt: T }
+`,
+			want: "Stamped.createdAt is T, but Auditable requires instant",
+		},
+		{
+			name: "a parameter inside a field's type",
+			src: `
+class Tagged { tags: [string] }
+type Bag<T>: Tagged { tags: [T] }
+`,
+			want: "Bag.tags is List<T>, but Tagged requires List<string>",
+		},
+		{
+			name: "a conditional instance whose head has a parameter's field",
+			src: `
+class Auditable { createdAt: instant }
+type Stamped<T> { createdAt: T }
+instance <T> Auditable<Stamped<T>> requires Auditable<T>
+`,
+			want: "Stamped.createdAt is T, but Auditable requires instant",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -112,13 +137,6 @@ type Order: Tagged { tags: [string] }
 `,
 		},
 		{
-			name: "a field of a parameter's type",
-			src: `
-class Auditable { createdAt: instant }
-type Stamped<T>: Auditable { createdAt: T }
-`,
-		},
-		{
 			name: "a conditional instance of a class with no fields",
 			src: `
 class Archived { }
@@ -148,6 +166,7 @@ type Box { width: decimal<cm> }
 type Crate { width: decimal<m> }
 type Push { force: decimal<kg*m/s^2> }
 type Labelled { tags: [string]  owner: Address }
+type Stamped<T> { createdAt: T }
 `,
 	}
 
@@ -224,6 +243,15 @@ class Wide { width: decimal<shipping.cm> }
 instance Wide for shipping.Crate
 `,
 			want: "shop.shipping.Crate.width is decimal<m>, but Wide requires decimal<shop.shipping.cm>",
+		},
+		{
+			name: "a field of a parameter's type",
+			src: `
+import "dep/shipping.tdl" as shipping
+class Auditable { createdAt: instant }
+instance <T> Auditable<shipping.Stamped<T>> requires Auditable<T>
+`,
+			want: "shop.shipping.Stamped.createdAt is T, but Auditable requires instant",
 		},
 	}
 	for _, tt := range tests {
