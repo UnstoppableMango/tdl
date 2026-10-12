@@ -358,15 +358,30 @@ func (r *reader) prepare(shapes []*shape, at map[string]ast.Position, ns string)
 		r.names[s.id] = decl.Name()
 	}
 
+	// A union reads as an enum only when every member does, and only then
+	// are the structures its members target its variants'.
 	for _, s := range r.shapes {
 		if s.kind != "union" {
 			continue
 		}
+		var own []string
 		for _, m := range s.members {
-			if t := r.byID[m.target]; t != nil && t.kind == "structure" && uses[t.id] == 1 && r.payload(t) {
-				r.variants[t.id] = true
-				delete(r.names, t.id)
+			if m.target == prelude+"#Unit" {
+				continue
 			}
+			t := r.byID[m.target]
+			if t == nil || t.kind != "structure" || uses[t.id] != 1 || !r.payload(t) {
+				own = nil
+				if r.sources[s.id] == nil {
+					delete(r.names, s.id)
+				}
+				break
+			}
+			own = append(own, t.id)
+		}
+		for _, id := range own {
+			r.variants[id] = true
+			delete(r.names, id)
 		}
 	}
 	for _, s := range r.shapes {
@@ -375,7 +390,59 @@ func (r *reader) prepare(shapes []*shape, at map[string]ast.Position, ns string)
 			delete(r.names, s.id)
 		}
 	}
+
+	// A shape with no TDL form declares nothing, so a name is kept only
+	// for one that reads, and a collection holding what does not read
+	// declares nothing in turn.
+	for _, s := range r.shapes {
+		if _, simple := simpleShapes[s.kind]; r.sources[s.id] == nil && !simple && !slices.Contains(declaring, s.kind) {
+			delete(r.names, s.id)
+		}
+	}
+	for changed := true; changed; {
+		changed = false
+		for _, s := range r.shapes {
+			if r.names[s.id] == "" || r.sources[s.id] != nil || s.kind != "list" && s.kind != "map" {
+				continue
+			}
+			if !r.reads(s, map[string]bool{}) {
+				delete(r.names, s.id)
+				changed = true
+			}
+		}
+	}
 	return nil
+}
+
+// declaring is the kinds of shape besides simple shapes that read as a
+// declaration.
+var declaring = []string{"structure", "union", "enum", "intEnum", "list", "map"}
+
+// reads reports whether everything a list or map holds reads as a type.
+func (r *reader) reads(s *shape, seen map[string]bool) bool {
+	if seen[s.id] {
+		return false
+	}
+	seen[s.id] = true
+	for _, target := range s.targets() {
+		ns, name, _ := strings.Cut(target, "#")
+		t := r.byID[target]
+		switch {
+		case ns == prelude:
+			if primitives[name] == "" {
+				return false
+			}
+		case t == nil:
+			return false
+		case r.sugar[target]:
+			if !r.reads(t, seen) {
+				return false
+			}
+		case r.names[target] == "":
+			return false
+		}
+	}
+	return true
 }
 
 // payload reports whether a structure can be a variant's: one carrying

@@ -79,6 +79,15 @@ structure Item {
     id: String
     count: Short
     blob: Document
+    payload: Payload
+    payloads: PayloadList
+    either: Either
+}
+
+document Payload
+
+list PayloadList {
+    member: Payload
 }
 
 intEnum Level {
@@ -147,6 +156,9 @@ service Shop {
 		"@smithy.api#length",
 		"is a Short",
 		"is a Document",
+		"Item.payload targets shop#Payload, which has no TDL form",
+		"Item.either targets shop#Either, which has no TDL form",
+		"document Payload",
 		"intEnum Level",
 		`value "red-ish"`,
 		"union Either",
