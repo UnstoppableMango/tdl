@@ -387,6 +387,40 @@ Under a `roundtrip` directive, each is written instead as a JSDoc `@tdl <key> <v
 
 The normal form for comparing files is the compiler's outline as JSON, without positions, each JSDoc comment read into its doc, deprecation, and tags, without whether a property's name is quoted, and with `Array<T>` written `T[]`.
 
+### Smithy
+
+`tdl import --from smithy` reads `.smithy` files of one namespace, which the Smithy CLI's `smithy ast` turns into its JSON AST; `smithy` must be on `PATH`.
+The namespace is the package.
+
+| Smithy | TDL |
+| --- | --- |
+| structure | struct |
+| union whose every member targets `Unit` or a structure nothing else names | enum with fields, one variant per member |
+| enum, each member's value its variant's name | enum |
+| a list or map named for what it holds, with no trait but `@sparse` and `@uniqueItems` | the collection a member holds |
+| any other list or map, and a simple shape | newtype |
+| a member without `@required` | `T?` |
+| `@sparse`, `@uniqueItems` | an element `T?`, `{T}` |
+| `String`, `Integer`, `Long`, `BigInteger`, `Float`, `Double` | `string`, `int32`, `int64`, `uint64`, `float32`, `float64` |
+| `Boolean`, `Blob`, `BigDecimal`, `Timestamp` | `bool`, `bytes`, `decimal`, `instant` |
+| `Short`, `Byte` | `int32`, with `lossy.primitive` |
+| intEnum | enum, with `lossy.unsupported` |
+| `Document`, service, operation, resource, mixins, other union, metadata, any other trait | `lossy.unsupported` |
+
+A shape keeps its name, a member its own, a union member's variant is its Pascal case, and an enum member's variant is its value when that is a TDL name, else its Pascal case with `lossy.name`.
+A doc comment is a doc comment, and `@deprecated` with its `message` a deprecation; a variant takes its union member's, else its structure's.
+The JSON AST has no positions, so declarations are ordered, and diagnostics placed, by the line each shape's statement starts on.
+The target block holds a `name` directive where the convention would write another name: a shape's Pascal case, an enum member's screaming snake case, and a variant structure's union and variant names joined.
+
+Generating, every fact the model cannot hold warns with its loss code: an `int`, `uint32`, `uuid`, `date`, or `duration` written as another primitive, collection sugar written by name, `T | null` or `Option<T>`, a newtype or alias expanded, an entity or a mixin, an include, a constraint, `owned`, a default, a name that reads back otherwise, a package `package` renames, the package's doc comment, a doc comment's trailing whitespace, a class, a unit, and generics.
+
+Under a `roundtrip` directive, what the model cannot hold is written instead:
+
+- `@tdl#source` on a declaration whose shapes do not read back as it: the declaration as TDL. Generating reads its own shapes back to decide, so a declaration that reads back whole carries nothing. The trait is defined in a generated `tdl.smithy`, written only when a shape uses it.
+- `metadata tdl`: `package` when the namespace does not hold it, `doc` for the package's doc comment, `import` for each import, and `item` for each top-level item with no shape, as its index among the file's declarations and the item as TDL. It is always written, since it is how import knows the files are annotated and infers no directive.
+
+The normal form for comparing models is the `smithy ast` JSON of the shapes each file declares, and of the metadata in the file that writes it.
+
 ## Encodings
 
 TDL defines no wire encoding, so these backends and the Go backend can disagree about one value.

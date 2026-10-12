@@ -68,7 +68,7 @@ var shipped = []struct {
 	{backend: openapi.Backend{}, model: orderModel, packaged: true, valid: parseYAML},
 	{backend: protobuf.Backend{}, model: orderModel, packaged: true, valid: compileProto, reverse: protoSource},
 	{backend: salesforce.Backend{}, model: orderModel, packaged: true, valid: parseXML},
-	{backend: smithy.Backend{}, model: orderModel, packaged: true},
+	{backend: smithy.Backend{}, model: orderModel, packaged: true, reverse: smithySource, needs: smithyCLI},
 	{backend: thrift.Backend{}, model: orderModel, packaged: true, valid: checkThrift, reverse: thriftSource},
 	{backend: typescript.Backend{}, model: orderModel, packaged: true, reverse: typescriptSource, needs: typescriptCompiler},
 }
@@ -121,6 +121,33 @@ struct Order {
   2: list<string> tags
 }
 `)}}
+}
+
+// smithySource is a model for the smithy reverse to read.
+func smithySource() []*plugin.File {
+	return []*plugin.File{{Path: "shop.smithy", Content: []byte(`$version: "2"
+
+namespace shop
+
+/// An order.
+structure Order {
+    @required
+    id: String
+    @required
+    tags: StringList
+}
+
+list StringList {
+    member: String
+}
+`)}}
+}
+
+// smithyCLI reports whether the Smithy CLI the smithy reverse runs is
+// installed.
+func smithyCLI() error {
+	_, err := smithy.CLI()
+	return err
 }
 
 // typescriptSource is a file for the typescript reverse to read.

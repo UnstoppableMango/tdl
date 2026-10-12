@@ -5,9 +5,11 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
+	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/backend/internal/irtest"
 	"github.com/unstoppablemango/tdl/backend/smithy"
 	"github.com/unstoppablemango/tdl/ir"
@@ -23,7 +25,19 @@ func generate(t *testing.T, b *irtest.Builder) *plugin.Response {
 	if err != nil {
 		t.Fatalf("generate: %v", err)
 	}
+	resp.Diagnostics = slices.DeleteFunc(resp.Diagnostics, readsBackOtherwise)
 	return resp
+}
+
+// readsBackOtherwise reports whether a warning says only that import would
+// read the output back as another model.
+func readsBackOtherwise(d *plugin.Diagnostic) bool {
+	switch d.GetCode() {
+	case emit.LossPrimitive, emit.LossCollection, emit.LossOptional, emit.LossAlias, emit.LossName,
+		emit.LossDoc, emit.LossStructKind, emit.LossInclude, emit.LossOwned, emit.LossDefault, emit.LossNewtype:
+		return true
+	}
+	return false
 }
 
 // check returns the response's one file, validated by the Smithy CLI when
