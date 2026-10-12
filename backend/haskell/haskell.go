@@ -7,6 +7,7 @@ package haskell
 import (
 	"context"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 
@@ -38,6 +39,12 @@ func (Backend) Describe() plugin.Description {
 			{Name: "prefix"},
 			// A lazy field under StrictData.
 			{Name: "lazy"},
+			// The module and type a declaration maps to, declared elsewhere.
+			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: str},
+			// The fields identifying an entity.
+			{Name: "key", MinArgs: 1, MaxArgs: -1},
+			// An anyclass instance of a class, from the module named.
+			{Name: "derive", MinArgs: 2, MaxArgs: 2, ArgKinds: str, Repeatable: true},
 		},
 	}
 }
@@ -76,8 +83,26 @@ type generator struct {
 	types map[string]string
 	ctors map[string]string
 
-	// uses holds every imported name, by module.
+	// uses holds every imported name, by module, and exts every extension
+	// beyond pragmas, for the declaration being rendered.
 	uses map[string]map[string]bool
+	exts map[string]bool
+
+	// self is the generated module.
+	self string
+
+	// foreign and externs map a declaration and an extern to the type
+	// another module declares for it.
+	foreign map[*ir.Decl]imported
+	externs map[*ir.Extern]imported
+
+	// names maps every type and constructor name the model's declarations
+	// take to the declaration taking it, so a key record can tell it would
+	// collide with one declared after it.
+	names map[string]string
+
+	// warned holds each directive already warned about.
+	warned map[*ir.Directive]bool
 }
 
 // rendered is one declaration's output.
@@ -94,8 +119,10 @@ type rendered struct {
 	// label, written only when no other declaration shares the label.
 	deprecated []fieldPragma
 
-	// uses is what it imports, by module.
+	// uses is what it imports, by module, and exts the extensions it
+	// needs.
 	uses map[string]map[string]bool
+	exts map[string]bool
 }
 
 type fieldPragma struct{ label, pragma string }
@@ -106,16 +133,26 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		Session: emit.NewSession(req, "Haskell"),
 		types:   map[string]string{},
 		ctors:   map[string]string{},
+		names:   map[string]string{},
+		warned:  map[*ir.Directive]bool{},
 	}
 	g.prefix = g.Bare("prefix")
 
-	module, err := g.moduleName()
+	module, err := g.module()
 	if err != nil {
 		g.Warn(err)
 		return g.Response(nil), nil
 	}
+	g.self = module
+	g.planForeign()
 
 	own := g.Own()
+	for _, d := range own {
+		g.claim(d)
+	}
+	// Read the target block's derive directives once, so a problem with
+	// one warns whether or not a declaration is emitted.
+	g.derived(&ir.Decl{})
 	out := map[*ir.Decl]*rendered{}
 	skipped := map[*ir.Decl]bool{}
 	// Each declaration's warnings are held until the cascade decides
@@ -124,9 +161,10 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	for _, d := range own {
 		mark := len(g.Diags)
 		g.uses = map[string]map[string]bool{}
+		g.exts = map[string]bool{}
 		r, err := g.decl(d)
 		if r != nil {
-			r.uses = g.uses
+			r.uses, r.exts = g.uses, g.exts
 		}
 		if err != nil {
 			g.Diags = g.Diags[:mark]
@@ -160,6 +198,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	var emitted []*rendered
 	declared := map[string]bool{}
 	labels := map[string]int{}
+	exts := map[string]bool{}
 	for _, d := range own {
 		if r := out[d]; r != nil && !skipped[d] {
 			g.Diags = append(g.Diags, held[d]...)
@@ -169,6 +208,9 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 			}
 			for _, l := range r.labels {
 				labels[l]++
+			}
+			for e := range r.exts {
+				exts[e] = true
 			}
 			for m, names := range r.uses {
 				for n := range names {
@@ -200,6 +242,9 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	for _, p := range pragmas {
 		fmt.Fprintf(&b, "{-# LANGUAGE %s #-}\n", p)
 	}
+	for _, e := range slices.Sorted(maps.Keys(exts)) {
+		fmt.Fprintf(&b, "{-# LANGUAGE %s #-}\n", e)
+	}
 	b.WriteString("\n")
 	haddock(&b, "", "|", emit.Doc(&ir.Meta{Doc: g.Model.GetDoc()}))
 	fmt.Fprintf(&b, "module %s where\n\n", module)
@@ -216,6 +261,9 @@ func (g *generator) decl(d *ir.Decl) (*rendered, error) {
 	name := d.GetMeta().GetName()
 
 	switch {
+	case g.foreign[d] != imported{}:
+		// Another module declares it.
+		return nil, nil
 	case d.GetClass() != nil:
 		return nil, emit.Lost(emit.LossClass, pos, "%s is a class, and classes are not generated yet", name)
 	case d.GetUnit() != nil:
@@ -246,6 +294,11 @@ func (g *generator) decl(d *ir.Decl) (*rendered, error) {
 			return nil, err
 		}
 		fmt.Fprintf(&b, "type %s = %s\n", typ, target.text)
+		for _, dir := range plugin.Directives(g.Target, d.GetDirectives()) {
+			if dir.GetName() == "derive" {
+				g.Warn(emit.Unsupported(dir.GetPosition(), "%s is an alias, which has no instances of its own to derive", name))
+			}
+		}
 	case d.GetNewtype() != nil:
 		base, err := g.typ(d.GetNewtype().GetBase())
 		if err != nil {
@@ -253,6 +306,7 @@ func (g *generator) decl(d *ir.Decl) (*rendered, error) {
 		}
 		fmt.Fprintf(&b, "newtype %s = %s %s\n", typ, typ, base.arg())
 		b.WriteString(g.deriving(eq, ord, show, generic))
+		b.WriteString(g.anyclass(g.derived(d)))
 		ctors = []string{typ}
 	case d.GetStructure() != nil:
 		fields, err := g.fields(r, name, d.Fields(), "  ")
@@ -261,6 +315,7 @@ func (g *generator) decl(d *ir.Decl) (*rendered, error) {
 		}
 		fmt.Fprintf(&b, "data %s = %s%s\n", typ, typ, fields)
 		b.WriteString(g.deriving(eq, ord, show, generic))
+		b.WriteString(g.anyclass(g.derived(d)))
 		ctors = []string{typ}
 	default:
 		if ctors, err = g.enum(&b, r, d, typ, e); err != nil {
@@ -269,6 +324,11 @@ func (g *generator) decl(d *ir.Decl) (*rendered, error) {
 	}
 	if reason, ok := emit.Deprecated(d.GetMeta()); ok {
 		fmt.Fprintf(&b, "\n{-# DEPRECATED %s %s #-}\n", typ, str(deprecation(reason)))
+	}
+	if dir, ok := g.Find(d.GetDirectives(), "key"); ok {
+		if err := g.keyed(&b, r, d, typ, dir, &ctors); err != nil {
+			g.Warn(err)
+		}
 	}
 
 	seen := map[string]bool{}
@@ -289,6 +349,48 @@ func (g *generator) decl(d *ir.Decl) (*rendered, error) {
 	g.WarnConstraints(d)
 	r.text = b.String()
 	return r, nil
+}
+
+// keyed renders an entity's key after it, declaring the key record's type
+// and constructor when there is one.
+func (g *generator) keyed(b *strings.Builder, r *rendered, d *ir.Decl, typ string, dir *ir.Directive, ctors *[]string) error {
+	var kb strings.Builder
+	record, labels, err := g.key(&kb, d, typ, dir)
+	if err != nil {
+		return err
+	}
+	if record != "" {
+		if other, ok := g.types[record]; ok {
+			return emit.Lost(emit.LossKey, dir.GetPosition(), "the key record %s would collide with %s", record, other)
+		}
+		r.types = append(r.types, record)
+		*ctors = append(*ctors, record)
+		// The record repeats the entity's labels, so a deprecated one's
+		// pragma would be ambiguous.
+		r.labels = append(r.labels, labels...)
+	}
+	b.WriteString(kb.String())
+	return nil
+}
+
+// claim records the type and constructor names a declaration would take,
+// before any is rendered.
+func (g *generator) claim(d *ir.Decl) {
+	if g.foreign[d] != (imported{}) || d.GetStructure() == nil && d.GetEnumeration() == nil && d.GetNewtype() == nil && d.GetAlias() == nil {
+		return
+	}
+	name := d.GetMeta().GetName()
+	typ := g.DeclName(d, upperFirst)
+	if _, ok := g.names[typ]; !ok {
+		g.names[typ] = name
+	}
+	for _, v := range d.GetEnumeration().GetVariants() {
+		if ctor, err := g.variantName(d, typ, v); err == nil {
+			if _, ok := g.names[ctor]; !ok {
+				g.names[ctor] = name
+			}
+		}
+	}
 }
 
 // enum renders an enum as a sum type, returning its constructors. A
@@ -373,6 +475,7 @@ func (g *generator) enum(b *strings.Builder, r *rendered, d *ir.Decl, typ string
 	} else {
 		b.WriteString(g.deriving(eq, ord, show, generic))
 	}
+	b.WriteString(g.anyclass(g.derived(d)))
 	for _, p := range pragmas {
 		b.WriteString("\n" + p)
 	}
