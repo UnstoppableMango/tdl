@@ -21,6 +21,7 @@ import (
 	"go.yaml.in/yaml/v3"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/unstoppablemango/tdl/backend/csharp"
 	"github.com/unstoppablemango/tdl/backend/debug"
 	"github.com/unstoppablemango/tdl/backend/golang"
 	"github.com/unstoppablemango/tdl/backend/graphql"
@@ -59,6 +60,7 @@ var shipped = []struct {
 	// import test skips when it returns an error.
 	needs func() error
 }{
+	{backend: csharp.Backend{}, model: orderModel, packaged: true},
 	{backend: debug.Backend{}, model: sampleModel, packaged: true},
 	{backend: golang.Backend{}, model: goModel, packaged: true, valid: parseGo, reverse: goSource},
 	{backend: graphql.Backend{}, model: orderModel, packaged: true, valid: loadGraphQL, reverse: graphqlSource},

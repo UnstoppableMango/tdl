@@ -99,6 +99,10 @@ target openapi for smoke {
   out("openapi")
 }
 
+target csharp for smoke {
+  out("csharp")
+}
+
 target haskell for smoke {
   out("haskell")
   Order => key(id)

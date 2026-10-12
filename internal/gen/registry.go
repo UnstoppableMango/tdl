@@ -9,6 +9,7 @@ import (
 	"maps"
 	"slices"
 
+	"github.com/unstoppablemango/tdl/backend/csharp"
 	"github.com/unstoppablemango/tdl/backend/debug"
 	"github.com/unstoppablemango/tdl/backend/golang"
 	"github.com/unstoppablemango/tdl/backend/graphql"
@@ -27,6 +28,7 @@ import (
 // builtin maps a target name to a backend compiled into tdl. Any other
 // name resolves to tdl-gen-<name> on PATH; see docs/design/plugins.md.
 var builtin = map[string]plugin.Backend{
+	csharp.Name:     csharp.Backend{},
 	debug.Name:      debug.Backend{},
 	golang.Name:     golang.Backend{},
 	graphql.Name:    graphql.Backend{},

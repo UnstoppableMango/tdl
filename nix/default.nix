@@ -95,6 +95,26 @@ in
             touch $out
           '';
 
+      # Builds the csharp backend's files with every warning an error. The
+      # project references nothing but the framework, so it restores nothing
+      # from NuGet.
+      checks.gen-csharp =
+        pkgs.runCommand "tdl-gen-csharp"
+          {
+            nativeBuildInputs = [
+              pkgs.tdl
+              pkgs.dotnet-sdk
+            ];
+          }
+          ''
+            export HOME=$TMPDIR DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
+            cp ${../testdata/gen/smoke/source.tdl} source.tdl
+            tdl gen --target csharp -o out source.tdl
+            cp ${../backend/csharp/testdata/check.csproj} out/check.csproj
+            dotnet build out/check.csproj
+            touch $out
+          '';
+
       # Type checks the haskell backend's module with every warning an error.
       checks.gen-haskell =
         pkgs.runCommand "tdl-gen-haskell"

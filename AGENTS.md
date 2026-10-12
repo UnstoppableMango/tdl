@@ -7,7 +7,7 @@ Guidance for coding agents working in this repository.
 ```shell
 go test ./...                      # all tests
 go test -race ./...                # what CI runs; the plugin subprocess needs it
-go test -short ./...               # skips running go, smithy, tsc, ghc, and likec4 on generated code
+go test -short ./...               # skips running go, smithy, tsc, ghc, dotnet, and likec4 on generated code
 go test ./parser -run TestConformanceCorpusParses   # a single test
 go build ./...
 
@@ -228,6 +228,13 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   `foreign.go` maps a declaration, a primitive, or an extern to another module's type, and an extern to the module its dependency's `haskell` block generates; `key.go` writes a key function, and a key record for several fields; `derive` adds `deriving anyclass`.
   Phases 1 and 2 of `haskell-backend-plan.md` are built: classes, generics, units, and validation warn.
   Tests run `ghc -fno-code -Wall -Werror` when `ghc` is on `PATH`; `checks.gen-haskell` always does.
+- `backend/csharp`: one `Order.g.cs` per declaration, or one file for the whole target that a `file` directive in the target block names, in the namespace a `namespace` directive names or the package derives.
+  A struct is a sealed record with `required` `init` properties, a fieldless enum a C# enum, a fielded enum an abstract record closed by a private constructor with a nested sealed record per variant, and a newtype a readonly record struct; an alias is expanded.
+  `T?` is a nullable property that may be left out, `T | null` a nullable `required` one.
+  A record holding a collection or bytes writes its own `Equals` and `GetHashCode` through `TdlEquality`, which the namespace declares once, since .NET compares those by reference.
+  `backend/internal/dotnet` holds what it shares with the planned `fsharp` target: the primitive mapping and the namespace a package derives.
+  Phase 1 of `csharp-backend-plan.md` is built: keys, foreign types, generics, classes, and validation warn.
+  Tests run `dotnet build` with warnings as errors when `dotnet` is on `PATH`, and run the equality test with `dotnet run`; `checks.gen-csharp` always builds the smoke model.
 - `backend/likec4`: LikeC4 source for an architecture diagram: `tdl.c4`, the specification of element kinds, the same bytes for every model, and one `<package>.c4` holding a package element and one element per structure, enum, newtype, or class; aliases, primitives, and units have none.
   Only phase 1 of `likec4-backend-plan.md` is built: no relationships or views yet.
   No Go library parses LikeC4, so tests compare text, and also run `likec4 validate --no-layout` when `likec4` is on `PATH`.
@@ -254,7 +261,7 @@ After any change to lowering or `ir.Dump`, run `go test ./internal/sema -update`
 ### Docs
 
 `docs/design/` holds designs and plans; each `*-plan.md` names what its phases add, and its opening lines say which are done.
-Read those before assuming a design is built: the C#, Java, ML-family, Python, Rust, and profiles designs have no code yet, and Haskell has only phases 1 and 2.
+Read those before assuming a design is built: the Java, ML-family, Python, Rust, and profiles designs have no code yet, Haskell has only phases 1 and 2, and C# only phase 1.
 A design describes the target, not the implementation.
 `workflow.md` is furthest ahead: its `tdl.toml` project model is unbuilt.
 `docs/backlog.md` is wanted, unscheduled work.

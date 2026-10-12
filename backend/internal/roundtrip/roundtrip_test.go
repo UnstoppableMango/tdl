@@ -10,6 +10,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/unstoppablemango/tdl/backend/csharp"
 	"github.com/unstoppablemango/tdl/backend/golang"
 	"github.com/unstoppablemango/tdl/backend/graphql"
 	"github.com/unstoppablemango/tdl/backend/haskell"
@@ -37,6 +38,7 @@ const (
 // targets is every backend the round-trip goal covers, which is every one
 // but debug, with its normal form once it has a reader.
 var targets = []roundtrip.Target{
+	{Backend: csharp.Backend{}},
 	{Backend: golang.Backend{}, Normalize: golang.Normalize},
 	{Backend: graphql.Backend{}, Normalize: graphql.Normalize},
 	{Backend: haskell.Backend{}},
