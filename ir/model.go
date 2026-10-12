@@ -2,6 +2,8 @@
 // are generated from proto/tdl/ir/v1/ir.proto; the helpers are hand written.
 package ir
 
+import "strings"
+
 // Unresolved is the index an [ID] carries when its name did not resolve.
 // The ID keeps the name as written.
 const Unresolved = -1
@@ -142,4 +144,17 @@ func KindName(k LiteralKind) string {
 	}
 	// A kind from a newer schema.
 	return "an unrecognized value"
+}
+
+// Call renders a directive as a target block writes it, without its
+// target: `number(5)`, or the bare name when it takes no arguments.
+func (d *Directive) Call() string {
+	if len(d.GetArgs()) == 0 {
+		return d.GetName()
+	}
+	args := make([]string, len(d.GetArgs()))
+	for i, a := range d.GetArgs() {
+		args[i] = literalText(a)
+	}
+	return d.GetName() + "(" + strings.Join(args, ", ") + ")"
 }

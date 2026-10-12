@@ -288,6 +288,7 @@ An overlay `sema.Loader` serves unsaved text of open documents so imports resolv
 - Go to definition reads the `sema.WithReferences` index.
   A name from a `_` import jumps into that file, the one case the server reads a file it has not opened.
 - Hover prints the declaration with `ast.PrintDecl`, then its deprecation and doc comment; prelude names hover from the embedded source.
+  On a declaration, field, or variant where it is written, it also lists the directives each target block resolves onto it, read from the lowered model.
 - Formatting returns `ast.Fprint` as one edit and refuses a file that does not parse.
 - The outline reads the tree, so a broken file still outlines what was recovered.
 

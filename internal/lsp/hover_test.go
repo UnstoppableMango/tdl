@@ -88,3 +88,69 @@ func TestHoverCrossesAnImport(t *testing.T) {
 		}
 	}
 }
+
+// TestHoverListsTargetDirectives shows, where a declaration, field, or
+// variant is written, what every target block resolves onto it.
+func TestHoverListsTargetDirectives(t *testing.T) {
+	const src = "package p\n\n" +
+		"primitive string\n\n" +
+		"class Named {\n" +
+		"  name: string\n" +
+		"}\n\n" +
+		"type Commit: Named {\n" +
+		"  /// A one-line summary.\n" +
+		"  summary: string\n" +
+		"  name: string\n" +
+		"  body: string\n" +
+		"}\n\n" +
+		"enum Status {\n" +
+		"  Open\n" +
+		"  Closed { reason: string }\n" +
+		"}\n\n" +
+		"target protobuf for p {\n" +
+		"  Commit {\n" +
+		"    reserved(2, 3)\n" +
+		"    summary => number(50)\n" +
+		"  }\n" +
+		"  Status.Closed.reason => number(4)\n" +
+		"}\n\n" +
+		"target go for p {\n" +
+		"  Commit.summary => tag(\"json:\\\"summary\\\"\")\n" +
+		"  Named.name => tag(\"json:\\\"name\\\"\")\n" +
+		"  Status.Open => name(\"Opened\")\n" +
+		"}\n"
+
+	s := newSession(t)
+	path := abs(t, "targets.tdl")
+	s.open(path, src)
+
+	cases := []struct {
+		name, needle string
+		want         []string
+	}{
+		{"a declaration", "Commit: Named", []string{"**protobuf**: `reserved(2, 3)`"}},
+		{"a field", "summary: string", []string{
+			"```tdl\nsummary: string\n```",
+			"A one-line summary.",
+			"**protobuf**: `number(50)`",
+			"**go**: `tag(\"json:\\\"summary\\\"\")`",
+		}},
+		{"a class's directive", "name: string\n  body", []string{"**go**: `tag(\"json:\\\"name\\\"\")` (via Named)"}},
+		{"a variant", "Open\n", []string{"```tdl\nOpen\n```", "**go**: `name(\"Opened\")`"}},
+		{"a variant's field", "reason", []string{"**protobuf**: `number(4)`"}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := s.hover(path, src, c.needle)
+			for _, w := range c.want {
+				if !strings.Contains(got, w) {
+					t.Errorf("hover missing %q:\n%s", w, got)
+				}
+			}
+		})
+	}
+
+	if got := s.hover(path, src, "body"); strings.Contains(got, "---") {
+		t.Errorf("a field with no directives lists targets:\n%s", got)
+	}
+}
