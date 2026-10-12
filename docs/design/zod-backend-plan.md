@@ -59,7 +59,7 @@ Each standard constraint by the design's table, with `codePoints` and `size` dec
 All of it only under the `patterns` directive: without it a `matches` warns and is not checked, and with it the exponential-backtracking shape still warns and drops the check.
 If the Rust, Java, .NET, or Python printer exists by then, Zod adds a table to that walk; otherwise this phase creates it.
 
-Done when each standard constraint refuses a value under `node`, `LineItem` with `quantity: 0` and a plain `string` where a `Sku` is expected fail `tsc`, the agreement test still passes under `structural`, a string of four emoji passes `length(4)`, a `matches` without `patterns` warns and emits no `.regex()`, `(a+)+$` warns under `patterns`, and the pattern table test agrees with Go's `regexp` on every input, including `\s` refusing a no-break space, `\p{Greek}` accepting `λ`, `(?i)k` accepting the Kelvin sign, and `^.$` accepting one emoji.
+Done when each standard constraint refuses a value under `node`, `LineItem` with `quantity: 0` and a plain `string` where a `Sku` is expected fail `tsc`, the agreement test still passes under `structural`, a string of four emoji passes `length(4)`, a `matches` without `patterns` warns and emits no `.regex()`, `(a+)+$` and `(a|aa)+$` warn under `patterns`, and the pattern table test agrees with Go's `regexp` on every input, including `\s` refusing a no-break space, `\p{Greek}` accepting `λ`, `(?i)k` accepting the Kelvin sign, and `^.$` accepting one emoji.
 
 ## Phase 4: codecs
 
@@ -83,7 +83,7 @@ Done when `float64<N>` and `float64<kg*m/s^2>` are assignable to each other, `fl
 ## Decisions deferred
 
 - **JSON Schema patterns.** Printing `jsonschema` and `openapi` patterns through the ECMAScript table, a change to those backends once phase 3 builds it.
-- **Linear-time patterns.** An `engine("linear")` directive adding V8's `l` flag.
+- **Linear-time patterns.** An `engine("linear")` directive adding V8's `l` flag, once V8's linear engine accepts the `u` flag the printed patterns carry.
 - **Zod Mini.** A `flavor("mini")` directive printing the functional spelling.
 - **Readonly output.** `.readonly()` on every object, at the cost of agreement with `typescript`.
 - **Reverse.** Through `z.toJSONSchema` and a JSON Schema importer, ordered by [reverse-plan.md](reverse-plan.md).

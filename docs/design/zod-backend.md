@@ -273,7 +273,7 @@ A pattern RE2 refuses warns at generation time and its schema is emitted without
 
 RE2 has no backreferences and no lookaround, and the printer writes lookbehind only for the line anchors, so every printed pattern is one a linear-time engine could run.
 V8, SpiderMonkey, and JavaScriptCore backtrack by default, so a pattern such as `(a+)+$` takes exponential time on a hostile string, and a schema parsing untrusted JSON runs it on the parser's thread.
-The pattern is the model author's, not the attacker's, so the backend refuses the shape rather than the constraint: a pattern with an unbounded repetition nested inside another, or an alternation under an unbounded repetition whose branches can match the same text, warns at generation time and its schema is emitted without the check, as a pattern RE2 refuses is.
+The pattern is the model author's, not the attacker's, so the backend refuses the shape rather than the constraint: a pattern with an unbounded repetition nested inside another, or an alternation under an unbounded repetition where one branch can match a prefix of what another matches, as in `(a|aa)+$`, warns at generation time and its schema is emitted without the check, as a pattern RE2 refuses is.
 That catches the classic exponential shapes from the `regexp/syntax` tree; it is a heuristic, and polynomial backtracking such as `a*a*a*$` remains.
 Opting in to `patterns` is accepting that remainder for the patterns the model holds; [Open questions](#open-questions) weighs a linear-time engine that would remove it.
 
@@ -413,7 +413,7 @@ That change is the JSON Schema backend's to make, and the plan lists it as a fol
 
 ## Open questions
 
-- **Linear-time patterns.** V8's experimental linear engine runs a pattern with the `l` flag behind `--enable-experimental-regexp-engine`, and every printed pattern qualifies; an `engine("linear")` directive could add the flag for a consumer who controls Node's flags. It is not standard JavaScript, so it could only ever be a stronger form of `patterns`, never the default.
+- **Linear-time patterns.** V8's experimental linear engine runs a pattern with the `l` flag behind `--enable-experimental-regexp-engine`, and every printed pattern qualifies; an `engine("linear")` directive could add the flag for a consumer who controls Node's flags. Every printed pattern carries `u`, and V8's linear engine does not support Unicode mode, so a `/.../ul` literal throws when the module loads; the directive waits on a V8 that runs both flags together. It is not standard JavaScript either, so it could only ever be a stronger form of `patterns`, never the default.
 - **Zod Mini.** `zod/mini` writes the same schemas as functions, `z.optional(z.string())`, which a bundler can shake. A `flavor("mini")` directive would print the other spelling from the same plan.
 - **Readonly output.** `.readonly()` freezes a parsed object and makes its type `Readonly`, as Python's dataclasses are frozen; it would also make the inferred types differ from `typescript`'s.
 - **Other validators.** Valibot and ArkType parse the same convention with different spellings. The plan here, which check each constraint becomes and what the output type carries, is not Zod's, and a second validator would show where to split it from the printing.
