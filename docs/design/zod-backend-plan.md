@@ -35,7 +35,7 @@ Some tests are a `tsc` run that must fail: a snippet beside the response that th
 `backend/internal/ts` takes the primitive mapping, names, reserved words, property quoting, and the extern import path out of `backend/typescript`, which reads them from there with no change to its output.
 The `.zod.ts` file, the header, `const` and `type` pairs in source order, and getters with return types for forward and recursive references.
 `z.object` for all three struct kinds, `closed` as `z.strictObject`, `z.enum` for a fieldless enum, `z.discriminatedUnion` of variant objects for a fielded one with `discriminant`, aliases expanded, and newtypes as unbranded schemas of their base.
-The primitive, collection, and absence mappings, with `unique` declared once, and the integer map key settled one way or the other.
+The primitive, collection, and absence mappings, with `instant` requiring seconds, with `unique` declared once, and the integer map key settled one way or the other.
 `name`, JSDoc and `@deprecated`, and the collisions.
 A `where` constraint warns that it is not enforced yet, and a unit-typed field is its base type with a warning.
 The backend is registered in `internal/gen/registry.go`, has a row in the `shipped` table in `internal/gen/hosts_test.go`, is served by `cmd/tdl-gen-zod`, and is listed in `nix/cmd.nix`.
@@ -56,15 +56,16 @@ Brands on every newtype and on a field's schema named for its struct and field o
 Each standard constraint by the design's table, with `codePoints` and `size` declared once, the messages naming the constraint, and the excluded-argument warning.
 
 `matches` checked by `emit.Pattern` and printed by a walk over `regexp/syntax` in `backend/internal/emit`, with the ECMAScript table: the `u` flag, folds as classes, every class as ranges, the line anchors as lookaround, and named captures.
+The exponential-backtracking shape warns and drops the check.
 If the Rust, Java, .NET, or Python printer exists by then, Zod adds a table to that walk; otherwise this phase creates it.
 
-Done when each standard constraint refuses a value under `node`, `LineItem` with `quantity: 0` and a plain `string` where a `Sku` is expected fail `tsc`, the agreement test still passes under `structural`, a string of four emoji passes `length(4)`, and the pattern table test agrees with Go's `regexp` on every input, including `\s` refusing a no-break space, `\p{Greek}` accepting `λ`, `(?i)k` accepting the Kelvin sign, and `^.$` accepting one emoji.
+Done when each standard constraint refuses a value under `node`, `LineItem` with `quantity: 0` and a plain `string` where a `Sku` is expected fail `tsc`, the agreement test still passes under `structural`, a string of four emoji passes `length(4)`, `(a+)+$` warns at generation time, and the pattern table test agrees with Go's `regexp` on every input, including `\s` refusing a no-break space, `\p{Greek}` accepting `λ`, `(?i)k` accepting the Kelvin sign, and `^.$` accepting one emoji.
 
 ## Phase 4: codecs
 
 `codec` on the target block: `instant`, `bytes`, sets, and maps as the design's table decodes them, brands applied to the decoded value, and the agreement test reading `z.input`.
 
-Done when a value of every smoke declaration decodes from JSON the `jsonschema` backend's schema accepts, encodes back to equal JSON, and a duplicate in a set is refused on decode.
+Done when a value of every smoke declaration decodes from JSON the `jsonschema` backend's schema accepts, encodes back to equal JSON, and a duplicate in a set and an instant with microseconds are refused on decode.
 
 ## Phase 5: generics and classes
 

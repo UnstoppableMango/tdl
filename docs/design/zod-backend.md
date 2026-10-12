@@ -7,7 +7,7 @@ The Zod backend turns a resolved model into a TypeScript module of [Zod](https:/
 It is called `zod` in a target block, ships compiled into `tdl` and as `tdl-gen-zod`, and is implemented in `backend/zod`.
 
 Each declaration becomes a schema that parses the JSON wire convention, the one [schema-backends.md](schema-backends.md) describes and the TypeScript, JSON Schema, and OpenAPI backends write, and a type inferred from it.
-The output targets Zod 4.1 or later, the release that added codecs, and type checks under `tsc --strict`.
+The output targets Zod 4.3 or later, the release that added `.exactOptional()`, and type checks under `tsc --strict`.
 
 ## Why a backend of its own
 
@@ -51,7 +51,7 @@ import * as z from "zod";
 /** An order, identified by its id. */
 export const Order = z.object({
   id: z.uuid(),
-  createdAt: z.iso.datetime({ offset: true }),
+  createdAt: instant,
   get items() {
     return z.array(LineItem);
   },
@@ -83,11 +83,12 @@ The backend writes no `package.json`; `zod` is the consumer's dependency, as Pyd
 | `bytes` | `z.base64()` | `string` | |
 | `decimal` | `z.string().regex(decimal)` | `string` | The wire convention's decimal string; `decimal` is declared once in the module. |
 | `uuid` | `z.uuid()` | `string` | |
-| `instant` | `z.iso.datetime({ offset: true })` | `string` | RFC 3339 with an offset, as the convention writes it. |
+| `instant` | `instant`, declared once | `string` | RFC 3339 with an offset, as the convention writes it. |
 | `date` | `z.iso.date()` | `string` | |
 | `duration` | `z.iso.duration()` | `string` | |
 
 The inferred types are `typescript`'s, column for column.
+`instant` is `z.iso.datetime({ offset: true })` with a check that seconds are present, declared once in the module, since Zod's pattern lets `12:30Z` through and RFC 3339 does not.
 A primitive's format is part of what the primitive is, so it is checked and not branded: a `uuid` field infers `string`, as `typescript` types it.
 The checks are what a primitive means on the wire, which `typescript` cannot say and JSON Schema says with `format`.
 
@@ -267,7 +268,9 @@ Each pattern is a module-level constant beside the schema that uses it, so it is
 A pattern RE2 refuses warns at generation time and its schema is emitted without the check.
 
 RE2 has no backreferences and no lookaround, and the printer writes lookbehind only for the line anchors, so every printed pattern is one a linear-time engine could run.
-V8, SpiderMonkey, and JavaScriptCore backtrack by default, so a pattern such as `(a+)+$` takes exponential time on a hostile string; [Open questions](#open-questions) weighs that.
+V8, SpiderMonkey, and JavaScriptCore backtrack by default, so a pattern such as `(a+)+$` takes exponential time on a hostile string, and a schema parsing untrusted JSON runs it on the parser's thread.
+The pattern is the model author's, not the attacker's, so the backend refuses the shape rather than the constraint: a pattern with an unbounded repetition nested inside another, or an alternation under an unbounded repetition whose branches can match the same text, warns at generation time and its schema is emitted without the check, as a pattern RE2 refuses is.
+That catches the classic exponential shapes from the `regexp/syntax` tree; it is a heuristic, and polynomial backtracking such as `a*a*a*$` remains, which [Open questions](#open-questions) weighs.
 
 ## Units
 
@@ -308,12 +311,13 @@ Without a directive, every schema parses JSON values into JSON values: an `insta
 
 | TDL | Decoded | Through |
 | --- | --- | --- |
-| `instant` | `Date` | `z.codec(z.iso.datetime({ offset: true }), z.date(), ...)` |
+| `instant` | `Date` | `z.codec(instant, z.date(), ...)`, refusing more than three fractional digits on decode |
 | `bytes` | `Uint8Array` | `z.codec(z.base64(), z.instanceof(Uint8Array), ...)` |
 | `Set<T>` | `Set<T>` | `z.codec(z.array(T), z.set(T), ...)`, refusing a duplicate on decode |
 | `Map<K, V>` | `Map<K, V>` | `z.codec(z.record(K, V), z.map(K, V), ...)` |
 
 `int64` stays a number, since `JSON.parse` has already rounded it, and `decimal`, `date`, and `duration` stay strings, since JavaScript has no standard type for them until `Temporal` ships everywhere.
+A `Date` holds whole milliseconds, so the `instant` codec refuses a finer fraction rather than decoding `.123456Z` into a value that encodes back as `.123Z`.
 A brand applies to the decoded value.
 Under `codec` the inferred types are no longer `typescript`'s, and the test holding the two together runs `z.input` against `typescript`'s types instead.
 
@@ -346,7 +350,7 @@ A directive the backend does not declare is a compiler warning and is passed thr
 ## Names
 
 Every name is the one `typescript` writes: a declaration and a variant schema in Pascal case, a property as the model spells it and quoted when it is not an identifier.
-A name TypeScript reserves, a name two declarations take, and a name the module declares for itself (`z`, `unique`, `codePoints`, `size`, `decimal`) warn and skip the declaration, which `name` resolves.
+A name TypeScript reserves, a name two declarations take, and a name the module declares for itself (`z`, `unique`, `codePoints`, `size`, `decimal`, `instant`) warn and skip the declaration, which `name` resolves.
 A field's schema, `LineItemQuantity`, is held to the same rule as a declaration.
 
 ## Deprecation and documentation
@@ -403,7 +407,7 @@ That change is the JSON Schema backend's to make, and the plan lists it as a fol
 
 ## Open questions
 
-- **Linear-time patterns.** V8's experimental linear engine runs a pattern with the `l` flag behind `--enable-experimental-regexp-engine`, and every printed pattern qualifies; an `engine("linear")` directive could add the flag for a consumer who controls Node's flags. It is not standard JavaScript.
+- **Linear-time patterns.** V8's experimental linear engine runs a pattern with the `l` flag behind `--enable-experimental-regexp-engine`, and every printed pattern qualifies; an `engine("linear")` directive could add the flag for a consumer who controls Node's flags. It is not standard JavaScript, so it would not protect the default output; that rests on the shape warning under [Patterns](#patterns).
 - **Zod Mini.** `zod/mini` writes the same schemas as functions, `z.optional(z.string())`, which a bundler can shake. A `flavor("mini")` directive would print the other spelling from the same plan.
 - **Readonly output.** `.readonly()` freezes a parsed object and makes its type `Readonly`, as Python's dataclasses are frozen; it would also make the inferred types differ from `typescript`'s.
 - **Other validators.** Valibot and ArkType parse the same convention with different spellings. The plan here, which check each constraint becomes and what the output type carries, is not Zod's, and a second validator would show where to split it from the printing.
