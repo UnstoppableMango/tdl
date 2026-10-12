@@ -603,9 +603,18 @@ System.Console.WriteLine(string.Join(" ", new[]
     a == (b with { Tags = ImmutableHashSet.Create("y", "x") }),
     new Payment.Split { Parts = ImmutableList.Create(1L) } == new Payment.Split { Parts = ImmutableList.Create(1L) },
     new Skus(ImmutableList.Create("s")) == new Skus(ImmutableList.Create("s")),
+    // A comparer of the consumer's own changes neither equality nor the hash.
+    Folded(a) != a && a != Folded(a),
+    Folded(a).GetHashCode() == Folded(b).GetHashCode(),
 }));
+
+static Order Folded(Order o) => o with
+{
+    Tags = ImmutableHashSet.Create(System.StringComparer.OrdinalIgnoreCase, "X", "x", "y"),
+    Nested = ImmutableDictionary.Create<string, IImmutableList<byte[]?>>(System.StringComparer.OrdinalIgnoreCase).Add("K", ImmutableList.Create<byte[]?>()),
+};
 `)
-	if strings.TrimSpace(out) != "True True True True True True True" {
+	if strings.TrimSpace(out) != "True True True True True True True True True" {
 		t.Errorf("equality = %q", out)
 	}
 }

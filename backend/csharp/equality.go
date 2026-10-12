@@ -5,8 +5,8 @@ package csharp
 // generated equality compares a property with EqualityComparer<T>.Default,
 // which compares an immutable collection or an array by reference.
 //
-// A set's elements and a map's keys are never collections or bytes, so they
-// are compared by the collection's own comparer.
+// A set's elements and a map's keys are never collections or bytes, so the
+// default comparer compares them by value.
 const equalitySource = `/// <summary>Compares the collections and bytes a generated type holds by their contents.</summary>
 internal static class TdlEquality
 {
@@ -73,12 +73,17 @@ internal static class TdlEquality
         }
     }
 
+    // A consumer may build a set or a map with a comparer of its own, which
+    // its SetEquals and TryGetValue would use. Each is read through the
+    // default comparer instead, as hashing reads it, so equality is symmetric
+    // and agrees with the hash.
+
     private sealed class SetComparer<T> : global::System.Collections.Generic.IEqualityComparer<global::System.Collections.Immutable.IImmutableSet<T>?>
     {
         public static readonly SetComparer<T> Instance = new();
 
         public bool Equals(global::System.Collections.Immutable.IImmutableSet<T>? x, global::System.Collections.Immutable.IImmutableSet<T>? y) =>
-            object.ReferenceEquals(x, y) || x is not null && y is not null && x.SetEquals(y);
+            object.ReferenceEquals(x, y) || x is not null && y is not null && Distinct(x).SetEquals(Distinct(y));
 
         public int GetHashCode(global::System.Collections.Immutable.IImmutableSet<T>? obj)
         {
@@ -89,12 +94,15 @@ internal static class TdlEquality
             // A set has no order, so its elements' hashes are combined by one
             // that has none either.
             var hash = 0;
-            foreach (var item in obj)
+            foreach (var item in Distinct(obj))
             {
                 hash ^= item is null ? 0 : global::System.Collections.Generic.EqualityComparer<T>.Default.GetHashCode(item);
             }
             return hash;
         }
+
+        private static global::System.Collections.Generic.HashSet<T> Distinct(global::System.Collections.Immutable.IImmutableSet<T> set) =>
+            new(set, global::System.Collections.Generic.EqualityComparer<T>.Default);
     }
 
     private sealed class MapComparer<TKey, TValue>(global::System.Collections.Generic.IEqualityComparer<TValue> value) : global::System.Collections.Generic.IEqualityComparer<global::System.Collections.Immutable.IImmutableDictionary<TKey, TValue>?>
@@ -106,13 +114,19 @@ internal static class TdlEquality
             {
                 return true;
             }
-            if (x is null || y is null || x.Count != y.Count)
+            if (x is null || y is null)
             {
                 return false;
             }
-            foreach (var entry in x)
+            var a = Distinct(x);
+            var b = Distinct(y);
+            if (a.Count != b.Count)
             {
-                if (!y.TryGetValue(entry.Key, out var other) || !value.Equals(entry.Value, other))
+                return false;
+            }
+            foreach (var entry in a)
+            {
+                if (!b.TryGetValue(entry.Key, out var other) || !value.Equals(entry.Value, other))
                 {
                     return false;
                 }
@@ -129,13 +143,25 @@ internal static class TdlEquality
             // A map has no order, so its entries' hashes are combined by one
             // that has none either.
             var hash = 0;
-            foreach (var entry in obj)
+            foreach (var entry in Distinct(obj))
             {
                 hash ^= global::System.HashCode.Combine(
                     global::System.Collections.Generic.EqualityComparer<TKey>.Default.GetHashCode(entry.Key),
                     entry.Value is null ? 0 : value.GetHashCode(entry.Value));
             }
             return hash;
+        }
+
+        // Distinct keeps the first entry of each key the default comparer
+        // tells apart.
+        private static global::System.Collections.Generic.Dictionary<TKey, TValue> Distinct(global::System.Collections.Immutable.IImmutableDictionary<TKey, TValue> map)
+        {
+            var distinct = new global::System.Collections.Generic.Dictionary<TKey, TValue>(map.Count, global::System.Collections.Generic.EqualityComparer<TKey>.Default);
+            foreach (var entry in map)
+            {
+                distinct.TryAdd(entry.Key, entry.Value);
+            }
+            return distinct;
         }
     }
 }
