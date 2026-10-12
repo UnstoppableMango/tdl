@@ -224,14 +224,7 @@ func declLine(decl *Decl) string {
 // directiveText renders a directive, naming the target it belongs to and
 // the class it was expanded from when it did not come from a direct path.
 func directiveText(d *Directive) string {
-	text := "@" + d.GetTarget() + ":" + d.GetName()
-	if len(d.GetArgs()) > 0 {
-		args := make([]string, len(d.GetArgs()))
-		for i, a := range d.GetArgs() {
-			args[i] = literalText(a)
-		}
-		text += "(" + strings.Join(args, ", ") + ")"
-	}
+	text := "@" + d.GetTarget() + ":" + d.Call()
 	if from := d.GetFromClass(); from != nil {
 		text += " (via " + from.GetName() + ")"
 	}
