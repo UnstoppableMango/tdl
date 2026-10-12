@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.9](https://github.com/UnstoppableMango/tdl/compare/v0.4.8...v0.4.9) (2026-10-12)
+
+
+### Features
+
+* **lsp:** list a node's target directives in its hover ([#1074](https://github.com/UnstoppableMango/tdl/issues/1074)) ([0e98770](https://github.com/UnstoppableMango/tdl/commit/0e98770f3e8e0e0ef1d8717659cf976f2aaa296b))
+
 ## [0.4.8](https://github.com/UnstoppableMango/tdl/compare/v0.4.7...v0.4.8) (2026-10-12)
 
 
