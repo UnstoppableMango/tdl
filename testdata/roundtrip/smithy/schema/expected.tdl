@@ -1,0 +1,48 @@
+package shop
+
+/// An order, identified by its id.
+type Order {
+  id: string
+  /// When it was placed.
+  placedAt: instant
+  lines: [OrderLine]
+  notes: [string?]?
+  payment: Payment
+  status: Status
+  totals: {string -> decimal}
+  deprecated("nobody has one") fax: string?
+  labels: Labels
+}
+
+type OrderLine {
+  sku: Sku
+  quantity: int32
+  grid: [[float64]]
+}
+
+/// Where an order is.
+deprecated("use Order.status")
+enum Status { Draft Placed Lost }
+
+/// A stock keeping unit.
+type Sku: string
+
+/// Labels an order carries.
+type Labels: {string}
+
+/// How an order is paid.
+enum Payment {
+  /// A card on file.
+  Card { last4: string }
+  Wire {
+    iban: string
+    /// The bank's code.
+    bic: string?
+  }
+  Cash
+}
+
+target smithy for shop {
+  Status.Lost => name("GONE")
+  Payment.Wire => name("WireTransfer")
+}

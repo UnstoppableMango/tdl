@@ -186,7 +186,11 @@ Every backend reports what it cannot generate as a positioned warning rather tha
 - `backend/smithy`: one Smithy IDL 2.0 file per model.
   Each list or map a field holds becomes a named shape (`LineItemList`, `StringLongMap`); a shadowed prelude shape is written `smithy.api#`.
   Non-optional fields are `@required`, and an optional element makes a collection `@sparse`.
+  `shapes.go` is the shape model both directions share: generating builds shapes and renders them, and import reads them from the CLI's JSON AST.
   Tests run `smithy validate` when it is on `PATH`; `checks.gen-smithy` always does.
+  It imports: `reverse.go` runs `smithy ast` from `PATH` and reads the JSON, which has no positions, so `locate` scans the source for each shape's statement; without the CLI, import and its tests skip.
+  `annotate.go` writes the loss warnings and, under `roundtrip`, `metadata tdl` and a `tdl#source` trait on each declaration whose shapes the reader does not read back as it.
+  `Normalize` is its normal form for the round-trip corpus.
 - `backend/graphql`: one schema per model, output types only.
   Primitives GraphQL lacks, including 64-bit and unsigned integers, become custom scalars declared on use.
   A fielded enum is a union of object types; a fieldless variant gets `_: Boolean`; a map is a warning.

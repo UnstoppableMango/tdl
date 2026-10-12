@@ -45,7 +45,10 @@ var targets = []roundtrip.Target{
 	{Backend: openapi.Backend{}},
 	{Backend: protobuf.Backend{}, Normalize: protobuf.Normalize},
 	{Backend: salesforce.Backend{}},
-	{Backend: smithy.Backend{}},
+	{Backend: smithy.Backend{}, Normalize: smithy.Normalize, Needs: func() error {
+		_, err := smithy.CLI()
+		return err
+	}},
 	{Backend: thrift.Backend{}, Normalize: thrift.Normalize},
 	{Backend: typescript.Backend{}, Normalize: typescript.Normalize, Needs: func() error {
 		_, _, err := typescript.Compiler()

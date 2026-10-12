@@ -1,5 +1,5 @@
-// Package smithy generates a Smithy IDL 2.0 model from a resolved model.
-// The mapping is in docs/design/schema-backends.md.
+// Package smithy generates a Smithy IDL 2.0 model from a resolved model,
+// and imports one back. The mapping is in docs/design/schema-backends.md.
 package smithy
 
 import (
@@ -19,7 +19,7 @@ import (
 // Name names this backend in a target block and as tdl-gen-smithy.
 const Name = "smithy"
 
-// Backend implements [plugin.Backend].
+// Backend implements [plugin.Backend] and [plugin.Importer].
 type Backend struct{}
 
 func (Backend) Describe() plugin.Description {
@@ -35,7 +35,11 @@ func (Backend) Describe() plugin.Description {
 			// The Smithy name for a shape, member, enum member, or variant
 			// structure.
 			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			// Write what Smithy cannot say as tdl#source traits and tdl
+			// metadata, so import rebuilds the model.
+			{Name: "roundtrip"},
 		},
+		Reverse: true,
 	}
 }
 
@@ -80,38 +84,44 @@ var ident = regexp.MustCompile(`^_*[A-Za-z][A-Za-z0-9_]*$`)
 type generator struct {
 	*emit.Session
 
+	ns string
+
 	// local is every shape name the model's declarations could take, which a
 	// same-named prelude reference must qualify around.
 	local map[string]bool
 
-	// names is every declared shape, keyed by lower case, since Smithy shape
-	// IDs are case-insensitive.
-	names map[string]shape
+	// claimed is every declared shape, keyed by lower case, since Smithy
+	// shape IDs are case-insensitive.
+	claimed map[string]claim
 
-	shapes map[string]string
+	// collections is every list and map shape a member needs, by name.
+	collections map[string]*shape
 
 	// uses is the collection shapes the declaration being rendered needs.
 	uses map[string]bool
 }
 
-type shape struct{ name, decl string }
+type claim struct{ name, decl string }
 
 type rendered struct {
-	decl *ir.Decl
-	text string
-	uses map[string]bool
+	decl   *ir.Decl
+	shapes []*shape
+	uses   map[string]bool
 }
 
-// Generate returns one .smithy file holding the model's declarations.
+// Generate returns one .smithy file holding the model's declarations, and
+// under roundtrip a tdl.smithy defining the trait it uses.
 func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Response, error) {
 	g := &generator{
-		Session: emit.NewSession(req, "Smithy"),
-		local:   map[string]bool{},
-		names:   map[string]shape{},
-		shapes:  map[string]string{},
+		Session:     emit.NewSession(req, "Smithy"),
+		local:       map[string]bool{},
+		claimed:     map[string]claim{},
+		collections: map[string]*shape{},
 	}
+	g.Roundtrip = g.Bare("roundtrip")
 
-	ns, nsPos := req.GetModel().GetPackage(), (*ir.Position)(nil)
+	pkg := req.GetModel().GetPackage()
+	ns, nsPos := pkg, (*ir.Position)(nil)
 	if d, ok := g.Block("package"); ok {
 		ns, nsPos = d.GetArgs()[0].GetText(), d.GetPosition()
 	}
@@ -119,6 +129,13 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	if !validNamespace(ns) {
 		g.Error(nsPos, "%q is not a Smithy namespace", ns)
 		return g.Response(nil), nil
+	}
+	g.ns = ns
+	if ns != pkg {
+		g.Lose(emit.LossName, nsPos, "package %s is written as namespace %s, which reads back as package %s", pkg, ns, ns)
+	}
+	if len(req.GetModel().GetDoc()) > 0 {
+		g.Lose(emit.LossDoc, nil, "Smithy has no place for the package's doc comment")
 	}
 
 	own := g.Own()
@@ -138,102 +155,161 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	}
 
 	skipped := map[*ir.Decl]bool{}
+	// Each declaration's warnings are held until the cascade decides
+	// whether it is emitted, since a skipped one loses everything at once.
+	held := map[*ir.Decl][]*plugin.Diagnostic{}
 	var out []rendered
 	for _, d := range own {
+		mark := len(g.Diags)
 		g.uses = map[string]bool{}
-		text, err := g.decl(d)
+		shapes, err := g.decl(d)
 		if err != nil {
-			g.Warn(err)
+			g.Diags = g.Diags[:mark]
+			g.Skip(err)
 			skipped[d] = true
 			continue
 		}
-		if text != "" {
-			out = append(out, rendered{d, text, g.uses})
+		held[d] = slices.Clone(g.Diags[mark:])
+		g.Diags = g.Diags[:mark]
+		if len(shapes) > 0 {
+			out = append(out, rendered{d, shapes, g.uses})
 		}
 	}
+	mark := len(g.Diags)
 	g.Cascade(own, skipped)
+	if g.Roundtrip {
+		// A skipped declaration is carried as TDL, so nothing is lost.
+		g.Diags = g.Diags[:mark]
+	}
+	for _, d := range own {
+		if !skipped[d] {
+			g.Diags = append(g.Diags, held[d]...)
+		}
+	}
 
-	var blocks []string
+	var shapes []*shape
+	emitted := map[string]bool{}
 	need := map[string]bool{}
+	var kept []rendered
 	for _, r := range out {
 		if skipped[r.decl] {
 			continue
 		}
-		blocks = append(blocks, r.text)
+		kept = append(kept, r)
+		shapes = append(shapes, r.shapes...)
+		emitted[r.decl.GetMeta().GetName()] = true
 		maps.Copy(need, r.uses)
 	}
-	if len(blocks) == 0 {
-		return g.Response(nil), nil
-	}
 	for _, name := range slices.Sorted(maps.Keys(need)) {
-		blocks = append(blocks, g.shapes[name])
+		shapes = append(shapes, g.collections[name])
+	}
+	metadata := ""
+	if g.Roundtrip {
+		g.carry(kept, shapes)
+		metadata = g.metadata(emitted, len(shapes) > 0)
+	}
+	if len(shapes) == 0 && metadata == "" {
+		return g.Response(nil), nil
 	}
 
 	var b strings.Builder
-	fmt.Fprintf(&b, "// Code generated by tdl. DO NOT EDIT.\n\n$version: \"2\"\n\nnamespace %s\n", ns)
-	for _, block := range blocks {
+	b.WriteString("// Code generated by tdl. DO NOT EDIT.\n\n$version: \"2\"\n")
+	if metadata != "" {
 		b.WriteString("\n")
-		b.WriteString(block)
+		b.WriteString(metadata)
 	}
-	path := emit.LastSegment(ns) + ".smithy"
-	return g.Response([]*plugin.File{{Path: path, Content: []byte(b.String())}}), nil
+	fmt.Fprintf(&b, "\nnamespace %s\n", ns)
+	sourced := false
+	for _, s := range shapes {
+		b.WriteString("\n")
+		b.WriteString(g.render(s))
+		sourced = sourced || s.traits.source != nil
+	}
+	files := []*plugin.File{{Path: emit.LastSegment(ns) + ".smithy", Content: []byte(b.String())}}
+	if sourced {
+		files = append(files, &plugin.File{Path: traitFile, Content: []byte(traitDefinition)})
+	}
+	return g.Response(files), nil
 }
 
-// decl renders one declaration, or "" for one that declares nothing.
-func (g *generator) decl(d *ir.Decl) (string, error) {
+// decl returns the shapes one declaration declares, none for one that
+// declares nothing.
+func (g *generator) decl(d *ir.Decl) ([]*shape, error) {
 	pos := d.GetMeta().GetPosition()
 	name := d.GetMeta().GetName()
 
-	if ok, err := emit.Declares(d); !ok {
-		return "", err
+	switch {
+	case d.GetClass() != nil:
+		return nil, emit.Lost(emit.LossClass, pos, "%s is a class, and classes are not generated yet", name)
+	case d.GetUnit() != nil:
+		return nil, emit.Lost(emit.LossUnit, pos, "%s is a unit, and units are not generated yet", name)
+	case d.GetAlias() != nil:
+		if len(d.Params()) == 0 {
+			g.Lose(emit.LossAlias, pos, "alias %s is expanded where used", name)
+			g.typeLosses(d.GetAlias().GetTarget(), nil)
+		}
+		return nil, nil
+	case d.GetStructure() == nil && d.GetEnumeration() == nil && d.GetNewtype() == nil:
+		// A primitive declares nothing.
+		return nil, nil
+	}
+	if len(d.Params()) > 0 {
+		return nil, emit.Lost(emit.LossGeneric, pos, "%s is parameterized, and generics are not generated yet", name)
 	}
 
-	var b strings.Builder
-	var declared []string
+	var shapes []*shape
 	var err error
 	switch e := d.GetEnumeration(); {
 	case d.GetNewtype() != nil:
-		declared, err = g.newtype(&b, d)
+		shapes, err = g.newtype(d)
 	case d.GetStructure() != nil:
-		declared, err = g.structure(&b, g.DeclName(d, emit.Pascal), d.GetMeta(), d.Fields())
+		var s *shape
+		s, err = g.structure(g.DeclName(d, emit.Pascal), d.GetMeta(), d.Fields())
+		shapes = []*shape{s}
 	case emit.Fielded(e):
-		declared, err = g.union(&b, d)
+		shapes, err = g.union(d)
 	default:
-		declared, err = g.enum(&b, d)
+		shapes, err = g.enum(d)
 	}
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	within := map[string]string{}
-	for _, n := range declared {
+	for _, s := range shapes {
+		n := s.name()
 		if !ident.MatchString(n) {
-			return "", emit.Unsupported(pos, "%s would be named %s in Smithy, which is not an identifier", name, n)
+			return nil, emit.Unsupported(pos, "%s would be named %s in Smithy, which is not an identifier", name, n)
 		}
 		key := fold(n)
 		if prior, ok := within[key]; ok {
-			return "", emit.Unsupported(pos, "%s would declare both %s and %s in Smithy, which is one shape twice", name, prior, n)
+			return nil, emit.Unsupported(pos, "%s would declare both %s and %s in Smithy, which is one shape twice", name, prior, n)
 		}
 		within[key] = n
-		if other, ok := g.names[key]; ok {
+		if other, ok := g.claimed[key]; ok {
 			if other.name == n {
-				return "", emit.Unsupported(pos, "%s would declare %s in Smithy, and %s already does", name, n, other.decl)
+				return nil, emit.Unsupported(pos, "%s would declare %s in Smithy, and %s already does", name, n, other.decl)
 			}
-			return "", emit.Unsupported(pos, "%s would declare %s in Smithy, and %s declares %s, which Smithy reads as the same shape", name, n, other.decl, other.name)
+			return nil, emit.Unsupported(pos, "%s would declare %s in Smithy, and %s declares %s, which Smithy reads as the same shape", name, n, other.decl, other.name)
 		}
 	}
 	// Names are committed only once the declaration renders, so a failed
 	// one leaves none behind.
-	for _, n := range declared {
-		g.names[fold(n)] = shape{n, name}
+	for _, s := range shapes {
+		g.claimed[fold(s.name())] = claim{s.name(), name}
 	}
-	g.WarnConstraints(d)
-	return b.String(), nil
+	if len(shapes) > 0 {
+		g.losses(d, shapes[0])
+	}
+	if !g.Roundtrip {
+		g.WarnConstraints(d)
+	}
+	return shapes, nil
 }
 
-// structure renders an entity, a value, or a mixin, which emit alike.
-func (g *generator) structure(b *strings.Builder, name string, meta *ir.Meta, fields []*ir.Field) ([]string, error) {
-	var body strings.Builder
+// structure builds an entity, a value, or a mixin, which emit alike.
+func (g *generator) structure(name string, meta *ir.Meta, fields []*ir.Field) (*shape, error) {
+	s := &shape{id: g.id(name), kind: "structure", traits: metaTraits(meta)}
 	seen := map[string]string{}
 	for _, f := range fields {
 		ref, err := g.Resolve(f.GetType())
@@ -245,88 +321,64 @@ func (g *generator) structure(b *strings.Builder, name string, meta *ir.Meta, fi
 			return nil, err
 		}
 
-		member := g.FieldName(f, asWritten)
-		if err := claim(seen, name, member, f.GetMeta().GetPosition()); err != nil {
+		m := &member{name: g.FieldName(f, asWritten), target: target, traits: metaTraits(f.GetMeta())}
+		if err := claimMember(seen, name, m.name, f.GetMeta().GetPosition()); err != nil {
 			return nil, err
 		}
-
-		comment(&body, "    ", f.GetMeta())
-		if required {
-			body.WriteString("    @required\n")
-		}
-		deprecated(&body, "    ", f.GetMeta())
-		fmt.Fprintf(&body, "    %s: %s\n", member, target)
+		m.traits.required = required
+		s.members = append(s.members, m)
 	}
-
-	comment(b, "", meta)
-	deprecated(b, "", meta)
-	fmt.Fprintf(b, "structure %s {\n%s}\n", name, body.String())
-	return []string{name}, nil
+	return s, nil
 }
 
-// enum renders an enum whose variants carry no fields. Each member's value
+// enum builds an enum whose variants carry no fields. Each member's value
 // is the variant's name as written.
-func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, error) {
+func (g *generator) enum(d *ir.Decl) ([]*shape, error) {
 	name := g.DeclName(d, emit.Pascal)
-
-	var body strings.Builder
+	s := &shape{id: g.id(name), kind: "enum", traits: metaTraits(d.GetMeta())}
 	seen := map[string]string{}
 	for _, v := range d.GetEnumeration().GetVariants() {
-		member := g.VariantName(v, emit.ScreamingSnake)
-		if err := claim(seen, name, member, v.GetMeta().GetPosition()); err != nil {
+		m := &member{name: g.VariantName(v, emit.ScreamingSnake), target: prelude + "#Unit", traits: metaTraits(v.GetMeta())}
+		if err := claimMember(seen, name, m.name, v.GetMeta().GetPosition()); err != nil {
 			return nil, err
 		}
-		comment(&body, "    ", v.GetMeta())
-		deprecated(&body, "    ", v.GetMeta())
-		fmt.Fprintf(&body, "    %s = %s\n", member, strconv.Quote(v.GetMeta().GetName()))
+		value := v.GetMeta().GetName()
+		m.traits.enumValue = &value
+		s.members = append(s.members, m)
 	}
-
-	comment(b, "", d.GetMeta())
-	deprecated(b, "", d.GetMeta())
-	fmt.Fprintf(b, "enum %s {\n%s}\n", name, body.String())
-	return []string{name}, nil
+	return []*shape{s}, nil
 }
 
-// union renders an enum where any variant carries fields: a union whose
+// union builds an enum where any variant carries fields: a union whose
 // members target a structure per variant, or Unit for a fieldless one.
-func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, error) {
+func (g *generator) union(d *ir.Decl) ([]*shape, error) {
 	name := g.DeclName(d, emit.Pascal)
-	declared := []string{name}
+	u := &shape{id: g.id(name), kind: "union", traits: metaTraits(d.GetMeta())}
+	shapes := []*shape{u}
 
-	var body, structures strings.Builder
 	seen := map[string]string{}
 	for _, v := range d.GetEnumeration().GetVariants() {
-		member := emit.Camel(v.GetMeta().GetName())
-		if err := claim(seen, name, member, v.GetMeta().GetPosition()); err != nil {
+		m := &member{name: emit.Camel(v.GetMeta().GetName()), target: prelude + "#Unit", traits: metaTraits(v.GetMeta())}
+		if err := claimMember(seen, name, m.name, v.GetMeta().GetPosition()); err != nil {
 			return nil, err
 		}
-
-		target := g.preludeRef("Unit")
 		if len(v.GetFields()) > 0 {
-			target = g.variantShape(name, v)
-			structures.WriteString("\n")
-			if _, err := g.structure(&structures, target, &ir.Meta{Doc: v.GetMeta().GetDoc()}, v.GetFields()); err != nil {
+			s, err := g.structure(g.variantShape(name, v), &ir.Meta{Doc: v.GetMeta().GetDoc()}, v.GetFields())
+			if err != nil {
 				return nil, err
 			}
-			declared = append(declared, target)
+			m.target = s.id
+			shapes = append(shapes, s)
 		}
-
-		comment(&body, "    ", v.GetMeta())
-		deprecated(&body, "    ", v.GetMeta())
-		fmt.Fprintf(&body, "    %s: %s\n", member, target)
+		u.members = append(u.members, m)
 	}
-
-	comment(b, "", d.GetMeta())
-	deprecated(b, "", d.GetMeta())
-	fmt.Fprintf(b, "union %s {\n%s}\n", name, body.String())
-	b.WriteString(structures.String())
-	return declared, nil
+	return shapes, nil
 }
 
-// newtype renders a newtype over a primitive or a collection as a shape.
+// newtype builds a newtype over a primitive or a collection as a shape.
 // Over a structure or an enum it declares nothing, and a reference targets
 // the base.
-func (g *generator) newtype(b *strings.Builder, d *ir.Decl) ([]string, error) {
+func (g *generator) newtype(d *ir.Decl) ([]*shape, error) {
 	pos := d.GetMeta().GetPosition()
 	name := g.DeclName(d, emit.Pascal)
 
@@ -339,28 +391,28 @@ func (g *generator) newtype(b *strings.Builder, d *ir.Decl) ([]string, error) {
 		return nil, err
 	}
 
-	var text string
+	var s *shape
 	switch x.Form {
 	case emit.Prim:
-		shape, ok := preludeShapes[x.Name]
+		prim, ok := preludeShapes[x.Name]
 		if !ok {
 			return nil, emit.Unsupported(x.Pos, "primitive %s has no Smithy shape", x.Name)
 		}
-		text = simple[shape] + " " + name + "\n"
+		s = &shape{id: g.id(name), kind: simple[prim]}
 	case emit.List, emit.Set, emit.Map:
-		if _, text, err = g.collection(x, name); err != nil {
+		if s, err = g.collection(x, name); err != nil {
 			return nil, err
 		}
 	case emit.Option, emit.Nullable:
 		return nil, emit.Unsupported(pos, "%s wraps an optional value, and an optional value is not a Smithy shape", d.GetMeta().GetName())
 	default:
+		g.Lose(emit.LossNewtype, pos, "newtype %s declares no Smithy shape, and its uses read back as its base", d.GetMeta().GetName())
 		return nil, nil
 	}
-
-	comment(b, "", d.GetMeta())
-	deprecated(b, "", d.GetMeta())
-	b.WriteString(text)
-	return []string{name}, nil
+	sparse, unique := s.traits.sparse, s.traits.unique
+	s.traits = metaTraits(d.GetMeta())
+	s.traits.sparse, s.traits.unique = sparse, unique
+	return []*shape{s}, nil
 }
 
 // named reports whether a newtype declares a shape.
@@ -389,30 +441,31 @@ func (g *generator) memberTarget(r *emit.Ref) (bool, string, error) {
 	return false, target, err
 }
 
-// target is the shape a reference targets.
+// target is the ID of the shape a reference targets.
 func (g *generator) target(r *emit.Ref) (string, error) {
 	switch r.Form {
 	case emit.Prim:
-		shape, ok := preludeShapes[r.Name]
+		prim, ok := preludeShapes[r.Name]
 		if !ok {
 			return "", emit.Unsupported(r.Pos, "primitive %s has no Smithy shape", r.Name)
 		}
-		return g.preludeRef(shape), nil
+		return prelude + "#" + prim, nil
 	case emit.List, emit.Set, emit.Map:
-		name, text, err := g.collection(r, "")
+		s, err := g.collection(r, "")
 		if err != nil {
 			return "", err
 		}
+		name := s.name()
 		if g.local[name] {
 			return "", emit.Unsupported(r.Pos, "the shape %s this collection needs would collide with the declaration of that name", name)
 		}
 		// Two different collections can derive the same name.
-		if prior, ok := g.shapes[name]; ok && prior != text {
+		if prior, ok := g.collections[name]; ok && g.render(prior) != g.render(s) {
 			return "", emit.Unsupported(r.Pos, "the shape %s this collection needs is already declared holding something else", name)
 		}
-		g.shapes[name] = text
+		g.collections[name] = s
 		g.uses[name] = true
-		return name, nil
+		return s.id, nil
 	case emit.Option, emit.Nullable:
 		return "", emit.Unsupported(r.Pos, "an optional value here has no Smithy form")
 	}
@@ -424,74 +477,88 @@ func (g *generator) target(r *emit.Ref) (string, error) {
 		}
 		return g.target(next)
 	}
-	return g.DeclName(r.Decl, emit.Pascal), nil
+	return g.id(g.DeclName(r.Decl, emit.Pascal)), nil
 }
 
-// collection returns the name and text of a list or map shape. A newtype
-// passes its name; "" names the shape for what it holds. An optional
-// element makes the shape @sparse.
-func (g *generator) collection(r *emit.Ref, name string) (string, string, error) {
+// collection builds a list or map shape. A newtype passes its name; ""
+// names the shape for what it holds. An optional element makes the shape
+// @sparse.
+func (g *generator) collection(r *emit.Ref, name string) (*shape, error) {
 	elem, sparse := r.Elem, false
 	if elem.Form == emit.Option || elem.Form == emit.Nullable {
 		elem, sparse = elem.Elem, true
 		if elem.Form == emit.Option || elem.Form == emit.Nullable {
-			return "", "", emit.Unsupported(r.Pos, "an optional value holding an optional value has no Smithy form")
+			return nil, emit.Unsupported(r.Pos, "an optional value holding an optional value has no Smithy form")
 		}
 	}
 	if sparse && r.Form == emit.Set {
-		return "", "", emit.Unsupported(r.Pos, "a set holding optional values has no Smithy form, since a @uniqueItems list cannot be @sparse")
+		return nil, emit.Unsupported(r.Pos, "a set holding optional values has no Smithy form, since a @uniqueItems list cannot be @sparse")
 	}
 	value, err := g.target(elem)
 	if err != nil {
-		return "", "", err
-	}
-
-	var traits strings.Builder
-	if sparse {
-		traits.WriteString("@sparse\n")
+		return nil, err
 	}
 
 	if r.Form == emit.Map {
 		kx, err := g.Expand(r.Key)
 		if err != nil {
-			return "", "", err
+			return nil, err
 		}
 		stringy := kx.Form == emit.Prim && preludeShapes[kx.Name] == "String"
 		enum := kx.Form == emit.Named && kx.Decl.GetEnumeration() != nil && !emit.Fielded(kx.Decl.GetEnumeration())
 		if !stringy && !enum {
-			return "", "", emit.Unsupported(r.Pos, "a Smithy map key is a string or an enum")
+			return nil, emit.Unsupported(r.Pos, "a Smithy map key is a string or an enum")
 		}
 		key, err := g.target(r.Key)
 		if err != nil {
-			return "", "", err
+			return nil, err
 		}
 		if name == "" {
-			name = sparsePrefix(sparse) + bare(key) + bare(value) + "Map"
+			name = mapName(key, value, sparse)
 		}
-		return name, fmt.Sprintf("%smap %s {\n    key: %s\n    value: %s\n}\n", traits.String(), name, key, value), nil
+		return &shape{id: g.id(name), kind: "map", traits: traits{sparse: sparse},
+			key: &member{name: "key", target: key}, value: &member{name: "value", target: value}}, nil
 	}
 
-	suffix := "List"
-	if r.Form == emit.Set {
-		suffix = "Set"
-		traits.WriteString("@uniqueItems\n")
-	}
 	if name == "" {
-		name = sparsePrefix(sparse) + bare(value) + suffix
+		name = listName(value, sparse, r.Form == emit.Set)
 	}
-	return name, fmt.Sprintf("%slist %s {\n    member: %s\n}\n", traits.String(), name, value), nil
+	return &shape{id: g.id(name), kind: "list", traits: traits{sparse: sparse, unique: r.Form == emit.Set},
+		member: &member{name: "member", target: value}}, nil
 }
 
-// preludeRef is a reference to a prelude shape, qualified when a model
-// shape takes its name.
-func (g *generator) preludeRef(shape string) string {
-	if g.local[shape] {
-		return "smithy.api#" + shape
+// listName is the name a list shape takes for what it holds.
+func listName(elem string, sparse, unique bool) string {
+	suffix := "List"
+	if unique {
+		suffix = "Set"
 	}
-	return shape
+	return sparsePrefix(sparse) + bare(elem) + suffix
 }
 
-func bare(target string) string { return strings.TrimPrefix(target, "smithy.api#") }
+// mapName is the name a map shape takes for what it holds.
+func mapName(key, value string, sparse bool) string {
+	return sparsePrefix(sparse) + bare(key) + bare(value) + "Map"
+}
+
+func (g *generator) id(name string) string { return g.ns + "#" + name }
+
+// ref spells a shape ID inside the generated namespace: a local shape and
+// a prelude shape by name, the prelude one qualified when a model shape
+// takes its name.
+func (g *generator) ref(id string) string {
+	ns, name, _ := strings.Cut(id, "#")
+	if ns == prelude && g.local[name] || ns != prelude && ns != g.ns {
+		return id
+	}
+	return name
+}
+
+// bare is a shape ID's name.
+func bare(id string) string {
+	_, name, _ := strings.Cut(id, "#")
+	return name
+}
 
 func sparsePrefix(sparse bool) string {
 	if sparse {
@@ -502,9 +569,9 @@ func sparsePrefix(sparse bool) string {
 
 func asWritten(name string) string { return name }
 
-// claim takes a member name inside a shape, case-insensitively, as Smithy
-// compares member names.
-func claim(seen map[string]string, owner, name string, pos *ir.Position) error {
+// claimMember takes a member name inside a shape, case-insensitively, as
+// Smithy compares member names.
+func claimMember(seen map[string]string, owner, name string, pos *ir.Position) error {
 	if !ident.MatchString(name) {
 		return emit.Unsupported(pos, "%s.%s is not a Smithy identifier", owner, name)
 	}
@@ -525,9 +592,74 @@ func (g *generator) variantShape(name string, v *ir.Variant) string {
 	return g.VariantName(v, func(s string) string { return name + emit.Pascal(s) })
 }
 
-// comment writes a node's documentation as Smithy doc comments.
-func comment(b *strings.Builder, indent string, meta *ir.Meta) {
-	for _, line := range emit.Doc(meta) {
+// metaTraits is a node's documentation and deprecation as traits.
+func metaTraits(meta *ir.Meta) traits {
+	var t traits
+	if lines := emit.Doc(meta); len(lines) > 0 {
+		doc := strings.Join(lines, "\n")
+		t.doc = &doc
+	}
+	if reason, ok := emit.Deprecated(meta); ok {
+		t.deprecated = &deprecation{reason}
+	}
+	return t
+}
+
+// render writes a shape as Smithy IDL.
+func (g *generator) render(s *shape) string {
+	var b strings.Builder
+	shapeTraits(&b, "", s.traits)
+	switch s.kind {
+	case "structure", "union":
+		fmt.Fprintf(&b, "%s %s {\n", s.kind, s.name())
+		for _, m := range s.members {
+			comment(&b, "    ", m.traits.doc)
+			if m.traits.required {
+				b.WriteString("    @required\n")
+			}
+			deprecated(&b, "    ", m.traits.deprecated)
+			fmt.Fprintf(&b, "    %s: %s\n", m.name, g.ref(m.target))
+		}
+		b.WriteString("}\n")
+	case "enum":
+		fmt.Fprintf(&b, "enum %s {\n", s.name())
+		for _, m := range s.members {
+			comment(&b, "    ", m.traits.doc)
+			deprecated(&b, "    ", m.traits.deprecated)
+			fmt.Fprintf(&b, "    %s = %s\n", m.name, strconv.Quote(*m.traits.enumValue))
+		}
+		b.WriteString("}\n")
+	case "list":
+		fmt.Fprintf(&b, "list %s {\n    member: %s\n}\n", s.name(), g.ref(s.member.target))
+	case "map":
+		fmt.Fprintf(&b, "map %s {\n    key: %s\n    value: %s\n}\n", s.name(), g.ref(s.key.target), g.ref(s.value.target))
+	default:
+		fmt.Fprintf(&b, "%s %s\n", s.kind, s.name())
+	}
+	return b.String()
+}
+
+// shapeTraits writes a shape's traits, its doc comment first.
+func shapeTraits(b *strings.Builder, indent string, t traits) {
+	comment(b, indent, t.doc)
+	deprecated(b, indent, t.deprecated)
+	if t.source != nil {
+		fmt.Fprintf(b, "%s@%s(%s)\n", indent, traitSource, quote(*t.source))
+	}
+	if t.sparse {
+		fmt.Fprintf(b, "%s@sparse\n", indent)
+	}
+	if t.unique {
+		fmt.Fprintf(b, "%s@uniqueItems\n", indent)
+	}
+}
+
+// comment writes documentation as Smithy doc comments.
+func comment(b *strings.Builder, indent string, doc *string) {
+	if doc == nil {
+		return
+	}
+	for line := range strings.SplitSeq(*doc, "\n") {
 		if line == "" {
 			fmt.Fprintf(b, "%s///\n", indent)
 			continue
@@ -537,14 +669,13 @@ func comment(b *strings.Builder, indent string, meta *ir.Meta) {
 }
 
 // deprecated writes the @deprecated trait, with any reason as its message.
-func deprecated(b *strings.Builder, indent string, meta *ir.Meta) {
-	reason, ok := emit.Deprecated(meta)
+func deprecated(b *strings.Builder, indent string, d *deprecation) {
 	switch {
-	case !ok:
-	case reason == "":
+	case d == nil:
+	case d.message == "":
 		fmt.Fprintf(b, "%s@deprecated\n", indent)
 	default:
-		fmt.Fprintf(b, "%s@deprecated(message: %s)\n", indent, strconv.Quote(reason))
+		fmt.Fprintf(b, "%s@deprecated(message: %s)\n", indent, quote(d.message))
 	}
 }
 

@@ -84,7 +84,7 @@ Without it, output is unchanged and each lost fact is a loss warning.
 | --- | --- |
 | `protobuf` | custom options declared in `tdl/annotations.proto`, such as `[(tdl.field) = {source: "id: uuid"}]` and `option (tdl.message) = {kind: KIND_ENTITY};` |
 | `thrift` | annotations with `tdl.` keys, such as `(tdl.source = "id: uuid")` and `(tdl.kind = "entity")` |
-| `smithy` | traits in the `tdl` namespace, defined in a generated `tdl.smithy` |
+| `smithy` | a `tdl#source` trait, defined in a generated `tdl.smithy`, and `metadata tdl` |
 | `graphql` | an `@tdl` directive, defined in the schema it is used in |
 | `typescript` | JSDoc `@tdl` tags |
 | `jsonschema` | `x-tdl` keywords, which validators ignore |
@@ -155,7 +155,7 @@ Schema-first tests compare each schema in a normal form:
 | `graphql` | the `gqlparser` schema document, formatted without comments, its definitions sorted by name and its scalars without descriptions |
 | `go` | declarations through `go/format`, keeping doc comments only |
 | `typescript` | the compiler API's outline as JSON, without positions, its JSDoc read into doc comments and tags |
-| `smithy` | the `smithy ast` JSON |
+| `smithy` | the `smithy ast` JSON of the shapes each file declares, and the metadata |
 | `jsonschema` | the parsed document with object keys sorted |
 | `salesforce` | the parsed XML, and the Apex recognizer's output |
 

@@ -1,0 +1,38 @@
+// Names Smithy keeps, and ones it reads back differently.
+package shop.v1
+
+type order_line {
+  sku: string
+  qty: int32
+}
+
+enum Level {
+  HTTPError
+  Low
+  Mid
+}
+
+enum Payment {
+  Card { last4: string }
+  ACHTransfer { routing: string }
+  Cash
+}
+
+type Account {
+  email: string
+  id: string
+}
+
+type Ledger {
+  payments: [Payment]
+  levels: [Level]
+}
+
+target smithy for shop.v1 {
+  package("shop.ledger")
+  Account => name("User")
+  Account.email => name("emailAddress")
+  Level.Low => name("LOWEST")
+  Level.Mid => name("MID")
+  Payment.Card => name("CardPayment")
+}
