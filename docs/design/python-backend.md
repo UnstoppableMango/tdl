@@ -175,7 +175,7 @@ class Cash:
 type Payment = Card | Cash
 ```
 
-Python has no sealed class, but a union is closed: a `match` over a `Payment` with `assert_never` in its last arm is checked for exhaustiveness by both checkers, and a third variant is a checker error at every such `match`.
+Python has no sealed class, but a union is closed: a `match` over a `Payment` with `assert_never` in its last arm is checked for exhaustiveness by both checkers, and mypy under `exhaustive-match` checks one without it; a third variant is a checker error at every such `match`.
 `case Card(last4=last4)` destructures a variant, since keyword patterns need no `__match_args__`.
 A fieldless variant is an empty dataclass, and every instance of it is equal.
 
@@ -204,8 +204,10 @@ A newtype over anything else, a `bool`, a map, an optional, a union, a generated
 ```python
 @dataclass(frozen=True, slots=True)
 class Flags:
-    value: Mapping[str, bool]
+    value: Mapping[str, bool] = field(hash=False)
 ```
+
+Its `value` follows the map rule under [The type mapping](#the-type-mapping), so a wrapper over a map hashes like a struct holding one.
 
 A newtype over another newtype subclasses its parent, or holds it when the parent is a wrapper, as Rust's holds its parent, so a `WorkEmail` is an `Email` with something added and checks only what it adds.
 
@@ -399,17 +401,18 @@ That phase decides between a nominal type per unit and base, which keeps `decima
 
 Without a directive, the output carries no serializer: a dataclass is what `dataclasses.asdict` and every Python serializer already read.
 
-`json("pydantic")` on the target block makes the output read and write the JSON wire convention, the one [schema-backends.md](schema-backends.md) describes and the TypeScript and JSON Schema backends write, through Pydantic 2:
+`json("pydantic")` on the target block makes the output read and write the JSON wire convention, the one [schema-backends.md](schema-backends.md) describes and the TypeScript and JSON Schema backends write, through Pydantic 2.11 or later, the release that added the alias settings below:
 
 | Construct | Under `json("pydantic")` |
 | --- | --- |
 | A struct, a variant, a wrapper newtype | `pydantic.dataclasses.dataclass` instead of the standard decorator, so construction also checks every field's type at runtime |
 | A field whose Python name differs from the model's | `Field(validation_alias="createdAt", serialization_alias="createdAt")`, with `validate_by_name`, `validate_by_alias`, and `serialize_by_alias` set in the dataclass config, so the constructor keeps the Python name and the wire reads and writes the model's |
-| `T?` | left out of the output when `None` |
+| `T?`, `T? \| null` | left out of the output when `None` or `UNSET` respectively, by a wrap `model_serializer` on the dataclass that drops only those fields, so a `T \| null` field still writes `null` |
 | A fieldless enum | its `StrEnum` values, which are the tags already |
 | A fielded enum | `Annotated[Card \| Cash, Field(discriminator="kind")]`, with a `kind: Literal["Card"]` field defaulted to its tag on each variant |
 | A subclass newtype, a checked type | `__get_pydantic_core_schema__`, decoding the base and calling the constructor, so a decoded value was checked |
 | `bytes` | base64, from the dataclass config |
+| `instant` | `AwareDatetime`, so a decoded or constructed instant without an offset is refused |
 | `decimal`, `uuid`, `instant`, `duration` | Pydantic's defaults, which are the convention's strings: a decimal as a string, a hyphenated UUID, RFC 3339, and ISO 8601 |
 
 The discriminant and each variant's tag come from `emit.Discriminant` and `emit.Tag`, so `Card` is `{"kind": "Card", "last4": "4242"}` whatever `name` says, and `discriminant("type")` on an enum or the target block renames `kind`.
@@ -485,7 +488,7 @@ An error stops the run, and only a module path Python refuses earns one.
 
 ## Checking the output
 
-The tests run `mypy --strict` and Pyright in strict mode over every response, and import it under `python3`, when each is on `PATH`.
+The tests run `mypy --strict --enable-error-code=exhaustive-match` and Pyright in strict mode over every response, and import it under `python3`, when each is on `PATH`.
 Both checkers, because consumers use both and they differ where this output leans on them: Pyright refuses a dataclass field overriding a protocol's property, which mypy accepts, and reports a `default_factory=dict` as partially unknown, so the output writes `dict[str, str]`.
 `checks.gen-python` always does, over `testdata/gen/smoke`, with `python313`, `mypy`, `pyright`, and `pydantic` from nixpkgs, and runs it a second time with `json("pydantic")`.
 

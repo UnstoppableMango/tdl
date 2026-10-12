@@ -21,7 +21,7 @@ cmd/tdl-gen-python/    # the same value served as a subprocess
 ## Testing
 
 The unit tests build `*ir.Model` values with `backend/internal/irtest` and assert on the generated text.
-No Go library type checks Python, so the tests also run `mypy --strict` and Pyright in strict mode over every response, and import it under `python3`, when each is on `PATH`, as the TypeScript tests run `tsc`.
+No Go library type checks Python, so the tests also run `mypy --strict --enable-error-code=exhaustive-match` and Pyright in strict mode over every response, and import it under `python3`, when each is on `PATH`, as the TypeScript tests run `tsc`.
 `checks.gen-python` always does, with `python313`, `mypy`, `pyright`, `ruff`, and `pydantic` from nixpkgs, and also runs `ruff format --check` and `ruff check`.
 
 Some tests are a checker run that must fail: a snippet beside the response that the checker must reject, such as `LineItem(quantity=0)` or a non-exhaustive `match`, since the design's claim is that the checker refuses it.
@@ -68,7 +68,7 @@ Done when each standard constraint is rejected under `TestValidationRuns`, `Line
 
 ## Phase 5: serialization
 
-`json("pydantic")`: Pydantic dataclasses, aliases carrying the model's spelling with the config that keeps the Python name in the constructor, the discriminated union and each variant's `kind` field, `__get_pydantic_core_schema__` on every checked type, base64 bytes, and leaving out an absent `T?`.
+`json("pydantic")`: Pydantic dataclasses, aliases carrying the model's spelling with the config that keeps the Python name in the constructor, the discriminated union and each variant's `kind` field, `__get_pydantic_core_schema__` on every checked type, `AwareDatetime` for `instant`, base64 bytes, and the serializer leaving out an absent `T?` and an unset `T? | null`.
 The discriminant and tags come from `emit.Discriminant` and `emit.Tag`, and `discriminant` renames the property.
 
 Done when a test serializes a value of every smoke declaration and validates the output against the `jsonschema` backend's schema for the smoke model, decodes it back to an equal value, and refuses a payload that omits a `T | null` field or holds a value violating a constraint.
