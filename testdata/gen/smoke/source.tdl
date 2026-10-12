@@ -101,6 +101,7 @@ target openapi for smoke {
 
 target csharp for smoke {
   out("csharp")
+  Order => key(id)
 }
 
 target haskell for smoke {

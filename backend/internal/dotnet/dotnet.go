@@ -1,10 +1,11 @@
 // Package dotnet holds what the csharp and fsharp backends share because
-// both target .NET: the base class library type each primitive maps to and
-// the namespace a package derives. It holds decisions, not syntax; each
+// both target .NET: the base class library type each primitive maps to, the
+// namespace a package derives, and the names `foreign` and `attribute` give. It holds decisions, not syntax; each
 // backend spells a type its own way. See docs/design/csharp-backend.md.
 package dotnet
 
 import (
+	"fmt"
 	"strings"
 	"unicode"
 )
@@ -57,4 +58,44 @@ func Namespace(pkg string) string {
 		segs[i] = string(r)
 	}
 	return strings.Join(segs, ".")
+}
+
+// Qualified is a type or an attribute another assembly declares, as
+// `foreign` and `attribute` name it.
+type Qualified struct {
+	Namespace, Name string
+}
+
+// Parse reads the namespace and name a `foreign` or `attribute` directive
+// gives. The namespace is dotted identifiers and the name one identifier;
+// each backend escapes a segment its language reserves.
+func Parse(args []string) (Qualified, error) {
+	if len(args) != 2 {
+		return Qualified{}, fmt.Errorf("takes a namespace and a name, and %d argument(s) were given", len(args))
+	}
+	q := Qualified{Namespace: args[0], Name: args[1]}
+	for seg := range strings.SplitSeq(q.Namespace, ".") {
+		if !Identifier(seg) {
+			return Qualified{}, fmt.Errorf("names the namespace %q, which is not a .NET namespace", q.Namespace)
+		}
+	}
+	if !Identifier(q.Name) {
+		return Qualified{}, fmt.Errorf("names %q, which is not a .NET identifier", q.Name)
+	}
+	return q, nil
+}
+
+// Identifier reports whether s is an identifier both C# and F# accept,
+// before either escapes a keyword: a letter or underscore, then letters,
+// digits, and underscores.
+func Identifier(s string) bool {
+	for i, r := range s {
+		switch {
+		case r == '_' || unicode.IsLetter(r):
+		case i > 0 && unicode.IsDigit(r):
+		default:
+			return false
+		}
+	}
+	return s != ""
 }
