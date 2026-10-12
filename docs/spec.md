@@ -259,6 +259,7 @@ class Paged {
 
 A required field binds every type satisfying the class: the type declares a field of that name and type, itself or through an `include`.
 A type that conforms without one is an error where it conforms, so a backend can read a field through the class.
+A field typed by one of the type's parameters, as `createdAt: T`, does not satisfy a required `createdAt: instant`, since an instantiation could choose another type.
 
 A class may require other classes; satisfying it requires satisfying them.
 

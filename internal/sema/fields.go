@@ -87,14 +87,19 @@ func (l *lowerer) requiredFields(class *ir.ID, seen map[int32]bool) []requiredFi
 	return out
 }
 
-// sameType compares two types structurally, ignoring how each was spelled
-// and seeing through an alias without parameters. A type that mentions a
-// parameter or failed to resolve is not compared, since the field is
-// present and the parameter is the instantiation's to decide.
-func (l *lowerer) sameType(a, b *ir.ID) bool {
-	ta, tb := l.expandAlias(l.model.Type(a)), l.expandAlias(l.model.Type(b))
-	if ta == nil || tb == nil || ta.GetParam() != nil || tb.GetParam() != nil {
+// sameType reports whether a field of type got satisfies a class's field
+// of type want, comparing structurally, ignoring how each was spelled and
+// seeing through an alias without parameters. Where want mentions a
+// parameter, or either side failed to resolve, the types are not compared.
+// A parameter in got never matches a concrete want, since an instantiation
+// could choose any type for it.
+func (l *lowerer) sameType(got, want *ir.ID) bool {
+	ta, tb := l.expandAlias(l.model.Type(got)), l.expandAlias(l.model.Type(want))
+	if ta == nil || tb == nil || tb.GetParam() != nil {
 		return true
+	}
+	if ta.GetParam() != nil {
+		return false
 	}
 
 	switch {
@@ -119,6 +124,20 @@ func (l *lowerer) sameType(a, b *ir.ID) bool {
 		}
 	}
 	return true
+}
+
+// mentionsParam reports whether a type is or contains a type parameter.
+func (l *lowerer) mentionsParam(id *ir.ID) bool {
+	t := l.expandAlias(l.model.Type(id))
+	if t.GetParam() != nil {
+		return true
+	}
+	for _, arg := range t.GetArgs() {
+		if l.mentionsParam(arg) {
+			return true
+		}
+	}
+	return false
 }
 
 // expandAlias follows aliases without parameters to the type they name.
@@ -165,7 +184,7 @@ func (l *lowerer) checkExternFields(ext *ir.ID, ref *ir.ClassRef) {
 		}
 		want, wok := l.typeKey(req.field.GetType())
 		is, iok := dep.typeKey(got.GetType())
-		if wok && iok && want != is {
+		if wok && (iok && want != is || dep.mentionsParam(got.GetType())) {
 			l.diags.add(positionOf(ref.GetPosition()), "%s.%s is %s, but %s requires %s",
 				name, field, got.GetType().GetName(), req.class, req.field.GetType().GetName())
 		}
