@@ -56,10 +56,10 @@ Brands on every newtype and on a field's schema named for its struct and field o
 Each standard constraint by the design's table, with `codePoints` and `size` declared once, the messages naming the constraint, and the excluded-argument warning.
 
 `matches` checked by `emit.Pattern` and printed by a walk over `regexp/syntax` in `backend/internal/emit`, with the ECMAScript table: the `u` flag, folds as classes, every class as ranges, the line anchors as lookaround, and named captures.
-The exponential-backtracking shape warns and drops the check.
+All of it only under the `patterns` directive: without it a `matches` warns and is not checked, and with it the exponential-backtracking shape still warns and drops the check.
 If the Rust, Java, .NET, or Python printer exists by then, Zod adds a table to that walk; otherwise this phase creates it.
 
-Done when each standard constraint refuses a value under `node`, `LineItem` with `quantity: 0` and a plain `string` where a `Sku` is expected fail `tsc`, the agreement test still passes under `structural`, a string of four emoji passes `length(4)`, `(a+)+$` warns at generation time, and the pattern table test agrees with Go's `regexp` on every input, including `\s` refusing a no-break space, `\p{Greek}` accepting `λ`, `(?i)k` accepting the Kelvin sign, and `^.$` accepting one emoji.
+Done when each standard constraint refuses a value under `node`, `LineItem` with `quantity: 0` and a plain `string` where a `Sku` is expected fail `tsc`, the agreement test still passes under `structural`, a string of four emoji passes `length(4)`, a `matches` without `patterns` warns and emits no `.regex()`, `(a+)+$` warns under `patterns`, and the pattern table test agrees with Go's `regexp` on every input, including `\s` refusing a no-break space, `\p{Greek}` accepting `λ`, `(?i)k` accepting the Kelvin sign, and `^.$` accepting one emoji.
 
 ## Phase 4: codecs
 

@@ -209,7 +209,7 @@ Each other standard constraint is a check:
 | --- | --- | --- | --- | --- |
 | `min(n)`, `max(n)` | `.min(n)`, `.max(n)` | warn | warn | warn |
 | `length(a..b)` | warn | `.refine(codePoints(a, b))` | `.min(a)`, `.max(b)` | `.refine(size(a, b))` |
-| `matches(/re/)` | warn | `.regex(/.../u)` | warn | warn |
+| `matches(/re/)` | warn | `.regex(/.../u)` under `patterns`, else warn | warn | warn |
 | `oneOf(...)` | `z.literal([...])` | `z.enum([...])` | warn | warn |
 | `unique` | warn | warn | `.refine(unique)` | warn |
 
@@ -239,7 +239,11 @@ Every check names the type, the field when there is one, and the constraint as w
 
 ### Patterns
 
-`matches` is not copied as written, because JavaScript's `RegExp` differs from RE2 in ways that change what a pattern accepts:
+A `matches` check runs a pattern the model's author wrote against input an attacker may control, on an engine that backtracks (see below), so it is opt-in.
+Without the `patterns` directive on the target block, each `matches` warns that it is not checked and its schema is emitted without it, so the default output never runs a regular expression the author wrote.
+The module's own `decimal` and `instant` checks are fixed patterns with no nested repetition, and run either way.
+
+Under `patterns`, `matches` is not copied as written, because JavaScript's `RegExp` differs from RE2 in ways that change what a pattern accepts:
 
 - `\s` is Unicode whitespace in JavaScript, so it matches a no-break space, where RE2's is ASCII.
 - `\p{Greek}` is a syntax error under JavaScript's `u` flag, which spells it `\p{Script=Greek}`, and without the flag `\p` is the letter `p`.
@@ -270,7 +274,8 @@ A pattern RE2 refuses warns at generation time and its schema is emitted without
 RE2 has no backreferences and no lookaround, and the printer writes lookbehind only for the line anchors, so every printed pattern is one a linear-time engine could run.
 V8, SpiderMonkey, and JavaScriptCore backtrack by default, so a pattern such as `(a+)+$` takes exponential time on a hostile string, and a schema parsing untrusted JSON runs it on the parser's thread.
 The pattern is the model author's, not the attacker's, so the backend refuses the shape rather than the constraint: a pattern with an unbounded repetition nested inside another, or an alternation under an unbounded repetition whose branches can match the same text, warns at generation time and its schema is emitted without the check, as a pattern RE2 refuses is.
-That catches the classic exponential shapes from the `regexp/syntax` tree; it is a heuristic, and polynomial backtracking such as `a*a*a*$` remains, which [Open questions](#open-questions) weighs.
+That catches the classic exponential shapes from the `regexp/syntax` tree; it is a heuristic, and polynomial backtracking such as `a*a*a*$` remains.
+Opting in to `patterns` is accepting that remainder for the patterns the model holds; [Open questions](#open-questions) weighs a linear-time engine that would remove it.
 
 ## Units
 
@@ -343,6 +348,7 @@ The backend declares all of these in its handshake.
 | `structural` | the target block | writes no brands, so every inferred type is `typescript`'s |
 | `newtype("Quantity")` | a constrained field | the name of the field's schema |
 | `codec` | the target block | decodes into the richer types under [Codecs](#codecs) |
+| `patterns` | the target block | checks `matches` constraints, which otherwise warn (see [Patterns](#patterns)) |
 
 A directive the backend does not declare is a compiler warning and is passed through anyway.
 `key` is not read: `typescript` and JSON Schema write no identity, and nothing in a schema would use one.
@@ -364,7 +370,7 @@ A deprecation is `@deprecated`, as `typescript` writes it.
 These warn with the node's position, and the declaration reaching one is skipped: an extern with no mapping, a higher-kinded parameter, a variant field named like the discriminant, and a name collision.
 `emit.Cascade` then skips every declaration naming a skipped one.
 
-These warn and the declaration is still emitted: a unit until phase 6, a `matches` pattern RE2 refuses, a constraint on a type its row warns for, a `where` constraint the backend gives no meaning to, a `oneOf` argument another constraint excludes, a default that fails its field's check, a default or constraint on a foreign type, and a class the plan refuses.
+These warn and the declaration is still emitted: a unit until phase 6, a `matches` without `patterns`, a `matches` pattern RE2 refuses or whose shape backtracks exponentially, a constraint on a type its row warns for, a `where` constraint the backend gives no meaning to, a `oneOf` argument another constraint excludes, a default that fails its field's check, a default or constraint on a foreign type, and a class the plan refuses.
 
 ## Checking the output
 
@@ -407,7 +413,7 @@ That change is the JSON Schema backend's to make, and the plan lists it as a fol
 
 ## Open questions
 
-- **Linear-time patterns.** V8's experimental linear engine runs a pattern with the `l` flag behind `--enable-experimental-regexp-engine`, and every printed pattern qualifies; an `engine("linear")` directive could add the flag for a consumer who controls Node's flags. It is not standard JavaScript, so it would not protect the default output; that rests on the shape warning under [Patterns](#patterns).
+- **Linear-time patterns.** V8's experimental linear engine runs a pattern with the `l` flag behind `--enable-experimental-regexp-engine`, and every printed pattern qualifies; an `engine("linear")` directive could add the flag for a consumer who controls Node's flags. It is not standard JavaScript, so it could only ever be a stronger form of `patterns`, never the default.
 - **Zod Mini.** `zod/mini` writes the same schemas as functions, `z.optional(z.string())`, which a bundler can shake. A `flavor("mini")` directive would print the other spelling from the same plan.
 - **Readonly output.** `.readonly()` freezes a parsed object and makes its type `Readonly`, as Python's dataclasses are frozen; it would also make the inferred types differ from `typescript`'s.
 - **Other validators.** Valibot and ArkType parse the same convention with different spellings. The plan here, which check each constraint becomes and what the output type carries, is not Zod's, and a second validator would show where to split it from the printing.
