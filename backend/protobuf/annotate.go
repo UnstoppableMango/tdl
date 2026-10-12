@@ -96,23 +96,13 @@ func (g *generator) declAnnotation(ext string, d *ir.Decl, written string, extra
 // structAnnotation is [generator.declAnnotation] for a struct, with its
 // kind, since every struct reads back as a value.
 func (g *generator) structAnnotation(d *ir.Decl, written string) string {
-	s := d.GetStructure()
-	name := d.GetMeta().GetName()
 	var kind kv
-	switch s.GetKind() {
-	case ir.StructKind_STRUCT_KIND_ENTITY:
-		g.Lose(emit.LossStructKind, d.GetMeta().GetPosition(), "%s is an entity, and reads back as a value", name)
-		kind = kv{"kind", "KIND_ENTITY"}
-	case ir.StructKind_STRUCT_KIND_MIXIN:
-		g.Lose(emit.LossStructKind, d.GetMeta().GetPosition(), "%s is a mixin, and reads back as a value", name)
-		kind = kv{"kind", "KIND_MIXIN"}
+	if k := g.LoseKind(d); k != "" {
+		kind = kv{"kind", "KIND_" + strings.ToUpper(k)}
 	}
 	var conforms kv
-	for _, c := range s.GetConforms() {
-		if n := c.GetClass().GetName(); n != "Entity" || c.GetExtern() != nil || len(c.GetArgs()) > 0 {
-			g.Lose(emit.LossClass, c.GetPosition(), "%s conforms to %s, which protobuf does not carry", name, n)
-			conforms = text("conforms", g.Conforms(name))
-		}
+	if g.LoseConforms(d, "protobuf") {
+		conforms = text("conforms", g.Conforms(d.GetMeta().GetName()))
 	}
 	return g.declAnnotation("message", d, written, kind, conforms)
 }

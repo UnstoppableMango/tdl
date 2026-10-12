@@ -43,6 +43,70 @@ func (s *Session) Lose(code string, pos *ir.Position, format string, args ...any
 	}
 }
 
+// DeclaresLossy is [Declares] for a target that imports back: what it cannot
+// generate is a loss, and an alias, expanded where it is used, is a loss
+// too, with aliased called on its target so the backend can warn about
+// what the expansion loses.
+func (s *Session) DeclaresLossy(d *ir.Decl, aliased func(target *ir.ID)) (bool, error) {
+	pos := d.GetMeta().GetPosition()
+	name := d.GetMeta().GetName()
+
+	switch {
+	case d.GetClass() != nil:
+		return false, Lost(LossClass, pos, "%s is a class, and classes are not generated yet", name)
+	case d.GetUnit() != nil:
+		return false, Lost(LossUnit, pos, "%s is a unit, and units are not generated yet", name)
+	case d.GetAlias() != nil:
+		if len(d.Params()) == 0 {
+			s.Lose(LossAlias, pos, "alias %s is expanded where used", name)
+			aliased(d.GetAlias().GetTarget())
+		}
+		return false, nil
+	case d.GetStructure() == nil && d.GetEnumeration() == nil && d.GetNewtype() == nil:
+		// A primitive declares nothing.
+		return false, nil
+	}
+	if len(d.Params()) > 0 {
+		return false, Lost(LossGeneric, pos, "%s is parameterized, and generics are not generated yet", name)
+	}
+	return true, nil
+}
+
+// LoseKind warns that an entity or a mixin reads back as a value, and
+// returns its kind: "entity", "mixin", or "" for anything else.
+func (s *Session) LoseKind(d *ir.Decl) string {
+	name := d.GetMeta().GetName()
+	switch d.GetStructure().GetKind() {
+	case ir.StructKind_STRUCT_KIND_ENTITY:
+		s.Lose(LossStructKind, d.GetMeta().GetPosition(), "%s is an entity, and reads back as a value", name)
+		return "entity"
+	case ir.StructKind_STRUCT_KIND_MIXIN:
+		s.Lose(LossStructKind, d.GetMeta().GetPosition(), "%s is a mixin, and reads back as a value", name)
+		return "mixin"
+	}
+	return ""
+}
+
+// LoseConforms warns about each conformance of a struct or an enum that a
+// target does not carry, which is all of them but a struct's plain
+// conformance to Entity, since its kind says that. It reports whether any
+// was lost.
+func (s *Session) LoseConforms(d *ir.Decl, target string) bool {
+	conforms := d.GetStructure().GetConforms()
+	if e := d.GetEnumeration(); e != nil {
+		conforms = e.GetConforms()
+	}
+	name := d.GetMeta().GetName()
+	lost := false
+	for _, c := range conforms {
+		if n := c.GetClass().GetName(); d.GetStructure() == nil || n != "Entity" || c.GetExtern() != nil || len(c.GetArgs()) > 0 {
+			s.Lose(LossClass, c.GetPosition(), "%s conforms to %s, which %s does not carry", name, n, target)
+			lost = true
+		}
+	}
+	return lost
+}
+
 // Skip reports a declaration that is not generated. Under roundtrip it is
 // carried as TDL instead, so nothing is reported, unless the model is
 // invalid.
