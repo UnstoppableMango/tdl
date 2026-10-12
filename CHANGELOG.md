@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.4.8](https://github.com/UnstoppableMango/tdl/compare/v0.4.7...v0.4.8) (2026-10-12)
+
+
+### Features
+
+* **haskell:** generate keys, foreign types, externs, and derive ([#1069](https://github.com/UnstoppableMango/tdl/issues/1069)) ([7f86090](https://github.com/UnstoppableMango/tdl/commit/7f860906d87b82c35e11bab472ba71b348e0c3ec))
+* **smithy:** import Smithy back to TDL ([#1073](https://github.com/UnstoppableMango/tdl/issues/1073)) ([a775409](https://github.com/UnstoppableMango/tdl/commit/a775409abffeae5d36431c931c7cdcea6d674453))
+
+
+### Bug Fixes
+
+* **sema:** a parameter-typed field doesn't satisfy a concrete class field ([#1072](https://github.com/UnstoppableMango/tdl/issues/1072)) ([4800c37](https://github.com/UnstoppableMango/tdl/commit/4800c373f12ca0dcccc2a348ba917e3886426d7c)), closes [#1011](https://github.com/UnstoppableMango/tdl/issues/1011)
+
+
+### Documentation
+
+* design a Python backend ([#1068](https://github.com/UnstoppableMango/tdl/issues/1068)) ([36991e7](https://github.com/UnstoppableMango/tdl/commit/36991e704779c00c5340e420788183305c48c662))
+* design a Rust backend ([#1066](https://github.com/UnstoppableMango/tdl/issues/1066)) ([cefb786](https://github.com/UnstoppableMango/tdl/commit/cefb786dbf749632479f87b68d569b6bc3094ea9))
+
 ## [0.4.7](https://github.com/UnstoppableMango/tdl/compare/v0.4.6...v0.4.7) (2026-10-11)
 
 
