@@ -101,4 +101,5 @@ target openapi for smoke {
 
 target haskell for smoke {
   out("haskell")
+  Order => key(id)
 }

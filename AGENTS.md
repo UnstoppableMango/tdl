@@ -221,7 +221,8 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   A struct is a record, an enum a sum type, a newtype a `newtype`, and an alias a `type` synonym; fields keep the model's names under `NoFieldSelectors` and `DuplicateRecordFields`.
   Every import has an explicit list, and one bringing in a name the module declares is qualified instead; references are placeholders until the module is rendered, so that is decided once.
   Constructors share a namespace, so a later declaration taking one is skipped; `prefix` writes variants behind their enum's name.
-  Only phase 1 of `haskell-backend-plan.md` is built: classes, generics, units, `foreign`, `key`, and validation warn.
+  `foreign.go` maps a declaration, a primitive, or an extern to another module's type, and an extern to the module its dependency's `haskell` block generates; `key.go` writes a key function, and a key record for several fields; `derive` adds `deriving anyclass`.
+  Phases 1 and 2 of `haskell-backend-plan.md` are built: classes, generics, units, and validation warn.
   Tests run `ghc -fno-code -Wall -Werror` when `ghc` is on `PATH`; `checks.gen-haskell` always does.
 - `backend/likec4`: LikeC4 source for an architecture diagram: `tdl.c4`, the specification of element kinds, the same bytes for every model, and one `<package>.c4` holding a package element and one element per structure, enum, newtype, or class; aliases, primitives, and units have none.
   Only phase 1 of `likec4-backend-plan.md` is built: no relationships or views yet.
@@ -249,7 +250,7 @@ After any change to lowering or `ir.Dump`, run `go test ./internal/sema -update`
 ### Docs
 
 `docs/design/` holds designs and plans; each `*-plan.md` names what its phases add, and its opening lines say which are done.
-Read those before assuming a design is built: the C#, Java, ML-family, Python, Rust, and profiles designs have no code yet, and Haskell has only phase 1.
+Read those before assuming a design is built: the C#, Java, ML-family, Rust, and profiles designs have no code yet, and Haskell has only phase 1.
 A design describes the target, not the implementation.
 `workflow.md` is furthest ahead: its `tdl.toml` project model is unbuilt.
 `docs/backlog.md` is wanted, unscheduled work.

@@ -574,5 +574,5 @@ func TestSmoke(t *testing.T) {
 	if path := resp.GetFiles()[0].GetPath(); path != "Smoke.hs" {
 		t.Errorf("path = %q", path)
 	}
-	contains(t, src, "data Order = Order\n", "type Tags = Set Text\n", "data Status = Draft | Placed | Provisional\n")
+	contains(t, src, "data Order = Order\n", "orderKey :: Order -> Text\n", "type Tags = Set Text\n", "data Status = Draft | Placed | Provisional\n")
 }
