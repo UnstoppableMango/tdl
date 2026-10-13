@@ -85,14 +85,8 @@ func (g *generator) nameKVs(d *ir.Decl, written string) []kv {
 // object reads back as a value, and its conformances.
 func (g *generator) structKVs(d *ir.Decl, written string) []kv {
 	kvs := g.nameKVs(d, written)
-	name := d.GetMeta().GetName()
-	switch d.GetStructure().GetKind() {
-	case ir.StructKind_STRUCT_KIND_ENTITY:
-		g.Lose(emit.LossStructKind, d.GetMeta().GetPosition(), "%s is an entity, and reads back as a value", name)
-		kvs = append(kvs, kv{"kind", "entity"})
-	case ir.StructKind_STRUCT_KIND_MIXIN:
-		g.Lose(emit.LossStructKind, d.GetMeta().GetPosition(), "%s is a mixin, and reads back as a value", name)
-		kvs = append(kvs, kv{"kind", "mixin"})
+	if kind := g.LoseKind(d); kind != "" {
+		kvs = append(kvs, kv{"kind", kind})
 	}
 	return append(kvs, g.conformsKV(d)...)
 }
@@ -100,22 +94,10 @@ func (g *generator) structKVs(d *ir.Decl, written string) []kv {
 // conformsKV carries a declaration's conformances, other than a struct's
 // to Entity, which its kind says.
 func (g *generator) conformsKV(d *ir.Decl) []kv {
-	conforms := d.GetStructure().GetConforms()
-	if e := d.GetEnumeration(); e != nil {
-		conforms = e.GetConforms()
-	}
-	name := d.GetMeta().GetName()
-	lost := false
-	for _, c := range conforms {
-		if n := c.GetClass().GetName(); d.GetStructure() == nil || n != "Entity" || c.GetExtern() != nil || len(c.GetArgs()) > 0 {
-			g.Lose(emit.LossClass, c.GetPosition(), "%s conforms to %s, which GraphQL does not carry", name, n)
-			lost = true
-		}
-	}
-	if !lost {
+	if !g.LoseConforms(d, "GraphQL") {
 		return nil
 	}
-	return []kv{{"conforms", g.Conforms(name)}}
+	return []kv{{"conforms", g.Conforms(d.GetMeta().GetName())}}
 }
 
 // node is what a description belongs to, which decides how import reads
