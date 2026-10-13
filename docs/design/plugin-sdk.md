@@ -115,7 +115,7 @@ Built-in backends keep calling it in process, and `TestHostsAgree` still holds t
 The .NET SDK, `Tdl.Plugin`, is a library holding the C# types `protoc` generates for both protos, framing over stdio, and the list above.
 A loss code table shared by both SDKs is checked against `reverse.md`, as `emit.LossCodes` is today.
 
-## The C# backend in C#
+## The C# backend as a .NET plugin
 
 `tdl-gen-csharp` becomes a .NET program built on `Tdl.Plugin` and Roslyn.
 
@@ -148,5 +148,5 @@ The conformance and smoke corpora reach the C# plugin through a Go test that run
 1. **The Go C# backend.** #1082 and #1083 implement phases 1 and 2 in Go, green.
    Merging them pins the output with tests the port must match, at the cost of code deleted later.
    Closing them leaves the design doc and the tests' expectations as the reference.
-2. **Analysis on demand.** The host could compute the analysis only for a plugin that asks for it in the handshake. Computing it always is simpler, and the cost is small next to lowering.
-3. **gRPC.** [plugins.md](plugins.md) leaves room for it, and C# serves it well. Nothing here needs it, since a plugin is one process serving one stream.
+1. **Analysis on demand.** The host could compute the analysis only for a plugin that asks for it in the handshake. Computing it always is simpler, and the cost is small next to lowering.
+1. **gRPC.** [plugins.md](plugins.md) leaves room for it, and C# serves it well. Nothing here needs it, since a plugin is one process serving one stream.

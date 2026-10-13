@@ -54,7 +54,7 @@ Done when the round-trip corpus passes, and a test importer returning source pro
 
 Done when the debug port answers a recorded exchange byte for byte, and `tdl gen` runs it from `PATH`.
 
-## Phase 6: the C# backend in C#
+## Phase 6: the C# backend as a .NET plugin
 
 - `Tdl.Gen.CSharp` builds output with Roslyn `SyntaxFactory` and escapes names through `SyntaxFacts`.
 - It ports phases 1 and 2 of [csharp-backend-plan.md](csharp-backend-plan.md), with the shared .NET pieces in `Tdl.DotNet`.
