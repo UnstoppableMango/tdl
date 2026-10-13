@@ -202,23 +202,8 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	pos := d.GetMeta().GetPosition()
 	name := d.GetMeta().GetName()
 
-	switch {
-	case d.GetClass() != nil:
-		return "", emit.Lost(emit.LossClass, pos, "%s is a class, and classes are not generated yet", name)
-	case d.GetUnit() != nil:
-		return "", emit.Lost(emit.LossUnit, pos, "%s is a unit, and units are not generated yet", name)
-	case d.GetAlias() != nil:
-		if len(d.Params()) == 0 {
-			g.Lose(emit.LossAlias, pos, "alias %s is expanded where used", name)
-			g.typeLosses(d.GetAlias().GetTarget(), nil, modeProperty)
-		}
-		return "", nil
-	case d.GetStructure() == nil && d.GetEnumeration() == nil && d.GetNewtype() == nil:
-		// A primitive declares nothing.
-		return "", nil
-	}
-	if len(d.Params()) > 0 {
-		return "", emit.Lost(emit.LossGeneric, pos, "%s is parameterized, and generics are not generated yet", name)
+	if ok, err := g.DeclaresLossy(d, func(id *ir.ID) { g.typeLosses(id, nil, modeProperty) }); !ok {
+		return "", err
 	}
 
 	g.lost, g.tags = false, nil
