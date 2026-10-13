@@ -137,22 +137,11 @@ func (g *generator) losses(d *ir.Decl, s *shape) {
 	}
 	g.docLoss(d.GetMeta())
 
-	conforms := d.GetEnumeration().GetConforms()
-	if st := d.GetStructure(); st != nil {
-		conforms = st.GetConforms()
-		switch st.GetKind() {
-		case ir.StructKind_STRUCT_KIND_ENTITY:
-			g.Lose(emit.LossStructKind, pos, "%s is an entity, and reads back as a value", name)
-		case ir.StructKind_STRUCT_KIND_MIXIN:
-			g.Lose(emit.LossStructKind, pos, "%s is a mixin, and reads back as a value", name)
-		}
+	if d.GetStructure() != nil {
+		g.LoseKind(d)
 		g.fieldLosses(name, d.Fields())
 	}
-	for _, c := range conforms {
-		if n := c.GetClass().GetName(); d.GetStructure() == nil || n != "Entity" || c.GetExtern() != nil || len(c.GetArgs()) > 0 {
-			g.Lose(emit.LossClass, c.GetPosition(), "%s conforms to %s, which Smithy does not carry", name, n)
-		}
-	}
+	g.LoseConforms(d, "Smithy")
 
 	if e := d.GetEnumeration(); e != nil {
 		for _, v := range e.GetVariants() {

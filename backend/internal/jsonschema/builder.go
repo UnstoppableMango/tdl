@@ -12,7 +12,6 @@ import (
 
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/ir"
-	"github.com/unstoppablemango/tdl/plugin"
 )
 
 // Null is how a dialect says a value may also be null.
@@ -125,7 +124,7 @@ type Builder struct {
 // New returns a builder reading the target block's `closed` directive.
 func New(s *emit.Session, d Dialect) *Builder {
 	b := &Builder{Session: s, Dialect: d, names: map[string]string{}}
-	b.Closed = b.BlockTagged("closed")
+	b.Closed = b.Bare("closed")
 	return b
 }
 
@@ -517,27 +516,6 @@ func (b *Builder) describe(s *Object, meta *ir.Meta) {
 	if deprecated && b.Dialect.Deprecated {
 		s.Set("deprecated", true)
 	}
-}
-
-// Tagged reports whether a node carries an argument-less directive.
-func (b *Builder) Tagged(all []*ir.Directive, name string) bool {
-	for _, d := range plugin.Directives(b.Target, all) {
-		if d.GetName() == name {
-			return true
-		}
-	}
-	return false
-}
-
-// BlockTagged reports whether the target block carries an argument-less
-// directive.
-func (b *Builder) BlockTagged(name string) bool {
-	for _, block := range b.Model.GetTargets() {
-		if block.GetMeta().GetName() == b.Target && b.Tagged(block.GetDirectives(), name) {
-			return true
-		}
-	}
-	return false
 }
 
 // Hoist moves every $ref with siblings into an allOf, for a dialect that

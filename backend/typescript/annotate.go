@@ -139,20 +139,11 @@ func (g *generator) declLosses(d *ir.Decl, written string) {
 	}
 	g.docLoss(d.GetMeta())
 
-	conforms := d.GetEnumeration().GetConforms()
-	if s := d.GetStructure(); s != nil {
-		conforms = s.GetConforms()
-		switch s.GetKind() {
-		case ir.StructKind_STRUCT_KIND_ENTITY:
-			g.lose(emit.LossStructKind, pos, "%s is an entity, and reads back as a value", name)
-		case ir.StructKind_STRUCT_KIND_MIXIN:
-			g.lose(emit.LossStructKind, pos, "%s is a mixin, and reads back as a value", name)
-		}
+	if g.LoseKind(d) != "" {
+		g.lost = true
 	}
-	for _, c := range conforms {
-		if n := c.GetClass().GetName(); d.GetStructure() == nil || n != "Entity" || c.GetExtern() != nil || len(c.GetArgs()) > 0 {
-			g.lose(emit.LossClass, c.GetPosition(), "%s conforms to %s, which TypeScript does not carry", name, n)
-		}
+	if g.LoseConforms(d, "TypeScript") {
+		g.lost = true
 	}
 }
 
