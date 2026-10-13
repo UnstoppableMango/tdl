@@ -2,6 +2,7 @@ package csharp
 
 import (
 	"math"
+	"math/big"
 	"strconv"
 	"strings"
 
@@ -59,6 +60,9 @@ func (g *generator) literal(r *emit.Ref, lit *ir.Literal, shadow map[string]bool
 		case "float32", "float64", "decimal":
 			if kind != ir.LiteralKind_LITERAL_KIND_INT && kind != ir.LiteralKind_LITERAL_KIND_FLOAT {
 				break
+			}
+			if !fitsReal(r.Name, text) {
+				return drop("it is out of range for %s", r.Name)
 			}
 			switch r.Name {
 			case "float32":
@@ -174,4 +178,22 @@ func fits(prim, text string) bool {
 	}
 	n, err := strconv.ParseInt(text, 10, 64)
 	return err == nil && (prim != "int32" || n >= math.MinInt32 && n <= math.MaxInt32)
+}
+
+// maxDecimal is the largest value of .NET's decimal, 2^96 - 1.
+var maxDecimal, _ = new(big.Rat).SetString("79228162514264337593543950335")
+
+// fitsReal reports whether a numeric literal is in range for float32,
+// float64, or decimal, which C# otherwise refuses with CS0594.
+func fitsReal(prim, text string) bool {
+	if prim == "decimal" {
+		f, ok := new(big.Rat).SetString(text)
+		return ok && f.Abs(f).Cmp(maxDecimal) <= 0
+	}
+	bits := 64
+	if prim == "float32" {
+		bits = 32
+	}
+	_, err := strconv.ParseFloat(text, bits)
+	return err == nil
 }

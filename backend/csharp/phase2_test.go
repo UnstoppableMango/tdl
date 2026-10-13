@@ -299,12 +299,18 @@ func TestDefaultsThatCannotBeWritten(t *testing.T) {
 	at.DefaultValue = irtest.Text("2026-01-01")
 	small := irtest.Field("small", b.Named("int32"))
 	small.DefaultValue = &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_INT, Text: "4294967296"}
-	b.Own(value("Settings", at, small))
+	huge := irtest.Field("huge", b.Named("float32"))
+	huge.DefaultValue = &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_FLOAT, Text: "1" + strings.Repeat("0", 39) + ".5"}
+	money := irtest.Field("money", b.Named("decimal"))
+	money.DefaultValue = &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_INT, Text: "79228162514264337593543950336"}
+	b.Own(value("Settings", at, small, huge, money))
 
 	resp := generate(t, b.Model)
 	for _, want := range []string{
 		"is dropped: instant is a foreign type",
 		"is dropped: it is out of range for int32",
+		"is dropped: it is out of range for float32",
+		"is dropped: it is out of range for decimal",
 	} {
 		if !warned(resp, want) {
 			t.Errorf("no warning %q: %+v", want, resp.GetDiagnostics())
@@ -313,6 +319,8 @@ func TestDefaultsThatCannotBeWritten(t *testing.T) {
 	contains(t, file(t, resp, "Settings.g.cs"),
 		"    public required global::NodaTime.Instant At { get; init; }\n",
 		"    public required int Small { get; init; }\n",
+		"    public required float Huge { get; init; }\n",
+		"    public required decimal Money { get; init; }\n",
 	)
 }
 
