@@ -56,6 +56,7 @@
           devShells.default = pkgs.mkShell {
             packages = with pkgs; [
               direnv
+              dotnet-sdk
               go_1_27 # TODO: consolidate with nix/overlay.nix
               gomod2nix
               gopls
