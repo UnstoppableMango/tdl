@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.4.10](https://github.com/UnstoppableMango/tdl/compare/v0.4.9...v0.4.10) (2026-10-14)
+
+
+### Features
+
+* **csharp:** keys, defaults, foreign types, externs, and attributes ([#1083](https://github.com/UnstoppableMango/tdl/issues/1083)) ([3e6c323](https://github.com/UnstoppableMango/tdl/commit/3e6c323751360622006c455eede889f930c1181e))
+* **csharp:** records, enums, and the type mapping ([#1082](https://github.com/UnstoppableMango/tdl/issues/1082)) ([dd2e6ae](https://github.com/UnstoppableMango/tdl/commit/dd2e6ae055e303adcc1b92d2e4097b22eaacef86))
+* **plugin:** send an analysis of the model in every request ([#1087](https://github.com/UnstoppableMango/tdl/issues/1087)) ([0681f56](https://github.com/UnstoppableMango/tdl/commit/0681f569818db0652fb7c465b17d862561929c60))
+
+
+### Documentation
+
+* design a Zod backend ([#1078](https://github.com/UnstoppableMango/tdl/issues/1078)) ([9ca2b95](https://github.com/UnstoppableMango/tdl/commit/9ca2b95036f886d0ed89d7a6d6a470d5d7cf3533))
+* design plugins in any language ([#1085](https://github.com/UnstoppableMango/tdl/issues/1085)) ([e0e3734](https://github.com/UnstoppableMango/tdl/commit/e0e3734f37cd8f76ee861a25d9ba799134987357))
+
+
+### Code Refactoring
+
+* **backend:** share the reverse targets' loss checks through emit ([#1081](https://github.com/UnstoppableMango/tdl/issues/1081)) ([d159969](https://github.com/UnstoppableMango/tdl/commit/d159969d12958e591328a817838c07c5146a3dc6))
+
+
+### Dependencies
+
+* update github.com/bufbuild/protocompile digest to b79bfe2 ([#1088](https://github.com/UnstoppableMango/tdl/issues/1088)) ([72af0bd](https://github.com/UnstoppableMango/tdl/commit/72af0bded2017f84661c68bb022e0c45d39dafcb))
+* update golang.org/x/exp digest to 2ab7f3c ([#1089](https://github.com/UnstoppableMango/tdl/issues/1089)) ([7f74510](https://github.com/UnstoppableMango/tdl/commit/7f74510f88ed12cf2d568a63b9536889a99f823f))
+* update golang.org/x/exp digest to faecfb2 ([#1076](https://github.com/UnstoppableMango/tdl/issues/1076)) ([dc18191](https://github.com/UnstoppableMango/tdl/commit/dc181915d5a9550ad66218304cbe1fd1ac7fde25))
+
 ## [0.4.9](https://github.com/UnstoppableMango/tdl/compare/v0.4.8...v0.4.9) (2026-10-12)
 
 
