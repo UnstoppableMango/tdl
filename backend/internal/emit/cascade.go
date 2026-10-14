@@ -1,58 +1,44 @@
 package emit
 
-import "github.com/unstoppablemango/tdl/ir"
+import (
+	"github.com/unstoppablemango/tdl/internal/analysis"
+	"github.com/unstoppablemango/tdl/ir"
+)
 
 // References returns the declarations d names through its fields, its
 // variants' fields, a newtype's base, and their type arguments, with
 // aliases expanded. A declaration naming itself is included.
 func (s *Session) References(d *ir.Decl) []*ir.Decl {
-	var ids []*ir.ID
-	switch {
-	case d.GetStructure() != nil:
-		for _, f := range d.Fields() {
-			ids = append(ids, f.GetType())
-		}
-	case d.GetEnumeration() != nil:
-		for _, v := range d.GetEnumeration().GetVariants() {
-			for _, f := range v.GetFields() {
-				ids = append(ids, f.GetType())
-			}
-		}
-	case d.GetNewtype() != nil:
-		ids = append(ids, d.GetNewtype().GetBase())
-	case d.GetAlias() != nil:
-		ids = append(ids, d.GetAlias().GetTarget())
+	if v := s.declView(d); v != nil {
+		return s.decl(v.GetReferences())
 	}
-	return s.TypeReferences(ids...)
+	return s.TypeReferences(analysis.BodyTypes(d)...)
 }
 
 // TypeReferences returns the declarations the type references ids name,
 // walked as [Session.References] walks a declaration's.
 func (s *Session) TypeReferences(ids ...*ir.ID) []*ir.Decl {
-	var out []*ir.Decl
-	seen := map[*ir.Decl]bool{}
-	var walk func(id *ir.ID)
-	walk = func(id *ir.ID) {
-		t := s.Model.Type(id)
-		if t == nil {
-			return
-		}
-		for _, arg := range t.GetArgs() {
-			walk(arg)
-		}
-		decl := s.Model.Decl(t.GetCtor())
-		if decl == nil || seen[decl] {
-			return
-		}
-		seen[decl] = true
-		if a := decl.GetAlias(); a != nil {
-			walk(a.GetTarget())
-			return
-		}
-		out = append(out, decl)
-	}
+	var refs []*ir.ID
+	seen := map[int32]bool{}
 	for _, id := range ids {
-		walk(id)
+		if s.Model.Type(id) == nil {
+			continue
+		}
+		for _, ref := range s.analysis().GetTypes()[id.GetIndex()].GetReferences() {
+			if !seen[ref.GetIndex()] {
+				seen[ref.GetIndex()] = true
+				refs = append(refs, ref)
+			}
+		}
+	}
+	return s.decl(refs)
+}
+
+// decl returns the declarations ids name.
+func (s *Session) decl(ids []*ir.ID) []*ir.Decl {
+	out := make([]*ir.Decl, 0, len(ids))
+	for _, id := range ids {
+		out = append(out, s.Model.Decl(id))
 	}
 	return out
 }

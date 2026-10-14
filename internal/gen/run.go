@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"slices"
 
+	"github.com/unstoppablemango/tdl/internal/analysis"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -81,10 +82,11 @@ type Result struct {
 // Run generates one target and does what mode says with the result.
 func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.Model, mode Mode) (Result, error) {
 	resp, err := backend.Generate(ctx, &plugin.Request{
-		Target: target.Name,
-		Model:  model,
-		Out:    target.Out,
-		DryRun: mode == ModeVerify,
+		Target:   target.Name,
+		Model:    model,
+		Out:      target.Out,
+		DryRun:   mode == ModeVerify,
+		Analysis: analysis.Analyze(model, target.Name),
 	})
 	if err != nil {
 		return Result{Target: target.Name}, fmt.Errorf("target %s: %w", target.Name, err)

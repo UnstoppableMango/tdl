@@ -1,6 +1,9 @@
 package emit
 
-import "github.com/unstoppablemango/tdl/ir"
+import (
+	"github.com/unstoppablemango/tdl/ir"
+	"github.com/unstoppablemango/tdl/plugin"
+)
 
 // Form is which of the prelude's shapes a type reference resolved to.
 type Form int
@@ -51,98 +54,90 @@ type Ref struct {
 // Resolve walks a type reference into a [Ref], or returns an
 // [UnsupportedError] saying why it cannot be generated.
 //
-// It matches the spellings lowering knows (List, Set, Map, Option,
-// Nullable) by name, since the prelude is replaceable. A primitive of any
-// name resolves; whether the target has a type for it is the backend's
-// decision.
+// It reads the request's analysis, which matches the spellings lowering
+// knows (List, Set, Map, Option, Nullable) by name, since the prelude is
+// replaceable. A primitive of any name resolves; whether the target has a
+// type for it is the backend's decision.
 func (s *Session) Resolve(id *ir.ID) (*Ref, error) {
-	t := s.Model.Type(id)
-	if t == nil {
+	if s.Model.Type(id) == nil {
 		return nil, Unsupported(nil, "type %s did not resolve", id.GetName())
 	}
-	pos := t.GetPosition()
+	v := s.analysis().GetTypes()[id.GetIndex()]
+	if r := v.GetRefusal(); r != nil && r.GetReason() != plugin.Refusal_REASON_MISSING_ARG {
+		return nil, s.refuse(r)
+	}
 
-	switch {
-	case t.GetParam() != nil:
-		// A backend with generics walks the type itself rather than
-		// through Resolve.
-		return nil, Unsupported(pos, "type parameter %s: generics are not generated yet", t.GetParam().GetName())
-	case t.GetUnit() != nil:
-		return nil, Unsupported(pos, "a unit-typed field has no %s type yet", s.Lang)
-	case t.GetExtern() != nil:
-		ext := t.GetExtern()
-		if i := int(ext.GetIndex()); s.Externs && i >= 0 && i < len(s.Model.GetExterns()) {
-			return &Ref{Form: Extern, Name: ext.GetName(), Extern: s.Model.GetExterns()[i], ID: id, Pos: pos}, nil
+	ref := &Ref{ID: id}
+	if v.GetId().GetIndex() != id.GetIndex() {
+		ref.ID = v.GetId()
+	}
+	t := s.Model.Type(ref.ID)
+	ref.Pos = t.GetPosition()
+
+	// part resolves an element or a key, which a missing type argument
+	// leaves unset.
+	part := func(id *ir.ID) (*Ref, error) {
+		if id == nil {
+			return nil, s.refuse(v.GetRefusal())
 		}
-		return nil, Unsupported(pos, "%s is declared in another package, and foreign types are not generated yet", ext.GetName())
-	}
-
-	decl := s.Model.Decl(t.GetCtor())
-	if decl == nil {
-		return nil, Unsupported(pos, "type %s did not resolve", t.GetCtor().GetName())
-	}
-	name := decl.GetMeta().GetName()
-
-	if a := decl.GetAlias(); a != nil {
-		return s.Resolve(a.GetTarget())
-	}
-
-	ref := &Ref{ID: id, Pos: pos}
-	args := t.GetArgs()
-	arg := func(i int) (*Ref, error) {
-		if i >= len(args) {
-			return nil, Unsupported(pos, "%s is missing a type argument", name)
-		}
-		return s.Resolve(args[i])
+		return s.Resolve(id)
 	}
 
 	var err error
-	if decl.GetPrimitive() != nil {
-		switch name {
-		case "List", "Set":
-			ref.Form = List
-			if name == "Set" {
-				ref.Form = Set
-			}
-			ref.Elem, err = arg(0)
-		case "Map":
-			ref.Form = Map
-			if ref.Key, err = arg(0); err == nil {
-				ref.Elem, err = arg(1)
-			}
-		default:
-			ref.Form, ref.Name = Prim, name
+	switch v.GetForm() {
+	case plugin.Form_FORM_EXTERN:
+		ext := t.GetExtern()
+		if !s.Externs || v.GetExtern() == nil {
+			return nil, Unsupported(ref.Pos, "%s is declared in another package, and foreign types are not generated yet", ext.GetName())
 		}
-		if err != nil {
-			return nil, err
+		ref.Form, ref.Name, ref.Extern = Extern, ext.GetName(), s.Model.GetExterns()[v.GetExtern().GetIndex()]
+	case plugin.Form_FORM_PRIMITIVE:
+		ref.Form, ref.Name = Prim, v.GetName()
+	case plugin.Form_FORM_LIST, plugin.Form_FORM_SET:
+		ref.Form = List
+		if v.GetForm() == plugin.Form_FORM_SET {
+			ref.Form = Set
 		}
-		return ref, nil
-	}
-
-	// SyntacticForm is deliberately not read: the sugar is not semantic.
-	if decl.GetEnumeration() != nil && (name == "Option" || name == "Nullable") && len(args) == 1 {
+		ref.Elem, err = part(v.GetElem())
+	case plugin.Form_FORM_MAP:
+		ref.Form = Map
+		if ref.Key, err = part(v.GetKey()); err == nil {
+			ref.Elem, err = part(v.GetElem())
+		}
+	case plugin.Form_FORM_OPTION, plugin.Form_FORM_NULLABLE:
 		ref.Form = Option
-		if name == "Nullable" {
+		if v.GetForm() == plugin.Form_FORM_NULLABLE {
 			ref.Form = Nullable
 		}
-		if ref.Elem, err = arg(0); err != nil {
-			return nil, err
-		}
-		return ref, nil
+		ref.Elem, err = part(v.GetElem())
+	default:
+		ref.Form, ref.Decl = Named, s.Model.Decl(v.GetDecl())
 	}
-
-	if decl.GetClass() != nil {
-		return nil, Unsupported(pos, "%s is a class, and a class is not a %s type", name, s.Lang)
+	if err != nil {
+		return nil, err
 	}
-	if decl.GetUnit() != nil {
-		return nil, Unsupported(pos, "%s is a unit, and units are not generated yet", name)
-	}
-	if len(args) > 0 {
-		return nil, Unsupported(pos, "%s is applied to type arguments, and generics are not generated yet", name)
-	}
-
-	ref.Form, ref.Decl = Named, decl
 	return ref, nil
+}
+
+// refuse words a refusal from the analysis as this target's warning.
+func (s *Session) refuse(r *plugin.Refusal) error {
+	pos, subject := r.GetPosition(), r.GetSubject()
+	switch r.GetReason() {
+	case plugin.Refusal_REASON_PARAM:
+		return Unsupported(pos, "type parameter %s: generics are not generated yet", subject)
+	case plugin.Refusal_REASON_UNIT:
+		return Unsupported(pos, "a unit-typed field has no %s type yet", s.Lang)
+	case plugin.Refusal_REASON_CLASS:
+		return Unsupported(pos, "%s is a class, and a class is not a %s type", subject, s.Lang)
+	case plugin.Refusal_REASON_UNIT_DECL:
+		return Unsupported(pos, "%s is a unit, and units are not generated yet", subject)
+	case plugin.Refusal_REASON_TYPE_ARGS:
+		return Unsupported(pos, "%s is applied to type arguments, and generics are not generated yet", subject)
+	case plugin.Refusal_REASON_MISSING_ARG:
+		return Unsupported(pos, "%s is missing a type argument", subject)
+	default:
+		return Unsupported(pos, "type %s did not resolve", subject)
+	}
 }
 
 // Expand follows a newtype to what it wraps, for a target with no distinct

@@ -11,9 +11,9 @@ import (
 	"strings"
 
 	"github.com/unstoppablemango/tdl/ast"
+	"github.com/unstoppablemango/tdl/internal/analysis"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
-	"github.com/unstoppablemango/tdl/prelude"
 )
 
 // Session is one request's state. A backend makes a fresh one per Generate
@@ -34,14 +34,47 @@ type Session struct {
 	// since annotations carry what they would.
 	Roundtrip bool
 
+	// Analysis is the request's analysis of Model. A session without one,
+	// or with one that does not match Model, derives its own on first use.
+	Analysis *plugin.Analysis
+
 	Diags []*plugin.Diagnostic
 
 	unlowered *ast.File
+	decls     map[*ir.Decl]int32
 }
 
 // NewSession starts a session for one request.
 func NewSession(req *plugin.Request, lang string) *Session {
-	return &Session{Model: req.GetModel(), Target: req.GetTarget(), Lang: lang}
+	return &Session{Model: req.GetModel(), Target: req.GetTarget(), Lang: lang, Analysis: req.GetAnalysis()}
+}
+
+// analysis returns the session's analysis, deriving it when the request
+// carried none or carried one for a different model.
+func (s *Session) analysis() *plugin.Analysis {
+	a := s.Analysis
+	if a == nil || len(a.GetTypes()) != len(s.Model.GetTypes()) || len(a.GetDecls()) != len(s.Model.GetDecls()) {
+		a = analysis.Analyze(s.Model, s.Target)
+		s.Analysis, s.decls = a, nil
+	}
+	return a
+}
+
+// declView returns the analysis of a declaration in Model, or nil for one
+// that is not in it.
+func (s *Session) declView(d *ir.Decl) *plugin.DeclView {
+	a := s.analysis()
+	if s.decls == nil {
+		s.decls = make(map[*ir.Decl]int32, len(s.Model.GetDecls()))
+		for i, d := range s.Model.GetDecls() {
+			s.decls[d] = int32(i)
+		}
+	}
+	i, ok := s.decls[d]
+	if !ok {
+		return nil
+	}
+	return a.GetDecls()[i]
 }
 
 // Response returns the files with every diagnostic the session collected.
@@ -57,8 +90,9 @@ func (s *Session) Response(files []*plugin.File) *plugin.Response {
 // passed to `sema.WithPrelude` is not recognized and is generated too.
 func (s *Session) Own() []*ir.Decl {
 	var own []*ir.Decl
-	for _, d := range s.Model.GetDecls() {
-		if IsOwn(d) {
+	views := s.analysis().GetDecls()
+	for i, d := range s.Model.GetDecls() {
+		if views[i].GetOwn() {
 			own = append(own, d)
 		}
 	}
@@ -68,7 +102,7 @@ func (s *Session) Own() []*ir.Decl {
 // IsOwn reports whether a declaration is the model's rather than the
 // prelude's, by the rule [Session.Own] describes.
 func IsOwn(d *ir.Decl) bool {
-	return d.GetMeta().GetPosition().GetFilename() != prelude.Name
+	return analysis.IsOwn(d)
 }
 
 // Find returns the session target's directive with this name carrying at
@@ -276,12 +310,7 @@ func Declares(d *ir.Decl) (bool, error) {
 // Fielded reports whether any variant of an enum carries fields, making it
 // a sum type rather than a plain enum.
 func Fielded(e *ir.Enum) bool {
-	for _, v := range e.GetVariants() {
-		if len(v.GetFields()) > 0 {
-			return true
-		}
-	}
-	return false
+	return analysis.Fielded(e)
 }
 
 // Doc returns a node's documentation, one line per entry, with trailing
