@@ -33,6 +33,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/smithy"
 	"github.com/unstoppablemango/tdl/backend/thrift"
 	"github.com/unstoppablemango/tdl/backend/typescript"
+	"github.com/unstoppablemango/tdl/internal/analysis"
 	"github.com/unstoppablemango/tdl/internal/gen"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -180,7 +181,8 @@ func TestHostsAgree(t *testing.T) {
 				t.Fatalf("find: %v", err)
 			}
 
-			req := &plugin.Request{Target: name, Model: row.model(), Out: "out"}
+			model := row.model()
+			req := &plugin.Request{Target: name, Model: model, Out: "out", Analysis: analysis.Analyze(model, name)}
 			inProcess, err := row.backend.Generate(context.Background(), req)
 			if err != nil {
 				t.Fatalf("in process: %v", err)

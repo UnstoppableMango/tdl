@@ -12,6 +12,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/unstoppablemango/tdl/backend/debug"
+	"github.com/unstoppablemango/tdl/internal/analysis"
 	"github.com/unstoppablemango/tdl/internal/sema"
 	"github.com/unstoppablemango/tdl/parser"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -44,7 +45,7 @@ func TestRecordedExchanges(t *testing.T) {
 				t.Fatalf("lowering: %v", diags)
 			}
 
-			req := &plugin.Request{Target: debug.Name, Model: model, Out: "gen"}
+			req := &plugin.Request{Target: debug.Name, Model: model, Out: "gen", Analysis: analysis.Analyze(model, debug.Name)}
 			resp, err := debug.Backend{}.Generate(context.Background(), req)
 			if err != nil {
 				t.Fatalf("generate: %v", err)
