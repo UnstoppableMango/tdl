@@ -303,3 +303,44 @@ func TestGenWatchAndVerifyAreExclusive(t *testing.T) {
 		t.Error("expected an error when --watch is combined with --verify")
 	}
 }
+
+// A directive written where its backend does not read it, or given a value
+// it does not take, is reported at its position before anything is written.
+func TestGenReportsMisplacedDirectives(t *testing.T) {
+	cases := []struct {
+		name, block, want string
+	}{
+		{
+			"placement",
+			"target csharp for p {\n  E => namespace(\"P.Orders\")\n}\n",
+			`m.tdl:10:8: error: namespace is written on a declaration, and csharp reads it only on the target block`,
+		},
+		{
+			"value",
+			"target jsonschema for p {\n  draft(\"2019\")\n}\n",
+			`m.tdl:10:9: error: draft does not take "2019"; use "2020-12" or "draft-07"`,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			path := filepath.Join(dir, "m.tdl")
+			src := "package p\n\nprimitive string\n\ntype E {\n  id: string\n}\n\n" + tc.block
+			if err := os.WriteFile(path, []byte(src), 0o644); err != nil {
+				t.Fatalf("writing the fixture: %v", err)
+			}
+			out := filepath.Join(dir, "out")
+			_, errOut, err := run(t, newGenCmd(), "-o", out, path)
+			if err == nil {
+				t.Fatal("gen accepted the directive")
+			}
+			if !strings.Contains(errOut, tc.want) {
+				t.Errorf("stderr = %q, want it to contain %q", errOut, tc.want)
+			}
+			if _, err := os.Stat(out); err == nil {
+				t.Error("gen wrote output")
+			}
+		})
+	}
+}

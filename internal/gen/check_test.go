@@ -1,11 +1,17 @@
 package gen_test
 
 import (
+	"bytes"
+	"os"
+	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/unstoppablemango/tdl/internal/gen"
+	"github.com/unstoppablemango/tdl/internal/sema"
 	"github.com/unstoppablemango/tdl/ir"
+	"github.com/unstoppablemango/tdl/parser"
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
@@ -163,5 +169,124 @@ func TestVariantDirectivesAreChecked(t *testing.T) {
 	}
 	if !strings.Contains(problems[1].GetMessage(), "at most 0") {
 		t.Errorf("variant field directive: %v", problems[1])
+	}
+}
+
+// placedSpec places `top` on the block, `col` on fields, and `own` on
+// declarations, and limits `mode`'s value.
+func placedSpec() plugin.Description {
+	return plugin.Description{
+		Name: "t",
+		Directives: []*plugin.DirectiveSpec{
+			{Name: "top", Placements: plugin.On(plugin.OnBlock)},
+			{Name: "col", Placements: plugin.On(plugin.OnField)},
+			{Name: "own", Placements: plugin.On(plugin.OnDecl)},
+			{Name: "mode", MinArgs: 1, MaxArgs: 1, Values: []string{"fast", "slow"}},
+		},
+	}
+}
+
+func TestDirectivePlacement(t *testing.T) {
+	model := &ir.Model{
+		Targets: []*ir.TargetBlock{{
+			Meta:       &ir.Meta{Name: "t"},
+			Directives: []*ir.Directive{{Name: "top", Target: "t"}, {Name: "col", Target: "t"}},
+		}},
+		Decls: []*ir.Decl{{
+			Meta:       &ir.Meta{Name: "Order"},
+			Directives: []*ir.Directive{{Name: "own", Target: "t"}, {Name: "top", Target: "t"}},
+			Node: &ir.Decl_Structure{Structure: &ir.Struct{Fields: []*ir.Field{{
+				Meta:       &ir.Meta{Name: "id"},
+				Directives: []*ir.Directive{{Name: "col", Target: "t"}},
+			}}}},
+		}},
+		// An extern is a declaration, so own is accepted on it.
+		Externs: []*ir.Extern{{Name: "other.Thing", Directives: []*ir.Directive{{Name: "own", Target: "t"}}}},
+	}
+
+	var got []string
+	for _, p := range gen.CheckDirectives("t", model, placedSpec()) {
+		got = append(got, p.GetMessage())
+	}
+	want := []string{
+		"col is written on the target block, and t reads it only on a field",
+		"top is written on a declaration, and t reads it only on the target block",
+	}
+	if !slices.Equal(got, want) {
+		t.Errorf("problems = %q, want %q", got, want)
+	}
+}
+
+func TestDirectiveValues(t *testing.T) {
+	for value, want := range map[string]string{
+		"fast": "",
+		"warp": `mode does not take "warp"; use "fast" or "slow"`,
+	} {
+		model := modelWith(&ir.Directive{Name: "mode", Target: "t", Args: []*ir.Literal{str(value)}})
+		var got string
+		for _, p := range gen.CheckDirectives("t", model, placedSpec()) {
+			got = p.GetMessage()
+		}
+		if got != want {
+			t.Errorf("mode(%q): problem %q, want %q", value, got, want)
+		}
+	}
+}
+
+func TestBlockRepeatsAreTies(t *testing.T) {
+	model := &ir.Model{
+		Targets: []*ir.TargetBlock{{
+			Meta:       &ir.Meta{Name: "t"},
+			Directives: []*ir.Directive{{Name: "top", Target: "t"}, {Name: "top", Target: "t"}},
+		}},
+	}
+	problems := gen.CheckDirectives("t", model, placedSpec())
+	if len(problems) != 1 || !strings.Contains(problems[0].GetMessage(), "two entries") {
+		t.Errorf("problems = %v", problems)
+	}
+}
+
+// TestCorporaPlaceDirectives holds every built-in backend's placements to
+// what the files in the repository write.
+func TestCorporaPlaceDirectives(t *testing.T) {
+	var paths []string
+	for _, glob := range []string{
+		"../../testdata/conformance/*/source.tdl",
+		"../../testdata/gen/*/source.tdl",
+		"../../testdata/roundtrip/*/*/*.tdl",
+		"../../examples/*.tdl",
+	} {
+		found, err := filepath.Glob(glob)
+		if err != nil {
+			t.Fatal(err)
+		}
+		paths = append(paths, found...)
+	}
+
+	for _, path := range paths {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		file, err := parser.Parse(path, bytes.NewReader(data))
+		if err != nil {
+			continue // the invalid corpus and pending cases are checked elsewhere
+		}
+		model, diags := sema.Lower(file, sema.WithLoader(sema.FSLoader{}))
+		if len(diags) > 0 {
+			continue
+		}
+		for _, block := range model.GetTargets() {
+			name := block.GetMeta().GetName()
+			backend, ok := gen.Builtin(name)
+			if !ok {
+				continue
+			}
+			for _, p := range gen.CheckDirectives(name, model, backend.Describe()) {
+				if p.GetSeverity() == plugin.Severity_SEVERITY_ERROR {
+					t.Errorf("%s: %s: %s", path, name, p.GetMessage())
+				}
+			}
+		}
 	}
 }

@@ -31,20 +31,20 @@ func (Backend) Describe() plugin.Description {
 		Reuse: true,
 		Directives: []*plugin.DirectiveSpec{
 			// The namespace, on the target block.
-			{Name: "namespace", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "namespace", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock)},
 			// One file for every declaration, on the target block.
-			{Name: "file", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "file", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock)},
 			// The C# identifier for a declaration, field, or variant.
-			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.OnMembers()},
 			// The namespace and type a declaration maps to, declared
 			// elsewhere.
-			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{str[0], str[0]}},
+			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{str[0], str[0]}, Placements: plugin.On(plugin.OnDecl)},
 			// The fields identifying an entity. ArgKinds constrains by
 			// position, so key checks that each is a name.
-			{Name: "key", MinArgs: 1, MaxArgs: -1},
+			{Name: "key", MinArgs: 1, MaxArgs: -1, Placements: plugin.On(plugin.OnDecl)},
 			// An attribute, by its namespace and name, on a declaration or
 			// on every declaration from the target block.
-			{Name: "attribute", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{str[0], str[0]}, Repeatable: true},
+			{Name: "attribute", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{str[0], str[0]}, Repeatable: true, Placements: plugin.On(plugin.OnBlock, plugin.OnDecl)},
 		},
 	}
 }
@@ -131,9 +131,6 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 			continue
 		}
 		mark := len(g.Diags)
-		if dir, ok := g.Find(d.GetDirectives(), "file"); ok {
-			g.Warn(emit.Unsupported(dir.GetPosition(), "file names one file for the whole target, so it belongs in the target block"))
-		}
 		p, err := g.decl(d)
 		if err != nil {
 			g.Diags = g.Diags[:mark]

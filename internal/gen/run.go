@@ -81,6 +81,7 @@ type Result struct {
 
 // Run generates one target and does what mode says with the result.
 func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.Model, mode Mode) (Result, error) {
+	model = analysis.Scope(model, target.Name)
 	resp, err := backend.Generate(ctx, &plugin.Request{
 		Target:   target.Name,
 		Model:    model,

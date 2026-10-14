@@ -1321,24 +1321,19 @@ func TestFileDirectiveWritesOneFile(t *testing.T) {
 			Fields: []*ir.Field{irtest.Field("placed", m.Named("instant"))},
 		}},
 	})
-	note := &ir.Decl{
+	m.Own(&ir.Decl{
 		Meta: &ir.Meta{Name: "Note"},
 		Node: &ir.Decl_Structure{Structure: &ir.Struct{
 			Fields: []*ir.Field{irtest.Field("at", m.Named("instant"))},
 		}},
-		Directives: []*ir.Directive{{
-			Name: "file", Target: "go", Args: []*ir.Literal{irtest.Text("note.go")},
-			Position: &ir.Position{Filename: irtest.OwnFile, Line: 9},
-		}},
-	}
-	m.Own(note)
+	})
 	m.Model.Targets = []*ir.TargetBlock{{
 		Meta:       &ir.Meta{Name: "go"},
 		Directives: []*ir.Directive{{Name: "file", Target: "go", Args: []*ir.Literal{irtest.Text("model.go")}}},
 	}}
 
 	resp := generate(t, m)
-	onlyWarningAt(t, resp, 9)
+	noDiagnostics(t, resp)
 	got := files(t, resp)
 	if len(got) != 1 {
 		t.Fatalf("files = %v, want only model.go", keys(got))

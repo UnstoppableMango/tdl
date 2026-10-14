@@ -32,10 +32,10 @@ func (Backend) Describe() plugin.Description {
 		Directives: []*plugin.DirectiveSpec{
 			// The GraphQL name for a type, field, enum value, or variant
 			// object type.
-			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_STRING}},
+			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_STRING}, Placements: plugin.OnMembers()},
 			// Writes, as @tdl directives, every fact the schema alone would
 			// lose, so import rebuilds the model.
-			{Name: "roundtrip"},
+			{Name: "roundtrip", Placements: plugin.On(plugin.OnBlock)},
 		},
 		Reverse: true,
 	}

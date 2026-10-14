@@ -35,21 +35,21 @@ func (Backend) Describe() plugin.Description {
 		Directives: []*plugin.DirectiveSpec{
 			// The schema's name for a type or a variant, or a field's
 			// property name.
-			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.OnMembers()},
 			// The property a fielded enum's variants are told apart by.
 			// Written on the target block it is the default, and on an enum
 			// it wins.
-			{Name: "discriminant", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "discriminant", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock, plugin.OnDecl)},
 			// Refuses properties a struct or variant does not declare. On the
 			// target block it applies to every one.
-			{Name: "closed"},
+			{Name: "closed", Placements: plugin.On(plugin.OnBlock, plugin.OnDecl)},
 			// The OpenAPI version: "3.1", the default, "3.0", or "2.0".
-			{Name: "openapi", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "openapi", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock), Values: []string{"3.1", "3.0", "2.0"}},
 			// The file format: "yaml", the default, or "json".
-			{Name: "format", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "format", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock), Values: []string{"yaml", "json"}},
 			// The document's info.title and info.version.
-			{Name: "title", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
-			{Name: "version", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "title", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock)},
+			{Name: "version", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock)},
 		},
 	}
 }

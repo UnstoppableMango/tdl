@@ -36,20 +36,20 @@ func (Backend) Describe() plugin.Description {
 		Reuse: true,
 		Directives: []*plugin.DirectiveSpec{
 			// The definition's name for a type, or a field's property name.
-			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.OnMembers()},
 			// The property a fielded enum's variants are told apart by.
 			// Written on the target block it is the default, and on an enum
 			// it wins.
-			{Name: "discriminant", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "discriminant", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock, plugin.OnDecl)},
 			// The dialect: "2020-12", the default, or "draft-07".
-			{Name: "draft", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "draft", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock), Values: []string{"2020-12", "draft-07"}},
 			// The declaration the document itself validates.
-			{Name: "root", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "root", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock)},
 			// The document's $id.
-			{Name: "id", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "id", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock)},
 			// Refuses properties a struct or variant does not declare. On the
 			// target block it applies to every one.
-			{Name: "closed"},
+			{Name: "closed", Placements: plugin.On(plugin.OnBlock, plugin.OnDecl)},
 		},
 	}
 }

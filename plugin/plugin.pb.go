@@ -79,6 +79,67 @@ func (Mode) EnumDescriptor() ([]byte, []int) {
 	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{0}
 }
 
+// Placement is a kind of node a directive lands on.
+type Placement int32
+
+const (
+	Placement_PLACEMENT_UNSPECIFIED Placement = 0
+	// The target block itself.
+	Placement_PLACEMENT_BLOCK Placement = 1
+	Placement_PLACEMENT_DECL  Placement = 2
+	// A field of a declaration or of a variant.
+	Placement_PLACEMENT_FIELD   Placement = 3
+	Placement_PLACEMENT_VARIANT Placement = 4
+	Placement_PLACEMENT_EXTERN  Placement = 5
+)
+
+// Enum value maps for Placement.
+var (
+	Placement_name = map[int32]string{
+		0: "PLACEMENT_UNSPECIFIED",
+		1: "PLACEMENT_BLOCK",
+		2: "PLACEMENT_DECL",
+		3: "PLACEMENT_FIELD",
+		4: "PLACEMENT_VARIANT",
+		5: "PLACEMENT_EXTERN",
+	}
+	Placement_value = map[string]int32{
+		"PLACEMENT_UNSPECIFIED": 0,
+		"PLACEMENT_BLOCK":       1,
+		"PLACEMENT_DECL":        2,
+		"PLACEMENT_FIELD":       3,
+		"PLACEMENT_VARIANT":     4,
+		"PLACEMENT_EXTERN":      5,
+	}
+)
+
+func (x Placement) Enum() *Placement {
+	p := new(Placement)
+	*p = x
+	return p
+}
+
+func (x Placement) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Placement) Descriptor() protoreflect.EnumDescriptor {
+	return file_tdl_plugin_v1_plugin_proto_enumTypes[1].Descriptor()
+}
+
+func (Placement) Type() protoreflect.EnumType {
+	return &file_tdl_plugin_v1_plugin_proto_enumTypes[1]
+}
+
+func (x Placement) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Placement.Descriptor instead.
+func (Placement) EnumDescriptor() ([]byte, []int) {
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{1}
+}
+
 // Form is which of the prelude's shapes a type resolves to. The shapes are
 // matched by the prelude's spellings, as lowering matches them, so a
 // replaced prelude reaches every plugin the same way.
@@ -148,11 +209,11 @@ func (x Form) String() string {
 }
 
 func (Form) Descriptor() protoreflect.EnumDescriptor {
-	return file_tdl_plugin_v1_plugin_proto_enumTypes[1].Descriptor()
+	return file_tdl_plugin_v1_plugin_proto_enumTypes[2].Descriptor()
 }
 
 func (Form) Type() protoreflect.EnumType {
-	return &file_tdl_plugin_v1_plugin_proto_enumTypes[1]
+	return &file_tdl_plugin_v1_plugin_proto_enumTypes[2]
 }
 
 func (x Form) Number() protoreflect.EnumNumber {
@@ -161,7 +222,7 @@ func (x Form) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Form.Descriptor instead.
 func (Form) EnumDescriptor() ([]byte, []int) {
-	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{1}
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{2}
 }
 
 // Severity is how much a diagnostic matters.
@@ -198,11 +259,11 @@ func (x Severity) String() string {
 }
 
 func (Severity) Descriptor() protoreflect.EnumDescriptor {
-	return file_tdl_plugin_v1_plugin_proto_enumTypes[2].Descriptor()
+	return file_tdl_plugin_v1_plugin_proto_enumTypes[3].Descriptor()
 }
 
 func (Severity) Type() protoreflect.EnumType {
-	return &file_tdl_plugin_v1_plugin_proto_enumTypes[2]
+	return &file_tdl_plugin_v1_plugin_proto_enumTypes[3]
 }
 
 func (x Severity) Number() protoreflect.EnumNumber {
@@ -211,7 +272,7 @@ func (x Severity) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Severity.Descriptor instead.
 func (Severity) EnumDescriptor() ([]byte, []int) {
-	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{2}
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{3}
 }
 
 type Refusal_Reason int32
@@ -270,11 +331,11 @@ func (x Refusal_Reason) String() string {
 }
 
 func (Refusal_Reason) Descriptor() protoreflect.EnumDescriptor {
-	return file_tdl_plugin_v1_plugin_proto_enumTypes[3].Descriptor()
+	return file_tdl_plugin_v1_plugin_proto_enumTypes[4].Descriptor()
 }
 
 func (Refusal_Reason) Type() protoreflect.EnumType {
-	return &file_tdl_plugin_v1_plugin_proto_enumTypes[3]
+	return &file_tdl_plugin_v1_plugin_proto_enumTypes[4]
 }
 
 func (x Refusal_Reason) Number() protoreflect.EnumNumber {
@@ -474,7 +535,14 @@ type DirectiveSpec struct {
 	// repeatable says several entries of this directive at the same
 	// specificity all reach the backend in source order. Otherwise they are
 	// an error.
-	Repeatable    bool `protobuf:"varint,5,opt,name=repeatable" json:"repeatable,omitempty"`
+	Repeatable bool `protobuf:"varint,5,opt,name=repeatable" json:"repeatable,omitempty"`
+	// placements are where the directive may be written. An empty list
+	// accepts it anywhere. A directive accepted on a declaration is also
+	// accepted on an extern, which is a declaration another package owns.
+	Placements []Placement `protobuf:"varint,6,rep,packed,name=placements,enum=tdl.plugin.v1.Placement" json:"placements,omitempty"`
+	// values are what the first argument may be. An empty list accepts any
+	// value.
+	Values        []string `protobuf:"bytes,7,rep,name=values" json:"values,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -542,6 +610,20 @@ func (x *DirectiveSpec) GetRepeatable() bool {
 		return x.Repeatable
 	}
 	return false
+}
+
+func (x *DirectiveSpec) GetPlacements() []Placement {
+	if x != nil {
+		return x.Placements
+	}
+	return nil
+}
+
+func (x *DirectiveSpec) GetValues() []string {
+	if x != nil {
+		return x.Values
+	}
+	return nil
 }
 
 // Features are the optional parts of the protocol a backend supports.
@@ -1442,7 +1524,7 @@ const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
 	"\n" +
 	"directives\x18\x05 \x03(\v2\x1c.tdl.plugin.v1.DirectiveSpecR\n" +
 	"directives\x123\n" +
-	"\bfeatures\x18\x06 \x01(\v2\x17.tdl.plugin.v1.FeaturesR\bfeatures\"\xae\x01\n" +
+	"\bfeatures\x18\x06 \x01(\v2\x17.tdl.plugin.v1.FeaturesR\bfeatures\"\x80\x02\n" +
 	"\rDirectiveSpec\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x19\n" +
 	"\bmin_args\x18\x02 \x01(\x05R\aminArgs\x12\x19\n" +
@@ -1450,7 +1532,11 @@ const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
 	"\targ_kinds\x18\x04 \x03(\x0e2\x16.tdl.ir.v1.LiteralKindR\bargKinds\x12\x1e\n" +
 	"\n" +
 	"repeatable\x18\x05 \x01(\bR\n" +
-	"repeatable\":\n" +
+	"repeatable\x128\n" +
+	"\n" +
+	"placements\x18\x06 \x03(\x0e2\x18.tdl.plugin.v1.PlacementR\n" +
+	"placements\x12\x16\n" +
+	"\x06values\x18\a \x03(\tR\x06values\":\n" +
 	"\bFeatures\x12\x14\n" +
 	"\x05reuse\x18\x01 \x01(\bR\x05reuse\x12\x18\n" +
 	"\areverse\x18\x02 \x01(\bR\areverse\"\xa9\x01\n" +
@@ -1528,7 +1614,14 @@ const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
 	"\x04code\x18\x04 \x01(\tR\x04code*-\n" +
 	"\x04Mode\x12\x14\n" +
 	"\x10MODE_UNSPECIFIED\x10\x00\x12\x0f\n" +
-	"\vMODE_IMPORT\x10\x01*\xbf\x01\n" +
+	"\vMODE_IMPORT\x10\x01*\x91\x01\n" +
+	"\tPlacement\x12\x19\n" +
+	"\x15PLACEMENT_UNSPECIFIED\x10\x00\x12\x13\n" +
+	"\x0fPLACEMENT_BLOCK\x10\x01\x12\x12\n" +
+	"\x0ePLACEMENT_DECL\x10\x02\x12\x13\n" +
+	"\x0fPLACEMENT_FIELD\x10\x03\x12\x15\n" +
+	"\x11PLACEMENT_VARIANT\x10\x04\x12\x14\n" +
+	"\x10PLACEMENT_EXTERN\x10\x05*\xbf\x01\n" +
 	"\x04Form\x12\x14\n" +
 	"\x10FORM_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eFORM_PRIMITIVE\x10\x01\x12\r\n" +
@@ -1562,69 +1655,71 @@ func file_tdl_plugin_v1_plugin_proto_rawDescGZIP() []byte {
 	return file_tdl_plugin_v1_plugin_proto_rawDescData
 }
 
-var file_tdl_plugin_v1_plugin_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_tdl_plugin_v1_plugin_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
 var file_tdl_plugin_v1_plugin_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_tdl_plugin_v1_plugin_proto_goTypes = []any{
 	(Mode)(0),              // 0: tdl.plugin.v1.Mode
-	(Form)(0),              // 1: tdl.plugin.v1.Form
-	(Severity)(0),          // 2: tdl.plugin.v1.Severity
-	(Refusal_Reason)(0),    // 3: tdl.plugin.v1.Refusal.Reason
-	(*Handshake)(nil),      // 4: tdl.plugin.v1.Handshake
-	(*HandshakeReply)(nil), // 5: tdl.plugin.v1.HandshakeReply
-	(*DirectiveSpec)(nil),  // 6: tdl.plugin.v1.DirectiveSpec
-	(*Features)(nil),       // 7: tdl.plugin.v1.Features
-	(*Request)(nil),        // 8: tdl.plugin.v1.Request
-	(*Analysis)(nil),       // 9: tdl.plugin.v1.Analysis
-	(*TypeView)(nil),       // 10: tdl.plugin.v1.TypeView
-	(*Refusal)(nil),        // 11: tdl.plugin.v1.Refusal
-	(*DeclView)(nil),       // 12: tdl.plugin.v1.DeclView
-	(*MemberView)(nil),     // 13: tdl.plugin.v1.MemberView
-	(*Response)(nil),       // 14: tdl.plugin.v1.Response
-	(*File)(nil),           // 15: tdl.plugin.v1.File
-	(*ImportRequest)(nil),  // 16: tdl.plugin.v1.ImportRequest
-	(*ImportResponse)(nil), // 17: tdl.plugin.v1.ImportResponse
-	(*Diagnostic)(nil),     // 18: tdl.plugin.v1.Diagnostic
-	(ir.LiteralKind)(0),    // 19: tdl.ir.v1.LiteralKind
-	(*ir.Model)(nil),       // 20: tdl.ir.v1.Model
-	(*ir.ID)(nil),          // 21: tdl.ir.v1.ID
-	(*ir.Position)(nil),    // 22: tdl.ir.v1.Position
+	(Placement)(0),         // 1: tdl.plugin.v1.Placement
+	(Form)(0),              // 2: tdl.plugin.v1.Form
+	(Severity)(0),          // 3: tdl.plugin.v1.Severity
+	(Refusal_Reason)(0),    // 4: tdl.plugin.v1.Refusal.Reason
+	(*Handshake)(nil),      // 5: tdl.plugin.v1.Handshake
+	(*HandshakeReply)(nil), // 6: tdl.plugin.v1.HandshakeReply
+	(*DirectiveSpec)(nil),  // 7: tdl.plugin.v1.DirectiveSpec
+	(*Features)(nil),       // 8: tdl.plugin.v1.Features
+	(*Request)(nil),        // 9: tdl.plugin.v1.Request
+	(*Analysis)(nil),       // 10: tdl.plugin.v1.Analysis
+	(*TypeView)(nil),       // 11: tdl.plugin.v1.TypeView
+	(*Refusal)(nil),        // 12: tdl.plugin.v1.Refusal
+	(*DeclView)(nil),       // 13: tdl.plugin.v1.DeclView
+	(*MemberView)(nil),     // 14: tdl.plugin.v1.MemberView
+	(*Response)(nil),       // 15: tdl.plugin.v1.Response
+	(*File)(nil),           // 16: tdl.plugin.v1.File
+	(*ImportRequest)(nil),  // 17: tdl.plugin.v1.ImportRequest
+	(*ImportResponse)(nil), // 18: tdl.plugin.v1.ImportResponse
+	(*Diagnostic)(nil),     // 19: tdl.plugin.v1.Diagnostic
+	(ir.LiteralKind)(0),    // 20: tdl.ir.v1.LiteralKind
+	(*ir.Model)(nil),       // 21: tdl.ir.v1.Model
+	(*ir.ID)(nil),          // 22: tdl.ir.v1.ID
+	(*ir.Position)(nil),    // 23: tdl.ir.v1.Position
 }
 var file_tdl_plugin_v1_plugin_proto_depIdxs = []int32{
 	0,  // 0: tdl.plugin.v1.Handshake.mode:type_name -> tdl.plugin.v1.Mode
-	6,  // 1: tdl.plugin.v1.HandshakeReply.directives:type_name -> tdl.plugin.v1.DirectiveSpec
-	7,  // 2: tdl.plugin.v1.HandshakeReply.features:type_name -> tdl.plugin.v1.Features
-	19, // 3: tdl.plugin.v1.DirectiveSpec.arg_kinds:type_name -> tdl.ir.v1.LiteralKind
-	20, // 4: tdl.plugin.v1.Request.model:type_name -> tdl.ir.v1.Model
-	9,  // 5: tdl.plugin.v1.Request.analysis:type_name -> tdl.plugin.v1.Analysis
-	10, // 6: tdl.plugin.v1.Analysis.types:type_name -> tdl.plugin.v1.TypeView
-	12, // 7: tdl.plugin.v1.Analysis.decls:type_name -> tdl.plugin.v1.DeclView
-	1,  // 8: tdl.plugin.v1.TypeView.form:type_name -> tdl.plugin.v1.Form
-	21, // 9: tdl.plugin.v1.TypeView.id:type_name -> tdl.ir.v1.ID
-	21, // 10: tdl.plugin.v1.TypeView.elem:type_name -> tdl.ir.v1.ID
-	21, // 11: tdl.plugin.v1.TypeView.key:type_name -> tdl.ir.v1.ID
-	21, // 12: tdl.plugin.v1.TypeView.decl:type_name -> tdl.ir.v1.ID
-	21, // 13: tdl.plugin.v1.TypeView.extern:type_name -> tdl.ir.v1.ID
-	11, // 14: tdl.plugin.v1.TypeView.refusal:type_name -> tdl.plugin.v1.Refusal
-	21, // 15: tdl.plugin.v1.TypeView.references:type_name -> tdl.ir.v1.ID
-	3,  // 16: tdl.plugin.v1.Refusal.reason:type_name -> tdl.plugin.v1.Refusal.Reason
-	22, // 17: tdl.plugin.v1.Refusal.position:type_name -> tdl.ir.v1.Position
-	21, // 18: tdl.plugin.v1.DeclView.references:type_name -> tdl.ir.v1.ID
-	21, // 19: tdl.plugin.v1.DeclView.underlying:type_name -> tdl.ir.v1.ID
-	13, // 20: tdl.plugin.v1.DeclView.fields:type_name -> tdl.plugin.v1.MemberView
-	13, // 21: tdl.plugin.v1.DeclView.variants:type_name -> tdl.plugin.v1.MemberView
-	13, // 22: tdl.plugin.v1.MemberView.fields:type_name -> tdl.plugin.v1.MemberView
-	15, // 23: tdl.plugin.v1.Response.files:type_name -> tdl.plugin.v1.File
-	18, // 24: tdl.plugin.v1.Response.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
-	15, // 25: tdl.plugin.v1.ImportRequest.files:type_name -> tdl.plugin.v1.File
-	20, // 26: tdl.plugin.v1.ImportResponse.model:type_name -> tdl.ir.v1.Model
-	18, // 27: tdl.plugin.v1.ImportResponse.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
-	2,  // 28: tdl.plugin.v1.Diagnostic.severity:type_name -> tdl.plugin.v1.Severity
-	22, // 29: tdl.plugin.v1.Diagnostic.position:type_name -> tdl.ir.v1.Position
-	30, // [30:30] is the sub-list for method output_type
-	30, // [30:30] is the sub-list for method input_type
-	30, // [30:30] is the sub-list for extension type_name
-	30, // [30:30] is the sub-list for extension extendee
-	0,  // [0:30] is the sub-list for field type_name
+	7,  // 1: tdl.plugin.v1.HandshakeReply.directives:type_name -> tdl.plugin.v1.DirectiveSpec
+	8,  // 2: tdl.plugin.v1.HandshakeReply.features:type_name -> tdl.plugin.v1.Features
+	20, // 3: tdl.plugin.v1.DirectiveSpec.arg_kinds:type_name -> tdl.ir.v1.LiteralKind
+	1,  // 4: tdl.plugin.v1.DirectiveSpec.placements:type_name -> tdl.plugin.v1.Placement
+	21, // 5: tdl.plugin.v1.Request.model:type_name -> tdl.ir.v1.Model
+	10, // 6: tdl.plugin.v1.Request.analysis:type_name -> tdl.plugin.v1.Analysis
+	11, // 7: tdl.plugin.v1.Analysis.types:type_name -> tdl.plugin.v1.TypeView
+	13, // 8: tdl.plugin.v1.Analysis.decls:type_name -> tdl.plugin.v1.DeclView
+	2,  // 9: tdl.plugin.v1.TypeView.form:type_name -> tdl.plugin.v1.Form
+	22, // 10: tdl.plugin.v1.TypeView.id:type_name -> tdl.ir.v1.ID
+	22, // 11: tdl.plugin.v1.TypeView.elem:type_name -> tdl.ir.v1.ID
+	22, // 12: tdl.plugin.v1.TypeView.key:type_name -> tdl.ir.v1.ID
+	22, // 13: tdl.plugin.v1.TypeView.decl:type_name -> tdl.ir.v1.ID
+	22, // 14: tdl.plugin.v1.TypeView.extern:type_name -> tdl.ir.v1.ID
+	12, // 15: tdl.plugin.v1.TypeView.refusal:type_name -> tdl.plugin.v1.Refusal
+	22, // 16: tdl.plugin.v1.TypeView.references:type_name -> tdl.ir.v1.ID
+	4,  // 17: tdl.plugin.v1.Refusal.reason:type_name -> tdl.plugin.v1.Refusal.Reason
+	23, // 18: tdl.plugin.v1.Refusal.position:type_name -> tdl.ir.v1.Position
+	22, // 19: tdl.plugin.v1.DeclView.references:type_name -> tdl.ir.v1.ID
+	22, // 20: tdl.plugin.v1.DeclView.underlying:type_name -> tdl.ir.v1.ID
+	14, // 21: tdl.plugin.v1.DeclView.fields:type_name -> tdl.plugin.v1.MemberView
+	14, // 22: tdl.plugin.v1.DeclView.variants:type_name -> tdl.plugin.v1.MemberView
+	14, // 23: tdl.plugin.v1.MemberView.fields:type_name -> tdl.plugin.v1.MemberView
+	16, // 24: tdl.plugin.v1.Response.files:type_name -> tdl.plugin.v1.File
+	19, // 25: tdl.plugin.v1.Response.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
+	16, // 26: tdl.plugin.v1.ImportRequest.files:type_name -> tdl.plugin.v1.File
+	21, // 27: tdl.plugin.v1.ImportResponse.model:type_name -> tdl.ir.v1.Model
+	19, // 28: tdl.plugin.v1.ImportResponse.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
+	3,  // 29: tdl.plugin.v1.Diagnostic.severity:type_name -> tdl.plugin.v1.Severity
+	23, // 30: tdl.plugin.v1.Diagnostic.position:type_name -> tdl.ir.v1.Position
+	31, // [31:31] is the sub-list for method output_type
+	31, // [31:31] is the sub-list for method input_type
+	31, // [31:31] is the sub-list for extension type_name
+	31, // [31:31] is the sub-list for extension extendee
+	0,  // [0:31] is the sub-list for field type_name
 }
 
 func init() { file_tdl_plugin_v1_plugin_proto_init() }
@@ -1637,7 +1732,7 @@ func file_tdl_plugin_v1_plugin_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tdl_plugin_v1_plugin_proto_rawDesc), len(file_tdl_plugin_v1_plugin_proto_rawDesc)),
-			NumEnums:      4,
+			NumEnums:      5,
 			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   0,

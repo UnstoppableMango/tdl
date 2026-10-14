@@ -31,13 +31,13 @@ func (Backend) Describe() plugin.Description {
 		Reuse: true,
 		Directives: []*plugin.DirectiveSpec{
 			// The Smithy namespace; defaults to the model's package.
-			{Name: "package", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "package", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock)},
 			// The Smithy name for a shape, member, enum member, or variant
 			// structure.
-			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.OnMembers()},
 			// Write what Smithy cannot say as tdl#source traits and tdl
 			// metadata, so import rebuilds the model.
-			{Name: "roundtrip"},
+			{Name: "roundtrip", Placements: plugin.On(plugin.OnBlock)},
 		},
 		Reverse: true,
 	}

@@ -38,27 +38,27 @@ func (Backend) Describe() plugin.Description {
 		Reuse: true,
 		Directives: []*plugin.DirectiveSpec{
 			// The package clause, written as an import path.
-			{Name: "package", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
-			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "package", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock)},
+			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.OnMembers()},
 			// A struct tag, emitted verbatim.
-			{Name: "tag", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "tag", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnField)},
 			// Field names identifying an entity. ArgKinds constrains by
 			// position, so keyFields checks that each is a name.
-			{Name: "key", MinArgs: 1, MaxArgs: -1},
+			{Name: "key", MinArgs: 1, MaxArgs: -1, Placements: plugin.On(plugin.OnDecl)},
 			// An import path and the type that package declares.
-			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{str[0], str[0]}},
+			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{str[0], str[0]}, Placements: plugin.On(plugin.OnDecl)},
 			// One file for every declaration of the target, in the target block.
-			{Name: "file", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "file", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock)},
 			// Writes, as //tdl: comment directives, every fact the Go
 			// source alone would lose, so import rebuilds the model.
-			{Name: "roundtrip"},
+			{Name: "roundtrip", Placements: plugin.On(plugin.OnBlock)},
 			// Opts in to the JSON wire convention: json struct tags, and
 			// methods encoding and decoding a fielded enum by its
 			// discriminant.
-			{Name: "json"},
+			{Name: "json", Placements: plugin.On(plugin.OnBlock)},
 			// The property a fielded enum is tagged by under json: the
 			// default on the target block, an override on an enum.
-			{Name: "discriminant", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "discriminant", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock, plugin.OnDecl)},
 		},
 		Reverse: true,
 	}
@@ -168,9 +168,6 @@ func (g *generator) render(pkg string) []*plugin.File {
 			continue
 		}
 		mark := len(g.Diags)
-		if d, ok := g.Find(decl.GetDirectives(), "file"); ok {
-			g.Warn(emit.Unsupported(d.GetPosition(), "file names one file for the whole target, so it belongs in the target block"))
-		}
 		g.cur = int32(i)
 		p, err := g.piece(decl)
 		if err != nil {

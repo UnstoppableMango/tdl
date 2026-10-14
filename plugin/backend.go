@@ -54,8 +54,9 @@ func (d Description) Reply() *HandshakeReply {
 	}
 }
 
-// Directives returns the directives in all that belong to target. A node
-// carries the directives of every target block in the model.
+// Directives returns the directives in all that belong to target. A request
+// from tdl carries only its target's directives, so this matters for a
+// model built some other way, where a node carries every target block's.
 func Directives(target string, all []*ir.Directive) []*ir.Directive {
 	var mine []*ir.Directive
 	for _, d := range all {
