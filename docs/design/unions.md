@@ -38,7 +38,7 @@ The synthesized enum's variants are sorted by their names, so the order a source
 `?` binds to one type, so an optional union is parenthesized: `(A | B)?` is `Option<A | B>`.
 `A | B?` and `A? | B` are errors that suggest the parenthesized form.
 
-`null` may only be the last alternative, and it wraps the rest: `A | B | null` is `Nullable<A | B>`, and `(A | B)? | null` is `Option<Nullable<A | B>>`, matching the order `T? | null` has today.
+`null` may only be the last alternative, and it wraps the rest: `A | B | null` is `Nullable<A | B>`, and `(A | B)? | null` is `Nullable<Option<A | B>>`, matching the order `T? | null` has today.
 `null` is never a variant.
 
 ## Names
@@ -147,14 +147,14 @@ A model with a union is therefore never a protocol break for an older plugin; it
 
 The design's preference holds: encode the union in the target's type system wherever it has one, and generate no validator.
 
-- **TypeScript**: a native union. A tagged alternative is `Card & { kind: "Card" }`, every other is its type, so `Card | Bank | string` is `(Card & { kind: "Card" }) | (Bank & { kind: "Bank" }) | string`.
-- **JSON Schema and OpenAPI 3.x**: a `oneOf`. A tagged alternative is an `allOf` of its `$ref` and a `const` discriminant; when every alternative is tagged, OpenAPI also writes a `discriminator`. OpenAPI 2.0 has no `oneOf`, so a union warns and its field is skipped, as a fielded enum's is.
-- **Go**: a sealed interface named for the union, with one unexported marker method. A struct or enum the model declares implements it directly; a primitive, collection, or extern alternative is wrapped in a named type (`type IntOrStringString string`). Under a `json` directive the interface's holder marshals by the wire rules above.
+- **TypeScript**: a native union. A struct alternative is `Card & { kind: "Card" }`, a fielded enum alternative is `{ kind: "Payment"; value: Payment }`, and every other is its type, so `Card | Bank | string` is `(Card & { kind: "Card" }) | (Bank & { kind: "Bank" }) | string`.
+- **JSON Schema and OpenAPI 3.x**: a `oneOf`. A struct alternative is an `allOf` of its `$ref` and a `const` discriminant, and a fielded enum alternative is an object of a `const` discriminant and a `value` holding its `$ref`; when every alternative is tagged, OpenAPI also writes a `discriminator`. OpenAPI 2.0 has no `oneOf`, so a union warns and its field is skipped, as a fielded enum's is.
+- **Go**: a sealed interface named for the union, with one unexported marker method. The union is synthesized in the model's own package, so a struct or enum the model declares implements the marker directly (a fielded enum through each variant's struct); a primitive, a collection, or an extern, which another Go package declares and this one cannot add a method to, is wrapped in a named type (`type IntOrStringString string`). Under a `json` directive the interface's holder marshals by the wire rules above.
 - **Haskell**: a sum type, one constructor per variant, prefixed with the union's name since constructors share a namespace (`IntOrStringInt Int`).
 - **protobuf**: a message holding a `oneof` of one field per alternative, the shape a fielded enum's variants already take.
 - **Thrift**: a `union` of one field per alternative.
 - **Smithy**: a `union` shape of one member per alternative.
-- **GraphQL**: a union of object types. A tagged alternative is its own type; a bare one is wrapped in an object type with one field, `value`, as a fieldless variant is today.
+- **GraphQL**: a union of object types. A struct alternative is its own type; a fielded enum, itself a GraphQL union and so not a member of another, and every bare alternative are wrapped in an object type with one field, `value`, as a fieldless variant is today.
 - **Salesforce**: no column holds a union, so a field holding one warns, as a fielded enum's does.
 - **LikeC4**: no element; a union is drawn as the field's relationships to each alternative once relationships exist.
 
