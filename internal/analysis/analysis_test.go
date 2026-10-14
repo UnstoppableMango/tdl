@@ -64,19 +64,19 @@ func analyze(t *testing.T, target string) (*ir.Model, *plugin.Analysis) {
 	return model, analysis.Analyze(model, target)
 }
 
-// field returns the view of a field's type.
-func field(t *testing.T, m *ir.Model, a *plugin.Analysis, decl, name string) *plugin.TypeView {
+// field returns the view of the type of one of Order's fields.
+func field(t *testing.T, m *ir.Model, a *plugin.Analysis, name string) *plugin.TypeView {
 	t.Helper()
-	d, _, ok := m.FindDecl(decl)
+	d, _, ok := m.FindDecl("Order")
 	if !ok {
-		t.Fatalf("no declaration %s", decl)
+		t.Fatal("no declaration Order")
 	}
 	for _, f := range d.Fields() {
 		if f.GetMeta().GetName() == name {
 			return a.GetTypes()[f.GetType().GetIndex()]
 		}
 	}
-	t.Fatalf("no field %s.%s", decl, name)
+	t.Fatalf("no field Order.%s", name)
 	return nil
 }
 
@@ -88,12 +88,12 @@ func TestTypeForms(t *testing.T) {
 	m, a := analyze(t, "go")
 	typ := func(id *ir.ID) *plugin.TypeView { return a.GetTypes()[id.GetIndex()] }
 
-	if v := field(t, m, a, "Order", "id"); v.GetForm() != plugin.Form_FORM_PRIMITIVE || v.GetName() != "string" {
+	if v := field(t, m, a, "id"); v.GetForm() != plugin.Form_FORM_PRIMITIVE || v.GetName() != "string" {
 		t.Errorf("id = %v, want the primitive string", v)
 	}
 
 	// An alias is described as what it expands to.
-	tags := field(t, m, a, "Order", "tags")
+	tags := field(t, m, a, "tags")
 	if tags.GetForm() != plugin.Form_FORM_SET || typ(tags.GetElem()).GetName() != "string" {
 		t.Errorf("tags = %v, want a set of string", tags)
 	}
@@ -101,20 +101,20 @@ func TestTypeForms(t *testing.T) {
 		t.Errorf("tags.id = %v, want the entry Tags expands to", tags.GetId())
 	}
 
-	byName := field(t, m, a, "Order", "byName")
+	byName := field(t, m, a, "byName")
 	if byName.GetForm() != plugin.Form_FORM_MAP ||
 		typ(byName.GetKey()).GetName() != "string" ||
 		declName(m, typ(byName.GetElem()).GetDecl()) != "Email" {
 		t.Errorf("byName = %v, want a map of string to Email", byName)
 	}
 
-	if v := field(t, m, a, "Order", "note"); v.GetForm() != plugin.Form_FORM_OPTION {
+	if v := field(t, m, a, "note"); v.GetForm() != plugin.Form_FORM_OPTION {
 		t.Errorf("note = %v, want an option", v)
 	}
-	if v := field(t, m, a, "Order", "shipOn"); v.GetForm() != plugin.Form_FORM_NULLABLE {
+	if v := field(t, m, a, "shipOn"); v.GetForm() != plugin.Form_FORM_NULLABLE {
 		t.Errorf("shipOn = %v, want a nullable", v)
 	}
-	if v := field(t, m, a, "Order", "pay"); v.GetForm() != plugin.Form_FORM_NAMED || declName(m, v.GetDecl()) != "Payment" {
+	if v := field(t, m, a, "pay"); v.GetForm() != plugin.Form_FORM_NAMED || declName(m, v.GetDecl()) != "Payment" {
 		t.Errorf("pay = %v, want the declaration Payment", v)
 	}
 }

@@ -87,10 +87,11 @@ func (s *Session) Resolve(id *ir.ID) (*Ref, error) {
 	switch v.GetForm() {
 	case plugin.Form_FORM_EXTERN:
 		ext := t.GetExtern()
-		if !s.Externs || v.GetExtern() == nil {
+		i := int(v.GetExtern().GetIndex())
+		if !s.Externs || v.GetExtern() == nil || i < 0 || i >= len(s.Model.GetExterns()) {
 			return nil, Unsupported(ref.Pos, "%s is declared in another package, and foreign types are not generated yet", ext.GetName())
 		}
-		ref.Form, ref.Name, ref.Extern = Extern, ext.GetName(), s.Model.GetExterns()[v.GetExtern().GetIndex()]
+		ref.Form, ref.Name, ref.Extern = Extern, ext.GetName(), s.Model.GetExterns()[i]
 	case plugin.Form_FORM_PRIMITIVE:
 		ref.Form, ref.Name = Prim, v.GetName()
 	case plugin.Form_FORM_LIST, plugin.Form_FORM_SET:

@@ -50,7 +50,8 @@ func NewSession(req *plugin.Request, lang string) *Session {
 }
 
 // analysis returns the session's analysis, deriving it when the request
-// carried none or carried one for a different model.
+// carried none or carried one for a different model. Only the table sizes
+// are compared, so a reader bounds-checks the IDs a view holds.
 func (s *Session) analysis() *plugin.Analysis {
 	a := s.Analysis
 	if a == nil || len(a.GetTypes()) != len(s.Model.GetTypes()) || len(a.GetDecls()) != len(s.Model.GetDecls()) {

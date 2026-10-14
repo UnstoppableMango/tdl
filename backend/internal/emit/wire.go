@@ -16,11 +16,9 @@ const DefaultDiscriminant = analysis.DefaultDiscriminant
 
 // Discriminant is the property naming a fielded enum's variant: the enum's
 // `discriminant` directive, else the target block's, else
-// [DefaultDiscriminant].
+// [DefaultDiscriminant]. It reads the directives for the session's target
+// rather than the analysis, which a request may have built for another.
 func (s *Session) Discriminant(enum *ir.Decl) string {
-	if v := s.declView(enum); v != nil && enum.GetEnumeration() != nil {
-		return v.GetDiscriminant()
-	}
 	return analysis.Discriminant(s.Model, s.Target, enum)
 }
 

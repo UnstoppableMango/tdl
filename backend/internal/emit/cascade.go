@@ -34,11 +34,13 @@ func (s *Session) TypeReferences(ids ...*ir.ID) []*ir.Decl {
 	return s.decl(refs)
 }
 
-// decl returns the declarations ids name.
+// decl returns the declarations ids name, skipping any not in Model.
 func (s *Session) decl(ids []*ir.ID) []*ir.Decl {
 	out := make([]*ir.Decl, 0, len(ids))
 	for _, id := range ids {
-		out = append(out, s.Model.Decl(id))
+		if d := s.Model.Decl(id); d != nil {
+			out = append(out, d)
+		}
 	}
 	return out
 }
