@@ -78,17 +78,21 @@ func (g *generator) use(i imported) string {
 
 // typ renders a type reference. It walks the type itself rather than
 // through [emit.Session.Resolve], since an alias the model declares keeps
-// its name.
-func (g *generator) typ(id *ir.ID) (hsType, error) {
-	t := g.Model.Type(id)
-	if t == nil {
-		return hsType{}, emit.Unsupported(nil, "type %s did not resolve", id.GetName())
+// its name and a type parameter is a type variable.
+func (g *generator) typ(id *ir.ID) (hsType, error) { return g.render(bound{id, nil}) }
+
+// render renders a type reference in a frame.
+func (g *generator) render(b bound) (hsType, error) {
+	a, err := g.resolve(b)
+	if err != nil {
+		return hsType{}, err
 	}
+	t, args := a.t, a.args
 	pos := t.GetPosition()
 
 	switch {
 	case t.GetParam() != nil:
-		return hsType{}, emit.Lost(emit.LossGeneric, pos, "type parameter %s: generics are not generated yet", t.GetParam().GetName())
+		return g.apply(hsType{text: tyvar(t.GetParam().GetName()), atom: true}, args)
 	case t.GetUnit() != nil:
 		return hsType{}, emit.Lost(emit.LossUnit, pos, "a unit-typed field has no Haskell type yet")
 	case t.GetExtern() != nil:
@@ -97,7 +101,7 @@ func (g *generator) typ(id *ir.ID) (hsType, error) {
 			return hsType{}, emit.Unsupported(pos,
 				"%s is declared in another package, which has no haskell target block, and no foreign directive maps it", t.GetExtern().GetName())
 		}
-		return g.applied(f, t.GetArgs())
+		return g.applied(f, args)
 	}
 
 	decl := g.Model.Decl(t.GetCtor())
@@ -105,70 +109,76 @@ func (g *generator) typ(id *ir.ID) (hsType, error) {
 		return hsType{}, emit.Unsupported(pos, "type %s did not resolve", t.GetCtor().GetName())
 	}
 	if f, ok := g.foreign[decl]; ok {
-		return g.applied(f, t.GetArgs())
+		return g.applied(f, args)
 	}
 	name := decl.GetMeta().GetName()
-	args := t.GetArgs()
-	arg := func(i int) (hsType, error) {
-		if i >= len(args) {
-			return hsType{}, emit.Unsupported(pos, "%s is missing a type argument", name)
+	most := func(n int) error {
+		if len(args) > n {
+			return emit.Unsupported(pos, "%s is applied to %d type arguments, and takes %d", name, len(args), n)
 		}
-		return g.typ(args[i])
+		return nil
 	}
 
 	if a := decl.GetAlias(); a != nil {
-		if len(a.GetParams()) > 0 {
-			return hsType{}, emit.Lost(emit.LossGeneric, pos, "%s is parameterized, and generics are not generated yet", name)
+		n := len(a.GetParams())
+		if len(args) < n {
+			return hsType{}, emit.Unsupported(pos, "%s is a synonym applied to %d of its %d type arguments, which Haskell refuses", name, len(args), n)
 		}
+		target := bound{a.GetTarget(), &frame{args[:n]}}
 		if !emit.IsOwn(decl) {
-			return g.typ(a.GetTarget())
+			if err := most(n); err != nil {
+				return hsType{}, err
+			}
+			return g.render(target)
 		}
 		// The synonym is declared, so its target must render.
-		if _, err := g.typ(a.GetTarget()); err != nil {
+		if _, err := g.render(target); err != nil {
 			return hsType{}, err
 		}
-		return hsType{text: g.DeclName(decl, upperFirst), atom: true}, nil
+		return g.apply(hsType{text: g.DeclName(decl, upperFirst), atom: true}, args)
 	}
 
 	if decl.GetPrimitive() != nil {
 		switch name {
 		case "List":
-			elem, err := arg(0)
+			if err := most(1); err != nil {
+				return hsType{}, err
+			}
+			if len(args) == 0 {
+				return hsType{text: "[]", atom: true}, nil
+			}
+			elem, err := g.render(args[0])
 			if err != nil {
 				return hsType{}, err
 			}
 			return hsType{text: "[" + elem.text + "]", atom: true}, nil
 		case "Set":
-			elem, err := arg(0)
-			if err != nil {
+			if err := most(1); err != nil {
 				return hsType{}, err
 			}
-			return hsType{text: g.use(set) + " " + elem.arg()}, nil
+			return g.applied(set, args)
 		case "Map":
-			key, err := arg(0)
-			if err != nil {
+			if err := most(2); err != nil {
 				return hsType{}, err
 			}
-			val, err := arg(1)
-			if err != nil {
-				return hsType{}, err
-			}
-			return hsType{text: g.use(mapping) + " " + key.arg() + " " + val.arg()}, nil
+			return g.applied(mapping, args)
 		}
 		s, ok := scalars[name]
 		if !ok {
 			return hsType{}, emit.Lost(emit.LossPrimitive, pos, "primitive %s has no Haskell type", name)
 		}
+		if err := most(0); err != nil {
+			return hsType{}, err
+		}
 		return hsType{text: g.use(s), atom: true}, nil
 	}
 
 	// SyntacticForm is deliberately not read: T? and T | null are both Maybe.
-	if decl.GetEnumeration() != nil && (name == "Option" || name == "Nullable") && len(args) == 1 {
-		elem, err := arg(0)
-		if err != nil {
+	if optional(decl) {
+		if err := most(1); err != nil {
 			return hsType{}, err
 		}
-		return hsType{text: g.use(maybe) + " " + elem.arg()}, nil
+		return g.applied(maybe, args)
 	}
 
 	switch {
@@ -176,23 +186,29 @@ func (g *generator) typ(id *ir.ID) (hsType, error) {
 		return hsType{}, emit.Unsupported(pos, "%s is a class, and a class is not a Haskell type", name)
 	case decl.GetUnit() != nil:
 		return hsType{}, emit.Lost(emit.LossUnit, pos, "%s is a unit, and units are not generated yet", name)
-	case len(args) > 0:
-		return hsType{}, emit.Lost(emit.LossGeneric, pos, "%s is applied to type arguments, and generics are not generated yet", name)
 	}
-	return hsType{text: g.DeclName(decl, upperFirst), atom: true}, nil
+	return g.apply(hsType{text: g.DeclName(decl, upperFirst), atom: true}, args)
 }
 
-// applied is an imported type applied to type arguments.
-func (g *generator) applied(f imported, args []*ir.ID) (hsType, error) {
-	text := g.use(f)
+// apply is a type applied to type arguments.
+func (g *generator) apply(fn hsType, args []bound) (hsType, error) {
+	if len(args) == 0 {
+		return fn, nil
+	}
+	text := fn.arg()
 	for _, a := range args {
-		t, err := g.typ(a)
+		t, err := g.render(a)
 		if err != nil {
 			return hsType{}, err
 		}
 		text += " " + t.arg()
 	}
-	return hsType{text: text, atom: len(args) == 0}, nil
+	return hsType{text: text}, nil
+}
+
+// applied is an imported type applied to type arguments.
+func (g *generator) applied(f imported, args []bound) (hsType, error) {
+	return g.apply(hsType{text: g.use(f), atom: true}, args)
 }
 
 // imports writes the module's import declarations and replaces each

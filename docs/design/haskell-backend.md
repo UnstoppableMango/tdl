@@ -35,7 +35,7 @@ module Shop.Billing where
 ```
 
 `GHC2021` is a pragma rather than left to the consumer's `default-language`, so the module means the same thing under any build.
-Further extensions are added only when a construct needs one: `DataKinds` for a class with fields, `TypeFamilies` for an associated type, `FunctionalDependencies` for a functional dependency, `DeriveAnyClass` for `derive`, and `OverloadedStrings` when validation writes a message.
+Further extensions are added only when a construct needs one: `DataKinds` for a class with fields, `TypeFamilies` for an associated type, `FunctionalDependencies` for a functional dependency, `DeriveAnyClass` for `derive`, `UndecidableInstances` for a standalone instance whose context is no smaller than its head, and `OverloadedStrings` when validation writes a message.
 The output needs GHC 9.4 or later.
 
 The backend writes no `.cabal` or `package.yaml`.
@@ -186,11 +186,16 @@ deriving stock instance (Eq (f t)) => Eq (Collection f t)
 ```
 
 A declaration with a higher-kinded parameter derives through standalone deriving with the context written out, because stock deriving cannot infer `Eq (f t)`.
+The context is what its fields reduce to: a list, a `Maybe`, a set, a map, and a mapped type each need the class of what they hold, and another generated declaration needs what its own fields do, so `Outer<g, A> { inner: Collection<g, A> }` needs `Eq (g a)`.
+`Generic`, `Functor`, `Foldable`, and `Traversable` need no context and stay in the deriving clause, and a class `derive` adds is derived standalone with the same context.
+A parameterized entity's key is a function, and a key record of several fields warns.
 
 A parameterized declaration also derives `Functor`, `Foldable`, and `Traversable` over its last parameter when that parameter appears only where those classes can map it: directly, in a list, a `Maybe`, a map's value, or another generated declaration's last parameter that derives them.
 This is decided across the whole model before rendering, as the Go backend decides `comparable`, since a declaration may hand its parameter to one declared after it.
 
 A parameter whose lower-cased spelling is a Haskell keyword, or collides with another parameter of the same declaration, warns and skips its declaration.
+
+A `requires` clause warns until [Classes](#classes) is built, and the declaration is generated without it.
 
 A `unit` kind waits on phase 6 of [haskell-backend-plan.md](haskell-backend-plan.md).
 
