@@ -222,14 +222,17 @@ func TestDescribe(t *testing.T) {
 	if d.Name != "csharp" || !d.Reuse || d.Reverse {
 		t.Errorf("description = %+v", d)
 	}
-	declared := map[string]bool{}
+	declared := map[string]*plugin.DirectiveSpec{}
 	for _, spec := range d.Directives {
-		declared[spec.GetName()] = true
+		declared[spec.GetName()] = spec
 	}
-	for _, want := range []string{"namespace", "file", "name"} {
-		if !declared[want] {
+	for _, want := range []string{"namespace", "file", "name", "foreign", "key", "attribute"} {
+		if declared[want] == nil {
 			t.Errorf("directive %q is acted on but not declared", want)
 		}
+	}
+	if !declared["attribute"].GetRepeatable() {
+		t.Error("attribute is not repeatable")
 	}
 }
 

@@ -41,3 +41,25 @@ func TestNamespace(t *testing.T) {
 		}
 	}
 }
+
+func TestParse(t *testing.T) {
+	got, err := dotnet.Parse([]string{"System.Runtime.Serialization", "DataContract"})
+	if want := (dotnet.Qualified{Namespace: "System.Runtime.Serialization", Name: "DataContract"}); err != nil || got != want {
+		t.Errorf("Parse = %+v, %v; want %+v", got, err, want)
+	}
+	for _, args := range [][]string{
+		{"NodaTime"},
+		{"NodaTime", "Instant", "Extra"},
+		{"", "Instant"},
+		{"Noda..Time", "Instant"},
+		{"Noda Time", "Instant"},
+		{"1Noda", "Instant"},
+		{"NodaTime", "Instant<T>"},
+		{"NodaTime", "Noda.Instant"},
+		{"NodaTime", ""},
+	} {
+		if _, err := dotnet.Parse(args); err == nil {
+			t.Errorf("Parse(%q) accepts it", args)
+		}
+	}
+}

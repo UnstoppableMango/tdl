@@ -234,9 +234,11 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   A struct is a sealed record with `required` `init` properties, a fieldless enum a C# enum, a fielded enum an abstract record closed by a private constructor with a nested sealed record per variant, and a newtype a readonly record struct; an alias is expanded.
   `T?` is a nullable property that may be left out, `T | null` a nullable `required` one.
   A record holding a collection or bytes writes its own `Equals` and `GetHashCode` through `TdlEquality`, which the namespace declares once, since .NET compares those by reference.
-  `backend/internal/dotnet` holds what it shares with the planned `fsharp` target: the primitive mapping and the namespace a package derives.
-  Phase 1 of `csharp-backend-plan.md` is built: keys, foreign types, generics, classes, and validation warn.
-  Tests run `dotnet build` with warnings as errors when `dotnet` is on `PATH`, and run the equality test with `dotnet run`; `checks.gen-csharp` always builds the smoke model.
+  A `key` directive becomes a `Key()` method, returning a `<Name>Key` record struct for several fields; a default becomes a property initializer, and the property stops being `required`.
+  `foreign.go` maps a declaration, a primitive, or an extern to a `global::`-qualified type, and an extern to the type its dependency's `csharp` block generates; `attribute` writes an attribute on a declaration, or on every one from the target block.
+  `backend/internal/dotnet` holds what it shares with the planned `fsharp` target: the primitive mapping, the namespace a package derives, and parsing `foreign` and `attribute`.
+  Phases 1 and 2 of `csharp-backend-plan.md` are built: generics, classes, and validation warn.
+  Tests run `dotnet build` with warnings as errors when `dotnet` is on `PATH`, and run the equality, key, and default tests with `dotnet run`; `checks.gen-csharp` always builds the smoke model.
 - `backend/likec4`: LikeC4 source for an architecture diagram: `tdl.c4`, the specification of element kinds, the same bytes for every model, and one `<package>.c4` holding a package element and one element per structure, enum, newtype, or class; aliases, primitives, and units have none.
   Only phase 1 of `likec4-backend-plan.md` is built: no relationships or views yet.
   No Go library parses LikeC4, so tests compare text, and also run `likec4 validate --no-layout` when `likec4` is on `PATH`.
@@ -263,7 +265,7 @@ After any change to lowering or `ir.Dump`, run `go test ./internal/sema -update`
 ### Docs
 
 `docs/design/` holds designs and plans; each `*-plan.md` names what its phases add, and its opening lines say which are done.
-Read those before assuming a design is built: the Java, ML-family, Python, Rust, Zod, and profiles designs have no code yet, Haskell has only phases 1 and 2, and C# and the plugin SDK only phase 1.
+Read those before assuming a design is built: the Java, ML-family, Python, Rust, Zod, and profiles designs have no code yet, Haskell and C# have only phases 1 and 2, and the plugin SDK only phase 1.
 A design describes the target, not the implementation.
 `workflow.md` is furthest ahead: its `tdl.toml` project model is unbuilt.
 `docs/backlog.md` is wanted, unscheduled work.

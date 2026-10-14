@@ -78,6 +78,9 @@ func (g *generator) typ(id *ir.ID, shadow map[string]bool) (csType, error) {
 func (g *generator) render(r *emit.Ref, shadow map[string]bool) (csType, error) {
 	switch r.Form {
 	case emit.Prim:
+		if t, ok := g.foreignPrim(r.ID); ok {
+			return csType{text: t}, nil
+		}
 		if t := g.Model.Type(r.ID); len(t.GetArgs()) > 0 {
 			g.Lossy(emit.LossUnit, r.Pos, "C# has no units of measure, so %s is written as its base type", r.ID.GetName())
 		}
@@ -148,7 +151,18 @@ func (g *generator) render(r *emit.Ref, shadow map[string]bool) (csType, error) 
 			cmp:  g.equality() + ".Map<" + key.text + ", " + val.text + ">(" + val.comparer() + ")",
 		}, nil
 
+	case emit.Extern:
+		t, ok := g.externs[r.Extern]
+		if !ok {
+			return csType{}, emit.Unsupported(r.Pos, "%s.%s has no C# type: give it a foreign directive, or its package a csharp target block",
+				r.Extern.GetPackage(), r.Extern.GetName())
+		}
+		return csType{text: t}, nil
+
 	case emit.Named:
+		if t, ok := g.foreign[r.Decl]; ok {
+			return csType{text: t}, nil
+		}
 		name, ok := g.names[r.Decl]
 		if !ok {
 			// A declaration that does not claim a name is skipped, and the

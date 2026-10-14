@@ -50,17 +50,7 @@ func mapFirst(s string, f func(rune) rune) string {
 }
 
 // identifier reports whether C# accepts s as an identifier, before any `@`.
-func identifier(s string) bool {
-	for i, r := range s {
-		switch {
-		case r == '_' || unicode.IsLetter(r):
-		case i > 0 && unicode.IsDigit(r):
-		default:
-			return false
-		}
-	}
-	return s != ""
-}
+func identifier(s string) bool { return dotnet.Identifier(s) }
 
 // escape writes a keyword with `@`.
 func escape(s string) string {

@@ -36,6 +36,15 @@ func (Backend) Describe() plugin.Description {
 			{Name: "file", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
 			// The C# identifier for a declaration, field, or variant.
 			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			// The namespace and type a declaration maps to, declared
+			// elsewhere.
+			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{str[0], str[0]}},
+			// The fields identifying an entity. ArgKinds constrains by
+			// position, so key checks that each is a name.
+			{Name: "key", MinArgs: 1, MaxArgs: -1},
+			// An attribute, by its namespace and name, on a declaration or
+			// on every declaration from the target block.
+			{Name: "attribute", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{str[0], str[0]}, Repeatable: true},
 		},
 	}
 }
@@ -65,6 +74,15 @@ type generator struct {
 	// owners each C# name to the declaration taking it.
 	names  map[*ir.Decl]string
 	owners map[string]string
+
+	// foreign and externs map a declaration and an extern to the type
+	// another assembly or namespace declares for it, written qualified.
+	foreign map[*ir.Decl]string
+	externs map[*ir.Extern]string
+
+	// attributes are the target block's attributes, which every
+	// declaration carries.
+	attributes []string
 }
 
 // piece is one declaration's output.
@@ -91,6 +109,9 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		return g.Response(nil), nil
 	}
 	g.ns = ns
+	g.Externs = true
+	g.planForeign()
+	g.attributes = g.attributesOf(g.blockDirectives())
 
 	own := g.Own()
 	skipped := map[*ir.Decl]bool{}
@@ -174,7 +195,7 @@ func (g *generator) start(b *strings.Builder) {
 // claim records the C# name a declaration takes, before any is rendered,
 // so a reference to one declared later is spelled the same.
 func (g *generator) claim(d *ir.Decl) error {
-	if d.GetStructure() == nil && d.GetEnumeration() == nil && d.GetNewtype() == nil {
+	if _, ok := g.foreign[d]; ok || d.GetStructure() == nil && d.GetEnumeration() == nil && d.GetNewtype() == nil {
 		return nil
 	}
 	pos := d.GetMeta().GetPosition()
@@ -199,6 +220,10 @@ func (g *generator) decl(d *ir.Decl) (*piece, error) {
 	pos := d.GetMeta().GetPosition()
 	name := d.GetMeta().GetName()
 
+	if _, ok := g.foreign[d]; ok {
+		// Another assembly declares it.
+		return nil, nil
+	}
 	switch {
 	case d.GetClass() != nil:
 		return nil, emit.Lost(emit.LossClass, pos, "%s is a class, and classes are not generated yet", name)
@@ -215,12 +240,23 @@ func (g *generator) decl(d *ir.Decl) (*piece, error) {
 	var b strings.Builder
 	doc(&b, "", d.GetMeta())
 	obsolete(&b, "", d.GetMeta())
+	for _, a := range g.attributes {
+		b.WriteString(a + "\n")
+	}
+	for _, a := range g.attributesOf(d.GetDirectives()) {
+		b.WriteString(a + "\n")
+	}
+	key, keyed := g.Find(d.GetDirectives(), "key")
+	if keyed && d.GetStructure() == nil {
+		g.Lossy(emit.LossKey, key.GetPosition(), "%s has a key, and only an entity is identified by one", name)
+		key = nil
+	}
 	var err error
 	switch {
 	case d.GetNewtype() != nil:
 		p.equality, err = g.newtype(&b, d, typ)
 	case d.GetStructure() != nil:
-		p.equality, err = g.record(&b, name, typ, "", "public sealed partial record "+typ, d.Fields(), nil)
+		p.equality, err = g.record(&b, name, typ, "", "public sealed partial record "+typ, d.Fields(), nil, d, key)
 	case emit.Fielded(d.GetEnumeration()):
 		p.equality, err = g.union(&b, d, typ)
 	default:
@@ -305,7 +341,7 @@ func (g *generator) union(b *strings.Builder, d *ir.Decl, typ string) (bool, err
 		doc(&body, "    ", v.GetMeta())
 		obsolete(&body, "    ", v.GetMeta())
 		eq, err := g.record(&body, name+"."+v.GetMeta().GetName(), names[i], "    ",
-			"public sealed partial record "+names[i]+" : "+typ, v.GetFields(), shadow)
+			"public sealed partial record "+names[i]+" : "+typ, v.GetFields(), shadow, nil, nil)
 		if err != nil {
 			return false, err
 		}
@@ -321,6 +357,9 @@ type property struct {
 	typ      csType
 	required bool
 	field    *ir.Field
+
+	// init is the default the property is initialized to, or "".
+	init string
 }
 
 // comparer is a static field holding the comparer a property is compared
@@ -331,14 +370,21 @@ type comparer struct {
 
 // record renders a record: decl is its declaration line, and owner its name
 // as the model spells it, for messages. It reports whether the record
-// writes its own equality.
-func (g *generator) record(b *strings.Builder, owner, typ, indent, decl string, fields []*ir.Field, shadow map[string]bool) (bool, error) {
+// writes its own equality. A key directive on the entity d writes a Key
+// method, and a key record after the record when it names several fields.
+func (g *generator) record(b *strings.Builder, owner, typ, indent, decl string, fields []*ir.Field, shadow map[string]bool, d *ir.Decl, key *ir.Directive) (bool, error) {
 	props, err := g.properties(owner, typ, fields, shadow)
 	if err != nil {
 		return false, err
 	}
+	var method, after string
+	if key != nil {
+		if method, after, err = g.key(d, typ, props, key); err != nil {
+			g.Warn(err)
+		}
+	}
 	if len(props) == 0 {
-		b.WriteString(indent + decl + ";\n")
+		b.WriteString(indent + decl + ";\n" + after)
 		return false, nil
 	}
 
@@ -378,7 +424,14 @@ func (g *generator) record(b *strings.Builder, owner, typ, indent, decl string, 
 		if p.required {
 			req = "required "
 		}
-		fmt.Fprintf(b, "%spublic %s%s %s { get; init; }\n", in, req, p.typ.text, p.name)
+		init := ""
+		if p.init != "" {
+			init = " = " + p.init + ";"
+		}
+		fmt.Fprintf(b, "%spublic %s%s %s { get; init; }%s\n", in, req, p.typ.text, p.name, init)
+	}
+	if method != "" {
+		b.WriteString("\n" + in + method + "\n")
 	}
 	if len(cmps) > 0 {
 		b.WriteString("\n")
@@ -395,7 +448,7 @@ func (g *generator) record(b *strings.Builder, owner, typ, indent, decl string, 
 		b.WriteString(";\n\n")
 		writeHash(b, in, props, byProp)
 	}
-	b.WriteString(indent + "}\n")
+	b.WriteString(indent + "}\n" + after)
 	return len(cmps) > 0, nil
 }
 
@@ -425,10 +478,16 @@ func (g *generator) properties(owner, typ string, fields []*ir.Field, shadow map
 		if err != nil {
 			return nil, err
 		}
-		if f.GetDefaultValue() != nil {
-			g.Lossy(emit.LossDefault, pos, "%s.%s has a default, and defaults are not generated yet", owner, fname)
+		p := property{name: n, typ: t, required: required, field: f}
+		if lit := f.GetDefaultValue(); lit != nil {
+			init, err := g.defaultValue(f.GetType(), lit, shadow)
+			if err != nil {
+				g.Warn(err)
+			} else {
+				p.init, p.required = init, false
+			}
 		}
-		props = append(props, property{name: n, typ: t, required: required, field: f})
+		props = append(props, p)
 	}
 	return props, nil
 }
