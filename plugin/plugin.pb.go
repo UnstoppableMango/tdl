@@ -79,6 +79,91 @@ func (Mode) EnumDescriptor() ([]byte, []int) {
 	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{0}
 }
 
+// Form is which of the prelude's shapes a type resolves to. The shapes are
+// matched by the prelude's spellings, as lowering matches them, so a
+// replaced prelude reaches every plugin the same way.
+type Form int32
+
+const (
+	Form_FORM_UNSPECIFIED Form = 0
+	// FORM_PRIMITIVE is a primitive that is not a collection; name says which.
+	Form_FORM_PRIMITIVE Form = 1
+	Form_FORM_LIST      Form = 2
+	Form_FORM_SET       Form = 3
+	// FORM_MAP has a key and a value; elem is the value.
+	Form_FORM_MAP Form = 4
+	// FORM_OPTION is `T?`.
+	Form_FORM_OPTION Form = 5
+	// FORM_NULLABLE is `T | null`.
+	Form_FORM_NULLABLE Form = 6
+	// FORM_NAMED is a declaration: a struct, an enum, a newtype, a class, or
+	// a unit.
+	Form_FORM_NAMED Form = 7
+	// FORM_EXTERN is a declaration in another package.
+	Form_FORM_EXTERN Form = 8
+	// FORM_PARAM is a use of a type parameter; name is the parameter's.
+	Form_FORM_PARAM Form = 9
+	// FORM_UNIT is a unit of measure.
+	Form_FORM_UNIT Form = 10
+)
+
+// Enum value maps for Form.
+var (
+	Form_name = map[int32]string{
+		0:  "FORM_UNSPECIFIED",
+		1:  "FORM_PRIMITIVE",
+		2:  "FORM_LIST",
+		3:  "FORM_SET",
+		4:  "FORM_MAP",
+		5:  "FORM_OPTION",
+		6:  "FORM_NULLABLE",
+		7:  "FORM_NAMED",
+		8:  "FORM_EXTERN",
+		9:  "FORM_PARAM",
+		10: "FORM_UNIT",
+	}
+	Form_value = map[string]int32{
+		"FORM_UNSPECIFIED": 0,
+		"FORM_PRIMITIVE":   1,
+		"FORM_LIST":        2,
+		"FORM_SET":         3,
+		"FORM_MAP":         4,
+		"FORM_OPTION":      5,
+		"FORM_NULLABLE":    6,
+		"FORM_NAMED":       7,
+		"FORM_EXTERN":      8,
+		"FORM_PARAM":       9,
+		"FORM_UNIT":        10,
+	}
+)
+
+func (x Form) Enum() *Form {
+	p := new(Form)
+	*p = x
+	return p
+}
+
+func (x Form) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Form) Descriptor() protoreflect.EnumDescriptor {
+	return file_tdl_plugin_v1_plugin_proto_enumTypes[1].Descriptor()
+}
+
+func (Form) Type() protoreflect.EnumType {
+	return &file_tdl_plugin_v1_plugin_proto_enumTypes[1]
+}
+
+func (x Form) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Form.Descriptor instead.
+func (Form) EnumDescriptor() ([]byte, []int) {
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{1}
+}
+
 // Severity is how much a diagnostic matters.
 type Severity int32
 
@@ -113,11 +198,11 @@ func (x Severity) String() string {
 }
 
 func (Severity) Descriptor() protoreflect.EnumDescriptor {
-	return file_tdl_plugin_v1_plugin_proto_enumTypes[1].Descriptor()
+	return file_tdl_plugin_v1_plugin_proto_enumTypes[2].Descriptor()
 }
 
 func (Severity) Type() protoreflect.EnumType {
-	return &file_tdl_plugin_v1_plugin_proto_enumTypes[1]
+	return &file_tdl_plugin_v1_plugin_proto_enumTypes[2]
 }
 
 func (x Severity) Number() protoreflect.EnumNumber {
@@ -126,7 +211,79 @@ func (x Severity) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Severity.Descriptor instead.
 func (Severity) EnumDescriptor() ([]byte, []int) {
-	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{1}
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{2}
+}
+
+type Refusal_Reason int32
+
+const (
+	Refusal_REASON_UNSPECIFIED Refusal_Reason = 0
+	// REASON_UNRESOLVED is a constructor naming no declaration.
+	Refusal_REASON_UNRESOLVED Refusal_Reason = 1
+	// REASON_PARAM is a type parameter.
+	Refusal_REASON_PARAM Refusal_Reason = 2
+	// REASON_UNIT is a unit of measure used as a type.
+	Refusal_REASON_UNIT Refusal_Reason = 3
+	// REASON_CLASS is a class used as a type.
+	Refusal_REASON_CLASS Refusal_Reason = 4
+	// REASON_UNIT_DECL is a declared unit used as a type.
+	Refusal_REASON_UNIT_DECL Refusal_Reason = 5
+	// REASON_TYPE_ARGS is a declaration applied to type arguments.
+	Refusal_REASON_TYPE_ARGS Refusal_Reason = 6
+	// REASON_MISSING_ARG is a list, set, or map missing a type argument.
+	// The arguments before it are still set.
+	Refusal_REASON_MISSING_ARG Refusal_Reason = 7
+)
+
+// Enum value maps for Refusal_Reason.
+var (
+	Refusal_Reason_name = map[int32]string{
+		0: "REASON_UNSPECIFIED",
+		1: "REASON_UNRESOLVED",
+		2: "REASON_PARAM",
+		3: "REASON_UNIT",
+		4: "REASON_CLASS",
+		5: "REASON_UNIT_DECL",
+		6: "REASON_TYPE_ARGS",
+		7: "REASON_MISSING_ARG",
+	}
+	Refusal_Reason_value = map[string]int32{
+		"REASON_UNSPECIFIED": 0,
+		"REASON_UNRESOLVED":  1,
+		"REASON_PARAM":       2,
+		"REASON_UNIT":        3,
+		"REASON_CLASS":       4,
+		"REASON_UNIT_DECL":   5,
+		"REASON_TYPE_ARGS":   6,
+		"REASON_MISSING_ARG": 7,
+	}
+)
+
+func (x Refusal_Reason) Enum() *Refusal_Reason {
+	p := new(Refusal_Reason)
+	*p = x
+	return p
+}
+
+func (x Refusal_Reason) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Refusal_Reason) Descriptor() protoreflect.EnumDescriptor {
+	return file_tdl_plugin_v1_plugin_proto_enumTypes[3].Descriptor()
+}
+
+func (Refusal_Reason) Type() protoreflect.EnumType {
+	return &file_tdl_plugin_v1_plugin_proto_enumTypes[3]
+}
+
+func (x Refusal_Reason) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Refusal_Reason.Descriptor instead.
+func (Refusal_Reason) EnumDescriptor() ([]byte, []int) {
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{7, 0}
 }
 
 // Handshake is what tdl sends first, before any request.
@@ -458,7 +615,10 @@ type Request struct {
 	// dry_run says tdl will diff the response against disk rather than
 	// write it. A backend may skip work that cannot affect the files; ignoring
 	// the flag is correct.
-	DryRun        bool `protobuf:"varint,4,opt,name=dry_run,json=dryRun" json:"dry_run,omitempty"`
+	DryRun bool `protobuf:"varint,4,opt,name=dry_run,json=dryRun" json:"dry_run,omitempty"`
+	// analysis is what tdl derives from the model for this target, so a
+	// plugin in any language reads it rather than computing it.
+	Analysis      *Analysis `protobuf:"bytes,5,opt,name=analysis" json:"analysis,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -521,6 +681,430 @@ func (x *Request) GetDryRun() bool {
 	return false
 }
 
+func (x *Request) GetAnalysis() *Analysis {
+	if x != nil {
+		return x.Analysis
+	}
+	return nil
+}
+
+// Analysis holds facts about a model that are the same for every backend
+// serving one target: each type reference resolved to the prelude's shapes,
+// and what each declaration names. See docs/design/plugin-sdk.md.
+type Analysis struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Types         []*TypeView            `protobuf:"bytes,1,rep,name=types" json:"types,omitempty"` // indexed like Model.types
+	Decls         []*DeclView            `protobuf:"bytes,2,rep,name=decls" json:"decls,omitempty"` // indexed like Model.decls
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Analysis) Reset() {
+	*x = Analysis{}
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Analysis) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Analysis) ProtoMessage() {}
+
+func (x *Analysis) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Analysis.ProtoReflect.Descriptor instead.
+func (*Analysis) Descriptor() ([]byte, []int) {
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *Analysis) GetTypes() []*TypeView {
+	if x != nil {
+		return x.Types
+	}
+	return nil
+}
+
+func (x *Analysis) GetDecls() []*DeclView {
+	if x != nil {
+		return x.Decls
+	}
+	return nil
+}
+
+// TypeView is one entry of the type table, resolved.
+//
+// An entry whose constructor is an alias is described as the type the
+// alias expands to, and id names that entry. elem and key are expanded the
+// same way.
+type TypeView struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Form  Form                   `protobuf:"varint,1,opt,name=form,enum=tdl.plugin.v1.Form" json:"form,omitempty"`
+	// id is this entry after alias expansion: the entry itself unless its
+	// constructor is an alias.
+	Id *ir.ID `protobuf:"bytes,2,opt,name=id" json:"id,omitempty"`
+	// name is the primitive's name, or the type parameter's.
+	Name string `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
+	// elem is the element of a list or a set, the value of a map, and what
+	// an option or a nullable wraps.
+	Elem *ir.ID `protobuf:"bytes,4,opt,name=elem" json:"elem,omitempty"`
+	// key is the key of a map.
+	Key *ir.ID `protobuf:"bytes,5,opt,name=key" json:"key,omitempty"`
+	// decl is the declaration, for FORM_NAMED; it indexes Model.decls.
+	Decl *ir.ID `protobuf:"bytes,6,opt,name=decl" json:"decl,omitempty"`
+	// extern indexes Model.externs, for FORM_EXTERN.
+	Extern *ir.ID `protobuf:"bytes,7,opt,name=extern" json:"extern,omitempty"`
+	// refusal is set when this type is one no schema backend writes. A
+	// backend with generics or units reads the form and may ignore it. A
+	// refusal of an element or a key is on that entry, not this one.
+	Refusal *Refusal `protobuf:"bytes,8,opt,name=refusal" json:"refusal,omitempty"`
+	// references are the declarations this type names, through its
+	// arguments, with aliases expanded, in the order they are first named.
+	References    []*ir.ID `protobuf:"bytes,9,rep,name=references" json:"references,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TypeView) Reset() {
+	*x = TypeView{}
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TypeView) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TypeView) ProtoMessage() {}
+
+func (x *TypeView) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TypeView.ProtoReflect.Descriptor instead.
+func (*TypeView) Descriptor() ([]byte, []int) {
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *TypeView) GetForm() Form {
+	if x != nil {
+		return x.Form
+	}
+	return Form_FORM_UNSPECIFIED
+}
+
+func (x *TypeView) GetId() *ir.ID {
+	if x != nil {
+		return x.Id
+	}
+	return nil
+}
+
+func (x *TypeView) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *TypeView) GetElem() *ir.ID {
+	if x != nil {
+		return x.Elem
+	}
+	return nil
+}
+
+func (x *TypeView) GetKey() *ir.ID {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
+func (x *TypeView) GetDecl() *ir.ID {
+	if x != nil {
+		return x.Decl
+	}
+	return nil
+}
+
+func (x *TypeView) GetExtern() *ir.ID {
+	if x != nil {
+		return x.Extern
+	}
+	return nil
+}
+
+func (x *TypeView) GetRefusal() *Refusal {
+	if x != nil {
+		return x.Refusal
+	}
+	return nil
+}
+
+func (x *TypeView) GetReferences() []*ir.ID {
+	if x != nil {
+		return x.References
+	}
+	return nil
+}
+
+// Refusal says why a type is one no schema backend writes. Each backend
+// words the message, since some name the target language.
+type Refusal struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Reason Refusal_Reason         `protobuf:"varint,1,opt,name=reason,enum=tdl.plugin.v1.Refusal_Reason" json:"reason,omitempty"`
+	// subject is the name the message is about: the declaration, the type
+	// parameter, or the constructor that did not resolve.
+	Subject       string       `protobuf:"bytes,2,opt,name=subject" json:"subject,omitempty"`
+	Position      *ir.Position `protobuf:"bytes,3,opt,name=position" json:"position,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Refusal) Reset() {
+	*x = Refusal{}
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Refusal) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Refusal) ProtoMessage() {}
+
+func (x *Refusal) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Refusal.ProtoReflect.Descriptor instead.
+func (*Refusal) Descriptor() ([]byte, []int) {
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *Refusal) GetReason() Refusal_Reason {
+	if x != nil {
+		return x.Reason
+	}
+	return Refusal_REASON_UNSPECIFIED
+}
+
+func (x *Refusal) GetSubject() string {
+	if x != nil {
+		return x.Subject
+	}
+	return ""
+}
+
+func (x *Refusal) GetPosition() *ir.Position {
+	if x != nil {
+		return x.Position
+	}
+	return nil
+}
+
+// DeclView is one entry of the declaration table, as one target sees it.
+type DeclView struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// own is false for a declaration the embedded prelude supplies.
+	Own bool `protobuf:"varint,1,opt,name=own" json:"own,omitempty"`
+	// references are the declarations this one names through its fields,
+	// its variants' fields, a newtype's base, an alias's target, and their
+	// type arguments, with aliases expanded, in the order they are first
+	// named. A declaration naming itself is included.
+	References []*ir.ID `protobuf:"bytes,2,rep,name=references" json:"references,omitempty"`
+	// fielded is set on an enum with a variant carrying fields, making it a
+	// sum type rather than a plain enum.
+	Fielded bool `protobuf:"varint,3,opt,name=fielded" json:"fielded,omitempty"`
+	// discriminant is the property naming an enum's variant on the JSON
+	// wire: the enum's `discriminant` directive, else the target block's,
+	// else "kind".
+	Discriminant string `protobuf:"bytes,4,opt,name=discriminant" json:"discriminant,omitempty"`
+	// underlying is the type at the end of a newtype's chain of newtypes,
+	// unset when the chain wraps itself or reaches a refused type.
+	Underlying *ir.ID `protobuf:"bytes,5,opt,name=underlying" json:"underlying,omitempty"`
+	// words are the last segment of the name split into the words a case
+	// style joins: `userID` is user and ID, `HTTPServer` is HTTP and Server.
+	Words []string `protobuf:"bytes,6,rep,name=words" json:"words,omitempty"`
+	// fields are a structure's fields, in the order Structure.fields lists them.
+	Fields []*MemberView `protobuf:"bytes,7,rep,name=fields" json:"fields,omitempty"`
+	// variants are an enum's variants, in the order Enum.variants lists them.
+	Variants      []*MemberView `protobuf:"bytes,8,rep,name=variants" json:"variants,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeclView) Reset() {
+	*x = DeclView{}
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeclView) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeclView) ProtoMessage() {}
+
+func (x *DeclView) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeclView.ProtoReflect.Descriptor instead.
+func (*DeclView) Descriptor() ([]byte, []int) {
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *DeclView) GetOwn() bool {
+	if x != nil {
+		return x.Own
+	}
+	return false
+}
+
+func (x *DeclView) GetReferences() []*ir.ID {
+	if x != nil {
+		return x.References
+	}
+	return nil
+}
+
+func (x *DeclView) GetFielded() bool {
+	if x != nil {
+		return x.Fielded
+	}
+	return false
+}
+
+func (x *DeclView) GetDiscriminant() string {
+	if x != nil {
+		return x.Discriminant
+	}
+	return ""
+}
+
+func (x *DeclView) GetUnderlying() *ir.ID {
+	if x != nil {
+		return x.Underlying
+	}
+	return nil
+}
+
+func (x *DeclView) GetWords() []string {
+	if x != nil {
+		return x.Words
+	}
+	return nil
+}
+
+func (x *DeclView) GetFields() []*MemberView {
+	if x != nil {
+		return x.Fields
+	}
+	return nil
+}
+
+func (x *DeclView) GetVariants() []*MemberView {
+	if x != nil {
+		return x.Variants
+	}
+	return nil
+}
+
+// MemberView is a field or a variant.
+type MemberView struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// words are the name split as DeclView.words splits it.
+	Words []string `protobuf:"bytes,1,rep,name=words" json:"words,omitempty"`
+	// fields are a variant's fields.
+	Fields        []*MemberView `protobuf:"bytes,2,rep,name=fields" json:"fields,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MemberView) Reset() {
+	*x = MemberView{}
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MemberView) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MemberView) ProtoMessage() {}
+
+func (x *MemberView) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MemberView.ProtoReflect.Descriptor instead.
+func (*MemberView) Descriptor() ([]byte, []int) {
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *MemberView) GetWords() []string {
+	if x != nil {
+		return x.Words
+	}
+	return nil
+}
+
+func (x *MemberView) GetFields() []*MemberView {
+	if x != nil {
+		return x.Fields
+	}
+	return nil
+}
+
 // Response is what a backend returns: file contents, which tdl writes, so
 // tdl enforces path confinement, --verify, and --clean.
 type Response struct {
@@ -537,7 +1121,7 @@ type Response struct {
 
 func (x *Response) Reset() {
 	*x = Response{}
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[5]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -549,7 +1133,7 @@ func (x *Response) String() string {
 func (*Response) ProtoMessage() {}
 
 func (x *Response) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[5]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -562,7 +1146,7 @@ func (x *Response) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Response.ProtoReflect.Descriptor instead.
 func (*Response) Descriptor() ([]byte, []int) {
-	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{5}
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *Response) GetFiles() []*File {
@@ -599,7 +1183,7 @@ type File struct {
 
 func (x *File) Reset() {
 	*x = File{}
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[6]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -611,7 +1195,7 @@ func (x *File) String() string {
 func (*File) ProtoMessage() {}
 
 func (x *File) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[6]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -624,7 +1208,7 @@ func (x *File) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use File.ProtoReflect.Descriptor instead.
 func (*File) Descriptor() ([]byte, []int) {
-	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{6}
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *File) GetPath() string {
@@ -660,7 +1244,7 @@ type ImportRequest struct {
 
 func (x *ImportRequest) Reset() {
 	*x = ImportRequest{}
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[7]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -672,7 +1256,7 @@ func (x *ImportRequest) String() string {
 func (*ImportRequest) ProtoMessage() {}
 
 func (x *ImportRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[7]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -685,7 +1269,7 @@ func (x *ImportRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImportRequest.ProtoReflect.Descriptor instead.
 func (*ImportRequest) Descriptor() ([]byte, []int) {
-	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{7}
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ImportRequest) GetTarget() string {
@@ -723,7 +1307,7 @@ type ImportResponse struct {
 
 func (x *ImportResponse) Reset() {
 	*x = ImportResponse{}
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[8]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -735,7 +1319,7 @@ func (x *ImportResponse) String() string {
 func (*ImportResponse) ProtoMessage() {}
 
 func (x *ImportResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[8]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -748,7 +1332,7 @@ func (x *ImportResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImportResponse.ProtoReflect.Descriptor instead.
 func (*ImportResponse) Descriptor() ([]byte, []int) {
-	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{8}
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ImportResponse) GetModel() *ir.Model {
@@ -783,7 +1367,7 @@ type Diagnostic struct {
 
 func (x *Diagnostic) Reset() {
 	*x = Diagnostic{}
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[9]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -795,7 +1379,7 @@ func (x *Diagnostic) String() string {
 func (*Diagnostic) ProtoMessage() {}
 
 func (x *Diagnostic) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[9]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -808,7 +1392,7 @@ func (x *Diagnostic) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Diagnostic.ProtoReflect.Descriptor instead.
 func (*Diagnostic) Descriptor() ([]byte, []int) {
-	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{9}
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *Diagnostic) GetSeverity() Severity {
@@ -869,12 +1453,58 @@ const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
 	"repeatable\":\n" +
 	"\bFeatures\x12\x14\n" +
 	"\x05reuse\x18\x01 \x01(\bR\x05reuse\x12\x18\n" +
-	"\areverse\x18\x02 \x01(\bR\areverse\"t\n" +
+	"\areverse\x18\x02 \x01(\bR\areverse\"\xa9\x01\n" +
 	"\aRequest\x12\x16\n" +
 	"\x06target\x18\x01 \x01(\tR\x06target\x12&\n" +
 	"\x05model\x18\x02 \x01(\v2\x10.tdl.ir.v1.ModelR\x05model\x12\x10\n" +
 	"\x03out\x18\x03 \x01(\tR\x03out\x12\x17\n" +
-	"\adry_run\x18\x04 \x01(\bR\x06dryRun\"\x86\x01\n" +
+	"\adry_run\x18\x04 \x01(\bR\x06dryRun\x123\n" +
+	"\banalysis\x18\x05 \x01(\v2\x17.tdl.plugin.v1.AnalysisR\banalysis\"h\n" +
+	"\bAnalysis\x12-\n" +
+	"\x05types\x18\x01 \x03(\v2\x17.tdl.plugin.v1.TypeViewR\x05types\x12-\n" +
+	"\x05decls\x18\x02 \x03(\v2\x17.tdl.plugin.v1.DeclViewR\x05decls\"\xd5\x02\n" +
+	"\bTypeView\x12'\n" +
+	"\x04form\x18\x01 \x01(\x0e2\x13.tdl.plugin.v1.FormR\x04form\x12\x1d\n" +
+	"\x02id\x18\x02 \x01(\v2\r.tdl.ir.v1.IDR\x02id\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12!\n" +
+	"\x04elem\x18\x04 \x01(\v2\r.tdl.ir.v1.IDR\x04elem\x12\x1f\n" +
+	"\x03key\x18\x05 \x01(\v2\r.tdl.ir.v1.IDR\x03key\x12!\n" +
+	"\x04decl\x18\x06 \x01(\v2\r.tdl.ir.v1.IDR\x04decl\x12%\n" +
+	"\x06extern\x18\a \x01(\v2\r.tdl.ir.v1.IDR\x06extern\x120\n" +
+	"\arefusal\x18\b \x01(\v2\x16.tdl.plugin.v1.RefusalR\arefusal\x12-\n" +
+	"\n" +
+	"references\x18\t \x03(\v2\r.tdl.ir.v1.IDR\n" +
+	"references\"\xbe\x02\n" +
+	"\aRefusal\x125\n" +
+	"\x06reason\x18\x01 \x01(\x0e2\x1d.tdl.plugin.v1.Refusal.ReasonR\x06reason\x12\x18\n" +
+	"\asubject\x18\x02 \x01(\tR\asubject\x12/\n" +
+	"\bposition\x18\x03 \x01(\v2\x13.tdl.ir.v1.PositionR\bposition\"\xb0\x01\n" +
+	"\x06Reason\x12\x16\n" +
+	"\x12REASON_UNSPECIFIED\x10\x00\x12\x15\n" +
+	"\x11REASON_UNRESOLVED\x10\x01\x12\x10\n" +
+	"\fREASON_PARAM\x10\x02\x12\x0f\n" +
+	"\vREASON_UNIT\x10\x03\x12\x10\n" +
+	"\fREASON_CLASS\x10\x04\x12\x14\n" +
+	"\x10REASON_UNIT_DECL\x10\x05\x12\x14\n" +
+	"\x10REASON_TYPE_ARGS\x10\x06\x12\x16\n" +
+	"\x12REASON_MISSING_ARG\x10\a\"\xb8\x02\n" +
+	"\bDeclView\x12\x10\n" +
+	"\x03own\x18\x01 \x01(\bR\x03own\x12-\n" +
+	"\n" +
+	"references\x18\x02 \x03(\v2\r.tdl.ir.v1.IDR\n" +
+	"references\x12\x18\n" +
+	"\afielded\x18\x03 \x01(\bR\afielded\x12\"\n" +
+	"\fdiscriminant\x18\x04 \x01(\tR\fdiscriminant\x12-\n" +
+	"\n" +
+	"underlying\x18\x05 \x01(\v2\r.tdl.ir.v1.IDR\n" +
+	"underlying\x12\x14\n" +
+	"\x05words\x18\x06 \x03(\tR\x05words\x121\n" +
+	"\x06fields\x18\a \x03(\v2\x19.tdl.plugin.v1.MemberViewR\x06fields\x125\n" +
+	"\bvariants\x18\b \x03(\v2\x19.tdl.plugin.v1.MemberViewR\bvariants\"U\n" +
+	"\n" +
+	"MemberView\x12\x14\n" +
+	"\x05words\x18\x01 \x03(\tR\x05words\x121\n" +
+	"\x06fields\x18\x02 \x03(\v2\x19.tdl.plugin.v1.MemberViewR\x06fields\"\x86\x01\n" +
 	"\bResponse\x12)\n" +
 	"\x05files\x18\x01 \x03(\v2\x13.tdl.plugin.v1.FileR\x05files\x12\x12\n" +
 	"\x04post\x18\x02 \x03(\tR\x04post\x12;\n" +
@@ -898,7 +1528,22 @@ const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
 	"\x04code\x18\x04 \x01(\tR\x04code*-\n" +
 	"\x04Mode\x12\x14\n" +
 	"\x10MODE_UNSPECIFIED\x10\x00\x12\x0f\n" +
-	"\vMODE_IMPORT\x10\x01*N\n" +
+	"\vMODE_IMPORT\x10\x01*\xbf\x01\n" +
+	"\x04Form\x12\x14\n" +
+	"\x10FORM_UNSPECIFIED\x10\x00\x12\x12\n" +
+	"\x0eFORM_PRIMITIVE\x10\x01\x12\r\n" +
+	"\tFORM_LIST\x10\x02\x12\f\n" +
+	"\bFORM_SET\x10\x03\x12\f\n" +
+	"\bFORM_MAP\x10\x04\x12\x0f\n" +
+	"\vFORM_OPTION\x10\x05\x12\x11\n" +
+	"\rFORM_NULLABLE\x10\x06\x12\x0e\n" +
+	"\n" +
+	"FORM_NAMED\x10\a\x12\x0f\n" +
+	"\vFORM_EXTERN\x10\b\x12\x0e\n" +
+	"\n" +
+	"FORM_PARAM\x10\t\x12\r\n" +
+	"\tFORM_UNIT\x10\n" +
+	"*N\n" +
 	"\bSeverity\x12\x18\n" +
 	"\x14SEVERITY_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eSEVERITY_ERROR\x10\x01\x12\x14\n" +
@@ -917,43 +1562,69 @@ func file_tdl_plugin_v1_plugin_proto_rawDescGZIP() []byte {
 	return file_tdl_plugin_v1_plugin_proto_rawDescData
 }
 
-var file_tdl_plugin_v1_plugin_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_tdl_plugin_v1_plugin_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_tdl_plugin_v1_plugin_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_tdl_plugin_v1_plugin_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_tdl_plugin_v1_plugin_proto_goTypes = []any{
 	(Mode)(0),              // 0: tdl.plugin.v1.Mode
-	(Severity)(0),          // 1: tdl.plugin.v1.Severity
-	(*Handshake)(nil),      // 2: tdl.plugin.v1.Handshake
-	(*HandshakeReply)(nil), // 3: tdl.plugin.v1.HandshakeReply
-	(*DirectiveSpec)(nil),  // 4: tdl.plugin.v1.DirectiveSpec
-	(*Features)(nil),       // 5: tdl.plugin.v1.Features
-	(*Request)(nil),        // 6: tdl.plugin.v1.Request
-	(*Response)(nil),       // 7: tdl.plugin.v1.Response
-	(*File)(nil),           // 8: tdl.plugin.v1.File
-	(*ImportRequest)(nil),  // 9: tdl.plugin.v1.ImportRequest
-	(*ImportResponse)(nil), // 10: tdl.plugin.v1.ImportResponse
-	(*Diagnostic)(nil),     // 11: tdl.plugin.v1.Diagnostic
-	(ir.LiteralKind)(0),    // 12: tdl.ir.v1.LiteralKind
-	(*ir.Model)(nil),       // 13: tdl.ir.v1.Model
-	(*ir.Position)(nil),    // 14: tdl.ir.v1.Position
+	(Form)(0),              // 1: tdl.plugin.v1.Form
+	(Severity)(0),          // 2: tdl.plugin.v1.Severity
+	(Refusal_Reason)(0),    // 3: tdl.plugin.v1.Refusal.Reason
+	(*Handshake)(nil),      // 4: tdl.plugin.v1.Handshake
+	(*HandshakeReply)(nil), // 5: tdl.plugin.v1.HandshakeReply
+	(*DirectiveSpec)(nil),  // 6: tdl.plugin.v1.DirectiveSpec
+	(*Features)(nil),       // 7: tdl.plugin.v1.Features
+	(*Request)(nil),        // 8: tdl.plugin.v1.Request
+	(*Analysis)(nil),       // 9: tdl.plugin.v1.Analysis
+	(*TypeView)(nil),       // 10: tdl.plugin.v1.TypeView
+	(*Refusal)(nil),        // 11: tdl.plugin.v1.Refusal
+	(*DeclView)(nil),       // 12: tdl.plugin.v1.DeclView
+	(*MemberView)(nil),     // 13: tdl.plugin.v1.MemberView
+	(*Response)(nil),       // 14: tdl.plugin.v1.Response
+	(*File)(nil),           // 15: tdl.plugin.v1.File
+	(*ImportRequest)(nil),  // 16: tdl.plugin.v1.ImportRequest
+	(*ImportResponse)(nil), // 17: tdl.plugin.v1.ImportResponse
+	(*Diagnostic)(nil),     // 18: tdl.plugin.v1.Diagnostic
+	(ir.LiteralKind)(0),    // 19: tdl.ir.v1.LiteralKind
+	(*ir.Model)(nil),       // 20: tdl.ir.v1.Model
+	(*ir.ID)(nil),          // 21: tdl.ir.v1.ID
+	(*ir.Position)(nil),    // 22: tdl.ir.v1.Position
 }
 var file_tdl_plugin_v1_plugin_proto_depIdxs = []int32{
 	0,  // 0: tdl.plugin.v1.Handshake.mode:type_name -> tdl.plugin.v1.Mode
-	4,  // 1: tdl.plugin.v1.HandshakeReply.directives:type_name -> tdl.plugin.v1.DirectiveSpec
-	5,  // 2: tdl.plugin.v1.HandshakeReply.features:type_name -> tdl.plugin.v1.Features
-	12, // 3: tdl.plugin.v1.DirectiveSpec.arg_kinds:type_name -> tdl.ir.v1.LiteralKind
-	13, // 4: tdl.plugin.v1.Request.model:type_name -> tdl.ir.v1.Model
-	8,  // 5: tdl.plugin.v1.Response.files:type_name -> tdl.plugin.v1.File
-	11, // 6: tdl.plugin.v1.Response.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
-	8,  // 7: tdl.plugin.v1.ImportRequest.files:type_name -> tdl.plugin.v1.File
-	13, // 8: tdl.plugin.v1.ImportResponse.model:type_name -> tdl.ir.v1.Model
-	11, // 9: tdl.plugin.v1.ImportResponse.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
-	1,  // 10: tdl.plugin.v1.Diagnostic.severity:type_name -> tdl.plugin.v1.Severity
-	14, // 11: tdl.plugin.v1.Diagnostic.position:type_name -> tdl.ir.v1.Position
-	12, // [12:12] is the sub-list for method output_type
-	12, // [12:12] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	6,  // 1: tdl.plugin.v1.HandshakeReply.directives:type_name -> tdl.plugin.v1.DirectiveSpec
+	7,  // 2: tdl.plugin.v1.HandshakeReply.features:type_name -> tdl.plugin.v1.Features
+	19, // 3: tdl.plugin.v1.DirectiveSpec.arg_kinds:type_name -> tdl.ir.v1.LiteralKind
+	20, // 4: tdl.plugin.v1.Request.model:type_name -> tdl.ir.v1.Model
+	9,  // 5: tdl.plugin.v1.Request.analysis:type_name -> tdl.plugin.v1.Analysis
+	10, // 6: tdl.plugin.v1.Analysis.types:type_name -> tdl.plugin.v1.TypeView
+	12, // 7: tdl.plugin.v1.Analysis.decls:type_name -> tdl.plugin.v1.DeclView
+	1,  // 8: tdl.plugin.v1.TypeView.form:type_name -> tdl.plugin.v1.Form
+	21, // 9: tdl.plugin.v1.TypeView.id:type_name -> tdl.ir.v1.ID
+	21, // 10: tdl.plugin.v1.TypeView.elem:type_name -> tdl.ir.v1.ID
+	21, // 11: tdl.plugin.v1.TypeView.key:type_name -> tdl.ir.v1.ID
+	21, // 12: tdl.plugin.v1.TypeView.decl:type_name -> tdl.ir.v1.ID
+	21, // 13: tdl.plugin.v1.TypeView.extern:type_name -> tdl.ir.v1.ID
+	11, // 14: tdl.plugin.v1.TypeView.refusal:type_name -> tdl.plugin.v1.Refusal
+	21, // 15: tdl.plugin.v1.TypeView.references:type_name -> tdl.ir.v1.ID
+	3,  // 16: tdl.plugin.v1.Refusal.reason:type_name -> tdl.plugin.v1.Refusal.Reason
+	22, // 17: tdl.plugin.v1.Refusal.position:type_name -> tdl.ir.v1.Position
+	21, // 18: tdl.plugin.v1.DeclView.references:type_name -> tdl.ir.v1.ID
+	21, // 19: tdl.plugin.v1.DeclView.underlying:type_name -> tdl.ir.v1.ID
+	13, // 20: tdl.plugin.v1.DeclView.fields:type_name -> tdl.plugin.v1.MemberView
+	13, // 21: tdl.plugin.v1.DeclView.variants:type_name -> tdl.plugin.v1.MemberView
+	13, // 22: tdl.plugin.v1.MemberView.fields:type_name -> tdl.plugin.v1.MemberView
+	15, // 23: tdl.plugin.v1.Response.files:type_name -> tdl.plugin.v1.File
+	18, // 24: tdl.plugin.v1.Response.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
+	15, // 25: tdl.plugin.v1.ImportRequest.files:type_name -> tdl.plugin.v1.File
+	20, // 26: tdl.plugin.v1.ImportResponse.model:type_name -> tdl.ir.v1.Model
+	18, // 27: tdl.plugin.v1.ImportResponse.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
+	2,  // 28: tdl.plugin.v1.Diagnostic.severity:type_name -> tdl.plugin.v1.Severity
+	22, // 29: tdl.plugin.v1.Diagnostic.position:type_name -> tdl.ir.v1.Position
+	30, // [30:30] is the sub-list for method output_type
+	30, // [30:30] is the sub-list for method input_type
+	30, // [30:30] is the sub-list for extension type_name
+	30, // [30:30] is the sub-list for extension extendee
+	0,  // [0:30] is the sub-list for field type_name
 }
 
 func init() { file_tdl_plugin_v1_plugin_proto_init() }
@@ -966,8 +1637,8 @@ func file_tdl_plugin_v1_plugin_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tdl_plugin_v1_plugin_proto_rawDesc), len(file_tdl_plugin_v1_plugin_proto_rawDesc)),
-			NumEnums:      2,
-			NumMessages:   10,
+			NumEnums:      4,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

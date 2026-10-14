@@ -25,6 +25,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/unstoppablemango/tdl/ast"
+	"github.com/unstoppablemango/tdl/internal/analysis"
 	"github.com/unstoppablemango/tdl/internal/sema"
 	"github.com/unstoppablemango/tdl/internal/unlower"
 	"github.com/unstoppablemango/tdl/ir"
@@ -268,7 +269,7 @@ func normal(t *testing.T, target Target, files []*plugin.File) []*plugin.File {
 func generate(t *testing.T, target Target, model *ir.Model) *plugin.Response {
 	t.Helper()
 	name := target.Backend.Describe().Name
-	resp, err := target.Backend.Generate(context.Background(), &plugin.Request{Target: name, Model: model, Out: "out"})
+	resp, err := target.Backend.Generate(context.Background(), &plugin.Request{Target: name, Model: model, Out: "out", Analysis: analysis.Analyze(model, name)})
 	if err != nil {
 		t.Fatalf("generating %s: %v", name, err)
 	}

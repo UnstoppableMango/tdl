@@ -1,7 +1,7 @@
 # Plugins in any language
 
 Design document.
-Nothing here is built; [plugin-sdk-plan.md](plugin-sdk-plan.md) orders the work.
+[plugin-sdk-plan.md](plugin-sdk-plan.md) orders the work and says which phases are built.
 
 [plugins.md](plugins.md) promises that built-in backends get no richer interface than a plugin, and that when a backend needs something the protocol cannot express, the protocol changes.
 The wire keeps that promise, and the libraries do not.
@@ -45,7 +45,8 @@ A `TypeView` is what `emit.Resolve` answers today, for every entry in the type t
 - the form: primitive, list, set, map, option, nullable, named, extern, parameter, or unit;
 - the element and key, as type IDs, with aliases already expanded;
 - the primitive's name, the declaration, or the extern;
-- a refusal, when the type is one no schema backend can write, with the message `Resolve` gives today.
+- a refusal, when the type is one no schema backend can write: a reason, the name it is about, and the position.
+  Each SDK words the message, since some name the target language.
 
 Forms are matched by the prelude's spellings, as lowering matches them, so a replaced prelude still reaches every plugin the same way.
 A backend with generics reads the parameter and unit forms; one without reads the refusal.

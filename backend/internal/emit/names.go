@@ -3,6 +3,8 @@ package emit
 import (
 	"strings"
 	"unicode"
+
+	"github.com/unstoppablemango/tdl/internal/analysis"
 )
 
 // LastSegment is the part of a dotted name after its last dot.
@@ -17,32 +19,7 @@ func LastSegment(name string) string {
 // user and ID, `HTTPServer` is HTTP and Server, and `last4` is one word.
 // Anything that is not a letter or a digit separates words and is dropped.
 func Words(name string) []string {
-	var words []string
-	var cur []rune
-	flush := func() {
-		if len(cur) > 0 {
-			words = append(words, string(cur))
-			cur = nil
-		}
-	}
-
-	r := []rune(name)
-	for i, c := range r {
-		if !unicode.IsLetter(c) && !unicode.IsDigit(c) {
-			flush()
-			continue
-		}
-		if unicode.IsUpper(c) && len(cur) > 0 {
-			prev := cur[len(cur)-1]
-			nextLower := i+1 < len(r) && unicode.IsLower(r[i+1])
-			if unicode.IsLower(prev) || unicode.IsDigit(prev) || (unicode.IsUpper(prev) && nextLower) {
-				flush()
-			}
-		}
-		cur = append(cur, c)
-	}
-	flush()
-	return words
+	return analysis.Words(name)
 }
 
 // Pascal joins words with each one's first letter upper case and the rest

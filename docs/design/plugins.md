@@ -65,12 +65,13 @@ One message carries everything:
 - the resolved model, one package, per [ir.md](ir.md)
 - the output path
 - a dry-run flag
+- the analysis: each type resolved to the prelude's shapes, and what each declaration names, per [plugin-sdk.md](plugin-sdk.md#analysis)
 
 Nothing travels in argv or environment variables, so there is one versioned message to keep compatible.
 
 ### What the model contains
 
-**The prelude.** It is merged into the declaration table untagged, which is what lets a replacement prelude change what a collection is without any backend knowing. A model arrives with every prelude declaration beside its own. Filter by the filename in each declaration's position, as `emit.Own` does.
+**The prelude.** It is merged into the declaration table untagged, which is what lets a replacement prelude change what a collection is without any backend knowing. A model arrives with every prelude declaration beside its own. The analysis marks which declarations are the model's own.
 
 **Directives for every target block.** They are attached to the nodes they apply to, resolved, with the specificity ladder applied, and each carries the name of its block. A plugin keeps the ones whose target matches its request.
 

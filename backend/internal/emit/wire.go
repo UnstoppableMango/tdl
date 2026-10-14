@@ -1,6 +1,9 @@
 package emit
 
-import "github.com/unstoppablemango/tdl/ir"
+import (
+	"github.com/unstoppablemango/tdl/internal/analysis"
+	"github.com/unstoppablemango/tdl/ir"
+)
 
 // The JSON wire convention, shared by every backend that writes or reads a
 // model as JSON: a property is named as the model spells it, a fielded
@@ -9,19 +12,14 @@ import "github.com/unstoppablemango/tdl/ir"
 
 // DefaultDiscriminant is the property a fielded enum's variants carry when
 // no directive names one.
-const DefaultDiscriminant = "kind"
+const DefaultDiscriminant = analysis.DefaultDiscriminant
 
 // Discriminant is the property naming a fielded enum's variant: the enum's
 // `discriminant` directive, else the target block's, else
-// [DefaultDiscriminant].
+// [DefaultDiscriminant]. It reads the directives for the session's target
+// rather than the analysis, which a request may have built for another.
 func (s *Session) Discriminant(enum *ir.Decl) string {
-	if t, ok := s.Text(enum.GetDirectives(), "discriminant"); ok {
-		return t
-	}
-	if d, ok := s.Block("discriminant"); ok {
-		return d.GetArgs()[0].GetText()
-	}
-	return DefaultDiscriminant
+	return analysis.Discriminant(s.Model, s.Target, enum)
 }
 
 // Tag is a variant's discriminant value: its name in the model, which a
