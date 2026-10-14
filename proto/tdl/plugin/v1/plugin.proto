@@ -117,6 +117,153 @@ message Request {
   // write it. A backend may skip work that cannot affect the files; ignoring
   // the flag is correct.
   bool dry_run = 4;
+
+  // analysis is what tdl derives from the model for this target, so a
+  // plugin in any language reads it rather than computing it.
+  Analysis analysis = 5;
+}
+
+// Analysis holds facts about a model that are the same for every backend
+// serving one target: each type reference resolved to the prelude's shapes,
+// and what each declaration names. See docs/design/plugin-sdk.md.
+message Analysis {
+  repeated TypeView types = 1; // indexed like Model.types
+  repeated DeclView decls = 2; // indexed like Model.decls
+}
+
+// Form is which of the prelude's shapes a type resolves to. The shapes are
+// matched by the prelude's spellings, as lowering matches them, so a
+// replaced prelude reaches every plugin the same way.
+enum Form {
+  FORM_UNSPECIFIED = 0;
+  // FORM_PRIMITIVE is a primitive that is not a collection; name says which.
+  FORM_PRIMITIVE = 1;
+  FORM_LIST = 2;
+  FORM_SET = 3;
+  // FORM_MAP has a key and a value; elem is the value.
+  FORM_MAP = 4;
+  // FORM_OPTION is `T?`.
+  FORM_OPTION = 5;
+  // FORM_NULLABLE is `T | null`.
+  FORM_NULLABLE = 6;
+  // FORM_NAMED is a declaration: a struct, an enum, a newtype, a class, or
+  // a unit.
+  FORM_NAMED = 7;
+  // FORM_EXTERN is a declaration in another package.
+  FORM_EXTERN = 8;
+  // FORM_PARAM is a use of a type parameter; name is the parameter's.
+  FORM_PARAM = 9;
+  // FORM_UNIT is a unit of measure.
+  FORM_UNIT = 10;
+}
+
+// TypeView is one entry of the type table, resolved.
+//
+// An entry whose constructor is an alias is described as the type the
+// alias expands to, and id names that entry. elem and key are expanded the
+// same way.
+message TypeView {
+  Form form = 1;
+
+  // id is this entry after alias expansion: the entry itself unless its
+  // constructor is an alias.
+  tdl.ir.v1.ID id = 2;
+
+  // name is the primitive's name, or the type parameter's.
+  string name = 3;
+
+  // elem is the element of a list or a set, the value of a map, and what
+  // an option or a nullable wraps.
+  tdl.ir.v1.ID elem = 4;
+  // key is the key of a map.
+  tdl.ir.v1.ID key = 5;
+
+  // decl is the declaration, for FORM_NAMED; it indexes Model.decls.
+  tdl.ir.v1.ID decl = 6;
+  // extern indexes Model.externs, for FORM_EXTERN.
+  tdl.ir.v1.ID extern = 7;
+
+  // refusal is set when this type is one no schema backend writes. A
+  // backend with generics or units reads the form and may ignore it. A
+  // refusal of an element or a key is on that entry, not this one.
+  Refusal refusal = 8;
+
+  // references are the declarations this type names, through its
+  // arguments, with aliases expanded, in the order they are first named.
+  repeated tdl.ir.v1.ID references = 9;
+}
+
+// Refusal says why a type is one no schema backend writes. Each backend
+// words the message, since some name the target language.
+message Refusal {
+  Reason reason = 1;
+
+  // subject is the name the message is about: the declaration, the type
+  // parameter, or the constructor that did not resolve.
+  string subject = 2;
+
+  tdl.ir.v1.Position position = 3;
+
+  enum Reason {
+    REASON_UNSPECIFIED = 0;
+    // REASON_UNRESOLVED is a constructor naming no declaration.
+    REASON_UNRESOLVED = 1;
+    // REASON_PARAM is a type parameter.
+    REASON_PARAM = 2;
+    // REASON_UNIT is a unit of measure used as a type.
+    REASON_UNIT = 3;
+    // REASON_CLASS is a class used as a type.
+    REASON_CLASS = 4;
+    // REASON_UNIT_DECL is a declared unit used as a type.
+    REASON_UNIT_DECL = 5;
+    // REASON_TYPE_ARGS is a declaration applied to type arguments.
+    REASON_TYPE_ARGS = 6;
+    // REASON_MISSING_ARG is a list, set, or map missing a type argument.
+    // The arguments before it are still set.
+    REASON_MISSING_ARG = 7;
+  }
+}
+
+// DeclView is one entry of the declaration table, as one target sees it.
+message DeclView {
+  // own is false for a declaration the embedded prelude supplies.
+  bool own = 1;
+
+  // references are the declarations this one names through its fields,
+  // its variants' fields, a newtype's base, an alias's target, and their
+  // type arguments, with aliases expanded, in the order they are first
+  // named. A declaration naming itself is included.
+  repeated tdl.ir.v1.ID references = 2;
+
+  // fielded is set on an enum with a variant carrying fields, making it a
+  // sum type rather than a plain enum.
+  bool fielded = 3;
+
+  // discriminant is the property naming an enum's variant on the JSON
+  // wire: the enum's `discriminant` directive, else the target block's,
+  // else "kind".
+  string discriminant = 4;
+
+  // underlying is the type at the end of a newtype's chain of newtypes,
+  // unset when the chain wraps itself or reaches a refused type.
+  tdl.ir.v1.ID underlying = 5;
+
+  // words are the last segment of the name split into the words a case
+  // style joins: `userID` is user and ID, `HTTPServer` is HTTP and Server.
+  repeated string words = 6;
+
+  // fields are a structure's fields, in the order Structure.fields lists them.
+  repeated MemberView fields = 7;
+  // variants are an enum's variants, in the order Enum.variants lists them.
+  repeated MemberView variants = 8;
+}
+
+// MemberView is a field or a variant.
+message MemberView {
+  // words are the name split as DeclView.words splits it.
+  repeated string words = 1;
+  // fields are a variant's fields.
+  repeated MemberView fields = 2;
 }
 
 // Response is what a backend returns: file contents, which tdl writes, so

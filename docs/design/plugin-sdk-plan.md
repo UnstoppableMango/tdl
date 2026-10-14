@@ -3,7 +3,7 @@
 An implementation plan for [plugin-sdk.md](plugin-sdk.md).
 Phases are ordered by dependency, and each states what makes it done.
 
-No phase is done.
+Phase 1 is done.
 
 ## Scope
 
@@ -18,6 +18,9 @@ The F# backend and gRPC are out of scope.
 - `internal/analysis` computes them from a model and a target, moving `Resolve`, `Expand`, `References`, `Fielded`, `Discriminant`, ownership, and name words out of `emit`.
 - `internal/gen` attaches the analysis to every `Request`.
 - `emit.Resolve` and the rest read the analysis, keeping their signatures, so no backend changes.
+  A session without an analysis, as in a test that builds a request by hand, derives one.
+
+The analysis also carries each field's and variant's words, which phase 3 extends with numbers.
 
 Done when every backend's tests and the round-trip corpus pass unchanged, and `TestHostsAgree` holds over a pipe.
 

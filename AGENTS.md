@@ -143,6 +143,8 @@ The plugin protocol in `docs/design/plugins.md` is complete.
   Lowering knows the sugar's spellings (`List`, `Option`, ...) but not their meaning, so the prelude is replaceable.
 - `plugin`: the backend wire protocol, generated from `proto/tdl/plugin/v1/plugin.proto`, plus the framing codec.
   Public.
+- `internal/analysis`: what every backend serving one target would otherwise compute, sent in `plugin.Request.Analysis`: each type table entry resolved to the prelude's shapes with aliases expanded, or refused with a reason; and per declaration, whether it is the prelude's, what it names, its enum discriminant, its newtype chain's end, and the words of its names.
+  `emit` reads it, and derives it when a request carries none.
 - `internal/gen`: the compiler side of the plugin protocol: the backend registry, request building, writing returned files, and `Silence`, which drops warnings with an allowed loss code.
   `internal/gen/echo` is a test backend that writes a model as JSON and imports it back; it is not compiled into `tdl`.
 - `internal/config`: reads the nearest `tdl.toml` above a file; only its `[lossy]` table so far.
@@ -152,7 +154,7 @@ The plugin protocol in `docs/design/plugins.md` is complete.
 
 ### Backends
 
-`backend/internal/emit` holds what every generator shares: which declarations belong to the model, reading one target's directives, positioned warnings, case helpers, `Numbers` for field numbering, `Cascade` (skip every declaration naming a skipped one), and `Resolve`, which expands a type reference to the prelude shape or declaration it names.
+`backend/internal/emit` holds what every generator shares, reading `internal/analysis` through the request: which declarations belong to the model, reading one target's directives, positioned warnings, case helpers, `Numbers` for field numbering, `Cascade` (skip every declaration naming a skipped one), and `Resolve`, which expands a type reference to the prelude shape or declaration it names.
 It also holds the rules more than one target reads: the JSON wire convention (`Discriminant`, `Tag`), `Length` and `Pattern` for the `length` and `matches` constraints, and `PlanInterfaces`, the class plan for a target that writes a class as a nominal interface.
 `Resolve` refuses type parameters and arguments, since only Go generates generics.
 `backend/internal/irtest` builds `*ir.Model` values for backend tests, seeded with the prelude and the `Entity` class.
@@ -263,7 +265,7 @@ After any change to lowering or `ir.Dump`, run `go test ./internal/sema -update`
 ### Docs
 
 `docs/design/` holds designs and plans; each `*-plan.md` names what its phases add, and its opening lines say which are done.
-Read those before assuming a design is built: the Java, ML-family, Python, Rust, Zod, profiles, and plugin SDK designs have no code yet, and Haskell and C# have only phases 1 and 2.
+Read those before assuming a design is built: the Java, ML-family, Python, Rust, Zod, and profiles designs have no code yet, Haskell and C# have only phases 1 and 2, and the plugin SDK only phase 1.
 A design describes the target, not the implementation.
 `workflow.md` is furthest ahead: its `tdl.toml` project model is unbuilt.
 `docs/backlog.md` is wanted, unscheduled work.

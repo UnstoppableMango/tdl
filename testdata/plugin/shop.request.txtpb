@@ -737,3 +737,171 @@ model:  {
   }
 }
 out:  "gen"
+analysis:  {
+  types:  {
+    form:  FORM_PARAM
+    id:  {}
+    name:  "T"
+    refusal:  {
+      reason:  REASON_PARAM
+      subject:  "T"
+      position:  {
+        filename:  "std.tdl"
+        line:  53
+        column:  17
+        end_line:  53
+        end_column:  18
+      }
+    }
+  }
+  types:  {
+    form:  FORM_PARAM
+    id:  {
+      index:  1
+    }
+    name:  "T"
+    refusal:  {
+      reason:  REASON_PARAM
+      subject:  "T"
+      position:  {
+        filename:  "std.tdl"
+        line:  59
+        column:  20
+        end_line:  59
+        end_column:  21
+      }
+    }
+  }
+  types:  {
+    form:  FORM_PRIMITIVE
+    id:  {
+      index:  2
+    }
+    name:  "string"
+    references:  {
+      name:  "string"
+    }
+  }
+  types:  {
+    form:  FORM_PRIMITIVE
+    id:  {
+      index:  3
+    }
+    name:  "int"
+    references:  {
+      index:  1
+      name:  "int"
+    }
+  }
+  decls:  {
+    words:  "string"
+  }
+  decls:  {
+    words:  "int"
+  }
+  decls:  {
+    words:  "bool"
+  }
+  decls:  {
+    words:  "bytes"
+  }
+  decls:  {
+    words:  "int32"
+  }
+  decls:  {
+    words:  "uint32"
+  }
+  decls:  {
+    words:  "int64"
+  }
+  decls:  {
+    words:  "uint64"
+  }
+  decls:  {
+    words:  "float32"
+  }
+  decls:  {
+    words:  "float64"
+  }
+  decls:  {
+    words:  "List"
+  }
+  decls:  {
+    words:  "Set"
+  }
+  decls:  {
+    words:  "Map"
+  }
+  decls:  {
+    words:  "decimal"
+  }
+  decls:  {
+    words:  "uuid"
+  }
+  decls:  {
+    words:  "instant"
+  }
+  decls:  {
+    words:  "date"
+  }
+  decls:  {
+    words:  "duration"
+  }
+  decls:  {
+    words:  "s"
+  }
+  decls:  {
+    words:  "m"
+  }
+  decls:  {
+    words:  "kg"
+  }
+  decls:  {
+    fielded:  true
+    discriminant:  "kind"
+    words:  "Option"
+    variants:  {
+      words:  "Some"
+      fields:  {
+        words:  "value"
+      }
+    }
+    variants:  {
+      words:  "None"
+    }
+  }
+  decls:  {
+    fielded:  true
+    discriminant:  "kind"
+    words:  "Nullable"
+    variants:  {
+      words:  "Present"
+      fields:  {
+        words:  "value"
+      }
+    }
+    variants:  {
+      words:  "Null"
+    }
+  }
+  decls:  {
+    words:  "Entity"
+  }
+  decls:  {
+    own:  true
+    references:  {
+      name:  "string"
+    }
+    references:  {
+      index:  1
+      name:  "int"
+    }
+    words:  "Order"
+    fields:  {
+      words:  "id"
+    }
+    fields:  {
+      words:  "total"
+    }
+  }
+}
