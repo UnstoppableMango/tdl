@@ -229,8 +229,11 @@ func (g *generator) imports(body string, declared map[string]bool) (string, stri
 		names := make([]string, 0, len(g.uses[m]))
 		qualified := false
 		for n := range g.uses[m] {
-			names = append(names, n)
-			qualified = qualified || declared[n]
+			// A type imported with its fields is listed once.
+			if !g.uses[m][n+" (..)"] {
+				names = append(names, n)
+			}
+			qualified = qualified || declared[strings.TrimSuffix(n, " (..)")]
 		}
 		slices.Sort(names)
 

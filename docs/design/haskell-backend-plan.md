@@ -3,7 +3,7 @@
 An implementation plan for [haskell-backend.md](haskell-backend.md).
 Phases are ordered by dependency, and each states what makes it done.
 
-Phases 1, 2, and 3 are done.
+Phases 1 through 4 are done.
 
 ## Scope
 

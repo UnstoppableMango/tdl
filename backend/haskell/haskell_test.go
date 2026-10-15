@@ -506,7 +506,6 @@ func TestDocsAndDeprecation(t *testing.T) {
 func TestNotYetGenerated(t *testing.T) {
 	b := irtest.New("shop")
 	b.Decl(&ir.Decl{Meta: &ir.Meta{Name: "kg"}, Node: &ir.Decl_Unit{Unit: &ir.UnitDef{}}})
-	b.Class("Auditable")
 	b.Own(value("Parcel", irtest.Field("weight", b.Unit("kg", 3))))
 	b.Own(value("Invoice", irtest.Field("money", b.Extern("money.Money"))))
 	b.Own(alias("Cash", b.Extern("money.Money")))
@@ -515,7 +514,6 @@ func TestNotYetGenerated(t *testing.T) {
 
 	resp := generate(t, b.Model)
 	for _, want := range []struct{ code, msg string }{
-		{emit.LossClass, "Auditable is a class"},
 		{emit.LossUnit, "unit-typed field"},
 		{"", "money.Money is declared in another package"},
 		{"", "Shipment names Parcel"},
@@ -529,7 +527,7 @@ func TestNotYetGenerated(t *testing.T) {
 		}
 	}
 	src := check(t, resp)
-	absent(t, src, "Parcel", "Invoice", "Cash", "Shipment", "Auditable")
+	absent(t, src, "Parcel", "Invoice", "Cash", "Shipment")
 	contains(t, src, "data Kept")
 }
 

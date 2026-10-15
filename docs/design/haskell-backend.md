@@ -195,7 +195,7 @@ This is decided across the whole model before rendering, as the Go backend decid
 
 A parameter whose lower-cased spelling is a Haskell keyword, or collides with another parameter of the same declaration, warns and skips its declaration.
 
-A `requires` clause warns until [Classes](#classes) is built, and the declaration is generated without it.
+A `requires` clause is written on the functions generated for the declaration, as [Classes](#classes) describes.
 
 A `unit` kind waits on phase 6 of [haskell-backend-plan.md](haskell-backend-plan.md).
 
@@ -227,11 +227,26 @@ The rest of the spec's class features map directly:
 | `instance <T> Archived<Page<T>> requires Archived<T>` | `instance (Archived t) => Archived (Page t)` |
 | `class C<T> requires D<T>` | `class (D t) => C t` |
 
-A class declared without parameters takes one in Haskell, named `a`, or the first unused of `b`, `c`, and so on when a field type spells `a`.
+A class declared without parameters takes one in Haskell, named `a`, which is the type satisfying it; a field type cannot spell a type variable there, since the class has no parameter for it to name.
+A parameterized class requires its fields of its first parameter, and one taking several parameters and requiring a field warns and is skipped, since none of them is the type holding it.
+A conformance supplies a class's first argument, so `type Order: Projection<OrderSummary>` is `instance Projection Order OrderSummary`, and so does a class written without it in a context, as `class Auditable: Timestamped` writes `Timestamped a`.
 The spec allows a separate instance only in the package declaring the class or the type, which is Haskell's rule against orphan instances, so a generated instance is never an orphan.
 
+A declared conformance's instance follows its declaration, and a separate instance follows every declaration, in source order.
+Two instances writing one Haskell instance, as `instance Auditable<shipping.Address>` and `instance Auditable for shipping.Address` do, or `string` and `uuid` mapping to `Text` do, are written once.
+
+TDL closes satisfaction over the classes a class requires, and Haskell asks for each superclass instance, so an instance of `Auditable` implies one of `Timestamped` at the same head, under the same context, and both are written.
+An associated type binding is written on the instance of the class declaring it.
+A class reaching itself through what it requires is written under `UndecidableSuperClasses`.
+
+An instance for another package's type imports it with its fields, `Address (..)`, since `HasField` sees a field only when it is in scope.
+An instance binding no type for one of its class's associated types, or one whose subject labels a required field differently from the class, through a `name` directive on either, warns and is dropped.
+So does one whose class's `requires` clause asks for an instance the module does not write, as `class Tagged<T> requires Labelled<T>` asks of every type satisfying `Tagged`, and so, in turn, does one needing a dropped instance.
+A class in another package is not referenced at all: its own requirements, such as the instances its superclasses need, are in a model this module cannot see.
+An instance of one warns and is skipped, and a context naming one is written without it.
+
 `requires` on a struct, enum, or newtype has no place on the type, since Haskell deprecated datatype contexts.
-It is written on every function the backend generates for the type, and warns once at the clause, because a consumer can build an `Envelope Int` the model forbids.
+It is written on every function the backend generates for the type, `envelopeKey :: (Auditable t) => Envelope t -> Text`, and warns once at each constraint, because a consumer can build an `Envelope Int` the model forbids.
 
 `Entity` is the prelude's and is not generated, so `requires Entity<T>` and `class Auditable requires Entity` warn and are emitted without it, as in Go.
 
@@ -350,7 +365,8 @@ The pragma names a field by its label alone, so a deprecated field whose label a
 These warn with the node's position, and the declaration reaching one is skipped: an extern with no mapping, a unit-typed field until phase 6, a parameter or field whose name cannot be escaped, a constructor collision, and a field two variants spell with different types.
 `emit.Cascade` then skips every declaration naming a skipped one.
 
-These warn and the declaration is still emitted: `matches`, a `where` constraint the backend gives no meaning to, a `requires` clause on a type, a `requires` naming `Entity`, and a `key` the backend cannot generate.
+These warn and the declaration is still emitted: `matches`, a `where` constraint the backend gives no meaning to, a `requires` clause on a type, a `requires` naming `Entity` or a class in another package, and a `key` the backend cannot generate.
+An instance the backend cannot write warns and is dropped, as [Classes](#classes) lists.
 
 An error stops the run, and only a module name Haskell refuses earns one.
 

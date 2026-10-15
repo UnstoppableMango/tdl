@@ -87,6 +87,9 @@ type generator struct {
 	// beyond pragmas, for the declaration being rendered.
 	uses map[string]map[string]bool
 	exts map[string]bool
+	// needs holds every class and type a render names that another render
+	// may fail to declare.
+	needs []*ir.Decl
 
 	// self is the generated module.
 	self string
@@ -125,8 +128,9 @@ type rendered struct {
 
 	// uses is what it imports, by module, and exts the extensions it
 	// needs.
-	uses map[string]map[string]bool
-	exts map[string]bool
+	uses  map[string]map[string]bool
+	exts  map[string]bool
+	needs []*ir.Decl
 }
 
 type fieldPragma struct{ label, pragma string }
@@ -165,11 +169,10 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	held := map[*ir.Decl][]*plugin.Diagnostic{}
 	for _, d := range own {
 		mark := len(g.Diags)
-		g.uses = map[string]map[string]bool{}
-		g.exts = map[string]bool{}
+		g.begin()
 		r, err := g.decl(d)
 		if r != nil {
-			r.uses, r.exts = g.uses, g.exts
+			r.uses, r.exts, r.needs = g.uses, g.exts, g.needs
 		}
 		if err != nil {
 			g.Diags = g.Diags[:mark]
@@ -197,6 +200,38 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 			}
 		}
 	}
+	// A class or a function constrained by one names classes as well as
+	// types.
+	for changed := true; changed; {
+		changed = false
+		for _, d := range own {
+			if skipped[d] || out[d] == nil {
+				continue
+			}
+			for _, n := range out[d].needs {
+				if skipped[n] {
+					skipped[d] = true
+					changed = true
+					g.Warn(emit.Unsupported(d.GetMeta().GetPosition(),
+						"%s names %s, which is not generated", d.GetMeta().GetName(), n.GetMeta().GetName()))
+					break
+				}
+			}
+		}
+		if changed {
+			g.Cascade(own, skipped)
+		}
+	}
+	instances := g.instances(own, skipped)
+	after := map[*ir.Decl][]*rendered{}
+	var trailing []*rendered
+	for _, inst := range instances {
+		if inst.after != nil {
+			after[inst.after] = append(after[inst.after], inst.r)
+		} else {
+			trailing = append(trailing, inst.r)
+		}
+	}
 
 	// A skipped declaration's imports would be unused, which -Wall refuses.
 	g.uses = map[string]map[string]bool{}
@@ -208,19 +243,23 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		if r := out[d]; r != nil && !skipped[d] {
 			g.Diags = append(g.Diags, held[d]...)
 			emitted = append(emitted, r)
-			for _, t := range r.types {
-				declared[t] = true
-			}
-			for _, l := range r.labels {
-				labels[l]++
-			}
-			for e := range r.exts {
-				exts[e] = true
-			}
-			for m, names := range r.uses {
-				for n := range names {
-					g.use(imported{m, n})
-				}
+			emitted = append(emitted, after[d]...)
+		}
+	}
+	emitted = append(emitted, trailing...)
+	for _, r := range emitted {
+		for _, t := range r.types {
+			declared[t] = true
+		}
+		for _, l := range r.labels {
+			labels[l]++
+		}
+		for e := range r.exts {
+			exts[e] = true
+		}
+		for m, names := range r.uses {
+			for n := range names {
+				g.use(imported{m, n})
 			}
 		}
 	}
@@ -270,7 +309,7 @@ func (g *generator) decl(d *ir.Decl) (*rendered, error) {
 		// Another module declares it.
 		return nil, nil
 	case d.GetClass() != nil:
-		return nil, emit.Lost(emit.LossClass, pos, "%s is a class, and classes are not generated yet", name)
+		return g.class(d)
 	case d.GetUnit() != nil:
 		return nil, emit.Lost(emit.LossUnit, pos, "%s is a unit, and units are not generated yet", name)
 	case d.GetPrimitive() != nil:
@@ -356,17 +395,7 @@ func (g *generator) decl(d *ir.Decl) (*rendered, error) {
 	}
 
 	g.WarnConstraints(d)
-	for _, ref := range d.Constraints() {
-		class := g.Model.Decl(ref.GetClass()).GetMeta().GetName()
-		if e := ref.GetExtern(); e != nil && int(e.GetIndex()) < len(g.Model.GetExterns()) {
-			class = g.Model.GetExterns()[e.GetIndex()].GetName()
-		}
-		at := ref.GetPosition()
-		if at == nil {
-			at = pos
-		}
-		g.Warn(emit.Lost(emit.LossClass, at, "%s requires %s of its parameters, and class constraints are not generated yet", name, class))
-	}
+	g.warnRequires(d)
 	r.text = b.String()
 	return r, nil
 }
@@ -396,13 +425,18 @@ func (g *generator) keyed(b *strings.Builder, r *rendered, d *ir.Decl, typ strin
 // claim records the type and constructor names a declaration would take,
 // before any is rendered.
 func (g *generator) claim(d *ir.Decl) {
-	if g.foreign[d] != (imported{}) || d.GetStructure() == nil && d.GetEnumeration() == nil && d.GetNewtype() == nil && d.GetAlias() == nil {
+	if g.foreign[d] != (imported{}) || d.GetStructure() == nil && d.GetEnumeration() == nil && d.GetNewtype() == nil && d.GetAlias() == nil && d.GetClass() == nil {
 		return
 	}
 	name := d.GetMeta().GetName()
 	typ := g.DeclName(d, upperFirst)
 	if _, ok := g.names[typ]; !ok {
 		g.names[typ] = name
+	}
+	for _, a := range d.GetClass().GetAssocTypes() {
+		if _, ok := g.names[upperFirst(a.GetMeta().GetName())]; !ok {
+			g.names[upperFirst(a.GetMeta().GetName())] = name
+		}
 	}
 	for _, v := range d.GetEnumeration().GetVariants() {
 		if ctor, err := g.variantName(d, typ, v); err == nil {

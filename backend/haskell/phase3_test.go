@@ -226,7 +226,7 @@ target haskell for shop {
 		{emit.LossGeneric, "type parameters T and t of Clash are both the type variable t"},
 		{emit.LossUnit, "type parameter u of Measured is a unit"},
 		{"", "Uses names Clash"},
-		{emit.LossClass, "Box requires Container of its parameters"},
+		{emit.LossClass, "Box requires Container f of its parameters"},
 		{emit.LossKey, "Doc is parameterized, and a key record of several fields is not generated"},
 	} {
 		found := false
