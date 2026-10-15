@@ -272,8 +272,9 @@ func normal(t *testing.T, target Target, files []*plugin.File) []*plugin.File {
 func generate(t *testing.T, target Target, model *ir.Model) *plugin.Response {
 	t.Helper()
 	name := target.Backend.Describe().Name
-	model = analysis.Scope(model, name)
-	resp, err := target.Backend.Generate(context.Background(), &plugin.Request{Target: name, Model: model, Out: "out", Analysis: analysis.Analyze(model, name)})
+	req, problems := analysis.Request(model, target.Backend.Describe(), name, "out")
+	fatal(t, "analyzing", problems)
+	resp, err := target.Backend.Generate(context.Background(), req)
 	if err != nil {
 		t.Fatalf("generating %s: %v", name, err)
 	}

@@ -1,9 +1,11 @@
 package emit
 
 import (
-	"strconv"
+	"errors"
 
+	"github.com/unstoppablemango/tdl/internal/analysis"
 	"github.com/unstoppablemango/tdl/ir"
+	"github.com/unstoppablemango/tdl/plugin"
 )
 
 // Member is something a wire format numbers: a field or a variant.
@@ -32,116 +34,106 @@ func VariantMembers(variants []*ir.Variant) []Member {
 }
 
 // NumberRule is what a target allows a member's number to be.
-type NumberRule struct {
-	Max int64
-	// Reserved is inclusive ranges that are refused as pins and skipped
-	// when allocating.
-	Reserved [][2]int64
-	// Skip is numbers allocation passes over; the caller refuses pins.
-	Skip map[int64]bool
+type NumberRule = analysis.Rule
+
+// DeclareRule is rule as a backend declares it in its Numbering.
+func DeclareRule(rule NumberRule) *plugin.NumberRule {
+	r := &plugin.NumberRule{Max: rule.Max}
+	for _, rr := range rule.Reserved {
+		r.Reserved = append(r.Reserved, &ir.Range{Low: &rr[0], High: &rr[1]})
+	}
+	return r
 }
 
-// Numbers assigns each member its wire number. A `number` directive pins a
-// member's number; each unpinned member, in declaration order, takes the
-// lowest number from 1 that no pin or earlier member holds and the rule does
-// not reserve or skip. A pin the rule refuses, or two pins sharing one, is
-// an [InvalidError]; running out of numbers is an [UnsupportedError].
+// Space is one list of members a wire format numbers together: a
+// declaration's fields, its variants, or one variant's fields.
+type Space struct {
+	decl    *ir.Decl
+	variant int
+}
+
+const (
+	ownFields = -1
+	variants  = -2
+)
+
+// FieldSpace is a structure's fields.
+func FieldSpace(d *ir.Decl) Space { return Space{d, ownFields} }
+
+// VariantSpace is an enum's variants.
+func VariantSpace(d *ir.Decl) Space { return Space{d, variants} }
+
+// VariantFieldSpace is the fields of an enum's variant i.
+func VariantFieldSpace(d *ir.Decl, i int) Space { return Space{d, i} }
+
+// NumbersIn assigns each member of space its wire number: the numbers the
+// request's analysis carries, which tdl assigned under the backend's
+// Numbering, or else [Session.Numbers]. members lists the space as the
+// analysis does, an inlined field contributing its enum's variants.
+func (s *Session) NumbersIn(space Space, owner string, members []Member, rule NumberRule) ([]int64, error) {
+	if nums := s.numbered(space); len(nums) == len(members) {
+		return nums, nil
+	}
+	return s.Numbers(owner, members, rule)
+}
+
+// numbered is the numbers the analysis gives space, or nil when it gives
+// any member none.
+func (s *Session) numbered(space Space) []int64 {
+	v := s.declView(space.decl)
+	if v == nil {
+		return nil
+	}
+	views := v.GetFields()
+	switch {
+	case space.variant == variants:
+		views = v.GetVariants()
+	case space.variant >= 0:
+		if space.variant >= len(v.GetVariants()) {
+			return nil
+		}
+		views = v.GetVariants()[space.variant].GetFields()
+	}
+	var nums []int64
+	for _, m := range views {
+		switch {
+		case len(m.GetInlined()) > 0:
+			nums = append(nums, m.GetInlined()...)
+		case m.GetNumber() > 0:
+			nums = append(nums, m.GetNumber())
+		default:
+			return nil
+		}
+	}
+	return nums
+}
+
+// Numbers assigns each member its wire number, as tdl does for a request
+// it numbers. A `number` directive pins a member's number; each unpinned
+// member, in declaration order, takes the lowest number from 1 that no pin
+// or earlier member holds and the rule does not reserve or skip. A pin the
+// rule refuses, or two pins sharing one, is an [InvalidError]; running out
+// of numbers is an [UnsupportedError].
 func (s *Session) Numbers(owner string, members []Member, rule NumberRule) ([]int64, error) {
-	nums := make([]int64, len(members))
-	by := map[int64]string{}
-
+	ms := make([]analysis.Member, len(members))
 	for i, m := range members {
-		d, ok := s.Find(m.Directives, "number")
-		if !ok {
-			continue
-		}
-		arg := d.GetArgs()[0]
-		pos := d.GetPosition()
-		n, err := strconv.ParseInt(arg.GetText(), 0, 64)
-		if arg.GetKind() != ir.LiteralKind_LITERAL_KIND_INT || err != nil {
-			return nil, Invalid(pos, "%s.%s is numbered %q, and a number is an integer", owner, m.Name, arg.GetText())
-		}
-		if err := s.checkNumber(owner, m.Name, n, pos, rule, Invalid); err != nil {
-			return nil, err
-		}
-		if other, ok := by[n]; ok {
-			return nil, Invalid(pos, "%s.%s and %s.%s are both numbered %d", owner, other, owner, m.Name, n)
-		}
-		by[n] = m.Name
-		nums[i] = n
-	}
-
-	taken := func(n int64) bool {
-		return by[n] != "" || rule.Skip[n] || reserved(n, rule) != nil
-	}
-	next := int64(1)
-	for i, m := range members {
-		if nums[i] != 0 {
-			continue
-		}
-		for taken(next) {
-			next++
-		}
-		if err := s.checkNumber(owner, m.Name, next, m.Position, rule, Unsupported); err != nil {
-			return nil, err
-		}
-		by[next] = m.Name
-		nums[i] = next
-	}
-	return nums, nil
-}
-
-// checkNumber refuses a number the rule does not allow, through report.
-func (s *Session) checkNumber(owner, name string, n int64, pos *ir.Position, rule NumberRule, report func(*ir.Position, string, ...any) error) error {
-	if n < 1 || n > rule.Max {
-		return report(pos, "%s.%s is numbered %d, and %s numbers run from 1 to %d", owner, name, n, s.Lang, rule.Max)
-	}
-	if r := reserved(n, rule); r != nil {
-		return report(pos, "%s.%s is numbered %d, which %s reserves (%d to %d)", owner, name, n, s.Lang, r[0], r[1])
-	}
-	return nil
-}
-
-// reserved is the range in rule holding n, or nil when none does.
-func reserved(n int64, rule NumberRule) *[2]int64 {
-	for i, r := range rule.Reserved {
-		if n >= r[0] && n <= r[1] {
-			return &rule.Reserved[i]
+		ms[i] = analysis.Member{Name: m.Name, Position: m.Position}
+		if d, ok := s.Find(m.Directives, "number"); ok {
+			ms[i].Pin = d
 		}
 	}
-	return nil
+	nums, err := analysis.Assign(owner, s.Lang, ms, rule)
+	if e, ok := errors.AsType[*analysis.NumberError](err); ok {
+		if e.Invalid {
+			return nil, Invalid(e.Position, "%s", e.What)
+		}
+		return nil, Unsupported(e.Position, "%s", e.What)
+	}
+	return nums, err
 }
 
 // Pins is which members need a `number` directive for [Session.Numbers] to
 // assign them nums, the numbers a schema already gives them: the fewest,
 // found by pinning the first member allocation gets wrong until none is.
 // A number the rule refuses is pinned, and [Session.Numbers] refuses it.
-func Pins(nums []int64, rule NumberRule) []bool {
-	pinned := make([]bool, len(nums))
-	for {
-		by := map[int64]bool{}
-		for i, n := range nums {
-			if pinned[i] {
-				by[n] = true
-			}
-		}
-		next, wrong := int64(1), -1
-		for i, n := range nums {
-			if pinned[i] {
-				continue
-			}
-			for by[next] || rule.Skip[next] || reserved(next, rule) != nil {
-				next++
-			}
-			if next != n {
-				wrong = i
-				break
-			}
-			by[next] = true
-		}
-		if wrong < 0 {
-			return pinned
-		}
-		pinned[wrong] = true
-	}
-}
+func Pins(nums []int64, rule NumberRule) []bool { return analysis.Pins(nums, rule) }

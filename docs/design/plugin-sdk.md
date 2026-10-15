@@ -66,7 +66,8 @@ Fields, variants, and constraints gain the same kind of view:
 
 - **Fields and variants.** Each gets its number under the backend's rule (see [Numbering](#numbering)) and its name's words.
 - **Constraints.** Each gets its TDL source text, its `length` bounds normalized to an inclusive range, and whether its `matches` pattern is RE2.
-  A malformed length or pattern becomes a host diagnostic, reported once, before any backend runs.
+  A length that can never hold becomes a host diagnostic, reported once, before any backend runs.
+  A pattern RE2 refuses is not one, since a target with an ECMAScript engine reads a lookahead; the view says so, and a backend whose engine is RE2's decides.
 
 ### Directives
 
@@ -76,19 +77,27 @@ It also gains an optional list of allowed values, for directives such as `draft`
 
 ## Numbering
 
-A backend that numbers members declares its rule in the handshake, as it declares its directives:
+A backend that numbers members declares its rules in the handshake, as it declares its directives:
 
 ```proto
+message Numbering {
+  NumberRule fields = 1; // a structure's fields, a fielded enum's variants, a variant's fields
+  NumberRule values = 2; // a fieldless enum's variants
+  string reserve = 3;    // a declaration directive naming numbers its fields may not take
+  string inline = 4;     // a field directive numbering its enum's variants in the field's place
+}
+
 message NumberRule {
   int64 max = 1;
-  repeated Range reserved = 2;
-  bool skip_zero = 3;
+  repeated tdl.ir.v1.Range reserved = 2;
 }
 ```
 
-The host applies `number` pins and allocates the lowest free number to each remaining member.
-It reports a pin out of range or on a reserved number before generating anything.
-Protobuf and Thrift declare a rule; a backend that does not number declares none and receives no numbers.
+Numbers start at 1.
+The host applies `number` pins and allocates the lowest free number to each remaining member, writing it on the member's view.
+It reports a pin out of range, on a reserved number, or shared with another pin before generating anything.
+Protobuf and Thrift declare rules; Protobuf also names `reserved` and `oneof`.
+A backend that does not number declares none and receives no numbers.
 
 ## Round trips and import
 

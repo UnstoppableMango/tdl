@@ -146,6 +146,8 @@ The plugin protocol in `docs/design/plugins.md` is complete.
 - `internal/analysis`: what every backend serving one target would otherwise compute, sent in `plugin.Request.Analysis`: each type table entry resolved to the prelude's shapes with aliases expanded, or refused with a reason; and per declaration, whether it is the prelude's, what it names, its enum discriminant, its newtype chain's end, and the words of its names.
   `emit` reads it, and derives it when a request carries none.
   `Scope` cuts a model down to one target's block and directives, which is all a request carries.
+  It also reads each constraint (`constraints.go`) and, under a backend's declared `Numbering`, numbers every field and variant (`numbers.go`); `emit.Length`, `Pattern`, `ConstraintText`, and `Session.Numbers` share that code, and `Session.NumbersIn` reads the numbers a request carries.
+  `Request` builds every request a host sends, returning a length that can never hold or a refused pin as errors to report before the backend runs.
 - `internal/gen`: the compiler side of the plugin protocol: the backend registry, request building, writing returned files, and `Silence`, which drops warnings with an allowed loss code.
   `check.go` holds every directive to its backend's `DirectiveSpec` (arity, kinds, placement, allowed values, repeats) before the backend runs, so a backend need not check them itself.
   `internal/gen/echo` is a test backend that writes a model as JSON and imports it back; it is not compiled into `tdl`.
@@ -268,7 +270,7 @@ After any change to lowering or `ir.Dump`, run `go test ./internal/sema -update`
 ### Docs
 
 `docs/design/` holds designs and plans; each `*-plan.md` names what its phases add, and its opening lines say which are done.
-Read those before assuming a design is built: the Java, ML-family, Python, Rust, Zod, profiles, and unions designs have no code yet, Haskell has only phases 1 to 3, C# only phases 1 and 2, and the plugin SDK only phases 1 and 2.
+Read those before assuming a design is built: the Java, ML-family, Python, Rust, Zod, profiles, and unions designs have no code yet, Haskell has only phases 1 to 3, C# only phases 1 and 2, and the plugin SDK only phases 1 to 3.
 A design describes the target, not the implementation.
 `workflow.md` is furthest ahead: its `tdl.toml` project model is unbuilt.
 `docs/backlog.md` is wanted, unscheduled work.

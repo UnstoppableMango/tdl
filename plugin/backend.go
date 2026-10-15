@@ -41,6 +41,10 @@ type Description struct {
 
 	// Reverse says the backend is an [Importer].
 	Reverse bool
+
+	// Numbering is how the backend numbers fields and variants, or nil
+	// for a backend that does not.
+	Numbering *Numbering
 }
 
 // Reply turns a description into the handshake reply that carries it.
@@ -51,6 +55,7 @@ func (d Description) Reply() *HandshakeReply {
 		Version:    d.Version,
 		Directives: d.Directives,
 		Features:   &Features{Reuse: d.Reuse, Reverse: d.Reverse},
+		Numbering:  d.Numbering,
 	}
 }
 

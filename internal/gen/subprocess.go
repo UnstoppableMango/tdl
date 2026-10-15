@@ -76,6 +76,7 @@ func description(reply *plugin.HandshakeReply) plugin.Description {
 		Directives: reply.GetDirectives(),
 		Reuse:      reply.GetFeatures().GetReuse(),
 		Reverse:    reply.GetFeatures().GetReverse(),
+		Numbering:  reply.GetNumbering(),
 	}
 }
 

@@ -249,6 +249,26 @@ func TestBlockRepeatsAreTies(t *testing.T) {
 // TestCorporaPlaceDirectives holds every built-in backend's placements to
 // what the files in the repository write.
 func TestCorporaPlaceDirectives(t *testing.T) {
+	for path, model := range corpora(t) {
+		for _, block := range model.GetTargets() {
+			name := block.GetMeta().GetName()
+			backend, ok := gen.Builtin(name)
+			if !ok {
+				continue
+			}
+			for _, p := range gen.CheckDirectives(name, model, backend.Describe()) {
+				if p.GetSeverity() == plugin.Severity_SEVERITY_ERROR {
+					t.Errorf("%s: %s: %s", path, name, p.GetMessage())
+				}
+			}
+		}
+	}
+}
+
+// corpora lowers every file in the corpora and examples that lowers, by
+// path.
+func corpora(t *testing.T) map[string]*ir.Model {
+	t.Helper()
 	var paths []string
 	for _, glob := range []string{
 		"../../testdata/conformance/*/source.tdl",
@@ -263,6 +283,7 @@ func TestCorporaPlaceDirectives(t *testing.T) {
 		paths = append(paths, found...)
 	}
 
+	models := map[string]*ir.Model{}
 	for _, path := range paths {
 		data, err := os.ReadFile(path)
 		if err != nil {
@@ -276,17 +297,7 @@ func TestCorporaPlaceDirectives(t *testing.T) {
 		if len(diags) > 0 {
 			continue
 		}
-		for _, block := range model.GetTargets() {
-			name := block.GetMeta().GetName()
-			backend, ok := gen.Builtin(name)
-			if !ok {
-				continue
-			}
-			for _, p := range gen.CheckDirectives(name, model, backend.Describe()) {
-				if p.GetSeverity() == plugin.Severity_SEVERITY_ERROR {
-					t.Errorf("%s: %s: %s", path, name, p.GetMessage())
-				}
-			}
-		}
+		models[path] = model
 	}
+	return models
 }

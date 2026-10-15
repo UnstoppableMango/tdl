@@ -71,6 +71,12 @@ func (Backend) Describe() plugin.Description {
 			{Name: "roundtrip", Placements: plugin.On(plugin.OnBlock)},
 		},
 		Reverse: true,
+		Numbering: &plugin.Numbering{
+			Fields:  emit.DeclareRule(fieldNumbers),
+			Values:  emit.DeclareRule(enumNumbers),
+			Reserve: "reserved",
+			Inline:  "oneof",
+		},
 	}
 }
 
@@ -463,7 +469,7 @@ func (g *generator) message(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	fmt.Fprintf(b, "message %s {\n", name)
 	numbers, names := g.reserved(b, d)
 	g.declOptions(b, d.GetMeta(), d.GetDirectives(), g.structAnnotation(d, name))
-	slots, err := g.fields(b, "  ", name, d.Fields(), nil, numbers)
+	slots, err := g.fields(b, "  ", emit.FieldSpace(d), name, d.Fields(), nil, numbers)
 	if err != nil {
 		return nil, err
 	}
@@ -596,7 +602,7 @@ func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 		return nil, err
 	}
 	variants := d.GetEnumeration().GetVariants()
-	nums, err := g.Numbers(name, emit.VariantMembers(variants), enumNumbers)
+	nums, err := g.NumbersIn(emit.VariantSpace(d), name, emit.VariantMembers(variants), enumNumbers)
 	if err != nil {
 		return nil, err
 	}
@@ -645,7 +651,7 @@ func (g *generator) sum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 		return nil, err
 	}
 	variants := d.GetEnumeration().GetVariants()
-	nums, err := g.Numbers(name, emit.VariantMembers(variants), fieldNumbers)
+	nums, err := g.NumbersIn(emit.VariantSpace(d), name, emit.VariantMembers(variants), fieldNumbers)
 	if err != nil {
 		return nil, err
 	}
@@ -687,7 +693,7 @@ func (g *generator) sum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 		} else {
 			g.CheckRenamed(v.GetDirectives(), emit.Pascal(messages[i]) != messages[i], "%s.%s", name, v.GetMeta().GetName())
 		}
-		if _, err := g.fields(b, "    ", name+"."+messages[i], v.GetFields(), nested, nil); err != nil {
+		if _, err := g.fields(b, "    ", emit.VariantFieldSpace(d, i), name+"."+messages[i], v.GetFields(), nested, nil); err != nil {
 			return nil, err
 		}
 		b.WriteString("  }\n")
@@ -711,9 +717,10 @@ type slot struct {
 }
 
 // fields renders a message body and returns the slots it gave out, in
-// order. nested is the sibling message names a reference must step around;
-// skip is the numbers unpinned members pass over.
-func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*ir.Field, nested map[string]bool, skip map[int64]bool) ([]slot, error) {
+// order. space is where the analysis numbers them; nested is the sibling
+// message names a reference must step around; skip is the numbers
+// unpinned members pass over.
+func (g *generator) fields(b *strings.Builder, indent string, space emit.Space, owner string, fields []*ir.Field, nested map[string]bool, skip map[int64]bool) ([]slot, error) {
 	// An inlined oneof's variants take numbers in the message's space; the
 	// oneof takes none.
 	var members []emit.Member
@@ -735,7 +742,7 @@ func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*i
 	}
 	rule := fieldNumbers
 	rule.Skip = skip
-	nums, err := g.Numbers(owner, members, rule)
+	nums, err := g.NumbersIn(space, owner, members, rule)
 	if err != nil {
 		return nil, err
 	}
