@@ -167,8 +167,8 @@ func comesBack(t *testing.T, target Target, importer plugin.Importer, source str
 		t.Errorf("generating %s with %s warns: %s", source, Directive, d.GetMessage())
 	}
 
-	imported := importFiles(t, importer, name, resp.GetFiles())
-	printed := ast.Fprint(unlower.File(imported.GetModel()))
+	imported, _ := importFiles(t, importer, name, resp.GetFiles())
+	printed := ast.Fprint(unlower.File(imported))
 	got := lower(t, source, printed)
 
 	// A request carries only its target's directives, so only those can
@@ -190,11 +190,11 @@ func schemaFirst(t *testing.T, target Target, importer plugin.Importer, dir stri
 		t.Fatalf("%s holds no %s files to import", dir, name)
 	}
 
-	resp := importFiles(t, importer, name, files)
-	golden(t, filepath.Join(dir, Golden), resp.GetDiagnostics())
+	imported, diags := importFiles(t, importer, name, files)
+	golden(t, filepath.Join(dir, Golden), diags)
 
 	expected := filepath.Join(dir, Expected)
-	printed := ast.Fprint(unlower.File(resp.GetModel()))
+	printed := ast.Fprint(unlower.File(imported))
 	if *update {
 		write(t, expected, printed)
 	}
@@ -282,17 +282,21 @@ func generate(t *testing.T, target Target, model *ir.Model) *plugin.Response {
 	return resp
 }
 
-func importFiles(t *testing.T, importer plugin.Importer, name string, files []*plugin.File) *plugin.ImportResponse {
+func importFiles(t *testing.T, importer plugin.Importer, name string, files []*plugin.File) (*ir.Model, []*plugin.Diagnostic) {
 	t.Helper()
 	resp, err := importer.Import(context.Background(), &plugin.ImportRequest{Target: name, Files: files})
 	if err != nil {
 		t.Fatalf("importing %s: %v", name, err)
 	}
 	fatal(t, "importing", resp.GetDiagnostics())
-	if resp.GetModel() == nil {
+	model, err := analysis.Imported(resp)
+	if err != nil {
+		t.Fatalf("importing %s: %v", name, err)
+	}
+	if model == nil {
 		t.Fatalf("%s imported no model", name)
 	}
-	return resp
+	return model, resp.GetDiagnostics()
 }
 
 func fatal(t *testing.T, doing string, diags []*plugin.Diagnostic) {

@@ -1,10 +1,11 @@
 // Package echo is a test backend that writes the model it is given as
-// JSON and imports that JSON back, so the import protocol is exercised
-// before any real reverse backend exists. It is not compiled into tdl.
+// JSON and imports that JSON back, or TDL source as source, so both forms
+// of an import response are exercised. It is not compiled into tdl.
 package echo
 
 import (
 	"context"
+	"strings"
 
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -34,9 +35,10 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	return &plugin.Response{Files: []*plugin.File{{Path: File, Content: data}}}, nil
 }
 
-// Import reads the first file as a model in JSON. Every import warns
-// with lossy.order, ignoring the request's allowed codes, so the host's
-// filter has something to drop.
+// Import reads the first file as a model in JSON, or returns it as source
+// when it is a .tdl file, so the host lowers it. Every import warns with
+// lossy.order, ignoring the request's allowed codes, so the host's filter
+// has something to drop.
 func (Backend) Import(_ context.Context, req *plugin.ImportRequest) (*plugin.ImportResponse, error) {
 	resp := &plugin.ImportResponse{}
 	files := req.GetFiles()
@@ -49,16 +51,20 @@ func (Backend) Import(_ context.Context, req *plugin.ImportRequest) (*plugin.Imp
 	}
 
 	pos := &ir.Position{Filename: files[0].GetPath(), Line: 1, Column: 1}
-	var model ir.Model
-	if err := protojson.Unmarshal(files[0].GetContent(), &model); err != nil {
-		resp.Diagnostics = append(resp.Diagnostics, &plugin.Diagnostic{
-			Severity: plugin.Severity_SEVERITY_ERROR,
-			Message:  err.Error(),
-			Position: pos,
-		})
-		return resp, nil
+	if strings.HasSuffix(files[0].GetPath(), ".tdl") {
+		resp.Source = string(files[0].GetContent())
+	} else {
+		var model ir.Model
+		if err := protojson.Unmarshal(files[0].GetContent(), &model); err != nil {
+			resp.Diagnostics = append(resp.Diagnostics, &plugin.Diagnostic{
+				Severity: plugin.Severity_SEVERITY_ERROR,
+				Message:  err.Error(),
+				Position: pos,
+			})
+			return resp, nil
+		}
+		resp.Model = &model
 	}
-	resp.Model = &model
 
 	resp.Diagnostics = append(resp.Diagnostics, &plugin.Diagnostic{
 		Severity: plugin.Severity_SEVERITY_WARNING,

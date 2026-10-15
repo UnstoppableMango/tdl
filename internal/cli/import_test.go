@@ -70,6 +70,30 @@ func TestImportPrintsTDL(t *testing.T) {
 	}
 }
 
+// An importer returning TDL source prints what one returning the model
+// prints.
+func TestImportReadsSource(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "shop.tdl")
+	if err := os.WriteFile(path, []byte(shopSource), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out, errOut, err := run(t, importCmd(echoResolver), "--from", "echo", path)
+	if err != nil {
+		t.Fatalf("import: %v\n%s", err, errOut)
+	}
+	if out != shopSource {
+		t.Errorf("printed\n%s\nwant\n%s", out, shopSource)
+	}
+
+	if err := os.WriteFile(path, []byte("package shop\n\ntype Order { id: Missing }\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, _, err = run(t, importCmd(echoResolver), "--from", "echo", path)
+	if err == nil || !strings.Contains(err.Error(), "the source the backend returned does not lower") {
+		t.Errorf("err = %v, want the source's lowering error", err)
+	}
+}
+
 // An allowed code prints nothing, whether tdl.toml or the flag allows it.
 func TestImportSilencesAllowedCodes(t *testing.T) {
 	t.Run("tdl.toml", func(t *testing.T) {

@@ -3,7 +3,7 @@
 An implementation plan for [plugin-sdk.md](plugin-sdk.md).
 Phases are ordered by dependency, and each states what makes it done.
 
-Phases 1 to 3 are done.
+Phases 1 to 4 are done.
 
 ## Scope
 

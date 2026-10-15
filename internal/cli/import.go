@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/unstoppablemango/tdl/ast"
+	"github.com/unstoppablemango/tdl/internal/analysis"
 	"github.com/unstoppablemango/tdl/internal/config"
 	"github.com/unstoppablemango/tdl/internal/gen"
 	"github.com/unstoppablemango/tdl/internal/sema"
@@ -97,7 +98,10 @@ func importCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 				return fmt.Errorf("%s reported errors; nothing was written", from)
 			}
 
-			model := resp.GetModel()
+			model, err := analysis.Imported(resp)
+			if err != nil {
+				return fmt.Errorf("%s: %w", from, err)
+			}
 			if model == nil {
 				return fmt.Errorf("%s returned no model", from)
 			}

@@ -3,11 +3,11 @@ package emit
 import (
 	"errors"
 	"fmt"
-	"slices"
 	"strings"
 	"unicode"
 
 	"github.com/unstoppablemango/tdl/ast"
+	"github.com/unstoppablemango/tdl/internal/analysis"
 	"github.com/unstoppablemango/tdl/internal/unlower"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -116,8 +116,9 @@ func (s *Session) Skip(err error) {
 	}
 }
 
-// Unlowered is the model as TDL, built once, read for the TDL an
-// annotation carries.
+// Unlowered is the model as TDL, built once, for a Go backend comparing
+// what it reads back with what the model says. A plugin in another
+// language reads [Session.Items] instead.
 func (s *Session) Unlowered() *ast.File {
 	if s.unlowered == nil {
 		s.unlowered = unlower.File(s.Model)
@@ -125,45 +126,53 @@ func (s *Session) Unlowered() *ast.File {
 	return s.unlowered
 }
 
-// Index is a declaration's index among the unlowered file's items.
+// source is the model as TDL: the request's, which the host sends under
+// the roundtrip directive, or derived when the request carries none.
+func (s *Session) source() *plugin.Source {
+	if src := s.analysis().GetSource(); src != nil {
+		return src
+	}
+	if s.derived == nil {
+		s.derived = analysis.ModelSource(s.Model, s.Target)
+	}
+	return s.derived
+}
+
+// Items is the model's top-level items as TDL, in order.
+func (s *Session) Items() []*plugin.Item {
+	return s.source().GetItems()
+}
+
+// Index is a declaration's index among the model's top-level items.
 func (s *Session) Index(name string) int {
-	for i, d := range s.Unlowered().Decls {
-		if IsDecl(d) && d.Name() == name {
+	for i, it := range s.Items() {
+		if it.GetName() == name {
 			return i
 		}
 	}
 	return -1
 }
 
+// DeclSource is a declaration as TDL, doc comment included, or "" when the
+// model declares nothing by that name.
+func (s *Session) DeclSource(name string) string {
+	if i := s.Index(name); i >= 0 {
+		return s.Items()[i].GetSource()
+	}
+	return ""
+}
+
 // IsDecl reports whether a top-level item is a declaration, which has a
 // name of its own, rather than an instance or a target block.
 func IsDecl(d ast.Decl) bool {
-	switch d.(type) {
-	case *ast.InstanceDecl, *ast.TargetDecl:
-		return false
-	}
-	return true
+	return analysis.IsDecl(d)
 }
 
 // Conforms is a struct's or an enum's conformance list as TDL:
 // `Entity, Auditable`.
 func (s *Session) Conforms(name string) string {
-	for _, decl := range s.Unlowered().Decls {
-		var conforms []*ast.ClassRef
-		switch d := decl.(type) {
-		case *ast.StructDecl:
-			conforms = d.Conforms
-		case *ast.EnumDecl:
-			conforms = d.Conforms
-		default:
-			continue
-		}
-		if decl.Name() != name {
-			continue
-		}
-		head := ast.PrintDecl(&ast.StructDecl{DeclHead: ast.DeclHead{N: "T"}, Keyword: "type", Conforms: conforms})
-		head = strings.TrimPrefix(head, "type T: ")
-		return strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(head), "{ }"))
+	if i := s.Index(name); i >= 0 {
+		return s.Items()[i].GetConforms()
 	}
 	return ""
 }
@@ -171,64 +180,71 @@ func (s *Session) Conforms(name string) string {
 // FieldSource is a field as TDL, without its doc comment, and without its
 // deprecation unless deprecated is set.
 func (s *Session) FieldSource(f *ir.Field, deprecated bool) string {
-	af := unlower.Field(s.Model, f)
-	if !deprecated {
-		af.Dep = nil
+	var src, dep string
+	if v := s.fieldView(f); s.analysis().GetSource() != nil && v != nil {
+		src, dep = v.GetSource(), v.GetDeprecation()
+	} else {
+		src, dep = analysis.FieldSource(s.Model, f)
 	}
-	return ast.PrintField(af)
+	if deprecated && dep != "" {
+		return dep + " " + src
+	}
+	return src
+}
+
+// fieldView is the analysis of a field of a declaration in Model, or nil.
+func (s *Session) fieldView(f *ir.Field) *plugin.MemberView {
+	views := s.analysis().GetDecls()
+	if s.fields == nil {
+		s.fields = map[*ir.Field]*plugin.MemberView{}
+		for i, d := range s.Model.GetDecls() {
+			for j, f := range d.Fields() {
+				s.fields[f] = views[i].GetFields()[j]
+			}
+			for j, v := range d.GetEnumeration().GetVariants() {
+				for k, f := range v.GetFields() {
+					s.fields[f] = views[i].GetVariants()[j].GetFields()[k]
+				}
+			}
+		}
+	}
+	return s.fields[f]
 }
 
 // Carried is a top-level item an annotation carries as TDL, with its index
-// in the unlowered file.
+// among the model's items.
 type Carried struct {
 	At     int
 	Source string
 }
 
-// Carried is every top-level item of the unlowered file that is not an
-// emitted declaration, this target's block without its roundtrip
-// directive included.
+// Carried is every top-level item that is not an emitted declaration,
+// this target's block without its roundtrip directive included.
 func (s *Session) Carried(emitted map[string]bool) []Carried {
 	var out []Carried
-	for i, d := range s.Unlowered().Decls {
-		if IsDecl(d) && emitted[d.Name()] {
+	for i, it := range s.Items() {
+		if it.GetName() != "" && emitted[it.GetName()] || it.GetSource() == "" {
 			continue
 		}
-		if t, ok := d.(*ast.TargetDecl); ok && t.N == s.Target {
-			if d = WithoutRoundtrip(t); d == nil {
-				continue
-			}
-		}
-		out = append(out, Carried{i, PrintItem(d)})
+		out = append(out, Carried{i, it.GetSource()})
 	}
 	return out
 }
 
-// Imports is each import of the unlowered file as TDL.
+// Imports is each import of the model as TDL.
 func (s *Session) Imports() []string {
-	var out []string
-	for _, imp := range s.Unlowered().Imports {
-		out = append(out, strings.TrimSuffix(ast.Fprint(&ast.File{Imports: []*ast.ImportDecl{imp}}), "\n"))
-	}
-	return out
+	return s.source().GetImports()
 }
 
 // WithoutRoundtrip is a target block without the roundtrip directive, or
 // nil when nothing else is in it.
 func WithoutRoundtrip(t *ast.TargetDecl) ast.Decl {
-	out := *t
-	out.Entries = slices.DeleteFunc(slices.Clone(t.Entries), func(e *ast.TargetEntry) bool {
-		return e.Path == "" && e.Directive != nil && e.Directive.N == "roundtrip" && len(e.Directive.Args) == 0
-	})
-	if len(out.Entries) == 0 && len(t.Entries) > 0 {
-		return nil
-	}
-	return &out
+	return analysis.WithoutRoundtrip(t)
 }
 
 // PrintItem is a top-level item as TDL, doc comment included.
 func PrintItem(d ast.Decl) string {
-	return strings.TrimSuffix(ast.Fprint(&ast.File{Decls: []ast.Decl{d}}), "\n")
+	return analysis.PrintItem(d)
 }
 
 // CheckRenamed warns when import would write a `name` directive and the

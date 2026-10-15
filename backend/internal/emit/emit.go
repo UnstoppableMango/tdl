@@ -41,7 +41,9 @@ type Session struct {
 	Diags []*plugin.Diagnostic
 
 	unlowered *ast.File
+	derived   *plugin.Source
 	decls     map[*ir.Decl]int32
+	fields    map[*ir.Field]*plugin.MemberView
 }
 
 // NewSession starts a session for one request.
@@ -56,7 +58,7 @@ func (s *Session) analysis() *plugin.Analysis {
 	a := s.Analysis
 	if a == nil || len(a.GetTypes()) != len(s.Model.GetTypes()) || len(a.GetDecls()) != len(s.Model.GetDecls()) {
 		a = analysis.Analyze(s.Model, s.Target)
-		s.Analysis, s.decls = a, nil
+		s.Analysis, s.decls, s.fields = a, nil, nil
 	}
 	return a
 }
