@@ -165,7 +165,7 @@ Each design names the mapping when its phase for enums is planned.
 
 A target's native union reads back as a union, not a declared enum, wherever the reader can tell:
 
-- TypeScript `A | B` whose members are named types, primitives, or arrays, and a `T & { kind: "T" }` member as a tagged struct.
+- TypeScript `A | B` whose members are named types, primitives, or arrays, a `T & { kind: "T" }` member as a struct alternative, and a `{ kind: "T"; value: T }` member, where `T` is a fielded enum, as that enum's alternative.
 - A Smithy or Thrift union whose members each hold one alternative under a name the variant table produces, and a GraphQL union of object types, are read as a union when the declaration's name is the joined name; otherwise they stay a declared enum.
 - Go and Haskell read a union back under `roundtrip` only, from the annotation the generator writes.
 
