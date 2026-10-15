@@ -8,14 +8,6 @@ Anything with a plan lives in [design/](design/) instead.
 `nix fmt` excludes `.tdl` files.
 Adding `tdl fmt` as a custom formatter in `flake.nix` needs the locally built binary, so formatting the repository would depend on building it.
 
-## Anonymous union types
-
-A field wants `A | B` without a declaration; `enum` requires every alternative to be named and declared.
-`TypeRef` already admits `T | null` as sugar for `Nullable<T>`, so the general case opens up the right-hand side.
-
-The open question is arity: `A | B | C` wants a variadic `Union`, and kinds have nothing variadic, while nesting into `Either` makes association and order significant.
-The answer decides whether this needs a kind-system change, and with it what `ir` carries and how the recursion rules treat a union.
-
 ## An exponent on a parenthesized unit term
 
 `docs/grammar.ebnf` has `UnitTerm = identifier [ "^" int_lit ] | "(" UnitExpr ")" .`, but `parser.parseUnitTerm` accepts `(kg*m)^2` and lowers it to `kg^2*m^2`.

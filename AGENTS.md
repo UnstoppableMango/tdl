@@ -266,7 +266,7 @@ After any change to lowering or `ir.Dump`, run `go test ./internal/sema -update`
 ### Docs
 
 `docs/design/` holds designs and plans; each `*-plan.md` names what its phases add, and its opening lines say which are done.
-Read those before assuming a design is built: the Java, ML-family, Python, Rust, Zod, and profiles designs have no code yet, Haskell has only phases 1 to 3, C# only phases 1 and 2, and the plugin SDK only phase 1.
+Read those before assuming a design is built: the Java, ML-family, Python, Rust, Zod, profiles, and unions designs have no code yet, Haskell has only phases 1 to 3, C# only phases 1 and 2, and the plugin SDK only phase 1.
 A design describes the target, not the implementation.
 `workflow.md` is furthest ahead: its `tdl.toml` project model is unbuilt.
 `docs/backlog.md` is wanted, unscheduled work.
