@@ -125,7 +125,7 @@ func (g *generator) render(b bound) (hsType, error) {
 			return hsType{}, emit.Unsupported(pos, "%s is a synonym applied to %d of its %d type arguments, which Haskell refuses", name, len(args), n)
 		}
 		target := bound{a.GetTarget(), &frame{args[:n]}}
-		if !emit.IsOwn(decl) {
+		if !emit.IsOwn(decl) || g.expand && len(args) == n {
 			if err := most(n); err != nil {
 				return hsType{}, err
 			}

@@ -90,6 +90,9 @@ type generator struct {
 	// needs holds every class and type a render names that another render
 	// may fail to declare.
 	needs []*ir.Decl
+	// expand renders a synonym the model declares as what it names, for
+	// telling instances apart.
+	expand bool
 
 	// self is the generated module.
 	self string

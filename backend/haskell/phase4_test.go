@@ -333,3 +333,29 @@ type Order: Projection<Sum> { x: int }
 		t.Errorf("Archived Text is declared more or less than once:\n%s", src)
 	}
 }
+
+// An instance for an alias and one for its target are one instance, as
+// GHC sees them, and an instance whose class requires an instance the
+// backend cannot name is dropped.
+func TestInstancesGHCWouldRefuse(t *testing.T) {
+	m := lowerSource(t, "shop.tdl", `package shop
+
+class Archived { }
+
+class Listed<T> requires Archived<[T]> { }
+
+alias Tag = string
+
+instance Archived<Tag>
+instance Archived<string>
+
+type Order: Listed { id: string }
+`, nil)
+	resp := generate(t, m)
+	if !warned(resp, "Order's conformance to Listed needs an instance this module cannot name") {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	src := check(t, resp)
+	contains(t, src, "instance Archived Tag\n", "class (Archived [t]) => Listed t\n")
+	absent(t, src, "instance Archived Text", "instance Listed")
+}

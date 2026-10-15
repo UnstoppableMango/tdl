@@ -1,6 +1,7 @@
 package haskell
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"regexp"
@@ -562,7 +563,24 @@ func (g *generator) instance(inst *instance, binds []*ir.AssocBind, doc []string
 	if f, ok := g.foreign[class]; ok {
 		name = g.use(f)
 	}
+	// Instances are told apart with synonyms expanded, as GHC does, so
+	// one for an alias and one for its target are one instance.
 	inst.key = name + " " + h.String()
+	if h.ids != nil {
+		g.quietly(func() {
+			g.expand = true
+			defer func() { g.expand = false }()
+			args := make([]string, len(h.ids))
+			for i, b := range h.ids {
+				t, err := g.render(b)
+				if err != nil {
+					return
+				}
+				args[i] = t.arg()
+			}
+			inst.key = name + " " + strings.Join(args, " ")
+		})
+	}
 	// The head is rendered once, and an implied instance writes it again.
 	for _, ref := range placeholder.FindAllStringSubmatch(h.String(), -1) {
 		g.use(imported{ref[1], ref[2]})
@@ -600,14 +618,28 @@ func (g *generator) instance(inst *instance, binds []*ir.AssocBind, doc []string
 
 	// Each class its class requires and each constraint on its class's
 	// parameters needs an instance at the same head.
+	// A class the class itself is written without needs none, and an
+	// instance the backend cannot name drops this one.
+	var missing error
 	g.quietly(func() {
+		g.expand = true
+		defer func() { g.expand = false }()
 		refs := append(slices.Clone(class.GetClass().GetRequiresClasses()), class.GetClass().GetConstraints()...)
 		for _, ref := range refs {
-			if text, err := g.constraint(ref, h, class); err == nil {
-				inst.requires = append(inst.requires, text)
+			if _, _, err := g.classOf(ref); err != nil {
+				continue
 			}
+			text, err := g.constraint(ref, h, class)
+			if err != nil {
+				missing = cmp.Or(missing, err)
+				continue
+			}
+			inst.requires = append(inst.requires, text)
 		}
 	})
+	if missing != nil {
+		return emit.Lost(emit.LossClass, pos, "%s needs an instance this module cannot name: %v", what, missing)
+	}
 
 	var body []string
 	bound := map[string]bool{}
@@ -638,7 +670,7 @@ func (g *generator) instance(inst *instance, binds []*ir.AssocBind, doc []string
 			g.exts["UndecidableInstances"] = true
 		}
 	}
-	b.WriteString(inst.key)
+	b.WriteString(name + " " + h.String())
 	if len(body) > 0 {
 		g.exts["TypeFamilies"] = true
 		b.WriteString(" where\n" + strings.Join(body, ""))

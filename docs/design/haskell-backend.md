@@ -233,7 +233,7 @@ A conformance supplies a class's first argument, so `type Order: Projection<Orde
 The spec allows a separate instance only in the package declaring the class or the type, which is Haskell's rule against orphan instances, so a generated instance is never an orphan.
 
 A declared conformance's instance follows its declaration, and a separate instance follows every declaration, in source order.
-Two instances writing one Haskell instance, as `instance Auditable<shipping.Address>` and `instance Auditable for shipping.Address` do, or `string` and `uuid` mapping to `Text` do, are written once.
+Two instances writing one Haskell instance, as `instance Auditable<shipping.Address>` and `instance Auditable for shipping.Address` do, or `string` and `uuid` mapping to `Text` do, are written once, and so are two that differ only by a synonym, since GHC expands it.
 
 TDL closes satisfaction over the classes a class requires, and Haskell asks for each superclass instance, so an instance of `Auditable` implies one of `Timestamped` at the same head, under the same context, and both are written.
 An associated type binding is written on the instance of the class declaring it.
@@ -241,7 +241,7 @@ A class reaching itself through what it requires is written under `UndecidableSu
 
 An instance for another package's type imports it with its fields, `Address (..)`, since `HasField` sees a field only when it is in scope.
 An instance binding no type for one of its class's associated types, or one whose subject labels a required field differently from the class, through a `name` directive on either, warns and is dropped.
-So does one whose class's `requires` clause asks for an instance the module does not write, as `class Tagged<T> requires Labelled<T>` asks of every type satisfying `Tagged`, and so, in turn, does one needing a dropped instance.
+So does one whose class's `requires` clause asks for an instance the module does not write, or one a conformance cannot name, as `requires Archived<[T]>` asks of `Order` for `[Order]`, as `class Tagged<T> requires Labelled<T>` asks of every type satisfying `Tagged`, and so, in turn, does one needing a dropped instance.
 A class in another package is not referenced at all: its own requirements, such as the instances its superclasses need, are in a model this module cannot see.
 An instance of one warns and is skipped, and a context naming one is written without it.
 
