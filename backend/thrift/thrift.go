@@ -33,15 +33,15 @@ func (Backend) Describe() plugin.Description {
 		Directives: []*plugin.DirectiveSpec{
 			// The dotted namespace, written as `namespace *`; defaults to
 			// the model's package.
-			{Name: "package", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "package", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock)},
 			// The Thrift name for a declaration, field, enum value, or
 			// variant struct.
-			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.OnMembers()},
 			// The id of a field or variant, or an enum value.
-			{Name: "number", MinArgs: 1, MaxArgs: 1, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_INT}},
+			{Name: "number", MinArgs: 1, MaxArgs: 1, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_INT}, Placements: plugin.On(plugin.OnField, plugin.OnVariant)},
 			// Writes, as tdl.* annotations, every fact the IDL alone would
 			// lose, so import rebuilds the model.
-			{Name: "roundtrip"},
+			{Name: "roundtrip", Placements: plugin.On(plugin.OnBlock)},
 		},
 		Reverse: true,
 	}

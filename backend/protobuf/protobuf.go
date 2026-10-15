@@ -35,40 +35,40 @@ func (Backend) Describe() plugin.Description {
 		Reuse: true,
 		Directives: []*plugin.DirectiveSpec{
 			// The dotted protobuf package; defaults to the model's.
-			{Name: "package", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "package", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock)},
 			// The file name, in place of the package's last segment + .proto.
-			{Name: "file", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "file", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock, plugin.OnDecl)},
 			// The protobuf name for a declaration, field, enum value, or
 			// variant message.
-			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.OnMembers()},
 			// The wire number of a field, variant, or enum value.
-			{Name: "number", MinArgs: 1, MaxArgs: 1, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_INT}},
+			{Name: "number", MinArgs: 1, MaxArgs: 1, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_INT}, Placements: plugin.On(plugin.OnField, plugin.OnVariant)},
 			// The edition the file declares in place of proto3.
-			{Name: "edition", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "edition", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock), Values: []string{"2023", "2024"}},
 			// Numbers or names a message reserves. arg_kinds is per position
 			// and cannot say "int or string", so it is unset.
-			{Name: "reserved", MinArgs: 1, MaxArgs: -1, Repeatable: true},
+			{Name: "reserved", MinArgs: 1, MaxArgs: -1, Repeatable: true, Placements: plugin.On(plugin.OnDecl)},
 			// Inlines a field's sum type into its message as a oneof.
-			{Name: "oneof"},
+			{Name: "oneof", Placements: plugin.On(plugin.OnField)},
 			// A file every output file imports.
-			{Name: "import", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Repeatable: true},
+			{Name: "import", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Repeatable: true, Placements: plugin.On(plugin.OnBlock)},
 			// `name = value`, in a field's or enum value's brackets, or as an
 			// `option` statement in a message, enum, service, or rpc.
-			{Name: "option", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_STRING, ir.LiteralKind_LITERAL_KIND_STRING}, Repeatable: true},
+			{Name: "option", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_STRING, ir.LiteralKind_LITERAL_KIND_STRING}, Repeatable: true, Placements: plugin.On(plugin.OnBlock, plugin.OnDecl, plugin.OnField, plugin.OnVariant)},
 			// A message another proto file declares: the file to import and
 			// the message's full name. The declaration itself is not emitted.
-			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: append(str, str...)},
+			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: append(str, str...), Placements: plugin.On(plugin.OnDecl)},
 			// Emits a structure as a service.
-			{Name: "service"},
+			{Name: "service", Placements: plugin.On(plugin.OnDecl)},
 			// Tags a primitive of two type arguments (request, response)
 			// that a service field applies to declare an rpc.
-			{Name: "rpc"},
+			{Name: "rpc", Placements: plugin.On(plugin.OnDecl)},
 			// Tags a primitive of one type argument marking an rpc's request
 			// or response streamed.
-			{Name: "stream"},
+			{Name: "stream", Placements: plugin.On(plugin.OnDecl)},
 			// Writes, as custom options from tdl/annotations.proto, every
 			// fact the schema alone would lose, so import rebuilds the model.
-			{Name: "roundtrip"},
+			{Name: "roundtrip", Placements: plugin.On(plugin.OnBlock)},
 		},
 		Reverse: true,
 	}

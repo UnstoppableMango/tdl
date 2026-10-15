@@ -87,6 +87,29 @@ message DirectiveSpec {
   // specificity all reach the backend in source order. Otherwise they are
   // an error.
   bool repeatable = 5;
+
+  // placements are where the directive may be written. An empty list
+  // accepts it anywhere. A directive accepted on a declaration is also
+  // accepted on an extern, which is a declaration another package owns.
+  repeated Placement placements = 6;
+
+  // values are what the first argument may be. An empty list accepts any
+  // value.
+  repeated string values = 7;
+}
+
+// Placement is a kind of node a directive lands on.
+enum Placement {
+  PLACEMENT_UNSPECIFIED = 0;
+
+  // The target block itself.
+  PLACEMENT_BLOCK = 1;
+  PLACEMENT_DECL = 2;
+
+  // A field of a declaration or of a variant.
+  PLACEMENT_FIELD = 3;
+  PLACEMENT_VARIANT = 4;
+  PLACEMENT_EXTERN = 5;
 }
 
 // Features are the optional parts of the protocol a backend supports.

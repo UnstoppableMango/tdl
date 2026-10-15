@@ -171,7 +171,10 @@ func comesBack(t *testing.T, target Target, importer plugin.Importer, source str
 	printed := ast.Fprint(unlower.File(imported.GetModel()))
 	got := lower(t, source, printed)
 
-	want, have := withoutDirective(model, name, model), withoutDirective(got, name, model)
+	// A request carries only its target's directives, so only those can
+	// come back.
+	scoped := analysis.Scope(model, name)
+	want, have := withoutDirective(scoped, name, scoped), withoutDirective(got, name, scoped)
 	if a, b := ir.WithoutPositions(want), ir.WithoutPositions(have); !proto.Equal(a, b) {
 		t.Errorf("%s does not come back from %s\n--- imported ---\n%s--- got ---\n%s--- want ---\n%s",
 			source, name, printed, ir.Dump(b), ir.Dump(a))
@@ -269,6 +272,7 @@ func normal(t *testing.T, target Target, files []*plugin.File) []*plugin.File {
 func generate(t *testing.T, target Target, model *ir.Model) *plugin.Response {
 	t.Helper()
 	name := target.Backend.Describe().Name
+	model = analysis.Scope(model, name)
 	resp, err := target.Backend.Generate(context.Background(), &plugin.Request{Target: name, Model: model, Out: "out", Analysis: analysis.Analyze(model, name)})
 	if err != nil {
 		t.Fatalf("generating %s: %v", name, err)

@@ -32,16 +32,16 @@ func (Backend) Describe() plugin.Description {
 		Reuse: true,
 		Directives: []*plugin.DirectiveSpec{
 			// The TypeScript name for a type, property, or variant interface.
-			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.OnMembers()},
 			// The property a discriminated union switches on: the default on
 			// the target block, an override on an enum.
-			{Name: "discriminant", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "discriminant", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock, plugin.OnDecl)},
 			// A module and the type it exports, for a declaration another
 			// package owns.
-			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{str[0], str[0]}},
+			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{str[0], str[0]}, Placements: plugin.On(plugin.OnDecl)},
 			// Writes, as JSDoc @tdl tags, every fact the declarations alone
 			// would lose, so import rebuilds the model.
-			{Name: "roundtrip"},
+			{Name: "roundtrip", Placements: plugin.On(plugin.OnBlock)},
 		},
 		Reverse: true,
 	}

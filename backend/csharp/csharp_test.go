@@ -554,15 +554,6 @@ func TestSkipped(t *testing.T) {
 	}
 }
 
-func TestFieldDirectiveOnDeclaration(t *testing.T) {
-	b := irtest.New("shop")
-	b.Own(named(value("Order"), directive("file", "Order.cs")))
-	resp := generate(t, b.Model)
-	if !warned(resp, "belongs in the target block") {
-		t.Errorf("file on a declaration does not warn: %+v", resp.GetDiagnostics())
-	}
-}
-
 // TestEquality is the plan's test: two orders holding equal item lists
 // compare equal, and so does every collection the record holds.
 func TestEquality(t *testing.T) {

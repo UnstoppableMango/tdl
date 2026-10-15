@@ -45,6 +45,7 @@ func TestRecordedExchanges(t *testing.T) {
 				t.Fatalf("lowering: %v", diags)
 			}
 
+			model = analysis.Scope(model, debug.Name)
 			req := &plugin.Request{Target: debug.Name, Model: model, Out: "gen", Analysis: analysis.Analyze(model, debug.Name)}
 			resp, err := debug.Backend{}.Generate(context.Background(), req)
 			if err != nil {
