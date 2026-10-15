@@ -61,11 +61,14 @@ func (g *generator) key(b *strings.Builder, d *ir.Decl, typ string, dir *ir.Dire
 	v := strings.ToLower(typ[:1])
 	if len(fields) == 1 {
 		fmt.Fprintf(b, "\n-- | What identifies '%s' values.\n", typ)
-		fmt.Fprintf(b, "%s :: %s -> %s\n", fn, typ, fields[0].typ)
+		fmt.Fprintf(b, "%s :: %s -> %s\n", fn, applyTo(typ, d).text, fields[0].typ)
 		fmt.Fprintf(b, "%s %s = %s.%s\n", fn, v, v, fields[0].label)
 		return "", nil, nil
 	}
 
+	if len(d.Params()) > 0 {
+		return "", nil, emit.Lost(emit.LossKey, pos, "%s is parameterized, and a key record of several fields is not generated for one", name)
+	}
 	record := typ + "Key"
 	if other, ok := g.names[record]; ok {
 		return "", nil, emit.Lost(emit.LossKey, pos, "the key record %s would collide with %s", record, other)

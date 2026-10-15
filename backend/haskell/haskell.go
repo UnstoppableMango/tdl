@@ -103,6 +103,10 @@ type generator struct {
 
 	// warned holds each directive already warned about.
 	warned map[*ir.Directive]bool
+
+	// functors holds each declaration deriving Functor, Foldable, and
+	// Traversable.
+	functors map[*ir.Decl]bool
 }
 
 // rendered is one declaration's output.
@@ -147,6 +151,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	g.planForeign()
 
 	own := g.Own()
+	g.planFunctors(own)
 	for _, d := range own {
 		g.claim(d)
 	}
@@ -271,8 +276,6 @@ func (g *generator) decl(d *ir.Decl) (*rendered, error) {
 	case d.GetPrimitive() != nil:
 		// A primitive declares nothing.
 		return nil, nil
-	case len(d.Params()) > 0:
-		return nil, emit.Lost(emit.LossGeneric, pos, "%s is parameterized, and generics are not generated yet", name)
 	}
 
 	typ, err := g.typeName(d)
@@ -281,6 +284,10 @@ func (g *generator) decl(d *ir.Decl) (*rendered, error) {
 	}
 	if other, ok := g.types[typ]; ok {
 		return nil, emit.Unsupported(pos, "%s would declare the type %s in Haskell, and %s already does", name, typ, other)
+	}
+	params, err := g.params(d)
+	if err != nil {
+		return nil, err
 	}
 
 	r := &rendered{types: []string{typ}}
@@ -293,7 +300,7 @@ func (g *generator) decl(d *ir.Decl) (*rendered, error) {
 		if err != nil {
 			return nil, err
 		}
-		fmt.Fprintf(&b, "type %s = %s\n", typ, target.text)
+		fmt.Fprintf(&b, "type %s%s = %s\n", typ, params, target.text)
 		for _, dir := range plugin.Directives(g.Target, d.GetDirectives()) {
 			if dir.GetName() == "derive" {
 				g.Warn(emit.Unsupported(dir.GetPosition(), "%s is an alias, which has no instances of its own to derive", name))
@@ -304,21 +311,23 @@ func (g *generator) decl(d *ir.Decl) (*rendered, error) {
 		if err != nil {
 			return nil, err
 		}
-		fmt.Fprintf(&b, "newtype %s = %s %s\n", typ, typ, base.arg())
-		b.WriteString(g.deriving(eq, ord, show, generic))
-		b.WriteString(g.anyclass(g.derived(d)))
+		fmt.Fprintf(&b, "newtype %s%s = %s %s\n", typ, params, typ, base.arg())
+		if err := g.derivings(&b, d, typ, eq, ord, show); err != nil {
+			return nil, err
+		}
 		ctors = []string{typ}
 	case d.GetStructure() != nil:
 		fields, err := g.fields(r, name, d.Fields(), "  ")
 		if err != nil {
 			return nil, err
 		}
-		fmt.Fprintf(&b, "data %s = %s%s\n", typ, typ, fields)
-		b.WriteString(g.deriving(eq, ord, show, generic))
-		b.WriteString(g.anyclass(g.derived(d)))
+		fmt.Fprintf(&b, "data %s%s = %s%s\n", typ, params, typ, fields)
+		if err := g.derivings(&b, d, typ, eq, ord, show); err != nil {
+			return nil, err
+		}
 		ctors = []string{typ}
 	default:
-		if ctors, err = g.enum(&b, r, d, typ, e); err != nil {
+		if ctors, err = g.enum(&b, r, d, typ, params, e); err != nil {
 			return nil, err
 		}
 	}
@@ -347,6 +356,17 @@ func (g *generator) decl(d *ir.Decl) (*rendered, error) {
 	}
 
 	g.WarnConstraints(d)
+	for _, ref := range d.Constraints() {
+		class := g.Model.Decl(ref.GetClass()).GetMeta().GetName()
+		if e := ref.GetExtern(); e != nil && int(e.GetIndex()) < len(g.Model.GetExterns()) {
+			class = g.Model.GetExterns()[e.GetIndex()].GetName()
+		}
+		at := ref.GetPosition()
+		if at == nil {
+			at = pos
+		}
+		g.Warn(emit.Lost(emit.LossClass, at, "%s requires %s of its parameters, and class constraints are not generated yet", name, class))
+	}
 	r.text = b.String()
 	return r, nil
 }
@@ -396,7 +416,7 @@ func (g *generator) claim(d *ir.Decl) {
 // enum renders an enum as a sum type, returning its constructors. A
 // fieldless enum is written on one line unless a variant carries a doc
 // comment.
-func (g *generator) enum(b *strings.Builder, r *rendered, d *ir.Decl, typ string, e *ir.Enum) ([]string, error) {
+func (g *generator) enum(b *strings.Builder, r *rendered, d *ir.Decl, typ, params string, e *ir.Enum) ([]string, error) {
 	name := d.GetMeta().GetName()
 	variants := e.GetVariants()
 	fielded := emit.Fielded(e)
@@ -457,11 +477,11 @@ func (g *generator) enum(b *strings.Builder, r *rendered, d *ir.Decl, typ string
 
 	switch {
 	case len(variants) == 0:
-		fmt.Fprintf(b, "data %s\n", typ)
+		fmt.Fprintf(b, "data %s%s\n", typ, params)
 	case inline:
-		fmt.Fprintf(b, "data %s = %s\n", typ, strings.Join(lines, " | "))
+		fmt.Fprintf(b, "data %s%s = %s\n", typ, params, strings.Join(lines, " | "))
 	default:
-		fmt.Fprintf(b, "data %s\n", typ)
+		fmt.Fprintf(b, "data %s%s\n", typ, params)
 		for i, line := range lines {
 			lead := "  | "
 			if i == 0 {
@@ -470,12 +490,13 @@ func (g *generator) enum(b *strings.Builder, r *rendered, d *ir.Decl, typ string
 			b.WriteString(lead + line + "\n")
 		}
 	}
+	classes := []imported{eq, ord, show}
 	if !fielded && len(variants) > 0 {
-		b.WriteString(g.deriving(eq, ord, show, read, enum, bounded, generic))
-	} else {
-		b.WriteString(g.deriving(eq, ord, show, generic))
+		classes = append(classes, read, enum, bounded)
 	}
-	b.WriteString(g.anyclass(g.derived(d)))
+	if err := g.derivings(b, d, typ, classes...); err != nil {
+		return nil, err
+	}
 	for _, p := range pragmas {
 		b.WriteString("\n" + p)
 	}
