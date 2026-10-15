@@ -31,20 +31,20 @@ func (Backend) Describe() plugin.Description {
 		Reuse: true,
 		Directives: []*plugin.DirectiveSpec{
 			// The module name, and so the file's path, on the target block.
-			{Name: "module", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "module", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock)},
 			// The Haskell identifier for a declaration, field, or variant.
-			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.OnMembers()},
 			// Writes an enum's variants, or every enum's on the target block,
 			// behind the enum's name.
-			{Name: "prefix"},
+			{Name: "prefix", Placements: plugin.On(plugin.OnBlock, plugin.OnDecl)},
 			// A lazy field under StrictData.
-			{Name: "lazy"},
+			{Name: "lazy", Placements: plugin.On(plugin.OnField)},
 			// The module and type a declaration maps to, declared elsewhere.
-			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: str},
+			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: str, Placements: plugin.On(plugin.OnDecl)},
 			// The fields identifying an entity.
-			{Name: "key", MinArgs: 1, MaxArgs: -1},
+			{Name: "key", MinArgs: 1, MaxArgs: -1, Placements: plugin.On(plugin.OnDecl)},
 			// An anyclass instance of a class, from the module named.
-			{Name: "derive", MinArgs: 2, MaxArgs: 2, ArgKinds: str, Repeatable: true},
+			{Name: "derive", MinArgs: 2, MaxArgs: 2, ArgKinds: str, Repeatable: true, Placements: plugin.On(plugin.OnBlock, plugin.OnDecl)},
 		},
 	}
 }

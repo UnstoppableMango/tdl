@@ -6,6 +6,7 @@ import (
 
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/backend/internal/irtest"
+	"github.com/unstoppablemango/tdl/internal/analysis"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -272,5 +273,43 @@ func TestPins(t *testing.T) {
 		if got := emit.Pins(c.nums, rule); !slices.Equal(got, c.want) {
 			t.Errorf("Pins(%v) = %v, want %v", c.nums, got, c.want)
 		}
+	}
+}
+
+// A request whose analysis numbers a space is read rather than numbered
+// again; one that does not is numbered by the session.
+func TestNumbersInReadsTheAnalysis(t *testing.T) {
+	b := irtest.New("shop")
+	d := &ir.Decl{
+		Meta: &ir.Meta{Name: "Order"},
+		Node: &ir.Decl_Structure{Structure: &ir.Struct{Fields: []*ir.Field{
+			irtest.Field("a", b.Named("string")),
+			irtest.Field("b", b.Named("string")),
+		}}},
+	}
+	b.Own(d)
+	members := emit.FieldMembers(d.Fields())
+	rule := emit.NumberRule{Max: 100}
+
+	s := session(b)
+	if got, err := s.NumbersIn(emit.FieldSpace(d), "Order", members, rule); err != nil || !slices.Equal(got, []int64{1, 2}) {
+		t.Errorf("numbered by the session = %v, %v", got, err)
+	}
+
+	req, _ := analysis.Request(b.Model, plugin.Description{Name: "x"}, "x", "out")
+	for i, dv := range req.GetAnalysis().GetDecls() {
+		if req.GetModel().GetDecls()[i].GetMeta().GetName() == "Order" {
+			dv.GetFields()[0].Number, dv.GetFields()[1].Number = 7, 9
+		}
+	}
+	var scoped *ir.Decl
+	for _, sd := range req.GetModel().GetDecls() {
+		if sd.GetMeta().GetName() == "Order" {
+			scoped = sd
+		}
+	}
+	s = emit.NewSession(req, "X")
+	if got, err := s.NumbersIn(emit.FieldSpace(scoped), "Order", emit.FieldMembers(scoped.Fields()), rule); err != nil || !slices.Equal(got, []int64{7, 9}) {
+		t.Errorf("read from the analysis = %v, %v", got, err)
 	}
 }

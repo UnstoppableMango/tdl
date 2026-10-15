@@ -33,17 +33,21 @@ func (Backend) Describe() plugin.Description {
 		Directives: []*plugin.DirectiveSpec{
 			// The dotted namespace, written as `namespace *`; defaults to
 			// the model's package.
-			{Name: "package", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "package", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock)},
 			// The Thrift name for a declaration, field, enum value, or
 			// variant struct.
-			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.OnMembers()},
 			// The id of a field or variant, or an enum value.
-			{Name: "number", MinArgs: 1, MaxArgs: 1, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_INT}},
+			{Name: "number", MinArgs: 1, MaxArgs: 1, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_INT}, Placements: plugin.On(plugin.OnField, plugin.OnVariant)},
 			// Writes, as tdl.* annotations, every fact the IDL alone would
 			// lose, so import rebuilds the model.
-			{Name: "roundtrip"},
+			{Name: "roundtrip", Placements: plugin.On(plugin.OnBlock)},
 		},
 		Reverse: true,
+		Numbering: &plugin.Numbering{
+			Fields: emit.DeclareRule(fieldNumbers),
+			Values: emit.DeclareRule(enumNumbers),
+		},
 	}
 }
 
@@ -253,7 +257,7 @@ func (g *generator) decl(d *ir.Decl) (*rendered, error) {
 	case d.GetNewtype() != nil:
 		r.names, r.kvs, err = g.typedef(&b, d)
 	case d.GetStructure() != nil:
-		r.names, err = g.structure(&b, "struct", g.DeclName(d, emit.Pascal), d.GetMeta(), d.Fields(), true)
+		r.names, err = g.structure(&b, "struct", emit.FieldSpace(d), g.DeclName(d, emit.Pascal), d.GetMeta(), d.Fields(), true)
 		r.kvs = g.structKVs(d, r.names)
 	case emit.Fielded(e):
 		r.names, r.kvs, err = g.union(&b, d)
@@ -329,10 +333,11 @@ func (g *generator) typedef(b *strings.Builder, d *ir.Decl) ([]string, []kv, err
 	return []string{name}, kvs, nil
 }
 
-// structure renders a struct body, through its closing brace. top is
-// whether it is a declaration's own, rather than a variant's.
-func (g *generator) structure(b *strings.Builder, keyword, name string, meta *ir.Meta, fields []*ir.Field, top bool) ([]string, error) {
-	nums, err := g.Numbers(name, emit.FieldMembers(fields), fieldNumbers)
+// structure renders a struct body, through its closing brace. space is
+// where the analysis numbers its fields, and top is whether it is a
+// declaration's own, rather than a variant's.
+func (g *generator) structure(b *strings.Builder, keyword string, space emit.Space, name string, meta *ir.Meta, fields []*ir.Field, top bool) ([]string, error) {
+	nums, err := g.NumbersIn(space, name, emit.FieldMembers(fields), fieldNumbers)
 	if err != nil {
 		return nil, err
 	}
@@ -385,7 +390,7 @@ func (g *generator) structure(b *strings.Builder, keyword, name string, meta *ir
 func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, []kv, error) {
 	name := g.DeclName(d, emit.Pascal)
 	variants := d.GetEnumeration().GetVariants()
-	nums, err := g.Numbers(name, emit.VariantMembers(variants), enumNumbers)
+	nums, err := g.NumbersIn(emit.VariantSpace(d), name, emit.VariantMembers(variants), enumNumbers)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -420,7 +425,7 @@ func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, []kv, error)
 func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, []kv, error) {
 	name := g.DeclName(d, emit.Pascal)
 	variants := d.GetEnumeration().GetVariants()
-	nums, err := g.Numbers(name, emit.VariantMembers(variants), fieldNumbers)
+	nums, err := g.NumbersIn(emit.VariantSpace(d), name, emit.VariantMembers(variants), fieldNumbers)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -436,7 +441,7 @@ func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, []kv, error
 		if slices.Contains(declared, structName) {
 			return nil, nil, emit.Unsupported(pos, "%s.%s would declare %s in Thrift, which %s already declares", name, vname, structName, name)
 		}
-		if _, err := g.structure(b, "struct", structName, v.GetMeta(), v.GetFields(), false); err != nil {
+		if _, err := g.structure(b, "struct", emit.VariantFieldSpace(d, i), structName, v.GetMeta(), v.GetFields(), false); err != nil {
 			return nil, nil, err
 		}
 		b.WriteString(g.annotations(v.GetMeta(), g.docKVs(v.GetMeta())...))

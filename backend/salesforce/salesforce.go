@@ -34,24 +34,24 @@ func (Backend) Describe() plugin.Description {
 		Directives: []*plugin.DirectiveSpec{
 			// The API name of an object, field, or Apex type, before any
 			// __c suffix.
-			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.OnMembers()},
 			// The label an object or a field shows in the org.
-			{Name: "label", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "label", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnDecl, plugin.OnField)},
 			// An object's plural label.
-			{Name: "plural", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "plural", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnDecl)},
 			// The field identifying an entity, made a unique external ID.
 			// It matches the go target's, so a composite key is accepted
 			// and warned about.
-			{Name: "key", MinArgs: 1, MaxArgs: -1},
+			{Name: "key", MinArgs: 1, MaxArgs: -1, Placements: plugin.On(plugin.OnDecl)},
 			// The length of a Text field.
-			{Name: "length", MinArgs: 1, MaxArgs: 1, ArgKinds: num},
+			{Name: "length", MinArgs: 1, MaxArgs: 1, ArgKinds: num, Placements: plugin.On(plugin.OnField)},
 			// The decimal places of a Number field holding a decimal.
-			{Name: "scale", MinArgs: 1, MaxArgs: 1, ArgKinds: num},
+			{Name: "scale", MinArgs: 1, MaxArgs: 1, ArgKinds: num, Placements: plugin.On(plugin.OnField)},
 			// On the target block: prepended to every Apex type's name,
 			// since an org has one class namespace.
-			{Name: "prefix", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "prefix", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock)},
 			// On the target block: the API version each Apex class declares.
-			{Name: "apiVersion", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "apiVersion", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock)},
 		},
 	}
 }

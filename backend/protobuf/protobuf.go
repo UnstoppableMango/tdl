@@ -35,42 +35,48 @@ func (Backend) Describe() plugin.Description {
 		Reuse: true,
 		Directives: []*plugin.DirectiveSpec{
 			// The dotted protobuf package; defaults to the model's.
-			{Name: "package", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "package", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock)},
 			// The file name, in place of the package's last segment + .proto.
-			{Name: "file", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "file", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock, plugin.OnDecl)},
 			// The protobuf name for a declaration, field, enum value, or
 			// variant message.
-			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.OnMembers()},
 			// The wire number of a field, variant, or enum value.
-			{Name: "number", MinArgs: 1, MaxArgs: 1, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_INT}},
+			{Name: "number", MinArgs: 1, MaxArgs: 1, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_INT}, Placements: plugin.On(plugin.OnField, plugin.OnVariant)},
 			// The edition the file declares in place of proto3.
-			{Name: "edition", MinArgs: 1, MaxArgs: 1, ArgKinds: str},
+			{Name: "edition", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock), Values: []string{"2023", "2024"}},
 			// Numbers or names a message reserves. arg_kinds is per position
 			// and cannot say "int or string", so it is unset.
-			{Name: "reserved", MinArgs: 1, MaxArgs: -1, Repeatable: true},
+			{Name: "reserved", MinArgs: 1, MaxArgs: -1, Repeatable: true, Placements: plugin.On(plugin.OnDecl)},
 			// Inlines a field's sum type into its message as a oneof.
-			{Name: "oneof"},
+			{Name: "oneof", Placements: plugin.On(plugin.OnField)},
 			// A file every output file imports.
-			{Name: "import", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Repeatable: true},
+			{Name: "import", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Repeatable: true, Placements: plugin.On(plugin.OnBlock)},
 			// `name = value`, in a field's or enum value's brackets, or as an
 			// `option` statement in a message, enum, service, or rpc.
-			{Name: "option", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_STRING, ir.LiteralKind_LITERAL_KIND_STRING}, Repeatable: true},
+			{Name: "option", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_STRING, ir.LiteralKind_LITERAL_KIND_STRING}, Repeatable: true, Placements: plugin.On(plugin.OnBlock, plugin.OnDecl, plugin.OnField, plugin.OnVariant)},
 			// A message another proto file declares: the file to import and
 			// the message's full name. The declaration itself is not emitted.
-			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: append(str, str...)},
+			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: append(str, str...), Placements: plugin.On(plugin.OnDecl)},
 			// Emits a structure as a service.
-			{Name: "service"},
+			{Name: "service", Placements: plugin.On(plugin.OnDecl)},
 			// Tags a primitive of two type arguments (request, response)
 			// that a service field applies to declare an rpc.
-			{Name: "rpc"},
+			{Name: "rpc", Placements: plugin.On(plugin.OnDecl)},
 			// Tags a primitive of one type argument marking an rpc's request
 			// or response streamed.
-			{Name: "stream"},
+			{Name: "stream", Placements: plugin.On(plugin.OnDecl)},
 			// Writes, as custom options from tdl/annotations.proto, every
 			// fact the schema alone would lose, so import rebuilds the model.
-			{Name: "roundtrip"},
+			{Name: "roundtrip", Placements: plugin.On(plugin.OnBlock)},
 		},
 		Reverse: true,
+		Numbering: &plugin.Numbering{
+			Fields:  emit.DeclareRule(fieldNumbers),
+			Values:  emit.DeclareRule(enumNumbers),
+			Reserve: "reserved",
+			Inline:  "oneof",
+		},
 	}
 }
 
@@ -463,7 +469,7 @@ func (g *generator) message(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	fmt.Fprintf(b, "message %s {\n", name)
 	numbers, names := g.reserved(b, d)
 	g.declOptions(b, d.GetMeta(), d.GetDirectives(), g.structAnnotation(d, name))
-	slots, err := g.fields(b, "  ", name, d.Fields(), nil, numbers)
+	slots, err := g.fields(b, "  ", emit.FieldSpace(d), name, d.Fields(), nil, numbers)
 	if err != nil {
 		return nil, err
 	}
@@ -596,7 +602,7 @@ func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 		return nil, err
 	}
 	variants := d.GetEnumeration().GetVariants()
-	nums, err := g.Numbers(name, emit.VariantMembers(variants), enumNumbers)
+	nums, err := g.NumbersIn(emit.VariantSpace(d), name, emit.VariantMembers(variants), enumNumbers)
 	if err != nil {
 		return nil, err
 	}
@@ -645,7 +651,7 @@ func (g *generator) sum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 		return nil, err
 	}
 	variants := d.GetEnumeration().GetVariants()
-	nums, err := g.Numbers(name, emit.VariantMembers(variants), fieldNumbers)
+	nums, err := g.NumbersIn(emit.VariantSpace(d), name, emit.VariantMembers(variants), fieldNumbers)
 	if err != nil {
 		return nil, err
 	}
@@ -687,7 +693,7 @@ func (g *generator) sum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 		} else {
 			g.CheckRenamed(v.GetDirectives(), emit.Pascal(messages[i]) != messages[i], "%s.%s", name, v.GetMeta().GetName())
 		}
-		if _, err := g.fields(b, "    ", name+"."+messages[i], v.GetFields(), nested, nil); err != nil {
+		if _, err := g.fields(b, "    ", emit.VariantFieldSpace(d, i), name+"."+messages[i], v.GetFields(), nested, nil); err != nil {
 			return nil, err
 		}
 		b.WriteString("  }\n")
@@ -711,9 +717,10 @@ type slot struct {
 }
 
 // fields renders a message body and returns the slots it gave out, in
-// order. nested is the sibling message names a reference must step around;
-// skip is the numbers unpinned members pass over.
-func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*ir.Field, nested map[string]bool, skip map[int64]bool) ([]slot, error) {
+// order. space is where the analysis numbers them; nested is the sibling
+// message names a reference must step around; skip is the numbers
+// unpinned members pass over.
+func (g *generator) fields(b *strings.Builder, indent string, space emit.Space, owner string, fields []*ir.Field, nested map[string]bool, skip map[int64]bool) ([]slot, error) {
 	// An inlined oneof's variants take numbers in the message's space; the
 	// oneof takes none.
 	var members []emit.Member
@@ -735,7 +742,7 @@ func (g *generator) fields(b *strings.Builder, indent, owner string, fields []*i
 	}
 	rule := fieldNumbers
 	rule.Skip = skip
-	nums, err := g.Numbers(owner, members, rule)
+	nums, err := g.NumbersIn(space, owner, members, rule)
 	if err != nil {
 		return nil, err
 	}

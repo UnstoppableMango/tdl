@@ -183,8 +183,7 @@ func TestHostsAgree(t *testing.T) {
 				t.Fatalf("find: %v", err)
 			}
 
-			model := row.model()
-			req := &plugin.Request{Target: name, Model: model, Out: "out", Analysis: analysis.Analyze(model, name)}
+			req, _ := analysis.Request(row.model(), row.backend.Describe(), name, "out")
 			inProcess, err := row.backend.Generate(context.Background(), req)
 			if err != nil {
 				t.Fatalf("in process: %v", err)

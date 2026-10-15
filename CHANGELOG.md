@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.11](https://github.com/UnstoppableMango/tdl/compare/v0.4.10...v0.4.11) (2026-10-15)
+
+
+### Features
+
+* **haskell:** generics ([#1094](https://github.com/UnstoppableMango/tdl/issues/1094)) ([90fbfc0](https://github.com/UnstoppableMango/tdl/commit/90fbfc0a35aba300a22c2e20d7f76545b37f7ee1))
+* **plugin:** check directive placement and values in the host ([#1093](https://github.com/UnstoppableMango/tdl/issues/1093)) ([aa98d4b](https://github.com/UnstoppableMango/tdl/commit/aa98d4b2965dab15f74cdc856a298708a62ae070))
+
+
+### Documentation
+
+* design anonymous unions ([#1092](https://github.com/UnstoppableMango/tdl/issues/1092)) ([b10c1a1](https://github.com/UnstoppableMango/tdl/commit/b10c1a13b33bbcbb10d0ad98e4eb685faad5c86a))
+
 ## [0.4.10](https://github.com/UnstoppableMango/tdl/compare/v0.4.9...v0.4.10) (2026-10-14)
 
 

@@ -15,7 +15,6 @@ import (
 	"github.com/unstoppablemango/tdl/internal/analysis"
 	"github.com/unstoppablemango/tdl/internal/sema"
 	"github.com/unstoppablemango/tdl/parser"
-	"github.com/unstoppablemango/tdl/plugin"
 )
 
 var record = flag.Bool("record", false, "rewrite testdata/plugin exchanges")
@@ -45,7 +44,7 @@ func TestRecordedExchanges(t *testing.T) {
 				t.Fatalf("lowering: %v", diags)
 			}
 
-			req := &plugin.Request{Target: debug.Name, Model: model, Out: "gen", Analysis: analysis.Analyze(model, debug.Name)}
+			req, _ := analysis.Request(model, debug.Backend{}.Describe(), debug.Name, "gen")
 			resp, err := debug.Backend{}.Generate(context.Background(), req)
 			if err != nil {
 				t.Fatalf("generate: %v", err)

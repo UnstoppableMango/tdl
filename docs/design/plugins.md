@@ -39,7 +39,8 @@ The plugin replies:
 
 - accept, or refuse with the version it needs
 - its name and version
-- directives it understands, each with arity and expected literal kinds
+- directives it understands, each with arity, expected literal kinds, placements, and allowed values
+- how it numbers fields and variants, for a wire format that identifies them by number
 - optional features it supports, such as reuse across requests and import
 
 A refusal is a readable failure naming both versions, where a plugin silently ignoring fields it was compiled before would produce wrong code with no diagnostic.
@@ -49,7 +50,10 @@ A refusal is a readable failure naming both versions, where a plugin silently ig
 The plugin declares directives by name, arity, and literal kind: `tag` takes one string, `slice` takes none.
 The kinds are `ir.LiteralKind`, the set a constraint argument uses: string, int, float, bool, name, regex, list, and range.
 
-`tdl` checks every declared directive in the target block against that shape and reports `tag 42` with its position before generating anything.
+A directive may also declare where it is written (the target block, a declaration, a field, a variant, or an extern) and the values its first argument may take: `namespace` belongs on the block, and `draft` takes `"2020-12"` or `"draft-07"`.
+An empty list of either accepts anything, and a directive accepted on a declaration is accepted on an extern.
+
+`tdl` checks every declared directive in the target block against that shape and reports `tag 42`, a `namespace` on a declaration, or a `draft("2019")` with its position before generating anything.
 
 A directive the plugin did not declare is a positioned warning and is passed through anyway, since under-declaring is a plugin bug that should not break a working project.
 
@@ -73,7 +77,7 @@ Nothing travels in argv or environment variables, so there is one versioned mess
 
 **The prelude.** It is merged into the declaration table untagged, which is what lets a replacement prelude change what a collection is without any backend knowing. A model arrives with every prelude declaration beside its own. The analysis marks which declarations are the model's own.
 
-**Directives for every target block.** They are attached to the nodes they apply to, resolved, with the specificity ladder applied, and each carries the name of its block. A plugin keeps the ones whose target matches its request.
+**Directives for its target.** They are attached to the nodes they apply to, resolved, with the specificity ladder applied, and each carries the name of its block. The model holds only the request's target block and the directives from it; `analysis.Scope` removes the rest.
 
 **A directive expanded from a class names the class.** `Auditable => trigger("touch")` reaches every declaration satisfying `Auditable` with `from_class` set, so a backend can say why a rule is there.
 

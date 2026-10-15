@@ -303,3 +303,90 @@ func TestGenWatchAndVerifyAreExclusive(t *testing.T) {
 		t.Error("expected an error when --watch is combined with --verify")
 	}
 }
+
+// A directive written where its backend does not read it, or given a value
+// it does not take, is reported at its position before anything is written.
+func TestGenReportsMisplacedDirectives(t *testing.T) {
+	cases := []struct {
+		name, block, want string
+	}{
+		{
+			"placement",
+			"target csharp for p {\n  E => namespace(\"P.Orders\")\n}\n",
+			`m.tdl:10:8: error: namespace is written on a declaration, and csharp reads it only on the target block`,
+		},
+		{
+			"value",
+			"target jsonschema for p {\n  draft(\"2019\")\n}\n",
+			`m.tdl:10:9: error: draft does not take "2019"; use "2020-12" or "draft-07"`,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			path := filepath.Join(dir, "m.tdl")
+			src := "package p\n\nprimitive string\n\ntype E {\n  id: string\n}\n\n" + tc.block
+			if err := os.WriteFile(path, []byte(src), 0o644); err != nil {
+				t.Fatalf("writing the fixture: %v", err)
+			}
+			out := filepath.Join(dir, "out")
+			_, errOut, err := run(t, newGenCmd(), "-o", out, path)
+			if err == nil {
+				t.Fatal("gen accepted the directive")
+			}
+			if !strings.Contains(errOut, tc.want) {
+				t.Errorf("stderr = %q, want it to contain %q", errOut, tc.want)
+			}
+			if _, err := os.Stat(out); err == nil {
+				t.Error("gen wrote output")
+			}
+		})
+	}
+}
+
+// tdl refuses a pin on a reserved number, and a length that can never
+// hold, once each with its position, before any backend runs.
+func TestGenReportsModelProblems(t *testing.T) {
+	cases := []struct {
+		name, decl, block, want string
+	}{
+		{
+			"reserved number",
+			"type E {\n  id: string\n  at: string\n}\n",
+			"target protobuf for p {\n  E {\n    reserved(2)\n    at => number(2)\n  }\n}\n",
+			`m.tdl:13:11: error: E.at is numbered 2, which E reserves`,
+		},
+		{
+			"length",
+			"type E {\n  id: string where { length(8..2) }\n  at: string\n}\n",
+			"target go for p {}\n",
+			`m.tdl:6:22: error: length 8..2 can never hold`,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			path := filepath.Join(dir, "m.tdl")
+			src := "package p\n\nprimitive string\n\n" + tc.decl + "\n" + tc.block
+			if err := os.WriteFile(path, []byte(src), 0o644); err != nil {
+				t.Fatalf("writing the fixture: %v", err)
+			}
+			out := filepath.Join(dir, "out")
+			_, errOut, err := run(t, newGenCmd(), "-o", out, path)
+			if err == nil {
+				t.Fatal("gen accepted the model")
+			}
+			if !strings.Contains(errOut, tc.want) {
+				t.Errorf("stderr = %q, want it to contain %q", errOut, tc.want)
+			}
+			if n := strings.Count(errOut, "error:"); n != 1 {
+				t.Errorf("stderr has %d errors, want one:\n%s", n, errOut)
+			}
+			if _, err := os.Stat(out); err == nil {
+				t.Error("gen wrote output")
+			}
+		})
+	}
+}

@@ -216,7 +216,7 @@ func declView(m *ir.Model, target string, r *resolver, d *ir.Decl) *plugin.DeclV
 		Words:      Words(lastSegment(d.GetMeta().GetName())),
 	}
 	for _, f := range d.Fields() {
-		v.Fields = append(v.Fields, member(f.GetMeta().GetName(), nil))
+		v.Fields = append(v.Fields, fieldView(f))
 	}
 	if e := d.GetEnumeration(); e != nil {
 		v.Fielded = Fielded(e)
@@ -227,6 +227,7 @@ func declView(m *ir.Model, target string, r *resolver, d *ir.Decl) *plugin.DeclV
 	}
 	if n := d.GetNewtype(); n != nil {
 		v.Underlying = underlying(m, r, n.GetBase())
+		v.Constraints = constraintViews(n.GetValueConstraints())
 	}
 	return v
 }
@@ -234,9 +235,13 @@ func declView(m *ir.Model, target string, r *resolver, d *ir.Decl) *plugin.DeclV
 func member(name string, fields []*ir.Field) *plugin.MemberView {
 	v := &plugin.MemberView{Words: Words(name)}
 	for _, f := range fields {
-		v.Fields = append(v.Fields, member(f.GetMeta().GetName(), nil))
+		v.Fields = append(v.Fields, fieldView(f))
 	}
 	return v
+}
+
+func fieldView(f *ir.Field) *plugin.MemberView {
+	return &plugin.MemberView{Words: Words(f.GetMeta().GetName()), Constraints: constraintViews(f.GetConstraints())}
 }
 
 // BodyTypes are the type references a declaration's body names: its

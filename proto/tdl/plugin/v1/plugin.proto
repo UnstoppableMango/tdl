@@ -64,6 +64,41 @@ message HandshakeReply {
   repeated DirectiveSpec directives = 5;
 
   Features features = 6;
+
+  // numbering is how this backend numbers fields and variants, for a wire
+  // format that identifies them by number. tdl numbers every member and
+  // reports a pin the rules refuse before generating. A backend that does
+  // not number leaves it unset and receives no numbers.
+  Numbering numbering = 7;
+}
+
+// Numbering is the rules a backend numbers members by. Numbers start at 1;
+// a `number` directive pins one, and each other member, in declaration
+// order, takes the lowest number no pin or earlier member holds and the
+// rules allow.
+message Numbering {
+  // fields covers a structure's fields, a fielded enum's variants, and a
+  // variant's fields.
+  NumberRule fields = 1;
+  // values covers the variants of an enum whose variants carry no fields.
+  NumberRule values = 2;
+
+  // reserve names a declaration directive whose integer arguments are
+  // numbers the structure's fields may not take: allocation passes over
+  // them, and a pin on one is refused. Its other arguments are ignored.
+  string reserve = 3;
+
+  // inline names a field directive that numbers the variants of the
+  // field's enum in the field's own space, in place of the field.
+  string inline = 4;
+}
+
+// NumberRule is what one number space allows.
+message NumberRule {
+  // max is the largest number.
+  int64 max = 1;
+  // reserved are inclusive ranges no member may take.
+  repeated tdl.ir.v1.Range reserved = 2;
 }
 
 // DirectiveSpec is the shape of one directive a backend accepts.
@@ -87,6 +122,29 @@ message DirectiveSpec {
   // specificity all reach the backend in source order. Otherwise they are
   // an error.
   bool repeatable = 5;
+
+  // placements are where the directive may be written. An empty list
+  // accepts it anywhere. A directive accepted on a declaration is also
+  // accepted on an extern, which is a declaration another package owns.
+  repeated Placement placements = 6;
+
+  // values are what the first argument may be. An empty list accepts any
+  // value.
+  repeated string values = 7;
+}
+
+// Placement is a kind of node a directive lands on.
+enum Placement {
+  PLACEMENT_UNSPECIFIED = 0;
+
+  // The target block itself.
+  PLACEMENT_BLOCK = 1;
+  PLACEMENT_DECL = 2;
+
+  // A field of a declaration or of a variant.
+  PLACEMENT_FIELD = 3;
+  PLACEMENT_VARIANT = 4;
+  PLACEMENT_EXTERN = 5;
 }
 
 // Features are the optional parts of the protocol a backend supports.
@@ -256,6 +314,10 @@ message DeclView {
   repeated MemberView fields = 7;
   // variants are an enum's variants, in the order Enum.variants lists them.
   repeated MemberView variants = 8;
+
+  // constraints are a newtype's, in the order Newtype.value_constraints
+  // lists them.
+  repeated ConstraintView constraints = 9;
 }
 
 // MemberView is a field or a variant.
@@ -264,6 +326,38 @@ message MemberView {
   repeated string words = 1;
   // fields are a variant's fields.
   repeated MemberView fields = 2;
+
+  // number is the member's wire number under the backend's Numbering, or
+  // 0 when the backend declares none. A field carrying the inline
+  // directive takes no number.
+  int64 number = 3;
+  // inlined are the numbers of the variants an inlined field's enum
+  // contributes to this space, in the order Enum.variants lists them.
+  repeated int64 inlined = 4;
+
+  // constraints are a field's, in the order Field.constraints lists them.
+  repeated ConstraintView constraints = 5;
+}
+
+// ConstraintView is what tdl reads from one constraint.
+message ConstraintView {
+  // source is the constraint as TDL writes it: `length(1..64)`.
+  string source = 1;
+
+  // length is a `length` constraint's bounds, inclusive. An integer
+  // argument is both ends, and a range leaves an open end unset. It is
+  // unset when problem is.
+  tdl.ir.v1.Range length = 2;
+
+  // re2 is set on a `matches` constraint whose pattern RE2 reads, which a
+  // target whose engine accepts every RE2 pattern with the same meaning
+  // reads too. A pattern RE2 refuses may still suit a target with another
+  // engine, so it is not a problem.
+  bool re2 = 3;
+
+  // problem says why tdl could not read the constraint, such as a length
+  // that can never hold. tdl reports it as an error before generating.
+  string problem = 4;
 }
 
 // Response is what a backend returns: file contents, which tdl writes, so
