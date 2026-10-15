@@ -40,6 +40,7 @@ The plugin replies:
 - accept, or refuse with the version it needs
 - its name and version
 - directives it understands, each with arity, expected literal kinds, placements, and allowed values
+- how it numbers fields and variants, for a wire format that identifies them by number
 - optional features it supports, such as reuse across requests and import
 
 A refusal is a readable failure naming both versions, where a plugin silently ignoring fields it was compiled before would produce wrong code with no diagnostic.
