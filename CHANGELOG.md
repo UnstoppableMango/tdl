@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.13](https://github.com/UnstoppableMango/tdl/compare/v0.4.12...v0.4.13) (2026-10-16)
+
+
+### Features
+
+* **haskell:** classes ([#1098](https://github.com/UnstoppableMango/tdl/issues/1098)) ([711c725](https://github.com/UnstoppableMango/tdl/commit/711c725d7597acd5017496eda3571ac877fced61))
+
+
+### Dependencies
+
+* update github.com/bufbuild/protocompile digest to b72c9bf ([#1107](https://github.com/UnstoppableMango/tdl/issues/1107)) ([36a5785](https://github.com/UnstoppableMango/tdl/commit/36a578585f6ec320afa8767c5cc2f796e62d944c))
+
 ## [0.4.12](https://github.com/UnstoppableMango/tdl/compare/v0.4.11...v0.4.12) (2026-10-16)
 
 
