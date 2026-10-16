@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.4.12](https://github.com/UnstoppableMango/tdl/compare/v0.4.11...v0.4.12) (2026-10-16)
+
+
+### Features
+
+* **plugin:** number members and read constraints in the host ([#1099](https://github.com/UnstoppableMango/tdl/issues/1099)) ([7a5bd35](https://github.com/UnstoppableMango/tdl/commit/7a5bd35dd77758147acfcbc02266f56b055515dd))
+
+
+### Dependencies
+
+* update github.com/bufbuild/protocompile digest to 1dc6457 ([#1101](https://github.com/UnstoppableMango/tdl/issues/1101)) ([e909c78](https://github.com/UnstoppableMango/tdl/commit/e909c78317e81ce5d4b53cf0da4929075e1e3223))
+* update golang.org/x/exp digest to f0251eb ([#1102](https://github.com/UnstoppableMango/tdl/issues/1102)) ([41cb3d3](https://github.com/UnstoppableMango/tdl/commit/41cb3d375dc21e4f058eebd77f976addeb6df50d))
+* update module github.com/vektah/gqlparser/v2 to v2.5.63 ([#1103](https://github.com/UnstoppableMango/tdl/issues/1103)) ([7e7154c](https://github.com/UnstoppableMango/tdl/commit/7e7154c106444000b5d8dbae528b5151c3ad5103))
+
 ## [0.4.11](https://github.com/UnstoppableMango/tdl/compare/v0.4.10...v0.4.11) (2026-10-15)
 
 
