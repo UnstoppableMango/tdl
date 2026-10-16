@@ -14,6 +14,8 @@ github.com/bufbuild/protocompile v0.14.2-0.20260917202354-386f9fcfc7b9 h1:Rccwve
 github.com/bufbuild/protocompile v0.14.2-0.20260917202354-386f9fcfc7b9/go.mod h1:bX3ObJfML+aki7PJevkWLSlOfEZ8EnNsfCz0hiYkhiI=
 github.com/bufbuild/protocompile v0.14.2-0.20261013160345-b79bfe2f85df h1:DRUi+xCmK/geLBx7WYsdWRVsg7OmyZPytgEA9koxI0c=
 github.com/bufbuild/protocompile v0.14.2-0.20261013160345-b79bfe2f85df/go.mod h1:bX3ObJfML+aki7PJevkWLSlOfEZ8EnNsfCz0hiYkhiI=
+github.com/bufbuild/protocompile v0.14.2-0.20261015190157-1dc6457e922a h1:PvjWvu9j+yedS4wD29hC/DuBgpJ0paaEBSuIywm/JaQ=
+github.com/bufbuild/protocompile v0.14.2-0.20261015190157-1dc6457e922a/go.mod h1:bX3ObJfML+aki7PJevkWLSlOfEZ8EnNsfCz0hiYkhiI=
 github.com/bytedance/gopkg v0.1.4 h1:oZnQwnX82KAIWb7033bEwtxvTqXcYMxDBaQxo5JJHWM=
 github.com/bytedance/gopkg v0.1.4/go.mod h1:v1zWfPm21Fb+OsyXN2VAHdL6TBb2L88anLQgdyje6R4=
 github.com/cloudwego/gopkg v0.2.0 h1:EU8Ahrj0rCfKZQdah50zKnlrQ1o2AdPYM87UclIqLME=
