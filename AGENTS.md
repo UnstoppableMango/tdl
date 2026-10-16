@@ -233,7 +233,8 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   Constructors share a namespace, so a later declaration taking one is skipped; `prefix` writes variants behind their enum's name.
   `foreign.go` maps a declaration, a primitive, or an extern to another module's type, and an extern to the module its dependency's `haskell` block generates; `key.go` writes a key function, and a key record for several fields; `derive` adds `deriving anyclass`.
   `generics.go` writes type variables and kind signatures, derives a declaration holding an applied type variable through standalone deriving with the context reduced from its fields, and decides `Functor`, `Foldable`, and `Traversable` across the whole model.
-  Phases 1 to 3 of `haskell-backend-plan.md` are built: classes, units, and validation warn.
+  `classes.go` writes a class as a type class with a `HasField` superclass per field, and an instance per conformance and per separate instance, plus each instance a required class implies; `requires` on a type constrains its key function.
+  Phases 1 to 4 of `haskell-backend-plan.md` are built: units and validation warn.
   Tests run `ghc -fno-code -Wall -Werror` when `ghc` is on `PATH`; `checks.gen-haskell` always does.
 - `backend/csharp`: one `Order.g.cs` per declaration, or one file for the whole target that a `file` directive in the target block names, in the namespace a `namespace` directive names or the package derives.
   A struct is a sealed record with `required` `init` properties, a fieldless enum a C# enum, a fielded enum an abstract record closed by a private constructor with a nested sealed record per variant, and a newtype a readonly record struct; an alias is expanded.
@@ -270,7 +271,7 @@ After any change to lowering or `ir.Dump`, run `go test ./internal/sema -update`
 ### Docs
 
 `docs/design/` holds designs and plans; each `*-plan.md` names what its phases add, and its opening lines say which are done.
-Read those before assuming a design is built: the Java, ML-family, Python, Rust, Zod, profiles, and unions designs have no code yet, Haskell has only phases 1 to 3, C# only phases 1 and 2, and the plugin SDK only phases 1 to 3.
+Read those before assuming a design is built: the Java, ML-family, Python, Rust, Zod, profiles, and unions designs have no code yet, Haskell has only phases 1 to 4, C# only phases 1 and 2, and the plugin SDK only phases 1 to 3.
 A design describes the target, not the implementation.
 `workflow.md` is furthest ahead: its `tdl.toml` project model is unbuilt.
 `docs/backlog.md` is wanted, unscheduled work.

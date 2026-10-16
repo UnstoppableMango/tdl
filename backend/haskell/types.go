@@ -125,7 +125,7 @@ func (g *generator) render(b bound) (hsType, error) {
 			return hsType{}, emit.Unsupported(pos, "%s is a synonym applied to %d of its %d type arguments, which Haskell refuses", name, len(args), n)
 		}
 		target := bound{a.GetTarget(), &frame{args[:n]}}
-		if !emit.IsOwn(decl) {
+		if !emit.IsOwn(decl) || g.expand && len(args) == n {
 			if err := most(n); err != nil {
 				return hsType{}, err
 			}
@@ -229,8 +229,11 @@ func (g *generator) imports(body string, declared map[string]bool) (string, stri
 		names := make([]string, 0, len(g.uses[m]))
 		qualified := false
 		for n := range g.uses[m] {
-			names = append(names, n)
-			qualified = qualified || declared[n]
+			// A type imported with its fields is listed once.
+			if !g.uses[m][n+" (..)"] {
+				names = append(names, n)
+			}
+			qualified = qualified || declared[strings.TrimSuffix(n, " (..)")]
 		}
 		slices.Sort(names)
 
