@@ -18,8 +18,8 @@ schema = 3
     hash = 'sha256-3XnCzf7tFgEE0MmjxvjfWaw6qK6mKLabFZ3c23JIH9Y='
 
   [mod.'github.com/bufbuild/protocompile']
-    version = 'v0.14.2-0.20261015190157-1dc6457e922a'
-    hash = 'sha256-q791P6Jf08+teK9GOUqdIJmH2pI0pcDlv12b2paoZqE='
+    version = 'v0.14.2-0.20261016165317-b72c9bfe2623'
+    hash = 'sha256-EplLQLNG1C2wYcEZ31rWrWFsbTFgkI7cSqeeX2el2HA='
 
   [mod.'github.com/bytedance/gopkg']
     version = 'v0.1.4'
