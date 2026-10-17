@@ -27,7 +27,7 @@ command make textmate         # docs/grammar.ebnf -> editors/vscode/syntaxes/tdl
 command make vscode-install   # package editors/vscode and install it into a running VS Code
 command make vscode-check     # npm ci, then typecheck and biome check editors/vscode
 command make vscode-test      # in `nix develop .#vscode`: the extension in a headless VSCodium
-command make dotnet-test      # dotnet test dotnet/Tdl.sln: the .NET plugin SDK
+command make dotnet-test      # dotnet test dotnet/Tdl.slnx: the .NET plugin SDK
 command make test-treesitter  # the conformance corpus, run by tree-sitter
 command make check-treesitter # what CI runs: treesitter + a diff + test-treesitter
 ```

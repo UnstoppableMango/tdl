@@ -58,7 +58,7 @@ vscode-check:
 	${MAKE} -C ${VSCODE} check
 
 dotnet-test:
-	dotnet test dotnet/Tdl.sln
+	dotnet test dotnet/Tdl.slnx
 
 test-treesitter:
 	${MAKE} -C tree-sitter test

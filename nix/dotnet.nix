@@ -24,8 +24,8 @@ buildDotnetModule {
   # runtime packs and the trimming tasks.
   nugetDeps = ../dotnet/deps.json;
 
-  dotnet-sdk = dotnetCorePackages.sdk_8_0;
-  dotnet-runtime = dotnetCorePackages.runtime_8_0;
+  dotnet-sdk = dotnetCorePackages.sdk_10_0;
+  dotnet-runtime = dotnetCorePackages.runtime_10_0;
 
   doCheck = true;
   executables = [ "tdl-gen-dotnet_debug" ];

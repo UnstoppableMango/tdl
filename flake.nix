@@ -56,7 +56,12 @@
           devShells.default = pkgs.mkShell {
             packages = with pkgs; [
               direnv
-              dotnet-sdk
+              # 10 builds dotnet/; 8 builds the C# backend's generated code,
+              # whose floor is net8.0.
+              (dotnetCorePackages.combinePackages [
+                dotnetCorePackages.sdk_10_0
+                dotnetCorePackages.sdk_8_0
+              ])
               go_1_27 # TODO: consolidate with nix/overlay.nix
               gomod2nix
               gopls
