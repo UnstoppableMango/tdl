@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.14](https://github.com/UnstoppableMango/tdl/compare/v0.4.13...v0.4.14) (2026-10-17)
+
+
+### Features
+
+* **plugin:** carry the model as TDL and accept imported source ([#1105](https://github.com/UnstoppableMango/tdl/issues/1105)) ([87890a4](https://github.com/UnstoppableMango/tdl/commit/87890a45cc7a94b59de192f7af659893e3e5f008))
+
+
+### Documentation
+
+* design mutation testing for the core packages ([#1109](https://github.com/UnstoppableMango/tdl/issues/1109)) ([5b07174](https://github.com/UnstoppableMango/tdl/commit/5b07174a7cf2c52ae120efff7634379e12668b47))
+
 ## [0.4.13](https://github.com/UnstoppableMango/tdl/compare/v0.4.12...v0.4.13) (2026-10-16)
 
 
