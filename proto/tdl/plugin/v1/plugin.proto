@@ -187,6 +187,35 @@ message Request {
 message Analysis {
   repeated TypeView types = 1; // indexed like Model.types
   repeated DeclView decls = 2; // indexed like Model.decls
+
+  // source is the model as TDL, set only when the target block carries the
+  // roundtrip directive.
+  Source source = 3;
+}
+
+// Source is the model as TDL, for a backend writing annotations that carry
+// what its target cannot express, so a plugin copies text rather than
+// printing TDL. A field's source is in its MemberView.
+message Source {
+  // items are the model's top-level items in order: its declarations,
+  // instances, and target block, each as `tdl fmt` prints it.
+  repeated Item items = 1;
+  // imports are the model's imports, each as `tdl fmt` prints it.
+  repeated string imports = 2;
+}
+
+// Item is one top-level item of the model as TDL.
+message Item {
+  // source is the item, doc comment included. The target block is written
+  // without its roundtrip directive, and is empty when it holds nothing
+  // else.
+  string source = 1;
+  // name is a declaration's name, or empty for an instance or the target
+  // block.
+  string name = 2;
+  // conforms is a struct's or an enum's conformance list:
+  // `Entity, Auditable`.
+  string conforms = 3;
 }
 
 // Form is which of the prelude's shapes a type resolves to. The shapes are
@@ -337,6 +366,14 @@ message MemberView {
 
   // constraints are a field's, in the order Field.constraints lists them.
   repeated ConstraintView constraints = 5;
+
+  // source is a field as TDL, without its doc comment or deprecation:
+  // `name: string where { length(1..64) }`. Set with Analysis.source.
+  string source = 6;
+  // deprecation is a deprecated field's `deprecated` or
+  // `deprecated("reason")`, which precedes source when the field is
+  // written whole.
+  string deprecation = 7;
 }
 
 // ConstraintView is what tdl reads from one constraint.
@@ -397,14 +434,19 @@ message ImportRequest {
   repeated string allow_lossy = 3;
 }
 
-// ImportResponse is what a reverse backend returns: a model, which tdl
-// turns into TDL source and lowers again before writing it.
+// ImportResponse is what a reverse backend returns: a model, or TDL
+// source, which tdl lowers, prints, and lowers again before writing it.
 message ImportResponse {
   // model holds the declarations read, in the shape lowering produces.
   // tdl prints only the declarations not positioned in the prelude.
   tdl.ir.v1.Model model = 1;
 
   repeated Diagnostic diagnostics = 2;
+
+  // source is the declarations read as TDL, for a backend that writes TDL
+  // rather than building a model. tdl reads it when model is unset, and
+  // reports it as an error when it does not lower.
+  string source = 3;
 }
 
 // Severity is how much a diagnostic matters.

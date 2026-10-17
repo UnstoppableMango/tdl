@@ -130,6 +130,7 @@ A backend may skip expensive work it knows cannot affect the answer; one that ig
 
 A handshake in import mode is followed by an `ImportRequest` rather than a `Request`: the target name, the source files, and the loss codes the user allowed.
 The plugin answers with an `ImportResponse`, a model and diagnostics, and `tdl` prints the model as TDL.
+A plugin may return TDL source in place of the model; `tdl` lowers it, and reports source that does not lower as an error.
 A plugin declares the `reverse` feature to receive one; `tdl` sends no request to a plugin whose reply lacks it, and a plugin that does not import refuses the mode.
 In Go, such a backend also implements `plugin.Importer`.
 [reverse.md](reverse.md) is the design.

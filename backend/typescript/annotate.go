@@ -54,10 +54,8 @@ func (g *generator) source(d *ir.Decl) []string {
 	if !g.Roundtrip || !g.lost {
 		return nil
 	}
-	for _, decl := range g.Unlowered().Decls {
-		if emit.IsDecl(decl) && decl.Name() == d.GetMeta().GetName() {
-			return []string{tag("source", emit.PrintItem(decl))}
-		}
+	if src := g.DeclSource(d.GetMeta().GetName()); src != "" {
+		return []string{tag("source", src)}
 	}
 	return nil
 }

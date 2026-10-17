@@ -49,9 +49,9 @@ func quote(s string) string {
 // naming it read as, so it repeats until none changes.
 func (g *generator) carry(kept []rendered, shapes []*shape) {
 	want := map[string]string{}
-	for _, d := range g.Unlowered().Decls {
-		if emit.IsDecl(d) {
-			want[d.Name()] = emit.PrintItem(d)
+	for _, it := range g.Items() {
+		if it.GetName() != "" {
+			want[it.GetName()] = it.GetSource()
 		}
 	}
 	at := map[string]ast.Position{}

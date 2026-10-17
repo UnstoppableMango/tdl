@@ -112,10 +112,8 @@ func (g *generator) structAnnotation(d *ir.Decl, written string) string {
 func (g *generator) serviceAnnotation(d *ir.Decl) string {
 	name := d.GetMeta().GetName()
 	g.Lose(emit.LossUnsupported, d.GetMeta().GetPosition(), "service %s does not read back yet", name)
-	for _, decl := range g.Unlowered().Decls {
-		if emit.IsDecl(decl) && decl.Name() == name {
-			return g.annotation("service", text("source", emit.PrintItem(decl)))
-		}
+	if src := g.DeclSource(name); src != "" {
+		return g.annotation("service", text("source", src))
 	}
 	return ""
 }

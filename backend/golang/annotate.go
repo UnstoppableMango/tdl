@@ -94,7 +94,7 @@ func (g *generator) simulate(files []*plugin.File, pkg string) {
 		name := p.decl.GetMeta().GetName()
 		emitted[name] = true
 		at := g.Index(name)
-		want := emit.PrintItem(g.Unlowered().Decls[at])
+		want := g.DeclSource(name)
 		got := ""
 		if rd := r.decls[g.declName(p.decl)]; err == nil && rd != nil {
 			got = emit.PrintItem(rd)
@@ -168,7 +168,7 @@ func (g *generator) foreignLoss(d *ir.Decl, f foreignType) {
 	}
 	name := d.GetMeta().GetName()
 	want := emit.PrintItem(&ast.StructDecl{DeclHead: ast.DeclHead{N: f.name}, Keyword: "type"})
-	if i := g.Index(name); i < 0 || emit.PrintItem(g.Unlowered().Decls[i]) != want {
+	if g.DeclSource(name) != want {
 		g.Lose(emit.LossUnsupported, d.GetMeta().GetPosition(), "%s is %s, and reads back as an empty declaration named %s", name, f.ref(), f.name)
 	}
 }

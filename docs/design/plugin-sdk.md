@@ -104,9 +104,12 @@ A backend that does not number declares none and receives no numbers.
 Under `roundtrip`, six backends write the TDL a target cannot express into annotations.
 That text comes from `internal/unlower` and `ast`, which only Go can call.
 The analysis therefore carries it, each top-level item, declaration, field, and conformance list as source, plus the imports and the target block, so a plugin copies text rather than printing TDL.
+`Analysis.source` holds the items in order, each declaration's with its name and conformance list, and the target block without its `roundtrip` directive; each field's `MemberView` holds its source and its deprecation apart, since a target that carries deprecation itself copies the field without it.
+The host fills them only under `roundtrip`.
 
 The import direction has the same problem in reverse: `backend/internal/reverse` builds an `ast.File` and lowers it with `sema` inside the plugin.
 An `ImportResponse` may carry TDL source instead of a model, and the host parses and lowers it, as `tdl import` already lowers its own printed output again.
+The source is lowered with no loader, as `backend/internal/reverse` lowers what it reads, so it may not import another file.
 A plugin that returns a model keeps working.
 
 ## SDKs

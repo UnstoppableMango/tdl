@@ -2,12 +2,15 @@ package emit_test
 
 import (
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/backend/internal/irtest"
 	"github.com/unstoppablemango/tdl/internal/analysis"
+	"github.com/unstoppablemango/tdl/internal/sema"
 	"github.com/unstoppablemango/tdl/ir"
+	"github.com/unstoppablemango/tdl/parser"
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
@@ -311,5 +314,64 @@ func TestNumbersInReadsTheAnalysis(t *testing.T) {
 	s = emit.NewSession(req, "X")
 	if got, err := s.NumbersIn(emit.FieldSpace(scoped), "Order", emit.FieldMembers(scoped.Fields()), rule); err != nil || !slices.Equal(got, []int64{7, 9}) {
 		t.Errorf("read from the analysis = %v, %v", got, err)
+	}
+}
+
+// The round-trip helpers read the TDL the request carries, and print it
+// themselves when the request carries none.
+func TestRoundtripHelpersReadTheAnalysis(t *testing.T) {
+	file, err := parser.Parse("shop.tdl", strings.NewReader(`package shop
+
+type Order: Entity {
+  id: string
+  deprecated code: string
+}
+
+target x for shop {
+  roundtrip
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	m, diags := sema.Lower(file)
+	if len(diags) > 0 {
+		t.Fatal(diags)
+	}
+	order := func(m *ir.Model) *ir.Decl {
+		d, _, _ := m.FindDecl("Order")
+		return d
+	}
+
+	own := emit.NewSession(&plugin.Request{Target: "x", Model: m}, "X")
+	if got := own.FieldSource(order(m).Fields()[1], true); got != "deprecated code: string" {
+		t.Errorf("printed by the session = %q", got)
+	}
+
+	req, _ := analysis.Request(m, plugin.Description{Name: "x"}, "x", "out")
+	src := req.GetAnalysis().GetSource()
+	src.Items[0].Source, src.Items[0].Conforms = "item", "conforms"
+	src.Imports = []string{"import"}
+	for i, d := range req.GetModel().GetDecls() {
+		if d.GetMeta().GetName() == "Order" {
+			f := req.GetAnalysis().GetDecls()[i].GetFields()[1]
+			f.Source, f.Deprecation = "field", "dep"
+		}
+	}
+	s := emit.NewSession(req, "X")
+	if got := s.DeclSource("Order"); got != "item" {
+		t.Errorf("DeclSource = %q", got)
+	}
+	if got := s.Conforms("Order"); got != "conforms" {
+		t.Errorf("Conforms = %q", got)
+	}
+	if got := s.FieldSource(order(req.GetModel()).Fields()[1], true); got != "dep field" {
+		t.Errorf("FieldSource = %q", got)
+	}
+	if got := s.Imports(); !slices.Equal(got, []string{"import"}) {
+		t.Errorf("Imports = %v", got)
+	}
+	if got := s.Carried(nil); len(got) != 1 || got[0] != (emit.Carried{At: 0, Source: "item"}) {
+		t.Errorf("Carried = %v", got)
 	}
 }

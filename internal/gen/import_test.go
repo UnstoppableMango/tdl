@@ -8,8 +8,12 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/unstoppablemango/tdl/ast"
+	"github.com/unstoppablemango/tdl/internal/analysis"
 	"github.com/unstoppablemango/tdl/internal/gen"
 	"github.com/unstoppablemango/tdl/internal/gen/echo"
+	"github.com/unstoppablemango/tdl/internal/unlower"
+	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
@@ -149,4 +153,41 @@ func TestSilence(t *testing.T) {
 	if len(diags) != 4 {
 		t.Error("Silence changed its argument")
 	}
+}
+
+// An importer returning TDL source gives tdl the same model as one
+// returning the model, for every corpus model with no import.
+func TestImportedSourceIsTheModel(t *testing.T) {
+	compared := 0
+	for path, model := range corpora(t) {
+		if len(model.GetImports()) > 0 {
+			continue // an imported source has no files to resolve imports against
+		}
+		compared++
+		data, err := protojson.Marshal(model)
+		if err != nil {
+			t.Fatal(err)
+		}
+		fromModel := importEcho(t, &plugin.File{Path: echo.File, Content: data})
+		fromSource := importEcho(t, &plugin.File{Path: "model.tdl", Content: []byte(ast.Fprint(unlower.File(model)))})
+		if a, b := ir.WithoutPositions(fromModel), ir.WithoutPositions(fromSource); !proto.Equal(a, b) {
+			t.Errorf("%s: the source imports to\n%s\nwant\n%s", path, ir.Dump(b), ir.Dump(a))
+		}
+	}
+	if compared == 0 {
+		t.Fatal("no corpus model to compare")
+	}
+}
+
+func importEcho(t *testing.T, file *plugin.File) *ir.Model {
+	t.Helper()
+	resp, err := echo.Backend{}.Import(context.Background(), &plugin.ImportRequest{Files: []*plugin.File{file}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	m, err := analysis.Imported(resp)
+	if err != nil || m == nil {
+		t.Fatalf("importing %s: %v, %v", file.GetPath(), m, err)
+	}
+	return m
 }

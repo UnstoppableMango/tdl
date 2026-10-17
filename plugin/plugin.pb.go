@@ -344,7 +344,7 @@ func (x Refusal_Reason) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Refusal_Reason.Descriptor instead.
 func (Refusal_Reason) EnumDescriptor() ([]byte, []int) {
-	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{9, 0}
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{11, 0}
 }
 
 // Handshake is what tdl sends first, before any request.
@@ -921,9 +921,12 @@ func (x *Request) GetAnalysis() *Analysis {
 // serving one target: each type reference resolved to the prelude's shapes,
 // and what each declaration names. See docs/design/plugin-sdk.md.
 type Analysis struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Types         []*TypeView            `protobuf:"bytes,1,rep,name=types" json:"types,omitempty"` // indexed like Model.types
-	Decls         []*DeclView            `protobuf:"bytes,2,rep,name=decls" json:"decls,omitempty"` // indexed like Model.decls
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Types []*TypeView            `protobuf:"bytes,1,rep,name=types" json:"types,omitempty"` // indexed like Model.types
+	Decls []*DeclView            `protobuf:"bytes,2,rep,name=decls" json:"decls,omitempty"` // indexed like Model.decls
+	// source is the model as TDL, set only when the target block carries the
+	// roundtrip directive.
+	Source        *Source `protobuf:"bytes,3,opt,name=source" json:"source,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -972,6 +975,139 @@ func (x *Analysis) GetDecls() []*DeclView {
 	return nil
 }
 
+func (x *Analysis) GetSource() *Source {
+	if x != nil {
+		return x.Source
+	}
+	return nil
+}
+
+// Source is the model as TDL, for a backend writing annotations that carry
+// what its target cannot express, so a plugin copies text rather than
+// printing TDL. A field's source is in its MemberView.
+type Source struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// items are the model's top-level items in order: its declarations,
+	// instances, and target block, each as `tdl fmt` prints it.
+	Items []*Item `protobuf:"bytes,1,rep,name=items" json:"items,omitempty"`
+	// imports are the model's imports, each as `tdl fmt` prints it.
+	Imports       []string `protobuf:"bytes,2,rep,name=imports" json:"imports,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Source) Reset() {
+	*x = Source{}
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Source) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Source) ProtoMessage() {}
+
+func (x *Source) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Source.ProtoReflect.Descriptor instead.
+func (*Source) Descriptor() ([]byte, []int) {
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *Source) GetItems() []*Item {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+func (x *Source) GetImports() []string {
+	if x != nil {
+		return x.Imports
+	}
+	return nil
+}
+
+// Item is one top-level item of the model as TDL.
+type Item struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// source is the item, doc comment included. The target block is written
+	// without its roundtrip directive, and is empty when it holds nothing
+	// else.
+	Source string `protobuf:"bytes,1,opt,name=source" json:"source,omitempty"`
+	// name is a declaration's name, or empty for an instance or the target
+	// block.
+	Name string `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
+	// conforms is a struct's or an enum's conformance list:
+	// `Entity, Auditable`.
+	Conforms      string `protobuf:"bytes,3,opt,name=conforms" json:"conforms,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Item) Reset() {
+	*x = Item{}
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Item) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Item) ProtoMessage() {}
+
+func (x *Item) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Item.ProtoReflect.Descriptor instead.
+func (*Item) Descriptor() ([]byte, []int) {
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *Item) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *Item) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Item) GetConforms() string {
+	if x != nil {
+		return x.Conforms
+	}
+	return ""
+}
+
 // TypeView is one entry of the type table, resolved.
 //
 // An entry whose constructor is an alias is described as the type the
@@ -1007,7 +1143,7 @@ type TypeView struct {
 
 func (x *TypeView) Reset() {
 	*x = TypeView{}
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[8]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1019,7 +1155,7 @@ func (x *TypeView) String() string {
 func (*TypeView) ProtoMessage() {}
 
 func (x *TypeView) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[8]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1032,7 +1168,7 @@ func (x *TypeView) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TypeView.ProtoReflect.Descriptor instead.
 func (*TypeView) Descriptor() ([]byte, []int) {
-	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{8}
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *TypeView) GetForm() Form {
@@ -1113,7 +1249,7 @@ type Refusal struct {
 
 func (x *Refusal) Reset() {
 	*x = Refusal{}
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[9]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1125,7 +1261,7 @@ func (x *Refusal) String() string {
 func (*Refusal) ProtoMessage() {}
 
 func (x *Refusal) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[9]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1138,7 +1274,7 @@ func (x *Refusal) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Refusal.ProtoReflect.Descriptor instead.
 func (*Refusal) Descriptor() ([]byte, []int) {
-	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{9}
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *Refusal) GetReason() Refusal_Reason {
@@ -1198,7 +1334,7 @@ type DeclView struct {
 
 func (x *DeclView) Reset() {
 	*x = DeclView{}
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[10]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1210,7 +1346,7 @@ func (x *DeclView) String() string {
 func (*DeclView) ProtoMessage() {}
 
 func (x *DeclView) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[10]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1223,7 +1359,7 @@ func (x *DeclView) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeclView.ProtoReflect.Descriptor instead.
 func (*DeclView) Descriptor() ([]byte, []int) {
-	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{10}
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *DeclView) GetOwn() bool {
@@ -1304,14 +1440,21 @@ type MemberView struct {
 	// contributes to this space, in the order Enum.variants lists them.
 	Inlined []int64 `protobuf:"varint,4,rep,packed,name=inlined" json:"inlined,omitempty"`
 	// constraints are a field's, in the order Field.constraints lists them.
-	Constraints   []*ConstraintView `protobuf:"bytes,5,rep,name=constraints" json:"constraints,omitempty"`
+	Constraints []*ConstraintView `protobuf:"bytes,5,rep,name=constraints" json:"constraints,omitempty"`
+	// source is a field as TDL, without its doc comment or deprecation:
+	// `name: string where { length(1..64) }`. Set with Analysis.source.
+	Source string `protobuf:"bytes,6,opt,name=source" json:"source,omitempty"`
+	// deprecation is a deprecated field's `deprecated` or
+	// `deprecated("reason")`, which precedes source when the field is
+	// written whole.
+	Deprecation   string `protobuf:"bytes,7,opt,name=deprecation" json:"deprecation,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *MemberView) Reset() {
 	*x = MemberView{}
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[11]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1323,7 +1466,7 @@ func (x *MemberView) String() string {
 func (*MemberView) ProtoMessage() {}
 
 func (x *MemberView) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[11]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1336,7 +1479,7 @@ func (x *MemberView) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemberView.ProtoReflect.Descriptor instead.
 func (*MemberView) Descriptor() ([]byte, []int) {
-	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{11}
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *MemberView) GetWords() []string {
@@ -1374,6 +1517,20 @@ func (x *MemberView) GetConstraints() []*ConstraintView {
 	return nil
 }
 
+func (x *MemberView) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *MemberView) GetDeprecation() string {
+	if x != nil {
+		return x.Deprecation
+	}
+	return ""
+}
+
 // ConstraintView is what tdl reads from one constraint.
 type ConstraintView struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -1397,7 +1554,7 @@ type ConstraintView struct {
 
 func (x *ConstraintView) Reset() {
 	*x = ConstraintView{}
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[12]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1409,7 +1566,7 @@ func (x *ConstraintView) String() string {
 func (*ConstraintView) ProtoMessage() {}
 
 func (x *ConstraintView) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[12]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1422,7 +1579,7 @@ func (x *ConstraintView) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConstraintView.ProtoReflect.Descriptor instead.
 func (*ConstraintView) Descriptor() ([]byte, []int) {
-	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{12}
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ConstraintView) GetSource() string {
@@ -1469,7 +1626,7 @@ type Response struct {
 
 func (x *Response) Reset() {
 	*x = Response{}
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[13]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1481,7 +1638,7 @@ func (x *Response) String() string {
 func (*Response) ProtoMessage() {}
 
 func (x *Response) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[13]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1494,7 +1651,7 @@ func (x *Response) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Response.ProtoReflect.Descriptor instead.
 func (*Response) Descriptor() ([]byte, []int) {
-	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{13}
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *Response) GetFiles() []*File {
@@ -1531,7 +1688,7 @@ type File struct {
 
 func (x *File) Reset() {
 	*x = File{}
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[14]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1543,7 +1700,7 @@ func (x *File) String() string {
 func (*File) ProtoMessage() {}
 
 func (x *File) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[14]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1556,7 +1713,7 @@ func (x *File) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use File.ProtoReflect.Descriptor instead.
 func (*File) Descriptor() ([]byte, []int) {
-	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{14}
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *File) GetPath() string {
@@ -1592,7 +1749,7 @@ type ImportRequest struct {
 
 func (x *ImportRequest) Reset() {
 	*x = ImportRequest{}
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[15]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1604,7 +1761,7 @@ func (x *ImportRequest) String() string {
 func (*ImportRequest) ProtoMessage() {}
 
 func (x *ImportRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[15]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1617,7 +1774,7 @@ func (x *ImportRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImportRequest.ProtoReflect.Descriptor instead.
 func (*ImportRequest) Descriptor() ([]byte, []int) {
-	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{15}
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ImportRequest) GetTarget() string {
@@ -1641,21 +1798,25 @@ func (x *ImportRequest) GetAllowLossy() []string {
 	return nil
 }
 
-// ImportResponse is what a reverse backend returns: a model, which tdl
-// turns into TDL source and lowers again before writing it.
+// ImportResponse is what a reverse backend returns: a model, or TDL
+// source, which tdl lowers, prints, and lowers again before writing it.
 type ImportResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// model holds the declarations read, in the shape lowering produces.
 	// tdl prints only the declarations not positioned in the prelude.
-	Model         *ir.Model     `protobuf:"bytes,1,opt,name=model" json:"model,omitempty"`
-	Diagnostics   []*Diagnostic `protobuf:"bytes,2,rep,name=diagnostics" json:"diagnostics,omitempty"`
+	Model       *ir.Model     `protobuf:"bytes,1,opt,name=model" json:"model,omitempty"`
+	Diagnostics []*Diagnostic `protobuf:"bytes,2,rep,name=diagnostics" json:"diagnostics,omitempty"`
+	// source is the declarations read as TDL, for a backend that writes TDL
+	// rather than building a model. tdl reads it when model is unset, and
+	// reports it as an error when it does not lower.
+	Source        string `protobuf:"bytes,3,opt,name=source" json:"source,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ImportResponse) Reset() {
 	*x = ImportResponse{}
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[16]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1667,7 +1828,7 @@ func (x *ImportResponse) String() string {
 func (*ImportResponse) ProtoMessage() {}
 
 func (x *ImportResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[16]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1680,7 +1841,7 @@ func (x *ImportResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImportResponse.ProtoReflect.Descriptor instead.
 func (*ImportResponse) Descriptor() ([]byte, []int) {
-	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{16}
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ImportResponse) GetModel() *ir.Model {
@@ -1695,6 +1856,13 @@ func (x *ImportResponse) GetDiagnostics() []*Diagnostic {
 		return x.Diagnostics
 	}
 	return nil
+}
+
+func (x *ImportResponse) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
 }
 
 // Diagnostic is a problem a backend found.
@@ -1715,7 +1883,7 @@ type Diagnostic struct {
 
 func (x *Diagnostic) Reset() {
 	*x = Diagnostic{}
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[17]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1727,7 +1895,7 @@ func (x *Diagnostic) String() string {
 func (*Diagnostic) ProtoMessage() {}
 
 func (x *Diagnostic) ProtoReflect() protoreflect.Message {
-	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[17]
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1740,7 +1908,7 @@ func (x *Diagnostic) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Diagnostic.ProtoReflect.Descriptor instead.
 func (*Diagnostic) Descriptor() ([]byte, []int) {
-	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{17}
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *Diagnostic) GetSeverity() Severity {
@@ -1821,10 +1989,18 @@ const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
 	"\x05model\x18\x02 \x01(\v2\x10.tdl.ir.v1.ModelR\x05model\x12\x10\n" +
 	"\x03out\x18\x03 \x01(\tR\x03out\x12\x17\n" +
 	"\adry_run\x18\x04 \x01(\bR\x06dryRun\x123\n" +
-	"\banalysis\x18\x05 \x01(\v2\x17.tdl.plugin.v1.AnalysisR\banalysis\"h\n" +
+	"\banalysis\x18\x05 \x01(\v2\x17.tdl.plugin.v1.AnalysisR\banalysis\"\x97\x01\n" +
 	"\bAnalysis\x12-\n" +
 	"\x05types\x18\x01 \x03(\v2\x17.tdl.plugin.v1.TypeViewR\x05types\x12-\n" +
-	"\x05decls\x18\x02 \x03(\v2\x17.tdl.plugin.v1.DeclViewR\x05decls\"\xd5\x02\n" +
+	"\x05decls\x18\x02 \x03(\v2\x17.tdl.plugin.v1.DeclViewR\x05decls\x12-\n" +
+	"\x06source\x18\x03 \x01(\v2\x15.tdl.plugin.v1.SourceR\x06source\"M\n" +
+	"\x06Source\x12)\n" +
+	"\x05items\x18\x01 \x03(\v2\x13.tdl.plugin.v1.ItemR\x05items\x12\x18\n" +
+	"\aimports\x18\x02 \x03(\tR\aimports\"N\n" +
+	"\x04Item\x12\x16\n" +
+	"\x06source\x18\x01 \x01(\tR\x06source\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1a\n" +
+	"\bconforms\x18\x03 \x01(\tR\bconforms\"\xd5\x02\n" +
 	"\bTypeView\x12'\n" +
 	"\x04form\x18\x01 \x01(\x0e2\x13.tdl.plugin.v1.FormR\x04form\x12\x1d\n" +
 	"\x02id\x18\x02 \x01(\v2\r.tdl.ir.v1.IDR\x02id\x12\x12\n" +
@@ -1863,14 +2039,16 @@ const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
 	"\x05words\x18\x06 \x03(\tR\x05words\x121\n" +
 	"\x06fields\x18\a \x03(\v2\x19.tdl.plugin.v1.MemberViewR\x06fields\x125\n" +
 	"\bvariants\x18\b \x03(\v2\x19.tdl.plugin.v1.MemberViewR\bvariants\x12?\n" +
-	"\vconstraints\x18\t \x03(\v2\x1d.tdl.plugin.v1.ConstraintViewR\vconstraints\"\xc8\x01\n" +
+	"\vconstraints\x18\t \x03(\v2\x1d.tdl.plugin.v1.ConstraintViewR\vconstraints\"\x82\x02\n" +
 	"\n" +
 	"MemberView\x12\x14\n" +
 	"\x05words\x18\x01 \x03(\tR\x05words\x121\n" +
 	"\x06fields\x18\x02 \x03(\v2\x19.tdl.plugin.v1.MemberViewR\x06fields\x12\x16\n" +
 	"\x06number\x18\x03 \x01(\x03R\x06number\x12\x18\n" +
 	"\ainlined\x18\x04 \x03(\x03R\ainlined\x12?\n" +
-	"\vconstraints\x18\x05 \x03(\v2\x1d.tdl.plugin.v1.ConstraintViewR\vconstraints\"~\n" +
+	"\vconstraints\x18\x05 \x03(\v2\x1d.tdl.plugin.v1.ConstraintViewR\vconstraints\x12\x16\n" +
+	"\x06source\x18\x06 \x01(\tR\x06source\x12 \n" +
+	"\vdeprecation\x18\a \x01(\tR\vdeprecation\"~\n" +
 	"\x0eConstraintView\x12\x16\n" +
 	"\x06source\x18\x01 \x01(\tR\x06source\x12(\n" +
 	"\x06length\x18\x02 \x01(\v2\x10.tdl.ir.v1.RangeR\x06length\x12\x10\n" +
@@ -1887,10 +2065,11 @@ const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
 	"\x06target\x18\x01 \x01(\tR\x06target\x12)\n" +
 	"\x05files\x18\x02 \x03(\v2\x13.tdl.plugin.v1.FileR\x05files\x12\x1f\n" +
 	"\vallow_lossy\x18\x03 \x03(\tR\n" +
-	"allowLossy\"u\n" +
+	"allowLossy\"\x8d\x01\n" +
 	"\x0eImportResponse\x12&\n" +
 	"\x05model\x18\x01 \x01(\v2\x10.tdl.ir.v1.ModelR\x05model\x12;\n" +
-	"\vdiagnostics\x18\x02 \x03(\v2\x19.tdl.plugin.v1.DiagnosticR\vdiagnostics\"\xa0\x01\n" +
+	"\vdiagnostics\x18\x02 \x03(\v2\x19.tdl.plugin.v1.DiagnosticR\vdiagnostics\x12\x16\n" +
+	"\x06source\x18\x03 \x01(\tR\x06source\"\xa0\x01\n" +
 	"\n" +
 	"Diagnostic\x123\n" +
 	"\bseverity\x18\x01 \x01(\x0e2\x17.tdl.plugin.v1.SeverityR\bseverity\x12\x18\n" +
@@ -1941,7 +2120,7 @@ func file_tdl_plugin_v1_plugin_proto_rawDescGZIP() []byte {
 }
 
 var file_tdl_plugin_v1_plugin_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_tdl_plugin_v1_plugin_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_tdl_plugin_v1_plugin_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_tdl_plugin_v1_plugin_proto_goTypes = []any{
 	(Mode)(0),              // 0: tdl.plugin.v1.Mode
 	(Placement)(0),         // 1: tdl.plugin.v1.Placement
@@ -1956,21 +2135,23 @@ var file_tdl_plugin_v1_plugin_proto_goTypes = []any{
 	(*Features)(nil),       // 10: tdl.plugin.v1.Features
 	(*Request)(nil),        // 11: tdl.plugin.v1.Request
 	(*Analysis)(nil),       // 12: tdl.plugin.v1.Analysis
-	(*TypeView)(nil),       // 13: tdl.plugin.v1.TypeView
-	(*Refusal)(nil),        // 14: tdl.plugin.v1.Refusal
-	(*DeclView)(nil),       // 15: tdl.plugin.v1.DeclView
-	(*MemberView)(nil),     // 16: tdl.plugin.v1.MemberView
-	(*ConstraintView)(nil), // 17: tdl.plugin.v1.ConstraintView
-	(*Response)(nil),       // 18: tdl.plugin.v1.Response
-	(*File)(nil),           // 19: tdl.plugin.v1.File
-	(*ImportRequest)(nil),  // 20: tdl.plugin.v1.ImportRequest
-	(*ImportResponse)(nil), // 21: tdl.plugin.v1.ImportResponse
-	(*Diagnostic)(nil),     // 22: tdl.plugin.v1.Diagnostic
-	(*ir.Range)(nil),       // 23: tdl.ir.v1.Range
-	(ir.LiteralKind)(0),    // 24: tdl.ir.v1.LiteralKind
-	(*ir.Model)(nil),       // 25: tdl.ir.v1.Model
-	(*ir.ID)(nil),          // 26: tdl.ir.v1.ID
-	(*ir.Position)(nil),    // 27: tdl.ir.v1.Position
+	(*Source)(nil),         // 13: tdl.plugin.v1.Source
+	(*Item)(nil),           // 14: tdl.plugin.v1.Item
+	(*TypeView)(nil),       // 15: tdl.plugin.v1.TypeView
+	(*Refusal)(nil),        // 16: tdl.plugin.v1.Refusal
+	(*DeclView)(nil),       // 17: tdl.plugin.v1.DeclView
+	(*MemberView)(nil),     // 18: tdl.plugin.v1.MemberView
+	(*ConstraintView)(nil), // 19: tdl.plugin.v1.ConstraintView
+	(*Response)(nil),       // 20: tdl.plugin.v1.Response
+	(*File)(nil),           // 21: tdl.plugin.v1.File
+	(*ImportRequest)(nil),  // 22: tdl.plugin.v1.ImportRequest
+	(*ImportResponse)(nil), // 23: tdl.plugin.v1.ImportResponse
+	(*Diagnostic)(nil),     // 24: tdl.plugin.v1.Diagnostic
+	(*ir.Range)(nil),       // 25: tdl.ir.v1.Range
+	(ir.LiteralKind)(0),    // 26: tdl.ir.v1.LiteralKind
+	(*ir.Model)(nil),       // 27: tdl.ir.v1.Model
+	(*ir.ID)(nil),          // 28: tdl.ir.v1.ID
+	(*ir.Position)(nil),    // 29: tdl.ir.v1.Position
 }
 var file_tdl_plugin_v1_plugin_proto_depIdxs = []int32{
 	0,  // 0: tdl.plugin.v1.Handshake.mode:type_name -> tdl.plugin.v1.Mode
@@ -1979,43 +2160,45 @@ var file_tdl_plugin_v1_plugin_proto_depIdxs = []int32{
 	7,  // 3: tdl.plugin.v1.HandshakeReply.numbering:type_name -> tdl.plugin.v1.Numbering
 	8,  // 4: tdl.plugin.v1.Numbering.fields:type_name -> tdl.plugin.v1.NumberRule
 	8,  // 5: tdl.plugin.v1.Numbering.values:type_name -> tdl.plugin.v1.NumberRule
-	23, // 6: tdl.plugin.v1.NumberRule.reserved:type_name -> tdl.ir.v1.Range
-	24, // 7: tdl.plugin.v1.DirectiveSpec.arg_kinds:type_name -> tdl.ir.v1.LiteralKind
+	25, // 6: tdl.plugin.v1.NumberRule.reserved:type_name -> tdl.ir.v1.Range
+	26, // 7: tdl.plugin.v1.DirectiveSpec.arg_kinds:type_name -> tdl.ir.v1.LiteralKind
 	1,  // 8: tdl.plugin.v1.DirectiveSpec.placements:type_name -> tdl.plugin.v1.Placement
-	25, // 9: tdl.plugin.v1.Request.model:type_name -> tdl.ir.v1.Model
+	27, // 9: tdl.plugin.v1.Request.model:type_name -> tdl.ir.v1.Model
 	12, // 10: tdl.plugin.v1.Request.analysis:type_name -> tdl.plugin.v1.Analysis
-	13, // 11: tdl.plugin.v1.Analysis.types:type_name -> tdl.plugin.v1.TypeView
-	15, // 12: tdl.plugin.v1.Analysis.decls:type_name -> tdl.plugin.v1.DeclView
-	2,  // 13: tdl.plugin.v1.TypeView.form:type_name -> tdl.plugin.v1.Form
-	26, // 14: tdl.plugin.v1.TypeView.id:type_name -> tdl.ir.v1.ID
-	26, // 15: tdl.plugin.v1.TypeView.elem:type_name -> tdl.ir.v1.ID
-	26, // 16: tdl.plugin.v1.TypeView.key:type_name -> tdl.ir.v1.ID
-	26, // 17: tdl.plugin.v1.TypeView.decl:type_name -> tdl.ir.v1.ID
-	26, // 18: tdl.plugin.v1.TypeView.extern:type_name -> tdl.ir.v1.ID
-	14, // 19: tdl.plugin.v1.TypeView.refusal:type_name -> tdl.plugin.v1.Refusal
-	26, // 20: tdl.plugin.v1.TypeView.references:type_name -> tdl.ir.v1.ID
-	4,  // 21: tdl.plugin.v1.Refusal.reason:type_name -> tdl.plugin.v1.Refusal.Reason
-	27, // 22: tdl.plugin.v1.Refusal.position:type_name -> tdl.ir.v1.Position
-	26, // 23: tdl.plugin.v1.DeclView.references:type_name -> tdl.ir.v1.ID
-	26, // 24: tdl.plugin.v1.DeclView.underlying:type_name -> tdl.ir.v1.ID
-	16, // 25: tdl.plugin.v1.DeclView.fields:type_name -> tdl.plugin.v1.MemberView
-	16, // 26: tdl.plugin.v1.DeclView.variants:type_name -> tdl.plugin.v1.MemberView
-	17, // 27: tdl.plugin.v1.DeclView.constraints:type_name -> tdl.plugin.v1.ConstraintView
-	16, // 28: tdl.plugin.v1.MemberView.fields:type_name -> tdl.plugin.v1.MemberView
-	17, // 29: tdl.plugin.v1.MemberView.constraints:type_name -> tdl.plugin.v1.ConstraintView
-	23, // 30: tdl.plugin.v1.ConstraintView.length:type_name -> tdl.ir.v1.Range
-	19, // 31: tdl.plugin.v1.Response.files:type_name -> tdl.plugin.v1.File
-	22, // 32: tdl.plugin.v1.Response.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
-	19, // 33: tdl.plugin.v1.ImportRequest.files:type_name -> tdl.plugin.v1.File
-	25, // 34: tdl.plugin.v1.ImportResponse.model:type_name -> tdl.ir.v1.Model
-	22, // 35: tdl.plugin.v1.ImportResponse.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
-	3,  // 36: tdl.plugin.v1.Diagnostic.severity:type_name -> tdl.plugin.v1.Severity
-	27, // 37: tdl.plugin.v1.Diagnostic.position:type_name -> tdl.ir.v1.Position
-	38, // [38:38] is the sub-list for method output_type
-	38, // [38:38] is the sub-list for method input_type
-	38, // [38:38] is the sub-list for extension type_name
-	38, // [38:38] is the sub-list for extension extendee
-	0,  // [0:38] is the sub-list for field type_name
+	15, // 11: tdl.plugin.v1.Analysis.types:type_name -> tdl.plugin.v1.TypeView
+	17, // 12: tdl.plugin.v1.Analysis.decls:type_name -> tdl.plugin.v1.DeclView
+	13, // 13: tdl.plugin.v1.Analysis.source:type_name -> tdl.plugin.v1.Source
+	14, // 14: tdl.plugin.v1.Source.items:type_name -> tdl.plugin.v1.Item
+	2,  // 15: tdl.plugin.v1.TypeView.form:type_name -> tdl.plugin.v1.Form
+	28, // 16: tdl.plugin.v1.TypeView.id:type_name -> tdl.ir.v1.ID
+	28, // 17: tdl.plugin.v1.TypeView.elem:type_name -> tdl.ir.v1.ID
+	28, // 18: tdl.plugin.v1.TypeView.key:type_name -> tdl.ir.v1.ID
+	28, // 19: tdl.plugin.v1.TypeView.decl:type_name -> tdl.ir.v1.ID
+	28, // 20: tdl.plugin.v1.TypeView.extern:type_name -> tdl.ir.v1.ID
+	16, // 21: tdl.plugin.v1.TypeView.refusal:type_name -> tdl.plugin.v1.Refusal
+	28, // 22: tdl.plugin.v1.TypeView.references:type_name -> tdl.ir.v1.ID
+	4,  // 23: tdl.plugin.v1.Refusal.reason:type_name -> tdl.plugin.v1.Refusal.Reason
+	29, // 24: tdl.plugin.v1.Refusal.position:type_name -> tdl.ir.v1.Position
+	28, // 25: tdl.plugin.v1.DeclView.references:type_name -> tdl.ir.v1.ID
+	28, // 26: tdl.plugin.v1.DeclView.underlying:type_name -> tdl.ir.v1.ID
+	18, // 27: tdl.plugin.v1.DeclView.fields:type_name -> tdl.plugin.v1.MemberView
+	18, // 28: tdl.plugin.v1.DeclView.variants:type_name -> tdl.plugin.v1.MemberView
+	19, // 29: tdl.plugin.v1.DeclView.constraints:type_name -> tdl.plugin.v1.ConstraintView
+	18, // 30: tdl.plugin.v1.MemberView.fields:type_name -> tdl.plugin.v1.MemberView
+	19, // 31: tdl.plugin.v1.MemberView.constraints:type_name -> tdl.plugin.v1.ConstraintView
+	25, // 32: tdl.plugin.v1.ConstraintView.length:type_name -> tdl.ir.v1.Range
+	21, // 33: tdl.plugin.v1.Response.files:type_name -> tdl.plugin.v1.File
+	24, // 34: tdl.plugin.v1.Response.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
+	21, // 35: tdl.plugin.v1.ImportRequest.files:type_name -> tdl.plugin.v1.File
+	27, // 36: tdl.plugin.v1.ImportResponse.model:type_name -> tdl.ir.v1.Model
+	24, // 37: tdl.plugin.v1.ImportResponse.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
+	3,  // 38: tdl.plugin.v1.Diagnostic.severity:type_name -> tdl.plugin.v1.Severity
+	29, // 39: tdl.plugin.v1.Diagnostic.position:type_name -> tdl.ir.v1.Position
+	40, // [40:40] is the sub-list for method output_type
+	40, // [40:40] is the sub-list for method input_type
+	40, // [40:40] is the sub-list for extension type_name
+	40, // [40:40] is the sub-list for extension extendee
+	0,  // [0:40] is the sub-list for field type_name
 }
 
 func init() { file_tdl_plugin_v1_plugin_proto_init() }
@@ -2029,7 +2212,7 @@ func file_tdl_plugin_v1_plugin_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tdl_plugin_v1_plugin_proto_rawDesc), len(file_tdl_plugin_v1_plugin_proto_rawDesc)),
 			NumEnums:      5,
-			NumMessages:   18,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
