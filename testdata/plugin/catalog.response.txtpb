@@ -1,0 +1,15 @@
+files: {
+  path: "model.txt"
+  content: "package catalog\ntarget debug\n\ndeclarations: 3 own, 24 from the prelude\ntypes: 5\nexterns: 0\ninstances: 0\n\nProduct\n  directive note\n  field id: string\n  field name: string\n  field category: Option<string>\n  field tags: Set<string>\n\nMarker\n\nAvailability\n"
+}
+diagnostics: {
+  severity: SEVERITY_WARNING
+  message: "Marker has no fields, so there is nothing to generate for it"
+  position: {
+    filename: "catalog.tdl"
+    line: 11
+    column: 1
+    end_line: 11
+    end_column: 16
+  }
+}

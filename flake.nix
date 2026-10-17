@@ -67,6 +67,7 @@
               nodejs
               buf
               markdownlint-cli2
+              protobuf # protoc, for buf's C# generator
               protoc-gen-go
               smithy-cli
               typescript

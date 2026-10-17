@@ -1,0 +1,82 @@
+[
+	{
+		"pname": "Google.Protobuf",
+		"version": "3.36.2",
+		"hash": "sha256-EYJZDbF1+QV3B4V6HfSLIXIm0HMnFs01P6SqRoPTjcs="
+	},
+	{
+		"pname": "Microsoft.CodeCoverage",
+		"version": "17.14.1",
+		"hash": "sha256-f8QytG8GvRoP47rO2KEmnDLxIpyesaq26TFjDdW40Gs="
+	},
+	{
+		"pname": "Microsoft.NET.Test.Sdk",
+		"version": "17.14.1",
+		"hash": "sha256-mZUzDFvFp7x1nKrcnRd0hhbNu5g8EQYt8SKnRgdhT/A="
+	},
+	{
+		"pname": "Microsoft.TestPlatform.ObjectModel",
+		"version": "17.14.1",
+		"hash": "sha256-QMf6O+w0IT+16Mrzo7wn+N20f3L1/mDhs/qjmEo1rYs="
+	},
+	{
+		"pname": "Microsoft.TestPlatform.TestHost",
+		"version": "17.14.1",
+		"hash": "sha256-1cxHWcvHRD7orQ3EEEPPxVGEkTpxom1/zoICC9SInJs="
+	},
+	{
+		"pname": "Newtonsoft.Json",
+		"version": "13.0.3",
+		"hash": "sha256-hy/BieY4qxBWVVsDqqOPaLy1QobiIapkbrESm6v2PHc="
+	},
+	{
+		"pname": "System.Collections.Immutable",
+		"version": "8.0.0",
+		"hash": "sha256-F7OVjKNwpqbUh8lTidbqJWYi476nsq9n+6k0+QVRo3w="
+	},
+	{
+		"pname": "System.Reflection.Metadata",
+		"version": "8.0.0",
+		"hash": "sha256-dQGC30JauIDWNWXMrSNOJncVa1umR1sijazYwUDdSIE="
+	},
+	{
+		"pname": "xunit",
+		"version": "2.9.3",
+		"hash": "sha256-BPrpSbjlIB7PoH+ocCusqMDrMZgRQZSzeTeJzHK/I9c="
+	},
+	{
+		"pname": "xunit.abstractions",
+		"version": "2.0.3",
+		"hash": "sha256-0D1y/C34iARI96gb3bAOG8tcGPMjx+fMabTPpydGlAM="
+	},
+	{
+		"pname": "xunit.analyzers",
+		"version": "1.18.0",
+		"hash": "sha256-DOgamLnfi9Ua5IDm3JVm9MaOFbSSbmq5l8j2NPO3qd0="
+	},
+	{
+		"pname": "xunit.assert",
+		"version": "2.9.3",
+		"hash": "sha256-vHYOde8bd10pOmr7iTAYNtPlqHzsJl4x3t1DDuYdDCA="
+	},
+	{
+		"pname": "xunit.core",
+		"version": "2.9.3",
+		"hash": "sha256-qkVQ8Jw/LZWmxirkPOwiry7bvZn3IuaRzu/sp2H8anw="
+	},
+	{
+		"pname": "xunit.extensibility.core",
+		"version": "2.9.3",
+		"hash": "sha256-mcpVX+m0R7F0ev9CaBnbai9gtu4GVcqijEuRqe89D0g="
+	},
+	{
+		"pname": "xunit.extensibility.execution",
+		"version": "2.9.3",
+		"hash": "sha256-2rxMs2Dt4cAcmOFMwP5Yd3RpP0BnmiL8cXlKysXY0jw="
+	},
+	{
+		"pname": "xunit.runner.visualstudio",
+		"version": "3.1.5",
+		"hash": "sha256-O5657884QGldszsEWQFCDRTXViFBmZ4GGC+4iU+usSQ="
+	}
+]

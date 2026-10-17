@@ -1,0 +1,22 @@
+
+‰
+	model.txtûpackage catalog
+target debug
+
+declarations: 3 own, 24 from the prelude
+types: 5
+externs: 0
+instances: 0
+
+Product
+  directive note
+  field id: string
+  field name: string
+  field category: Option<string>
+  field tags: Set<string>
+
+Marker
+
+Availability
+W<Marker has no fields, so there is nothing to generate for it
+catalog.tdl (

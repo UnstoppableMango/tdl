@@ -1,4 +1,5 @@
 PROTO_GO  := ir/ir.pb.go plugin/plugin.pb.go
+PROTO_CS  := $(addprefix dotnet/Tdl.Plugin/Generated/,Ir.g.cs Plugin.g.cs GoFeatures.g.cs)
 PROTO_SRC ?= $(shell git ls-files proto)
 GO_SRC    ?= $(filter-out ${PROTO_GO},$(shell git ls-files '*.go'))
 TEST_DATA ?= $(shell git ls-files testdata prelude)
@@ -11,7 +12,7 @@ TMLANGUAGE  := ${VSCODE}/syntaxes/tdl.tmLanguage.json
 TS_GRAMMAR  := tree-sitter/grammar.js
 
 .PHONY: build test cover play demo generate treesitter textmate vscode-install \
-	vscode-check test-treesitter check-treesitter update lint check fmt tidy
+	vscode-check test-treesitter check-treesitter dotnet-test update lint check fmt tidy
 
 build:
 	nix build .#
@@ -34,9 +35,9 @@ demo:
 	nix build .#demo -o result-demo
 	install -m 644 result-demo/demo.gif docs/demo/demo.gif
 
-generate: ${PROTO_GO}
+generate: ${PROTO_GO} ${PROTO_CS}
 
-${PROTO_GO} &: ${PROTO_SRC} buf.gen.yaml buf.yaml
+${PROTO_GO} ${PROTO_CS} &: ${PROTO_SRC} buf.gen.yaml buf.yaml
 	buf generate
 
 treesitter: ${TS_GRAMMAR}
@@ -55,6 +56,9 @@ vscode-install: ${TMLANGUAGE}
 
 vscode-check:
 	${MAKE} -C ${VSCODE} check
+
+dotnet-test:
+	dotnet test dotnet/Tdl.sln
 
 test-treesitter:
 	${MAKE} -C tree-sitter test

@@ -1,0 +1,1168 @@
+target: "debug"
+model: {
+  package: "catalog"
+  decls: {
+    meta: {
+      name: "string"
+      doc: "An opaque, irreducible root type. Every other type is built from these."
+      position: {
+        filename: "std.tdl"
+        line: 4
+        column: 1
+        end_line: 4
+        end_column: 17
+      }
+    }
+    primitive: {}
+  }
+  decls: {
+    meta: {
+      name: "int"
+      position: {
+        filename: "std.tdl"
+        line: 6
+        column: 1
+        end_line: 6
+        end_column: 14
+      }
+      order: 1
+    }
+    primitive: {}
+  }
+  decls: {
+    meta: {
+      name: "bool"
+      position: {
+        filename: "std.tdl"
+        line: 7
+        column: 1
+        end_line: 7
+        end_column: 15
+      }
+      order: 2
+    }
+    primitive: {}
+  }
+  decls: {
+    meta: {
+      name: "bytes"
+      position: {
+        filename: "std.tdl"
+        line: 8
+        column: 1
+        end_line: 8
+        end_column: 16
+      }
+      order: 3
+    }
+    primitive: {}
+  }
+  decls: {
+    meta: {
+      name: "int32"
+      doc: "A signed 32-bit integer."
+      position: {
+        filename: "std.tdl"
+        line: 11
+        column: 1
+        end_line: 11
+        end_column: 16
+      }
+      order: 4
+    }
+    primitive: {}
+  }
+  decls: {
+    meta: {
+      name: "uint32"
+      doc: "An unsigned 32-bit integer."
+      position: {
+        filename: "std.tdl"
+        line: 14
+        column: 1
+        end_line: 14
+        end_column: 17
+      }
+      order: 5
+    }
+    primitive: {}
+  }
+  decls: {
+    meta: {
+      name: "int64"
+      doc: "A signed 64-bit integer."
+      position: {
+        filename: "std.tdl"
+        line: 17
+        column: 1
+        end_line: 17
+        end_column: 16
+      }
+      order: 6
+    }
+    primitive: {}
+  }
+  decls: {
+    meta: {
+      name: "uint64"
+      doc: "An unsigned 64-bit integer."
+      position: {
+        filename: "std.tdl"
+        line: 20
+        column: 1
+        end_line: 20
+        end_column: 17
+      }
+      order: 7
+    }
+    primitive: {}
+  }
+  decls: {
+    meta: {
+      name: "float32"
+      doc: "An IEEE 754 single-precision float."
+      position: {
+        filename: "std.tdl"
+        line: 23
+        column: 1
+        end_line: 23
+        end_column: 18
+      }
+      order: 8
+    }
+    primitive: {}
+  }
+  decls: {
+    meta: {
+      name: "float64"
+      doc: "An IEEE 754 double-precision float."
+      position: {
+        filename: "std.tdl"
+        line: 26
+        column: 1
+        end_line: 26
+        end_column: 18
+      }
+      order: 9
+    }
+    primitive: {}
+  }
+  decls: {
+    meta: {
+      name: "List"
+      doc: "An ordered collection, duplicates allowed. `[T]` is sugar for `List<T>`."
+      position: {
+        filename: "std.tdl"
+        line: 29
+        column: 1
+        end_line: 29
+        end_column: 29
+      }
+      order: 10
+    }
+    primitive: {
+      kind: {
+        atom: KIND_ATOM_TYPE
+        arrow: {
+          atom: KIND_ATOM_TYPE
+        }
+      }
+    }
+  }
+  decls: {
+    meta: {
+      name: "Set"
+      doc: "An unordered collection of distinct elements. `{T}` is sugar for `Set<T>`."
+      position: {
+        filename: "std.tdl"
+        line: 32
+        column: 1
+        end_line: 32
+        end_column: 28
+      }
+      order: 11
+    }
+    primitive: {
+      kind: {
+        atom: KIND_ATOM_TYPE
+        arrow: {
+          atom: KIND_ATOM_TYPE
+        }
+      }
+    }
+  }
+  decls: {
+    meta: {
+      name: "Map"
+      doc: "A mapping from keys to values. `{K -> V}` is sugar for `Map<K, V>`."
+      position: {
+        filename: "std.tdl"
+        line: 35
+        column: 1
+        end_line: 35
+        end_column: 36
+      }
+      order: 12
+    }
+    primitive: {
+      kind: {
+        atom: KIND_ATOM_TYPE
+        arrow: {
+          atom: KIND_ATOM_TYPE
+          arrow: {
+            atom: KIND_ATOM_TYPE
+          }
+        }
+      }
+    }
+  }
+  decls: {
+    meta: {
+      name: "decimal"
+      doc: "Arbitrary-precision decimal."
+      position: {
+        filename: "std.tdl"
+        line: 38
+        column: 1
+        end_line: 38
+        end_column: 18
+      }
+      order: 13
+    }
+    primitive: {}
+  }
+  decls: {
+    meta: {
+      name: "uuid"
+      position: {
+        filename: "std.tdl"
+        line: 40
+        column: 1
+        end_line: 40
+        end_column: 15
+      }
+      order: 14
+    }
+    primitive: {}
+  }
+  decls: {
+    meta: {
+      name: "instant"
+      position: {
+        filename: "std.tdl"
+        line: 41
+        column: 1
+        end_line: 41
+        end_column: 18
+      }
+      order: 15
+    }
+    primitive: {}
+  }
+  decls: {
+    meta: {
+      name: "date"
+      position: {
+        filename: "std.tdl"
+        line: 42
+        column: 1
+        end_line: 42
+        end_column: 15
+      }
+      order: 16
+    }
+    primitive: {}
+  }
+  decls: {
+    meta: {
+      name: "duration"
+      position: {
+        filename: "std.tdl"
+        line: 43
+        column: 1
+        end_line: 43
+        end_column: 19
+      }
+      order: 17
+    }
+    primitive: {}
+  }
+  decls: {
+    meta: {
+      name: "s"
+      doc: "Base units of the SI system. A project may declare its own."
+      position: {
+        filename: "std.tdl"
+        line: 46
+        column: 1
+        end_line: 46
+        end_column: 7
+      }
+      order: 18
+    }
+    unit: {
+      unit: {
+        name: "s"
+      }
+      base: true
+    }
+  }
+  decls: {
+    meta: {
+      name: "m"
+      position: {
+        filename: "std.tdl"
+        line: 48
+        column: 1
+        end_line: 48
+        end_column: 7
+      }
+      order: 19
+    }
+    unit: {
+      unit: {
+        index: 1
+        name: "m"
+      }
+      base: true
+    }
+  }
+  decls: {
+    meta: {
+      name: "kg"
+      position: {
+        filename: "std.tdl"
+        line: 49
+        column: 1
+        end_line: 49
+        end_column: 8
+      }
+      order: 20
+    }
+    unit: {
+      unit: {
+        index: 2
+        name: "kg"
+      }
+      base: true
+    }
+  }
+  decls: {
+    meta: {
+      name: "Option"
+      doc: "Absence. `T?` is sugar for `Option<T>`."
+      position: {
+        filename: "std.tdl"
+        line: 52
+        column: 1
+        end_line: 55
+        end_column: 2
+      }
+      order: 21
+    }
+    enumeration: {
+      params: {
+        name: "T"
+        position: {
+          filename: "std.tdl"
+          line: 52
+          column: 13
+          end_line: 52
+          end_column: 14
+        }
+      }
+      variants: {
+        meta: {
+          name: "Some"
+          position: {
+            filename: "std.tdl"
+            line: 53
+            column: 3
+            end_line: 53
+            end_column: 20
+          }
+        }
+        fields: {
+          meta: {
+            name: "value"
+            position: {
+              filename: "std.tdl"
+              line: 53
+              column: 10
+              end_line: 53
+              end_column: 18
+            }
+          }
+          type: {
+            name: "T"
+          }
+        }
+      }
+      variants: {
+        meta: {
+          name: "None"
+          position: {
+            filename: "std.tdl"
+            line: 54
+            column: 3
+            end_line: 54
+            end_column: 7
+          }
+          order: 1
+        }
+      }
+    }
+  }
+  decls: {
+    meta: {
+      name: "Nullable"
+      doc: "Presence with a null value. `T | null` is sugar for `Nullable<T>`."
+      position: {
+        filename: "std.tdl"
+        line: 58
+        column: 1
+        end_line: 61
+        end_column: 2
+      }
+      order: 22
+    }
+    enumeration: {
+      params: {
+        name: "T"
+        position: {
+          filename: "std.tdl"
+          line: 58
+          column: 15
+          end_line: 58
+          end_column: 16
+        }
+      }
+      variants: {
+        meta: {
+          name: "Present"
+          position: {
+            filename: "std.tdl"
+            line: 59
+            column: 3
+            end_line: 59
+            end_column: 23
+          }
+        }
+        fields: {
+          meta: {
+            name: "value"
+            position: {
+              filename: "std.tdl"
+              line: 59
+              column: 13
+              end_line: 59
+              end_column: 21
+            }
+          }
+          type: {
+            index: 1
+            name: "T"
+          }
+        }
+      }
+      variants: {
+        meta: {
+          name: "Null"
+          position: {
+            filename: "std.tdl"
+            line: 60
+            column: 3
+            end_line: 60
+            end_column: 7
+          }
+          order: 1
+        }
+      }
+    }
+  }
+  decls: {
+    meta: {
+      name: "Entity"
+      doc: "Anything with identity that survives changes to its contents."
+      position: {
+        filename: "std.tdl"
+        line: 64
+        column: 1
+        end_line: 64
+        end_column: 17
+      }
+      order: 23
+    }
+    class: {}
+  }
+  decls: {
+    meta: {
+      name: "Product"
+      doc: "A product on sale."
+      position: {
+        filename: "catalog.tdl"
+        line: 4
+        column: 1
+        end_line: 9
+        end_column: 2
+      }
+    }
+    directives: {
+      name: "note"
+      args: {
+        kind: LITERAL_KIND_STRING
+        text: "carried as TDL"
+        position: {
+          filename: "catalog.tdl"
+          line: 21
+          column: 19
+          end_line: 21
+          end_column: 35
+        }
+      }
+      position: {
+        filename: "catalog.tdl"
+        line: 21
+        column: 14
+        end_line: 21
+        end_column: 36
+      }
+      target: "debug"
+    }
+    structure: {
+      kind: STRUCT_KIND_ENTITY
+      fields: {
+        meta: {
+          name: "id"
+          position: {
+            filename: "catalog.tdl"
+            line: 5
+            column: 3
+            end_line: 5
+            end_column: 13
+          }
+        }
+        type: {
+          index: 2
+          name: "string"
+        }
+      }
+      fields: {
+        meta: {
+          name: "name"
+          position: {
+            filename: "catalog.tdl"
+            line: 6
+            column: 3
+            end_line: 6
+            end_column: 39
+          }
+          order: 1
+        }
+        type: {
+          index: 2
+          name: "string"
+        }
+        constraints: {
+          name: "length"
+          args: {
+            kind: LITERAL_KIND_RANGE
+            range: {
+              low: 1
+              high: 64
+            }
+            position: {
+              filename: "catalog.tdl"
+              line: 6
+              column: 31
+              end_line: 6
+              end_column: 36
+            }
+          }
+          position: {
+            filename: "catalog.tdl"
+            line: 6
+            column: 24
+            end_line: 6
+            end_column: 37
+          }
+        }
+      }
+      fields: {
+        meta: {
+          name: "category"
+          position: {
+            filename: "catalog.tdl"
+            line: 7
+            column: 26
+            end_line: 7
+            end_column: 43
+          }
+          deprecated: {
+            reason: "use tags"
+            position: {
+              filename: "catalog.tdl"
+              line: 7
+              column: 3
+              end_line: 7
+              end_column: 25
+            }
+          }
+          order: 2
+        }
+        type: {
+          index: 3
+          name: "Option<string>"
+        }
+      }
+      fields: {
+        meta: {
+          name: "tags"
+          position: {
+            filename: "catalog.tdl"
+            line: 8
+            column: 3
+            end_line: 8
+            end_column: 20
+          }
+          order: 3
+        }
+        type: {
+          index: 4
+          name: "Set<string>"
+        }
+      }
+      conforms: {
+        class: {
+          index: 23
+          name: "Entity"
+        }
+        position: {
+          filename: "catalog.tdl"
+          line: 4
+          column: 15
+          end_line: 4
+          end_column: 21
+        }
+      }
+    }
+  }
+  decls: {
+    meta: {
+      name: "Marker"
+      position: {
+        filename: "catalog.tdl"
+        line: 11
+        column: 1
+        end_line: 11
+        end_column: 16
+      }
+      order: 1
+    }
+    structure: {
+      kind: STRUCT_KIND_VALUE
+    }
+  }
+  decls: {
+    meta: {
+      name: "Availability"
+      position: {
+        filename: "catalog.tdl"
+        line: 13
+        column: 1
+        end_line: 16
+        end_column: 2
+      }
+      order: 2
+    }
+    enumeration: {
+      variants: {
+        meta: {
+          name: "InStock"
+          position: {
+            filename: "catalog.tdl"
+            line: 14
+            column: 3
+            end_line: 14
+            end_column: 10
+          }
+        }
+      }
+      variants: {
+        meta: {
+          name: "Backordered"
+          position: {
+            filename: "catalog.tdl"
+            line: 15
+            column: 3
+            end_line: 15
+            end_column: 32
+          }
+          order: 1
+        }
+        fields: {
+          meta: {
+            name: "until"
+            position: {
+              filename: "catalog.tdl"
+              line: 15
+              column: 17
+              end_line: 15
+              end_column: 30
+            }
+          }
+          type: {
+            index: 2
+            name: "string"
+          }
+        }
+      }
+    }
+  }
+  types: {
+    wrote: SYNTACTIC_FORM_NAMED
+    position: {
+      filename: "std.tdl"
+      line: 53
+      column: 17
+      end_line: 53
+      end_column: 18
+    }
+    param: {
+      name: "T"
+      owner: {
+        index: 21
+        name: "Option"
+      }
+    }
+  }
+  types: {
+    wrote: SYNTACTIC_FORM_NAMED
+    position: {
+      filename: "std.tdl"
+      line: 59
+      column: 20
+      end_line: 59
+      end_column: 21
+    }
+    param: {
+      name: "T"
+      owner: {
+        index: 22
+        name: "Nullable"
+      }
+    }
+  }
+  types: {
+    ctor: {
+      name: "string"
+    }
+    wrote: SYNTACTIC_FORM_NAMED
+    position: {
+      filename: "catalog.tdl"
+      line: 5
+      column: 7
+      end_line: 5
+      end_column: 13
+    }
+  }
+  types: {
+    ctor: {
+      index: 21
+      name: "Option"
+    }
+    args: {
+      index: 2
+      name: "string"
+    }
+    wrote: SYNTACTIC_FORM_QUESTION
+    position: {
+      filename: "catalog.tdl"
+      line: 7
+      column: 36
+      end_line: 7
+      end_column: 43
+    }
+  }
+  types: {
+    ctor: {
+      index: 11
+      name: "Set"
+    }
+    args: {
+      index: 2
+      name: "string"
+    }
+    wrote: SYNTACTIC_FORM_NAMED
+    position: {
+      filename: "catalog.tdl"
+      line: 8
+      column: 9
+      end_line: 8
+      end_column: 20
+    }
+  }
+  satisfies: {
+    class: {
+      index: 23
+      name: "Entity"
+    }
+    decls: {
+      index: 24
+      name: "Product"
+    }
+  }
+  targets: {
+    meta: {
+      name: "debug"
+      position: {
+        filename: "catalog.tdl"
+        line: 18
+        column: 1
+        end_line: 22
+        end_column: 2
+      }
+    }
+    for_package: "catalog"
+    directives: {
+      name: "out"
+      args: {
+        kind: LITERAL_KIND_STRING
+        text: "./gen"
+        position: {
+          filename: "catalog.tdl"
+          line: 19
+          column: 7
+          end_line: 19
+          end_column: 14
+        }
+      }
+      position: {
+        filename: "catalog.tdl"
+        line: 19
+        column: 3
+        end_line: 19
+        end_column: 15
+      }
+      target: "debug"
+    }
+    directives: {
+      name: "roundtrip"
+      position: {
+        filename: "catalog.tdl"
+        line: 20
+        column: 3
+        end_line: 20
+        end_column: 12
+      }
+      target: "debug"
+    }
+  }
+  units: {
+    dims: {
+      base: {
+        index: 18
+        name: "s"
+      }
+      exponent: 1
+    }
+    wrote: "s"
+    position: {
+      filename: "std.tdl"
+      line: 46
+      column: 1
+      end_line: 46
+      end_column: 7
+    }
+  }
+  units: {
+    dims: {
+      base: {
+        index: 19
+        name: "m"
+      }
+      exponent: 1
+    }
+    wrote: "m"
+    position: {
+      filename: "std.tdl"
+      line: 48
+      column: 1
+      end_line: 48
+      end_column: 7
+    }
+  }
+  units: {
+    dims: {
+      base: {
+        index: 20
+        name: "kg"
+      }
+      exponent: 1
+    }
+    wrote: "kg"
+    position: {
+      filename: "std.tdl"
+      line: 49
+      column: 1
+      end_line: 49
+      end_column: 8
+    }
+  }
+}
+out: "gen"
+analysis: {
+  types: {
+    form: FORM_PARAM
+    id: {}
+    name: "T"
+    refusal: {
+      reason: REASON_PARAM
+      subject: "T"
+      position: {
+        filename: "std.tdl"
+        line: 53
+        column: 17
+        end_line: 53
+        end_column: 18
+      }
+    }
+  }
+  types: {
+    form: FORM_PARAM
+    id: {
+      index: 1
+    }
+    name: "T"
+    refusal: {
+      reason: REASON_PARAM
+      subject: "T"
+      position: {
+        filename: "std.tdl"
+        line: 59
+        column: 20
+        end_line: 59
+        end_column: 21
+      }
+    }
+  }
+  types: {
+    form: FORM_PRIMITIVE
+    id: {
+      index: 2
+    }
+    name: "string"
+    references: {
+      name: "string"
+    }
+  }
+  types: {
+    form: FORM_OPTION
+    id: {
+      index: 3
+    }
+    elem: {
+      index: 2
+    }
+    references: {
+      name: "string"
+    }
+    references: {
+      index: 21
+      name: "Option"
+    }
+  }
+  types: {
+    form: FORM_SET
+    id: {
+      index: 4
+    }
+    elem: {
+      index: 2
+    }
+    references: {
+      name: "string"
+    }
+    references: {
+      index: 11
+      name: "Set"
+    }
+  }
+  decls: {
+    words: "string"
+  }
+  decls: {
+    words: "int"
+  }
+  decls: {
+    words: "bool"
+  }
+  decls: {
+    words: "bytes"
+  }
+  decls: {
+    words: "int32"
+  }
+  decls: {
+    words: "uint32"
+  }
+  decls: {
+    words: "int64"
+  }
+  decls: {
+    words: "uint64"
+  }
+  decls: {
+    words: "float32"
+  }
+  decls: {
+    words: "float64"
+  }
+  decls: {
+    words: "List"
+  }
+  decls: {
+    words: "Set"
+  }
+  decls: {
+    words: "Map"
+  }
+  decls: {
+    words: "decimal"
+  }
+  decls: {
+    words: "uuid"
+  }
+  decls: {
+    words: "instant"
+  }
+  decls: {
+    words: "date"
+  }
+  decls: {
+    words: "duration"
+  }
+  decls: {
+    words: "s"
+  }
+  decls: {
+    words: "m"
+  }
+  decls: {
+    words: "kg"
+  }
+  decls: {
+    fielded: true
+    discriminant: "kind"
+    words: "Option"
+    variants: {
+      words: "Some"
+      fields: {
+        words: "value"
+        source: "value: T"
+      }
+    }
+    variants: {
+      words: "None"
+    }
+  }
+  decls: {
+    fielded: true
+    discriminant: "kind"
+    words: "Nullable"
+    variants: {
+      words: "Present"
+      fields: {
+        words: "value"
+        source: "value: T"
+      }
+    }
+    variants: {
+      words: "Null"
+    }
+  }
+  decls: {
+    words: "Entity"
+  }
+  decls: {
+    own: true
+    references: {
+      name: "string"
+    }
+    references: {
+      index: 21
+      name: "Option"
+    }
+    references: {
+      index: 11
+      name: "Set"
+    }
+    words: "Product"
+    fields: {
+      words: "id"
+      source: "id: string"
+    }
+    fields: {
+      words: "name"
+      constraints: {
+        source: "length(1..64)"
+        length: {
+          low: 1
+          high: 64
+        }
+      }
+      source: "name: string where { length(1..64) }"
+    }
+    fields: {
+      words: "category"
+      source: "category: string?"
+      deprecation: "deprecated(\"use tags\")"
+    }
+    fields: {
+      words: "tags"
+      source: "tags: Set<string>"
+    }
+  }
+  decls: {
+    own: true
+    words: "Marker"
+  }
+  decls: {
+    own: true
+    references: {
+      name: "string"
+    }
+    fielded: true
+    discriminant: "kind"
+    words: "Availability"
+    variants: {
+      words: "In"
+      words: "Stock"
+    }
+    variants: {
+      words: "Backordered"
+      fields: {
+        words: "until"
+        source: "until: string"
+      }
+    }
+  }
+  source: {
+    items: {
+      source: "/// A product on sale.\ntype Product: Entity {\n  id: string\n  name: string where { length(1..64) }\n  deprecated(\"use tags\") category: string?\n  tags: Set<string>\n}"
+      name: "Product"
+      conforms: "Entity"
+    }
+    items: {
+      source: "type Marker { }"
+      name: "Marker"
+    }
+    items: {
+      source: "enum Availability {\n  InStock\n  Backordered { until: string }\n}"
+      name: "Availability"
+    }
+    items: {
+      source: "target debug for catalog {\n  out(\"./gen\")\n  Product => note(\"carried as TDL\")\n}"
+    }
+  }
+}

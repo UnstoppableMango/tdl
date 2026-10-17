@@ -1,0 +1,22 @@
+package catalog
+
+/// A product on sale.
+type Product: Entity {
+  id: string
+  name: string where { length(1..64) }
+  deprecated("use tags") category: string?
+  tags: Set<string>
+}
+
+type Marker { }
+
+enum Availability {
+  InStock
+  Backordered { until: string }
+}
+
+target debug for catalog {
+  out("./gen")
+  roundtrip
+  Product => note("carried as TDL")
+}
