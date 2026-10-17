@@ -39,19 +39,19 @@ A not-covered mutant is a coverage gap, not a survivor, and is reported separate
 
 Every mutator is enabled, not only gremlins' defaults:
 
-| Mutator                   | Edit                        |
-| ------------------------- | --------------------------- |
-| `arithmetic-base`         | `+` to `-`, `*` to `/`, ... |
-| `conditionals-boundary`   | `<` to `<=`, ...            |
-| `conditionals-negation`   | `==` to `!=`, `<` to `>=`   |
-| `increment-decrement`     | `++` to `--`                |
-| `invert-assignments`      | `+=` to `-=`, ...           |
-| `invert-bitwise`          | `&` to `\|`, ...            |
-| `invert-bwassign`         | `&=` to `\|=`, ...          |
-| `invert-logical`          | `&&` to `\|\|`              |
-| `invert-loopctrl`         | `break` to `continue`       |
-| `invert-negatives`        | `-x` to `+x`                |
-| `remove-self-assignments` | `x += y` to `x = y`         |
+| Mutator | Edit |
+| --- | --- |
+| `arithmetic-base` | `+` to `-`, `*` to `/`, ... |
+| `conditionals-boundary` | `<` to `<=`, ... |
+| `conditionals-negation` | `==` to `!=`, `<` to `>=` |
+| `increment-decrement` | `++` to `--` |
+| `invert-assignments` | `+=` to `-=`, ... |
+| `invert-bitwise` | `&` to `\|`, ... |
+| `invert-bwassign` | `&=` to `\|=`, ... |
+| `invert-logical` | `&&` to `\|\|` |
+| `invert-loopctrl` | `break` to `continue` |
+| `invert-negatives` | `-x` to `+x` |
+| `remove-self-assignments` | `x += y` to `x = y` |
 
 The lexer, the parser, and lowering are full of short-circuit guards and early `continue`s, which are what the extra mutators reach.
 
