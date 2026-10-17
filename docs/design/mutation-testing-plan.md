@@ -13,7 +13,7 @@ Killing the first survivors is the routine's work, not a phase's.
 
 ## Phase 1: the tool
 
-- `nix/gremlins.nix` builds gremlins with `buildGoModule`, and the devShell carries it; `nix flake check` still passes.
+- unmango/pkgs packages gremlins, in its own pull request there; the devShell adds `inputs'.mangopkgs.packages.gremlins` after `make update` picks it up, and `nix flake check` still passes.
 - Confirm gremlins builds and runs under the devShell's Go 1.27, and that it can pass `-short` to `go test` (a flag, or `GOFLAGS`); if neither works, the design's test command is revisited before phase 2.
 - Run it once by hand over `lex`, the smallest package in scope, with every mutator enabled.
 

@@ -55,7 +55,7 @@ Every mutator is enabled, not only gremlins' defaults:
 
 The lexer, the parser, and lowering are full of short-circuit guards and early `continue`s, which are what the extra mutators reach.
 
-gremlins is not in nixpkgs, so `nix/gremlins.nix` builds it with `buildGoModule`, and the devShell carries it.
+gremlins is not in nixpkgs, so [unmango/pkgs](https://github.com/unmango/pkgs) packages it, and the devShell takes it from the `mangopkgs` input as it takes graphify.
 
 ## Running
 
