@@ -101,7 +101,7 @@ func TestCSharpCorpus(t *testing.T) {
 					t.Errorf("error: %v", d)
 				}
 			}
-			checkCorpusFiles(t, filepath.Join(out, "out"), resp.GetFiles())
+			checkCorpusFiles(t, filepath.Join(out, "want"), resp.GetFiles())
 		})
 	}
 

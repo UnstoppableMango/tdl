@@ -51,7 +51,10 @@ jobs:
       # race run already ran go, smithy, tsc, ghc, dotnet, and likec4 on generated code,
       # and test code is outside the coverage profile. The race run puts the
       # build's plugins on PATH, so the C# corpus runs through tdl-gen-csharp.
-      - run: nix develop -c sh -c 'PATH="$PWD/result/bin:$PATH" go test -race ./...'
+      - run: |
+          # The inner shell expands PATH, after nix develop has set it.
+          # shellcheck disable=SC2016
+          nix develop -c sh -c 'PATH="$PWD/result/bin:$PATH" go test -race ./...'
         if: ${{ !cancelled() }}
         env:
           CGO_ENABLED: "1"

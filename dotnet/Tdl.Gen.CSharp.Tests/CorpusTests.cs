@@ -22,7 +22,7 @@ public class CorpusTests
 		var resp = new CSharpBackend().Generate(req);
 		Assert.Empty(Errors(resp));
 
-		var output = Path.Combine(dir, "out");
+		var output = Path.Combine(dir, "want");
 		string[] want = Directory.Exists(output)
 			? [.. Directory.GetFiles(output, "*", SearchOption.AllDirectories).Select(f => Path.GetRelativePath(output, f).Replace('\\', '/')).Order()]
 			: [];
