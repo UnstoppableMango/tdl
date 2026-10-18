@@ -1,0 +1,7 @@
+package shop
+
+enum Order { A }
+
+target csharp for shop {
+  Order => key(A)
+}

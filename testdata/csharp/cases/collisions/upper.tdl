@@ -1,0 +1,8 @@
+package shop
+
+type Pair {
+  id: string
+  Id: string
+}
+
+type Fine { }

@@ -1,0 +1,14 @@
+package shop
+
+/// An address to write to.
+type Email: string
+
+type WorkEmail: Email
+type Skus: [string]
+alias Tags = {string}
+
+type Order {
+  contact: WorkEmail
+  tags: Tags
+  skus: Skus
+}

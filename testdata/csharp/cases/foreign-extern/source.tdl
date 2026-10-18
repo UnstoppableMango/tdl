@@ -1,0 +1,7 @@
+package shop
+
+import "money.tdl" as money
+
+type Order {
+  total: money.Money
+}

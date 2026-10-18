@@ -1,0 +1,9 @@
+package acme.money
+
+type Money {
+  units: int
+}
+
+target csharp for acme.money {
+  Money => foreign("Acme.Money", "Amount")
+}

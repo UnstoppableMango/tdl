@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<Description>What the C# and F# backends share because both target .NET: the type each primitive maps to, the namespace a package derives, and the names foreign and attribute give.</Description>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<IsTrimmable>true</IsTrimmable>
+	</PropertyGroup>
+</Project>

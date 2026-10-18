@@ -1,0 +1,22 @@
+package shop
+
+type UserId: string
+
+type User: Entity {
+  id: UserId
+  name: string
+}
+
+type Sku: string
+
+type LineItem: Entity {
+  order: string
+  sku: Sku
+  deprecated("gone") kind: string
+  tags: [string]
+}
+
+target csharp for shop {
+  User => key(id)
+  LineItem => key(order, sku, kind)
+}
