@@ -3,7 +3,7 @@
 An implementation plan for [graphify.md](graphify.md).
 Phases are ordered by dependency, and each states what makes it done.
 
-No phase is done.
+Phase 1 is done.
 
 ## Scope
 
@@ -13,7 +13,7 @@ It publishes nothing outside the two repositories.
 ## Phase 1: the binding
 
 - `tree-sitter/tree-sitter.json` enables the Python binding, and `tree-sitter init` writes `bindings/python/`, `pyproject.toml`, and `setup.py`, with `scanner.c` in the sources.
-- `nix/` builds it as `tree-sitter-tdl` with `buildPythonPackage`, exposed as `packages.tree-sitter-tdl`, and a check imports it and parses `prelude/prelude.tdl` with no ERROR node.
+- `nix/` builds it as `tree-sitter-tdl` with `buildPythonPackage`, exposed as `packages.tree-sitter-tdl`, and a check imports it and parses `prelude/std.tdl` with no ERROR node.
 - The generated files join the formatter exclusions and `.graphifyignore` as other generated code does, and `make check-treesitter` still passes.
 
 Done when `nix build .#tree-sitter-tdl` and `nix flake check` pass.

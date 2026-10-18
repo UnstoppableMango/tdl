@@ -5,6 +5,8 @@
 tree-sitter/grammar.js
 tree-sitter/src/*
 !tree-sitter/src/scanner.c
+tree-sitter/bindings/
+tree-sitter/setup.py
 editors/vscode/syntaxes/
 
 # Fixtures and recorded output

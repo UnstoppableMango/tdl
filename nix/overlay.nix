@@ -4,7 +4,7 @@
   version,
 }:
 lib.composeExtensions gomod2nix.overlays.default (
-  final: _prev: {
+  final: prev: {
     tdl = final.callPackage ./cmd.nix {
       inherit version;
       go = final.go_1_27; # TODO: consolidate with flake.nix; optionally go.mod too
@@ -13,5 +13,11 @@ lib.composeExtensions gomod2nix.overlays.default (
     vscode-tdl = final.callPackage ./vscode-extension.nix { inherit version; };
 
     tdl-dotnet = final.callPackage ./dotnet.nix { inherit version; };
+
+    pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
+      (pyFinal: _: {
+        tree-sitter-tdl = pyFinal.callPackage ./tree-sitter-tdl.nix { };
+      })
+    ];
   }
 )
