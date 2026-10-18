@@ -3,7 +3,7 @@
 An implementation plan for [mutation-testing.md](mutation-testing.md).
 Phases are ordered by dependency, and each states what makes it done.
 
-No phase is done.
+Phase 1 is done: the devShell carries gremlins 0.6.0, and its run over `lex` under Go 1.27 killed 51 mutants, timed out 16, left 13 alive, and reached 7 no test covers, in two and a half minutes.
 
 ## Scope
 
