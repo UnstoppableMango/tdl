@@ -18,3 +18,13 @@ plugins:
   - local: protoc-gen-go
     out: .
     opt: module=github.com/unstoppablemango/tdl
+  # The .NET SDK's types, from protoc's own C# generator. Its version must
+  # match the Google.Protobuf package dotnet/Tdl.Plugin references.
+  - protoc_builtin: csharp
+    out: dotnet/Tdl.Plugin/Generated
+    opt: file_extension=.g.cs
+    # The protos import go_features.proto for Go's options alone. Leaving its
+    # package out strips those options, so the C# descriptors name neither it
+    # nor descriptor.proto.
+    exclude_types:
+      - pb

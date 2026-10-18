@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Tdl.Plugin.Debug/Tdl.Plugin.Debug.csproj" />
+  <Project Path="Tdl.Plugin.Tests/Tdl.Plugin.Tests.csproj" />
+  <Project Path="Tdl.Plugin/Tdl.Plugin.csproj" />
+</Solution>

@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+		<OutputType>Exe</OutputType>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- xunit.v3 3.x runs under VSTest as well as Microsoft.Testing.Platform,
+		     so buildDotnetModule's dotnet test runs it. -->
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+		<PackageReference Include="xunit.v3" Version="3.2.2" />
+		<PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Using Include="Xunit" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="../Tdl.Plugin/Tdl.Plugin.csproj" />
+		<ProjectReference Include="../Tdl.Plugin.Debug/Tdl.Plugin.Debug.csproj" />
+	</ItemGroup>
+</Project>

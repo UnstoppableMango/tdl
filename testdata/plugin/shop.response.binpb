@@ -1,0 +1,14 @@
+
+±
+	model.txt£package shop
+target debug
+
+declarations: 1 own, 24 from the prelude
+types: 4
+externs: 0
+instances: 0
+
+Order
+  directive note
+  field id: string
+  field total: int

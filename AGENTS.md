@@ -27,6 +27,7 @@ command make textmate         # docs/grammar.ebnf -> editors/vscode/syntaxes/tdl
 command make vscode-install   # package editors/vscode and install it into a running VS Code
 command make vscode-check     # npm ci, then typecheck and biome check editors/vscode
 command make vscode-test      # in `nix develop .#vscode`: the extension in a headless VSCodium
+command make dotnet-test      # dotnet test dotnet/Tdl.slnx: the .NET plugin SDK
 command make test-treesitter  # the conformance corpus, run by tree-sitter
 command make check-treesitter # what CI runs: treesitter + a diff + test-treesitter
 ```
@@ -48,7 +49,7 @@ CI runs them as two steps.
 Biome's JSON formatter is off, because jsonfmt owns JSON.
 
 `.markdownlint-cli2.yaml` lists which markdown files are linted, so a bare `markdownlint-cli2` checks what CI checks.
-Files with no formatter: the three Makefiles, `.editorconfig`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md` (mdformat would break the frontmatter), `.graphifyignore`, `docs/demo/demo.tape`, `docs/demo/demo.bash`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, `backend/typescript/outline.js`, and `tree-sitter/src/scanner.c`.
+Files with no formatter: the three Makefiles, `.editorconfig`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md` (mdformat would break the frontmatter), `.graphifyignore`, `docs/demo/demo.tape`, `docs/demo/demo.bash`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, `backend/typescript/outline.js`, `tree-sitter/src/scanner.c`, and everything in `dotnet/` but `deps.json`.
 `internal/ebnf` lints the two grammars instead, and their column alignment is deliberate.
 Also excluded from formatting: `*.tdl` (until `tdl fmt` is wired in, see `docs/backlog.md`), generated files, and `.claude/`.
 
@@ -64,6 +65,7 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 
 - `cmd.nix`: the CLI. `meta.mainProgram` is what `lib.getExe` reads, since the package installs thirteen binaries.
 - `vscode-extension.nix`: the editor extension (see [VS Code](#vs-code)).
+- `dotnet.nix`: the .NET plugin SDK's debug port, built with `buildDotnetModule`, which runs the SDK's tests (see [.NET SDK](#net-sdk)).
 - `demo.nix`: renders `docs/demo/demo.tape`, the README's GIF, with VHS. It is a package and not a check, since it runs a browser.
   The tape's `cat`, from `docs/demo/demo.bash`, highlights TDL with the tree-sitter grammar and the theme in `themes/tree-sitter/`, and everything else with bat.
 - `overlay.nix`: names both packages and composes gomod2nix's overlay, so a consumer adding it also gets `buildGoApplication` and `mkGoEnv`.
@@ -272,10 +274,20 @@ After any change to lowering or `ir.Dump`, run `go test ./internal/sema -update`
 ### Docs
 
 `docs/design/` holds designs and plans; each `*-plan.md` names what its phases add, and its opening lines say which are done.
-Read those before assuming a design is built: the Java, ML-family, Python, Rust, Zod, profiles, and unions designs have no code yet, Haskell has only phases 1 to 4, mutation testing only phase 1, C# only phases 1 and 2, and the plugin SDK only phases 1 to 4.
+Read those before assuming a design is built: the Java, ML-family, Python, Rust, Zod, profiles, and unions designs have no code yet, Haskell has only phases 1 to 4, mutation testing only phase 1, C# only phases 1 and 2, and the plugin SDK only phases 1 to 5.
 A design describes the target, not the implementation.
 `workflow.md` is furthest ahead: its `tdl.toml` project model is unbuilt.
 `docs/backlog.md` is wanted, unscheduled work.
+
+### .NET SDK
+
+`dotnet/` holds `Tdl.Plugin`, the SDK a backend written in .NET builds on, its tests, and `Tdl.Plugin.Debug`, a port of `backend/debug` served as `tdl-gen-dotnet_debug`.
+The SDK holds framing, the handshake, a `Session` over the request and its analysis, diagnostics and loss codes, the cascade, names and case styles, and the round-trip helpers; it computes no fact the analysis carries, and throws on a request without one.
+`Tdl.Plugin/Generated/` is `buf generate` output from protoc's C# generator, so `make generate` needs `protoc`, which the devShell carries; its version must match the `Google.Protobuf` package.
+`buf.gen.yaml` leaves out the `pb` package, so the generated descriptors drop the Go options and name neither `go_features.proto` nor `descriptor.proto`.
+The tests replay `testdata/plugin/*.binpb` byte for byte and check `LossCodes` against `reverse.md`.
+`deps.json` pins every NuGet package for `buildDotnetModule` but those the SDK carries; after changing a package reference, restore into an empty folder with `-r linux-x64` and hash each `.nupkg`.
+`checks.dotnet-sdk` builds and tests it, and `checks.gen-dotnet-debug` runs it through `tdl gen` beside the Go backend.
 
 ## CLI
 

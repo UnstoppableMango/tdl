@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.15](https://github.com/UnstoppableMango/tdl/compare/v0.4.14...v0.4.15) (2026-10-18)
+
+
+### Features
+
+* **dotnet:** add the .NET plugin SDK and a debug port ([#1111](https://github.com/UnstoppableMango/tdl/issues/1111)) ([aca37b3](https://github.com/UnstoppableMango/tdl/commit/aca37b370df6985e318df7fef03c5f9fdc903838))
+
 ## [0.4.14](https://github.com/UnstoppableMango/tdl/compare/v0.4.13...v0.4.14) (2026-10-17)
 
 
