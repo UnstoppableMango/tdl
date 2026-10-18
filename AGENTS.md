@@ -7,7 +7,7 @@ Guidance for coding agents working in this repository.
 ```shell
 go test ./...                      # all tests
 go test -race ./...                # what CI runs; the plugin subprocess needs it
-go test -short ./...               # skips running go, smithy, tsc, ghc, dotnet, and likec4 on generated code
+go test -short ./...               # skips running external tools on generated code
 go test ./parser -run TestConformanceCorpusParses   # a single test
 go build ./...
 
@@ -274,7 +274,8 @@ After any change to lowering or `ir.Dump`, run `go test ./internal/sema -update`
 ### Docs
 
 `docs/design/` holds designs and plans; each `*-plan.md` names what its phases add, and its opening lines say which are done.
-Read those before assuming a design is built: the Java, ML-family, Python, Rust, Zod, profiles, unions, and graphify designs have no code yet, Haskell has only phases 1 to 4, mutation testing only phase 1, C# only phases 1 and 2, and the plugin SDK only phases 1 to 5.
+Read those before assuming a design is built: a plan saying no phase is done has no code.
+A phase's pull request updates its own plan's status line, never a list here, because a shared list conflicts with every other open phase.
 A design describes the target, not the implementation.
 `workflow.md` is furthest ahead: its `tdl.toml` project model is unbuilt.
 `docs/backlog.md` is wanted, unscheduled work.
