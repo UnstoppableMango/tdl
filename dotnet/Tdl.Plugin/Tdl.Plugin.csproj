@@ -11,11 +11,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<!-- buf generates it with GoFeatures.g.cs; Google.Protobuf holds it already. -->
-		<Compile Remove="Generated/Descriptor.g.cs" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<InternalsVisibleTo Include="Tdl.Plugin.Tests" />
 	</ItemGroup>
 </Project>

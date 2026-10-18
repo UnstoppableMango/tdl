@@ -284,7 +284,7 @@ A design describes the target, not the implementation.
 `dotnet/` holds `Tdl.Plugin`, the SDK a backend written in .NET builds on, its tests, and `Tdl.Plugin.Debug`, a port of `backend/debug` served as `tdl-gen-dotnet_debug`.
 The SDK holds framing, the handshake, a `Session` over the request and its analysis, diagnostics and loss codes, the cascade, names and case styles, and the round-trip helpers; it computes no fact the analysis carries, and throws on a request without one.
 `Tdl.Plugin/Generated/` is `buf generate` output from protoc's C# generator, so `make generate` needs `protoc`, which the devShell carries; its version must match the `Google.Protobuf` package.
-buf also writes `Descriptor.g.cs` there, which is gitignored and left out of the build, since `Google.Protobuf` holds it.
+`buf.gen.yaml` leaves out the `pb` package, so the generated descriptors drop the Go options and name neither `go_features.proto` nor `descriptor.proto`.
 The tests replay `testdata/plugin/*.binpb` byte for byte and check `LossCodes` against `reverse.md`.
 `deps.json` pins every NuGet package for `buildDotnetModule` but those the SDK carries; after changing a package reference, restore into an empty folder with `-r linux-x64` and hash each `.nupkg`.
 `checks.dotnet-sdk` builds and tests it, and `checks.gen-dotnet-debug` runs it through `tdl gen` beside the Go backend.

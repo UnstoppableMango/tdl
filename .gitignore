@@ -34,5 +34,3 @@ graphify-out/
 # .NET, for dotnet/
 dotnet/**/bin/
 dotnet/**/obj/
-# buf generates it beside GoFeatures.g.cs; Google.Protobuf already holds it.
-dotnet/Tdl.Plugin/Generated/Descriptor.g.cs

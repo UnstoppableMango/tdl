@@ -1,5 +1,5 @@
 PROTO_GO  := ir/ir.pb.go plugin/plugin.pb.go
-PROTO_CS  := $(addprefix dotnet/Tdl.Plugin/Generated/,Ir.g.cs Plugin.g.cs GoFeatures.g.cs)
+PROTO_CS  := $(addprefix dotnet/Tdl.Plugin/Generated/,Ir.g.cs Plugin.g.cs)
 PROTO_SRC ?= $(shell git ls-files proto)
 GO_SRC    ?= $(filter-out ${PROTO_GO},$(shell git ls-files '*.go'))
 TEST_DATA ?= $(shell git ls-files testdata prelude)
