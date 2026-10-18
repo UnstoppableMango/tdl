@@ -1,7 +1,7 @@
 # Mutation testing
 
 Design document.
-Nothing here is built; [mutation-testing-plan.md](mutation-testing-plan.md) orders the work.
+Only the tool is in the devShell so far; [mutation-testing-plan.md](mutation-testing-plan.md) orders the work.
 
 Coverage says a line ran; it does not say a test would notice the line being wrong.
 Mutation testing changes the code one small edit at a time, a `<` to a `<=`, an `&&` to an `||`, a dropped `continue`, and runs the tests against each mutant.
@@ -67,6 +67,7 @@ command make mutate PKG=./lex    # one
 ```
 
 Each mutant runs `go test -short` without `-race`.
+gremlins has no flag for `-short`, so the target sets `GOFLAGS=-short`, which `go test` reads, for the coverage run and every mutant alike.
 `-short` skips running go, smithy, tsc, ghc, dotnet, and likec4 on generated code, which would make each mutant take minutes, and `-race` multiplies the run time while catching nothing a mutant introduces.
 A mutant is timed out, and counted as killed, at a multiple of the package's unmutated test time; gremlins' default coefficient stands unless the first full run shows it misjudging.
 
