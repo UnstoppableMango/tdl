@@ -2,6 +2,7 @@
   buildGoApplication,
   lib,
   go,
+  tdl-dotnet,
   version,
 }:
 buildGoApplication {
@@ -13,7 +14,6 @@ buildGoApplication {
 
   subPackages = [
     "cmd/tdl"
-    "cmd/tdl-gen-csharp"
     "cmd/tdl-gen-debug"
     "cmd/tdl-gen-go"
     "cmd/tdl-gen-graphql"
@@ -27,6 +27,11 @@ buildGoApplication {
     "cmd/tdl-gen-thrift"
     "cmd/tdl-gen-typescript"
   ];
+
+  # The csharp backend is a .NET plugin, shipped beside the Go binaries.
+  postInstall = ''
+    ln -s ${lib.getExe' tdl-dotnet "tdl-gen-csharp"} $out/bin/tdl-gen-csharp
+  '';
 
   meta = {
     description = "Type Description Language";

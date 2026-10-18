@@ -49,8 +49,9 @@ jobs:
       # tracks, which on the runner made the protocompile tests over ten
       # times slower and timed them out. The coverage run is -short: the
       # race run already ran go, smithy, tsc, ghc, dotnet, and likec4 on generated code,
-      # and test code is outside the coverage profile.
-      - run: nix develop -c go test -race ./...
+      # and test code is outside the coverage profile. The race run puts the
+      # build's plugins on PATH, so the C# corpus runs through tdl-gen-csharp.
+      - run: nix develop -c sh -c 'PATH="$PWD/result/bin:$PATH" go test -race ./...'
         if: ${{ !cancelled() }}
         env:
           CGO_ENABLED: "1"
