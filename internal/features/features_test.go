@@ -28,7 +28,7 @@ func TestTablesAreCurrent(t *testing.T) {
 			t.Fatal(err)
 		}
 		if string(committed) != string(docs[doc]) {
-			t.Errorf("%s is stale; run make features and read the diff", doc)
+			t.Errorf("%s is stale; run make features and read the diff\n%s", doc, changed(string(committed), string(docs[doc])))
 		}
 	}
 }
@@ -140,4 +140,22 @@ func TestSpliceKeepsUnmeasured(t *testing.T) {
 	if _, err := features.Splice([]byte(doc), map[string][][]string{"x": {{"Newtype", "Yes", "Unmeasured", "", ""}}}); err == nil || !strings.Contains(err.Error(), "Newtype") {
 		t.Errorf("Splice = %v, want an error naming Newtype", err)
 	}
+}
+
+// changed lists the lines of want missing from got and the lines of got
+// missing from want, which for a table are the rows that moved.
+func changed(got, want string) string {
+	gotLines, wantLines := strings.Split(got, "\n"), strings.Split(want, "\n")
+	var b strings.Builder
+	for _, l := range gotLines {
+		if !slices.Contains(wantLines, l) {
+			b.WriteString("- " + l + "\n")
+		}
+	}
+	for _, l := range wantLines {
+		if !slices.Contains(gotLines, l) {
+			b.WriteString("+ " + l + "\n")
+		}
+	}
+	return b.String()
 }

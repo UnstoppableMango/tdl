@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.5.0](https://github.com/UnstoppableMango/tdl/compare/v0.4.15...v0.5.0) (2026-10-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* serve the C# backend as a .NET plugin on Roslyn ([#1116](https://github.com/UnstoppableMango/tdl/issues/1116))
+
+### Features
+
+* serve the C# backend as a .NET plugin on Roslyn ([#1116](https://github.com/UnstoppableMango/tdl/issues/1116)) ([66e5666](https://github.com/UnstoppableMango/tdl/commit/66e566613c95929abab0eef7979c2d0c87a3a210))
+
+
+### Documentation
+
+* **agents:** keep design status in each plan, not AGENTS.md ([#1119](https://github.com/UnstoppableMango/tdl/issues/1119)) ([ce635a0](https://github.com/UnstoppableMango/tdl/commit/ce635a01c0815aa0b440cc2f5f9be78c9f4e0f32))
+* design TDL support in graphify ([#1115](https://github.com/UnstoppableMango/tdl/issues/1115)) ([4b05146](https://github.com/UnstoppableMango/tdl/commit/4b0514679497767f51b3dd9df0205f761eae669d))
+
+
+### Build System
+
+* add gremlins to the devShell ([#1114](https://github.com/UnstoppableMango/tdl/issues/1114)) ([3d64b51](https://github.com/UnstoppableMango/tdl/commit/3d64b51ed051982fae1102c9655c77b51a9ce181))
+
 ## [0.4.15](https://github.com/UnstoppableMango/tdl/compare/v0.4.14...v0.4.15) (2026-10-18)
 
 

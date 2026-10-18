@@ -44,6 +44,11 @@ jobs:
       - run: nix build .#
         if: ${{ !cancelled() }}
 
+      # nix develop keeps the runner's PATH after its own, so the race run
+      # finds the build's plugins and runs the C# corpus through
+      # tdl-gen-csharp.
+      - run: echo "$PWD/result/bin" >> "$GITHUB_PATH"
+
       # The race detector and coverage run separately. Together, every
       # covered statement increments an atomic counter the race detector
       # tracks, which on the runner made the protocompile tests over ten

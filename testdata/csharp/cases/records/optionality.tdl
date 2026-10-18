@@ -1,0 +1,5 @@
+package shop
+
+type Contact {
+  either: string? | null
+}

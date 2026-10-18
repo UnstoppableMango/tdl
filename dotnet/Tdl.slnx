@@ -1,4 +1,7 @@
 <Solution>
+  <Project Path="Tdl.DotNet/Tdl.DotNet.csproj" />
+  <Project Path="Tdl.Gen.CSharp.Tests/Tdl.Gen.CSharp.Tests.csproj" />
+  <Project Path="Tdl.Gen.CSharp/Tdl.Gen.CSharp.csproj" />
   <Project Path="Tdl.Plugin.Debug/Tdl.Plugin.Debug.csproj" />
   <Project Path="Tdl.Plugin.Tests/Tdl.Plugin.Tests.csproj" />
   <Project Path="Tdl.Plugin/Tdl.Plugin.csproj" />

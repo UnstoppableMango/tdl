@@ -1,0 +1,32 @@
+package shop
+
+type Email: string
+enum Status { Pending Shipped }
+
+enum Payment {
+  Cash
+  Card { last4: string }
+}
+
+type Settings {
+  name: string
+  status: Status = Pending
+  payment: Payment = Cash
+  retries: int = 3
+  small: int32 = -2
+  big: uint64 = 18446744073709551615
+  ratio: float32 = 1.5
+  scale: float64 = 2
+  price: decimal = 9.99
+  enabled: bool = true
+  greeting: string = "hi \"there\""
+  contact: Email = "a@b.c"
+  note: string? = "n"
+  tags: {string} = ["a", "b"]
+  lines: [int] = []
+  codes: [Status] = [Shipped]
+  counts: {string -> int} = []
+  at: instant = "2026-01-01"
+}
+
+target csharp for shop { }

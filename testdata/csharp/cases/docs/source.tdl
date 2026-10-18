@@ -1,0 +1,13 @@
+package shop
+
+deprecated("use Order")
+type LegacyOrder {
+  id: string
+  /// Where to send <faxes> & more.
+  /// Rarely used.
+  deprecated fax: string
+}
+
+type Holder {
+  old: LegacyOrder
+}

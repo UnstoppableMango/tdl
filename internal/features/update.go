@@ -4,17 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
 	"os"
-	"path"
 	"path/filepath"
-	"reflect"
 	"slices"
 	"strings"
 )
-
-// HandFile is the file in a backend's package directory holding its
-// hand-written cells.
-const HandFile = "features.toml"
 
 // Update measures every target and returns, for each markdown file under
 // root embedding a table, its content with the tables rewritten. Every
@@ -52,13 +47,13 @@ func Update(root string, short bool) (map[string][]byte, error) {
 		}
 		tables[t.Name] = rows
 	}
-	for name, docs := range where {
-		problems = append(problems, fmt.Errorf("%s embed a table for %s, which is no target", strings.Join(docs, ", "), name))
+	for _, name := range sortedKeys(where) {
+		problems = append(problems, fmt.Errorf("%s embed a table for %s, which is no target", strings.Join(where[name], ", "), name))
 	}
 
 	out := map[string][]byte{}
-	for doc, data := range docs {
-		spliced, err := Splice(data, tables)
+	for _, doc := range sortedKeys(docs) {
+		spliced, err := Splice(docs[doc], tables)
 		if err != nil {
 			problems = append(problems, fmt.Errorf("%s: %w", doc, err))
 		}
@@ -73,7 +68,7 @@ func table(root string, t Target) ([][]string, error) {
 		return nil, err
 	}
 	hand := map[string]Hand{}
-	file := filepath.Join(root, HandPath(t))
+	file := filepath.Join(root, t.Hand)
 	data, err := os.ReadFile(file)
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
@@ -85,13 +80,6 @@ func table(root string, t Target) ([][]string, error) {
 		}
 	}
 	return Table(measured, hand)
-}
-
-// HandPath is a target's features.toml relative to the module root, in
-// the directory of the package declaring its backend.
-func HandPath(t Target) string {
-	pkg := reflect.TypeOf(t.Backend).PkgPath()
-	return filepath.Join("backend", path.Base(pkg), HandFile)
 }
 
 // embedding reads every markdown file under root that embeds a table,
@@ -125,4 +113,8 @@ func embedding(root string) (map[string][]byte, error) {
 		return nil
 	})
 	return docs, err
+}
+
+func sortedKeys[V any](m map[string]V) []string {
+	return slices.Sorted(maps.Keys(m))
 }

@@ -3,7 +3,7 @@
 An implementation plan for [plugin-sdk.md](plugin-sdk.md).
 Phases are ordered by dependency, and each states what makes it done.
 
-Phases 1 to 5 are done.
+Phases 1 to 6 are done.
 
 ## Scope
 
@@ -70,6 +70,10 @@ The SDK leaves number allocation to the host, so `CheckPins`, which runs allocat
 - The registry drops `csharp`, the Go `backend/csharp` is deleted if it was merged, and `nix/cmd.nix` ships the plugin beside the Go binaries as a self-contained single file.
 
 Done when the corpora generate the same C# they generated in Go, up to formatting, and build.
+
+The port generates the Go backend's bytes exactly, so the recorded corpus did not change when the plugin replaced it.
+The plugin's tests cannot lower TDL, so `internal/gen/csharp_test.go` records the requests they read in `testdata/csharp`.
+Its name and case rules keep the Go backend's, which upper-cases a name's first letter, rather than joining the analysis's words.
 Phases 3 to 6 of `csharp-backend-plan.md` then continue in C#.
 
 ## Phase 7: native AOT

@@ -1,0 +1,15 @@
+package shop
+
+enum Status {
+  /// Not yet placed.
+  Draft
+  placed
+  deprecated("no longer \"issued\"") Provisional
+}
+
+enum Payment {
+  /// Paid by card.
+  Card { last4: string }
+  Cash
+  Split { parts: [Payment] }
+}

@@ -4,11 +4,11 @@ Design document.
 [csharp-backend-plan.md](csharp-backend-plan.md) orders the work.
 
 The C# backend turns a resolved model into C# source.
-It is called `csharp` in a target block, ships compiled into `tdl` and as `tdl-gen-csharp`, and is implemented in `backend/csharp`.
+It is called `csharp` in a target block, ships as `tdl-gen-csharp`, a .NET plugin `tdl` runs from `PATH`, and is implemented in `dotnet/Tdl.Gen.CSharp` on the SDK of [plugin-sdk.md](plugin-sdk.md).
 
 C# and F# compile to one runtime and share its base class library, its serializer, its attributes, and its interfaces.
 They share nothing else a backend cares about: C# has no type declaration order, no `and` groups, no modules, and no sum types.
-So C# does not build on the ML core: it reads the rules every backend shares from `backend/internal/emit`, and shares only what is true of .NET with F#, in `backend/internal/dotnet`.
+So C# does not build on the ML core: it reads the rules every backend shares from the analysis tdl sends, and shares only what is true of .NET with F#, in `dotnet/Tdl.DotNet`.
 [Overlap with F#](#overlap-with-f) says where the line falls and what it changed in [ml-backends.md](ml-backends.md).
 
 Where C# has no reason to differ from [go-backend.md](go-backend.md), the closest in shape, it does not.
@@ -64,7 +64,7 @@ The output needs C# 12 and .NET 8, and nothing beyond the base class library; un
 | `date` | `System.DateOnly` | |
 | `duration` | `System.TimeSpan` | |
 
-This is F#'s mapping, type for type, and it lives in `backend/internal/dotnet` as base class library types each printer spells: `System.Int64` is `long` here and `int64` there.
+This is F#'s mapping, type for type, and it lives in `dotnet/Tdl.DotNet` as base class library types each printer spells: `System.Int64` is `long` here and `int64` there.
 Nothing is a placeholder.
 
 Collections:
@@ -343,7 +343,7 @@ The backend parses the pattern with Go's `regexp/syntax` and prints the tree in 
 `\d`, `\w`, `\s`, and the POSIX classes become explicit ASCII sets, as RE2 means them, and `\b` a lookaround over the ASCII word set; general categories such as `\p{Lu}` pass through; `.` and a negated class match a surrogate pair as one character, since RE2 matches code points.
 `RegexOptions.ECMAScript` would make the Perl classes ASCII too, but it refuses `\p` entirely.
 A script class such as `\p{Greek}` has no .NET spelling, since .NET names Unicode blocks rather than scripts, so it warns, as does a pattern RE2 refuses; neither throws when the type loads.
-The bounds come from `emit.Length` and the RE2 check from `emit.Pattern`, as in every backend; counting runes and printing the tree for .NET's engine are .NET's, in `backend/internal/dotnet` with F#.
+The bounds come from `emit.Length` and the RE2 check from `emit.Pattern`, as in every backend; counting runes and printing the tree for .NET's engine are .NET's, in `dotnet/Tdl.DotNet` with F#.
 
 A type validates the values it holds at any depth, a newtype checks the set the compiler accumulated down its chain, and a generic type does not check its type arguments' values, all as in Go.
 A record with nothing to check gets none of the methods.
@@ -464,7 +464,7 @@ Some of what they share is not .NET's at all, and every backend reads it from `b
 
 So a C# service and an F# client agree on bytes because both agree with TypeScript and JSON Schema, not because they share a package.
 
-### Shared with F#, in `backend/internal/dotnet`
+### Shared with F#, in `dotnet/Tdl.DotNet`
 
 | Piece | Why both need it |
 | --- | --- |
@@ -476,7 +476,7 @@ So a C# service and an F# client agree on bytes because both agree with TypeScri
 | The `json` directive's argument and what `stj` names | One serializer, written through two libraries |
 
 Suppressing obsolete use inside a generated file, `CS0612` and `CS0618` here and `FS0044` there, is one rule but no code.
-`backend/internal/dotnet` holds decisions, not syntax, the way `backend/internal/emit` does; each printer stays in its own backend.
+`dotnet/Tdl.DotNet` holds decisions, not syntax, the way `backend/internal/emit` does; each printer stays in its own backend.
 Whichever of `csharp` and `fsharp` is built first creates it, and the other imports it.
 
 ### Not shared
@@ -499,7 +499,7 @@ Whichever of `csharp` and `fsharp` is built first creates it, and the other impo
 
 ### What this changed in ml-backends.md
 
-1. **F# builds on `backend/internal/dotnet`** for the .NET pieces above, beside `backend/internal/ml`, and reads the class plan and the wire convention from `backend/internal/emit`.
+1. **F# builds on `dotnet/Tdl.DotNet`** for the .NET pieces above, beside `backend/internal/ml`, and reads the class plan and the wire convention from `backend/internal/emit`.
 1. **F# writes `requires` on a type** as `type Envelope<'T when 'T :> Auditable>`, where it had warned.
 1. **F# reads `json("stj")` and `discriminant`.** FSharp.SystemTextJson's default union encoding is an adjacent `Case` and `Fields` pair, so an F# and a C# service generated from one model would have disagreed on every fielded enum. F# now writes the converter with `InternalTag`, `NamedFields`, and `UnionTagName = "kind"`, and the two profiles have one body.
 1. **F# resolves an extern through a `csharp` block** when the dependency has no `fsharp` one. F# consumes C# records and interfaces directly; the reverse needs `FSharp.Core` and reads unions through generated `Is` and `New` members, so `csharp` never reads an `fsharp` block.

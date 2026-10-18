@@ -1,0 +1,11 @@
+package shop
+
+import "money.tdl" as money
+
+type Order {
+  total: money.Money
+  currency: money.Currency
+  rates: [money.Rate]
+}
+
+target csharp for shop { }

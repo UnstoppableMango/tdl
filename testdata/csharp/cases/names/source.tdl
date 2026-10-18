@@ -1,0 +1,24 @@
+package shop
+
+type Account {
+  event: string
+}
+
+type Card {
+  number: string
+}
+
+enum Payment {
+  Card { info: Card other: Account }
+}
+
+type Holder {
+  customer: Account
+}
+
+target csharp for shop {
+  Account {
+    name("Customer")
+    event => name("event")
+  }
+}

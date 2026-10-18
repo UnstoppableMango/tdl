@@ -39,7 +39,7 @@ in
       };
 
       packages = {
-        inherit (pkgs) tdl vscode-tdl tdl-dotnet-debug;
+        inherit (pkgs) tdl vscode-tdl tdl-dotnet;
         default = pkgs.tdl;
         # The README's demo GIF; `make demo` copies it into docs/demo.
         demo = pkgs.callPackage ./demo.nix { };
@@ -61,8 +61,9 @@ in
           inherit (inputs.home-manager.lib) homeManagerConfiguration;
         };
 
-      # Building the .NET SDK runs its tests, which replay testdata/plugin.
-      checks.dotnet-sdk = pkgs.tdl-dotnet-debug;
+      # Building the .NET plugins runs their tests: the SDK's replay
+      # testdata/plugin, and the C# backend's compile what it generates.
+      checks.dotnet-sdk = pkgs.tdl-dotnet;
 
       # Runs the .NET debug port from PATH through tdl gen, and holds it to
       # the file the Go debug backend writes for the same model.
@@ -71,7 +72,7 @@ in
           {
             nativeBuildInputs = [
               pkgs.tdl
-              pkgs.tdl-dotnet-debug
+              pkgs.tdl-dotnet
             ];
           }
           ''
@@ -119,9 +120,10 @@ in
             touch $out
           '';
 
-      # Builds the csharp backend's files with every warning an error. The
-      # project references nothing but the framework, so it restores nothing
-      # from NuGet.
+      # Builds the csharp plugin's files with every warning an error and the
+      # SDK's analyzers, which the plugin's own tests do not run. The project
+      # references nothing but the framework, so it restores nothing from
+      # NuGet.
       checks.gen-csharp =
         pkgs.runCommand "tdl-gen-csharp"
           {
@@ -134,7 +136,7 @@ in
             export HOME=$TMPDIR DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
             cp ${../testdata/gen/smoke/source.tdl} source.tdl
             tdl gen --target csharp -o out source.tdl
-            cp ${../backend/csharp/testdata/check.csproj} out/check.csproj
+            cp ${../testdata/csharp/check.csproj} out/check.csproj
             dotnet build out/check.csproj
             touch $out
           '';

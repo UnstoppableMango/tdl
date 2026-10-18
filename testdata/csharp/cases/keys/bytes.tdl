@@ -1,0 +1,9 @@
+package shop
+
+type Order: Entity {
+  hash: bytes
+}
+
+target csharp for shop {
+  Order => key(hash)
+}

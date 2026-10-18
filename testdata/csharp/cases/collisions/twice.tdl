@@ -1,0 +1,8 @@
+package shop
+
+type Order { }
+type Purchase { }
+
+target csharp for shop {
+  Purchase => name("Order")
+}

@@ -1,0 +1,9 @@
+package shop
+
+type Order {
+  id: string
+}
+
+target csharp for shop {
+  namespace("Acme..Billing")
+}

@@ -55,7 +55,7 @@ ${TMLANGUAGE}: docs/grammar.ebnf $(call gosrc,lex internal/ebnf internal/textmat
 features: ${FEATURES}
 
 # The documents are inputs too: a cell the measurement skips keeps its text.
-${FEATURES} &: ${GO_SRC} ${TEST_DATA} $(wildcard backend/*/features.toml)
+${FEATURES} &: ${GO_SRC} ${TEST_DATA} $(wildcard backend/*/features.toml dotnet/*/features.toml)
 	go run ./tools/features
 
 vscode-install: ${TMLANGUAGE}

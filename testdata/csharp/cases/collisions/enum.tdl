@@ -1,0 +1,4 @@
+package shop
+
+enum Kind { Kind }
+type Fine { }

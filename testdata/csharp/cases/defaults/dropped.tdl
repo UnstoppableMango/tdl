@@ -1,0 +1,12 @@
+package shop
+
+type Settings {
+  at: instant = "2026-01-01"
+  small: int32 = 4294967296
+  huge: float32 = 1000000000000000000000000000000000000000.5
+  money: decimal = 79228162514264337593543950336
+}
+
+target csharp for shop {
+  instant => foreign("NodaTime", "Instant")
+}

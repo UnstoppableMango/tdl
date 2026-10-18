@@ -1,0 +1,21 @@
+package shop
+
+type LineItem {
+  sku: string
+}
+
+type Skus: [string]
+
+type Order {
+  id: string
+  items: [LineItem]
+  tags: {string}
+  nested: {string -> [bytes?]}
+  receipt: bytes
+  skus: Skus
+  note: [int]?
+}
+
+enum Payment {
+  Split { parts: [int] }
+}

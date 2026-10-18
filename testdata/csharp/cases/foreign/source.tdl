@@ -1,0 +1,21 @@
+package shop
+
+type Money {
+  units: int
+}
+
+type Label { }
+
+type Order {
+  placed: instant
+  history: [instant]
+  total: Money
+  totals: {string -> Money}
+  label: Label?
+}
+
+target csharp for shop {
+  instant => foreign("NodaTime", "Instant")
+  Money => foreign("System", "Decimal")
+  Label => foreign("Acme.event", "Label")
+}

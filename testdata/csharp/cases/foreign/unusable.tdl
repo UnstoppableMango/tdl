@@ -1,0 +1,21 @@
+package shop
+
+type Money {
+  units: int
+}
+
+type Coin { }
+
+type Account: Entity {
+  id: string
+  units: int where { min(0) }
+}
+
+target csharp for shop {
+  Money => foreign("acme money", "Money")
+  Coin => foreign("Acme", "Coin<int>")
+  Account {
+    foreign("Acme", "Account")
+    key(id)
+  }
+}

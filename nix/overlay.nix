@@ -12,6 +12,6 @@ lib.composeExtensions gomod2nix.overlays.default (
 
     vscode-tdl = final.callPackage ./vscode-extension.nix { inherit version; };
 
-    tdl-dotnet-debug = final.callPackage ./dotnet.nix { inherit version; };
+    tdl-dotnet = final.callPackage ./dotnet.nix { inherit version; };
   }
 )

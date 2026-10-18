@@ -12,6 +12,7 @@ public sealed partial class Session
 {
 	readonly Dictionary<Decl, int> decls = new(ReferenceEqualityComparer.Instance);
 	readonly Dictionary<object, MemberView> members = new(ReferenceEqualityComparer.Instance);
+	readonly Dictionary<Constraint, ConstraintView> constraints = new(ReferenceEqualityComparer.Instance);
 
 	/// <summary>
 	/// Starts a session for one request. It throws when the request carries
@@ -34,6 +35,7 @@ public sealed partial class Session
 			var d = Model.Decls[i];
 			var view = Analysis.Decls[i];
 			decls[d] = i;
+			Index(d.Newtype?.ValueConstraints ?? [], view.Constraints);
 			Index(Fields(d), view.Fields);
 			var variants = d.Enumeration?.Variants ?? [];
 			Index(variants, view.Variants);
@@ -49,6 +51,18 @@ public sealed partial class Session
 		for (var i = 0; i < nodes.Count && i < views.Count; i++)
 		{
 			members[nodes[i]] = views[i];
+			if (nodes[i] is Field f)
+			{
+				Index(f.Constraints, views[i].Constraints);
+			}
+		}
+	}
+
+	void Index(IList<Constraint> nodes, IList<ConstraintView> views)
+	{
+		for (var i = 0; i < nodes.Count && i < views.Count; i++)
+		{
+			constraints[nodes[i]] = views[i];
 		}
 	}
 
@@ -93,6 +107,15 @@ public sealed partial class Session
 
 	/// <summary>The analysis of an enum's variant in the model, or null.</summary>
 	public MemberView? View(Variant v) => members.GetValueOrDefault(v);
+
+	/// <summary>
+	/// The analysis of a constraint on a newtype or a field in the model, or
+	/// null.
+	/// </summary>
+	public ConstraintView? View(Constraint c) => constraints.GetValueOrDefault(c);
+
+	/// <summary>A constraint as TDL source writes it, as <c>min(0)</c>.</summary>
+	public string Source(Constraint c) => View(c)?.Source ?? c.Name;
 
 	/// <summary>The analysis of a type reference, or null when it does not resolve.</summary>
 	public TypeView? View(ID? type) =>

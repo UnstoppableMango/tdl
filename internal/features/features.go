@@ -114,8 +114,12 @@ type Measured struct {
 
 // Target is one backend to measure.
 type Target struct {
-	Name    string
+	Name string
+	// Backend is nil for a plugin missing from PATH, which leaves every
+	// cell Unmeasured.
 	Backend plugin.Backend
+	// Hand is the target's features.toml, relative to the module root.
+	Hand string
 	// Needs says why the backend cannot import here, such as a tool
 	// missing from PATH, which leaves its Import cells Unmeasured. Nil
 	// needs nothing.
@@ -125,6 +129,12 @@ type Target struct {
 // Measure runs every row in dir, testdata/features, through target.
 func Measure(dir string, target Target) (map[string]Measured, error) {
 	out := map[string]Measured{}
+	if target.Backend == nil {
+		for _, row := range Rows {
+			out[row.Dir] = Measured{}
+		}
+		return out, nil
+	}
 	for _, row := range Rows {
 		path := filepath.Join(dir, row.Dir, target.Name, Source)
 		if _, err := os.Stat(path); err != nil {
