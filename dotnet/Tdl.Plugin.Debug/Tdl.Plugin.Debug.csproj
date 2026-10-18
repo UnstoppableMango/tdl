@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<AssemblyName>tdl-gen-dotnet_debug</AssemblyName>
+		<RootNamespace>Tdl.Plugin.Debug</RootNamespace>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="../Tdl.Plugin/Tdl.Plugin.csproj" />
+	</ItemGroup>
+</Project>

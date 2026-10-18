@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<Description>Write a TDL backend in .NET: the plugin protocol's types, its framing and handshake, and what every backend decides about the request.</Description>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<IsTrimmable>true</IsTrimmable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- Matches the protoc that generates Generated/; see buf.gen.yaml. -->
+		<PackageReference Include="Google.Protobuf" Version="3.36.2" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<InternalsVisibleTo Include="Tdl.Plugin.Tests" />
+	</ItemGroup>
+</Project>

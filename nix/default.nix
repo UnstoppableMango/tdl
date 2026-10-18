@@ -39,7 +39,7 @@ in
       };
 
       packages = {
-        inherit (pkgs) tdl vscode-tdl;
+        inherit (pkgs) tdl vscode-tdl tdl-dotnet-debug;
         default = pkgs.tdl;
         # The README's demo GIF; `make demo` copies it into docs/demo.
         demo = pkgs.callPackage ./demo.nix { };
@@ -60,6 +60,30 @@ in
         pkgs.callPackage ./checks/hm-module.nix {
           inherit (inputs.home-manager.lib) homeManagerConfiguration;
         };
+
+      # Building the .NET SDK runs its tests, which replay testdata/plugin.
+      checks.dotnet-sdk = pkgs.tdl-dotnet-debug;
+
+      # Runs the .NET debug port from PATH through tdl gen, and holds it to
+      # the file the Go debug backend writes for the same model.
+      checks.gen-dotnet-debug =
+        pkgs.runCommand "tdl-gen-dotnet-debug"
+          {
+            nativeBuildInputs = [
+              pkgs.tdl
+              pkgs.tdl-dotnet-debug
+            ];
+          }
+          ''
+            export HOME=$TMPDIR DOTNET_CLI_TELEMETRY_OPTOUT=1
+            cp ${../testdata/plugin/catalog.tdl} go.tdl
+            sed 's/^target debug /target dotnet_debug /' go.tdl > dotnet.tdl
+            tdl gen -o go go.tdl
+            tdl gen -o dotnet dotnet.tdl
+            sed -i 's/^target dotnet_debug$/target debug/' dotnet/model.txt
+            diff go/model.txt dotnet/model.txt
+            touch $out
+          '';
 
       # Validates the smithy backend's output with the Smithy CLI, since no Go
       # library can.

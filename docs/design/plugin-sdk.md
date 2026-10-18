@@ -152,6 +152,7 @@ Roslyn is not marked trimming-safe, so the first build publishes a self-containe
 
 `internal/gen` already records protocol exchanges in `testdata/plugin/` for other implementations to replay.
 The .NET test project replays them, so the framing and the handshake are checked against the host's own bytes.
+They are recorded in the wire encoding as well as in protobuf text, since the .NET library reads no text format.
 
 The conformance and smoke corpora reach the C# plugin through a Go test that runs `tdl-gen-csharp` from `PATH` and builds what it writes, skipped without it, as the `smithy` and `typescript` import tests skip without their tools.
 `checks.gen-csharp` always runs it.

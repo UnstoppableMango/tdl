@@ -30,3 +30,7 @@ scratch.tdl
 
 # graphify, see the knowledge graph section of AGENTS.md
 graphify-out/
+
+# .NET, for dotnet/
+dotnet/**/bin/
+dotnet/**/obj/
