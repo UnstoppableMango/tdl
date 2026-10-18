@@ -3,7 +3,7 @@
 An implementation plan for [plugin-sdk.md](plugin-sdk.md).
 Phases are ordered by dependency, and each states what makes it done.
 
-Phases 1 to 4 are done.
+Phases 1 to 5 are done.
 
 ## Scope
 
@@ -56,6 +56,10 @@ Done when the round-trip corpus passes, and a test importer returning source pro
 - `nix/` builds it with `buildDotnetModule`, and the devShell carries the .NET SDK it already has.
 
 Done when the debug port answers a recorded exchange byte for byte, and `tdl gen` runs it from `PATH`.
+
+The port is the target `dotnet_debug`, served as `tdl-gen-dotnet_debug`, since `tdl` never looks a built-in name up on `PATH`.
+`checks.gen-dotnet-debug` runs it through `tdl gen` and compares its file with the Go backend's.
+The SDK leaves number allocation to the host, so `CheckPins`, which runs allocation over a schema's numbers on import, stays in Go.
 
 ## Phase 6: the C# backend as a .NET plugin
 

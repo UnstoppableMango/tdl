@@ -10,5 +10,9 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- A malformed doc comment fails; an undocumented member does not. -->
     <NoWarn>CS1591</NoWarn>
+    <!-- dotnet run starts the program through the dotnet muxer. An apphost
+         would load the newest hostfxr in DOTNET_ROOT under the system's libc,
+         which a Nix SDK's hostfxr may need a newer one than. -->
+    <UseAppHost>false</UseAppHost>
   </PropertyGroup>
 </Project>
