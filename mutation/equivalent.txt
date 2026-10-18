@@ -1,0 +1,9 @@
+# Mutants no test can kill, which `make mutate` leaves out of its survivors.
+# One per line as the report names it, file:line:column mutator, with the
+# file relative to the module root, under a comment saying why it is
+# equivalent:
+#
+#   # The loop index starts at 0 and steps by 1, so it reaches n exactly.
+#   lex/lexer.go:212:14 conditionals-boundary
+#
+# See docs/design/mutation-testing.md.

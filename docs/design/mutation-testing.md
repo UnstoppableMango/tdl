@@ -1,7 +1,7 @@
 # Mutation testing
 
 Design document.
-Only the tool is in the devShell so far; [mutation-testing-plan.md](mutation-testing-plan.md) orders the work.
+`make mutate` is built and the weekly routine is not; [mutation-testing-plan.md](mutation-testing-plan.md) orders the work.
 
 Coverage says a line ran; it does not say a test would notice the line being wrong.
 Mutation testing changes the code one small edit at a time, a `<` to a `<=`, an `&&` to an `||`, a dropped `continue`, and runs the tests against each mutant.
@@ -74,7 +74,7 @@ A mutant is timed out, and counted as killed, at a multiple of the package's unm
 A mutant is killed when any test fails, a golden comparison included.
 The goldens (`ir.golden`, `error.golden`, the recorded plugin exchanges) are the conformance contract, so a mutant that moves one is a behavior change the tests caught.
 
-The target writes gremlins' JSON report to `mutate.json`, which is gitignored, and prints the survivors after the exclusion list removes the known equivalents.
+gremlins names a report's files relative to the package it ran in, so the target runs it once per package and writes the reports merged, with file names relative to the module root, to `mutate.json`, which is gitignored, and prints the survivors after the exclusion list removes the known equivalents.
 Nothing runs it in CI.
 
 ## Equivalent mutants
