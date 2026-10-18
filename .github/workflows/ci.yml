@@ -44,17 +44,18 @@ jobs:
       - run: nix build .#
         if: ${{ !cancelled() }}
 
+      # nix develop keeps the runner's PATH after its own, so the race run
+      # finds the build's plugins and runs the C# corpus through
+      # tdl-gen-csharp.
+      - run: echo "$PWD/result/bin" >> "$GITHUB_PATH"
+
       # The race detector and coverage run separately. Together, every
       # covered statement increments an atomic counter the race detector
       # tracks, which on the runner made the protocompile tests over ten
       # times slower and timed them out. The coverage run is -short: the
       # race run already ran go, smithy, tsc, ghc, dotnet, and likec4 on generated code,
-      # and test code is outside the coverage profile. The race run puts the
-      # build's plugins on PATH, so the C# corpus runs through tdl-gen-csharp.
-      - run: |
-          # The inner shell expands PATH, after nix develop has set it.
-          # shellcheck disable=SC2016
-          nix develop -c sh -c 'PATH="$PWD/result/bin:$PATH" go test -race ./...'
+      # and test code is outside the coverage profile.
+      - run: nix develop -c go test -race ./...
         if: ${{ !cancelled() }}
         env:
           CGO_ENABLED: "1"
