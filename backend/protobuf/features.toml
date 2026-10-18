@@ -1,0 +1,79 @@
+[struct-kind]
+spelling = "a `message`"
+notes = "An entity and a mixin both read back as a value."
+
+[include]
+spelling = "the mixin's fields copied into the `message`"
+notes = "Reads back as fields of the message, without the include."
+
+[enum]
+spelling = "an `enum` with an `_UNSPECIFIED` zero value"
+
+[fielded-enum]
+spelling = "a `message` holding a `oneof` of nested messages"
+
+[newtype]
+spelling = "expanded to its base"
+notes = "A wrapper message would change the wire format, so each use is written as the base."
+
+[alias]
+spelling = "expanded where used"
+
+[optional]
+spelling = "an `optional` field"
+notes = "A nullable value is written `optional` too, and reads back as `T?`."
+
+[collection]
+spelling = "`repeated` and `map<K, V>`"
+notes = "A set is a `repeated` field, which reads back as a list."
+
+[min]
+notes = "Protobuf has no constraints, so validation is not generated."
+
+[max]
+notes = "Protobuf has no constraints, so validation is not generated."
+
+[length]
+notes = "Protobuf has no constraints, so validation is not generated."
+
+[matches]
+notes = "Protobuf has no constraints, so validation is not generated."
+
+[oneOf]
+notes = "Protobuf has no constraints, so validation is not generated."
+
+[unique]
+notes = "Protobuf has no constraints, so validation is not generated."
+
+[owned]
+notes = "Protobuf does not carry ownership, and the referenced message is embedded by value."
+
+[default]
+notes = "Protobuf has no field defaults."
+
+[key]
+notes = "Protobuf has no key, and the backend does not declare the directive, so it warns and is ignored."
+
+[name]
+spelling = "the field's written name"
+notes = "The field reads back under the name it is written with, without the directive."
+
+[number]
+spelling = "the field number"
+notes = "Unpinned fields take the lowest free number."
+
+[doc]
+spelling = "a leading `//` comment"
+
+[generic]
+notes = "Protobuf has no generics, so `Page` is skipped, and so is every declaration naming it."
+
+[class]
+notes = "The class is not generated, and a conformance to it is dropped."
+
+[unit]
+notes = "The unit is dropped, and `decimal<kg>` is written as a `string`."
+
+[import]
+spelling = "an `import` of the dependency's file"
+notes = "Reading back is given only this package's files, so the dependency's `.proto` is missing and the import does not compile."

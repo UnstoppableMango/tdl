@@ -1,0 +1,6 @@
+package shop
+
+enum Payment {
+  Card { last4: string }
+  Cash
+}

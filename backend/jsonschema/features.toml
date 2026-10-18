@@ -1,0 +1,75 @@
+[struct-kind]
+spelling = "`object`"
+notes = "Entities, values, and mixins are all objects."
+
+[include]
+spelling = "the mixin's properties, copied in"
+
+[enum]
+spelling = "`string` with `enum`"
+
+[fielded-enum]
+spelling = "a `oneOf` discriminated on `kind`"
+notes = "A `discriminant` directive renames `kind`."
+
+[newtype]
+spelling = "a definition"
+notes = "A newtype over another newtype is a `$ref`, which checks the constraints it inherits."
+
+[alias]
+spelling = "expanded where used"
+
+[optional]
+spelling = "left out of `required`, or `anyOf` with `null`"
+
+[collection]
+spelling = "`array`, `uniqueItems`, and `additionalProperties`"
+
+[min]
+spelling = "`minimum`"
+
+[max]
+spelling = "`maximum`"
+
+[length]
+spelling = "`minLength` and `maxLength`"
+notes = "On a list or set it is `minItems` and `maxItems`, and on a map `minProperties` and `maxProperties`."
+
+[matches]
+spelling = "`pattern`"
+
+[oneOf]
+spelling = "`enum`"
+
+[unique]
+spelling = "`uniqueItems`"
+
+[owned]
+notes = "Not written: a schema has no ownership, and a referenced entity is a `$ref`."
+
+[default]
+notes = "Not written, and nothing warns."
+
+[key]
+notes = "The backend declares no `key` directive, since a schema has no identity."
+
+[name]
+spelling = "the property or definition name"
+
+[number]
+notes = "JSON has no field numbers."
+
+[doc]
+spelling = "`description`"
+
+[generic]
+notes = "Type parameters are not generated yet, so a parameterized declaration and every one applying it are skipped."
+
+[class]
+notes = "A class is not generated yet, so it is skipped with a warning and a conforming type is written without it."
+
+[unit]
+notes = "A unit is not generated yet, so it is skipped with a warning and a quantity is written as its primitive."
+
+[import]
+notes = "An extern is not generated yet, so a declaration naming one is skipped."

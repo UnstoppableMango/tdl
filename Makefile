@@ -10,8 +10,9 @@ gosrc = $(filter-out %_test.go,$(wildcard $(addsuffix /*.go,$(1))))
 VSCODE      := editors/vscode
 TMLANGUAGE  := ${VSCODE}/syntaxes/tdl.tmLanguage.json
 TS_GRAMMAR  := tree-sitter/grammar.js
+FEATURES    := $(shell git grep -l '<!-- tdl:features' -- '*.md')
 
-.PHONY: build test cover play demo generate treesitter textmate vscode-install \
+.PHONY: build test cover play demo generate treesitter textmate features vscode-install \
 	vscode-check test-treesitter check-treesitter dotnet-test update lint check fmt tidy
 
 build:
@@ -50,6 +51,12 @@ textmate: ${TMLANGUAGE}
 
 ${TMLANGUAGE}: docs/grammar.ebnf $(call gosrc,lex internal/ebnf internal/textmate tools/textmate)
 	go run ./tools/textmate
+
+features: ${FEATURES}
+
+# The documents are inputs too: a cell the measurement skips keeps its text.
+${FEATURES} &: ${GO_SRC} ${TEST_DATA} $(wildcard backend/*/features.toml)
+	go run ./tools/features
 
 vscode-install: ${TMLANGUAGE}
 	${MAKE} -C ${VSCODE} install

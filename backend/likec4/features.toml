@@ -1,0 +1,79 @@
+[struct-kind]
+spelling = "an `entity`, `value`, or `mixin` element"
+
+[include]
+spelling = "an `- include` line in the description"
+notes = "Phase 2 adds an `includes` relationship."
+
+[enum]
+spelling = "an `enum` element, its variants in the description"
+
+[fielded-enum]
+spelling = "an `enum` element, its variants in the description"
+
+[newtype]
+spelling = "a `newtype` element, its base as `technology`"
+
+[alias]
+spelling = "expanded where used, with no element"
+
+[optional]
+spelling = "the TDL type in the description"
+
+[collection]
+spelling = "the TDL type in the description"
+notes = "Phase 2 adds a relationship to each declaration a field names."
+
+[min]
+spelling = "listed in the field's description line"
+notes = "A diagram enforces nothing, so a constraint is listed rather than warned about."
+
+[max]
+spelling = "listed in the field's description line"
+
+[length]
+spelling = "listed in the field's description line"
+
+[matches]
+spelling = "listed in the field's description line"
+
+[oneOf]
+spelling = "listed in the field's description line"
+
+[unique]
+spelling = "listed in the field's description line"
+
+[owned]
+spelling = "`owned` in the field's description line"
+notes = "Phase 2 adds a `composes` relationship."
+
+[default]
+spelling = "`= value` in the field's description line"
+
+[key]
+notes = "The backend declares no `key` directive, since a diagram has no identity keys."
+
+[name]
+notes = "Phase 4 adds `name` on a declaration, as its element id; a field has no id to rename."
+
+[number]
+notes = "The backend declares no `number` directive, since a diagram has no field numbers."
+
+[doc]
+spelling = "the element's `description`"
+notes = "A field's or a variant's doc comment is not drawn."
+
+[generic]
+spelling = "the signature, such as `Page<T>`, as `technology`"
+
+[class]
+spelling = "a `class` element"
+notes = "Phase 3 adds a `conforms` relationship."
+
+[unit]
+spelling = "the TDL type in the description"
+notes = "A unit has no element."
+
+[import]
+spelling = "the extern's name in the description"
+notes = "Phase 4 adds a relationship into the dependency."

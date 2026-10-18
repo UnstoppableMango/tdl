@@ -24,6 +24,7 @@ command make tidy             # go mod tidy + regenerate nix/gomod2nix.toml
 command make generate         # buf generate: proto/ -> ir/ir.pb.go
 command make treesitter       # docs/grammar.ebnf -> tree-sitter/grammar.js -> tree-sitter/src/
 command make textmate         # docs/grammar.ebnf -> editors/vscode/syntaxes/tdl.tmLanguage.json
+command make features         # testdata/features -> each backend's feature table in docs/
 command make vscode-install   # package editors/vscode and install it into a running VS Code
 command make vscode-check     # npm ci, then typecheck and biome check editors/vscode
 command make vscode-test      # in `nix develop .#vscode`: the extension in a headless VSCodium
@@ -264,6 +265,19 @@ A backend added to the registry needs a row in the `shipped` table in `internal/
 `backend/internal/roundtrip` runs a backend forward and back over `testdata/roundtrip/<target>/<case>/`; its `targets` table holds every backend but `debug`, with each one's normal form, and `TestEveryTargetIsCovered` checks it against `cmd/`.
 `TestConformanceComesBack` also takes every conformance case without an import through each target that imports.
 `testdata/gen/smoke/source.tdl` exercises the whole mapping, with a target block for each schema backend and for `salesforce`; the nix checks generate from it and run each language's tool on the output.
+
+### Feature tables
+
+Each backend's design doc embeds a table of what it does with each feature of the language, between `<!-- tdl:features <target> -->` and `<!-- /tdl:features -->`.
+`internal/features` measures it and `tools/features` (`make features`) writes it; `TestTablesAreCurrent` compares and never writes.
+A row is a directory of `testdata/features` holding `source.tdl`; a subdirectory named for a backend holds its own source, for a feature that backend reaches only through its own directives.
+A source's target block is written for `feature` and renamed for each backend, in its imports too.
+Generate is No on an error or a warning without a loss code, Warns on the loss codes the row owns (`Row.Codes`), and Yes otherwise, since a source cannot use a feature alone.
+Import generates without `roundtrip` and reads the files back: the same model is Yes, a difference with no loss code anywhere is No.
+`backend/<package>/features.toml` holds the cells a measurement cannot: `spelling`, `notes`, and `planned`, which shows in place of Generate and fails once the row generates.
+A cell may not hold a `|`.
+An Import cell a tool missing from PATH, or `-short`, leaves unmeasured keeps its committed text, so `make features` needs `smithy` and `tsc` to change those cells.
+Every target but `debug` is embedded exactly once.
 
 ### Tests and goldens
 

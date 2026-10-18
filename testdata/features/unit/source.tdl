@@ -1,0 +1,7 @@
+package shop
+
+unit kg
+
+type Parcel {
+  weight: decimal<kg>
+}

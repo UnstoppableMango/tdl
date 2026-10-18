@@ -1,0 +1,3 @@
+package shop
+
+enum Status { Draft Placed Shipped }

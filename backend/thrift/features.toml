@@ -1,0 +1,77 @@
+[struct-kind]
+spelling = "a `struct`"
+notes = "An entity and a mixin both read back as a value."
+
+[include]
+spelling = "the mixin's fields copied into the `struct`"
+notes = "Reads back as fields of the struct, without the include."
+
+[enum]
+spelling = "an `enum` numbered from 1"
+
+[fielded-enum]
+spelling = "a `union` of one `struct` per variant"
+
+[newtype]
+spelling = "a `typedef`"
+notes = "Read back from the typedef."
+
+[alias]
+spelling = "expanded where used"
+
+[optional]
+spelling = "an `optional` field"
+notes = "A nullable value is written `optional` too, and reads back as `T?`."
+
+[collection]
+spelling = "`list<T>`, `set<T>`, and `map<K, V>`"
+
+[min]
+notes = "Thrift has no constraints, so validation is not generated."
+
+[max]
+notes = "Thrift has no constraints, so validation is not generated."
+
+[length]
+notes = "Thrift has no constraints, so validation is not generated."
+
+[matches]
+notes = "Thrift has no constraints, so validation is not generated."
+
+[oneOf]
+notes = "Thrift has no constraints, so validation is not generated."
+
+[unique]
+notes = "Thrift has no constraints, so validation is not generated."
+
+[owned]
+notes = "Thrift does not carry ownership, and the referenced struct is embedded by value."
+
+[default]
+notes = "Thrift has field defaults, but the backend does not write them yet."
+
+[key]
+notes = "Thrift has no key, and the backend does not declare the directive, so it warns and is ignored."
+
+[name]
+spelling = "the field's written name"
+notes = "The field reads back under the name it is written with, without the directive."
+
+[number]
+spelling = "the field id"
+notes = "Unpinned fields take the lowest free id."
+
+[doc]
+spelling = "a `/** */` comment"
+
+[generic]
+notes = "Thrift has no generics, so `Page` is skipped, and so is every declaration naming it."
+
+[class]
+notes = "The class is not generated, and a conformance to it is dropped."
+
+[unit]
+notes = "The unit is dropped, and `decimal<kg>` is written as a `string`."
+
+[import]
+notes = "Externs are not generated yet, and Thrift's `include` is not written, so a declaration naming one is skipped."

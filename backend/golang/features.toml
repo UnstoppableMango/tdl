@@ -1,0 +1,80 @@
+[struct-kind]
+spelling = "a `struct`"
+notes = "An entity reads back as one only when a `key` directive gives it a `Key` method, and a mixin reads back as a value."
+
+[include]
+spelling = "the mixin's fields, copied in"
+notes = "Reads back as fields of the struct, without the include."
+
+[enum]
+spelling = "a `string` type with constants"
+
+[fielded-enum]
+spelling = "a sealed interface with a struct per variant"
+
+[newtype]
+spelling = "a defined type, such as `type CartId string`"
+
+[alias]
+spelling = "expanded where used"
+notes = "Reads back as the type it expands to."
+
+[optional]
+spelling = "a pointer, `*T`"
+notes = "An optional and a nullable value are both a pointer, so a nullable value reads back as `T?`."
+
+[collection]
+spelling = "`[]T`, `map[K]struct{}`, and `map[K]V`"
+
+[min]
+spelling = "a check in `Validate`"
+
+[max]
+spelling = "a check in `Validate`"
+
+[length]
+spelling = "a check in `Validate`, counting runes"
+
+[matches]
+spelling = "a `regexp` check in `Validate`"
+
+[oneOf]
+spelling = "a check in `Validate`"
+
+[unique]
+spelling = "a check in `Validate` for repeated elements"
+
+[owned]
+notes = "Go does not carry ownership, and the field holds what it names by value."
+
+[default]
+notes = "Go has no field defaults, so the zero value stands."
+
+[key]
+spelling = "a `Key()` method"
+notes = "A key of several fields returns a `<Name>Key` struct."
+
+[name]
+spelling = "the identifier, as written"
+notes = "The name is used verbatim, so `grandTotal` is an unexported field, and it reads back as the field's own name."
+
+[number]
+notes = "Go has no field numbers, and the backend does not declare the directive, so it warns without a loss code and is ignored."
+
+[doc]
+spelling = "a `//` doc comment"
+
+[generic]
+spelling = "type parameters, constrained by `any` or `comparable`"
+
+[class]
+spelling = "an interface with an unexported marker method"
+notes = "The class's fields are not written, since generated code never reads them."
+
+[unit]
+planned = "phase 6"
+notes = "Go has no units, so the struct holding a unit-typed field is skipped with a warning, and import has nothing to read back."
+
+[import]
+spelling = "an import of the dependency's package"
+notes = "Generating needs the dependency's `go` block to name its `package`; import reads the extern back as a local placeholder with a `foreign` directive, and no loss code says so."

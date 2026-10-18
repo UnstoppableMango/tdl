@@ -1,0 +1,9 @@
+package shop
+
+type Cart {
+  total: int64
+}
+
+target feature for shop {
+  Cart.total => number(7)
+}

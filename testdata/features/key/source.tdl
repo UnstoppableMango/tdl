@@ -1,0 +1,9 @@
+package shop
+
+type Cart: Entity {
+  id: string
+}
+
+target feature for shop {
+  Cart => key(id)
+}

@@ -1,0 +1,75 @@
+[struct-kind]
+spelling = "a `CustomObject`, or an Apex class"
+notes = "An entity is a custom object; a value and a mixin are Apex classes."
+
+[include]
+spelling = "the mixin's fields, copied in"
+
+[enum]
+spelling = "an Apex `enum`, and a restricted `Picklist` on an object"
+
+[fielded-enum]
+spelling = "an Apex class with a `Kind` enum and an inner class per variant"
+
+[newtype]
+spelling = "expanded to its base"
+
+[alias]
+spelling = "expanded to its base"
+
+[optional]
+spelling = "a field that is not required"
+notes = "Every Apex variable may be null, so in Apex an optional type is the type it wraps."
+
+[collection]
+spelling = "Apex `List<T>`, `Set<T>`, and `Map<K, V>`"
+notes = "On an object only a set of a fieldless enum has a column, a `MultiselectPicklist`."
+
+[min]
+notes = "Validation is not generated yet."
+
+[max]
+notes = "Validation is not generated yet."
+
+[length]
+notes = "Validation is not generated yet; a `length` directive sets a `Text` field's length."
+
+[matches]
+notes = "Validation is not generated yet."
+
+[oneOf]
+notes = "Validation is not generated yet."
+
+[unique]
+notes = "Validation is not generated yet."
+
+[owned]
+notes = "`owned` is not read, and the corpus's owned list has no field type, so the object is written without it."
+
+[default]
+notes = "Not written, and nothing warns."
+
+[key]
+spelling = "a unique external ID"
+notes = "One `Text` or `Number` field; a key of several fields warns."
+
+[name]
+spelling = "the API name, or the Apex name"
+
+[number]
+notes = "The backend declares no `number` directive, since an org has no field numbers."
+
+[doc]
+spelling = "`description`, or ApexDoc"
+
+[generic]
+notes = "Type parameters are not generated yet, so a parameterized declaration and every one applying it are skipped."
+
+[class]
+notes = "A class is not generated yet, so it is skipped with a warning and a conforming type is written without it."
+
+[unit]
+notes = "A unit is not generated yet, so it is skipped with a warning and a quantity is written as its primitive."
+
+[import]
+notes = "An extern is not generated yet, so a declaration naming one is skipped."

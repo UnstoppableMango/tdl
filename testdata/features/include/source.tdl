@@ -1,0 +1,10 @@
+package shop
+
+mixin Timestamps {
+  createdAt: string
+}
+
+type Cart {
+  include Timestamps
+  total: int64
+}

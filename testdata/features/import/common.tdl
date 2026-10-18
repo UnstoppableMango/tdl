@@ -1,0 +1,9 @@
+package common
+
+type Address {
+  street: string
+}
+
+target feature for common {
+  out("common")
+}

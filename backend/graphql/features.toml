@@ -1,0 +1,78 @@
+[struct-kind]
+spelling = "an object `type`"
+notes = "An entity and a mixin both read back as a value."
+
+[include]
+spelling = "the mixin's fields copied into the `type`"
+notes = "Reads back as fields of the type, without the include."
+
+[enum]
+spelling = "an `enum`"
+
+[fielded-enum]
+spelling = "a `union` of one object type per variant"
+notes = "A variant without fields carries a placeholder `_: Boolean`."
+
+[newtype]
+spelling = "expanded to its base"
+notes = "A custom scalar per newtype would need server code for each, so each use is written as the base."
+
+[alias]
+spelling = "expanded where used"
+
+[optional]
+spelling = "a nullable type"
+notes = "A required field is `T!`, and a nullable value reads back as `T?`."
+
+[collection]
+spelling = "a list `[T]`"
+notes = "GraphQL has no map type, so a type holding a map is skipped, while lists and sets generate."
+
+[min]
+notes = "GraphQL has no constraints, so validation is not generated."
+
+[max]
+notes = "GraphQL has no constraints, so validation is not generated."
+
+[length]
+notes = "GraphQL has no constraints, so validation is not generated."
+
+[matches]
+notes = "GraphQL has no constraints, so validation is not generated."
+
+[oneOf]
+notes = "GraphQL has no constraints, so validation is not generated."
+
+[unique]
+notes = "GraphQL has no constraints, so validation is not generated."
+
+[owned]
+notes = "GraphQL does not carry ownership."
+
+[default]
+notes = "An output type's field has no default in GraphQL."
+
+[key]
+notes = "GraphQL has no key, and the backend does not declare the directive, so it warns and is ignored."
+
+[name]
+spelling = "the field's written name"
+notes = "The field reads back under the name it is written with, without the directive."
+
+[number]
+notes = "GraphQL has no field numbers, and the backend does not declare the directive, so it warns and is ignored."
+
+[doc]
+spelling = "a description"
+
+[generic]
+notes = "GraphQL has no generics, so `Page` is skipped, and so is every declaration naming it."
+
+[class]
+notes = "The class is not generated, and a conformance to it is dropped."
+
+[unit]
+notes = "The unit is dropped, and `decimal<kg>` is written as the `Decimal` scalar."
+
+[import]
+notes = "Externs are not generated yet, so a declaration naming one is skipped."
