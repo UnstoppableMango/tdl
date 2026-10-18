@@ -8,11 +8,14 @@
   tree-sitter,
   pytestCheckHook,
 }:
-buildPythonPackage {
-  pname = "tree-sitter-tdl";
+let
   # Read from tree-sitter.json, which tree-sitter generate copies into
   # parser.c and release-please leaves alone.
-  inherit ((lib.importJSON ../tree-sitter/tree-sitter.json).metadata) version;
+  inherit (lib.importJSON ../tree-sitter/tree-sitter.json) metadata;
+in
+buildPythonPackage {
+  pname = "tree-sitter-tdl";
+  inherit (metadata) version;
   pyproject = true;
 
   src = ../tree-sitter;
