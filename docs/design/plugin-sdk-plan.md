@@ -3,7 +3,7 @@
 An implementation plan for [plugin-sdk.md](plugin-sdk.md).
 Phases are ordered by dependency, and each states what makes it done.
 
-Phases 1 to 6 are done.
+Phases 1 to 7 are done.
 
 ## Scope
 
@@ -81,3 +81,5 @@ Phases 3 to 6 of `csharp-backend-plan.md` then continue in C#.
 - Publish `tdl-gen-csharp` with Native AOT, and fix or suppress each trimming warning Roslyn raises.
 
 Done when the AOT binary passes the corpora, or this phase records which Roslyn warning blocks it.
+
+Roslyn raised no trimming warning: generating needs only `SyntaxFactory` and `NormalizeWhitespace`, never a compilation, so the trimmed binary passes the corpora as published.
