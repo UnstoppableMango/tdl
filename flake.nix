@@ -21,7 +21,7 @@
       inputs.flake-utils.inputs.systems.follows = "systems";
     };
 
-    # graphify for the devShell
+    # graphify and gremlins for the devShell
     mangopkgs = {
       url = "github:unmango/pkgs";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -81,6 +81,7 @@
               zip
               biome
               inputs'.mangopkgs.packages.graphify
+              inputs'.mangopkgs.packages.gremlins
             ];
           };
 
