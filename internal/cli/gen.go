@@ -17,7 +17,13 @@ import (
 )
 
 func newGenCmd() *cobra.Command {
-	r := &genRun{}
+	return genCmd(gen.Resolve)
+}
+
+// genCmd builds the command over a resolver, so a test can serve a
+// backend tdl does not compile in.
+func genCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
+	r := &genRun{resolve: resolve}
 
 	cmd := &cobra.Command{
 		Use:   "gen <file>...",
@@ -121,6 +127,9 @@ type genRun struct {
 	// target would write there, known only once every file has run.
 	expected map[string]map[string]bool
 
+	// resolve finds the backend serving a target name.
+	resolve func(string) (plugin.Backend, error)
+
 	// backends caches each resolved backend. Under --watch a plugin that
 	// declared reuse is held open here across saves.
 	backends map[string]plugin.Backend
@@ -132,7 +141,7 @@ func (r *genRun) backend(ctx context.Context, name string) (plugin.Backend, erro
 		return b, nil
 	}
 
-	b, err := gen.Resolve(name)
+	b, err := r.resolve(name)
 	if err != nil {
 		return nil, fmt.Errorf("%w; compiled in: %v", err, gen.BuiltinNames())
 	}
