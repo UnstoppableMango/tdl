@@ -22,8 +22,6 @@ class BuildExt(build_ext):
             ext.extra_compile_args = ["-std=c11", "-fvisibility=hidden"]
         else:
             ext.extra_compile_args = ["/std:c11", "/utf-8"]
-        if path.exists("src/scanner.c"):
-            ext.sources.append("src/scanner.c")
         if ext.py_limited_api:
             ext.define_macros.append(("Py_LIMITED_API", "0x030A0000"))
         super().build_extension(ext)
@@ -32,7 +30,7 @@ class BuildExt(build_ext):
 class BdistWheel(bdist_wheel):
     def get_tag(self):
         python, abi, platform = super().get_tag()
-        if python.startswith("cp"):
+        if python.startswith("cp") and not get_config_var("Py_GIL_DISABLED"):
             python, abi = "cp310", "abi3"
         return python, abi, platform
 
@@ -58,6 +56,7 @@ setup(
             sources=[
                 "bindings/python/tree_sitter_tdl/binding.c",
                 "src/parser.c",
+                "src/scanner.c",
             ],
             define_macros=[
                 ("PY_SSIZE_T_CLEAN", None),
