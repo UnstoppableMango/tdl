@@ -4,6 +4,7 @@ An implementation plan for [csharp-backend.md](csharp-backend.md).
 Phases are ordered by dependency, and each states what makes it done.
 
 Phases 1 and 2 are done.
+They were built in Go and then ported to a .NET plugin by phase 6 of [plugin-sdk-plan.md](plugin-sdk-plan.md), so the layout below is history: the backend is now `dotnet/Tdl.Gen.CSharp`, the shared pieces `dotnet/Tdl.DotNet`, and phases 3 to 6 continue in C#.
 
 ## Scope
 

@@ -1,0 +1,12 @@
+package shop
+
+type OrderKey { }
+
+type Order: Entity {
+  a: string
+  b: string
+}
+
+target csharp for shop {
+  Order => key(a, b)
+}

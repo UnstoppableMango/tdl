@@ -496,7 +496,7 @@ The constraints are code in a constructor and do not survive, which [reverse.md]
 
 ### With C# and F\#
 
-Java shares no runtime with .NET, so it does not import `backend/internal/dotnet`.
+Java shares no runtime with .NET, so it does not import `dotnet/Tdl.DotNet`.
 It does share decisions with it, and two of them are not about .NET at all, so they live in `backend/internal/emit` rather than there:
 
 | Decision | In `emit` | Who reads it |
@@ -504,7 +504,7 @@ It does share decisions with it, and two of them are not about .NET at all, so t
 | The class plan: which classes become interfaces, which declarations implement them, and which instances an interface cannot carry | `PlanInterfaces`, `InterfacePlan.Instance` | Go today; C#, F#, and Java, each adding its own refusals |
 | The JSON wire convention: names as the model spells them, internal tagging under `kind`, a newtype as its bare value | `Discriminant`, `Tag` | TypeScript and JSON Schema today; C#, F#, and Java under `json` |
 
-`backend/internal/dotnet` keeps what is true of .NET: the base class library mapping, namespaces, and printing a pattern for .NET's engine.
+`dotnet/Tdl.DotNet` keeps what is true of .NET: the base class library mapping, namespaces, and printing a pattern for .NET's engine.
 Java's one class-plan difference, an associated type as a type parameter, is available to C# and F# too, since both have generic interfaces; it becomes a row of the shared plan and the .NET targets may adopt it.
 
 Two smaller rules were written once per target: `matches` parsed with `regexp/syntax` at generation time, and a `length` argument read as bounds.

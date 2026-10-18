@@ -312,8 +312,8 @@ func TestGenReportsMisplacedDirectives(t *testing.T) {
 	}{
 		{
 			"placement",
-			"target csharp for p {\n  E => namespace(\"P.Orders\")\n}\n",
-			`m.tdl:10:8: error: namespace is written on a declaration, and csharp reads it only on the target block`,
+			"target haskell for p {\n  E => module(\"P.Orders\")\n}\n",
+			`m.tdl:10:8: error: module is written on a declaration, and haskell reads it only on the target block`,
 		},
 		{
 			"value",

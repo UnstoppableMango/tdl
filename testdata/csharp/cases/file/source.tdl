@@ -1,0 +1,13 @@
+package shop
+
+type LineItem {
+  sku: string
+}
+
+type Order {
+  items: [LineItem]
+}
+
+target csharp for shop {
+  file("Model.g.cs")
+}

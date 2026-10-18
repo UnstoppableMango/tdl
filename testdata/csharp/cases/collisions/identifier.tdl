@@ -1,0 +1,8 @@
+package shop
+
+type Thing { }
+type Fine { }
+
+target csharp for shop {
+  Thing => name("Two Words")
+}

@@ -1,0 +1,21 @@
+package shop
+
+type Blobs {
+  seen: {bytes}
+}
+
+type Grid {
+  cells: {[int] -> string}
+}
+
+type Holder {
+  blobs: Blobs
+}
+
+type Page<T> {
+  items: T
+}
+
+type Fine {
+  x: string
+}

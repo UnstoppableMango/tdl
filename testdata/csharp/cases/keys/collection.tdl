@@ -1,0 +1,9 @@
+package shop
+
+type Order: Entity {
+  lines: [string]
+}
+
+target csharp for shop {
+  Order => key(lines)
+}

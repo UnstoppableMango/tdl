@@ -1,0 +1,29 @@
+package shop.billing
+
+type LineItem {
+  sku: string
+  quantity: int
+}
+
+type Order {
+  id: uuid
+  items: [LineItem]
+  tags: {string}
+  totals: {string -> decimal}
+  note: string?
+  shipOn: date | null
+  gaps: [int?]
+  nested: {string -> {int32}}
+  placed: instant
+  took: duration
+  receipt: bytes
+  paid: bool
+  weight: float64
+  ratio: float32
+  small: uint32
+  large: uint64
+  wide: int64
+  httpURL: string
+}
+
+type Marker { }

@@ -1,0 +1,16 @@
+package acme.money
+
+type Money {
+  units: int
+}
+
+type Currency {
+  code: string
+}
+
+type Rate: decimal
+
+target csharp for acme.money {
+  namespace("Acme.Currencies")
+  Currency => name("Iso4217")
+}

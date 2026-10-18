@@ -32,7 +32,7 @@ The core builds a small ML syntax tree: type groups, records, variants, abbrevia
 Each dialect prints it.
 Nothing in the core knows whether a record is written `{ id : string; }`, `{id: string}`, or `{ id: string }`.
 
-F# also builds on `backend/internal/dotnet`, which it shares with the `csharp` target of [csharp-backend.md](csharp-backend.md).
+F# also builds on `dotnet/Tdl.DotNet`, which it shares with the `csharp` target of [csharp-backend.md](csharp-backend.md).
 That layer holds what is true of .NET rather than of ML: the primitive mapping as base class library types, the namespace derived from a package, `foreign` and `attribute`, the regex engine, and the `json` directive.
 What is true of every backend, the interface plan, the JSON wire convention, `Length`, and `Pattern`, F# reads from `backend/internal/emit`.
 

@@ -1,0 +1,18 @@
+package shop
+
+type Order {
+  id: string
+}
+
+enum Status { Pending }
+type Bad { }
+
+target csharp for shop {
+  attribute("System", "Serializable")
+  Order {
+    attribute("System.Runtime.Serialization", "DataContract")
+    attribute("System.Diagnostics", "DebuggerNonUserCode")
+  }
+  Status => attribute("System", "Flags")
+  Bad => attribute("System", "Not.Valid")
+}

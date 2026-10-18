@@ -27,7 +27,7 @@ command make textmate         # docs/grammar.ebnf -> editors/vscode/syntaxes/tdl
 command make vscode-install   # package editors/vscode and install it into a running VS Code
 command make vscode-check     # npm ci, then typecheck and biome check editors/vscode
 command make vscode-test      # in `nix develop .#vscode`: the extension in a headless VSCodium
-command make dotnet-test      # dotnet test dotnet/Tdl.slnx: the .NET plugin SDK
+command make dotnet-test      # dotnet test dotnet/Tdl.slnx: the .NET plugin SDK and the csharp backend
 command make test-treesitter  # the conformance corpus, run by tree-sitter
 command make check-treesitter # what CI runs: treesitter + a diff + test-treesitter
 ```
@@ -65,7 +65,7 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 
 - `cmd.nix`: the CLI. `meta.mainProgram` is what `lib.getExe` reads, since the package installs thirteen binaries.
 - `vscode-extension.nix`: the editor extension (see [VS Code](#vs-code)).
-- `dotnet.nix`: the .NET plugin SDK's debug port, built with `buildDotnetModule`, which runs the SDK's tests (see [.NET SDK](#net-sdk)).
+- `dotnet.nix`: the .NET plugins, `tdl-gen-csharp` and the SDK's debug port, each a self-contained single file built with `buildDotnetModule`, which runs their tests (see [.NET SDK](#net-sdk)).
 - `demo.nix`: renders `docs/demo/demo.tape`, the README's GIF, with VHS. It is a package and not a check, since it runs a browser.
   The tape's `cat`, from `docs/demo/demo.bash`, highlights TDL with the tree-sitter grammar and the theme in `themes/tree-sitter/`, and everything else with bat.
 - `overlay.nix`: names both packages and composes gomod2nix's overlay, so a consumer adding it also gets `buildGoApplication` and `mkGoEnv`.
@@ -239,15 +239,19 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   `classes.go` writes a class as a type class with a `HasField` superclass per field, and an instance per conformance and per separate instance, plus each instance a required class implies; `requires` on a type constrains its key function.
   Phases 1 to 4 of `haskell-backend-plan.md` are built: units and validation warn.
   Tests run `ghc -fno-code -Wall -Werror` when `ghc` is on `PATH`; `checks.gen-haskell` always does.
-- `backend/csharp`: one `Order.g.cs` per declaration, or one file for the whole target that a `file` directive in the target block names, in the namespace a `namespace` directive names or the package derives.
+- `dotnet/Tdl.Gen.CSharp` (`csharp`): a .NET plugin on the SDK, not compiled into `tdl`; `tdl` runs `tdl-gen-csharp` from `PATH`, and `nix/cmd.nix` ships it beside the Go binaries.
+  It writes one `Order.g.cs` per declaration, or one file for the whole target that a `file` directive in the target block names, in the namespace a `namespace` directive names or the package derives.
+  It builds each declaration with Roslyn's `SyntaxFactory` and lays it out with `NormalizeWhitespace`, then `Syntax.cs` decides blank lines and wraps a generated `Equals`; `TdlEquality` is a fixed text.
   A struct is a sealed record with `required` `init` properties, a fieldless enum a C# enum, a fielded enum an abstract record closed by a private constructor with a nested sealed record per variant, and a newtype a readonly record struct; an alias is expanded.
   `T?` is a nullable property that may be left out, `T | null` a nullable `required` one.
   A record holding a collection or bytes writes its own `Equals` and `GetHashCode` through `TdlEquality`, which the namespace declares once, since .NET compares those by reference.
   A `key` directive becomes a `Key()` method, returning a `<Name>Key` record struct for several fields; a default becomes a property initializer, and the property stops being `required`.
-  `foreign.go` maps a declaration, a primitive, or an extern to a `global::`-qualified type, and an extern to the type its dependency's `csharp` block generates; `attribute` writes an attribute on a declaration, or on every one from the target block.
-  `backend/internal/dotnet` holds what it shares with the planned `fsharp` target: the primitive mapping, the namespace a package derives, and parsing `foreign` and `attribute`.
+  `Foreign.cs` maps a declaration, a primitive, or an extern to a `global::`-qualified type, and an extern to the type its dependency's `csharp` block generates; `attribute` writes an attribute on a declaration, or on every one from the target block.
+  `dotnet/Tdl.DotNet` holds what it shares with the planned `fsharp` target: the primitive mapping, the namespace a package derives, and parsing `foreign` and `attribute`.
   Phases 1 and 2 of `csharp-backend-plan.md` are built: generics, classes, and validation warn.
-  Tests run `dotnet build` with warnings as errors when `dotnet` is on `PATH`, and run the equality, key, and default tests with `dotnet run`; `checks.gen-csharp` always builds the smoke model.
+  Its tests cannot lower TDL, so `internal/gen/csharp_test.go` records requests: one beside each `testdata/csharp/cases/*/*.tdl`, and one per conformance case and the smoke model in `testdata/csharp/corpus/<case>/`, with the files it generates in `want/`.
+  `go test ./internal/gen -record` rewrites them, generating through `tdl-gen-csharp` on `PATH`, and without `-record` compares with them when it is there; CI's race run puts the built plugins on `PATH`.
+  The tests compile every response with `CSharpCompilation`, warnings as errors, and run the equality, key, and default checks in process; `checks.gen-csharp` builds the smoke model with `dotnet build` and the SDK's analyzers.
 - `backend/likec4`: LikeC4 source for an architecture diagram: `tdl.c4`, the specification of element kinds, the same bytes for every model, and one `<package>.c4` holding a package element and one element per structure, enum, newtype, or class; aliases, primitives, and units have none.
   Only phase 1 of `likec4-backend-plan.md` is built: no relationships or views yet.
   No Go library parses LikeC4, so tests compare text, and also run `likec4 validate --no-layout` when `likec4` is on `PATH`.
@@ -282,13 +286,13 @@ A design describes the target, not the implementation.
 
 ### .NET SDK
 
-`dotnet/` holds `Tdl.Plugin`, the SDK a backend written in .NET builds on, its tests, and `Tdl.Plugin.Debug`, a port of `backend/debug` served as `tdl-gen-dotnet_debug`.
-The SDK holds framing, the handshake, a `Session` over the request and its analysis, diagnostics and loss codes, the cascade, names and case styles, and the round-trip helpers; it computes no fact the analysis carries, and throws on a request without one.
+`dotnet/` holds `Tdl.Plugin`, the SDK a backend written in .NET builds on, its tests, `Tdl.Plugin.Debug`, a port of `backend/debug` served as `tdl-gen-dotnet_debug`, and the `csharp` backend with `Tdl.DotNet` (see [Backends](#backends)).
+The SDK holds framing, the handshake, a `Session` over the request and its analysis, `Resolve` and constraint sources, diagnostics and loss codes, the cascade, names and case styles, and the round-trip helpers; it computes no fact the analysis carries, and throws on a request without one.
 `Tdl.Plugin/Generated/` is `buf generate` output from protoc's C# generator, so `make generate` needs `protoc`, which the devShell carries; its version must match the `Google.Protobuf` package.
 `buf.gen.yaml` leaves out the `pb` package, so the generated descriptors drop the Go options and name neither `go_features.proto` nor `descriptor.proto`.
 The tests replay `testdata/plugin/*.binpb` byte for byte and check `LossCodes` against `reverse.md`.
 `deps.json` pins every NuGet package for `buildDotnetModule` but those the SDK carries; after changing a package reference, restore into an empty folder with `-r linux-x64` and hash each `.nupkg`.
-`checks.dotnet-sdk` builds and tests it, and `checks.gen-dotnet-debug` runs it through `tdl gen` beside the Go backend.
+`checks.dotnet-sdk` builds and tests every project, and `checks.gen-dotnet-debug` runs the debug port through `tdl gen` beside the Go backend.
 
 ## CLI
 
