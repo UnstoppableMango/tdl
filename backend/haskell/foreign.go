@@ -106,11 +106,7 @@ func (g *generator) dependency(e *ir.Extern) (imported, bool) {
 
 // extern is the mapping of the extern a type refers to, if any.
 func (g *generator) extern(t *ir.Type) (imported, bool) {
-	i := int(t.GetExtern().GetIndex())
-	if i < 0 || i >= len(g.Model.GetExterns()) {
-		return imported{}, false
-	}
-	f, ok := g.externs[g.Model.GetExterns()[i]]
+	f, ok := g.externs[g.ExternOf(t.GetExtern())]
 	return f, ok
 }
 

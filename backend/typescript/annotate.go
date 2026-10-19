@@ -94,16 +94,9 @@ func (g *generator) footer(path string, emitted map[string]bool) string {
 // has none, or the reverse: readerWrites is whether the name written
 // differs from what import derives.
 func (g *generator) renamed(dirs []*ir.Directive, readerWrites bool, format string, args ...any) {
-	d, has := g.Find(dirs, "name")
-	if has == readerWrites {
-		return
+	if g.CheckRenamed(dirs, readerWrites, format, args...) {
+		g.lost = true
 	}
-	what := fmt.Sprintf(format, args...)
-	if has {
-		g.lose(emit.LossName, d.GetPosition(), "%s's name directive restates the convention, and does not read back", what)
-		return
-	}
-	g.lose(emit.LossName, nil, "%s reads back with a name directive", what)
 }
 
 // docLoss warns when a node's JSDoc does not read back as its doc comment
@@ -129,11 +122,8 @@ func (g *generator) docLoss(m *ir.Meta) {
 // declLosses warns about what a declaration loses besides its fields:
 // its name, its doc comment, its kind, and its conformances.
 func (g *generator) declLosses(d *ir.Decl, written string) {
-	name, pos := d.GetMeta().GetName(), d.GetMeta().GetPosition()
-	if written != name {
-		g.lose(emit.LossName, pos, "%s is written %s, which reads back as its name", name, written)
-	} else {
-		g.renamed(d.GetDirectives(), emit.Pascal(written) != written, "%s", name)
+	if g.LoseDeclName(d, written) {
+		g.lost = true
 	}
 	g.docLoss(d.GetMeta())
 
@@ -171,11 +161,8 @@ func (g *generator) fieldLosses(owner string, f *ir.Field, ref *emit.Ref) {
 	} else {
 		g.renamed(f.GetDirectives(), back != written, "%s.%s", owner, name)
 	}
-	if f.GetOwned() {
-		g.lose(emit.LossOwned, pos, "%s.%s is owned, which TypeScript does not carry", owner, name)
-	}
-	if f.GetDefaultValue() != nil {
-		g.lose(emit.LossDefault, pos, "%s.%s has a default, which is not written", owner, name)
+	if g.LoseOwnedDefault(owner, "TypeScript", f) {
+		g.lost = true
 	}
 	g.typeLosses(f.GetType(), pos, modeProperty)
 	g.docLoss(f.GetMeta())

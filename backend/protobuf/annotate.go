@@ -80,11 +80,8 @@ func (g *generator) annotate(opts []string, ext string, kvs ...kv) []string {
 func (g *generator) declAnnotation(ext string, d *ir.Decl, written string, extra ...kv) string {
 	name := d.GetMeta().GetName()
 	var kvs []kv
-	if written != name {
-		g.Lose(emit.LossName, d.GetMeta().GetPosition(), "%s is written %s, which reads back as its name", name, written)
+	if g.LoseDeclName(d, written) && written != name {
 		kvs = append(kvs, text("name", name))
-	} else {
-		g.CheckRenamed(d.GetDirectives(), emit.Pascal(written) != written, "%s", name)
 	}
 	kvs = append(kvs, extra...)
 	if g.multi {

@@ -87,11 +87,11 @@ func (s *Session) Resolve(id *ir.ID) (*Ref, error) {
 	switch v.GetForm() {
 	case plugin.Form_FORM_EXTERN:
 		ext := t.GetExtern()
-		i := int(v.GetExtern().GetIndex())
-		if !s.Externs || v.GetExtern() == nil || i < 0 || i >= len(s.Model.GetExterns()) {
+		x := s.ExternOf(v.GetExtern())
+		if !s.Externs || x == nil {
 			return nil, Unsupported(ref.Pos, "%s is declared in another package, and foreign types are not generated yet", ext.GetName())
 		}
-		ref.Form, ref.Name, ref.Extern = Extern, ext.GetName(), s.Model.GetExterns()[i]
+		ref.Form, ref.Name, ref.Extern = Extern, ext.GetName(), x
 	case plugin.Form_FORM_PRIMITIVE:
 		ref.Form, ref.Name = Prim, v.GetName()
 	case plugin.Form_FORM_LIST, plugin.Form_FORM_SET:
@@ -158,4 +158,12 @@ func (s *Session) Expand(r *Ref) (*Ref, error) {
 		r = next
 	}
 	return r, nil
+}
+
+// ExternOf is the extern id names, or nil when id is nil or out of range.
+func (s *Session) ExternOf(id *ir.ID) *ir.Extern {
+	if i := int(id.GetIndex()); id != nil && i >= 0 && i < len(s.Model.GetExterns()) {
+		return s.Model.GetExterns()[i]
+	}
+	return nil
 }

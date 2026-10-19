@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
+	"github.com/unstoppablemango/tdl/backend/internal/irtest"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -106,5 +107,97 @@ func TestDeclaresLossy(t *testing.T) {
 				t.Errorf("DeclaresLossy warned %v, want [%s]", codes(s), emit.LossAlias)
 			}
 		})
+	}
+}
+
+func TestLoseDeclName(t *testing.T) {
+	named := []*ir.Directive{{Name: "name", Target: "x", Args: []*ir.Literal{irtest.Text("Order")}}}
+	for _, tt := range []struct {
+		name, decl, written string
+		dirs                []*ir.Directive
+		want                bool
+	}{
+		{"same", "Order", "Order", nil, false},
+		{"written another way", "Order", "order", nil, true},
+		{"restated directive", "Order", "Order", named, true},
+		{"reader writes a directive", "order_line", "order_line", nil, true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			s := lossSession()
+			d := &ir.Decl{Meta: &ir.Meta{Name: tt.decl}, Directives: tt.dirs}
+			if got := s.LoseDeclName(d, tt.written); got != tt.want {
+				t.Errorf("LoseDeclName = %v, want %v", got, tt.want)
+			}
+			if lost := len(s.Diags) > 0; lost != tt.want {
+				t.Errorf("LoseDeclName warned %v", codes(s))
+			}
+		})
+	}
+}
+
+func TestLoseFieldName(t *testing.T) {
+	named := []*ir.Directive{{Name: "name", Target: "x", Args: []*ir.Literal{irtest.Text("id")}}}
+	for _, tt := range []struct {
+		name, written string
+		dirs          []*ir.Directive
+		want          bool
+	}{
+		{"same", "id", nil, false},
+		{"written another way", "ID", nil, true},
+		{"restated directive", "id", named, true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			s := lossSession()
+			f := &ir.Field{Meta: &ir.Meta{Name: "id"}, Directives: tt.dirs}
+			if got := s.LoseFieldName("T", f, tt.written); got != tt.want {
+				t.Errorf("LoseFieldName = %v, want %v", got, tt.want)
+			}
+			if lost := len(s.Diags) > 0; lost != tt.want {
+				t.Errorf("LoseFieldName warned %v", codes(s))
+			}
+		})
+	}
+}
+
+func TestLoseOwnedDefault(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		f    *ir.Field
+		want []string
+	}{
+		{"plain", &ir.Field{}, nil},
+		{"owned", &ir.Field{Owned: true}, []string{emit.LossOwned}},
+		{"default", &ir.Field{DefaultValue: irtest.Text("a")}, []string{emit.LossDefault}},
+		{"both", &ir.Field{Owned: true, DefaultValue: irtest.Text("a")}, []string{emit.LossOwned, emit.LossDefault}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			s := lossSession()
+			tt.f.Meta = &ir.Meta{Name: "f"}
+			if got := s.LoseOwnedDefault("T", "X", tt.f); got != (len(tt.want) > 0) {
+				t.Errorf("LoseOwnedDefault = %v, want %v", got, len(tt.want) > 0)
+			}
+			if got := codes(s); !slices.Equal(got, tt.want) {
+				t.Errorf("LoseOwnedDefault warned %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestExternOf(t *testing.T) {
+	ext := &ir.Extern{Name: "Money"}
+	s := emit.NewSession(&plugin.Request{Target: "x", Model: &ir.Model{Externs: []*ir.Extern{ext}}}, "X")
+	for _, tt := range []struct {
+		name string
+		id   *ir.ID
+		want *ir.Extern
+	}{
+		{"nil", nil, nil},
+		{"in range", &ir.ID{Index: 0}, ext},
+		{"past the end", &ir.ID{Index: 1}, nil},
+		{"negative", &ir.ID{Index: -1}, nil},
+	} {
+		if got := s.ExternOf(tt.id); got != tt.want {
+			t.Errorf("ExternOf(%s) = %v, want %v", tt.name, got, tt.want)
+		}
 	}
 }

@@ -232,8 +232,7 @@ func (g *generator) classOf(ref *ir.ClassRef) (*ir.Decl, string, error) {
 	pos := ref.GetPosition()
 	if e := ref.GetExtern(); e != nil {
 		name := e.GetName()
-		if i := int(e.GetIndex()); i >= 0 && i < len(g.Model.GetExterns()) {
-			x := g.Model.GetExterns()[i]
+		if x := g.ExternOf(e); x != nil {
 			name = x.GetPackage() + "." + x.GetName()
 		}
 		return nil, "", emit.Lost(emit.LossClass, pos, "%s is a class in another package, whose own requirements this module cannot see", name)
