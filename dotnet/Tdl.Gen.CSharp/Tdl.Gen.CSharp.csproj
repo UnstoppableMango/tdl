@@ -4,6 +4,9 @@
 		<AssemblyName>tdl-gen-csharp</AssemblyName>
 		<RootNamespace>Tdl.Gen.CSharp</RootNamespace>
 		<Description>The csharp target: C# source from a TDL model, built with Roslyn.</Description>
+		<!-- One native binary with no runtime to start, so each tdl gen
+		     pays no JIT for Roslyn. -->
+		<PublishAot>true</PublishAot>
 	</PropertyGroup>
 
 	<ItemGroup>
