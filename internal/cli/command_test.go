@@ -9,6 +9,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/unstoppablemango/tdl/internal/gen"
+	"github.com/unstoppablemango/tdl/internal/gen/echo"
+	"github.com/unstoppablemango/tdl/plugin"
 )
 
 // twoFiles writes a canonical model and a broken one.
@@ -304,6 +306,23 @@ func TestGenWatchAndVerifyAreExclusive(t *testing.T) {
 	}
 }
 
+// directiveBackend declares one directive read only on the target block
+// and one taking two values, so the host's checks are tested apart from
+// any real backend's directives. It is never asked to generate.
+type directiveBackend struct{ echo.Backend }
+
+func (directiveBackend) Describe() plugin.Description {
+	return plugin.Description{
+		Name: "checked",
+		Directives: []*plugin.DirectiveSpec{
+			{Name: "module", MinArgs: 1, MaxArgs: 1, Placements: []plugin.Placement{plugin.Placement_PLACEMENT_BLOCK}},
+			{Name: "draft", MinArgs: 1, MaxArgs: 1, Values: []string{"new", "old"}},
+		},
+	}
+}
+
+func directiveResolver(string) (plugin.Backend, error) { return directiveBackend{}, nil }
+
 // A directive written where its backend does not read it, or given a value
 // it does not take, is reported at its position before anything is written.
 func TestGenReportsMisplacedDirectives(t *testing.T) {
@@ -312,13 +331,13 @@ func TestGenReportsMisplacedDirectives(t *testing.T) {
 	}{
 		{
 			"placement",
-			"target haskell for p {\n  E => module(\"P.Orders\")\n}\n",
-			`m.tdl:10:8: error: module is written on a declaration, and haskell reads it only on the target block`,
+			"target checked for p {\n  E => module(\"P.Orders\")\n}\n",
+			`m.tdl:10:8: error: module is written on a declaration, and checked reads it only on the target block`,
 		},
 		{
 			"value",
-			"target jsonschema for p {\n  draft(\"2019\")\n}\n",
-			`m.tdl:10:9: error: draft does not take "2019"; use "2020-12" or "draft-07"`,
+			"target checked for p {\n  draft(\"2019\")\n}\n",
+			`m.tdl:10:9: error: draft does not take "2019"; use "new" or "old"`,
 		},
 	}
 
@@ -331,7 +350,7 @@ func TestGenReportsMisplacedDirectives(t *testing.T) {
 				t.Fatalf("writing the fixture: %v", err)
 			}
 			out := filepath.Join(dir, "out")
-			_, errOut, err := run(t, newGenCmd(), "-o", out, path)
+			_, errOut, err := run(t, genCmd(directiveResolver), "-o", out, path)
 			if err == nil {
 				t.Fatal("gen accepted the directive")
 			}

@@ -13,7 +13,7 @@ TS_GRAMMAR  := tree-sitter/grammar.js
 FEATURES    := $(shell git grep -l '<!-- tdl:features' -- '*.md')
 
 .PHONY: build test cover play demo generate treesitter textmate features vscode-install \
-	vscode-check test-treesitter check-treesitter dotnet-test update lint check fmt tidy
+	vscode-check test-treesitter check-treesitter dotnet-test mutate update lint check fmt tidy
 
 build:
 	nix build .#
@@ -66,6 +66,11 @@ vscode-check:
 
 dotnet-test:
 	dotnet test dotnet/Tdl.slnx
+
+# Every package in scope, or the ones PKG names.
+PKG ?=
+mutate:
+	go run ./tools/mutate ${PKG}
 
 test-treesitter:
 	${MAKE} -C tree-sitter test
