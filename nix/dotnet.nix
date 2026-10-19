@@ -2,6 +2,7 @@
   buildDotnetModule,
   dotnetCorePackages,
   lib,
+  stdenv,
   version,
 }:
 buildDotnetModule {
@@ -29,16 +30,22 @@ buildDotnetModule {
     "dotnet/Tdl.Plugin.Tests/Tdl.Plugin.Tests.csproj"
   ];
   # Every package the solution restores but those the SDK carries: the
-  # runtime packs and the trimming tasks.
+  # runtime packs, the trimming tasks, and the AOT compiler.
   nugetDeps = ../dotnet/deps.json;
 
   dotnet-sdk = dotnetCorePackages.sdk_10_0;
   dotnet-runtime = dotnetCorePackages.runtime_10_0;
 
   # Each plugin is one file carrying its runtime, so tdl runs it from PATH
-  # with no .NET installed.
+  # with no .NET installed. tdl-gen-csharp sets PublishAot, so it is
+  # compiled ahead of time and linked by the C compiler; the debug port is
+  # a single-file bundle. Symbol files stay out of the package.
   selfContainedBuild = true;
-  dotnetInstallFlags = [ "-p:PublishSingleFile=true" ];
+  dotnetInstallFlags = [
+    "-p:PublishSingleFile=true"
+    "-p:CopyOutputSymbolsToPublishDirectory=false"
+  ];
+  nativeBuildInputs = [ stdenv.cc ];
 
   doCheck = true;
   executables = [

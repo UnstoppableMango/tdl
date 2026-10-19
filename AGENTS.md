@@ -28,6 +28,7 @@ command make vscode-install   # package editors/vscode and install it into a run
 command make vscode-check     # npm ci, then typecheck and biome check editors/vscode
 command make vscode-test      # in `nix develop .#vscode`: the extension in a headless VSCodium
 command make dotnet-test      # dotnet test dotnet/Tdl.slnx: the .NET plugin SDK and the csharp backend
+command make mutate           # in the devShell: gremlins over the core packages; PKG=./lex for one
 command make test-treesitter  # the conformance corpus, run by tree-sitter
 command make check-treesitter # what CI runs: treesitter + a diff + test-treesitter
 ```
@@ -37,6 +38,9 @@ Prefix `make` with `command` (see the shell autoload note in the global instruct
 `generate`, `treesitter`, and `textmate` are file targets, so each reruns only when its inputs are newer.
 `tree-sitter/Makefile` and `editors/vscode/Makefile` hold the targets for their directories; the root delegates to them.
 `check-treesitter` passes `-B`, because a fresh checkout gives every file the same mtime and a file target would skip the regeneration the diff is meant to test.
+`mutate` runs `tools/mutate`, which runs gremlins once per package with `GOFLAGS=-short`, merges the reports into `mutate.json`, and prints the survivors `mutation/equivalent.txt` does not list; `internal/mutation` reads both.
+It mutates `lex`, `parser`, `ast`, `internal/sema`, and `internal/analysis`, and nothing runs it in CI (see `docs/design/mutation-testing.md`).
+`go run ./tools/mutate -report mutate.json` reprints a report without running gremlins.
 Never combine `-race` with `-coverpkg`: every covered statement becomes an atomic the race detector tracks, and the protocompile tests time out.
 CI runs them as two steps.
 `vscode-install` regenerates the TextMate grammar first, and `install.sh` refuses to run without a bundle built by `make`.
@@ -65,7 +69,7 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 
 - `cmd.nix`: the CLI. `meta.mainProgram` is what `lib.getExe` reads, since the package installs thirteen binaries.
 - `vscode-extension.nix`: the editor extension (see [VS Code](#vs-code)).
-- `dotnet.nix`: the .NET plugins, `tdl-gen-csharp` and the SDK's debug port, each a self-contained single file built with `buildDotnetModule`, which runs their tests (see [.NET SDK](#net-sdk)).
+- `dotnet.nix`: the .NET plugins, built with `buildDotnetModule`, which runs their tests (see [.NET SDK](#net-sdk)): `tdl-gen-csharp`, compiled with Native AOT and linked by `stdenv.cc`, and the SDK's debug port, a self-contained single file.
 - `tree-sitter-tdl.nix`: the grammar's Python binding in `tree-sitter/bindings/python/`, for graphify (see `docs/design/graphify.md`); the overlay adds it to every Python package set, and `checks.tree-sitter-tdl` runs its tests, which parse the prelude.
   The binding, `pyproject.toml`, and `setup.py` are `tree-sitter init` output with the highlights query exposed, the tests extended, and `scanner.c` listed with the sources so a source distribution carries it.
 - `demo.nix`: renders `docs/demo/demo.tape`, the README's GIF, with VHS. It is a package and not a check, since it runs a browser.
