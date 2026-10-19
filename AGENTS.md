@@ -276,7 +276,7 @@ A backend added to the registry needs a row in the `shipped` table in `internal/
 
 ### Feature tables
 
-Each backend's design doc embeds a table of what it does with each feature of the language, between `<!-- tdl:features <target> -->` and `<!-- /tdl:features -->`.
+`docs/backends/<target>.md` is a backend's page for model authors, holding a table of what it does with each feature of the language between `<!-- tdl:features <target> -->` and `<!-- /tdl:features -->`.
 `internal/features` measures it and `tools/features` (`make features`) writes it; `TestTablesAreCurrent` compares and never writes.
 A row is a directory of `testdata/features` holding `source.tdl`; a subdirectory named for a backend holds its own source, for a feature that backend reaches only through its own directives.
 A source's target block is written for `feature` and renamed for each backend, in its imports too.
@@ -287,6 +287,7 @@ A cell may not hold a `|`.
 An Import cell a tool missing from PATH, or `-short`, leaves unmeasured keeps its committed text, so `make features` needs `smithy` and `tsc` to change those cells.
 A plugin this repository serves, `csharp`, is measured through `tdl-gen-csharp` when it is on PATH, as in CI's race run, and otherwise keeps every committed cell.
 Every target but `debug` is embedded exactly once.
+The tables stay out of `docs/design/`, which is for building the backend, not using it.
 
 ### Tests and goldens
 
@@ -296,6 +297,7 @@ After any change to lowering or `ir.Dump`, run `go test ./internal/sema -update`
 
 ### Docs
 
+`docs/backends/` holds a page per backend for model authors (see [Feature tables](#feature-tables)).
 `docs/design/` holds designs and plans; each `*-plan.md` names what its phases add, and its opening lines say which are done.
 Read those before assuming a design is built: a plan saying no phase is done has no code.
 A phase's pull request updates its own plan's status line, never a list here, because a shared list conflicts with every other open phase.
