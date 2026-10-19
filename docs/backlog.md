@@ -53,4 +53,5 @@ An embedded struct could be an `include`, if Generate embedded a mixin rather th
 ## Foreign imports that import
 
 A [foreign import](design/foreign-imports.md) reads one file, so a name it takes from another file it imports, `.ts` importing `other.ts` or `.proto` importing another `.proto`, is a diagnostic until the other file is imported too.
-Following those imports would lower each foreign file once as its own package and resolve the first file's names into it.
+Following those imports should lean on each ecosystem's own resolution rather than reimplement it: `go/packages` and `go.mod` for Go, the TypeScript compiler's module resolution and `tsconfig.json`, `buf` or protoc import paths for protobuf, and the Smithy CLI's model assembly.
+Each foreign file the tool resolves would then lower once as its own package, and the first file's names resolve into it.

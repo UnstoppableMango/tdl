@@ -11,6 +11,7 @@ This plan lets an `import` name a target-language file, read through that target
 It builds extension dispatch, the `from` clause, pointing the source's own target back at the original, vendoring into other targets, the language server, watch mode, and the flake module's `tools` option.
 
 Following a foreign file's own imports, directories as paths, and an on-disk cache are out of scope.
+When foreign imports are followed, they resolve through each ecosystem's own tooling; see [backlog.md](../backlog.md#foreign-imports-that-import).
 
 ## Testing
 
