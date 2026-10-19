@@ -80,12 +80,12 @@ A foreign import is never skipped silently, because every declaration behind it 
 
 A model importing `types.go` and generating Go refers to `gotypes.OrderID` as the original Go type; nothing is regenerated.
 
-The import response gains `source`: target block directives that place the source file for its own target.
+The import response gains `placement`: target block directives that place the source file for its own target, beside the model or TDL `source` it already carries.
 The Go reader returns `package` with the import path, read from the nearest `go.mod` above the file and the file's directory.
 The TypeScript reader returns `out` with the file's path.
 Each other reader returns what its forward twin reads to refer to a dependency.
 
-`sema` lowers `source` as the imported package's block for the reader's target, so the extern machinery of [ir-plan.md](ir-plan.md) phase 8b points at the original with nothing new in any backend.
+`sema` lowers `placement` as the imported package's block for the reader's target, so the extern machinery of [ir-plan.md](ir-plan.md) phase 8b points at the original with nothing new in any backend.
 A reader that cannot place its file, such as a Go file with no `go.mod` above it, warns, and the source target then vendors the declarations like any other.
 
 A target block directive on a foreign declaration for its own source target is an error, since nothing is generated for it to apply to.

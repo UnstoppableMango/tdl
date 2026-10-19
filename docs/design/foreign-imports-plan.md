@@ -42,9 +42,9 @@ Done when `echo` claims `.echo` over a pipe and is dispatched to by extension, a
 
 ## Phase 3: the source's own target
 
-- `ImportResponse` gains `source`, target block directives on a number never used; `make generate`.
+- `ImportResponse` gains `placement`, target block directives on a number never used, beside the existing model and `source`; `make generate`.
 - The Go reader returns `package` from the nearest `go.mod`; the TypeScript reader returns `out`; the other readers return what their forward twin reads for a dependency.
-- `sema` lowers `source` as the imported package's block for the reader's target, so each backend's existing extern handling refers to the original.
+- `sema` lowers `placement` as the imported package's block, whether the package came as a model or as TDL `source`, for the reader's target, so each backend's existing extern handling refers to the original.
 - A directive on a foreign declaration for its source target is an error.
 
 Done when a model importing `types.go` generates Go that compiles against the original package with no copy of its types, and the same for a `.ts` import generating TypeScript under `tsc --strict`.
