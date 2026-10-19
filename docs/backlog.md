@@ -49,3 +49,8 @@ An interface could be a class, as [reverse.md](design/reverse.md) suggests, and 
 
 `tdl import --from go` warns and skips a func, a var, a method Generate does not write, an embedded field, an array, a channel, and an interface without a marker, and reads `int` and the narrow integers as wider primitives.
 An embedded struct could be an `include`, if Generate embedded a mixin rather than copying its fields; an interface with methods wants TDL surface for operations, as GraphQL's and Smithy's do.
+
+## Foreign imports that import
+
+A [foreign import](design/foreign-imports.md) reads one file, so a name it takes from another file it imports, `.ts` importing `other.ts` or `.proto` importing another `.proto`, is a diagnostic until the other file is imported too.
+Following those imports would lower each foreign file once as its own package and resolve the first file's names into it.
