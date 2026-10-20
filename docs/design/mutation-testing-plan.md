@@ -5,6 +5,7 @@ Phases are ordered by dependency, and each states what makes it done.
 
 Phase 1 is done: the devShell carries gremlins 0.6.0, and its run over `lex` under Go 1.27.2 killed 51 mutants, timed out 16, left 13 alive, and reached 7 no test covers, in two and a half minutes.
 Phase 2 is done: a full `make mutate` with four CPUs took eight minutes and left 170 survivors and 226 mutants no test covers, `internal/sema` holding 99 of the survivors; the pull request lists the counts per package.
+Phase 3 is done: the routine runs Thursdays, and its first run, on 2026-10-20, took twelve minutes, left 161 survivors, opened a tests-only pull request for each of the five packages killing 47 of them, and filed issues for a formatter bug, two unreachable guards, and 22 equivalent mutants.
 
 ## Scope
 
