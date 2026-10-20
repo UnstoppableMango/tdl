@@ -2,6 +2,8 @@
 
 # Generated
 *.pb.go
+dotnet/Tdl.Plugin/Generated/
+CHANGELOG.md
 tree-sitter/grammar.js
 tree-sitter/src/*
 !tree-sitter/src/scanner.c
@@ -9,6 +11,8 @@ tree-sitter/bindings/
 tree-sitter/setup.py
 editors/vscode/syntaxes/
 
-# Fixtures and recorded output
-testdata/
+# Fixtures and recorded output, but the corpora's TDL, which graphify reads
+testdata/**
+!testdata/**/
+!testdata/**/*.tdl
 *.golden

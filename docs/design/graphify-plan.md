@@ -3,7 +3,8 @@
 An implementation plan for [graphify.md](graphify.md).
 Phases are ordered by dependency, and each states what makes it done.
 
-Phase 1 is done.
+Phases 1 and 2 are done.
+Phase 3 is built, but `graphify update .` gives 5,819 nodes, above its 4,000 target; the graph was already near 6,500 before TDL joined it.
 
 ## Scope
 
