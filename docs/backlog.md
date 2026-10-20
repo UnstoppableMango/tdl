@@ -49,3 +49,9 @@ An interface could be a class, as [reverse.md](design/reverse.md) suggests, and 
 
 `tdl import --from go` warns and skips a func, a var, a method Generate does not write, an embedded field, an array, a channel, and an interface without a marker, and reads `int` and the narrow integers as wider primitives.
 An embedded struct could be an `include`, if Generate embedded a mixin rather than copying its fields; an interface with methods wants TDL surface for operations, as GraphQL's and Smithy's do.
+
+## Foreign imports that import
+
+A [foreign import](design/foreign-imports.md) reads one file, so a name it takes from another file it imports, `.ts` importing `other.ts` or `.proto` importing another `.proto`, is a diagnostic until the other file is imported too.
+Following those imports should lean on each ecosystem's own resolution rather than reimplement it: `go/packages` and `go.mod` for Go, the TypeScript compiler's module resolution and `tsconfig.json`, `buf` or protoc import paths for protobuf, and the Smithy CLI's model assembly.
+Each foreign file the tool resolves would then lower once as its own package, and the first file's names resolve into it.
