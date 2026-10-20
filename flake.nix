@@ -52,7 +52,16 @@
 
       perSystem =
         { inputs', pkgs, ... }:
+        let
+          # graphify reading TDL through the grammar's Python binding, built
+          # against graphify's own interpreter.
+          graphify = inputs'.mangopkgs.packages.graphify.withGrammars (ps: [
+            (ps.callPackage ./nix/tree-sitter-tdl.nix { })
+          ]);
+        in
         {
+          checks.graphify = pkgs.callPackage ./nix/checks/graphify.nix { inherit graphify; };
+
           devShells.default = pkgs.mkShell {
             packages = with pkgs; [
               direnv
@@ -80,7 +89,7 @@
               deepsource
               zip
               biome
-              inputs'.mangopkgs.packages.graphify
+              graphify
               inputs'.mangopkgs.packages.gremlins
             ];
           };

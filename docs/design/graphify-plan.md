@@ -3,7 +3,7 @@
 An implementation plan for [graphify.md](graphify.md).
 Phases are ordered by dependency, and each states what makes it done.
 
-Phase 1 is done.
+Phases 1 through 3 are done.
 
 ## Scope
 
