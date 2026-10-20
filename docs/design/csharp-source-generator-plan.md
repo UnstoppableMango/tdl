@@ -14,7 +14,8 @@ F# and a long-lived `tdl` process are out of scope.
 
 ## Phase 1: `tdl request`
 
-- `internal/cli` gains `request`, taking `--target` and `--overlay`, and writing framed `plugin.Request` messages followed by the diagnostics.
+- `plugin.proto` gains `RequestSet`, `Overlay`, and `OverlayFile`, on numbers never used; `make generate` regenerates Go and C#.
+- `internal/cli` gains `request`, taking `--target` and `--overlay`, and writing a `Handshake` and one `RequestSet`.
 - An overlay `sema.Loader` serves the texts read from standard input, falling back to `FSLoader`; it shares what it can with `internal/lsp`'s overlay.
 - Requests are built with `analysis.Request`, and allowed loss codes are dropped as `gen` drops them.
 
@@ -31,7 +32,7 @@ Done when `make dotnet-test` and `go test ./internal/gen` pass with the recorded
 ## Phase 3: the generator
 
 - `dotnet/Tdl.Generator`, an `IIncrementalGenerator` over `.tdl` additional files, calling `tdl request` once per change of the set and the library in process.
-- `TdlPath` and the `Tdl` item in `buildTransitive` props, read through `CompilerVisibleProperty`.
+- `buildTransitive` props: the `Tdl` item, each added to `AdditionalFiles`, and `TdlPath`, the one property exposed through `CompilerVisibleProperty`.
 - Diagnostics `TDL0001` to `TDL0004`, the protocol version check, and cancellation.
 - `dotnet/Tdl.Generator.Tests` drives it with `CSharpGeneratorDriver`, holding it to the plugin's bytes, and checks step tracking.
 

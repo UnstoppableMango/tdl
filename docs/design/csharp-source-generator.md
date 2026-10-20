@@ -39,14 +39,35 @@ Running Go lowering compiled to WebAssembly inside the generator was rejected: i
 tdl request --target csharp [--overlay] [file ...]
 ```
 
-It first writes a `Handshake` carrying its `framing_version` and `ir_version`, then lowers each file and writes, framed as the plugin protocol frames a message, one `plugin.Request` per file whose model has a target block for the target.
-It builds each through `analysis.Request`, as `internal/gen` does, so the generator receives exactly what `tdl gen` sends, analysis and directive checks included.
+It writes two framed messages, as the plugin protocol frames a message, and exits: a `Handshake` carrying its `framing_version` and `ir_version`, then one `RequestSet`, which `plugin.proto` gains:
 
-With `--overlay`, standard input carries the files' texts, as a list of path and text pairs.
+```proto
+message RequestSet {
+  repeated Request requests = 1;       // one per file whose model has a block for the target
+  repeated Diagnostic diagnostics = 2; // the protocol's Diagnostic, with its file and range
+}
+```
+
+One message holds both, so the generator never has to tell a request from a diagnostic by position in the stream, and an empty set is a valid answer.
+`tdl request` builds each request through `analysis.Request`, as `internal/gen` does, so the generator receives exactly what `tdl gen` sends, analysis and directive checks included.
+
+With `--overlay`, standard input carries one framed `Overlay`, a list of path and text pairs:
+
+```proto
+message Overlay {
+  repeated OverlayFile files = 1;
+}
+
+message OverlayFile {
+  string path = 1;
+  string text = 2;
+}
+```
+
 A sema `Loader` serves an import from the overlay first and from disk otherwise, as `internal/lsp`'s overlay serves an editor's unsaved buffers.
 An import outside the project, and a foreign import, are read from disk.
 
-After the requests it writes the diagnostics: parse and lowering errors, directive check failures, and the refusals `analysis.Request` returns, each with its file and range.
+The diagnostics are parse and lowering errors, directive check failures, and the refusals `analysis.Request` returns.
 A file with an error yields no request.
 Loss-coded warnings that `tdl.toml` or `--allow-lossy` allows are dropped here, so `tdl.toml` means the same to both workflows.
 
@@ -81,7 +102,7 @@ Go to definition on a generated type lands on the TDL declaration, and a compile
 
 ### Diagnostics
 
-Each diagnostic `tdl request` writes becomes a Roslyn diagnostic at its file and range, so it shows in the editor's error list and an error fails the build:
+Each diagnostic in the `RequestSet` becomes a Roslyn diagnostic at its file and range, so it shows in the editor's error list and an error fails the build:
 
 | ID | Severity | Meaning |
 | --- | --- | --- |
