@@ -301,12 +301,7 @@ func (g *generator) fieldLoss(owner string, f *ir.Field) {
 	} else {
 		g.CheckRenamed(f.GetDirectives(), exported(back) != goName, "%s.%s", owner, name)
 	}
-	if f.GetOwned() {
-		g.Lose(emit.LossOwned, pos, "%s.%s is owned, which Go does not carry", owner, name)
-	}
-	if f.GetDefaultValue() != nil {
-		g.Lose(emit.LossDefault, pos, "%s.%s has a default, which is not written", owner, name)
-	}
+	g.LoseOwnedDefault(owner, "Go", f)
 	g.typeLosses(f.GetType(), pos)
 	g.docLoss(f.GetMeta(), siteField)
 }

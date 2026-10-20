@@ -75,12 +75,9 @@ var unliteral = strings.NewReplacer("%25", "%", "%5C", `\`)
 // nameKVs warns when a declaration's Thrift name does not read back as its
 // own, and carries it.
 func (g *generator) nameKVs(d *ir.Decl, written string) []kv {
-	name := d.GetMeta().GetName()
-	if written != name {
-		g.Lose(emit.LossName, d.GetMeta().GetPosition(), "%s is written %s, which reads back as its name", name, written)
+	if name := d.GetMeta().GetName(); g.LoseDeclName(d, written) && written != name {
 		return []kv{{"tdl.name", name}}
 	}
-	g.CheckRenamed(d.GetDirectives(), emit.Pascal(written) != written, "%s", name)
 	return nil
 }
 
@@ -128,20 +125,9 @@ func (g *generator) docKVs(meta *ir.Meta) []kv {
 // fieldKVs warns about and carries what a field loses: how it is written,
 // what Thrift has no form for, and the include that copied it.
 func (g *generator) fieldKVs(owner string, f *ir.Field, ref *emit.Ref, written, include string) []kv {
-	name := f.GetMeta().GetName()
-	pos := f.GetMeta().GetPosition()
-	if written != name {
-		g.Lose(emit.LossName, pos, "%s.%s is written %s, which reads back as its name", owner, name, written)
-	} else {
-		g.CheckRenamed(f.GetDirectives(), false, "%s.%s", owner, name)
-	}
-	if f.GetOwned() {
-		g.Lose(emit.LossOwned, pos, "%s.%s is owned, which Thrift does not carry", owner, name)
-	}
-	if f.GetDefaultValue() != nil {
-		g.Lose(emit.LossDefault, pos, "%s.%s has a default, which is not written", owner, name)
-	}
-	g.typeLosses(f.GetType(), pos)
+	g.LoseFieldName(owner, f, written)
+	g.LoseOwnedDefault(owner, "Thrift", f)
+	g.typeLosses(f.GetType(), f.GetMeta().GetPosition())
 
 	var kvs []kv
 	if src := g.FieldSource(f, false); src != written+": "+g.spell(ref) {

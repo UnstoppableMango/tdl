@@ -128,13 +128,8 @@ func (g *generator) metadata(emitted map[string]bool, shapes bool) string {
 
 // losses warns about what a declaration loses, written as shape s.
 func (g *generator) losses(d *ir.Decl, s *shape) {
-	written := s.name()
-	name, pos := d.GetMeta().GetName(), d.GetMeta().GetPosition()
-	if written != name {
-		g.Lose(emit.LossName, pos, "%s is written %s, which reads back as its name", name, written)
-	} else {
-		g.CheckRenamed(d.GetDirectives(), emit.Pascal(written) != written, "%s", name)
-	}
+	written, name := s.name(), d.GetMeta().GetName()
+	g.LoseDeclName(d, written)
 	g.docLoss(d.GetMeta())
 
 	if d.GetStructure() != nil {
@@ -200,20 +195,10 @@ func (g *generator) fieldLosses(owner string, fields []*ir.Field) {
 		}
 	}
 	for _, f := range fields {
-		name, pos := f.GetMeta().GetName(), f.GetMeta().GetPosition()
-		if written := g.FieldName(f, asWritten); written != name {
-			g.Lose(emit.LossName, pos, "%s.%s is written %s, which reads back as its name", owner, name, written)
-		} else {
-			g.CheckRenamed(f.GetDirectives(), false, "%s.%s", owner, name)
-		}
-		if f.GetOwned() {
-			g.Lose(emit.LossOwned, pos, "%s.%s is owned, which Smithy does not carry", owner, name)
-		}
-		if f.GetDefaultValue() != nil {
-			g.Lose(emit.LossDefault, pos, "%s.%s has a default, which is not written", owner, name)
-		}
+		g.LoseFieldName(owner, f, g.FieldName(f, asWritten))
+		g.LoseOwnedDefault(owner, "Smithy", f)
 		g.docLoss(f.GetMeta())
-		g.typeLosses(f.GetType(), pos)
+		g.typeLosses(f.GetType(), f.GetMeta().GetPosition())
 	}
 }
 

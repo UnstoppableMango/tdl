@@ -236,12 +236,6 @@ func (s *Session) Imports() []string {
 	return s.source().GetImports()
 }
 
-// WithoutRoundtrip is a target block without the roundtrip directive, or
-// nil when nothing else is in it.
-func WithoutRoundtrip(t *ast.TargetDecl) ast.Decl {
-	return analysis.WithoutRoundtrip(t)
-}
-
 // PrintItem is a top-level item as TDL, doc comment included.
 func PrintItem(d ast.Decl) string {
 	return analysis.PrintItem(d)
@@ -249,18 +243,57 @@ func PrintItem(d ast.Decl) string {
 
 // CheckRenamed warns when import would write a `name` directive and the
 // model has none, or the reverse: readerWrites is whether the name the
-// node is written with differs from the convention import reads.
-func (s *Session) CheckRenamed(dirs []*ir.Directive, readerWrites bool, format string, args ...any) {
+// node is written with differs from the convention import reads. It
+// reports whether the name directive is lost.
+func (s *Session) CheckRenamed(dirs []*ir.Directive, readerWrites bool, format string, args ...any) bool {
 	d, has := s.Find(dirs, "name")
 	if has == readerWrites {
-		return
+		return false
 	}
 	what := fmt.Sprintf(format, args...)
 	if has {
 		s.Lose(LossName, d.GetPosition(), "%s's name directive restates the convention, and does not read back", what)
-		return
+		return true
 	}
 	s.Lose(LossName, nil, "%s reads back with a name directive", what)
+	return true
+}
+
+// LoseDeclName warns when a declaration is written as a name that reads
+// back as another, and otherwise checks its name directive against the
+// PascalCase convention import reads. It reports whether anything is lost.
+func (s *Session) LoseDeclName(d *ir.Decl, written string) bool {
+	name := d.GetMeta().GetName()
+	if written != name {
+		s.Lose(LossName, d.GetMeta().GetPosition(), "%s is written %s, which reads back as its name", name, written)
+		return true
+	}
+	return s.CheckRenamed(d.GetDirectives(), Pascal(written) != written, "%s", name)
+}
+
+// LoseFieldName is [Session.LoseDeclName] for a field of owner, for a
+// target that reads a field's name back as written.
+func (s *Session) LoseFieldName(owner string, f *ir.Field, written string) bool {
+	name := f.GetMeta().GetName()
+	if written != name {
+		s.Lose(LossName, f.GetMeta().GetPosition(), "%s.%s is written %s, which reads back as its name", owner, name, written)
+		return true
+	}
+	return s.CheckRenamed(f.GetDirectives(), false, "%s.%s", owner, name)
+}
+
+// LoseOwnedDefault warns when a field of owner is owned, which target does
+// not carry, or has a default, which is not written. It reports whether
+// either is lost.
+func (s *Session) LoseOwnedDefault(owner, target string, f *ir.Field) bool {
+	name, pos := f.GetMeta().GetName(), f.GetMeta().GetPosition()
+	if f.GetOwned() {
+		s.Lose(LossOwned, pos, "%s.%s is owned, which %s does not carry", owner, name, target)
+	}
+	if f.GetDefaultValue() != nil {
+		s.Lose(LossDefault, pos, "%s.%s has a default, which is not written", owner, name)
+	}
+	return f.GetOwned() || f.GetDefaultValue() != nil
 }
 
 // CheckPins warns when import would pin a member's number differently: it
