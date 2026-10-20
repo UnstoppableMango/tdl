@@ -1,0 +1,6 @@
+#!/bin/sh
+# Parses and validates CML files with the context-mapper-dsl jar, printing
+# each issue as file:line: SEVERITY: message and exiting 1 on any error.
+# Build once with: mvn -q -B package dependency:copy-dependencies -DincludeScope=runtime
+D=$(dirname "$(readlink -f "$0")")
+exec java -cp "$D/target/classes:$D/target/dependency/*" check.Main "$@"
