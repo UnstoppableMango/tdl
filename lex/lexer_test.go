@@ -107,6 +107,27 @@ func TestOrdinaryCommentsAreCollected(t *testing.T) {
 	}
 }
 
+// RescanRegexAt rewinds past a comment already collected, and scanning on
+// collects it once.
+func TestRescanCollectsACommentOnce(t *testing.T) {
+	lx := lex.New("t.tdl", "matches /a/ // c\n")
+	var slash lex.Token
+	for tok := lx.Next(); tok.Kind != lex.EOF; tok = lx.Next() {
+		if tok.Kind == lex.SLASH && slash.Kind == lex.ILLEGAL {
+			slash = tok
+		}
+	}
+	if got := lx.RescanRegexAt(slash.Pos); got.Kind != lex.REGEX {
+		t.Fatalf("rescan = %v, want REGEX", got.Kind)
+	}
+	for lx.Next().Kind != lex.EOF { //revive:disable-line:empty-block
+	}
+
+	if got := lx.Comments(); len(got) != 1 {
+		t.Errorf("got %d comments, want 1: %v", len(got), got)
+	}
+}
+
 func TestDocCommentsAreNotCollected(t *testing.T) {
 	lx := lex.New("t.tdl", "/// docs\nprimitive string\n")
 	for lx.Next().Kind != lex.EOF { //revive:disable-line:empty-block
@@ -139,6 +160,21 @@ func TestPositions(t *testing.T) {
 	}
 }
 
+func TestPositionString(t *testing.T) {
+	cases := []struct {
+		pos  lex.Position
+		want string
+	}{
+		{lex.Position{Filename: "t.tdl", Line: 2, Col: 3}, "t.tdl:2:3"},
+		{lex.Position{Line: 2, Col: 3}, "2:3"},
+	}
+	for _, c := range cases {
+		if got := c.pos.String(); got != c.want {
+			t.Errorf("%#v.String() = %q, want %q", c.pos, got, c.want)
+		}
+	}
+}
+
 // `/` lexes as SLASH until the parser asks for a regex.
 func TestRescanRegex(t *testing.T) {
 	src := `matches /^[a-z]+$/`
@@ -156,8 +192,12 @@ func TestRescanRegex(t *testing.T) {
 	if tok.Kind != lex.REGEX || tok.Text != "^[a-z]+$" {
 		t.Fatalf("regex = %v %q", tok.Kind, tok.Text)
 	}
-	if got := l.Next().Kind; got != lex.EOF {
-		t.Errorf("after regex = %v, want EOF", got)
+	// Columns after the rescan count from the start of the line.
+	if want := (lex.Position{Filename: "test.tdl", Line: 1, Col: 19, Offset: 18}); tok.End != want {
+		t.Errorf("regex end = %v, want %v", tok.End, want)
+	}
+	if eof := l.Next(); eof.Kind != lex.EOF || eof.Pos.Col != 19 {
+		t.Errorf("after regex = %v at %v, want EOF at 1:19", eof.Kind, eof.Pos)
 	}
 }
 
