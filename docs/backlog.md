@@ -18,6 +18,11 @@ The parser is right; the fix is `UnitTerm = ( identifier | "(" UnitExpr ")" ) [ 
 A plugin over the platform's PSI model, narrowed by its LSP API.
 The other editors are planned in [design/editors-plan.md](design/editors-plan.md) and [design/lsp-editors-plan.md](design/lsp-editors-plan.md).
 
+## An F# type provider
+
+F# has no source generators, so [design/csharp-source-generator.md](design/csharp-source-generator.md) stops at C#.
+A type provider could serve the same requests through the `fsharp` backend once it exists, reading `.tdl` files at design time as the C# generator does.
+
 ## MCP server
 
 Lets an agent query a resolved model: an entity's fields, what satisfies a class, what a target block maps.
