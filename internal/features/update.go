@@ -13,31 +13,26 @@ import (
 
 // Update measures every target and returns, for each markdown file under
 // root embedding a table, its content with the tables rewritten. Every
-// target is embedded exactly once, and every table names a target.
+// target and matrix is embedded exactly once, and every table names one.
 func Update(root string, short bool) (map[string][]byte, error) {
-	docs, err := embedding(root)
+	embedded, err := embedding(root)
 	if err != nil {
 		return nil, err
 	}
 
 	var problems []error
 	where := map[string][]string{}
-	for doc, data := range docs {
+	for doc, data := range embedded {
 		for _, name := range Markers(data) {
 			where[name] = append(where[name], doc)
 		}
 	}
 
-	tables := map[string][][]string{}
+	tables := map[string]Grid{}
+	var names []string
 	for _, t := range Targets(short) {
-		switch docs := where[t.Name]; len(docs) {
-		case 0:
-			problems = append(problems, fmt.Errorf("no document embeds the %s table", t.Name))
-		case 1:
-		default:
-			slices.Sort(docs)
-			problems = append(problems, fmt.Errorf("%s embed the %s table; one may", strings.Join(docs, ", "), t.Name))
-		}
+		docs := where[t.Name]
+		problems = append(problems, once(t.Name, docs)...)
 		delete(where, t.Name)
 
 		rows, err := table(root, t)
@@ -45,21 +40,49 @@ func Update(root string, short bool) (map[string][]byte, error) {
 			problems = append(problems, fmt.Errorf("%s: %w", t.Name, err))
 			continue
 		}
-		tables[t.Name] = rows
+		grid := Grid{Header: Header, Rows: rows}
+		// Keep committed cells here rather than in Splice, so the
+		// matrices read them too.
+		if len(docs) == 1 {
+			if grid.Rows, err = keep(grid, Parse(embedded[docs[0]], t.Name)); err != nil {
+				problems = append(problems, fmt.Errorf("%s: %w", docs[0], err))
+			}
+		}
+		tables[t.Name] = grid
+		names = append(names, t.Name)
+	}
+	slices.Sort(names)
+	for _, name := range sortedKeys(matrices) {
+		problems = append(problems, once(name, where[name])...)
+		delete(where, name)
+		tables[name] = Matrix(matrices[name], names, tables)
 	}
 	for _, name := range sortedKeys(where) {
-		problems = append(problems, fmt.Errorf("%s embed a table for %s, which is no target", strings.Join(where[name], ", "), name))
+		problems = append(problems, fmt.Errorf("%s embed a table for %s, which is no target or matrix", strings.Join(where[name], ", "), name))
 	}
 
 	out := map[string][]byte{}
-	for _, doc := range sortedKeys(docs) {
-		spliced, err := Splice(docs[doc], tables)
+	for _, doc := range sortedKeys(embedded) {
+		spliced, err := Splice(embedded[doc], tables)
 		if err != nil {
 			problems = append(problems, fmt.Errorf("%s: %w", doc, err))
 		}
 		out[doc] = spliced
 	}
 	return out, errors.Join(problems...)
+}
+
+// once reports a table embedded in any number of docs but one.
+func once(name string, docs []string) []error {
+	switch len(docs) {
+	case 0:
+		return []error{fmt.Errorf("no document embeds the %s table", name)}
+	case 1:
+		return nil
+	default:
+		slices.Sort(docs)
+		return []error{fmt.Errorf("%s embed the %s table; one may", strings.Join(docs, ", "), name)}
+	}
 }
 
 func table(root string, t Target) ([][]string, error) {

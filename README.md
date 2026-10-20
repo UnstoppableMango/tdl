@@ -285,6 +285,41 @@ Each built-in backend also ships as a `tdl-gen-<name>` plugin.
 | `debug` | A description of the model it was given |
 | Anything else | `tdl-gen-<name>` on `PATH`, over the [plugin protocol](docs/design/plugins.md) |
 
+What each backend generates from each feature of the language, measured by `make features`.
+Yes generates it, Warns loses part of it under a loss code that `tdl.toml` can allow, No skips it or refuses the model, and Planned names a phase that will generate it.
+A backend's page names the codes and phases.
+
+<!-- tdl:features generate -->
+
+| Feature | `csharp` | `go` | `graphql` | `haskell` | `jsonschema` | `likec4` | `openapi` | `protobuf` | `salesforce` | `smithy` | `thrift` | `typescript` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Entity, value, and mixin | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Warns | Warns | Warns |
+| Mixin `include` | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Warns | Warns | Warns |
+| Fieldless enum | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| Fielded enum | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| Newtype | Yes | Yes | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Yes | Yes | Yes |
+| Alias | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Warns | Warns | Warns |
+| Optional and nullable | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Warns | Warns | Yes |
+| List, set, and map | Yes | Yes | No | Yes | Yes | Yes | Yes | Warns | Yes | Yes | Yes | Warns |
+| `min` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns |
+| `max` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns |
+| `length` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns |
+| `matches` | Planned | Yes | Warns | Warns | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns |
+| `oneOf` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Yes |
+| `unique` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns |
+| `owned` | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | No | Warns | Warns | Warns |
+| Field default | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Warns | Warns | Warns |
+| `key` directive | Yes | Yes | No | Yes | No | No | No | No | Yes | No | No | No |
+| `name` directive | Yes | Warns | Warns | Yes | Yes | No | Yes | Warns | Yes | Warns | Warns | Warns |
+| `number` directive | No | No | No | No | No | No | No | Yes | No | No | Yes | No |
+| Doc comment | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| Type parameters | Planned | Yes | No | Yes | No | Yes | No | No | No | No | No | No |
+| Class | Planned | Warns | Warns | Yes | No | Yes | No | Warns | No | Warns | Warns | Warns |
+| Unit | Warns | Planned | Warns | Planned | No | Yes | No | Warns | No | Warns | Warns | Warns |
+| Import and extern | Yes | Yes | No | Yes | No | Yes | No | Yes | No | No | No | Yes |
+
+<!-- /tdl:features -->
+
 ## Development
 
 ```shell
