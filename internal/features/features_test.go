@@ -130,15 +130,35 @@ func TestSpliceKeepsUnmeasured(t *testing.T) {
 	doc := "# Doc\n\n<!-- tdl:features x -->\n\n" +
 		features.Render(features.Header, [][]string{{"Alias", "Yes", "Warns (`lossy.alias`)", "", ""}}) +
 		"\n<!-- /tdl:features -->\n"
-	out, err := features.Splice([]byte(doc), map[string][][]string{"x": {{"Alias", "Yes", "Unmeasured", "", ""}}})
+	out, err := features.Splice([]byte(doc), map[string]features.Grid{"x": {Header: features.Header, Rows: [][]string{{"Alias", "Yes", "Unmeasured", "", ""}}}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if string(out) != doc {
 		t.Errorf("spliced\n%s\nwant\n%s", out, doc)
 	}
-	if _, err := features.Splice([]byte(doc), map[string][][]string{"x": {{"Newtype", "Yes", "Unmeasured", "", ""}}}); err == nil || !strings.Contains(err.Error(), "Newtype") {
+	if _, err := features.Splice([]byte(doc), map[string]features.Grid{"x": {Header: features.Header, Rows: [][]string{{"Newtype", "Yes", "Unmeasured", "", ""}}}}); err == nil || !strings.Contains(err.Error(), "Newtype") {
 		t.Errorf("Splice = %v, want an error naming Newtype", err)
+	}
+}
+
+// A matrix cell is its table cell's first word, and a target whose column
+// is No throughout has no column.
+func TestMatrix(t *testing.T) {
+	grid := func(cell string) features.Grid {
+		g := features.Grid{Header: features.Header}
+		for _, r := range features.Rows {
+			g.Rows = append(g.Rows, []string{r.Title, "Yes", cell, "", ""})
+		}
+		return g
+	}
+	tables := map[string]features.Grid{"a": grid("Warns (`lossy.alias`)"), "b": grid("No"), "c": grid("Planned (phase 2)")}
+	m := features.Matrix(2, []string{"c", "b", "a"}, tables)
+	if want := []string{"Feature", "`c`", "`a`"}; !slices.Equal(m.Header, want) {
+		t.Errorf("header = %q, want %q", m.Header, want)
+	}
+	if want := []string{features.Rows[0].Title, "Planned", "Warns"}; !slices.Equal(m.Rows[0], want) {
+		t.Errorf("row = %q, want %q", m.Rows[0], want)
 	}
 }
 

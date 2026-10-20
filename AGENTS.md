@@ -289,6 +289,8 @@ A cell may not hold a `|`.
 An Import cell a tool missing from PATH, or `-short`, leaves unmeasured keeps its committed text, so `make features` needs `smithy` and `tsc` to change those cells.
 A plugin this repository serves, `csharp`, is measured through `tdl-gen-csharp` when it is on PATH, as in CI's race run, and otherwise keeps every committed cell.
 Every target but `debug` is embedded exactly once.
+Two matrices set one column of every table side by side, each cell its first word: `generate` in `README.md` and `import` in `docs/backends/README.md`, where a backend that imports nothing has no column.
+Each is embedded exactly once, and reads the tables after committed cells fill unmeasured ones.
 The tables stay out of `docs/design/`, which is for building the backend, not using it.
 
 ### Tests and goldens

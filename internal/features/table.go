@@ -90,6 +90,12 @@ func text(c Cell) string {
 	}
 }
 
+// Grid is a table to embed: its header and its rows.
+type Grid struct {
+	Header []string
+	Rows   [][]string
+}
+
 // Render writes rows as a markdown table under header.
 func Render(header []string, rows [][]string) string {
 	var b strings.Builder
@@ -132,21 +138,21 @@ func Markers(doc []byte) []string {
 // Splice replaces the tables a document embeds with those tables names,
 // keeping a committed cell wherever the new one is unmeasured. A table
 // the document embeds and tables lacks is left alone.
-func Splice(doc []byte, tables map[string][][]string) ([]byte, error) {
+func Splice(doc []byte, tables map[string]Grid) ([]byte, error) {
 	var problems []error
 	out := marker.ReplaceAllFunc(doc, func(block []byte) []byte {
 		m := marker.FindSubmatch(block)
 		name := string(m[1])
-		rows, ok := tables[name]
+		grid, ok := tables[name]
 		if !ok {
 			return block
 		}
-		rows, err := keep(rows, parse(m[2]))
+		rows, err := keep(grid, parse(m[2]))
 		if err != nil {
 			problems = append(problems, fmt.Errorf("%s: %w", name, err))
 		}
 		var b bytes.Buffer
-		fmt.Fprintf(&b, "<!-- tdl:features %s -->\n\n%s\n<!-- /tdl:features -->", name, Render(Header, rows))
+		fmt.Fprintf(&b, "<!-- tdl:features %s -->\n\n%s\n<!-- /tdl:features -->", name, Render(grid.Header, rows))
 		return b.Bytes()
 	})
 	return out, errors.Join(problems...)
@@ -184,7 +190,7 @@ func parse(table []byte) [][]string {
 
 // keep fills each unmeasured cell from the committed row with the same
 // feature, which must exist.
-func keep(rows, committed [][]string) ([][]string, error) {
+func keep(grid Grid, committed [][]string) ([][]string, error) {
 	byTitle := map[string][]string{}
 	for _, r := range committed {
 		if len(r) > 0 {
@@ -192,8 +198,8 @@ func keep(rows, committed [][]string) ([][]string, error) {
 		}
 	}
 	var problems []error
-	out := make([][]string, len(rows))
-	for i, r := range rows {
+	out := make([][]string, len(grid.Rows))
+	for i, r := range grid.Rows {
 		out[i] = slices.Clone(r)
 		for j, c := range r {
 			if c != unmeasured {
@@ -201,7 +207,7 @@ func keep(rows, committed [][]string) ([][]string, error) {
 			}
 			old, ok := byTitle[r[0]]
 			if !ok || j >= len(old) || old[j] == unmeasured {
-				problems = append(problems, fmt.Errorf("%s: %s is unmeasured here and has no committed cell", r[0], Header[j]))
+				problems = append(problems, fmt.Errorf("%s: %s is unmeasured here and has no committed cell", r[0], grid.Header[j]))
 				continue
 			}
 			out[i][j] = old[j]
