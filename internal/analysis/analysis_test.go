@@ -41,6 +41,15 @@ enum Status {
   Draft
 }
 
+enum Maybe<T> {
+  Just { value: T }
+  Nothing
+}
+
+type Boxed {
+  maybe: Maybe<string>
+}
+
 class Named {
   name: string
 }
@@ -116,6 +125,20 @@ func TestTypeForms(t *testing.T) {
 	}
 	if v := field(t, m, a, "pay"); v.GetForm() != plugin.Form_FORM_NAMED || declName(m, v.GetDecl()) != "Payment" {
 		t.Errorf("pay = %v, want the declaration Payment", v)
+	}
+}
+
+// An enum applied to one argument is an option only when it is the
+// prelude's Option or Nullable.
+func TestGenericEnumIsNamed(t *testing.T) {
+	m, a := analyze(t, "go")
+	d, _, ok := m.FindDecl("Boxed")
+	if !ok {
+		t.Fatal("no declaration Boxed")
+	}
+	v := a.GetTypes()[d.Fields()[0].GetType().GetIndex()]
+	if v.GetForm() != plugin.Form_FORM_NAMED || declName(m, v.GetDecl()) != "Maybe" {
+		t.Errorf("maybe = %v, want the declaration Maybe", v)
 	}
 }
 
