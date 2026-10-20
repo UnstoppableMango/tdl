@@ -1,0 +1,10 @@
+package shop
+
+type Cart: Entity {
+  id: string
+  items: [LineItem] owned
+}
+
+type LineItem: Entity {
+  id: string
+}

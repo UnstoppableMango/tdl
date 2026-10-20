@@ -1,0 +1,78 @@
+[struct-kind]
+spelling = "`interface`"
+notes = "Entities, values, and mixins are all interfaces, so each reads back as a value."
+
+[include]
+spelling = "the mixin's properties, copied in"
+notes = "The include is flattened into the fields it copies."
+
+[enum]
+spelling = "a union of string literals"
+
+[fielded-enum]
+spelling = "a union of interfaces discriminated on `kind`"
+notes = "A `discriminant` directive renames `kind`."
+
+[newtype]
+spelling = "`type N = Base`"
+notes = "A plain alias, so parsed JSON needs no cast."
+
+[alias]
+spelling = "expanded where used"
+
+[optional]
+spelling = "`name?: T`, or a union with `null`"
+
+[collection]
+spelling = "`T[]` and `Record<K, V>`"
+notes = "A set is an array, and reads back as a list."
+
+[min]
+notes = "Warns unless `min` and `max` together bound at most 16 integers, which are written as a literal union."
+
+[max]
+notes = "Warns unless `min` and `max` together bound at most 16 integers, which are written as a literal union."
+
+[length]
+notes = "TypeScript has no type for a length, and validation is not generated."
+
+[matches]
+notes = "TypeScript has no type for a pattern, and validation is not generated."
+
+[oneOf]
+spelling = "a union of literal types"
+
+[unique]
+notes = "A set or a list is an array, which does not enforce uniqueness."
+
+[owned]
+notes = "TypeScript has no ownership, and a referenced type is embedded by value."
+
+[default]
+notes = "The default is not written."
+
+[key]
+notes = "The output is types with no runtime code, so there is no key function to write."
+
+[name]
+spelling = "the property or type name"
+notes = "The new name reads back as the field's own name rather than a directive."
+
+[number]
+notes = "JSON has no field numbers."
+
+[doc]
+spelling = "a JSDoc comment"
+
+[generic]
+notes = "Type parameters are not generated yet, so a parameterized declaration and every one applying it are skipped."
+
+[class]
+notes = "A class is not generated yet, and a conformance to one is dropped."
+
+[unit]
+notes = "A unit is not generated yet, and a quantity is written as its primitive."
+
+[import]
+spelling = "`import type`"
+notes = "From a `foreign` module, or from the dependency's file when both target blocks set `out`."

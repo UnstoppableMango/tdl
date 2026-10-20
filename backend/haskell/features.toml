@@ -1,0 +1,83 @@
+[struct-kind]
+spelling = "a `data` record"
+notes = "Entities, values, and mixins are all records."
+
+[include]
+spelling = "the mixin's fields, copied in"
+
+[enum]
+spelling = "a sum type deriving `Enum` and `Bounded`"
+
+[fielded-enum]
+spelling = "a sum type with record constructors"
+
+[newtype]
+spelling = "a `newtype`"
+
+[alias]
+spelling = "a `type` synonym"
+
+[optional]
+spelling = "`Maybe T`"
+notes = "An optional and a nullable value are the same type, since Haskell has no wire to tell them apart on."
+
+[collection]
+spelling = "`[T]`, `Set T`, and `Map K V`"
+
+[min]
+planned = "phase 5"
+notes = "Validation is not generated yet."
+
+[max]
+planned = "phase 5"
+notes = "Validation is not generated yet."
+
+[length]
+planned = "phase 5"
+notes = "Validation is not generated yet."
+
+[matches]
+notes = "`base` has no regular expressions, so `matches` warns, and phase 5 keeps it that way."
+
+[oneOf]
+planned = "phase 5"
+notes = "Validation is not generated yet."
+
+[unique]
+planned = "phase 5"
+notes = "Validation is not generated yet."
+
+[owned]
+notes = "Haskell has no ownership, so it is not written, and nothing warns."
+
+[default]
+notes = "Not written, and nothing warns."
+
+[key]
+spelling = "a key function, such as `cartKey`"
+notes = "A key of several fields returns a key record."
+
+[name]
+spelling = "the Haskell identifier"
+
+[number]
+notes = "Haskell has no field numbers, and the backend does not declare the directive, so it warns without a loss code and is ignored."
+
+[doc]
+spelling = "a Haddock comment"
+
+[generic]
+spelling = "type variables"
+notes = "`Functor`, `Foldable`, and `Traversable` are derived where they apply."
+
+[class]
+spelling = "a type class with a `HasField` superclass per field"
+notes = "Each conformance is an instance."
+
+[unit]
+planned = "phase 6"
+notes = "`decimal<kg>` is refused until units are generated, so `Parcel` is skipped with a warning that carries no loss code."
+
+[import]
+spelling = "an import of the dependency's module"
+notes = "The module is the dependency block's `module` directive, or else its package."

@@ -1,0 +1,13 @@
+package shop
+
+type Page<T> {
+  items: [T]
+}
+
+type Cart {
+  total: int64
+}
+
+type Carts {
+  page: Page<Cart>
+}

@@ -1,0 +1,86 @@
+[struct-kind]
+spelling = "a `sealed record`"
+notes = "Entities, values, and mixins are all records."
+
+[include]
+spelling = "the mixin's properties, copied in"
+
+[enum]
+spelling = "a C# `enum`"
+
+[fielded-enum]
+spelling = "an `abstract record` with a nested `sealed record` per variant"
+notes = "A private constructor closes it to its variants."
+
+[newtype]
+spelling = "a `readonly record struct`"
+
+[alias]
+spelling = "expanded where used"
+
+[optional]
+spelling = "a nullable property"
+notes = "An optional `T?` may be left out, while a union with `null` is `required` and may be set to null."
+
+[collection]
+spelling = "`IImmutableList<T>`, `IImmutableSet<T>`, and `IImmutableDictionary<K, V>`"
+notes = "A record holding one writes its own `Equals` and `GetHashCode`, since .NET compares collections by reference."
+
+[min]
+planned = "phase 4"
+notes = "Validation is not generated yet."
+
+[max]
+planned = "phase 4"
+notes = "Validation is not generated yet."
+
+[length]
+planned = "phase 4"
+notes = "Validation is not generated yet."
+
+[matches]
+planned = "phase 4"
+notes = "Validation is not generated yet."
+
+[oneOf]
+planned = "phase 4"
+notes = "Validation is not generated yet."
+
+[unique]
+planned = "phase 4"
+notes = "Validation is not generated yet."
+
+[owned]
+notes = "C# has no ownership, so it is not written, and nothing warns."
+
+[default]
+spelling = "a property initializer"
+notes = "The property stops being `required`."
+
+[key]
+spelling = "a `Key()` method"
+notes = "A key of several fields returns a `<Name>Key` record struct."
+
+[name]
+spelling = "the identifier, as written"
+
+[number]
+notes = "C# has no field numbers, and the backend does not declare the directive, so it warns without a loss code and is ignored."
+
+[doc]
+spelling = "a `/// <summary>` comment"
+
+[generic]
+planned = "phase 3"
+notes = "`Page` is skipped with a warning, and `Carts`, which applies it, with a warning that carries no loss code."
+
+[class]
+planned = "phase 3"
+notes = "The class is not generated yet, and a conformance to it is dropped."
+
+[unit]
+notes = "C# has no units of measure, so `decimal<kg>` is written as `decimal`."
+
+[import]
+spelling = "the dependency's type, `global::`-qualified"
+notes = "Its namespace is the dependency block's `namespace` directive, or else the one its package derives."

@@ -43,6 +43,7 @@ Early, incomplete, and changing.
 | [design/lsp.md](docs/design/lsp.md) | The language server. |
 | [design/treesitter.md](docs/design/treesitter.md) | Deriving the tree-sitter grammar from the EBNF. |
 | [design/editors.md](docs/design/editors.md) | Highlighting in Neovim, VS Code, Zed, and on GitHub. |
+| [backends/](docs/backends/README.md) | What each backend generates, feature by feature. |
 | [backlog.md](docs/backlog.md) | Wanted, unscheduled work. |
 
 A `*-plan.md` beside a design tracks its implementation.
@@ -268,18 +269,19 @@ Inside a body, the formatter decides blank lines.
 ### Backends
 
 Each built-in backend also ships as a `tdl-gen-<name>` plugin.
+[docs/backends/](docs/backends/README.md) has a page per backend saying what it does with each feature of the language.
 
 | Backend | Generates |
 | --- | --- |
-| `go` | Structs, entity keys, both enum shapes, newtypes, generics, classes as interfaces, `Validate` methods, foreign types |
-| `graphql` | Output types, both enum shapes, custom scalars, lists; no maps |
-| `jsonschema` | A JSON Schema document: definitions, both enum shapes, constraints as keywords |
-| `openapi` | An OpenAPI 3.1, 3.0, or 2.0 document of schemas in YAML or JSON: both enum shapes (no fielded enums in 2.0), constraints as keywords; no paths |
-| `protobuf` | Messages, both enum shapes, newtypes, collections, `number` pins, services |
-| `salesforce` | Salesforce DX source: a custom object per entity, Apex for values and enums |
-| `smithy` | Structures, both enum shapes, named collection shapes |
-| `thrift` | Structs, both enum shapes, newtypes as typedefs, collections, `number` pins |
-| `typescript` | JSON wire types: interfaces, both enum shapes, newtypes as aliases |
+| [`go`](docs/backends/go.md) | Structs, entity keys, both enum shapes, newtypes, generics, classes as interfaces, `Validate` methods, foreign types |
+| [`graphql`](docs/backends/graphql.md) | Output types, both enum shapes, custom scalars, lists; no maps |
+| [`jsonschema`](docs/backends/jsonschema.md) | A JSON Schema document: definitions, both enum shapes, constraints as keywords |
+| [`openapi`](docs/backends/openapi.md) | An OpenAPI 3.1, 3.0, or 2.0 document of schemas in YAML or JSON: both enum shapes (no fielded enums in 2.0), constraints as keywords; no paths |
+| [`protobuf`](docs/backends/protobuf.md) | Messages, both enum shapes, newtypes, collections, `number` pins, services |
+| [`salesforce`](docs/backends/salesforce.md) | Salesforce DX source: a custom object per entity, Apex for values and enums |
+| [`smithy`](docs/backends/smithy.md) | Structures, both enum shapes, named collection shapes |
+| [`thrift`](docs/backends/thrift.md) | Structs, both enum shapes, newtypes as typedefs, collections, `number` pins |
+| [`typescript`](docs/backends/typescript.md) | JSON wire types: interfaces, both enum shapes, newtypes as aliases |
 | `debug` | A description of the model it was given |
 | Anything else | `tdl-gen-<name>` on `PATH`, over the [plugin protocol](docs/design/plugins.md) |
 

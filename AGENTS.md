@@ -24,6 +24,7 @@ command make tidy             # go mod tidy + regenerate nix/gomod2nix.toml
 command make generate         # buf generate: proto/ -> ir/ir.pb.go
 command make treesitter       # docs/grammar.ebnf -> tree-sitter/grammar.js -> tree-sitter/src/
 command make textmate         # docs/grammar.ebnf -> editors/vscode/syntaxes/tdl.tmLanguage.json
+command make features         # testdata/features -> each backend's feature table in docs/
 command make vscode-install   # package editors/vscode and install it into a running VS Code
 command make vscode-check     # npm ci, then typecheck and biome check editors/vscode
 command make vscode-test      # in `nix develop .#vscode`: the extension in a headless VSCodium
@@ -275,6 +276,21 @@ A backend added to the registry needs a row in the `shipped` table in `internal/
 `TestConformanceComesBack` also takes every conformance case without an import through each target that imports.
 `testdata/gen/smoke/source.tdl` exercises the whole mapping, with a target block for each schema backend and for `salesforce`; the nix checks generate from it and run each language's tool on the output.
 
+### Feature tables
+
+`docs/backends/<target>.md` is a backend's page for model authors, holding a table of what it does with each feature of the language between `<!-- tdl:features <target> -->` and `<!-- /tdl:features -->`.
+`internal/features` measures it and `tools/features` (`make features`) writes it; `TestTablesAreCurrent` compares and never writes.
+A row is a directory of `testdata/features` holding `source.tdl`; a subdirectory named for a backend holds its own source, for a feature that backend reaches only through its own directives.
+A source's target block is written for `feature` and renamed for each backend, in its imports too.
+Generate is No on an error or a warning without a loss code, Warns on the loss codes the row owns (`Row.Codes`), and Yes otherwise, since a source cannot use a feature alone.
+Import generates without `roundtrip` and reads the files back: the same model is Yes, a difference with no loss code anywhere is No.
+`features.toml` beside a backend's source (`backend/<package>/`, or `dotnet/Tdl.Gen.CSharp/` for `csharp`) holds the cells a measurement cannot: `spelling`, `notes`, and `planned`, which shows in place of Generate and fails once the row generates.
+A cell may not hold a `|`.
+An Import cell a tool missing from PATH, or `-short`, leaves unmeasured keeps its committed text, so `make features` needs `smithy` and `tsc` to change those cells.
+A plugin this repository serves, `csharp`, is measured through `tdl-gen-csharp` when it is on PATH, as in CI's race run, and otherwise keeps every committed cell.
+Every target but `debug` is embedded exactly once.
+The tables stay out of `docs/design/`, which is for building the backend, not using it.
+
 ### Tests and goldens
 
 After any change to lowering or `ir.Dump`, run `go test ./internal/sema -update` and read the diff.
@@ -283,6 +299,7 @@ After any change to lowering or `ir.Dump`, run `go test ./internal/sema -update`
 
 ### Docs
 
+`docs/backends/` holds a page per backend for model authors (see [Feature tables](#feature-tables)).
 `docs/design/` holds designs and plans; each `*-plan.md` names what its phases add, and its opening lines say which are done.
 Read those before assuming a design is built: a plan saying no phase is done has no code.
 A phase's pull request updates its own plan's status line, never a list here, because a shared list conflicts with every other open phase.

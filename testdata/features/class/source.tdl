@@ -1,0 +1,9 @@
+package shop
+
+class Audited {
+  createdAt: string
+}
+
+type Cart: Audited {
+  createdAt: string
+}

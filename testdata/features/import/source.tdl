@@ -1,0 +1,11 @@
+package shop
+
+import "common.tdl" as common
+
+type Cart {
+  shipping: common.Address
+}
+
+target feature for shop {
+  out("shop")
+}

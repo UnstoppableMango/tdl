@@ -1,0 +1,7 @@
+package shop
+
+/// An order a customer placed.
+type Cart {
+  /// What the customer pays.
+  total: int64
+}

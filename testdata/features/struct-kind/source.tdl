@@ -1,0 +1,13 @@
+package shop
+
+type Cart: Entity {
+  id: string
+}
+
+type Money {
+  amount: int64
+}
+
+mixin Timestamps {
+  createdAt: string
+}

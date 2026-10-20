@@ -1,0 +1,6 @@
+package shop
+
+type Cart {
+  note: string?
+  coupon: string | null
+}
