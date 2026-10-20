@@ -41,6 +41,7 @@ in
       packages = {
         inherit (pkgs) tdl vscode-tdl tdl-dotnet;
         default = pkgs.tdl;
+        tree-sitter-tdl = pkgs.python3Packages.tree-sitter-tdl;
         # The README's demo GIF; `make demo` copies it into docs/demo.
         demo = pkgs.callPackage ./demo.nix { };
       };
@@ -60,6 +61,9 @@ in
         pkgs.callPackage ./checks/hm-module.nix {
           inherit (inputs.home-manager.lib) homeManagerConfiguration;
         };
+
+      # Building the binding imports it and parses the prelude with it.
+      checks.tree-sitter-tdl = pkgs.python3Packages.tree-sitter-tdl;
 
       # Building the .NET plugins runs their tests: the SDK's replay
       # testdata/plugin, and the C# backend's compile what it generates.

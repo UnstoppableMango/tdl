@@ -42,7 +42,7 @@ Nothing links a declaration to the Go, protobuf, or other code generated from it
 
 graphify reads one file at a time and does not lower, so the extractor resolves names the way `internal/sema` scopes them, closely enough without reimplementing it:
 
-1. A bare name resolves to a declaration in the same file, then to one in `prelude/prelude.tdl`.
+1. A bare name resolves to a declaration in the same file, then to one in `prelude/std.tdl`.
 1. A qualified `x.Name` resolves through the import aliased `x`.
 1. Both are marked `EXTRACTED`.
 1. A name neither places, such as one brought in by a `_` import, is matched by name across the graph and marked `INFERRED`; one matching more than one declaration is left out.
