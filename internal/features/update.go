@@ -13,7 +13,8 @@ import (
 
 // Update measures every target and returns, for each markdown file under
 // root embedding a table, its content with the tables rewritten. Every
-// target and matrix is embedded exactly once, and every table names one.
+// target and matrix is embedded exactly once, and a table naming neither
+// is a planned backend's, which is checked by [CheckPlanned] and left as it is.
 func Update(root string, short bool) (map[string][]byte, error) {
 	embedded, err := embedding(root)
 	if err != nil {
@@ -57,8 +58,17 @@ func Update(root string, short bool) (map[string][]byte, error) {
 		delete(where, name)
 		tables[name] = Matrix(matrices[name], names, tables)
 	}
+	// What remains is a backend with no code, whose table is written by
+	// hand and only checked.
 	for _, name := range sortedKeys(where) {
-		problems = append(problems, fmt.Errorf("%s embed a table for %s, which is no target or matrix", strings.Join(where[name], ", "), name))
+		docs := where[name]
+		if errs := once(name, docs); errs != nil {
+			problems = append(problems, errs...)
+			continue
+		}
+		if err := CheckPlanned(Parse(embedded[docs[0]], name)); err != nil {
+			problems = append(problems, fmt.Errorf("%s: %s is no target, so a planned table: %w", docs[0], name, err))
+		}
 	}
 
 	out := map[string][]byte{}

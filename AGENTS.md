@@ -291,6 +291,8 @@ A plugin this repository serves, `csharp`, is measured through `tdl-gen-csharp` 
 Every target but `debug` is embedded exactly once.
 Two matrices set one column of every table side by side, each cell its first word: `generate` in `README.md` and `import` in `docs/backends/README.md`, where a backend that imports nothing has no column.
 Each is embedded exactly once, and reads the tables after committed cells fill unmeasured ones.
+A table naming no target or matrix belongs to a backend with no code: it is written by hand, holds every row in order with only `Planned (phase N)` or `No` in Generate and Import, and `CheckPlanned` checks it without rewriting it.
+When the backend is built and registered, the same table is measured, and its `features.toml` takes the phases.
 The tables stay out of `docs/design/`, which is for building the backend, not using it.
 
 ### Tests and goldens
