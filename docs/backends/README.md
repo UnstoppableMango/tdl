@@ -18,6 +18,19 @@ The cells are measured by `make features`, so a page cannot claim more than the 
 | [`csharp`](csharp.md) | C# |
 | [`likec4`](likec4.md) | LikeC4 |
 
+These are designed and not built yet, and each page names the phase of its plan that builds each feature:
+
+| Backend | Target |
+| --- | --- |
+| [`java`](java.md) | Java |
+| [`python`](python.md) | Python |
+| [`rust`](rust.md) | Rust |
+| [`zod`](zod.md) | Zod |
+| [`ocaml`](ocaml.md) | OCaml |
+| [`reason`](reason.md) | Reason |
+| [`sml`](sml.md) | Standard ML |
+| [`fsharp`](fsharp.md) | F# |
+
 ## Import
 
 What `tdl import` reads back of each feature, for the backends that import: each generates a model using the feature without `roundtrip` annotations, and imports the files it wrote.

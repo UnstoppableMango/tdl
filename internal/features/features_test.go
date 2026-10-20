@@ -162,6 +162,32 @@ func TestMatrix(t *testing.T) {
 	}
 }
 
+// A planned table holds every row in order, and nothing but a phase or a
+// No in Generate and Import.
+func TestCheckPlanned(t *testing.T) {
+	var rows [][]string
+	for _, r := range features.Rows {
+		rows = append(rows, []string{r.Title, "Planned (phase 1)", "No", "", ""})
+	}
+	if err := features.CheckPlanned(rows); err != nil {
+		t.Fatal(err)
+	}
+	for name, bad := range map[string]func([][]string) [][]string{
+		"yes":     func(r [][]string) [][]string { r[0][1] = "Yes"; return r },
+		"order":   func(r [][]string) [][]string { r[0], r[1] = r[1], r[0]; return r },
+		"missing": func(r [][]string) [][]string { return r[1:] },
+		"bare":    func(r [][]string) [][]string { r[2][2] = "Planned"; return r },
+	} {
+		rows := slices.Clone(rows)
+		for i := range rows {
+			rows[i] = slices.Clone(rows[i])
+		}
+		if err := features.CheckPlanned(bad(rows)); err == nil {
+			t.Errorf("%s: CheckPlanned succeeded", name)
+		}
+	}
+}
+
 // changed lists the lines of want missing from got and the lines of got
 // missing from want, which for a table are the rows that moved.
 func changed(got, want string) string {
