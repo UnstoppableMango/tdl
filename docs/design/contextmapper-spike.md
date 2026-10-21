@@ -11,9 +11,11 @@ Worth a short design, as an output-only backend in the shape of [likec4-backend.
   Entities, value objects, enums, newtypes, docs, deprecations, keys, and most constraints have a CML spelling, and aggregates can be inferred from `: Entity` and `owned` with no new syntax.
 - The strategic layer is what CML adds and TDL lacks.
   Bounded contexts come from packages and the context map from imports, but relationship roles (`OHS`, `ACL`, customer/supplier) need directives TDL does not have.
-- Context Mapper is quiet upstream.
-  The last release of `org.contextmapper:context-mapper-dsl` is 6.12.0 (August 2024), it is an Xtext and Eclipse stack, and it ships no command line tool.
-  Checking output means a Java harness over the jar, which the spike builds in `backend/contextmapper/testdata/cmlcheck`.
+- Context Mapper is developed, but its last release is old.
+  The repository is active: `master` is 6.12.1-SNAPSHOT on Xtext 2.42 and publishes through the Central Portal.
+  The newest release on Maven Central is still `org.contextmapper:context-mapper-dsl` 6.12.0 (August 2024, Xtext 2.32), which is what the spike validates against.
+  It is an Xtext and Eclipse stack and ships no command line tool, so checking output means a Java harness over the jar, which the spike builds in `backend/contextmapper/testdata/cmlcheck`.
+  The quirks below are 6.12.0's; some, such as `with` failing to lex, may be fixed on `master`.
 - Import, CML to TDL, is not worth it now: it needs that Java parser at run time, and CML holds Sculptor's persistence options that TDL has no place for.
 
 ## Mapping
@@ -61,7 +63,7 @@ A design should add an `aggregate("Name")` directive to override the inference.
 - **Maps.** A CML attribute is `T` or `Collection<T>`; `Map<K, V>` parses only in operation signatures. The field is dropped with `lossy.collection`.
 - **Nested collections and optionals**, `[[T]]` or `[T?]`: dropped the same way.
 - **Generics.** CML has no type parameters; the declaration is skipped and the cascade follows.
-- **Classes.** CML's `Trait` is the nearest thing, but 6.12 refuses a `Trait` inside an aggregate and fails to lex `with` on an entity, so a class has no spelling and warns `lossy.class`.
+- **Classes.** CML's `Trait` is the nearest thing, but 6.12.0 refuses a `Trait` inside an aggregate and fails to lex `with` on an entity, so a class has no spelling and warns `lossy.class`.
 - **Defaults**, `oneOf`, and `unique` have no attribute option and warn `lossy.constraint` or `lossy.default`.
   CML's own `unique` means a unique column, not distinct elements.
 - **Units** are refused by `Resolve`, as everywhere else.
