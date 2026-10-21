@@ -97,6 +97,15 @@ instance <T> Auditable<Stamped<T>> requires Auditable<T>
 `,
 			want: "Stamped.createdAt is T, but Auditable requires instant",
 		},
+		{
+			name: "a unit argument the field leaves out",
+			src: `
+unit kg
+class Weighed { weight: decimal<kg> }
+type Parcel: Weighed { weight: decimal }
+`,
+			want: "Parcel.weight is decimal, but Weighed requires decimal<kg>",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -134,6 +143,13 @@ type Order: Tagged { tags: [string] }
 alias Tags = [string]
 class Tagged { tags: Tags }
 type Order: Tagged { tags: [string] }
+`,
+		},
+		{
+			name: "a class field of the class's parameter",
+			src: `
+class Holding<A> { value: A }
+type Box<B>: Holding<B> { value: B }
 `,
 		},
 		{
@@ -267,6 +283,73 @@ instance <T> Auditable<shipping.Stamped<T>> requires Auditable<T>
 				}
 				return
 			}
+			if len(diags) != 1 || !strings.Contains(diags[0].Error(), tt.want) {
+				t.Fatalf("diagnostics = %v, want one containing %q", diags, tt.want)
+			}
+		})
+	}
+}
+
+// A class field whose type failed to resolve is reported as undefined, and
+// not again as a field of the wrong type.
+func TestClassFieldOfAnUndefinedType(t *testing.T) {
+	diags := lowerDiags(t, `
+class Auditable { createdAt: Missing }
+type Order: Auditable { createdAt: string }
+`)
+	if len(diags) != 1 || !strings.Contains(diags[0].Error(), "Missing") {
+		t.Errorf("diagnostics = %v, want only Missing reported", diags)
+	}
+}
+
+// A type argument from another model is compared by what it names: a
+// declaration by its package as well as its name, and a unit by its
+// exponents as well as its bases.
+func TestClassFieldsOfAnImportedTypeCompareNames(t *testing.T) {
+	deps := MapLoader{
+		"dep/shipping.tdl": `package shop.shipping
+
+type Owner { name: string }
+type Parcel { owner: Owner }
+
+unit cm
+unit cm2 = cm^2
+unit cm3 = cm^3
+type Area { size: decimal<cm2> }
+`,
+	}
+
+	tests := []struct {
+		name string
+		src  string
+		want string
+	}{
+		{
+			name: "a declaration of the same name in another package",
+			src: `
+type Owner { name: string }
+class Owned { owner: Owner }
+instance Owned for shipping.Parcel
+`,
+			want: "shop.shipping.Parcel.owner is Owner, but Owned requires Owner",
+		},
+		{
+			name: "a unit of another exponent",
+			src: `
+class Sized { size: decimal<shipping.cm3> }
+instance Sized for shipping.Area
+`,
+			want: "shop.shipping.Area.size is decimal<cm^2>, but Sized requires decimal<shop.shipping.cm3>",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			src := "package shop.audit\nimport \"dep/shipping.tdl\" as shipping\n" + tt.src
+			file, err := parser.Parse("main.tdl", strings.NewReader(src))
+			if err != nil {
+				t.Fatalf("unexpected parse error: %v", err)
+			}
+			_, diags := Lower(file, WithLoader(deps))
 			if len(diags) != 1 || !strings.Contains(diags[0].Error(), tt.want) {
 				t.Fatalf("diagnostics = %v, want one containing %q", diags, tt.want)
 			}

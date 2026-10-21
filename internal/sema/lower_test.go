@@ -1472,6 +1472,9 @@ func TestBadNameDefaults(t *testing.T) {
 	tests := []struct{ src, want string }{
 		{"enum Status { Draft }\ntype Holder { s: Status = Missing }", "Status has no variant Missing"},
 		{"type Other { x: string }\ntype Holder { s: Other = Draft }", "Other is not an enum"},
+		// Only Option and Nullable are seen through: a list of an enum is
+		// not one of its variants.
+		{"enum Status { Draft }\ntype Holder { s: [Status] = Draft }", "List is not an enum"},
 	}
 
 	for _, tt := range tests {
@@ -1522,6 +1525,8 @@ type Code: Status where { oneOf(Placed) }
 type Holder {
   a: S where { oneOf(Placed) } = Placed
   c: Code? where { oneOf(Placed) } = Placed
+  o: Option<Status> where { oneOf(Placed) } = Placed
+  n: Nullable<Status> where { oneOf(Placed) } = Placed
 }
 `)
 
@@ -1661,6 +1666,45 @@ target go for p {
 	}
 	if got := e.GetDirectives()[0].GetArgs()[0].GetText(); got != "derived" {
 		t.Errorf("winner = %q, want derived", got)
+	}
+}
+
+// A class's distance is from the nearest conformance naming it or a class
+// requiring it, wherever that conformance sits in the list.
+func TestSpecificityUsesTheNearestConformance(t *testing.T) {
+	tests := []struct {
+		name  string
+		conf  string
+		wants []string
+	}{
+		// Ent declares Base itself, so Base is as close as Derived: a tie.
+		{name: "declared and required", conf: "Derived, Base, Entity", wants: []string{"base", "derived"}},
+		// A conformance unrelated to Base, after Derived, leaves Base one
+		// hop away.
+		{name: "an unrelated conformance last", conf: "Derived, Entity", wants: []string{"derived"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			model := lower(t, `
+class Base { x: string }
+class Derived: Base { y: string }
+type Ent: `+tt.conf+` { id: string x: string y: string }
+
+target go for p {
+  Base => rule("base")
+  Derived => rule("derived")
+}
+`)
+
+			e, _, _ := model.FindDecl("Ent")
+			var got []string
+			for _, d := range e.GetDirectives() {
+				got = append(got, d.GetArgs()[0].GetText())
+			}
+			if strings.Join(got, " ") != strings.Join(tt.wants, " ") {
+				t.Errorf("Ent directives = %q, want %q", got, tt.wants)
+			}
+		})
 	}
 }
 
