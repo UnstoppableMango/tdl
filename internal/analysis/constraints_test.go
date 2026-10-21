@@ -61,21 +61,31 @@ func TestConstraintViews(t *testing.T) {
 }
 
 // A length that can never hold is one error at the constraint, even
-// where a newtype inherits it.
+// where a newtype inherits it, and a constraint holding no problem does
+// not hide one after it.
 func TestConstraintProblems(t *testing.T) {
 	m := lower(t, `package shop
 
-type Code: string where { length(8..2) }
+type Code: string where { matches(/^[A-Z]+$/) length(8..2) }
 type Short: Code
+
+type Order {
+  ref: string where { length(9..1) }
+}
 
 target wire for shop {}
 `)
 	_, diags := analysis.Request(m, plugin.Description{Name: "wire"}, "wire", "out")
-	if len(diags) != 1 {
-		t.Fatalf("diagnostics = %v, want one", diags)
+	if len(diags) != 2 {
+		t.Fatalf("diagnostics = %v, want two", diags)
 	}
-	d := diags[0]
-	if d.GetSeverity() != plugin.Severity_SEVERITY_ERROR || d.GetMessage() != "length 8..2 can never hold" || d.GetPosition().GetLine() != 3 {
-		t.Errorf("diagnostic = %v", d)
+	for i, want := range []struct {
+		msg  string
+		line int32
+	}{{"length 8..2 can never hold", 3}, {"length 9..1 can never hold", 7}} {
+		d := diags[i]
+		if d.GetSeverity() != plugin.Severity_SEVERITY_ERROR || d.GetMessage() != want.msg || d.GetPosition().GetLine() != want.line {
+			t.Errorf("diagnostic %d = %v, want an error %q on line %d", i, d, want.msg, want.line)
+		}
 	}
 }

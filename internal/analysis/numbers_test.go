@@ -31,13 +31,22 @@ enum Status {
   Closed
 }
 
+enum Size {
+  Small
+  Medium
+  Large
+}
+
 target wire for shop {
   Order {
-    reserved(2, "old")
+    reserved("old", 2)
+    id => number
     pay => oneof
+    note => label("x")
     at => number(9)
   }
   Status.Closed => number(7)
+  Size.Medium => number(10)
 }
 `
 
@@ -84,7 +93,8 @@ func TestNumber(t *testing.T) {
 	}
 	a := req.GetAnalysis()
 
-	// id takes 1; 2 is reserved by the directive, so pay's variants take 3
+	// id takes 1, since a number with no argument and another directive
+	// are not pins; 2 is reserved by the directive, past its string, so pay's variants take 3
 	// and, past the reserved 4 and 5, 6; note takes 7; at is pinned.
 	order := view(t, req.GetModel(), a, "Order")
 	var got []int64
@@ -114,6 +124,17 @@ func TestNumber(t *testing.T) {
 	if got := []int64{status.GetVariants()[0].GetNumber(), status.GetVariants()[1].GetNumber()}; !slices.Equal(got, []int64{1, 7}) {
 		t.Errorf("Status's numbers = %v, want [1 7]", got)
 	}
+
+	// A pin may hold the rule's highest number, and members after a pin
+	// are still numbered.
+	size := view(t, req.GetModel(), a, "Size")
+	var sizes []int64
+	for _, v := range size.GetVariants() {
+		sizes = append(sizes, v.GetNumber())
+	}
+	if want := []int64{1, 10, 2}; !slices.Equal(sizes, want) {
+		t.Errorf("Size's numbers = %v, want %v", sizes, want)
+	}
 }
 
 func TestNumberNothingWithoutRules(t *testing.T) {
@@ -137,6 +158,7 @@ func TestNumberRefusesPins(t *testing.T) {
 		"reserved by the rule":        {"id => number(4)", "Order.id is numbered 4, which wire reserves (4 to 5)"},
 		"out of range":                {"id => number(101)", "Order.id is numbered 101, and wire numbers run from 1 to 100"},
 		"shared":                      {"id => number(9)", "Order.id and Order.at are both numbered 9"},
+		"not an integer":              {`id => number("3")`, `Order.id is numbered "3", and a number is an integer`},
 	} {
 		t.Run(name, func(t *testing.T) {
 			src := strings.Replace(numbered, "at => number(9)", "at => number(9)\n    "+tc.pin, 1)
