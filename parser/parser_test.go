@@ -1,6 +1,7 @@
 package parser_test
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -358,6 +359,19 @@ func TestEnumVariants(t *testing.T) {
 	}
 }
 
+// A member missing its colon reports one error, and parsing resumes at the
+// next `name:`.
+func TestMemberRecoveryResumesAtNextField(t *testing.T) {
+	_, err := parser.Parse("test.tdl", strings.NewReader("type A {\n  foo bar baz\n  y: string\n}\n"))
+	var errs parser.ErrorList
+	if !errors.As(err, &errs) {
+		t.Fatalf("err = %v, want an ErrorList", err)
+	}
+	if len(errs) != 1 {
+		t.Errorf("got %d errors, want 1: %v", len(errs), err)
+	}
+}
+
 func TestEnumValuesRejected(t *testing.T) {
 	if msg := parseErr(t, `enum Role { Admin = "admin" }`); !strings.Contains(msg, "carry fields, not values") {
 		t.Errorf("error = %s", msg)
@@ -418,6 +432,8 @@ func TestDirectiveArguments(t *testing.T) {
   foreign("a", "b")
   slice
   numbers(1, 2.5, true, [1, 2])
+  none()
+  empty([])
 }`)
 
 	entries := file.Decls[0].(*ast.TargetDecl).Entries
@@ -430,6 +446,26 @@ func TestDirectiveArguments(t *testing.T) {
 	args := entries[2].Directive.Args
 	if len(args) != 4 || args[3].Kind != ast.LitList || len(args[3].Items) != 2 {
 		t.Errorf("numbers args = %+v", args)
+	}
+	if got := len(entries[3].Directive.Args); got != 0 {
+		t.Errorf("none() args = %d, want 0", got)
+	}
+	if args := entries[4].Directive.Args; len(args) != 1 || args[0].Kind != ast.LitList || len(args[0].Items) != 0 {
+		t.Errorf("empty([]) args = %+v", args)
+	}
+}
+
+// Directive arguments and list items need commas between them.
+func TestArgumentsAndItemsNeedCommas(t *testing.T) {
+	for _, src := range []string{
+		"target go for p { numbers(1 2) }",
+		"type T { xs: [int] = [1 2] }",
+	} {
+		t.Run(src, func(t *testing.T) {
+			if msg := parseErr(t, src); !strings.Contains(msg, "expected") {
+				t.Errorf("error = %s", msg)
+			}
+		})
 	}
 }
 
@@ -591,6 +627,15 @@ func TestUnknownConstraintParses(t *testing.T) {
 	}
 }
 
+func TestConstraintWithEmptyArguments(t *testing.T) {
+	file := parse(t, `type E: Entity { x: int where { between() } }`)
+
+	f := file.Decls[0].(*ast.StructDecl).Members[0].(*ast.Field)
+	if len(f.Constraints) != 1 || len(f.Constraints[0].Args) != 0 {
+		t.Errorf("constraints = %+v", f.Constraints)
+	}
+}
+
 func TestFieldConstraintsThenDefault(t *testing.T) {
 	file := parse(t, `type E: Entity { status: Status where { unique } = Draft }`)
 
@@ -664,6 +709,21 @@ func TestClassKeywordFields(t *testing.T) {
 		if f.N != want {
 			t.Errorf("member %d = %q, want %q", i, f.N, want)
 		}
+	}
+}
+
+func TestClassFieldDocComment(t *testing.T) {
+	file := parse(t, `class C {
+  /// When it was made.
+  createdAt: instant
+}`)
+
+	f := file.Decls[0].(*ast.ClassDecl).Members[0].(*ast.Field)
+	if len(f.Doc) != 1 || !strings.Contains(f.Doc[0], "When it was made.") {
+		t.Errorf("doc = %q", f.Doc)
+	}
+	if len(f.DocP) != 1 || f.DocP[0].Line != 2 {
+		t.Errorf("doc positions = %+v", f.DocP)
 	}
 }
 
@@ -781,6 +841,17 @@ func TestUnitVersusTypeArguments(t *testing.T) {
 			if (arg.Unit != nil) != tt.isUnit {
 				t.Errorf("unit = %v, want %v (arg %+v)", arg.Unit != nil, tt.isUnit, arg)
 			}
+		})
+	}
+}
+
+func TestDecoratedTypeArgumentIsNotAUnit(t *testing.T) {
+	for _, src := range []string{
+		"alias X = decimal<m? / s>",
+		"alias X = decimal<m | null / s>",
+	} {
+		t.Run(src, func(t *testing.T) {
+			parseErr(t, src)
 		})
 	}
 }
