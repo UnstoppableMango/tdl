@@ -55,6 +55,14 @@ func TestShapedKindsHavePatterns(t *testing.T) {
 	}
 }
 
+// Lookup has nothing to find for the empty string, which the sentinels
+// either side of the punctuation spell.
+func TestLookupRejectsTheEmptyString(t *testing.T) {
+	if kind, ok := lex.Lookup(""); ok {
+		t.Errorf("Lookup(\"\") = %v, true; want false", kind)
+	}
+}
+
 func anchored(t *testing.T, k lex.Kind) *regexp.Regexp {
 	t.Helper()
 	return regexp.MustCompile(`^(?:` + patterns[k] + `)`)
@@ -87,8 +95,8 @@ func TestPatternsMatchTheLexer(t *testing.T) {
 		accept []string
 		reject []string
 	}{
-		{lex.IDENT, []string{"a", "_x", "Order", "snake_case", "a1"}, []string{"1a", "-a", ""}},
-		{lex.INT, []string{"0", "123", "-5"}, []string{"a", "-", "1.5"}},
+		{lex.IDENT, []string{"a", "z", "A", "Z", "_x", "Order", "snake_case", "a1"}, []string{"1a", "-a", ""}},
+		{lex.INT, []string{"0", "9", "123", "-5"}, []string{"a", "-", "1.5"}},
 		{lex.FLOAT, []string{"1.23", "-0.5"}, []string{"1", "1.", ".5"}},
 		{lex.STRING, []string{`""`, `"abc"`, `"a\nb"`, `"a\"b"`}, []string{`"`, `"a`, `"a\qb"`}},
 		{lex.DOC, []string{"///", "/// text"}, []string{"// text", "/"}},
