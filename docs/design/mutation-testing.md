@@ -1,7 +1,7 @@
 # Mutation testing
 
 Design document.
-`make mutate` is built and the weekly routine is not; [mutation-testing-plan.md](mutation-testing-plan.md) orders the work.
+`make mutate` is built and the weekly routine runs it every Thursday; [mutation-testing-plan.md](mutation-testing-plan.md) records the work.
 
 Coverage says a line ran; it does not say a test would notice the line being wrong.
 Mutation testing changes the code one small edit at a time, a `<` to a `<=`, an `&&` to an `||`, a dropped `continue`, and runs the tests against each mutant.
