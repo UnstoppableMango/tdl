@@ -24,7 +24,7 @@ Early, incomplete, and changing.
 
 - **Front end: done.** The lexer and parser read the whole [grammar](docs/grammar.ebnf).
 - **Resolved model: nearly done.** `tdl ir` resolves names, imports, mixins, class satisfaction, constraints, defaults, units, and target directives. Merging a dependency's target blocks is partial.
-- **Code generation:** Go, GraphQL, JSON Schema, OpenAPI, protobuf, Salesforce, Smithy, Thrift, and TypeScript. `tdl gen` also runs any `tdl-gen-<name>` plugin on `PATH`.
+- **Code generation:** Go, GraphQL, JSON Schema, OpenAPI, protobuf, Salesforce, Smithy, Thrift, TypeScript, and Zod. `tdl gen` also runs any `tdl-gen-<name>` plugin on `PATH`.
 - **Editors:** a language server, a tree-sitter grammar for Neovim, and a VS Code extension.
 
 ## Documents
@@ -291,32 +291,32 @@ A backend's page names the codes and phases.
 
 <!-- tdl:features generate -->
 
-| Feature | `csharp` | `go` | `graphql` | `haskell` | `jsonschema` | `likec4` | `openapi` | `protobuf` | `salesforce` | `smithy` | `thrift` | `typescript` |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Entity, value, and mixin | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Warns | Warns | Warns |
-| Mixin `include` | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Warns | Warns | Warns |
-| Fieldless enum | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| Fielded enum | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| Newtype | Yes | Yes | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Yes | Yes | Yes |
-| Alias | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Warns | Warns | Warns |
-| Optional and nullable | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Warns | Warns | Yes |
-| List, set, and map | Yes | Yes | No | Yes | Yes | Yes | Yes | Warns | Yes | Yes | Yes | Warns |
-| `min` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns |
-| `max` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns |
-| `length` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns |
-| `matches` | Planned | Yes | Warns | Warns | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns |
-| `oneOf` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Yes |
-| `unique` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns |
-| `owned` | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | No | Warns | Warns | Warns |
-| Field default | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Warns | Warns | Warns |
-| `key` directive | Yes | Yes | No | Yes | No | No | No | No | Yes | No | No | No |
-| `name` directive | Yes | Warns | Warns | Yes | Yes | No | Yes | Warns | Yes | Warns | Warns | Warns |
-| `number` directive | No | No | No | No | No | No | No | Yes | No | No | Yes | No |
-| Doc comment | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| Type parameters | Planned | Yes | No | Yes | No | Yes | No | No | No | No | No | No |
-| Class | Planned | Warns | Warns | Yes | No | Yes | No | Warns | No | Warns | Warns | Warns |
-| Unit | Warns | Planned | Warns | Planned | No | Yes | No | Warns | No | Warns | Warns | Warns |
-| Import and extern | Yes | Yes | No | Yes | No | Yes | No | Yes | No | No | No | Yes |
+| Feature | `csharp` | `go` | `graphql` | `haskell` | `jsonschema` | `likec4` | `openapi` | `protobuf` | `salesforce` | `smithy` | `thrift` | `typescript` | `zod` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Entity, value, and mixin | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Warns | Warns | Warns | Yes |
+| Mixin `include` | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Warns | Warns | Warns | Yes |
+| Fieldless enum | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| Fielded enum | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| Newtype | Yes | Yes | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Yes | Yes | Yes | Yes |
+| Alias | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Warns | Warns | Warns | Yes |
+| Optional and nullable | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Warns | Warns | Yes | Yes |
+| List, set, and map | Yes | Yes | No | Yes | Yes | Yes | Yes | Warns | Yes | Yes | Yes | Warns | Yes |
+| `min` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Planned |
+| `max` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Planned |
+| `length` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Planned |
+| `matches` | Planned | Yes | Warns | Warns | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Planned |
+| `oneOf` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Yes | Planned |
+| `unique` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Planned |
+| `owned` | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | No | Warns | Warns | Warns | Yes |
+| Field default | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Warns | Warns | Warns | Planned |
+| `key` directive | Yes | Yes | No | Yes | No | No | No | No | Yes | No | No | No | No |
+| `name` directive | Yes | Warns | Warns | Yes | Yes | No | Yes | Warns | Yes | Warns | Warns | Warns | Yes |
+| `number` directive | No | No | No | No | No | No | No | Yes | No | No | Yes | No | No |
+| Doc comment | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| Type parameters | Planned | Yes | No | Yes | No | Yes | No | No | No | No | No | No | Planned |
+| Class | Planned | Warns | Warns | Yes | No | Yes | No | Warns | No | Warns | Warns | Warns | Planned |
+| Unit | Warns | Planned | Warns | Planned | No | Yes | No | Warns | No | Warns | Warns | Warns | Planned |
+| Import and extern | Yes | Yes | No | Yes | No | Yes | No | Yes | No | No | No | Yes | Planned |
 
 <!-- /tdl:features -->
 

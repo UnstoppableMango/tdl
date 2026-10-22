@@ -68,11 +68,12 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 
 `nix/` holds the packaging:
 
-- `cmd.nix`: the CLI. `meta.mainProgram` is what `lib.getExe` reads, since the package installs thirteen binaries.
+- `cmd.nix`: the CLI. `meta.mainProgram` is what `lib.getExe` reads, since the package installs fourteen binaries.
 - `vscode-extension.nix`: the editor extension (see [VS Code](#vs-code)).
 - `dotnet.nix`: the .NET plugins, built with `buildDotnetModule`, which runs their tests (see [.NET SDK](#net-sdk)): `tdl-gen-csharp`, compiled with Native AOT and linked by `stdenv.cc`, and the SDK's debug port, a self-contained single file.
 - `tree-sitter-tdl.nix`: the grammar's Python binding in `tree-sitter/bindings/python/`, for graphify (see `docs/design/graphify.md`); the overlay adds it to every Python package set, and `checks.tree-sitter-tdl` runs its tests, which parse the prelude.
   The binding, `pyproject.toml`, and `setup.py` are `tree-sitter init` output with the highlights query exposed, the tests extended, and `scanner.c` listed with the sources so a source distribution carries it.
+- `zod.nix`: the `zod` npm package, fetched by hash, for `checks.gen-zod` and the devShell's `NODE_PATH`.
 - `demo.nix`: renders `docs/demo/demo.tape`, the README's GIF, with VHS. It is a package and not a check, since it runs a browser.
   The tape's `cat`, from `docs/demo/demo.bash`, highlights TDL with the tree-sitter grammar and the theme in `themes/tree-sitter/`, and everything else with bat.
 - `overlay.nix`: names both packages and composes gomod2nix's overlay, so a consumer adding it also gets `buildGoApplication` and `mkGoEnv`.
@@ -223,6 +224,14 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   It imports one file: `reverse.go` runs the embedded `outline.js` under `node` with the `typescript` package found from `tsc` on `PATH`, and reads the JSON outline it writes; without both, import and its tests skip.
   `annotate.go` writes the loss warnings and, under `roundtrip`, JSDoc `@tdl` tags, carrying a declaration whole where it loses anything.
   `Normalize` is its normal form for the round-trip corpus.
+- `backend/zod`: one `<package>.zod.ts` module per model of Zod schemas, each a `const` and a same-named `type` inferred from it, parsing the JSON wire convention `typescript` types.
+  It shares the primitive mapping, names, property quoting, and the extern import path with `typescript` through `backend/internal/ts`.
+  A struct is a `z.object`, or `z.strictObject` under `closed`; a fieldless enum a `z.enum`, a fielded one a `z.discriminatedUnion` of variant objects; a newtype a schema of its base, and an alias is expanded.
+  `T?` is `.exactOptional()`, a set an array refusing duplicates through the module's `unique` helper, and `decimal` and `instant` are helpers too, each declared only when used.
+  A field naming a declaration written later, its own, or a lazy newtype is a getter with its return type written; a newtype whose base is written later is a `z.lazy` with its type written.
+  Only phase 1 of `zod-backend-plan.md` is built: constraints, defaults, units, and externs warn.
+  Tests run `tsc --strict --exactOptionalPropertyTypes` over every response and parse JSON with it under `node`, when `tsc`, `node`, and a `zod` package on `NODE_PATH` are found; the devShell sets `NODE_PATH` from `nix/zod.nix`, and `checks.gen-zod` always runs them on the smoke model.
+  An agreement test holds every inferred type and `typescript`'s type for the same declaration assignable to each other.
 - `backend/jsonschema`: one `.schema.json` document per model, every declaration under `$defs`.
   A fielded enum is a `oneOf` discriminated on `kind`, as in TypeScript; a newtype is a definition with its own constraints, and a base newtype is a `$ref`.
   `where` constraints become keywords (`minimum`, `pattern`, `minLength`, ...) chosen by what the constrained type holds, and one with no keyword warns.

@@ -124,6 +124,34 @@ in
             touch $out
           '';
 
+      # Type checks the zod backend's module against the oldest zod it
+      # supports, and loads it under node, which fails if a schema reads a
+      # const before it is initialized.
+      checks.gen-zod =
+        let
+          zod = pkgs.callPackage ./zod.nix { };
+        in
+        pkgs.runCommand "tdl-gen-zod"
+          {
+            nativeBuildInputs = [
+              pkgs.tdl
+              pkgs.nodejs
+              pkgs.typescript
+            ];
+          }
+          ''
+            cp ${../testdata/gen/smoke/source.tdl} source.tdl
+            tdl gen --target zod -o out source.tdl
+            cd out
+            ln -s ${zod}/lib/node_modules node_modules
+            echo '{"type": "module"}' > package.json
+            tsc --strict --exactOptionalPropertyTypes \
+              --module nodenext --moduleResolution nodenext --target es2022 *.zod.ts
+            node --input-type=module \
+              -e 'const m = await import("./smoke.zod.js"); m.Payment.parse({ kind: "Cash" });'
+            touch $out
+          '';
+
       # Builds the csharp plugin's files with every warning an error and the
       # SDK's analyzers, which the plugin's own tests do not run. The project
       # references nothing but the framework, so it restores nothing from

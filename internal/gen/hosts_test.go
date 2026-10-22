@@ -33,6 +33,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/smithy"
 	"github.com/unstoppablemango/tdl/backend/thrift"
 	"github.com/unstoppablemango/tdl/backend/typescript"
+	"github.com/unstoppablemango/tdl/backend/zod"
 	"github.com/unstoppablemango/tdl/internal/analysis"
 	"github.com/unstoppablemango/tdl/internal/gen"
 	"github.com/unstoppablemango/tdl/ir"
@@ -72,6 +73,7 @@ var shipped = []struct {
 	{backend: smithy.Backend{}, model: orderModel, packaged: true, reverse: smithySource, needs: smithyCLI},
 	{backend: thrift.Backend{}, model: orderModel, packaged: true, valid: checkThrift, reverse: thriftSource},
 	{backend: typescript.Backend{}, model: orderModel, packaged: true, reverse: typescriptSource, needs: typescriptCompiler},
+	{backend: zod.Backend{}, model: orderModel, packaged: true},
 }
 
 // protoSource is a schema for the protobuf reverse to read.

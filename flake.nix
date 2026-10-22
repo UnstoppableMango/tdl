@@ -92,6 +92,9 @@
               graphify
               inputs'.mangopkgs.packages.gremlins
             ];
+            # The zod backend's tests type check and run its output with the
+            # zod package, found here.
+            NODE_PATH = "${pkgs.callPackage ./nix/zod.nix { }}/lib/node_modules";
           };
 
           devShells.treesitter = pkgs.mkShell {

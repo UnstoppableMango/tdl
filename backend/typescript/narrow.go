@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
+	"github.com/unstoppablemango/tdl/backend/internal/ts"
 	"github.com/unstoppablemango/tdl/ir"
 )
 
@@ -112,7 +113,7 @@ func literals(x *emit.Ref, args []*ir.Literal, lo, hi int64) (values []string, i
 	switch {
 	case x.Form == emit.Prim && x.Name == "string":
 		str = true
-	case x.Form == emit.Prim && scalars[x.Name] == "number":
+	case x.Form == emit.Prim && ts.Scalars[x.Name] == "number":
 		num = true
 	case x.Form == emit.Named && x.Decl.GetEnumeration() != nil && !emit.Fielded(x.Decl.GetEnumeration()):
 		enum = true
