@@ -308,7 +308,7 @@ A backend's page names the codes and phases.
 | `oneOf` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Yes | Planned |
 | `unique` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Planned |
 | `owned` | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | No | Warns | Warns | Warns | Yes |
-| Field default | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Warns | Warns | Warns | Planned |
+| Field default | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Warns | Warns | Warns | Yes |
 | `key` directive | Yes | Yes | No | Yes | No | No | No | No | Yes | No | No | No | No |
 | `name` directive | Yes | Warns | Warns | Yes | Yes | No | Yes | Warns | Yes | Warns | Warns | Warns | Yes |
 | `number` directive | No | No | No | No | No | No | No | Yes | No | No | Yes | No | No |
@@ -316,7 +316,7 @@ A backend's page names the codes and phases.
 | Type parameters | Planned | Yes | No | Yes | No | Yes | No | No | No | No | No | No | Planned |
 | Class | Planned | Warns | Warns | Yes | No | Yes | No | Warns | No | Warns | Warns | Warns | Planned |
 | Unit | Warns | Planned | Warns | Planned | No | Yes | No | Warns | No | Warns | Warns | Warns | Planned |
-| Import and extern | Yes | Yes | No | Yes | No | Yes | No | Yes | No | No | No | Yes | Planned |
+| Import and extern | Yes | Yes | No | Yes | No | Yes | No | Yes | No | No | No | Yes | Yes |
 
 <!-- /tdl:features -->
 

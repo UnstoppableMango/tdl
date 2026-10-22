@@ -1,6 +1,7 @@
 package zod_test
 
 import (
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -59,7 +60,11 @@ func project(t *testing.T, zod string, files map[string]string) string {
 	}
 	files["package.json"] = `{"type": "module"}`
 	for name, content := range files {
-		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644); err != nil {
+		path := filepath.Join(dir, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -92,14 +97,18 @@ func responseFiles(resps ...*plugin.Response) map[string]string {
 // the test when it rejects them.
 func typecheck(t *testing.T, extra map[string]string, resps ...*plugin.Response) {
 	t.Helper()
+	files := responseFiles(resps...)
+	maps.Copy(files, extra)
+	typecheckFiles(t, files)
+}
+
+// typecheckFiles runs tsc over files, keyed by their paths in one tree.
+func typecheckFiles(t *testing.T, files map[string]string) {
+	t.Helper()
 	tsc, _, zod, why := toolchain()
 	if why != "" {
 		t.Logf("not type checked: %s", why)
 		return
-	}
-	files := responseFiles(resps...)
-	for k, v := range extra {
-		files[k] = v
 	}
 	dir := project(t, zod, files)
 	args := append(append([]string{"--noEmit"}, tscFlags...), sources(dir, files)...)
@@ -154,12 +163,18 @@ export function done(): void {
 // its path with a .js extension.
 func parse(t *testing.T, script string, resps ...*plugin.Response) {
 	t.Helper()
+	parseFiles(t, responseFiles(resps...), script)
+}
+
+// parseFiles is [parse] over files keyed by their paths in one tree, with
+// the script at its root.
+func parseFiles(t *testing.T, files map[string]string, script string) {
+	t.Helper()
 	tsc, node, zod, why := toolchain()
 	if why != "" {
 		t.Logf("not run: %s", why)
 		return
 	}
-	files := responseFiles(resps...)
 	files["harness.ts"] = harness
 	files["main.ts"] = "import { accepts, refuses, done } from \"./harness.js\";\n" + script + "\ndone();\n"
 	dir := project(t, zod, files)
