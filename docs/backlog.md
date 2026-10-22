@@ -60,3 +60,14 @@ An embedded struct could be an `include`, if Generate embedded a mixin rather th
 A [foreign import](design/foreign-imports.md) reads one file, so a name it takes from another file it imports, `.ts` importing `other.ts` or `.proto` importing another `.proto`, is a diagnostic until the other file is imported too.
 Following those imports should lean on each ecosystem's own resolution rather than reimplement it: `go/packages` and `go.mod` for Go, the TypeScript compiler's module resolution and `tsconfig.json`, `buf` or protoc import paths for protobuf, and the Smithy CLI's model assembly.
 Each foreign file the tool resolves would then lower once as its own package, and the first file's names resolve into it.
+
+## Runtime values from the TypeScript content mapper
+
+The [content mapper](design/typescript-content-mapper.md) returns types only, so a `.tdl` import is `import type`.
+Once the [zod backend](design/zod-backend.md) exists, a mapper option could return its schemas too, so `import { Order } from "./shop.tdl"` validates JSON at run time.
+That needs runtime loaders beside the mapper, for Node, Bun, and bundlers, as Motherload ships them.
+
+## npm packages carrying `tdl-gen-typescript`
+
+`@unmango/tdl-typescript` takes `tdl-gen-typescript` from `PATH`.
+Platform packages carrying the binary, chosen by `optionalDependencies` as esbuild's are, would let a project without Nix install the mapper from npm alone.
