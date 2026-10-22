@@ -11,11 +11,11 @@ Worth a short design, as an output-only backend in the shape of [likec4-backend.
   Entities, value objects, enums, newtypes, docs, deprecations, keys, and most constraints have a CML spelling, and aggregates can be inferred from `: Entity` and `owned` with no new syntax.
 - The strategic layer is what CML adds and TDL lacks.
   Bounded contexts come from packages and the context map from imports, but relationship roles (`OHS`, `ACL`, customer/supplier) need directives TDL does not have.
-- Context Mapper is developed, but its last release is old.
-  The repository is active: `master` is 6.12.1-SNAPSHOT on Xtext 2.42 and publishes through the Central Portal.
-  The newest release on Maven Central is still `org.contextmapper:context-mapper-dsl` 6.12.0 (August 2024, Xtext 2.32), which is what the spike validates against.
+- Context Mapper's language has not changed since its last release.
+  The newest release on Maven Central is `org.contextmapper:context-mapper-dsl` 6.12.0 (August 2024), which is what the spike validates against.
+  `master` had two README and workflow commits in July 2025, then on 2026-10-20 a build update (#390: Java 17, Xtext 2.42, Gradle 8, Tycho 4, publishing through the Central Portal), which reads as preparation for 6.12.1.
+  Neither touches a `.xtext` grammar, so the quirks below hold on `master` too.
   It is an Xtext and Eclipse stack and ships no command line tool, so checking output means a Java harness over the jar, which the spike builds in `backend/contextmapper/testdata/cmlcheck`.
-  The quirks below are 6.12.0's; some, such as `with` failing to lex, may be fixed on `master`.
 - Import, CML to TDL, is not worth it now: it needs that Java parser at run time, and CML holds Sculptor's persistence options that TDL has no place for.
 
 ## Mapping
