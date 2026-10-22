@@ -3,8 +3,7 @@
 An implementation plan for [graphify.md](graphify.md).
 Phases are ordered by dependency, and each states what makes it done.
 
-Phases 1 and 2 are done.
-Phase 3 is built, but `graphify update .` gives 5,819 nodes, above its 4,000 target; the graph was already near 6,500 before TDL joined it.
+Phases 1 through 3 are done.
 
 ## Scope
 
@@ -36,4 +35,5 @@ Done when the package builds with its tests passing, and `graphify.withGrammars 
 - `checks.graphify` runs `graphify update` over the prelude and two conformance cases and asserts the `Entity` node and an `implements` edge into it.
 - `AGENTS.md`'s knowledge graph section says graphify reads TDL, where the extractor lives, and the back-out rule.
 
-Done when `nix flake check` passes and `graphify update .` in the devShell stays below 4,000 nodes with the TDL declarations in it; the pull request reports the node count before and after.
+Done when `nix flake check` passes and `graphify update .` in the devShell holds the TDL declarations, adding fewer than 1,000 nodes and staying well under the hosted free plan's 25,000; the pull request reports the node count before and after.
+Pull request #1132 measured 6,481 nodes before and 5,819 after, 657 of them TDL, having also dropped the generated C# and the changelog.

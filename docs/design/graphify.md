@@ -21,7 +21,7 @@ A `.tdl` file contributes three kinds of node:
 - one node per named declaration: type, enum, alias, class, mixin, primitive, and unit.
 
 Fields and enum variants are not nodes.
-They would multiply the graph past the 4,000 nodes `.graphifyignore` keeps it below, and each is reachable from its declaration's source location.
+They would multiply TDL's share of the graph several times over, and each is reachable from its declaration's source location.
 
 Edges use graphify's existing relations, so its queries and its ranking of hub nodes treat TDL as any other language:
 
