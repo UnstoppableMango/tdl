@@ -103,19 +103,32 @@ type generator struct {
 	// uses holds the imports the declaration being rendered refers to.
 	declares map[*ir.Decl][]string
 	uses     map[string]imported
+
+	// mapped is whether the file is a content mapper's module rather than
+	// one tdl gen writes: an extern is imported from its .tdl file.
+	mapped bool
 }
 
 // Generate returns one .ts file holding the model's declarations.
 func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Response, error) {
+	return generate(req, false), nil
+}
+
+// generate is [Backend.Generate], for tdl gen or, when mapped is set, for
+// the content mapper.
+func generate(req *plugin.Request, mapped bool) *plugin.Response {
 	g := &generator{
 		Session:  emit.NewSession(req, "TypeScript"),
 		names:    map[string]string{},
 		enforced: map[*ir.Constraint]bool{},
 		declares: map[*ir.Decl][]string{},
+		mapped:   mapped,
 	}
 	g.Externs = true
 
-	g.Roundtrip = g.Bare("roundtrip")
+	// A mapped module is read by tsc, never imported back, and a
+	// round trip would hide what it skips.
+	g.Roundtrip = !mapped && g.Bare("roundtrip")
 
 	pkg := req.GetModel().GetPackage()
 	path := defaultFile + ".ts"
@@ -185,7 +198,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		blocks = append(blocks, footer)
 	}
 	if len(blocks) == 0 {
-		return g.Response(nil), nil
+		return g.Response(nil)
 	}
 
 	var b strings.Builder
@@ -194,7 +207,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		b.WriteString("\n")
 		b.WriteString(block)
 	}
-	return g.Response([]*plugin.File{{Path: path, Content: []byte(b.String())}}), nil
+	return g.Response([]*plugin.File{{Path: path, Content: []byte(b.String())}})
 }
 
 // decl renders one declaration, or "" for one that declares nothing.

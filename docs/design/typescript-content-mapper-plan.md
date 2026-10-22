@@ -3,7 +3,7 @@
 An implementation plan for [typescript-content-mapper.md](typescript-content-mapper.md).
 Phases are ordered by dependency, and each states what makes it done.
 
-Phase 1 is done.
+Phases 1 and 2 are done.
 
 ## Scope
 
@@ -22,11 +22,11 @@ Done when `go test ./...` passes with no golden or recorded exchange changed, an
 
 ## Phase 2: the mapper
 
-- Check the protocol against microsoft/typescript-go#4712: the shapes of `mappings`, `dependencies`, and a diagnostic's `category`, and correct the design where they differ.
+- Check the protocol against the 7.1 compiler: the shapes of `mappings`, `dependencies`, and a diagnostic's `category`, and correct the design where they differ.
+  Done: mappings are arrays, there is no dependency list, and every diagnostic is an error.
 - `backend/typescript/mapper.go`: JSON-RPC 2.0 with `Content-Length` framing, `initialize`, `openProject`, `transform`, and `closeProject`, lowering in process and running the backend in mapper mode.
 - `extern.go` names an extern's module by the import's path relative to the importing file, in mapper mode only.
 - Diagnostics as the design lists them, under the source `tdl`, with a code per kind; option diagnostics for any `options` key.
-- `dependencies` in every transform, and a cache of lowered dependencies keyed by path and modification time.
 - `cmd/tdl-gen-typescript` serves the mapper under `content-mapper`, and the plugin with no argument.
 - The pipe test and the `tsc` test in the design; the `tsc` test skips without a `tsc` of 7.1 or later.
 
@@ -38,7 +38,6 @@ Done when the pipe test passes over the smoke model and a two-file project, ever
 - `transform` returns them as `mappings`.
 
 Done when a test asserts each mapping's range for the smoke model, and in VS Code with the TypeScript 7 extension, go to definition on an imported type lands on its TDL declaration.
-If phase 2 found that the protocol carries no mappings, this phase moves to the backlog instead.
 
 ## Phase 4: the npm package
 

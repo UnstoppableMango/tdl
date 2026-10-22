@@ -1,0 +1,11 @@
+package shop
+
+import "money.tdl" as money
+
+type Order: Entity {
+  id: string
+  total: money.Money
+  status: Status
+}
+
+enum Status { Open Closed }

@@ -22,8 +22,8 @@ The mapper is an alternative a project opts into.
 
 ## Content mappers
 
-This section records the protocol as TypeScript 7.1.0-beta and Motherload 0.2.0 implement it.
-[microsoft/typescript-go#4712](https://github.com/microsoft/typescript-go/pull/4712) introduced it and is the reference; where this section says a field is inferred, phase 2 checks it there first.
+This section records the protocol as TypeScript 7.1.0-beta and Motherload 0.2.0 implement it, checked by running the 7.1.0-beta compiler against a mapper.
+[microsoft/typescript-go#4712](https://github.com/microsoft/typescript-go/pull/4712) introduced it.
 
 A project names a mapper package and the extensions it owns in `tsconfig.json`, and runs `tsc` with `--runExternalCode`, without which no mapper runs:
 
@@ -43,15 +43,18 @@ The package's `package.json` names the command `tsc` spawns, with the package's 
 The command speaks JSON-RPC 2.0 on standard input and output, framed as the Language Server Protocol frames it, with a `Content-Length` header.
 Four requests reach it:
 
-- `initialize`, answered with `protocolVersion` 1, `positionEncoding` `"utf-8"`, and `diagnosticSource`.
+- `initialize`, carrying the `positionEncodings` the compiler accepts (`utf-8` and `utf-16`), answered with `protocolVersion` 1, `positionEncoding` `"utf-8"`, and `diagnosticSource`.
   Builds from 2026-09-18 on refuse a mapper that answers with another protocol version.
-- `openProject`, carrying the tsconfig entry's `options`, answered with `optionDiagnostics`, each with a `path` into the options, `messageText`, and `code`.
-- `transform`, carrying `fileName` and `content`, answered with the module: its `extension` (`.mts`), its `text`, and `diagnostics`, each with `messageText`, `code`, `start`, and `length` in the encoding `initialize` chose.
-- `closeProject`.
+- `openProject`, carrying a `projectHandle`, the tsconfig's path and compiler options, and the entry's `options`, answered with `optionDiagnostics`, each with a `path` into the options, `messageText`, and `code`.
+- `transform`, carrying `fileName`, `content`, and the `projectHandle`, answered with the module: its `extension` (`.mts`), its `text`, `diagnostics`, each with `messageText`, `code`, `start`, and `length` in the encoding `initialize` chose, and optionally `mappings`.
+- `closeProject`, carrying the `projectHandle`.
 
-The 7.1 compiler also reads `mappings`, `dependencies`, and a diagnostic `category` from a mapper, which Motherload does not send.
-Their shapes are inferred from the compiler's messages: a mapping places generated text at an offset of the original content, and the dependencies name files whose change invalidates the transform.
-This design uses all three, and falls back to what it says under each heading if one turns out to mean something else.
+A mapping is an array `[virtualStart, virtualLength, originalStart, originalLength, kind]`, offsets into the module's text and the file's content, with an optional sixth value the compiler calls features.
+Kind 0 is verbatim, and the compiler refuses one whose two texts differ; kinds 1 and 2 map text that differs.
+A problem tsc finds in a mapped stretch of the module is reported at the original range, and one outside every mapping is reported in the module with a note that it has no place in the original file.
+
+The compiler takes no list of files a transform read: an unknown field in a response is ignored, and no field name tried makes a change to another file re-run a transform under `--watch`.
+It also shows every mapper diagnostic as an error, whatever `category` or `severity` says.
 
 ## The typescript backend owns it
 
@@ -74,7 +77,7 @@ What it lacks is the host side: holding directives to their specs and silencing 
 Both live in `internal/gen`, which imports every backend for its registry, so the backend cannot import it.
 They move to `internal/host`, below both, with no change in behavior; `internal/gen` calls them there.
 
-A long-lived process is what the protocol gives, so the mapper keeps the lowered dependencies of the files it has transformed, keyed by path and modification time, for the life of a project.
+A transform reads the files a `.tdl` file imports from disk each time; lowering a file and its imports takes milliseconds, so nothing is cached.
 
 ## The module
 
@@ -83,7 +86,7 @@ The module is types only: interfaces, unions, and aliases, every one exported, a
 A TypeScript file imports it with `import type`; under `verbatimModuleSyntax`, a plain import of it is the compiler's own error.
 
 A file needs no `typescript` target block.
-When it has one, its directives apply as they do under `tdl gen` (`discriminant`, `foreign`, and the declaration directives), except `out` and `file`, which place files the mapper does not write.
+When it has one, its directives apply as they do under `tdl gen` (`discriminant`, `foreign`, and the declaration directives), except `out` and `file`, which place files the mapper does not write, and `roundtrip`, since tsc never imports the module back.
 A directive in another target's block is ignored, as `tdl gen --target typescript` ignores it.
 
 A declaration from another TDL file is imported from that file:
@@ -93,7 +96,7 @@ package shop
 
 import "money.tdl" as money
 
-value LineItem {
+type LineItem {
   price: money.Money
 }
 ```
@@ -111,24 +114,24 @@ This is a third way the backend's `extern.go` names an extern's module, beside a
 A `foreign` directive on the extern still wins.
 A prelude name maps to a TypeScript type and imports nothing.
 
-A transform names the files it read in `dependencies`, so `tsc` asks again when an imported `.tdl` file changes.
-If the field means something else, an edit to `money.tdl` reaches `shop.tdl`'s diagnostics when `shop.tdl` is next transformed.
-
-Either way, a dependency is read from disk.
-The content `tsc` sends is the file being transformed, and an unsaved edit to another `.tdl` file reaches it only once saved.
+An edit to `money.tdl` reaches `shop.tdl`'s diagnostics when `shop.tdl` is next transformed, since the protocol has no way to name the files a transform read.
+A dependency is read from disk: the content `tsc` sends is the file being transformed, and an unsaved edit to another `.tdl` file reaches it only once saved.
 
 ## Diagnostics
 
 Every diagnostic is reported under the source `tdl`, at the range `lex` positions give, which are already UTF-8 byte offsets of the content.
 
-- A syntax or lowering error in the file is an error at its range, and the module is `export {}`, so an import of it names no type and only the `.tdl` error explains why.
-- An error in a dependency is one error at the import that reaches it.
-- A directive refused by `CheckDirectives` is an error at the directive.
-- A declaration the backend refuses is an error at the declaration, and the cascade skips what names it, as under `tdl gen`.
-- A loss warning is reported unless `tdl.toml`'s `[lossy]` table allows its code for `typescript`, as `tdl gen` drops it; the message ends with the code.
-  It is a warning if the protocol's `category` carries one, and otherwise an error, so a project that wants a clean check allows the code.
+tsc shows every diagnostic a mapper returns as an error, so the mapper returns only what stops the module from saying what the model says:
 
-The diagnostic code is a number, so each TDL diagnostic kind gets one, listed in the backend's page.
+- `tdl1`: the file does not parse.
+- `tdl2`: the file does not lower, or a file it imports does not; lowering reports the latter at the import.
+- `tdl3`: a directive `CheckDirectives` refuses, or one the backend does not declare, at the directive.
+- `tdl4`: the model cannot be generated for `typescript`, such as a length that can never hold, from `analysis.Request`.
+- `tdl5`: a declaration the backend refuses, at the declaration; the cascade skips what names it, as under `tdl gen`.
+- `tdl6`: an option in the tsconfig entry.
+
+An error from the first four leaves the module `export {}`, so an import of it names no type and only the `.tdl` error explains why.
+A loss warning, one carrying a loss code, is not returned: as an error it would fail every project holding an entity, since the backend warns `lossy.struct-kind` on each, and `tdl gen` and `tdl check` report it as the warning it is.
 
 The mapper takes no options.
 A key in the tsconfig entry's `options` is an option diagnostic naming it.
@@ -136,8 +139,9 @@ A key in the tsconfig entry's `options` is an option diagnostic naming it.
 ## Navigation
 
 Go to definition from TypeScript lands where the module's mappings place it.
-The backend records, as it writes each declaration, field, and variant, the range of the TDL source it came from, and the mapper sends them as `mappings`, so a jump from `Order` lands on `entity Order` in `shop.tdl`.
-Without mappings, the jump lands in the generated text, which an editor shows as a read-only document; navigation is then a backlog item, not a blocker.
+The backend records, as it writes each declaration, field, and variant, the range of the TDL source it came from, and the mapper sends them as `mappings`, so a jump from `Order` lands on `type Order` in `shop.tdl`.
+A name written as the TDL source spells it maps verbatim; a type the backend translates, `int32` written `number`, maps with kind 1.
+Mappings also place a problem tsc finds in the module, such as a name a dependency no longer exports, on the TDL text it came from.
 
 ## Runtime
 
@@ -156,10 +160,10 @@ The npm trusted publisher names `release-please.yml`; the scope's owner configur
 
 ## Testing
 
-- A Go test in `backend/typescript` drives the mapper over a pipe: initialize, open a project, transform the smoke model's files and a file importing another, and close.
-  The text of each module equals what `tdl gen --target typescript` writes, but for the imports, and each diagnostic kind is asserted at its range.
-- A second test runs `tsc --noEmit --runExternalCode` over `backend/typescript/testdata/mapper/`, a TypeScript project importing `.tdl` files, when a `tsc` of 7.1 or later is on `PATH`, and skips otherwise.
-  It points the project at `tdl-gen-typescript` built by the test.
+- Go tests in `backend/typescript` drive the mapper over a pipe: initialize, open a project, transform the smoke model, conformance cases, and a file importing another, and close.
+  The text of each module equals what the backend writes for `tdl gen`, and each diagnostic kind is asserted at its range.
+- A second test runs `tsc --noEmit --runExternalCode` over `backend/typescript/testdata/mapper/`, a TypeScript project importing `.tdl` files, when a `tsc` of 7.1 or later is on `PATH` and `-short` is not set, and skips otherwise.
+  It points the project at `tdl-gen-typescript` built by the test, and asserts a TDL error is reported in the `.tdl` file.
 - `checks.typescript-content-mapper` runs the same project once nixpkgs carries TypeScript 7.1.
 
 ## Not designed here
