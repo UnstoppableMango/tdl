@@ -168,7 +168,7 @@ The plugin protocol in `docs/design/plugins.md` is complete.
 - `internal/config`: reads the nearest `tdl.toml` above a file; only its `[lossy]` table so far.
 - `internal/makefn`: what the make functions in `cmd/tdl-gmk` return, `Files` and `Imports`, kept out of the plugin so they test without make.
   `cmd/tdl-gmk` is behind the `makeplugin` build tag, since a `main` package built with `-buildmode=c-shared` links against symbols only make defines; `go build ./...` and the linters never see it.
-- `internal/cli`: cobra commands (`ast`, `check`, `fmt`, `gen`, `import`, `ir`, `lsp`, `play`, `tokens`, `version`). See [CLI](#cli).
+- `internal/cli`: cobra commands (`ast`, `check`, `fmt`, `gen`, `import`, `ir`, `lsp`, `play`, `request`, `tokens`, `version`). See [CLI](#cli).
 - `internal/lsp`: the language server. See [Language server](#language-server).
 - `cmd/tdl`: main.
 
@@ -356,6 +356,10 @@ A file named `-` is standard input, shown as `<stdin>` in positions.
 
 `import --from <target>` asks a backend for a model, prints it through `internal/unlower`, and lowers the printed source again, writing nothing when that fails.
 `gen` and `import` both drop warnings whose loss code `tdl.toml` or `--allow-lossy` allows, and print a code after the message.
+
+`request --target <name>` writes, as framed messages, a `Handshake` and one `RequestSet`: the requests `gen` would send that backend, and every diagnostic, a file with an error yielding no request.
+It runs no backend and writes nothing to disk, for a host that runs the backend itself, such as the C# source generator.
+With `--overlay`, standard input holds one framed `Overlay` whose texts `sema.Overlay` reads in place of the disk; the language server's loader is the same type.
 
 `examples/` holds files to experiment with and is outside the conformance corpus.
 The unist, mdast, and hast models moved to [unmango/treespec](https://github.com/unmango/treespec)'s `defs/`.

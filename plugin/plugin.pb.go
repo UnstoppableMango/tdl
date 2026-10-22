@@ -1939,6 +1939,168 @@ func (x *Diagnostic) GetCode() string {
 	return ""
 }
 
+// RequestSet is what `tdl request` writes after its Handshake: every
+// request `tdl gen` would send one target for the files given, and what
+// stopped the others. See docs/design/csharp-source-generator.md.
+type RequestSet struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// requests holds one request per target block, for each file whose model
+	// lowered and has a block for the target, in the order the files were
+	// given.
+	Requests []*Request `protobuf:"bytes,1,rep,name=requests" json:"requests,omitempty"`
+	// diagnostics are parse and lowering errors, directive check failures,
+	// and the problems the analysis found, less the warnings whose loss code
+	// the project allows. A file with an error yields no request.
+	Diagnostics   []*Diagnostic `protobuf:"bytes,2,rep,name=diagnostics" json:"diagnostics,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RequestSet) Reset() {
+	*x = RequestSet{}
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RequestSet) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RequestSet) ProtoMessage() {}
+
+func (x *RequestSet) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RequestSet.ProtoReflect.Descriptor instead.
+func (*RequestSet) Descriptor() ([]byte, []int) {
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *RequestSet) GetRequests() []*Request {
+	if x != nil {
+		return x.Requests
+	}
+	return nil
+}
+
+func (x *RequestSet) GetDiagnostics() []*Diagnostic {
+	if x != nil {
+		return x.Diagnostics
+	}
+	return nil
+}
+
+// Overlay is what `tdl request --overlay` reads from standard input: the
+// text of files that may differ from disk, such as an editor's unsaved
+// buffers. A file it holds is read from here, as given or as imported, and
+// every other file from disk.
+type Overlay struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Files         []*OverlayFile         `protobuf:"bytes,1,rep,name=files" json:"files,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Overlay) Reset() {
+	*x = Overlay{}
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Overlay) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Overlay) ProtoMessage() {}
+
+func (x *Overlay) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Overlay.ProtoReflect.Descriptor instead.
+func (*Overlay) Descriptor() ([]byte, []int) {
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *Overlay) GetFiles() []*OverlayFile {
+	if x != nil {
+		return x.Files
+	}
+	return nil
+}
+
+// OverlayFile is one file's text.
+type OverlayFile struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Path          string                 `protobuf:"bytes,1,opt,name=path" json:"path,omitempty"`
+	Text          string                 `protobuf:"bytes,2,opt,name=text" json:"text,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OverlayFile) Reset() {
+	*x = OverlayFile{}
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OverlayFile) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OverlayFile) ProtoMessage() {}
+
+func (x *OverlayFile) ProtoReflect() protoreflect.Message {
+	mi := &file_tdl_plugin_v1_plugin_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OverlayFile.ProtoReflect.Descriptor instead.
+func (*OverlayFile) Descriptor() ([]byte, []int) {
+	return file_tdl_plugin_v1_plugin_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *OverlayFile) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *OverlayFile) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
 var File_tdl_plugin_v1_plugin_proto protoreflect.FileDescriptor
 
 const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
@@ -2075,7 +2237,16 @@ const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
 	"\bseverity\x18\x01 \x01(\x0e2\x17.tdl.plugin.v1.SeverityR\bseverity\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12/\n" +
 	"\bposition\x18\x03 \x01(\v2\x13.tdl.ir.v1.PositionR\bposition\x12\x12\n" +
-	"\x04code\x18\x04 \x01(\tR\x04code*-\n" +
+	"\x04code\x18\x04 \x01(\tR\x04code\"}\n" +
+	"\n" +
+	"RequestSet\x122\n" +
+	"\brequests\x18\x01 \x03(\v2\x16.tdl.plugin.v1.RequestR\brequests\x12;\n" +
+	"\vdiagnostics\x18\x02 \x03(\v2\x19.tdl.plugin.v1.DiagnosticR\vdiagnostics\";\n" +
+	"\aOverlay\x120\n" +
+	"\x05files\x18\x01 \x03(\v2\x1a.tdl.plugin.v1.OverlayFileR\x05files\"5\n" +
+	"\vOverlayFile\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12\x12\n" +
+	"\x04text\x18\x02 \x01(\tR\x04text*-\n" +
 	"\x04Mode\x12\x14\n" +
 	"\x10MODE_UNSPECIFIED\x10\x00\x12\x0f\n" +
 	"\vMODE_IMPORT\x10\x01*\x91\x01\n" +
@@ -2120,7 +2291,7 @@ func file_tdl_plugin_v1_plugin_proto_rawDescGZIP() []byte {
 }
 
 var file_tdl_plugin_v1_plugin_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_tdl_plugin_v1_plugin_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_tdl_plugin_v1_plugin_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_tdl_plugin_v1_plugin_proto_goTypes = []any{
 	(Mode)(0),              // 0: tdl.plugin.v1.Mode
 	(Placement)(0),         // 1: tdl.plugin.v1.Placement
@@ -2147,11 +2318,14 @@ var file_tdl_plugin_v1_plugin_proto_goTypes = []any{
 	(*ImportRequest)(nil),  // 22: tdl.plugin.v1.ImportRequest
 	(*ImportResponse)(nil), // 23: tdl.plugin.v1.ImportResponse
 	(*Diagnostic)(nil),     // 24: tdl.plugin.v1.Diagnostic
-	(*ir.Range)(nil),       // 25: tdl.ir.v1.Range
-	(ir.LiteralKind)(0),    // 26: tdl.ir.v1.LiteralKind
-	(*ir.Model)(nil),       // 27: tdl.ir.v1.Model
-	(*ir.ID)(nil),          // 28: tdl.ir.v1.ID
-	(*ir.Position)(nil),    // 29: tdl.ir.v1.Position
+	(*RequestSet)(nil),     // 25: tdl.plugin.v1.RequestSet
+	(*Overlay)(nil),        // 26: tdl.plugin.v1.Overlay
+	(*OverlayFile)(nil),    // 27: tdl.plugin.v1.OverlayFile
+	(*ir.Range)(nil),       // 28: tdl.ir.v1.Range
+	(ir.LiteralKind)(0),    // 29: tdl.ir.v1.LiteralKind
+	(*ir.Model)(nil),       // 30: tdl.ir.v1.Model
+	(*ir.ID)(nil),          // 31: tdl.ir.v1.ID
+	(*ir.Position)(nil),    // 32: tdl.ir.v1.Position
 }
 var file_tdl_plugin_v1_plugin_proto_depIdxs = []int32{
 	0,  // 0: tdl.plugin.v1.Handshake.mode:type_name -> tdl.plugin.v1.Mode
@@ -2160,45 +2334,48 @@ var file_tdl_plugin_v1_plugin_proto_depIdxs = []int32{
 	7,  // 3: tdl.plugin.v1.HandshakeReply.numbering:type_name -> tdl.plugin.v1.Numbering
 	8,  // 4: tdl.plugin.v1.Numbering.fields:type_name -> tdl.plugin.v1.NumberRule
 	8,  // 5: tdl.plugin.v1.Numbering.values:type_name -> tdl.plugin.v1.NumberRule
-	25, // 6: tdl.plugin.v1.NumberRule.reserved:type_name -> tdl.ir.v1.Range
-	26, // 7: tdl.plugin.v1.DirectiveSpec.arg_kinds:type_name -> tdl.ir.v1.LiteralKind
+	28, // 6: tdl.plugin.v1.NumberRule.reserved:type_name -> tdl.ir.v1.Range
+	29, // 7: tdl.plugin.v1.DirectiveSpec.arg_kinds:type_name -> tdl.ir.v1.LiteralKind
 	1,  // 8: tdl.plugin.v1.DirectiveSpec.placements:type_name -> tdl.plugin.v1.Placement
-	27, // 9: tdl.plugin.v1.Request.model:type_name -> tdl.ir.v1.Model
+	30, // 9: tdl.plugin.v1.Request.model:type_name -> tdl.ir.v1.Model
 	12, // 10: tdl.plugin.v1.Request.analysis:type_name -> tdl.plugin.v1.Analysis
 	15, // 11: tdl.plugin.v1.Analysis.types:type_name -> tdl.plugin.v1.TypeView
 	17, // 12: tdl.plugin.v1.Analysis.decls:type_name -> tdl.plugin.v1.DeclView
 	13, // 13: tdl.plugin.v1.Analysis.source:type_name -> tdl.plugin.v1.Source
 	14, // 14: tdl.plugin.v1.Source.items:type_name -> tdl.plugin.v1.Item
 	2,  // 15: tdl.plugin.v1.TypeView.form:type_name -> tdl.plugin.v1.Form
-	28, // 16: tdl.plugin.v1.TypeView.id:type_name -> tdl.ir.v1.ID
-	28, // 17: tdl.plugin.v1.TypeView.elem:type_name -> tdl.ir.v1.ID
-	28, // 18: tdl.plugin.v1.TypeView.key:type_name -> tdl.ir.v1.ID
-	28, // 19: tdl.plugin.v1.TypeView.decl:type_name -> tdl.ir.v1.ID
-	28, // 20: tdl.plugin.v1.TypeView.extern:type_name -> tdl.ir.v1.ID
+	31, // 16: tdl.plugin.v1.TypeView.id:type_name -> tdl.ir.v1.ID
+	31, // 17: tdl.plugin.v1.TypeView.elem:type_name -> tdl.ir.v1.ID
+	31, // 18: tdl.plugin.v1.TypeView.key:type_name -> tdl.ir.v1.ID
+	31, // 19: tdl.plugin.v1.TypeView.decl:type_name -> tdl.ir.v1.ID
+	31, // 20: tdl.plugin.v1.TypeView.extern:type_name -> tdl.ir.v1.ID
 	16, // 21: tdl.plugin.v1.TypeView.refusal:type_name -> tdl.plugin.v1.Refusal
-	28, // 22: tdl.plugin.v1.TypeView.references:type_name -> tdl.ir.v1.ID
+	31, // 22: tdl.plugin.v1.TypeView.references:type_name -> tdl.ir.v1.ID
 	4,  // 23: tdl.plugin.v1.Refusal.reason:type_name -> tdl.plugin.v1.Refusal.Reason
-	29, // 24: tdl.plugin.v1.Refusal.position:type_name -> tdl.ir.v1.Position
-	28, // 25: tdl.plugin.v1.DeclView.references:type_name -> tdl.ir.v1.ID
-	28, // 26: tdl.plugin.v1.DeclView.underlying:type_name -> tdl.ir.v1.ID
+	32, // 24: tdl.plugin.v1.Refusal.position:type_name -> tdl.ir.v1.Position
+	31, // 25: tdl.plugin.v1.DeclView.references:type_name -> tdl.ir.v1.ID
+	31, // 26: tdl.plugin.v1.DeclView.underlying:type_name -> tdl.ir.v1.ID
 	18, // 27: tdl.plugin.v1.DeclView.fields:type_name -> tdl.plugin.v1.MemberView
 	18, // 28: tdl.plugin.v1.DeclView.variants:type_name -> tdl.plugin.v1.MemberView
 	19, // 29: tdl.plugin.v1.DeclView.constraints:type_name -> tdl.plugin.v1.ConstraintView
 	18, // 30: tdl.plugin.v1.MemberView.fields:type_name -> tdl.plugin.v1.MemberView
 	19, // 31: tdl.plugin.v1.MemberView.constraints:type_name -> tdl.plugin.v1.ConstraintView
-	25, // 32: tdl.plugin.v1.ConstraintView.length:type_name -> tdl.ir.v1.Range
+	28, // 32: tdl.plugin.v1.ConstraintView.length:type_name -> tdl.ir.v1.Range
 	21, // 33: tdl.plugin.v1.Response.files:type_name -> tdl.plugin.v1.File
 	24, // 34: tdl.plugin.v1.Response.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
 	21, // 35: tdl.plugin.v1.ImportRequest.files:type_name -> tdl.plugin.v1.File
-	27, // 36: tdl.plugin.v1.ImportResponse.model:type_name -> tdl.ir.v1.Model
+	30, // 36: tdl.plugin.v1.ImportResponse.model:type_name -> tdl.ir.v1.Model
 	24, // 37: tdl.plugin.v1.ImportResponse.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
 	3,  // 38: tdl.plugin.v1.Diagnostic.severity:type_name -> tdl.plugin.v1.Severity
-	29, // 39: tdl.plugin.v1.Diagnostic.position:type_name -> tdl.ir.v1.Position
-	40, // [40:40] is the sub-list for method output_type
-	40, // [40:40] is the sub-list for method input_type
-	40, // [40:40] is the sub-list for extension type_name
-	40, // [40:40] is the sub-list for extension extendee
-	0,  // [0:40] is the sub-list for field type_name
+	32, // 39: tdl.plugin.v1.Diagnostic.position:type_name -> tdl.ir.v1.Position
+	11, // 40: tdl.plugin.v1.RequestSet.requests:type_name -> tdl.plugin.v1.Request
+	24, // 41: tdl.plugin.v1.RequestSet.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
+	27, // 42: tdl.plugin.v1.Overlay.files:type_name -> tdl.plugin.v1.OverlayFile
+	43, // [43:43] is the sub-list for method output_type
+	43, // [43:43] is the sub-list for method input_type
+	43, // [43:43] is the sub-list for extension type_name
+	43, // [43:43] is the sub-list for extension extendee
+	0,  // [0:43] is the sub-list for field type_name
 }
 
 func init() { file_tdl_plugin_v1_plugin_proto_init() }
@@ -2212,7 +2389,7 @@ func file_tdl_plugin_v1_plugin_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tdl_plugin_v1_plugin_proto_rawDesc), len(file_tdl_plugin_v1_plugin_proto_rawDesc)),
 			NumEnums:      5,
-			NumMessages:   20,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -3,7 +3,7 @@
 An implementation plan for [csharp-source-generator.md](csharp-source-generator.md).
 Phases are ordered by dependency, and each states what makes it done.
 
-No phase is done.
+Phase 1 is done.
 
 ## Scope
 

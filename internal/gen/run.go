@@ -28,10 +28,7 @@ func Targets(model *ir.Model, override string) ([]Target, error) {
 	for _, block := range model.GetTargets() {
 		out := override
 		if out == "" {
-			out = outOf(block)
-			if file := block.GetMeta().GetPosition().GetFilename(); out != "" && file != "" && !filepath.IsAbs(out) {
-				out = filepath.Join(filepath.Dir(file), out)
-			}
+			out = Out(block)
 		}
 		if out == "" {
 			return nil, fmt.Errorf("target %s has no out directive and no -o was given", block.GetMeta().GetName())
@@ -45,13 +42,18 @@ func Targets(model *ir.Model, override string) ([]Target, error) {
 	return targets, nil
 }
 
-// outOf reads a block's `out("...")` directive.
-func outOf(block *ir.TargetBlock) string {
+// Out reads a block's `out("...")` directive, relative to the file
+// declaring the block, or returns "" when the block has none.
+func Out(block *ir.TargetBlock) string {
 	for _, d := range block.GetDirectives() {
 		if d.GetName() != host.OutDirective || len(d.GetArgs()) == 0 {
 			continue
 		}
-		return d.GetArgs()[0].GetText()
+		out := d.GetArgs()[0].GetText()
+		if file := block.GetMeta().GetPosition().GetFilename(); out != "" && file != "" && !filepath.IsAbs(out) {
+			out = filepath.Join(filepath.Dir(file), out)
+		}
+		return out
 	}
 	return ""
 }
