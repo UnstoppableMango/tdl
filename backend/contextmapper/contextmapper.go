@@ -332,10 +332,7 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 			// declaration is rendered.
 			b.WriteString(rootMark)
 		}
-		keys, err := g.keys(d)
-		if err != nil {
-			return "", err
-		}
+		keys := g.keys(d)
 		for _, f := range d.Fields() {
 			g.field(&b, "      ", f, keys[f.GetMeta().GetName()])
 		}
@@ -359,10 +356,10 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 }
 
 // keys reads a `key` directive into the set of field names it marks.
-func (g *generator) keys(d *ir.Decl) (map[string]bool, error) {
+func (g *generator) keys(d *ir.Decl) map[string]bool {
 	dir, ok := g.Find(d.GetDirectives(), "key")
 	if !ok {
-		return nil, nil
+		return nil
 	}
 	names := map[string]bool{}
 	for _, f := range d.Fields() {
@@ -376,7 +373,7 @@ func (g *generator) keys(d *ir.Decl) (map[string]bool, error) {
 		}
 		names[n] = true
 	}
-	return names, nil
+	return names
 }
 
 // enum writes a fieldless enum as a CML enum, and a fielded one as an
