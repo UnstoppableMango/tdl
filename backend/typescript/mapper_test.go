@@ -171,6 +171,7 @@ func TestMapperModuleIsGenerated(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			s.t = t // a failure belongs to the subtest, not its parent
 			mod := s.transform(path)
 			for _, d := range mod.Diagnostics {
 				t.Errorf("diagnostic tdl%d at %d: %s", d.Code, d.Start, d.MessageText)
@@ -398,4 +399,18 @@ func tsc71(t *testing.T) string {
 		t.Skipf("tsc %s.%s has no content mappers", m[1], m[2])
 	}
 	return tsc
+}
+
+func TestMapperRefusesBadFrames(t *testing.T) {
+	for name, frame := range map[string]string{
+		"missing":     "Content-Type: x\r\n\r\n{}",
+		"negative":    "Content-Length: -1\r\n\r\n",
+		"conflicting": "Content-Length: 2\r\nContent-Length: 3\r\n\r\n{}",
+	} {
+		t.Run(name, func(t *testing.T) {
+			if err := (typescript.Mapper{}).Serve(strings.NewReader(frame), io.Discard); err == nil {
+				t.Error("Serve accepted the frame")
+			}
+		})
+	}
 }

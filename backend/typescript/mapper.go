@@ -337,8 +337,11 @@ func readFrame(r *bufio.Reader) ([]byte, error) {
 		name, value, ok := strings.Cut(line, ":")
 		if ok && strings.EqualFold(strings.TrimSpace(name), "Content-Length") {
 			n, err := strconv.Atoi(strings.TrimSpace(value))
-			if err != nil {
+			if err != nil || n < 0 {
 				return nil, fmt.Errorf("content mapper: bad Content-Length %q", value)
+			}
+			if length >= 0 && n != length {
+				return nil, fmt.Errorf("content mapper: conflicting Content-Length headers %d and %d", length, n)
 			}
 			length = n
 		}
