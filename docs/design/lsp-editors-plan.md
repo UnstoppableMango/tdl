@@ -73,7 +73,7 @@ Done when the extension loaded as a dev extension shows a diagnostic and a hover
 
 ## Phase 6: target-block directives
 
-`tdl gen` checks directives with `gen.CheckDirectives` against each backend's `DirectiveSpec`; nothing checks them while editing.
+`tdl gen` checks directives with `host.CheckDirectives` against each backend's `DirectiveSpec`; nothing checks them while editing.
 
 The server runs the same check for every target block naming a built-in backend, reading `Describe` in process through `gen.Builtin`.
 An undeclared directive is a warning, and a wrong argument count or kind is an error, matching `tdl gen`.

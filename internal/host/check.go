@@ -1,4 +1,4 @@
-package gen
+package host
 
 import (
 	"fmt"
@@ -10,9 +10,9 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// outDirective is the one directive tdl reads itself: where a target
+// OutDirective is the one directive tdl reads itself: where a target
 // block's output goes. A backend need not declare it.
-const outDirective = "out"
+const OutDirective = "out"
 
 // problem reports something wrong with a target block, found before any
 // backend runs.
@@ -96,7 +96,7 @@ func checkEach(target string, n node, specs map[string]*plugin.DirectiveSpec) []
 	ds := n.directives
 	var problems []*plugin.Diagnostic
 	for _, d := range ds {
-		if d.GetName() == outDirective {
+		if d.GetName() == OutDirective {
 			continue
 		}
 		spec, declared := specs[d.GetName()]

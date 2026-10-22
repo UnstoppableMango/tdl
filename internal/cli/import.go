@@ -12,8 +12,8 @@ import (
 
 	"github.com/unstoppablemango/tdl/ast"
 	"github.com/unstoppablemango/tdl/internal/analysis"
-	"github.com/unstoppablemango/tdl/internal/config"
 	"github.com/unstoppablemango/tdl/internal/gen"
+	"github.com/unstoppablemango/tdl/internal/host"
 	"github.com/unstoppablemango/tdl/internal/sema"
 	"github.com/unstoppablemango/tdl/internal/unlower"
 	"github.com/unstoppablemango/tdl/parser"
@@ -79,11 +79,11 @@ func importCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 			if !isStdin(args[0]) {
 				dir = filepath.Dir(args[0])
 			}
-			cfg, err := config.Find(dir)
+			codes, err := host.Allowed(dir, from)
 			if err != nil {
 				return err
 			}
-			allowed := slices.Concat(cfg.Allowed(from), allowLossy)
+			allowed := slices.Concat(codes, allowLossy)
 
 			resp, err := importer.Import(cmd.Context(), &plugin.ImportRequest{
 				Target:     from,
@@ -93,8 +93,8 @@ func importCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("%s: %w", from, err)
 			}
-			reportDiagnostics(cmd, gen.Silence(resp.GetDiagnostics(), allowed))
-			if gen.Fatal(resp.GetDiagnostics()) {
+			reportDiagnostics(cmd, host.Silence(resp.GetDiagnostics(), allowed))
+			if host.Fatal(resp.GetDiagnostics()) {
 				return fmt.Errorf("%s reported errors; nothing was written", from)
 			}
 

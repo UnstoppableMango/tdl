@@ -23,7 +23,7 @@ import (
 
 	"github.com/unstoppablemango/tdl/ast"
 	"github.com/unstoppablemango/tdl/internal/analysis"
-	"github.com/unstoppablemango/tdl/internal/gen"
+	"github.com/unstoppablemango/tdl/internal/host"
 	"github.com/unstoppablemango/tdl/internal/sema"
 	"github.com/unstoppablemango/tdl/internal/unlower"
 	"github.com/unstoppablemango/tdl/ir"
@@ -178,10 +178,10 @@ func measure(path string, row Row, target Target) (Measured, error) {
 // included, and grades what it reports.
 func generate(model *ir.Model, row Row, target Target) (*plugin.Response, Cell) {
 	desc := target.Backend.Describe()
-	problems := gen.CheckDirectives(target.Name, model, desc)
+	problems := host.CheckDirectives(target.Name, model, desc)
 	req, more := analysis.Request(model, desc, target.Name, "out")
 	problems = append(problems, more...)
-	if gen.Fatal(problems) {
+	if host.Fatal(problems) {
 		return nil, no(problems)
 	}
 	resp, err := target.Backend.Generate(context.Background(), req)
@@ -230,7 +230,7 @@ func readBack(path string, row Row, model *ir.Model, target Target, importer plu
 	if err != nil {
 		return Cell{Support: No, Why: err.Error()}
 	}
-	if gen.Fatal(imported.GetDiagnostics()) {
+	if host.Fatal(imported.GetDiagnostics()) {
 		return no(imported.GetDiagnostics())
 	}
 	got, err := analysis.Imported(imported)

@@ -3,7 +3,7 @@
 An implementation plan for [typescript-content-mapper.md](typescript-content-mapper.md).
 Phases are ordered by dependency, and each states what makes it done.
 
-No phase is done.
+Phase 1 is done.
 
 ## Scope
 

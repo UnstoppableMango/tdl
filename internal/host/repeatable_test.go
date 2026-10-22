@@ -1,11 +1,11 @@
-package gen_test
+package host_test
 
 import (
 	"os"
 	"strings"
 	"testing"
 
-	"github.com/unstoppablemango/tdl/internal/gen"
+	"github.com/unstoppablemango/tdl/internal/host"
 	"github.com/unstoppablemango/tdl/internal/sema"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/parser"
@@ -50,7 +50,7 @@ func reservedSpec(repeatable bool) plugin.Description {
 func TestRepeatableDirectiveKeepsEveryEntry(t *testing.T) {
 	model := lowerClean(t, twoReserved)
 
-	if problems := gen.CheckDirectives("t", model, reservedSpec(true)); len(problems) != 0 {
+	if problems := host.CheckDirectives("t", model, reservedSpec(true)); len(problems) != 0 {
 		t.Errorf("problems = %v, want none for a repeatable directive", problems)
 	}
 
@@ -72,8 +72,8 @@ func TestRepeatableDirectiveKeepsEveryEntry(t *testing.T) {
 func TestUnrepeatableDirectiveTiedIsAnError(t *testing.T) {
 	model := lowerClean(t, twoReserved)
 
-	problems := gen.CheckDirectives("t", model, reservedSpec(false))
-	if !gen.Fatal(problems) {
+	problems := host.CheckDirectives("t", model, reservedSpec(false))
+	if !host.Fatal(problems) {
 		t.Fatalf("problems = %v, want an error", problems)
 	}
 	const want = "two entries at the same specificity set reserved; one of them has to go"
@@ -118,7 +118,7 @@ func TestUnrepeatableDirectiveTiedThroughClassesIsAnError(t *testing.T) {
 		Directives: []*plugin.DirectiveSpec{{Name: "rule", MinArgs: 1, MaxArgs: 1}},
 	}
 
-	problems := gen.CheckDirectives("t", model, desc)
+	problems := host.CheckDirectives("t", model, desc)
 	const want = "two entries at the same specificity set rule; one of them has to go"
 	if !hasProblem(problems, plugin.Severity_SEVERITY_ERROR, want) {
 		t.Errorf("problems = %v, want an error %q", problems, want)
@@ -129,7 +129,7 @@ func TestUnrepeatableDirectiveTiedThroughClassesIsAnError(t *testing.T) {
 func TestUndeclaredDirectiveTiedIsAnError(t *testing.T) {
 	model := lowerClean(t, twoReserved)
 
-	problems := gen.CheckDirectives("t", model, plugin.Description{Name: "t"})
+	problems := host.CheckDirectives("t", model, plugin.Description{Name: "t"})
 	const tie = "two entries at the same specificity set reserved; one of them has to go"
 	if !hasProblem(problems, plugin.Severity_SEVERITY_ERROR, tie) {
 		t.Errorf("problems = %v, want an error %q", problems, tie)
@@ -186,11 +186,11 @@ func TestTiedDirectiveOnAnExtern(t *testing.T) {
 			Directives: []*plugin.DirectiveSpec{{Name: "rule", MinArgs: 1, MaxArgs: 1, Repeatable: repeatable}},
 		}
 	}
-	if problems := gen.CheckDirectives("t", model, spec(true)); len(problems) != 0 {
+	if problems := host.CheckDirectives("t", model, spec(true)); len(problems) != 0 {
 		t.Errorf("problems = %v, want none for a repeatable directive", problems)
 	}
 	const tie = "two entries at the same specificity set rule; one of them has to go"
-	if problems := gen.CheckDirectives("t", model, spec(false)); !hasProblem(problems, plugin.Severity_SEVERITY_ERROR, tie) {
+	if problems := host.CheckDirectives("t", model, spec(false)); !hasProblem(problems, plugin.Severity_SEVERITY_ERROR, tie) {
 		t.Errorf("problems = %v, want an error %q", problems, tie)
 	}
 }

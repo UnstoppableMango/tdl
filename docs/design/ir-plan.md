@@ -99,7 +99,7 @@ Done when every corpus constraint reaches `ir` with its arguments and position, 
 ## Phase 8: target resolution (done)
 
 Path resolution, the specificity ladder, class-path expansion across satisfying declarations, and keeping every candidate at equal specificity.
-Lowering does not judge a tie: `gen.CheckDirectives` reports one as an error unless the backend declared the directive repeatable.
+Lowering does not judge a tie: `host.CheckDirectives` reports one as an error unless the backend declared the directive repeatable.
 A directive's name may be a reserved word, since that namespace belongs to the backend.
 
 Done when directives appear on the right nodes, a path naming nothing is a positioned error, a class path applies to every satisfying type, and two entries at equal specificity are reported.

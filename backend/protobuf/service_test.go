@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/unstoppablemango/tdl/backend/protobuf"
-	"github.com/unstoppablemango/tdl/internal/gen"
+	"github.com/unstoppablemango/tdl/internal/host"
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
@@ -27,7 +27,7 @@ target protobuf for acme.widgets.v1 {
 }
 `
 	model := lower(t, "widgets.tdl", src, nil)
-	if problems := gen.CheckDirectives(protobuf.Name, model, protobuf.Backend{}.Describe()); len(problems) != 0 {
+	if problems := host.CheckDirectives(protobuf.Name, model, protobuf.Backend{}.Describe()); len(problems) != 0 {
 		t.Errorf("directive problems = %+v", problems)
 	}
 
@@ -72,7 +72,7 @@ target protobuf for acme.widgets.v1 {
 }
 `
 	model := lower(t, "widgets.tdl", src, nil)
-	if problems := gen.CheckDirectives(protobuf.Name, model, protobuf.Backend{}.Describe()); len(problems) != 0 {
+	if problems := host.CheckDirectives(protobuf.Name, model, protobuf.Backend{}.Describe()); len(problems) != 0 {
 		t.Errorf("directive problems = %+v", problems)
 	}
 
@@ -251,7 +251,7 @@ target protobuf for acme.widgets.v1 {
 }
 `
 	model := lower(t, "widgets.tdl", src, nil)
-	if problems := gen.CheckDirectives(protobuf.Name, model, protobuf.Backend{}.Describe()); len(problems) != 0 {
+	if problems := host.CheckDirectives(protobuf.Name, model, protobuf.Backend{}.Describe()); len(problems) != 0 {
 		t.Errorf("directive problems = %+v", problems)
 	}
 	resp := generateIR(t, model)
@@ -290,7 +290,7 @@ target protobuf for acme.widgets.v1 {
 }
 `
 	model := lower(t, "widgets.tdl", src, nil)
-	if problems := gen.CheckDirectives(protobuf.Name, model, protobuf.Backend{}.Describe()); len(problems) != 0 {
+	if problems := host.CheckDirectives(protobuf.Name, model, protobuf.Backend{}.Describe()); len(problems) != 0 {
 		t.Errorf("directive problems = %+v", problems)
 	}
 	resp := generateIR(t, model)

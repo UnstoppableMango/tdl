@@ -43,7 +43,7 @@ type memberKey struct {
 // lowerTargets resolves every target block against the model and attaches
 // each directive to the node it applies to, with class paths expanded and
 // the ladder applied. Ties are kept in source order for
-// gen.CheckDirectives.
+// host.CheckDirectives.
 func (l *lowerer) lowerTargets(file *ast.File) {
 	t := &targetPass{
 		lowerer:  l,
@@ -252,7 +252,7 @@ func (l *lowerer) classDistance(decl *ir.Decl, class *ir.ID) int {
 }
 
 // resolveConflicts applies the ladder: per directive name, the most
-// specific candidates win, all kept in source order. gen.CheckDirectives
+// specific candidates win, all kept in source order. host.CheckDirectives
 // reports ties.
 func (l *lowerer) resolveConflicts(cands []candidate) []*ir.Directive {
 	key := func(c candidate) string { return c.directive.GetTarget() + "\x00" + c.directive.GetName() }
