@@ -7,6 +7,7 @@ package contextmapper
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -71,7 +72,11 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	id := packageID(pkg)
 	bc := id
 	if name, ok := g.Block("context"); ok {
-		bc = name.GetArgs()[0].GetText()
+		if n := name.GetArgs()[0].GetText(); identifier.MatchString(n) {
+			bc = n
+		} else {
+			g.Lossy(emit.LossName, name.GetPosition(), "context %q is not a CML identifier, so the bounded context is named %s", n, id)
+		}
 	}
 
 	own := g.Own()
@@ -208,15 +213,25 @@ func (g *generator) aggregates(kept []rendered) []aggregate {
 	}
 
 	// root follows owners to the entity no one owns. A cycle of owners has
-	// no such entity, so the first declaration met on it is the root.
+	// no such entity, so its member declared first is the root, whichever
+	// member the walk starts from.
 	root := func(d *ir.Decl) *ir.Decl {
 		seen := map[*ir.Decl]bool{}
 		for {
+			seen[d] = true
 			up, ok := owner[d]
-			if !ok || seen[up] {
+			if !ok {
 				return d
 			}
-			seen[d] = true
+			if seen[up] {
+				first := up
+				for c := owner[up]; c != up; c = owner[c] {
+					if index[c] < index[first] {
+						first = c
+					}
+				}
+				return first
+			}
 			d = up
 		}
 	}
@@ -601,6 +616,9 @@ func doc(b *strings.Builder, indent string, m *ir.Meta) {
 func quote(s string) string {
 	return `"` + strings.NewReplacer(`\`, `\\`, `"`, `\"`, "\n", `\n`).Replace(s) + `"`
 }
+
+// identifier is Xtext's ID terminal without its ^ escape, which ident adds.
+var identifier = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
 // ident escapes a name CML reserves with ^, as Xtext does.
 func ident(name string) string {

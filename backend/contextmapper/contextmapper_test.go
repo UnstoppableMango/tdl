@@ -46,8 +46,8 @@ func generate(t *testing.T, m *ir.Model) (string, *plugin.Response) {
 }
 
 // validate runs cml-check, the Context Mapper parser and validator, when it
-// is on PATH. No CLI ships with Context Mapper; testdata/cmlcheck builds
-// one from the context-mapper-dsl jar.
+// is on PATH. testdata/cmlcheck builds it from the context-mapper-dsl jar;
+// docs/design/contextmapper-spike.md weighs Context Mapper's own CLI.
 func validate(t *testing.T, f *plugin.File) {
 	t.Helper()
 	if testing.Short() {
@@ -205,4 +205,44 @@ type Holder { page: Page<int> }
 type Kept: Entity { name: string }
 `))
 	warned(t, resp, "Page is parameterized", "Holder names Page")
+}
+
+// Entities owning each other form one aggregate, rooted at the one declared
+// first, from whichever member the walk starts.
+func TestOwnerCycle(t *testing.T) {
+	src, _ := generate(t, lower(t, `package p
+
+type A: Entity { b: B owned }
+
+type B: Entity { a: A owned }
+`))
+	if n := strings.Count(src, "Aggregate "); n != 1 {
+		t.Errorf("%d aggregates, want 1:\n%s", n, src)
+	}
+	contains(t, src, "  Aggregate A {\n    Entity A {\n      aggregateRoot\n", "    Entity B {\n      - @A ^a\n")
+}
+
+// A context directive that is not an identifier warns and keeps the
+// package's name.
+func TestContextName(t *testing.T) {
+	src, resp := generate(t, lower(t, `package shop.billing
+
+type Order: Entity { id: string }
+
+target cml for shop.billing {
+  context("Order Management")
+}
+`))
+	contains(t, src, "BoundedContext shop_billing {")
+	warned(t, resp, `context "Order Management" is not a CML identifier`)
+
+	src, _ = generate(t, lower(t, `package shop.billing
+
+type Order: Entity { id: string }
+
+target cml for shop.billing {
+  context("Billing")
+}
+`))
+	contains(t, src, "BoundedContext Billing {")
 }

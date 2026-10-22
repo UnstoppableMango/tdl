@@ -15,7 +15,10 @@ Worth a short design, as an output-only backend in the shape of [likec4-backend.
   The newest release on Maven Central is `org.contextmapper:context-mapper-dsl` 6.12.0 (August 2024), which is what the spike validates against.
   `master` had two README and workflow commits in July 2025, then on 2026-10-20 a build update (#390: Java 17, Xtext 2.42, Gradle 8, Tycho 4, publishing through the Central Portal), which reads as preparation for 6.12.1.
   Neither touches a `.xtext` grammar, so the quirks below hold on `master` too.
-  It is an Xtext and Eclipse stack and ships no command line tool, so checking output means a Java harness over the jar, which the spike builds in `backend/contextmapper/testdata/cmlcheck`.
+  It is an Xtext and Eclipse stack.
+- Context Mapper ships a command line tool, [context-mapper-cli](https://github.com/ContextMapper/context-mapper-cli) 6.12.0, whose `cm validate -i` validates a CML file.
+  The spike missed it and validates through a Java harness over the DSL jar instead, in `backend/contextmapper/testdata/cmlcheck`, which prints every error and warning with its line.
+  Whether `cm validate` reports warnings and a failing exit status as the tests need was not checked, since Maven Central rate-limited the download; a design should prefer the CLI if it does.
 - Import, CML to TDL, is not worth it now: it needs that Java parser at run time, and CML holds Sculptor's persistence options that TDL has no place for.
 
 ## Mapping
@@ -107,7 +110,7 @@ Both the smoke model and a shop model with two aggregates, a shared aggregate, a
 
 ## If a design follows
 
-1. Elements and aggregates: what the prototype does, registered, with `cmd/tdl-gen-cml`, a feature table, and a nix check running the harness through `buildMavenPackage`.
+1. Elements and aggregates: what the prototype does, registered, with `cmd/tdl-gen-cml`, a feature table, and and a nix check running `cm validate`, or the harness through `buildMavenPackage`.
 1. Context map: imports, one file per package, and directives for relationship roles.
 1. Services: `Service` and operations from the `service` and `rpc` tags.
 1. Overrides: `aggregate`, `name`, and the bounded context's `type`, `domainVisionStatement`, and `responsibilities`.
