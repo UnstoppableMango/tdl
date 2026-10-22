@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/unstoppablemango/tdl/backend/protobuf"
-	"github.com/unstoppablemango/tdl/internal/gen"
+	"github.com/unstoppablemango/tdl/internal/host"
 )
 
 // rpc and stream primitives merged in with a `_` import tag their externs,
@@ -36,7 +36,7 @@ target protobuf for acme.widgets.v1 {
 }
 `
 	model := lower(t, "main.tdl", src, sources{"rpc.tdl": rpcSource})
-	if problems := gen.CheckDirectives(protobuf.Name, model, protobuf.Backend{}.Describe()); len(problems) != 0 {
+	if problems := host.CheckDirectives(protobuf.Name, model, protobuf.Backend{}.Describe()); len(problems) != 0 {
 		t.Errorf("directive problems = %+v", problems)
 	}
 

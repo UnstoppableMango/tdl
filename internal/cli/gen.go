@@ -12,6 +12,7 @@ import (
 
 	"github.com/unstoppablemango/tdl/internal/config"
 	"github.com/unstoppablemango/tdl/internal/gen"
+	"github.com/unstoppablemango/tdl/internal/host"
 	"github.com/unstoppablemango/tdl/internal/sema"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -216,14 +217,14 @@ func (r *genRun) generate(path string) error {
 
 		// Checked before running so a mistyped directive fails with a
 		// position instead of after some files are written.
-		problems := gen.CheckDirectives(t.Name, model, backend.Describe())
+		problems := host.CheckDirectives(t.Name, model, backend.Describe())
 		reportDiagnostics(cmd, problems)
-		if gen.Fatal(problems) {
+		if host.Fatal(problems) {
 			return fmt.Errorf("target %s uses a directive incorrectly", t.Name)
 		}
 
 		result, err := gen.Run(cmd.Context(), backend, t, model, mode)
-		reportDiagnostics(cmd, gen.Silence(result.Diagnostics, slices.Concat(cfg.Allowed(t.Name), r.allowLossy)))
+		reportDiagnostics(cmd, host.Silence(result.Diagnostics, slices.Concat(cfg.Allowed(t.Name), r.allowLossy)))
 		if err != nil {
 			return err
 		}

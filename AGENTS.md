@@ -158,9 +158,11 @@ The plugin protocol in `docs/design/plugins.md` is complete.
   It also reads each constraint (`constraints.go`) and, under a backend's declared `Numbering`, numbers every field and variant (`numbers.go`); `emit.Length`, `Pattern`, `ConstraintText`, and `Session.Numbers` share that code, and `Session.NumbersIn` reads the numbers a request carries.
   `Request` builds every request a host sends, returning a length that can never hold or a refused pin as errors to report before the backend runs.
   Under a `roundtrip` directive it also carries the model as TDL (`source.go`), which `emit`'s round-trip helpers read; `Imported` lowers an import response that returns TDL source instead of a model.
-- `internal/gen`: the compiler side of the plugin protocol: the backend registry, request building, writing returned files, and `Silence`, which drops warnings with an allowed loss code.
-  `check.go` holds every directive to its backend's `DirectiveSpec` (arity, kinds, placement, allowed values, repeats) before the backend runs, so a backend need not check them itself.
+- `internal/gen`: the compiler side of the plugin protocol: the backend registry, request building, and writing returned files.
   `internal/gen/echo` is a test backend that writes a model as JSON and imports it back; it is not compiled into `tdl`.
+- `internal/host`: what a host does around a backend, importing none, so a backend hosting itself can use it.
+  `check.go` holds every directive to its backend's `DirectiveSpec` (arity, kinds, placement, allowed values, repeats) before the backend runs, so a backend need not check them itself.
+  `Silence` drops warnings with an allowed loss code, and `Allowed` reads which codes `tdl.toml` allows.
 - `internal/config`: reads the nearest `tdl.toml` above a file; only its `[lossy]` table so far.
 - `internal/cli`: cobra commands (`ast`, `check`, `fmt`, `gen`, `import`, `ir`, `lsp`, `play`, `tokens`, `version`). See [CLI](#cli).
 - `internal/lsp`: the language server. See [Language server](#language-server).

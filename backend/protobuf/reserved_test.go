@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/unstoppablemango/tdl/backend/protobuf"
-	"github.com/unstoppablemango/tdl/internal/gen"
+	"github.com/unstoppablemango/tdl/internal/host"
 	"github.com/unstoppablemango/tdl/internal/sema"
 	"github.com/unstoppablemango/tdl/parser"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -35,7 +35,7 @@ func TestReservedOnAMessage(t *testing.T) {
 		t.Fatalf("lowering reported %v", diags)
 	}
 
-	if problems := gen.CheckDirectives(protobuf.Name, model, protobuf.Backend{}.Describe()); len(problems) != 0 {
+	if problems := host.CheckDirectives(protobuf.Name, model, protobuf.Backend{}.Describe()); len(problems) != 0 {
 		t.Errorf("problems = %v, want none: protobuf declares reserved, and repeatable", problems)
 	}
 

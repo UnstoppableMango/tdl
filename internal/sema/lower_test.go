@@ -1745,7 +1745,7 @@ target proto for p {
 	}
 }
 
-// Both entries survive, in source order; gen.CheckDirectives reports the
+// Both entries survive, in source order; host.CheckDirectives reports the
 // tie.
 func TestEqualSpecificityKeepsEveryCandidate(t *testing.T) {
 	model := lower(t, `

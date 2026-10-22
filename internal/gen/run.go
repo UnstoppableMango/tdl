@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"slices"
 
 	"github.com/unstoppablemango/tdl/internal/analysis"
+	"github.com/unstoppablemango/tdl/internal/host"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -48,7 +48,7 @@ func Targets(model *ir.Model, override string) ([]Target, error) {
 // outOf reads a block's `out("...")` directive.
 func outOf(block *ir.TargetBlock) string {
 	for _, d := range block.GetDirectives() {
-		if d.GetName() != outDirective || len(d.GetArgs()) == 0 {
+		if d.GetName() != host.OutDirective || len(d.GetArgs()) == 0 {
 			continue
 		}
 		return d.GetArgs()[0].GetText()
@@ -82,7 +82,7 @@ type Result struct {
 // Run generates one target and does what mode says with the result.
 func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.Model, mode Mode) (Result, error) {
 	req, problems := analysis.Request(model, backend.Describe(), target.Name, target.Out)
-	if Fatal(problems) {
+	if host.Fatal(problems) {
 		return Result{Target: target.Name, Diagnostics: problems}, fmt.Errorf("target %s cannot be generated from this model", target.Name)
 	}
 	req.DryRun = mode == ModeVerify
@@ -92,7 +92,7 @@ func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.M
 	}
 
 	result := Result{Target: target.Name, Diagnostics: resp.GetDiagnostics()}
-	if Fatal(resp.GetDiagnostics()) {
+	if host.Fatal(resp.GetDiagnostics()) {
 		return result, fmt.Errorf("target %s reported errors", target.Name)
 	}
 
@@ -120,20 +120,4 @@ func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.M
 		return result, fmt.Errorf("target %s: %w", target.Name, err)
 	}
 	return result, nil
-}
-
-// Fatal reports whether any diagnostic is an error rather than a warning.
-func Fatal(diags []*plugin.Diagnostic) bool {
-	return slices.ContainsFunc(diags, func(d *plugin.Diagnostic) bool {
-		return d.GetSeverity() == plugin.Severity_SEVERITY_ERROR
-	})
-}
-
-// Silence drops the warnings whose loss code is allowed. An error is never
-// dropped, and neither is a warning with no code.
-func Silence(diags []*plugin.Diagnostic, allowed []string) []*plugin.Diagnostic {
-	return slices.DeleteFunc(slices.Clone(diags), func(d *plugin.Diagnostic) bool {
-		return d.GetSeverity() == plugin.Severity_SEVERITY_WARNING &&
-			d.GetCode() != "" && slices.Contains(allowed, d.GetCode())
-	})
 }

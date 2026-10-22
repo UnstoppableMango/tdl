@@ -16,7 +16,7 @@ import (
 
 	"github.com/unstoppablemango/tdl/backend/internal/irtest"
 	"github.com/unstoppablemango/tdl/backend/protobuf"
-	"github.com/unstoppablemango/tdl/internal/gen"
+	"github.com/unstoppablemango/tdl/internal/host"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -541,7 +541,7 @@ func TestFileDirective(t *testing.T) {
 			Position: &ir.Position{Filename: "account.tdl", Line: 2},
 		}},
 	}}
-	if problems := gen.CheckDirectives(protobuf.Name, b.Model, protobuf.Backend{}.Describe()); len(problems) != 0 {
+	if problems := host.CheckDirectives(protobuf.Name, b.Model, protobuf.Backend{}.Describe()); len(problems) != 0 {
 		t.Errorf("file directive problems = %+v", problems)
 	}
 	resp = generate(t, b)

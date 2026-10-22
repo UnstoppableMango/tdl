@@ -9,6 +9,7 @@ import (
 
 	"github.com/unstoppablemango/tdl/internal/analysis"
 	"github.com/unstoppablemango/tdl/internal/gen"
+	"github.com/unstoppablemango/tdl/internal/host"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -25,7 +26,7 @@ func TestHostNumbersAsTheBackendWould(t *testing.T) {
 		numbered++
 		for path, model := range corpora(t) {
 			req, problems := analysis.Request(model, backend.Describe(), name, "out")
-			if gen.Fatal(problems) {
+			if host.Fatal(problems) {
 				t.Errorf("%s: %s: %v", path, name, problems)
 				continue
 			}
@@ -61,7 +62,7 @@ func TestHostCarriesSourceAsTheBackendWould(t *testing.T) {
 		carrying++
 		for path, model := range corpora(t) {
 			req, problems := analysis.Request(withRoundtrip(model, name), backend.Describe(), name, "out")
-			if gen.Fatal(problems) {
+			if host.Fatal(problems) {
 				continue
 			}
 			if req.GetAnalysis().GetSource() == nil {
