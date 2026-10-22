@@ -26,6 +26,7 @@ buildGoApplication {
     "cmd/tdl-gen-smithy"
     "cmd/tdl-gen-thrift"
     "cmd/tdl-gen-typescript"
+    "cmd/tdl-gen-zod"
   ];
 
   # The csharp backend is a .NET plugin, shipped beside the Go binaries.

@@ -19,6 +19,7 @@ import (
 	"github.com/unstoppablemango/tdl/ast"
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/backend/internal/reverse"
+	"github.com/unstoppablemango/tdl/backend/internal/ts"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/lex"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -28,9 +29,6 @@ import (
 //
 //go:embed outline.js
 var outlineScript string
-
-// defaultFile names the file of a model without a package.
-const defaultFile = "model"
 
 // Import reads one .ts file into a model: each interface a struct, each
 // union of string literals an enum, a union of interfaces that nothing
@@ -276,7 +274,7 @@ func (r *reader) at(line, col int) ast.Position {
 // unless it is the one a model without a package is written to.
 func packageBack(file string) string {
 	name := strings.TrimSuffix(strings.TrimSuffix(path.Base(file), ".ts"), ".d")
-	if name == defaultFile {
+	if name == ts.DefaultFile {
 		return ""
 	}
 	return name
@@ -287,7 +285,7 @@ func packageBack(file string) string {
 func (r *reader) header(file *ast.File, docs map[*statement]*jsdoc) (string, []reverse.Item, []string, error) {
 	pkg := packageBack(r.path)
 	if pkg != "" && !tdlName(pkg) {
-		r.Warn(emit.LossName, r.pos(0, 0), "%s names no package, and regenerates as %s.ts", r.path, defaultFile)
+		r.Warn(emit.LossName, r.pos(0, 0), "%s names no package, and regenerates as %s.ts", r.path, ts.DefaultFile)
 		pkg = ""
 	}
 

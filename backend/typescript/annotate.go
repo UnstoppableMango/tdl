@@ -9,6 +9,7 @@ import (
 
 	"github.com/unstoppablemango/tdl/ast"
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
+	"github.com/unstoppablemango/tdl/backend/internal/ts"
 	"github.com/unstoppablemango/tdl/internal/unlower"
 	"github.com/unstoppablemango/tdl/ir"
 )
@@ -304,9 +305,9 @@ func (g *generator) typeLosses(id *ir.ID, at *ir.Position, m mode) {
 	case name == "List" && wrote != ir.SyntacticForm_SYNTACTIC_FORM_BRACKETS,
 		name == "Map" && wrote != ir.SyntacticForm_SYNTACTIC_FORM_ARROW:
 		g.lose(emit.LossCollection, pos, "%s reads back written as sugar", name)
-	case scalars[name] == "string" && name != "string":
+	case ts.Scalars[name] == "string" && name != "string":
 		g.lose(emit.LossPrimitive, pos, "%s is a TypeScript string, which reads back as string", name)
-	case scalars[name] == "number" && name != "float64":
+	case ts.Scalars[name] == "number" && name != "float64":
 		g.lose(emit.LossPrimitive, pos, "%s is a TypeScript number, which reads back as float64", name)
 	}
 	for i, arg := range args {
@@ -390,7 +391,7 @@ func literalsBack(lits string) (*ast.TypeRef, *ast.Constraint) {
 func (g *generator) backType(r *emit.Ref, m mode) *ast.TypeRef {
 	switch r.Form {
 	case emit.Prim:
-		switch scalars[r.Name] {
+		switch ts.Scalars[r.Name] {
 		case "number":
 			return &ast.TypeRef{N: "float64"}
 		case "boolean":

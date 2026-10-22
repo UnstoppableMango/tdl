@@ -22,6 +22,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/smithy"
 	"github.com/unstoppablemango/tdl/backend/thrift"
 	"github.com/unstoppablemango/tdl/backend/typescript"
+	"github.com/unstoppablemango/tdl/backend/zod"
 	"github.com/unstoppablemango/tdl/internal/gen/echo"
 	"github.com/unstoppablemango/tdl/internal/sema"
 	"github.com/unstoppablemango/tdl/ir"
@@ -54,6 +55,7 @@ var targets = []roundtrip.Target{
 		_, _, err := typescript.Compiler()
 		return err
 	}},
+	{Backend: zod.Backend{}},
 }
 
 // TestCorpus runs every target's cases in testdata/roundtrip/<target>, and

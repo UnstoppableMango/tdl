@@ -7,12 +7,12 @@ import (
 	"context"
 	"fmt"
 	"maps"
-	"regexp"
 	"slices"
 	"strconv"
 	"strings"
 
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
+	"github.com/unstoppablemango/tdl/backend/internal/ts"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -47,44 +47,6 @@ func (Backend) Describe() plugin.Description {
 	}
 }
 
-// scalars maps a TDL primitive to the TypeScript type of its JSON value.
-// Every numeric is a number, exact only to 2^53.
-var scalars = map[string]string{
-	"string":   "string",
-	"int":      "number",
-	"int32":    "number",
-	"int64":    "number",
-	"uint32":   "number",
-	"uint64":   "number",
-	"float32":  "number",
-	"float64":  "number",
-	"bool":     "boolean",
-	"bytes":    "string",
-	"decimal":  "string",
-	"uuid":     "string",
-	"instant":  "string",
-	"date":     "string",
-	"duration": "string",
-}
-
-// reserved is the words TypeScript refuses as a type name, `await`
-// included, since an emitted file is a module.
-var reserved = map[string]bool{}
-
-func init() {
-	for _, w := range strings.Fields(`
-		any as await boolean break case catch class const continue debugger default
-		delete do else enum export extends false finally for function if
-		implements import in instanceof interface let never new null number
-		object package private protected public return static string super
-		switch symbol this throw true try type typeof undefined unknown var
-		void while with yield`) {
-		reserved[w] = true
-	}
-}
-
-var ident = regexp.MustCompile(`^[A-Za-z_$][A-Za-z0-9_$]*$`)
-
 type generator struct {
 	*emit.Session
 
@@ -118,10 +80,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	g.Roundtrip = g.Bare("roundtrip")
 
 	pkg := req.GetModel().GetPackage()
-	path := defaultFile + ".ts"
-	if pkg != "" {
-		path = emit.LastSegment(pkg) + ".ts"
-	}
+	path := ts.File(pkg) + ".ts"
 	if back := packageBack(path); back != pkg {
 		g.Lose(emit.LossName, nil, "package %s is written %s, which reads back as package %q", pkg, path, back)
 	}
@@ -222,7 +181,7 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 
 	local := map[string]bool{}
 	for _, n := range declared {
-		if !ident.MatchString(n) || reserved[n] {
+		if !ts.CanName(n) {
 			return "", emit.Unsupported(pos, "%s would be named %s in TypeScript, which cannot name a type", name, n)
 		}
 		if local[n] {
@@ -362,7 +321,7 @@ func (g *generator) iface(b *strings.Builder, name string, meta *ir.Meta, tags [
 	seen := map[string]bool{}
 	if disc != "" {
 		seen[disc] = true
-		fmt.Fprintf(&body, "  %s: %s;\n", property(disc), strconv.Quote(tag))
+		fmt.Fprintf(&body, "  %s: %s;\n", ts.Property(disc), strconv.Quote(tag))
 	}
 
 	for _, f := range fields {
@@ -465,7 +424,7 @@ func (g *generator) property(name string, r *emit.Ref, cs []*ir.Constraint) (str
 	if optional {
 		q = "?"
 	}
-	return fmt.Sprintf("%s%s: %s;", property(name), q, typ), nil
+	return fmt.Sprintf("%s%s: %s;", ts.Property(name), q, typ), nil
 }
 
 // typ is the TypeScript type for a reference. An optional collection
@@ -473,7 +432,7 @@ func (g *generator) property(name string, r *emit.Ref, cs []*ir.Constraint) (str
 func (g *generator) typ(r *emit.Ref) (string, error) {
 	switch r.Form {
 	case emit.Prim:
-		typ, ok := scalars[r.Name]
+		typ, ok := ts.Scalars[r.Name]
 		if !ok {
 			return "", emit.Unsupported(r.Pos, "primitive %s has no TypeScript type", r.Name)
 		}
@@ -521,7 +480,7 @@ func (g *generator) record(r *emit.Ref) (string, error) {
 	}
 
 	switch {
-	case kx.Form == emit.Prim && (scalars[kx.Name] == "string" || scalars[kx.Name] == "number"):
+	case kx.Form == emit.Prim && (ts.Scalars[kx.Name] == "string" || ts.Scalars[kx.Name] == "number"):
 		return "Record<" + key + ", " + val + ">", nil
 	case kx.Form == emit.Named && kx.Decl.GetEnumeration() != nil && !emit.Fielded(kx.Decl.GetEnumeration()):
 		return "Partial<Record<" + key + ", " + val + ">>", nil
@@ -530,11 +489,3 @@ func (g *generator) record(r *emit.Ref) (string, error) {
 }
 
 func asWritten(name string) string { return name }
-
-// property quotes a property name that is not an identifier.
-func property(name string) string {
-	if ident.MatchString(name) {
-		return name
-	}
-	return strconv.Quote(name)
-}
