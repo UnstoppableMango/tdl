@@ -246,6 +246,34 @@ target zod for shop {
 	}
 }
 
+// An import may not bind a name the module declares for itself.
+func TestForeignReservedName(t *testing.T) {
+	for _, name := range []string{"z", "decimal"} {
+		resp, src := gen(t, `package shop
+
+type Money {
+  units: int
+}
+
+type Order {
+  total: Money
+}
+
+type Fine {
+  a: string
+}
+
+target zod for shop {
+  Money => foreign("./money.js", "`+name+`")
+}
+`)
+		absent(t, src, "export const Order", "import {")
+		if !warned(resp, "", "an import would bind "+name) {
+			t.Errorf("%s: diagnostics = %v", name, resp.GetDiagnostics())
+		}
+	}
+}
+
 // An import naming what a declaration declares skips the declaration
 // importing it.
 func TestForeignConflict(t *testing.T) {

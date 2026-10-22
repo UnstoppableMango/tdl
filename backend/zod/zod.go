@@ -111,6 +111,16 @@ func init() {
 	}
 }
 
+// reserved refuses an import binding a name the module declares for
+// itself, and takes the import back.
+func (g *generator) reserved(name string, at *ir.Position) error {
+	if !moduleNames[name] {
+		return nil
+	}
+	delete(g.uses, name)
+	return emit.Unsupported(at, "an import would bind %s, which the module declares for itself", name)
+}
+
 // schema is a Zod expression and the TypeScript type of the schema it
 // builds, which a getter's return type spells.
 type schema struct {
@@ -592,6 +602,9 @@ func (g *generator) typ(r *emit.Ref) (schema, error) {
 		if err != nil {
 			return schema{}, err
 		}
+		if err := g.reserved(name, r.Pos); err != nil {
+			return schema{}, err
+		}
 		return schema{expr: name, typ: "typeof " + name}, nil
 	case emit.Named:
 		if f, ok := g.Find(r.Decl.GetDirectives(), "foreign"); ok {
@@ -600,6 +613,9 @@ func (g *generator) typ(r *emit.Ref) (schema, error) {
 			args := f.GetArgs()
 			name, err := g.uses.Add(r.Decl.GetMeta().GetName(), args[0].GetText(), args[1].GetText(), f.GetPosition())
 			if err != nil {
+				return schema{}, err
+			}
+			if err := g.reserved(name, f.GetPosition()); err != nil {
 				return schema{}, err
 			}
 			return schema{expr: name, typ: "typeof " + name}, nil
