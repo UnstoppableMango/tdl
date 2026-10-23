@@ -64,7 +64,7 @@ type generator struct {
 	// declares holds the type names each rendered declaration declares;
 	// uses holds the imports the declaration being rendered refers to.
 	declares map[*ir.Decl][]string
-	uses     map[string]imported
+	uses     ts.Uses
 }
 
 // Generate returns one .ts file holding the model's declarations.
@@ -94,10 +94,10 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	// Each declaration's warnings are held until the cascade decides
 	// whether it is emitted, since a skipped one loses everything at once.
 	held := map[*ir.Decl][]*plugin.Diagnostic{}
-	uses := map[*ir.Decl]map[string]imported{}
+	uses := map[*ir.Decl]ts.Uses{}
 	for _, d := range own {
 		mark := len(g.Diags)
-		g.uses = map[string]imported{}
+		g.uses = ts.Uses{}
 		text, err := g.decl(d)
 		uses[d] = g.uses
 		if err != nil {
@@ -113,7 +113,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	mark := len(g.Diags)
 	for {
 		g.Cascade(own, skipped)
-		if !g.importConflicts(own, skipped, uses) {
+		if !ts.Conflicts(own, skipped, g.declares, uses, g.Skip) {
 			break
 		}
 	}
@@ -129,7 +129,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 
 	var blocks []string
 	emitted := map[string]bool{}
-	imports := map[string]imported{}
+	imports := ts.Uses{}
 	for _, d := range own {
 		if text := texts[d]; text != "" && !skipped[d] {
 			blocks = append(blocks, text)
@@ -137,7 +137,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 			maps.Copy(imports, uses[d])
 		}
 	}
-	if lines := importLines(imports); lines != "" {
+	if lines := ts.Lines(imports, "import type"); lines != "" {
 		blocks = append([]string{lines}, blocks...)
 	}
 	if footer := g.footer(path, emitted); footer != "" {

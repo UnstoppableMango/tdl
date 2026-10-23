@@ -578,8 +578,8 @@ type Account {
 		"/** * An account. * * @deprecated use User */ export type Account = z.infer<typeof Account>;")
 }
 
-// Phase 1 checks no where constraint, writes no default, and gives a unit
-// no brand, and each warns.
+// Phase 1 checks no where constraint and gives a unit no brand, and each
+// warns.
 func TestNotYet(t *testing.T) {
 	resp, src := gen(t, `package shop
 
@@ -589,12 +589,12 @@ type Qty: int where { min(1) }
 
 type Parcel {
   weight: decimal<kg>
-  count: int where { max(9) } = 1
+  count: int where { max(9) }
   qty: Qty
 }
 `)
 	contains(t, src, `weight: decimal,`, `count: z.int(),`, `export const Qty = z.int();`)
-	absent(t, src, ".min(", ".max(", ".default(")
+	absent(t, src, ".min(", ".max(")
 	for _, w := range []struct {
 		code  string
 		words []string
@@ -603,7 +603,6 @@ type Parcel {
 		{emit.LossUnit, []string{"Parcel.weight"}},
 		{emit.LossConstraint, []string{"Parcel.count"}},
 		{emit.LossConstraint, []string{"Qty"}},
-		{emit.LossDefault, []string{"Parcel.count"}},
 	} {
 		if !warned(resp, w.code, w.words...) {
 			t.Errorf("no %s warning mentions %v: %v", w.code, w.words, resp.GetDiagnostics())

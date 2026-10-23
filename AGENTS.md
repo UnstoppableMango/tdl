@@ -218,7 +218,7 @@ Every backend reports what it cannot generate as a positioned warning rather tha
 - `backend/typescript`: one `.ts` file per model of JSON wire types, no runtime code.
   A set is an array, a map a `Record`, unrepresentable primitives a string, a newtype a plain alias.
   A fielded enum is a union discriminated on `kind`, renamed by a `discriminant` directive.
-  `extern.go` imports an extern with `import type`: from the module a `foreign` directive names, or from its dependency's file by a path relative to this one, which both blocks' `out` directives place.
+  An extern is imported with `import type`, through `backend/internal/ts`'s `imports.go`: from the module a `foreign` directive names, or from its dependency's file by a path relative to this one, which both blocks' `out` directives place.
   `narrow.go` writes a `oneOf`, or an integer `min`/`max` pair spanning at most 16 values, as a literal union, which warns only that it reads back as `oneOf`.
   Tests run `tsc --noEmit --strict` when it is on `PATH`; `checks.gen-typescript` always does.
   It imports one file: `reverse.go` runs the embedded `outline.js` under `node` with the `typescript` package found from `tsc` on `PATH`, and reads the JSON outline it writes; without both, import and its tests skip.
@@ -229,7 +229,9 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   A struct is a `z.object`, or `z.strictObject` under `closed`; a fieldless enum a `z.enum`, a fielded one a `z.discriminatedUnion` of variant objects; a newtype a schema of its base, and an alias is expanded.
   `T?` is `.exactOptional()`, a set an array refusing duplicates through the module's `unique` helper, and `decimal` and `instant` are helpers too, each declared only when used.
   A field naming a declaration written later, its own, or a lazy newtype is a getter with its return type written; a newtype whose base is written later is a `z.lazy` with its type written.
-  Only phase 1 of `zod-backend-plan.md` is built: constraints, defaults, units, and externs warn.
+  A default is `.default()`, checked in `defaults.go` against the rules Zod would apply, since Zod checks none; one it would refuse warns and is not written.
+  A `foreign` directive imports a schema in place of a declaration or an extern, and an extern otherwise comes from its dependency's `zod` block, as in `typescript`.
+  Phases 1 and 2 of `zod-backend-plan.md` are built: constraints, units, generics, and classes warn.
   Tests run `tsc --strict --exactOptionalPropertyTypes` over every response and parse JSON with it under `node`, when `tsc`, `node`, and a `zod` package on `NODE_PATH` are found; the devShell sets `NODE_PATH` from `nix/zod.nix`, and `checks.gen-zod` always runs them on the smoke model.
   An agreement test holds every inferred type and `typescript`'s type for the same declaration assignable to each other.
 - `backend/jsonschema`: one `.schema.json` document per model, every declaration under `$defs`.

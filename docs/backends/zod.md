@@ -2,7 +2,7 @@
 
 The `zod` backend writes one TypeScript module of [Zod](https://zod.dev) schemas per model, each parsing a declaration's JSON wire value and inferring the type the `typescript` backend writes for it.
 The output imports `zod`, 4.3 or later, which is the consumer's dependency.
-[zod-backend.md](../design/zod-backend.md) is its design, and [zod-backend-plan.md](../design/zod-backend-plan.md) orders its phases; phase 1 is built.
+[zod-backend.md](../design/zod-backend.md) is its design, and [zod-backend-plan.md](../design/zod-backend-plan.md) orders its phases; phases 1 and 2 are built.
 
 ## Features
 
@@ -29,7 +29,7 @@ No importer is planned, so every Import cell is No.
 | `oneOf` | Planned (phase 3) | No | | |
 | `unique` | Planned (phase 3) | No | | |
 | `owned` | Yes | No | | Not written: a schema has no ownership, and a referenced entity is parsed by value. |
-| Field default | Planned (phase 2) | No | | |
+| Field default | Yes | No | `.default(value)` | Checked against the schema when generated, since Zod does not check it; one the schema refuses warns and is not written. |
 | `key` directive | No | No | | The backend declares no `key` directive, since a schema has no identity. |
 | `name` directive | Yes | No | the property or schema name | |
 | `number` directive | No | No | | JSON has no field numbers. |
@@ -37,6 +37,6 @@ No importer is planned, so every Import cell is No.
 | Type parameters | Planned (phase 5) | No | | |
 | Class | Planned (phase 5) | No | | |
 | Unit | Planned (phase 6) | No | | Until then a quantity is its base type, with a warning. |
-| Import and extern | Planned (phase 2) | No | | |
+| Import and extern | Yes | No | an `import` from the dependency's module | Placed by both blocks' `out` directives, or named by a `foreign` directive. |
 
 <!-- /tdl:features -->
