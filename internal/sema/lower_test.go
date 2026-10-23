@@ -234,6 +234,12 @@ func TestUndefinedName(t *testing.T) {
 	if d := diags[0]; d.End.Line != d.Pos.Line || d.End.Col-d.Pos.Col != len("Missing") {
 		t.Errorf("diagnostic spans %s to %s, want the name", d.Pos, d.End)
 	}
+
+	// A newtype over an undefined name inherits no constraints from it.
+	diags = lowerDiags(t, `type B: Missing where { min(1) }`)
+	if !strings.Contains(diags.Error(), "undefined: Missing") {
+		t.Errorf("diagnostics = %v", diags)
+	}
 }
 
 // A diagnostic found on the model ranges over the node it names.
@@ -293,12 +299,24 @@ type Order: Entity {
 }
 
 func TestDuplicateDeclaration(t *testing.T) {
-	diags := lowerDiags(t, `
+	src := `
 type A { x: string }
 type A { y: string }
-`)
+`
+	diags := lowerDiags(t, src)
 	if !strings.Contains(diags.Error(), "declared twice") {
 		t.Errorf("diagnostics = %v", diags)
+	}
+
+	// The first declaration keeps the name; the duplicate lowers nothing.
+	file, err := parser.Parse("test.tdl", strings.NewReader(preamble+src))
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+	model, _ := Lower(file)
+	a, _, _ := model.FindDecl("A")
+	if fields := a.GetStructure().GetFields(); len(fields) != 1 || fields[0].GetMeta().GetName() != "x" {
+		t.Errorf("A fields = %v, want the first declaration's x", fields)
 	}
 }
 
@@ -469,9 +487,12 @@ unit A = foo`)
 }
 
 func TestUndefinedUnit(t *testing.T) {
-	diags := lowerDiags(t, `unit A = nope`)
-	if !strings.Contains(diags.Error(), "undefined unit: nope") {
-		t.Errorf("diagnostics = %v", diags)
+	diags := lowerDiags(t, `unit A = nope * gone`)
+	// Every term is reported, not only the first that fails.
+	for _, want := range []string{"undefined unit: nope", "undefined unit: gone"} {
+		if !strings.Contains(diags.Error(), want) {
+			t.Errorf("diagnostics = %v, want %q", diags, want)
+		}
 	}
 }
 
@@ -535,9 +556,25 @@ func TestDuplicateTypeParameter(t *testing.T) {
 }
 
 func TestDuplicateField(t *testing.T) {
-	diags := lowerDiags(t, `type Holder { x: string x: string }`)
+	src := `type Holder { x: string x: string y: string }`
+	diags := lowerDiags(t, src)
 	if !strings.Contains(diags.Error(), "field x is declared twice") {
 		t.Errorf("diagnostics = %v", diags)
+	}
+
+	// The duplicate is dropped and the fields after it still lower.
+	file, err := parser.Parse("test.tdl", strings.NewReader(preamble+src))
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+	model, _ := Lower(file)
+	holder, _, _ := model.FindDecl("Holder")
+	var names []string
+	for _, f := range holder.GetStructure().GetFields() {
+		names = append(names, f.GetMeta().GetName())
+	}
+	if got := strings.Join(names, " "); got != "x y" {
+		t.Errorf("Holder fields = %q, want \"x y\"", got)
 	}
 }
 
@@ -687,10 +724,15 @@ func TestTargetsAreNotTypeNames(t *testing.T) {
 	model := lower(t, `
 type go { x: string }
 target go for p { out("./gen") }
+type After { y: string }
 `)
 
 	if _, _, ok := model.FindDecl("go"); !ok {
 		t.Error("the value named go is missing")
+	}
+	// A declaration after a target block still lowers.
+	if after, _, _ := model.FindDecl("After"); len(after.GetStructure().GetFields()) != 1 {
+		t.Errorf("After = %v, want its field y", after)
 	}
 	if got := len(model.GetTargets()); got != 1 {
 		t.Errorf("got %d target blocks, want 1", got)
@@ -1682,12 +1724,15 @@ func TestSpecificityUsesTheNearestConformance(t *testing.T) {
 		// A conformance unrelated to Base, after Derived, leaves Base one
 		// hop away.
 		{name: "an unrelated conformance last", conf: "Derived, Entity", wants: []string{"derived"}},
+		// Through Top, Derived is one hop away and Base two.
+		{name: "two hops", conf: "Top, Entity", wants: []string{"derived"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			model := lower(t, `
 class Base { x: string }
 class Derived: Base { y: string }
+class Top: Derived { }
 type Ent: `+tt.conf+` { id: string x: string y: string }
 
 target go for p {
