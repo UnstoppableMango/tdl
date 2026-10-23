@@ -21,6 +21,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/smithy"
 	"github.com/unstoppablemango/tdl/backend/thrift"
 	"github.com/unstoppablemango/tdl/backend/typescript"
+	"github.com/unstoppablemango/tdl/backend/zod"
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
@@ -39,6 +40,7 @@ var builtin = map[string]plugin.Backend{
 	smithy.Name:     smithy.Backend{},
 	thrift.Name:     thrift.Backend{},
 	typescript.Name: typescript.Backend{},
+	zod.Name:        zod.Backend{},
 }
 
 // Builtin returns the backend compiled in under name.

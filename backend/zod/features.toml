@@ -1,0 +1,79 @@
+[struct-kind]
+spelling = "`z.object`"
+notes = "Entities, values, and mixins are all objects; a `closed` directive makes one a `z.strictObject`."
+
+[include]
+spelling = "the mixin's properties, copied in"
+
+[enum]
+spelling = "`z.enum` of the variants' names"
+
+[fielded-enum]
+spelling = "a `z.discriminatedUnion` on `kind`"
+notes = "A `discriminant` directive renames `kind`."
+
+[newtype]
+spelling = "a schema of its base"
+notes = "Not branded until phase 3."
+
+[alias]
+spelling = "expanded where used"
+
+[optional]
+spelling = "`.exactOptional()` or `.nullable()`"
+
+[collection]
+spelling = "`z.array`, a uniqueness `refine`, and `z.record`"
+notes = "A map keyed by a fieldless enum is a `z.partialRecord`."
+
+[min]
+planned = "phase 3"
+
+[max]
+planned = "phase 3"
+
+[length]
+planned = "phase 3"
+
+[matches]
+planned = "phase 3"
+notes = "Checked only under a `patterns` directive."
+
+[oneOf]
+planned = "phase 3"
+
+[unique]
+planned = "phase 3"
+
+[owned]
+notes = "Not written: a schema has no ownership, and a referenced entity is parsed by value."
+
+[default]
+spelling = "`.default(value)`"
+notes = "Checked against the schema when generated, since Zod does not check it; one the schema refuses warns and is not written."
+
+[key]
+notes = "The backend declares no `key` directive, since a schema has no identity."
+
+[name]
+spelling = "the property or schema name"
+
+[number]
+notes = "JSON has no field numbers."
+
+[doc]
+spelling = "a JSDoc comment on the schema, its type, and each property"
+
+[generic]
+planned = "phase 5"
+
+[class]
+planned = "phase 5"
+
+[unit]
+planned = "phase 6"
+notes = "Until then a quantity is its base type, with a warning."
+
+[import]
+spelling = "an `import` from the dependency's module"
+notes = "Placed by both blocks' `out` directives, or named by a `foreign` directive."

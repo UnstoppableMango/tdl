@@ -50,11 +50,22 @@ type Boxed {
   maybe: Maybe<string>
 }
 
+type PayRef: Payment
+
+type Shelf {
+  rows: [Tags]
+}
+
 class Named {
   name: string
 }
 
+target rust for shop {
+  discriminant("tag")
+}
+
 target go for shop {
+  file("x")
   discriminant("type")
   Wire => discriminant("via")
 }
@@ -126,6 +137,13 @@ func TestTypeForms(t *testing.T) {
 	if v := field(t, m, a, "pay"); v.GetForm() != plugin.Form_FORM_NAMED || declName(m, v.GetDecl()) != "Payment" {
 		t.Errorf("pay = %v, want the declaration Payment", v)
 	}
+
+	// An argument naming an alias is described as what it expands to.
+	shelf, _, _ := m.FindDecl("Shelf")
+	rows := a.GetTypes()[shelf.Fields()[0].GetType().GetIndex()]
+	if v := typ(rows.GetElem()); rows.GetForm() != plugin.Form_FORM_LIST || v.GetForm() != plugin.Form_FORM_SET || v.GetId().GetIndex() != rows.GetElem().GetIndex() {
+		t.Errorf("rows = %v with element %v, want a list of the entry Tags expands to", rows, v)
+	}
 }
 
 // An enum applied to one argument is an option only when it is the
@@ -156,6 +174,14 @@ func TestTypeRefusals(t *testing.T) {
 	// The prelude's Option and Nullable are written over a parameter.
 	if !slices.Contains(reasons[plugin.Refusal_REASON_PARAM], "T") {
 		t.Errorf("refusals = %v, want the prelude's parameter T refused", reasons)
+	}
+
+	// A collection missing its arguments is refused, not indexed past.
+	byName := m.GetTypes()[field(t, m, a, "byName").GetId().GetIndex()]
+	byName.Args = nil
+	v := analysis.Analyze(m, "go").GetTypes()[field(t, m, a, "byName").GetId().GetIndex()]
+	if r := v.GetRefusal(); r.GetReason() != plugin.Refusal_REASON_MISSING_ARG || r.GetSubject() != "Map" {
+		t.Errorf("Map without arguments = %v, want refused for a missing argument", v)
 	}
 }
 
@@ -211,6 +237,11 @@ func TestDeclViews(t *testing.T) {
 	under := view("WorkEmail").GetUnderlying()
 	if v := a.GetTypes()[under.GetIndex()]; v.GetForm() != plugin.Form_FORM_PRIMITIVE || v.GetName() != "string" {
 		t.Errorf("WorkEmail's underlying type = %v, want string", v)
+	}
+	// A newtype over a declaration that is not one ends at that declaration.
+	under = view("PayRef").GetUnderlying()
+	if v := a.GetTypes()[under.GetIndex()]; v.GetForm() != plugin.Form_FORM_NAMED || declName(m, v.GetDecl()) != "Payment" {
+		t.Errorf("PayRef's underlying type = %v, want Payment", v)
 	}
 }
 

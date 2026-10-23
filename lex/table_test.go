@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"testing"
 
 	"github.com/unstoppablemango/tdl/lex"
@@ -11,13 +12,20 @@ import (
 
 // Every fixed spelling the tables report lexes back to its reported kind.
 func TestFixedSpellingsLexBack(t *testing.T) {
-	var all []string
-	all = append(all, lex.Keywords()...)
-	all = append(all, lex.Punctuation()...)
+	keywords, punct := lex.Keywords(), lex.Punctuation()
 
-	if len(all) == 0 {
-		t.Fatal("no fixed spellings")
+	// Each table is checked alone, so one coming back empty fails here
+	// rather than leaving the loop below to pass over the other.
+	if !slices.Contains(keywords, "type") {
+		t.Errorf("Keywords() = %q, want it to hold \"type\"", keywords)
 	}
+	for _, text := range []string{"{", "}", "->"} {
+		if !slices.Contains(punct, text) {
+			t.Errorf("Punctuation() = %q, want it to hold %q", punct, text)
+		}
+	}
+
+	all := append(keywords, punct...)
 
 	for _, text := range all {
 		kind, ok := lex.Lookup(text)

@@ -108,3 +108,7 @@ target haskell for smoke {
   out("haskell")
   Order => key(id)
 }
+
+target zod for smoke {
+  out("zod")
+}

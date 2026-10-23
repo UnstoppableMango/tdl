@@ -1,6 +1,6 @@
 # Context Mapper spike
 
-Spike report, not a design.
+Spike report, not a design; [cml-backend.md](cml-backend.md) is the design that followed.
 It asks whether TDL should generate [Context Mapper](https://contextmapper.org) Language (CML), and records what a prototype in `backend/contextmapper` found.
 
 ## Recommendation
@@ -18,7 +18,7 @@ Worth a short design, as an output-only backend in the shape of [likec4-backend.
   It is an Xtext and Eclipse stack.
 - Context Mapper ships a command line tool, [context-mapper-cli](https://github.com/ContextMapper/context-mapper-cli) 6.12.0, whose `cm validate -i` validates a CML file.
   The spike missed it and validates through a Java harness over the DSL jar instead, in `backend/contextmapper/testdata/cmlcheck`, which prints every error and warning with its line.
-  Whether `cm validate` reports warnings and a failing exit status as the tests need was not checked, since Maven Central rate-limited the download; a design should prefer the CLI if it does.
+  Checked afterwards: `cm validate` reports only syntax errors, misses the validators' errors (two roots in one aggregate, an unresolved reference), and exits 0 whatever it finds, so the design keeps the harness and compiles it against the CLI's jars.
 - Import, CML to TDL, is not worth it now: it needs that Java parser at run time, and CML holds Sculptor's persistence options that TDL has no place for.
 
 ## Mapping
@@ -110,7 +110,7 @@ Both the smoke model and a shop model with two aggregates, a shared aggregate, a
 
 ## If a design follows
 
-1. Elements and aggregates: what the prototype does, registered, with `cmd/tdl-gen-cml`, a feature table, and and a nix check running `cm validate`, or the harness through `buildMavenPackage`.
+1. Elements and aggregates: what the prototype does, registered, with `cmd/tdl-gen-cml`, a feature table, and a nix check running the harness.
 1. Context map: imports, one file per package, and directives for relationship roles.
 1. Services: `Service` and operations from the `service` and `rpc` tags.
 1. Overrides: `aggregate`, `name`, and the bounded context's `type`, `domainVisionStatement`, and `responsibilities`.

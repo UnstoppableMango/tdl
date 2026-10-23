@@ -65,6 +65,24 @@ type Order: Auditable { createdAt: string }
 			want: "Order.createdAt is string, but Auditable requires instant",
 		},
 		{
+			name: "a missing field does not end the check",
+			src: `
+class Auditable { createdAt: instant updatedAt: instant }
+type Order: Auditable { updatedAt: string }
+`,
+			want: "Order.updatedAt is string, but Auditable requires instant",
+		},
+		{
+			name: "an instance for an undefined type does not end the check",
+			src: `
+class Auditable { createdAt: instant }
+type Order { id: string }
+instance Auditable for Missing
+instance Auditable for Order
+`,
+			want: "Order has no field createdAt, required by Auditable",
+		},
+		{
 			name: "optional is a different type",
 			src: `
 class Auditable { createdAt: instant }

@@ -17,6 +17,7 @@ The cells are measured by `make features`, so a page cannot claim more than the 
 | [`haskell`](haskell.md) | Haskell |
 | [`csharp`](csharp.md) | C# |
 | [`likec4`](likec4.md) | LikeC4 |
+| [`zod`](zod.md) | Zod |
 
 These are designed and not built yet, and each page names the phase of its plan that builds each feature:
 
@@ -25,11 +26,11 @@ These are designed and not built yet, and each page names the phase of its plan 
 | [`java`](java.md) | Java |
 | [`python`](python.md) | Python |
 | [`rust`](rust.md) | Rust |
-| [`zod`](zod.md) | Zod |
 | [`ocaml`](ocaml.md) | OCaml |
 | [`reason`](reason.md) | Reason |
 | [`sml`](sml.md) | Standard ML |
 | [`fsharp`](fsharp.md) | F# |
+| [`cml`](cml.md) | Context Mapper |
 
 ## Import
 

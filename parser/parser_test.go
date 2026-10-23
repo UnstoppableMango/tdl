@@ -372,6 +372,29 @@ func TestMemberRecoveryResumesAtNextField(t *testing.T) {
 	}
 }
 
+// Recovery stops at a `name:` and parses that field, so its own error is
+// reported too.
+func TestMemberRecoveryReportsTheNextFieldsError(t *testing.T) {
+	msg := parseErr(t, "type A {\n  foo bar\n  y:\n}\n")
+	if !strings.Contains(msg, "test.tdl:2:7") || !strings.Contains(msg, "test.tdl:4:1") {
+		t.Errorf("want errors at 2:7 and 4:1, got %s", msg)
+	}
+}
+
+// Only an identifier, or a reserved word followed by `:`, names a field.
+func TestFieldNameRejectsOtherTokens(t *testing.T) {
+	for _, src := range []string{
+		"type A { 1: string }",
+		`type A { "x": string }`,
+	} {
+		t.Run(src, func(t *testing.T) {
+			if msg := parseErr(t, src); !strings.Contains(msg, "expected a field name") {
+				t.Errorf("error = %s", msg)
+			}
+		})
+	}
+}
+
 func TestEnumValuesRejected(t *testing.T) {
 	if msg := parseErr(t, `enum Role { Admin = "admin" }`); !strings.Contains(msg, "carry fields, not values") {
 		t.Errorf("error = %s", msg)
@@ -845,10 +868,13 @@ func TestUnitVersusTypeArguments(t *testing.T) {
 	}
 }
 
+// Only a bare unqualified name starts a unit; a decorated or qualified one
+// stays a type reference, and the operator after it is an error.
 func TestDecoratedTypeArgumentIsNotAUnit(t *testing.T) {
 	for _, src := range []string{
 		"alias X = decimal<m? / s>",
 		"alias X = decimal<m | null / s>",
+		"alias X = decimal<si.kg * m>",
 	} {
 		t.Run(src, func(t *testing.T) {
 			parseErr(t, src)

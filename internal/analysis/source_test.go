@@ -3,6 +3,7 @@ package analysis_test
 import (
 	"testing"
 
+	"github.com/unstoppablemango/tdl/ast"
 	"github.com/unstoppablemango/tdl/internal/analysis"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -79,6 +80,26 @@ func TestCarryOnlyUnderRoundtrip(t *testing.T) {
 	}
 	if f := view(t, req.GetModel(), req.GetAnalysis(), "Order").GetFields()[0]; f.GetSource() != "" {
 		t.Errorf("field source without roundtrip = %q", f.GetSource())
+	}
+}
+
+// Only a bare roundtrip in the block itself asks for the source: another
+// bare directive does not, and roundtrip on a declaration stays in the
+// carried block.
+func TestRoundtripIsTheBlocksBareDirective(t *testing.T) {
+	m := lower(t, "package shop\n\ntype Order {\n  id: string\n}\n\ntarget other for shop {\n  flag\n}\n")
+	if analysis.Roundtrip(m, "other") {
+		t.Error("a bare flag is roundtrip")
+	}
+
+	m = lower(t, "package shop\n\ntype Order {\n  id: string\n}\n\ntarget wire for shop {\n  roundtrip\n  Order => roundtrip\n}\n")
+	items := analysis.ModelSource(m, "wire").GetItems()
+	if block := "target wire for shop {\n  Order => roundtrip\n}"; len(items) != 2 || items[1].GetSource() != block {
+		t.Errorf("items = %v, want the block %q", items, block)
+	}
+
+	if analysis.WithoutRoundtrip(&ast.TargetDecl{N: "wire"}) == nil {
+		t.Error("an empty block is dropped")
 	}
 }
 
