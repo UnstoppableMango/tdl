@@ -88,7 +88,7 @@ func TestOptionsOnAField(t *testing.T) {
 		`import "google/api/field_behavior.proto";`,
 		`import "google/api/field_info.proto";`,
 		"string id = 1;",
-		"string uid = 2 [(google.api.field_behavior) = OUTPUT_ONLY, (google.api.field_info).format = UUID4];",
+		"string uid = 2 [\n    (google.api.field_behavior) = OUTPUT_ONLY,\n    (google.api.field_info).format = UUID4\n  ];",
 	)
 }
 
@@ -128,7 +128,10 @@ func TestOptionsOnAnInlinedOneofMember(t *testing.T) {
 		`oneof actor {
   string contact = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
   string system_actor = 2 [deprecated = true];
-  string fax = 3 [deprecated = true, (google.api.field_info).format = UUID4];
+  string fax = 3 [
+    deprecated = true,
+    (google.api.field_info).format = UUID4
+  ];
 }`,
 	)
 }

@@ -351,17 +351,17 @@ func (g *generator) write(path string, grp *group) *plugin.File {
 	if len(grp.options) > 0 || grp.annotation != "" {
 		b.WriteString("\n")
 		for _, o := range grp.options {
-			fmt.Fprintf(&b, "option %s;\n", o)
+			b.WriteString(optionStmt("", o))
 		}
 		if grp.annotation != "" {
-			fmt.Fprintf(&b, "option %s;\n", grp.annotation)
+			b.WriteString(optionStmt("", grp.annotation))
 		}
 	}
 	for _, block := range grp.blocks {
 		b.WriteString("\n")
 		b.WriteString(block)
 	}
-	return &plugin.File{Path: path, Content: []byte(b.String())}
+	return &plugin.File{Path: path, Content: []byte(collapseEmpty(b.String()))}
 }
 
 // pathOf is the file a declaration is placed in: its `file` directive's,
@@ -556,7 +556,11 @@ func (g *generator) service(b *strings.Builder, d *ir.Decl) ([]string, error) {
 		comment(b, "  ", f.GetMeta())
 		end := ";"
 		if opts := g.options(f.GetMeta(), f.GetDirectives()); len(opts) > 0 {
-			end = " { option " + strings.Join(opts, "; option ") + "; }"
+			var body strings.Builder
+			for _, o := range opts {
+				body.WriteString(optionStmt("    ", o))
+			}
+			end = " {\n" + body.String() + "  }"
 		}
 		fmt.Fprintf(b, "  rpc %s(%s) returns (%s)%s\n", f.GetMeta().GetName(), req, res, end)
 	}
@@ -632,7 +636,7 @@ func (g *generator) enum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 			g.CheckRenamed(v.GetDirectives(), renamed, "%s.%s", name, v.GetMeta().GetName())
 		}
 		comment(&body, "  ", v.GetMeta())
-		fmt.Fprintf(&body, "  %s = %d%s;\n", value, nums[i], brackets(opts))
+		fmt.Fprintf(&body, "  %s = %d%s;\n", value, nums[i], brackets("  ", opts))
 	}
 
 	comment(b, "", d.GetMeta())
@@ -688,7 +692,7 @@ func (g *generator) sum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 		if messages[i] != v.GetMeta().GetName() {
 			g.Lose(emit.LossName, v.GetMeta().GetPosition(), "%s.%s is written %s, which reads back as the variant's name", name, v.GetMeta().GetName(), messages[i])
 			if a := g.annotation("message", text("name", v.GetMeta().GetName())); a != "" {
-				fmt.Fprintf(b, "    option %s;\n", a)
+				b.WriteString(optionStmt("    ", a))
 			}
 		} else {
 			g.CheckRenamed(v.GetDirectives(), emit.Pascal(messages[i]) != messages[i], "%s.%s", name, v.GetMeta().GetName())
@@ -702,7 +706,7 @@ func (g *generator) sum(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	for i, v := range variants {
 		// A oneof member carries its variant's deprecation and none of its
 		// option directives.
-		fmt.Fprintf(b, "    %s %s = %d%s;\n", messages[i], fields[i], nums[i], brackets(g.options(v.GetMeta(), nil)))
+		fmt.Fprintf(b, "    %s %s = %d%s;\n", messages[i], fields[i], nums[i], brackets("    ", g.options(v.GetMeta(), nil)))
 	}
 	b.WriteString("  }\n}\n")
 	return []string{name}, nil
@@ -791,7 +795,7 @@ func (g *generator) fields(b *strings.Builder, indent string, space emit.Space, 
 		if label != "" {
 			label += " "
 		}
-		fmt.Fprintf(b, "%s%s%s %s = %d%s;\n", indent, label, typ, name, nums[first[i]], brackets(opts))
+		fmt.Fprintf(b, "%s%s%s %s = %d%s;\n", indent, label, typ, name, nums[first[i]], brackets(indent, opts))
 		out = append(out, slot{members[first[i]], name, nums[first[i]]})
 	}
 	return out, nil
@@ -862,7 +866,7 @@ func (g *generator) inlineOneof(b *strings.Builder, indent, owner string, f *ir.
 	comment(b, indent, f.GetMeta())
 	fmt.Fprintf(b, "%soneof %s {\n", indent, emit.Snake(f.GetMeta().GetName()))
 	if a := g.oneofLosses(owner, f, ref.Decl, include); a != "" {
-		fmt.Fprintf(b, "%s  option %s;\n", indent, a)
+		b.WriteString(optionStmt(indent+"  ", a))
 	}
 	for i, v := range variants {
 		vf := v.GetFields()[0]
@@ -883,7 +887,7 @@ func (g *generator) inlineOneof(b *strings.Builder, indent, owner string, f *ir.
 		opts := g.options(meta, append(slices.Clone(v.GetDirectives()), vf.GetDirectives()...))
 		commentLines(b, indent+"  ", emit.Doc(v.GetMeta()))
 		comment(b, indent+"  ", vf.GetMeta())
-		fmt.Fprintf(b, "%s  %s %s = %d%s;\n", indent, typ, emit.Snake(vf.GetMeta().GetName()), nums[i], brackets(opts))
+		fmt.Fprintf(b, "%s  %s %s = %d%s;\n", indent, typ, emit.Snake(vf.GetMeta().GetName()), nums[i], brackets(indent+"  ", opts))
 	}
 	fmt.Fprintf(b, "%s}\n", indent)
 	return nil
@@ -1108,19 +1112,11 @@ func (g *generator) options(meta *ir.Meta, dirs []*ir.Directive) []string {
 // annotation when it has one.
 func (g *generator) declOptions(b *strings.Builder, meta *ir.Meta, dirs []*ir.Directive, annotation string) {
 	for _, o := range g.options(meta, dirs) {
-		fmt.Fprintf(b, "  option %s;\n", o)
+		b.WriteString(optionStmt("  ", o))
 	}
 	if annotation != "" {
-		fmt.Fprintf(b, "  option %s;\n", annotation)
+		b.WriteString(optionStmt("  ", annotation))
 	}
-}
-
-// brackets is a field's or an enum value's options as a bracket list.
-func brackets(opts []string) string {
-	if len(opts) == 0 {
-		return ""
-	}
-	return " [" + strings.Join(opts, ", ") + "]"
 }
 
 func validPackage(pkg string) bool {
