@@ -30,6 +30,7 @@ These are designed and not built yet, and each page names the phase of its plan 
 | [`reason`](reason.md) | Reason |
 | [`sml`](sml.md) | Standard ML |
 | [`fsharp`](fsharp.md) | F# |
+| [`cml`](cml.md) | Context Mapper |
 
 ## Import
 
