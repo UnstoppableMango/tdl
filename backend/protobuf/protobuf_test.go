@@ -294,7 +294,7 @@ func TestFieldedEnumIsAOneof(t *testing.T) {
 	contains(t, compile(t, generate(t, b)),
 		"message Payment {",
 		"message Card { string last4 = 1; .shop.Card card = 2; }",
-		"message Cash { }",
+		"message Cash {}",
 		"oneof variant { Card card = 1; Cash cash = 2; }",
 		"Payment payment = 1;",
 	)

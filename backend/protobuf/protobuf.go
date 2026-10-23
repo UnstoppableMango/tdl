@@ -361,7 +361,7 @@ func (g *generator) write(path string, grp *group) *plugin.File {
 		b.WriteString("\n")
 		b.WriteString(block)
 	}
-	return &plugin.File{Path: path, Content: []byte(b.String())}
+	return &plugin.File{Path: path, Content: []byte(format(path, b.String()))}
 }
 
 // pathOf is the file a declaration is placed in: its `file` directive's,

@@ -194,7 +194,8 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   `number` pins a number and unpinned members take the lowest free one; `reserved` writes a `reserved` statement, and a pin on a reserved number or name is refused.
   Target-block `import` adds an import to every file; `option` writes a field, value, or statement option.
   A type tagged `service` becomes a service; its fields apply primitives tagged `rpc`, with arguments in a `stream`-tagged primitive streamed.
-  Tests compile every response with `bufbuild/protocompile`.
+  `format.go` lays out every file with protocompile's printer under its `Legacy` preset, which reproduces `buf format`, so formatting the output changes nothing.
+  Tests compile every response with `bufbuild/protocompile`, and `TestOutputIsBufFormatted` runs `buf format -d` when `buf` is on `PATH`.
   It imports: `reverse.go` reads files compiled by `compile.go` into an `ast.File` and lowers it, and `annotate.go` writes the loss warnings and, under `roundtrip`, the options `tdl/annotations.proto` declares.
   `Normalize` is its normal form for the round-trip corpus.
 - `backend/thrift`: one `.thrift` file per model under `namespace *`, in dependency order.
