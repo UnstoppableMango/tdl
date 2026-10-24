@@ -547,3 +547,17 @@ Two versions are not release-please's:
 `CHANGELOG.md` is excluded from treefmt and markdownlint.
 
 The warning that `version.txt` does not exist is harmless.
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked in this repository's GitHub Issues. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five default triage labels, each named for its role. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one root `CONTEXT.md` and `docs/adr/`, beside `docs/spec.md` and `docs/design/`. See `docs/agents/domain.md`.
