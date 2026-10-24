@@ -39,7 +39,12 @@ in
       };
 
       packages = {
-        inherit (pkgs) tdl vscode-tdl tdl-dotnet;
+        inherit (pkgs)
+          tdl
+          tdl-gmk
+          vscode-tdl
+          tdl-dotnet
+          ;
         default = pkgs.tdl;
         tree-sitter-tdl = pkgs.python3Packages.tree-sitter-tdl;
         # The README's demo GIF; `make demo` copies it into docs/demo.
@@ -258,6 +263,30 @@ in
             cp ${../testdata/gen/smoke/source.tdl} source.tdl
             tdl gen --target salesforce -o out source.tdl
             find out -name '*.xml' -exec xmllint --noout {} +
+            touch $out
+          '';
+
+      # Loads the make functions into GNU make and lists a model with them,
+      # from a subdirectory so paths are relative to the loading makefile.
+      checks.gmk =
+        pkgs.runCommand "tdl-gmk"
+          {
+            nativeBuildInputs = [ pkgs.gnumake ];
+          }
+          ''
+            mkdir -p project/model/sub project/shim
+            cd project
+            printf 'package shop\nimport "../shim/type.tdl" as _\n' > model/order.tdl
+            echo 'package shop' > model/sub/money.tdl
+            echo 'package shim' > shim/type.tdl
+            printf 'load ${pkgs.tdl-gmk}/lib/tdl.so\nfiles := $(tdl-files model)\nimports := $(tdl-imports model/order.tdl)\nall: ; @echo "$(files)|$(imports)"\n' > Makefile
+            got=$(cd model && make -s -f ../Makefile)
+            want='model/order.tdl model/sub/money.tdl|model/order.tdl shim/type.tdl'
+            if [ "$got" != "$want" ]; then
+              echo "got:  $got" >&2
+              echo "want: $want" >&2
+              exit 1
+            fi
             touch $out
           '';
 

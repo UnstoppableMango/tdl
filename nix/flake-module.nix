@@ -100,6 +100,21 @@
           };
         };
 
+        make = {
+          enable = lib.mkOption {
+            type = lib.types.bool;
+            default = true;
+            description = ''
+              Set `TDL_GMK` in `devShells.tdl` to the GNU make loadable object
+              defining `$(tdl-files dir...)` and `$(tdl-imports file...)`, so a
+              Makefile can write `load $(TDL_GMK)`, and put the make that can
+              load it on PATH.
+            '';
+          };
+
+          package = lib.mkPackageOption pkgs "tdl-gmk" { };
+        };
+
         devShell.enable = lib.mkOption {
           type = lib.types.bool;
           default = true;
@@ -112,7 +127,21 @@
 
       config = lib.mkIf cfg.enable {
         devShells = lib.optionalAttrs cfg.devShell.enable {
-          tdl = pkgs.mkShellNoCC { packages = [ cfg.package ] ++ cfg.gen.backends; };
+          tdl = pkgs.mkShellNoCC (
+            {
+              packages = [ cfg.package ] ++ cfg.gen.backends;
+            }
+            // lib.optionalAttrs cfg.make.enable {
+              # The object links against nixpkgs' libc, so only a make from
+              # nixpkgs can load it.
+              packages = [
+                cfg.package
+                pkgs.gnumake
+              ]
+              ++ cfg.gen.backends;
+              TDL_GMK = "${cfg.make.package}/lib/tdl.so";
+            }
+          );
         };
 
         checks =
