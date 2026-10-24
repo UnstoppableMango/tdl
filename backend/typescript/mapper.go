@@ -54,6 +54,11 @@ type Mapper struct{}
 func (m Mapper) Serve(ctx context.Context, rwc io.ReadWriteCloser) error {
 	conn := jsonrpc2.NewConn(jsonrpc2.NewStream(rwc))
 	conn.Go(ctx, func(_ context.Context, req *jsonrpc2.Request) (any, error) {
+		if !req.IsCall() {
+			// No notification needs an answer, and a handler's error on
+			// one would end the session.
+			return nil, nil
+		}
 		return m.handle(req.Method(), req.Params())
 	})
 	<-conn.Done()

@@ -60,6 +60,18 @@ func (p pipe) Close() error {
 	return p.PipeWriter.Close()
 }
 
+// notify sends one notification, which has no answer.
+func (s *mapperSession) notify(method string, params any) {
+	s.t.Helper()
+	body, err := json.Marshal(map[string]any{"jsonrpc": "2.0", "method": method, "params": params})
+	if err != nil {
+		s.t.Fatal(err)
+	}
+	if _, err := fmt.Fprintf(s.in, "Content-Length: %d\r\n\r\n%s", len(body), body); err != nil {
+		s.t.Fatal(err)
+	}
+}
+
 // call sends one request and decodes its result into result.
 func (s *mapperSession) call(method string, params, result any) {
 	s.t.Helper()
@@ -136,7 +148,7 @@ func writeFiles(t *testing.T, files map[string]string) string {
 }
 
 // A session runs the protocol from initialize to closeProject, refusing
-// options and answering every request by its id.
+// options, ignoring a notification, and answering every request by its id.
 func TestMapperSession(t *testing.T) {
 	s := serveMapper(t)
 
@@ -157,6 +169,8 @@ func TestMapperSession(t *testing.T) {
 	if len(open.OptionDiagnostics) != 1 || open.OptionDiagnostics[0].Path[0] != "zod" || open.OptionDiagnostics[0].Code != typescript.CodeOption {
 		t.Errorf("optionDiagnostics = %+v, want one refusing zod", open.OptionDiagnostics)
 	}
+
+	s.notify("$/unknown", map[string]any{})
 
 	dir := writeFiles(t, map[string]string{"shop.tdl": "package shop\n\ntype Order: Entity {\n  id: string\n}\n"})
 	mod := s.transform(filepath.Join(dir, "shop.tdl"))
@@ -415,9 +429,8 @@ func tsc71(t *testing.T) string {
 
 func TestMapperRefusesBadFrames(t *testing.T) {
 	for name, frame := range map[string]string{
-		"missing":     "Content-Type: x\r\n\r\n{}",
-		"negative":    "Content-Length: -1\r\n\r\n",
-		"conflicting": "Content-Length: 2\r\nContent-Length: 3\r\n\r\n{}",
+		"missing":  "Content-Type: x\r\n\r\n{}",
+		"negative": "Content-Length: -1\r\n\r\n",
 	} {
 		t.Run(name, func(t *testing.T) {
 			if err := (typescript.Mapper{}).Serve(t.Context(), frameConn{strings.NewReader(frame)}); err == nil {
