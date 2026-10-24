@@ -1,0 +1,20 @@
+{
+	"compilerOptions": {
+		"strict": true,
+		"noEmit": true,
+		"module": "nodenext",
+		"target": "es2022",
+		"verbatimModuleSyntax": true
+	},
+	"include": [
+		"src"
+	],
+	"contentMappers": [
+		{
+			"package": "@unmango/tdl-typescript",
+			"extensions": [
+				".tdl"
+			]
+		}
+	]
+}

@@ -228,6 +228,8 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   It imports one file: `reverse.go` runs the embedded `outline.js` under `node` with the `typescript` package found from `tsc` on `PATH`, and reads the JSON outline it writes; without both, import and its tests skip.
   `annotate.go` writes the loss warnings and, under `roundtrip`, JSDoc `@tdl` tags, carrying a declaration whole where it loses anything.
   `Normalize` is its normal form for the round-trip corpus.
+  `mapper.go` is a TypeScript 7.1 content mapper, served by `tdl-gen-typescript content-mapper`: tsc sends it a `.tdl` file and it lowers the file and returns the module this backend writes, importing an extern from its `.tdl` file; `TestMapperUnderTsc` runs tsc when a 7.1 or later is on `PATH`.
+  See `docs/design/typescript-content-mapper.md`.
 - `backend/zod`: one `<package>.zod.ts` module per model of Zod schemas, each a `const` and a same-named `type` inferred from it, parsing the JSON wire convention `typescript` types.
   It shares the primitive mapping, names, property quoting, and the extern import path with `typescript` through `backend/internal/ts`.
   A struct is a `z.object`, or `z.strictObject` under `closed`; a fieldless enum a `z.enum`, a fielded one a `z.discriminatedUnion` of variant objects; a newtype a schema of its base, and an alias is expanded.

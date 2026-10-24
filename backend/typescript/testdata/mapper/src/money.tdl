@@ -1,0 +1,6 @@
+package money
+
+type Money {
+  amount: decimal
+  currency: string
+}
