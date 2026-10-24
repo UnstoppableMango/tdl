@@ -51,6 +51,7 @@ github.com/tidwall/btree v1.8.1 h1:27ehoXvm5AG/g+1VxLS1SD3vRhp/H7LuEfwNvddEdmA=
 github.com/tidwall/btree v1.8.1/go.mod h1:jBbTdUWhSZClZWoDg54VnvV7/54modSOzDN7VXftj1A=
 github.com/unmango/go-gmk v0.1.1 h1:nGRc1n9APzIZInDNsuy3Mm9CiWamWzNRFmGRxFxsguI=
 github.com/unmango/go-gmk v0.1.1/go.mod h1:ZuVQ10+AIzosaQN93ag15vId32L9J28oexPBtQfIt5A=
+github.com/unmango/go-gmk v0.2.0/go.mod h1:ZuVQ10+AIzosaQN93ag15vId32L9J28oexPBtQfIt5A=
 github.com/vektah/gqlparser/v2 v2.5.63 h1:vzHg/+/z7kZA3N4FhbGtF1pRo99KUpPzwXahk1bQtYk=
 github.com/vektah/gqlparser/v2 v2.5.63/go.mod h1:JNK+plRwKdXLsF/qPFPe5tE0z4s1WeroD9S5LR8um/Q=
 go.lsp.dev/jsonrpc2 v1.0.1 h1:JZAchpm6RcOuwEOnZ7kF3kA1EpEjdJZ/6rMSfOF3+F4=

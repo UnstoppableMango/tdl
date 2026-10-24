@@ -66,8 +66,8 @@ schema = 3
     hash = 'sha256-QsYonFnbD/zaxUYAJMzDNI3ju0TjcBJrh8/DBhaJfbM='
 
   [mod.'github.com/unmango/go-gmk']
-    version = 'v0.1.1'
-    hash = 'sha256-bvC5Y1r/FhB2kS6KK2Xe1DwByHMeXbST3eEBsaRWufs='
+    version = 'v0.2.0'
+    hash = 'sha256-hkvcTZhl6iOVQsCHRMZh9nuhFY0LO4FPM25T5Hbusy4='
 
   [mod.'github.com/vektah/gqlparser/v2']
     version = 'v2.5.63'
