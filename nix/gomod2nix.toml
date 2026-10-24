@@ -18,8 +18,8 @@ schema = 3
     hash = 'sha256-3XnCzf7tFgEE0MmjxvjfWaw6qK6mKLabFZ3c23JIH9Y='
 
   [mod.'github.com/bufbuild/protocompile']
-    version = 'v0.14.2-0.20261016165317-b72c9bfe2623'
-    hash = 'sha256-EplLQLNG1C2wYcEZ31rWrWFsbTFgkI7cSqeeX2el2HA='
+    version = 'v0.14.2-0.20261022205402-b3c25bb4887d'
+    hash = 'sha256-N45VoYCJkZsX78ibfk9Psunl7TJW238YExam3sR+Bgc='
 
   [mod.'github.com/bytedance/gopkg']
     version = 'v0.1.4'
@@ -102,5 +102,5 @@ schema = 3
     hash = 'sha256-PzREcn7yzTAJ0WBvyYL/2/r+tfoeKTY/E5HVXi/CJsU='
 
   [mod.'google.golang.org/protobuf']
-    version = 'v1.36.12'
-    hash = 'sha256-MKd0AdkWEe2A79mGPzOY5I76nMqTsGJKQNPJOKyOwkQ='
+    version = 'v1.37.0-rc.1'
+    hash = 'sha256-NXr46WvKFwhMS2/4iXvfyE6Bmbvc4h5IBfsF/uhfx8c='

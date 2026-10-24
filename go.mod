@@ -4,7 +4,7 @@ go 1.27
 
 require (
 	github.com/BurntSushi/toml v1.6.0
-	github.com/bufbuild/protocompile v0.14.2-0.20261016165317-b72c9bfe2623
+	github.com/bufbuild/protocompile v0.14.2-0.20261022205402-b3c25bb4887d
 	github.com/cloudwego/thriftgo v0.4.5
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/spf13/cobra v1.10.2
@@ -15,7 +15,7 @@ require (
 	go.lsp.dev/uri v1.0.1
 	go.yaml.in/yaml/v3 v3.0.5
 	golang.org/x/exp v0.0.0-20261014143641-f0251eb4aa3e
-	google.golang.org/protobuf v1.36.12
+	google.golang.org/protobuf v1.37.0-rc.1
 )
 
 require (
