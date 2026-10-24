@@ -469,3 +469,32 @@ message Diagnostic {
   // a user can silence carries one; see docs/design/reverse.md.
   string code = 4;
 }
+
+// RequestSet is what `tdl request` writes after its Handshake: every
+// request `tdl gen` would send one target for the files given, and what
+// stopped the others. See docs/design/csharp-source-generator.md.
+message RequestSet {
+  // requests holds one request per target block, for each file whose model
+  // lowered and has a block for the target, in the order the files were
+  // given.
+  repeated Request requests = 1;
+
+  // diagnostics are parse and lowering errors, directive check failures,
+  // and the problems the analysis found, less the warnings whose loss code
+  // the project allows. A file with an error yields no request.
+  repeated Diagnostic diagnostics = 2;
+}
+
+// Overlay is what `tdl request --overlay` reads from standard input: the
+// text of files that may differ from disk, such as an editor's unsaved
+// buffers. A file it holds is read from here, as given or as imported, and
+// every other file from disk.
+message Overlay {
+  repeated OverlayFile files = 1;
+}
+
+// OverlayFile is one file's text.
+message OverlayFile {
+  string path = 1;
+  string text = 2;
+}

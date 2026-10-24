@@ -25,3 +25,19 @@ func (FSLoader) Load(from, path string) (string, string, error) {
 	}
 	return name, string(src), nil
 }
+
+// Overlay resolves an import as FSLoader does, and reads the resolved
+// file's text from Text when it holds one, such as an editor's unsaved
+// buffer, and from disk otherwise.
+type Overlay struct {
+	// Text returns the text the overlay holds for a resolved name.
+	Text func(name string) (string, bool)
+}
+
+func (o Overlay) Load(from, path string) (string, string, error) {
+	name := filepath.Join(filepath.Dir(from), path)
+	if src, ok := o.Text(name); ok {
+		return name, src, nil
+	}
+	return FSLoader{}.Load(from, path)
+}

@@ -52,6 +52,12 @@ func (s *Subprocess) Describe() plugin.Description {
 	return desc
 }
 
+// Probe is Describe that says why the plugin could not describe itself,
+// for a caller that has no Generate to report it.
+func (s *Subprocess) Probe() (plugin.Description, error) {
+	return s.describe()
+}
+
 func (s *Subprocess) describe() (plugin.Description, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), s.timeout())
 	defer cancel()
