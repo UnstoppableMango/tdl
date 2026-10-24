@@ -38,9 +38,9 @@ It cannot: `plugin.ServeConn` and the .NET `Server` refuse any framing version b
 When the host can create the socket, it spawns every plugin the same way:
 
 1. It makes a private directory, mode 0700, and listens on a socket inside it.
-2. It starts the plugin with `TDL_PLUGIN_SOCKET` set to the socket's path.
-3. It writes the `Handshake` to the plugin's stdin, as it does today.
-4. It waits for whichever comes first: a `HandshakeReply` on stdout, or a connection on the socket.
+1. It starts the plugin with `TDL_PLUGIN_SOCKET` set to the socket's path.
+1. It writes the `Handshake` to the plugin's stdin, as it does today.
+1. It waits for whichever comes first: a `HandshakeReply` on stdout, or a connection on the socket.
 
 A plugin that answers on stdout has chosen stdio, and the connection proceeds as in `plugins.md`; the host closes the listener and removes the directory.
 A plugin that dials has chosen gRPC; the host accepts that one connection, closes the listener, and calls `Handshake` over it.
