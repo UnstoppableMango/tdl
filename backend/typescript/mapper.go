@@ -6,14 +6,13 @@ package typescript
 // docs/design/typescript-content-mapper.md describes the protocol.
 
 import (
-	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"maps"
 	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/unstoppablemango/tdl/internal/analysis"
@@ -22,6 +21,7 @@ import (
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/parser"
 	"github.com/unstoppablemango/tdl/plugin"
+	"go.lsp.dev/jsonrpc2"
 )
 
 // protocolVersion is the content mapper protocol this mapper speaks.
@@ -50,62 +50,17 @@ const emptyModule = "export {};\n"
 // for.
 type Mapper struct{}
 
-// Serve answers requests read from r on w until r ends.
-func (m Mapper) Serve(r io.Reader, w io.Writer) error {
-	in := bufio.NewReader(r)
-	for {
-		body, err := readFrame(in)
-		if errors.Is(err, io.EOF) {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-
-		var req rpcRequest
-		if err := json.Unmarshal(body, &req); err != nil {
-			return fmt.Errorf("content mapper: %w", err)
-		}
-		resp := m.answer(req)
-		if req.ID == nil {
-			continue // a notification
-		}
-		if err := writeFrame(w, resp); err != nil {
-			return err
-		}
-	}
+// Serve answers requests read from rwc until it ends.
+func (m Mapper) Serve(ctx context.Context, rwc io.ReadWriteCloser) error {
+	conn := jsonrpc2.NewConn(jsonrpc2.NewStream(rwc))
+	conn.Go(ctx, func(_ context.Context, req *jsonrpc2.Request) (any, error) {
+		return m.handle(req.Method(), req.Params())
+	})
+	<-conn.Done()
+	return conn.Err()
 }
 
-type rpcRequest struct {
-	ID     json.RawMessage `json:"id"`
-	Method string          `json:"method"`
-	Params json.RawMessage `json:"params"`
-}
-
-type rpcResponse struct {
-	JSONRPC string          `json:"jsonrpc"`
-	ID      json.RawMessage `json:"id"`
-	Result  any             `json:"result,omitempty"`
-	Error   *rpcError       `json:"error,omitempty"`
-}
-
-type rpcError struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-}
-
-func (m Mapper) answer(req rpcRequest) rpcResponse {
-	resp := rpcResponse{JSONRPC: "2.0", ID: req.ID}
-	result, err := m.handle(req.Method, req.Params)
-	if err != nil {
-		resp.Error = &rpcError{Code: -32603, Message: err.Error()}
-		return resp
-	}
-	resp.Result = result
-	return resp
-}
-
-func (m Mapper) handle(method string, params json.RawMessage) (any, error) {
+func (m Mapper) handle(method string, params jsonrpc2.RawMessage) (any, error) {
 	switch method {
 	case "initialize":
 		var p initializeParams
@@ -131,10 +86,10 @@ func (m Mapper) handle(method string, params json.RawMessage) (any, error) {
 	case "closeProject":
 		return struct{}{}, nil
 	}
-	return nil, fmt.Errorf("unknown method %s", method)
+	return nil, fmt.Errorf("%w: %s", jsonrpc2.ErrMethodNotFound, method)
 }
 
-func unmarshal(params json.RawMessage, v any) error {
+func unmarshal(params jsonrpc2.RawMessage, v any) error {
 	if len(params) == 0 {
 		return nil
 	}
@@ -317,54 +272,4 @@ func (ls lines) span(name string, pos *ir.Position) (start, length int) {
 		return start, end - start
 	}
 	return start, 1
-}
-
-// readFrame reads one message framed by a Content-Length header.
-func readFrame(r *bufio.Reader) ([]byte, error) {
-	length := -1
-	for {
-		line, err := r.ReadString('\n')
-		if err != nil {
-			if errors.Is(err, io.EOF) && line == "" && length < 0 {
-				return nil, io.EOF
-			}
-			return nil, fmt.Errorf("content mapper: reading a header: %w", err)
-		}
-		line = strings.TrimRight(line, "\r\n")
-		if line == "" {
-			break
-		}
-		name, value, ok := strings.Cut(line, ":")
-		if ok && strings.EqualFold(strings.TrimSpace(name), "Content-Length") {
-			n, err := strconv.Atoi(strings.TrimSpace(value))
-			if err != nil || n < 0 {
-				return nil, fmt.Errorf("content mapper: bad Content-Length %q", value)
-			}
-			if length >= 0 && n != length {
-				return nil, fmt.Errorf("content mapper: conflicting Content-Length headers %d and %d", length, n)
-			}
-			length = n
-		}
-	}
-	if length < 0 {
-		return nil, errors.New("content mapper: a message has no Content-Length")
-	}
-	body := make([]byte, length)
-	if _, err := io.ReadFull(r, body); err != nil {
-		return nil, fmt.Errorf("content mapper: reading a message: %w", err)
-	}
-	return body, nil
-}
-
-// writeFrame writes one message with its Content-Length header.
-func writeFrame(w io.Writer, v any) error {
-	body, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(w, "Content-Length: %d\r\n\r\n", len(body)); err != nil {
-		return err
-	}
-	_, err = w.Write(body)
-	return err
 }

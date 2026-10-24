@@ -35,7 +35,7 @@ func serveMapper(t *testing.T) *mapperSession {
 	outR, outW := io.Pipe()
 	s := &mapperSession{t: t, in: inW, out: bufio.NewReader(outR), done: make(chan error, 1)}
 	go func() {
-		err := typescript.Mapper{}.Serve(inR, outW)
+		err := typescript.Mapper{}.Serve(t.Context(), pipe{inR, outW})
 		outW.Close()
 		s.done <- err
 	}()
@@ -46,6 +46,18 @@ func serveMapper(t *testing.T) *mapperSession {
 		}
 	})
 	return s
+}
+
+// pipe is the mapper's end of a session: what the test writes, and where
+// the mapper answers.
+type pipe struct {
+	*io.PipeReader
+	*io.PipeWriter
+}
+
+func (p pipe) Close() error {
+	p.PipeReader.Close()
+	return p.PipeWriter.Close()
 }
 
 // call sends one request and decodes its result into result.
@@ -408,9 +420,15 @@ func TestMapperRefusesBadFrames(t *testing.T) {
 		"conflicting": "Content-Length: 2\r\nContent-Length: 3\r\n\r\n{}",
 	} {
 		t.Run(name, func(t *testing.T) {
-			if err := (typescript.Mapper{}).Serve(strings.NewReader(frame), io.Discard); err == nil {
+			if err := (typescript.Mapper{}).Serve(t.Context(), frameConn{strings.NewReader(frame)}); err == nil {
 				t.Error("Serve accepted the frame")
 			}
 		})
 	}
 }
+
+// frameConn serves one fixed input and discards what the mapper writes.
+type frameConn struct{ io.Reader }
+
+func (frameConn) Write(p []byte) (int, error) { return len(p), nil }
+func (frameConn) Close() error                { return nil }

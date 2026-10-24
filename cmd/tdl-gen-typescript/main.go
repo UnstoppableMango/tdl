@@ -6,6 +6,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -25,7 +26,16 @@ func run(args []string) error {
 	case len(args) == 0:
 		return plugin.Serve(typescript.Backend{})
 	case len(args) == 1 && args[0] == "content-mapper":
-		return typescript.Mapper{}.Serve(os.Stdin, os.Stdout)
+		return typescript.Mapper{}.Serve(context.Background(), stdio{})
 	}
 	return fmt.Errorf("usage: tdl-gen-typescript [content-mapper]")
 }
+
+// stdio is this process's standard input and output as one stream.
+type stdio struct{}
+
+func (stdio) Read(p []byte) (int, error)  { return os.Stdin.Read(p) }
+func (stdio) Write(p []byte) (int, error) { return os.Stdout.Write(p) }
+
+// Close leaves both open: the process exits once the stream ends.
+func (stdio) Close() error { return nil }
