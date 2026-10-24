@@ -329,6 +329,7 @@ A phase's pull request updates its own plan's status line, never a list here, be
 A design describes the target, not the implementation.
 `workflow.md` is furthest ahead: its `tdl.toml` project model is unbuilt.
 `docs/backlog.md` is wanted, unscheduled work.
+`CONTEXT.md` is the glossary: one canonical word per concept, and the words to avoid.
 
 ### .NET SDK
 

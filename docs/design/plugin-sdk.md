@@ -163,4 +163,4 @@ The conformance and smoke corpora reach the C# plugin through a Go test that run
    Merging them pins the output with tests the port must match, at the cost of code deleted later.
    Closing them leaves the design doc and the tests' expectations as the reference.
 1. **Analysis on demand.** The host could compute the analysis only for a plugin that asks for it in the handshake. Computing it always is simpler, and the cost is small next to lowering.
-1. **gRPC.** [plugins.md](plugins.md) leaves room for it, and C# serves it well. Nothing here needs it, since a plugin is one process serving one stream.
+1. **gRPC.** Nothing here needs it, since a plugin is one process serving one stream. [grpc-transport.md](grpc-transport.md) designs it separately, as a transport a plugin may choose.

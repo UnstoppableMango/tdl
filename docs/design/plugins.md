@@ -20,8 +20,11 @@ When a backend needs something the protocol cannot express, the protocol changes
 
 Length-prefixed protobuf messages over stdin and stdout, in both directions: a varint byte count followed by the encoded message.
 
-A stream, rather than protoc's one request in and one response out, carries the handshake and the request as ordinary messages, lets a plugin serve several requests, and leaves room for gRPC later.
-The handshake declares the framing version, so a future `tdl` can offer gRPC and an old plugin can decline.
+A stream, rather than protoc's one request in and one response out, carries the handshake and the request as ordinary messages and lets a plugin serve several requests.
+The handshake declares the framing version, which is 1 and describes this framing alone.
+
+A plugin may instead choose gRPC over a Unix domain socket, by dialing the socket the host names in `TDL_PLUGIN_SOCKET` rather than answering on stdout.
+The messages are the same; [grpc-transport.md](grpc-transport.md) is the design.
 
 ## Handshake
 
@@ -71,7 +74,8 @@ One message carries everything:
 - a dry-run flag
 - the analysis: each type resolved to the prelude's shapes, and what each declaration names, per [plugin-sdk.md](plugin-sdk.md#analysis)
 
-Nothing travels in argv or environment variables, so there is one versioned message to keep compatible.
+Nothing in a request travels in argv or environment variables, so there is one versioned message to keep compatible.
+The environment says only where to connect: `TDL_PLUGIN_SOCKET`, per [grpc-transport.md](grpc-transport.md#the-environment).
 
 ### What the model contains
 
@@ -175,6 +179,5 @@ sql = { command = "tdl-gen-sql", timeout = "5m" }
 
 ## Deferred
 
-- gRPC. The handshake carries a framing version so the upgrade is additive.
 - Incremental generation, which needs a change description in the request and therefore `ir` diffing.
 - Plugin-supplied prelude or model contributions.
