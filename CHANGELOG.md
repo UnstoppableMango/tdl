@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.3](https://github.com/UnstoppableMango/tdl/compare/v0.5.2...v0.5.3) (2026-10-24)
+
+
+### Dependencies
+
+* update dependency vscode-languageclient to v11 ([#1177](https://github.com/UnstoppableMango/tdl/issues/1177)) ([2d7b3b8](https://github.com/UnstoppableMango/tdl/commit/2d7b3b861bcf1cea1ad2ba3f7cac324b22a0f61f))
+* update github.com/bufbuild/protocompile digest to b3c25bb ([#1172](https://github.com/UnstoppableMango/tdl/issues/1172)) ([73551c4](https://github.com/UnstoppableMango/tdl/commit/73551c4ec2683f2cadaa1b61025bc1a5fec001c2))
+* update module github.com/unmango/go-gmk to v0.2.0 ([#1175](https://github.com/UnstoppableMango/tdl/issues/1175)) ([e723c0e](https://github.com/UnstoppableMango/tdl/commit/e723c0edd23642e50e90ef6df33eec6708a67326))
+* update module github.com/vektah/gqlparser/v2 to v2.5.64 ([#1173](https://github.com/UnstoppableMango/tdl/issues/1173)) ([cdd5081](https://github.com/UnstoppableMango/tdl/commit/cdd5081be45edcfbe84bd214eb6066a9c60a91b8))
+
 ## [0.5.2](https://github.com/UnstoppableMango/tdl/compare/v0.5.1...v0.5.2) (2026-10-24)
 
 
