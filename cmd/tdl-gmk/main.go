@@ -31,8 +31,10 @@ import (
 
 func main() {}
 
-// root is the loading makefile's directory. Setup runs while make reads the
-// load directive, so that makefile is the last one listed.
+// root is the directory of the makefile that loaded this object. Paths are
+// resolved against it and returned relative to it. make calls setup while it
+// is reading the load line, and at that point the makefile holding that line
+// is the last entry in MAKEFILE_LIST.
 var root string
 
 //export tdl_gmk_setup
