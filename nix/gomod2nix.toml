@@ -65,6 +65,10 @@ schema = 3
     version = 'v1.8.1'
     hash = 'sha256-QsYonFnbD/zaxUYAJMzDNI3ju0TjcBJrh8/DBhaJfbM='
 
+  [mod.'github.com/unmango/go-gmk']
+    version = 'v0.1.1'
+    hash = 'sha256-bvC5Y1r/FhB2kS6KK2Xe1DwByHMeXbST3eEBsaRWufs='
+
   [mod.'github.com/vektah/gqlparser/v2']
     version = 'v2.5.63'
     hash = 'sha256-GOgV9v1pU0MDMKgAtId+9008J3orQrqFDh1Ouzj3zLs='
@@ -94,8 +98,8 @@ schema = 3
     hash = 'sha256-gViyLpsZFBKTEUtK6Li3m6plz5J/VCAcpTLymQVRpj4='
 
   [mod.'golang.org/x/text']
-    version = 'v0.36.0'
-    hash = 'sha256-/0t9C6Mc8kYjxweFB0us2lGKo8GovHhBiq5nlMOppC0='
+    version = 'v0.38.0'
+    hash = 'sha256-PzREcn7yzTAJ0WBvyYL/2/r+tfoeKTY/E5HVXi/CJsU='
 
   [mod.'google.golang.org/protobuf']
     version = 'v1.36.12'

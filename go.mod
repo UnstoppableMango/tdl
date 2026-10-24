@@ -8,6 +8,7 @@ require (
 	github.com/cloudwego/thriftgo v0.4.5
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/spf13/cobra v1.10.2
+	github.com/unmango/go-gmk v0.1.1
 	github.com/vektah/gqlparser/v2 v2.5.63
 	go.lsp.dev/jsonrpc2 v1.0.1
 	go.lsp.dev/protocol v1.0.1
@@ -30,5 +31,5 @@ require (
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/tidwall/btree v1.8.1 // indirect
 	golang.org/x/sync v0.24.0 // indirect
-	golang.org/x/text v0.36.0 // indirect
+	golang.org/x/text v0.38.0 // indirect
 )

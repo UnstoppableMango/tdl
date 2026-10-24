@@ -107,7 +107,7 @@ Or install it with `nix profile install github:UnstoppableMango/tdl`.
 
 ### NixOS or home-manager
 
-`overlays.default` adds `pkgs.tdl` and `pkgs.vscode-tdl`, and includes the [gomod2nix](https://github.com/nix-community/gomod2nix) overlay it builds with.
+`overlays.default` adds `pkgs.tdl`, `pkgs.tdl-gmk`, and `pkgs.vscode-tdl`, and includes the [gomod2nix](https://github.com/nix-community/gomod2nix) overlay it builds with.
 It builds `tdl` with `go_1_27`, so the nixpkgs it is applied to has to provide that attribute.
 On an older nixpkgs, use `inputs.tdl.packages.${system}.default`, which builds against the nixpkgs tdl's lock file pins, and do not set `inputs.tdl.inputs.nixpkgs.follows`.
 
@@ -159,6 +159,32 @@ It adds `devShells.tdl` (pull it into your shell with `inputsFrom`) and checks t
 ```
 
 Set `tdl.fmt.enable = false` to skip the formatting check.
+
+### In a Makefile
+
+`tdl-gmk` is a [GNU make loadable object](https://www.gnu.org/software/make/manual/html_node/Loading-Objects.html), `lib/tdl.so`, that defines two functions:
+
+- `$(tdl-files dir...)`: the `.tdl` files under each dir.
+- `$(tdl-imports file...)`: each file and every file it imports, transitively.
+
+Both return sorted paths relative to the directory of the Makefile that loaded the object, wherever make runs from.
+A failure, such as an import that does not exist, stops make with the error.
+
+`devShells.tdl` sets `TDL_GMK` to the object and puts nixpkgs' `gnumake` on `PATH`, since the object links against nixpkgs' libc and a system make cannot load it.
+Set `tdl.make.enable = false` to leave both out.
+
+```make
+load $(TDL_GMK)
+
+MODEL := $(tdl-files model)
+
+proto/.stamp: $(tdl-imports $(MODEL))
+	tdl gen $(MODEL)
+	touch $@
+```
+
+Without Nix, build it with `go build -tags makeplugin -buildmode=c-shared -o tdl.so ./cmd/tdl-gmk` from a checkout, with `gnumake.h` on the include path.
+make derives the setup function from the file's name, so keep it `tdl.so`.
 
 ## Usage
 
