@@ -14,8 +14,8 @@ schema = 3
     hash = 'sha256-ptdUJvuc21ixeLt+M5way/na3aCnCO4MYHWulWp8NEY='
 
   [mod.'github.com/agnivade/levenshtein']
-    version = 'v1.2.1'
-    hash = 'sha256-3XnCzf7tFgEE0MmjxvjfWaw6qK6mKLabFZ3c23JIH9Y='
+    version = 'v1.2.2'
+    hash = 'sha256-Q/6abljNb1LER7789i1MO7C0X0ep9VVJAzQlpv3tDak='
 
   [mod.'github.com/bufbuild/protocompile']
     version = 'v0.14.2-0.20261022205402-b3c25bb4887d'
@@ -70,8 +70,8 @@ schema = 3
     hash = 'sha256-hkvcTZhl6iOVQsCHRMZh9nuhFY0LO4FPM25T5Hbusy4='
 
   [mod.'github.com/vektah/gqlparser/v2']
-    version = 'v2.5.63'
-    hash = 'sha256-GOgV9v1pU0MDMKgAtId+9008J3orQrqFDh1Ouzj3zLs='
+    version = 'v2.5.64'
+    hash = 'sha256-YrUIw2jlypx62jp1HgGh6R9pU1TjtPOsJvzZ2jjOZk4='
 
   [mod.'go.lsp.dev/jsonrpc2']
     version = 'v1.0.1'
