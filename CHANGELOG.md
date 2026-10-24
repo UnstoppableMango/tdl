@@ -1,5 +1,55 @@
 # Changelog
 
+## [0.5.1](https://github.com/UnstoppableMango/tdl/compare/v0.5.0...v0.5.1) (2026-10-23)
+
+
+### Features
+
+* add feature pages for the backends not built yet ([#1130](https://github.com/UnstoppableMango/tdl/issues/1130)) ([374a189](https://github.com/UnstoppableMango/tdl/commit/374a189b30337fe389ff3b9aff4285c8418b26ae))
+* compare every backend in generate and import matrices ([#1129](https://github.com/UnstoppableMango/tdl/issues/1129)) ([de9ec71](https://github.com/UnstoppableMango/tdl/commit/de9ec7108627c76e115c600399ca821a683e76fe))
+* **dotnet:** publish tdl-gen-csharp with Native AOT ([#1122](https://github.com/UnstoppableMango/tdl/issues/1122)) ([944c01d](https://github.com/UnstoppableMango/tdl/commit/944c01dea3c421a73b3545c8df6657a0ac0982ac))
+* measure each backend's feature support into a page per backend ([#1121](https://github.com/UnstoppableMango/tdl/issues/1121)) ([7ce23f8](https://github.com/UnstoppableMango/tdl/commit/7ce23f86be40e6b420ea5fb356162394ccbc389e))
+* **nix:** read TDL in the devShell's graphify ([#1132](https://github.com/UnstoppableMango/tdl/issues/1132)) ([98f3e07](https://github.com/UnstoppableMango/tdl/commit/98f3e07362a32bd81cab91c8cd62dda9746738c5))
+* **protobuf:** write options in buf format's layout ([#1159](https://github.com/UnstoppableMango/tdl/issues/1159)) ([b8a5384](https://github.com/UnstoppableMango/tdl/commit/b8a5384edf9acbb8d3fbe9fd0c06a18b00436ff1))
+* **tree-sitter:** add the grammar's Python binding ([#1118](https://github.com/UnstoppableMango/tdl/issues/1118)) ([88ec1ef](https://github.com/UnstoppableMango/tdl/commit/88ec1ef9b153bf9c0566892eae4c1ad76e4b171b))
+* **zod:** defaults, foreign schemas, and externs (phase 2) ([#1156](https://github.com/UnstoppableMango/tdl/issues/1156)) ([3fac77a](https://github.com/UnstoppableMango/tdl/commit/3fac77a85aa0ef858aa2fd5b6df1cdd1a74997e6))
+* **zod:** the zod backend, phase 1 ([#1155](https://github.com/UnstoppableMango/tdl/issues/1155)) ([bc54130](https://github.com/UnstoppableMango/tdl/commit/bc54130653997842240045a733ace6cc974b8c58))
+
+
+### Documentation
+
+* design a C# source generator for live TDL types ([#1128](https://github.com/UnstoppableMango/tdl/issues/1128)) ([a965090](https://github.com/UnstoppableMango/tdl/commit/a96509057ad5706a7af380f5a0e2ee04a6b38c7b))
+* design importing target-language files ([#1125](https://github.com/UnstoppableMango/tdl/issues/1125)) ([505f06b](https://github.com/UnstoppableMango/tdl/commit/505f06b87acd5c95e44115939a4741040816c806))
+* design the CML backend ([#1153](https://github.com/UnstoppableMango/tdl/issues/1153)) ([8a32c04](https://github.com/UnstoppableMango/tdl/commit/8a32c04ea9914c2a2451ffb8201f89ca972c09c4))
+* design the TypeScript content mapper ([#1142](https://github.com/UnstoppableMango/tdl/issues/1142)) ([86b57ab](https://github.com/UnstoppableMango/tdl/commit/86b57ab9e8a5540dee476dd3752747ff09133153))
+* **graphify:** measure TDL's growth instead of a 4,000-node cap ([#1144](https://github.com/UnstoppableMango/tdl/issues/1144)) ([b9ef773](https://github.com/UnstoppableMango/tdl/commit/b9ef77300df562554d863e2dfbdbf6dde6771cdb))
+* **mutation:** mark phase 3 done ([#1141](https://github.com/UnstoppableMango/tdl/issues/1141)) ([505f7b5](https://github.com/UnstoppableMango/tdl/commit/505f7b5a9c66de2dfeef3db41d6b7910c650db66))
+
+
+### Code Refactoring
+
+* **emit:** share name, owned and default loss checks ([#1127](https://github.com/UnstoppableMango/tdl/issues/1127)) ([a9021e9](https://github.com/UnstoppableMango/tdl/commit/a9021e9697ac11075604ee0358488001297fc9b2))
+* **host:** move directive checks and loss silencing below gen ([#1145](https://github.com/UnstoppableMango/tdl/issues/1145)) ([5223f4e](https://github.com/UnstoppableMango/tdl/commit/5223f4ee73951726ae0c560c12e1f83dc202c984))
+
+
+### Tests
+
+* **analysis:** kill 10 mutation survivors ([#1140](https://github.com/UnstoppableMango/tdl/issues/1140)) ([f421c4c](https://github.com/UnstoppableMango/tdl/commit/f421c4cd6d7b3ce37fbe9eb58fc3c362f92f34f5))
+* **analysis:** kill 10 mutation survivors ([#1150](https://github.com/UnstoppableMango/tdl/issues/1150)) ([e17e67a](https://github.com/UnstoppableMango/tdl/commit/e17e67a5cd492bae6209b6e03dbc6412ffad047c))
+* **ast:** kill 9 mutation survivors ([#1138](https://github.com/UnstoppableMango/tdl/issues/1138)) ([835ef2c](https://github.com/UnstoppableMango/tdl/commit/835ef2ccbbe1012027f0880222945382c51ff1c8))
+* **lex:** kill 1 mutation survivor ([#1147](https://github.com/UnstoppableMango/tdl/issues/1147)) ([a877b9e](https://github.com/UnstoppableMango/tdl/commit/a877b9ec5db826dc1713a7a22d63224a6a38114c))
+* **lex:** kill 1 mutation survivors ([a877b9e](https://github.com/UnstoppableMango/tdl/commit/a877b9ec5db826dc1713a7a22d63224a6a38114c))
+* **lex:** kill 10 mutation survivors ([#1136](https://github.com/UnstoppableMango/tdl/issues/1136)) ([4aa1764](https://github.com/UnstoppableMango/tdl/commit/4aa176412afa619e74b5c9271ade09d2cea78d52))
+* **parser:** kill 4 mutation survivors ([#1148](https://github.com/UnstoppableMango/tdl/issues/1148)) ([7974448](https://github.com/UnstoppableMango/tdl/commit/7974448504ae237598eb87b85a2f821811dc47a0))
+* **parser:** kill 8 mutation survivors ([#1137](https://github.com/UnstoppableMango/tdl/issues/1137)) ([eddded1](https://github.com/UnstoppableMango/tdl/commit/eddded194987ae2bc4c0a8db7428d5cdc74a60d1))
+* **sema:** kill 10 mutation survivors ([#1139](https://github.com/UnstoppableMango/tdl/issues/1139)) ([bc17e86](https://github.com/UnstoppableMango/tdl/commit/bc17e86efa456fe9793353ea0e4e46c0fd807414))
+* **sema:** kill 10 mutation survivors ([#1149](https://github.com/UnstoppableMango/tdl/issues/1149)) ([a786460](https://github.com/UnstoppableMango/tdl/commit/a786460fe3539caf0e6660c0edca80695daff8b2))
+
+
+### Build System
+
+* add make mutate ([#1123](https://github.com/UnstoppableMango/tdl/issues/1123)) ([97169c9](https://github.com/UnstoppableMango/tdl/commit/97169c993ad609395f65edda666a810f6f563309))
+
 ## [0.5.0](https://github.com/UnstoppableMango/tdl/compare/v0.4.15...v0.5.0) (2026-10-18)
 
 
