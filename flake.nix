@@ -48,7 +48,7 @@
         ./nix
       ];
 
-      _module.args.version = "0.5.1"; # x-release-please-version
+      _module.args.version = "0.5.2"; # x-release-please-version
 
       perSystem =
         { inputs', pkgs, ... }:
