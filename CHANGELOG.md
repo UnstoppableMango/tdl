@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.5.2](https://github.com/UnstoppableMango/tdl/compare/v0.5.1...v0.5.2) (2026-10-24)
+
+
+### Features
+
+* **cli:** tdl request writes the requests gen would send ([#1154](https://github.com/UnstoppableMango/tdl/issues/1154)) ([ee70f14](https://github.com/UnstoppableMango/tdl/commit/ee70f14218949df7f900fce58a0a99bb12d6dd87))
+* **make:** GNU make functions for listing TDL files and imports ([#1165](https://github.com/UnstoppableMango/tdl/issues/1165)) ([e7aac48](https://github.com/UnstoppableMango/tdl/commit/e7aac480ea2bb493014c2cfd687e74ce535dc9a4))
+* **typescript:** serve the backend as a TypeScript 7.1 content mapper ([#1152](https://github.com/UnstoppableMango/tdl/issues/1152)) ([40b9aea](https://github.com/UnstoppableMango/tdl/commit/40b9aea5e4ca86296d2c1b578957a72aeb023723))
+
+
+### Documentation
+
+* configure the agent skills' issue tracker, triage labels, and domain docs ([#1170](https://github.com/UnstoppableMango/tdl/issues/1170)) ([fc52d1b](https://github.com/UnstoppableMango/tdl/commit/fc52d1b879125d04cc1d6a4b3d3bf1438f49df86))
+* **design:** a gRPC transport for plugins, chosen at spawn ([#1169](https://github.com/UnstoppableMango/tdl/issues/1169)) ([2cf4ede](https://github.com/UnstoppableMango/tdl/commit/2cf4edebbd29ad25236bbfb948002ba816420f91))
+
 ## [0.5.1](https://github.com/UnstoppableMango/tdl/compare/v0.5.0...v0.5.1) (2026-10-23)
 
 
