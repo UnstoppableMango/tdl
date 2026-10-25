@@ -2,7 +2,10 @@
 // are generated from proto/tdl/ir/v1/ir.proto; the helpers are hand written.
 package ir
 
-import "strings"
+import (
+	"strconv"
+	"strings"
+)
 
 // Unresolved is the index an [ID] carries when its name did not resolve.
 // The ID keeps the name as written.
@@ -154,7 +157,37 @@ func (d *Directive) Call() string {
 	}
 	args := make([]string, len(d.GetArgs()))
 	for i, a := range d.GetArgs() {
-		args[i] = literalText(a)
+		args[i] = a.Source()
 	}
 	return d.GetName() + "(" + strings.Join(args, ", ") + ")"
+}
+
+// Source renders a literal as TDL source spells it: a string quoted, a
+// regex between slashes, a range as `lo..hi`, and anything else as written.
+func (l *Literal) Source() string {
+	switch l.GetKind() {
+	case LiteralKind_LITERAL_KIND_STRING:
+		return strconv.Quote(l.GetText())
+	case LiteralKind_LITERAL_KIND_REGEX:
+		return "/" + l.GetText() + "/"
+	case LiteralKind_LITERAL_KIND_LIST:
+		items := make([]string, len(l.GetItems()))
+		for i, item := range l.GetItems() {
+			items[i] = item.Source()
+		}
+		return "[" + strings.Join(items, ", ") + "]"
+	case LiteralKind_LITERAL_KIND_RANGE:
+		var s string
+		if r := l.GetRange(); r != nil {
+			if r.Low != nil {
+				s = strconv.FormatInt(*r.Low, 10)
+			}
+			s += ".."
+			if r.High != nil {
+				s += strconv.FormatInt(*r.High, 10)
+			}
+		}
+		return s
+	}
+	return l.GetText()
 }

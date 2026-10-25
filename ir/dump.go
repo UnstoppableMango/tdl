@@ -366,34 +366,22 @@ func constraintText(c *Constraint) string {
 	return text
 }
 
+// literalText is [Literal.Source] with each name that resolved to no variant
+// marked, which a dump shows and a target block never writes.
 func literalText(l *Literal) string {
 	switch l.GetKind() {
-	case LiteralKind_LITERAL_KIND_STRING:
-		return strconv.Quote(l.GetText())
-	case LiteralKind_LITERAL_KIND_REGEX:
-		return "/" + l.GetText() + "/"
 	case LiteralKind_LITERAL_KIND_LIST:
 		items := make([]string, len(l.GetItems()))
 		for i, item := range l.GetItems() {
 			items[i] = literalText(item)
 		}
 		return "[" + strings.Join(items, ", ") + "]"
-	case LiteralKind_LITERAL_KIND_RANGE:
-		var lo, hi string
-		if l.GetRange().Low != nil {
-			lo = strconv.FormatInt(l.GetRange().GetLow(), 10)
-		}
-		if l.GetRange().High != nil {
-			hi = strconv.FormatInt(l.GetRange().GetHigh(), 10)
-		}
-		return lo + ".." + hi
 	case LiteralKind_LITERAL_KIND_NAME:
-		if v := l.GetVariant(); v != nil {
-			return l.GetText()
+		if l.GetVariant() == nil {
+			return l.GetText() + " (unresolved)"
 		}
-		return l.GetText() + " (unresolved)"
 	}
-	return l.GetText()
+	return l.Source()
 }
 
 func form(f SyntacticForm) string {
