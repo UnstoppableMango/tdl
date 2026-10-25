@@ -7,3 +7,64 @@
 #   lex/lexer.go:212:14 conditionals-boundary
 #
 # See docs/design/mutation-testing.md.
+
+# From the 2026-10-20 run (#1135).
+
+# peekRune returns RuneError instead of eof at the end of input; its only
+# caller tests isDigit, which is false for both.
+lex/lexer.go:229:16 conditionals-boundary
+
+# endOf's guard fires only on a node that consumed no token, which happens
+# only on a syntax error, and Parse discards the tree then.
+parser/parser.go:52:22 invert-logical
+
+# A comment never shares an offset with its bounds or with a doc comment.
+ast/print.go:30:32 conditionals-boundary
+ast/print.go:56:41 conditionals-boundary
+ast/print.go:98:48 conditionals-boundary
+ast/print.go:171:73 conditionals-boundary
+# s is empty here, so = and += agree.
+ast/print.go:396:5 remove-self-assignments
+# Once inline is false the loop only extends oneLine, which is then unused.
+ast/print.go:419:5 invert-loopctrl
+
+# Ties reassign or store the same value.
+internal/sema/target.go:244:90 conditionals-boundary
+internal/sema/target.go:248:10 conditionals-boundary
+internal/sema/target.go:263:45 conditionals-boundary
+# The key spelling changes on both sides of the comparison alike, and stays
+# injective.
+internal/sema/fields.go:244:22 conditionals-boundary
+internal/sema/fields.go:251:9 conditionals-boundary
+internal/sema/fields.go:251:9 conditionals-negation
+internal/sema/fields.go:266:8 conditionals-boundary
+internal/sema/fields.go:266:8 conditionals-negation
+internal/sema/types.go:271:22 conditionals-boundary
+internal/sema/types.go:274:9 conditionals-boundary
+internal/sema/types.go:274:9 conditionals-negation
+# Inherited constraints are a contiguous tail.
+internal/sema/defaults.go:118:4 invert-loopctrl
+# A type parameter or extern has a nil Ctor, so valueDecl is nil either way.
+internal/sema/defaults.go:148:16 invert-logical
+internal/sema/defaults.go:148:40 invert-logical
+
+# From the 2026-10-22 run (#1151).
+
+# An empty doc is nil, so append(nil, f.Doc...) equals f.Doc.
+parser/class.go:84:16 conditionals-boundary
+
+# The offsets are equal only when both positions come from the same pos()
+# call, so they are identical either way.
+parser/parser.go:52:39 conditionals-boundary
+
+# i > 0 differs only for a name starting with ".", and Words drops that "."
+# anyway.
+internal/analysis/words.go:41:42 conditionals-boundary
+
+# The continue is inside a switch that is the whole loop body, so the
+# mutated break leaves only the switch and the loop goes on the same way.
+internal/sema/target.go:131:5 invert-loopctrl
+internal/sema/types.go:127:5 invert-loopctrl
+
+# With no arguments the branch builds the same ParamRef.
+internal/sema/types.go:92:18 conditionals-boundary
