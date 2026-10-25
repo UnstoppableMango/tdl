@@ -62,33 +62,7 @@ func Source(c *ir.Constraint) string {
 }
 
 // LiteralSource is a literal as TDL source writes it.
-func LiteralSource(l *ir.Literal) string {
-	switch l.GetKind() {
-	case ir.LiteralKind_LITERAL_KIND_STRING:
-		return strconv.Quote(l.GetText())
-	case ir.LiteralKind_LITERAL_KIND_REGEX:
-		return "/" + l.GetText() + "/"
-	case ir.LiteralKind_LITERAL_KIND_LIST:
-		items := make([]string, len(l.GetItems()))
-		for i, item := range l.GetItems() {
-			items[i] = LiteralSource(item)
-		}
-		return "[" + strings.Join(items, ", ") + "]"
-	case ir.LiteralKind_LITERAL_KIND_RANGE:
-		var s string
-		if r := l.GetRange(); r != nil {
-			if r.Low != nil {
-				s = strconv.FormatInt(*r.Low, 10)
-			}
-			s += ".."
-			if r.High != nil {
-				s += strconv.FormatInt(*r.High, 10)
-			}
-		}
-		return s
-	}
-	return l.GetText()
-}
+func LiteralSource(l *ir.Literal) string { return l.Source() }
 
 // constraintViews reads each constraint in cs.
 func constraintViews(cs []*ir.Constraint) []*plugin.ConstraintView {
