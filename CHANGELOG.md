@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.5.3](https://github.com/UnstoppableMango/tdl/compare/v0.5.2...v0.5.3) (2026-10-25)
+
+
+### Bug Fixes
+
+* **ir:** write a directive's name argument without the dump's unresolved mark ([3ebb5a6](https://github.com/UnstoppableMango/tdl/commit/3ebb5a6d1a9f866be155a8ec09eac8445f99345c))
+* **nix:** link tdl-gen-csharp on darwin, and build there in CI ([#1185](https://github.com/UnstoppableMango/tdl/issues/1185)) ([39a0d1e](https://github.com/UnstoppableMango/tdl/commit/39a0d1ec1fae7988f8988cb7a9cdf5bc265b3a99))
+
+
+### Documentation
+
+* **AGENTS.md:** 📝 add Graphify usage guidelines for code navigation ([#1182](https://github.com/UnstoppableMango/tdl/issues/1182)) ([9431677](https://github.com/UnstoppableMango/tdl/commit/94316773f8691b258f2bd73e410f08207bae3dda))
+
+
+### Tests
+
+* **mutation:** list 28 equivalent mutants ([#1171](https://github.com/UnstoppableMango/tdl/issues/1171)) ([1e416a3](https://github.com/UnstoppableMango/tdl/commit/1e416a347b6e1949aa4caff992f184d35965c21b)), closes [#1135](https://github.com/UnstoppableMango/tdl/issues/1135) [#1151](https://github.com/UnstoppableMango/tdl/issues/1151)
+
+
+### Dependencies
+
+* update dependency vscode-languageclient to v11 ([#1177](https://github.com/UnstoppableMango/tdl/issues/1177)) ([2d7b3b8](https://github.com/UnstoppableMango/tdl/commit/2d7b3b861bcf1cea1ad2ba3f7cac324b22a0f61f))
+* update github.com/bufbuild/protocompile digest to b3c25bb ([#1172](https://github.com/UnstoppableMango/tdl/issues/1172)) ([73551c4](https://github.com/UnstoppableMango/tdl/commit/73551c4ec2683f2cadaa1b61025bc1a5fec001c2))
+* update module github.com/unmango/go-gmk to v0.2.0 ([#1175](https://github.com/UnstoppableMango/tdl/issues/1175)) ([e723c0e](https://github.com/UnstoppableMango/tdl/commit/e723c0edd23642e50e90ef6df33eec6708a67326))
+* update module github.com/vektah/gqlparser/v2 to v2.5.64 ([#1173](https://github.com/UnstoppableMango/tdl/issues/1173)) ([cdd5081](https://github.com/UnstoppableMango/tdl/commit/cdd5081be45edcfbe84bd214eb6066a9c60a91b8))
+
 ## [0.5.2](https://github.com/UnstoppableMango/tdl/compare/v0.5.1...v0.5.2) (2026-10-24)
 
 
