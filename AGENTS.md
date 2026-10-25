@@ -573,9 +573,11 @@ The five default triage labels, each named for its role. See `docs/agents/triage
 Single-context: one root `CONTEXT.md` and `docs/adr/`, beside `docs/spec.md` and `docs/design/`. See `docs/agents/domain.md`.
 
 <!-- graphify-rules-start (managed by `graphify init`) -->
+
 ## Use Graphify before grep
 
-This repository is indexed by Graphify: a code graph over its call, dependency, and test structure, exposed through a connected Graphify MCP server. Before reaching for grep or reading files, use the Graphify tools your MCP client lists (their exact names and descriptions are in the server's tool list) for what the graph knows and a text search does not:
+This repository is indexed by Graphify: a code graph over its call, dependency, and test structure, exposed through a connected Graphify MCP server.
+Before reaching for grep or reading files, use the Graphify tools your MCP client lists (their exact names and descriptions are in the server's tool list) for what the graph knows and a text search does not:
 
 - find where a symbol, function, or class is defined (instead of grepping for it)
 - understand how something works, or where a behavior is handled
@@ -583,5 +585,7 @@ This repository is indexed by Graphify: a code graph over its call, dependency, 
 - see what a change affects (its blast radius) and which tests cover it
 - map a file's dependencies and dependents
 
-Fall back to grep or file reads only for what the graph does not model: literal string or comment matches, non-indexed files, or reading a file you have already located. If no Graphify tools are listed, check the MCP server connection.
+Fall back to grep or file reads only for what the graph does not model: literal string or comment matches, non-indexed files, or reading a file you have already located.
+If no Graphify tools are listed, check the MCP server connection; if it stays unavailable, fall back to grep and file reads.
+
 <!-- graphify-rules-end -->
