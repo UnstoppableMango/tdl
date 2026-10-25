@@ -94,8 +94,31 @@ jobs:
       - uses: DavidAnson/markdownlint-cli2-action@21c1be1b93ad9ed58fa840aacc3f279cde2a72ff # v24.2.0
         if: ${{ !cancelled() }}
 
+  # The only build on darwin: the packages, with tdl-gen-csharp linked
+  # ahead of time against the macOS SDK, and every check. macos-latest is
+  # aarch64. The runner has no Nix, so setup-nix installs it.
+  darwin:
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: unmango/actions/setup-nix@e8bbcbd12a2c521c5cb36957c00a7a8f4fe2e766 # v2.0.0
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      # --keep-going, so one darwin-only failure does not hide the next.
+      - run: nix flake check --keep-going
+
+      - run: nix build .#
+        if: ${{ !cancelled() }}
+
   required:
-    needs: [check]
+    needs: [check, darwin]
     if: always()
     runs-on: ubuntu-latest
     steps:
