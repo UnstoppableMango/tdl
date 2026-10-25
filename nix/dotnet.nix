@@ -1,8 +1,10 @@
 {
   buildDotnetModule,
+  darwin,
   dotnetCorePackages,
   lib,
   stdenv,
+  swift,
   version,
 }:
 buildDotnetModule {
@@ -46,6 +48,13 @@ buildDotnetModule {
     "-p:CopyOutputSymbolsToPublishDirectory=false"
   ];
   nativeBuildInputs = [ stdenv.cc ];
+  # On darwin the AOT link names -lswiftCore, -lswiftFoundation, and
+  # -licucore, which the SDK alone does not resolve. These are the inputs
+  # nixpkgs' own dotnet aot test links with.
+  buildInputs = lib.optionals stdenv.hostPlatform.isDarwin [
+    swift
+    darwin.ICU
+  ];
 
   doCheck = true;
   executables = [
