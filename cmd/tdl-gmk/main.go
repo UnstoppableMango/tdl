@@ -17,6 +17,9 @@
 package main
 
 /*
+// ELF leaves the symbols make defines for the loader; Mach-O refuses to
+// link without them unless told to look them up at load time.
+#cgo darwin LDFLAGS: -Wl,-undefined,dynamic_lookup
 #include <gnumake.h>
 */
 import "C"
