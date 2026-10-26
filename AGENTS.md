@@ -324,12 +324,18 @@ After any change to lowering or `ir.Dump`, run `go test ./internal/sema -update`
 ### Docs
 
 `docs/backends/` holds a page per backend for model authors (see [Feature tables](#feature-tables)).
-`docs/design/` holds designs and plans; each `*-plan.md` names what its phases add, and its opening lines say which are done.
-Read those before assuming a design is built: a plan saying no phase is done has no code.
-A phase's pull request updates its own plan's status line, never a list here, because a shared list conflicts with every other open phase.
-A design describes the target, not the implementation.
+`docs/design/` is reference: designs written before this repository adopted the agent skills, describing what a built area is meant to be.
+Read the one covering an area before changing it, and edit it in the same pull request when the code it describes changes.
+New work goes through the skills and the issue tracker:
+
+- a feature or backend: a spec issue (`/to-spec`), broken into ticket issues with blocked-by links (`/to-tickets`);
+- a decision that is hard to reverse: an ADR in `docs/adr/` (`/domain-modeling`);
+- a term: `CONTEXT.md`.
+
+A phase's pull request closes its ticket.
+The skills' issues replace the old `*-plan.md` files, so write a plan as tickets, never as a `*-plan.md`.
+The remaining plans and `docs/backlog.md` are moving to issues; until a plan moves, its opening lines say which phases are built, and a plan saying no phase is done has no code.
 `workflow.md` is furthest ahead: its `tdl.toml` project model is unbuilt.
-`docs/backlog.md` is wanted, unscheduled work.
 `CONTEXT.md` is the glossary: one canonical word per concept, and the words to avoid.
 
 ### .NET SDK
@@ -572,7 +578,7 @@ The five default triage labels, each named for its role. See `docs/agents/triage
 
 ### Domain docs
 
-Single-context: one root `CONTEXT.md` and `docs/adr/`, beside `docs/spec.md` and `docs/design/`. See `docs/agents/domain.md`.
+Single-context: one root `CONTEXT.md` and `docs/adr/`, whose records start at ADR-0001 with no backfill. See `docs/agents/domain.md`.
 
 <!-- graphify-rules-start (managed by `graphify init`) -->
 
