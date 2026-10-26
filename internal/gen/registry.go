@@ -26,7 +26,7 @@ import (
 )
 
 // builtin maps a target name to a backend compiled into tdl. Any other
-// name resolves to tdl-gen-<name> on PATH; see docs/design/plugins.md.
+// name resolves to tdl-gen-<name> on PATH; see docs/architecture/plugins.md.
 var builtin = map[string]plugin.Backend{
 	debug.Name:      debug.Backend{},
 	golang.Name:     golang.Backend{},

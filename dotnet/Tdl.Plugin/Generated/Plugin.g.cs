@@ -2660,7 +2660,7 @@ namespace Tdl.Plugin.V1 {
   /// <summary>
   /// Analysis holds facts about a model that are the same for every backend
   /// serving one target: each type reference resolved to the prelude's shapes,
-  /// and what each declaration names. See docs/design/plugin-sdk.md.
+  /// and what each declaration names. See docs/architecture/plugin-sdk.md.
   /// </summary>
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class Analysis : pb::IMessage<Analysis>
@@ -6713,7 +6713,7 @@ namespace Tdl.Plugin.V1 {
     private string code_ = "";
     /// <summary>
     /// code names the kind of problem, such as "lossy.collection". A warning
-    /// a user can silence carries one; see docs/design/reverse.md.
+    /// a user can silence carries one; see docs/architecture/reverse.md.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -6949,7 +6949,7 @@ namespace Tdl.Plugin.V1 {
   /// <summary>
   /// RequestSet is what `tdl request` writes after its Handshake: every
   /// request `tdl gen` would send one target for the files given, and what
-  /// stopped the others. See docs/design/csharp-source-generator.md.
+  /// stopped the others. See docs/architecture/csharp-source-generator.md.
   /// </summary>
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class RequestSet : pb::IMessage<RequestSet>

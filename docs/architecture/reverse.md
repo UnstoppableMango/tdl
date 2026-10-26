@@ -1,7 +1,7 @@
 # Reverse backends
 
 Design document.
-[reverse-plan.md](reverse-plan.md) orders the work.
+The remaining importers are tracked in [#972](https://github.com/UnstoppableMango/tdl/issues/972).
 
 A backend reads a model and writes a target language.
 A reverse backend reads the target language and writes a model, so `tdl import` turns a `.proto`, `.thrift`, `.smithy`, `.graphql`, `.ts`, `.schema.json`, Go package, or Salesforce DX source into TDL.
@@ -116,7 +116,7 @@ allow = ["lossy.collection"]
 `[lossy]` applies to every backend, and `[lossy.<target>]` to one, in both directions.
 `--allow-lossy` on `tdl gen` and `tdl import` adds codes to the list.
 
-Silencing is diagnostics policy, not type mapping, which is why it lives in the manifest and not in a target block ([workflow.md](workflow.md)).
+Silencing is diagnostics policy, not type mapping, which is why it lives in the manifest and not in a target block ([workflow.md](https://github.com/UnstoppableMango/tdl/blob/fc0682d/docs/design/workflow.md)).
 
 ## Command
 
@@ -164,6 +164,6 @@ Formatting and ordinary comments are not part of a model, so they are not compar
 ## What is not here
 
 A construct TDL has no form for is `lossy.unsupported`, and the declaration reaching it is skipped the way `emit.Cascade` skips one generating.
-Some of these want TDL surface, such as a GraphQL interface as a class or a Smithy operation as a service; each goes to [backlog.md](../backlog.md) rather than into this design.
+Some of these want TDL surface, such as a GraphQL interface as a class or a Smithy operation as a service; each goes to its own `needs-triage` issue rather than into this design.
 
 The `debug` backend has no reverse.

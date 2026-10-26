@@ -1,5 +1,5 @@
 // Package thrift generates a Thrift IDL file from a resolved model. The
-// mapping is in docs/design/schema-backends.md.
+// mapping is in docs/architecture/schema-backends.md.
 package thrift
 
 import (

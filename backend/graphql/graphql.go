@@ -1,5 +1,5 @@
 // Package graphql generates a GraphQL schema of output types from a
-// resolved model. The mapping is in docs/design/schema-backends.md.
+// resolved model. The mapping is in docs/architecture/schema-backends.md.
 package graphql
 
 import (

@@ -1,7 +1,7 @@
 // Package contextmapper generates Context Mapper Language (CML) from a
 // resolved model: one bounded context per package, its aggregates found
 // from identity and ownership. It is a spike, not a registered backend; the
-// findings are in docs/design/contextmapper-spike.md.
+// findings are in docs/architecture/contextmapper-spike.md.
 package contextmapper
 
 import (

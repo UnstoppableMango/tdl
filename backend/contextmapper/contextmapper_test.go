@@ -47,7 +47,7 @@ func generate(t *testing.T, m *ir.Model) (string, *plugin.Response) {
 
 // validate runs cml-check, the Context Mapper parser and validator, when it
 // is on PATH. testdata/cmlcheck builds it from the context-mapper-dsl jar;
-// docs/design/contextmapper-spike.md weighs Context Mapper's own CLI.
+// docs/architecture/contextmapper-spike.md weighs Context Mapper's own CLI.
 func validate(t *testing.T, f *plugin.File) {
 	t.Helper()
 	if testing.Short() {

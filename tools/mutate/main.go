@@ -7,7 +7,7 @@
 //	go run ./tools/mutate ./lex        # one
 //	go run ./tools/mutate -report mutate.json   # reprint a report
 //
-// See docs/design/mutation-testing.md.
+// See docs/architecture/mutation-testing.md.
 package main
 
 import (

@@ -1,7 +1,7 @@
 // The TDL plugin protocol: the messages a backend exchanges with tdl,
 // whether it is compiled in or run as a subprocess.
 //
-// See docs/design/plugins.md for the protocol.
+// See docs/architecture/plugins.md for the protocol.
 edition = "2024";
 
 package tdl.plugin.v1;
@@ -183,7 +183,7 @@ message Request {
 
 // Analysis holds facts about a model that are the same for every backend
 // serving one target: each type reference resolved to the prelude's shapes,
-// and what each declaration names. See docs/design/plugin-sdk.md.
+// and what each declaration names. See docs/architecture/plugin-sdk.md.
 message Analysis {
   repeated TypeView types = 1; // indexed like Model.types
   repeated DeclView decls = 2; // indexed like Model.decls
@@ -466,13 +466,13 @@ message Diagnostic {
   tdl.ir.v1.Position position = 3;
 
   // code names the kind of problem, such as "lossy.collection". A warning
-  // a user can silence carries one; see docs/design/reverse.md.
+  // a user can silence carries one; see docs/architecture/reverse.md.
   string code = 4;
 }
 
 // RequestSet is what `tdl request` writes after its Handshake: every
 // request `tdl gen` would send one target for the files given, and what
-// stopped the others. See docs/design/csharp-source-generator.md.
+// stopped the others. See docs/architecture/csharp-source-generator.md.
 message RequestSet {
   // requests holds one request per target block, for each file whose model
   // lowered and has a block for the target, in the order the files were

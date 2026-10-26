@@ -2,7 +2,7 @@ using static Tdl.Gen.CSharp.Tests.Check;
 
 namespace Tdl.Gen.CSharp.Tests;
 
-// The directives of phase 2 of csharp-backend-plan.md: key, defaults,
+// The directives of the C# backend's phase 2: key, defaults,
 // foreign, attribute, and references into a dependency.
 public class DirectiveTests
 {

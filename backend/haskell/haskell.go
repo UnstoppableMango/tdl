@@ -1,7 +1,7 @@
 // Package haskell generates a Haskell module from a resolved model: a
 // record for each struct, a sum type for each enum, a newtype for each
 // newtype, and a synonym for each alias. The mapping is in
-// docs/design/haskell-backend.md.
+// docs/architecture/haskell-backend.md.
 package haskell
 
 import (

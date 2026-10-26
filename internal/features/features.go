@@ -50,7 +50,7 @@ type Row struct {
 }
 
 // Rows is every feature, in table order. The loss codes in
-// docs/design/reverse.md name most of them, spelled out here because
+// docs/architecture/reverse.md name most of them, spelled out here because
 // backend/internal/emit is out of reach, so a Warns cell names a code
 // the reader can allow; primitives are left to each design's type table.
 var Rows = []Row{

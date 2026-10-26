@@ -11,12 +11,12 @@ How the engineering skills should consume this repo's domain documentation when 
 This repository also records its language and decisions outside those files, so read these too:
 
 - **`docs/spec.md`**: the canonical specification, and the vocabulary of the language itself.
-- **`docs/design/`**: reference designs for areas already built; read the ones that touch your area.
+- **`docs/architecture/`**: reference designs for areas already built; read the ones that touch your area.
 
 ## Decisions before ADR-0001
 
 `docs/adr/` holds decisions made from 2026-10-26 on, numbered from ADR-0001; nothing earlier was backfilled.
-Earlier decisions, the core language's included, are recorded in `docs/spec.md`, the Conventions section of `AGENTS.md`, and `docs/design/`.
+Earlier decisions, the core language's included, are recorded in `docs/spec.md`, the Conventions section of `AGENTS.md`, and `docs/architecture/`.
 Treat those as settled exactly as you would an ADR: an empty `docs/adr/` means no new decisions, never an open question.
 When one of them is reopened and settled again, record the outcome as a new ADR.
 Cite an ADR as `ADR-0007`, so it never reads as an issue number.

@@ -1,11 +1,11 @@
 # OCaml
 
-The `ocaml` backend is designed and not built yet: [ml-backends.md](../design/ml-backends.md) is its design, and [ml-backends-plan.md](../design/ml-backends-plan.md) orders its phases.
+The `ocaml` backend is designed and not built yet: [#1297](https://github.com/UnstoppableMango/tdl/issues/1297) is its spec, and its sub-issues are the phases.
 No phase is done.
 
 ## Features
 
-What the backend will do with each feature of the language, and the phase of its plan that builds it.
+What the backend will do with each feature of the language, and the phase that builds it.
 No means no phase plans it.
 No importer is planned, so every Import cell is No.
 Once the backend is built, `make features` measures this table like every other.

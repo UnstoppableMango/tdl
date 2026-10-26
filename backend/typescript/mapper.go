@@ -3,7 +3,7 @@ package typescript
 // The content mapper lets TypeScript 7.1 import a .tdl file as a module of
 // types: tsc spawns `tdl-gen-typescript content-mapper` and asks it, over
 // JSON-RPC on standard input and output, for each .tdl file's module.
-// docs/design/typescript-content-mapper.md describes the protocol.
+// docs/architecture/typescript-content-mapper.md describes the protocol.
 
 import (
 	"context"

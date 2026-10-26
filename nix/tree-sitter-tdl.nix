@@ -1,5 +1,5 @@
 # The tree-sitter grammar's Python binding, which graphify reads TDL with
-# (see docs/design/graphify.md).
+# (see docs/architecture/graphify.md).
 {
   buildPythonPackage,
   lib,

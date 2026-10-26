@@ -1,5 +1,5 @@
 // Package golang generates Go source from a resolved model. A target block
-// calls it "go". See docs/design/go-backend.md for the decisions.
+// calls it "go". See docs/architecture/go-backend.md for the decisions.
 //
 // An enum whose variants carry no fields is a named string type with
 // constants; one where any variant carries fields is a sealed interface with
@@ -510,7 +510,7 @@ func quoteTag(tag string) string {
 }
 
 // enumeration renders an enum as one of two shapes, chosen by whether any
-// variant carries fields. docs/design/go-backend.md argues the split.
+// variant carries fields. docs/architecture/go-backend.md argues the split.
 func (g *generator) enumeration(b *strings.Builder, decl *ir.Decl) error {
 	name := g.declName(decl)
 	variants := decl.GetEnumeration().GetVariants()

@@ -2,11 +2,11 @@
 
 The `zod` backend writes one TypeScript module of [Zod](https://zod.dev) schemas per model, each parsing a declaration's JSON wire value and inferring the type the `typescript` backend writes for it.
 The output imports `zod`, 4.3 or later, which is the consumer's dependency.
-[zod-backend.md](../design/zod-backend.md) is its design, and [zod-backend-plan.md](../design/zod-backend-plan.md) orders its phases; phases 1 and 2 are built.
+[zod-backend.md](../architecture/zod-backend.md) is its design; phases 1 and 2 are built, and [#1230](https://github.com/UnstoppableMango/tdl/issues/1230) tracks the rest.
 
 ## Features
 
-What the backend does with each feature of the language today, measured by `make features` against `testdata/features`, and the phase of its plan that builds what it does not do yet.
+What the backend does with each feature of the language today, measured by `make features` against `testdata/features`, and the phase that builds what it does not do yet.
 Yes generates it, Warns loses part of it under the loss codes named, which `tdl.toml` can allow, and No skips it or refuses the model.
 No importer is planned, so every Import cell is No.
 

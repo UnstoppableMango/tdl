@@ -1,7 +1,7 @@
 # TDL types live in C# editors
 
 Design document.
-[csharp-source-generator-plan.md](csharp-source-generator-plan.md) orders the work and says which phases are built.
+Phase 1, `tdl request`, is built; the rest is tracked in [#1199](https://github.com/UnstoppableMango/tdl/issues/1199).
 
 `tdl gen` writes C# to disk, and a project compiles what was written.
 The C# a model generates is stale from the moment a `.tdl` file changes until someone runs `tdl gen` again, and an editor knows nothing of a declaration added a minute ago.
@@ -154,7 +154,7 @@ Step tracking asserts that a C# edit reruns no step that calls `tdl`, and that e
 
 ## Out of scope
 
-- **F#.** F# has no source generators; its equivalent is a type provider, which [backlog.md](../backlog.md) records.
+- **F#.** F# has no source generators; its equivalent is a type provider, which [#1311](https://github.com/UnstoppableMango/tdl/issues/1311) records.
 - **Other targets.** Only C# compiles through Roslyn.
 - **A long-lived `tdl`.** Added only if a process per change proves slow.
 - **Bundled binaries.** Per-platform `tdl` binaries inside the package, if users ask for them.

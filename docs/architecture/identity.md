@@ -66,7 +66,7 @@ target sql for shop {
 ```
 
 The compiler checks the directive's shape and passes it on.
-The Go backend reads it to generate `Key()` ([go-backend-plan.md](go-backend-plan.md)).
+The Go backend reads it to generate `Key()` ([go-backend-plan.md](https://github.com/UnstoppableMango/tdl/blob/fc0682d/docs/design/go-backend-plan.md)).
 
 ## Recursion
 

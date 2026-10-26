@@ -1,7 +1,7 @@
 # Importing TDL into TypeScript
 
 Design document.
-[typescript-content-mapper-plan.md](typescript-content-mapper-plan.md) orders the work and says which phases are built.
+Phases 1 and 2 are built; the rest is tracked in [#1226](https://github.com/UnstoppableMango/tdl/issues/1226).
 
 `tdl gen` writes a `.ts` file, and a TypeScript project imports what was written.
 The types are stale from the moment a `.tdl` file changes until someone runs `tdl gen` again.
@@ -146,14 +146,14 @@ Mappings also place a problem tsc finds in the module, such as a name a dependen
 ## Runtime
 
 A type-only import is erased, so nothing loads a `.tdl` file at run time, and no Node, Bun, or bundler loader is needed.
-Runtime values, schemas a program validates JSON against, belong to the [zod backend](zod-backend.md); a mapper option serving them is in the [backlog](../backlog.md).
+Runtime values, schemas a program validates JSON against, belong to the [zod backend](zod-backend.md); a mapper option serving them is [#1318](https://github.com/UnstoppableMango/tdl/issues/1318).
 
 ## The npm package
 
 `tsc` finds a mapper by package name, so the command needs a package to name it.
 `@unmango/tdl-typescript` is a `package.json` and a README, with no JavaScript, in `npm/tdl-typescript/`.
 It does not carry the binary: `tdl-gen-typescript` comes from `PATH`, as the C# source generator takes `tdl` from it.
-Platform packages carrying the binary, as esbuild publishes them, are in the backlog.
+Platform packages carrying the binary, as esbuild publishes them, are [#1319](https://github.com/UnstoppableMango/tdl/issues/1319).
 
 `release-please-config.json` versions it with the release, and a second job in `release-please.yml` publishes it with npm trusted publishing, gated on the release job's output as the NuGet job is.
 The npm trusted publisher names `release-please.yml`; the scope's owner configures it before the first release.

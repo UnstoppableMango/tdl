@@ -26,7 +26,7 @@ import (
 // nested messages, as Generate writes a fielded enum, an enum with fields.
 // What regenerating needs goes in a protobuf target block. Under the
 // annotations a `roundtrip` directive writes, it rebuilds the model the
-// files were generated from. docs/design/schema-backends.md has the
+// files were generated from. docs/architecture/schema-backends.md has the
 // mapping.
 func (Backend) Import(ctx context.Context, req *plugin.ImportRequest) (*plugin.ImportResponse, error) {
 	r := &reader{

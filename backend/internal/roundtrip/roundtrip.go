@@ -1,5 +1,5 @@
 // Package roundtrip runs a backend forward and back over the corpus in
-// testdata/roundtrip, holding it to docs/design/reverse.md's goal.
+// testdata/roundtrip, holding it to docs/architecture/reverse.md's goal.
 //
 // A case is a directory. One holding source.tdl is model first: the model
 // is generated with the `roundtrip` directive on and must import back

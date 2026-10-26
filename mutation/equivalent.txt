@@ -6,7 +6,7 @@
 #   # The loop index starts at 0 and steps by 1, so it reaches n exactly.
 #   lex/lexer.go:212:14 conditionals-boundary
 #
-# See docs/design/mutation-testing.md.
+# See docs/architecture/mutation-testing.md.
 
 # From the 2026-10-20 run (#1135).
 

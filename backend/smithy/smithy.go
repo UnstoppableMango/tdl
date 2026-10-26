@@ -1,5 +1,5 @@
 // Package smithy generates a Smithy IDL 2.0 model from a resolved model,
-// and imports one back. The mapping is in docs/design/schema-backends.md.
+// and imports one back. The mapping is in docs/architecture/schema-backends.md.
 package smithy
 
 import (

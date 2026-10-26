@@ -1,5 +1,5 @@
 // Package ast defines the TDL parse tree, which mirrors source text 1:1
-// with names left unresolved. See docs/design/ir.md for the resolved model.
+// with names left unresolved. See docs/architecture/ir.md for the resolved model.
 package ast
 
 import "github.com/unstoppablemango/tdl/lex"

@@ -2,7 +2,7 @@
 
 The `csharp` backend writes records, enums, and newtypes as readonly record structs, one `.g.cs` file per declaration or one for the whole target.
 It is a .NET plugin, `tdl-gen-csharp`, which `tdl gen` runs from `PATH`.
-[csharp-backend.md](../design/csharp-backend.md) is its design.
+[csharp-backend.md](../architecture/csharp-backend.md) is its design.
 
 ## Features
 

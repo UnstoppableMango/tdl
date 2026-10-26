@@ -8,7 +8,7 @@ namespace Tdl.Gen.CSharp;
 /// Generates C# source from a resolved model: a sealed record for each
 /// struct, a C# enum for each fieldless enum, an abstract record closed over
 /// nested variant records for each enum with fields, and a readonly record
-/// struct for each newtype. The mapping is in docs/design/csharp-backend.md.
+/// struct for each newtype. The mapping is in docs/architecture/csharp-backend.md.
 /// </summary>
 public sealed class CSharpBackend : IBackend
 {

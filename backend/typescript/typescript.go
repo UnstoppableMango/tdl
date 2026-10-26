@@ -1,6 +1,6 @@
 // Package typescript generates TypeScript declarations of JSON wire types
 // from a resolved model: interfaces and type aliases, with no runtime code.
-// The mapping is in docs/design/schema-backends.md.
+// The mapping is in docs/architecture/schema-backends.md.
 package typescript
 
 import (

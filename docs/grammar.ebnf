@@ -13,7 +13,7 @@
    and are required there. */
 
 /* `/*@` annotations describe this grammar to the tree-sitter generator;
-   design/treesitter.md defines them.  A reader may ignore them. */
+   architecture/treesitter.md defines them.  A reader may ignore them. */
 
 /*@ word identifier */
 /*@ extra doc_comment line_comment */

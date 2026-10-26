@@ -3,7 +3,7 @@
 // resolved to the prelude's shapes, and what each declaration names.
 //
 // tdl ships the result in [plugin.Request.Analysis], so a plugin in any
-// language reads it. See docs/design/plugin-sdk.md.
+// language reads it. See docs/architecture/plugin-sdk.md.
 package analysis
 
 import (

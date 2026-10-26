@@ -39,7 +39,7 @@ var outlineScript string
 // directive writes, it rebuilds the model the file was generated from.
 //
 // The file is parsed by the TypeScript compiler, which import runs under
-// node, so both must be on PATH. docs/design/schema-backends.md has the
+// node, so both must be on PATH. docs/architecture/schema-backends.md has the
 // mapping.
 func (Backend) Import(ctx context.Context, req *plugin.ImportRequest) (*plugin.ImportResponse, error) {
 	r := &reader{names: map[string]string{}, sums: map[string]*sum{}, variants: map[string]bool{}}

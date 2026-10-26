@@ -48,7 +48,7 @@
 // tdl then shakes hands in [Mode_MODE_IMPORT] and sends [ImportRequest]
 // messages instead of [Request] ones. A warning about a fact the
 // conversion loses carries a code, such as "lossy.collection", which the
-// user can silence; docs/design/reverse.md lists them.
+// user can silence; docs/architecture/reverse.md lists them.
 //
 // # The wire
 //

@@ -19,7 +19,7 @@ The cells are measured by `make features`, so a page cannot claim more than the 
 | [`likec4`](likec4.md) | LikeC4 |
 | [`zod`](zod.md) | Zod |
 
-These are designed and not built yet, and each page names the phase of its plan that builds each feature:
+These are designed and not built yet, and each page names the phase that builds each feature:
 
 | Backend | Target |
 | --- | --- |

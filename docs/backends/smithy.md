@@ -1,7 +1,7 @@
 # Smithy
 
 The `smithy` backend writes one Smithy IDL 2.0 file per model: structures, both enum shapes, and named collection shapes.
-[schema-backends.md](../design/schema-backends.md) is its design.
+[schema-backends.md](../architecture/schema-backends.md) is its design.
 
 ## Features
 

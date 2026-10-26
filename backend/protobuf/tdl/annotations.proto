@@ -2,7 +2,7 @@
 // directive. Each carries a fact protobuf has no form for, so `tdl import`
 // rebuilds the model the schema was generated from. An option is written
 // only where the schema alone would read back differently.
-// docs/design/reverse.md describes the round trip.
+// docs/architecture/reverse.md describes the round trip.
 syntax = "proto3";
 
 package tdl;
