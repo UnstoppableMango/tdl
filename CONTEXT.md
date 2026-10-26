@@ -32,3 +32,13 @@ _Avoid_: upgrade, negotiation
 **Framing**:
 How one message is delimited on a byte stream: a varint length followed by the encoded message.
 _Avoid_: transport, protocol version
+
+### Loss
+
+**Output loss**:
+A fact of the model that generating drops or weakens, so a consumer of the output sees a looser contract than the model states: a skipped declaration, a dropped constraint or default, `uuid` written as a string.
+_Avoid_: loss, lossy output
+
+**Read-back loss**:
+A fact the output keeps but importing it would not recover: an entity read back as a value, a pinned number equal to the one it would be given.
+_Avoid_: loss, round-trip loss
