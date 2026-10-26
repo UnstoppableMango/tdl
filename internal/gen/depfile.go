@@ -26,39 +26,41 @@ func DepFile(target string, prereqs []string) []byte {
 	return []byte(b.String())
 }
 
-// makeEscape escapes what GNU make would read as the end of a name or the
+// makeEscaper escapes what GNU make would read as the end of a name or the
 // start of a comment or a reference, as gcc does.
-func makeEscape(name string) string {
-	return strings.NewReplacer(" ", `\ `, "#", `\#`, "$", "$$").Replace(name)
-}
+var makeEscaper = strings.NewReplacer(" ", `\ `, "#", `\#`, "$", "$$")
+
+func makeEscape(name string) string { return makeEscaper.Replace(name) }
 
 // WriteDepFile writes the dependency file DepFile renders at target. It
 // writes a temporary file and renames it over target, so an interrupted run
 // never leaves a partial rule, and the mtime make reads is always new.
-func WriteDepFile(target string, prereqs []string) error {
+func WriteDepFile(target string, prereqs []string) (err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("writing %s: %w", target, err)
+		}
+	}()
+
 	dir := filepath.Dir(target)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return fmt.Errorf("creating %s: %w", dir, err)
+		return err
 	}
 	tmp, err := os.CreateTemp(dir, "."+filepath.Base(target)+".*")
 	if err != nil {
-		return fmt.Errorf("writing %s: %w", target, err)
+		return err
 	}
 	defer os.Remove(tmp.Name())
 
-	if _, err := tmp.Write(DepFile(target, prereqs)); err != nil {
-		tmp.Close()
-		return fmt.Errorf("writing %s: %w", target, err)
+	_, err = tmp.Write(DepFile(target, prereqs))
+	if err == nil {
+		err = tmp.Chmod(0o644)
 	}
-	if err := tmp.Chmod(0o644); err != nil {
-		tmp.Close()
-		return fmt.Errorf("writing %s: %w", target, err)
+	if cerr := tmp.Close(); err == nil {
+		err = cerr
 	}
-	if err := tmp.Close(); err != nil {
-		return fmt.Errorf("writing %s: %w", target, err)
+	if err != nil {
+		return err
 	}
-	if err := os.Rename(tmp.Name(), target); err != nil {
-		return fmt.Errorf("writing %s: %w", target, err)
-	}
-	return nil
+	return os.Rename(tmp.Name(), target)
 }

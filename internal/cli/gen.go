@@ -60,7 +60,10 @@ func genCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 			if r.watch && len(args) > 1 {
 				return fmt.Errorf("--watch takes a single file, got %d", len(args))
 			}
-			if r.watch && cmd.Flags().Changed("make") {
+			if cmd.Flags().Changed("make") && r.makeTarget == "" {
+				return fmt.Errorf("--make needs a target to name in the dependency file")
+			}
+			if r.watch && r.makeTarget != "" {
 				return fmt.Errorf("--watch does not finish, so it cannot be combined with --make")
 			}
 			if r.verify && r.clean {
@@ -201,7 +204,7 @@ func (r *genRun) generate(path string) error {
 	if err != nil {
 		return err
 	}
-	if r.read != nil {
+	if r.makeTarget != "" {
 		r.read[path] = true
 		for _, name := range loader.Names() {
 			r.read[name] = true
@@ -302,8 +305,9 @@ func (r *genRun) orphans() error {
 }
 
 // depFile writes the dependency file --make names, once every file has run
-// with no error. A path is written relative to the working directory, as
-// make sees it, unless it lies outside it.
+// with no error. A path is cleaned and written relative to the working
+// directory, as make sees it, unless it lies outside it, so a file named
+// two ways is listed once.
 func (r *genRun) depFile() error {
 	if r.makeTarget == "" {
 		return nil
@@ -314,6 +318,7 @@ func (r *genRun) depFile() error {
 	}
 	prereqs := make([]string, 0, len(r.read))
 	for path := range r.read {
+		path = filepath.Clean(path)
 		if filepath.IsAbs(path) {
 			if rel, err := filepath.Rel(wd, path); err == nil && filepath.IsLocal(rel) {
 				path = rel

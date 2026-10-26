@@ -2,6 +2,8 @@ package cli
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,6 +12,8 @@ import (
 	"time"
 
 	"github.com/unstoppablemango/tdl/internal/gen"
+	"github.com/unstoppablemango/tdl/internal/gen/echo"
+	"github.com/unstoppablemango/tdl/plugin"
 )
 
 // writeFiles writes each file under dir, creating its directory.
@@ -26,12 +30,13 @@ func writeFiles(t *testing.T, dir string, files map[string]string) {
 	}
 }
 
-// makeModel is a model importing b.tdl, which imports c.tdl, beside a
-// _ import standing in for a replacement prelude and a tdl.toml.
+// makeModel is a model importing b.tdl, which imports "c $x.tdl", beside a
+// _ import standing in for a replacement prelude and a tdl.toml. The space
+// and the dollar hold make to reading the escaped name back.
 var makeModel = map[string]string{
-	"a.tdl": "package a\n\nimport \"b.tdl\" as b\nimport \"std/prelude.tdl\" as _\n\ntype A {\n  b: b.B\n}\n\ntarget debug for a {\n  out(\"./out\")\n}\n",
-	"b.tdl": "package b\n\nimport \"c.tdl\" as c\n\ntype B {\n  c: c.C\n}\n",
-	"c.tdl": "package c\n\nprimitive string\n\ntype C {\n  s: string\n}\n",
+	"a.tdl":    "package a\n\nimport \"b.tdl\" as b\nimport \"std/prelude.tdl\" as _\n\ntype A {\n  b: b.B\n}\n\ntarget debug for a {\n  out(\"./out\")\n}\n",
+	"b.tdl":    "package b\n\nimport \"c $x.tdl\" as c\n\ntype B {\n  c: c.C\n}\n",
+	"c $x.tdl": "package c\n\nprimitive string\n\ntype C {\n  s: string\n}\n",
 
 	"std/prelude.tdl": "package std\n\nprimitive Extra\n",
 	"tdl.toml":        "",
@@ -54,7 +59,7 @@ func TestGenMakeWritesEveryFileRead(t *testing.T) {
 		t.Fatalf("reading the dependency file: %v", err)
 	}
 	var want []string
-	for _, name := range []string{"a.tdl", "b.tdl", "c.tdl", "std/prelude.tdl", "tdl.toml"} {
+	for _, name := range []string{"a.tdl", "b.tdl", "c $x.tdl", "std/prelude.tdl", "tdl.toml"} {
 		want = append(want, filepath.Join(dir, name))
 	}
 	if string(got) != string(gen.DepFile(stamp, want)) {
@@ -85,13 +90,18 @@ func TestGenVerifyMakeWritesOnSuccess(t *testing.T) {
 // make retries.
 func TestGenMakeLeavesTheFileAloneOnFailure(t *testing.T) {
 	cases := map[string]struct {
-		args  []string
-		spoil func(t *testing.T, dir string)
+		args    []string
+		resolve func(string) (plugin.Backend, error)
+		spoil   func(t *testing.T, dir string)
 	}{
 		"lowering": {
 			spoil: func(t *testing.T, dir string) {
 				writeFiles(t, dir, map[string]string{"b.tdl": "package b\n\ntype {\n"})
 			},
+		},
+		"backend": {
+			resolve: func(string) (plugin.Backend, error) { return failingBackend{}, nil },
+			spoil:   func(*testing.T, string) {},
 		},
 		"verify": {
 			args: []string{"--verify"},
@@ -119,7 +129,11 @@ func TestGenMakeLeavesTheFileAloneOnFailure(t *testing.T) {
 			}
 
 			c.spoil(t, dir)
-			if _, _, err := run(t, newGenCmd(), append([]string{a, "--make", stamp}, c.args...)...); err == nil {
+			cmd := newGenCmd()
+			if c.resolve != nil {
+				cmd = genCmd(c.resolve)
+			}
+			if _, _, err := run(t, cmd, append([]string{a, "--make", stamp}, c.args...)...); err == nil {
 				t.Fatal("expected the run to fail")
 			}
 
@@ -130,11 +144,22 @@ func TestGenMakeLeavesTheFileAloneOnFailure(t *testing.T) {
 			if !bytes.Equal(before, after) {
 				t.Errorf("dependency file changed:\n%s\nwas\n%s", after, before)
 			}
-			if info, err := os.Stat(stamp); err != nil || !info.ModTime().Equal(old) {
-				t.Errorf("mtime moved: %v, %v", info.ModTime(), err)
+			info, err := os.Stat(stamp)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !info.ModTime().Equal(old) {
+				t.Errorf("mtime moved to %v, want %v", info.ModTime(), old)
 			}
 		})
 	}
+}
+
+// failingBackend fails every request.
+type failingBackend struct{ echo.Backend }
+
+func (failingBackend) Generate(context.Context, *plugin.Request) (*plugin.Response, error) {
+	return nil, errors.New("the backend failed")
 }
 
 func TestGenMakeNeedsATarget(t *testing.T) {
@@ -142,6 +167,37 @@ func TestGenMakeNeedsATarget(t *testing.T) {
 
 	if _, _, err := run(t, newGenCmd(), good, "--make"); err == nil {
 		t.Error("expected an error for --make with no target")
+	}
+}
+
+func TestGenMakeRejectsAnEmptyTarget(t *testing.T) {
+	dir := t.TempDir()
+	writeFiles(t, dir, makeModel)
+
+	_, _, err := run(t, newGenCmd(), filepath.Join(dir, "a.tdl"), "--make", "")
+	if err == nil || !strings.Contains(err.Error(), "--make") {
+		t.Errorf("expected --make with an empty target to be rejected, got %v", err)
+	}
+}
+
+// Paths are written relative to the working directory and cleaned, so a
+// file named two ways is listed once.
+func TestGenMakeWritesCleanRelativePaths(t *testing.T) {
+	dir := t.TempDir()
+	writeFiles(t, dir, makeModel)
+	writeFiles(t, dir, map[string]string{"d.tdl": "package d\n\nimport \"a.tdl\" as a\n\ntype D {\n  a: a.A\n}\n\ntarget debug for d {\n  out(\"./out\")\n}\n"})
+	t.Chdir(dir)
+
+	if _, errOut, err := run(t, newGenCmd(), "./a.tdl", filepath.Join(dir, "d.tdl"), "--make", ".stamp"); err != nil {
+		t.Fatalf("gen --make: %v\n%s", err, errOut)
+	}
+	got, err := os.ReadFile(".stamp")
+	if err != nil {
+		t.Fatalf("reading the dependency file: %v", err)
+	}
+	want := gen.DepFile(".stamp", []string{"a.tdl", "b.tdl", "c $x.tdl", "d.tdl", "std/prelude.tdl", "tdl.toml"})
+	if string(got) != string(want) {
+		t.Errorf("dependency file =\n%s\nwant\n%s", got, want)
 	}
 }
 
@@ -201,7 +257,7 @@ func TestGenMakeDrivesMake(t *testing.T) {
 		t.Fatal(err)
 	}
 	now := time.Now()
-	if err := os.Chtimes(filepath.Join(dir, "c.tdl"), now, now); err != nil {
+	if err := os.Chtimes(filepath.Join(dir, "c $x.tdl"), now, now); err != nil {
 		t.Fatal(err)
 	}
 	if out := runMake(); !ran(out) {
@@ -212,7 +268,7 @@ func TestGenMakeDrivesMake(t *testing.T) {
 		t.Fatal(err)
 	}
 	writeFiles(t, dir, map[string]string{"b.tdl": "package b\n\nprimitive string\n\ntype B {\n  s: string\n}\n"})
-	if err := os.Remove(filepath.Join(dir, "c.tdl")); err != nil {
+	if err := os.Remove(filepath.Join(dir, "c $x.tdl")); err != nil {
 		t.Fatal(err)
 	}
 	if out := runMake(); !ran(out) {
