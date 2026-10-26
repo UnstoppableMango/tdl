@@ -317,11 +317,7 @@ func (g *generator) object(b *strings.Builder, name string, meta *ir.Meta, field
 	if kind == object {
 		includes = unlower.Includes(g.Model, fields)
 	}
-	for i, inc := range includes {
-		if inc != "" && (i == 0 || includes[i-1] != inc) {
-			g.Lose(emit.LossInclude, fields[i].GetMeta().GetPosition(), "%s's include of %s is flattened into its fields", name, inc)
-		}
-	}
+	g.LoseIncludes(name, fields, includes, "fields")
 
 	var body strings.Builder
 	seen := map[string]bool{}

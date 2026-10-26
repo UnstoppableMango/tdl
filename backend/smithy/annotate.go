@@ -188,12 +188,7 @@ func (g *generator) variantLosses(shapeName, owner string, fielded bool, v *ir.V
 
 // fieldLosses warns about what a structure's members lose.
 func (g *generator) fieldLosses(owner string, fields []*ir.Field) {
-	includes := unlower.Includes(g.Model, fields)
-	for i, inc := range includes {
-		if inc != "" && (i == 0 || includes[i-1] != inc) {
-			g.Lose(emit.LossInclude, fields[i].GetMeta().GetPosition(), "%s's include of %s is flattened into its members", owner, inc)
-		}
-	}
+	g.LoseIncludes(owner, fields, unlower.Includes(g.Model, fields), "members")
 	for _, f := range fields {
 		g.LoseFieldName(owner, f, g.FieldName(f, asWritten))
 		g.LoseOwnedDefault(owner, "Smithy", f)

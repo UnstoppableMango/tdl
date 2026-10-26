@@ -346,11 +346,7 @@ func (g *generator) structure(b *strings.Builder, keyword string, space emit.Spa
 	if top {
 		includes = unlower.Includes(g.Model, fields)
 	}
-	for i, inc := range includes {
-		if inc != "" && (i == 0 || includes[i-1] != inc) {
-			g.Lose(emit.LossInclude, fields[i].GetMeta().GetPosition(), "%s's include of %s is flattened into its fields", name, inc)
-		}
-	}
+	g.LoseIncludes(name, fields, includes, "fields")
 
 	var body strings.Builder
 	seen := map[string]bool{}
