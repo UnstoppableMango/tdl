@@ -182,6 +182,21 @@ proto/.stamp: $(tdl-imports $(MODEL))
 	touch $@
 ```
 
+`tdl gen --make $@` writes the stamp itself, as a make dependency file in the style of `gcc -MD -MP`: a rule naming the target and every file the run read, imports and `tdl.toml` included, then an empty rule for each, so deleting an import rebuilds rather than fails.
+It is written only after every file has generated, or verified, with no error, so a failed run leaves it stale and make retries.
+A Makefile that includes it needs no list of imports:
+
+```make
+load $(TDL_GMK)
+
+MODEL := $(tdl-files model)
+
+proto/.stamp: $(MODEL)
+	tdl gen $(MODEL) --make $@
+
+-include proto/.stamp
+```
+
 Without Nix, build it with `go build -tags makeplugin -buildmode=c-shared -o tdl.so ./cmd/tdl-gmk` from a checkout, with `gnumake.h` on the include path.
 make derives the setup function from the file's name, so keep it `tdl.so`.
 
@@ -194,6 +209,7 @@ tdl fmt ./types.tdl      # print canonical formatting; -w writes in place
 tdl ast ./types.tdl      # print the parse tree
 tdl gen ./types.tdl      # run every target block; --target narrows, -o overrides
                          # --verify checks, --clean removes old output, --watch reruns
+                         # --make writes a make dependency file for a target
 tdl ir ./types.tdl       # print the resolved model; --format json for the plugin view
                          # --prelude lowers against a replacement prelude
 tdl tokens ./types.tdl   # print the token stream

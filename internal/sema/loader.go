@@ -1,8 +1,10 @@
 package sema
 
 import (
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 )
 
 // Loader reads the source of an imported file. Lowering does not touch the
@@ -40,4 +42,29 @@ func (o Overlay) Load(from, path string) (string, string, error) {
 		return name, src, nil
 	}
 	return FSLoader{}.Load(from, path)
+}
+
+// Recording resolves imports through Loader and keeps the name of every
+// file it read, so a caller learns what a lowering depended on.
+type Recording struct {
+	Loader Loader
+
+	names map[string]bool
+}
+
+func (r *Recording) Load(from, path string) (string, string, error) {
+	name, src, err := r.Loader.Load(from, path)
+	if err != nil {
+		return name, src, err
+	}
+	if r.names == nil {
+		r.names = map[string]bool{}
+	}
+	r.names[name] = true
+	return name, src, nil
+}
+
+// Names returns the resolved name of every file read, sorted.
+func (r *Recording) Names() []string {
+	return slices.Sorted(maps.Keys(r.names))
 }

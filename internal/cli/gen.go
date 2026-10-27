@@ -2,7 +2,9 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"maps"
 	"os"
 	"path/filepath"
@@ -41,6 +43,11 @@ func genCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 			"exiting non-zero when they differ. --clean first removes the files\n" +
 			"an earlier run wrote, which .tdl-output in the directory lists.\n" +
 			"A file there that tdl did not write is never overwritten or removed.\n\n" +
+			"--make <target> writes a make dependency file at <target> once\n" +
+			"every file has generated, or verified, with no error: a rule naming\n" +
+			"<target> and every file the run read, imports and tdl.toml included,\n" +
+			"then an empty rule for each, as gcc -MD -MP writes. A Makefile\n" +
+			"passes $@ and -includes the file. A failed run leaves it alone.\n\n" +
 			"--watch regenerates when the file changes, holding open any\n" +
 			"plugin that declared it can serve more than one request. It\n" +
 			"takes a single file, since it does not return.\n\n" +
@@ -54,6 +61,12 @@ func genCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 			}
 			if r.watch && len(args) > 1 {
 				return fmt.Errorf("--watch takes a single file, got %d", len(args))
+			}
+			if cmd.Flags().Changed("make") && r.makeTarget == "" {
+				return fmt.Errorf("--make needs a target to name in the dependency file")
+			}
+			if r.watch && r.makeTarget != "" {
+				return fmt.Errorf("--watch does not finish, so it cannot be combined with --make")
 			}
 			if r.verify && r.clean {
 				return fmt.Errorf("--verify writes nothing, so it cannot be combined with --clean")
@@ -73,10 +86,14 @@ func genCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 
 			if !r.watch {
 				r.cleaned, r.expected = map[string]bool{}, map[string]map[string]bool{}
+				r.read, r.outputs = map[string]bool{}, map[string]bool{}
 				if err := eachFile(cmd, args, r.generate); err != nil {
 					return err
 				}
-				return r.orphans()
+				if err := r.orphans(); err != nil {
+					return err
+				}
+				return r.depFile()
 			}
 
 			// Errors are reported and the watch continues.
@@ -102,6 +119,7 @@ func genCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 	cmd.Flags().BoolVar(&r.verify, "verify", false, "generate and compare against disk without writing")
 	cmd.Flags().BoolVar(&r.clean, "clean", false, "remove the files tdl wrote before writing")
 	cmd.Flags().BoolVar(&r.watch, "watch", false, "regenerate when the file changes")
+	cmd.Flags().StringVar(&r.makeTarget, "make", "", "after a successful run, write a make dependency file for this target")
 	cmd.Flags().StringSliceVar(&r.allowLossy, "allow-lossy", nil, "silence warnings with these loss codes")
 	return cmd
 }
@@ -115,6 +133,14 @@ type genRun struct {
 	verify bool
 	clean  bool
 	watch  bool
+
+	// makeTarget is the make target --make writes a dependency file for.
+	makeTarget string
+
+	// read holds every file the run read, and outputs every file it wrote
+	// or verified, for --make.
+	read    map[string]bool
+	outputs map[string]bool
 
 	// allowLossy holds the loss codes --allow-lossy silences, beside those
 	// tdl.toml allows.
@@ -173,7 +199,8 @@ func (r *genRun) generate(path string) error {
 		return err
 	}
 
-	model, diags := sema.Lower(file, sema.WithLoader(sema.FSLoader{}))
+	loader := &sema.Recording{Loader: sema.FSLoader{}}
+	model, diags := sema.Lower(file, sema.WithLoader(loader))
 	if len(diags) > 0 {
 		return diags
 	}
@@ -181,6 +208,15 @@ func (r *genRun) generate(path string) error {
 	cfg, err := config.Find(filepath.Dir(path))
 	if err != nil {
 		return err
+	}
+	if r.makeTarget != "" {
+		r.read[path] = true
+		for _, name := range loader.Names() {
+			r.read[name] = true
+		}
+		if cfg.Path != "" {
+			r.read[cfg.Path] = true
+		}
 	}
 
 	targets, err := gen.Targets(model, r.out)
@@ -234,6 +270,11 @@ func (r *genRun) generate(path string) error {
 		for _, w := range result.Written {
 			fmt.Fprintln(cmd.OutOrStdout(), w)
 		}
+		if r.makeTarget != "" {
+			for _, p := range slices.Concat(result.Written, result.Expected) {
+				r.outputs[p] = true
+			}
+		}
 		for _, p := range result.Expected {
 			r.expected[out][p] = true
 		}
@@ -269,6 +310,54 @@ func (r *genRun) orphans() error {
 	}
 	if stale > 0 {
 		return fmt.Errorf("%d file(s) would change; run without --verify to update them", stale)
+	}
+	return nil
+}
+
+// depFile writes the dependency file --make names, once every file has run
+// with no error. A path is cleaned and written relative to the working
+// directory, as make sees it, unless it lies outside it, so a file named
+// two ways is listed once.
+func (r *genRun) depFile() error {
+	if r.makeTarget == "" {
+		return nil
+	}
+	if err := r.checkMakeTarget(); err != nil {
+		return err
+	}
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	prereqs := make([]string, 0, len(r.read))
+	for path := range r.read {
+		path = filepath.Clean(path)
+		if filepath.IsAbs(path) {
+			if rel, err := filepath.Rel(wd, path); err == nil && filepath.IsLocal(rel) {
+				path = rel
+			}
+		}
+		prereqs = append(prereqs, filepath.ToSlash(path))
+	}
+	return gen.WriteDepFile(r.makeTarget, prereqs)
+}
+
+// checkMakeTarget refuses a --make target that is a file the run read or
+// wrote, which the dependency file would replace. Each is compared by
+// identity, so another spelling of the same path is caught too.
+func (r *genRun) checkMakeTarget() error {
+	target, err := os.Stat(r.makeTarget)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	} else if err != nil {
+		return err
+	}
+	for _, files := range []map[string]bool{r.read, r.outputs} {
+		for path := range files {
+			if info, err := os.Stat(path); err == nil && os.SameFile(target, info) {
+				return fmt.Errorf("--make %s names %s, which the dependency file would replace", r.makeTarget, path)
+			}
+		}
 	}
 	return nil
 }
