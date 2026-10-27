@@ -136,17 +136,6 @@ func (g *generator) declLosses(d *ir.Decl, written string) {
 	}
 }
 
-// includeLosses warns about each include, flattened into the fields it
-// copies.
-func (g *generator) includeLosses(owner string, fields []*ir.Field) {
-	includes := unlower.Includes(g.Model, fields)
-	for i, inc := range includes {
-		if inc != "" && (i == 0 || includes[i-1] != inc) {
-			g.lose(emit.LossInclude, fields[i].GetMeta().GetPosition(), "%s's include of %s is flattened into its fields", owner, inc)
-		}
-	}
-}
-
 // fieldLosses warns about what a property loses, and makes the
 // declaration carry itself when the property does not read back as the
 // field.

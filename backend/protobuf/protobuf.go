@@ -748,11 +748,7 @@ func (g *generator) fields(b *strings.Builder, indent string, space emit.Space, 
 	}
 	g.CheckPins(owner, members, nums, rule)
 	includes := unlower.Includes(g.Model, fields)
-	for i, inc := range includes {
-		if inc != "" && (i == 0 || includes[i-1] != inc) {
-			g.Lose(emit.LossInclude, fields[i].GetMeta().GetPosition(), "%s's include of %s is flattened into its fields", owner, inc)
-		}
-	}
+	g.LoseIncludes(owner, fields, includes, "fields")
 
 	seen := map[string]bool{}
 	out := make([]slot, 0, len(members))

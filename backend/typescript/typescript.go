@@ -13,6 +13,7 @@ import (
 
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/backend/internal/ts"
+	"github.com/unstoppablemango/tdl/internal/unlower"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -247,7 +248,9 @@ func (g *generator) losses(d *ir.Decl) {
 			g.newtypeLosses(d, ref)
 		}
 	case d.GetStructure() != nil:
-		g.includeLosses(name, fields)
+		if g.LoseIncludes(name, fields, unlower.Includes(g.Model, fields), "fields") {
+			g.lost = true
+		}
 		g.fieldsLosses(name, fields)
 	case emit.Fielded(e):
 		disc := g.Discriminant(d)

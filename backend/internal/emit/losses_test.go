@@ -201,3 +201,27 @@ func TestExternOf(t *testing.T) {
 		}
 	}
 }
+
+func TestLoseIncludes(t *testing.T) {
+	fields := []*ir.Field{{Meta: &ir.Meta{Name: "a"}}, {Meta: &ir.Meta{Name: "b"}}, {Meta: &ir.Meta{Name: "c"}}}
+	for _, tt := range []struct {
+		name     string
+		includes []string
+		want     int
+	}{
+		{"none", []string{"", "", ""}, 0},
+		{"one include", []string{"Audited", "Audited", ""}, 1},
+		{"two includes", []string{"Audited", "Named", "Named"}, 2},
+		{"same include twice", []string{"Audited", "", "Audited"}, 2},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			s := lossSession()
+			if got := s.LoseIncludes("T", fields, tt.includes, "fields"); got != (tt.want > 0) {
+				t.Errorf("LoseIncludes = %v, want %v", got, tt.want > 0)
+			}
+			if len(s.Diags) != tt.want {
+				t.Errorf("LoseIncludes warned %d times, want %d", len(s.Diags), tt.want)
+			}
+		})
+	}
+}

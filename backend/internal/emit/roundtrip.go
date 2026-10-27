@@ -282,6 +282,21 @@ func (s *Session) LoseFieldName(owner string, f *ir.Field, written string) bool 
 	return s.CheckRenamed(f.GetDirectives(), false, "%s.%s", owner, name)
 }
 
+// LoseIncludes warns at each include among fields, flattened into owner's
+// members, which a target names: includes is [unlower.Includes] of fields,
+// or empty names for fields that copy none. It reports whether any include
+// is lost.
+func (s *Session) LoseIncludes(owner string, fields []*ir.Field, includes []string, members string) bool {
+	lost := false
+	for i, inc := range includes {
+		if inc != "" && (i == 0 || includes[i-1] != inc) {
+			s.Lose(LossInclude, fields[i].GetMeta().GetPosition(), "%s's include of %s is flattened into its %s", owner, inc, members)
+			lost = true
+		}
+	}
+	return lost
+}
+
 // LoseOwnedDefault warns when a field of owner is owned, which target does
 // not carry, or has a default, which is not written. It reports whether
 // either is lost.
