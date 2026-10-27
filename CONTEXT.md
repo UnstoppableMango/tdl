@@ -32,3 +32,13 @@ _Avoid_: upgrade, negotiation
 **Framing**:
 How one message is delimited on a byte stream: a varint length followed by the encoded message.
 _Avoid_: transport, protocol version
+
+### Loss
+
+**Output loss**:
+A fact of the input that generating or importing drops or weakens, so the output states a looser contract than the input does: a skipped declaration, a dropped constraint or default, `uuid` written as a string, or a target construct with no TDL form.
+_Avoid_: loss, lossy output
+
+**Read-back loss**:
+A fact the output keeps but the opposite direction would not recover: a generated entity reads back as a value, an imported unexported Go type regenerates exported.
+_Avoid_: loss, round-trip loss
