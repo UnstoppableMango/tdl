@@ -201,6 +201,48 @@ func TestGenMakeWritesCleanRelativePaths(t *testing.T) {
 	}
 }
 
+// A --make target naming a file the run read or wrote is refused, so the
+// dependency file never replaces it.
+func TestGenMakeRefusesATargetItReadsOrWrites(t *testing.T) {
+	cases := map[string]struct {
+		target string
+		args   []string
+	}{
+		"input":         {target: "a.tdl"},
+		"import":        {target: "b.tdl"},
+		"tdl.toml":      {target: "tdl.toml"},
+		"output":        {target: "out/model.txt"},
+		"verify output": {target: "out/model.txt", args: []string{"--verify"}},
+	}
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			dir := t.TempDir()
+			writeFiles(t, dir, makeModel)
+			a := filepath.Join(dir, "a.tdl")
+			if _, errOut, err := run(t, newGenCmd(), a); err != nil {
+				t.Fatalf("gen: %v\n%s", err, errOut)
+			}
+			target := filepath.Join(dir, c.target)
+			before, err := os.ReadFile(target)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			_, _, err = run(t, newGenCmd(), append([]string{a, "--make", target}, c.args...)...)
+			if err == nil || !strings.Contains(err.Error(), "--make") {
+				t.Errorf("expected --make %s to be refused, got %v", c.target, err)
+			}
+			after, err := os.ReadFile(target)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(before, after) {
+				t.Errorf("%s was overwritten:\n%s", c.target, after)
+			}
+		})
+	}
+}
+
 func TestGenWatchAndMakeAreExclusive(t *testing.T) {
 	good, _ := twoFiles(t)
 

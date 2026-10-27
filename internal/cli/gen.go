@@ -2,7 +2,9 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"maps"
 	"os"
 	"path/filepath"
@@ -83,7 +85,8 @@ func genCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 			defer r.close()
 
 			if !r.watch {
-				r.cleaned, r.expected, r.read = map[string]bool{}, map[string]map[string]bool{}, map[string]bool{}
+				r.cleaned, r.expected = map[string]bool{}, map[string]map[string]bool{}
+				r.read, r.outputs = map[string]bool{}, map[string]bool{}
 				if err := eachFile(cmd, args, r.generate); err != nil {
 					return err
 				}
@@ -134,8 +137,10 @@ type genRun struct {
 	// makeTarget is the make target --make writes a dependency file for.
 	makeTarget string
 
-	// read holds every file the run read, for --make.
-	read map[string]bool
+	// read holds every file the run read, and outputs every file it wrote
+	// or verified, for --make.
+	read    map[string]bool
+	outputs map[string]bool
 
 	// allowLossy holds the loss codes --allow-lossy silences, beside those
 	// tdl.toml allows.
@@ -265,6 +270,11 @@ func (r *genRun) generate(path string) error {
 		for _, w := range result.Written {
 			fmt.Fprintln(cmd.OutOrStdout(), w)
 		}
+		if r.makeTarget != "" {
+			for _, p := range slices.Concat(result.Written, result.Expected) {
+				r.outputs[p] = true
+			}
+		}
 		for _, p := range result.Expected {
 			r.expected[out][p] = true
 		}
@@ -312,6 +322,9 @@ func (r *genRun) depFile() error {
 	if r.makeTarget == "" {
 		return nil
 	}
+	if err := r.checkMakeTarget(); err != nil {
+		return err
+	}
 	wd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -327,6 +340,26 @@ func (r *genRun) depFile() error {
 		prereqs = append(prereqs, filepath.ToSlash(path))
 	}
 	return gen.WriteDepFile(r.makeTarget, prereqs)
+}
+
+// checkMakeTarget refuses a --make target that is a file the run read or
+// wrote, which the dependency file would replace. Each is compared by
+// identity, so another spelling of the same path is caught too.
+func (r *genRun) checkMakeTarget() error {
+	target, err := os.Stat(r.makeTarget)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	} else if err != nil {
+		return err
+	}
+	for _, files := range []map[string]bool{r.read, r.outputs} {
+		for path := range files {
+			if info, err := os.Stat(path); err == nil && os.SameFile(target, info) {
+				return fmt.Errorf("--make %s names %s, which the dependency file would replace", r.makeTarget, path)
+			}
+		}
+	}
+	return nil
 }
 
 // reportDiagnostics prints backend or directive diagnostics in the
