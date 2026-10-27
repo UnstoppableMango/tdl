@@ -54,7 +54,7 @@ func list(f func(root string, paths []string) ([]string, error)) gmk.Func {
 	return func(name string, args []string) string {
 		out, err := f(root, strings.Fields(strings.Join(args, " ")))
 		if err != nil {
-			gmk.Expand("$(error " + name + ": " + strings.ReplaceAll(err.Error(), "$", "$$") + ")")
+			gmk.Error(name + ": " + err.Error())
 			return ""
 		}
 		return strings.Join(out, " ")
