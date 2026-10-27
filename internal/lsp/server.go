@@ -1,7 +1,7 @@
 // Package lsp serves the Language Server Protocol for TDL: diagnostics,
 // go to definition, hover, document symbols, and formatting.
 //
-// See docs/design/lsp.md and docs/design/lsp-plan.md.
+// See docs/architecture/lsp.md.
 package lsp
 
 import (

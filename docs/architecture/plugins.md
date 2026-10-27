@@ -24,7 +24,7 @@ A stream, rather than protoc's one request in and one response out, carries the 
 The handshake declares the framing version, which is 1 and describes this framing alone.
 
 A plugin may instead choose gRPC over a Unix domain socket, by dialing the socket the host names in `TDL_PLUGIN_SOCKET` rather than answering on stdout.
-The messages are the same; [grpc-transport.md](grpc-transport.md) is the design.
+The messages are the same; [grpc-transport.md](https://github.com/UnstoppableMango/tdl/blob/fc0682d/docs/design/grpc-transport.md) is the design.
 
 ## Handshake
 
@@ -75,7 +75,7 @@ One message carries everything:
 - the analysis: each type resolved to the prelude's shapes, and what each declaration names, per [plugin-sdk.md](plugin-sdk.md#analysis)
 
 Nothing in a request travels in argv or environment variables, so there is one versioned message to keep compatible.
-The environment says only where to connect: `TDL_PLUGIN_SOCKET`, per [grpc-transport.md](grpc-transport.md#the-environment).
+The environment says only where to connect: `TDL_PLUGIN_SOCKET`, per [grpc-transport.md](https://github.com/UnstoppableMango/tdl/blob/fc0682d/docs/design/grpc-transport.md#the-environment).
 
 ### What the model contains
 
@@ -143,7 +143,7 @@ In Go, such a backend also implements `plugin.Importer`.
 
 Not built.
 A third mode sends a `TransformRequest`, a model, and expects a `TransformResponse`, a model or nothing plus diagnostics, so a project can lint or rewrite its model between lowering and generation.
-[transforms.md](transforms.md) is the design.
+[transforms.md](https://github.com/UnstoppableMango/tdl/blob/fc0682d/docs/design/transforms.md) is the design.
 
 ## Diagnostics
 
@@ -173,7 +173,7 @@ sql = { command = "tdl-gen-sql", timeout = "5m" }
 
 ## What a plugin will not see
 
-**A dependency's directives beneath a declaration.** An `ir.Import` carries the block-scope directives of its dependency's target blocks, and an `ir.Extern` the declaration-level ones for the declaration it names; an entry for a field of it, and a transitive dependency's entries, reach nothing. See [ir-plan.md](ir-plan.md) phase 8b.
+**A dependency's directives beneath a declaration.** An `ir.Import` carries the block-scope directives of its dependency's target blocks, and an `ir.Extern` the declaration-level ones for the declaration it names; an entry for a field of it, and a transitive dependency's entries, reach nothing. See [ir-plan.md](https://github.com/UnstoppableMango/tdl/blob/fc0682d/docs/design/ir-plan.md) phase 8b.
 
 **Class-scoped directives on instantiated types.** A class path expands across the declarations satisfying the class, not across types that satisfy it only through a conditional instance: given `instance <T> Archived<Page<T>>`, a directive on `Archived` reaches `Audited` and not `Page<Audited>`. `SatisfyingTypes` has the answer, and target resolution does not read it.
 

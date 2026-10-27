@@ -3,7 +3,7 @@ using static Tdl.Gen.CSharp.Tests.Check;
 
 namespace Tdl.Gen.CSharp.Tests;
 
-// The mapping of phase 1 of csharp-backend-plan.md: records, enums,
+// The mapping of the C# backend's phase 1: records, enums,
 // newtypes, the type mapping, equality, and the namespace, file, and name
 // directives.
 public class ModelTests

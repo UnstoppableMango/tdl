@@ -45,7 +45,7 @@ var primitives = map[string]string{
 // name is the package. What regenerating needs goes in a graphql target
 // block. Under the @tdl directives a `roundtrip` directive writes, it
 // rebuilds the model the schema was generated from.
-// docs/design/schema-backends.md has the mapping.
+// docs/architecture/schema-backends.md has the mapping.
 func (Backend) Import(_ context.Context, req *plugin.ImportRequest) (*plugin.ImportResponse, error) {
 	r := &reader{names: map[string]string{}, sums: map[string]bool{}, variants: map[string]bool{}}
 	return r.Response(r.read(req.GetFiles()))

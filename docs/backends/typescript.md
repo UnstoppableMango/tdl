@@ -1,7 +1,7 @@
 # TypeScript
 
 The `typescript` backend writes one `.ts` file per model of JSON wire types: interfaces, both enum shapes, and newtypes as aliases, with no runtime code.
-[schema-backends.md](../design/schema-backends.md) is its design.
+[schema-backends.md](../architecture/schema-backends.md) is its design.
 
 ## Features
 

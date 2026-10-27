@@ -1,9 +1,9 @@
 # The language server
 
 Design document.
-[lsp-plan.md](lsp-plan.md) and [lsp-editors-plan.md](lsp-editors-plan.md) track what has landed.
+The server is built; editor clients, completion, rename, and references are tracked in [#1216](https://github.com/UnstoppableMango/tdl/issues/1216).
 
-`tdl lsp` is the editor-facing half of the inner loop in [workflow.md](workflow.md).
+`tdl lsp` is the editor-facing half of the inner loop in [workflow.md](https://github.com/UnstoppableMango/tdl/blob/fc0682d/docs/design/workflow.md).
 It answers three questions about a file being edited: what is wrong with it, where a name is declared, and what a name means.
 It does not read the tree-sitter grammar; highlighting is [editors.md](editors.md).
 
@@ -71,6 +71,6 @@ Serving the prelude under a `tdl:` URI would need a content provider in every cl
 
 ## Not in this document
 
-- **Completion, rename, and references.** Completion needs the bindings in scope at a cursor; rename and references need every occurrence rather than every resolution. [lsp-editors-plan.md](lsp-editors-plan.md) plans both.
-- **Editor clients.** [lsp-editors-plan.md](lsp-editors-plan.md).
-- **The MCP server.** [backlog.md](../backlog.md). It reads a resolved model rather than a file being edited.
+- **Completion, rename, and references.** Completion needs the bindings in scope at a cursor; rename and references need every occurrence rather than every resolution. [#1216](https://github.com/UnstoppableMango/tdl/issues/1216) plans both.
+- **Editor clients.** [#1216](https://github.com/UnstoppableMango/tdl/issues/1216).
+- **The MCP server.** [#1312](https://github.com/UnstoppableMango/tdl/issues/1312). It reads a resolved model rather than a file being edited.

@@ -1,7 +1,7 @@
 // Package zod generates a TypeScript module of Zod schemas from a resolved
 // model: a schema parsing each declaration's JSON wire value, and a type
 // inferred from it that is the typescript backend's type for the same
-// declaration. docs/design/zod-backend.md is the design.
+// declaration. docs/architecture/zod-backend.md is the design.
 package zod
 
 import (

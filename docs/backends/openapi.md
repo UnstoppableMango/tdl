@@ -1,7 +1,7 @@
 # OpenAPI
 
 The `openapi` backend writes one OpenAPI 3.1, 3.0, or 2.0 document per model, of schemas in YAML or JSON: both enum shapes (no fielded enums in 2.0) and constraints as keywords, but no paths.
-[schema-backends.md](../design/schema-backends.md) is its design.
+[schema-backends.md](../architecture/schema-backends.md) is its design.
 
 ## Features
 

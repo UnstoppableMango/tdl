@@ -1,7 +1,7 @@
 # JSON Schema
 
 The `jsonschema` backend writes one JSON Schema document per model: definitions, both enum shapes, and constraints as keywords.
-[schema-backends.md](../design/schema-backends.md) is its design.
+[schema-backends.md](../architecture/schema-backends.md) is its design.
 
 ## Features
 

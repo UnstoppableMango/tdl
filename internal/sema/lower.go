@@ -1,7 +1,7 @@
 // Package sema lowers a parse tree to the resolved semantic model in the ir
 // package: it resolves names, lowers sugar to prelude types, and interns
 // type references. It is private and free to change; see
-// docs/design/ir-plan.md for what each pass adds.
+// docs/architecture/ir.md for the model each pass builds toward.
 package sema
 
 import (

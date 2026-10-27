@@ -9,7 +9,7 @@ import (
 
 // Loss codes name a fact a conversion cannot carry, in either direction.
 // A warning carrying one can be silenced in tdl.toml or with --allow-lossy.
-// docs/design/reverse.md describes each.
+// docs/architecture/reverse.md describes each.
 const (
 	LossPrimitive   = "lossy.primitive"
 	LossNewtype     = "lossy.newtype"

@@ -1,6 +1,6 @@
 // Package protobuf generates a proto3 schema, or one under the edition an
 // `edition` directive names, from a resolved model. The mapping is in
-// docs/design/schema-backends.md.
+// docs/architecture/schema-backends.md.
 package protobuf
 
 import (

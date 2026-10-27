@@ -16,7 +16,7 @@ import (
 // Annotations are the `/*@ ... */` comments in docs/grammar.ebnf: what a
 // parser generator needs that the notation cannot say. They are scanned
 // separately from the grammar and attached by position. See
-// docs/design/treesitter.md.
+// docs/architecture/treesitter.md.
 type Annotations struct {
 	// Word is the production a generator extracts keywords from.
 	Word string

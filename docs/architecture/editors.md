@@ -3,7 +3,7 @@
 Design document.
 The goal is syntax highlighting in Neovim, VS Code, Zed, and on GitHub.
 Neovim, the TextMate grammar, and VS Code are built; the grammar mirror, Zed, and GitHub are not.
-[editors-plan.md](editors-plan.md) tracks the phases, [treesitter.md](treesitter.md) describes the tree-sitter grammar, and [lsp.md](lsp.md) describes the language server.
+[#1204](https://github.com/UnstoppableMango/tdl/issues/1204) tracks the remaining work, [treesitter.md](treesitter.md) describes the tree-sitter grammar, and [lsp.md](lsp.md) describes the language server.
 
 ## What each editor reads
 
@@ -22,7 +22,7 @@ VS Code highlights with TextMate, and Linguist accepts only a TextMate grammar, 
 A hand-written grammar would go stale the first time a keyword is added, and a derived one fails the regeneration check instead.
 
 TextMate is regular expressions over lines, so the output is a lexical approximation.
-Its input is `lex.Keywords`, `lex.Punctuation`, and the `*Pattern` constants in `lex/table.go`, plus the names a neighboring token gives away ([editors-plan.md](editors-plan.md) phase 2 lists them).
+Its input is `lex.Keywords`, `lex.Punctuation`, and the `*Pattern` constants in `lex/table.go`, plus the names a neighboring token gives away ([editors-plan.md](https://github.com/UnstoppableMango/tdl/blob/fc0682d/docs/design/editors-plan.md) phase 2 lists them).
 
 The generated file is committed; `go test ./internal/textmate` compares it and `make textmate` regenerates it.
 
@@ -61,6 +61,6 @@ GitHub waits.
 
 ## Not in this document
 
-- JetBrains: [backlog.md](../backlog.md). Emacs: [lsp-editors-plan.md](lsp-editors-plan.md).
+- JetBrains: [#1310](https://github.com/UnstoppableMango/tdl/issues/1310). Emacs: [#1216](https://github.com/UnstoppableMango/tdl/issues/1216).
 - Marketplace and registry publishing, for VS Code, Zed, and npm.
 - Query files other than `highlights.scm` (`brackets.scm`, `outline.scm`, `indents.scm`, injections), each additive.

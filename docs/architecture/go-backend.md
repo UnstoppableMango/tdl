@@ -12,7 +12,7 @@ Both are the same value behind [`plugin.Backend`](../../plugin/backend.go), as `
 
 One package, in one file per declaration the model owns, named after the declaration in snake case.
 The package's doc comment goes on the package clause of the first file by path.
-[workflow.md](workflow.md) leaves layout to the backend.
+[workflow.md](https://github.com/UnstoppableMango/tdl/blob/fc0682d/docs/design/workflow.md) leaves layout to the backend.
 One file per declaration keeps a diff of the generated tree local to the declaration that changed.
 A `file` directive in the target block writes every declaration into that one file instead, for a target generating into a package that also holds hand-written code.
 
@@ -157,7 +157,7 @@ So every use of a constrained declaration is checked, and one Go would refuse, s
 A parameter Go cannot express warns at the parameter and skips its declaration:
 
 - a higher kind, written as `f: type -> type` or only used as `f<T>`;
-- a `unit` kind, which waits on phase 6 of [go-backend-plan.md](go-backend-plan.md);
+- a `unit` kind, which waits on [#1192](https://github.com/UnstoppableMango/tdl/issues/1192);
 - a name that is a Go keyword, a Go predeclared name, a package generated code imports (`errors`, `fmt`, `regexp`, `time`, `utf8`), or the Go name of a generated declaration.
 
 The last rule is conservative on purpose: `int` is Go's `int64`, so a parameter named `int64` would capture every field typed `int`.

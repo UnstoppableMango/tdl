@@ -19,7 +19,7 @@ buildDotnetModule {
       ../dotnet
       ../testdata/plugin
       ../testdata/csharp
-      ../docs/design/reverse.md
+      ../docs/architecture/reverse.md
     ];
   };
 

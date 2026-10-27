@@ -1,6 +1,6 @@
 // Package openapi generates an OpenAPI document from a resolved model.
 //
-// docs/design/schema-backends.md has the mapping and the reasons for it.
+// docs/architecture/schema-backends.md has the mapping and the reasons for it.
 // The document holds schemas and no paths: every declaration is a schema
 // under components (definitions in 2.0), built by
 // backend/internal/jsonschema in the dialect the version speaks. An enum

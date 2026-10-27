@@ -33,20 +33,19 @@ Early, incomplete, and changing.
 | --- | --- |
 | [spec.md](docs/spec.md) | The language. Canonical. |
 | [grammar.ebnf](docs/grammar.ebnf) | The formal grammar. |
-| [design/workflow.md](docs/design/workflow.md) | What a model author does with all of it. |
-| [design/identity.md](docs/design/identity.md) | Identity and the `Entity` class. |
-| [design/ir.md](docs/design/ir.md) | The resolved model backends consume. |
-| [design/plugins.md](docs/design/plugins.md) | The backend plugin protocol. |
-| [design/go-backend.md](docs/design/go-backend.md) | The Go backend. |
-| [design/schema-backends.md](docs/design/schema-backends.md) | The protobuf, Thrift, Smithy, GraphQL, TypeScript, JSON Schema, and OpenAPI backends. |
-| [design/salesforce-backend.md](docs/design/salesforce-backend.md) | The Salesforce backend. |
-| [design/lsp.md](docs/design/lsp.md) | The language server. |
-| [design/treesitter.md](docs/design/treesitter.md) | Deriving the tree-sitter grammar from the EBNF. |
-| [design/editors.md](docs/design/editors.md) | Highlighting in Neovim, VS Code, Zed, and on GitHub. |
+| [architecture/identity.md](docs/architecture/identity.md) | Identity and the `Entity` class. |
+| [architecture/ir.md](docs/architecture/ir.md) | The resolved model backends consume. |
+| [architecture/plugins.md](docs/architecture/plugins.md) | The backend plugin protocol. |
+| [architecture/go-backend.md](docs/architecture/go-backend.md) | The Go backend. |
+| [architecture/schema-backends.md](docs/architecture/schema-backends.md) | The protobuf, Thrift, Smithy, GraphQL, TypeScript, JSON Schema, and OpenAPI backends. |
+| [architecture/salesforce-backend.md](docs/architecture/salesforce-backend.md) | The Salesforce backend. |
+| [architecture/lsp.md](docs/architecture/lsp.md) | The language server. |
+| [architecture/treesitter.md](docs/architecture/treesitter.md) | Deriving the tree-sitter grammar from the EBNF. |
+| [architecture/editors.md](docs/architecture/editors.md) | Highlighting in Neovim, VS Code, Zed, and on GitHub. |
 | [backends/](docs/backends/README.md) | What each backend generates, feature by feature. |
-| [backlog.md](docs/backlog.md) | Wanted, unscheduled work. |
+| [Issues](https://github.com/UnstoppableMango/tdl/issues) | Planned and wanted work: a spec issue per feature, with its phases as sub-issues. |
 
-A `*-plan.md` beside a design tracks its implementation.
+`docs/architecture/` describes what is built; `docs/adr/` records decisions from ADR-0001 on.
 
 ## Example
 
@@ -223,7 +222,7 @@ Parse errors show below the panes with a caret at the column.
 
 ## Editor support
 
-Highlighting comes from two grammars generated from [grammar.ebnf](docs/grammar.ebnf); [design/editors.md](docs/design/editors.md) explains why there are two.
+Highlighting comes from two grammars generated from [grammar.ebnf](docs/grammar.ebnf); [architecture/editors.md](docs/architecture/editors.md) explains why there are two.
 
 ### Neovim
 
@@ -309,7 +308,7 @@ Each built-in backend also ships as a `tdl-gen-<name>` plugin.
 | [`thrift`](docs/backends/thrift.md) | Structs, both enum shapes, newtypes as typedefs, collections, `number` pins |
 | [`typescript`](docs/backends/typescript.md) | JSON wire types: interfaces, both enum shapes, newtypes as aliases |
 | `debug` | A description of the model it was given |
-| Anything else | `tdl-gen-<name>` on `PATH`, over the [plugin protocol](docs/design/plugins.md) |
+| Anything else | `tdl-gen-<name>` on `PATH`, over the [plugin protocol](docs/architecture/plugins.md) |
 
 What each backend generates from each feature of the language, measured by `make features`.
 Yes generates it, Warns loses part of it under a loss code that `tdl.toml` can allow, No skips it or refuses the model, and Planned names a phase that will generate it.

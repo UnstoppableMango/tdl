@@ -3,7 +3,7 @@
 // reverse backend builds becomes TDL source through one printer.
 //
 // Lowering the printed file gives back the model, positions aside, for any
-// model lowering produced. docs/design/reverse.md describes where it is used.
+// model lowering produced. docs/architecture/reverse.md describes where it is used.
 package unlower
 
 import (

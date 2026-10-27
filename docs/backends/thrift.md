@@ -1,7 +1,7 @@
 # Thrift
 
 The `thrift` backend writes one `.thrift` file per model: structs, both enum shapes, newtypes as typedefs, collections, and `number` pins.
-[schema-backends.md](../design/schema-backends.md) is its design.
+[schema-backends.md](../architecture/schema-backends.md) is its design.
 
 ## Features
 

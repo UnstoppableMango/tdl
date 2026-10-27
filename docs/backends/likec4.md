@@ -1,7 +1,7 @@
 # LikeC4
 
 The `likec4` backend writes LikeC4 source for an architecture diagram: an element for each structure, enum, newtype, and class.
-[likec4-backend.md](../design/likec4-backend.md) is its design.
+[likec4-backend.md](../architecture/likec4-backend.md) is its design.
 
 ## Features
 

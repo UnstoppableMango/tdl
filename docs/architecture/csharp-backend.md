@@ -1,7 +1,7 @@
 # The C# backend
 
 Design document.
-[csharp-backend-plan.md](csharp-backend-plan.md) orders the work.
+Phases 1 and 2 are built; the rest is tracked in [#1194](https://github.com/UnstoppableMango/tdl/issues/1194).
 
 The C# backend turns a resolved model into C# source.
 It is called `csharp` in a target block, ships as `tdl-gen-csharp`, a .NET plugin `tdl` runs from `PATH`, and is implemented in `dotnet/Tdl.Gen.CSharp` on the SDK of [plugin-sdk.md](plugin-sdk.md).
@@ -9,7 +9,7 @@ It is called `csharp` in a target block, ships as `tdl-gen-csharp`, a .NET plugi
 C# and F# compile to one runtime and share its base class library, its serializer, its attributes, and its interfaces.
 They share nothing else a backend cares about: C# has no type declaration order, no `and` groups, no modules, and no sum types.
 So C# does not build on the ML core: it reads the rules every backend shares from the analysis tdl sends, and shares only what is true of .NET with F#, in `dotnet/Tdl.DotNet`.
-[Overlap with F#](#overlap-with-f) says where the line falls and what it changed in [ml-backends.md](ml-backends.md).
+[Overlap with F#](#overlap-with-f) says where the line falls and what it changed in [ml-backends.md](https://github.com/UnstoppableMango/tdl/blob/fc0682d/docs/design/ml-backends.md).
 
 Where C# has no reason to differ from [go-backend.md](go-backend.md), the closest in shape, it does not.
 

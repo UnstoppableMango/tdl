@@ -40,7 +40,7 @@ Prefix `make` with `command` (see the shell autoload note in the global instruct
 `tree-sitter/Makefile` and `editors/vscode/Makefile` hold the targets for their directories; the root delegates to them.
 `check-treesitter` passes `-B`, because a fresh checkout gives every file the same mtime and a file target would skip the regeneration the diff is meant to test.
 `mutate` runs `tools/mutate`, which runs gremlins once per package with `GOFLAGS=-short`, merges the reports into `mutate.json`, and prints the survivors `mutation/equivalent.txt` does not list; `internal/mutation` reads both.
-It mutates `lex`, `parser`, `ast`, `internal/sema`, and `internal/analysis`, and nothing runs it in CI (see `docs/design/mutation-testing.md`).
+It mutates `lex`, `parser`, `ast`, `internal/sema`, and `internal/analysis`, and nothing runs it in CI (see `docs/architecture/mutation-testing.md`).
 `go run ./tools/mutate -report mutate.json` reprints a report without running gremlins.
 Never combine `-race` with `-coverpkg`: every covered statement becomes an atomic the race detector tracks, and the protocompile tests time out.
 CI runs them as two steps.
@@ -56,7 +56,7 @@ Biome's JSON formatter is off, because jsonfmt owns JSON.
 `.markdownlint-cli2.yaml` lists which markdown files are linted, so a bare `markdownlint-cli2` checks what CI checks.
 Files with no formatter: the three Makefiles, `.editorconfig`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md` (mdformat would break the frontmatter), `.graphifyignore`, `docs/demo/demo.tape`, `docs/demo/demo.bash`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, `backend/typescript/outline.js`, `tree-sitter/src/scanner.c`, and everything in `dotnet/` but `deps.json`.
 `internal/ebnf` lints the two grammars instead, and their column alignment is deliberate.
-Also excluded from formatting: `*.tdl` (until `tdl fmt` is wired in, see `docs/backlog.md`), generated files, and `.claude/`.
+Also excluded from formatting: `*.tdl` (until `tdl fmt` is wired in, #1308), generated files, and `.claude/`.
 
 After changing `go.mod`, run `make tidy` so `nix/gomod2nix.toml` stays in sync; otherwise `nix build` fails.
 Renovate does the same for its own updates through the `gomod2nix` preset in `.github/renovate.json`.
@@ -73,7 +73,7 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 - `gmk.nix`: `tdl-gmk`, `cmd/tdl-gmk` built as the GNU make loadable object `lib/tdl.so`, with gnumake's header for cgo; `checks.gmk` loads it into make.
 - `dotnet.nix`: the .NET plugins, built with `buildDotnetModule`, which runs their tests (see [.NET SDK](#net-sdk)): `tdl-gen-csharp`, compiled with Native AOT and linked by `stdenv.cc`, and the SDK's debug port, a self-contained single file.
   On darwin the AOT link names the Swift runtime and ICU, so `swift` and `darwin.ICU` are build inputs there, as in nixpkgs' own dotnet `aot` test.
-- `tree-sitter-tdl.nix`: the grammar's Python binding in `tree-sitter/bindings/python/`, for graphify (see `docs/design/graphify.md`); the overlay adds it to every Python package set, and `checks.tree-sitter-tdl` runs its tests, which parse the prelude.
+- `tree-sitter-tdl.nix`: the grammar's Python binding in `tree-sitter/bindings/python/`, for graphify (see `docs/architecture/graphify.md`); the overlay adds it to every Python package set, and `checks.tree-sitter-tdl` runs its tests, which parse the prelude.
   The binding, `pyproject.toml`, and `setup.py` are `tree-sitter init` output with the highlights query exposed, the tests extended, and `scanner.c` listed with the sources so a source distribution carries it.
 - `zod.nix`: the `zod` npm package, fetched by hash, for `checks.gen-zod` and the devShell's `NODE_PATH`.
 - `demo.nix`: renders `docs/demo/demo.tape`, the README's GIF, with VHS. It is a package and not a check, since it runs a browser.
@@ -107,9 +107,8 @@ It has no expressions, control flow, or runtime.
 This repository holds the specification and the reference implementation.
 
 The parser reads the whole grammar, and the conformance corpus lowers to `ir` with no diagnostic.
-`docs/design/ir-plan.md` phases 1 through 9 are done.
-Phase 8b is partial: a dependency's block-scope target directives reach its `ir.Import`, and its declaration-level directives reach the `ir.Extern` naming the declaration; a transitive dependency's do not, and two dependencies are never compared.
-The plugin protocol in `docs/design/plugins.md` is complete.
+Lowering is complete but for #1215: a dependency's block-scope target directives reach its `ir.Import`, and its declaration-level directives reach the `ir.Extern` naming the declaration; a transitive dependency's do not, and two dependencies are never compared.
+The plugin protocol in `docs/architecture/plugins.md` is complete.
 
 ### Front end
 
@@ -190,7 +189,7 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   A `key` directive becomes a `Key()` method, returning a `<Name>Key` struct for several fields.
   It imports: `reverse.go` reads a package with `go/parser`, taking constraints back from `validate`'s messages and keys from `Key`; `annotate.go` writes the loss warnings and, under `roundtrip`, `//tdl:` comment directives, carrying a declaration whole where reading the unannotated files back misses something.
   `Normalize` is its normal form for the round-trip corpus.
-  See `docs/design/go-backend.md` and `go-backend-plan.md`.
+  See `docs/architecture/go-backend.md`; #1191 tracks the remaining phases.
 - `backend/protobuf`: `.proto` files in the directories the package spells, named for its last segment unless a `file` directive says otherwise.
   Proto3 unless an `edition` directive names one; under an edition, `T?` carries no `optional`.
   A fielded enum is a message holding a oneof of per-variant messages; a newtype expands to its base.
@@ -230,7 +229,7 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   `annotate.go` writes the loss warnings and, under `roundtrip`, JSDoc `@tdl` tags, carrying a declaration whole where it loses anything.
   `Normalize` is its normal form for the round-trip corpus.
   `mapper.go` is a TypeScript 7.1 content mapper, served by `tdl-gen-typescript content-mapper`: tsc sends it a `.tdl` file and it lowers the file and returns the module this backend writes, importing an extern from its `.tdl` file; `TestMapperUnderTsc` runs tsc when a 7.1 or later is on `PATH`.
-  See `docs/design/typescript-content-mapper.md`.
+  See `docs/architecture/typescript-content-mapper.md`.
 - `backend/zod`: one `<package>.zod.ts` module per model of Zod schemas, each a `const` and a same-named `type` inferred from it, parsing the JSON wire convention `typescript` types.
   It shares the primitive mapping, names, property quoting, and the extern import path with `typescript` through `backend/internal/ts`.
   A struct is a `z.object`, or `z.strictObject` under `closed`; a fieldless enum a `z.enum`, a fielded one a `z.discriminatedUnion` of variant objects; a newtype a schema of its base, and an alias is expanded.
@@ -238,7 +237,7 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   A field naming a declaration written later, its own, or a lazy newtype is a getter with its return type written; a newtype whose base is written later is a `z.lazy` with its type written.
   A default is `.default()`, checked in `defaults.go` against the rules Zod would apply, since Zod checks none; one it would refuse warns and is not written.
   A `foreign` directive imports a schema in place of a declaration or an extern, and an extern otherwise comes from its dependency's `zod` block, as in `typescript`.
-  Phases 1 and 2 of `zod-backend-plan.md` are built: constraints, units, generics, and classes warn.
+  Phases 1 and 2 are built, and #1230 tracks the rest: constraints, units, generics, and classes warn.
   Tests run `tsc --strict --exactOptionalPropertyTypes` over every response and parse JSON with it under `node`, when `tsc`, `node`, and a `zod` package on `NODE_PATH` are found; the devShell sets `NODE_PATH` from `nix/zod.nix`, and `checks.gen-zod` always runs them on the smoke model.
   An agreement test holds every inferred type and `typescript`'s type for the same declaration assignable to each other.
 - `backend/jsonschema`: one `.schema.json` document per model, every declaration under `$defs`.
@@ -256,7 +255,7 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   An entity is a custom object, with a warning for each field that has no column; values, mixins, and enums are Apex.
   A `key` directive makes a field a unique external ID.
   Tests check the XML is well formed and `checks.gen-salesforce` runs `xmllint`; nothing checks the Apex.
-  See `docs/design/salesforce-backend.md`.
+  See `docs/architecture/salesforce-backend.md`.
 - `backend/haskell`: one module per model, `Shop/Billing.hs` for package `shop.billing` unless a `module` directive names it.
   A struct is a record, an enum a sum type, a newtype a `newtype`, and an alias a `type` synonym; fields keep the model's names under `NoFieldSelectors` and `DuplicateRecordFields`.
   Every import has an explicit list, and one bringing in a name the module declares is qualified instead; references are placeholders until the module is rendered, so that is decided once.
@@ -264,7 +263,7 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   `foreign.go` maps a declaration, a primitive, or an extern to another module's type, and an extern to the module its dependency's `haskell` block generates; `key.go` writes a key function, and a key record for several fields; `derive` adds `deriving anyclass`.
   `generics.go` writes type variables and kind signatures, derives a declaration holding an applied type variable through standalone deriving with the context reduced from its fields, and decides `Functor`, `Foldable`, and `Traversable` across the whole model.
   `classes.go` writes a class as a type class with a `HasField` superclass per field, and an instance per conformance and per separate instance, plus each instance a required class implies; `requires` on a type constrains its key function.
-  Phases 1 to 4 of `haskell-backend-plan.md` are built: units and validation warn.
+  Phases 1 to 4 are built, and #1207 tracks the rest: units and validation warn.
   Tests run `ghc -fno-code -Wall -Werror` when `ghc` is on `PATH`; `checks.gen-haskell` always does.
 - `dotnet/Tdl.Gen.CSharp` (`csharp`): a .NET plugin on the SDK, not compiled into `tdl`; `tdl` runs `tdl-gen-csharp` from `PATH`, and `nix/cmd.nix` ships it beside the Go binaries.
   It writes one `Order.g.cs` per declaration, or one file for the whole target that a `file` directive in the target block names, in the namespace a `namespace` directive names or the package derives.
@@ -275,12 +274,12 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   A `key` directive becomes a `Key()` method, returning a `<Name>Key` record struct for several fields; a default becomes a property initializer, and the property stops being `required`.
   `Foreign.cs` maps a declaration, a primitive, or an extern to a `global::`-qualified type, and an extern to the type its dependency's `csharp` block generates; `attribute` writes an attribute on a declaration, or on every one from the target block.
   `dotnet/Tdl.DotNet` holds what it shares with the planned `fsharp` target: the primitive mapping, the namespace a package derives, and parsing `foreign` and `attribute`.
-  Phases 1 and 2 of `csharp-backend-plan.md` are built: generics, classes, and validation warn.
+  Phases 1 and 2 are built, and #1194 tracks the rest: generics, classes, and validation warn.
   Its tests cannot lower TDL, so `internal/gen/csharp_test.go` records requests: one beside each `testdata/csharp/cases/*/*.tdl`, and one per conformance case and the smoke model in `testdata/csharp/corpus/<case>/`, with the files it generates in `want/`.
   `go test ./internal/gen -record` rewrites them, generating through `tdl-gen-csharp` on `PATH`, and without `-record` compares with them when it is there; CI's race run puts the built plugins on `PATH`.
   The tests compile every response with `CSharpCompilation`, warnings as errors, and run the equality, key, and default checks in process; `checks.gen-csharp` builds the smoke model with `dotnet build` and the SDK's analyzers.
 - `backend/likec4`: LikeC4 source for an architecture diagram: `tdl.c4`, the specification of element kinds, the same bytes for every model, and one `<package>.c4` holding a package element and one element per structure, enum, newtype, or class; aliases, primitives, and units have none.
-  Only phase 1 of `likec4-backend-plan.md` is built: no relationships or views yet.
+  Only phase 1 is built, and #1210 tracks the rest: no relationships or views yet.
   No Go library parses LikeC4, so tests compare text, and also run `likec4 validate --no-layout` when `likec4` is on `PATH`.
 - `backend/debug`: describes the model it was given, to exercise the protocol.
 
@@ -290,8 +289,8 @@ A backend that imports implements `plugin.Importer`, declares `Reverse`, and has
 A warning a user can silence carries a loss code, written with `emit.Session.Lossy`; `emit.LossCodes` must match the table in `reverse.md`.
 A backend added to the registry needs a row in the `shipped` table in `internal/gen/hosts_test.go` (`TestEveryBuiltinHasARow`) and, if shipped, an entry in `nix/cmd.nix` (`TestPackagedBackendsShip`).
 
-`docs/design/schema-backends.md` maps the seven schema backends.
-`docs/design/reverse.md` is the import direction, target language to TDL, and `reverse-plan.md` orders it.
+`docs/architecture/schema-backends.md` maps the seven schema backends.
+`docs/architecture/reverse.md` is the import direction, target language to TDL, and #972 tracks the remaining importers.
 `backend/internal/roundtrip` runs a backend forward and back over `testdata/roundtrip/<target>/<case>/`; its `targets` table holds every backend but `debug`, with each one's normal form, and `TestEveryTargetIsCovered` checks it against `cmd/`.
 `TestConformanceComesBack` also takes every conformance case without an import through each target that imports.
 `testdata/gen/smoke/source.tdl` exercises the whole mapping, with a target block for each schema backend and for `salesforce`; the nix checks generate from it and run each language's tool on the output.
@@ -313,7 +312,7 @@ Two matrices set one column of every table side by side, each cell its first wor
 Each is embedded exactly once, and reads the tables after committed cells fill unmeasured ones.
 A table naming no target or matrix belongs to a backend with no code: it is written by hand, holds every row in order with only `Planned (phase N)` or `No` in Generate and Import, and `CheckPlanned` checks it without rewriting it.
 When the backend is built and registered, the same table is measured, and its `features.toml` takes the phases.
-The tables stay out of `docs/design/`, which is for building the backend, not using it.
+The tables stay out of `docs/architecture/`, which is for building the backend, not using it.
 
 ### Tests and goldens
 
@@ -324,12 +323,18 @@ After any change to lowering or `ir.Dump`, run `go test ./internal/sema -update`
 ### Docs
 
 `docs/backends/` holds a page per backend for model authors (see [Feature tables](#feature-tables)).
-`docs/design/` holds designs and plans; each `*-plan.md` names what its phases add, and its opening lines say which are done.
-Read those before assuming a design is built: a plan saying no phase is done has no code.
-A phase's pull request updates its own plan's status line, never a list here, because a shared list conflicts with every other open phase.
-A design describes the target, not the implementation.
-`workflow.md` is furthest ahead: its `tdl.toml` project model is unbuilt.
-`docs/backlog.md` is wanted, unscheduled work.
+`docs/architecture/` is reference: what a built area is meant to be, and why.
+Read the one covering an area before changing it, and edit it in the same pull request when the code it describes changes.
+New work goes through the skills and the issue tracker:
+
+- a feature or backend: a spec issue (`/to-spec`), broken into ticket issues with blocked-by links (`/to-tickets`);
+- a decision that is hard to reverse: an ADR in `docs/adr/` (`/domain-modeling`);
+- a term: `CONTEXT.md`.
+
+A phase's pull request closes its ticket.
+A spec issue's sub-issues are its phases, and an open ticket is unbuilt work, so write a plan as tickets, never as a `*-plan.md`.
+Wanted work with no spec is a `needs-triage` issue.
+The `tdl.toml` project model (#1307) is the furthest-ahead spec: only its `[lossy]` table is built.
 `CONTEXT.md` is the glossary: one canonical word per concept, and the words to avoid.
 
 ### .NET SDK
@@ -383,7 +388,7 @@ An overlay `sema.Loader` serves unsaved text of open documents so imports resolv
 - Formatting returns `ast.Fprint` as one edit and refuses a file that does not parse.
 - The outline reads the tree, so a broken file still outlines what was recovered.
 
-See `docs/design/lsp.md` and `lsp-plan.md`.
+See `docs/architecture/lsp.md`; #1216 tracks the editor clients.
 
 ## Specification and conformance
 
@@ -397,7 +402,7 @@ VS Code uses `igochkov.vscode-ebnf` for highlighting only, since ISO tools rejec
 A lexical name the lexer owns is a production with no expression and a `/*@ token ... */` annotation naming its `lex` symbol.
 `reserved_word` is spelled out and checked against `lex.Keywords`.
 `ebnf.Read` returns the annotations with the grammar and checks them: a production with no expression needs a `token` binding, and every name an annotation mentions must exist.
-`docs/design/treesitter.md` defines the annotations.
+`docs/architecture/treesitter.md` defines the annotations.
 `TestDocsAreClean` fails when either file stops linting clean.
 
 ### Derived grammars
@@ -512,7 +517,7 @@ graphify, in the devShell, builds a graph of the code that an agent queries inst
 `.graphifyignore` leaves out generated code and fixtures, except the corpora's TDL, which keeps the graph near 6,000 nodes, against the 25,000 the hosted free plan allows.
 graphify reads `.tdl` files through an extractor that is not upstream: `pkgs/graphify/tdl.patch` in `unmango/pkgs`, which never pins this repository.
 `flake.nix` builds the devShell's graphify with `withGrammars` and the grammar's Python binding, and `checks.graphify` graphs the prelude and two conformance cases and asserts a declaration implements `Entity`.
-If the patch fails to apply to two graphify releases in a row, `unmango/pkgs` drops it, and with it TDL in the graph (see `docs/design/graphify.md`).
+If the patch fails to apply to two graphify releases in a row, `unmango/pkgs` drops it, and with it TDL in the graph (see `docs/architecture/graphify.md`).
 Semantic extraction, `graphify extract` without `--code-only` or `/graphify .` in an assistant, reads the docs through a model and spends tokens; the code graph does not.
 `.mcp.json` serves the graph to Claude Code over stdio with `graphify-mcp`, so it needs the devShell on `PATH` and a built graph.
 The devShell's graphify comes from `unmango/pkgs`, which runs it from a Python environment, so the interpreter graphify re-executes itself through can import it; nixpkgs' package cannot.
@@ -572,7 +577,7 @@ The five default triage labels, each named for its role. See `docs/agents/triage
 
 ### Domain docs
 
-Single-context: one root `CONTEXT.md` and `docs/adr/`, beside `docs/spec.md` and `docs/design/`. See `docs/agents/domain.md`.
+Single-context: one root `CONTEXT.md` and `docs/adr/`, whose records start at ADR-0001 with no backfill. See `docs/agents/domain.md`.
 
 <!-- graphify-rules-start (managed by `graphify init`) -->
 

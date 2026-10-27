@@ -1,7 +1,7 @@
 # The Haskell backend
 
 Design document.
-[haskell-backend-plan.md](haskell-backend-plan.md) orders the work.
+Phases 1 to 4 are built; the rest is tracked in [#1207](https://github.com/UnstoppableMango/tdl/issues/1207).
 
 The Haskell backend turns a resolved model into a Haskell module.
 It is called `haskell` in a target block, ships compiled into `tdl` and as `tdl-gen-haskell`, and is implemented in `backend/haskell` on the shared pieces [schema-backends.md](schema-backends.md) describes.
@@ -197,7 +197,7 @@ A parameter whose lower-cased spelling is a Haskell keyword, or collides with an
 
 A `requires` clause is written on the functions generated for the declaration, as [Classes](#classes) describes.
 
-A `unit` kind waits on phase 6 of [haskell-backend-plan.md](haskell-backend-plan.md).
+A `unit` kind waits on [#1209](https://github.com/UnstoppableMango/tdl/issues/1209).
 
 ## Classes
 
@@ -384,7 +384,7 @@ Reading Haskell takes a Haskell parser, which in practice is GHC, and [reverse.m
 
 ## Open questions
 
-- **Units.** See phase 6 of the plan.
+- **Units.** See [#1209](https://github.com/UnstoppableMango/tdl/issues/1209).
 - **`requires` on a type.** A GADT constructor carrying the constraint, `Envelope :: Auditable t => ... -> Envelope t`, would enforce what the warning reports, at the cost of standalone deriving on every constrained type.
 - **Defaults.** `Field.default_value` is not read. A `default<Name>` value exists only when every field has a default, which is rare enough that a partial record function may serve better.
 - **Serialization.** `Generic` and `derive` leave JSON to the consumer, as Go's `tag` does. Generating `aeson` instances that honour TDL's wire conventions, such as a fielded enum discriminated on `kind`, would match the TypeScript and JSON Schema backends and is a commitment to `aeson`.

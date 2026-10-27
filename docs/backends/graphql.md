@@ -1,7 +1,7 @@
 # GraphQL
 
 The `graphql` backend writes one schema per model of output types: both enum shapes, custom scalars, and lists, but no maps.
-[schema-backends.md](../design/schema-backends.md) is its design.
+[schema-backends.md](../architecture/schema-backends.md) is its design.
 
 ## Features
 

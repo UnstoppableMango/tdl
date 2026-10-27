@@ -1,7 +1,7 @@
 # TDL in graphify
 
 Design document.
-Nothing here is built; [graphify-plan.md](graphify-plan.md) orders the work.
+All of it is built.
 
 graphify builds the code graph an agent queries instead of grepping (see `AGENTS.md`).
 It parses each language with a tree-sitter grammar and a Python extractor, and it knows no TDL: a `.tdl` file lands in its unclassified list and is never read.

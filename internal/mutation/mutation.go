@@ -1,7 +1,7 @@
 // Package mutation reads gremlins' JSON reports and the list of
 // equivalent mutants, and prints what a run left alive.
 //
-// See docs/design/mutation-testing.md.
+// See docs/architecture/mutation-testing.md.
 package mutation
 
 import (

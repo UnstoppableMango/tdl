@@ -53,9 +53,9 @@ func TestEveryRowHasASource(t *testing.T) {
 	}
 }
 
-// A row's codes are loss codes docs/design/reverse.md lists.
+// A row's codes are loss codes docs/architecture/reverse.md lists.
 func TestRowCodesAreLossCodes(t *testing.T) {
-	doc, err := os.ReadFile(filepath.Join(root, "docs/design/reverse.md"))
+	doc, err := os.ReadFile(filepath.Join(root, "docs/architecture/reverse.md"))
 	if err != nil {
 		t.Fatal(err)
 	}

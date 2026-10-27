@@ -9,7 +9,7 @@ import (
 )
 
 // primitives maps a prelude primitive to its Go type. uuid, date, and
-// decimal are placeholders; docs/design/go-backend.md says why.
+// decimal are placeholders; docs/architecture/go-backend.md says why.
 var primitives = map[string]string{
 	"string":   "string",
 	"int":      "int64",

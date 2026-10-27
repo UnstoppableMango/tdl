@@ -1,7 +1,7 @@
 # Salesforce
 
 The `salesforce` backend writes Salesforce DX source: a custom object per entity, and Apex for values and enums.
-[salesforce-backend.md](../design/salesforce-backend.md) is its design.
+[salesforce-backend.md](../architecture/salesforce-backend.md) is its design.
 
 ## Features
 

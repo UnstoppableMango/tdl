@@ -1,7 +1,7 @@
 # The ir package
 
 Design document.
-[ir-plan.md](ir-plan.md) tracks the implementation.
+All of it is built but phase 8b for a transitive dependency, which [#1215](https://github.com/UnstoppableMango/tdl/issues/1215) tracks.
 
 `ir` is the resolved semantic model: what `ast` becomes after names are resolved, sugar is lowered, and instances are checked.
 It is the only thing a backend sees, whether it imports the Go package in process or reads a protobuf from stdin as a plugin.
@@ -162,7 +162,7 @@ Entries tied at one specificity are checked against the directives the backend d
 An `Import` carries its dependency's block-scope directives: the bare directives at the top level of each of the dependency's target blocks for its own package, each naming the block's target.
 A backend generating a reference into the dependency reads from them where the dependency's declarations are generated, such as a protobuf `file` or `package`.
 They are read from the dependency's parse tree, so none of the dependency is lowered.
-An `Extern` carries the dependency's declaration-level directives for the declaration it names, beneath any root entry naming it, so a backend reads one list; see [ir-plan.md](ir-plan.md) phase 8b.
+An `Extern` carries the dependency's declaration-level directives for the declaration it names, beneath any root entry naming it, so a backend reads one list; see [#1215](https://github.com/UnstoppableMango/tdl/issues/1215).
 
 A `Decl`, a `Field`, an enum variant, and an `Extern` each carry their directives, so a backend never does a lookup or a precedence computation.
 

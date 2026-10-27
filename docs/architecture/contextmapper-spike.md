@@ -1,6 +1,6 @@
 # Context Mapper spike
 
-Spike report, not a design; [cml-backend.md](cml-backend.md) is the design that followed.
+Spike report, not a design; [cml-backend.md](https://github.com/UnstoppableMango/tdl/blob/fc0682d/docs/design/cml-backend.md) is the design that followed.
 It asks whether TDL should generate [Context Mapper](https://contextmapper.org) Language (CML), and records what a prototype in `backend/contextmapper` found.
 
 ## Recommendation

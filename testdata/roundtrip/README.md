@@ -1,6 +1,6 @@
 # Round-trip corpus
 
-Cases for the [reverse backends](../../docs/design/reverse.md), run by `go test ./backend/internal/roundtrip`.
+Cases for the [reverse backends](../../docs/architecture/reverse.md), run by `go test ./backend/internal/roundtrip`.
 
 Each target has a directory named for it, and each case is a directory inside that one.
 A case runs one direction:

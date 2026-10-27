@@ -1,7 +1,7 @@
 // Package jsonschema generates a JSON Schema document from a resolved
 // model.
 //
-// docs/design/schema-backends.md has the mapping and the reasons for it.
+// docs/architecture/schema-backends.md has the mapping and the reasons for it.
 // Every declaration is a definition under $defs, and an enum whose
 // variants carry fields is a oneOf discriminated on a `kind` property, as
 // in the TypeScript backend. JSON Schema is the one schema target that can

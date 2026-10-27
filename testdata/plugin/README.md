@@ -1,6 +1,6 @@
 # Recorded protocol exchanges
 
-Request and response pairs for the [plugin protocol](../../docs/design/plugins.md), for implementations in other languages to replay.
+Request and response pairs for the [plugin protocol](../../docs/architecture/plugins.md), for implementations in other languages to replay.
 
 Each `*.tdl` is lowered and sent to the `debug` backend; the request and response are written beside it, as protobuf text (`*.txtpb`) and in the wire encoding (`*.binpb`).
 `go test ./internal/gen -run TestRecordedExchanges` checks them, and `-record` rewrites them.

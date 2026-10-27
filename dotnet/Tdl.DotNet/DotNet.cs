@@ -18,7 +18,7 @@ public sealed record Qualified(string Namespace, string Name);
 /// <summary>
 /// What the C# and F# backends decide alike because both target .NET. It
 /// holds decisions, not syntax; each backend spells a type its own way. See
-/// docs/design/csharp-backend.md.
+/// docs/architecture/csharp-backend.md.
 /// </summary>
 public static class Net
 {

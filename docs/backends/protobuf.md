@@ -1,7 +1,7 @@
 # Protocol Buffers
 
 The `protobuf` backend writes `.proto` files: messages, both enum shapes, newtypes expanded to their base, collections, `number` pins, and services.
-[schema-backends.md](../design/schema-backends.md) is its design.
+[schema-backends.md](../architecture/schema-backends.md) is its design.
 
 ## Features
 

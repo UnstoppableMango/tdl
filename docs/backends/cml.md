@@ -1,11 +1,11 @@
 # Context Mapper
 
-The `cml` backend is designed and not built yet: [cml-backend.md](../design/cml-backend.md) is its design, and [cml-backend-plan.md](../design/cml-backend-plan.md) orders its phases.
+The `cml` backend is designed and not built yet: [#1267](https://github.com/UnstoppableMango/tdl/issues/1267) is its spec, and its sub-issues are the phases.
 No phase is done.
 
 ## Features
 
-What the backend will do with each feature of the language, and the phase of its plan that builds it.
+What the backend will do with each feature of the language, and the phase that builds it.
 No means no phase plans it.
 No importer is planned, so every Import cell is No.
 Once the backend is built, `make features` measures this table like every other.

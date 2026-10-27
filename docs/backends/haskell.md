@@ -1,7 +1,7 @@
 # Haskell
 
 The `haskell` backend writes one module per model: records, sum types, newtypes, type synonyms, key functions, type parameters, and classes as type classes.
-[haskell-backend.md](../design/haskell-backend.md) is its design.
+[haskell-backend.md](../architecture/haskell-backend.md) is its design.
 
 ## Features
 

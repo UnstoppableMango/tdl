@@ -1,6 +1,6 @@
 // Package likec4 generates LikeC4 source from a resolved model, so a model
 // renders as an architecture diagram. The mapping is in
-// docs/design/likec4-backend.md.
+// docs/architecture/likec4-backend.md.
 package likec4
 
 import (

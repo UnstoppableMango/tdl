@@ -1,7 +1,7 @@
 // Package salesforce generates Salesforce DX source, one file per
 // component, from a resolved model: a custom object for each entity, and an
 // Apex class or enum for each value, mixin, and enum. The mapping is in
-// docs/design/salesforce-backend.md.
+// docs/architecture/salesforce-backend.md.
 package salesforce
 
 import (

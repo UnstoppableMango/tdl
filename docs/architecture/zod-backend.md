@@ -1,7 +1,7 @@
 # The Zod backend
 
 Design document.
-[zod-backend-plan.md](zod-backend-plan.md) orders the work.
+Phases 1 and 2 are built; the rest is tracked in [#1230](https://github.com/UnstoppableMango/tdl/issues/1230).
 
 The Zod backend turns a resolved model into a TypeScript module of [Zod](https://zod.dev) schemas.
 It is called `zod` in a target block, ships compiled into `tdl` and as `tdl-gen-zod`, and is implemented in `backend/zod`.
@@ -23,7 +23,7 @@ Where the Zod backend has no reason to differ from `typescript`, it does not: na
 
 ## How the type-system preference applies
 
-Every other backend that validates chooses between a check a consumer must remember to run and a type that refuses a violating value, and the project prefers the type: [rust-backend.md](rust-backend.md) and [python-backend.md](python-backend.md) write no `validate` method.
+Every other backend that validates chooses between a check a consumer must remember to run and a type that refuses a violating value, and the project prefers the type: [rust-backend.md](https://github.com/UnstoppableMango/tdl/blob/fc0682d/docs/design/rust-backend.md) and [python-backend.md](https://github.com/UnstoppableMango/tdl/blob/fc0682d/docs/design/python-backend.md) write no `validate` method.
 In Zod the schema is the validator, so there is no separate check to forget; what the preference decides here is what the inferred type carries after the parse.
 
 A schema that checks `quantity >= 1` and infers `number` throws the fact away at the boundary: code holding a `LineItem` cannot tell a parsed one from an object literal with `quantity: 0`.
@@ -279,7 +279,7 @@ Opting in to `patterns` is accepting that remainder for the patterns the model h
 
 ## Units
 
-TypeScript reduces no unit, so until phase 6 a unit-typed field is its base type with a warning, as in every backend without units.
+TypeScript reduces no unit, so until [#1234](https://github.com/UnstoppableMango/tdl/issues/1234) a unit-typed field is its base type with a warning, as in every backend without units.
 
 That phase brands the number or decimal string with the unit's base dimensions as `ir` interns them, so `float64<N>` and `float64<kg*m/s^2>` carry one brand and `float64<m>` another, and a consumer cannot pass metres where newtons are expected.
 Arithmetic on a branded number returns a plain `number`, so the unit holds only until the first operation, as Python's nominal option does; the brand is what the wire can carry, and arithmetic is the consumer's.
@@ -306,7 +306,7 @@ A parameter of a higher kind has no TypeScript spelling, warns, and skips its de
 A class is a structural type, as in Python: `export type Auditable = { createdAt: string; updatedAt: string }`, the fields it declares, intersected with the classes it requires.
 A satisfying struct writes nothing, since TypeScript is structural and the compiler already refused a satisfying type that lacks a field.
 A class has no schema, since nothing is parsed as a class; it exists to bound a generic parameter.
-The plan is `emit.PlanInterfaces`, which Go, C#, Rust, and Python read, and the rows of Python's table under [python-backend.md](python-backend.md#classes) apply as written: an empty class narrows nothing and warns, a conditional instance holds for every argument and warns, a class of arrow kind is skipped.
+The plan is `emit.PlanInterfaces`, which Go, C#, Rust, and Python read, and the rows of Python's table under [python-backend.md](https://github.com/UnstoppableMango/tdl/blob/fc0682d/docs/design/python-backend.md#classes) apply as written: an empty class narrows nothing and warns, a conditional instance holds for every argument and warns, a class of arrow kind is skipped.
 
 ## Codecs
 
@@ -370,7 +370,7 @@ A deprecation is `@deprecated`, as `typescript` writes it.
 These warn with the node's position, and the declaration reaching one is skipped: an extern with no mapping, a higher-kinded parameter, a variant field named like the discriminant, and a name collision.
 `emit.Cascade` then skips every declaration naming a skipped one.
 
-These warn and the declaration is still emitted: a unit until phase 6, a `matches` without `patterns`, a `matches` pattern RE2 refuses or whose shape backtracks exponentially, a constraint on a type its row warns for, a `where` constraint the backend gives no meaning to, a `oneOf` argument another constraint excludes, a default that fails its field's check, a default or constraint on a foreign type, and a class the plan refuses.
+These warn and the declaration is still emitted: a unit until [#1234](https://github.com/UnstoppableMango/tdl/issues/1234), a `matches` without `patterns`, a `matches` pattern RE2 refuses or whose shape backtracks exponentially, a constraint on a type its row warns for, a `where` constraint the backend gives no meaning to, a `oneOf` argument another constraint excludes, a default that fails its field's check, a default or constraint on a foreign type, and a class the plan refuses.
 
 ## Checking the output
 
@@ -387,7 +387,7 @@ A fourth runs the printed patterns: for each case in a shared table of patterns 
 ## Reverse
 
 An importer is not planned.
-A Zod module is code, and reading it means evaluating it, which `z.toJSONSchema` already does; the route back is that output through a JSON Schema importer, once [reverse-plan.md](reverse-plan.md) orders one.
+A Zod module is code, and reading it means evaluating it, which `z.toJSONSchema` already does; the route back is that output through a JSON Schema importer, once [#982](https://github.com/UnstoppableMango/tdl/issues/982) builds one.
 
 ## Overlap with other targets
 
@@ -403,7 +403,7 @@ A Zod module is code, and reading it means evaluating it, which `z.toJSONSchema`
 | A pattern printed from `regexp/syntax` | Rust, Java, .NET, Python | a walk in `backend/internal/emit` with a table per engine |
 | The class plan | Go, C#, Rust, Python | `emit.PlanInterfaces` |
 
-[java-backend.md](java-backend.md#overlap-with-other-targets) puts the pattern walk in `backend/internal/emit` beside `Pattern`, with a small table per engine, written by whichever backend is built first.
+[java-backend.md](https://github.com/UnstoppableMango/tdl/blob/fc0682d/docs/design/java-backend.md#overlap-with-other-targets) puts the pattern walk in `backend/internal/emit` beside `Pattern`, with a small table per engine, written by whichever backend is built first.
 None is built yet, so if Zod is first it writes the walk, and the ECMAScript table is the one this design describes.
 Like Python's, it prints every Unicode class as ranges.
 

@@ -1,7 +1,7 @@
 # Go
 
 The `go` backend writes structs, entity keys, both enum shapes, newtypes, generics, classes as interfaces, `Validate` methods, and foreign types, one file per declaration or one for the whole target.
-[go-backend.md](../design/go-backend.md) is its design.
+[go-backend.md](../architecture/go-backend.md) is its design.
 
 ## Features
 

@@ -1,4 +1,4 @@
-# gremlins' configuration for `make mutate`; see docs/design/mutation-testing.md.
+# gremlins' configuration for `make mutate`; see docs/architecture/mutation-testing.md.
 # Every mutator is enabled, not only gremlins' defaults, and the timeout
 # coefficient is left at gremlins' default.
 mutants:

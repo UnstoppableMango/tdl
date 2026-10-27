@@ -22,7 +22,7 @@ import (
 // else names, as Generate writes a fielded enum, an enum with fields.
 // What regenerating needs goes in a thrift target block. Under the tdl.*
 // annotations a `roundtrip` directive writes, it rebuilds the model the
-// file was generated from. docs/design/schema-backends.md has the mapping.
+// file was generated from. docs/architecture/schema-backends.md has the mapping.
 func (Backend) Import(_ context.Context, req *plugin.ImportRequest) (*plugin.ImportResponse, error) {
 	r := &reader{names: map[string]string{}, sums: map[string]bool{}, variants: map[string]bool{}}
 	return r.Response(r.read(req.GetFiles()))

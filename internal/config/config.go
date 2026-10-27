@@ -1,5 +1,5 @@
 // Package config reads tdl.toml, the project manifest. It reads only the
-// [lossy] table so far; docs/design/workflow.md describes the rest.
+// [lossy] table so far; issue #1307 describes the rest.
 package config
 
 import (

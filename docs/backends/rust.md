@@ -1,11 +1,11 @@
 # Rust
 
-The `rust` backend is designed and not built yet: [rust-backend.md](../design/rust-backend.md) is its design, and [rust-backend-plan.md](../design/rust-backend-plan.md) orders its phases.
+The `rust` backend is designed and not built yet: [#1273](https://github.com/UnstoppableMango/tdl/issues/1273) is its spec, and its sub-issues are the phases.
 No phase is done.
 
 ## Features
 
-What the backend will do with each feature of the language, and the phase of its plan that builds it.
+What the backend will do with each feature of the language, and the phase that builds it.
 No means no phase plans it.
 No importer is planned, so every Import cell is No.
 Once the backend is built, `make features` measures this table like every other.

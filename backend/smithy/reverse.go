@@ -75,7 +75,7 @@ func CLI() (string, error) {
 // the package. What regenerating needs goes in a smithy target block.
 // Under the tdl metadata and tdl#source traits a `roundtrip` directive
 // writes, it rebuilds the model the files were generated from.
-// docs/design/schema-backends.md has the mapping.
+// docs/architecture/schema-backends.md has the mapping.
 func (Backend) Import(ctx context.Context, req *plugin.ImportRequest) (*plugin.ImportResponse, error) {
 	r := &reader{}
 	return r.Response(r.read(ctx, req.GetFiles()))

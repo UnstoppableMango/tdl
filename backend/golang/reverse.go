@@ -30,7 +30,7 @@ import (
 // A constraint comes back from the message Validate writes, and a key from
 // Key. What regenerating needs goes in a go target block. Under the //tdl:
 // directives a `roundtrip` directive writes, it rebuilds the model the
-// package was generated from. docs/design/go-backend.md has the mapping.
+// package was generated from. docs/architecture/go-backend.md has the mapping.
 func (Backend) Import(_ context.Context, req *plugin.ImportRequest) (*plugin.ImportResponse, error) {
 	r := newReader()
 	file, err := r.read(req.GetFiles())

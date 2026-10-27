@@ -10,10 +10,10 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// The loss codes are the ones docs/design/reverse.md tabulates, in its
+// The loss codes are the ones docs/architecture/reverse.md tabulates, in its
 // order.
 func TestLossCodesMatchTheDesign(t *testing.T) {
-	doc, err := os.ReadFile("../../../docs/design/reverse.md")
+	doc, err := os.ReadFile("../../../docs/architecture/reverse.md")
 	if err != nil {
 		t.Fatal(err)
 	}
