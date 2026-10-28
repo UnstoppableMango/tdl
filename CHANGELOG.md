@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.5.4](https://github.com/UnstoppableMango/tdl/compare/v0.5.3...v0.5.4) (2026-10-28)
+
+
+### Features
+
+* **gen:** write a make dependency file with --make ([#1269](https://github.com/UnstoppableMango/tdl/issues/1269)) ([89e91c5](https://github.com/UnstoppableMango/tdl/commit/89e91c5f631588a77e0d5293d0d2ee0401422c09))
+
+
+### Documentation
+
+* **context:** define output loss and read-back loss ([#1324](https://github.com/UnstoppableMango/tdl/issues/1324)) ([db5521c](https://github.com/UnstoppableMango/tdl/commit/db5521cacfc92b21cca9945ad6761e2bb23f2661))
+* route new designs, plans, and decisions through the agent skills ([#1190](https://github.com/UnstoppableMango/tdl/issues/1190)) ([c0f619c](https://github.com/UnstoppableMango/tdl/commit/c0f619ce9b29813b5ec0c8c3efe81789bd3cc836))
+
+
+### Code Refactoring
+
+* **emit:** share the include-flattening warning ([#1322](https://github.com/UnstoppableMango/tdl/issues/1322)) ([4b13ed5](https://github.com/UnstoppableMango/tdl/commit/4b13ed56ae870e12301867991d889033b035d1c5))
+* **gmk:** stop make through gmk.Error ([#1325](https://github.com/UnstoppableMango/tdl/issues/1325)) ([411919f](https://github.com/UnstoppableMango/tdl/commit/411919faf366f105344bf6b4f2dc95430d7ee71e))
+
 ## [0.5.3](https://github.com/UnstoppableMango/tdl/compare/v0.5.2...v0.5.3) (2026-10-25)
 
 
