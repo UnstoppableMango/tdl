@@ -320,6 +320,12 @@ in
           consumer.checks.${system}.tdl-check
           consumer.checks.${system}.tdl-fmt
           consumer.devShells.${system}.tdl
+          # A shell pulling devShells.tdl in with inputsFrom still gets TDL_GMK.
+          (pkgs.runCommand "tdl-flake-module-inputs-from" { } ''
+            ${(pkgs.mkShellNoCC { inputsFrom = [ consumer.devShells.${system}.tdl ]; }).shellHook}
+            test -f "$TDL_GMK"
+            touch $out
+          '')
         ];
     };
 }
