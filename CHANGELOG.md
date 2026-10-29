@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.5.5](https://github.com/UnstoppableMango/tdl/compare/v0.5.4...v0.5.5) (2026-10-29)
+
+
+### Bug Fixes
+
+* **nix:** export TDL_GMK from devShells.tdl's shellHook ([#1332](https://github.com/UnstoppableMango/tdl/issues/1332)) ([7773688](https://github.com/UnstoppableMango/tdl/commit/77736880cacbe87670daaadbeea1adf005a90e16))
+* **nix:** regenerate dotnet/deps.json with one command, check it in CI, and have Renovate run it ([#1333](https://github.com/UnstoppableMango/tdl/issues/1333)) ([63f8029](https://github.com/UnstoppableMango/tdl/commit/63f802909bf7a4522b4f1b8ffd4d3c84f4a838e8))
+
+
+### Documentation
+
+* **agents:** bring the weekly routines into the triage lifecycle ([#1331](https://github.com/UnstoppableMango/tdl/issues/1331)) ([3e5d3c5](https://github.com/UnstoppableMango/tdl/commit/3e5d3c5f81c247f97ca1a11ba12ca3726ab3fc50))
+
+
+### Dependencies
+
+* update dependency @types/node to v26 ([#1328](https://github.com/UnstoppableMango/tdl/issues/1328)) ([aab86cf](https://github.com/UnstoppableMango/tdl/commit/aab86cf9b8208b265c379aaa3276a6d5dd01c9bd))
+* update dependency @types/vscode to ~1.144.0 ([#1327](https://github.com/UnstoppableMango/tdl/issues/1327)) ([435d9e9](https://github.com/UnstoppableMango/tdl/commit/435d9e9573f623b3b36dec63a60753127fa51e00))
+
 ## [0.5.4](https://github.com/UnstoppableMango/tdl/compare/v0.5.3...v0.5.4) (2026-10-28)
 
 
