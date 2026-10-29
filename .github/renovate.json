@@ -4,6 +4,7 @@
 		"github>UnstoppableMango/renovate-config",
 		"github>UnstoppableMango/renovate-config:release-please",
 		"github>UnstoppableMango/renovate-config:gomod2nix(nix)",
+		"github>UnstoppableMango/renovate-config:nuget2nix(./tools/nugetdeps)",
 		"schedule:monthly"
 	],
 	"automerge": true,

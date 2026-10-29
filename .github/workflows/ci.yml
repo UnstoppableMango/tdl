@@ -39,7 +39,13 @@ jobs:
           key: ${{ runner.os }}-go-test-${{ hashFiles('go.sum') }}
           restore-keys: ${{ runner.os }}-go-test-
 
+      # Before the build, which fails with NU1102 on the same drift and
+      # names only the first package it cannot find.
+      - name: dotnet/deps.json matches the projects
+        run: nix develop -c go run ./tools/nugetdeps -check
+
       - run: nix flake check
+        if: ${{ !cancelled() }}
 
       - run: nix build .#
         if: ${{ !cancelled() }}
