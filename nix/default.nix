@@ -290,12 +290,13 @@ in
             touch $out
           '';
 
-      # Evaluates a consumer flake that imports flake-module.nix and builds
-      # its outputs. tdl-gen is left out: --verify compares against generated
-      # output on disk, and the fixture has none.
+      # Evaluates consumer flakes that import flake-module.nix and builds
+      # their outputs. tdl-gen is left out: --verify compares against
+      # generated output on disk, and the fixture has none.
       checks.flake-module =
         let
           consumer =
+            tdl:
             inputs.flake-parts.lib.mkFlake
               {
                 inputs = {
@@ -308,21 +309,28 @@ in
                 imports = [ ./flake-module.nix ];
                 perSystem = _: {
                   _module.args.pkgs = pkgs; # already carries the overlay
-                  tdl = {
-                    enable = true;
-                    src = ../testdata/conformance/entity;
-                    files = [ "source.tdl" ];
-                  };
+                  inherit tdl;
                 };
               };
+          model = {
+            src = ../testdata/conformance/entity;
+            files = [ "source.tdl" ];
+          };
+          # Setting src is enough to enable the module.
+          implied = consumer model;
+          defines = flake: builtins.attrNames (flake.checks.${system} // flake.devShells.${system});
         in
+        # enable = false turns everything off, and a consumer setting nothing
+        # gets nothing.
+        assert defines (consumer (model // { enable = false; })) == [ ];
+        assert defines (consumer { }) == [ ];
         pkgs.linkFarmFromDrvs "tdl-flake-module" [
-          consumer.checks.${system}.tdl-check
-          consumer.checks.${system}.tdl-fmt
-          consumer.devShells.${system}.tdl
+          implied.checks.${system}.tdl-check
+          implied.checks.${system}.tdl-fmt
+          implied.devShells.${system}.tdl
           # A shell pulling devShells.tdl in with inputsFrom still gets TDL_GMK.
           (pkgs.runCommand "tdl-flake-module-inputs-from" { } ''
-            ${(pkgs.mkShellNoCC { inputsFrom = [ consumer.devShells.${system}.tdl ]; }).shellHook}
+            ${(pkgs.mkShellNoCC { inputsFrom = [ implied.devShells.${system}.tdl ]; }).shellHook}
             test -f "$TDL_GMK"
             touch $out
           '')
