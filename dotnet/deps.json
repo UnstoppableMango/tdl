@@ -31,13 +31,13 @@
 	},
 	{
 		"pname": "Microsoft.CodeCoverage",
-		"version": "17.14.1",
-		"hash": "sha256-f8QytG8GvRoP47rO2KEmnDLxIpyesaq26TFjDdW40Gs="
+		"version": "18.11.0",
+		"hash": "sha256-LtwMOSvgnnrJqb5Eitfe2NzDTfyL/aA1+6ME3QuHsWg="
 	},
 	{
 		"pname": "Microsoft.NET.Test.Sdk",
-		"version": "17.14.1",
-		"hash": "sha256-mZUzDFvFp7x1nKrcnRd0hhbNu5g8EQYt8SKnRgdhT/A="
+		"version": "18.11.0",
+		"hash": "sha256-/1MSqQk5mBfbireHE56TXAFtZcCnUguJzCbXdcWfTac="
 	},
 	{
 		"pname": "Microsoft.Testing.Extensions.Telemetry",
@@ -61,23 +61,18 @@
 	},
 	{
 		"pname": "Microsoft.TestPlatform.ObjectModel",
-		"version": "17.14.1",
-		"hash": "sha256-QMf6O+w0IT+16Mrzo7wn+N20f3L1/mDhs/qjmEo1rYs="
+		"version": "18.11.0",
+		"hash": "sha256-0GvcoaIgSzFC852Y45MaAeC8X1fm9TYZefnCo5gV9Xg="
 	},
 	{
 		"pname": "Microsoft.TestPlatform.TestHost",
-		"version": "17.14.1",
-		"hash": "sha256-1cxHWcvHRD7orQ3EEEPPxVGEkTpxom1/zoICC9SInJs="
+		"version": "18.11.0",
+		"hash": "sha256-9FCOMysBeMWKtTlNdbt24pIQhd+9GUJi/WTAdp9KjMM="
 	},
 	{
 		"pname": "Microsoft.Win32.Registry",
 		"version": "5.0.0",
 		"hash": "sha256-9kylPGfKZc58yFqNKa77stomcoNnMeERXozWJzDcUIA="
-	},
-	{
-		"pname": "Newtonsoft.Json",
-		"version": "13.0.3",
-		"hash": "sha256-hy/BieY4qxBWVVsDqqOPaLy1QobiIapkbrESm6v2PHc="
 	},
 	{
 		"pname": "xunit.analyzers",
