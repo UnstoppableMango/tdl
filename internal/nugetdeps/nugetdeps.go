@@ -1,4 +1,4 @@
-// Package nugetdeps writes and checks the NuGet lock buildDotnetModule
+// Package nugetdeps writes the NuGet lock buildDotnetModule
 // restores the .NET plugins from: dotnet/deps.json, the nugetDeps of
 // nix/dotnet.nix.
 //
@@ -170,63 +170,4 @@ func Marshal(pkgs []Package) []byte {
 		panic(err) // three strings always encode
 	}
 	return buf.Bytes()
-}
-
-// Diff describes, one line per package, how the lock differs from what the
-// projects restore. It is nil when they agree.
-func Diff(lock, restored []Package) []string {
-	type sides struct{ lock, restored []Package }
-	byID := map[string]*sides{}
-	var ids []string
-	side := func(p Package) *sides {
-		k := strings.ToLower(p.Pname)
-		if byID[k] == nil {
-			byID[k] = &sides{}
-			ids = append(ids, k)
-		}
-		return byID[k]
-	}
-	for _, p := range lock {
-		s := side(p)
-		s.lock = append(s.lock, p)
-	}
-	for _, p := range restored {
-		s := side(p)
-		s.restored = append(s.restored, p)
-	}
-	sort.Strings(ids)
-
-	var lines []string
-	for _, k := range ids {
-		s := byID[k]
-		if len(s.lock) == 1 && len(s.restored) == 1 && s.lock[0].Version != s.restored[0].Version {
-			lines = append(lines, fmt.Sprintf("%s: the lock has %s, the projects restore %s",
-				s.restored[0].Pname, s.lock[0].Version, s.restored[0].Version))
-			continue
-		}
-		for _, l := range s.lock {
-			r, ok := find(s.restored, l.Version)
-			switch {
-			case !ok:
-				lines = append(lines, fmt.Sprintf("%s: in the lock, but no project restores it", l))
-			case r.Hash != l.Hash:
-				lines = append(lines, fmt.Sprintf("%s: the lock's hash is %s, the package's %s", l, l.Hash, r.Hash))
-			}
-		}
-		for _, r := range s.restored {
-			if _, ok := find(s.lock, r.Version); !ok {
-				lines = append(lines, fmt.Sprintf("%s: restored, but missing from the lock", r))
-			}
-		}
-	}
-	return lines
-}
-
-func find(pkgs []Package, version string) (Package, bool) {
-	for _, p := range pkgs {
-		if p.Version == version {
-			return p, true
-		}
-	}
-	return Package{}, false
 }

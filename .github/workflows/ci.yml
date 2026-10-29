@@ -42,7 +42,9 @@ jobs:
       # Before the build, which fails with NU1102 on the same drift and
       # names only the first package it cannot find.
       - name: dotnet/deps.json matches the projects
-        run: nix develop -c go run ./tools/nugetdeps -check
+        run: |
+          nix develop -c make dotnet-deps
+          git diff --exit-code dotnet/deps.json
 
       - run: nix flake check
         if: ${{ !cancelled() }}

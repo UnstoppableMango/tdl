@@ -347,7 +347,7 @@ The SDK holds framing, the handshake, a `Session` over the request and its analy
 The tests replay `testdata/plugin/*.binpb` byte for byte and check `LossCodes` against `reverse.md`.
 `deps.json` pins every NuGet package for `buildDotnetModule` but those the SDK carries; after changing a package reference, run `make dotnet-deps`, which needs `dotnet` and the network but not Nix.
 It runs `go run ./tools/nugetdeps`, which restores the solution for each runtime the flake builds into one empty folder and writes what nixpkgs' `nuget-to-json` would, laid out as jsonfmt lays it out; `internal/nugetdeps` lists what the SDK carries.
-CI runs the same command with `-check` before the build, failing with each package that drifted, and Renovate runs it on every NuGet update through the `nuget2nix` preset in `UnstoppableMango/renovate-config`, which the-cluster's Renovate allows in `allowedCommands`.
+CI runs the same command before the build and fails if `git diff` shows the lock changed, and Renovate runs it on every NuGet update through the `nuget2nix` preset in `UnstoppableMango/renovate-config`, which the-cluster's Renovate allows in `allowedCommands`.
 `.github/renovate.json` pins Renovate's SDK to a release of the major `nix/dotnet.nix` builds with, since another major restores other implicit packages; Renovate reads the constraint as an exact version, so it names one.
 `checks.dotnet-sdk` builds and tests every project, and `checks.gen-dotnet-debug` runs the debug port through `tdl gen` beside the Go backend.
 

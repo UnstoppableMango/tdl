@@ -175,31 +175,3 @@ func TestCommittedLockIsCanonical(t *testing.T) {
 		}
 	}
 }
-
-func TestDiffNamesTheDrift(t *testing.T) {
-	lock := []Package{
-		{"Google.Protobuf", "3.36.2", "sha256-g"},
-		{"Microsoft.CodeAnalysis.CSharp", "5.0.0", "sha256-c"},
-		{"Newtonsoft.Json", "13.0.3", "sha256-n"},
-		{"xunit.v3", "3.2.2", "sha256-x"},
-	}
-	restored := []Package{
-		{"Google.Protobuf", "3.36.2", "sha256-g"},
-		{"Microsoft.CodeAnalysis.CSharp", "5.9.0", "sha256-c2"},
-		{"System.Memory", "4.6.0", "sha256-s"},
-		{"xunit.v3", "3.2.2", "sha256-y"},
-	}
-	got := Diff(lock, restored)
-	want := []string{
-		"Microsoft.CodeAnalysis.CSharp: the lock has 5.0.0, the projects restore 5.9.0",
-		"Newtonsoft.Json 13.0.3: in the lock, but no project restores it",
-		"System.Memory 4.6.0: restored, but missing from the lock",
-		"xunit.v3 3.2.2: the lock's hash is sha256-x, the package's sha256-y",
-	}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("Diff:\ngot  %q\nwant %q", got, want)
-	}
-	if d := Diff(lock, lock); d != nil {
-		t.Errorf("Diff of equal locks = %q", d)
-	}
-}
