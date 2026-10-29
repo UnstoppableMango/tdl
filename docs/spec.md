@@ -585,5 +585,5 @@ The standard library ships a target for each supported language, and a project m
 `tdl fmt` produces canonical output and is idempotent: formatting canonical output changes nothing.
 
 The formatter owns layout, except that a blank line at the top level between two comment groups, or between a comment and the declaration after it, survives.
-A block stays on one line when it fits within the column limit and expands to one member per line when it does not.
+A block stays on one line when the whole line holding it fits within 80 columns and expands to one member per line when it does not.
 The decision depends only on content, never on how the input was written.
