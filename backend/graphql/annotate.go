@@ -213,7 +213,7 @@ var lossyPrimitives = map[string]bool{"int": true, "uint32": true, "float32": tr
 func (g *generator) typeLosses(id *ir.ID, at *ir.Position) {
 	t := g.Model.Type(id)
 	if t.GetUnit() != nil {
-		g.Lose(emit.LossUnit, cmp.Or(at, t.GetPosition()), "the unit %s is not carried", t.GetUnit().GetName())
+		g.Lossy(emit.LossUnit, cmp.Or(at, t.GetPosition()), "the unit %s is not carried", t.GetUnit().GetName())
 		return
 	}
 	decl := g.Model.Decl(t.GetCtor())
@@ -229,11 +229,11 @@ func (g *generator) typeLosses(id *ir.ID, at *ir.Position) {
 	case decl.GetPrimitive() != nil:
 		switch {
 		case name == "Set":
-			g.Lose(emit.LossCollection, pos, "a set is a GraphQL list, and reads back as one")
+			g.Lossy(emit.LossCollection, pos, "a set is a GraphQL list, and reads back as one")
 		case name == "List" && wrote != ir.SyntacticForm_SYNTACTIC_FORM_BRACKETS:
 			g.Lose(emit.LossCollection, pos, "List reads back written as sugar")
 		case lossyPrimitives[name]:
-			g.Lose(emit.LossPrimitive, pos, "%s is GraphQL %s, which reads back as %s", name, scalars[name], primitives[scalars[name]])
+			g.LosePrimitive(name, primitives[scalars[name]], pos, "%s is GraphQL %s, which reads back as %s", name, scalars[name], primitives[scalars[name]])
 		}
 	case decl.GetEnumeration() != nil && name == "Nullable":
 		g.Lose(emit.LossOptional, pos, "a nullable value is a nullable GraphQL type, and reads back as T?")

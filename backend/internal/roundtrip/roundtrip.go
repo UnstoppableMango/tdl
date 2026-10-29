@@ -3,8 +3,9 @@
 //
 // A case is a directory. One holding source.tdl is model first: the model
 // is generated with the `roundtrip` directive on and must import back
-// equal, positions aside, and generated with it off must warn exactly the
-// loss codes in lossy.golden. One holding expected.tdl is schema first:
+// equal, positions aside, warning only what it warns without the
+// directive, and generated with the `readback` directive must warn
+// exactly the loss codes in lossy.golden. One holding expected.tdl is schema first:
 // its other files must import to expected.tdl, warning exactly the codes in
 // lossy.golden, and expected.tdl must regenerate them, equal under the
 // target's normal form.
@@ -14,6 +15,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"io/fs"
 	"maps"
 	"os"
@@ -45,6 +47,10 @@ const (
 // Directive is the bare target-block directive that makes a backend write
 // every fact its mapping would lose.
 const Directive = "roundtrip"
+
+// Readback is the bare target-block directive that makes a backend warn
+// about what import would not read back, besides what its output loses.
+const Readback = "readback"
 
 // Target is one backend and how its files compare.
 type Target struct {
@@ -143,28 +149,36 @@ func exists(path string) bool {
 }
 
 // modelFirst generates source.tdl without annotations, checking the loss
-// codes, and with them, checking the model comes back.
+// codes of both kinds, and with them, checking the model comes back.
 func modelFirst(t *testing.T, target Target, importer plugin.Importer, source string) {
 	model := lower(t, source, read(t, source))
 
-	resp := generate(t, target, model)
+	resp := generate(t, target, withDirective(model, target.Backend.Describe().Name, Readback))
 	golden(t, filepath.Join(filepath.Dir(source), Golden), resp.GetDiagnostics())
 
 	comesBack(t, target, importer, source, model)
 }
 
 // comesBack generates model with the roundtrip directive on, which must
-// warn about nothing, and imports the files, which must print to TDL
-// lowering to the same model.
+// warn about only what generating without it does, and imports the files,
+// which must print to TDL lowering to the same model.
 func comesBack(t *testing.T, target Target, importer plugin.Importer, source string, model *ir.Model) {
 	t.Helper()
 	name := target.Backend.Describe().Name
 
-	annotated := withDirective(model, name)
-	resp := generate(t, target, annotated)
-	// The annotations carry every fact, so nothing is lost to warn about.
-	for _, d := range resp.GetDiagnostics() {
-		t.Errorf("generating %s with %s warns: %s", source, Directive, d.GetMessage())
+	resp := generate(t, target, withDirective(model, name, Directive))
+	// The annotations carry every fact the output keeps, so only what the
+	// output itself loses is left to warn about. Without them a model can
+	// fail to generate at all, such as a Go package named for a keyword.
+	if plain, err := attempt(target, model); err == nil {
+		if got, want := warnings(resp.GetDiagnostics()), warnings(plain.GetDiagnostics()); !slices.Equal(got, want) {
+			t.Errorf("generating %s with %s warns\n%s\nwant what it warns without\n%s",
+				source, Directive, strings.Join(got, "\n"), strings.Join(want, "\n"))
+		}
+	} else {
+		for _, d := range resp.GetDiagnostics() {
+			t.Errorf("generating %s with %s warns: %s", source, Directive, d.GetMessage())
+		}
 	}
 
 	imported, _ := importFiles(t, importer, name, resp.GetFiles())
@@ -269,6 +283,23 @@ func normal(t *testing.T, target Target, files []*plugin.File) []*plugin.File {
 	return out
 }
 
+// attempt generates model, returning an error when generating fails or
+// reports one.
+func attempt(target Target, model *ir.Model) (*plugin.Response, error) {
+	name := target.Backend.Describe().Name
+	req, problems := analysis.Request(model, target.Backend.Describe(), name, "out")
+	resp, err := target.Backend.Generate(context.Background(), req)
+	if err != nil {
+		return nil, err
+	}
+	for _, d := range append(problems, resp.GetDiagnostics()...) {
+		if d.GetSeverity() == plugin.Severity_SEVERITY_ERROR {
+			return nil, errors.New(d.GetMessage())
+		}
+	}
+	return resp, nil
+}
+
 func generate(t *testing.T, target Target, model *ir.Model) *plugin.Response {
 	t.Helper()
 	name := target.Backend.Describe().Name
@@ -340,11 +371,21 @@ func golden(t *testing.T, path string, diags []*plugin.Diagnostic) {
 	}
 }
 
-// withDirective returns model with a bare roundtrip directive on its block
+// warnings lists diagnostics as text, one per line, to compare two runs.
+func warnings(diags []*plugin.Diagnostic) []string {
+	var out []string
+	for _, d := range diags {
+		p := d.GetPosition()
+		out = append(out, fmt.Sprintf("%d:%d: %s (%s)", p.GetLine(), p.GetColumn(), d.GetMessage(), d.GetCode()))
+	}
+	return out
+}
+
+// withDirective returns model with the bare directive name on its block
 // for target, adding a block when there is none.
-func withDirective(model *ir.Model, target string) *ir.Model {
+func withDirective(model *ir.Model, target, name string) *ir.Model {
 	out := proto.Clone(model).(*ir.Model)
-	d := &ir.Directive{Name: Directive, Target: target}
+	d := &ir.Directive{Name: name, Target: target}
 	for _, b := range out.GetTargets() {
 		if b.GetMeta().GetName() == target {
 			b.Directives = append(b.Directives, d)

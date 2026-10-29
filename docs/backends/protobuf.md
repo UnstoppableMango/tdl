@@ -13,13 +13,13 @@ Import generates the feature and reads it back.
 
 | Feature | Generate | Import | Target spelling | Notes |
 | --- | --- | --- | --- | --- |
-| Entity, value, and mixin | Warns (`lossy.struct-kind`) | Warns (`lossy.struct-kind`) | a `message` | An entity and a mixin both read back as a value. |
-| Mixin `include` | Warns (`lossy.include`) | Warns (`lossy.include`) | the mixin's fields copied into the `message` | Reads back as fields of the message, without the include. |
+| Entity, value, and mixin | Yes | Warns (`lossy.struct-kind`) | a `message` | An entity and a mixin both read back as a value. |
+| Mixin `include` | Yes | Warns (`lossy.include`) | the mixin's fields copied into the `message` | Reads back as fields of the message, without the include. |
 | Fieldless enum | Yes | Yes | an `enum` with an `_UNSPECIFIED` zero value | |
 | Fielded enum | Yes | Yes | a `message` holding a `oneof` of nested messages | |
 | Newtype | Warns (`lossy.newtype`) | Warns (`lossy.newtype`) | expanded to its base | A wrapper message would change the wire format, so each use is written as the base. |
-| Alias | Warns (`lossy.alias`) | Warns (`lossy.alias`) | expanded where used | |
-| Optional and nullable | Warns (`lossy.optional`) | Warns (`lossy.optional`) | an `optional` field | A nullable value is written `optional` too, and reads back as `T?`. |
+| Alias | Yes | Warns (`lossy.alias`) | expanded where used | |
+| Optional and nullable | Yes | Warns (`lossy.optional`) | an `optional` field | A nullable value is written `optional` too, and reads back as `T?`. |
 | List, set, and map | Warns (`lossy.collection`) | Warns (`lossy.collection`) | `repeated` and `map<K, V>` | A set is a `repeated` field, which reads back as a list. |
 | `min` | Warns (`lossy.constraint`) | Warns (`lossy.constraint`) | | Protobuf has no constraints, so validation is not generated. |
 | `max` | Warns (`lossy.constraint`) | Warns (`lossy.constraint`) | | Protobuf has no constraints, so validation is not generated. |
@@ -30,7 +30,7 @@ Import generates the feature and reads it back.
 | `owned` | Warns (`lossy.owned`) | Warns (`lossy.owned`) | | Protobuf does not carry ownership, and the referenced message is embedded by value. |
 | Field default | Warns (`lossy.default`) | Warns (`lossy.default`) | | Protobuf has no field defaults. |
 | `key` directive | No | No | | Protobuf has no key, and the backend does not declare the directive, so it warns and is ignored. |
-| `name` directive | Warns (`lossy.name`) | Warns (`lossy.name`) | the field's written name | The field reads back under the name it is written with, without the directive. |
+| `name` directive | Yes | Warns (`lossy.name`) | the field's written name | The field reads back under the name it is written with, without the directive. |
 | `number` directive | Yes | Yes | the field number | Unpinned fields take the lowest free number. |
 | Doc comment | Yes | Yes | a leading `//` comment | |
 | Type parameters | No | No | | Protobuf has no generics, so `Page` is skipped, and so is every declaration naming it. |

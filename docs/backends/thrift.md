@@ -13,13 +13,13 @@ Import generates the feature and reads it back.
 
 | Feature | Generate | Import | Target spelling | Notes |
 | --- | --- | --- | --- | --- |
-| Entity, value, and mixin | Warns (`lossy.struct-kind`) | Warns (`lossy.struct-kind`) | a `struct` | An entity and a mixin both read back as a value. |
-| Mixin `include` | Warns (`lossy.include`) | Warns (`lossy.include`) | the mixin's fields copied into the `struct` | Reads back as fields of the struct, without the include. |
+| Entity, value, and mixin | Yes | Warns (`lossy.struct-kind`) | a `struct` | An entity and a mixin both read back as a value. |
+| Mixin `include` | Yes | Warns (`lossy.include`) | the mixin's fields copied into the `struct` | Reads back as fields of the struct, without the include. |
 | Fieldless enum | Yes | Yes | an `enum` numbered from 1 | |
 | Fielded enum | Yes | Yes | a `union` of one `struct` per variant | |
 | Newtype | Yes | Yes | a `typedef` | Read back from the typedef. |
-| Alias | Warns (`lossy.alias`) | Warns (`lossy.alias`) | expanded where used | |
-| Optional and nullable | Warns (`lossy.optional`) | Warns (`lossy.optional`) | an `optional` field | A nullable value is written `optional` too, and reads back as `T?`. |
+| Alias | Yes | Warns (`lossy.alias`) | expanded where used | |
+| Optional and nullable | Yes | Warns (`lossy.optional`) | an `optional` field | A nullable value is written `optional` too, and reads back as `T?`. |
 | List, set, and map | Yes | Yes | `list<T>`, `set<T>`, and `map<K, V>` | |
 | `min` | Warns (`lossy.constraint`) | Warns (`lossy.constraint`) | | Thrift has no constraints, so validation is not generated. |
 | `max` | Warns (`lossy.constraint`) | Warns (`lossy.constraint`) | | Thrift has no constraints, so validation is not generated. |
@@ -30,7 +30,7 @@ Import generates the feature and reads it back.
 | `owned` | Warns (`lossy.owned`) | Warns (`lossy.owned`) | | Thrift does not carry ownership, and the referenced struct is embedded by value. |
 | Field default | Warns (`lossy.default`) | Warns (`lossy.default`) | | Thrift has field defaults, but the backend does not write them yet. |
 | `key` directive | No | No | | Thrift has no key, and the backend does not declare the directive, so it warns and is ignored. |
-| `name` directive | Warns (`lossy.name`) | Warns (`lossy.name`) | the field's written name | The field reads back under the name it is written with, without the directive. |
+| `name` directive | Yes | Warns (`lossy.name`) | the field's written name | The field reads back under the name it is written with, without the directive. |
 | `number` directive | Yes | Yes | the field id | Unpinned fields take the lowest free id. |
 | Doc comment | Yes | Yes | a `/** */` comment | |
 | Type parameters | No | No | | Thrift has no generics, so `Page` is skipped, and so is every declaration naming it. |

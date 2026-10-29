@@ -287,13 +287,15 @@ Every backend reports what it cannot generate as a positioned warning rather tha
 `cmd/tdl-gen-<name>` serves each backend as a plugin.
 `TestHostsAgree` in `internal/gen` holds each to producing the same bytes in process and over a pipe.
 A backend that imports implements `plugin.Importer`, declares `Reverse`, and has a `reverse` column in `shipped`, which `TestImportHostsAgree` runs; `TestReverseIsDeclared` keeps the three in step.
-A warning a user can silence carries a loss code, written with `emit.Session.Lossy`; `emit.LossCodes` must match the table in `reverse.md`.
+A warning a user can silence carries a loss code; `emit.LossCodes` must match the table in `reverse.md`.
+Output loss, what the output drops, is written with `emit.Session.Lossy` and always reported; read-back loss, what only import would miss, with `emit.Session.Lose`, reported under a bare `readback` directive and never under `roundtrip` (see `reverse.md`'s Loss codes).
 A backend added to the registry needs a row in the `shipped` table in `internal/gen/hosts_test.go` (`TestEveryBuiltinHasARow`) and, if shipped, an entry in `nix/cmd.nix` (`TestPackagedBackendsShip`).
 
 `docs/architecture/schema-backends.md` maps the seven schema backends.
 `docs/architecture/reverse.md` is the import direction, target language to TDL, and #972 tracks the remaining importers.
 `backend/internal/roundtrip` runs a backend forward and back over `testdata/roundtrip/<target>/<case>/`; its `targets` table holds every backend but `debug`, with each one's normal form, and `TestEveryTargetIsCovered` checks it against `cmd/`.
-`TestConformanceComesBack` also takes every conformance case without an import through each target that imports.
+A model-first case's `lossy.golden` holds the codes generating with `readback` reports, and generating with `roundtrip` must warn exactly what generating with neither does.
+`TestConformanceComesBack` also takes every conformance case without an import through each target that imports, and `TestLossKinds` holds each such target to both kinds of loss.
 `testdata/gen/smoke/source.tdl` exercises the whole mapping, with a target block for each schema backend and for `salesforce`; the nix checks generate from it and run each language's tool on the output.
 
 ### Feature tables
@@ -303,7 +305,8 @@ A backend added to the registry needs a row in the `shipped` table in `internal/
 A row is a directory of `testdata/features` holding `source.tdl`; a subdirectory named for a backend holds its own source, for a feature that backend reaches only through its own directives.
 A source's target block is written for `feature` and renamed for each backend, in its imports too.
 Generate is No on an error or a warning without a loss code, Warns on the loss codes the row owns (`Row.Codes`), and Yes otherwise, since a source cannot use a feature alone.
-Import generates without `roundtrip` and reads the files back: the same model is Yes, a difference with no loss code anywhere is No.
+Generate leaves read-back loss out, as `tdl gen` does.
+Import generates with `readback` and without `roundtrip` and reads the files back: the same model is Yes, a difference with no loss code anywhere is No.
 `features.toml` beside a backend's source (`backend/<package>/`, or `dotnet/Tdl.Gen.CSharp/` for `csharp`) holds the cells a measurement cannot: `spelling`, `notes`, and `planned`, which shows in place of Generate and fails once the row generates.
 A cell may not hold a `|`.
 An Import cell a tool missing from PATH, or `-short`, leaves unmeasured keeps its committed text, so `make features` needs `smithy` and `tsc` to change those cells.

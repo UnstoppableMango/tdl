@@ -13,13 +13,13 @@ Import generates the feature and reads it back.
 
 | Feature | Generate | Import | Target spelling | Notes |
 | --- | --- | --- | --- | --- |
-| Entity, value, and mixin | Warns (`lossy.struct-kind`) | Warns (`lossy.struct-kind`) | a `struct` | An entity reads back as one only when a `key` directive gives it a `Key` method, and a mixin reads back as a value. |
-| Mixin `include` | Warns (`lossy.include`) | Warns (`lossy.include`) | the mixin's fields, copied in | Reads back as fields of the struct, without the include. |
+| Entity, value, and mixin | Yes | Warns (`lossy.struct-kind`) | a `struct` | An entity reads back as one only when a `key` directive gives it a `Key` method, and a mixin reads back as a value. |
+| Mixin `include` | Yes | Warns (`lossy.include`) | the mixin's fields, copied in | Reads back as fields of the struct, without the include. |
 | Fieldless enum | Yes | Yes | a `string` type with constants | |
 | Fielded enum | Yes | Yes | a sealed interface with a struct per variant | |
 | Newtype | Yes | Yes | a defined type, such as `type CartId string` | |
-| Alias | Warns (`lossy.alias`) | Warns (`lossy.alias`) | expanded where used | Reads back as the type it expands to. |
-| Optional and nullable | Warns (`lossy.optional`) | Warns (`lossy.optional`) | a pointer, `*T` | An optional and a nullable value are both a pointer, so a nullable value reads back as `T?`. |
+| Alias | Yes | Warns (`lossy.alias`) | expanded where used | Reads back as the type it expands to. |
+| Optional and nullable | Yes | Warns (`lossy.optional`) | a pointer, `*T` | An optional and a nullable value are both a pointer, so a nullable value reads back as `T?`. |
 | List, set, and map | Yes | Yes | `[]T`, `map[K]struct{}`, and `map[K]V` | |
 | `min` | Yes | Yes | a check in `Validate` | |
 | `max` | Yes | Yes | a check in `Validate` | |
@@ -30,7 +30,7 @@ Import generates the feature and reads it back.
 | `owned` | Warns (`lossy.owned`) | Warns (`lossy.owned`) | | Go does not carry ownership, and the field holds what it names by value. |
 | Field default | Warns (`lossy.default`) | Warns (`lossy.default`) | | Go has no field defaults, so the zero value stands. |
 | `key` directive | Yes | Yes | a `Key()` method | A key of several fields returns a `<Name>Key` struct. |
-| `name` directive | Warns (`lossy.name`) | Warns (`lossy.name`) | the identifier, as written | The name is used verbatim, so `grandTotal` is an unexported field, and it reads back as the field's own name. |
+| `name` directive | Yes | Warns (`lossy.name`) | the identifier, as written | The name is used verbatim, so `grandTotal` is an unexported field, and it reads back as the field's own name. |
 | `number` directive | No | No | | Go has no field numbers, and the backend does not declare the directive, so it warns without a loss code and is ignored. |
 | Doc comment | Yes | Yes | a `//` doc comment | |
 | Type parameters | Yes | Yes | type parameters, constrained by `any` or `comparable` | |
