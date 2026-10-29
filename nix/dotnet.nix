@@ -31,10 +31,11 @@ buildDotnetModule {
     "dotnet/Tdl.Gen.CSharp.Tests/Tdl.Gen.CSharp.Tests.csproj"
     "dotnet/Tdl.Plugin.Tests/Tdl.Plugin.Tests.csproj"
   ];
-  # Every package the solution restores but those the SDK carries: the
-  # runtime packs, the trimming tasks, and the AOT compiler.
+  # Every package the solution restores but those the SDK carries, written
+  # by `make dotnet-deps`; internal/nugetdeps lists what the SDK carries.
   nugetDeps = ../dotnet/deps.json;
 
+  # .github/renovate.json pins Renovate's SDK to a release of this major.
   dotnet-sdk = dotnetCorePackages.sdk_10_0;
   dotnet-runtime = dotnetCorePackages.runtime_10_0;
 

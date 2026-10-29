@@ -20,28 +20,36 @@ import (
 	"github.com/unstoppablemango/tdl/internal/nugetdeps"
 )
 
+const (
+	lock    = "dotnet/deps.json"
+	project = "dotnet/Tdl.slnx"
+)
+
+// rids are the runtimes the flake builds for. Restoring each into one folder
+// takes in a package only one of them needs.
+var rids = []string{"linux-x64", "linux-arm64", "osx-x64", "osx-arm64"}
+
 func main() {
-	lock := flag.String("lock", "dotnet/deps.json", "the lock to write or check")
-	project := flag.String("project", "dotnet/Tdl.slnx", "the solution or project to restore")
-	rid := flag.String("rid", "linux-x64", "the runtime to restore for; what differs by runtime is the SDK's")
 	check := flag.Bool("check", false, "write nothing, and fail if the lock differs from what restores")
 	flag.Parse()
 
-	if err := run(*lock, *project, *rid, *check); err != nil {
+	if err := run(*check); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func run(lock, project, rid string, check bool) error {
+func run(check bool) error {
 	dir, err := os.MkdirTemp("", "nugetdeps")
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(dir)
 
-	if err := nugetdeps.Restore(context.Background(), project, rid, dir); err != nil {
-		return err
+	for _, rid := range rids {
+		if err := nugetdeps.Restore(context.Background(), project, rid, dir); err != nil {
+			return err
+		}
 	}
 	restored, err := nugetdeps.Scan(dir)
 	if err != nil {

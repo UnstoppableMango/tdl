@@ -11,9 +11,9 @@ import (
 	"testing"
 )
 
-// restored writes a package as restore leaves it in a packages folder:
+// restore writes a package as restore leaves it in a packages folder:
 // lowercased directories, the nuspec carrying the id's own case.
-func restored(t *testing.T, dir, id, version, nupkg string) string {
+func restore(t *testing.T, dir, id, version, nupkg string) string {
 	t.Helper()
 	lower := strings.ToLower(id)
 	d := filepath.Join(dir, lower, version)
@@ -43,12 +43,12 @@ func write(t *testing.T, name, text string) {
 
 func TestScanReadsIdHashAndOrder(t *testing.T) {
 	dir := t.TempDir()
-	xunit := restored(t, dir, "xunit.v3", "3.2.2", "x")
-	assert := restored(t, dir, "xunit.v3.assert", "3.2.2", "a")
-	csharp := restored(t, dir, "Microsoft.CodeAnalysis.CSharp", "5.0.0", "c")
-	common := restored(t, dir, "Microsoft.CodeAnalysis.Common", "5.0.0", "o")
-	platform := restored(t, dir, "Microsoft.Testing.Platform", "1.9.1", "p")
-	msbuild := restored(t, dir, "Microsoft.Testing.Platform.MSBuild", "1.9.1", "m")
+	xunit := restore(t, dir, "xunit.v3", "3.2.2", "x")
+	xassert := restore(t, dir, "xunit.v3.assert", "3.2.2", "a")
+	csharp := restore(t, dir, "Microsoft.CodeAnalysis.CSharp", "5.0.0", "c")
+	common := restore(t, dir, "Microsoft.CodeAnalysis.Common", "5.0.0", "o")
+	platform := restore(t, dir, "Microsoft.Testing.Platform", "1.9.1", "p")
+	msbuild := restore(t, dir, "Microsoft.Testing.Platform.MSBuild", "1.9.1", "m")
 
 	got, err := Scan(dir)
 	if err != nil {
@@ -61,7 +61,7 @@ func TestScanReadsIdHashAndOrder(t *testing.T) {
 		{"Microsoft.Testing.Platform", "1.9.1", platform},
 		{"Microsoft.Testing.Platform.MSBuild", "1.9.1", msbuild},
 		{"xunit.v3", "3.2.2", xunit},
-		{"xunit.v3.assert", "3.2.2", assert},
+		{"xunit.v3.assert", "3.2.2", xassert},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("Scan:\ngot  %v\nwant %v", got, want)
@@ -70,8 +70,8 @@ func TestScanReadsIdHashAndOrder(t *testing.T) {
 
 func TestScanKeepsEveryVersion(t *testing.T) {
 	dir := t.TempDir()
-	a := restored(t, dir, "Newtonsoft.Json", "13.0.3", "a")
-	b := restored(t, dir, "Newtonsoft.Json", "13.0.1", "b")
+	a := restore(t, dir, "Newtonsoft.Json", "13.0.3", "a")
+	b := restore(t, dir, "Newtonsoft.Json", "13.0.1", "b")
 
 	got, err := Scan(dir)
 	if err != nil {
@@ -100,9 +100,9 @@ func TestScanLeavesOutWhatTheSDKCarries(t *testing.T) {
 		"Microsoft.NETCore.DotNetAppHost",
 		"runtime.linux-x64.Microsoft.NETCore.DotNetAppHost",
 	} {
-		restored(t, dir, id, "10.0.12", id)
+		restore(t, dir, id, "10.0.12", id)
 	}
-	kept := restored(t, dir, "Google.Protobuf", "3.36.2", "g")
+	kept := restore(t, dir, "Google.Protobuf", "3.36.2", "g")
 
 	got, err := Scan(dir)
 	if err != nil {
