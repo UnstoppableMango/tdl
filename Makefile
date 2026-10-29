@@ -13,7 +13,7 @@ TS_GRAMMAR  := tree-sitter/grammar.js
 FEATURES    := $(shell git grep -l '<!-- tdl:features' -- '*.md')
 
 .PHONY: build test cover play demo generate treesitter textmate features vscode-install \
-	vscode-check test-treesitter check-treesitter dotnet-test mutate update lint check fmt tidy
+	vscode-check test-treesitter check-treesitter dotnet-test dotnet-deps mutate update lint check fmt tidy
 
 build:
 	nix build .#
@@ -66,6 +66,11 @@ vscode-check:
 
 dotnet-test:
 	dotnet test dotnet/Tdl.slnx
+
+# Restores from nuget.org with dotnet, so it needs the network but not Nix;
+# Renovate's NuGet updates run the same command.
+dotnet-deps:
+	go run ./tools/nugetdeps
 
 # Every package in scope, or the ones PKG names.
 PKG ?=

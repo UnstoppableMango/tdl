@@ -29,6 +29,7 @@ command make vscode-install   # package editors/vscode and install it into a run
 command make vscode-check     # npm ci, then typecheck and biome check editors/vscode
 command make vscode-test      # in `nix develop .#vscode`: the extension in a headless VSCodium
 command make dotnet-test      # dotnet test dotnet/Tdl.slnx: the .NET plugin SDK and the csharp backend
+command make dotnet-deps      # restore dotnet/ and rewrite dotnet/deps.json, the NuGet lock Nix builds from
 command make mutate           # in the devShell: gremlins over the core packages; PKG=./lex for one
 command make test-treesitter  # the conformance corpus, run by tree-sitter
 command make check-treesitter # what CI runs: treesitter + a diff + test-treesitter
@@ -344,7 +345,10 @@ The SDK holds framing, the handshake, a `Session` over the request and its analy
 `Tdl.Plugin/Generated/` is `buf generate` output from protoc's C# generator, so `make generate` needs `protoc`, which the devShell carries; its version must match the `Google.Protobuf` package.
 `buf.gen.yaml` leaves out the `pb` package, so the generated descriptors drop the Go options and name neither `go_features.proto` nor `descriptor.proto`.
 The tests replay `testdata/plugin/*.binpb` byte for byte and check `LossCodes` against `reverse.md`.
-`deps.json` pins every NuGet package for `buildDotnetModule` but those the SDK carries; after changing a package reference, restore into an empty folder with `-r linux-x64` and hash each `.nupkg`.
+`deps.json` pins every NuGet package for `buildDotnetModule` but those the SDK carries; after changing a package reference, run `make dotnet-deps`, which needs `dotnet` and the network but not Nix.
+It runs `go run ./tools/nugetdeps`, which restores the solution for each runtime the flake builds into one empty folder and writes what nixpkgs' `nuget-to-json` would, laid out as jsonfmt lays it out; `internal/nugetdeps` lists what the SDK carries.
+CI runs the same command before the build and fails if `git diff` shows the lock changed, and Renovate runs it on every NuGet update through the `nuget2nix` preset in `UnstoppableMango/renovate-config`, which the-cluster's Renovate allows in `allowedCommands`.
+`.github/renovate.json` pins Renovate's SDK to a release of the major `nix/dotnet.nix` builds with, since another major restores other implicit packages; Renovate reads the constraint as an exact version, so it names one.
 `checks.dotnet-sdk` builds and tests every project, and `checks.gen-dotnet-debug` runs the debug port through `tdl gen` beside the Go backend.
 
 ## CLI

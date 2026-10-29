@@ -12,12 +12,13 @@ Review the generator and its input, never the output.
 | `testdata/conformance/*/ir.golden` | `go test ./internal/sema -update` | `internal/sema` |
 | `testdata/plugin/*.txtpb` | `go test ./internal/gen -record` | `internal/gen` |
 | `nix/gomod2nix.toml` | `make tidy` | `go.mod` |
+| `dotnet/deps.json` | `make dotnet-deps` | the `dotnet/` projects' package references |
 | `CHANGELOG.md` | release-please | commit subjects |
 
 `tree-sitter/src/scanner.c` is hand-written; review it like any other source.
 
 The finding worth making is an input that changed without its output.
-CI catches this for `tree-sitter/` and the goldens, but a stale `.pb.go` is easy to miss.
+CI catches this for `tree-sitter/`, the goldens, and `dotnet/deps.json`, but a stale `.pb.go` is easy to miss.
 
 `prototext` output is unstable across builds, and the test parses the text rather than comparing bytes, so a whitespace-only diff in `testdata/plugin/*.txtpb` is noise.
 
