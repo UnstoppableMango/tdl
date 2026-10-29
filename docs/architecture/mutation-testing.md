@@ -109,7 +109,7 @@ What it finds that a test cannot fix becomes an issue:
 
 - **A real bug.** The mutant's behavior is the right one, or neither is; the fix goes through the normal path.
 - **Dead code.** No input reaches the mutated line's other outcome; the code-reduction routine is the one to remove it.
-- **An equivalent mutant.** The issue proposes the line for `mutation/equivalent.txt`; once triaged `ready-for-agent`, the routine's next run adds it.
+- **An equivalent mutant.** The issue proposes the line for `mutation/equivalent.txt`; once triaged `ready-for-agent`, the routine's next run adds it, after checking its own report still lists that mutant as lived and the reasoning still holds, since a position names whatever mutant sits there now.
 
 Each pull request's description quotes the survivor count per package, before and after.
 The routine also records the counts in project memory, so the trend is visible without a checked-in score file that would churn every week.

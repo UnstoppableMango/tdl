@@ -106,12 +106,13 @@ A package with an open pull request from an earlier run is driven and left out o
 1. For each package with survivors and no open pull request, add tests that kill up to ten of them.
    Prefer survivors in code a user's model goes through, and extend existing table tests over adding files.
    - Tests only: never edit production code, goldens (unless a test needs a new golden case), or generated files.
-     `mutation/equivalent.txt` changes only for a `ready-for-agent` `equivalent-mutant` issue, by the line it proposes.
+     `mutation/equivalent.txt` changes only for a `ready-for-agent` `equivalent-mutant` issue, by the line it proposes, once this run's report still lists that mutant as lived and the issue's reasoning still holds for the code at that position.
    - Confirm the kills with `nix develop --command make mutate PKG=./<package>`; a test that kills nothing is fixed or dropped.
    - Verify with `go test -race ./<package>/...` and `golangci-lint run ./<package>/...`, plus `nix fmt` when it runs.
 1. Commit as `test(<package>): kill N mutation survivors` and open the pull request.
    Its description has "Before:" and "After:" paragraphs, the package's survivor count before and after, and the killed mutants as `file:line:column mutator`.
    Assign UnstoppableMango, subscribe to its activity, and drive CI to green.
 1. File an issue for each survivor a test cannot kill: `bug`, `dead-code`, or `equivalent-mutant`.
+   A not-covered mutant is a coverage gap, not a survivor: it is counted in the run's record and gets neither a test nor an issue.
 1. Record the run in the project memory file `mutation-testing.md`: date, commit, wall-clock time, and per package killed, lived, timed out, and not covered, keeping the last eight runs.
 1. In the thread reply, compare each package's survivor count with the previous run.
