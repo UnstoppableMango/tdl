@@ -139,7 +139,12 @@
                 pkgs.gnumake
               ]
               ++ cfg.gen.backends;
-              TDL_GMK = "${cfg.make.package}/lib/tdl.so";
+              # Exported from the hook rather than set as an attribute, because
+              # inputsFrom merges a shell's hooks and packages but drops its
+              # variables.
+              shellHook = ''
+                export TDL_GMK=${cfg.make.package}/lib/tdl.so
+              '';
             }
           );
         };
