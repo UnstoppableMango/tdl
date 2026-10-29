@@ -95,6 +95,8 @@ A listed position that no longer names a mutant is printed as stale, so an edit 
 
 ## The weekly routine
 
+`docs/agents/routines.md` holds the routine's steps and how its issues move through triage; this section is why it works that way.
+
 A Claude routine runs `make mutate` every Thursday, a full run over every package in scope.
 Thursday keeps it off Monday, when the code-reduction routine changes code it would otherwise race.
 A full run revisits a survivor whose code did not change, which a run over only the changed code never does; if a full run proves too slow for a weekly session, the routine falls back to gremlins' diff mode against the previous run's commit.
@@ -107,7 +109,7 @@ What it finds that a test cannot fix becomes an issue:
 
 - **A real bug.** The mutant's behavior is the right one, or neither is; the fix goes through the normal path.
 - **Dead code.** No input reaches the mutated line's other outcome; the code-reduction routine is the one to remove it.
-- **An equivalent mutant.** The issue proposes the line for `mutation/equivalent.txt`, which a reviewer accepts by merging it.
+- **An equivalent mutant.** The issue proposes the line for `mutation/equivalent.txt`; once triaged `ready-for-agent`, the routine's next run adds it.
 
 Each pull request's description quotes the survivor count per package, before and after.
 The routine also records the counts in project memory, so the trend is visible without a checked-in score file that would churn every week.

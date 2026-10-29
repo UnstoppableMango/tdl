@@ -580,6 +580,10 @@ The five default triage labels, each named for its role. See `docs/agents/triage
 
 Single-context: one root `CONTEXT.md` and `docs/adr/`, whose records start at ADR-0001 with no backfill. See `docs/agents/domain.md`.
 
+### Weekly routines
+
+Code reduction (Mondays) and mutation testing (Thursdays) file `needs-triage` issues with a `Kind:` line and build the `ready-for-agent` ones of their kinds. See `docs/agents/routines.md`.
+
 <!-- graphify-rules-start (managed by `graphify init`) -->
 
 ## Use Graphify before grep
