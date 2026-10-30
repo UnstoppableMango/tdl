@@ -224,9 +224,10 @@ func (p *printer) decl(decl Decl) {
 		p.members(d.Members, d.P.Line, d.Rbrace)
 
 	case *EnumDecl:
-		p.b.WriteString("enum " + d.N + printParams(d.Params) +
-			printConforms(d.Conforms) + printRequires(d.Requires))
-		p.variants(d.Variants, d.P.Line, d.Rbrace)
+		head := "enum " + d.N + printParams(d.Params) +
+			printConforms(d.Conforms) + printRequires(d.Requires)
+		p.b.WriteString(head)
+		p.variants(d.Variants, len(head), d.P.Line, d.Rbrace)
 
 	case *ClassDecl:
 		p.b.WriteString("class " + d.N + printParams(d.Params) + printFunDeps(d.FunDeps) +
@@ -252,7 +253,7 @@ func (p *printer) decl(decl Decl) {
 // constrained writes head and its `where` block. A trailing comment folds
 // onto the construct's last line.
 func (p *printer) constrained(head string, cs []*Constraint, indent string, headLine int, end Position) {
-	block := p.constraints(cs, indent, end)
+	block := p.constraints(cs, indent, len(head), end)
 	line := headLine
 	if strings.Contains(block, "\n") {
 		line = end.Line
@@ -374,7 +375,8 @@ func (p *printer) field(f *Field, indent string, until Position) {
 // fieldTail renders a field without indent or trailing comment. The
 // constraint block may span lines, so the caller places the comment.
 func (p *printer) fieldTail(f *Field, indent string) string {
-	s := printFieldHead(f) + p.constraints(f.Constraints, indent, f.Rbrace)
+	head := printFieldHead(f)
+	s := head + p.constraints(f.Constraints, indent, len(indent)+len(head), f.Rbrace)
 	if f.Default != nil {
 		s += " = " + printLiteral(f.Default)
 	}
@@ -402,7 +404,8 @@ func printFieldHead(f *Field) string {
 	return s
 }
 
-func (p *printer) variants(variants []*Variant, headLine int, end Position) {
+// variants renders an enum's block after a head lead columns wide.
+func (p *printer) variants(variants []*Variant, lead, headLine int, end Position) {
 	if len(variants) == 0 && !p.before(end) {
 		p.line(" { }", headLine, anywhere)
 		return
@@ -421,7 +424,7 @@ func (p *printer) variants(variants []*Variant, headLine int, end Position) {
 			oneLine += " " + v.N
 		}
 	}
-	if inline && len(oneLine)+2 <= columnLimit {
+	if inline && lead+len(oneLine)+2 <= columnLimit {
 		p.line(oneLine+" }", headLine, anywhere)
 		return
 	}
@@ -550,16 +553,17 @@ func printLiteral(l *Literal) string {
 	}
 }
 
-// constraints renders a `where { ... }` block. A single constraint stays
-// on one line when it fits the column limit; two or more always expand.
-func (p *printer) constraints(cs []*Constraint, indent string, end Position) string {
+// constraints renders a `where { ... }` block after lead columns of its
+// line. A single constraint stays on one line when the line fits the column
+// limit; two or more always expand.
+func (p *printer) constraints(cs []*Constraint, indent string, lead int, end Position) string {
 	if len(cs) == 0 {
 		return ""
 	}
 
 	// A comment inside forces the expanded form.
 	if len(cs) == 1 && !p.before(end) {
-		if line := " where { " + printConstraint(cs[0]) + " }"; len(indent)+len(line) <= columnLimit {
+		if line := " where { " + printConstraint(cs[0]) + " }"; lead+len(line) <= columnLimit {
 			return line
 		}
 	}

@@ -165,18 +165,15 @@ func variantNames(n, w int) []string {
 
 // Layout decisions at their edges: where a file starts, and the column limit.
 func TestFprintLayouts(t *testing.T) {
-	// " {" plus each " Name", then " }", measured against the limit of 80.
-	// The measure leaves out the head before the block, so these lines run
-	// past 80 columns; #1133 tracks that, and fixing it moves these edges.
-	at80 := strings.Join(append(variantNames(3, 19), "D"+strings.Repeat("d", 14)), " ")
-	at82 := strings.Join(append(variantNames(3, 19), "D"+strings.Repeat("d", 16)), " ")
+	// "enum E {" plus each " Name", then " }", at 80 or 81 columns.
+	at80 := strings.Join(append(variantNames(3, 19), "D"+strings.Repeat("d", 8)), " ")
+	at81 := strings.Join(append(variantNames(3, 19), "D"+strings.Repeat("d", 9)), " ")
 	expanded := func(names string) string {
 		return "  " + strings.ReplaceAll(names, " ", "\n  ") + "\n"
 	}
-	// "  n: string" then " where { matches(/.../) }", whose block and indent
-	// sum to 80 or 81.
-	re78 := "matches(/" + strings.Repeat("a", 56) + "/)"
-	re79 := "matches(/" + strings.Repeat("a", 57) + "/)"
+	// "  n: string" then " where { matches(/.../) }", at 80 or 81 columns.
+	at80re := "matches(/" + strings.Repeat("a", 47) + "/)"
+	at81re := "matches(/" + strings.Repeat("a", 48) + "/)"
 
 	tests := []struct {
 		name string
@@ -189,17 +186,17 @@ func TestFprintLayouts(t *testing.T) {
 		{name: "enum at the column limit", src: "enum E { " + at80 + " }\n"},
 		{
 			name: "enum past the column limit",
-			src:  "enum E { " + at82 + " }\n",
-			want: "enum E {\n" + expanded(at82) + "}\n",
+			src:  "enum E { " + at81 + " }\n",
+			want: "enum E {\n" + expanded(at81) + "}\n",
 		},
 		{
 			name: "constraint at the column limit",
-			src:  "type T {\n  n: string where { " + re78 + " }\n}\n",
+			src:  "type T {\n  n: string where { " + at80re + " }\n}\n",
 		},
 		{
 			name: "constraint past the column limit",
-			src:  "type T {\n  n: string where { " + re79 + " }\n}\n",
-			want: "type T {\n  n: string where {\n    " + re79 + "\n  }\n}\n",
+			src:  "type T {\n  n: string where { " + at81re + " }\n}\n",
+			want: "type T {\n  n: string where {\n    " + at81re + "\n  }\n}\n",
 		},
 		{
 			name: "comment after a payload's closing brace",
