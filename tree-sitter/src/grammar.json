@@ -280,52 +280,52 @@
       }
     },
     "unit_term": {
-      "type": "CHOICE",
+      "type": "SEQ",
       "members": [
         {
-          "type": "SEQ",
+          "type": "CHOICE",
           "members": [
             {
               "type": "SYMBOL",
               "name": "identifier"
             },
             {
-              "type": "CHOICE",
+              "type": "SEQ",
               "members": [
                 {
-                  "type": "SEQ",
-                  "members": [
-                    {
-                      "type": "STRING",
-                      "value": "^"
-                    },
-                    {
-                      "type": "SYMBOL",
-                      "name": "int_lit"
-                    }
-                  ]
+                  "type": "STRING",
+                  "value": "("
                 },
                 {
-                  "type": "BLANK"
+                  "type": "SYMBOL",
+                  "name": "unit_expr"
+                },
+                {
+                  "type": "STRING",
+                  "value": ")"
                 }
               ]
             }
           ]
         },
         {
-          "type": "SEQ",
+          "type": "CHOICE",
           "members": [
             {
-              "type": "STRING",
-              "value": "("
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": "^"
+                },
+                {
+                  "type": "SYMBOL",
+                  "name": "int_lit"
+                }
+              ]
             },
             {
-              "type": "SYMBOL",
-              "name": "unit_expr"
-            },
-            {
-              "type": "STRING",
-              "value": ")"
+              "type": "BLANK"
             }
           ]
         }

@@ -38,9 +38,9 @@ module.exports = grammar({
     primitive_decl: $ => seq('primitive', $.identifier, optional(seq(':', $.kind))),
     unit_decl: $ => seq('unit', $.identifier, optional(seq('=', $.unit_expr))),
     unit_expr: $ => prec.left(1, seq($.unit_term, repeat(seq(choice('*', '/'), $.unit_term)))),
-    unit_term: $ => choice(
-      seq($.identifier, optional(seq('^', $.int_lit))),
-      seq('(', $.unit_expr, ')'),
+    unit_term: $ => seq(
+      choice($.identifier, seq('(', $.unit_expr, ')')),
+      optional(seq('^', $.int_lit)),
     ),
     type_params: $ => seq('<', $.type_param, repeat(seq(',', $.type_param)), '>'),
     type_param: $ => seq($.identifier, optional(seq(':', $.kind))),
