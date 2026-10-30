@@ -42,6 +42,7 @@ func (Backend) Describe() plugin.Description {
 			// Writes, as tdl.* annotations, every fact the IDL alone would
 			// lose, so import rebuilds the model.
 			{Name: "roundtrip", Placements: plugin.On(plugin.OnBlock)},
+			{Name: "readback", Placements: plugin.On(plugin.OnBlock)},
 		},
 		Reverse: true,
 		Numbering: &plugin.Numbering{
@@ -121,6 +122,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	}
 
 	g.Roundtrip = g.Bare("roundtrip")
+	g.Readback = g.Bare("readback")
 	if pkg := req.GetModel().GetPackage(); g.ns != pkg {
 		g.Lose(emit.LossName, nsPos, "package %s is written %s, which reads back as the package", pkg, g.ns)
 	}
@@ -152,16 +154,11 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 
 	// Only a surviving declaration claims names, and a name clash skips a
 	// declaration, which can cascade, so both run to a fixed point.
-	mark := len(g.Diags)
 	for {
 		g.Cascade(own, skipped)
 		if !g.claim(own, out, skipped) {
 			break
 		}
-	}
-	if g.Roundtrip {
-		// A skipped declaration is carried as TDL, so nothing is lost.
-		g.Diags = g.Diags[:mark]
 	}
 	for _, d := range own {
 		if !skipped[d] {
@@ -276,9 +273,7 @@ func (g *generator) decl(d *ir.Decl) (*rendered, error) {
 			return nil, emit.Unsupported(pos, "%s would be named %s in Thrift, which is a keyword", name, n)
 		}
 	}
-	if !g.Roundtrip {
-		g.WarnConstraints(d)
-	}
+	g.WarnConstraints(d)
 	r.kvs = append(r.kvs, g.docKVs(d.GetMeta())...)
 	r.text = b.String()
 	return r, nil

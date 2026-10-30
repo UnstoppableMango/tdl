@@ -13,13 +13,13 @@ Import generates the feature and reads it back.
 
 | Feature | Generate | Import | Target spelling | Notes |
 | --- | --- | --- | --- | --- |
-| Entity, value, and mixin | Warns (`lossy.struct-kind`) | Warns (`lossy.struct-kind`) | an object `type` | An entity and a mixin both read back as a value. |
-| Mixin `include` | Warns (`lossy.include`) | Warns (`lossy.include`) | the mixin's fields copied into the `type` | Reads back as fields of the type, without the include. |
+| Entity, value, and mixin | Yes | Warns (`lossy.struct-kind`) | an object `type` | An entity and a mixin both read back as a value. |
+| Mixin `include` | Yes | Warns (`lossy.include`) | the mixin's fields copied into the `type` | Reads back as fields of the type, without the include. |
 | Fieldless enum | Yes | Yes | an `enum` | |
 | Fielded enum | Yes | Yes | a `union` of one object type per variant | A variant without fields carries a placeholder `_: Boolean`. |
 | Newtype | Warns (`lossy.newtype`) | Warns (`lossy.newtype`) | expanded to its base | A custom scalar per newtype would need server code for each, so each use is written as the base. |
-| Alias | Warns (`lossy.alias`) | Warns (`lossy.alias`) | expanded where used | |
-| Optional and nullable | Warns (`lossy.optional`) | Warns (`lossy.optional`) | a nullable type | A required field is `T!`, and a nullable value reads back as `T?`. |
+| Alias | Yes | Warns (`lossy.alias`) | expanded where used | |
+| Optional and nullable | Yes | Warns (`lossy.optional`) | a nullable type | A required field is `T!`, and a nullable value reads back as `T?`. |
 | List, set, and map | No | No | a list `[T]` | GraphQL has no map type, so a type holding a map is skipped, while lists and sets generate. |
 | `min` | Warns (`lossy.constraint`) | Warns (`lossy.constraint`) | | GraphQL has no constraints, so validation is not generated. |
 | `max` | Warns (`lossy.constraint`) | Warns (`lossy.constraint`) | | GraphQL has no constraints, so validation is not generated. |
@@ -30,7 +30,7 @@ Import generates the feature and reads it back.
 | `owned` | Warns (`lossy.owned`) | Warns (`lossy.owned`) | | GraphQL does not carry ownership. |
 | Field default | Warns (`lossy.default`) | Warns (`lossy.default`) | | An output type's field has no default in GraphQL. |
 | `key` directive | No | No | | GraphQL has no key, and the backend does not declare the directive, so it warns and is ignored. |
-| `name` directive | Warns (`lossy.name`) | Warns (`lossy.name`) | the field's written name | The field reads back under the name it is written with, without the directive. |
+| `name` directive | Yes | Warns (`lossy.name`) | the field's written name | The field reads back under the name it is written with, without the directive. |
 | `number` directive | No | No | | GraphQL has no field numbers, and the backend does not declare the directive, so it warns and is ignored. |
 | Doc comment | Yes | Yes | a description | |
 | Type parameters | No | No | | GraphQL has no generics, so `Page` is skipped, and so is every declaration naming it. |

@@ -13,13 +13,13 @@ Import generates the feature and reads it back.
 
 | Feature | Generate | Import | Target spelling | Notes |
 | --- | --- | --- | --- | --- |
-| Entity, value, and mixin | Warns (`lossy.struct-kind`) | Warns (`lossy.struct-kind`) | a `structure` | An entity and a mixin both read back as a value. |
-| Mixin `include` | Warns (`lossy.include`) | Warns (`lossy.include`) | the mixin's members copied into the `structure` | Reads back as members of the structure, without the include. |
+| Entity, value, and mixin | Yes | Warns (`lossy.struct-kind`) | a `structure` | An entity and a mixin both read back as a value. |
+| Mixin `include` | Yes | Warns (`lossy.include`) | the mixin's members copied into the `structure` | Reads back as members of the structure, without the include. |
 | Fieldless enum | Yes | Yes | an `enum` | |
 | Fielded enum | Yes | Yes | a `union` of one `structure` per variant | A variant without fields targets `Unit`. |
 | Newtype | Yes | Yes | a named simple, `list`, or `map` shape | |
-| Alias | Warns (`lossy.alias`) | Warns (`lossy.alias`) | expanded where used | |
-| Optional and nullable | Warns (`lossy.optional`) | Warns (`lossy.optional`) | a member without `@required` | A nullable value and a spelled-out `Option<T>` are written the same way, and read back as `T?`. |
+| Alias | Yes | Warns (`lossy.alias`) | expanded where used | |
+| Optional and nullable | Yes | Warns (`lossy.optional`) | a member without `@required` | A nullable value and a spelled-out `Option<T>` are written the same way, and read back as `T?`. |
 | List, set, and map | Yes | Yes | a named `list` or `map` shape | A set is a `list` with `@uniqueItems`. |
 | `min` | Warns (`lossy.constraint`) | Warns (`lossy.constraint`) | | The `@range` trait is not written yet. |
 | `max` | Warns (`lossy.constraint`) | Warns (`lossy.constraint`) | | The `@range` trait is not written yet. |
@@ -30,7 +30,7 @@ Import generates the feature and reads it back.
 | `owned` | Warns (`lossy.owned`) | Warns (`lossy.owned`) | | Smithy does not carry ownership, and the referenced structure is embedded by value. |
 | Field default | Warns (`lossy.default`) | Warns (`lossy.default`) | | The `@default` trait is not written yet. |
 | `key` directive | No | No | | The backend does not declare the directive, so it warns and is ignored. |
-| `name` directive | Warns (`lossy.name`) | Warns (`lossy.name`) | the member's written name | The member reads back under the name it is written with, without the directive. |
+| `name` directive | Yes | Warns (`lossy.name`) | the member's written name | The member reads back under the name it is written with, without the directive. |
 | `number` directive | No | No | | Smithy has no field numbers, and the backend does not declare the directive, so it warns and is ignored. |
 | Doc comment | Yes | Yes | a `///` doc comment | |
 | Type parameters | No | No | | Smithy has no generics, so `Page` is skipped, and so is every declaration naming it. |

@@ -52,6 +52,7 @@ func (Backend) Describe() plugin.Description {
 			// Writes, as //tdl: comment directives, every fact the Go
 			// source alone would lose, so import rebuilds the model.
 			{Name: "roundtrip", Placements: plugin.On(plugin.OnBlock)},
+			{Name: "readback", Placements: plugin.On(plugin.OnBlock)},
 			// Opts in to the JSON wire convention: json struct tags, and
 			// methods encoding and decoding a fielded enum by its
 			// discriminant.
@@ -119,6 +120,7 @@ type generator struct {
 func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Response, error) {
 	g := &generator{Session: emit.NewSession(req, "Go")}
 	g.Roundtrip = g.Bare("roundtrip")
+	g.Readback = g.Bare("readback")
 	g.wire = g.Bare("json")
 
 	pkg := packageClause(g.Model.GetPackage())
@@ -184,12 +186,7 @@ func (g *generator) render(pkg string) []*plugin.File {
 	}
 
 	own := g.Own()
-	mark := len(g.Diags)
 	g.Cascade(own, skipped)
-	if g.Roundtrip {
-		// A skipped declaration is carried as TDL, so nothing is lost.
-		g.Diags = g.Diags[:mark]
-	}
 	for _, d := range own {
 		if !skipped[d] {
 			g.Diags = append(g.Diags, held[d]...)
@@ -517,7 +514,7 @@ func (g *generator) enumeration(b *strings.Builder, decl *ir.Decl) error {
 
 	if !emit.Fielded(decl.GetEnumeration()) {
 		if len(decl.Params()) > 0 {
-			g.Lose(emit.LossGeneric, decl.GetMeta().GetPosition(),
+			g.Lossy(emit.LossGeneric, decl.GetMeta().GetPosition(),
 				"%s takes type parameters and none of its variants carries a field, so it is constants, and a Go constant cannot be generic: its parameters are dropped",
 				decl.GetMeta().GetName())
 		}

@@ -280,8 +280,11 @@ func TestAnnotatedOutputTypeChecks(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(resp.GetDiagnostics()) > 0 {
-			t.Errorf("%s: diagnostics = %v", path, resp.GetDiagnostics())
+		// Under roundtrip output loss still warns, but nothing fails.
+		for _, d := range resp.GetDiagnostics() {
+			if d.GetSeverity() == plugin.Severity_SEVERITY_ERROR {
+				t.Errorf("%s: %v", path, d)
+			}
 		}
 		files(t, resp)
 	}

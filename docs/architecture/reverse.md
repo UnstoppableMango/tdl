@@ -72,13 +72,24 @@ In Go, `plugin.Importer` is an optional interface beside `plugin.Backend`.
 `Session.Lossy(code, position, format, args...)` writes the warning.
 The host drops a warning whose code is allowed, so a backend may ignore the allowed list.
 
-Generating, a backend warns once per lost fact.
-Importing, a backend warns when the source leaves a fact ambiguous and when a construct has no TDL form.
+A code names a fact, and the kind of loss decides when it is reported (see `CONTEXT.md`):
+
+- **Output loss** is a fact the output drops or weakens: a skipped declaration, a dropped constraint, default, or key, a unit, generic, or class not generated, a primitive widened (`uuid` written `string`), a `Set` written as a list, `owned` not carried, a newtype with no form of its own.
+  `tdl gen` always reports it, under `roundtrip` too, since an annotation does not make generated code enforce a constraint or declare a skipped type.
+  A backend writes it with `Session.Lossy` or `Session.Skip`.
+- **Read-back loss** is a fact the output keeps but import would not recover: struct kind, a `name` against the convention, a redundant `number` pin, declaration order, doc comment text, an alias expanded, optional and sugar spelling, a primitive whose values are kept but whose spelling is not (`int` reads back as `int64`).
+  `tdl gen` reports it only under a bare `readback` directive in the target block, and never under `roundtrip`, whose annotations carry it.
+  A backend writes it with `Session.Lose`; `Session.LosePrimitive` picks the kind for a primitive.
+
+Every backend that imports declares `readback`.
+`[lossy]` and `--allow-lossy` silence a code in both kinds.
+
+Importing, a backend reports both kinds, as it always has: what has no TDL form or is not read, and what regenerates as something else.
 
 ## Round-trip annotations
 
 A bare `roundtrip` directive in a target block makes a backend write every fact its mapping would lose, in the target's own extension syntax.
-Without it, output is unchanged and each lost fact is a loss warning.
+Without it, output is unchanged.
 
 | Backend | Annotation |
 | --- | --- |
@@ -93,7 +104,8 @@ Without it, output is unchanged and each lost fact is a loss warning.
 
 The Go reverse also reads what the output already says: a constraint from the `fmt.Errorf` text in `Validate`, which writes it as TDL, and a `key` from `Key()`.
 
-A declaration the target cannot express at all, which generating skips with a warning, is carried whole as TDL, so a `roundtrip` output warns about nothing it carries.
+A declaration the target cannot express at all, which generating skips with a warning, is carried whole as TDL.
+A `roundtrip` output warns about output loss only, the same warnings generating without `roundtrip` or `readback` gives; the round-trip harness holds every backend to that.
 
 A schema written by hand carries no annotations and needs none.
 It imports to TDL plus a target block holding what regeneration reads: `number`, `name`, `option`, `file`, `package`, `edition`, `discriminant`, and the like.

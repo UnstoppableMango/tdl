@@ -4,10 +4,11 @@
 // A feature is a directory of testdata/features holding source.tdl, a
 // small model using it, and a backend's subdirectory may hold its own. Support is read from the backend, not declared:
 // generating with no warning is Yes, warning only loss codes is Warns, and
-// an error, a skip, or any warning without a code is No. Import generates
-// without the roundtrip directive and reads the files back: the same model
-// is Yes, a different one Warns with the codes either direction reported,
-// and a failure No. What a measurement cannot say, how the target spells a
+// an error, a skip, or any warning without a code is No. Generate leaves
+// read-back loss out, as `tdl gen` does. Import generates with the
+// readback directive and without roundtrip and reads the files back: the
+// same model is Yes, a different one Warns with the codes either direction
+// reported, and a failure No. What a measurement cannot say, how the target spells a
 // feature and why, comes from backend/<name>/features.toml.
 package features
 
@@ -169,6 +170,11 @@ func measure(path string, row Row, target Target) (Measured, error) {
 	case generated.Support == No:
 		m.Import = Cell{Support: No, Why: "does not generate"}
 	default:
+		// Generating with readback warns about what reading back loses
+		// too, and writes the same files.
+		if back, _ := generate(withReadback(model, target.Name), row, target); back != nil {
+			resp = back
+		}
 		m.Import = readBack(path, row, model, target, importer, resp, loader)
 	}
 	return m, nil
@@ -189,6 +195,25 @@ func generate(model *ir.Model, row Row, target Target) (*plugin.Response, Cell) 
 		return nil, Cell{Support: No, Why: err.Error()}
 	}
 	return resp, grade(append(problems, resp.GetDiagnostics()...), row)
+}
+
+// withReadback returns model with a bare readback directive on its block
+// for target, adding a block when there is none.
+func withReadback(model *ir.Model, target string) *ir.Model {
+	out := proto.Clone(model).(*ir.Model)
+	d := &ir.Directive{Name: "readback", Target: target}
+	for _, b := range out.GetTargets() {
+		if b.GetMeta().GetName() == target {
+			b.Directives = append(b.Directives, d)
+			return out
+		}
+	}
+	out.Targets = append(out.Targets, &ir.TargetBlock{
+		Meta:       &ir.Meta{Name: target, Order: int32(len(out.GetTargets()))},
+		ForPackage: out.GetPackage(),
+		Directives: []*ir.Directive{d},
+	})
+	return out
 }
 
 // grade turns diagnostics into a cell: an error or a warning without a

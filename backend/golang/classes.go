@@ -136,7 +136,7 @@ func (g *generator) class(b *strings.Builder, decl *ir.Decl) error {
 		return emit.Unsupported(pos, "%s requires itself, directly or through another class, and a Go interface cannot embed itself", name)
 	}
 	if len(decl.GetClass().GetAssocTypes()) > 0 {
-		g.Lose(emit.LossClass, pos, "%s requires associated types, and a Go interface cannot bind one, so it is generated without them", name)
+		g.Lossy(emit.LossClass, pos, "%s requires associated types, and a Go interface cannot bind one, so it is generated without them", name)
 	}
 
 	g.doc(b, decl.GetMeta())

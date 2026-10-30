@@ -30,9 +30,14 @@ type Session struct {
 	// rather than refusing it.
 	Externs bool
 
-	// Roundtrip makes [Session.Lose] and [Session.Skip] report nothing,
-	// since annotations carry what they would.
+	// Roundtrip makes [Session.Lose] report nothing, since annotations
+	// carry what it would.
 	Roundtrip bool
+
+	// Readback makes [Session.Lose] report read-back loss, which it
+	// otherwise leaves out: a backend sets it from a bare `readback`
+	// directive in its target block.
+	Readback bool
 
 	// Analysis is the request's analysis of Model. A session without one,
 	// or with one that does not match Model, derives its own on first use.

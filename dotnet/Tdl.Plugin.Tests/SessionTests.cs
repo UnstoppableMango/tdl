@@ -186,7 +186,8 @@ public class SessionTests
 
 public class RoundtripTests
 {
-	static Session Catalog() => new(Repo.Request("catalog"), "Debug");
+	// Reports read-back loss, so a helper's every warning shows.
+	static Session Catalog() => new(Repo.Request("catalog"), "Debug") { Readback = true };
 
 	static Decl Named(Session s, string name) => s.Model.Decls.Single(d => d.Meta.Name == name);
 
@@ -239,18 +240,19 @@ public class RoundtripTests
 		Assert.Equal("", s.FieldSource(Named(s, "Order").Structure.Fields[0], true));
 	}
 
-	[Fact]
-	public void LoseIsMutedUnderRoundtrip()
+	[Theory]
+	[InlineData(false, false, new[] { "output", "skipped" })]
+	[InlineData(true, false, new[] { "output", "skipped", "read back" })]
+	[InlineData(false, true, new[] { "output", "skipped" })]
+	[InlineData(true, true, new[] { "output", "skipped" })]
+	public void OutputLossAlwaysWarnsAndReadBackLossOnlyUnderReadback(bool readback, bool roundtrip, string[] want)
 	{
-		var s = Catalog();
-		s.Lose(LossCodes.Doc, null, "lost");
+		var s = new Session(Repo.Request("catalog"), "Debug") { Readback = readback, Roundtrip = roundtrip };
+		s.Lossy(LossCodes.Constraint, null, "output");
 		s.Skip(new Unsupported("skipped", null));
-		s.Roundtrip = true;
-		s.Lose(LossCodes.Doc, null, "carried");
-		s.Skip(new Unsupported("carried", null));
-		s.Skip(new Invalid("wrong", null));
+		s.Lose(LossCodes.Doc, null, "read back");
 
-		Assert.Equal(["lost", "skipped", "wrong"], s.Diagnostics.Select(d => d.Message));
+		Assert.Equal(want, s.Diagnostics.Select(d => d.Message));
 	}
 
 	[Fact]

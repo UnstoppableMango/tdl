@@ -43,6 +43,7 @@ func (Backend) Describe() plugin.Description {
 			// Writes, as JSDoc @tdl tags, every fact the declarations alone
 			// would lose, so import rebuilds the model.
 			{Name: "roundtrip", Placements: plugin.On(plugin.OnBlock)},
+			{Name: "readback", Placements: plugin.On(plugin.OnBlock)},
 		},
 		Reverse: true,
 	}
@@ -92,6 +93,7 @@ func generate(req *plugin.Request, mapped bool) *plugin.Response {
 	// A mapped module is read by tsc, never imported back, and a
 	// round trip would hide what it skips.
 	g.Roundtrip = !mapped && g.Bare("roundtrip")
+	g.Readback = g.Bare("readback")
 
 	pkg := req.GetModel().GetPackage()
 	path := ts.File(pkg) + ".ts"
@@ -124,16 +126,11 @@ func generate(req *plugin.Request, mapped bool) *plugin.Response {
 		g.Diags = g.Diags[:mark]
 		texts[d] = text
 	}
-	mark := len(g.Diags)
 	for {
 		g.Cascade(own, skipped)
 		if !ts.Conflicts(own, skipped, g.declares, uses, g.Skip) {
 			break
 		}
-	}
-	if g.Roundtrip {
-		// A skipped declaration is carried as TDL, so nothing is lost.
-		g.Diags = g.Diags[:mark]
 	}
 	for _, d := range own {
 		if !skipped[d] {
@@ -210,9 +207,7 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 		g.names[n] = name
 	}
 	g.declares[d] = declared
-	if !g.Roundtrip {
-		g.WarnUnenforced(d, func(c *ir.Constraint) bool { return g.enforced[c] })
-	}
+	g.WarnUnenforced(d, func(c *ir.Constraint) bool { return g.enforced[c] })
 	return text, nil
 }
 

@@ -127,10 +127,10 @@ func (g *generator) fieldLosses(opts []string, owner string, f *ir.Field, ref *e
 		g.CheckRenamed(f.GetDirectives(), emit.Snake(back) != written, "%s.%s", owner, name)
 	}
 	if f.GetOwned() {
-		g.Lose(emit.LossOwned, pos, "%s.%s is owned, which protobuf does not carry", owner, name)
+		g.Lossy(emit.LossOwned, pos, "%s.%s is owned, which protobuf does not carry", owner, name)
 	}
 	if f.GetDefaultValue() != nil {
-		g.Lose(emit.LossDefault, pos, "%s.%s has a default, which protobuf does not carry", owner, name)
+		g.Lossy(emit.LossDefault, pos, "%s.%s has a default, which protobuf does not carry", owner, name)
 	}
 	g.typeLosses(f.GetType(), pos)
 
@@ -158,10 +158,10 @@ func (g *generator) oneofLosses(owner string, f *ir.Field, e *ir.Decl, include s
 		g.Lose(emit.LossDoc, pos, "%s.%s is a oneof, which carries neither its enum's doc comment nor a deprecation", owner, name)
 	}
 	if f.GetOwned() {
-		g.Lose(emit.LossOwned, pos, "%s.%s is owned, which protobuf does not carry", owner, name)
+		g.Lossy(emit.LossOwned, pos, "%s.%s is owned, which protobuf does not carry", owner, name)
 	}
 	if f.GetDefaultValue() != nil {
-		g.Lose(emit.LossDefault, pos, "%s.%s has a default, which protobuf does not carry", owner, name)
+		g.Lossy(emit.LossDefault, pos, "%s.%s has a default, which protobuf does not carry", owner, name)
 	}
 	for _, v := range e.GetEnumeration().GetVariants() {
 		vf := v.GetFields()[0]
@@ -186,7 +186,7 @@ var lossyPrimitives = map[string]bool{"int": true, "decimal": true, "uuid": true
 func (g *generator) typeLosses(id *ir.ID, at *ir.Position) {
 	t := g.Model.Type(id)
 	if t.GetUnit() != nil {
-		g.Lose(emit.LossUnit, cmp.Or(at, t.GetPosition()), "the unit %s is not carried", t.GetUnit().GetName())
+		g.Lossy(emit.LossUnit, cmp.Or(at, t.GetPosition()), "the unit %s is not carried", t.GetUnit().GetName())
 		return
 	}
 	decl := g.Model.Decl(t.GetCtor())
@@ -202,12 +202,12 @@ func (g *generator) typeLosses(id *ir.ID, at *ir.Position) {
 	case decl.GetPrimitive() != nil:
 		switch {
 		case name == "Set":
-			g.Lose(emit.LossCollection, pos, "a set is a repeated field, which reads back as a list")
+			g.Lossy(emit.LossCollection, pos, "a set is a repeated field, which reads back as a list")
 		case name == "List" && wrote != ir.SyntacticForm_SYNTACTIC_FORM_BRACKETS,
 			name == "Map" && wrote != ir.SyntacticForm_SYNTACTIC_FORM_ARROW:
 			g.Lose(emit.LossCollection, pos, "%s reads back written as sugar", name)
 		case lossyPrimitives[name]:
-			g.Lose(emit.LossPrimitive, pos, "%s is protobuf %s, which reads back as %s", name, scalars[name], primitiveOf(scalars[name]))
+			g.LosePrimitive(name, primitiveOf(scalars[name]), pos, "%s is protobuf %s, which reads back as %s", name, scalars[name], primitiveOf(scalars[name]))
 		}
 	case decl.GetEnumeration() != nil && name == "Nullable":
 		g.Lose(emit.LossOptional, pos, "a nullable value is optional in protobuf, and reads back as T?")
