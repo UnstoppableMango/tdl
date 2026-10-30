@@ -94,12 +94,13 @@ It is exported as `homeModules.default` and `homeManagerModules.default`, each w
 `checks.hm-module` evaluates a minimal configuration and asserts both packages land where the options say; it uses `allowUnfree` because `programs.vscode.enable` evaluates the editor.
 
 `flake-module.nix` declares `perSystem.tdl`.
-`enable` defines `devShells.tdl` for `inputsFrom`, which under `make.enable` exports `TDL_GMK` from its `shellHook`, since `inputsFrom` drops a shell's variables, and carries nixpkgs' `gnumake`, plus one check per property a model should hold: `tdl-check` parses and lowers, `tdl-fmt` runs `tdl fmt --check`, and `tdl-gen` runs `tdl gen --verify`.
+`enable` defaults to `src != null`, so setting `src` turns the module on and `enable = false` turns it off.
+It defines `devShells.tdl` for `inputsFrom`, which under `make.enable` exports `TDL_GMK` from its `shellHook`, since `inputsFrom` drops a shell's variables, and carries nixpkgs' `gnumake`, plus one check per property a model should hold: `tdl-check` parses and lowers, `tdl-fmt` runs `tdl fmt --check`, and `tdl-gen` runs `tdl gen --verify`.
 Each check is one invocation over all files.
 `files` is a list of strings relative to one `src`, because a `path` is copied into the store alone and an `include` would stop resolving.
 `gen.files` is separate and empty by default, because `tdl gen` fails on a file with no target block.
 It is exported as `flakeModules.default` with a `tdl` alias.
-`checks.flake-module` evaluates a consumer flake against `testdata/conformance/entity` and builds the result, without `tdl-gen`, which needs generated output on disk.
+`checks.flake-module` evaluates a consumer flake against `testdata/conformance/entity` that sets `src` but not `enable` and builds the result, without `tdl-gen`, which needs generated output on disk; it also asserts that `enable = false`, or setting nothing, defines no check or shell.
 
 ## Architecture
 
