@@ -8,7 +8,7 @@
 		"schedule:monthly"
 	],
 	"constraints": {
-		"dotnet": "10.0.401"
+		"dotnet": "10.0.403"
 	},
 	"automerge": true,
 	"packageRules": [

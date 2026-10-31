@@ -16,18 +16,18 @@
 	},
 	{
 		"pname": "Microsoft.CodeAnalysis.Analyzers",
-		"version": "3.11.0",
-		"hash": "sha256-hQ2l6E6PO4m7i+ZsfFlEx+93UsLPo4IY3wDkNG11/Sw="
+		"version": "5.9.0-1.26328.17",
+		"hash": "sha256-p+9Mmyz0A79U5LUuuPuJ6UaiholPFI7L51Fdgcew9hI="
 	},
 	{
 		"pname": "Microsoft.CodeAnalysis.Common",
-		"version": "5.0.0",
-		"hash": "sha256-g4ALvBSNyHEmSb1l5TFtWW7zEkiRmhqLx4XWZu9sr2U="
+		"version": "5.9.0",
+		"hash": "sha256-d+/UcVwkyM1rNvm5KYCi9ahuSntTZI1PHKO3mjkzpCk="
 	},
 	{
 		"pname": "Microsoft.CodeAnalysis.CSharp",
-		"version": "5.0.0",
-		"hash": "sha256-ctBCkQGFpH/xT5rRE3xibu9YxPD108RuC4a4Z25koG8="
+		"version": "5.9.0",
+		"hash": "sha256-dgLD26oSImjzsmxswN0C65Ik3qlELtJ69cP+VtZDmT8="
 	},
 	{
 		"pname": "Microsoft.CodeCoverage",
