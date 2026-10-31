@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.6](https://github.com/UnstoppableMango/tdl/compare/v0.5.5...v0.5.6) (2026-10-31)
+
+
+### Dependencies
+
+* update dependency microsoft.net.test.sdk to v18 ([#1176](https://github.com/UnstoppableMango/tdl/issues/1176)) ([e237d5f](https://github.com/UnstoppableMango/tdl/commit/e237d5f15e8f72b7898305b001109249c024cac4))
+
 ## [0.5.5](https://github.com/UnstoppableMango/tdl/compare/v0.5.4...v0.5.5) (2026-10-29)
 
 
