@@ -93,7 +93,7 @@ func TestDescribe(t *testing.T) {
 	if d.Name != "graphql" || !d.Reuse {
 		t.Errorf("description = %+v", d)
 	}
-	if len(d.Directives) != 2 || d.Directives[0].GetName() != "name" || d.Directives[1].GetName() != "roundtrip" || !d.Reverse {
+	if len(d.Directives) != 3 || d.Directives[0].GetName() != "name" || d.Directives[1].GetName() != "roundtrip" || d.Directives[2].GetName() != "readback" || !d.Reverse {
 		t.Errorf("directives = %v", d.Directives)
 	}
 }

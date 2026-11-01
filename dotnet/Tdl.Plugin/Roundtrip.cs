@@ -17,29 +17,25 @@ public sealed partial class Session
 		Model.Targets.Any(b => b.Meta?.Name == Target && Tagged(b.Directives, name));
 
 	/// <summary>
-	/// Warns that a fact is lost, unless <see cref="Roundtrip"/> is set and an
-	/// annotation carries it.
+	/// Warns about read-back loss: a fact the output keeps but import would
+	/// not recover. It reports only under <see cref="Readback"/>, and never
+	/// under <see cref="Roundtrip"/>, where an annotation carries the fact.
+	/// <see cref="Lossy"/> reports output loss.
 	/// </summary>
 	public void Lose(string code, Position? position, string message)
 	{
-		if (!Roundtrip)
+		if (Readback && !Roundtrip)
 		{
 			Lossy(code, position, message);
 		}
 	}
 
 	/// <summary>
-	/// Reports a declaration that is not generated. Under roundtrip it is
-	/// carried as TDL instead, so nothing is reported, unless the model is
-	/// invalid.
+	/// Reports a declaration that is not generated. It is output loss, so it
+	/// warns under roundtrip too, where the declaration is carried as TDL but
+	/// the output still lacks it.
 	/// </summary>
-	public void Skip(Problem problem)
-	{
-		if (!Roundtrip || problem is Invalid)
-		{
-			Warn(problem);
-		}
-	}
+	public void Skip(Problem problem) => Warn(problem);
 
 	/// <summary>
 	/// Is <see cref="Declares"/> for a target that imports back: what it
@@ -104,6 +100,7 @@ public sealed partial class Session
 	/// Warns about each conformance of a struct or an enum that a target does
 	/// not carry, which is all of them but a struct's plain conformance to
 	/// Entity, since its kind says that. It reports whether any was lost.
+	/// The output drops the conformance, so this is output loss.
 	/// </summary>
 	public bool LoseConforms(Decl d, string target)
 	{
@@ -114,7 +111,7 @@ public sealed partial class Session
 			var n = c.Class?.Name;
 			if (d.Structure is null || n != "Entity" || c.Extern is not null || c.Args.Count > 0)
 			{
-				Lose(LossCodes.Class, c.Position, $"{d.Meta?.Name} conforms to {n}, which {target} does not carry");
+				Lossy(LossCodes.Class, c.Position, $"{d.Meta?.Name} conforms to {n}, which {target} does not carry");
 				lost = true;
 			}
 		}

@@ -131,7 +131,7 @@ func (g *generator) checks(d *ir.Decl, u checkUnit, report bool) *checkWriter {
 	if u.base != nil {
 		if g.pointerOrInterface(u.base, map[int32]bool{}) {
 			if report && len(u.cs) > 0 {
-				g.Lose(emit.LossConstraint, d.GetMeta().GetPosition(),
+				g.Lossy(emit.LossConstraint, d.GetMeta().GetPosition(),
 					"%s is a newtype over a pointer or an interface, which Go gives no methods, so its constraints are not checked",
 					d.GetMeta().GetName())
 			}
@@ -162,7 +162,7 @@ func (g *generator) checks(d *ir.Decl, u checkUnit, report bool) *checkWriter {
 	for _, f := range u.fields {
 		if n := g.fieldName(f); n == "Validate" || n == "validate" {
 			if report {
-				g.Lose(emit.LossConstraint, d.GetMeta().GetPosition(),
+				g.Lossy(emit.LossConstraint, d.GetMeta().GetPosition(),
 					"%s has a field named %s, which the Validate method would collide with, so its constraints are not checked",
 					d.GetMeta().GetName(), n)
 			}

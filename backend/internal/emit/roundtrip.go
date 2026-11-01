@@ -1,7 +1,6 @@
 package emit
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"unicode"
@@ -35,12 +34,33 @@ func (s *Session) Bare(name string) bool {
 	return false
 }
 
-// Lose warns that a fact is lost, unless [Session.Roundtrip] is set and an
-// annotation carries it.
+// Lose warns about read-back loss: a fact the output keeps but import would
+// not recover. It reports only under [Session.Readback], and never under
+// [Session.Roundtrip], where an annotation carries the fact. [Session.Lossy]
+// reports output loss.
 func (s *Session) Lose(code string, pos *ir.Position, format string, args ...any) {
-	if !s.Roundtrip {
+	if s.Readback && !s.Roundtrip {
 		s.Lossy(code, pos, format, args...)
 	}
+}
+
+// LosePrimitive warns that primitive name is written as one that reads
+// back as back: output loss when back holds values name does not, and
+// read-back loss when it is the same values spelled another way.
+func (s *Session) LosePrimitive(name, back string, pos *ir.Position, format string, args ...any) {
+	if Widens(name, back) {
+		s.Lossy(LossPrimitive, pos, format, args...)
+		return
+	}
+	s.Lose(LossPrimitive, pos, format, args...)
+}
+
+// Widens reports whether a prelude primitive written as one that reads back
+// as back is widened: back holds values name does not. Only an `int`,
+// whose width the prelude leaves to the target, reading back as `int64`
+// keeps its values.
+func Widens(name, back string) bool {
+	return name != back && (name != "int" || back != "int64")
 }
 
 // DeclaresLossy is [Declares] for a target that imports back: what it cannot
@@ -90,7 +110,7 @@ func (s *Session) LoseKind(d *ir.Decl) string {
 // LoseConforms warns about each conformance of a struct or an enum that a
 // target does not carry, which is all of them but a struct's plain
 // conformance to Entity, since its kind says that. It reports whether any
-// was lost.
+// was lost. The output drops the conformance, so this is output loss.
 func (s *Session) LoseConforms(d *ir.Decl, target string) bool {
 	conforms := d.GetStructure().GetConforms()
 	if e := d.GetEnumeration(); e != nil {
@@ -100,20 +120,18 @@ func (s *Session) LoseConforms(d *ir.Decl, target string) bool {
 	lost := false
 	for _, c := range conforms {
 		if n := c.GetClass().GetName(); d.GetStructure() == nil || n != "Entity" || c.GetExtern() != nil || len(c.GetArgs()) > 0 {
-			s.Lose(LossClass, c.GetPosition(), "%s conforms to %s, which %s does not carry", name, n, target)
+			s.Lossy(LossClass, c.GetPosition(), "%s conforms to %s, which %s does not carry", name, n, target)
 			lost = true
 		}
 	}
 	return lost
 }
 
-// Skip reports a declaration that is not generated. Under roundtrip it is
-// carried as TDL instead, so nothing is reported, unless the model is
-// invalid.
+// Skip reports a declaration that is not generated. It is output loss, so
+// it warns under roundtrip too, where the declaration is carried as TDL
+// but the output still lacks it.
 func (s *Session) Skip(err error) {
-	if _, invalid := errors.AsType[*InvalidError](err); !s.Roundtrip || invalid {
-		s.Warn(err)
-	}
+	s.Warn(err)
 }
 
 // Unlowered is the model as TDL, built once, for a Go backend comparing
@@ -299,14 +317,14 @@ func (s *Session) LoseIncludes(owner string, fields []*ir.Field, includes []stri
 
 // LoseOwnedDefault warns when a field of owner is owned, which target does
 // not carry, or has a default, which is not written. It reports whether
-// either is lost.
+// either is lost. Both are output loss.
 func (s *Session) LoseOwnedDefault(owner, target string, f *ir.Field) bool {
 	name, pos := f.GetMeta().GetName(), f.GetMeta().GetPosition()
 	if f.GetOwned() {
-		s.Lose(LossOwned, pos, "%s.%s is owned, which %s does not carry", owner, name, target)
+		s.Lossy(LossOwned, pos, "%s.%s is owned, which %s does not carry", owner, name, target)
 	}
 	if f.GetDefaultValue() != nil {
-		s.Lose(LossDefault, pos, "%s.%s has a default, which is not written", owner, name)
+		s.Lossy(LossDefault, pos, "%s.%s has a default, which is not written", owner, name)
 	}
 	return f.GetOwned() || f.GetDefaultValue() != nil
 }

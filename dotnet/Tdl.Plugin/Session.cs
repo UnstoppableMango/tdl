@@ -79,10 +79,17 @@ public sealed partial class Session
 	public Analysis Analysis { get; }
 
 	/// <summary>
-	/// Makes <see cref="Lose"/> and <see cref="Skip"/> report nothing, since
-	/// annotations carry what they would.
+	/// Makes <see cref="Lose"/> report nothing, since annotations carry what
+	/// it would.
 	/// </summary>
 	public bool Roundtrip { get; set; }
+
+	/// <summary>
+	/// Makes <see cref="Lose"/> report read-back loss, which it otherwise
+	/// leaves out: a backend sets it from a bare readback directive in its
+	/// target block.
+	/// </summary>
+	public bool Readback { get; set; }
 
 	/// <summary>The diagnostics collected so far.</summary>
 	public List<Diagnostic> Diagnostics { get; } = [];
@@ -190,7 +197,12 @@ public sealed partial class Session
 	public void Error(Position? position, string message) =>
 		Diagnostics.Add(new Diagnostic { Severity = Severity.Error, Message = message, Position = position });
 
-	/// <summary>Warns that a fact is lost, with the loss code that names it.</summary>
+	/// <summary>
+	/// Warns that a fact is lost, with the loss code that names it. It
+	/// reports output loss: what the output itself drops or weakens, which
+	/// annotations do not restore, so it warns under roundtrip too.
+	/// <see cref="Lose"/> reports read-back loss.
+	/// </summary>
 	public void Lossy(string code, Position? position, string message) =>
 		Diagnostics.Add(new Diagnostic { Severity = Severity.Warning, Message = message, Position = position, Code = code });
 

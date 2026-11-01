@@ -329,18 +329,19 @@ Each built-in backend also ships as a `tdl-gen-<name>` plugin.
 What each backend generates from each feature of the language, measured by `make features`.
 Yes generates it, Warns loses part of it under a loss code that `tdl.toml` can allow, No skips it or refuses the model, and Planned names a phase that will generate it.
 A backend's page names the codes and phases.
+Warns counts only what the output loses: what a later `tdl import` would not read back is reported with a bare `readback` directive in the target block.
 
 <!-- tdl:features generate -->
 
 | Feature | `csharp` | `go` | `graphql` | `haskell` | `jsonschema` | `likec4` | `openapi` | `protobuf` | `salesforce` | `smithy` | `thrift` | `typescript` | `zod` |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Entity, value, and mixin | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Warns | Warns | Warns | Yes |
-| Mixin `include` | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Warns | Warns | Warns | Yes |
+| Entity, value, and mixin | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| Mixin `include` | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | Fieldless enum | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | Fielded enum | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | Newtype | Yes | Yes | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Yes | Yes | Yes | Yes |
-| Alias | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Warns | Warns | Warns | Yes |
-| Optional and nullable | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Warns | Warns | Yes | Yes |
+| Alias | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| Optional and nullable | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | List, set, and map | Yes | Yes | No | Yes | Yes | Yes | Yes | Warns | Yes | Yes | Yes | Warns | Yes |
 | `min` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Planned |
 | `max` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Planned |
@@ -351,7 +352,7 @@ A backend's page names the codes and phases.
 | `owned` | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | No | Warns | Warns | Warns | Yes |
 | Field default | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Warns | Warns | Warns | Yes |
 | `key` directive | Yes | Yes | No | Yes | No | No | No | No | Yes | No | No | No | No |
-| `name` directive | Yes | Warns | Warns | Yes | Yes | No | Yes | Warns | Yes | Warns | Warns | Warns | Yes |
+| `name` directive | Yes | Yes | Yes | Yes | Yes | No | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | `number` directive | No | No | No | No | No | No | No | Yes | No | No | Yes | No | No |
 | Doc comment | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | Type parameters | Planned | Yes | No | Yes | No | Yes | No | No | No | No | No | No | Planned |

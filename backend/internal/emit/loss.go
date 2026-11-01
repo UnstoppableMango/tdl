@@ -40,7 +40,10 @@ var LossCodes = []string{
 	LossUnit, LossUnsupported,
 }
 
-// Lossy warns that a fact is lost, with the code that names it.
+// Lossy warns that a fact is lost, with the code that names it. It reports
+// output loss: what the output itself drops or weakens, which annotations
+// do not restore, so it warns under roundtrip too. [Session.Lose] reports
+// read-back loss.
 func (s *Session) Lossy(code string, pos *ir.Position, format string, args ...any) {
 	s.Diags = append(s.Diags, &plugin.Diagnostic{
 		Severity: plugin.Severity_SEVERITY_WARNING,

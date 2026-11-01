@@ -4,10 +4,11 @@
 // A feature is a directory of testdata/features holding source.tdl, a
 // small model using it, and a backend's subdirectory may hold its own. Support is read from the backend, not declared:
 // generating with no warning is Yes, warning only loss codes is Warns, and
-// an error, a skip, or any warning without a code is No. Import generates
-// without the roundtrip directive and reads the files back: the same model
-// is Yes, a different one Warns with the codes either direction reported,
-// and a failure No. What a measurement cannot say, how the target spells a
+// an error, a skip, or any warning without a code is No. Generate leaves
+// read-back loss out, as `tdl gen` does. Import generates with the
+// readback directive and without roundtrip and reads the files back: the
+// same model is Yes, a different one Warns with the read-back loss either
+// direction reported, never the output loss Generate shows, and a failure No. What a measurement cannot say, how the target spells a
 // feature and why, comes from backend/<name>/features.toml.
 package features
 
@@ -169,7 +170,17 @@ func measure(path string, row Row, target Target) (Measured, error) {
 	case generated.Support == No:
 		m.Import = Cell{Support: No, Why: "does not generate"}
 	default:
-		m.Import = readBack(path, row, model, target, importer, resp, loader)
+		// Generating with readback writes the same files and also warns
+		// about what reading them back loses. Only that is the import's:
+		// what the plain run warns is output loss, the Generate cell's.
+		output := resp.GetDiagnostics()
+		back, cell := generate(withReadback(model, target.Name), row, target)
+		if back == nil {
+			m.Import = cell
+			return m, nil
+		}
+		readback := without(back.GetDiagnostics(), output)
+		m.Import = readBack(path, row, model, target, importer, resp, readback, coded(output), loader)
 	}
 	return m, nil
 }
@@ -189,6 +200,25 @@ func generate(model *ir.Model, row Row, target Target) (*plugin.Response, Cell) 
 		return nil, Cell{Support: No, Why: err.Error()}
 	}
 	return resp, grade(append(problems, resp.GetDiagnostics()...), row)
+}
+
+// withReadback returns model with a bare readback directive on its block
+// for target, adding a block when there is none.
+func withReadback(model *ir.Model, target string) *ir.Model {
+	out := proto.Clone(model).(*ir.Model)
+	d := &ir.Directive{Name: "readback", Target: target}
+	for _, b := range out.GetTargets() {
+		if b.GetMeta().GetName() == target {
+			b.Directives = append(b.Directives, d)
+			return out
+		}
+	}
+	out.Targets = append(out.Targets, &ir.TargetBlock{
+		Meta:       &ir.Meta{Name: target, Order: int32(len(out.GetTargets()))},
+		ForPackage: out.GetPackage(),
+		Directives: []*ir.Directive{d},
+	})
+	return out
 }
 
 // grade turns diagnostics into a cell: an error or a warning without a
@@ -221,11 +251,31 @@ func no(diags []*plugin.Diagnostic) Cell {
 	return c
 }
 
+// without returns the diagnostics in diags that are not in plain.
+func without(diags, plain []*plugin.Diagnostic) []*plugin.Diagnostic {
+	var out []*plugin.Diagnostic
+	for _, d := range diags {
+		if !slices.ContainsFunc(plain, func(p *plugin.Diagnostic) bool { return proto.Equal(d, p) }) {
+			out = append(out, d)
+		}
+	}
+	return out
+}
+
+// coded reports whether any diagnostic carries a loss code.
+func coded(diags []*plugin.Diagnostic) bool {
+	return slices.ContainsFunc(diags, func(d *plugin.Diagnostic) bool { return d.GetCode() != "" })
+}
+
 // readBack imports what the backend generated and compares the model it
-// prints to with the one generated from. A difference with no loss code
-// in either direction is a silent loss, and No; one whose codes the row
-// does not own is put down to the rest of the source.
-func readBack(path string, row Row, model *ir.Model, target Target, importer plugin.Importer, resp *plugin.Response, loader renaming) Cell {
+// prints to with the one generated from. It grades only read-back loss:
+// readback, what generating with the readback directive adds, and what
+// importing reports. A difference explained by output loss alone, which
+// the Generate cell reports, is Yes, since import recovers what the files
+// hold; a difference with no loss code at all is a silent loss, and No;
+// one whose codes the row does not own is put down to the rest of the
+// source.
+func readBack(path string, row Row, model *ir.Model, target Target, importer plugin.Importer, resp *plugin.Response, readback []*plugin.Diagnostic, outputLoss bool, loader renaming) Cell {
 	imported, err := importer.Import(context.Background(), &plugin.ImportRequest{Target: target.Name, Files: resp.GetFiles()})
 	if err != nil {
 		return Cell{Support: No, Why: err.Error()}
@@ -249,8 +299,15 @@ func readBack(path string, row Row, model *ir.Model, target Target, importer plu
 	if proto.Equal(ir.WithoutPositions(scoped), ir.WithoutPositions(relowered)) {
 		return Cell{Support: Yes}
 	}
-	diags := append(slices.Clone(resp.GetDiagnostics()), imported.GetDiagnostics()...)
-	if !slices.ContainsFunc(diags, func(d *plugin.Diagnostic) bool { return d.GetCode() != "" }) {
+	diags := append(slices.Clone(readback), imported.GetDiagnostics()...)
+	if !coded(diags) {
+		if len(diags) > 0 {
+			// A warning without a code is No, as grade has it.
+			return grade(diags, row)
+		}
+		if outputLoss {
+			return Cell{Support: Yes}
+		}
 		return Cell{Support: No, Why: "reads back a different model without a loss code"}
 	}
 	return grade(diags, row)

@@ -10,8 +10,68 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
+// lossSession reports read-back loss, so a helper's every warning shows.
 func lossSession() *emit.Session {
-	return emit.NewSession(&plugin.Request{Target: "x", Model: &ir.Model{}}, "X")
+	s := emit.NewSession(&plugin.Request{Target: "x", Model: &ir.Model{}}, "X")
+	s.Readback = true
+	return s
+}
+
+// TestLossModes holds each kind of loss to the modes that report it:
+// output loss always, read-back loss only under readback and never under
+// roundtrip.
+func TestLossModes(t *testing.T) {
+	for _, tt := range []struct {
+		name                 string
+		readback, roundtrip  bool
+		wantOutput, wantBack bool
+	}{
+		{"default", false, false, true, false},
+		{"readback", true, false, true, true},
+		{"roundtrip", false, true, true, false},
+		{"both", true, true, true, false},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			s := emit.NewSession(&plugin.Request{Target: "x", Model: &ir.Model{}}, "X")
+			s.Readback, s.Roundtrip = tt.readback, tt.roundtrip
+			s.Lossy(emit.LossConstraint, nil, "output")
+			s.Skip(emit.Lost(emit.LossClass, nil, "skipped"))
+			s.Lose(emit.LossStructKind, nil, "read back")
+
+			var want []string
+			if tt.wantOutput {
+				want = append(want, emit.LossConstraint, emit.LossClass)
+			}
+			if tt.wantBack {
+				want = append(want, emit.LossStructKind)
+			}
+			if got := codes(s); !slices.Equal(got, want) {
+				t.Errorf("warned %v, want %v", got, want)
+			}
+		})
+	}
+}
+
+func TestLosePrimitive(t *testing.T) {
+	for _, tt := range []struct {
+		name, back string
+		readback   bool
+		want       []string
+	}{
+		{"uuid", "string", false, []string{emit.LossPrimitive}},
+		{"date", "instant", false, []string{emit.LossPrimitive}},
+		{"uint32", "int64", false, []string{emit.LossPrimitive}},
+		{"int", "int64", false, nil},
+		{"int", "int64", true, []string{emit.LossPrimitive}},
+		{"int", "float64", false, []string{emit.LossPrimitive}},
+	} {
+		s := emit.NewSession(&plugin.Request{Target: "x", Model: &ir.Model{}}, "X")
+		s.Readback = tt.readback
+		s.LosePrimitive(tt.name, tt.back, nil, "%s reads back as %s", tt.name, tt.back)
+		if got := codes(s); !slices.Equal(got, tt.want) {
+			t.Errorf("%s as %s (readback %v) warned %v, want %v", tt.name, tt.back, tt.readback, got, tt.want)
+		}
+	}
 }
 
 func codes(s *emit.Session) []string {

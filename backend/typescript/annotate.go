@@ -20,11 +20,25 @@ import (
 // such as the package and the declarations TypeScript has no form for,
 // goes in @tdl tags on an `export {};` at the end of the file.
 
-// lose warns that a fact of the declaration being rendered is lost, which
-// makes it carry itself under roundtrip.
+// lose warns about a fact of the declaration being rendered that does not
+// read back, which makes it carry itself under roundtrip.
 func (g *generator) lose(code string, pos *ir.Position, format string, args ...any) {
 	g.lost = true
 	g.Lose(code, pos, format, args...)
+}
+
+// drop is [generator.lose] for a fact the output itself drops or weakens,
+// which warns under roundtrip too.
+func (g *generator) drop(code string, pos *ir.Position, format string, args ...any) {
+	g.lost = true
+	g.Lossy(code, pos, format, args...)
+}
+
+// losePrimitive is [generator.lose] for a primitive written as one that
+// reads back as back, which drops a fact when back holds more values.
+func (g *generator) losePrimitive(name, back string, pos *ir.Position, format string, args ...any) {
+	g.lost = true
+	g.LosePrimitive(name, back, pos, format, args...)
 }
 
 // tag is one @tdl tag, its value a Go string literal that cannot end the
@@ -290,14 +304,14 @@ func (g *generator) typeLosses(id *ir.ID, at *ir.Position, m mode) {
 	args := t.GetArgs()
 	switch {
 	case name == "Set":
-		g.lose(emit.LossCollection, pos, "a set is a TypeScript array, and reads back as a list")
+		g.drop(emit.LossCollection, pos, "a set is a TypeScript array, and reads back as a list")
 	case name == "List" && wrote != ir.SyntacticForm_SYNTACTIC_FORM_BRACKETS,
 		name == "Map" && wrote != ir.SyntacticForm_SYNTACTIC_FORM_ARROW:
 		g.lose(emit.LossCollection, pos, "%s reads back written as sugar", name)
 	case ts.Scalars[name] == "string" && name != "string":
-		g.lose(emit.LossPrimitive, pos, "%s is a TypeScript string, which reads back as string", name)
+		g.losePrimitive(name, "string", pos, "%s is a TypeScript string, which reads back as string", name)
 	case ts.Scalars[name] == "number" && name != "float64":
-		g.lose(emit.LossPrimitive, pos, "%s is a TypeScript number, which reads back as float64", name)
+		g.losePrimitive(name, "float64", pos, "%s is a TypeScript number, which reads back as float64", name)
 	}
 	for i, arg := range args {
 		inner := modeElem

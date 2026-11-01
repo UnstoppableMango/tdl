@@ -152,7 +152,7 @@ var lossyPrimitives = map[string]bool{
 func (g *generator) typeLosses(id *ir.ID, at *ir.Position) {
 	t := g.Model.Type(id)
 	if t.GetUnit() != nil {
-		g.Lose(emit.LossUnit, cmp.Or(at, t.GetPosition()), "the unit %s is not carried", t.GetUnit().GetName())
+		g.Lossy(emit.LossUnit, cmp.Or(at, t.GetPosition()), "the unit %s is not carried", t.GetUnit().GetName())
 		return
 	}
 	decl := g.Model.Decl(t.GetCtor())
@@ -172,7 +172,7 @@ func (g *generator) typeLosses(id *ir.ID, at *ir.Position) {
 			name == "Map" && wrote != ir.SyntacticForm_SYNTACTIC_FORM_ARROW:
 			g.Lose(emit.LossCollection, pos, "%s reads back written as sugar", name)
 		case lossyPrimitives[name]:
-			g.Lose(emit.LossPrimitive, pos, "%s is Thrift %s, which reads back as %s", name, scalars[name], primitiveOf(scalars[name]))
+			g.LosePrimitive(name, primitiveOf(scalars[name]), pos, "%s is Thrift %s, which reads back as %s", name, scalars[name], primitiveOf(scalars[name]))
 		}
 	case decl.GetEnumeration() != nil && name == "Nullable":
 		g.Lose(emit.LossOptional, pos, "a nullable value is an optional field in Thrift, and reads back as T?")

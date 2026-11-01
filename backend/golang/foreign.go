@@ -58,7 +58,7 @@ func (g *generator) planForeign() {
 		g.warnForeignConstraints(d)
 
 		if key, ok := g.Find(d.GetDirectives(), "key"); ok {
-			g.Lose(emit.LossKey, key.GetPosition(),
+			g.Lossy(emit.LossKey, key.GetPosition(),
 				"%s is a foreign type, so its key is not generated: a method is declared beside the type",
 				emit.LastSegment(d.GetMeta().GetName()))
 		}
@@ -157,7 +157,7 @@ func (g *generator) warnForeignConstraints(d *ir.Decl) {
 		cs = append(cs, f.GetConstraints()...)
 	}
 	for _, c := range cs {
-		g.Lose(emit.LossConstraint, c.GetPosition(),
+		g.Lossy(emit.LossConstraint, c.GetPosition(),
 			"%s is not checked: %s is a foreign type, whose values another package decides", emit.ConstraintText(c), of)
 	}
 }

@@ -36,6 +36,7 @@ func (Backend) Describe() plugin.Description {
 			// Writes, as @tdl directives, every fact the schema alone would
 			// lose, so import rebuilds the model.
 			{Name: "roundtrip", Placements: plugin.On(plugin.OnBlock)},
+			{Name: "readback", Placements: plugin.On(plugin.OnBlock)},
 		},
 		Reverse: true,
 	}
@@ -118,6 +119,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		names:   map[string]string{},
 	}
 	g.Roundtrip = g.Bare("roundtrip")
+	g.Readback = g.Bare("readback")
 
 	pkg := req.GetModel().GetPackage()
 	if back := packageBack(pkg); back != pkg {
@@ -155,12 +157,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 			out = append(out, rendered{d, text, g.uses})
 		}
 	}
-	mark := len(g.Diags)
 	g.Cascade(own, skipped)
-	if g.Roundtrip {
-		// A skipped declaration is carried as TDL, so nothing is lost.
-		g.Diags = g.Diags[:mark]
-	}
 	for _, d := range own {
 		if !skipped[d] {
 			g.Diags = append(g.Diags, held[d]...)
@@ -250,11 +247,9 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		g.Lose(emit.LossNewtype, pos, "newtype %s is expanded where used", name)
+		g.Lossy(emit.LossNewtype, pos, "newtype %s is expanded where used", name)
 		g.typeLosses(n.GetBase(), nil)
-		if !g.Roundtrip {
-			g.WarnWhere(d)
-		}
+		g.WarnWhere(d)
 		return "", nil
 	}
 
@@ -290,9 +285,7 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	for _, n := range declared {
 		g.names[n] = name
 	}
-	if !g.Roundtrip {
-		g.WarnConstraints(d)
-	}
+	g.WarnConstraints(d)
 	return b.String(), nil
 }
 

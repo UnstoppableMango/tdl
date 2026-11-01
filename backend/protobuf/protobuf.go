@@ -69,6 +69,7 @@ func (Backend) Describe() plugin.Description {
 			// Writes, as custom options from tdl/annotations.proto, every
 			// fact the schema alone would lose, so import rebuilds the model.
 			{Name: "roundtrip", Placements: plugin.On(plugin.OnBlock)},
+			{Name: "readback", Placements: plugin.On(plugin.OnBlock)},
 		},
 		Reverse: true,
 		Numbering: &plugin.Numbering{
@@ -192,6 +193,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	}
 
 	g.Roundtrip = g.Bare("roundtrip")
+	g.Readback = g.Bare("readback")
 	if g.pkg != req.GetModel().GetPackage() {
 		g.Lose(emit.LossName, pkgPos, "package %s is written %s, which reads back as the package", req.GetModel().GetPackage(), g.pkg)
 	}
@@ -235,12 +237,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 			out = append(out, rendered{d, path, text, g.imports, g.refs, g.annotated})
 		}
 	}
-	mark := len(g.Diags)
 	g.Cascade(own, skipped)
-	if g.Roundtrip {
-		// A skipped declaration is carried as TDL, so nothing is lost.
-		g.Diags = g.Diags[:mark]
-	}
 	for _, d := range own {
 		if !skipped[d] {
 			g.Diags = append(g.Diags, held[d]...)
@@ -401,11 +398,9 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		g.Lose(emit.LossNewtype, pos, "newtype %s is expanded to its base where used", name)
+		g.Lossy(emit.LossNewtype, pos, "newtype %s is expanded to its base where used", name)
 		g.typeLosses(n.GetBase(), nil)
-		if !g.Roundtrip {
-			g.WarnWhere(d)
-		}
+		g.WarnWhere(d)
 		return "", nil
 	}
 
@@ -434,9 +429,7 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	for _, n := range declared {
 		g.names[n] = name
 	}
-	if !g.Roundtrip {
-		g.WarnConstraints(d)
-	}
+	g.WarnConstraints(d)
 	return b.String(), nil
 }
 

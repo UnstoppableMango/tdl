@@ -233,7 +233,7 @@ func (g *generator) typeLosses(id *ir.ID, at *ir.Position) {
 		name == "Map" && wrote != ir.SyntacticForm_SYNTACTIC_FORM_ARROW:
 		g.Lose(emit.LossCollection, pos, "%s reads back written as sugar", name)
 	case preludeShapes[name] != "" && primitives[preludeShapes[name]] != name:
-		g.Lose(emit.LossPrimitive, pos, "%s is a Smithy %s, which reads back as %s", name, preludeShapes[name], primitives[preludeShapes[name]])
+		g.LosePrimitive(name, primitives[preludeShapes[name]], pos, "%s is a Smithy %s, which reads back as %s", name, preludeShapes[name], primitives[preludeShapes[name]])
 	}
 	for _, arg := range t.GetArgs() {
 		g.typeLosses(arg, at)

@@ -44,9 +44,6 @@ const headerFile = "tdl.go"
 // lose warns about an error the way [emit.Session.Lose] warns about a fact,
 // giving it code when it carries none.
 func (g *generator) lose(code string, err error) {
-	if g.Roundtrip {
-		return
-	}
 	if u, ok := errors.AsType[*emit.UnsupportedError](err); ok && u.Code == "" {
 		u.Code = code
 	}
@@ -176,9 +173,6 @@ func (g *generator) foreignLoss(d *ir.Decl, f foreignType) {
 // declLosses warns about what a declaration loses that rendering it does
 // not report itself.
 func (g *generator) declLosses(d *ir.Decl) {
-	if g.Roundtrip {
-		return
-	}
 	pos, name := d.GetMeta().GetPosition(), d.GetMeta().GetName()
 	switch {
 	case d.GetAlias() != nil:
@@ -212,7 +206,7 @@ func (g *generator) declLosses(d *ir.Decl) {
 		g.typeLosses(d.GetNewtype().GetBase(), nil)
 	case d.GetClass() != nil:
 		if len(d.GetClass().GetFields()) > 0 {
-			g.Lose(emit.LossClass, pos, "%s's fields are not written, since generated code never reads them", name)
+			g.Lossy(emit.LossClass, pos, "%s's fields are not written, since generated code never reads them", name)
 		}
 	}
 }
@@ -265,7 +259,12 @@ func (g *generator) conformsLoss(d *ir.Decl) {
 	for _, c := range g.marks[g.cur] {
 		back = append(back, g.Model.GetDecls()[c].GetMeta().GetName())
 	}
-	if !slices.Equal(want, back) {
+	switch {
+	case slices.ContainsFunc(want, func(n string) bool { return !slices.Contains(back, n) }):
+		// A conformance with no marker is not in the output at all.
+		g.Lossy(emit.LossClass, d.GetMeta().GetPosition(), "%s conforms to %s, and its markers read back as %s",
+			d.GetMeta().GetName(), list(want), list(back))
+	case !slices.Equal(want, back):
 		g.Lose(emit.LossClass, d.GetMeta().GetPosition(), "%s conforms to %s, and its markers read back as %s",
 			d.GetMeta().GetName(), list(want), list(back))
 	}
@@ -342,7 +341,7 @@ func (g *generator) typeLosses(id *ir.ID, at *ir.Position) {
 			name == "Map" && wrote != ir.SyntacticForm_SYNTACTIC_FORM_ARROW:
 			g.Lose(emit.LossCollection, pos, "%s reads back written as sugar", name)
 		case lossyPrimitives[name] != "":
-			g.Lose(emit.LossPrimitive, pos, "%s is Go %s, which reads back as %s", name, primitives[name], lossyPrimitives[name])
+			g.LosePrimitive(name, lossyPrimitives[name], pos, "%s is Go %s, which reads back as %s", name, primitives[name], lossyPrimitives[name])
 		}
 	case decl.GetEnumeration() != nil && name == "Nullable":
 		g.Lose(emit.LossOptional, pos, "a nullable value is a Go pointer, and reads back as T?")

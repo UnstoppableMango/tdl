@@ -1,6 +1,7 @@
 package roundtrip_test
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"slices"
@@ -23,6 +24,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/thrift"
 	"github.com/unstoppablemango/tdl/backend/typescript"
 	"github.com/unstoppablemango/tdl/backend/zod"
+	"github.com/unstoppablemango/tdl/internal/analysis"
 	"github.com/unstoppablemango/tdl/internal/gen/echo"
 	"github.com/unstoppablemango/tdl/internal/sema"
 	"github.com/unstoppablemango/tdl/ir"
@@ -99,6 +101,77 @@ func TestConformanceComesBack(t *testing.T) {
 			for _, path := range standalone {
 				t.Run(filepath.Base(filepath.Dir(path)), func(t *testing.T) {
 					roundtrip.Run(t, target, filepath.Join(t.TempDir(), "none"), path)
+				})
+			}
+		})
+	}
+}
+
+// Generating reports output loss always and read-back loss only under a
+// readback directive, for every target that imports. The source loses a
+// fact in each kind for each: an entity reads back as a value, and a uuid
+// or a set is written as a wider type.
+func TestLossKinds(t *testing.T) {
+	const src = `package kinds
+
+type Tag: Entity {
+  id: uuid
+  labels: {string}
+}
+
+target TARGET for kinds {
+  DIRECTIVE
+}
+`
+	output := map[string][]string{
+		"go":         {"lossy.primitive"},
+		"graphql":    {"lossy.collection"},
+		"protobuf":   {"lossy.collection", "lossy.primitive"},
+		"smithy":     {"lossy.primitive"},
+		"thrift":     {"lossy.primitive"},
+		"typescript": {"lossy.collection", "lossy.primitive"},
+	}
+	for _, target := range targets {
+		desc := target.Backend.Describe()
+		if !desc.Reverse {
+			continue
+		}
+		t.Run(desc.Name, func(t *testing.T) {
+			want, ok := output[desc.Name]
+			if !ok {
+				t.Fatalf("no output loss listed for %s", desc.Name)
+			}
+			for _, tt := range []struct {
+				directive string
+				readBack  bool
+			}{
+				{"out(\"gen\")", false},
+				{"readback", true},
+				{"roundtrip", false},
+			} {
+				t.Run(tt.directive, func(t *testing.T) {
+					text := strings.NewReplacer("TARGET", desc.Name, "DIRECTIVE", tt.directive).Replace(src)
+					model := lowerFile(t, "source.tdl", text)
+					req, problems := analysis.Request(model, desc, desc.Name, "out")
+					if len(problems) > 0 {
+						t.Fatal(problems)
+					}
+					resp, err := target.Backend.Generate(context.Background(), req)
+					if err != nil {
+						t.Fatal(err)
+					}
+					codes := map[string]bool{}
+					for _, d := range resp.GetDiagnostics() {
+						codes[d.GetCode()] = true
+					}
+					for _, c := range want {
+						if !codes[c] {
+							t.Errorf("output loss %s not reported: %v", c, resp.GetDiagnostics())
+						}
+					}
+					if codes["lossy.struct-kind"] != tt.readBack {
+						t.Errorf("read-back loss lossy.struct-kind reported = %v, want %v", codes["lossy.struct-kind"], tt.readBack)
+					}
 				})
 			}
 		})
