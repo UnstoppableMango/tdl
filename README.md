@@ -136,6 +136,7 @@ The home-manager module (`homeModules.default`, also `homeManagerModules.default
 `flakeModules.default` is a [flake-parts](https://flake.parts) module for a project that contains `.tdl` files.
 It adds `devShells.tdl` (pull it into your shell with `inputsFrom`) and checks that each model parses and lowers, is canonically formatted, and, for `gen.files`, that generated output on disk is current.
 `files` are strings relative to `src`, so `include` paths keep resolving.
+Setting `src` turns the module on; `tdl.enable = false` turns it off.
 
 ```nix
 {
@@ -148,7 +149,6 @@ It adds `devShells.tdl` (pull it into your shell with `inputsFrom`) and checks t
     };
 
     tdl = {
-      enable = true;
       src = ./model;
       files = [ "orders.tdl" "billing.tdl" ];
       gen.files = [ "orders.tdl" ];
