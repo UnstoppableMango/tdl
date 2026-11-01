@@ -174,10 +174,12 @@ func measure(path string, row Row, target Target) (Measured, error) {
 		// about what reading them back loses. Only that is the import's:
 		// what the plain run warns is output loss, the Generate cell's.
 		output := resp.GetDiagnostics()
-		var readback []*plugin.Diagnostic
-		if back, _ := generate(withReadback(model, target.Name), row, target); back != nil {
-			readback = without(back.GetDiagnostics(), output)
+		back, cell := generate(withReadback(model, target.Name), row, target)
+		if back == nil {
+			m.Import = cell
+			return m, nil
 		}
+		readback := without(back.GetDiagnostics(), output)
 		m.Import = readBack(path, row, model, target, importer, resp, readback, coded(output), loader)
 	}
 	return m, nil
@@ -299,6 +301,10 @@ func readBack(path string, row Row, model *ir.Model, target Target, importer plu
 	}
 	diags := append(slices.Clone(readback), imported.GetDiagnostics()...)
 	if !coded(diags) {
+		if len(diags) > 0 {
+			// A warning without a code is No, as grade has it.
+			return grade(diags, row)
+		}
 		if outputLoss {
 			return Cell{Support: Yes}
 		}

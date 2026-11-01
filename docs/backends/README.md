@@ -35,7 +35,7 @@ These are designed and not built yet, and each page names the phase that builds 
 ## Import
 
 What `tdl import` reads back of each feature, for the backends that import: each generates a model using the feature without `roundtrip` annotations, and imports the files it wrote.
-Yes reads back the same model, Warns reads back less under a loss code, and No reads back a different model without one, or fails.
+Yes means reading back adds no loss: the same model, or one differing only by the output loss Generate reports. Warns reads back less under a loss code, and No reads back a different model without one, or fails.
 A backend that imports nothing has no column.
 
 <!-- tdl:features import -->
