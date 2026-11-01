@@ -16,7 +16,7 @@ import (
 // model, with the response's diagnostics.
 func importProto(t *testing.T, files map[string]string) (string, []*plugin.Diagnostic) {
 	t.Helper()
-	req := &plugin.ImportRequest{Target: protobuf.Name}
+	req := &plugin.ImportRequest{Target: protobuf.Name, Readback: true}
 	for p, src := range files {
 		req.Files = append(req.Files, &plugin.File{Path: p, Content: []byte(src)})
 	}

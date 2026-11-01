@@ -94,36 +94,37 @@ namespace Tdl.Plugin.V1 {
             "dGRsLnBsdWdpbi52MS5GaWxlUgVmaWxlcxISCgRwb3N0GAIgAygJUgRwb3N0",
             "EjsKC2RpYWdub3N0aWNzGAMgAygLMhkudGRsLnBsdWdpbi52MS5EaWFnbm9z",
             "dGljUgtkaWFnbm9zdGljcyI0CgRGaWxlEhIKBHBhdGgYASABKAlSBHBhdGgS",
-            "GAoHY29udGVudBgCIAEoDFIHY29udGVudCJzCg1JbXBvcnRSZXF1ZXN0EhYK",
-            "BnRhcmdldBgBIAEoCVIGdGFyZ2V0EikKBWZpbGVzGAIgAygLMhMudGRsLnBs",
-            "dWdpbi52MS5GaWxlUgVmaWxlcxIfCgthbGxvd19sb3NzeRgDIAMoCVIKYWxs",
-            "b3dMb3NzeSKNAQoOSW1wb3J0UmVzcG9uc2USJgoFbW9kZWwYASABKAsyEC50",
-            "ZGwuaXIudjEuTW9kZWxSBW1vZGVsEjsKC2RpYWdub3N0aWNzGAIgAygLMhku",
-            "dGRsLnBsdWdpbi52MS5EaWFnbm9zdGljUgtkaWFnbm9zdGljcxIWCgZzb3Vy",
-            "Y2UYAyABKAlSBnNvdXJjZSKgAQoKRGlhZ25vc3RpYxIzCghzZXZlcml0eRgB",
-            "IAEoDjIXLnRkbC5wbHVnaW4udjEuU2V2ZXJpdHlSCHNldmVyaXR5EhgKB21l",
-            "c3NhZ2UYAiABKAlSB21lc3NhZ2USLwoIcG9zaXRpb24YAyABKAsyEy50ZGwu",
-            "aXIudjEuUG9zaXRpb25SCHBvc2l0aW9uEhIKBGNvZGUYBCABKAlSBGNvZGUi",
-            "fQoKUmVxdWVzdFNldBIyCghyZXF1ZXN0cxgBIAMoCzIWLnRkbC5wbHVnaW4u",
-            "djEuUmVxdWVzdFIIcmVxdWVzdHMSOwoLZGlhZ25vc3RpY3MYAiADKAsyGS50",
-            "ZGwucGx1Z2luLnYxLkRpYWdub3N0aWNSC2RpYWdub3N0aWNzIjsKB092ZXJs",
-            "YXkSMAoFZmlsZXMYASADKAsyGi50ZGwucGx1Z2luLnYxLk92ZXJsYXlGaWxl",
-            "UgVmaWxlcyI1CgtPdmVybGF5RmlsZRISCgRwYXRoGAEgASgJUgRwYXRoEhIK",
-            "BHRleHQYAiABKAlSBHRleHQqLQoETW9kZRIUChBNT0RFX1VOU1BFQ0lGSUVE",
-            "EAASDwoLTU9ERV9JTVBPUlQQASqRAQoJUGxhY2VtZW50EhkKFVBMQUNFTUVO",
-            "VF9VTlNQRUNJRklFRBAAEhMKD1BMQUNFTUVOVF9CTE9DSxABEhIKDlBMQUNF",
-            "TUVOVF9ERUNMEAISEwoPUExBQ0VNRU5UX0ZJRUxEEAMSFQoRUExBQ0VNRU5U",
-            "X1ZBUklBTlQQBBIUChBQTEFDRU1FTlRfRVhURVJOEAUqvwEKBEZvcm0SFAoQ",
-            "Rk9STV9VTlNQRUNJRklFRBAAEhIKDkZPUk1fUFJJTUlUSVZFEAESDQoJRk9S",
-            "TV9MSVNUEAISDAoIRk9STV9TRVQQAxIMCghGT1JNX01BUBAEEg8KC0ZPUk1f",
-            "T1BUSU9OEAUSEQoNRk9STV9OVUxMQUJMRRAGEg4KCkZPUk1fTkFNRUQQBxIP",
-            "CgtGT1JNX0VYVEVSThAIEg4KCkZPUk1fUEFSQU0QCRINCglGT1JNX1VOSVQQ",
-            "CipOCghTZXZlcml0eRIYChRTRVZFUklUWV9VTlNQRUNJRklFRBAAEhIKDlNF",
-            "VkVSSVRZX0VSUk9SEAESFAoQU0VWRVJJVFlfV0FSTklORxACQqYBChFjb20u",
-            "dGRsLnBsdWdpbi52MUILUGx1Z2luUHJvdG9aJmdpdGh1Yi5jb20vdW5zdG9w",
-            "cGFibGVtYW5nby90ZGwvcGx1Z2luogIDVFBYqgINVGRsLlBsdWdpbi5WMcoC",
-            "DVRkbFxQbHVnaW5cVjHiAhlUZGxcUGx1Z2luXFYxXEdQQk1ldGFkYXRh6gIP",
-            "VGRsOjpQbHVnaW46OlYxkgMHCALSPgIQAWIIZWRpdGlvbnNw6Qc="));
+            "GAoHY29udGVudBgCIAEoDFIHY29udGVudCKPAQoNSW1wb3J0UmVxdWVzdBIW",
+            "CgZ0YXJnZXQYASABKAlSBnRhcmdldBIpCgVmaWxlcxgCIAMoCzITLnRkbC5w",
+            "bHVnaW4udjEuRmlsZVIFZmlsZXMSHwoLYWxsb3dfbG9zc3kYAyADKAlSCmFs",
+            "bG93TG9zc3kSGgoIcmVhZGJhY2sYBCABKAhSCHJlYWRiYWNrIo0BCg5JbXBv",
+            "cnRSZXNwb25zZRImCgVtb2RlbBgBIAEoCzIQLnRkbC5pci52MS5Nb2RlbFIF",
+            "bW9kZWwSOwoLZGlhZ25vc3RpY3MYAiADKAsyGS50ZGwucGx1Z2luLnYxLkRp",
+            "YWdub3N0aWNSC2RpYWdub3N0aWNzEhYKBnNvdXJjZRgDIAEoCVIGc291cmNl",
+            "IqABCgpEaWFnbm9zdGljEjMKCHNldmVyaXR5GAEgASgOMhcudGRsLnBsdWdp",
+            "bi52MS5TZXZlcml0eVIIc2V2ZXJpdHkSGAoHbWVzc2FnZRgCIAEoCVIHbWVz",
+            "c2FnZRIvCghwb3NpdGlvbhgDIAEoCzITLnRkbC5pci52MS5Qb3NpdGlvblII",
+            "cG9zaXRpb24SEgoEY29kZRgEIAEoCVIEY29kZSJ9CgpSZXF1ZXN0U2V0EjIK",
+            "CHJlcXVlc3RzGAEgAygLMhYudGRsLnBsdWdpbi52MS5SZXF1ZXN0UghyZXF1",
+            "ZXN0cxI7CgtkaWFnbm9zdGljcxgCIAMoCzIZLnRkbC5wbHVnaW4udjEuRGlh",
+            "Z25vc3RpY1ILZGlhZ25vc3RpY3MiOwoHT3ZlcmxheRIwCgVmaWxlcxgBIAMo",
+            "CzIaLnRkbC5wbHVnaW4udjEuT3ZlcmxheUZpbGVSBWZpbGVzIjUKC092ZXJs",
+            "YXlGaWxlEhIKBHBhdGgYASABKAlSBHBhdGgSEgoEdGV4dBgCIAEoCVIEdGV4",
+            "dCotCgRNb2RlEhQKEE1PREVfVU5TUEVDSUZJRUQQABIPCgtNT0RFX0lNUE9S",
+            "VBABKpEBCglQbGFjZW1lbnQSGQoVUExBQ0VNRU5UX1VOU1BFQ0lGSUVEEAAS",
+            "EwoPUExBQ0VNRU5UX0JMT0NLEAESEgoOUExBQ0VNRU5UX0RFQ0wQAhITCg9Q",
+            "TEFDRU1FTlRfRklFTEQQAxIVChFQTEFDRU1FTlRfVkFSSUFOVBAEEhQKEFBM",
+            "QUNFTUVOVF9FWFRFUk4QBSq/AQoERm9ybRIUChBGT1JNX1VOU1BFQ0lGSUVE",
+            "EAASEgoORk9STV9QUklNSVRJVkUQARINCglGT1JNX0xJU1QQAhIMCghGT1JN",
+            "X1NFVBADEgwKCEZPUk1fTUFQEAQSDwoLRk9STV9PUFRJT04QBRIRCg1GT1JN",
+            "X05VTExBQkxFEAYSDgoKRk9STV9OQU1FRBAHEg8KC0ZPUk1fRVhURVJOEAgS",
+            "DgoKRk9STV9QQVJBTRAJEg0KCUZPUk1fVU5JVBAKKk4KCFNldmVyaXR5EhgK",
+            "FFNFVkVSSVRZX1VOU1BFQ0lGSUVEEAASEgoOU0VWRVJJVFlfRVJST1IQARIU",
+            "ChBTRVZFUklUWV9XQVJOSU5HEAJCpgEKEWNvbS50ZGwucGx1Z2luLnYxQgtQ",
+            "bHVnaW5Qcm90b1omZ2l0aHViLmNvbS91bnN0b3BwYWJsZW1hbmdvL3RkbC9w",
+            "bHVnaW6iAgNUUFiqAg1UZGwuUGx1Z2luLlYxygINVGRsXFBsdWdpblxWMeIC",
+            "GVRkbFxQbHVnaW5cVjFcR1BCTWV0YWRhdGHqAg9UZGw6OlBsdWdpbjo6VjGS",
+            "AwcIAtI+AhABYghlZGl0aW9uc3DpBw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::Tdl.Ir.V1.IrReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::Tdl.Plugin.V1.Mode), typeof(global::Tdl.Plugin.V1.Placement), typeof(global::Tdl.Plugin.V1.Form), typeof(global::Tdl.Plugin.V1.Severity), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -144,7 +145,7 @@ namespace Tdl.Plugin.V1 {
             new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.ConstraintView), global::Tdl.Plugin.V1.ConstraintView.Parser, new[]{ "Source", "Length", "Re2", "Problem" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.Response), global::Tdl.Plugin.V1.Response.Parser, new[]{ "Files", "Post", "Diagnostics" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.File), global::Tdl.Plugin.V1.File.Parser, new[]{ "Path", "Content" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.ImportRequest), global::Tdl.Plugin.V1.ImportRequest.Parser, new[]{ "Target", "Files", "AllowLossy" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.ImportRequest), global::Tdl.Plugin.V1.ImportRequest.Parser, new[]{ "Target", "Files", "AllowLossy", "Readback" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.ImportResponse), global::Tdl.Plugin.V1.ImportResponse.Parser, new[]{ "Model", "Diagnostics", "Source" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.Diagnostic), global::Tdl.Plugin.V1.Diagnostic.Parser, new[]{ "Severity", "Message", "Position", "Code" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.RequestSet), global::Tdl.Plugin.V1.RequestSet.Parser, new[]{ "Requests", "Diagnostics" }, null, null, null, null),
@@ -6111,6 +6112,7 @@ namespace Tdl.Plugin.V1 {
       target_ = other.target_;
       files_ = other.files_.Clone();
       allowLossy_ = other.allowLossy_.Clone();
+      readback_ = other.readback_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -6166,6 +6168,24 @@ namespace Tdl.Plugin.V1 {
       get { return allowLossy_; }
     }
 
+    /// <summary>Field number for the "readback" field.</summary>
+    public const int ReadbackFieldNumber = 4;
+    private bool readback_;
+    /// <summary>
+    /// readback asks for read-back loss too: what the files say that the TDL
+    /// keeps but generating from it writes differently, such as a name or a
+    /// file layout. Without it a backend reports only what the TDL cannot
+    /// hold. tdl import --readback sets it.
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Readback {
+      get { return readback_; }
+      set {
+        readback_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -6184,6 +6204,7 @@ namespace Tdl.Plugin.V1 {
       if (Target != other.Target) return false;
       if(!files_.Equals(other.files_)) return false;
       if(!allowLossy_.Equals(other.allowLossy_)) return false;
+      if (Readback != other.Readback) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -6194,6 +6215,7 @@ namespace Tdl.Plugin.V1 {
       if (Target.Length != 0) hash ^= Target.GetHashCode();
       hash ^= files_.GetHashCode();
       hash ^= allowLossy_.GetHashCode();
+      if (Readback != false) hash ^= Readback.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -6218,6 +6240,10 @@ namespace Tdl.Plugin.V1 {
       }
       files_.WriteTo(output, _repeated_files_codec);
       allowLossy_.WriteTo(output, _repeated_allowLossy_codec);
+      if (Readback != false) {
+        output.WriteRawTag(32);
+        output.WriteBool(Readback);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -6234,6 +6260,10 @@ namespace Tdl.Plugin.V1 {
       }
       files_.WriteTo(ref output, _repeated_files_codec);
       allowLossy_.WriteTo(ref output, _repeated_allowLossy_codec);
+      if (Readback != false) {
+        output.WriteRawTag(32);
+        output.WriteBool(Readback);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -6249,6 +6279,9 @@ namespace Tdl.Plugin.V1 {
       }
       size += files_.CalculateSize(_repeated_files_codec);
       size += allowLossy_.CalculateSize(_repeated_allowLossy_codec);
+      if (Readback != false) {
+        size += 1 + 1;
+      }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -6266,6 +6299,9 @@ namespace Tdl.Plugin.V1 {
       }
       files_.Add(other.files_);
       allowLossy_.Add(other.allowLossy_);
+      if (other.Readback != false) {
+        Readback = other.Readback;
+      }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -6297,6 +6333,10 @@ namespace Tdl.Plugin.V1 {
             allowLossy_.AddEntriesFrom(input, _repeated_allowLossy_codec);
             break;
           }
+          case 32: {
+            Readback = input.ReadBool();
+            break;
+          }
         }
       }
     #endif
@@ -6326,6 +6366,10 @@ namespace Tdl.Plugin.V1 {
           }
           case 26: {
             allowLossy_.AddEntriesFrom(ref input, _repeated_allowLossy_codec);
+            break;
+          }
+          case 32: {
+            Readback = input.ReadBool();
             break;
           }
         }

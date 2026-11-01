@@ -31,7 +31,7 @@ func needsCompiler(t *testing.T) {
 func importTS(t *testing.T, files map[string]string) (string, []*plugin.Diagnostic) {
 	t.Helper()
 	needsCompiler(t)
-	req := &plugin.ImportRequest{Target: typescript.Name}
+	req := &plugin.ImportRequest{Target: typescript.Name, Readback: true}
 	for path, src := range files {
 		req.Files = append(req.Files, &plugin.File{Path: path, Content: []byte(src)})
 	}

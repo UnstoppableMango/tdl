@@ -21,7 +21,7 @@ import (
 // model, with the response's diagnostics.
 func importGo(t *testing.T, files map[string]string) (string, []*plugin.Diagnostic) {
 	t.Helper()
-	req := &plugin.ImportRequest{Target: golang.Name}
+	req := &plugin.ImportRequest{Target: golang.Name, Readback: true}
 	for path, src := range files {
 		req.Files = append(req.Files, &plugin.File{Path: path, Content: []byte(src)})
 	}

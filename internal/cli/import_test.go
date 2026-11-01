@@ -8,6 +8,7 @@ import (
 
 	"google.golang.org/protobuf/encoding/protojson"
 
+	"github.com/unstoppablemango/tdl/backend/golang"
 	"github.com/unstoppablemango/tdl/internal/config"
 	"github.com/unstoppablemango/tdl/internal/gen/echo"
 	"github.com/unstoppablemango/tdl/internal/sema"
@@ -166,5 +167,22 @@ func TestImportNeedsAnImporter(t *testing.T) {
 	_, _, err = run(t, newImportCmd(), "x.json")
 	if err == nil || !strings.Contains(err.Error(), "--from") {
 		t.Errorf("err = %v, want one asking for --from", err)
+	}
+}
+
+// A respelling warns only under --readback.
+func TestImportReadback(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "shop.go")
+	if err := os.WriteFile(path, []byte("package shop\n\ntype Item struct {\n\tid string\n}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	resolve := func(string) (plugin.Backend, error) { return golang.Backend{}, nil }
+	_, errOut, err := run(t, importCmd(resolve), "--from", "go", path)
+	if err != nil || errOut != "" {
+		t.Errorf("err = %v, stderr = %q, want neither", err, errOut)
+	}
+	_, errOut, err = run(t, importCmd(resolve), "--from", "go", "--readback", path)
+	if err != nil || !strings.Contains(errOut, "Item.id is unexported, and regenerates as Id (lossy.name)") {
+		t.Errorf("err = %v, stderr = %q, want the respelling", err, errOut)
 	}
 }

@@ -315,7 +315,7 @@ func generate(t *testing.T, target Target, model *ir.Model) *plugin.Response {
 
 func importFiles(t *testing.T, importer plugin.Importer, name string, files []*plugin.File) (*ir.Model, []*plugin.Diagnostic) {
 	t.Helper()
-	resp, err := importer.Import(context.Background(), &plugin.ImportRequest{Target: name, Files: files})
+	resp, err := importer.Import(context.Background(), &plugin.ImportRequest{Target: name, Files: files, Readback: true})
 	if err != nil {
 		t.Fatalf("importing %s: %v", name, err)
 	}

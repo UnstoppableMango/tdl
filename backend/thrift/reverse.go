@@ -25,6 +25,7 @@ import (
 // file was generated from. docs/architecture/schema-backends.md has the mapping.
 func (Backend) Import(_ context.Context, req *plugin.ImportRequest) (*plugin.ImportResponse, error) {
 	r := &reader{names: map[string]string{}, sums: map[string]bool{}, variants: map[string]bool{}}
+	r.Readback = req.GetReadback()
 	return r.Response(r.read(req.GetFiles()))
 }
 
@@ -563,7 +564,7 @@ func (r *reader) union(u *parser.StructLike) (*reverse.Item, error) {
 		if n, ok := get(m.Annotations, "tdl.name"); ok {
 			vname = n
 		} else if !r.Roundtrip && emit.Camel(vname) != m.Name {
-			r.Warn(emit.LossName, r.pos(pos), "%s's member %s regenerates as %s", u.Name, m.Name, emit.Camel(vname))
+			r.Respell(emit.LossName, r.pos(pos), "%s's member %s regenerates as %s", u.Name, m.Name, emit.Camel(vname))
 		}
 		path := name + "." + vname
 		if !r.Roundtrip && s.Name != u.Name+vname {
