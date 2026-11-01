@@ -46,25 +46,25 @@ A backend that imports nothing has no column.
 | Mixin `include` | Warns | Warns | Warns | Warns | Warns | Warns |
 | Fieldless enum | Yes | Yes | Yes | Yes | Yes | Yes |
 | Fielded enum | Yes | Yes | Yes | Yes | Yes | Yes |
-| Newtype | Yes | Warns | Warns | Yes | Yes | Yes |
+| Newtype | Yes | Yes | Yes | Yes | Yes | Yes |
 | Alias | Warns | Warns | Warns | Warns | Warns | Warns |
 | Optional and nullable | Warns | Warns | Warns | Warns | Warns | Yes |
-| List, set, and map | Yes | No | Warns | Yes | Yes | Warns |
-| `min` | Yes | Warns | Warns | Warns | Warns | Warns |
-| `max` | Yes | Warns | Warns | Warns | Warns | Warns |
-| `length` | Yes | Warns | Warns | Warns | Warns | Warns |
-| `matches` | Yes | Warns | Warns | Warns | Warns | Warns |
-| `oneOf` | Yes | Warns | Warns | Warns | Warns | Yes |
-| `unique` | Yes | Warns | Warns | Warns | Warns | Warns |
-| `owned` | Warns | Warns | Warns | Warns | Warns | Warns |
-| Field default | Warns | Warns | Warns | Warns | Warns | Warns |
+| List, set, and map | Yes | No | Yes | Yes | Yes | Yes |
+| `min` | Yes | Yes | Yes | Yes | Yes | Yes |
+| `max` | Yes | Yes | Yes | Yes | Yes | Yes |
+| `length` | Yes | Yes | Yes | Yes | Yes | Yes |
+| `matches` | Yes | Yes | Yes | Yes | Yes | Yes |
+| `oneOf` | Yes | Yes | Yes | Yes | Yes | Yes |
+| `unique` | Yes | Yes | Yes | Yes | Yes | Yes |
+| `owned` | Yes | Yes | Yes | Yes | Yes | Yes |
+| Field default | Yes | Yes | Yes | Yes | Yes | Yes |
 | `key` directive | Yes | No | No | No | No | No |
 | `name` directive | Warns | Warns | Warns | Warns | Warns | Warns |
 | `number` directive | No | No | Yes | No | Yes | No |
 | Doc comment | Yes | Yes | Yes | Yes | Yes | Yes |
 | Type parameters | Yes | No | No | No | No | No |
-| Class | Warns | Warns | Warns | Warns | Warns | Warns |
-| Unit | No | Warns | Warns | Warns | Warns | Warns |
+| Class | Yes | Yes | Yes | Yes | Yes | Yes |
+| Unit | No | Yes | Yes | Yes | Yes | Yes |
 | Import and extern | No | No | No | No | No | Yes |
 
 <!-- /tdl:features -->

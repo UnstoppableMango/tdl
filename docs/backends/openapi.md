@@ -7,7 +7,7 @@ The `openapi` backend writes one OpenAPI 3.1, 3.0, or 2.0 document per model, of
 
 What the backend does with each feature of the language today, measured by `make features` against `testdata/features`.
 Yes generates it, Warns loses part of it under the loss codes named, which `tdl.toml` can allow, and No skips it or refuses the model.
-Import generates the feature and reads it back.
+Import generates the feature and reads it back, and counts only what reading back loses, so a loss Generate already shows is not counted again.
 
 <!-- tdl:features openapi -->
 

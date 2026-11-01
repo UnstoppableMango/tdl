@@ -306,7 +306,8 @@ A row is a directory of `testdata/features` holding `source.tdl`; a subdirectory
 A source's target block is written for `feature` and renamed for each backend, in its imports too.
 Generate is No on an error or a warning without a loss code, Warns on the loss codes the row owns (`Row.Codes`), and Yes otherwise, since a source cannot use a feature alone.
 Generate leaves read-back loss out, as `tdl gen` does.
-Import generates with `readback` and without `roundtrip` and reads the files back: the same model is Yes, a difference with no loss code anywhere is No.
+Import generates with `readback` and without `roundtrip` and reads the files back, grading only read-back loss: the warnings `readback` adds and those import reports, never the output loss Generate shows.
+The same model is Yes, as is a difference output loss alone explains; a difference with no loss code anywhere is No.
 `features.toml` beside a backend's source (`backend/<package>/`, or `dotnet/Tdl.Gen.CSharp/` for `csharp`) holds the cells a measurement cannot: `spelling`, `notes`, and `planned`, which shows in place of Generate and fails once the row generates.
 A cell may not hold a `|`.
 An Import cell a tool missing from PATH, or `-short`, leaves unmeasured keeps its committed text, so `make features` needs `smithy` and `tsc` to change those cells.

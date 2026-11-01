@@ -7,7 +7,7 @@ The `go` backend writes structs, entity keys, both enum shapes, newtypes, generi
 
 What the backend does with each feature of the language today, measured by `make features` against `testdata/features`.
 Yes generates it, Warns loses part of it under the loss codes named, which `tdl.toml` can allow, and No skips it or refuses the model.
-Import generates the feature and reads it back.
+Import generates the feature and reads it back, and counts only what reading back loses, so a loss Generate already shows is not counted again.
 
 <!-- tdl:features go -->
 
@@ -27,14 +27,14 @@ Import generates the feature and reads it back.
 | `matches` | Yes | Yes | a `regexp` check in `Validate` | |
 | `oneOf` | Yes | Yes | a check in `Validate` | |
 | `unique` | Yes | Yes | a check in `Validate` for repeated elements | |
-| `owned` | Warns (`lossy.owned`) | Warns (`lossy.owned`) | | Go does not carry ownership, and the field holds what it names by value. |
-| Field default | Warns (`lossy.default`) | Warns (`lossy.default`) | | Go has no field defaults, so the zero value stands. |
+| `owned` | Warns (`lossy.owned`) | Yes | | Go does not carry ownership, and the field holds what it names by value. |
+| Field default | Warns (`lossy.default`) | Yes | | Go has no field defaults, so the zero value stands. |
 | `key` directive | Yes | Yes | a `Key()` method | A key of several fields returns a `<Name>Key` struct. |
 | `name` directive | Yes | Warns (`lossy.name`) | the identifier, as written | The name is used verbatim, so `grandTotal` is an unexported field, and it reads back as the field's own name. |
 | `number` directive | No | No | | Go has no field numbers, and the backend does not declare the directive, so it warns without a loss code and is ignored. |
 | Doc comment | Yes | Yes | a `//` doc comment | |
 | Type parameters | Yes | Yes | type parameters, constrained by `any` or `comparable` | |
-| Class | Warns (`lossy.class`) | Warns (`lossy.class`) | an interface with an unexported marker method | The class's fields are not written, since generated code never reads them. |
+| Class | Warns (`lossy.class`) | Yes | an interface with an unexported marker method | The class's fields are not written, since generated code never reads them. |
 | Unit | Planned (phase 6) | No | | Go has no units, so the struct holding a unit-typed field is skipped with a warning, and import has nothing to read back. |
 | Import and extern | Yes | No | an import of the dependency's package | Generating needs the dependency's `go` block to name its `package`; import reads the extern back as a local placeholder with a `foreign` directive, and no loss code says so. |
 

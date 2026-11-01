@@ -84,7 +84,8 @@ A code names a fact, and the kind of loss decides when it is reported (see `CONT
 Every backend that imports declares `readback`.
 `[lossy]` and `--allow-lossy` silence a code in both kinds.
 
-Importing, a backend reports both kinds, as it always has: what has no TDL form or is not read, and what regenerates as something else.
+Importing, a backend reports what reading the source loses: what has no TDL form or is not read, and what regenerates as something else.
+It never reports what generating lost; the feature tables' Import column follows the same rule.
 
 ## Round-trip annotations
 
