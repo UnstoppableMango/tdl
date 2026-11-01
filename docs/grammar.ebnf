@@ -50,7 +50,7 @@ PrimitiveDecl = "primitive" identifier [ ":" Kind ] .
 UnitDecl = "unit" identifier [ "=" UnitExpr ] .
 /*@ prec.left 1 */
 UnitExpr = UnitTerm { ( "*" | "/" ) UnitTerm } .
-UnitTerm = identifier [ "^" int_lit ] | "(" UnitExpr ")" .
+UnitTerm = ( identifier | "(" UnitExpr ")" ) [ "^" int_lit ] .
 
 /* ---- parameters, kinds, constraints ------------------------------------- */
 

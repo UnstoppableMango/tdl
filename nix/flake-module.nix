@@ -27,7 +27,17 @@
     in
     {
       options.tdl = {
-        enable = lib.mkEnableOption "tdl, the type description language, for this project";
+        enable = lib.mkOption {
+          type = lib.types.bool;
+          default = cfg.src != null;
+          defaultText = lib.literalExpression "config.tdl.src != null";
+          example = false;
+          description = ''
+            Whether to enable tdl, the type description language, for this
+            project. It is on once `src` is set, so pointing the module at a
+            model is enough; set it to false to turn everything off.
+          '';
+        };
 
         package = lib.mkPackageOption pkgs "tdl" { };
 
