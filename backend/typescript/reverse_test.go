@@ -105,8 +105,9 @@ export interface Pair<T> {
 export type Grade = "a" | "b";
 `})
 	want := map[string]int{
-		// count, run, shape, either, when, 1st, Hidden, Level, Box
-		emit.LossUnsupported: 9,
+		// count, run, shape, either, when, 1st, Hidden, Level, Level.Low's
+		// value, Box
+		emit.LossUnsupported: 10,
 		emit.LossDoc:         2, // the two comments, and @see
 		emit.LossGeneric:     1, // Pair
 	}

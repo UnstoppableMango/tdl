@@ -532,7 +532,7 @@ func (r *reader) reserved(s *protoFile, p []int32, name string, m *descriptorpb.
 	var args []*ast.Literal
 	for _, rr := range m.GetReservedRange() {
 		if rr.GetEnd()-rr.GetStart() > 64 {
-			r.Respell(emit.LossUnsupported, s.pos(p...), "%s reserves %d to %d, and a reserved directive lists numbers one by one", m.GetName(), rr.GetStart(), rr.GetEnd()-1)
+			r.Warn(emit.LossUnsupported, s.pos(p...), "%s reserves %d to %d, and a reserved directive lists numbers one by one", m.GetName(), rr.GetStart(), rr.GetEnd()-1)
 			continue
 		}
 		for n := rr.GetStart(); n < rr.GetEnd(); n++ {

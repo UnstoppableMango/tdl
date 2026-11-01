@@ -104,6 +104,19 @@ type (
 	}
 )
 
+// text is the literal as TypeScript writes it.
+func (l *tsLit) text() string {
+	switch {
+	case l.Str != nil:
+		return strconv.Quote(*l.Str)
+	case l.Num != nil:
+		return *l.Num
+	case l.Bool != nil:
+		return strconv.FormatBool(*l.Bool)
+	}
+	return "?"
+}
+
 // ErrNoCompiler is why import cannot run: node or the TypeScript compiler
 // is not on PATH.
 var ErrNoCompiler = errors.New("importing TypeScript runs the TypeScript compiler under node, and needs node and tsc on PATH")
@@ -542,6 +555,11 @@ func (r *reader) statement(s *statement, doc *jsdoc, carried ast.Decl) (ast.Decl
 			if !tdlName(m.Name) {
 				r.Warn(emit.LossUnsupported, r.pos(m.Line, m.Col), "%s.%s is not a TDL name", s.Name, m.Name)
 				continue
+			}
+			// The union regenerates each member as its name, so a value
+			// other than the name is not kept.
+			if v := m.Init; v != nil && (v.Str == nil || *v.Str != m.Name) {
+				r.Warn(emit.LossUnsupported, r.pos(m.Line, m.Col), "%s.%s's value %s is not read", s.Name, m.Name, v.text())
 			}
 			vdoc, err := r.jsdoc(m.Docs, m.Line, m.Col)
 			if err != nil {
