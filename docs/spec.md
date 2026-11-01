@@ -427,6 +427,7 @@ type Weight {
 }
 ```
 
+An exponent applies to a name or to a parenthesized expression, so `(kg*m)^2` is `kg^2*m^2`.
 Unit expressions are normalized to base dimensions before comparison, so `decimal<N>` and `decimal<kg*m/s^2>` are the same type.
 `decimal<kg>`, `decimal<m>`, and `decimal` are three different types.
 
