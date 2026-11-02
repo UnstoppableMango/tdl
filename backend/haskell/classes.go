@@ -462,10 +462,7 @@ func (g *generator) conformance(d *ir.Decl, ref *ir.ClassRef) (*instance, error)
 	if err != nil {
 		return nil, err
 	}
-	at := ref.GetPosition()
-	if at == nil {
-		at = d.GetMeta().GetPosition()
-	}
+	at := cmp.Or(ref.GetPosition(), d.GetMeta().GetPosition())
 	g.begin()
 	class, _, err := g.classOf(ref)
 	if err != nil {
@@ -819,10 +816,7 @@ func measureText(s string) (int, map[string]int) {
 func (g *generator) warnRequires(d *ir.Decl) {
 	name := d.GetMeta().GetName()
 	for _, ref := range d.Constraints() {
-		at := ref.GetPosition()
-		if at == nil {
-			at = d.GetMeta().GetPosition()
-		}
+		at := cmp.Or(ref.GetPosition(), d.GetMeta().GetPosition())
 		var text string
 		var err error
 		g.quietly(func() { text, err = g.constraint(ref, head{}, nil) })

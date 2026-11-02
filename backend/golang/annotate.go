@@ -1,6 +1,7 @@
 package golang
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	goast "go/ast"
@@ -328,10 +329,7 @@ func (g *generator) typeLosses(id *ir.ID, at *ir.Position) {
 	}
 	// A type is interned at its first use, so a field's own position says
 	// which use is meant.
-	pos := at
-	if pos == nil {
-		pos = t.GetPosition()
-	}
+	pos := cmp.Or(at, t.GetPosition())
 	name, wrote := decl.GetMeta().GetName(), t.GetWrote()
 	switch {
 	case decl.GetPrimitive() != nil:

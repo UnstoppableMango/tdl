@@ -261,11 +261,7 @@ func (nb *numberer) inlined(f *ir.Field) []*ir.Variant {
 	if !hasDirective(nb.target, nb.n.GetInline(), f.GetDirectives()) {
 		return nil
 	}
-	t := f.GetType()
-	if t == nil || int(t.GetIndex()) >= len(nb.a.GetTypes()) {
-		return nil
-	}
-	v := nb.a.GetTypes()[t.GetIndex()]
+	v := nb.a.GetTypes()[f.GetType().GetIndex()]
 	if v.GetForm() != plugin.Form_FORM_NAMED {
 		return nil
 	}

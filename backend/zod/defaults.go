@@ -1,6 +1,7 @@
 package zod
 
 import (
+	"cmp"
 	"math"
 	"regexp"
 	"strconv"
@@ -54,10 +55,7 @@ var intRanges = map[string][2]int64{
 // the schema as it is when the default cannot be written.
 func (g *generator) withDefault(owner string, f *ir.Field, r *emit.Ref, s schema) schema {
 	def := f.GetDefaultValue()
-	at := def.GetPosition()
-	if at == nil {
-		at = f.GetMeta().GetPosition()
-	}
+	at := cmp.Or(def.GetPosition(), f.GetMeta().GetPosition())
 	// warn drops the default. The mixin a field was copied from warns
 	// for it.
 	warn := func(format string, args ...any) schema {
