@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.5.6](https://github.com/UnstoppableMango/tdl/compare/v0.5.5...v0.5.6) (2026-11-02)
+
+
+### Features
+
+* **import:** report read-back loss only under --readback ([#1370](https://github.com/UnstoppableMango/tdl/issues/1370)) ([8c9799f](https://github.com/UnstoppableMango/tdl/commit/8c9799ff979769722ef5998372a69e2875a52997))
+* **nix:** enable the flake module once src is set ([#1357](https://github.com/UnstoppableMango/tdl/issues/1357)) ([dffde04](https://github.com/UnstoppableMango/tdl/commit/dffde0421d26750abfe3d645a7d484a4ca872b23)), closes [#1161](https://github.com/UnstoppableMango/tdl/issues/1161)
+
+
+### Bug Fixes
+
+* **ast:** measure one-line enums and where blocks against the whole line ([#1356](https://github.com/UnstoppableMango/tdl/issues/1356)) ([9c1ee48](https://github.com/UnstoppableMango/tdl/commit/9c1ee48948b953b8d84901f3dc0cb76580ead3b0)), closes [#1133](https://github.com/UnstoppableMango/tdl/issues/1133)
+* **gen:** report read-back loss only under a readback directive ([#1358](https://github.com/UnstoppableMango/tdl/issues/1358)) ([05aa570](https://github.com/UnstoppableMango/tdl/commit/05aa570fee1cb2da38a6135e079f0a6e084a6e05))
+* **grammar:** allow an exponent on a parenthesized unit term ([#1355](https://github.com/UnstoppableMango/tdl/issues/1355)) ([137e221](https://github.com/UnstoppableMango/tdl/commit/137e22190ef4be95354b4130b1bd6b9381e8e2ca)), closes [#1309](https://github.com/UnstoppableMango/tdl/issues/1309)
+
+
+### Dependencies
+
+* update dependency microsoft.net.test.sdk to v18 ([#1176](https://github.com/UnstoppableMango/tdl/issues/1176)) ([e237d5f](https://github.com/UnstoppableMango/tdl/commit/e237d5f15e8f72b7898305b001109249c024cac4))
+* update module go.yaml.in/yaml/v3 to v3.0.6 ([#1361](https://github.com/UnstoppableMango/tdl/issues/1361)) ([87b79ac](https://github.com/UnstoppableMango/tdl/commit/87b79ac774bbde684981ffcd43bf083d66c4457e))
+
 ## [0.5.5](https://github.com/UnstoppableMango/tdl/compare/v0.5.4...v0.5.5) (2026-10-29)
 
 
