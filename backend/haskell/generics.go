@@ -1,6 +1,7 @@
 package haskell
 
 import (
+	"cmp"
 	"fmt"
 	"slices"
 	"strconv"
@@ -79,10 +80,7 @@ func (g *generator) params(d *ir.Decl) (string, error) {
 	var b strings.Builder
 	seen := map[string]string{}
 	for _, p := range d.Params() {
-		pos := p.GetPosition()
-		if pos == nil {
-			pos = d.GetMeta().GetPosition()
-		}
+		pos := cmp.Or(p.GetPosition(), d.GetMeta().GetPosition())
 		name, of := p.GetName(), d.GetMeta().GetName()
 		v := tyvar(name)
 		switch other, dup := seen[v]; {

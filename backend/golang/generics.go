@@ -1,6 +1,7 @@
 package golang
 
 import (
+	"cmp"
 	"fmt"
 	"go/token"
 	"go/types"
@@ -100,10 +101,7 @@ func phantom(decl *ir.Decl) bool {
 // parameters, or returns nil.
 func (g *generator) paramProblem(decl *ir.Decl) error {
 	for _, p := range decl.Params() {
-		pos := p.GetPosition()
-		if pos == nil {
-			pos = decl.GetMeta().GetPosition()
-		}
+		pos := cmp.Or(p.GetPosition(), decl.GetMeta().GetPosition())
 		name, of := p.GetName(), decl.GetMeta().GetName()
 		switch {
 		case higherKinded(p.GetKind()):

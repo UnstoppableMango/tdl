@@ -1,6 +1,7 @@
 package golang
 
 import (
+	"cmp"
 	"fmt"
 	"strings"
 
@@ -167,10 +168,7 @@ func (g *generator) supers(class *ir.Decl) []int32 {
 // superProblem says why a required class cannot be embedded in the class's
 // interface, or returns nil. A dropped requirement weakens the interface.
 func (g *generator) superProblem(class *ir.Decl, ref *ir.ClassRef) error {
-	pos := ref.GetPosition()
-	if pos == nil {
-		pos = class.GetMeta().GetPosition()
-	}
+	pos := cmp.Or(ref.GetPosition(), class.GetMeta().GetPosition())
 	into := g.declName(class)
 	if ext := ref.GetExtern(); ext != nil {
 		return emit.Unsupported(pos, "%s is declared in another package, so %s does not embed it", ext.GetName(), into)
