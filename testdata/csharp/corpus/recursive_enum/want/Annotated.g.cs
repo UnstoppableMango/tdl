@@ -6,6 +6,7 @@
 
 namespace Lang.Syntax;
 
+/// <summary>A struct may reach itself through such an enum.</summary>
 public sealed partial record Annotated
 {
     public required string Label { get; init; }

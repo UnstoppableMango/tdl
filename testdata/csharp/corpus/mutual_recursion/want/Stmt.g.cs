@@ -6,6 +6,10 @@
 
 namespace Lang.Statements;
 
+/// <summary>
+/// Two enums may hold each other bare when one of them has a variant
+/// that reaches neither.
+/// </summary>
 public abstract partial record Stmt
 {
     private Stmt() { }

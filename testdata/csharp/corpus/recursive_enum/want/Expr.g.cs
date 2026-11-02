@@ -6,6 +6,10 @@
 
 namespace Lang.Syntax;
 
+/// <summary>
+/// An enum may hold itself bare when a variant ends the recursion:
+/// every Expr is a finite tree whose leaves are Int.
+/// </summary>
 public abstract partial record Expr
 {
     private Expr() { }
