@@ -29,7 +29,9 @@ func TestConformanceCorpusParses(t *testing.T) {
 }
 
 // TestInvalidCorpusFails checks every testdata/invalid source.tdl fails
-// with an error containing its sibling error.golden.
+// with an error containing its sibling error.golden. A case holding a
+// `parses` file fails in lowering instead: it must parse, and
+// internal/sema checks its error.
 func TestInvalidCorpusFails(t *testing.T) {
 	for _, dir := range subdirs(t, "../testdata/invalid") {
 		t.Run(filepath.Base(dir), func(t *testing.T) {
@@ -37,6 +39,12 @@ func TestInvalidCorpusFails(t *testing.T) {
 			data, err := os.ReadFile(filepath.Join(dir, "source.tdl"))
 			if err != nil {
 				t.Fatalf("reading source.tdl: %v", err)
+			}
+			if _, err := os.Stat(filepath.Join(dir, "parses")); err == nil {
+				if _, err := parser.Parse("source.tdl", strings.NewReader(string(data))); err != nil {
+					t.Fatalf("unexpected parse error: %v", err)
+				}
+				return
 			}
 			want, err := os.ReadFile(filepath.Join(dir, "error.golden"))
 			if err != nil {

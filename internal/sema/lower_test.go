@@ -586,7 +586,9 @@ type LineItem: Entity { order: Order }
 `)
 }
 
-// A value may reach itself only through a collection or an optional.
+// A value or an enum may reach itself however it likes, so long as it
+// has a finite value: through a collection or an optional, or through an
+// enum with a variant that ends the recursion.
 func TestValueRecursion(t *testing.T) {
 	lower(t, `
 type Ok { next: Ok? children: [Ok] byName: {string -> Ok} }
@@ -601,12 +603,50 @@ enum Tree { Leaf Branch { children: List<Tree> } }
 `)
 
 	for _, src := range []string{
+		`enum BinOp { Add Sub }
+enum Expr {
+  Int { value: int64 }
+  Binary { op: BinOp lhs: Expr rhs: Expr }
+}`,
+		`type Cell { e: Chain }
+enum Chain { Nil Cons { c: Cell } }`,
+		`enum List { Nil Cons { head: int32 tail: List } }`,
+		`enum Stmt { Expression { e: Expr } Block { body: [Stmt] } }
+enum Expr { Lit { v: int32 } Do { s: Stmt } }`,
+		`enum Stmt { Pass Expression { e: Expr } }
+enum Expr { Do { s: Stmt } Seq { a: Expr b: Expr } }`,
+		`type Wrapped: Expr
+enum Expr { Lit { v: int32 } Neg { e: Wrapped } }`,
+		`type Pair<X> { a: X b: X }
+enum Expr { Lit { v: int32 } Both { p: Pair<Expr> } }`,
+		`type Expr { e: Expr? }
+type Box<Expr> { v: Expr }
+type Holds { b: Box<int32> }`,
+		`enum Empty { }
+type Holder { e: Empty }`,
+	} {
+		t.Run(src, func(t *testing.T) { lower(t, src) })
+	}
+
+	for _, src := range []string{
 		`type Node { next: Node }`,
 		`type Node { next: Holder<Node> }
 type Holder<T> { value: T }`,
 		`type A { b: B }
 type B { a: A }`,
 		`enum Tree { Branch { left: Tree } }`,
+		`enum Loop { A { x: Loop } B { y: Loop } }`,
+		`enum Ping { A { x: Pong } }
+enum Pong { B { y: Ping } }`,
+		`type Node { e: Step }
+enum Step { A { n: Node } B { n: Node } }`,
+		`type Val { e: Ent }
+type Ent: Entity { v: Val }`,
+		`type N: N`,
+		`type A: B
+type B: A`,
+		`type M: Holder<M>
+type Holder<X> { value: X }`,
 	} {
 		t.Run(src, func(t *testing.T) {
 			diags := lowerDiags(t, src)

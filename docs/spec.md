@@ -187,9 +187,23 @@ type Order: Entity { items: [LineItem] owned }
 type LineItem: Entity { order: Order }
 ```
 
-A value or an enum may only reach itself through a collection or an optional, never as a bare field.
+Any other struct, every enum, and every newtype must have a finite value.
+A collection or an optional always has one, since it may be empty.
+A struct has one when every field's type has one, a newtype when its base does, and an enum when at least one variant's fields all do, so a fieldless variant ends any recursion through its enum.
 An enum holds its variants' fields inline, so conforming to `Entity` does not exempt one.
-`type Node { next: Node }` has no finite representation and is an error; `next: Node?` and `children: [Node]` are fine.
+
+`type Node { next: Node }` has no finite value and is an error; `next: Node?` and `children: [Node]` are fine.
+So is a syntax tree, since every `Expr` is a finite tree whose leaves are `Int`:
+
+```tdl
+enum Expr {
+  Int { value: int64 }
+  Binary { op: BinOp lhs: Expr rhs: Expr }
+}
+```
+
+The rule needs nothing more for mutual recursion: `Stmt` may hold `Expr` and `Expr` hold `Stmt` when either has a variant that reaches neither.
+`enum Loop { A { x: Loop } B { y: Loop } }` has no variant that ends the recursion, and is an error.
 
 Aliases may never be recursive, since they are expanded rather than referenced.
 

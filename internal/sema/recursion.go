@@ -11,40 +11,153 @@ import (
 //
 //   - A struct conforming to Entity may be mutually recursive without
 //     restriction.
-//   - Any other struct or enum may reach itself only through a collection
-//     or an optional: `next: Node?` is allowed, `next: Node` is not. An
+//   - Any other struct, every enum, and every newtype must have a finite
+//     value: `next: Node` gives `Node` none, while `next: Node?`, or a
+//     field of an enum with a variant that ends the recursion, does. An
 //     enum is never exempt, even conforming to Entity.
 //   - Aliases may never be recursive, even through a collection.
 //
 // It runs after [lowerer.markEntities], which sets the entity kind.
 func (l *lowerer) checkRecursion(file *ast.File) {
+	finite := finiteDecls(file)
 	for _, decl := range file.Decls {
 		name := decl.Name()
 		switch decl.(type) {
 		case *ast.AliasDecl:
 			// Expansion follows every edge, including through collections.
-			l.findCycle(file, name, name, map[string]bool{}, true)
+			l.findCycle(file, name, name, map[string]bool{}, nil)
 		case *ast.StructDecl:
 			if b, ok := l.file.lookup(name); ok && b.kind == bindDecl &&
 				l.model.Decl(b.id).GetStructure().GetKind() == ir.StructKind_STRUCT_KIND_ENTITY {
 				continue
 			}
-			l.findCycle(file, name, name, map[string]bool{}, false)
-		case *ast.EnumDecl:
-			l.findCycle(file, name, name, map[string]bool{}, false)
+			if !finite[name] {
+				l.findCycle(file, name, name, map[string]bool{}, finite)
+			}
+		case *ast.EnumDecl, *ast.NewtypeDecl:
+			if !finite[name] {
+				l.findCycle(file, name, name, map[string]bool{}, finite)
+			}
 		}
 	}
 }
 
-// findCycle walks from `at` looking for `start`. `throughWrappers` says
-// whether an edge into a collection or optional counts.
-func (l *lowerer) findCycle(file *ast.File, start, at string, seen map[string]bool, throughWrappers bool) {
+// finiteDecls returns the declarations of a file that have a finite value,
+// the least fixed point of:
+//
+//   - a struct is finite when every field's type is;
+//   - an enum is finite when some variant's fields all are, so a fieldless
+//     variant, or no variant at all, makes it finite;
+//   - a newtype or an alias is finite when its base or target is.
+//
+// A type is finite when it is a collection or an optional, names no
+// declaration of the file (a primitive, a prelude name, a type parameter,
+// another package), or names a finite one with finite arguments.
+//
+// Entities are walked like any struct: one holding itself is not finite,
+// and only reporting exempts it, so a value holding an entity that holds
+// the value still has none.
+func finiteDecls(file *ast.File) map[string]bool {
+	decls := map[string]ast.Decl{}
+	for _, d := range file.Decls {
+		switch d.(type) {
+		case *ast.AliasDecl, *ast.NewtypeDecl, *ast.StructDecl, *ast.EnumDecl:
+			if _, dup := decls[d.Name()]; !dup {
+				decls[d.Name()] = d
+			}
+		}
+	}
+
+	finite := map[string]bool{}
+	for changed := true; changed; {
+		changed = false
+		for name, d := range decls {
+			if !finite[name] && declFinite(d, decls, finite) {
+				finite[name] = true
+				changed = true
+			}
+		}
+	}
+	return finite
+}
+
+// declFinite reports whether a declaration is finite, given the
+// declarations already known to be.
+func declFinite(d ast.Decl, decls map[string]ast.Decl, finite map[string]bool) bool {
+	params := typeParams(d)
+	ok := func(t *ast.TypeRef) bool { return typeFinite(t, params, decls, finite) }
+
+	switch d := d.(type) {
+	case *ast.AliasDecl:
+		return ok(d.Target)
+	case *ast.NewtypeDecl:
+		return ok(d.Base)
+	case *ast.StructDecl:
+		for _, m := range d.Members {
+			if f, isField := m.(*ast.Field); isField && !ok(f.Type) {
+				return false
+			}
+		}
+		return true
+	case *ast.EnumDecl:
+		if len(d.Variants) == 0 {
+			return true
+		}
+		for _, v := range d.Variants {
+			if !slices.ContainsFunc(v.Fields, func(f *ast.Field) bool { return !ok(f.Type) }) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func typeFinite(t *ast.TypeRef, params map[string]bool, decls map[string]ast.Decl, finite map[string]bool) bool {
+	if t == nil || wrapped(t) || t.Qualifier != "" {
+		return true
+	}
+	if _, isDecl := decls[t.N]; isDecl && !params[t.N] && !finite[t.N] {
+		return false
+	}
+	for _, a := range t.Args {
+		if !typeFinite(a.Type, params, decls, finite) {
+			return false
+		}
+	}
+	return true
+}
+
+// typeParams returns the names a declaration's parameters bind, which
+// shadow the file's declarations inside it.
+func typeParams(d ast.Decl) map[string]bool {
+	var ps []*ast.TypeParam
+	switch d := d.(type) {
+	case *ast.AliasDecl:
+		ps = d.Params
+	case *ast.NewtypeDecl:
+		ps = d.Params
+	case *ast.StructDecl:
+		ps = d.Params
+	case *ast.EnumDecl:
+		ps = d.Params
+	}
+	out := map[string]bool{}
+	for _, p := range ps {
+		out[p.N] = true
+	}
+	return out
+}
+
+// findCycle walks from `at` looking for `start`. With `finite` nil, every
+// edge counts, through collections too; otherwise only an edge outside a
+// collection or an optional into a declaration with no finite value.
+func (l *lowerer) findCycle(file *ast.File, start, at string, seen map[string]bool, finite map[string]bool) {
 	if seen[at] {
 		return
 	}
 	seen[at] = true
 
-	for _, next := range l.edges(file, at, throughWrappers) {
+	for _, next := range l.edges(file, at, finite) {
 		if next.name == start {
 			if start == at {
 				l.diags.add(next.at, "%s contains itself", start)
@@ -53,7 +166,7 @@ func (l *lowerer) findCycle(file *ast.File, start, at string, seen map[string]bo
 			}
 			return
 		}
-		l.findCycle(file, start, next.name, seen, throughWrappers)
+		l.findCycle(file, start, next.name, seen, finite)
 	}
 }
 
@@ -63,11 +176,13 @@ type edge struct {
 }
 
 // edges returns the declarations a declaration reaches directly.
-func (l *lowerer) edges(file *ast.File, name string, throughWrappers bool) []edge {
+func (l *lowerer) edges(file *ast.File, name string, finite map[string]bool) []edge {
 	decl := findDecl(file, name)
 	if decl == nil {
 		return nil
 	}
+	throughWrappers := finite == nil
+	params := typeParams(decl)
 
 	var out []edge
 	add := func(t *ast.TypeRef) {
@@ -78,6 +193,9 @@ func (l *lowerer) edges(file *ast.File, name string, throughWrappers bool) []edg
 			return // the wrapper gives it a finite representation
 		}
 		for _, n := range reachedNames(t, throughWrappers) {
+			if params[n] || (!throughWrappers && finite[n]) {
+				continue
+			}
 			out = append(out, edge{name: n, at: t})
 		}
 	}

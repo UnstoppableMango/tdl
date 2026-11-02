@@ -1,0 +1,14 @@
+package lang.statements
+
+/// Two enums may hold each other bare when one of them has a variant
+/// that reaches neither.
+enum Stmt {
+  Pass
+  Eval { expr: Expr }
+  Seq { first: Stmt then: Stmt }
+}
+
+enum Expr {
+  Lit { value: int64 }
+  Run { body: Stmt result: Expr }
+}
