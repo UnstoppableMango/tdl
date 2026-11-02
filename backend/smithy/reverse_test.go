@@ -21,7 +21,7 @@ func importSmithy(t *testing.T, files map[string]string) (string, []*plugin.Diag
 	if _, err := smithy.CLI(); err != nil {
 		t.Skip(err)
 	}
-	req := &plugin.ImportRequest{Target: smithy.Name}
+	req := &plugin.ImportRequest{Target: smithy.Name, Readback: true}
 	for path, src := range files {
 		req.Files = append(req.Files, &plugin.File{Path: path, Content: []byte(src)})
 	}

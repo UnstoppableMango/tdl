@@ -432,6 +432,12 @@ message ImportRequest {
   // carrying them, so a backend may skip the work of finding them; ignoring
   // the list is correct.
   repeated string allow_lossy = 3;
+
+  // readback asks for read-back loss too: what the files say that the TDL
+  // keeps but generating from it writes differently, such as a name or a
+  // file layout. Without it a backend reports only what the TDL cannot
+  // hold. tdl import --readback sets it.
+  bool readback = 4;
 }
 
 // ImportResponse is what a reverse backend returns: a model, or TDL

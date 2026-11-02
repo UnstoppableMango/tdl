@@ -21,7 +21,7 @@ func importGraphQL(t *testing.T, files ...string) (string, []*plugin.Diagnostic)
 
 func importNamed(t *testing.T, path string, files ...string) (string, []*plugin.Diagnostic) {
 	t.Helper()
-	req := &plugin.ImportRequest{Target: graphql.Name}
+	req := &plugin.ImportRequest{Target: graphql.Name, Readback: true}
 	for _, src := range files {
 		req.Files = append(req.Files, &plugin.File{Path: path, Content: []byte(src)})
 	}

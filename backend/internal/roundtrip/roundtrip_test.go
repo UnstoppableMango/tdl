@@ -284,3 +284,85 @@ func write(t *testing.T, path, content string) {
 		t.Fatal(err)
 	}
 }
+
+// TestImportReadback holds every importer to reporting read-back loss, a
+// fact the TDL keeps but regenerating spells differently, only when the
+// request sets readback: each schema-first case warns a subset without it,
+// and a file holding a respelling warns about it only with it.
+func TestImportReadback(t *testing.T) {
+	respellings := map[string]*plugin.File{
+		"go":         {Path: "shop.go", Content: []byte("package shop\n\ntype Item struct {\n\tid string\n}\n")},
+		"graphql":    {Path: "my-shop.graphql", Content: []byte("type Item {\n  id: String!\n}\n")},
+		"protobuf":   {Path: "shop.proto", Content: []byte("syntax = \"proto3\";\n\npackage shop;\n\nenum Level {\n  LOW = 0;\n  HIGH = 1;\n}\n")},
+		"smithy":     {Path: "shop.smithy", Content: []byte("$version: \"2\"\n\nnamespace shop\n\nunion Either {\n    Left: EitherLeft\n}\n\nstructure EitherLeft {\n    id: String\n}\n")},
+		"thrift":     {Path: "shop.thrift", Content: []byte("namespace * shop\n\nstruct Item {\n  1: string id\n}\n\nunion Value {\n  1: Item TheItem\n}\n")},
+		"typescript": {Path: "shop.ts", Content: []byte("interface Item {\n  id: string;\n}\n")},
+	}
+	for _, target := range targets {
+		desc := target.Backend.Describe()
+		importer, ok := target.Backend.(plugin.Importer)
+		if !desc.Reverse || !ok {
+			continue
+		}
+		t.Run(desc.Name, func(t *testing.T) {
+			if target.Needs != nil {
+				if err := target.Needs(); err != nil {
+					t.Skip(err)
+				}
+			}
+			cases, err := filepath.Glob(filepath.Join(corpus, desc.Name, "*", roundtrip.Expected))
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, expected := range cases {
+				files := caseFiles(t, filepath.Dir(expected))
+				plain := importDiags(t, importer, desc.Name, files, false)
+				full := importDiags(t, importer, desc.Name, files, true)
+				for _, d := range plain {
+					if !slices.ContainsFunc(full, func(f *plugin.Diagnostic) bool { return proto.Equal(d, f) }) {
+						t.Errorf("%s: %q warns only without readback", expected, d.GetMessage())
+					}
+				}
+			}
+
+			file, ok := respellings[desc.Name]
+			if !ok {
+				t.Fatalf("no respelling listed for %s", desc.Name)
+			}
+			files := []*plugin.File{file}
+			if plain, full := importDiags(t, importer, desc.Name, files, false), importDiags(t, importer, desc.Name, files, true); len(plain) != 0 || len(full) == 0 {
+				t.Errorf("%s warns %v without readback and %v with it; want only with it", file.GetPath(), plain, full)
+			}
+		})
+	}
+}
+
+func caseFiles(t *testing.T, dir string) []*plugin.File {
+	t.Helper()
+	var files []*plugin.File
+	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		rel, err := filepath.Rel(dir, path)
+		if err != nil || rel == roundtrip.Expected || rel == roundtrip.Golden {
+			return err
+		}
+		data, err := os.ReadFile(path)
+		files = append(files, &plugin.File{Path: filepath.ToSlash(rel), Content: data})
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return files
+}
+
+func importDiags(t *testing.T, importer plugin.Importer, name string, files []*plugin.File, readback bool) []*plugin.Diagnostic {
+	t.Helper()
+	resp, err := importer.Import(context.Background(), &plugin.ImportRequest{Target: name, Files: files, Readback: readback})
+	if err != nil {
+		t.Fatalf("importing %s: %v", name, err)
+	}
+	return resp.GetDiagnostics()
+}

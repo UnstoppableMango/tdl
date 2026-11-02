@@ -78,6 +78,7 @@ func CLI() (string, error) {
 // docs/architecture/schema-backends.md has the mapping.
 func (Backend) Import(ctx context.Context, req *plugin.ImportRequest) (*plugin.ImportResponse, error) {
 	r := &reader{}
+	r.Readback = req.GetReadback()
 	return r.Response(r.read(ctx, req.GetFiles()))
 }
 
@@ -616,7 +617,7 @@ func (r *reader) union(s *shape, name string) *ast.EnumDecl {
 		path := name + "." + vname
 		r.unknown(s.id, path, m.traits)
 		if emit.Camel(vname) != m.name {
-			r.Warn(emit.LossName, r.pos(s.id), "union %s's member %s reads as variant %s, which regenerates as member %s", s.name(), m.name, vname, emit.Camel(vname))
+			r.Respell(emit.LossName, r.pos(s.id), "union %s's member %s reads as variant %s, which regenerates as member %s", s.name(), m.name, vname, emit.Camel(vname))
 		}
 		vt := m.traits
 		t := r.byID[m.target]
@@ -636,7 +637,7 @@ func (r *reader) union(s *shape, name string) *ast.EnumDecl {
 				v.Rbrace = v.P
 			}
 			if len(t.members) == 0 {
-				r.Warn(emit.LossUnsupported, r.pos(t.id), "%s holds no members, and %s regenerates as fieldless", t.name(), path)
+				r.Respell(emit.LossUnsupported, r.pos(t.id), "%s holds no members, and %s regenerates as fieldless", t.name(), path)
 			}
 		}
 		decl.Variants = append(decl.Variants, v)

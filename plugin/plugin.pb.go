@@ -1742,7 +1742,12 @@ type ImportRequest struct {
 	// allow_lossy are the loss codes the user allowed. tdl drops warnings
 	// carrying them, so a backend may skip the work of finding them; ignoring
 	// the list is correct.
-	AllowLossy    []string `protobuf:"bytes,3,rep,name=allow_lossy,json=allowLossy" json:"allow_lossy,omitempty"`
+	AllowLossy []string `protobuf:"bytes,3,rep,name=allow_lossy,json=allowLossy" json:"allow_lossy,omitempty"`
+	// readback asks for read-back loss too: what the files say that the TDL
+	// keeps but generating from it writes differently, such as a name or a
+	// file layout. Without it a backend reports only what the TDL cannot
+	// hold. tdl import --readback sets it.
+	Readback      bool `protobuf:"varint,4,opt,name=readback" json:"readback,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1796,6 +1801,13 @@ func (x *ImportRequest) GetAllowLossy() []string {
 		return x.AllowLossy
 	}
 	return nil
+}
+
+func (x *ImportRequest) GetReadback() bool {
+	if x != nil {
+		return x.Readback
+	}
+	return false
 }
 
 // ImportResponse is what a reverse backend returns: a model, or TDL
@@ -2222,12 +2234,13 @@ const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
 	"\vdiagnostics\x18\x03 \x03(\v2\x19.tdl.plugin.v1.DiagnosticR\vdiagnostics\"4\n" +
 	"\x04File\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x18\n" +
-	"\acontent\x18\x02 \x01(\fR\acontent\"s\n" +
+	"\acontent\x18\x02 \x01(\fR\acontent\"\x8f\x01\n" +
 	"\rImportRequest\x12\x16\n" +
 	"\x06target\x18\x01 \x01(\tR\x06target\x12)\n" +
 	"\x05files\x18\x02 \x03(\v2\x13.tdl.plugin.v1.FileR\x05files\x12\x1f\n" +
 	"\vallow_lossy\x18\x03 \x03(\tR\n" +
-	"allowLossy\"\x8d\x01\n" +
+	"allowLossy\x12\x1a\n" +
+	"\breadback\x18\x04 \x01(\bR\breadback\"\x8d\x01\n" +
 	"\x0eImportResponse\x12&\n" +
 	"\x05model\x18\x01 \x01(\v2\x10.tdl.ir.v1.ModelR\x05model\x12;\n" +
 	"\vdiagnostics\x18\x02 \x03(\v2\x19.tdl.plugin.v1.DiagnosticR\vdiagnostics\x12\x16\n" +

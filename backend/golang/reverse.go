@@ -33,6 +33,7 @@ import (
 // package was generated from. docs/architecture/go-backend.md has the mapping.
 func (Backend) Import(_ context.Context, req *plugin.ImportRequest) (*plugin.ImportResponse, error) {
 	r := newReader()
+	r.Readback = req.GetReadback()
 	file, err := r.read(req.GetFiles())
 	if err != nil {
 		return r.Response(nil, err)
@@ -598,7 +599,7 @@ func (r *reader) decl(t *typeInfo) ast.Decl {
 	}
 	name := r.names[t.name]
 	if !token.IsExported(t.name) {
-		r.Warn(emit.LossName, r.pos(t.spec.Pos()), "%s is unexported, and regenerates as %s", t.name, exported(t.name))
+		r.Respell(emit.LossName, r.pos(t.spec.Pos()), "%s is unexported, and regenerates as %s", t.name, exported(t.name))
 	}
 	head := r.head(name, t.doc, t.spec.Pos())
 	params, requires := r.params(t, name)
@@ -872,7 +873,7 @@ func (r *reader) fields(list *goast.FieldList, owner string, scope map[string]bo
 			}
 			switch {
 			case !token.IsExported(n.Name):
-				r.Warn(emit.LossName, r.pos(n.Pos()), "%s.%s is unexported, and regenerates as %s", owner, n.Name, exported(n.Name))
+				r.Respell(emit.LossName, r.pos(n.Pos()), "%s.%s is unexported, and regenerates as %s", owner, n.Name, exported(n.Name))
 			case exported(name) != n.Name:
 				r.Directive(path, "name", reverse.StrLit(n.Name))
 			}
@@ -1114,7 +1115,12 @@ func (r *reader) typeRef(e goast.Expr, scope map[string]bool, what string) *ast.
 		if !ok {
 			return unsupported("%s", x.Name)
 		}
-		if !b.exact {
+		switch {
+		case b.exact:
+		case x.Name == "int" || x.Name == "uint" || x.Name == "rune":
+			// The same values, spelled another way.
+			r.Respell(emit.LossPrimitive, r.pos(x.Pos()), "%s is %s, which reads as %s and regenerates as %s", what, x.Name, b.prim, primitives[b.prim])
+		default:
 			r.Warn(emit.LossPrimitive, r.pos(x.Pos()), "%s is %s, which reads as %s and regenerates as %s", what, x.Name, b.prim, primitives[b.prim])
 		}
 		return &ast.TypeRef{P: p, N: b.prim}
@@ -1273,7 +1279,7 @@ func (r *reader) layout() {
 	case len(r.files) == 1:
 		r.Directive("", "file", reverse.StrLit(path.Base(r.files[0].path)))
 	default:
-		r.Warn(emit.LossUnsupported, nil, "the package's files regenerate as one file per declaration")
+		r.Respell(emit.LossUnsupported, nil, "the package's files regenerate as one file per declaration")
 	}
 }
 

@@ -276,7 +276,7 @@ func coded(diags []*plugin.Diagnostic) bool {
 // one whose codes the row does not own is put down to the rest of the
 // source.
 func readBack(path string, row Row, model *ir.Model, target Target, importer plugin.Importer, resp *plugin.Response, readback []*plugin.Diagnostic, outputLoss bool, loader renaming) Cell {
-	imported, err := importer.Import(context.Background(), &plugin.ImportRequest{Target: target.Name, Files: resp.GetFiles()})
+	imported, err := importer.Import(context.Background(), &plugin.ImportRequest{Target: target.Name, Files: resp.GetFiles(), Readback: true})
 	if err != nil {
 		return Cell{Support: No, Why: err.Error()}
 	}

@@ -35,6 +35,7 @@ func (Backend) Import(ctx context.Context, req *plugin.ImportRequest) (*plugin.I
 		foreign: map[string]string{},
 		uses:    map[string]map[string]bool{},
 	}
+	r.Readback = req.GetReadback()
 	return r.Response(r.read(ctx, req.GetFiles()))
 }
 
@@ -642,7 +643,7 @@ func (r *reader) oneof(s *protoFile, p []int32, k int32, owner string, m *descri
 	r.taken[enumName] = true
 	fieldName := emit.Camel(o.GetName())
 	if emit.Snake(fieldName) != o.GetName() {
-		r.Warn(emit.LossName, s.pos(op...), "oneof %s regenerates as %s", o.GetName(), emit.Snake(fieldName))
+		r.Respell(emit.LossName, s.pos(op...), "oneof %s regenerates as %s", o.GetName(), emit.Snake(fieldName))
 	}
 	e := &ast.EnumDecl{DeclHead: ast.DeclHead{N: enumName, P: s.astPos(op...)}}
 	var slots []slot
@@ -658,7 +659,7 @@ func (r *reader) oneof(s *protoFile, p []int32, k int32, owner string, m *descri
 			continue
 		}
 		if emit.Snake(vf.N) != f.GetName() {
-			r.Warn(emit.LossName, s.pos(fp...), "oneof member %s regenerates as %s", f.GetName(), emit.Snake(vf.N))
+			r.Respell(emit.LossName, s.pos(fp...), "oneof member %s regenerates as %s", f.GetName(), emit.Snake(vf.N))
 		}
 		e.Variants = append(e.Variants, &ast.Variant{DeclHead: ast.DeclHead{N: variant, P: vf.P}, Fields: []*ast.Field{vf}, Rbrace: vf.P})
 		slots = append(slots, slot{Member: emit.Member{Name: enumName + "." + variant}, num: int64(f.GetNumber())})
@@ -740,7 +741,7 @@ func (r *reader) enum(s *protoFile, p []int32, full string, e *descriptorpb.Enum
 		vp := child(p, enumValue, int32(i))
 		if v.GetNumber() == 0 {
 			if v.GetName() != prefix+"_UNSPECIFIED" && !r.Roundtrip {
-				r.Warn(emit.LossName, s.pos(vp...), "%s's zero value %s regenerates as %s_UNSPECIFIED", e.GetName(), v.GetName(), prefix)
+				r.Respell(emit.LossName, s.pos(vp...), "%s's zero value %s regenerates as %s_UNSPECIFIED", e.GetName(), v.GetName(), prefix)
 			}
 			continue
 		}
@@ -920,7 +921,7 @@ func (r *reader) block(file *ast.File) {
 	want := filePath(pkg, "")
 	for _, s := range r.files {
 		if dir := path.Dir(s.fd.GetName()); dir != path.Dir(want) {
-			r.Warn(emit.LossName, s.pos(), "%s regenerates in %s, the directory its package spells", s.fd.GetName(), path.Dir(want))
+			r.Respell(emit.LossName, s.pos(), "%s regenerates in %s, the directory its package spells", s.fd.GetName(), path.Dir(want))
 		}
 	}
 	if len(r.files) == 1 && path.Base(first.GetName()) != path.Base(want) {

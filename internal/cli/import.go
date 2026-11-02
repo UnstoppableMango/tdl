@@ -36,6 +36,7 @@ func importCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 		out        string
 		pkg        string
 		allowLossy []string
+		readback   bool
 	)
 
 	cmd := &cobra.Command{
@@ -89,6 +90,7 @@ func importCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 				Target:     from,
 				Files:      files,
 				AllowLossy: allowed,
+				Readback:   readback,
 			})
 			if err != nil {
 				return fmt.Errorf("%s: %w", from, err)
@@ -130,6 +132,7 @@ func importCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 	cmd.Flags().StringVarP(&out, "out", "o", "", "write the TDL here instead of standard output")
 	cmd.Flags().StringVar(&pkg, "package", "", "the package the TDL declares, replacing the one the backend chose")
 	cmd.Flags().StringSliceVar(&allowLossy, "allow-lossy", nil, "silence warnings with these loss codes")
+	cmd.Flags().BoolVar(&readback, "readback", false, "also warn what regenerating would write differently, such as a name or a file layout")
 	return cmd
 }
 

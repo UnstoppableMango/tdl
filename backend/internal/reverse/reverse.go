@@ -25,6 +25,9 @@ type Reader struct {
 	// they are read and no directive is inferred.
 	Roundtrip bool
 
+	// Readback is the request's readback flag: report read-back loss too.
+	Readback bool
+
 	// Entries is the target block being written.
 	Entries []*ast.TargetEntry
 }
@@ -37,6 +40,16 @@ func (r *Reader) Warn(code string, pos *ir.Position, format string, args ...any)
 		Position: pos,
 		Code:     code,
 	})
+}
+
+// Respell reports read-back loss: a fact the TDL keeps but generating
+// from it writes differently, such as a name or a file layout. Only a
+// request with readback set reports it; Warn reports what the TDL cannot
+// hold.
+func (r *Reader) Respell(code string, pos *ir.Position, format string, args ...any) {
+	if r.Readback {
+		r.Warn(code, pos, format, args...)
+	}
 }
 
 // Directive adds `path => name(args)` to the target block, unless

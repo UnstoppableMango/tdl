@@ -43,6 +43,7 @@ var outlineScript string
 // mapping.
 func (Backend) Import(ctx context.Context, req *plugin.ImportRequest) (*plugin.ImportResponse, error) {
 	r := &reader{names: map[string]string{}, sums: map[string]*sum{}, variants: map[string]bool{}}
+	r.Readback = req.GetReadback()
 	return r.Response(r.read(ctx, req.GetFiles()))
 }
 
@@ -102,6 +103,19 @@ type (
 		Bool *bool   `json:"bool,omitempty"`
 	}
 )
+
+// text is the literal as TypeScript writes it.
+func (l *tsLit) text() string {
+	switch {
+	case l.Str != nil:
+		return strconv.Quote(*l.Str)
+	case l.Num != nil:
+		return *l.Num
+	case l.Bool != nil:
+		return strconv.FormatBool(*l.Bool)
+	}
+	return "?"
+}
 
 // ErrNoCompiler is why import cannot run: node or the TypeScript compiler
 // is not on PATH.
@@ -285,7 +299,7 @@ func packageBack(file string) string {
 func (r *reader) header(file *ast.File, docs map[*statement]*jsdoc) (string, []reverse.Item, []string, error) {
 	pkg := packageBack(r.path)
 	if pkg != "" && !tdlName(pkg) {
-		r.Warn(emit.LossName, r.pos(0, 0), "%s names no package, and regenerates as %s.ts", r.path, ts.DefaultFile)
+		r.Respell(emit.LossName, r.pos(0, 0), "%s names no package, and regenerates as %s.ts", r.path, ts.DefaultFile)
 		pkg = ""
 	}
 
@@ -505,7 +519,7 @@ func (r *reader) statement(s *statement, doc *jsdoc, carried ast.Decl) (ast.Decl
 		return nil, nil
 	}
 	if !s.Exported || s.Declare {
-		r.Warn(emit.LossUnsupported, pos, "%s regenerates as an exported declaration", s.Name)
+		r.Respell(emit.LossUnsupported, pos, "%s regenerates as an exported declaration", s.Name)
 	}
 	name := r.names[s.Name]
 	if !tdlName(name) {
@@ -535,12 +549,17 @@ func (r *reader) statement(s *statement, doc *jsdoc, carried ast.Decl) (ast.Decl
 		}
 		return d, nil
 	case "enum":
-		r.Warn(emit.LossUnsupported, pos, "enum %s regenerates as a union of string literals", s.Name)
+		r.Respell(emit.LossUnsupported, pos, "enum %s regenerates as a union of string literals", s.Name)
 		d := &ast.EnumDecl{DeclHead: head}
 		for _, m := range s.Members {
 			if !tdlName(m.Name) {
 				r.Warn(emit.LossUnsupported, r.pos(m.Line, m.Col), "%s.%s is not a TDL name", s.Name, m.Name)
 				continue
+			}
+			// The union regenerates each member as its name, so a value
+			// other than the name is not kept.
+			if v := m.Init; v != nil && (v.Str == nil || *v.Str != m.Name) {
+				r.Warn(emit.LossUnsupported, r.pos(m.Line, m.Col), "%s.%s's value %s is not read", s.Name, m.Name, v.text())
 			}
 			vdoc, err := r.jsdoc(m.Docs, m.Line, m.Col)
 			if err != nil {

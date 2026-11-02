@@ -373,6 +373,7 @@ A file named `-` is standard input, shown as `<stdin>` in positions.
 `import --from <target>` asks a backend for a model, prints it through `internal/unlower`, and lowers the printed source again, writing nothing when that fails.
 `gen --make <target>` writes a make dependency file once the whole run succeeds, naming every file it read through a `sema.Recording` loader, and leaves an existing one alone when the run fails.
 `gen` and `import` both drop warnings whose loss code `tdl.toml` or `--allow-lossy` allows, and print a code after the message.
+`import` reports read-back loss, what the TDL keeps but regenerating writes differently, only under `--readback`, which sets `ImportRequest.readback`; an importer writes it with `reverse.Reader.Respell` and everything else with `Warn`.
 
 `request --target <name>` writes, as framed messages, a `Handshake` and one `RequestSet`: the requests `gen` would send that backend, and every diagnostic, a file with an error yielding no request.
 It runs no backend and writes nothing to disk, for a host that runs the backend itself, such as the C# source generator.

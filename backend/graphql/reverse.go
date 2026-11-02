@@ -48,6 +48,7 @@ var primitives = map[string]string{
 // docs/architecture/schema-backends.md has the mapping.
 func (Backend) Import(_ context.Context, req *plugin.ImportRequest) (*plugin.ImportResponse, error) {
 	r := &reader{names: map[string]string{}, sums: map[string]bool{}, variants: map[string]bool{}}
+	r.Readback = req.GetReadback()
 	return r.Response(r.read(req.GetFiles()))
 }
 
@@ -131,7 +132,7 @@ func (r *reader) header(file *ast.File) (string, []reverse.Item, []string, error
 	case pkg == defaultFile:
 		pkg = ""
 	case !ident.MatchString(pkg):
-		r.Warn(emit.LossName, r.pos(nil), "%s names no package, and regenerates as %s.graphql", r.path, defaultFile)
+		r.Respell(emit.LossName, r.pos(nil), "%s names no package, and regenerates as %s.graphql", r.path, defaultFile)
 		pkg = ""
 	}
 

@@ -17,7 +17,7 @@ import (
 // model, with the response's diagnostics.
 func importThrift(t *testing.T, files ...string) (string, []*plugin.Diagnostic) {
 	t.Helper()
-	req := &plugin.ImportRequest{Target: thrift.Name}
+	req := &plugin.ImportRequest{Target: thrift.Name, Readback: true}
 	for _, src := range files {
 		req.Files = append(req.Files, &plugin.File{Path: "shop.thrift", Content: []byte(src)})
 	}

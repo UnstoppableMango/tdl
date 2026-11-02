@@ -84,8 +84,14 @@ A code names a fact, and the kind of loss decides when it is reported (see `CONT
 Every backend that imports declares `readback`.
 `[lossy]` and `--allow-lossy` silence a code in both kinds.
 
-Importing, a backend reports what reading the source loses: what has no TDL form or is not read, and what regenerates as something else.
-It never reports what generating lost; the feature tables' Import column follows the same rule.
+Importing has the same two kinds, seen from the source:
+
+- **Output loss** is a fact of the source the TDL cannot hold: a construct with no TDL form, something not read, a narrower primitive widened (`int16` read as `int32`), proto2 `required`, a thrift id below 1.
+  `tdl import` always reports it, with `Reader.Warn`.
+- **Read-back loss** is a fact the TDL keeps but regenerating writes differently: a name (an unexported Go type, a oneof, an enum's zero value, a union member), a file name or directory, a TypeScript `enum` or unexported declaration, a primitive with the same values (`int` read as `int64`).
+  `tdl import` reports it only under `--readback`, which sets `ImportRequest.readback`; a backend writes it with `Reader.Respell`.
+
+Importing never reports what generating lost; the feature tables' Import column follows the same rule, and the round-trip harness and the Import column import with `readback` set.
 
 ## Round-trip annotations
 
@@ -134,7 +140,7 @@ Silencing is diagnostics policy, not type mapping, which is why it lives in the 
 ## Command
 
 ```text
-tdl import --from <target> [-o out.tdl] [--package <path>] [--allow-lossy <code>,...] <files>...
+tdl import --from <target> [-o out.tdl] [--package <path>] [--allow-lossy <code>,...] [--readback] <files>...
 ```
 
 `--from` resolves through `gen.Resolve`, so a plugin on `PATH` imports the same way a built-in does.

@@ -132,7 +132,7 @@ A backend may skip expensive work it knows cannot affect the answer; one that ig
 
 ## Import
 
-A handshake in import mode is followed by an `ImportRequest` rather than a `Request`: the target name, the source files, and the loss codes the user allowed.
+A handshake in import mode is followed by an `ImportRequest` rather than a `Request`: the target name, the source files, the loss codes the user allowed, and whether to report read-back loss (`readback`).
 The plugin answers with an `ImportResponse`, a model and diagnostics, and `tdl` prints the model as TDL.
 A plugin may return TDL source in place of the model; `tdl` lowers it, and reports source that does not lower as an error.
 A plugin declares the `reverse` feature to receive one; `tdl` sends no request to a plugin whose reply lacks it, and a plugin that does not import refuses the mode.
