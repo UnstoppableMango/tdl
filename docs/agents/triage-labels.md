@@ -13,3 +13,5 @@ The skills speak in terms of five canonical triage roles. This file maps those r
 When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the corresponding label string from this table.
 
 Edit the right-hand column to match whatever vocabulary you actually use.
+
+`routine:targets` marks the code reduction routine's pinned targets issue (see `docs/agents/routines.md`). Triage skips it: it never gets a triage label or a `Kind:` line.

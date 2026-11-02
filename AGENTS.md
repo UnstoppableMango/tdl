@@ -55,7 +55,7 @@ CI runs them as two steps.
 Biome's JSON formatter is off, because jsonfmt owns JSON.
 
 `.markdownlint-cli2.yaml` lists which markdown files are linted, so a bare `markdownlint-cli2` checks what CI checks.
-Files with no formatter: the three Makefiles, `.editorconfig`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md` (mdformat would break the frontmatter), `.graphifyignore`, `docs/demo/demo.tape`, `docs/demo/demo.bash`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, `backend/typescript/outline.js`, `tree-sitter/src/scanner.c`, and everything in `dotnet/` but `deps.json`.
+Files with no formatter: the three Makefiles, `.editorconfig`, `.gitattributes`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md` (mdformat would break the frontmatter), `.graphifyignore`, `docs/demo/demo.tape`, `docs/demo/demo.bash`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, `backend/typescript/outline.js`, `tree-sitter/src/scanner.c`, and everything in `dotnet/` but `deps.json`.
 `internal/ebnf` lints the two grammars instead, and their column alignment is deliberate.
 Also excluded from formatting: `*.tdl` (until `tdl fmt` is wired in, #1308), generated files, and `.claude/`.
 
@@ -592,7 +592,8 @@ Single-context: one root `CONTEXT.md` and `docs/adr/`, whose records start at AD
 
 ### Weekly routines
 
-Code reduction (Mondays) and mutation testing (Thursdays) file `needs-triage` issues with a `Kind:` line and build the `ready-for-agent` ones of their kinds. See `docs/agents/routines.md`.
+Code reduction (Mondays) and mutation testing (Thursdays) file `needs-triage` issues with a `Kind:` line and build the `ready-for-agent` ones of their kinds.
+Code reduction opens a pull request only when it shrinks the code not marked `linguist-generated` in `.gitattributes`, and keeps its ranked targets in the pinned `routine:targets` issue. See `docs/agents/routines.md`.
 
 <!-- graphify-rules-start (managed by `graphify init`) -->
 

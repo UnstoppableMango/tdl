@@ -53,6 +53,7 @@ The kind decides which routine builds the issue once it is triaged, whichever ro
 | `bug` | a suspected bug, a missing check, an input that panics or is wrongly accepted, or a mutant whose behavior is the right one | neither: a thread Erik starts |
 | `dead-code` | no input reaches the code, or a mutated line's other outcome | code reduction |
 | `duplicate-code` | two copies a reduction would merge disagree | code reduction |
+| `removal` | a whole feature, package, or file set could go, changing behavior; the issue gives the paths and the non-generated line count | code reduction |
 | `equivalent-mutant` | no test can tell the mutant apart; the issue proposes the exact `mutation/equivalent.txt` line and its comment | mutation testing |
 | `other` | anything else that looks wrong | neither: a thread Erik starts |
 
@@ -69,29 +70,67 @@ A queue issue whose fix would break those rules, such as a `dead-code` issue who
 
 ## Code reduction
 
-The job makes the codebase smaller and simpler, because less code is easier to maintain.
-Behavior stays identical.
+The job makes the codebase meaningfully smaller, because less code is easier to maintain.
+A run that does not shrink the code opens nothing: a quiet week beats a lateral pull request.
 
 Cap: one open pull request, on a branch named `chore/reduce-code-YYYY-MM-DD`.
 If an earlier run's is still open, drive it and stop.
-Queue issues go first, and the sweep fills the same pull request, which lists `Closes #N` for each.
 
-1. Find code to remove or simplify: dead or unreachable code; unused functions, types, constants, and parameters; duplicated logic that can share one helper; needless indirection, such as single-use wrappers or one-implementation interfaces that buy nothing; verbose code with a shorter equivalent; stale comments; positions in `mutation/equivalent.txt` that `make mutate` prints as stale.
+### Counting lines
+
+The net change is `git diff --numstat` against the base, summed over every file that `.gitattributes` does not mark `linguist-generated`, tests included.
+A pull request is opened only when that net is negative, and its title ends with it, as in `refactor(emit): share the field walk (-312)`.
+A new helper, and the test a shared package needs for it, are paid for out of what the change removes.
+
+### The targets issue
+
+The ranked list of what to cut lives in one pinned issue labeled `routine:targets`, titled "Code reduction targets".
+It has no `Kind:` line, and triage and both queues leave it alone.
+Its body is a table, one row per target, ranked best first:
+
+| Rank | Target | Where | Estimated net | Status |
+| --- | --- | --- | --- | --- |
+| 1 | what to merge or delete, in a phrase | the files it touches | -300 | open |
+
+A target is structural: two backends that walk the same shape, a module whose interface is wider than its callers use, a family of tests that could be one table, a layer that only forwards.
+Status is `open`, `in progress (#N)`, `done (#N)`, or `skip`.
+Erik's edits win: a `skip` row is never built and never re-added, the order he sets is kept, and a new target goes below the rows he has ranked.
+The first run under these rules surveys the code and creates the issue; later runs rewrite its body.
+
+### Each run
+
+1. Work the [queue](#the-queue): `ready-for-agent` issues of kind `dead-code`, `duplicate-code`, and `removal`, each in its own pull request saying `Closes #N`, counted against the cap.
+1. Otherwise take the top `open` target and build it, or its next step.
+   A target too big for one pull request is split across runs; each step meets the floor alone, and no step grows the code to set up the next.
+1. Fill any room left under the size limit with small cuts: dead or unreachable code; unused functions, types, constants, and parameters; needless indirection, such as single-use wrappers or one-implementation interfaces; stale comments; positions in `mutation/equivalent.txt` that `make mutate` prints as stale.
    Use `go vet`, golangci-lint's unused checks, `deadcode` (`golang.org/x/tools/cmd/deadcode`), and `dupl` where available.
-1. Keep to these rules:
-   - Behavior is identical: no change to CLI output, generated backend output, the IR, the exported API of `ir/` and `plugin/`, or `proto/`.
-   - Never remove a test case.
-     A test may be simplified (table-driven, shared helpers, less setup) as long as every case still runs and asserts the same thing.
-   - Never hand-edit generated files, goldens, release-please versions, or `CHANGELOG.md`, and never remove spec content or conformance cases.
-   - Prefer several small, obviously safe reductions to one risky rewrite, and skip anything not clearly behavior-preserving.
-   - When code moves into a shared package such as `backend/internal/emit`, add a small table test there, since coverage is measured per package.
+1. Survey for new targets while reading, and update the targets issue: re-estimate, mark progress, add new rows.
+   A cut that changes behavior is a `removal` issue, never a target.
 1. File an issue for every hole found along the way, and fix none of them in the reduction pull request.
+
+### Rules
+
+- Behavior is identical: no change to CLI output, generated backend output, the IR, the exported API of `ir/` and `plugin/`, or `proto/`.
+  The one exception is a `ready-for-agent` `removal`, which may also delete the tests, conformance cases, docs, and feature-table rows that exist only for the removed feature, each listed in the pull request.
+- Never remove a test case otherwise.
+  A test may be simplified (table-driven, shared helpers, less setup) as long as every case still runs and asserts the same thing.
+- Never hand-edit generated files, goldens, release-please versions, or `CHANGELOG.md`, and never remove spec content or conformance cases except as a removal allows.
+- Readability is checked, not judged:
+  - a new helper has at least three callers;
+  - no option, callback, or flag parameter is added just to merge call sites that differ;
+  - no function ends up longer than the longest one it replaces.
+- A pull request changes at most 1,000 non-generated lines, additions and deletions together.
+- When code moves into a shared package such as `backend/internal/emit`, add a small table test there, since coverage is measured per package.
+
+### Verifying and opening
+
 1. Verify with `go build ./...`, `go test -race ./...`, and `golangci-lint run`, plus `nix fmt` and `nix flake check` when nix runs.
    Goldens pass without `-update`.
    A reduction that breaks anything is reverted, never fixed by changing a test.
-1. Commit as a conventional commit (`refactor: remove unused helpers`) and open the pull request.
-   Its description has "Before:" and "After:" paragraphs, each reduction and why it is safe, the net line change from `git diff --shortstat`, the `Closes #N` lines, and the issues filed this run.
+1. Commit as a conventional commit (`refactor: remove unused helpers`) and open the pull request, its title ending with the net change.
+   Its description has "Before:" and "After:" paragraphs, the target it builds, each reduction and why it is safe, the net change as counted above, the `Closes #N` lines, and the issues filed this run.
    Assign UnstoppableMango, subscribe to its activity, and drive CI to green.
+1. If nothing clears the floor, open no pull request and say so in one line in the thread.
 
 ## Mutation testing
 
