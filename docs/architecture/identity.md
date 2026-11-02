@@ -71,10 +71,15 @@ The Go backend reads it to generate `Key()` ([go-backend-plan.md](https://github
 ## Recursion
 
 A type conforming to `std.Entity` may be mutually recursive without restriction, since a cycle between entities is a graph of references.
-Any other type may reach itself only through a collection or an optional.
-So may every enum, including one conforming to `std.Entity`, because an enum value holds its variant's fields inline.
+Any other struct, every enum, and every newtype must have a [finite value](../../CONTEXT.md), including an enum conforming to `std.Entity`, because an enum value holds its variant's fields inline.
+A collection or an optional is finite; a struct is when all its fields are, a newtype when its base is, and an enum when some variant's fields all are.
+So an enum may hold itself bare beside a variant that ends the recursion, and a struct may reach itself through such an enum (#1363).
 
 `checkRecursion` (`internal/sema/recursion.go`) runs after `buildSatisfaction` and reads unconditional conformance only.
+`finiteDecls` computes the finite declarations of a file as a least fixed point, walking entities like any other struct, since only reporting exempts them; a value holding an entity that holds the value has no finite value.
+A declaration that is not finite is reported only when it lies on a cycle of declarations that are not, at the field closing the cycle, so a struct merely holding a broken one is not reported twice.
+Another package's names are finite, since imports are not walked (#1215).
+Every cycle in a valid model passes through a fielded enum, a collection, an optional, or an entity, and every shipped backend writes those by reference already.
 A conditional instance (one with parameters or a `requires` clause) stands for a family of types, so it exempts no declaration.
 
 ## ir and backends

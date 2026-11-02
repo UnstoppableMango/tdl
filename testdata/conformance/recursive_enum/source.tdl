@@ -1,0 +1,18 @@
+package lang.syntax
+
+/// An enum may hold itself bare when a variant ends the recursion:
+/// every Expr is a finite tree whose leaves are Int.
+enum Expr {
+  Int { value: int64 }
+  Neg { operand: Expr }
+  Binary { op: BinOp lhs: Expr rhs: Expr }
+  Note { annotated: Annotated }
+}
+
+enum BinOp { Add Sub Mul Div }
+
+/// A struct may reach itself through such an enum.
+type Annotated {
+  label: string
+  expr: Expr
+}

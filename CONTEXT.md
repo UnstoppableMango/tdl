@@ -4,6 +4,12 @@ A language for describing domain models, and the compiler that lowers them and h
 
 ## Language
 
+### Models
+
+**Finite value**:
+What a struct, an enum, or a newtype must have to be valid: a value built in finitely many steps, so a field of a collection or an optional, or an enum variant that holds no cycle, ends any recursion.
+_Avoid_: finite representation, well-founded
+
 ### Plugin protocol
 
 **Backend**:
