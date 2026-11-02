@@ -421,7 +421,7 @@ Both derived grammars are committed and checked by tests that compare, never wri
 After a grammar change, run `make treesitter` and `make textmate` and read the diffs.
 A keyword added to `lex` and `reserved_word` shows up in both.
 
-`make test-treesitter` runs `tree-sitter/corpus.sh`: `testdata/conformance/*/source.tdl` must parse with no ERROR node and `testdata/invalid/*/source.tdl` must produce one, but for a case holding a `parses` file.
+`make test-treesitter` runs `tree-sitter/corpus.sh`: `testdata/conformance/*/source.tdl` must parse with no ERROR node and `testdata/invalid/*/source.tdl` must produce one.
 It also compiles the hand-written `tree-sitter/queries/highlights.scm`; `TestHighlightsCoverKeywords` checks it covers every keyword.
 CI runs `make check-treesitter` in `nix develop .#treesitter`, since the regeneration diff is only stable against the pinned CLI.
 That shell holds only go, gnumake, node, and tree-sitter to keep its closure small; node runs `grammar.js`.
@@ -467,7 +467,6 @@ After regenerating the grammar, reinstall and reload the window.
 
 `testdata/conformance/*/source.tdl` must parse and lower to the sibling `ir.golden`.
 `testdata/invalid/*/source.tdl` must fail with an error containing the sibling `error.golden`.
-A case holding a `parses` file fails in lowering instead: it parses, and `internal/sema`'s `TestInvalidCorpusFailsToLower` checks its error.
 Both are plain text so other implementations can run them, and `parser/conformance_test.go` walks them, so adding a directory adds a case.
 A case holding a `pending` file is skipped with its text as the reason; the phase implementing the construct deletes it.
 

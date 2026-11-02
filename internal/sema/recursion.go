@@ -190,7 +190,7 @@ func (l *lowerer) edges(file *ast.File, name string, finite map[string]bool) []e
 			return
 		}
 		if !throughWrappers && wrapped(t) {
-			return // the wrapper gives it a finite representation
+			return // the wrapper gives it a finite value
 		}
 		for _, n := range reachedNames(t, throughWrappers) {
 			if params[n] || (!throughWrappers && finite[n]) {

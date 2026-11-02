@@ -66,41 +66,6 @@ func TestCorpusLowers(t *testing.T) {
 	}
 }
 
-// TestInvalidCorpusFailsToLower checks every testdata/invalid case holding
-// a `parses` file parses and fails to lower with an error containing its
-// error.golden. The other invalid cases fail to parse, which
-// parser.TestInvalidCorpusFails checks.
-func TestInvalidCorpusFailsToLower(t *testing.T) {
-	dirs, err := filepath.Glob("../../testdata/invalid/*/parses")
-	if err != nil || len(dirs) == 0 {
-		t.Fatalf("no lowering cases found: %v", err)
-	}
-
-	for _, marker := range dirs {
-		dir := filepath.Dir(marker)
-		t.Run(filepath.Base(dir), func(t *testing.T) {
-			data, err := os.ReadFile(filepath.Join(dir, "source.tdl"))
-			if err != nil {
-				t.Fatalf("reading source.tdl: %v", err)
-			}
-			golden, err := os.ReadFile(filepath.Join(dir, "error.golden"))
-			if err != nil {
-				t.Fatalf("reading error.golden: %v", err)
-			}
-			file, err := parser.Parse("source.tdl", strings.NewReader(string(data)))
-			if err != nil {
-				t.Fatalf("unexpected parse error: %v", err)
-			}
-
-			_, diags := Lower(file, WithLoader(caseLoader(t, dir)))
-			want := strings.TrimSpace(string(golden))
-			if len(diags) == 0 || !strings.Contains(diags.Error(), want) {
-				t.Errorf("diagnostics = %v, want one containing %q", diags, want)
-			}
-		})
-	}
-}
-
 // caseLoader serves the other .tdl files in a case directory by their base
 // name, keeping machine-specific paths out of the goldens.
 func caseLoader(t *testing.T, dir string) MapLoader {

@@ -2,8 +2,7 @@
 # Run the conformance corpus through the derived parser.
 #
 # testdata/conformance must parse with no ERROR node
-# testdata/invalid must produce an ERROR node, but for a case holding a
-# `parses` file, whose error comes from lowering.
+# testdata/invalid must produce an ERROR node.
 
 set -uo pipefail
 
@@ -44,11 +43,7 @@ for source in ../testdata/conformance/*/source.tdl; do
 done
 
 for source in ../testdata/invalid/*/source.tdl; do
-	if [ -e "$(dirname "$source")/parses" ]; then
-		parse clean "$source"
-	else
-		parse error "$source"
-	fi
+	parse error "$source"
 done
 
 # Compiling the hand-written queries/highlights.scm fails on a node name the

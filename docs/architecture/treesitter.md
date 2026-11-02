@@ -96,7 +96,7 @@ Zed needs a repository holding only the grammar; [editors.md](editors.md) descri
 ## How it is held together
 
 - `make check-treesitter`, which CI runs, regenerates and runs `git diff --exit-code` over `tree-sitter/`, so a production added to the EBNF without a regeneration fails.
-- `tree-sitter/corpus.sh` requires `testdata/conformance/*/source.tdl` to parse with no ERROR node and `testdata/invalid/*/source.tdl` to produce one, unless the case holds a `parses` file because its error comes from lowering, which catches a wrong generator.
+- `tree-sitter/corpus.sh` requires `testdata/conformance/*/source.tdl` to parse with no ERROR node and `testdata/invalid/*/source.tdl` to produce one, which catches a wrong generator.
 - `lex`'s tests hold the patterns to the lexer.
 
 ## Deferred

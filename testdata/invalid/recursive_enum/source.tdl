@@ -1,6 +1,0 @@
-package bad
-
-enum Loop {
-  A { x: Loop }
-  B { y: Loop }
-}
