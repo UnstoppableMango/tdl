@@ -1,0 +1,26 @@
+# Files a tool writes, marked so GitHub collapses them in diffs and the
+# code reduction routine leaves them out of its line count
+# (docs/agents/routines.md).
+
+# Generated code
+*.pb.go linguist-generated
+dotnet/Tdl.Plugin/Generated/** linguist-generated
+tree-sitter/grammar.js linguist-generated
+tree-sitter/src/** linguist-generated
+tree-sitter/src/scanner.c -linguist-generated
+editors/vscode/syntaxes/tdl.tmLanguage.json linguist-generated
+
+# Locks
+flake.lock linguist-generated
+nix/gomod2nix.toml linguist-generated
+dotnet/deps.json linguist-generated
+**/package-lock.json linguist-generated
+
+# Goldens and recorded exchanges
+*.golden linguist-generated
+*.binpb linguist-generated
+testdata/plugin/*.txtpb linguist-generated
+testdata/csharp/corpus/*/want/** linguist-generated
+
+# release-please
+CHANGELOG.md linguist-generated
