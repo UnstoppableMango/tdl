@@ -282,7 +282,7 @@ Opting in to `patterns` is accepting that remainder for the patterns the model h
 
 TypeScript reduces no unit, so until [#1234](https://github.com/UnstoppableMango/tdl/issues/1234) a unit-typed field is its base type with a warning, as in every backend without units.
 
-That phase brands the number or decimal string with the unit's base dimensions as `ir` interns them, spelled by one canonical function in `internal/analysis` that every backend naming a dimension shares (base dimensions sorted by name, joined by `*`, negative exponents written: `kg*m*s^-2`), so `float64<N>` and `float64<kg*m/s^2>` carry one brand and `float64<m>` another, and a consumer cannot pass metres where newtons are expected.
+That phase brands the number or decimal string with the unit's base dimensions as `ir` interns them, spelled once by the host in `internal/analysis` and carried in the request's analysis, so every backend and plugin naming a dimension reads the same text (base dimensions sorted by name, joined by `*`, negative exponents written: `kg*m*s^-2`), so `float64<N>` and `float64<kg*m/s^2>` carry one brand and `float64<m>` another, and a consumer cannot pass metres where newtons are expected.
 Arithmetic on a branded number returns a plain `number`, so the unit holds only until the first operation, as Python's nominal option does; the brand is what the wire can carry, and arithmetic is the consumer's.
 A unit parameter on a generic declaration waits on [Generics](#generics).
 
@@ -401,7 +401,7 @@ A Zod module is code, and reading it means evaluating it, which `z.toJSONSchema`
 | `closed` | JSON Schema, OpenAPI | design only |
 | `length` counted in code points | Every backend that validates | `emit.Length` |
 | The RE2 check | Every backend that validates `matches` | `emit.Pattern` |
-| A pattern printed from `regexp/syntax` | Rust, Java, .NET, Python | a walk in `backend/internal/emit` with a table per engine |
+| A pattern printed from `regexp/syntax` | Rust, Java, Python | a walk in `backend/internal/emit` with a table per engine; .NET is a plugin and decides in #1196 |
 | The class plan | Go, C#, Rust, Python | `emit.PlanInterfaces` |
 
 [java-backend.md](https://github.com/UnstoppableMango/tdl/blob/fc0682d/docs/design/java-backend.md#overlap-with-other-targets) puts the pattern walk in `backend/internal/emit` beside `Pattern`, with a small table per engine, written by whichever backend is built first.
@@ -411,7 +411,7 @@ Like Python's, it prints every Unicode class as ranges.
 
 JSON Schema and OpenAPI copy a pattern as written today, and JSON Schema reads it as ECMA-262, so they inherit every difference listed under [Patterns](#patterns): `\s` widens and `(?i)` is refused.
 Once the ECMAScript table exists, those backends can print through it too, without the slashes, though a JSON Schema validator chooses its own flags, and one without `u` reads `\u{...}` differently, so that printing needs a variant without the escape.
-That change is the JSON Schema backend's to make, tracked by [#1381](https://github.com/UnstoppableMango/tdl/issues/1381).
+That change is the JSON Schema and OpenAPI backends' to make, tracked by [#1381](https://github.com/UnstoppableMango/tdl/issues/1381).
 
 ## Open questions
 
