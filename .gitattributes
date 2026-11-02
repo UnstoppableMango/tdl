@@ -11,6 +11,7 @@ tree-sitter/src/scanner.c -linguist-generated
 editors/vscode/syntaxes/tdl.tmLanguage.json linguist-generated
 
 # Locks
+flake.lock linguist-generated
 nix/gomod2nix.toml linguist-generated
 dotnet/deps.json linguist-generated
 **/package-lock.json linguist-generated
