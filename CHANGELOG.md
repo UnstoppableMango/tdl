@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.8](https://github.com/UnstoppableMango/tdl/compare/v0.5.7...v0.5.8) (2026-11-03)
+
+
+### Documentation
+
+* **context:** a plugin may serve more than one backend ([#1399](https://github.com/UnstoppableMango/tdl/issues/1399)) ([f8856b2](https://github.com/UnstoppableMango/tdl/commit/f8856b2a50277b7cb207f5194c513f254ff4952f))
+* **context:** define Target ([#1384](https://github.com/UnstoppableMango/tdl/issues/1384)) ([a640cf6](https://github.com/UnstoppableMango/tdl/commit/a640cf610026e2eda0d78e8ec18e35a09e23559c))
+* **context:** define Target, and name a backend in the spec's target blocks ([a640cf6](https://github.com/UnstoppableMango/tdl/commit/a640cf610026e2eda0d78e8ec18e35a09e23559c))
+* **zod:** prefault defaults, named field schemas under structural, Narrowed type ([#1393](https://github.com/UnstoppableMango/tdl/issues/1393)) ([8318eff](https://github.com/UnstoppableMango/tdl/commit/8318eff0e8c06c01bd77f580d76591b154208432))
+
 ## [0.5.7](https://github.com/UnstoppableMango/tdl/compare/v0.5.6...v0.5.7) (2026-11-03)
 
 
