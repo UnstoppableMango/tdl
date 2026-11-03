@@ -10,6 +10,11 @@ lib.composeExtensions gomod2nix.overlays.default (
       go = final.go_1_27; # TODO: consolidate with flake.nix; optionally go.mod too
     };
 
+    tdl-portable = final.callPackage ./portable.nix {
+      inherit version;
+      go = final.go_1_27;
+    };
+
     tdl-gmk = final.callPackage ./gmk.nix {
       inherit version;
       go = final.go_1_27;

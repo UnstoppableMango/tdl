@@ -42,6 +42,7 @@ in
         inherit (pkgs)
           tdl
           tdl-gmk
+          tdl-portable
           vscode-tdl
           tdl-dotnet
           ;
@@ -66,6 +67,9 @@ in
         pkgs.callPackage ./checks/hm-module.nix {
           inherit (inputs.home-manager.lib) homeManagerConfiguration;
         };
+
+      # The release binaries: static, cross-compiled, and runnable here.
+      checks.tdl-portable = pkgs.callPackage ./checks/portable.nix { go = pkgs.go_1_27; };
 
       # Building the binding imports it and parses the prelude with it.
       checks.tree-sitter-tdl = pkgs.python3Packages.tree-sitter-tdl;
