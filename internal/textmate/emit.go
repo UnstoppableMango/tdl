@@ -100,6 +100,20 @@ type rule struct {
 	BeginCaptures map[string]capture `json:"beginCaptures,omitempty"`
 	EndCaptures   map[string]capture `json:"endCaptures,omitempty"`
 	Patterns      []rule             `json:"patterns,omitempty"`
+
+	// split is how a sublime-syntax reads a region whose begin captures
+	// hold patterns, which sublime-syntax captures cannot. TextMate ignores
+	// it.
+	split *split
+}
+
+// A split is a region's begin as two steps: Head, up to the patterned
+// capture, and Open, which ends the stretch Head starts and opens the
+// region's body.
+type split struct {
+	Head         string
+	HeadCaptures map[string]capture
+	Open         string
 }
 
 type capture struct {
@@ -314,15 +328,26 @@ func variantBlock(file *ebnf.File, ident string, keywords, modifiers []string) (
 
 	const variant = "variable.other.enummember.tdl"
 
+	head := capturing([]string{keyword.String}) + "\\s+(" + ident + ")"
+
 	return rule{
 		// Group 3 is the header between the name and `{`.
-		Begin: capturing([]string{keyword.String}) + "\\s+(" + ident + ")([^{]*)\\{",
+		Begin: head + "([^{]*)\\{",
 		BeginCaptures: map[string]capture{
 			"1": {Name: "keyword.control.tdl"},
 			"2": {Name: "entity.name.type.tdl"},
 			"3": {Patterns: []rule{self}},
 		},
 		End: "\\}",
+		split: &split{
+			// The lookahead keeps the header on the line, as group 3 does.
+			Head: head + "(?=[^{]*\\{)",
+			HeadCaptures: map[string]capture{
+				"1": {Name: "keyword.control.tdl"},
+				"2": {Name: "entity.name.type.tdl"},
+			},
+			Open: "\\{",
+		},
 		Patterns: []rule{
 			// A variant with fields, ahead of the target-path rule.
 			{

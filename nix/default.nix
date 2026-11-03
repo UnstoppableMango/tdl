@@ -95,6 +95,27 @@ in
             touch $out
           '';
 
+      # Builds bat's cache with the TDL syntax, which refuses a context
+      # that does not resolve, and highlights the corpus with it, which
+      # compiles every regex.
+      checks.bat-tdl =
+        pkgs.runCommand "tdl-bat"
+          {
+            nativeBuildInputs = [ pkgs.bat ];
+          }
+          ''
+            export BAT_CONFIG_DIR=$TMPDIR/config BAT_CACHE_PATH=$TMPDIR/cache
+            mkdir -p $BAT_CONFIG_DIR/syntaxes
+            cp ${pkgs.tdl}/share/bat/syntaxes/tdl.sublime-syntax $BAT_CONFIG_DIR/syntaxes
+            bat cache --build
+            bat --list-languages | grep -qx 'TDL:tdl'
+            for file in ${../testdata/conformance}/*/source.tdl; do
+              bat --color=always --paging=never "$file" > /dev/null
+            done
+            bat --color=always --paging=never ${../testdata/conformance/constraints/source.tdl} | grep -q $'\e\['
+            touch $out
+          '';
+
       # Validates the smithy backend's output with the Smithy CLI, since no Go
       # library can.
       checks.gen-smithy =

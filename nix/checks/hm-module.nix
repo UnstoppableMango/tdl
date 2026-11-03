@@ -29,6 +29,7 @@ let
   hm = configure "vscode" [ ];
   codium = configure "vscodium" [ ];
   older = configure "vscodium" [ "programs/antigravity.nix" ];
+  bat = configure "bat" [ ];
 in
 assert lib.assertMsg (builtins.elem tdl hm.config.home.packages)
   "programs.tdl.enable did not add tdl to home.packages";
@@ -56,4 +57,13 @@ assert lib.assertMsg (builtins.all (
 assert lib.assertMsg
   (builtins.elem vscode-tdl older.config.programs.vscodium.profiles.default.extensions)
   "programs.tdl.vscode did not evaluate against a home-manager with no antigravity module";
-runCommand "tdl-hm-module" { } "touch $out"
+assert lib.assertMsg (
+  bat.config.programs.bat.syntaxes.tdl.src == tdl
+) "programs.tdl.bat.enable did not give bat the syntax tdl installs";
+assert lib.assertMsg (
+  hm.config.programs.bat.syntaxes == { }
+) "programs.tdl.bat added a syntax with bat disabled";
+runCommand "tdl-hm-module" { } ''
+  test -f ${tdl}/${bat.config.programs.bat.syntaxes.tdl.file}
+  touch $out
+''

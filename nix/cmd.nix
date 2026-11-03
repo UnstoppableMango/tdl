@@ -30,8 +30,11 @@ buildGoApplication {
   ];
 
   # The csharp backend is a .NET plugin, shipped beside the Go binaries.
+  # The bat syntax sits where programs.tdl.bat in the home-manager module
+  # reads it.
   postInstall = ''
     ln -s ${lib.getExe' tdl-dotnet "tdl-gen-csharp"} $out/bin/tdl-gen-csharp
+    install -Dm644 editors/bat/tdl.sublime-syntax $out/share/bat/syntaxes/tdl.sublime-syntax
   '';
 
   meta = {

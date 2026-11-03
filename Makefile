@@ -9,6 +9,7 @@ gosrc = $(filter-out %_test.go,$(wildcard $(addsuffix /*.go,$(1))))
 
 VSCODE      := editors/vscode
 TMLANGUAGE  := ${VSCODE}/syntaxes/tdl.tmLanguage.json
+SUBLIME     := editors/bat/tdl.sublime-syntax
 TS_GRAMMAR  := tree-sitter/grammar.js
 FEATURES    := $(shell git grep -l '<!-- tdl:features' -- '*.md')
 
@@ -47,9 +48,9 @@ treesitter: ${TS_GRAMMAR}
 ${TS_GRAMMAR}: docs/grammar.ebnf $(call gosrc,lex internal/ebnf internal/treesitter tools/treesitter)
 	go run ./tools/treesitter
 
-textmate: ${TMLANGUAGE}
+textmate: ${TMLANGUAGE} ${SUBLIME}
 
-${TMLANGUAGE}: docs/grammar.ebnf $(call gosrc,lex internal/ebnf internal/textmate tools/textmate)
+${TMLANGUAGE} ${SUBLIME} &: docs/grammar.ebnf $(call gosrc,lex internal/ebnf internal/textmate tools/textmate)
 	go run ./tools/textmate
 
 features: ${FEATURES}
