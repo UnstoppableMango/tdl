@@ -29,7 +29,7 @@ In Zod the schema is the validator, so there is no separate check to forget; wha
 A schema that checks `quantity >= 1` and infers `number` throws the fact away at the boundary: code holding a `LineItem` cannot tell a parsed one from an object literal with `quantity: 0`.
 So the backend reads the preference as three rules:
 
-1. **State it in the type where TypeScript can.**
+1. **State it in the type where TypeScript can**, as a narrowed type.
    A `oneOf`, a small integer range, and a small exact list length infer literal unions and tuples, exactly as `typescript`'s `narrow.go` writes them, so `z.infer` refuses a violating literal at compile time with no brand.
 1. **Brand what TypeScript cannot state.**
    A constraint TypeScript has no type for (a pattern, a wide range, a string length) is checked by the schema and recorded in the output type with `.brand()`, so a `LineItemQuantity` is a number that went through the check, as a Rust or Python checked type is a value that went through its constructor.
@@ -127,7 +127,8 @@ A mixin is a schema of its own, since a consumer may name it; an including struc
 `z.object` accepts a property it does not declare and strips it, so a newer producer adding a field still parses, as an open JSON Schema object validates.
 A `closed` directive on a struct or an enum, or on the target block for every one, writes `z.strictObject`, which refuses an undeclared property, the directive JSON Schema and OpenAPI read for `additionalProperties: false`.
 
-A field's default is `.default(value)`, checked against the field's schema at generation time; one that fails warns and is dropped.
+A field's default is `.default(value)` until phase 3b ([#1378](https://github.com/UnstoppableMango/tdl/issues/1378)), and `.prefault(value)` from then on, checked against the field's schema at generation time; one that fails warns and is dropped.
+On a branded schema `.default()` takes the branded output type, so `LineItemQuantity.default(1)` does not type check; `.prefault()` takes the input type and parses the value through the schema, so the brand and the checks apply, and every default is written that way for one spelling.
 A default makes the field optional in `z.input` and leaves it required in `z.infer`, so a parsed value always holds it, and the inferred type still matches `typescript`, whose interface types the parsed value.
 A default on a foreign type warns and is dropped, since the backend cannot check it.
 
@@ -180,7 +181,7 @@ A newtype over a newtype brands its parent's schema again, `export const WorkEma
 
 Brands are on by default, so phase 3b ([#1378](https://github.com/UnstoppableMango/tdl/issues/1378)) changes the output of every newtype phases 1 and 2 wrote as a plain schema.
 The `structural` directive on the target block writes no brands at all, so every inferred type is `typescript`'s, for a consumer who shares values between code using both outputs and would rather not pay for the distinction.
-Under `structural` the constraints [Constraints](#constraints) brands are still checked; only the type forgets them.
+Under `structural` the constraints [Constraints](#constraints) brands are still checked, and a constrained field keeps its named schema; only the type forgets them, so the directive never changes which names the module exports.
 
 An alias is expanded where it is used, as in every schema backend, and declares nothing.
 
