@@ -17,7 +17,7 @@ What turns a resolved model into files for one target, or reads files back into 
 _Avoid_: generator, emitter
 
 **Plugin**:
-A backend running as its own executable, found as `tdl-gen-<name>`.
+An executable serving one or more backends, started for a target as `tdl-gen-<target>`.
 _Avoid_: extension, external backend
 
 **Host**:
