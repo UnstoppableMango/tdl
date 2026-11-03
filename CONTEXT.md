@@ -54,3 +54,7 @@ _Avoid_: loss, round-trip loss
 **Checked type**:
 A generated type whose values can only be obtained by passing the checks its constraints imply, so code holding one knows the checks ran: a Rust or Python type built through its constructor, or a Zod brand.
 _Avoid_: branded type, refined type, validated type
+
+**Narrowed type**:
+A generated type that states a constraint by itself, so a violating value does not type check and no check need run: a union of the allowed literals, or a tuple of the allowed length.
+_Avoid_: literal type, refined type
