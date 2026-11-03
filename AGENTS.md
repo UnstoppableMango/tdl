@@ -72,6 +72,11 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 - `cmd.nix`: the CLI. `meta.mainProgram` is what `lib.getExe` reads, since the package installs fourteen binaries.
 - `vscode-extension.nix`: the editor extension (see [VS Code](#vs-code)).
 - `gmk.nix`: `tdl-gmk`, `cmd/tdl-gmk` built as the GNU make loadable object `lib/tdl.so`, with gnumake's header for cgo; `checks.gmk` loads it into make.
+- `portable.nix`: `tdl-portable`, `tdl` and `tdl-gen-typescript` for linux and darwin, amd64 and arm64, cross-compiled with `CGO_ENABLED=0` into `<goos>-<goarch>/`, for release assets and npm (#1385).
+  The linux binaries are static; the darwin ones link only `libSystem`, as every Go binary on darwin does.
+  `packages.default` links against the store's glibc loader, so it does not run outside Nix.
+  `dontFixup` keeps the build platform's `strip` off the darwin/arm64 binaries, which the Go linker signs.
+  `checks.tdl-portable` checks each binary's format and static linking, allows only the store paths nixpkgs' Go patches in as zoneinfo and `/etc/protocols` fallbacks, and runs the binary for the checking system over the smoke model.
 - `dotnet.nix`: the .NET plugins, built with `buildDotnetModule`, which runs their tests (see [.NET SDK](#net-sdk)): `tdl-gen-csharp`, compiled with Native AOT and linked by `stdenv.cc`, and the SDK's debug port, a self-contained single file.
   On darwin the AOT link names the Swift runtime and ICU, so `swift` and `darwin.ICU` are build inputs there, as in nixpkgs' own dotnet `aot` test.
 - `tree-sitter-tdl.nix`: the grammar's Python binding in `tree-sitter/bindings/python/`, for graphify (see `docs/architecture/graphify.md`); the overlay adds it to every Python package set, and `checks.tree-sitter-tdl` runs its tests, which parse the prelude.
