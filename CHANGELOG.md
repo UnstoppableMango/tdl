@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.5.7](https://github.com/UnstoppableMango/tdl/compare/v0.5.6...v0.5.7) (2026-11-03)
+
+
+### Features
+
+* **sema:** allow recursion a variant ends ([#1371](https://github.com/UnstoppableMango/tdl/issues/1371)) ([220bfa4](https://github.com/UnstoppableMango/tdl/commit/220bfa4033c342bdabe4f856e2262d813a92ca5c))
+
+
+### Documentation
+
+* **routines:** make code reduction cut real code ([#1374](https://github.com/UnstoppableMango/tdl/issues/1374)) ([d2ae771](https://github.com/UnstoppableMango/tdl/commit/d2ae771ec54e2e3d7d1ce314807e290f27fe42e7))
+* **zod:** record the [#1230](https://github.com/UnstoppableMango/tdl/issues/1230) grilling decisions ([#1382](https://github.com/UnstoppableMango/tdl/issues/1382)) ([7c176e4](https://github.com/UnstoppableMango/tdl/commit/7c176e48e2477a656273ba8c3e3b1dcf0271e9a9))
+
+
+### Code Refactoring
+
+* drop an unreachable guard and spell position fallbacks with cmp.Or (-20) ([#1376](https://github.com/UnstoppableMango/tdl/issues/1376)) ([9675258](https://github.com/UnstoppableMango/tdl/commit/967525840caff6393faeef925419a1dfe86f1a46))
+
 ## [0.5.6](https://github.com/UnstoppableMango/tdl/compare/v0.5.5...v0.5.6) (2026-11-02)
 
 
