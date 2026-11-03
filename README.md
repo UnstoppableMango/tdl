@@ -25,7 +25,7 @@ Early, incomplete, and changing.
 - **Front end: done.** The lexer and parser read the whole [grammar](docs/grammar.ebnf).
 - **Resolved model: nearly done.** `tdl ir` resolves names, imports, mixins, class satisfaction, constraints, defaults, units, and target directives. Merging a dependency's target blocks is partial.
 - **Code generation:** Go, GraphQL, JSON Schema, OpenAPI, protobuf, Salesforce, Smithy, Thrift, TypeScript, and Zod. `tdl gen` also runs any `tdl-gen-<name>` plugin on `PATH`.
-- **Editors:** a language server, a tree-sitter grammar for Neovim, and a VS Code extension.
+- **Editors:** a language server, a tree-sitter grammar for Neovim, a VS Code extension, and highlighting in bat.
 
 ## Documents
 
@@ -41,7 +41,7 @@ Early, incomplete, and changing.
 | [architecture/salesforce-backend.md](docs/architecture/salesforce-backend.md) | The Salesforce backend. |
 | [architecture/lsp.md](docs/architecture/lsp.md) | The language server. |
 | [architecture/treesitter.md](docs/architecture/treesitter.md) | Deriving the tree-sitter grammar from the EBNF. |
-| [architecture/editors.md](docs/architecture/editors.md) | Highlighting in Neovim, VS Code, Zed, and on GitHub. |
+| [architecture/editors.md](docs/architecture/editors.md) | Highlighting in Neovim, VS Code, Zed, bat, and on GitHub. |
 | [backends/](docs/backends/README.md) | What each backend generates, feature by feature. |
 | [Issues](https://github.com/UnstoppableMango/tdl/issues) | Planned and wanted work: a spec issue per feature, with its phases as sub-issues. |
 
@@ -120,7 +120,7 @@ On an older nixpkgs, use `inputs.tdl.packages.${system}.default`, which builds a
 }
 ```
 
-The home-manager module (`homeModules.default`, also `homeManagerModules.default`) adds `programs.tdl.enable` for the CLI and `programs.tdl.vscode.enable` for the VS Code extension.
+The home-manager module (`homeModules.default`, also `homeManagerModules.default`) adds `programs.tdl.enable` for the CLI, `programs.tdl.vscode.enable` for the VS Code extension, and `programs.tdl.bat.enable` for highlighting in bat; the last two default to on when their editor or `programs.bat` is enabled.
 
 ```nix
 {
@@ -280,6 +280,12 @@ Install it with `programs.tdl.vscode.enable`, by adding `pkgs.vscode-tdl` to `vs
 The extension runs `tdl lsp` for diagnostics, hover, go to definition, formatting, and the outline.
 The nix build points it at its own `tdl`; otherwise it runs `tdl` from `PATH`, or the `tdl.server.path` setting.
 Without a server, highlighting still works.
+
+### bat
+
+`programs.tdl.bat.enable` gives bat the syntax, and is on whenever `programs.bat.enable` is.
+Without home-manager, copy `share/bat/syntaxes/tdl.sublime-syntax` from the `tdl` package (or [editors/bat](editors/bat)) into `$(bat --config-dir)/syntaxes` and run `bat cache --build`.
+Sublime Text reads the same file.
 
 ## Support matrix
 

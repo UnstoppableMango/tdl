@@ -1,36 +1,16 @@
 # Renders docs/demo/demo.tape, the README's demo GIF, with VHS.
 # `make demo` builds it and copies the GIF into docs/demo.
 {
-  runCommandCC,
-  linkFarm,
-  writeText,
+  runCommand,
   makeFontsConf,
   jetbrains-mono,
   bashInteractive,
   ncurses,
   bat,
-  tree-sitter,
   vhs,
   tdl,
 }:
-let
-  # tree-sitter finds a grammar in a parser directory by its
-  # tree-sitter-<name> folder.
-  parsers = linkFarm "tdl-demo-parsers" [
-    {
-      name = "tree-sitter-tdl";
-      path = ../tree-sitter;
-    }
-  ];
-
-  treeSitterConfig = writeText "config.json" (
-    builtins.toJSON {
-      parser-directories = [ parsers ];
-      theme = import ./themes/tree-sitter/catppuccin-mocha.nix;
-    }
-  );
-in
-runCommandCC "tdl-demo"
+runCommand "tdl-demo"
   {
     # The tape's shell: stdenv's bash has no readline to expand the
     # prompt VHS sets, and ncurses provides `clear` and `tabs`.
@@ -38,7 +18,6 @@ runCommandCC "tdl-demo"
       bashInteractive
       ncurses
       bat
-      tree-sitter
       vhs
       tdl
     ];
@@ -47,15 +26,16 @@ runCommandCC "tdl-demo"
   }
   ''
     export HOME=$TMPDIR
-    mkdir ts
-    cp ${treeSitterConfig} ts/config.json
-    export TREE_SITTER_DIR=$PWD/ts TREE_SITTER_LIBDIR=$PWD/ts/lib
+
+    # bat reads TDL through the syntax tdl installs, as programs.tdl.bat
+    # gives it to a user's bat.
+    export BAT_CONFIG_DIR=$PWD/bat BAT_CACHE_PATH=$PWD/bat/cache
+    mkdir -p bat/syntaxes
+    cp ${tdl}/share/bat/syntaxes/tdl.sublime-syntax bat/syntaxes/
+    bat cache --build
+
     cp ${../docs/demo/shop.tdl} shop.tdl
     cp ${../docs/demo/demo.bash} demo.bash
-
-    # Compile the grammar now, so the tape does not wait on the compiler.
-    # runCommandCC provides the compiler tree-sitter calls.
-    tree-sitter highlight shop.tdl > /dev/null
 
     vhs ${../docs/demo/demo.tape}
     mkdir $out

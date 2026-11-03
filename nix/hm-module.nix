@@ -1,6 +1,6 @@
-# The home-manager module: `programs.tdl` installs the CLI, and
+# The home-manager module: `programs.tdl` installs the CLI,
 # `programs.tdl.vscode` hands the extension to every enabled VS Code-based
-# editor.
+# editor, and `programs.tdl.bat` gives bat the TDL syntax.
 {
   config,
   lib,
@@ -66,6 +66,11 @@ in
         description = "Editor profiles the tdl extension is added to.";
       };
     };
+
+    bat.enable = lib.mkEnableOption "TDL highlighting in bat" // {
+      default = config.programs.bat.enable or false;
+      defaultText = lib.literalExpression "config.programs.bat.enable";
+    };
   };
 
   config = lib.mkIf cfg.enable (
@@ -89,6 +94,22 @@ in
           }) cfg.vscode.editors;
         })
       ]
+      # Guarded like the editors: a definition under an undeclared option
+      # fails even when the condition is false.
+      ++ lib.optional (options.programs ? bat) (
+        lib.mkIf cfg.bat.enable {
+          assertions = [
+            {
+              assertion = config.programs.bat.enable;
+              message = "programs.tdl.bat.enable needs programs.bat.enable, which rebuilds bat's cache with the syntax.";
+            }
+          ];
+          programs.bat.syntaxes.tdl = {
+            src = cfg.package;
+            file = "share/bat/syntaxes/tdl.sublime-syntax";
+          };
+        }
+      )
       ++ map (
         name:
         lib.mkIf (cfg.vscode.enable && lib.elem name cfg.vscode.editors) {

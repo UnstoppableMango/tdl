@@ -23,7 +23,7 @@ command make update           # nix flake update
 command make tidy             # go mod tidy + regenerate nix/gomod2nix.toml
 command make generate         # buf generate: proto/ -> ir/ir.pb.go
 command make treesitter       # docs/grammar.ebnf -> tree-sitter/grammar.js -> tree-sitter/src/
-command make textmate         # docs/grammar.ebnf -> editors/vscode/syntaxes/tdl.tmLanguage.json
+command make textmate         # docs/grammar.ebnf -> the TextMate grammar and editors/bat/tdl.sublime-syntax
 command make features         # testdata/features -> each backend's feature table in docs/
 command make vscode-install   # package editors/vscode and install it into a running VS Code
 command make vscode-check     # npm ci, then typecheck and biome check editors/vscode
@@ -70,6 +70,7 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 `nix/` holds the packaging:
 
 - `cmd.nix`: the CLI. `meta.mainProgram` is what `lib.getExe` reads, since the package installs fourteen binaries.
+  It also installs bat's syntax as `share/bat/syntaxes/tdl.sublime-syntax`.
 - `vscode-extension.nix`: the editor extension (see [VS Code](#vs-code)).
 - `gmk.nix`: `tdl-gmk`, `cmd/tdl-gmk` built as the GNU make loadable object `lib/tdl.so`, with gnumake's header for cgo; `checks.gmk` loads it into make.
 - `portable.nix`: `tdl-portable`, `tdl` and `tdl-gen-typescript` for linux and darwin, amd64 and arm64, cross-compiled with `CGO_ENABLED=0` into `<goos>-<goarch>/`, for release assets and npm (#1385).
@@ -83,7 +84,7 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
   The binding, `pyproject.toml`, and `setup.py` are `tree-sitter init` output with the highlights query exposed, the tests extended, and `scanner.c` listed with the sources so a source distribution carries it.
 - `zod.nix`: the `zod` npm package, fetched by hash, for `checks.gen-zod` and the devShell's `NODE_PATH`.
 - `demo.nix`: renders `docs/demo/demo.tape`, the README's GIF, with VHS. It is a package and not a check, since it runs a browser.
-  The tape's `cat`, from `docs/demo/demo.bash`, highlights TDL with the tree-sitter grammar and the theme in `themes/tree-sitter/`, and everything else with bat.
+  The tape's `cat`, from `docs/demo/demo.bash`, highlights everything with bat, TDL through the syntax the `tdl` package installs.
 - `overlay.nix`: names both packages and composes gomod2nix's overlay, so a consumer adding it also gets `buildGoApplication` and `mkGoEnv`.
 - `hm-module.nix`: the home-manager module.
 - `flake-module.nix`: the flake-parts module a consuming project imports.
@@ -93,7 +94,7 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 `perSystem` imports nixpkgs with the overlay and reads `packages.default` and `packages.vscode-tdl` back out of it, so `nix build .#` takes the same path a consumer does.
 
 `hm-module.nix` declares `programs.tdl`.
-`enable` adds `package` to `home.packages`; `vscode.enable` (default `programs.vscode.enable`) adds `vscode.package` to the profiles in `vscode.profiles` (default `[ "default" ]`).
+`enable` adds `package` to `home.packages`; `vscode.enable` (default `programs.vscode.enable`) adds `vscode.package` to the profiles in `vscode.profiles` (default `[ "default" ]`); `bat.enable` (default `programs.bat.enable`) adds the package's syntax to `programs.bat.syntaxes`.
 Both packages default to `pkgs.tdl` and `pkgs.vscode-tdl` through `mkPackageOption`, so the module needs no flake input.
 It is exported as `homeModules.default` and `homeManagerModules.default`, each with a `tdl` alias.
 `checks.hm-module` evaluates a minimal configuration and asserts both packages land where the options say; it uses `allowUnfree` because `programs.vscode.enable` evaluates the editor.
@@ -136,7 +137,7 @@ The plugin protocol in `docs/architecture/plugins.md` is complete.
   Rule names are snake_case, a hidden production gets a leading underscore, an inline one is substituted into its callers, and rules keep source order.
   `tools/treesitter` runs it.
   `tree-sitter/src/` is committed output of `tree-sitter generate`, except `scanner.c`, which is hand-written and produces `regex_lit` from `valid_symbols` the way the parser calls `lex.RescanRegexAt`.
-- `internal/textmate`: emits `editors/vscode/syntaxes/tdl.tmLanguage.json` from the grammar, since VS Code highlighting is TextMate.
+- `internal/textmate`: emits `editors/vscode/syntaxes/tdl.tmLanguage.json` from the grammar, since VS Code highlighting is TextMate, and the same rules as `editors/bat/tdl.sublime-syntax` for bat, which reads only sublime-syntax.
   See [TextMate grammar](#textmate-grammar).
   `tools/textmate` runs it.
 
@@ -451,6 +452,10 @@ The class name after `instance` stays uncolored.
 
 Three rules depend on position: a regex literal matches only after a constraint argument's `(` or `,`; a word rule ends in `(?!\s*:)` so a reserved word before `:` is a field name; a numeric literal is guarded against a surrounding identifier.
 TextMate takes the earliest match and then the first rule listed, so rule order settles ties.
+
+The sublime-syntax (`sublime.go`) shares those semantics, so it is a translation of the same rules: a region is a pushed context whose first rule is its end, and `$self` is `main`.
+A sublime-syntax capture cannot hold patterns, so the enum header, the one capture that does, carries a `split`: a head that pushes a header context, and the `{` that sets the body in its place.
+`checks.bat-tdl` builds bat's cache with it and highlights the conformance corpus, which compiles every regex.
 
 ### VS Code
 

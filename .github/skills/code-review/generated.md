@@ -9,6 +9,7 @@ Review the generator and its input, never the output.
 | `tree-sitter/grammar.js` | `make treesitter` | `docs/grammar.ebnf` |
 | `tree-sitter/src/` | `tree-sitter generate` | `tree-sitter/grammar.js` |
 | `editors/vscode/syntaxes/tdl.tmLanguage.json` | `make textmate` | `docs/grammar.ebnf` |
+| `editors/bat/tdl.sublime-syntax` | `make textmate` | `docs/grammar.ebnf` |
 | `testdata/conformance/*/ir.golden` | `go test ./internal/sema -update` | `internal/sema` |
 | `testdata/plugin/*.txtpb` | `go test ./internal/gen -record` | `internal/gen` |
 | `nix/gomod2nix.toml` | `make tidy` | `go.mod` |
