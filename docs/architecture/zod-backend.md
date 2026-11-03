@@ -174,10 +174,11 @@ export const Sku = z.string().brand<"shop.billing.Sku">();
 export type Sku = z.infer<typeof Sku>;
 ```
 
-So a `Sku` is a `string` that came through `Sku.parse`, and a plain `string` is a compile error where a `Sku` is expected, which is what a TDL newtype means and what `typescript`'s plain alias cannot say.
+So a `Sku` is a `string` that came through `Sku.parse`, a checked type, and a plain `string` is a compile error where a `Sku` is expected, which is what a TDL newtype means and what `typescript`'s plain alias cannot say.
 The brand is the declaration's qualified name, so two packages' `Sku` stay distinct.
 A newtype over a newtype brands its parent's schema again, `export const WorkEmail = Email.refine(...).brand<"shop.WorkEmail">()`, and Zod's brands stack, so a `WorkEmail` is an `Email`, checked once for what each adds.
 
+Brands are on by default, so phase 3b ([#1378](https://github.com/UnstoppableMango/tdl/issues/1378)) changes the output of every newtype phases 1 and 2 wrote as a plain schema.
 The `structural` directive on the target block writes no brands at all, so every inferred type is `typescript`'s, for a consumer who shares values between code using both outputs and would rather not pay for the distinction.
 Under `structural` the constraints [Constraints](#constraints) brands are still checked; only the type forgets them.
 
@@ -198,7 +199,7 @@ Every `where` constraint is either a type TypeScript states, or a check whose pa
 | `length(N)` on a list, for `N` at most 16 | `z.tuple([T, T, T])` | `[T, T, T]` |
 
 The first four are the literal unions `typescript` writes, by the same rule: the bound of 16 and the way a field's constraints combine with its newtype's are `narrow.go`'s, which moves into `backend/internal/emit` so both read it (see [Overlap with other targets](#overlap-with-other-targets)).
-The tuple is new to TypeScript output; `typescript` adopts it when the rule moves, so the two still agree.
+The tuple is new to TypeScript output; `typescript` adopts it when the rule moves, so the two still agree, and its importer reads a tuple back as a list with `length(N)`.
 A field holding one of these needs no brand, and a newtype holding one brands the union, since the newtype is still nominal.
 
 ### Checked and branded
@@ -281,13 +282,13 @@ Opting in to `patterns` is accepting that remainder for the patterns the model h
 
 TypeScript reduces no unit, so until [#1234](https://github.com/UnstoppableMango/tdl/issues/1234) a unit-typed field is its base type with a warning, as in every backend without units.
 
-That phase brands the number or decimal string with the unit's base dimensions as `ir` interns them, so `float64<N>` and `float64<kg*m/s^2>` carry one brand and `float64<m>` another, and a consumer cannot pass metres where newtons are expected.
+That phase brands the number or decimal string with the unit's base dimensions as `ir` interns them, spelled once by the host in `internal/analysis` and carried in the request's analysis, so every backend and plugin naming a dimension reads the same text (base dimensions sorted by name, joined by `*`, negative exponents written: `kg*m*s^-2`), so `float64<N>` and `float64<kg*m/s^2>` carry one brand and `float64<m>` another, and a consumer cannot pass metres where newtons are expected.
 Arithmetic on a branded number returns a plain `number`, so the unit holds only until the first operation, as Python's nominal option does; the brand is what the wire can carry, and arithmetic is the consumer's.
 A unit parameter on a generic declaration waits on [Generics](#generics).
 
 ## Generics
 
-`typescript` writes no generics yet, and the Zod backend shares its type mapping, so generics are a later phase for both.
+`typescript` writes no generics yet, and the Zod backend shares its type mapping, so generics come to `typescript` first, generated and imported ([#1233](https://github.com/UnstoppableMango/tdl/issues/1233)), and then to Zod ([#1380](https://github.com/UnstoppableMango/tdl/issues/1380)).
 
 A parameterized declaration is a function from its parameters' schemas to a schema, and a type over its parameters' types, written by the TypeScript mapping:
 
@@ -400,16 +401,17 @@ A Zod module is code, and reading it means evaluating it, which `z.toJSONSchema`
 | `closed` | JSON Schema, OpenAPI | design only |
 | `length` counted in code points | Every backend that validates | `emit.Length` |
 | The RE2 check | Every backend that validates `matches` | `emit.Pattern` |
-| A pattern printed from `regexp/syntax` | Rust, Java, .NET, Python | a walk in `backend/internal/emit` with a table per engine |
+| A pattern printed from `regexp/syntax` | Rust, Java, Python | a walk in `backend/internal/emit` with a table per engine; .NET is a plugin and decides in #1196 |
 | The class plan | Go, C#, Rust, Python | `emit.PlanInterfaces` |
 
 [java-backend.md](https://github.com/UnstoppableMango/tdl/blob/fc0682d/docs/design/java-backend.md#overlap-with-other-targets) puts the pattern walk in `backend/internal/emit` beside `Pattern`, with a small table per engine, written by whichever backend is built first.
-None is built yet, so if Zod is first it writes the walk, and the ECMAScript table is the one this design describes.
+None is built yet, so Zod writes the walk in phase 3c ([#1379](https://github.com/UnstoppableMango/tdl/issues/1379)) with the ECMAScript table only.
+The walk is Go, and the C# backend is a .NET plugin that cannot call it; how .NET gets a pattern is [#1196](https://github.com/UnstoppableMango/tdl/issues/1196)'s decision.
 Like Python's, it prints every Unicode class as ranges.
 
 JSON Schema and OpenAPI copy a pattern as written today, and JSON Schema reads it as ECMA-262, so they inherit every difference listed under [Patterns](#patterns): `\s` widens and `(?i)` is refused.
 Once the ECMAScript table exists, those backends can print through it too, without the slashes, though a JSON Schema validator chooses its own flags, and one without `u` reads `\u{...}` differently, so that printing needs a variant without the escape.
-That change is the JSON Schema backend's to make, and the plan lists it as a follow-up rather than a phase.
+That change is the JSON Schema and OpenAPI backends' to make, tracked by [#1381](https://github.com/UnstoppableMango/tdl/issues/1381).
 
 ## Open questions
 
@@ -417,4 +419,3 @@ That change is the JSON Schema backend's to make, and the plan lists it as a fol
 - **Zod Mini.** `zod/mini` writes the same schemas as functions, `z.optional(z.string())`, which a bundler can shake. A `flavor("mini")` directive would print the other spelling from the same plan.
 - **Readonly output.** `.readonly()` freezes a parsed object and makes its type `Readonly`, as Python's dataclasses are frozen; it would also make the inferred types differ from `typescript`'s.
 - **Other validators.** Valibot and ArkType parse the same convention with different spellings. The plan here, which check each constraint becomes and what the output type carries, is not Zod's, and a second validator would show where to split it from the printing.
-- **Brands at the default.** Branding every newtype and constrained field is the type-system choice, and `structural` turns it off; if most consumers turn it off, the default should flip.

@@ -48,3 +48,9 @@ _Avoid_: loss, lossy output
 **Read-back loss**:
 A fact the output keeps but the opposite direction would not recover: a generated entity reads back as a value, an imported unexported Go type regenerates exported.
 _Avoid_: loss, round-trip loss
+
+### Generated types
+
+**Checked type**:
+A generated type whose values can only be obtained by passing the checks its constraints imply, so code holding one knows the checks ran: a Rust or Python type built through its constructor, or a Zod brand.
+_Avoid_: branded type, refined type, validated type
