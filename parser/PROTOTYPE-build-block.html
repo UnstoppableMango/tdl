@@ -1,0 +1,1266 @@
+<title>TDL Build Blocks</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a two-pane workbench (source left, expansion right) under a scenario strip. */
+:root {
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --fg: #1b2230;
+  --muted: #5d6779;
+  --line: #dde1e8;
+  --accent: #2f55b5;
+  --accent-soft: #e6ecfa;
+  --err: #b42318;
+  --err-soft: #fdecea;
+  --warn: #8a5a00;
+  --warn-soft: #fdf3dc;
+  --ok: #1f7a4d;
+  --kw: #2f55b5;
+  --str: #8a3f12;
+  --com: #7b8494;
+  --num: #6f3fb0;
+  --display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12151c; --panel: #1a1f29; --fg: #e3e7ef; --muted: #98a1b3; --line: #2c3341;
+    --accent: #8eaaf5; --accent-soft: #223056; --err: #ff8a7a; --err-soft: #3a1d1b;
+    --warn: #f0c060; --warn-soft: #362b12; --ok: #6fd3a0;
+    --kw: #8eaaf5; --str: #f0a875; --com: #7d8698; --num: #c6a2f5;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12151c; --panel: #1a1f29; --fg: #e3e7ef; --muted: #98a1b3; --line: #2c3341;
+  --accent: #8eaaf5; --accent-soft: #223056; --err: #ff8a7a; --err-soft: #3a1d1b;
+  --warn: #f0c060; --warn-soft: #362b12; --ok: #6fd3a0;
+  --kw: #8eaaf5; --str: #f0a875; --com: #7d8698; --num: #c6a2f5;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 48px;
+}
+.wrap { max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; }
+h1 { font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
+h2 { font-size: 19px; font-weight: 600; }
+h3 { font-size: 15px; font-weight: 600; }
+p { margin: 0; max-width: 72ch; }
+code, pre, textarea { font-family: var(--mono); }
+code { font-size: 0.92em; background: var(--accent-soft); padding: 1px 4px; border-radius: 3px; }
+.tag { display: inline-block; font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--warn); background: var(--warn-soft); padding: 2px 8px; border-radius: 3px; }
+header { display: flex; flex-direction: column; gap: 10px; }
+.lede { color: var(--muted); }
+.assume { font-size: 13.5px; color: var(--muted); border-left: 3px solid var(--line); padding-left: 12px; }
+
+.scenarios { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; display: flex; flex-direction: column; }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 8px 0; border-bottom: 1px solid var(--line); }
+.tabs button { font: 500 14px var(--body); background: none; border: none; color: var(--muted); padding: 8px 12px; border-bottom: 2px solid transparent; cursor: pointer; }
+.tabs button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+.tabs button:focus-visible, .steps button:focus-visible, .rtabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.scenario { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.watch { font-size: 14px; color: var(--muted); }
+.watch b { color: var(--fg); font-weight: 600; }
+.steps { display: flex; flex-wrap: wrap; gap: 8px; }
+.steps button { font: 500 13.5px var(--body); border: 1px solid var(--line); background: var(--bg); color: var(--fg); padding: 7px 12px; border-radius: 6px; cursor: pointer; display: flex; gap: 8px; align-items: center; }
+.steps button .n { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.steps button.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.steps button.on .n { color: var(--accent); }
+.stepnote { font-size: 14px; }
+
+.bench { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 860px) { .bench { grid-template-columns: minmax(0, 1fr); } }
+.pane { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; display: flex; flex-direction: column; min-width: 0; }
+.panehead { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.panehead .label { font: 600 12px var(--body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.status { font: 500 12.5px var(--mono); }
+.status.ok { color: var(--ok); }
+.status.bad { color: var(--err); }
+.editor { display: flex; min-height: 520px; overflow: hidden; }
+.gutter { margin: 0; padding: 12px 8px 12px 12px; text-align: right; color: var(--com); font-size: 13px; line-height: 20px; user-select: none; overflow: hidden; border-right: 1px solid var(--line); min-width: 44px; }
+.gutter span.errline { color: var(--err); font-weight: 600; }
+textarea#src { flex: 1; min-width: 0; border: none; resize: none; padding: 12px; font-size: 13px; line-height: 20px; background: transparent; color: var(--fg); white-space: pre; overflow: auto; tab-size: 2; }
+textarea#src:focus { outline: none; }
+.rtabs { display: flex; gap: 2px; }
+.rtabs button { font: 500 13px var(--body); background: none; border: 1px solid transparent; color: var(--muted); padding: 4px 10px; border-radius: 5px; cursor: pointer; }
+.rtabs button[aria-selected="true"] { background: var(--accent-soft); color: var(--accent); }
+.rbody { padding: 12px; overflow: auto; max-height: 640px; min-height: 520px; display: flex; flex-direction: column; gap: 12px; }
+pre.code { margin: 0; font-size: 13px; line-height: 20px; white-space: pre; overflow-x: auto; }
+.k { color: var(--kw); font-weight: 500; }
+.s { color: var(--str); }
+.c { color: var(--com); font-style: italic; }
+.d { color: var(--num); }
+.diag { font-size: 13.5px; padding: 8px 10px; border-radius: 6px; display: flex; gap: 10px; }
+.diag .ln { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; }
+.diag.err { background: var(--err-soft); color: var(--err); }
+.diag.warn { background: var(--warn-soft); color: var(--warn); }
+.diag.log { background: var(--accent-soft); color: var(--fg); }
+.decl { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.decl .dh { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding: 6px 10px; background: var(--bg); font-family: var(--mono); font-size: 13px; }
+.decl .dh .from { color: var(--muted); }
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+td { padding: 4px 10px; border-top: 1px solid var(--line); vertical-align: top; font-family: var(--mono); }
+td.from { color: var(--muted); font-family: var(--body); white-space: nowrap; }
+.today-note { font-size: 14px; color: var(--muted); }
+.empty { color: var(--muted); font-size: 14px; }
+
+.questions { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
+.questions ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; max-width: 90ch; }
+.ref { font-size: 13.5px; color: var(--muted); }
+.ref summary { cursor: pointer; color: var(--fg); font-weight: 500; }
+.ref pre { margin: 8px 0 0; font-size: 12.5px; line-height: 19px; overflow-x: auto; background: var(--bg); padding: 10px; border-radius: 6px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="tag">Prototype, throwaway</span>
+    <h1>TDL build blocks</h1>
+    <p class="lede">What would it look like to <em>build</em> types with C-family code inside a designated <code>build { }</code> block? Statements (<code>var</code>, <code>for</code>, <code>if</code>, functions, method calls) construct declarations, and the block expands into plain TDL before lowering, so the IR and every backend stay as they are. Edit the source on the left; the right shows the TDL it expands to and where each declaration and field was built.</p>
+    <p class="assume">Assumption this prototype makes: expansion runs on syntax, before <code>sema</code>, like a macro. So <code>t.fields</code> sees only the fields the build block itself added, not a mixin's or a class's. The open questions at the bottom say what changes if it ran over the lowered model instead. Every scenario step that expands cleanly, and every "TDL today" file, passes <code>tdl check</code>.</p>
+  </header>
+
+  <section class="scenarios" aria-label="Scenarios">
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="scenario">
+      <p class="watch" id="watch"></p>
+      <div class="steps" id="steps"></div>
+      <p class="stepnote" id="stepnote"></p>
+    </div>
+  </section>
+
+  <section class="bench">
+    <div class="pane">
+      <div class="panehead"><span class="label">Source (.tdl with a build block)</span><span class="status" id="status"></span></div>
+      <div class="editor">
+        <pre class="gutter" id="gutter" aria-hidden="true"></pre>
+        <textarea id="src" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="TDL source with a build block"></textarea>
+      </div>
+    </div>
+    <div class="pane">
+      <div class="panehead">
+        <div class="rtabs" role="tablist" id="rtabs">
+          <button role="tab" data-r="out" aria-selected="true">Expands to</button>
+          <button role="tab" data-r="trace" aria-selected="false">How it was built</button>
+          <button role="tab" data-r="today" aria-selected="false">TDL today</button>
+        </div>
+        <span class="status" id="counts"></span>
+      </div>
+      <div class="rbody" id="rbody"></div>
+    </div>
+  </section>
+
+  <section class="questions">
+    <h2>Open questions this raises</h2>
+    <ol>
+      <li><b>When does it run?</b> On syntax (this prototype) it is a macro: fast and simple, but blind to the prelude, imports, mixin fields, and inherited class fields. Over the lowered model it becomes reflection: <code>t.fields</code> could see everything, but <code>sema</code> must lower twice and a build block could depend on its own output.</li>
+      <li><b>Termination.</b> Here there is no <code>while</code>, loops only walk finite lists, and recursion stops at 16 calls deep. Is a cap acceptable in a spec, or should functions simply not recurse?</li>
+      <li><b>Order.</b> Declarative TDL is order-free. <code>copy()</code> is a snapshot, so a field added after the copy is missing from it (see Derived types, step 2). That is the first place TDL source order would carry meaning.</li>
+      <li><b>Tooling.</b> <code>tdl fmt</code> needs a second printer for the block's own syntax; go to definition on <code>AcmeOrder</code> has to land on <code>new Type(t + "Order")</code>; hover would show the expanded declaration. The "How it was built" tab is the provenance the language server would need.</li>
+      <li><b>Round trip.</b> <code>tdl import</code> and <code>internal/unlower</code> print plain declarations, so a build block never comes back. That is fine if the block is authoring sugar only.</li>
+      <li><b>Overlap.</b> Shared fields already have mixins, classes, and generics. The cases nothing covers today are derived types (create and patch shapes, like TypeScript's <code>Omit</code> and <code>Partial</code>) and generating one declaration per name. A smaller declarative feature such as <code>type CreateOrder = Order without { id placedAt }</code> might cover the first without any control flow.</li>
+      <li><b>The spec's promise.</b> <code>docs/spec.md</code> says TDL has no expressions, control flow, or runtime. A build block adds expressions and control flow at compile time only; it is worth deciding whether that promise is about the model or the source.</li>
+    </ol>
+    <details class="ref">
+      <summary>Build block reference (what this prototype understands)</summary>
+<pre>build { ... }                      a top-level block; anything outside it is plain TDL, passed through
+var x = expr;   Type x = expr;      a variable (the type before the name is ignored)
+for (var x : list) stmt             loop over a finite list: ["A", "B"], t.fields, e.variants
+if (cond) stmt else stmt            cond must be true or false
+void name(Type a, string b) { }     a function; return expr; returns a value
+== != && || ! +                     + joins strings
+
+new Type("Order")  new Enum("Status")  new Mixin("Timestamps")  new Class("Auditable")
+new Newtype("Email", string)
+
+t.field("name", Type)               returns the field;  e.variant("Card") returns the variant
+t.implements(Entity, ...)  t.include(Mixin)  t.doc("text")  t.remove("name")
+t.copy("NewName")                   fields and includes, not conformance
+t.conformsTo(Entity)  t.hasField("id")  t.name  t.fields  e.variants
+
+f.optional() f.required() f.owned() f.withDefault(v)
+f.min(n) f.max(n) f.length(n) f.minLength(n) f.maxLength(n) f.matches("re") f.oneOf("a", "b") f.unique()
+f.name  f.type
+
+Type expressions:  Customer   Address?   LineItem[]   list(T)  set(T)  map(K, V)  optional(T)  ref("Name")
+A name that is not a variable is a type reference, resolved later by lowering.
+Builtins:  print(x)  capitalize(s)  lower(s)</pre>
+    </details>
+  </section>
+</div>
+
+<script>
+/* ============================================================================
+   Build block expander: a pure module. No DOM in here.
+   expand(source) -> { tdl, decls, errors, warnings, log }
+   ========================================================================== */
+const BuildBlock = (() => {
+  const PRELUDE = new Set(["string","int","bool","bytes","int32","uint32","int64","uint64","float32","float64","List","Set","Map","decimal","uuid","instant","date","duration","Entity","null"]);
+  const IDENT = /^[A-Za-z_][A-Za-z0-9_]*$/;
+  const MAX_DEPTH = 16, MAX_STEPS = 20000;
+
+  class TdlError extends Error { constructor(line, msg) { super(msg); this.line = line; } }
+  const err = (line, msg) => new TdlError(line, msg);
+  class Ret { constructor(v) { this.v = v; } }
+
+  // ---------------------------------------------------------------- lexer
+  const PUNCT = ["==","!=","&&","||","<=",">=","{","}","(",")","[","]",";",",",".",":","=","!","+","?","<",">","-","*","%"];
+  function lex(src, line) {
+    const toks = []; let i = 0;
+    while (i < src.length) {
+      const c = src[i];
+      if (c === "\n") { line++; i++; continue; }
+      if (/\s/.test(c)) { i++; continue; }
+      if (src.startsWith("//", i)) { while (i < src.length && src[i] !== "\n") i++; continue; }
+      if (src.startsWith("/*", i)) {
+        const j = src.indexOf("*/", i + 2), end = j < 0 ? src.length : j + 2;
+        for (let k = i; k < end; k++) if (src[k] === "\n") line++;
+        i = end; continue;
+      }
+      if (/[A-Za-z_]/.test(c)) { let j = i; while (j < src.length && /\w/.test(src[j])) j++; toks.push({ t: "id", v: src.slice(i, j), line }); i = j; continue; }
+      if (/[0-9]/.test(c)) { let j = i; while (j < src.length && /[0-9]/.test(src[j])) j++; toks.push({ t: "num", v: Number(src.slice(i, j)), line }); i = j; continue; }
+      if (c === '"') {
+        let j = i + 1, s = "";
+        while (j < src.length && src[j] !== '"' && src[j] !== "\n") {
+          if (src[j] === "\\" && (src[j + 1] === '"' || src[j + 1] === "\\")) { s += src[j + 1]; j += 2; }
+          else s += src[j++];
+        }
+        if (src[j] !== '"') throw err(line, "this string has no closing quote");
+        toks.push({ t: "str", v: s, line }); i = j + 1; continue;
+      }
+      const p = PUNCT.find(p => src.startsWith(p, i));
+      if (p) { toks.push({ t: "p", v: p, line }); i += p.length; continue; }
+      throw err(line, `unexpected character '${c}'`);
+    }
+    toks.push({ t: "eof", v: "", line });
+    return toks;
+  }
+
+  // ---------------------------------------------------------------- parser
+  function parse(toks) {
+    let k = 0;
+    const peek = (o = 0) => toks[Math.min(k + o, toks.length - 1)];
+    const next = () => toks[k++];
+    const is = (v, o = 0) => { const t = peek(o); return (t.t === "p" || t.t === "id") && t.v === v; };
+    const show = t => t.t === "eof" ? "the end of the block" : `'${t.v}'`;
+    const eat = v => { if (is(v)) return next(); throw err(peek().line, `expected '${v}' but found ${show(peek())}`); };
+    const ident = () => { const t = next(); if (t.t !== "id") throw err(t.line, `expected a name but found ${show(t)}`); return t.v; };
+
+    function block() {
+      eat("{"); const body = [];
+      while (!is("}")) { if (peek().t === "eof") throw err(peek().line, "this block is missing its closing '}'"); body.push(stmt()); }
+      eat("}"); return { k: "block", body };
+    }
+    function stmt() {
+      const t = peek(), line = t.line;
+      if (is("{")) return block();
+      if (t.t === "id") {
+        switch (t.v) {
+          case "while": case "do": case "goto":
+            throw err(line, `'${t.v}' is not allowed in a build block. Loops only walk a finite list, so expansion always ends.`);
+          case "for": {
+            next(); eat("(");
+            if (is("var") || is("let") || is("const") || (peek().t === "id" && peek(1).t === "id")) next();
+            const name = ident();
+            if (is("=")) throw err(line, "counting loops are not supported. Loop over a list instead: for (var x : [\"A\", \"B\"])");
+            if (is(":") || is("in") || is("of")) next(); else eat(":");
+            const iter = expr(); eat(")");
+            return { k: "for", name, iter, body: stmt(), line };
+          }
+          case "if": {
+            next(); eat("("); const cond = expr(); eat(")");
+            const then = stmt(); let els = null;
+            if (is("else")) { next(); els = stmt(); }
+            return { k: "if", cond, then, els, line };
+          }
+          case "return": { next(); let e = null; if (!is(";")) e = expr(); eat(";"); return { k: "return", e, line }; }
+          case "var": case "let": case "const": { next(); const name = ident(); eat("="); const e = expr(); eat(";"); return { k: "var", name, e, line }; }
+        }
+        if (t.v !== "new" && peek(1).t === "id" && is("(", 2)) {
+          next(); const name = ident(); eat("(");
+          const params = [];
+          while (!is(")")) { if (peek(1).t === "id") next(); params.push(ident()); if (!is(")")) eat(","); }
+          eat(")");
+          return { k: "fn", name, params, body: block(), line };
+        }
+        if (t.v !== "new" && peek(1).t === "id" && is("=", 2)) {
+          next(); const name = ident(); eat("="); const e = expr(); eat(";");
+          return { k: "var", name, e, line };
+        }
+      }
+      const e = expr(); eat(";");
+      return { k: "expr", e, line };
+    }
+    const expr = () => or();
+    function or() { let l = and(); while (is("||")) { const line = next().line; l = { k: "bin", op: "||", l, r: and(), line }; } return l; }
+    function and() { let l = eq(); while (is("&&")) { const line = next().line; l = { k: "bin", op: "&&", l, r: eq(), line }; } return l; }
+    function eq() {
+      let l = add();
+      for (;;) {
+        if (is("==") || is("!=")) { const t = next(); l = { k: "bin", op: t.v, l, r: add(), line: t.line }; continue; }
+        if (is("<") || is(">") || is("<=") || is(">=")) throw err(peek().line, `'${peek().v}' is not supported: a build block compares with == and != only`);
+        return l;
+      }
+    }
+    function add() { let l = unary(); while (is("+")) { const line = next().line; l = { k: "bin", op: "+", l, r: unary(), line }; } return l; }
+    function unary() { if (is("!")) { const line = next().line; return { k: "not", e: unary(), line }; } return postfix(); }
+    function args() { eat("("); const a = []; while (!is(")")) { a.push(expr()); if (!is(")")) eat(","); } eat(")"); return a; }
+    function postfix() {
+      let e = primary();
+      for (;;) {
+        const line = peek().line;
+        if (is(".")) { next(); const name = ident(); e = is("(") ? { k: "call", target: e, name, args: args(), line } : { k: "get", target: e, name, line }; continue; }
+        if (is("(") && e.k === "name") { e = { k: "callfn", name: e.v, args: args(), line }; continue; }
+        if (is("?")) { next(); e = { k: "opt", e, line }; continue; }
+        if (is("[")) {
+          if (is("]", 1)) { next(); next(); e = { k: "arr", e, line }; continue; }
+          next(); const i = expr(); eat("]"); e = { k: "index", e, i, line }; continue;
+        }
+        return e;
+      }
+    }
+    function primary() {
+      const t = next(), line = t.line;
+      if (t.t === "num") return { k: "lit", v: t.v, line };
+      if (t.t === "str") return { k: "lit", v: t.v, line };
+      if (t.t === "id") {
+        if (t.v === "true") return { k: "lit", v: true, line };
+        if (t.v === "false") return { k: "lit", v: false, line };
+        if (t.v === "null") return { k: "lit", v: null, line };
+        if (t.v === "new") { const cls = ident(); return { k: "new", cls, args: args(), line }; }
+        return { k: "name", v: t.v, line };
+      }
+      if (t.t === "p" && t.v === "[") { const items = []; while (!is("]")) { items.push(expr()); if (!is("]")) eat(","); } eat("]"); return { k: "list", items, line }; }
+      if (t.t === "p" && t.v === "(") { const e = expr(); eat(")"); return e; }
+      throw err(line, `expected a value but found ${show(t)}`);
+    }
+    const body = []; while (peek().t !== "eof") body.push(stmt());
+    return body;
+  }
+
+  // ---------------------------------------------------------------- the model being built
+  class Field {
+    constructor(name, type, from) { this.name = name; this.type = type; this.from = from; this.owned = false; this.cons = []; this.def = undefined; this.note = null; }
+    clone(note) { const f = new Field(this.name, this.type, this.from); f.owned = this.owned; f.cons = this.cons.map(c => ({ ...c })); f.def = this.def; f.note = note; return f; }
+  }
+  class Variant { constructor(name, from) { this.name = name; this.from = from; this.fields = []; } }
+  class Decl {
+    constructor(kind, name, from, block) { Object.assign(this, { kind, name, from, block, classes: [], includes: [], fields: [], variants: [], base: null, doc: null }); }
+  }
+
+  // ---------------------------------------------------------------- interpreter
+  class Env {
+    constructor(parent) { this.parent = parent; this.vars = new Map(); }
+    lookup(n) { for (let e = this; e; e = e.parent) if (e.vars.has(n)) return { v: e.vars.get(n) }; return null; }
+    def(n, v) { this.vars.set(n, v); }
+  }
+
+  function describe(v) {
+    if (v === null || v === undefined) return "null";
+    if (typeof v === "string") return `the string "${v}"`;
+    if (typeof v === "number") return `the number ${v}`;
+    if (typeof v === "boolean") return String(v);
+    if (Array.isArray(v)) return "a list";
+    if (v instanceof Decl) return `${v.kind} ${v.name}`;
+    if (v instanceof Field) return `field ${v.name}`;
+    if (v instanceof Variant) return `variant ${v.name}`;
+    if (v.kind === "ref") return `the type name ${v.text}`;
+    if (v.kind === "fn") return `function ${v.name}()`;
+    return "a value";
+  }
+
+  function makeRunner(st) {
+    const from = line => ({ line, via: st.stack.map(s => ({ fn: s.name, line: s.line })) });
+    const tick = line => { if (++st.steps > MAX_STEPS) throw err(line, `expansion took more than ${MAX_STEPS} steps and was stopped`); };
+
+    function typeText(v, line) {
+      if (v instanceof Decl) return v.name;
+      if (v && v.kind === "ref") {
+        for (const m of v.text.matchAll(/[A-Za-z_][\w.]*/g)) st.used.push({ name: m[0], line });
+        return v.text;
+      }
+      if (typeof v === "string") throw err(line, `"${v}" is a string, but a type is a name. Write ${IDENT.test(v) ? v : "the name"} without quotes, or ref(...) to build a name from strings.`);
+      throw err(line, `${describe(v)} is not a type`);
+    }
+    const ref = (text, line) => ({ kind: "ref", text, line });
+    const optText = t => t.endsWith("?") ? t : t + "?";
+
+    function needName(v, line, what) {
+      if (typeof v !== "string") throw err(line, `${what} needs a name as a string${v && v.kind === "ref" ? `: write "${v.text}" in quotes` : ""}`);
+      if (!IDENT.test(v)) throw err(line, `"${v}" is not a valid TDL name`);
+      return v;
+    }
+    const needBool = (v, line) => { if (typeof v !== "boolean") throw err(line, `a condition must be true or false, not ${describe(v)}`); return v; };
+    const needNum = (v, line, what) => { if (typeof v !== "number") throw err(line, `${what} takes a number, not ${describe(v)}`); return v; };
+
+    function construct(cls, a, line) {
+      const kinds = { Type: "type", Enum: "enum", Mixin: "mixin", Class: "class", Newtype: "newtype" };
+      const kind = kinds[cls];
+      if (!kind) throw err(line, `new ${cls}: the build block knows Type, Enum, Newtype, Mixin, and Class`);
+      const name = needName(a[0], line, `new ${cls}`);
+      claim(name, line);
+      const d = new Decl(kind, name, from(line), st.block);
+      if (kind === "newtype") { if (a.length < 2) throw err(line, `new Newtype("${name}", base) needs a base type`); d.base = typeText(a[1], line); }
+      st.decls.push(d); st.byName.set(name, d);
+      return d;
+    }
+    function claim(name, line) {
+      if (st.byName.has(name)) {
+        const at = st.byName.get(name).from.line;
+        throw err(line, at === line ? `${name} is already built, by an earlier pass over this same line` : `${name} is already built at line ${at}`);
+      }
+      if (st.outside.has(name)) throw err(line, `${name} is already declared outside the build block, at line ${st.outside.get(name)}`);
+    }
+
+    function addField(owner, list, a, line, ownerName) {
+      const name = needName(a[0], line, "field");
+      if (list.some(f => f.name === name)) throw err(line, `${ownerName} already has a field ${name}`);
+      if (a.length < 2) throw err(line, `field("${name}", Type) needs a type`);
+      const f = new Field(name, typeText(a[1], line), from(line));
+      list.push(f); return f;
+    }
+
+    function setLength(f, lo, hi, exact) {
+      let c = f.cons.find(c => c.key === "length");
+      if (!c) { c = { key: "length" }; f.cons.push(c); }
+      if (exact !== undefined) { c.exact = exact; delete c.lo; delete c.hi; }
+      if (lo !== undefined) { c.lo = lo; delete c.exact; }
+      if (hi !== undefined) { c.hi = hi; delete c.exact; }
+    }
+    function setCons(f, key, text) {
+      const c = f.cons.find(c => c.key === key);
+      if (c) c.text = text; else f.cons.push({ key, text });
+    }
+
+    function method(t, name, a, line) {
+      if (t && t.kind === "ref" && st.outside.has(t.text)) throw err(line, `${t.text} is declared outside the build block. The block expands before lowering, so it cannot see ${t.text}'s fields or change it.`);
+      if (t && t.kind === "ref") throw err(line, `'${t.text}' is not a variable, so it names a type and has no .${name}(). Declare it with var first.`);
+      if (t instanceof Decl) {
+        const isStruct = ["type", "mixin", "class"].includes(t.kind);
+        switch (name) {
+          case "field":
+            if (t.kind === "enum") throw err(line, `enum ${t.name} has variants, not fields: use .variant("Name")`);
+            if (t.kind === "newtype") throw err(line, `newtype ${t.name} has no fields`);
+            return addField(t, t.fields, a, line, t.name);
+          case "variant": {
+            if (t.kind !== "enum") throw err(line, `${t.kind} ${t.name} is not an enum, so it has no variants`);
+            const n = needName(a[0], line, "variant");
+            if (t.variants.some(v => v.name === n)) throw err(line, `enum ${t.name} already has a variant ${n}`);
+            const v = new Variant(n, from(line)); t.variants.push(v); return v;
+          }
+          case "implements":
+            if (!["type", "class"].includes(t.kind)) throw err(line, `a ${t.kind} cannot conform to a class`);
+            for (const x of a) { const n = typeText(x, line); if (!t.classes.includes(n)) t.classes.push(n); }
+            return t;
+          case "conformsTo": return a.some(x => t.classes.includes(x instanceof Decl ? x.name : x && x.text));
+          case "hasField": return t.fields.some(f => f.name === a[0]);
+          case "include":
+            if (!isStruct) throw err(line, `a ${t.kind} cannot include a mixin`);
+            for (const x of a) { if (x instanceof Decl && x.kind !== "mixin") throw err(line, `${x.kind} ${x.name} is not a mixin`); const n = typeText(x, line); if (!t.includes.includes(n)) t.includes.push(n); }
+            return t;
+          case "doc": if (typeof a[0] !== "string") throw err(line, "doc takes a string"); t.doc = a[0]; return t;
+          case "remove": {
+            const i = t.fields.findIndex(f => f.name === a[0]);
+            if (i < 0) throw err(line, `${t.name} has no field ${a[0]} to remove`);
+            t.fields.splice(i, 1); return t;
+          }
+          case "copy": {
+            if (!isStruct) throw err(line, `only a type, mixin, or class can be copied`);
+            const n = needName(a[0], line, "copy"); claim(n, line);
+            const d = new Decl(t.kind, n, from(line), st.block);
+            d.fields = t.fields.map(f => f.clone(`copied from ${t.name}, line ${line}`));
+            d.includes = [...t.includes];
+            st.decls.push(d); st.byName.set(n, d); return d;
+          }
+        }
+        throw err(line, `${t.kind} ${t.name} has no method .${name}()`);
+      }
+      if (t instanceof Variant) {
+        if (name === "field") return addField(t, t.fields, a, line, `variant ${t.name}`);
+        throw err(line, `variant ${t.name} has no method .${name}()`);
+      }
+      if (t instanceof Field) {
+        switch (name) {
+          case "optional": t.type = optText(t.type); return t;
+          case "required": t.type = t.type.replace(/\?$/, ""); return t;
+          case "owned": t.owned = true; return t;
+          case "withDefault": t.def = a[0]; return t;
+          case "min": setCons(t, "min", `min(${needNum(a[0], line, "min")})`); return t;
+          case "max": setCons(t, "max", `max(${needNum(a[0], line, "max")})`); return t;
+          case "length": setLength(t, undefined, undefined, needNum(a[0], line, "length")); return t;
+          case "minLength": setLength(t, needNum(a[0], line, "minLength")); return t;
+          case "maxLength": setLength(t, undefined, needNum(a[0], line, "maxLength")); return t;
+          case "matches": if (typeof a[0] !== "string") throw err(line, "matches takes the pattern as a string"); setCons(t, "matches", `matches(/${a[0]}/)`); return t;
+          case "oneOf": setCons(t, "oneOf", `oneOf(${a.map(x => JSON.stringify(x)).join(", ")})`); return t;
+          case "unique": setCons(t, "unique", "unique"); return t;
+        }
+        throw err(line, `field ${t.name} has no method .${name}()`);
+      }
+      if (Array.isArray(t)) {
+        if (name === "push") { t.push(...a); return t; }
+        if (name === "contains") return t.some(x => equal(x, a[0]));
+        throw err(line, `a list has .push() and .contains(), not .${name}()`);
+      }
+      throw err(line, `${describe(t)} has no method .${name}()`);
+    }
+
+    function prop(t, name, line) {
+      if (t && t.kind === "ref") throw err(line, `'${t.text}' is not a variable, so it has no .${name}`);
+      if (t instanceof Decl && name === "name") return t.name;
+      if (t instanceof Decl && name === "kind") return t.kind;
+      if (t instanceof Decl && name === "fields") return [...t.fields];
+      if (t instanceof Decl && name === "variants") return [...t.variants];
+      if (t instanceof Variant && name === "name") return t.name;
+      if (t instanceof Variant && name === "fields") return [...t.fields];
+      if (t instanceof Field && name === "name") return t.name;
+      if (t instanceof Field && name === "type") return t.type;
+      if (t instanceof Field && name === "isOptional") return t.type.endsWith("?");
+      if ((Array.isArray(t) || typeof t === "string") && name === "length") return t.length;
+      throw err(line, `${describe(t)} has no property .${name}`);
+    }
+
+    const equal = (x, y) => (x && x.kind === "ref" && y && y.kind === "ref") ? x.text === y.text : x === y;
+
+    const builtins = {
+      list: (a, l) => ref(`[${typeText(a[0], l)}]`, l),
+      set: (a, l) => ref(`{${typeText(a[0], l)}}`, l),
+      map: (a, l) => ref(`{${typeText(a[0], l)} -> ${typeText(a[1], l)}}`, l),
+      optional: (a, l) => ref(optText(typeText(a[0], l)), l),
+      ref: (a, l) => { if (typeof a[0] !== "string" || !/^[A-Za-z_][\w.]*$/.test(a[0])) throw err(l, "ref takes a name as a string"); return ref(a[0], l); },
+      print: (a, l) => { st.log.push({ line: l, msg: a.map(x => typeof x === "string" ? x : describe(x)).join(" ") }); return null; },
+      capitalize: (a, l) => { if (typeof a[0] !== "string") throw err(l, "capitalize takes a string"); return a[0].charAt(0).toUpperCase() + a[0].slice(1); },
+      lower: (a, l) => { if (typeof a[0] !== "string") throw err(l, "lower takes a string"); return a[0].toLowerCase(); },
+    };
+
+    function ev(n, env) {
+      tick(n.line);
+      switch (n.k) {
+        case "lit": return n.v;
+        case "list": return n.items.map(i => ev(i, env));
+        case "name": { const b = env.lookup(n.v); return b ? b.v : ref(n.v, n.line); }
+        case "new": return construct(n.cls, n.args.map(x => ev(x, env)), n.line);
+        case "opt": return ref(optText(typeText(ev(n.e, env), n.line)), n.line);
+        case "arr": return ref(`[${typeText(ev(n.e, env), n.line)}]`, n.line);
+        case "index": {
+          const l = ev(n.e, env), i = ev(n.i, env);
+          if (!Array.isArray(l)) throw err(n.line, `${describe(l)} is not a list`);
+          if (typeof i !== "number" || i < 0 || i >= l.length) throw err(n.line, `index ${i} is outside the list (length ${l.length})`);
+          return l[i];
+        }
+        case "not": return !needBool(ev(n.e, env), n.line);
+        case "bin": {
+          if (n.op === "&&") return needBool(ev(n.l, env), n.line) && needBool(ev(n.r, env), n.line);
+          if (n.op === "||") return needBool(ev(n.l, env), n.line) || needBool(ev(n.r, env), n.line);
+          const l = ev(n.l, env), r = ev(n.r, env);
+          if (n.op === "==") return equal(l, r);
+          if (n.op === "!=") return !equal(l, r);
+          if (typeof l === "number" && typeof r === "number") return l + r;
+          if ((typeof l === "string" || typeof l === "number") && (typeof r === "string" || typeof r === "number")) return String(l) + String(r);
+          throw err(n.line, `cannot add ${describe(l)} and ${describe(r)}`);
+        }
+        case "callfn": {
+          const a = n.args.map(x => ev(x, env));
+          const b = env.lookup(n.name);
+          if (b && b.v && b.v.kind === "fn") return call(b.v, a, n.line);
+          if (builtins[n.name]) return builtins[n.name](a, n.line);
+          throw err(n.line, `${n.name}() is not a function defined in this build block`);
+        }
+        case "call": return method(ev(n.target, env), n.name, n.args.map(x => ev(x, env)), n.line);
+        case "get": return prop(ev(n.target, env), n.name, n.line);
+      }
+      throw err(n.line, "unknown expression");
+    }
+
+    function call(f, a, line) {
+      if (st.stack.length >= MAX_DEPTH) throw err(line, `${f.name}() is ${MAX_DEPTH} calls deep. A build block has to finish, so recursion stops here.`);
+      const e = new Env(f.env);
+      f.params.forEach((p, i) => e.def(p, a[i] === undefined ? null : a[i]));
+      st.stack.push({ name: f.name, line });
+      try { for (const s of f.body.body) exec(s, e); }
+      catch (r) { if (r instanceof Ret) return r.v; throw r; }
+      finally { st.stack.pop(); }
+      return null;
+    }
+
+    function exec(s, env) {
+      switch (s.k) {
+        case "block": { const e = new Env(env); for (const x of s.body) exec(x, e); return; }
+        case "var": env.def(s.name, ev(s.e, env)); return;
+        case "fn": env.def(s.name, { kind: "fn", name: s.name, params: s.params, body: s.body, env }); return;
+        case "expr": ev(s.e, env); return;
+        case "if": {
+          if (needBool(ev(s.cond, env), s.line)) exec(s.then, new Env(env));
+          else if (s.els) exec(s.els, new Env(env));
+          return;
+        }
+        case "for": {
+          const it = ev(s.iter, env);
+          if (!Array.isArray(it)) throw err(s.line, `for walks a list, like ["A", "B"] or t.fields, not ${describe(it)}`);
+          for (const x of it.slice()) { const e = new Env(env); e.def(s.name, x); exec(s.body, e); }
+          return;
+        }
+        case "return":
+          if (!st.stack.length) throw err(s.line, "return is only allowed inside a function");
+          throw new Ret(s.e ? ev(s.e, env) : null);
+      }
+    }
+    return { exec };
+  }
+
+  // ---------------------------------------------------------------- printing TDL
+  function printValue(v) {
+    if (typeof v === "string") return JSON.stringify(v);
+    if (v && v.kind === "ref") return v.text;
+    if (v instanceof Decl) return v.name;
+    if (v instanceof Variant) return v.name;
+    return String(v);
+  }
+  function consText(c) {
+    if (c.key !== "length") return c.text;
+    if (c.exact !== undefined) return `length(${c.exact})`;
+    return `length(${c.lo ?? ""}..${c.hi ?? ""})`;
+  }
+  function printField(f, indent) {
+    let s = `${f.name}: ${f.type}`;
+    if (f.owned) s += " owned";
+    if (f.cons.length === 1) s += ` where { ${consText(f.cons[0])} }`;
+    else if (f.cons.length > 1) s += ` where {\n${f.cons.map(c => indent + "  " + consText(c)).join("\n")}\n${indent}}`;
+    if (f.def !== undefined) s += ` = ${printValue(f.def)}`;
+    return s;
+  }
+  function printDecl(d) {
+    const doc = d.doc ? d.doc.split("\n").map(l => "/// " + l).join("\n") + "\n" : "";
+    if (d.kind === "newtype") return doc + `type ${d.name}: ${d.base}`;
+    if (d.kind === "enum") {
+      if (!d.variants.length) return doc + `enum ${d.name} { }`;
+      if (!d.variants.some(v => v.fields.length)) return doc + `enum ${d.name} { ${d.variants.map(v => v.name).join(" ")} }`;
+      const vs = d.variants.map(v => v.fields.length ? `  ${v.name} { ${v.fields.map(f => printField(f, "    ")).join(" ")} }` : `  ${v.name}`);
+      return doc + `enum ${d.name} {\n${vs.join("\n")}\n}`;
+    }
+    const head = `${d.kind} ${d.name}${d.classes.length ? ": " + d.classes.join(", ") : ""}`;
+    const body = [...d.includes.map(i => `include ${i}`), ...d.fields.map(f => printField(f, "  "))];
+    if (!body.length) return doc + `${head} { }`;
+    return doc + `${head} {\n${body.map(l => "  " + l).join("\n")}\n}`;
+  }
+
+  // ---------------------------------------------------------------- the file
+  function findBlocks(src) {
+    const out = []; const re = /^build[ \t]*\{/gm; let m;
+    while ((m = re.exec(src))) {
+      const open = m.index + m[0].length - 1;
+      let i = open + 1, depth = 1;
+      while (i < src.length && depth) {
+        const c = src[i];
+        if (src.startsWith("//", i)) { while (i < src.length && src[i] !== "\n") i++; continue; }
+        if (src.startsWith("/*", i)) { const j = src.indexOf("*/", i + 2); i = j < 0 ? src.length : j + 2; continue; }
+        if (c === '"') { i++; while (i < src.length && src[i] !== '"' && src[i] !== "\n") { if (src[i] === "\\") i++; i++; } i++; continue; }
+        if (c === "{") depth++;
+        if (c === "}") depth--;
+        i++;
+      }
+      const line = src.slice(0, m.index).split("\n").length;
+      out.push({ start: m.index, end: i, body: src.slice(open + 1, depth ? src.length : i - 1), line, closed: depth === 0 });
+      re.lastIndex = i;
+    }
+    return out;
+  }
+
+  function expand(src) {
+    const blocks = findBlocks(src);
+    const st = { decls: [], byName: new Map(), outside: new Map(), used: [], log: [], errors: [], warnings: [], stack: [], steps: 0, block: 0 };
+    let outsideText = "", pos = 0;
+    for (const b of blocks) { outsideText += src.slice(pos, b.start) + "\n".repeat(src.slice(b.start, b.end).split("\n").length - 1); pos = b.end; }
+    outsideText += src.slice(pos);
+    outsideText.split("\n").forEach((l, i) => {
+      const m = l.match(/^\s*(?:deprecated\s+)?(?:type|enum|mixin|class|alias|primitive|unit)\s+([A-Za-z_]\w*)/);
+      if (m) st.outside.set(m[1], i + 1);
+      const v = l.match(/^\s*enum\s+\w+\s*\{([^}]*)\}/); // one-line enum variants, for defaults like = Draft
+      if (v) v[1].trim().split(/\s+/).forEach(n => n && st.outside.set(n, i + 1));
+    });
+
+    const env = new Env(null);
+    const { exec } = makeRunner(st);
+    blocks.forEach((b, bi) => {
+      st.block = bi;
+      if (!b.closed) { st.errors.push({ line: b.line, msg: "this build block is missing its closing '}'" }); return; }
+      try {
+        const prog = parse(lex(b.body, b.line));
+        for (const s of prog) exec(s, env);
+      } catch (e) {
+        if (e instanceof TdlError) st.errors.push({ line: e.line, msg: e.message });
+        else if (e instanceof Ret) st.errors.push({ line: b.line, msg: "return is only allowed inside a function" });
+        else st.errors.push({ line: b.line, msg: "internal prototype error: " + e.message });
+      }
+    });
+
+    const known = new Set([...PRELUDE, ...st.outside.keys(), ...st.byName.keys()]);
+    const seen = new Set();
+    for (const u of st.used) {
+      if (u.name.includes(".") || known.has(u.name) || seen.has(u.name)) continue;
+      seen.add(u.name);
+      st.warnings.push({ line: u.line, msg: `${u.name} names nothing declared here. Lowering would report it as undefined.` });
+    }
+
+    let tdl = "", p = 0;
+    blocks.forEach((b, bi) => {
+      tdl += src.slice(p, b.start);
+      tdl += st.decls.filter(d => d.block === bi).map(printDecl).join("\n\n");
+      p = b.end;
+    });
+    tdl += src.slice(p);
+    tdl = tdl.replace(/\n{3,}/g, "\n\n").replace(/^\n+/, "");
+    return { tdl, decls: st.decls, errors: st.errors, warnings: st.warnings, log: st.log, blocks: blocks.length };
+  }
+
+  return { expand };
+})();
+
+/* ============================================================================
+   Scenarios
+   ========================================================================== */
+const SCENARIOS = [
+  {
+    id: "shop",
+    title: "The shop, built",
+    watch: "<b>examples/nested.tdl rebuilt as code.</b> The expansion should read like the hand-written file. Watch how much ceremony a builder adds to something TDL already says in a line, and where a loop starts to earn its keep.",
+    steps: [
+      { label: "Everything in a build block", note: "Every declaration from nested.tdl, built with method calls. Address's five fields come from one loop; line2 is made optional inside it.", src:
+`package shop.nested
+
+build {
+  var order = new Type("Order").implements(Entity);
+  order.field("id", string);
+  order.field("customer", Customer);
+  order.field("shipping", Address?);
+  order.field("items", LineItem[]).owned().minLength(1);
+  order.field("status", Status).withDefault(Draft);
+  order.field("total", Money);
+
+  var customer = new Type("Customer").implements(Entity);
+  customer.field("email", string).matches("^[^@]+@[^@]+$");
+  customer.field("name", string?);
+
+  var address = new Type("Address");
+  for (var name : ["line1", "line2", "city", "postcode", "country"]) {
+    var f = address.field(name, string);
+    if (name == "line2") f.optional();
+  }
+
+  var item = new Type("LineItem");
+  item.field("sku", string);
+  item.field("quantity", int).min(1).withDefault(1);
+
+  var money = new Type("Money");
+  money.field("amount", decimal);
+  money.field("currency", Currency);
+
+  var currency = new Enum("Currency");
+  for (var code : ["USD", "EUR", "GBP"]) currency.variant(code);
+
+  var status = new Enum("Status");
+  for (var s : ["Draft", "Placed", "Shipped", "Cancelled"]) status.variant(s);
+}
+` },
+      { label: "Mixed with plain TDL", note: "The parts TDL already says well stay declarative. The build block sits beside them, refers to them by name, and expands in place.", src:
+`package shop.nested
+
+type Order: Entity {
+  id: string
+  customer: Customer
+  shipping: Address?
+  items: [LineItem] owned where { length(1..) }
+  status: Status = Draft
+  total: Money
+}
+
+build {
+  // Only the repetitive part is code.
+  var address = new Type("Address");
+  for (var name : ["line1", "line2", "city", "postcode", "country"]) {
+    var f = address.field(name, string);
+    if (name == "line2") f.optional();
+  }
+}
+
+type Customer: Entity {
+  email: string where { matches(/^[^@]+@[^@]+$/) }
+  name: string?
+}
+
+type LineItem {
+  sku: string
+  quantity: int where { min(1) } = 1
+}
+
+type Money {
+  amount: decimal
+  currency: Currency
+}
+
+enum Currency { USD EUR GBP }
+enum Status { Draft Placed Shipped Cancelled }
+` },
+      { label: "A typo in a variable", note: "adress is not a variable, so it reads as a type name, and a type name has no methods. The error says so, but this is the price of letting bare names be types.", src:
+`package shop.nested
+
+build {
+  var address = new Type("Address");
+  for (var name : ["line1", "line2", "city"]) {
+    adress.field(name, string);
+  }
+}
+` },
+    ],
+    today:
+`package shop.nested
+
+type Order: Entity {
+  id: string
+  customer: Customer
+  shipping: Address?
+  items: [LineItem] owned where { length(1..) }
+  status: Status = Draft
+  total: Money
+}
+
+type Customer: Entity {
+  email: string where { matches(/^[^@]+@[^@]+$/) }
+  name: string?
+}
+
+type Address {
+  line1: string
+  line2: string?
+  city: string
+  postcode: string
+  country: string
+}
+
+type LineItem {
+  sku: string
+  quantity: int where { min(1) } = 1
+}
+
+type Money {
+  amount: decimal
+  currency: Currency
+}
+
+enum Currency { USD EUR GBP }
+enum Status { Draft Placed Shipped Cancelled }`,
+    todayNote: "This is examples/nested.tdl. For a model this size the declarative form is shorter and needs no reading of control flow.",
+  },
+  {
+    id: "loops",
+    title: "One per name",
+    watch: "<b>Generating a family of declarations from a list.</b> Each document kind gets an entity and its own line type. Watch the output grow when the list does, and how a conditional field varies one member of the family.",
+    steps: [
+      { label: "Three document kinds", note: "Each pass of the loop builds two declarations. ref(kind + \"Line\") builds a type name from strings.", src:
+`package billing
+
+build {
+  for (var kind : ["Invoice", "CreditNote", "Quote"]) {
+    var doc = new Type(kind).implements(Entity);
+    doc.field("id", uuid);
+    doc.field("number", string).matches("^[A-Z]{2}-[0-9]+$");
+    doc.field("issuedAt", instant);
+    doc.field("lines", ref(kind + "Line")[]).owned().minLength(1);
+
+    var line = new Type(kind + "Line");
+    line.field("description", string);
+    line.field("amount", decimal);
+  }
+}
+` },
+      { label: "Add a kind", note: "One word added to the list, two declarations added to the model.", src:
+`package billing
+
+build {
+  for (var kind : ["Invoice", "CreditNote", "Quote", "PurchaseOrder"]) {
+    var doc = new Type(kind).implements(Entity);
+    doc.field("id", uuid);
+    doc.field("number", string).matches("^[A-Z]{2}-[0-9]+$");
+    doc.field("issuedAt", instant);
+    doc.field("lines", ref(kind + "Line")[]).owned().minLength(1);
+
+    var line = new Type(kind + "Line");
+    line.field("description", string);
+    line.field("amount", decimal);
+  }
+}
+` },
+      { label: "Vary one member", note: "Quotes expire and credit notes point at an invoice. An if inside the loop says so; a mixin cannot.", src:
+`package billing
+
+build {
+  for (var kind : ["Invoice", "CreditNote", "Quote", "PurchaseOrder"]) {
+    var doc = new Type(kind).implements(Entity);
+    doc.field("id", uuid);
+    doc.field("number", string).matches("^[A-Z]{2}-[0-9]+$");
+    doc.field("issuedAt", instant);
+    doc.field("lines", ref(kind + "Line")[]).owned().minLength(1);
+    if (kind == "Quote") doc.field("validUntil", date);
+    if (kind == "CreditNote") doc.field("invoice", Invoice);
+
+    var line = new Type(kind + "Line");
+    line.field("description", string);
+    line.field("amount", decimal);
+  }
+}
+` },
+    ],
+    today:
+`package billing
+
+mixin Document {
+  id: uuid
+  number: string where { matches(/^[A-Z]{2}-[0-9]+$/) }
+  issuedAt: instant
+}
+
+mixin Line {
+  description: string
+  amount: decimal
+}
+
+type Invoice: Entity {
+  include Document
+  lines: [InvoiceLine] owned where { length(1..) }
+}
+
+type InvoiceLine { include Line }
+
+type CreditNote: Entity {
+  include Document
+  lines: [CreditNoteLine] owned where { length(1..) }
+  invoice: Invoice
+}
+
+type CreditNoteLine { include Line }
+
+type Quote: Entity {
+  include Document
+  lines: [QuoteLine] owned where { length(1..) }
+  validUntil: date
+}
+
+type QuoteLine { include Line }`,
+    todayNote: "Mixins already share the common fields; what stays repeated is one declaration and one lines field per kind. A generic type Document<L> would collapse the lines field, but then every kind is one generic, not its own entity.",
+  },
+  {
+    id: "helpers",
+    title: "Helpers vs mixins",
+    watch: "<b>A function that adds fields to whatever you pass it.</b> It does what a mixin does, plus decisions a mixin cannot make. Watch what happens when it runs twice on the same type.",
+    steps: [
+      { label: "An audit helper", note: "audited() adds timestamps to any type, and a version counter only to entities. The trace tab shows each field's origin as the call site and the line inside the helper.", src:
+`package example.audit
+
+build {
+  void audited(Type t) {
+    t.field("createdAt", instant);
+    t.field("updatedAt", instant);
+    if (t.conformsTo(Entity)) t.field("version", int).min(0).withDefault(0);
+  }
+
+  var user = new Type("User").implements(Entity);
+  user.field("id", string);
+  user.field("email", string);
+  audited(user);
+
+  var snapshot = new Type("Snapshot");
+  snapshot.field("payload", bytes);
+  audited(snapshot);
+}
+` },
+      { label: "A helper that returns a type", note: "entity() wraps the boilerplate of every entity. Functions that return builders are where this starts to feel like a different language.", src:
+`package example.audit
+
+build {
+  void audited(Type t) {
+    t.field("createdAt", instant);
+    t.field("updatedAt", instant);
+    if (t.conformsTo(Entity)) t.field("version", int).min(0).withDefault(0);
+  }
+
+  Type entity(string name) {
+    var t = new Type(name).implements(Entity);
+    t.field("id", uuid);
+    audited(t);
+    return t;
+  }
+
+  entity("User").field("email", string);
+  entity("Team").field("name", string).minLength(1);
+  entity("Invite").field("expiresAt", instant);
+}
+` },
+      { label: "Run it twice", note: "Calling the helper twice on the same type is an error, where include Timestamps twice is harmless. Should helpers be idempotent, or is a duplicate field always a mistake?", src:
+`package example.audit
+
+build {
+  void audited(Type t) {
+    t.field("createdAt", instant);
+    t.field("updatedAt", instant);
+  }
+
+  var user = new Type("User").implements(Entity);
+  user.field("id", string);
+  audited(user);
+  audited(user);
+}
+` },
+    ],
+    today:
+`package example.audit
+
+mixin Timestamps {
+  createdAt: instant
+  updatedAt: instant
+}
+
+type User: Entity {
+  id: string
+  email: string
+  include Timestamps
+  version: int where { min(0) } = 0
+}
+
+type Snapshot {
+  payload: bytes
+  include Timestamps
+}`,
+    todayNote: "A mixin is a declaration that tdl import and unlower can print back. A helper leaves nothing behind once it has run, and the entity-only version field has to be written by hand on each entity.",
+  },
+  {
+    id: "derived",
+    title: "Derived types",
+    watch: "<b>Shapes derived from another type:</b> what a client sends to create an order, and a partial update where every field is optional. Nothing in TDL covers this today. Watch step 2: a field added after the copies is missing from them.",
+    steps: [
+      { label: "Create and patch shapes", note: "copy() takes fields but not conformance, so CreateOrder is a value, not an entity. The patch loops over its own fields and makes each optional; note stays string? rather than string??.", src:
+`package shop.api
+
+build {
+  var order = new Type("Order").implements(Entity);
+  order.field("id", uuid);
+  order.field("customer", string);
+  order.field("note", string?);
+  order.field("total", decimal).min(0);
+  order.field("placedAt", instant);
+
+  // What a client sends: no server-owned fields.
+  var create = order.copy("CreateOrder");
+  create.remove("id");
+  create.remove("placedAt");
+
+  // A partial update: every field optional.
+  var patch = create.copy("OrderPatch");
+  for (var f : patch.fields) f.optional();
+}
+` },
+      { label: "Add a field afterwards", note: "currency is added to Order after the copies were taken, so neither CreateOrder nor OrderPatch has it. This is the first place TDL source order would change the model.", src:
+`package shop.api
+
+build {
+  var order = new Type("Order").implements(Entity);
+  order.field("id", uuid);
+  order.field("customer", string);
+  order.field("note", string?);
+  order.field("total", decimal).min(0);
+  order.field("placedAt", instant);
+
+  var create = order.copy("CreateOrder");
+  create.remove("id");
+  create.remove("placedAt");
+
+  var patch = create.copy("OrderPatch");
+  for (var f : patch.fields) f.optional();
+
+  order.field("currency", string);
+}
+` },
+      { label: "Derive from a plain declaration", note: "Order is declared outside the block. A syntax-level build block cannot see its fields, so it cannot copy it: this is the macro assumption biting.", src:
+`package shop.api
+
+type Order: Entity {
+  id: uuid
+  customer: string
+  total: decimal
+}
+
+build {
+  var create = Order.copy("CreateOrder");
+  create.remove("id");
+}
+` },
+    ],
+    today:
+`package shop.api
+
+type Order: Entity {
+  id: uuid
+  customer: string
+  note: string?
+  total: decimal where { min(0) }
+  placedAt: instant
+}
+
+type CreateOrder {
+  customer: string
+  note: string?
+  total: decimal where { min(0) }
+}
+
+type OrderPatch {
+  customer: string?
+  note: string?
+  total: decimal? where { min(0) }
+}`,
+    todayNote: "Written by hand, and kept in step by hand. Generics cannot say \"Order without id\" or \"Order with every field optional\". This is the strongest case for a build block, and also the case a small declarative feature could cover.",
+  },
+  {
+    id: "limits",
+    title: "Where it breaks",
+    watch: "<b>Guard rails.</b> Unbounded loops, runaway recursion, names only computation can see, and collisions a loop produces. Each step should fail with a message that says what to do.",
+    steps: [
+      { label: "A while loop", note: "Refused outright: the only loop walks a finite list, so expansion always ends.", src:
+`package example.limits
+
+build {
+  var t = new Type("Counter");
+  var n = 0;
+  while (n < 3) {
+    t.field("slot" + n, int);
+  }
+}
+` },
+      { label: "Runaway recursion", note: "nest() never stops building children. It is cut off at 16 calls; everything built so far still shows.", src:
+`package example.limits
+
+build {
+  void nest(Type t) {
+    var child = new Type(t.name + "Child");
+    t.field("child", child?);
+    nest(child);
+  }
+  nest(new Type("Tree"));
+}
+` },
+      { label: "Names only code can see", note: "AcmeOrder and GlobexOrder appear nowhere in the source as written. The typo AcmeOrdr is caught only after expansion, and go to definition on AcmeOrder would have to land on line 5.", src:
+`package example.limits
+
+build {
+  for (var tenant : ["Acme", "Globex"]) {
+    var o = new Type(tenant + "Order").implements(Entity);
+    o.field("id", string);
+  }
+
+  var report = new Type("Report");
+  report.field("latest", AcmeOrdr);
+}
+` },
+      { label: "A loop that collides", note: "The list repeats a name, so the loop declares Acme twice.", src:
+`package example.limits
+
+build {
+  for (var tenant : ["Acme", "Globex", "Acme"]) {
+    new Type(tenant).field("id", string);
+  }
+}
+` },
+    ],
+    today: "",
+    todayNote: "None of these can happen in TDL today: there are no loops or functions, every name is written where it is declared, and a duplicate is one declaration written twice.",
+  },
+];
+
+/* ============================================================================
+   Page shell
+   ========================================================================== */
+const $ = id => document.getElementById(id);
+const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const KW = "package|import|as|type|enum|mixin|class|alias|primitive|unit|target|for|include|where|owned|requires|instance|deprecated|build|var|void|if|else|return|new|true|false|null";
+function highlight(s) {
+  const re = new RegExp(`(\\/\\/[^\\n]*)|("(?:[^"\\\\\\n]|\\\\.)*")|\\b(${KW})\\b|\\b(\\d+)\\b`, "g");
+  return esc(s).replace(re, (m, c, str, k, d) => c ? `<span class="c">${c}</span>` : str ? `<span class="s">${str}</span>` : k ? `<span class="k">${k}</span>` : `<span class="d">${d}</span>`);
+}
+const where = f => {
+  const via = f.via.map(v => `line ${v.line} → ${v.fn}()`).join(" → ");
+  return via ? `${via}, line ${f.line}` : `line ${f.line}`;
+};
+
+let scen = 0, step = 0, rtab = "out", result = null;
+
+function renderTabs() {
+  $("tabs").innerHTML = SCENARIOS.map((s, i) => `<button role="tab" aria-selected="${i === scen}" data-i="${i}">${esc(s.title)}</button>`).join("");
+  const s = SCENARIOS[scen];
+  $("watch").innerHTML = s.watch;
+  $("steps").innerHTML = s.steps.map((st, i) => `<button class="${i === step ? "on" : ""}" data-i="${i}"><span class="n">${i + 1}</span>${esc(st.label)}</button>`).join("");
+  $("stepnote").textContent = s.steps[step].note;
+}
+function load(si, sti) {
+  scen = si; step = sti;
+  $("src").value = SCENARIOS[si].steps[sti].src;
+  renderTabs(); run();
+}
+function run() {
+  const src = $("src").value;
+  result = BuildBlock.expand(src);
+  const errLines = new Set(result.errors.map(e => e.line));
+  const n = src.split("\n").length;
+  let g = ""; for (let i = 1; i <= n; i++) g += errLines.has(i) ? `<span class="errline">${i}</span>\n` : `${i}\n`;
+  $("gutter").innerHTML = g;
+  $("gutter").scrollTop = $("src").scrollTop;
+  const st = $("status");
+  if (result.errors.length) { st.className = "status bad"; st.textContent = `${result.errors.length} error${result.errors.length > 1 ? "s" : ""}`; }
+  else { st.className = "status ok"; st.textContent = result.blocks ? "expands cleanly" : "no build block"; }
+  $("counts").textContent = `${result.decls.length} built`;
+  renderRight();
+}
+function diags() {
+  return [
+    ...result.errors.map(e => `<div class="diag err"><span class="ln">line ${e.line}</span><span>${esc(e.msg)}</span></div>`),
+    ...result.warnings.map(e => `<div class="diag warn"><span class="ln">line ${e.line}</span><span>${esc(e.msg)}</span></div>`),
+  ].join("");
+}
+function renderRight() {
+  document.querySelectorAll("#rtabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.r === rtab));
+  const s = SCENARIOS[scen];
+  let h = "";
+  if (rtab === "out") {
+    h = diags() + `<pre class="code">${highlight(result.tdl)}</pre>`;
+  } else if (rtab === "trace") {
+    h = diags() + result.log.map(l => `<div class="diag log"><span class="ln">line ${l.line}</span><span>print: ${esc(l.msg)}</span></div>`).join("");
+    if (!result.decls.length) h += `<p class="empty">Nothing was built. Declarations a build block creates show here with the line that built each field.</p>`;
+    for (const d of result.decls) {
+      const members = d.kind === "enum" ? d.variants.flatMap(v => [{ name: v.name, type: "variant", from: v.from }, ...v.fields.map(f => ({ name: `  ${v.name}.${f.name}`, type: f.type, from: f.from }))])
+        : d.kind === "newtype" ? [{ name: "base", type: d.base, from: d.from }]
+        : [...d.includes.map(i => ({ name: "include", type: i, from: null })), ...d.fields];
+      const head = `${d.kind} ${d.name}${d.classes.length ? ": " + d.classes.join(", ") : ""}`;
+      h += `<div class="decl"><div class="dh"><span>${esc(head)}</span><span class="from">built at ${esc(where(d.from))}</span></div>`;
+      if (members.length) h += `<div class="tbl"><table>${members.map(m => `<tr><td>${esc(m.name)}</td><td>${esc(m.type)}</td><td class="from">${m.from ? esc(where(m.from)) : ""}${m.note ? "<br>" + esc(m.note) : ""}</td></tr>`).join("")}</table></div>`;
+      h += `</div>`;
+    }
+  } else {
+    h = `<p class="today-note">${esc(s.todayNote)}</p>` + (s.today ? `<pre class="code">${highlight(s.today)}</pre>` : "");
+  }
+  $("rbody").innerHTML = h;
+}
+
+$("tabs").addEventListener("click", e => { const b = e.target.closest("button"); if (b) load(+b.dataset.i, 0); });
+$("steps").addEventListener("click", e => { const b = e.target.closest("button"); if (b) load(scen, +b.dataset.i); });
+$("rtabs").addEventListener("click", e => { const b = e.target.closest("button"); if (b) { rtab = b.dataset.r; renderRight(); } });
+let t; $("src").addEventListener("input", () => { clearTimeout(t); t = setTimeout(run, 120); });
+$("src").addEventListener("scroll", () => { $("gutter").scrollTop = $("src").scrollTop; });
+$("src").addEventListener("keydown", e => {
+  if (e.key === "Tab" && !e.shiftKey) { e.preventDefault(); const el = e.target, a = el.selectionStart; el.setRangeText("  ", a, el.selectionEnd, "end"); run(); }
+});
+load(0, 0);
+</script>
