@@ -36,7 +36,7 @@ runCommand "tdl-portable-check" { nativeBuildInputs = [ file ]; } ''
       # /etc/services in the store first; outside Nix the open fails and Go
       # falls back to the system's files or its built-in table, so those two
       # are allowed and nothing else is.
-      stray=$(grep -ao '/nix/store/[a-z0-9]\{32\}-[^/[:space:]]*' "$path" | sort -u | grep -v -e '-tzdata-' -e '-iana-etc-' || true)
+      stray=$(tr '\0' '\n' < "$path" | grep -ao '/nix/store/[a-z0-9]\{32\}-[^/[:space:]]*' | sort -u | grep -v -e '-tzdata-' -e '-iana-etc-' || true)
       [ -z "$stray" ] || fail "$path names $stray"
     done
   done

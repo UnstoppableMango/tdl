@@ -72,7 +72,8 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 - `cmd.nix`: the CLI. `meta.mainProgram` is what `lib.getExe` reads, since the package installs fourteen binaries.
 - `vscode-extension.nix`: the editor extension (see [VS Code](#vs-code)).
 - `gmk.nix`: `tdl-gmk`, `cmd/tdl-gmk` built as the GNU make loadable object `lib/tdl.so`, with gnumake's header for cgo; `checks.gmk` loads it into make.
-- `portable.nix`: `tdl-portable`, static `tdl` and `tdl-gen-typescript` for linux and darwin, amd64 and arm64, cross-compiled with `CGO_ENABLED=0` into `<goos>-<goarch>/`, for release assets and npm (#1385).
+- `portable.nix`: `tdl-portable`, `tdl` and `tdl-gen-typescript` for linux and darwin, amd64 and arm64, cross-compiled with `CGO_ENABLED=0` into `<goos>-<goarch>/`, for release assets and npm (#1385).
+  The linux binaries are static; the darwin ones link only `libSystem`, as every Go binary on darwin does.
   `packages.default` links against the store's glibc loader, so it does not run outside Nix.
   `dontFixup` keeps the build platform's `strip` off the darwin/arm64 binaries, which the Go linker signs.
   `checks.tdl-portable` checks each binary's format and static linking, allows only the store paths nixpkgs' Go patches in as zoneinfo and `/etc/protocols` fallbacks, and runs the binary for the checking system over the smoke model.

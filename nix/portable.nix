@@ -26,7 +26,8 @@ buildGoApplication {
   src = lib.cleanSource ../.;
   modules = ./gomod2nix.toml;
 
-  # Static binaries that name nothing in /nix/store, so they run outside Nix.
+  # Static on linux, and linked only to libSystem on darwin as every darwin Go
+  # binary is, so they run outside Nix.
   CGO_ENABLED = 0;
 
   # Every target is cross-compiled from the build platform, and Go cross-compiles
@@ -58,7 +59,7 @@ buildGoApplication {
   passthru = { inherit targets; };
 
   meta = {
-    description = "Static tdl and tdl-gen-typescript binaries for linux and darwin, amd64 and arm64";
+    description = "tdl and tdl-gen-typescript for linux and darwin, amd64 and arm64, static on linux";
     homepage = "https://github.com/UnstoppableMango/tdl";
     license = lib.licenses.mit;
     platforms = lib.platforms.unix;
