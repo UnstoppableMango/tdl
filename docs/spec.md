@@ -566,7 +566,7 @@ target go for billing {
 }
 ```
 
-A target block names a generator and the package it applies to.
+A target block names a backend and the package it applies to.
 Entries are either a path into the model followed by `=>` and a directive, a nested block scoping a path, or a bare directive applying to the enclosing scope.
 
 A path names a declaration, then optionally one of its fields.

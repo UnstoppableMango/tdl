@@ -16,6 +16,10 @@ _Avoid_: finite representation, well-founded
 What turns a resolved model into files for one target, or reads files back into a model.
 _Avoid_: generator, emitter
 
+**Target**:
+The name a target block gives, saying which backend reads the block: the backend registered under that name, or the plugin `tdl-gen-<name>`.
+_Avoid_: generator, language, when the name is meant
+
 **Plugin**:
 A backend running as its own executable, found as `tdl-gen-<name>`.
 _Avoid_: extension, external backend
