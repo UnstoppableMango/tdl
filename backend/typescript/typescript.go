@@ -274,10 +274,11 @@ func (g *generator) losses(d *ir.Decl) {
 				g.lose(emit.LossDoc, pos, "%s.%s's doc comment has no place in a union of string literals", name, vname)
 			}
 			if dir, ok := g.Find(v.GetDirectives(), "name"); ok {
-				// Not lost from the model: the directive has nothing to
-				// rename, so it carries no loss code.
+				// Not output loss: the directive has nothing to rename, so
+				// the warning carries no loss code. Import still misses the
+				// directive, which is the read-back loss below.
 				g.Warn(emit.Unsupported(dir.GetPosition(),
-					"%s.%s is written as its wire value %q, which is its name, so its name directive has no effect", name, vname, vname))
+					"%s.%s writes no TypeScript name, only its wire value %q, which is its name, so its name directive has no effect", name, vname, vname))
 				g.lose(emit.LossName, dir.GetPosition(), "%s.%s is written by its name, and its name directive does not read back", name, vname)
 			}
 		}

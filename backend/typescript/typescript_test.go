@@ -14,6 +14,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/typescript"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
+	"google.golang.org/protobuf/proto"
 )
 
 func generate(t *testing.T, b *irtest.Builder) *plugin.Response {
@@ -238,7 +239,7 @@ func TestNameOnAVariant(t *testing.T) {
 		t.Fatalf("diagnostics = %+v", diags)
 	}
 	d := diags[0]
-	if d.GetSeverity() != plugin.Severity_SEVERITY_WARNING || d.GetCode() != "" || d.GetPosition() != at ||
+	if d.GetSeverity() != plugin.Severity_SEVERITY_WARNING || d.GetCode() != "" || !proto.Equal(d.GetPosition(), at) ||
 		!strings.Contains(d.GetMessage(), "Status.Live") {
 		t.Errorf("diagnostic = %+v", d)
 	}
