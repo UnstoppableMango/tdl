@@ -202,10 +202,11 @@ make derives the setup function from the file's name, so keep it `tdl.so`.
 
 ### Shell completion
 
-The Nix package installs completion for bash, zsh, and fish, so `nix profile install` and `programs.tdl.enable` need nothing more.
+The Nix package installs completion for bash, zsh, and fish, unless it was cross-compiled on a machine that cannot run it.
+A shell that loads completions from the Nix profile, such as fish, or bash with bash-completion, or zsh after `compinit`, needs nothing more.
 It completes targets, loss codes, and other flag values, and `.tdl` files where a command reads them.
 
-Otherwise, load it from `tdl completion`:
+Otherwise, load the script from `tdl completion`:
 
 ```shell
 source <(tdl completion bash)       # bash, in ~/.bashrc

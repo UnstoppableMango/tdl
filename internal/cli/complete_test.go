@@ -3,6 +3,7 @@ package cli
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -52,6 +53,9 @@ func complete(t *testing.T, args ...string) completion {
 // on PATH. Each records that it ran, which completion must never do.
 func fakePlugins(t *testing.T) (dir, ran string) {
 	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("the fake plugins are shell scripts, which PATHEXT does not find")
+	}
 	dir = t.TempDir()
 	ran = filepath.Join(t.TempDir(), "ran")
 	script := "#!/bin/sh\ntouch " + ran + "\nexit 1\n"
