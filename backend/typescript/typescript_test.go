@@ -217,6 +217,40 @@ func TestEnums(t *testing.T) {
 	)
 }
 
+// A name directive on a fieldless variant has nothing to rename, since the
+// variant is written only as its wire value, so it warns at the directive
+// and changes nothing. On a fielded variant it renames the interface, and
+// the discriminant's value stays the variant's name.
+func TestNameOnAVariant(t *testing.T) {
+	b := irtest.New("shop")
+	live := variant("Live")
+	at := &ir.Position{Filename: irtest.OwnFile, Line: 9}
+	live.Directives = []*ir.Directive{directive("name", "live")}
+	live.Directives[0].Position = at
+	b.Own(enum("Status", live, variant("Expired")))
+	pr := variant("Pr", irtest.Field("n", b.Named("int32")))
+	pr.Directives = []*ir.Directive{directive("name", "pr")}
+	b.Own(enum("Key", pr, variant("Other")))
+
+	resp := generate(t, b)
+	diags := resp.GetDiagnostics()
+	if len(diags) != 1 {
+		t.Fatalf("diagnostics = %+v", diags)
+	}
+	d := diags[0]
+	if d.GetSeverity() != plugin.Severity_SEVERITY_WARNING || d.GetCode() != "" || d.GetPosition() != at ||
+		!strings.Contains(d.GetMessage(), "Status.Live") {
+		t.Errorf("diagnostic = %+v", d)
+	}
+	src := check(t, resp)
+	contains(t, src,
+		`export type Status = "Live" | "Expired";`,
+		"export type Key = pr | KeyOther;",
+		`export interface pr { kind: "Pr"; n: number; }`,
+	)
+	absent(t, src, `"live"`)
+}
+
 // The discriminant defaults to `kind`, the target block overrides it, and
 // an enum's directive overrides the block's.
 func TestDiscriminant(t *testing.T) {

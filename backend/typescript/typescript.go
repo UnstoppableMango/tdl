@@ -33,6 +33,9 @@ func (Backend) Describe() plugin.Description {
 		Reuse: true,
 		Directives: []*plugin.DirectiveSpec{
 			// The TypeScript name for a type, property, or variant interface.
+			// It never changes a variant's wire value, the discriminant's
+			// value or a fieldless variant's string literal, and on a
+			// fieldless variant it warns, since that writes no name.
 			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.OnMembers()},
 			// The property a discriminated union switches on: the default on
 			// the target block, an override on an enum.
@@ -271,6 +274,10 @@ func (g *generator) losses(d *ir.Decl) {
 				g.lose(emit.LossDoc, pos, "%s.%s's doc comment has no place in a union of string literals", name, vname)
 			}
 			if dir, ok := g.Find(v.GetDirectives(), "name"); ok {
+				// Not lost from the model: the directive has nothing to
+				// rename, so it carries no loss code.
+				g.Warn(emit.Unsupported(dir.GetPosition(),
+					"%s.%s is written as its wire value %q, which is its name, so its name directive has no effect", name, vname, vname))
 				g.lose(emit.LossName, dir.GetPosition(), "%s.%s is written by its name, and its name directive does not read back", name, vname)
 			}
 		}
