@@ -1,0 +1,40 @@
+// PROTOTYPE for #1398 (wayfinder map #1394). Not compiled (.txt): a sketch
+// of the .NET side to react to. Mirrors plugin/prototype_targets.go.
+//
+// A shared plugin's Program.cs:
+//
+//     return Server.Run(new CSharpBackend(), new FSharpBackend());
+//
+// Server.Run(IBackend) becomes Server.Run(params IBackend[]), so
+// Tdl.Gen.CSharp's Program.cs and Tdl.Plugin.Debug's compile unchanged.
+
+public static class Server
+{
+	public static int Run(params IBackend[] backends) { /* as today, calling Serve(backends, conn) */ }
+
+	public static void Serve(IReadOnlyList<IBackend> backends, Conn conn)
+	{
+		var hello = conn.Recv(Handshake.Parser) ?? throw new EndOfStreamException("...");
+		var refusal = Incompatible(hello);
+		IBackend? backend = null;
+		if (refusal is null)
+		{
+			// Unverified: Environment.ProcessPath may resolve a symlink to its
+			// target; GetCommandLineArgs()[0] should keep argv[0]. Check
+			// under Native AOT before relying on either.
+			(backend, refusal) = Choose(hello.Target, Environment.GetCommandLineArgs()[0], backends);
+		}
+		// ...then exactly today's Serve(IBackend, Conn) body for `backend`.
+	}
+
+	// Same rules as Go's choose: the handshake's target, then argv[0] without
+	// "tdl-gen-", one backend serves anything when no target is named, and a
+	// refusal names what was asked for and what is served.
+	static (IBackend?, string?) Choose(string requested, string argv0, IReadOnlyList<IBackend> backends) { /* ... */ }
+}
+
+// Open for the .NET side: which API gives a Native AOT binary its link
+// name (see above); nix/cmd.nix would ship tdl-gen-csharp and
+// tdl-gen-fsharp as symlinks to one tdl-dotnet. Nothing else in the SDK
+// (Session, analysis, Resolve) knows which backend it is in, so the
+// backends share no state beyond static caches.
