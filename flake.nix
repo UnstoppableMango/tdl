@@ -128,7 +128,10 @@
               actionlint.enable = true;
               biome = {
                 enable = true;
-                includes = [ "editors/vscode/**/*.ts" ];
+                includes = [
+                  "editors/vscode/**/*.ts"
+                  "npm/**/*.js"
+                ];
                 settings = removeAttrs (builtins.fromJSON (builtins.readFile ./editors/vscode/biome.json)) [
                   "$schema"
                   "files"

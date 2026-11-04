@@ -52,6 +52,7 @@ CI runs them as two steps.
 `editors/vscode/src/` is the only TypeScript.
 `editors/vscode/package-lock.json` pins TypeScript 7 and Biome, run through `npm run`.
 `editors/vscode/biome.json` configures Biome as formatter and linter; treefmt reads it, so a lint finding fails `nix flake check`.
+treefmt also runs it over `npm/**/*.js`, the npm package's shim.
 Biome's JSON formatter is off, because jsonfmt owns JSON.
 
 `.markdownlint-cli2.yaml` lists which markdown files are linted, so a bare `markdownlint-cli2` checks what CI checks.
@@ -78,6 +79,11 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
   `packages.default` links against the store's glibc loader, so it does not run outside Nix.
   `dontFixup` keeps the build platform's `strip` off the darwin/arm64 binaries, which the Go linker signs.
   `checks.tdl-portable` checks each binary's format and static linking, allows only the store paths nixpkgs' Go patches in as zoneinfo and `/etc/protocols` fallbacks, and runs the binary for the checking system over the smoke model.
+- `npm.nix`: `packages.npm`, the five npm packages packed as tarballs: `@unmango/tdl` from `npm/tdl/`, and one `@unmango/tdl-<os>-<cpu>` per `tdl-portable` target, written with `jq` around its two binaries, with `os` and `cpu` set, which `@unmango/tdl` names in `optionalDependencies` at the flake's version.
+  The build fails if `npm/tdl/package.json`'s version, which release-please bumps, is not the flake's.
+  `npm/tdl/tdl.js` is the `bin`: it finds the platform package through `lib/resolve.js`, exported as `@unmango/tdl/resolve` for `@unmango/tdl-typescript`, and runs its binary, passing through arguments, stdio, and the exit status. No package has an install script.
+  The shim sits beside `package.json` because `.gitignore` ignores every `bin/`.
+  `checks.npm-tdl` installs `@unmango/tdl` and the checking system's platform package offline with `--ignore-scripts`, then runs `tdl version`, `tdl gen` over the smoke model, and `tdl-gen-typescript` through the resolver.
 - `dotnet.nix`: the .NET plugins, built with `buildDotnetModule`, which runs their tests (see [.NET SDK](#net-sdk)): `tdl-gen-csharp`, compiled with Native AOT and linked by `stdenv.cc`, and the SDK's debug port, a self-contained single file.
   On darwin the AOT link names the Swift runtime and ICU, so `swift` and `darwin.ICU` are build inputs there, as in nixpkgs' own dotnet `aot` test.
 - `tree-sitter-tdl.nix`: the grammar's Python binding in `tree-sitter/bindings/python/`, for graphify (see `docs/architecture/graphify.md`); the overlay adds it to every Python package set, and `checks.tree-sitter-tdl` runs its tests, which parse the prelude.

@@ -47,6 +47,8 @@ in
           tdl-dotnet
           ;
         default = pkgs.tdl;
+        # The npm tarballs the release publishes.
+        npm = pkgs.tdl-npm;
         tree-sitter-tdl = pkgs.python3Packages.tree-sitter-tdl;
         # The README's demo GIF; `make demo` copies it into docs/demo.
         demo = pkgs.callPackage ./demo.nix { };
@@ -70,6 +72,9 @@ in
 
       # The release binaries: static, cross-compiled, and runnable here.
       checks.tdl-portable = pkgs.callPackage ./checks/portable.nix { go = pkgs.go_1_27; };
+
+      # The npm packages install offline and run tdl through the shim.
+      checks.npm-tdl = pkgs.callPackage ./checks/npm.nix { go = pkgs.go_1_27; };
 
       # Building the binding imports it and parses the prelude with it.
       checks.tree-sitter-tdl = pkgs.python3Packages.tree-sitter-tdl;
