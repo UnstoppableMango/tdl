@@ -43,6 +43,7 @@ func requestCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 			"A warning naming a loss code is dropped as gen drops it: by the\n" +
 			"[lossy] table of the nearest tdl.toml, or by --allow-lossy.\n\n" +
 			"It writes nothing to disk.",
+
 		ValidArgsFunction: tdlFiles,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			for _, path := range args {

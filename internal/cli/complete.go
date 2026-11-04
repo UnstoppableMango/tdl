@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"maps"
 	"os"
-	"path/filepath"
-	"runtime"
 	"slices"
 	"strings"
 
@@ -53,18 +51,11 @@ func completeDeclaredTargets(cmd *cobra.Command, args []string, toComplete strin
 	if !ok {
 		return completeTargets(cmd, args, toComplete)
 	}
-	plugins := pathPlugins()
+	plugins := gen.PathPlugins()
 	var out []cobra.Completion
 	for _, name := range names {
-		if !strings.HasPrefix(name, toComplete) {
-			continue
-		}
-		if _, builtin := gen.Builtin(name); builtin {
-			out = append(out, cobra.CompletionWithDesc(name, "built in"))
-		} else if path, ok := plugins[name]; ok {
-			out = append(out, cobra.CompletionWithDesc(name, path))
-		} else {
-			out = append(out, name)
+		if strings.HasPrefix(name, toComplete) {
+			out = append(out, describe(name, plugins))
 		}
 	}
 	return out, cobra.ShellCompDirectiveNoFileComp
@@ -108,54 +99,26 @@ func declaredTargets(paths []string) ([]string, bool) {
 // backendChoices offers builtins, described "built in", then every plugin
 // on PATH, described by its path.
 func backendChoices(builtins []string, toComplete string) []cobra.Completion {
+	plugins := gen.PathPlugins()
 	var out []cobra.Completion
-	for _, name := range builtins {
+	for _, name := range slices.Concat(builtins, slices.Sorted(maps.Keys(plugins))) {
 		if strings.HasPrefix(name, toComplete) {
-			out = append(out, cobra.CompletionWithDesc(name, "built in"))
-		}
-	}
-	plugins := pathPlugins()
-	for _, name := range slices.Sorted(maps.Keys(plugins)) {
-		if strings.HasPrefix(name, toComplete) {
-			out = append(out, cobra.CompletionWithDesc(name, plugins[name]))
+			out = append(out, describe(name, plugins))
 		}
 	}
 	return out
 }
 
-// pathPlugins maps each tdl-gen-<name> on PATH to the path gen.Find
-// would run. A name a built-in serves is left out, since gen.Resolve never
-// lets PATH shadow one. Nothing is started.
-func pathPlugins() map[string]string {
-	plugins := map[string]string{}
-	for _, dir := range filepath.SplitList(os.Getenv("PATH")) {
-		if dir == "" {
-			continue
-		}
-		entries, err := os.ReadDir(dir)
-		if err != nil {
-			continue
-		}
-		for _, e := range entries {
-			name, ok := strings.CutPrefix(e.Name(), gen.CommandPrefix)
-			if runtime.GOOS == "windows" {
-				name = strings.TrimSuffix(name, filepath.Ext(name))
-			}
-			if !ok || name == "" {
-				continue
-			}
-			if _, builtin := gen.Builtin(name); builtin {
-				continue
-			}
-			if _, seen := plugins[name]; seen {
-				continue
-			}
-			if sub, err := gen.Find(name); err == nil {
-				plugins[name] = sub.Path
-			}
-		}
+// describe names a target's backend: "built in", the plugin's path, or
+// nothing for a target no backend serves.
+func describe(name string, plugins map[string]string) cobra.Completion {
+	if _, builtin := gen.Builtin(name); builtin {
+		return cobra.CompletionWithDesc(name, "built in")
 	}
-	return plugins
+	if path, ok := plugins[name]; ok {
+		return cobra.CompletionWithDesc(name, path)
+	}
+	return name
 }
 
 // commaList completes a comma-separated flag value: each word offered

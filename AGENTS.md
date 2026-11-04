@@ -295,7 +295,7 @@ Every backend reports what it cannot generate as a positioned warning rather tha
 `cmd/tdl-gen-<name>` serves each backend as a plugin.
 `TestHostsAgree` in `internal/gen` holds each to producing the same bytes in process and over a pipe.
 A backend that imports implements `plugin.Importer`, declares `Reverse`, and has a `reverse` column in `shipped`, which `TestImportHostsAgree` runs; `TestReverseIsDeclared` keeps the three in step.
-A warning a user can silence carries a loss code; `emit.LossCodes` must match the table in `reverse.md`.
+A warning a user can silence carries a loss code; `host.LossCodes`, which `emit.LossCodes` re-exports, must match the table in `reverse.md`.
 Output loss, what the output drops, is written with `emit.Session.Lossy` and always reported; read-back loss, what only import would miss, with `emit.Session.Lose`, reported under a bare `readback` directive and never under `roundtrip` (see `reverse.md`'s Loss codes).
 A backend added to the registry needs a row in the `shipped` table in `internal/gen/hosts_test.go` (`TestEveryBuiltinHasARow`) and, if shipped, an entry in `nix/cmd.nix` (`TestPackagedBackendsShip`).
 
