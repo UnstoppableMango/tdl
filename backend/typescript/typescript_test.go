@@ -252,6 +252,36 @@ func TestNameOnAVariant(t *testing.T) {
 	absent(t, src, `"live"`)
 }
 
+// Under readback, the directive also warns that import does not recover it.
+func TestNameOnAFieldlessVariantUnderReadback(t *testing.T) {
+	b := irtest.New("shop")
+	live := variant("Live")
+	at := &ir.Position{Filename: irtest.OwnFile, Line: 9}
+	live.Directives = []*ir.Directive{directive("name", "live")}
+	live.Directives[0].Position = at
+	b.Own(enum("Status", live, variant("Expired")))
+	b.Model.Targets = []*ir.TargetBlock{{
+		Meta:       &ir.Meta{Name: typescript.Name},
+		Directives: []*ir.Directive{{Name: "readback", Target: typescript.Name}},
+	}}
+
+	resp, err := typescript.Backend{}.Generate(context.Background(), &plugin.Request{Target: typescript.Name, Model: b.Model})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var codes []string
+	for _, d := range resp.GetDiagnostics() {
+		if !proto.Equal(d.GetPosition(), at) {
+			t.Errorf("diagnostic = %+v", d)
+		}
+		codes = append(codes, d.GetCode())
+	}
+	slices.Sort(codes)
+	if want := []string{"", emit.LossName}; !slices.Equal(codes, want) {
+		t.Errorf("codes = %q, want %q", codes, want)
+	}
+}
+
 // The discriminant defaults to `kind`, the target block overrides it, and
 // an enum's directive overrides the block's.
 func TestDiscriminant(t *testing.T) {
