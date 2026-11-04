@@ -346,6 +346,20 @@ func TestMapperDropsLosses(t *testing.T) {
 	}
 }
 
+// A name directive on a fieldless variant has no effect, which tdl gen
+// warns about, and the module still says what the model says.
+func TestMapperDropsANoEffectRename(t *testing.T) {
+	src := "package a\n\nenum Status {\n  Live\n  Expired\n}\n\ntarget typescript for a {\n  Status.Live => name(\"live\")\n}\n"
+	dir := writeFiles(t, map[string]string{"a.tdl": src})
+	mod := serveMapper(t).transform(filepath.Join(dir, "a.tdl"))
+	if len(mod.Diagnostics) != 0 {
+		t.Errorf("diagnostics = %+v, want none", mod.Diagnostics)
+	}
+	if !strings.Contains(mod.Text, `export type Status = "Live" | "Expired";`) {
+		t.Errorf("module = %q", mod.Text)
+	}
+}
+
 // tsc 7.1 type checks a TypeScript project importing .tdl files through
 // the mapper, and reports a TDL error in the .tdl file.
 func TestMapperUnderTsc(t *testing.T) {

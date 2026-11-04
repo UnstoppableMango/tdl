@@ -132,6 +132,7 @@ tsc shows every diagnostic a mapper returns as an error, so the mapper returns o
 
 An error from the first four leaves the module `export {}`, so an import of it names no type and only the `.tdl` error explains why.
 A loss warning, one carrying a loss code, is not returned: as an error it would fail every project holding an entity, since the backend warns `lossy.struct-kind` on each, and `tdl gen` and `tdl check` report it as the warning it is.
+Nor is the warning that a `name` directive on a fieldless variant has no effect, which leaves the module saying what the model says.
 
 The mapper takes no options.
 A key in the tsconfig entry's `options` is an option diagnostic naming it.

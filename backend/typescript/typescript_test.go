@@ -14,6 +14,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/typescript"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
+	"google.golang.org/protobuf/proto"
 )
 
 func generate(t *testing.T, b *irtest.Builder) *plugin.Response {
@@ -215,6 +216,70 @@ func TestEnums(t *testing.T) {
 		"status: Status;",
 		"payment: Payment;",
 	)
+}
+
+// A name directive on a fieldless variant has nothing to rename, since the
+// variant is written only as its wire value, so it warns at the directive
+// and changes nothing. On a fielded variant it renames the interface, and
+// the discriminant's value stays the variant's name.
+func TestNameOnAVariant(t *testing.T) {
+	b := irtest.New("shop")
+	live := variant("Live")
+	at := &ir.Position{Filename: irtest.OwnFile, Line: 9}
+	live.Directives = []*ir.Directive{directive("name", "live")}
+	live.Directives[0].Position = at
+	b.Own(enum("Status", live, variant("Expired")))
+	pr := variant("Pr", irtest.Field("n", b.Named("int32")))
+	pr.Directives = []*ir.Directive{directive("name", "pr")}
+	b.Own(enum("Key", pr, variant("Other")))
+
+	resp := generate(t, b)
+	diags := resp.GetDiagnostics()
+	if len(diags) != 1 {
+		t.Fatalf("diagnostics = %+v", diags)
+	}
+	d := diags[0]
+	if d.GetSeverity() != plugin.Severity_SEVERITY_WARNING || d.GetCode() != "" || !proto.Equal(d.GetPosition(), at) ||
+		!strings.Contains(d.GetMessage(), "Status.Live") {
+		t.Errorf("diagnostic = %+v", d)
+	}
+	src := check(t, resp)
+	contains(t, src,
+		`export type Status = "Live" | "Expired";`,
+		"export type Key = pr | KeyOther;",
+		`export interface pr { kind: "Pr"; n: number; }`,
+	)
+	absent(t, src, `"live"`)
+}
+
+// Under readback, the directive also warns that import does not recover it.
+func TestNameOnAFieldlessVariantUnderReadback(t *testing.T) {
+	b := irtest.New("shop")
+	live := variant("Live")
+	at := &ir.Position{Filename: irtest.OwnFile, Line: 9}
+	live.Directives = []*ir.Directive{directive("name", "live")}
+	live.Directives[0].Position = at
+	b.Own(enum("Status", live, variant("Expired")))
+	b.Model.Targets = []*ir.TargetBlock{{
+		Meta:       &ir.Meta{Name: typescript.Name},
+		Directives: []*ir.Directive{{Name: "readback", Target: typescript.Name}},
+	}}
+
+	resp, err := typescript.Backend{}.Generate(context.Background(), &plugin.Request{Target: typescript.Name, Model: b.Model})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var codes []string
+	for _, d := range resp.GetDiagnostics() {
+		if !proto.Equal(d.GetPosition(), at) {
+			t.Errorf("diagnostic = %+v", d)
+		}
+		codes = append(codes, d.GetCode())
+	}
+	slices.Sort(codes)
+	if want := []string{"", emit.LossName}; !slices.Equal(codes, want) {
+		t.Errorf("codes = %q, want %q", codes, want)
+	}
 }
 
 // The discriminant defaults to `kind`, the target block overrides it, and

@@ -56,7 +56,7 @@ notes = "The output is types with no runtime code, so there is no key function t
 
 [name]
 spelling = "the property or type name"
-notes = "The new name reads back as the field's own name rather than a directive."
+notes = "The new name reads back as the field's own name rather than a directive. On a fielded variant it renames the interface, never the `kind` value; on a fieldless variant it has no effect and warns."
 
 [number]
 notes = "JSON has no field numbers."

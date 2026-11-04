@@ -30,7 +30,7 @@ Import generates the feature and reads it back, and counts only what reading bac
 | `owned` | Warns (`lossy.owned`) | Yes | | TypeScript has no ownership, and a referenced type is embedded by value. |
 | Field default | Warns (`lossy.default`) | Yes | | The default is not written. |
 | `key` directive | No | No | | The output is types with no runtime code, so there is no key function to write. |
-| `name` directive | Yes | Warns (`lossy.name`) | the property or type name | The new name reads back as the field's own name rather than a directive. |
+| `name` directive | Yes | Warns (`lossy.name`) | the property or type name | The new name reads back as the field's own name rather than a directive. On a fielded variant it renames the interface, never the `kind` value; on a fieldless variant it has no effect and warns. |
 | `number` directive | No | No | | JSON has no field numbers. |
 | Doc comment | Yes | Yes | a JSDoc comment | |
 | Type parameters | No | No | | Type parameters are not generated yet, so a parameterized declaration and every one applying it are skipped. |
