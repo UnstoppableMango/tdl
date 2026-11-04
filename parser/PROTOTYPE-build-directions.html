@@ -1,0 +1,346 @@
+<title>TDL Build Directions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one column of scenarios; each sets direction A beside direction B, then what both lower to. */
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --fg: #1b2230; --muted: #5d6779; --line: #dde1e8;
+  --accent: #2f55b5; --accent-soft: #e6ecfa; --a: #8a4b0f; --a-soft: #fbefe2; --b: #1f6b52; --b-soft: #e3f3ec;
+  --warn: #8a5a00; --warn-soft: #fdf3dc;
+  --kw: #2f55b5; --str: #8a3f12; --com: #7b8494; --num: #6f3fb0;
+  --display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12151c; --panel: #1a1f29; --fg: #e3e7ef; --muted: #98a1b3; --line: #2c3341;
+    --accent: #8eaaf5; --accent-soft: #223056; --a: #f0b27a; --a-soft: #3a2816; --b: #7fd6b3; --b-soft: #16332a;
+    --warn: #f0c060; --warn-soft: #362b12;
+    --kw: #8eaaf5; --str: #f0a875; --com: #7d8698; --num: #c6a2f5;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12151c; --panel: #1a1f29; --fg: #e3e7ef; --muted: #98a1b3; --line: #2c3341;
+  --accent: #8eaaf5; --accent-soft: #223056; --a: #f0b27a; --a-soft: #3a2816; --b: #7fd6b3; --b-soft: #16332a;
+  --warn: #f0c060; --warn-soft: #362b12;
+  --kw: #8eaaf5; --str: #f0a875; --com: #7d8698; --num: #c6a2f5;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 56px;
+}
+.wrap { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; }
+h1 { font-size: 30px; font-weight: 600; }
+h2 { font-size: 21px; font-weight: 600; }
+h3 { font-size: 15px; font-weight: 600; }
+p { margin: 0; max-width: 75ch; }
+code, pre { font-family: var(--mono); }
+code { font-size: 0.92em; background: var(--accent-soft); padding: 1px 4px; border-radius: 3px; }
+.tag { align-self: flex-start; font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--warn); background: var(--warn-soft); padding: 2px 8px; border-radius: 3px; }
+header { display: flex; flex-direction: column; gap: 12px; }
+.lede { color: var(--muted); }
+.settled { font-size: 14px; border-left: 3px solid var(--accent); padding-left: 12px; max-width: 80ch; }
+.legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.legend div { padding: 12px 14px; border-radius: 8px; font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
+.legend .la { background: var(--a-soft); }
+.legend .lb { background: var(--b-soft); }
+.legend b { font-family: var(--display); font-size: 16px; }
+.la b { color: var(--a); } .lb b { color: var(--b); }
+
+section.case { display: flex; flex-direction: column; gap: 12px; }
+.case > p { color: var(--muted); font-size: 14.5px; }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 820px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+.side { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+.side .sh { padding: 8px 12px; font: 600 12px var(--body); letter-spacing: 0.08em; text-transform: uppercase; border-bottom: 1px solid var(--line); }
+.side.a .sh { color: var(--a); background: var(--a-soft); }
+.side.b .sh { color: var(--b); background: var(--b-soft); }
+.side pre { margin: 0; padding: 12px; font-size: 12.8px; line-height: 19px; overflow-x: auto; white-space: pre; flex: 1; }
+.side .note { padding: 10px 12px; font-size: 13.5px; color: var(--muted); border-top: 1px solid var(--line); }
+details.lowered { font-size: 14px; }
+details.lowered summary { cursor: pointer; color: var(--muted); }
+details.lowered pre { margin: 8px 0 0; padding: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; font-size: 12.8px; line-height: 19px; overflow-x: auto; }
+.k { color: var(--kw); font-weight: 500; } .s { color: var(--str); } .c { color: var(--com); font-style: italic; } .d { color: var(--num); }
+
+.cost { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 820px) { .cost { grid-template-columns: minmax(0, 1fr); } }
+.cost .side ul { margin: 0; padding: 12px 12px 12px 30px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+.verdict { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
+.verdict ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; max-width: 85ch; }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="tag">Prototype, throwaway</span>
+    <h1>Two directions for build blocks</h1>
+    <p class="lede">The same four modelling problems written two ways, with the plain TDL both would lower to. Nothing here runs; it exists to compare how each reads and what each costs to build.</p>
+    <p class="settled">Settled: a build block runs <b>after lowering</b>, so it sees every declaration, including the fields a mixin or a class brings in and declarations from imports. Whatever it produces is lowered again into ordinary declarations, so every backend and tool sees the result.</p>
+    <div class="legend">
+      <div class="la"><b>A. Zod in a build block</b>A <code>build zod { }</code> block holds real Zod 4. The zod plugin runs it against the module it already generates for the model, reads the exported schemas back as TDL, and serves the block's language server.</div>
+      <div class="lb"><b>B. A syntax that flows</b>No block and no control flow. A declaration can say <code>from Order</code> and list only what differs: <code>drop</code>, <code>only</code>, <code>rename … as …</code>, <code>each optional</code>, and plain fields that add or replace.</div>
+    </div>
+  </header>
+
+  <div id="cases"></div>
+
+  <section class="case">
+    <h2>What each takes to build</h2>
+    <div class="cost">
+      <div class="side a"><div class="sh">A. Zod in a build block</div><ul>
+        <li><b>Protocol.</b> The handshake declares the block languages a plugin serves (<code>zod</code>). A new build request carries the lowered model and the block's text; the response returns TDL source, which the host lowers the way <code>analysis.Imported</code> already lowers an import that returns source.</li>
+        <li><b>Two-pass lowering.</b> Lower the declarations, run each block, lower its output, and refuse a name that collides. Blocks either cannot see each other's output, or run in the order their references imply.</li>
+        <li><b>A runtime at check time.</b> <code>tdl check</code>, and <code>tdl gen --target go</code>, need node and zod whenever a model holds a zod block. Nix keeps that hermetic, but it is a heavy dependency for a Go user, and arbitrary JavaScript needs a sandbox (no files, network, or clock) to keep generation deterministic.</li>
+        <li><b>Reading Zod back.</b> A converter from Zod schemas to TDL, from Zod 4's schema definitions or <code>z.toJSONSchema()</code>. What TDL has and Zod lacks (<code>Entity</code>, <code>owned</code>, units) rides in <code>.meta()</code>; what Zod has and TDL lacks (<code>refine</code>, <code>transform</code>, plain unions) becomes loss warnings.</li>
+        <li><b>Language server.</b> The TDL server forwards requests inside the block to the server the plugin names, over a virtual file holding the generated <code>&lt;package&gt;.zod.ts</code> followed by the block, mapping positions both ways (the pattern Vue and Volar use). It is the TypeScript content mapper run in reverse.</li>
+        <li><b>Formatting.</b> <code>tdl fmt</code> leaves the block's bytes alone or hands them to the plugin.</li>
+      </ul></div>
+      <div class="side b"><div class="sh">B. A syntax that flows</div><ul>
+        <li><b>Grammar.</b> A <code>from</code> clause on <code>type</code>, and four body edits beside ordinary fields. That means changes to <code>docs/spec.md</code>, <code>grammar.ebnf</code>, and the derived tree-sitter and TextMate grammars.</li>
+        <li><b>Lowering.</b> <code>sema</code> resolves a <code>from</code> once its source is fully lowered, mixins and inheritance included, in dependency order. A cycle is an error, and so is dropping or renaming a field the source does not have. Order in the file never matters, so the snapshot problem from the first prototype disappears.</li>
+        <li><b>IR.</b> The result is a plain struct. Recording where it came from and the edits (a new <code>derived</code> message) is optional, but it lets backends write their own idiom: zod could print <code>Order.omit({ id: true })</code> and typescript <code>Omit&lt;Order, "id"&gt;</code>, and <code>unlower</code> could print <code>from</code> back.</li>
+        <li><b>Everything else comes with the grammar.</b> Formatting, hover, go to definition, and the editors. Every derived name is written in the source, so grep finds it and go to definition needs no provenance.</li>
+        <li><b>The limit.</b> It cannot express anything that needs computation. That is deliberate, and generics cover the family case.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <section class="verdict">
+    <h2>My read</h2>
+    <ol>
+      <li><b>Build B first.</b> It covers the two cases the first prototype found worth having (derived shapes, and families of declarations through generics). It keeps the spec's promise of no control flow, and it works in every backend and tool without a runtime.</li>
+      <li><b>A is a bigger bet about the platform, not the language.</b> "A backend can host its own authoring language" is a strong idea, and running after lowering is exactly what makes it better than writing Zod by hand. But it turns one backend into a second front end that every consumer of the model depends on.</li>
+      <li><b>They compose.</b> Both produce ordinary declarations after lowering, so A can come later as a plugin capability without changing B. B's record of derivations in the IR is also what lets the zod backend write <code>.omit()</code> and <code>.partial()</code>, so B makes generated Zod read the way A's source does.</li>
+      <li><b>Questions for B:</b> does <code>from</code> carry conformance (here it does not; you write <code>: Entity</code>), does <code>each optional</code> keep constraints (here it does), and should <code>drop</code> accept a mixin's name to drop all its fields at once?</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+const CASES = [
+  {
+    title: "Create and patch shapes",
+    intro: "What a client sends to create an order, and a partial update. Order gets its timestamps from a mixin, which a build block can now see because it runs after lowering.",
+    a:
+`type Order: Entity {
+  id: uuid
+  customer: string
+  note: string?
+  total: decimal where { min(0) }
+  placedAt: instant
+  include Audit
+}
+
+mixin Audit {
+  createdAt: instant
+  updatedAt: instant
+}
+
+build zod {
+  // Order and Audit arrive as the zod backend writes them,
+  // with the mixin's fields already in Order.
+  export const CreateOrder = Order.omit({
+    id: true,
+    placedAt: true,
+    createdAt: true,
+    updatedAt: true,
+  });
+
+  export const OrderPatch = CreateOrder.partial();
+}`,
+    aNote: "Familiar to anyone who knows Zod, and the editor completes Order's fields. Each exported name becomes a declaration.",
+    b:
+`type Order: Entity {
+  id: uuid
+  customer: string
+  note: string?
+  total: decimal where { min(0) }
+  placedAt: instant
+  include Audit
+}
+
+mixin Audit {
+  createdAt: instant
+  updatedAt: instant
+}
+
+type CreateOrder from Order {
+  drop id placedAt createdAt updatedAt
+}
+
+type OrderPatch from CreateOrder {
+  each optional
+}`,
+    bNote: "Reads as a declaration that lists its differences. CreateOrder is a value: from copies fields and constraints, never conformance.",
+    lowered:
+`type CreateOrder {
+  customer: string
+  note: string?
+  total: decimal where { min(0) }
+}
+
+type OrderPatch {
+  customer: string?
+  note: string?
+  total: decimal? where { min(0) }
+}`,
+  },
+  {
+    title: "A family of documents",
+    intro: "Invoices, credit notes, and quotes share a shape but are each their own entity, and two of them add a field.",
+    a:
+`build zod {
+  const doc = () =>
+    z.object({
+      id: z.uuid(),
+      number: z.string().regex(/^[A-Z]{2}-[0-9]+$/),
+      issuedAt: instant,
+      lines: z.array(Line).min(1)
+        .meta({ tdl: { owned: true } }),
+    }).meta({ tdl: { implements: ["Entity"] } });
+
+  export const Line = z.object({
+    description: z.string(),
+    amount: decimal,
+  });
+
+  // A module cannot export a computed name, so a family
+  // goes through a registry the host reads back.
+  for (const kind of ["Invoice", "CreditNote", "Quote"]) {
+    tdl.declare(kind, doc());
+  }
+  tdl.extend("Quote", { validUntil: z.iso.date() });
+  tdl.extend("CreditNote", { invoice: Invoice });
+}`,
+    aNote: "Here Zod gets awkward. Entity and owned have no Zod spelling, computed names need a host API, and Invoice on the last line is not a variable the editor knows.",
+    b:
+`type Document<L> {
+  id: uuid
+  number: string where { matches(/^[A-Z]{2}-[0-9]+$/) }
+  issuedAt: instant
+  lines: [L] owned where { length(1..) }
+}
+
+type Line {
+  description: string
+  amount: decimal
+}
+
+type Invoice: Entity from Document<Line>
+type CreditNote: Entity from Document<Line> { invoice: Invoice }
+type Quote: Entity from Document<Line> { validUntil: date }`,
+    bNote: "There is no loop. A generic plus from gives one line per kind, and every name is written once where grep finds it. A from with nothing to change needs no body.",
+    lowered:
+`type Invoice: Entity {
+  id: uuid
+  number: string where { matches(/^[A-Z]{2}-[0-9]+$/) }
+  issuedAt: instant
+  lines: [Line] owned where { length(1..) }
+}
+
+type CreditNote: Entity {
+  id: uuid
+  number: string where { matches(/^[A-Z]{2}-[0-9]+$/) }
+  issuedAt: instant
+  lines: [Line] owned where { length(1..) }
+  invoice: Invoice
+}
+
+type Quote: Entity {
+  id: uuid
+  number: string where { matches(/^[A-Z]{2}-[0-9]+$/) }
+  issuedAt: instant
+  lines: [Line] owned where { length(1..) }
+  validUntil: date
+}`,
+  },
+  {
+    title: "A view with a rename",
+    intro: "A list row for orders: three fields, total renamed to amount, and a currency added.",
+    a:
+`build zod {
+  // Zod has no rename, so it takes pick, extend, and omit.
+  export const OrderRow = Order
+    .pick({ id: true, total: true, placedAt: true })
+    .extend({ amount: Order.shape.total, currency: Currency })
+    .omit({ total: true });
+}`,
+    aNote: "Possible, but the rename is spelled as three operations, and amount lands after placedAt.",
+    b:
+`type OrderRow from Order {
+  only id total placedAt
+  rename total as amount
+  currency: Currency
+}`,
+    bNote: "Each line is one edit. A rename keeps the field's place, type, and constraints; a plain field adds one, or replaces one with the same name.",
+    lowered:
+`type OrderRow {
+  id: uuid
+  amount: decimal where { min(0) }
+  placedAt: instant
+  currency: Currency
+}`,
+  },
+  {
+    title: "What only one of them can say",
+    intro: "Each direction has things the other cannot express. In A that becomes loss warnings when the result is read back as TDL; in B it cannot be written at all.",
+    a:
+`build zod {
+  export const Refund = z.object({
+    order: Order,
+    amount: decimal,
+    reason: z.string().optional(),
+  })
+  // warning: refine has no TDL form; dropped
+  .refine(r => r.reason !== undefined || r.amount === "0", {
+    message: "a refund needs a reason",
+  })
+  // warning: transform has no TDL form; dropped
+  .transform(r => ({ ...r, at: new Date() }));
+}`,
+    aNote: "Zod is more expressive than TDL, so a build block can say things that every other backend silently loses. The warnings are the existing loss-code machinery.",
+    b:
+`type Refund {
+  order: Order
+  amount: decimal
+  reason: string?
+}
+
+// Not expressible, by design:
+//   a check that spans two fields
+//   a value computed when parsing`,
+    bNote: "B stays inside what TDL can carry to every target, which is also why it needs no runtime.",
+    lowered:
+`type Refund {
+  order: Order
+  amount: decimal
+  reason: string?
+}
+// A's refine and transform are gone, with a warning for each.`,
+  },
+];
+
+const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const KW = "package|import|as|type|enum|mixin|class|alias|unit|include|where|owned|build|from|drop|only|rename|each|optional|export|const|for|of|return|true|false|new|undefined";
+function hl(s) {
+  const re = new RegExp(`(\\/\\/[^\\n]*)|("(?:[^"\\\\\\n]|\\\\.)*")|\\b(${KW})\\b|\\b(\\d+)\\b`, "g");
+  return esc(s).replace(re, (m, c, str, k, d) => c ? `<span class="c">${c}</span>` : str ? `<span class="s">${str}</span>` : k ? `<span class="k">${k}</span>` : `<span class="d">${d}</span>`);
+}
+document.getElementById("cases").outerHTML = CASES.map(c => `
+  <section class="case">
+    <h2>${esc(c.title)}</h2>
+    <p>${esc(c.intro)}</p>
+    <div class="pair">
+      <div class="side a"><div class="sh">A. Zod in a build block</div><pre>${hl(c.a)}</pre><div class="note">${esc(c.aNote)}</div></div>
+      <div class="side b"><div class="sh">B. A syntax that flows</div><pre>${hl(c.b)}</pre><div class="note">${esc(c.bNote)}</div></div>
+    </div>
+    <details class="lowered"><summary>What both lower to</summary><pre>${hl(c.lowered)}</pre></details>
+  </section>`).join("");
+</script>
