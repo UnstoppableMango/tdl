@@ -27,6 +27,8 @@ func newFmtCmd() *cobra.Command {
 			"A file named - is read from standard input, which -w rejects:\n" +
 			"there is nothing to write it back to.",
 		Args: cobra.MinimumNArgs(1),
+
+		ValidArgsFunction: tdlFiles,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if write {
 				for _, path := range args {

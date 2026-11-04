@@ -15,6 +15,8 @@ func newTokensCmd() *cobra.Command {
 		Use:   "tokens <file>...",
 		Short: "Print the token stream the lexer produces for a TDL file",
 		Args:  cobra.MinimumNArgs(1),
+
+		ValidArgsFunction: tdlFiles,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			header := newHeader(args)
 			return eachFile(cmd, args, func(path string) error {

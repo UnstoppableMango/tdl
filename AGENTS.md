@@ -171,6 +171,7 @@ The plugin protocol in `docs/architecture/plugins.md` is complete.
 - `internal/gen`: the compiler side of the plugin protocol: the backend registry, request building, and writing returned files.
   `internal/gen/echo` is a test backend that writes a model as JSON and imports it back; it is not compiled into `tdl`.
 - `internal/host`: what a host does around a backend, importing none, so a backend hosting itself can use it.
+  `loss.go` declares the loss codes, which `emit` re-exports, so `tdl`'s completion lists them too.
   `check.go` holds every directive to its backend's `DirectiveSpec` (arity, kinds, placement, allowed values, repeats) before the backend runs, so a backend need not check them itself.
   `Silence` drops warnings with an allowed loss code, and `Allowed` reads which codes `tdl.toml` allows.
 - `internal/config`: reads the nearest `tdl.toml` above a file; only its `[lossy]` table so far.
@@ -365,6 +366,8 @@ CI runs the same command before the build and fails if `git diff` shows the lock
 ## CLI
 
 The root command silences cobra's error printing; a command returns its error and `cmd/tdl` prints it.
+
+Shell completion is cobra's `completion` command; `complete.go` holds the value completion every command registers, served through `__complete`, and never starts a plugin.
 
 `file.go` is shared by every command that reads files: `loadFile` reads and parses one, and `eachFile` walks the arguments, reporting each failure and continuing.
 It prints the error alone, since diagnostics and `os.PathError` already name the file.

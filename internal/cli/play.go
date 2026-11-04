@@ -66,6 +66,8 @@ func newPlayCmd() *cobra.Command {
 			"creating it from a starter template if it does not exist.\n\n" +
 			"Views: " + strings.Join(playViews, ", ") + ".",
 		Args: cobra.MaximumNArgs(1),
+
+		ValidArgsFunction: oneTDLFile,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			path := "scratch.tdl"
 			if len(args) == 1 {
@@ -99,6 +101,7 @@ func newPlayCmd() *cobra.Command {
 
 	cmd.Flags().StringSliceVar(&views, "views", []string{"fmt", "ast"},
 		"panes to render, comma separated: "+strings.Join(playViews, ", ")+", or all")
+	registerCompletion(cmd, "views", commaList(playViews, []string{"all"}))
 	cmd.Flags().DurationVar(&interval, "interval", 200*time.Millisecond, "how often to poll the file for changes")
 	cmd.Flags().BoolVar(&once, "once", false, "render a single time and exit instead of watching")
 	cmd.Flags().BoolVar(&noClear, "no-clear", false, "append each render instead of clearing the screen")
