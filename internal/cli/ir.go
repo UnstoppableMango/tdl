@@ -30,6 +30,8 @@ func newIrCmd() *cobra.Command {
 			"--prelude lowers against a different prelude, so `[T]` means\n" +
 			"whatever that file says List is.",
 		Args: cobra.MinimumNArgs(1),
+
+		ValidArgsFunction: tdlFiles,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts, err := preludeOptions(preludePath)
 			if err != nil {
@@ -63,6 +65,7 @@ func newIrCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&format, "format", "text", "output format: text or json")
 	cmd.Flags().StringVar(&preludePath, "prelude", "", "lower against this prelude instead of the built-in one")
+	registerCompletion(cmd, "format", cobra.FixedCompletions([]cobra.Completion{"text", "json"}, cobra.ShellCompDirectiveNoFileComp))
 	return cmd
 }
 

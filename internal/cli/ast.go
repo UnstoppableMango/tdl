@@ -13,6 +13,8 @@ func newAstCmd() *cobra.Command {
 		Use:   "ast <file>...",
 		Short: "Print the parse tree a TDL file produces",
 		Args:  cobra.MinimumNArgs(1),
+
+		ValidArgsFunction: tdlFiles,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			header := newHeader(args)
 			return eachFile(cmd, args, func(path string) error {

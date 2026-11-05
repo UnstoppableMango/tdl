@@ -5,6 +5,10 @@ import "github.com/spf13/cobra"
 
 // Execute builds and runs the tdl root command.
 func Execute() error {
+	return newRootCmd().Execute()
+}
+
+func newRootCmd() *cobra.Command {
 	root := &cobra.Command{
 		Use:           "tdl",
 		Short:         "tdl compiles Type Description Language source into other structured formats",
@@ -22,5 +26,5 @@ func Execute() error {
 	root.AddCommand(newRequestCmd())
 	root.AddCommand(newTokensCmd())
 	root.AddCommand(newVersionCmd())
-	return root.Execute()
+	return root
 }

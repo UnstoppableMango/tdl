@@ -1,7 +1,9 @@
 {
   buildGoApplication,
+  installShellFiles,
   lib,
   go,
+  stdenv,
   tdl-dotnet,
   version,
 }:
@@ -11,6 +13,8 @@ buildGoApplication {
 
   src = lib.cleanSource ../.;
   modules = ./gomod2nix.toml;
+
+  nativeBuildInputs = [ installShellFiles ];
 
   subPackages = [
     "cmd/tdl"
@@ -31,10 +35,17 @@ buildGoApplication {
 
   # The csharp backend is a .NET plugin, shipped beside the Go binaries.
   # The bat syntax sits where programs.tdl.bat in the home-manager module
-  # reads it.
+  # reads it. Completion scripts come from running the built tdl, which a
+  # cross build cannot do, so one goes without them.
   postInstall = ''
     ln -s ${lib.getExe' tdl-dotnet "tdl-gen-csharp"} $out/bin/tdl-gen-csharp
     install -Dm644 editors/bat/tdl.sublime-syntax $out/share/bat/syntaxes/tdl.sublime-syntax
+  ''
+  + lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
+    installShellCompletion --cmd tdl \
+      --bash <($out/bin/tdl completion bash) \
+      --zsh <($out/bin/tdl completion zsh) \
+      --fish <($out/bin/tdl completion fish)
   '';
 
   meta = {

@@ -200,6 +200,22 @@ proto/.stamp: $(MODEL)
 Without Nix, build it with `go build -tags makeplugin -buildmode=c-shared -o tdl.so ./cmd/tdl-gmk` from a checkout, with `gnumake.h` on the include path.
 make derives the setup function from the file's name, so keep it `tdl.so`.
 
+### Shell completion
+
+The Nix package installs completion for bash, zsh, and fish, so `nix profile install` and `programs.tdl.enable` need nothing more.
+It completes targets, loss codes, and other flag values, and `.tdl` files where a command reads them.
+
+Otherwise, load it from `tdl completion`:
+
+```shell
+source <(tdl completion bash)       # bash, in ~/.bashrc
+source <(tdl completion zsh)        # zsh, in ~/.zshrc
+tdl completion fish | source        # fish, in config.fish
+tdl completion powershell | Out-String | Invoke-Expression  # PowerShell, in $PROFILE
+```
+
+`tdl completion <shell> --help` says how to install a script once instead.
+
 ## Usage
 
 ```shell
