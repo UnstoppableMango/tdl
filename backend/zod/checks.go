@@ -217,9 +217,3 @@ func refusing(l *ir.Literal, cs []*ir.Constraint) (*ir.Constraint, string) {
 	}
 	return nil, ""
 }
-
-// lazyBase reports whether a schema of r is a z.lazy, which has no
-// number, string, or array checks.
-func (g *generator) lazyBase(r *emit.Ref) bool {
-	return r.Form == emit.Named && g.lazy[r.Decl]
-}
