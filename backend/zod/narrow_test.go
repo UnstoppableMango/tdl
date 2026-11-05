@@ -47,8 +47,8 @@ enum Later {
 func TestNarrowedTypes(t *testing.T) {
 	resp, src := gen(t, narrowModel)
 	contains(t, src,
-		`export const Grade = z.enum(["A", "B"]);`,
-		`export const Small = z.literal([1, 2, 3]);`,
+		`export const Grade = z.enum(["A", "B"]).brand<"shop.Grade">();`,
+		`export const Small = z.literal([1, 2, 3]).brand<"shop.Small">();`,
 		`currency: z.enum(["USD", "EUR"]),`,
 		`ratio: z.literal([0.5, 2]),`,
 		`step: z.literal([1, 2, 3, 4]),`,
@@ -58,16 +58,15 @@ func TestNarrowedTypes(t *testing.T) {
 		`grade: Grade,`,
 		`small: Small,`,
 		`tinier: z.literal([1, 2]),`,
-		`wide: z.int(),`,
+		`export const BoxWide = z.int().min(0, "Box.wide: min(0)").max(16, "Box.wide: max(16)").brand<"shop.Box.wide">();`,
+		`wide: BoxWide,`,
 		`get later(): z.ZodEnum<{ "Low": "Low" }> {`)
-	if !warned(resp, emit.LossConstraint, "Box.wide") || len(resp.GetDiagnostics()) != 1 {
-		t.Errorf("diagnostics = %v, want one for Box.wide", resp.GetDiagnostics())
-	}
+	quiet(t, resp)
 	typecheck(t, nil, resp)
 	parse(t, `import { Box } from "./shop.zod.js";
 const ok = '{"currency": "USD", "ratio": 2, "step": 4, "open": "Placed", "dims": [1, 2, 3], "grade": "A", "small": 3, "tinier": 2, "wide": 9, "later": "Low"}';
 accepts("Box", Box, ok);
-for (const [key, value] of [["currency", '"GBP"'], ["ratio", "1"], ["step", "5"], ["open", '"Shipped"'], ["dims", "[1, 2]"], ["dims", "[1, 2, 3, 4]"], ["tinier", "3"], ["later", '"High"']]) {
+for (const [key, value] of [["currency", '"GBP"'], ["ratio", "1"], ["step", "5"], ["open", '"Shipped"'], ["dims", "[1, 2]"], ["dims", "[1, 2, 3, 4]"], ["tinier", "3"], ["wide", "17"], ["later", '"High"']]) {
   const bad = JSON.parse(ok);
   bad[key] = JSON.parse(value);
   refuses("Box." + key + " = " + value, Box, JSON.stringify(bad));
@@ -95,10 +94,10 @@ type Box {
 }
 `)
 	contains(t, src,
-		`in: z.enum(["a", "b"]).default("b"),`,
+		`in: z.enum(["a", "b"]).prefault("b"),`,
 		`out: z.enum(["a", "b"]),`,
 		`step: z.literal([1, 2, 3]),`,
-		`dims: z.tuple([z.int(), z.int()]).default([1, 2]),`,
+		`dims: z.tuple([z.int(), z.int()]).prefault([1, 2]),`,
 		`short: z.tuple([z.int(), z.int()]),`)
 	for _, field := range []string{"Box.out", "Box.step", "Box.short"} {
 		if !warned(resp, emit.LossDefault, field) {

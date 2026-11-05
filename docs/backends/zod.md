@@ -2,7 +2,7 @@
 
 The `zod` backend writes one TypeScript module of [Zod](https://zod.dev) schemas per model, each parsing a declaration's JSON wire value and inferring the type the `typescript` backend writes for it.
 The output imports `zod`, 4.3 or later, which is the consumer's dependency.
-[zod-backend.md](../architecture/zod-backend.md) is its design; phases 1, 2, and 3a are built, and [#1230](https://github.com/UnstoppableMango/tdl/issues/1230) tracks the rest.
+[zod-backend.md](../architecture/zod-backend.md) is its design; phases 1, 2, 3a, and 3b are built, and [#1230](https://github.com/UnstoppableMango/tdl/issues/1230) tracks the rest.
 
 ## Features
 
@@ -18,18 +18,18 @@ No importer is planned, so every Import cell is No.
 | Mixin `include` | Yes | No | the mixin's properties, copied in | |
 | Fieldless enum | Yes | No | `z.enum` of the variants' names | |
 | Fielded enum | Yes | No | a `z.discriminatedUnion` on `kind` | A `discriminant` directive renames `kind`. |
-| Newtype | Yes | No | a schema of its base | Not branded until phase 3. |
+| Newtype | Yes | No | a schema of its base, branded with its qualified name | A `structural` directive writes no brands. |
 | Alias | Yes | No | expanded where used | |
 | Optional and nullable | Yes | No | `.exactOptional()` or `.nullable()` | |
 | List, set, and map | Yes | No | `z.array`, a uniqueness `refine`, and `z.record` | A map keyed by a fieldless enum is a `z.partialRecord`. |
-| `min` | Planned (phase 3) | No | | `min` and `max` together bounding at most 16 integers are a `z.literal` of each. |
-| `max` | Planned (phase 3) | No | | `min` and `max` together bounding at most 16 integers are a `z.literal` of each. |
-| `length` | Planned (phase 3) | No | | A list's exact length of at most 16 is a `z.tuple`. |
+| `min` | Yes | No | `.min(n)` on a number | On a field, a schema of its own named for the struct and field; `min` and `max` together bounding at most 16 integers are a `z.literal` of each. |
+| `max` | Yes | No | `.max(n)` on a number | On a field, a schema of its own named for the struct and field; `min` and `max` together bounding at most 16 integers are a `z.literal` of each. |
+| `length` | Yes | No | a `codePoints` refine on a string, `.min()` and `.max()` on a list, a `size` refine on a map | A string counts code points, as TDL does, not Zod's UTF-16 units; a list's exact length of at most 16 is a `z.tuple`. |
 | `matches` | Planned (phase 3) | No | | Checked only under a `patterns` directive. |
 | `oneOf` | Yes | No | `z.enum`, `z.literal`, or the enum's `.extract` | Inferring the literal union `typescript` writes. |
-| `unique` | Planned (phase 3) | No | | |
+| `unique` | Yes | No | a `unique` refine on a list | |
 | `owned` | Yes | No | | Not written: a schema has no ownership, and a referenced entity is parsed by value. |
-| Field default | Yes | No | `.default(value)` | Checked against the schema when generated, since Zod does not check it; one the schema refuses warns and is not written. |
+| Field default | Yes | No | `.prefault(value)` | Parsed through the schema, so a branded field takes a plain value; checked when generated too, so one the schema refuses warns and is not written rather than failing every parse. |
 | `key` directive | No | No | | The backend declares no `key` directive, since a schema has no identity. |
 | `name` directive | Yes | No | the property or schema name | |
 | `number` directive | No | No | | JSON has no field numbers. |

@@ -1,7 +1,7 @@
 # The Zod backend
 
 Design document.
-Phases 1, 2, and 3a are built; the rest is tracked in [#1230](https://github.com/UnstoppableMango/tdl/issues/1230).
+Phases 1, 2, 3a, and 3b are built; the rest is tracked in [#1230](https://github.com/UnstoppableMango/tdl/issues/1230).
 
 The Zod backend turns a resolved model into a TypeScript module of [Zod](https://zod.dev) schemas.
 It is called `zod` in a target block, ships compiled into `tdl` and as `tdl-gen-zod`, and is implemented in `backend/zod`.
@@ -127,7 +127,7 @@ A mixin is a schema of its own, since a consumer may name it; an including struc
 `z.object` accepts a property it does not declare and strips it, so a newer producer adding a field still parses, as an open JSON Schema object validates.
 A `closed` directive on a struct or an enum, or on the target block for every one, writes `z.strictObject`, which refuses an undeclared property, the directive JSON Schema and OpenAPI read for `additionalProperties: false`.
 
-A field's default is `.default(value)` until phase 3b ([#1378](https://github.com/UnstoppableMango/tdl/issues/1378)), and `.prefault(value)` from then on, checked against the field's schema at generation time; one that fails warns and is dropped.
+A field's default is `.prefault(value)`, checked against the field's schema and its constraints at generation time; one that fails warns and is dropped.
 On a branded schema `.default()` takes the branded output type, so `LineItemQuantity.default(1)` does not type check; `.prefault()` takes the input type and parses the value through the schema, so the brand and the checks apply, and every default is written that way for one spelling.
 A default makes the field optional in `z.input` and leaves it required in `z.infer`, so a parsed value always holds it, and the inferred type still matches `typescript`, whose interface types the parsed value.
 A default on a foreign type warns and is dropped, since the backend cannot check it.
@@ -179,7 +179,7 @@ So a `Sku` is a `string` that came through `Sku.parse`, a checked type, and a pl
 The brand is the declaration's qualified name, so two packages' `Sku` stay distinct.
 A newtype over a newtype brands its parent's schema again, `export const WorkEmail = Email.refine(...).brand<"shop.WorkEmail">()`, and Zod's brands stack, so a `WorkEmail` is an `Email`, checked once for what each adds.
 
-Brands are on by default, so phase 3b ([#1378](https://github.com/UnstoppableMango/tdl/issues/1378)) changes the output of every newtype phases 1 and 2 wrote as a plain schema.
+Brands are on by default.
 The `structural` directive on the target block writes no brands at all, so every inferred type is `typescript`'s, for a consumer who shares values between code using both outputs and would rather not pay for the distinction.
 Under `structural` the constraints [Constraints](#constraints) brands are still checked, and a constrained field keeps its named schema; only the type forgets them, so the directive never changes which names the module exports.
 
@@ -217,7 +217,8 @@ Each other standard constraint is a check:
 
 A string's length counts code points, as `emit.Length` defines it in every target, and Zod's `.min()` and `.length()` on a string count UTF-16 code units, so a string of four emoji is length 8 to Zod.
 `codePoints` is a helper the module declares once, counting with a `for...of` loop, and `size` counts a record's keys.
-A `oneOf` beside another constraint on the same value stays a literal union, and the other constraints check it; an argument another constraint excludes warns and is left out, since it could never be held.
+A `oneOf` beside a `min`, `max`, or `length` on the same value stays a literal union of the arguments they accept, so the union states them too; an argument another constraint excludes warns and is left out, since it could never be held.
+A check on a field naming a newtype written later, or a lazy one, warns and is not written, since a `z.lazy` has no number, string, or array checks.
 Here **warn** leaves the declaration emitted without the check, as in JSON Schema.
 
 A constrained newtype brands its own schema, as above.
