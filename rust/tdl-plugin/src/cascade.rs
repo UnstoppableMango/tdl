@@ -1,22 +1,24 @@
 use std::collections::HashSet;
+use std::marker::PhantomData;
 
 use crate::Session;
 use crate::ir::{Decl, ID, decl::Node};
 use crate::problem::Problem;
 
 /// The declarations a backend does not generate, by their identity in the
-/// request.
+/// request. It borrows the request, so it cannot outlive it and mistake
+/// another request's declaration at the same address for a skipped one.
 #[derive(Debug, Default)]
-pub struct Skipped(HashSet<*const Decl>);
+pub struct Skipped<'a>(HashSet<*const Decl>, PhantomData<&'a Decl>);
 
-impl Skipped {
+impl<'a> Skipped<'a> {
     /// An empty set.
     pub fn new() -> Self {
         Skipped::default()
     }
 
     /// Adds a declaration, and says whether it was not already there.
-    pub fn insert(&mut self, d: &Decl) -> bool {
+    pub fn insert(&mut self, d: &'a Decl) -> bool {
         self.0.insert(d)
     }
 
@@ -67,7 +69,7 @@ impl<'a> Session<'a> {
     /// Extends `skipped`, transitively, with every declaration in `decls`
     /// that names a skipped one, and warns about each it adds, so the output
     /// never refers to something it does not declare.
-    pub fn cascade(&mut self, decls: &[&'a Decl], skipped: &mut Skipped) {
+    pub fn cascade(&mut self, decls: &[&'a Decl], skipped: &mut Skipped<'a>) {
         let mut changed = true;
         while changed {
             changed = false;

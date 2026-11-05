@@ -45,7 +45,14 @@ impl<'a> Session<'a> {
             Error::protocol("the request carries no analysis; tdl sends one with every request")
         })?;
         let model: &Model = &request.model;
-        if analysis.decls.len() != model.decls.len() || analysis.types.len() != model.types.len() {
+        let describes = analysis.decls.len() == model.decls.len()
+            && analysis.types.len() == model.types.len()
+            && model
+                .decls
+                .iter()
+                .zip(&analysis.decls)
+                .all(|(d, v)| describes(d, v));
+        if !describes {
             return Err(Error::protocol(
                 "the request's analysis does not describe its model",
             ));
@@ -365,6 +372,30 @@ impl<'a> Session<'a> {
             }
         }
     }
+}
+
+// Whether a declaration's view has one view per field, variant, and
+// constraint, as tdl's analysis writes it, so no node goes without its view.
+fn describes(d: &Decl, view: &DeclView) -> bool {
+    let fields_described = |fields: &[Field], views: &[MemberView]| {
+        fields.len() == views.len()
+            && fields
+                .iter()
+                .zip(views)
+                .all(|(f, v)| f.constraints.len() == v.constraints.len())
+    };
+    let constraints = match &d.node {
+        Some(Node::Newtype(n)) => n.value_constraints.len(),
+        _ => 0,
+    };
+    let vs = variants(d);
+    constraints == view.constraints.len()
+        && fields_described(fields(d), &view.fields)
+        && vs.len() == view.variants.len()
+        && vs
+            .iter()
+            .zip(&view.variants)
+            .all(|(v, vv)| fields_described(&v.fields, &vv.fields))
 }
 
 fn diagnostic(

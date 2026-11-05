@@ -40,6 +40,20 @@ fn refuses_an_analysis_of_another_model() {
 }
 
 #[test]
+fn refuses_an_analysis_missing_a_field_s_view() {
+    let mut req = common::request("catalog");
+    let i = req
+        .model
+        .decls
+        .iter()
+        .position(|d| d.meta.name == "Product")
+        .unwrap();
+    req.analysis.get_or_insert_default().decls[i].fields.pop();
+
+    assert!(Session::new(&req, "Debug").is_err());
+}
+
+#[test]
 fn own_leaves_out_the_prelude() {
     let req = common::request("catalog");
     let s = Session::new(&req, "Debug").unwrap();

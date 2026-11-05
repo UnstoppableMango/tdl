@@ -127,8 +127,9 @@ in
             tdl gen -o rust rust.tdl 2> rust.err
             sed -i 's/^target rust_debug$/target debug/' rust/model.txt
             diff go/model.txt rust/model.txt
-            # The warnings too, with the file and target names swapped back.
-            sed -i 's/^rust\.tdl:/go.tdl:/; s/rust_debug does not/debug does not/; s|^rust/model\.txt$|go/model.txt|' rust.err
+            # The warnings too, on stderr, with the file and target names
+            # swapped back.
+            sed -i 's/^rust\.tdl:/go.tdl:/; s/rust_debug does not/debug does not/' rust.err
             diff go.err rust.err
             touch $out
           '';

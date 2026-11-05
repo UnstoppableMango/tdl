@@ -41,7 +41,8 @@ pub struct Description {
     pub directives: Vec<DirectiveSpec>,
     /// Says the backend can serve more than one request on a connection.
     pub reuse: bool,
-    /// Says the backend implements [`Backend::import`].
+    /// Says the backend overrides [`Backend::import`]. Set without it, the
+    /// handshake accepts an import whose first request then fails.
     pub reverse: bool,
     /// How the backend numbers fields and variants, or `None` for a backend
     /// that does not.
