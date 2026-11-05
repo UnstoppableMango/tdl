@@ -39,8 +39,8 @@ spelling = "a `codePoints` refine on a string, `.min()` and `.max()` on a list, 
 notes = "A string counts code points, as TDL does, not Zod's UTF-16 units; a list's exact length of at most 16 is a `z.tuple`."
 
 [matches]
-planned = "phase 3"
-notes = "Checked only under a `patterns` directive."
+spelling = "`.regex()` with a module constant printed from RE2's parse"
+notes = "Checked only under a `patterns` directive, and never for a pattern a backtracking engine can take exponential time on."
 
 [oneOf]
 spelling = "`z.enum`, `z.literal`, or the enum's `.extract`"

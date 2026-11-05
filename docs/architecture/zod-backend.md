@@ -1,7 +1,7 @@
 # The Zod backend
 
 Design document.
-Phases 1, 2, 3a, and 3b are built; the rest is tracked in [#1230](https://github.com/UnstoppableMango/tdl/issues/1230).
+Phases 1, 2, and 3 are built; the rest is tracked in [#1230](https://github.com/UnstoppableMango/tdl/issues/1230).
 
 The Zod backend turns a resolved model into a TypeScript module of [Zod](https://zod.dev) schemas.
 It is called `zod` in a target block, ships compiled into `tdl` and as `tdl-gen-zod`, and is implemented in `backend/zod`.
@@ -260,23 +260,26 @@ The printed pattern is a regex literal with the `u` flag and no other, so the en
 
 | `regexp/syntax` | ECMAScript |
 | --- | --- |
-| a literal | itself, with a syntax character or `/` escaped, and a non-printable as `\u{...}` |
+| a literal | itself, with a syntax character or `/` escaped, and anything but printable ASCII as `\u{...}`, so a Kelvin sign is not read as a `K` |
 | a case-folded literal | the class of its folds from `unicode.SimpleFold`, so `(?i)k` matches the Kelvin sign as in RE2, with no `i` flag |
-| a class | its ranges, as `regexp/syntax` resolved them, `\d` as `[0-9]` and `\p{Greek}` as Greek's ranges |
+| a class | its ranges, as `regexp/syntax` resolved them, `\d` as `[0-9]` and `\p{Greek}` as Greek's ranges, or the ranges it excludes after `^` when they are fewer, as `[^@]` |
 | any character but newline, any character | `[^\n]`, `[\u{0}-\u{10FFFF}]` |
 | beginning and end of text | `^`, `$`, which match only at the ends without the `m` flag |
 | beginning and end of line | `(?<=^\|\n)`, `(?=\n\|$)` |
 | `\b`, `\B` | themselves, ASCII in JavaScript without the `i` flag, as in RE2 |
-| a named capture | `(?<name>...)` |
+| a named capture | `(?<name>...)`, or a plain group for a name starting with a digit, which RE2 allows and ECMAScript does not |
 | repetition, alternation, groups, laziness | themselves |
 
 Printing every class as ranges costs a long pattern for a Unicode class, and buys a pattern that means what `emit.Pattern` checked with Go's Unicode tables, whatever Unicode version the consumer's engine has.
-Each pattern is a module-level constant beside the schema that uses it, so it is compiled once, and `.regex()` tests it unanchored, as `matches` reads.
+Each pattern is a module-level constant before the schema that uses it, under a comment holding the constraint as written, named for that schema (`SkuPattern`, `PaymentCardLast4Pattern`, a number after the second), so it is compiled once, and `.regex()` tests it unanchored, as `matches` reads.
+`.regex()` exists only on a string schema, so a `matches` on any other, such as a `uuid` or a literal union, warns and is not checked; beside a `oneOf` on a string, the pattern instead leaves out each argument it refuses, as [Checked and branded](#checked-and-branded) leaves out one a length refuses.
+Zod parses a default through the schema, so a default a checked pattern refuses warns and is not written.
 A pattern RE2 refuses warns at generation time and its schema is emitted without the check.
 
 RE2 has no backreferences and no lookaround, and the printer writes lookbehind only for the line anchors, so every printed pattern is one a linear-time engine could run.
 V8, SpiderMonkey, and JavaScriptCore backtrack by default, so a pattern such as `(a+)+$` takes exponential time on a hostile string, and a schema parsing untrusted JSON runs it on the parser's thread.
-The pattern is the model author's, not the attacker's, so the backend refuses the shape rather than the constraint: a pattern with an unbounded repetition nested inside another, or an alternation under an unbounded repetition where one branch can match a prefix of what another matches, as in `(a|aa)+$`, warns at generation time and its schema is emitted without the check, as a pattern RE2 refuses is.
+The pattern is the model author's, not the attacker's, so the backend refuses the shape rather than the constraint (`emit.Backtracks`): inside a repetition of more than one, bounded or not, a choice whose ways can start with the same character, so a failing match tries every way of splitting the input.
+That is a repetition, an optional part, or an alternation branch that can either go on or give way to what follows it, read from the characters each part can start with: `(a+)+$`, `(a+){2,100}$`, `(\w+\s?)+$`, and `(a|aa)+$`, which RE2 parses as `(a(?:|a))+$`, all warn at generation time and their schemas are emitted without the check, as a pattern RE2 refuses is, while `^([a-z0-9]+-)*[a-z0-9]+$` is checked, since a `-` ends each inner repetition.
 That catches the classic exponential shapes from the `regexp/syntax` tree; it is a heuristic, and polynomial backtracking such as `a*a*a*$` remains.
 Opting in to `patterns` is accepting that remainder for the patterns the model holds; [Open questions](#open-questions) weighs a linear-time engine that would remove it.
 
@@ -407,7 +410,7 @@ A Zod module is code, and reading it means evaluating it, which `z.toJSONSchema`
 | The class plan | Go, C#, Rust, Python | `emit.PlanInterfaces` |
 
 [java-backend.md](https://github.com/UnstoppableMango/tdl/blob/fc0682d/docs/design/java-backend.md#overlap-with-other-targets) puts the pattern walk in `backend/internal/emit` beside `Pattern`, with a small table per engine, written by whichever backend is built first.
-None is built yet, so Zod writes the walk in phase 3c ([#1379](https://github.com/UnstoppableMango/tdl/issues/1379)) with the ECMAScript table only.
+The walk is `emit.ECMAScript` and `emit.Backtracks` in `backend/internal/emit/pattern.go`, with the ECMAScript table only, and `backend/internal/emit/testdata/patterns.json` is the shared table every engine's printer is held to against Go's `regexp`.
 The walk is Go, and the C# backend is a .NET plugin that cannot call it; how .NET gets a pattern is [#1196](https://github.com/UnstoppableMango/tdl/issues/1196)'s decision.
 Like Python's, it prints every Unicode class as ranges.
 

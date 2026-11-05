@@ -1,0 +1,9 @@
+package shop
+
+type Cart {
+  sku: string where { matches(/^[A-Z0-9-]+$/) }
+}
+
+target feature for shop {
+  patterns
+}

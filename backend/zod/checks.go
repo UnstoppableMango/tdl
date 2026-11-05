@@ -55,6 +55,13 @@ func (g *generator) exclude(subject string, n *emit.Narrowed, own, cs []*ir.Cons
 			if n.Kind == emit.NarrowStrings {
 				bounds = append(bounds, c)
 			}
+		case "matches":
+			// Filtered here, the union states the pattern, and runs no
+			// expression.
+			if _, why := g.checkable(c); n.Kind == emit.NarrowStrings && why == "" {
+				g.regexChecked[c] = true
+				bounds = append(bounds, c)
+			}
 		}
 	}
 	if len(bounds) == 0 {
@@ -68,7 +75,7 @@ func (g *generator) exclude(subject string, n *emit.Narrowed, own, cs []*ir.Cons
 			lit = &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_FLOAT, Text: v}
 			shown = v
 		}
-		if c, _ := refusing(lit, bounds); c != nil {
+		if c, _ := g.refusing(lit, bounds); c != nil {
 			g.Lossy(emit.LossConstraint, c.GetPosition(), "%s: oneOf argument %s is excluded by %s, and is left out", subject, shown, emit.ConstraintText(c))
 			continue
 		}
@@ -158,7 +165,11 @@ func (g *generator) check(x *emit.Ref, c *ir.Constraint, msg string) (string, st
 	case "oneOf":
 		return "", "Zod states oneOf only on a string, a number, or a fieldless enum"
 	case "matches":
-		return "", "patterns are not checked yet"
+		call, why := g.pattern(c, msg)
+		if why == "" {
+			g.regexChecked[c] = true
+		}
+		return call, why
 	}
 	return "", "Zod gives " + c.GetName() + " no meaning"
 }
@@ -173,8 +184,8 @@ func bound(n *int64, open string) string {
 
 // refusing is the first of cs a literal fails, and why, or nil. Zod
 // parses no default and the backend writes no check for a literal union,
-// so both are checked here.
-func refusing(l *ir.Literal, cs []*ir.Constraint) (*ir.Constraint, string) {
+// so both are checked here; a pattern only when a schema checks it.
+func (g *generator) refusing(l *ir.Literal, cs []*ir.Constraint) (*ir.Constraint, string) {
 	for _, c := range cs {
 		args := c.GetArgs()
 		switch c.GetName() {
@@ -203,6 +214,10 @@ func refusing(l *ir.Literal, cs []*ir.Constraint) (*ir.Constraint, string) {
 			}
 			if low != nil && n < *low || high != nil && n > *high {
 				return c, "fails " + emit.ConstraintText(c)
+			}
+		case "matches":
+			if re, why := g.checkable(c); why == "" && g.regexChecked[c] && l.GetKind() == ir.LiteralKind_LITERAL_KIND_STRING && !re.MatchString(l.GetText()) {
+				return c, "does not match " + emit.ConstraintText(c)
 			}
 		case "unique":
 			seen := map[string]bool{}

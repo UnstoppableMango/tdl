@@ -49,6 +49,9 @@ func (Backend) Describe() plugin.Description {
 			{Name: "structural", Placements: plugin.On(plugin.OnBlock)},
 			// The name of a constrained field's own schema.
 			{Name: "newtype", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnField)},
+			// Checks matches constraints, which otherwise warn, since a
+			// backtracking engine runs the author's pattern on the input.
+			{Name: "patterns", Placements: plugin.On(plugin.OnBlock)},
 		},
 	}
 }
@@ -176,9 +179,22 @@ var primHelpers = map[string]helper{"decimal": helperDecimal, "instant": helperI
 type generator struct {
 	*emit.Session
 
-	// closed is whether the target block closes every object, and
-	// structural whether it writes no brands.
-	closed, structural bool
+	// closed is whether the target block closes every object,
+	// structural whether it writes no brands, and checkPatterns whether
+	// it checks matches constraints.
+	closed, structural, checkPatterns bool
+
+	// While a schema's checks are written: prefix names its pattern
+	// constants, patterns holds them, onString is whether the schema is a
+	// z.string(), and stringSchemas holds each newtype whose schema is.
+	prefix        string
+	patterns      []pattern
+	onString      bool
+	stringSchemas map[*ir.Decl]bool
+
+	// regexChecked holds each matches constraint a schema checks, which a
+	// default must match too.
+	regexChecked map[*ir.Constraint]bool
 
 	// names maps each declared name to the declaration declaring it.
 	names map[string]string
@@ -217,10 +233,14 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		lazy:     map[*ir.Decl]bool{},
 		declares: map[*ir.Decl][]string{},
 		enforced: map[*ir.Constraint]bool{},
+
+		stringSchemas: map[*ir.Decl]bool{},
+		regexChecked:  map[*ir.Constraint]bool{},
 	}
 	g.Externs = true
 	g.closed = g.Bare("closed")
 	g.structural = g.Bare("structural")
+	g.checkPatterns = g.Bare("patterns")
 
 	path := ts.File(req.GetModel().GetPackage()) + Suffix
 
@@ -448,10 +468,15 @@ func (g *generator) newtype(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	}
 	name := g.DeclName(d, emit.Pascal)
 	g.forward = false
-	base, _, checks, err := g.value(emit.LastSegment(d.GetMeta().GetName()), ref, own, inherited)
+	g.prefix = name
+	base, n, checks, err := g.value(emit.LastSegment(d.GetMeta().GetName()), ref, own, inherited)
 	if err != nil {
 		return nil, err
 	}
+	if n == nil && !g.forward && g.isString(ref) {
+		g.stringSchemas[d] = true
+	}
+	declared := append([]string{name}, g.declarePatterns(b)...)
 	base.expr += checks
 	brand := g.qualified(d.GetMeta().GetName())
 	if g.forward {
@@ -461,7 +486,16 @@ func (g *generator) newtype(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	} else {
 		pair(b, name, d.GetMeta(), "", g.brand(base, brand).expr)
 	}
-	return []string{name}, nil
+	return declared, nil
+}
+
+// isString reports whether a schema of r is a z.string(), which has
+// .regex(): the string primitive, or a newtype whose schema is one.
+func (g *generator) isString(r *emit.Ref) bool {
+	if r.Form == emit.Named {
+		return g.stringSchemas[r.Decl]
+	}
+	return r.Form == emit.Prim && r.Name == "string"
 }
 
 // value is the schema of a value of r, a field's or a newtype's, with
@@ -469,6 +503,7 @@ func (g *generator) newtype(b *strings.Builder, d *ir.Decl) ([]string, error) {
 // narrowed type a literal union or tuple states, and the checks stating
 // the rest. subject names the value in messages.
 func (g *generator) value(subject string, r *emit.Ref, own, inherited []*ir.Constraint) (schema, *emit.Narrowed, string, error) {
+	g.patterns, g.onString = nil, false
 	n := g.narrow(r, own, inherited)
 	g.exclude(subject, n, own, append(slices.Clone(own), inherited...))
 	s, err := g.typ(r)
@@ -496,6 +531,7 @@ func (g *generator) value(subject string, r *emit.Ref, own, inherited []*ir.Cons
 		}
 		return s, n, "", nil
 	}
+	g.onString = n == nil && g.isString(r)
 	return s, n, g.checks(subject, x, rest), nil
 }
 
@@ -537,9 +573,7 @@ func (g *generator) object(b *strings.Builder, name, path string, meta *ir.Meta,
 		if err != nil {
 			return nil, err
 		}
-		if own != "" {
-			declared = append(declared, own)
-		}
+		declared = append(declared, own...)
 		if def := f.GetDefaultValue(); def != nil {
 			s = g.withDefault(name, f, ref, n, s)
 		}
@@ -619,7 +653,7 @@ func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, error) {
 // value may be null. A constraint a check states gives the value a schema
 // of its own, written to schemas and named in own, branded for path and
 // the field.
-func (g *generator) property(owner, path string, f *ir.Field, r *emit.Ref, schemas *strings.Builder) (schema, *emit.Narrowed, string, error) {
+func (g *generator) property(owner, path string, f *ir.Field, r *emit.Ref, schemas *strings.Builder) (schema, *emit.Narrowed, []string, error) {
 	optional, nullable := false, false
 	for r.Form == emit.Option || r.Form == emit.Nullable {
 		if r.Form == emit.Option {
@@ -636,16 +670,18 @@ func (g *generator) property(owner, path string, f *ir.Field, r *emit.Ref, schem
 		defer func() { g.Diags = g.Diags[:mark] }()
 	}
 	inherited := r.Decl.GetNewtype().GetValueConstraints()
+	own := owner + emit.Pascal(f.GetMeta().GetName())
+	if name, ok := g.Text(f.GetDirectives(), "newtype"); ok {
+		own = name
+	}
+	g.prefix = own
 	s, n, checks, err := g.value(subject, r, f.GetConstraints(), inherited)
 	if err != nil {
-		return schema{}, nil, "", err
+		return schema{}, nil, nil, err
 	}
-	own := ""
+	var declared []string
 	if checks != "" {
-		own = owner + emit.Pascal(f.GetMeta().GetName())
-		if name, ok := g.Text(f.GetDirectives(), "newtype"); ok {
-			own = name
-		}
+		declared = append(g.declarePatterns(schemas), own)
 		s.expr += checks
 		brand := g.qualified(subject)
 		if g.forward {
@@ -663,7 +699,7 @@ func (g *generator) property(owner, path string, f *ir.Field, r *emit.Ref, schem
 	if optional {
 		s = schema{expr: s.expr + ".exactOptional()", typ: "z.ZodExactOptional<" + s.typ + ">", nullable: s.nullable}
 	}
-	return s, n, own, nil
+	return s, n, declared, nil
 }
 
 // narrow is [emit.Session.Narrow], recording each constraint the narrowed

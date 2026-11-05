@@ -370,7 +370,7 @@ Warns counts only what the output loses: what a later `tdl import` would not rea
 | `min` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Yes |
 | `max` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Yes |
 | `length` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Yes |
-| `matches` | Planned | Yes | Warns | Warns | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Planned |
+| `matches` | Planned | Yes | Warns | Warns | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Yes |
 | `oneOf` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Yes | Yes |
 | `unique` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Yes |
 | `owned` | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | No | Warns | Warns | Warns | Yes |
