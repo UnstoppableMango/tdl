@@ -43,6 +43,17 @@ _Avoid_: upgrade, negotiation
 How one message is delimited on a byte stream: a varint length followed by the encoded message.
 _Avoid_: transport, protocol version
 
+### Round trips
+
+**Round trip**:
+A conversion through one target and back through that target's importer: model first, a model generated and imported back, or schema first, a hand-written schema imported and regenerated.
+"Round-trips" claims the result comes back equal, the model positions aside or the schema under the target's normal form; a trip that does not is described by what it loses.
+_Avoid_: round trip, when a value is encoded and decoded or a file printed and reparsed; say what survives
+
+**Annotation**:
+A fact written in a target's own extension syntax that importing reads back, recovering what the mapping would otherwise lose: generating writes them on request, and a hand-written schema may carry them too; a model-first round trip with read-back loss comes back equal only with annotations.
+_Avoid_: round-trip annotation, roundtrip mode
+
 ### Loss
 
 **Output loss**:
@@ -58,6 +69,10 @@ _Avoid_: loss, round-trip loss
 **Wire convention**:
 The one JSON shape several targets read and write for a model's values: properties named as the model spells them, an absent optional left out, and a fielded enum tagged by its discriminant, `kind` unless renamed.
 _Avoid_: JSON format, serialization
+
+**Wire compatible**:
+What two targets' generated types are when each reads every value the other writes in the wire convention.
+_Avoid_: round trip, interop
 
 **Checked type**:
 A generated type whose values can only be obtained by passing the checks its constraints imply, so code holding one knows the checks ran: a Rust or Python type built through its constructor, or a Zod brand.
