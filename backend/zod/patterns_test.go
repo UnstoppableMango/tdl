@@ -271,3 +271,29 @@ target zod for shop {
 	}
 	typecheck(t, nil, resp)
 }
+
+// Narrowing a field over a newtype filters by the newtype's pattern, but
+// does not make the newtype's schema check it, so a default on another
+// field of that newtype is not held to it.
+func TestPatternsNarrowedInherited(t *testing.T) {
+	resp, src := gen(t, `package shop
+
+type A: B where { matches(/^A/) }
+
+type B: string
+
+type Row {
+  pick: A where { oneOf("A", "B") }
+  fallback: A = "B"
+}
+
+target zod for shop {
+  patterns
+}
+`)
+	contains(t, src, `return A.prefault("B");`)
+	if warned(resp, emit.LossDefault) {
+		t.Errorf("a default is held to a pattern no schema checks: %v", resp.GetDiagnostics())
+	}
+	typecheck(t, nil, resp)
+}

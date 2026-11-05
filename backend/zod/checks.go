@@ -57,9 +57,12 @@ func (g *generator) exclude(subject string, n *emit.Narrowed, own, cs []*ir.Cons
 			}
 		case "matches":
 			// Filtered here, the union states the pattern, and runs no
-			// expression.
+			// expression. Only the field's own pattern is then checked: an
+			// inherited one stays its newtype's, whose schema may not.
 			if _, why := g.checkable(c); n.Kind == emit.NarrowStrings && why == "" {
-				g.regexChecked[c] = true
+				if slices.Contains(own, c) {
+					g.regexChecked[c] = true
+				}
 				bounds = append(bounds, c)
 			}
 		}
@@ -75,7 +78,7 @@ func (g *generator) exclude(subject string, n *emit.Narrowed, own, cs []*ir.Cons
 			lit = &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_FLOAT, Text: v}
 			shown = v
 		}
-		if c, _ := g.refusing(lit, bounds, false); c != nil {
+		if c, _ := g.refusing(lit, bounds, true); c != nil {
 			g.Lossy(emit.LossConstraint, c.GetPosition(), "%s: oneOf argument %s is excluded by %s, and is left out", subject, shown, emit.ConstraintText(c))
 			continue
 		}
@@ -186,7 +189,9 @@ func bound(n *int64, open string) string {
 // parses no default and the backend writes no check for a literal union,
 // so both are checked here; a pattern only when a schema checks it, or,
 // when pending, when the schema not yet written may, since a newtype
-// written later checks its pattern after the default is decided.
+// written later checks its pattern after the default is decided. A
+// literal union passes pending too, since it states every pattern it
+// filters by.
 func (g *generator) refusing(l *ir.Literal, cs []*ir.Constraint, pending bool) (*ir.Constraint, string) {
 	for _, c := range cs {
 		args := c.GetArgs()
