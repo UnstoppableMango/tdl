@@ -54,6 +54,7 @@ func TestECMAScriptSpelling(t *testing.T) {
 		{`(?m)^a$`, `(?<=^|\n)a(?=\n|$)`},
 		{`^a/b$`, `^a\/b$`},
 		{`(?P<year>\d{4})`, `(?<year>[0-9]{4})`},
+		{`(?P<a>x)(?P<a>y)`, `(?<a>x)(y)`},
 		{`(ab)+?`, `(ab)+?`},
 		{`(?:ab)*`, `(?:ab)*`},
 		{`a|b+c`, `a|b+c`},
@@ -62,6 +63,24 @@ func TestECMAScriptSpelling(t *testing.T) {
 	} {
 		if got := emit.ECMAScript(parsePattern(t, c.pattern)); got != c.want {
 			t.Errorf("%s: %s, want %s", c.pattern, got, c.want)
+		}
+	}
+}
+
+func TestSurrogates(t *testing.T) {
+	for _, c := range []struct {
+		pattern string
+		want    bool
+	}{
+		{`\x{D800}`, true},
+		{`[\x{DC00}-\x{DFFF}]`, true},
+		{`[a\x{D7FF}-\x{D800}]`, true},
+		{`(?s).`, false},
+		{`[^a]`, false},
+		{`\x{E000}`, false},
+	} {
+		if got := emit.Surrogates(parsePattern(t, c.pattern)); got != c.want {
+			t.Errorf("%s: %v, want %v", c.pattern, got, c.want)
 		}
 	}
 }

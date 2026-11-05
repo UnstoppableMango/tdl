@@ -183,6 +183,13 @@
 		]
 	},
 	{
+		"pattern": "(?P<a>x)(?P<a>y)",
+		"inputs": [
+			"xy",
+			"x"
+		]
+	},
+	{
 		"pattern": "(?P<1st>a)b",
 		"inputs": [
 			"ab",

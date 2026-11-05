@@ -173,6 +173,56 @@ target zod for shop {
 	typecheck(t, nil, resp)
 }
 
+// A newtype written after a field defaulting to it checks its pattern
+// once the default is decided, so the default is held to it beforehand.
+func TestPatternForwardDefaults(t *testing.T) {
+	resp, src := gen(t, `package shop
+
+type Line {
+  sku: Sku = "abc"
+  fine: Sku = "ABC"
+}
+
+type Sku: string where { matches(/^[A-Z]+$/) }
+
+target zod for shop {
+  patterns
+}
+`)
+	absent(t, src, `.prefault("abc")`)
+	contains(t, src, `.prefault("ABC")`)
+	if !warned(resp, emit.LossDefault, "Line.sku", "does not match matches(/^[A-Z]+$/), which Sku requires") {
+		t.Errorf("no warning for Line.sku: %v", resp.GetDiagnostics())
+	}
+	typecheck(t, nil, resp)
+	parse(t, `import { Line } from "./shop.zod.js";
+refuses("sku is required", Line, '{}');
+accepts("fine defaults", Line, '{"sku": "ABC"}');
+`, resp)
+}
+
+// A pattern naming a surrogate warns, since JavaScript can match a lone
+// surrogate RE2 never sees; a capture name used twice is written once; a
+// line separator in a pattern stays inside its constant's comment.
+func TestPatternSpellings(t *testing.T) {
+	resp, src := gen(t, "package shop\n\n"+
+		"type Lone: string where { matches(/\\x{D800}/) }\n\n"+
+		"type Twice: string where { matches(/^(?P<a>x)(?P<a>y)$/) }\n\n"+
+		"type Sep: string where { matches(/^a\u2028/) }\n\n"+
+		"target zod for shop {\n  patterns\n}\n")
+	if !warned(resp, emit.LossConstraint, "Lone", "surrogate") {
+		t.Errorf("no warning for Lone: %v", resp.GetDiagnostics())
+	}
+	absent(t, src, "LonePattern", "\u2028")
+	contains(t, src, "const TwicePattern = /^(?<a>x)(y)$/u;", "// matches(/^a\\u2028/)")
+	typecheck(t, nil, resp)
+	parse(t, `import { Twice, Sep } from "./shop.zod.js";
+accepts("Twice", Twice, '"xy"');
+refuses("Twice", Twice, '"x"');
+accepts("Sep", Sep, '"a\\u2028"');
+`, resp)
+}
+
 // A pattern constant takes a module name, so a declaration taking it
 // collides.
 func TestPatternNameCollision(t *testing.T) {

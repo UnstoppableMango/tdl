@@ -267,14 +267,14 @@ The printed pattern is a regex literal with the `u` flag and no other, so the en
 | beginning and end of text | `^`, `$`, which match only at the ends without the `m` flag |
 | beginning and end of line | `(?<=^\|\n)`, `(?=\n\|$)` |
 | `\b`, `\B` | themselves, ASCII in JavaScript without the `i` flag, as in RE2 |
-| a named capture | `(?<name>...)`, or a plain group for a name starting with a digit, which RE2 allows and ECMAScript does not |
+| a named capture | `(?<name>...)`, or a plain group for a name starting with a digit or used before, which RE2 allows and ECMAScript does not |
 | repetition, alternation, groups, laziness | themselves |
 
 Printing every class as ranges costs a long pattern for a Unicode class, and buys a pattern that means what `emit.Pattern` checked with Go's Unicode tables, whatever Unicode version the consumer's engine has.
-Each pattern is a module-level constant before the schema that uses it, under a comment holding the constraint as written, named for that schema (`SkuPattern`, `PaymentCardLast4Pattern`, a number after the second), so it is compiled once, and `.regex()` tests it unanchored, as `matches` reads.
+Each pattern is a module-level constant before the schema that uses it, under a comment holding the constraint as written, with any line terminator in it escaped, named for that schema (`SkuPattern`, `PaymentCardLast4Pattern`, a number after the second), so it is compiled once, and `.regex()` tests it unanchored, as `matches` reads.
 `.regex()` exists only on a string schema, so a `matches` on any other, such as a `uuid` or a literal union, warns and is not checked; beside a `oneOf` on a string, the pattern instead leaves out each argument it refuses, as [Checked and branded](#checked-and-branded) leaves out one a length refuses.
-Zod parses a default through the schema, so a default a checked pattern refuses warns and is not written.
-A pattern RE2 refuses warns at generation time and its schema is emitted without the check.
+Zod parses a default through the schema, so a default a checked pattern refuses warns and is not written, as does one held to a newtype written later whose pattern is checkable, since that newtype's schema is written after the default is decided.
+A pattern RE2 refuses warns at generation time and its schema is emitted without the check, as does one naming a surrogate code point: RE2 accepts `\x{D800}` but never sees one, since UTF-8 cannot hold it, while a JavaScript string holds a lone surrogate `JSON.parse` writes.
 
 RE2 has no backreferences and no lookaround, and the printer writes lookbehind only for the line anchors, so every printed pattern is one a linear-time engine could run.
 V8, SpiderMonkey, and JavaScriptCore backtrack by default, so a pattern such as `(a+)+$` takes exponential time on a hostile string, and a schema parsing untrusted JSON runs it on the parser's thread.

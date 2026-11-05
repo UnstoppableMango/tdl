@@ -75,7 +75,7 @@ func (g *generator) exclude(subject string, n *emit.Narrowed, own, cs []*ir.Cons
 			lit = &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_FLOAT, Text: v}
 			shown = v
 		}
-		if c, _ := g.refusing(lit, bounds); c != nil {
+		if c, _ := g.refusing(lit, bounds, false); c != nil {
 			g.Lossy(emit.LossConstraint, c.GetPosition(), "%s: oneOf argument %s is excluded by %s, and is left out", subject, shown, emit.ConstraintText(c))
 			continue
 		}
@@ -184,8 +184,10 @@ func bound(n *int64, open string) string {
 
 // refusing is the first of cs a literal fails, and why, or nil. Zod
 // parses no default and the backend writes no check for a literal union,
-// so both are checked here; a pattern only when a schema checks it.
-func (g *generator) refusing(l *ir.Literal, cs []*ir.Constraint) (*ir.Constraint, string) {
+// so both are checked here; a pattern only when a schema checks it, or,
+// when pending, when the schema not yet written may, since a newtype
+// written later checks its pattern after the default is decided.
+func (g *generator) refusing(l *ir.Literal, cs []*ir.Constraint, pending bool) (*ir.Constraint, string) {
 	for _, c := range cs {
 		args := c.GetArgs()
 		switch c.GetName() {
@@ -216,7 +218,7 @@ func (g *generator) refusing(l *ir.Literal, cs []*ir.Constraint) (*ir.Constraint
 				return c, "fails " + emit.ConstraintText(c)
 			}
 		case "matches":
-			if re, why := g.checkable(c); why == "" && g.regexChecked[c] && l.GetKind() == ir.LiteralKind_LITERAL_KIND_STRING && !re.MatchString(l.GetText()) {
+			if re, why := g.checkable(c); why == "" && (pending || g.regexChecked[c]) && l.GetKind() == ir.LiteralKind_LITERAL_KIND_STRING && !re.MatchString(l.GetText()) {
 				return c, "does not match " + emit.ConstraintText(c)
 			}
 		case "unique":

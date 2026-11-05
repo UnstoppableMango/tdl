@@ -16,11 +16,12 @@ import (
 // of its own. docs/architecture/zod-backend.md's Patterns is the table.
 func ECMAScript(re *syntax.Regexp) string {
 	var b strings.Builder
-	printECMA(&b, re)
+	printECMA(&b, map[string]bool{}, re)
 	return b.String()
 }
 
-func printECMA(b *strings.Builder, re *syntax.Regexp) {
+// printECMA prints re, recording in named each capture name it writes.
+func printECMA(b *strings.Builder, named map[string]bool, re *syntax.Regexp) {
 	switch re.Op {
 	case syntax.OpNoMatch:
 		b.WriteString("[]")
@@ -59,18 +60,19 @@ func printECMA(b *strings.Builder, re *syntax.Regexp) {
 	case syntax.OpNoWordBoundary:
 		b.WriteString(`\B`)
 	case syntax.OpCapture:
-		// ECMAScript names a group with an identifier, and RE2 also
-		// allows one starting with a digit; a group's name never changes
-		// what it matches.
-		if re.Name != "" && !unicode.IsDigit(rune(re.Name[0])) {
+		// ECMAScript names a group with an identifier, once, and RE2
+		// also allows one starting with a digit and one used twice; a
+		// group's name never changes what it matches.
+		if re.Name != "" && !unicode.IsDigit(rune(re.Name[0])) && !named[re.Name] {
+			named[re.Name] = true
 			b.WriteString("(?<" + re.Name + ">")
 		} else {
 			b.WriteString("(")
 		}
-		printECMA(b, re.Sub[0])
+		printECMA(b, named, re.Sub[0])
 		b.WriteString(")")
 	case syntax.OpStar, syntax.OpPlus, syntax.OpQuest, syntax.OpRepeat:
-		printOperand(b, re.Sub[0])
+		printOperand(b, named, re.Sub[0])
 		switch re.Op {
 		case syntax.OpStar:
 			b.WriteString("*")
@@ -98,10 +100,10 @@ func printECMA(b *strings.Builder, re *syntax.Regexp) {
 		for _, s := range re.Sub {
 			if s.Op == syntax.OpAlternate {
 				b.WriteString("(?:")
-				printECMA(b, s)
+				printECMA(b, named, s)
 				b.WriteString(")")
 			} else {
-				printECMA(b, s)
+				printECMA(b, named, s)
 			}
 		}
 	case syntax.OpAlternate:
@@ -109,7 +111,7 @@ func printECMA(b *strings.Builder, re *syntax.Regexp) {
 			if i > 0 {
 				b.WriteString("|")
 			}
-			printECMA(b, s)
+			printECMA(b, named, s)
 		}
 	}
 }
@@ -117,7 +119,7 @@ func printECMA(b *strings.Builder, re *syntax.Regexp) {
 // printOperand prints a repetition's operand, grouped unless it is one
 // atom. ECMAScript under u refuses a quantified assertion, so an anchor
 // is grouped too.
-func printOperand(b *strings.Builder, re *syntax.Regexp) {
+func printOperand(b *strings.Builder, named map[string]bool, re *syntax.Regexp) {
 	atom := false
 	switch re.Op {
 	case syntax.OpCharClass, syntax.OpAnyChar, syntax.OpAnyCharNotNL, syntax.OpCapture, syntax.OpNoMatch, syntax.OpEmptyMatch:
@@ -126,11 +128,11 @@ func printOperand(b *strings.Builder, re *syntax.Regexp) {
 		atom = len(re.Rune) == 1
 	}
 	if atom {
-		printECMA(b, re)
+		printECMA(b, named, re)
 		return
 	}
 	b.WriteString("(?:")
-	printECMA(b, re)
+	printECMA(b, named, re)
 	b.WriteString(")")
 }
 
@@ -213,6 +215,28 @@ func printable(r rune) string {
 		return string(r)
 	}
 	return fmt.Sprintf(`\u{%X}`, r)
+}
+
+// Surrogates reports whether a pattern names a surrogate code point, as
+// a literal or as a class range's end. RE2 accepts one but never sees it,
+// since UTF-8 cannot hold it, while a JavaScript string holds a lone
+// surrogate JSON.parse writes, so the two engines would disagree. A class
+// running across the surrogates, as `.` and `[^a]` do, names none.
+func Surrogates(re *syntax.Regexp) bool {
+	surrogate := func(r rune) bool { return r >= 0xD800 && r <= 0xDFFF }
+	switch re.Op {
+	case syntax.OpLiteral:
+		if slices.ContainsFunc(re.Rune, surrogate) {
+			return true
+		}
+	case syntax.OpCharClass:
+		for i := 0; i+1 < len(re.Rune); i += 2 {
+			if surrogate(re.Rune[i]) || surrogate(re.Rune[i+1]) {
+				return true
+			}
+		}
+	}
+	return slices.ContainsFunc(re.Sub, Surrogates)
 }
 
 // Backtracks reports whether a pattern has a shape a backtracking engine

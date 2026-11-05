@@ -23,8 +23,8 @@ type pattern struct {
 
 // checkable is the pattern a `matches` constraint is checked against, or
 // why it is not checked: without the patterns directive, a pattern RE2
-// refuses, or one whose shape a backtracking engine takes exponential
-// time on.
+// refuses, one naming a surrogate, or one whose shape a backtracking
+// engine takes exponential time on.
 func (g *generator) checkable(c *ir.Constraint) (*regexp.Regexp, string) {
 	if !g.checkPatterns {
 		return nil, "Zod checks a pattern only under the patterns directive"
@@ -32,6 +32,9 @@ func (g *generator) checkable(c *ir.Constraint) (*regexp.Regexp, string) {
 	re, err := emit.Pattern(c.GetArgs()[0])
 	if err != nil {
 		return nil, err.Error()
+	}
+	if emit.Surrogates(re) {
+		return nil, "it names a surrogate code point, which RE2 never sees and JavaScript can match"
 	}
 	if emit.Backtracks(re) {
 		return nil, "JavaScript's engine backtracks, and can take exponential time on this pattern's shape"
@@ -57,12 +60,15 @@ func (g *generator) pattern(c *ir.Constraint, msg string) (string, string) {
 	return ".regex(" + name + ", " + msg + ")", ""
 }
 
+// lineTerminators escapes what would end a // comment early.
+var lineTerminators = strings.NewReplacer("\n", `\n`, "\r", `\r`, "\u2028", `\u2028`, "\u2029", `\u2029`)
+
 // declarePatterns writes the constants the schema being written checks,
 // each under the constraint it prints, and returns their names.
 func (g *generator) declarePatterns(b *strings.Builder) []string {
 	var names []string
 	for _, p := range g.patterns {
-		fmt.Fprintf(b, "// %s\nconst %s = %s;\n", p.source, p.name, p.literal)
+		fmt.Fprintf(b, "// %s\nconst %s = %s;\n", lineTerminators.Replace(p.source), p.name, p.literal)
 		names = append(names, p.name)
 	}
 	g.patterns = nil
