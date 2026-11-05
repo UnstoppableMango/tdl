@@ -410,5 +410,5 @@ The normal form for comparing packages is each file through `go/format`, keeping
 
 ## Formatting
 
-The backend runs its output through `go/format` in process, so it depends on neither `gofmt` nor `Response.post`, which nothing reads.
+The backend runs its output through `go/format` in process, so it depends on neither `gofmt` nor a `post` command.
 If formatting fails, the unformatted source is returned with an error-severity diagnostic.
