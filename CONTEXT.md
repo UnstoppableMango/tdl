@@ -51,7 +51,7 @@ A conversion through one target and back through that target's importer: model f
 _Avoid_: round trip, when a value is encoded and decoded or a file printed and reparsed; say what survives
 
 **Annotation**:
-A fact written into generated output in the target's own extension syntax, so importing the output recovers what the mapping would otherwise lose; a model-first round trip comes back equal only with annotations.
+A fact written in a target's own extension syntax that importing reads back, recovering what the mapping would otherwise lose: generating writes them on request, and a hand-written schema may carry them too; a model-first round trip with read-back loss comes back equal only with annotations.
 _Avoid_: round-trip annotation, roundtrip mode
 
 ### Loss
