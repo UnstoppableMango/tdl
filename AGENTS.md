@@ -30,6 +30,7 @@ command make vscode-check     # npm ci, then typecheck and biome check editors/v
 command make vscode-test      # in `nix develop .#vscode`: the extension in a headless VSCodium
 command make dotnet-test      # dotnet test dotnet/Tdl.slnx: the .NET plugin SDK and the csharp backend
 command make dotnet-deps      # restore dotnet/ and rewrite dotnet/deps.json, the NuGet lock Nix builds from
+command make rust-test        # cargo test over rust/: the Rust plugin SDK and its debug port
 command make mutate           # in the devShell: gremlins over the core packages; PKG=./lex for one
 command make test-treesitter  # the conformance corpus, run by tree-sitter
 command make check-treesitter # what CI runs: treesitter + a diff + test-treesitter
@@ -57,6 +58,7 @@ Biome's JSON formatter is off, because jsonfmt owns JSON.
 
 `.markdownlint-cli2.yaml` lists which markdown files are linted, so a bare `markdownlint-cli2` checks what CI checks.
 Files with no formatter: the three Makefiles, `.editorconfig`, `.gitattributes`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md` (mdformat would break the frontmatter), `.graphifyignore`, `docs/demo/demo.tape`, `docs/demo/demo.bash`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, `backend/typescript/outline.js`, `tree-sitter/src/scanner.c`, and everything in `dotnet/` but `deps.json`.
+rustfmt formats `rust/`, but for `Cargo.lock` and the generated code.
 `internal/ebnf` lints the two grammars instead, and their column alignment is deliberate.
 Also excluded from formatting: `*.tdl` (until `tdl fmt` is wired in, #1308), generated files, and `.claude/`.
 
@@ -86,6 +88,8 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
   `checks.npm-tdl` installs `@unmango/tdl` and the checking system's platform package offline with `--ignore-scripts`, then runs `tdl version`, `tdl gen` over the smoke model, and `tdl-gen-typescript` through the resolver.
 - `dotnet.nix`: the .NET plugins, built with `buildDotnetModule`, which runs their tests (see [.NET SDK](#net-sdk)): `tdl-gen-csharp`, compiled with Native AOT and linked by `stdenv.cc`, and the SDK's debug port, a self-contained single file.
   On darwin the AOT link names the Swift runtime and ICU, so `swift` and `darwin.ICU` are build inputs there, as in nixpkgs' own dotnet `aot` test.
+- `rust.nix`: `tdl-rust`, the Rust workspace built with `rustPlatform` from `rust/Cargo.lock`, which runs its tests (see [Rust SDK](#rust-sdk)); it installs only `tdl-gen-rust_debug`, which `cmd.nix` does not ship.
+- `protoc-gen-buffa.nix`: buffa's protoc plugin, which nixpkgs lacks, fetched from crates.io by hash, for `make generate` and `checks.generate`.
 - `tree-sitter-tdl.nix`: the grammar's Python binding in `tree-sitter/bindings/python/`, for graphify (see `docs/architecture/graphify.md`); the overlay adds it to every Python package set, and `checks.tree-sitter-tdl` runs its tests, which parse the prelude.
   The binding, `pyproject.toml`, and `setup.py` are `tree-sitter init` output with the highlights query exposed, the tests extended, and `scanner.c` listed with the sources so a source distribution carries it.
 - `zod.nix`: the `zod` npm package, fetched by hash, for `checks.gen-zod` and the devShell's `NODE_PATH`.
@@ -356,6 +360,11 @@ Wanted work with no spec is a `needs-triage` issue.
 The `tdl.toml` project model (#1307) is the furthest-ahead spec: only its `[lossy]` table is built.
 `CONTEXT.md` is the glossary: one canonical word per concept, and the words to avoid.
 
+### Generated protobuf code
+
+`make generate` runs `buf generate`, writing `ir/ir.pb.go` and `plugin/plugin.pb.go`, `dotnet/Tdl.Plugin/Generated/`, and `rust/tdl-plugin/src/generated/`.
+`checks.generate` runs it in the sandbox with the devShell's plugins and fails on any difference from what is committed.
+
 ### .NET SDK
 
 `dotnet/` holds `Tdl.Plugin`, the SDK a backend written in .NET builds on, its tests, `Tdl.Plugin.Debug`, a port of `backend/debug` served as `tdl-gen-dotnet_debug`, and the `csharp` backend with `Tdl.DotNet` (see [Backends](#backends)).
@@ -368,6 +377,19 @@ It runs `go run ./tools/nugetdeps`, which restores the solution for each runtime
 CI runs the same command before the build and fails if `git diff` shows the lock changed, and Renovate runs it on every NuGet update through the `nuget2nix` preset in `UnstoppableMango/renovate-config`, which the-cluster's Renovate allows in `allowedCommands`.
 `.github/renovate.json` pins Renovate's SDK to a release of the major `nix/dotnet.nix` builds with, since another major restores other implicit packages; Renovate reads the constraint as an exact version, so it names one.
 `checks.dotnet-sdk` builds and tests every project, and `checks.gen-dotnet-debug` runs the debug port through `tdl gen` beside the Go backend.
+
+### Rust SDK
+
+`rust/` is a Cargo workspace holding `tdl-plugin`, the SDK a backend written in Rust builds on, and `tdl-plugin-debug`, a port of `backend/debug` served as `tdl-gen-rust_debug`.
+The `rust` backend (#1273) will join it; the crates are not published.
+The SDK holds framing (`Conn`), the handshake answered from a `Description` (`serve`, `run`), a `Session` over the request and its analysis, diagnostics with loss codes, the cascade (`Skipped`), and case styles over name words.
+Like the .NET SDK it computes no fact the analysis carries, and `Session::new` returns an error for a request without one.
+A session finds a node's view by the node's address in the request, as the .NET SDK compares references, so a node cloned out of the request has none.
+`lossy` reports output loss and `lose` read-back loss, which reports only under `readback` and never under `roundtrip`; round-trip and import helpers wait for a Rust backend that imports.
+`tdl-plugin/src/generated/` is `buf generate` output from buffa's `protoc-gen-buffa`, one self-contained file per package (`file_per_package`, `strategy: all`) without views, and leaving out `pb` as the C# entry does; prost and rust-protobuf v3 cannot read Editions 2024.
+`buffa` is pinned exactly in `rust/Cargo.toml` to the version `nix/protoc-gen-buffa.nix` builds, since the generated code targets one runtime; bump both together and regenerate.
+The SDK's tests check the loss codes against `reverse.md` and the session, the framing, and the handshake; the debug port's replay `testdata/plugin/*.binpb` byte for byte, in process and over a connection.
+`checks.rust-sdk` builds and tests the workspace with no network, and `checks.gen-rust-debug` runs the debug port through `tdl gen` beside the Go backend.
 
 ## CLI
 

@@ -1,0 +1,16 @@
+[package]
+name = "tdl-plugin-debug"
+description = "A port of the Go debug backend on the TDL plugin SDK"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[[bin]]
+# tdl runs a plugin target named rust_debug as tdl-gen-rust_debug on PATH.
+name = "tdl-gen-rust_debug"
+path = "src/main.rs"
+
+[dependencies]
+tdl-plugin.workspace = true

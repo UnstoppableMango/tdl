@@ -5,6 +5,7 @@
 # Generated code
 *.pb.go linguist-generated
 dotnet/Tdl.Plugin/Generated/** linguist-generated
+rust/tdl-plugin/src/generated/** linguist-generated
 tree-sitter/grammar.js linguist-generated
 tree-sitter/src/** linguist-generated
 tree-sitter/src/scanner.c -linguist-generated
@@ -15,6 +16,7 @@ editors/bat/tdl.sublime-syntax linguist-generated
 flake.lock linguist-generated
 nix/gomod2nix.toml linguist-generated
 dotnet/deps.json linguist-generated
+rust/Cargo.lock linguist-generated
 **/package-lock.json linguist-generated
 
 # Goldens and recorded exchanges

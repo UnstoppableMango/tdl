@@ -28,3 +28,15 @@ plugins:
     # nor descriptor.proto.
     exclude_types:
       - pb
+  # The Rust SDK's types, from buffa, built in Nix as nix/protoc-gen-buffa.nix.
+  # Each package is one self-contained file under rust/tdl-plugin/src/generated.
+  - local: protoc-gen-buffa
+    out: rust/tdl-plugin/src/generated
+    # plugin.proto names ir.proto's types, so both are generated in one run.
+    strategy: all
+    opt:
+      - file_per_package=true
+      - views=false
+    # As for C#: leaving out pb drops Go's options and their imports.
+    exclude_types:
+      - pb
