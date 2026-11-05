@@ -13,6 +13,16 @@
 	"automerge": true,
 	"packageRules": [
 		{
+			"description": "The generated code in rust/tdl-plugin/src/generated targets one buffa release: bump it with nix/protoc-gen-buffa.nix and make generate, by hand.",
+			"matchManagers": [
+				"cargo"
+			],
+			"matchPackageNames": [
+				"buffa"
+			],
+			"enabled": false
+		},
+		{
 			"groupName": "tdl",
 			"matchPackageNames": [
 				"/unstoppablemango/tdl/"

@@ -219,36 +219,45 @@ impl<'a> Session<'a> {
     /// A declaration's name in the target language: a `name` directive's
     /// argument when there is one, otherwise its words joined by style.
     pub fn decl_name(&self, d: &Decl, style: Style) -> String {
-        if let Some(name) = self.text(&d.directives, "name") {
-            return name.to_string();
-        }
-        match self.decl_view(d) {
-            Some(v) => style(&v.words),
-            None => style(&case::words(case::last_segment(&d.meta.name))),
-        }
+        let words = self.decl_view(d).map(|v| v.words.as_slice());
+        self.name(
+            &d.directives,
+            words,
+            case::last_segment(&d.meta.name),
+            style,
+        )
     }
 
     /// A field's name in the target language, by the rule
     /// [`decl_name`](Session::decl_name) follows.
     pub fn field_name(&self, f: &Field, style: Style) -> String {
-        if let Some(name) = self.text(&f.directives, "name") {
-            return name.to_string();
-        }
-        match self.field_view(f) {
-            Some(v) => style(&v.words),
-            None => style(&case::words(&f.meta.name)),
-        }
+        let words = self.field_view(f).map(|v| v.words.as_slice());
+        self.name(&f.directives, words, &f.meta.name, style)
     }
 
     /// A variant's name in the target language, by the rule
     /// [`decl_name`](Session::decl_name) follows.
     pub fn variant_name(&self, v: &Variant, style: Style) -> String {
-        if let Some(name) = self.text(&v.directives, "name") {
+        let words = self.variant_view(v).map(|view| view.words.as_slice());
+        self.name(&v.directives, words, &v.meta.name, style)
+    }
+
+    // The rule the three names share: a name directive, else the shipped
+    // words, else the words of the name as written, for a node the request
+    // does not hold.
+    fn name(
+        &self,
+        directives: &[Directive],
+        words: Option<&[String]>,
+        written: &str,
+        style: Style,
+    ) -> String {
+        if let Some(name) = self.text(directives, "name") {
             return name.to_string();
         }
-        match self.variant_view(v) {
-            Some(view) => style(&view.words),
-            None => style(&case::words(&v.meta.name)),
+        match words {
+            Some(words) => style(words),
+            None => style(&case::words(written)),
         }
     }
 

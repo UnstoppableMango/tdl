@@ -5,6 +5,7 @@
 use std::fmt::Write as _;
 
 use tdl_plugin::ir::LiteralKind;
+use tdl_plugin::ir::decl::Node;
 use tdl_plugin::protocol::{DirectiveSpec, File, Request, Response};
 use tdl_plugin::{Backend, Description, Error, Problem, Session, directives_for, fields};
 
@@ -69,9 +70,7 @@ impl Backend for Debug {
 
         // Each fieldless declaration warns, to exercise the diagnostic path.
         for d in &own {
-            if !fields(d).is_empty()
-                || matches!(d.node, Some(tdl_plugin::ir::decl::Node::Enumeration(_)))
-            {
+            if !fields(d).is_empty() || matches!(d.node, Some(Node::Enumeration(_))) {
                 continue;
             }
             s.warn(Problem::unsupported(

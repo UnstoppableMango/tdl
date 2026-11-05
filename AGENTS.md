@@ -360,11 +360,6 @@ Wanted work with no spec is a `needs-triage` issue.
 The `tdl.toml` project model (#1307) is the furthest-ahead spec: only its `[lossy]` table is built.
 `CONTEXT.md` is the glossary: one canonical word per concept, and the words to avoid.
 
-### Generated protobuf code
-
-`make generate` runs `buf generate`, writing `ir/ir.pb.go` and `plugin/plugin.pb.go`, `dotnet/Tdl.Plugin/Generated/`, and `rust/tdl-plugin/src/generated/`.
-`checks.generate` runs it in the sandbox with the devShell's plugins and fails on any difference from what is committed.
-
 ### .NET SDK
 
 `dotnet/` holds `Tdl.Plugin`, the SDK a backend written in .NET builds on, its tests, `Tdl.Plugin.Debug`, a port of `backend/debug` served as `tdl-gen-dotnet_debug`, and the `csharp` backend with `Tdl.DotNet` (see [Backends](#backends)).
@@ -387,7 +382,7 @@ Like the .NET SDK it computes no fact the analysis carries, and `Session::new` r
 A session finds a node's view by the node's address in the request, as the .NET SDK compares references, so a node cloned out of the request has none.
 `lossy` reports output loss and `lose` read-back loss, which reports only under `readback` and never under `roundtrip`; round-trip and import helpers wait for a Rust backend that imports.
 `tdl-plugin/src/generated/` is `buf generate` output from buffa's `protoc-gen-buffa`, one self-contained file per package (`file_per_package`, `strategy: all`) without views, and leaving out `pb` as the C# entry does; prost and rust-protobuf v3 cannot read Editions 2024.
-`buffa` is pinned exactly in `rust/Cargo.toml` to the version `nix/protoc-gen-buffa.nix` builds, since the generated code targets one runtime; bump both together and regenerate.
+`buffa` is pinned exactly in `rust/Cargo.toml` to the version `nix/protoc-gen-buffa.nix` builds, since the generated code targets one runtime; bump both together and regenerate, since `.github/renovate.json` leaves `buffa` alone.
 The SDK's tests check the loss codes against `reverse.md` and the session, the framing, and the handshake; the debug port's replay `testdata/plugin/*.binpb` byte for byte, in process and over a connection.
 `checks.rust-sdk` builds and tests the workspace with no network, and `checks.gen-rust-debug` runs the debug port through `tdl gen` beside the Go backend.
 
@@ -523,7 +518,8 @@ The protos are Editions 2024.
 Each file sets `features.field_presence = IMPLICIT` and `features.(pb.go).api_level = API_OPEN`; a field needing presence sets it itself, as `Range.low` does.
 `go_package` lives in `buf.gen.yaml` under managed mode.
 
-After changing `proto/`, run `make generate` and commit the `.pb.go` files.
+After changing `proto/`, run `make generate` and commit the `.pb.go` files, `dotnet/Tdl.Plugin/Generated/`, and `rust/tdl-plugin/src/generated/`.
+`checks.generate` runs `buf generate` in the sandbox with the devShell's plugins and fails on any difference from what is committed.
 Field numbers are a compatibility promise to plugins: add fields, never renumber or reuse.
 `.github/workflows/buf.yml` runs `buf lint`, `buf format`, and `buf breaking` against the base.
 It is advisory: it is outside the `required` job, so a reviewer must read it.
