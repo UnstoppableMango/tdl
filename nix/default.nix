@@ -45,6 +45,8 @@ in
           tdl-portable
           vscode-tdl
           tdl-dotnet
+          tdl-rust
+          protoc-gen-buffa
           ;
         default = pkgs.tdl;
         # The npm tarballs the release publishes.
@@ -101,6 +103,70 @@ in
             tdl gen -o dotnet dotnet.tdl
             sed -i 's/^target dotnet_debug$/target debug/' dotnet/model.txt
             diff go/model.txt dotnet/model.txt
+            touch $out
+          '';
+
+      # Building the Rust workspace runs its tests, which replay
+      # testdata/plugin through the debug port.
+      checks.rust-sdk = pkgs.tdl-rust;
+
+      # Runs the Rust debug port from PATH through tdl gen, and holds it to
+      # the file the Go debug backend writes for the same model.
+      checks.gen-rust-debug =
+        pkgs.runCommand "tdl-gen-rust-debug"
+          {
+            nativeBuildInputs = [
+              pkgs.tdl
+              pkgs.tdl-rust
+            ];
+          }
+          ''
+            cp ${../testdata/plugin/catalog.tdl} go.tdl
+            sed 's/^target debug /target rust_debug /' go.tdl > rust.tdl
+            tdl gen -o go go.tdl 2> go.err
+            tdl gen -o rust rust.tdl 2> rust.err
+            sed -i 's/^target rust_debug$/target debug/' rust/model.txt
+            diff go/model.txt rust/model.txt
+            # The warnings too, on stderr, with the file and target names
+            # swapped back.
+            sed -i 's/^rust\.tdl:/go.tdl:/; s/rust_debug does not/debug does not/' rust.err
+            diff go.err rust.err
+            touch $out
+          '';
+
+      # make generate leaves no diff: buf regenerates every language's
+      # types from proto/ with the devShell's plugins, offline, and the
+      # result must be what is committed.
+      checks.generate =
+        pkgs.runCommand "tdl-generate"
+          {
+            nativeBuildInputs = [
+              pkgs.buf
+              pkgs.protobuf
+              pkgs.protoc-gen-go
+              pkgs.protoc-gen-buffa
+            ];
+            src = pkgs.lib.fileset.toSource {
+              root = ../.;
+              fileset = pkgs.lib.fileset.unions [
+                ../buf.yaml
+                ../buf.gen.yaml
+                ../proto
+                ../ir/ir.pb.go
+                ../plugin/plugin.pb.go
+                ../dotnet/Tdl.Plugin/Generated
+                ../rust/tdl-plugin/src/generated
+              ];
+            };
+          }
+          ''
+            export HOME=$TMPDIR
+            cp -r $src committed
+            cp -r $src work
+            chmod -R u+w work
+            cd work
+            buf generate
+            diff -r ../committed .
             touch $out
           '';
 

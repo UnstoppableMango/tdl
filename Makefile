@@ -1,5 +1,6 @@
 PROTO_GO  := ir/ir.pb.go plugin/plugin.pb.go
 PROTO_CS  := $(addprefix dotnet/Tdl.Plugin/Generated/,Ir.g.cs Plugin.g.cs)
+PROTO_RS  := $(addprefix rust/tdl-plugin/src/generated/,tdl.ir.v1.rs tdl.plugin.v1.rs)
 PROTO_SRC ?= $(shell git ls-files proto)
 GO_SRC    ?= $(filter-out ${PROTO_GO},$(shell git ls-files '*.go'))
 TEST_DATA ?= $(shell git ls-files testdata prelude)
@@ -14,7 +15,7 @@ TS_GRAMMAR  := tree-sitter/grammar.js
 FEATURES    := $(shell git grep -l '<!-- tdl:features' -- '*.md')
 
 .PHONY: build test cover play demo generate treesitter textmate features vscode-install \
-	vscode-check test-treesitter check-treesitter dotnet-test dotnet-deps mutate update lint check fmt tidy
+	vscode-check test-treesitter check-treesitter dotnet-test rust-test dotnet-deps mutate update lint check fmt tidy
 
 build:
 	nix build .#
@@ -37,9 +38,9 @@ demo:
 	nix build .#demo -o result-demo
 	install -m 644 result-demo/demo.gif docs/demo/demo.gif
 
-generate: ${PROTO_GO} ${PROTO_CS}
+generate: ${PROTO_GO} ${PROTO_CS} ${PROTO_RS}
 
-${PROTO_GO} ${PROTO_CS} &: ${PROTO_SRC} buf.gen.yaml buf.yaml
+${PROTO_GO} ${PROTO_CS} ${PROTO_RS} &: ${PROTO_SRC} buf.gen.yaml buf.yaml
 	buf generate
 
 treesitter: ${TS_GRAMMAR}
@@ -67,6 +68,9 @@ vscode-check:
 
 dotnet-test:
 	dotnet test dotnet/Tdl.slnx
+
+rust-test:
+	cargo test --manifest-path rust/Cargo.toml
 
 # Restores from nuget.org with dotnet, so it needs the network but not Nix;
 # Renovate's NuGet updates run the same command.

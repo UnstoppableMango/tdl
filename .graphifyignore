@@ -3,6 +3,7 @@
 # Generated
 *.pb.go
 dotnet/Tdl.Plugin/Generated/
+rust/tdl-plugin/src/generated/
 CHANGELOG.md
 tree-sitter/grammar.js
 tree-sitter/src/*

@@ -83,6 +83,11 @@
               markdownlint-cli2
               protobuf # protoc, for buf's C# generator
               protoc-gen-go
+              protoc-gen-buffa # for rust/, from nix/protoc-gen-buffa.nix
+              cargo
+              rustc
+              clippy
+              rustfmt
               smithy-cli
               typescript
               tree-sitter
@@ -145,6 +150,7 @@
                 settings.wrap = "keep";
               };
               nixfmt.enable = true;
+              rustfmt.enable = true;
               taplo.enable = true;
               yamlfmt = {
                 enable = true;
@@ -163,6 +169,8 @@
               "*.golden"
               "CHANGELOG.md"
               "nix/gomod2nix.toml"
+              "rust/Cargo.lock"
+              "rust/tdl-plugin/src/generated/*"
               "flake.lock"
               "*.tdl"
               ".github/skills/**/SKILL.md"
