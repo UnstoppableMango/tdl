@@ -15,6 +15,8 @@ lib.composeExtensions gomod2nix.overlays.default (
       go = final.go_1_27;
     };
 
+    tdl-npm = final.callPackage ./npm.nix { inherit version; };
+
     tdl-gmk = final.callPackage ./gmk.nix {
       inherit version;
       go = final.go_1_27;
