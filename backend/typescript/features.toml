@@ -34,7 +34,7 @@ notes = "Warns unless `min` and `max` together bound at most 16 integers, which 
 notes = "Warns unless `min` and `max` together bound at most 16 integers, which are written as a literal union."
 
 [length]
-notes = "TypeScript has no type for a length, and validation is not generated."
+notes = "A list's exact length of at most 16 is a tuple; any other length warns, since TypeScript has no type for it and validation is not generated."
 
 [matches]
 notes = "TypeScript has no type for a pattern, and validation is not generated."

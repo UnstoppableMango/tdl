@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"slices"
 	"strconv"
@@ -721,6 +722,11 @@ func (r *reader) typeOf(t *tsType, what string, line, col int, top bool) (*ast.T
 	var out *ast.TypeRef
 	var cs []*ast.Constraint
 	switch {
+	case top && len(members) == 1 && members[0].K == "tuple":
+		out, cs = r.tuple(members[0], what, line, col)
+		if out == nil {
+			return nil, nil
+		}
 	case len(members) == 1 && members[0].K != "lit":
 		out = r.single(members[0], what, line, col)
 	case top && len(members) > 0:
@@ -740,6 +746,27 @@ func (r *reader) typeOf(t *tsType, what string, line, col int, top bool) (*ast.T
 		}
 	}
 	return out, cs
+}
+
+// tuple reads a tuple whose elements are one type as a list with that
+// length, as a list with an exact length is written, or warns and returns
+// nil.
+func (r *reader) tuple(t *tsType, what string, line, col int) (*ast.TypeRef, []*ast.Constraint) {
+	elems := t.Types
+	same := len(elems) > 0
+	for _, e := range elems {
+		same = same && reflect.DeepEqual(e, elems[0])
+	}
+	if !same {
+		r.Warn(emit.LossUnsupported, r.pos(line, col), "%s is a tuple whose elements are not one type, which TDL has no form for", what)
+		return nil, nil
+	}
+	elem, _ := r.typeOf(elems[0], what, line, col, false)
+	if elem == nil {
+		return nil, nil
+	}
+	length := &ast.Constraint{N: "length", Args: []*ast.Literal{{Kind: ast.LitInt, Text: strconv.Itoa(len(elems))}}}
+	return &ast.TypeRef{List: elem}, []*ast.Constraint{length}
 }
 
 // literals reads a union of string or of number literals as a string or

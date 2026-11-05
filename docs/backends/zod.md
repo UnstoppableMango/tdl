@@ -2,7 +2,7 @@
 
 The `zod` backend writes one TypeScript module of [Zod](https://zod.dev) schemas per model, each parsing a declaration's JSON wire value and inferring the type the `typescript` backend writes for it.
 The output imports `zod`, 4.3 or later, which is the consumer's dependency.
-[zod-backend.md](../architecture/zod-backend.md) is its design; phases 1 and 2 are built, and [#1230](https://github.com/UnstoppableMango/tdl/issues/1230) tracks the rest.
+[zod-backend.md](../architecture/zod-backend.md) is its design; phases 1, 2, and 3a are built, and [#1230](https://github.com/UnstoppableMango/tdl/issues/1230) tracks the rest.
 
 ## Features
 
@@ -22,11 +22,11 @@ No importer is planned, so every Import cell is No.
 | Alias | Yes | No | expanded where used | |
 | Optional and nullable | Yes | No | `.exactOptional()` or `.nullable()` | |
 | List, set, and map | Yes | No | `z.array`, a uniqueness `refine`, and `z.record` | A map keyed by a fieldless enum is a `z.partialRecord`. |
-| `min` | Planned (phase 3) | No | | |
-| `max` | Planned (phase 3) | No | | |
-| `length` | Planned (phase 3) | No | | |
+| `min` | Planned (phase 3) | No | | `min` and `max` together bounding at most 16 integers are a `z.literal` of each. |
+| `max` | Planned (phase 3) | No | | `min` and `max` together bounding at most 16 integers are a `z.literal` of each. |
+| `length` | Planned (phase 3) | No | | A list's exact length of at most 16 is a `z.tuple`. |
 | `matches` | Planned (phase 3) | No | | Checked only under a `patterns` directive. |
-| `oneOf` | Planned (phase 3) | No | | |
+| `oneOf` | Yes | No | `z.enum`, `z.literal`, or the enum's `.extract` | Inferring the literal union `typescript` writes. |
 | `unique` | Planned (phase 3) | No | | |
 | `owned` | Yes | No | | Not written: a schema has no ownership, and a referenced entity is parsed by value. |
 | Field default | Yes | No | `.default(value)` | Checked against the schema when generated, since Zod does not check it; one the schema refuses warns and is not written. |

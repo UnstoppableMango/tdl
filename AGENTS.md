@@ -194,7 +194,7 @@ The plugin protocol in `docs/architecture/plugins.md` is complete.
 ### Backends
 
 `backend/internal/emit` holds what every generator shares, reading `internal/analysis` through the request: which declarations belong to the model, reading one target's directives, positioned warnings, case helpers, `Numbers` for field numbering, `Cascade` (skip every declaration naming a skipped one), and `Resolve`, which expands a type reference to the prelude shape or declaration it names.
-It also holds the rules more than one target reads: the JSON wire convention (`Discriminant`, `Tag`), `Length` and `Pattern` for the `length` and `matches` constraints, and `PlanInterfaces`, the class plan for a target that writes a class as a nominal interface.
+It also holds the rules more than one target reads: the JSON wire convention (`Discriminant`, `Tag`), `Length` and `Pattern` for the `length` and `matches` constraints, `Narrow`, the narrowed type (a literal union or a tuple) a target with literal and tuple types writes for a `oneOf`, a small integer range, or a list's small exact length, and `PlanInterfaces`, the class plan for a target that writes a class as a nominal interface.
 `Resolve` refuses type parameters and arguments, since only Go generates generics.
 `backend/internal/irtest` builds `*ir.Model` values for backend tests, seeded with the prelude and the `Entity` class.
 
@@ -242,7 +242,7 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   A set is an array, a map a `Record`, unrepresentable primitives a string, a newtype a plain alias.
   A fielded enum is a union discriminated on `kind`, renamed by a `discriminant` directive.
   An extern is imported with `import type`, through `backend/internal/ts`'s `imports.go`: from the module a `foreign` directive names, or from its dependency's file by a path relative to this one, which both blocks' `out` directives place.
-  `narrow.go` writes a `oneOf`, or an integer `min`/`max` pair spanning at most 16 values, as a literal union, which warns only that it reads back as `oneOf`.
+  A narrowed type from `emit.Narrow` is written as a literal union, which warns only that it reads back as `oneOf`, or a tuple, which import reads back as a list with its `length`.
   Tests run `tsc --noEmit --strict` when it is on `PATH`; `checks.gen-typescript` always does.
   It imports one file: `reverse.go` runs the embedded `outline.js` under `node` with the `typescript` package found from `tsc` on `PATH`, and reads the JSON outline it writes; without both, import and its tests skip.
   `annotate.go` writes the loss warnings and, under `roundtrip`, JSDoc `@tdl` tags, carrying a declaration whole where it loses anything.
@@ -256,7 +256,8 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   A field naming a declaration written later, its own, or a lazy newtype is a getter with its return type written; a newtype whose base is written later is a `z.lazy` with its type written.
   A default is `.default()`, checked in `defaults.go` against the rules Zod would apply, since Zod checks none; one it would refuse warns and is not written.
   A `foreign` directive imports a schema in place of a declaration or an extern, and an extern otherwise comes from its dependency's `zod` block, as in `typescript`.
-  Phases 1 and 2 are built, and #1230 tracks the rest: constraints, units, generics, and classes warn.
+  A narrowed type from `emit.Narrow` is a `z.enum`, a `z.literal`, an enum's `.extract`, or a `z.tuple`, inferring what `typescript` writes.
+  Phases 1, 2, and 3a are built, and #1230 tracks the rest: other constraints, units, generics, and classes warn.
   Tests run `tsc --strict --exactOptionalPropertyTypes` over every response and parse JSON with it under `node`, when `tsc`, `node`, and a `zod` package on `NODE_PATH` are found; the devShell sets `NODE_PATH` from `nix/zod.nix`, and `checks.gen-zod` always runs them on the smoke model.
   An agreement test holds every inferred type and `typescript`'s type for the same declaration assignable to each other.
 - `backend/jsonschema`: one `.schema.json` document per model, every declaration under `$defs`.
