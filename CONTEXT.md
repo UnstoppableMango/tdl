@@ -55,6 +55,10 @@ _Avoid_: loss, round-trip loss
 
 ### Generated types
 
+**Wire convention**:
+The one JSON shape several targets read and write for a model's values: properties named as the model spells them, an absent optional left out, and a fielded enum tagged by its discriminant, `kind` unless renamed.
+_Avoid_: JSON format, serialization
+
 **Checked type**:
 A generated type whose values can only be obtained by passing the checks its constraints imply, so code holding one knows the checks ran: a Rust or Python type built through its constructor, or a Zod brand.
 _Avoid_: branded type, refined type, validated type
