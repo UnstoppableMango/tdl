@@ -203,14 +203,15 @@ make derives the setup function from the file's name, so keep it `tdl.so`.
 ### Shell completion
 
 The Nix package installs completion for bash, zsh, and fish, unless it was cross-compiled on a machine that cannot run it.
-A shell that loads completions from the Nix profile, such as fish, or bash with bash-completion, or zsh after `compinit`, needs nothing more.
+fish, and bash with bash-completion, load them from the Nix profile with nothing more.
+zsh loads them when `fpath` holds the profile's `share/zsh/site-functions` before `compinit`, as NixOS and home-manager's zsh module arrange.
 It completes targets, loss codes, and other flag values, and `.tdl` files where a command reads them.
 
 Otherwise, load the script from `tdl completion`:
 
 ```shell
-source <(tdl completion bash)       # bash, in ~/.bashrc
-source <(tdl completion zsh)        # zsh, in ~/.zshrc
+source <(tdl completion bash)       # bash with bash-completion, in ~/.bashrc
+source <(tdl completion zsh)        # zsh, in ~/.zshrc after compinit
 tdl completion fish | source        # fish, in config.fish
 tdl completion powershell | Out-String | Invoke-Expression  # PowerShell, in $PROFILE
 ```
