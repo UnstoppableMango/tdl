@@ -66,3 +66,14 @@ _Avoid_: branded type, refined type, validated type
 **Narrowed type**:
 A generated type that states a constraint by itself, so a violating value does not type check and no check need run: a union of the allowed literals, or a tuple of the allowed length.
 _Avoid_: literal type, refined type
+
+### Tooling
+
+**Skill**:
+A folder of instructions and reference files, in the Agent Skills format, that an agent loads to do one task with TDL, such as writing a model or generating code from one; installed in a project or in a user's global skills.
+A Claude Code marketplace entry carrying skills is not a **Plugin**.
+_Avoid_: plugin, extension, agent plugin
+
+**Skill library**:
+The skills this repository publishes for working with TDL, released with `tdl` and named `tdl-<task>`.
+_Avoid_: skill pack, plugin
