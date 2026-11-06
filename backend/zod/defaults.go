@@ -12,9 +12,11 @@ import (
 	"github.com/unstoppablemango/tdl/ir"
 )
 
-// A field's default is `.default(value)`. Zod does not parse a default, so
-// each is checked here against the schema it defaults, by the rules Zod's
-// own checks apply, and one that fails warns and is dropped.
+// A field's default is `.prefault(value)`, which Zod parses through the
+// schema, so a branded schema takes its unbranded input. One the schema
+// would refuse would throw on every parse that leaves the field out, so
+// each is checked here, by the rules Zod's own checks apply, and one that
+// fails warns and is dropped.
 
 // The patterns Zod checks a primitive's format with, in RE2. Zod's
 // duration pattern looks ahead, which [duration] checks instead.
@@ -80,7 +82,10 @@ func (g *generator) withDefault(owner string, f *ir.Field, r *emit.Ref, n *emit.
 	if why := outside(n, def); why != "" {
 		return warn("is not written: %s", why)
 	}
-	return schema{expr: s.expr + ".default(" + lit + ")", typ: "z.ZodDefault<" + s.typ + ">", nullable: s.nullable}
+	if c, why := refusing(def, f.GetConstraints()); c != nil {
+		return warn("is not written: it %s", why)
+	}
+	return schema{expr: s.expr + ".prefault(" + lit + ")", typ: "z.ZodPrefault<" + s.typ + ">", nullable: s.nullable}
 }
 
 // literal is the TypeScript value of a literal for a schema of r, or why
@@ -122,6 +127,9 @@ func (g *generator) literal(r *emit.Ref, l *ir.Literal) (string, string) {
 			base, err := g.Resolve(d.GetNewtype().GetBase())
 			if err != nil {
 				return "", err.Error()
+			}
+			if c, why := refusing(l, d.GetNewtype().GetValueConstraints()); c != nil {
+				return "", why + ", which " + d.GetMeta().GetName() + " requires"
 			}
 			return g.literal(base, l)
 		case d.GetEnumeration() != nil && !emit.Fielded(d.GetEnumeration()):

@@ -251,15 +251,17 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   See `docs/architecture/typescript-content-mapper.md`.
 - `backend/zod`: one `<package>.zod.ts` module per model of Zod schemas, each a `const` and a same-named `type` inferred from it, parsing the JSON wire convention `typescript` types.
   It shares the primitive mapping, names, property quoting, and the extern import path with `typescript` through `backend/internal/ts`.
-  A struct is a `z.object`, or `z.strictObject` under `closed`; a fieldless enum a `z.enum`, a fielded one a `z.discriminatedUnion` of variant objects; a newtype a schema of its base, and an alias is expanded.
+  A struct is a `z.object`, or `z.strictObject` under `closed`; a fieldless enum a `z.enum`, a fielded one a `z.discriminatedUnion` of variant objects; a newtype a schema of its base branded with its qualified name, and an alias is expanded.
   `T?` is `.exactOptional()`, a set an array refusing duplicates through the module's `unique` helper, and `decimal` and `instant` are helpers too, each declared only when used.
   A field naming a declaration written later, its own, or a lazy newtype is a getter with its return type written; a newtype whose base is written later is a `z.lazy` with its type written.
-  A default is `.default()`, checked in `defaults.go` against the rules Zod would apply, since Zod checks none; one it would refuse warns and is not written.
+  A default is `.prefault()`, which parses it through the schema, checked in `defaults.go` against the rules Zod would apply and the constraints, so one it would refuse warns and is not written rather than failing every parse.
   A `foreign` directive imports a schema in place of a declaration or an extern, and an extern otherwise comes from its dependency's `zod` block, as in `typescript`.
   A narrowed type from `emit.Narrow` is a `z.enum`, a `z.literal`, an enum's `.extract`, or a `z.tuple`, inferring what `typescript` writes.
-  Phases 1, 2, and 3a are built, and #1230 tracks the rest: other constraints, units, generics, and classes warn.
+  `checks.go` writes every other standard constraint as a check (`.min()`, `.max()`, the `codePoints` and `size` refines, `unique`): on a newtype's own schema, or on a schema of a constrained field's own, `LineItemQuantity`, named for its struct and field or by a `newtype` directive, and branded with both; a `oneOf` argument another constraint excludes warns and is left out.
+  The `structural` target-block directive writes no brands and keeps every check and name.
+  Phases 1, 2, 3a, and 3b are built, and #1230 tracks the rest: `matches`, units, generics, and classes warn.
   Tests run `tsc --strict --exactOptionalPropertyTypes` over every response and parse JSON with it under `node`, when `tsc`, `node`, and a `zod` package on `NODE_PATH` are found; the devShell sets `NODE_PATH` from `nix/zod.nix`, and `checks.gen-zod` always runs them on the smoke model.
-  An agreement test holds every inferred type and `typescript`'s type for the same declaration assignable to each other.
+  An agreement test, under `structural`, holds every inferred type and `typescript`'s type for the same declaration assignable to each other.
 - `backend/jsonschema`: one `.schema.json` document per model, every declaration under `$defs`.
   A fielded enum is a `oneOf` discriminated on `kind`, as in TypeScript; a newtype is a definition with its own constraints, and a base newtype is a `$ref`.
   `where` constraints become keywords (`minimum`, `pattern`, `minLength`, ...) chosen by what the constrained type holds, and one with no keyword warns.

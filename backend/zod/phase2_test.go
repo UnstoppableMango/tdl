@@ -72,24 +72,24 @@ type Defaults {
 `)
 	quiet(t, resp)
 	contains(t, src,
-		`name: z.string().default("anon"),`,
-		`count: z.int().default(1),`,
-		`small: z.int32().default(-5),`,
-		`ratio: z.number().default(0.5),`,
-		`whole: z.float32().default(2),`,
-		`on: z.boolean().default(true),`,
-		`price: decimal.default("12.50"),`,
-		`rate: decimal.default("1.25"),`,
-		`id: z.uuid().default("123e4567-e89b-12d3-a456-426614174000"),`,
-		`at: instant.default("2026-10-22T13:12:46Z"),`,
-		`day: z.iso.date().default("2026-02-28"),`,
-		`took: z.iso.duration().default("PT1H30M"),`,
-		`raw: z.base64().default("aGk="),`,
-		`status: Status.default("Placed"),`,
-		`n: Count.default(3),`,
-		`tags: z.array(z.string()).default(["a", "b"]),`,
-		`unique: z.array(z.int()).refine(unique, "a set holds each element once").default([1, 2]),`,
-		`maybe: z.string().nullable().default("set"),`)
+		`name: z.string().prefault("anon"),`,
+		`count: z.int().prefault(1),`,
+		`small: z.int32().prefault(-5),`,
+		`ratio: z.number().prefault(0.5),`,
+		`whole: z.float32().prefault(2),`,
+		`on: z.boolean().prefault(true),`,
+		`price: decimal.prefault("12.50"),`,
+		`rate: decimal.prefault("1.25"),`,
+		`id: z.uuid().prefault("123e4567-e89b-12d3-a456-426614174000"),`,
+		`at: instant.prefault("2026-10-22T13:12:46Z"),`,
+		`day: z.iso.date().prefault("2026-02-28"),`,
+		`took: z.iso.duration().prefault("PT1H30M"),`,
+		`raw: z.base64().prefault("aGk="),`,
+		`status: Status.prefault("Placed"),`,
+		`n: Count.prefault(3),`,
+		`tags: z.array(z.string()).prefault(["a", "b"]),`,
+		`unique: z.array(z.int()).refine(unique, "a set holds each element once").prefault([1, 2]),`,
+		`maybe: z.string().nullable().prefault("set"),`)
 	typecheck(t, map[string]string{"use.ts": `import type * as z from "zod";
 import { Defaults } from "./shop.zod.js";
 const input: z.input<typeof Defaults> = {};
@@ -142,7 +142,7 @@ func TestBadDefaults(t *testing.T) {
 	}
 	fields.WriteString("  note: string? = \"x\"\n")
 	resp, src := gen(t, "package shop\n\ntype Bad {\n"+fields.String()+"}\n")
-	absent(t, src, ".default(")
+	absent(t, src, ".prefault(")
 	for _, c := range append(cases, struct{ field, typ, literal, json string }{field: "note"}) {
 		if !warned(resp, emit.LossDefault, "Bad."+c.field+"'s default") {
 			t.Errorf("no warning for Bad.%s's default: %v", c.field, resp.GetDiagnostics())
@@ -175,7 +175,7 @@ type Edge {
 }
 `)
 	quiet(t, resp)
-	if n := strings.Count(src, ".default("); n != 9 {
+	if n := strings.Count(src, ".prefault("); n != 9 {
 		t.Errorf("%d defaults written, want 9:\n%s", n, src)
 	}
 	parse(t, `import { Edge } from "./shop.zod.js";
@@ -240,7 +240,7 @@ target zod for shop {
   Code => foreign("./code.js", "Code")
 }
 `)
-	absent(t, src, ".default(")
+	absent(t, src, ".prefault(")
 	if !warned(resp, emit.LossDefault, "foreign") {
 		t.Errorf("diagnostics = %v", resp.GetDiagnostics())
 	}

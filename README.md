@@ -367,12 +367,12 @@ Warns counts only what the output loses: what a later `tdl import` would not rea
 | Alias | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | Optional and nullable | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | List, set, and map | Yes | Yes | No | Yes | Yes | Yes | Yes | Warns | Yes | Yes | Yes | Warns | Yes |
-| `min` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Planned |
-| `max` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Planned |
-| `length` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Planned |
+| `min` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Yes |
+| `max` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Yes |
+| `length` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Yes |
 | `matches` | Planned | Yes | Warns | Warns | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Planned |
 | `oneOf` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Yes | Yes |
-| `unique` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Planned |
+| `unique` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Yes |
 | `owned` | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | No | Warns | Warns | Warns | Yes |
 | Field default | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Warns | Warns | Warns | Yes |
 | `key` directive | Yes | Yes | No | Yes | No | No | No | No | Yes | No | No | No | No |
