@@ -19,6 +19,11 @@ _Avoid_: metadata, annotation, option
 A fact about how one target spells, lays out, numbers, or places part of a model; it belongs in that target's block, and the model never names a target.
 _Avoid_: option, annotation, metadata
 
+**Convention**:
+A named set of facts a group of targets agree on, about an encoding or an API style rather than the domain, written once for every target that follows it: the **wire convention**, Google's resource names.
+A fact that every target must agree on only because they share an encoding belongs to a convention, not the model.
+_Avoid_: profile, shared target, standard
+
 ### Plugin protocol
 
 **Backend**:
@@ -76,7 +81,7 @@ _Avoid_: loss, round-trip loss
 ### Generated types
 
 **Wire convention**:
-The one JSON shape several targets read and write for a model's values: properties named as the model spells them, an absent optional left out, and a fielded enum tagged by its discriminant, `kind` unless renamed.
+The **convention** for JSON: the one shape several targets read and write for a model's values: properties named as the model spells them, an absent optional left out, and a fielded enum tagged by its discriminant, `kind` unless renamed.
 _Avoid_: JSON format, serialization
 
 **Wire compatible**:

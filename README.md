@@ -92,7 +92,7 @@ enum Status { Draft Placed Shipped Cancelled }
 ```
 
 `Order` conforms to `Entity`, so it has identity that survives its contents changing; `Address` does not.
-What a code generator needs goes in a separate `target` block, never in the model.
+How one language writes the model goes in a separate `target` block; the model names no target.
 
 ## Install
 
