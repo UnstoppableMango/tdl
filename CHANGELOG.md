@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.5.9](https://github.com/UnstoppableMango/tdl/compare/v0.5.8...v0.5.9) (2026-11-06)
+
+
+### Features
+
+* **cli:** complete flag values and TDL files in the shell ([#1413](https://github.com/UnstoppableMango/tdl/issues/1413)) ([39f14dd](https://github.com/UnstoppableMango/tdl/commit/39f14dd0d05122a00d5d4e1968f35383fd4bd115))
+* **editors:** highlight TDL in bat ([#1406](https://github.com/UnstoppableMango/tdl/issues/1406)) ([fa98c96](https://github.com/UnstoppableMango/tdl/commit/fa98c960952be4c47c75aae7485c746c8e53bc4c)), closes [#1383](https://github.com/UnstoppableMango/tdl/issues/1383)
+* **nix:** @unmango/tdl npm packages packed in Nix, with an install check ([#1417](https://github.com/UnstoppableMango/tdl/issues/1417)) ([8d398a3](https://github.com/UnstoppableMango/tdl/commit/8d398a363321472dd9c56dc1ebe07f4261223cc8)), closes [#1388](https://github.com/UnstoppableMango/tdl/issues/1388)
+* **nix:** tdl-portable, static tdl binaries cross-compiled for four platforms ([#1404](https://github.com/UnstoppableMango/tdl/issues/1404)) ([74ace02](https://github.com/UnstoppableMango/tdl/commit/74ace020abb79c9c1e3b3f4aaba15cc25f0ffccc))
+* **rust:** Rust plugin SDK phase 1, the workspace, protocol, session, and debug port ([#1436](https://github.com/UnstoppableMango/tdl/issues/1436)) ([9784db8](https://github.com/UnstoppableMango/tdl/commit/9784db8afa64164a477e1c9785bc4b4f72d9ff22))
+* **typescript:** brand newtypes under a brand directive ([#1494](https://github.com/UnstoppableMango/tdl/issues/1494)) ([ab13c22](https://github.com/UnstoppableMango/tdl/commit/ab13c22747ef2a24da50e455160e94d45526bb3a))
+* **zod:** brands and standard checks (phase 3b) ([#1444](https://github.com/UnstoppableMango/tdl/issues/1444)) ([49cac98](https://github.com/UnstoppableMango/tdl/commit/49cac982313ea2b41e772b6ed11cffbc29cb6b42))
+* **zod:** check matches under the patterns directive (phase 3c) ([#1445](https://github.com/UnstoppableMango/tdl/issues/1445)) ([3155f06](https://github.com/UnstoppableMango/tdl/commit/3155f063eff410a6bfc65b33e8ff92ada8c480f1))
+* **zod:** literal unions and tuples, shared with typescript (phase 3a) ([#1435](https://github.com/UnstoppableMango/tdl/issues/1435)) ([31b9c34](https://github.com/UnstoppableMango/tdl/commit/31b9c34859700abe065070b5035d8af14a38fe6d)), closes [#1231](https://github.com/UnstoppableMango/tdl/issues/1231)
+
+
+### Bug Fixes
+
+* **typescript:** warn on a name directive on a fieldless variant ([#1412](https://github.com/UnstoppableMango/tdl/issues/1412)) ([5d851a0](https://github.com/UnstoppableMango/tdl/commit/5d851a041f37befae53adde0101109ecaec38692))
+
+
+### Documentation
+
+* **context:** define round trip, annotation, and wire compatible ([#1467](https://github.com/UnstoppableMango/tdl/issues/1467)) ([8cf4a38](https://github.com/UnstoppableMango/tdl/commit/8cf4a382b8688bf095c39db01e4a8ed4c02e0475))
+* **context:** define Skill and Skill library ([#1447](https://github.com/UnstoppableMango/tdl/issues/1447)) ([c24c8ae](https://github.com/UnstoppableMango/tdl/commit/c24c8aef4c52d253609e66cf937c068857de1e43))
+* **mermaid:** planned page for the Mermaid backend ([#1490](https://github.com/UnstoppableMango/tdl/issues/1490)) ([78def3c](https://github.com/UnstoppableMango/tdl/commit/78def3c8d2b59d655b56eae8e3376a7a0723c70f))
+* **nix:** plan the nix backend's features and define the wire convention ([#1443](https://github.com/UnstoppableMango/tdl/issues/1443)) ([7e499d2](https://github.com/UnstoppableMango/tdl/commit/7e499d20fe9786c43ba06a079395fd45b441165a)), closes [#1437](https://github.com/UnstoppableMango/tdl/issues/1437)
+* **out-of-scope:** no Homebrew formula for tdl-gen-csharp ([#1491](https://github.com/UnstoppableMango/tdl/issues/1491)) ([3c35beb](https://github.com/UnstoppableMango/tdl/commit/3c35beb11a5dc5c916d5d4bf2653f0480f86eeff))
+* **plugins:** the project chooses post-processing commands ([#1414](https://github.com/UnstoppableMango/tdl/issues/1414)) ([d2940a0](https://github.com/UnstoppableMango/tdl/commit/d2940a08b9fad7e7d9ed7ea96e81033767ab1b04))
+* say when the Nix completion scripts load; skip fake plugins on Windows ([#1428](https://github.com/UnstoppableMango/tdl/issues/1428)) ([efa8b0b](https://github.com/UnstoppableMango/tdl/commit/efa8b0b74f34a9130ebe7003617fcf1dbc68bf7d))
+* the model is target-neutral, not generator-free (ADR-0001) ([#1493](https://github.com/UnstoppableMango/tdl/issues/1493)) ([2a0eae7](https://github.com/UnstoppableMango/tdl/commit/2a0eae7b78c1b5533a4b13f56debb881aa92e713))
+
 ## [0.5.8](https://github.com/UnstoppableMango/tdl/compare/v0.5.7...v0.5.8) (2026-11-03)
 
 
