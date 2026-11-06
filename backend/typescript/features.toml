@@ -15,7 +15,7 @@ notes = "A `discriminant` directive renames `kind`."
 
 [newtype]
 spelling = "`type N = Base`"
-notes = "A plain alias, so parsed JSON needs no cast."
+notes = "A plain alias, so parsed JSON needs no cast; under a `brand` directive, an alias intersected with a brand keyed by its qualified name, so two newtypes over one base are not interchangeable."
 
 [alias]
 spelling = "expanded where used"

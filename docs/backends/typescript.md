@@ -17,7 +17,7 @@ Import generates the feature and reads it back, and counts only what reading bac
 | Mixin `include` | Yes | Warns (`lossy.include`) | the mixin's properties, copied in | The include is flattened into the fields it copies. |
 | Fieldless enum | Yes | Yes | a union of string literals | |
 | Fielded enum | Yes | Yes | a union of interfaces discriminated on `kind` | A `discriminant` directive renames `kind`. |
-| Newtype | Yes | Yes | `type N = Base` | A plain alias, so parsed JSON needs no cast. |
+| Newtype | Yes | Yes | `type N = Base` | A plain alias, so parsed JSON needs no cast; under a `brand` directive, an alias intersected with a brand keyed by its qualified name, so two newtypes over one base are not interchangeable. |
 | Alias | Yes | Warns (`lossy.alias`) | expanded where used | |
 | Optional and nullable | Yes | Yes | `name?: T`, or a union with `null` | |
 | List, set, and map | Warns (`lossy.collection`) | Yes | `T[]` and `Record<K, V>` | A set is an array, and reads back as a list. |
@@ -39,3 +39,27 @@ Import generates the feature and reads it back, and counts only what reading bac
 | Import and extern | Yes | Yes | `import type` | From a `foreign` module, or from the dependency's file when both target blocks set `out`. |
 
 <!-- /tdl:features -->
+
+## Brands
+
+A newtype is a plain alias by default, so two newtypes over one base are interchangeable.
+The `brand` directive keeps them apart: on the target block it brands every newtype, and on a newtype it brands that one.
+
+```tdl
+type Secret: string
+type Username: string
+
+target typescript for auth {
+  Secret => brand
+  Username => brand
+}
+```
+
+```ts
+export type Secret = string & { readonly __brand: { readonly "auth.Secret": true } };
+export type Username = string & { readonly __brand: { readonly "auth.Username": true } };
+```
+
+tsc then refuses a `Secret` where a `Username` is expected, and a plain `string` for either; a value parsed from JSON takes a cast, `"ann" as Username`.
+A newtype over a branded newtype adds its own brand to its parent's, so it is still its parent.
+`zod`'s brands are not these, so a project using both backends picks one as the source of nominal types.
