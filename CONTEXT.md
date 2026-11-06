@@ -10,6 +10,15 @@ A language for describing domain models, and the compiler that lowers them and h
 What a struct, an enum, or a newtype must have to be valid: a value built in finitely many steps, so a field of a collection or an optional, or an enum variant that holds no cycle, ends any recursion.
 _Avoid_: finite representation, well-founded
 
+**Model fact**:
+A fact true of the domain with no target in view: what a thing is, what identifies it, or which values are valid; it belongs in the model, where every target reads it.
+When that is unclear, a fact every target must agree on for their outputs to describe the same thing is a model fact.
+_Avoid_: metadata, annotation, option
+
+**Target fact**:
+A fact about how one target spells, lays out, numbers, or places part of a model; it belongs in that target's block, and the model never names a target.
+_Avoid_: option, annotation, metadata
+
 ### Plugin protocol
 
 **Backend**:
