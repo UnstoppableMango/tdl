@@ -1,0 +1,14 @@
+// A brand on the target block, which reads back on each newtype.
+package auth
+
+type Secret: string
+type Username: string
+
+type Login {
+  user: Username
+  secret: Secret
+}
+
+target typescript for auth {
+  brand
+}

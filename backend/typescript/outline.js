@@ -112,6 +112,14 @@ function type(sf, t) {
 	if (ts.isUnionTypeNode(t)) {
 		return { k: "union", types: t.types.map((u) => type(sf, u)) };
 	}
+	if (ts.isIntersectionTypeNode(t)) {
+		return { k: "intersection", types: t.types.map((u) => type(sf, u)), text: t.getText(sf) };
+	}
+	if (ts.isTypeLiteralNode(t)) {
+		// A member of an object type has no position of its own.
+		const members = t.members.map((m) => ({ ...member(sf, m), line: undefined, col: undefined, docs: undefined }));
+		return { k: "object", members, text: t.getText(sf) };
+	}
 	if (ts.isTypeReferenceNode(t)) {
 		return { k: "ref", name: t.typeName.getText(sf), args: (t.typeArguments || []).map((a) => type(sf, a)) };
 	}

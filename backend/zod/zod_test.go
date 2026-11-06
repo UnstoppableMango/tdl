@@ -177,6 +177,18 @@ accepts("Sparse", m.Sparse, json({ values: [1, null, 3] }));
 // each other.
 func TestAgreesWithTypeScript(t *testing.T) {
 	m := irtest.Conformance(t, smoke)
+	// typescript's brands are not zod's, so the two agree only unbranded.
+	unbrand := func(ds []*ir.Directive) []*ir.Directive {
+		return slices.DeleteFunc(ds, func(d *ir.Directive) bool {
+			return d.GetTarget() == typescript.Name && d.GetName() == "brand"
+		})
+	}
+	for _, block := range m.GetTargets() {
+		block.Directives = unbrand(block.Directives)
+	}
+	for _, d := range m.GetDecls() {
+		d.Directives = unbrand(d.Directives)
+	}
 	tsResp := generate(t, typescript.Backend{}, typescript.Name, m)
 	for _, block := range m.GetTargets() {
 		if block.GetMeta().GetName() == zod.Name {
