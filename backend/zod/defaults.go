@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"math"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -53,7 +54,7 @@ var intRanges = map[string][2]int64{
 
 // withDefault adds a field's default to its schema, or warns and leaves
 // the schema as it is when the default cannot be written.
-func (g *generator) withDefault(owner string, f *ir.Field, r *emit.Ref, s schema) schema {
+func (g *generator) withDefault(owner string, f *ir.Field, r *emit.Ref, n *emit.Narrowed, s schema) schema {
 	def := f.GetDefaultValue()
 	at := cmp.Or(def.GetPosition(), f.GetMeta().GetPosition())
 	// warn drops the default. The mixin a field was copied from warns
@@ -74,6 +75,9 @@ func (g *generator) withDefault(owner string, f *ir.Field, r *emit.Ref, s schema
 	}
 	lit, why := g.literal(r, def)
 	if why != "" {
+		return warn("is not written: %s", why)
+	}
+	if why := outside(n, def); why != "" {
 		return warn("is not written: %s", why)
 	}
 	return schema{expr: s.expr + ".default(" + lit + ")", typ: "z.ZodDefault<" + s.typ + ">", nullable: s.nullable}
@@ -192,4 +196,28 @@ func (g *generator) foreignLosses(d *ir.Decl) {
 		g.Lossy(emit.LossConstraint, d.GetMeta().GetPosition(),
 			"%s is foreign, and its %d where constraint(s) are the foreign schema's to check", name, n)
 	}
+}
+
+// outside is why a default lies outside the narrowed type n states, or ""
+// when it lies inside or n is nil.
+func outside(n *emit.Narrowed, def *ir.Literal) string {
+	switch {
+	case n == nil:
+		return ""
+	case n.Kind == emit.NarrowTuple:
+		if len(def.GetItems()) != n.Len {
+			return "does not hold " + strconv.Itoa(n.Len) + " elements"
+		}
+		return ""
+	}
+	text := def.GetText()
+	if n.Kind == emit.NarrowNumbers {
+		if f, err := strconv.ParseFloat(text, 64); err == nil {
+			text = strconv.FormatFloat(f, 'f', -1, 64)
+		}
+	}
+	if !slices.Contains(n.Values, text) {
+		return "is not one of " + strings.Join(n.Values, ", ")
+	}
+	return ""
 }

@@ -175,8 +175,8 @@ func (g *generator) fieldLosses(owner string, f *ir.Field, ref *emit.Ref) {
 	got := &ast.Field{DeclHead: ast.DeclHead{N: back}, Type: typ, Constraints: cs}
 	want := unlower.Field(g.Model, f)
 	want.Doc, want.DocP, want.Dep = nil, nil, nil
-	if narrowed && g.allEnforced(f.GetConstraints()) && constraintsText(cs) != constraintsText(want.Constraints) {
-		g.lose(emit.LossConstraint, pos, "%s.%s is narrowed to literals, which read back as oneOf(...)", owner, name)
+	if narrowed != nil && g.allEnforced(f.GetConstraints()) && constraintsText(cs) != constraintsText(want.Constraints) {
+		g.lose(emit.LossConstraint, pos, "%s.%s %s", owner, name, readsBack(narrowed))
 	}
 	if ast.PrintField(got) != ast.PrintField(want) {
 		g.lost = true
@@ -190,7 +190,7 @@ func (g *generator) newtypeLosses(d *ir.Decl, ref *emit.Ref) {
 	g.typeLosses(d.GetNewtype().GetBase(), nil, modeAlias)
 
 	typ, cs, narrowed := g.back(ref, d.GetNewtype().GetValueConstraints(), modeAlias)
-	if narrowed && len(cs) == 1 && typ.N == "string" && !slices.ContainsFunc(cs[0].Args, func(l *ast.Literal) bool { return !tdlName(l.Text) }) {
+	if narrowed != nil && narrowed.Kind != emit.NarrowTuple && len(cs) == 1 && typ.N == "string" && !slices.ContainsFunc(cs[0].Args, func(l *ast.Literal) bool { return !tdlName(l.Text) }) {
 		g.lose(emit.LossNewtype, pos, "newtype %s is a union of string literals, which reads back as an enum", name)
 		return
 	}
@@ -204,8 +204,8 @@ func (g *generator) newtypeLosses(d *ir.Decl, ref *emit.Ref) {
 		g.lost = true
 		return
 	}
-	if narrowed && g.allEnforced(d.GetNewtype().GetValueConstraints()) && constraintsText(cs) != constraintsText(want.Constraints) {
-		g.lose(emit.LossConstraint, pos, "newtype %s is narrowed to literals, which read back as oneOf(...)", name)
+	if narrowed != nil && g.allEnforced(d.GetNewtype().GetValueConstraints()) && constraintsText(cs) != constraintsText(want.Constraints) {
+		g.lose(emit.LossConstraint, pos, "newtype %s %s", name, readsBack(narrowed))
 	}
 	got := &ast.Field{DeclHead: ast.DeclHead{N: "x"}, Type: typ, Constraints: cs}
 	if ast.PrintField(got) != ast.PrintField(&ast.Field{DeclHead: ast.DeclHead{N: "x"}, Type: want.Base, Constraints: want.Constraints}) {
@@ -338,9 +338,9 @@ func describeChain(chain []string) string {
 }
 
 // back is the TDL type, and constraints, a field or newtype of type r
-// with constraints cs reads back as, and whether its constraints narrowed
-// it to literals.
-func (g *generator) back(r *emit.Ref, cs []*ir.Constraint, m mode) (*ast.TypeRef, []*ast.Constraint, bool) {
+// with constraints cs reads back as, and the narrowed type its
+// constraints spell, if any.
+func (g *generator) back(r *emit.Ref, cs []*ir.Constraint, m mode) (*ast.TypeRef, []*ast.Constraint, *emit.Narrowed) {
 	optional, nullable := false, false
 	if m == modeProperty || m == modeAlias {
 		for r.Form == emit.Option || r.Form == emit.Nullable {
@@ -357,37 +357,48 @@ func (g *generator) back(r *emit.Ref, cs []*ir.Constraint, m mode) (*ast.TypeRef
 	if m == modeProperty {
 		inherited = r.Decl.GetNewtype().GetValueConstraints()
 	}
-	if lits := g.narrow(r, cs, inherited); lits != "" {
-		typ, oneOf := literalsBack(lits)
+	if n := g.narrow(r, cs, inherited); n != nil {
+		typ, c := g.narrowedBack(n)
 		typ.Optional, typ.Nullable = optional, nullable
-		return typ, []*ast.Constraint{oneOf}, true
+		return typ, []*ast.Constraint{c}, n
 	}
 	typ := g.backType(r, m)
 	typ.Optional = typ.Optional || optional
 	typ.Nullable = typ.Nullable || nullable
-	return typ, nil, false
+	return typ, nil, nil
 }
 
-// literalsBack reads a literal union back, as import does.
-func literalsBack(lits string) (*ast.TypeRef, *ast.Constraint) {
+// narrowedBack reads a narrowed type back, as import does: a tuple as a
+// list with its length, and a literal union as a string or a float64
+// with its values.
+func (g *generator) narrowedBack(n *emit.Narrowed) (*ast.TypeRef, *ast.Constraint) {
+	if n.Kind == emit.NarrowTuple {
+		length := &ast.Constraint{N: "length", Args: []*ast.Literal{{Kind: ast.LitInt, Text: strconv.Itoa(n.Len)}}}
+		return &ast.TypeRef{List: g.backType(n.Elem, modeElem)}, length
+	}
 	oneOf := &ast.Constraint{N: "oneOf"}
-	str := strings.HasPrefix(lits, `"`)
-	for v := range strings.SplitSeq(lits, " | ") {
-		if str {
-			s, _ := strconv.Unquote(v)
-			oneOf.Args = append(oneOf.Args, &ast.Literal{Kind: ast.LitString, Text: s})
-			continue
-		}
-		kind := ast.LitInt
-		if strings.ContainsAny(v, ".eE") {
-			kind = ast.LitFloat
+	for _, v := range n.Values {
+		kind := ast.LitString
+		if n.Kind == emit.NarrowNumbers {
+			kind = ast.LitInt
+			if strings.ContainsAny(v, ".eE") {
+				kind = ast.LitFloat
+			}
 		}
 		oneOf.Args = append(oneOf.Args, &ast.Literal{Kind: kind, Text: v})
 	}
-	if str {
-		return &ast.TypeRef{N: "string"}, oneOf
+	if n.Kind == emit.NarrowNumbers {
+		return &ast.TypeRef{N: "float64"}, oneOf
 	}
-	return &ast.TypeRef{N: "float64"}, oneOf
+	return &ast.TypeRef{N: "string"}, oneOf
+}
+
+// readsBack is what a narrowed type reads back as, for a warning.
+func readsBack(n *emit.Narrowed) string {
+	if n.Kind == emit.NarrowTuple {
+		return "is narrowed to a tuple, which reads back as length(" + strconv.Itoa(n.Len) + ")"
+	}
+	return "is narrowed to literals, which read back as oneOf(...)"
 }
 
 // backType is the TDL type a reference's TypeScript reads back as.

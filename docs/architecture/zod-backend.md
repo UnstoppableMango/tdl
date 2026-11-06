@@ -1,7 +1,7 @@
 # The Zod backend
 
 Design document.
-Phases 1 and 2 are built; the rest is tracked in [#1230](https://github.com/UnstoppableMango/tdl/issues/1230).
+Phases 1, 2, and 3a are built; the rest is tracked in [#1230](https://github.com/UnstoppableMango/tdl/issues/1230).
 
 The Zod backend turns a resolved model into a TypeScript module of [Zod](https://zod.dev) schemas.
 It is called `zod` in a target block, ships compiled into `tdl` and as `tdl-gen-zod`, and is implemented in `backend/zod`.
@@ -30,7 +30,7 @@ A schema that checks `quantity >= 1` and infers `number` throws the fact away at
 So the backend reads the preference as three rules:
 
 1. **State it in the type where TypeScript can**, as a narrowed type.
-   A `oneOf`, a small integer range, and a small exact list length infer literal unions and tuples, exactly as `typescript`'s `narrow.go` writes them, so `z.infer` refuses a violating literal at compile time with no brand.
+   A `oneOf`, a small integer range, and a small exact list length infer literal unions and tuples, exactly as `typescript` writes them from `emit.Narrow`, so `z.infer` refuses a violating literal at compile time with no brand.
 1. **Brand what TypeScript cannot state.**
    A constraint TypeScript has no type for (a pattern, a wide range, a string length) is checked by the schema and recorded in the output type with `.brand()`, so a `LineItemQuantity` is a number that went through the check, as a Rust or Python checked type is a value that went through its constructor.
    Zod brands only the output type: `z.input` stays plain, so parsing JSON needs no cast, which is the cost that made `typescript` write a newtype as a plain alias.
@@ -199,8 +199,8 @@ Every `where` constraint is either a type TypeScript states, or a check whose pa
 | `min` and `max` on an integer, spanning at most 16 values | `z.literal([1, 2, 3, 4])` | `1 \| 2 \| 3 \| 4` |
 | `length(N)` on a list, for `N` at most 16 | `z.tuple([T, T, T])` | `[T, T, T]` |
 
-The first four are the literal unions `typescript` writes, by the same rule: the bound of 16 and the way a field's constraints combine with its newtype's are `narrow.go`'s, which moves into `backend/internal/emit` so both read it (see [Overlap with other targets](#overlap-with-other-targets)).
-The tuple is new to TypeScript output; `typescript` adopts it when the rule moves, so the two still agree, and its importer reads a tuple back as a list with `length(N)`.
+The first four are the literal unions `typescript` writes, by the same rule: the bound of 16 and the way a field's constraints combine with its newtype's are `emit.Narrow`'s, in `backend/internal/emit/narrow.go`, which both read (see [Overlap with other targets](#overlap-with-other-targets)).
+`typescript` writes the tuple too, so the two agree, and its importer reads a tuple of one type back as a list with `length(N)`; a length of 0 is not narrowed, since `[]` would read back as nothing.
 A field holding one of these needs no brand, and a newtype holding one brands the union, since the newtype is still nominal.
 
 ### Checked and branded
@@ -397,7 +397,7 @@ A Zod module is code, and reading it means evaluating it, which `z.toJSONSchema`
 | --- | --- | --- |
 | The primitive mapping, names, reserved words, property quoting | TypeScript | moves from `backend/typescript` into `backend/internal/ts` |
 | An extern's import path from both blocks' `out` | TypeScript | `backend/typescript/extern.go`, moving the same way |
-| A small range or `oneOf` as a literal union | TypeScript, Python | `narrow.go`, moving into `backend/internal/emit` |
+| A small range or `oneOf` as a literal union, a small exact list length as a tuple | TypeScript, Python | `emit.Narrow` in `backend/internal/emit/narrow.go` |
 | The wire convention, `kind` and tags | TypeScript, JSON Schema, OpenAPI, Go, Python | `emit.Discriminant`, `emit.Tag` |
 | `closed` | JSON Schema, OpenAPI | design only |
 | `length` counted in code points | Every backend that validates | `emit.Length` |

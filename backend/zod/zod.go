@@ -182,6 +182,9 @@ type generator struct {
 
 	// declares holds the names each rendered declaration declares.
 	declares map[*ir.Decl][]string
+
+	// enforced holds each constraint a narrowed type states.
+	enforced map[*ir.Constraint]bool
 }
 
 // Generate returns one .zod.ts module holding the model's schemas.
@@ -192,6 +195,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		order:    map[*ir.Decl]int{},
 		lazy:     map[*ir.Decl]bool{},
 		declares: map[*ir.Decl][]string{},
+		enforced: map[*ir.Constraint]bool{},
 	}
 	g.Externs = true
 	g.closed = g.Bare("closed")
@@ -342,7 +346,7 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	}
 	g.declares[d] = declared
 
-	g.WarnConstraints(d)
+	g.WarnUnenforced(d, func(c *ir.Constraint) bool { return g.enforced[c] })
 	g.LoseConforms(d, "Zod")
 	g.unitLosses(d)
 	return b.String(), nil
@@ -411,7 +415,7 @@ func (g *generator) newtype(b *strings.Builder, d *ir.Decl) ([]string, error) {
 		return nil, err
 	}
 	g.forward = false
-	base, err := g.typ(ref)
+	base, err := g.narrowed(ref, d.GetNewtype().GetValueConstraints(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -456,12 +460,12 @@ func (g *generator) object(b *strings.Builder, name string, meta *ir.Meta, disc,
 			return nil, err
 		}
 		g.forward = false
-		s, err := g.property(ref)
+		s, n, err := g.property(ref, f.GetConstraints())
 		if err != nil {
 			return nil, err
 		}
 		if def := f.GetDefaultValue(); def != nil {
-			s = g.withDefault(name, f, ref, s)
+			s = g.withDefault(name, f, ref, n, s)
 		}
 		emit.DocComment(&body, "  ", f.GetMeta())
 		if g.forward {
@@ -532,9 +536,10 @@ func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	return declared, nil
 }
 
-// property is a field's schema: exactOptional when the key may be absent,
-// and nullable when the value may be null.
-func (g *generator) property(r *emit.Ref) (schema, error) {
+// property is a field's schema: the narrowed type its constraints cs
+// state, if any, exactOptional when the key may be absent, and nullable
+// when the value may be null.
+func (g *generator) property(r *emit.Ref, cs []*ir.Constraint) (schema, *emit.Narrowed, error) {
 	optional, nullable := false, false
 	for r.Form == emit.Option || r.Form == emit.Nullable {
 		if r.Form == emit.Option {
@@ -544,9 +549,13 @@ func (g *generator) property(r *emit.Ref) (schema, error) {
 		}
 		r = r.Elem
 	}
+	n := g.narrow(r, cs, r.Decl.GetNewtype().GetValueConstraints())
 	s, err := g.typ(r)
+	if n != nil {
+		s, err = g.spell(n)
+	}
 	if err != nil {
-		return schema{}, err
+		return schema{}, nil, err
 	}
 	if nullable {
 		s = orNull(s)
@@ -554,7 +563,80 @@ func (g *generator) property(r *emit.Ref) (schema, error) {
 	if optional {
 		s = schema{expr: s.expr + ".exactOptional()", typ: "z.ZodExactOptional<" + s.typ + ">", nullable: s.nullable}
 	}
-	return s, nil
+	return s, n, nil
+}
+
+// narrow is [emit.Session.Narrow], recording each constraint the narrowed
+// type states so it does not warn.
+func (g *generator) narrow(r *emit.Ref, own, inherited []*ir.Constraint) *emit.Narrowed {
+	n := g.Narrow(r, own, inherited)
+	for _, c := range n.GetEnforced() {
+		g.enforced[c] = true
+	}
+	return n
+}
+
+// narrowed is the schema of r, or of the narrowed type own states on it.
+func (g *generator) narrowed(r *emit.Ref, own, inherited []*ir.Constraint) (schema, error) {
+	if n := g.narrow(r, own, inherited); n != nil {
+		return g.spell(n)
+	}
+	return g.typ(r)
+}
+
+// spell is a narrowed type's schema: a z.enum of strings or of an enum's
+// variants, a z.literal of numbers, or a z.tuple. The design's
+// "Constraints TypeScript states" is the table.
+func (g *generator) spell(n *emit.Narrowed) (schema, error) {
+	// members is a z.enum's values and the object type naming them.
+	members := func(values []string) (string, string) {
+		quoted := make([]string, len(values))
+		entries := make([]string, len(values))
+		for i, v := range values {
+			quoted[i] = strconv.Quote(v)
+			entries[i] = quoted[i] + ": " + quoted[i]
+		}
+		return "[" + strings.Join(quoted, ", ") + "]", "z.ZodEnum<{ " + strings.Join(entries, "; ") + " }>"
+	}
+
+	switch n.Kind {
+	case emit.NarrowStrings:
+		list, typ := members(n.Values)
+		return schema{expr: "z.enum(" + list + ")", typ: typ}, nil
+	case emit.NarrowNumbers:
+		return schema{
+			expr: "z.literal([" + strings.Join(n.Values, ", ") + "])",
+			typ:  "z.ZodLiteral<" + strings.Join(n.Values, " | ") + ">",
+		}, nil
+	case emit.NarrowVariants:
+		enum, err := g.typ(n.Elem)
+		if err != nil {
+			return schema{}, err
+		}
+		tags := make([]string, len(n.Values))
+		for i, v := range n.Values {
+			tags[i] = v
+			for _, variant := range n.Elem.Decl.GetEnumeration().GetVariants() {
+				if variant.GetMeta().GetName() == v {
+					tags[i] = emit.Tag(variant)
+				}
+			}
+		}
+		list, typ := members(tags)
+		return schema{expr: enum.expr + ".extract(" + list + ")", typ: typ}, nil
+	}
+	elem, err := g.typ(n.Elem)
+	if err != nil {
+		return schema{}, err
+	}
+	exprs, typs := make([]string, n.Len), make([]string, n.Len)
+	for i := range n.Len {
+		exprs[i], typs[i] = elem.expr, elem.typ
+	}
+	return schema{
+		expr: "z.tuple([" + strings.Join(exprs, ", ") + "])",
+		typ:  "z.ZodTuple<[" + strings.Join(typs, ", ") + "], null>",
+	}, nil
 }
 
 // orNull is a schema that also accepts null.

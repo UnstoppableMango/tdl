@@ -23,7 +23,7 @@ Import generates the feature and reads it back, and counts only what reading bac
 | List, set, and map | Warns (`lossy.collection`) | Yes | `T[]` and `Record<K, V>` | A set is an array, and reads back as a list. |
 | `min` | Warns (`lossy.constraint`) | Yes | | Warns unless `min` and `max` together bound at most 16 integers, which are written as a literal union. |
 | `max` | Warns (`lossy.constraint`) | Yes | | Warns unless `min` and `max` together bound at most 16 integers, which are written as a literal union. |
-| `length` | Warns (`lossy.constraint`) | Yes | | TypeScript has no type for a length, and validation is not generated. |
+| `length` | Warns (`lossy.constraint`) | Yes | | A list's exact length of at most 16 is a tuple; any other length warns, since TypeScript has no type for it and validation is not generated. |
 | `matches` | Warns (`lossy.constraint`) | Yes | | TypeScript has no type for a pattern, and validation is not generated. |
 | `oneOf` | Yes | Yes | a union of literal types | |
 | `unique` | Warns (`lossy.constraint`) | Yes | | A set or a list is an array, which does not enforce uniqueness. |

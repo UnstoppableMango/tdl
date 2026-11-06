@@ -328,8 +328,10 @@ func (g *generator) newtype(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	if lits := g.narrow(ref, d.GetNewtype().GetValueConstraints(), nil); lits != "" {
-		base = lits
+	if n := g.narrow(ref, d.GetNewtype().GetValueConstraints(), nil); n != nil {
+		if base, err = g.narrowed(n); err != nil {
+			return nil, err
+		}
 	}
 	name := g.DeclName(d, emit.Pascal)
 	docComment(b, d.GetMeta(), g.tags...)
@@ -437,8 +439,10 @@ func (g *generator) property(name string, r *emit.Ref, cs []*ir.Constraint) (str
 	if err != nil {
 		return "", err
 	}
-	if lits := g.narrow(r, cs, r.Decl.GetNewtype().GetValueConstraints()); lits != "" {
-		typ = lits
+	if n := g.narrow(r, cs, r.Decl.GetNewtype().GetValueConstraints()); n != nil {
+		if typ, err = g.narrowed(n); err != nil {
+			return "", err
+		}
 	}
 	if nullable {
 		typ += " | null"
@@ -512,3 +516,35 @@ func (g *generator) record(r *emit.Ref) (string, error) {
 }
 
 func asWritten(name string) string { return name }
+
+// narrow is [emit.Session.Narrow], recording each constraint the narrowed
+// type states so it does not warn.
+func (g *generator) narrow(r *emit.Ref, own, inherited []*ir.Constraint) *emit.Narrowed {
+	n := g.Narrow(r, own, inherited)
+	for _, c := range n.GetEnforced() {
+		g.enforced[c] = true
+	}
+	return n
+}
+
+// narrowed spells a narrowed type: a union of literals, or a tuple.
+func (g *generator) narrowed(n *emit.Narrowed) (string, error) {
+	if n.Kind == emit.NarrowTuple {
+		elem, err := g.typ(n.Elem)
+		if err != nil {
+			return "", err
+		}
+		elems := make([]string, n.Len)
+		for i := range elems {
+			elems[i] = elem
+		}
+		return "[" + strings.Join(elems, ", ") + "]", nil
+	}
+	values := slices.Clone(n.Values)
+	if n.Kind != emit.NarrowNumbers {
+		for i, v := range values {
+			values[i] = strconv.Quote(v)
+		}
+	}
+	return strings.Join(values, " | "), nil
+}

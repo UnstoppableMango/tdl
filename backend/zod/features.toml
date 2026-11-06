@@ -28,19 +28,23 @@ notes = "A map keyed by a fieldless enum is a `z.partialRecord`."
 
 [min]
 planned = "phase 3"
+notes = "`min` and `max` together bounding at most 16 integers are a `z.literal` of each."
 
 [max]
 planned = "phase 3"
+notes = "`min` and `max` together bounding at most 16 integers are a `z.literal` of each."
 
 [length]
 planned = "phase 3"
+notes = "A list's exact length of at most 16 is a `z.tuple`."
 
 [matches]
 planned = "phase 3"
 notes = "Checked only under a `patterns` directive."
 
 [oneOf]
-planned = "phase 3"
+spelling = "`z.enum`, `z.literal`, or the enum's `.extract`"
+notes = "Inferring the literal union `typescript` writes."
 
 [unique]
 planned = "phase 3"

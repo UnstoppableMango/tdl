@@ -20,6 +20,7 @@ type OrderLine {
   sku: string
   quantity: float64
   grid: [[float64]]
+  dims: [float64] where { length(3) }
 }
 
 /// Where an order is.
