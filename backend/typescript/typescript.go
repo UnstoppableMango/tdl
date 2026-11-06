@@ -40,13 +40,13 @@ func (Backend) Describe() plugin.Description {
 			// The property a discriminated union switches on: the default on
 			// the target block, an override on an enum.
 			{Name: "discriminant", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock, plugin.OnDecl)},
-			// A module and the type it exports, for a declaration another
-			// package owns.
 			// Brands a newtype by its qualified name, so tsc refuses another
 			// newtype over the same base in its place: every newtype from the
 			// target block, one from a declaration. A declaration other than
 			// a newtype warns, since placement cannot say newtype only.
 			{Name: "brand", Placements: plugin.On(plugin.OnBlock, plugin.OnDecl)},
+			// A module and the type it exports, for a declaration another
+			// package owns.
 			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{str[0], str[0]}, Placements: plugin.On(plugin.OnDecl)},
 			// Writes, as JSDoc @tdl tags, every fact the declarations alone
 			// would lose, so import rebuilds the model.
@@ -367,7 +367,7 @@ func (g *generator) newtype(b *strings.Builder, d *ir.Decl) ([]string, error) {
 		}
 	}
 	if g.branded(d) {
-		base = branded(base, qualified(g.Model.GetPackage(), d.GetMeta().GetName()))
+		base = brandType(base, ts.Qualified(g.Model.GetPackage(), d.GetMeta().GetName()))
 	}
 	name := g.DeclName(d, emit.Pascal)
 	docComment(b, d.GetMeta(), g.tags...)
@@ -386,9 +386,9 @@ func (g *generator) branded(d *ir.Decl) bool {
 // branded newtype intersects both brands rather than two literal values.
 const brandKey = "__brand"
 
-// branded intersects base with the brand for name. A base that may be
+// brandType intersects base with the brand for name. A base that may be
 // null is branded without the null, which no brand can hold.
-func branded(base, name string) string {
+func brandType(base, name string) string {
 	nullable := strings.HasSuffix(base, " | null")
 	base = strings.TrimSuffix(base, " | null")
 	if strings.Contains(base, " | ") {
@@ -399,15 +399,6 @@ func branded(base, name string) string {
 		out += " | null"
 	}
 	return out
-}
-
-// qualified is a declaration's name qualified by the package, as a brand
-// keys it.
-func qualified(pkg, name string) string {
-	if pkg != "" && !strings.HasPrefix(name, pkg+".") {
-		return pkg + "." + name
-	}
-	return name
 }
 
 // iface renders an entity, a value, or a mixin as an interface. A variant

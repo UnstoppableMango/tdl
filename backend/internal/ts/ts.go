@@ -112,3 +112,12 @@ func Relative(from, to *ir.Directive, pkg, ext string) (string, error) {
 	}
 	return spec, nil
 }
+
+// Qualified is a declaration's name qualified by its package, which keys
+// a brand: zod's, and typescript's under its brand directive.
+func Qualified(pkg, name string) string {
+	if pkg != "" && !strings.HasPrefix(name, pkg+".") {
+		return pkg + "." + name
+	}
+	return name
+}

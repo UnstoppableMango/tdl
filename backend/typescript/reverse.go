@@ -600,7 +600,7 @@ func syntax(kind string) string {
 // branded alias is a newtype with a brand directive.
 func (r *reader) alias(s *statement, head ast.DeclHead) (ast.Decl, error) {
 	if base, key := unbrand(s.Type); key != "" {
-		if want := qualified(r.pkg, head.N); key != want {
+		if want := ts.Qualified(r.pkg, head.N); key != want {
 			r.Warn(emit.LossUnsupported, r.pos(s.Line, s.Col), "%s's brand %q is not its qualified name %q, and is not read", s.Name, key, want)
 		} else {
 			r.Directive(head.N, "brand")

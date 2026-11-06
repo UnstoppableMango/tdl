@@ -79,7 +79,7 @@ A generated type whose values can only be obtained by passing the checks its con
 _Avoid_: branded type, refined type, validated type
 
 **Brand**:
-A property a generated type is intersected with, keyed by its declaration's qualified name, so the target's compiler tells apart two newtypes over one base: a `typescript` newtype under the `brand` directive. It records no check, so it is not a checked type.
+A property a generated type is intersected with, keyed by its declaration's qualified name, so the target's compiler tells apart two newtypes over one base: a `typescript` newtype under the `brand` directive. It records no check, so unlike a Zod brand it is not a checked type.
 _Avoid_: tag, nominal marker
 
 **Narrowed type**:

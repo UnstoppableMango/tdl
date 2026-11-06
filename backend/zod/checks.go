@@ -22,10 +22,7 @@ import (
 // package,
 // which a brand carries so two packages' declarations stay distinct.
 func (g *generator) qualified(name string) string {
-	if pkg := g.Model.GetPackage(); pkg != "" && !strings.HasPrefix(name, pkg+".") {
-		return pkg + "." + name
-	}
-	return name
+	return ts.Qualified(g.Model.GetPackage(), name)
 }
 
 // brand brands a schema with name, unless the target block is structural.
