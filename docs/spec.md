@@ -11,7 +11,7 @@ This document is canonical where the two disagree.
 The core is small: most of what looks like a type system is TDL library code in a replaceable prelude.
 
 1. **Identity is first class.** A type conforming to the prelude's `Entity` class has identity that persists across changes to its contents. Any other type is defined entirely by its contents.
-1. **The model is target-neutral.** A `.tdl` file describes the domain and names no target. A fact true of the domain belongs in the model, where every backend reads it; how one target spells, lays out, numbers, or places it belongs in a separate `target` block.
+1. **The model is target-neutral.** The model describes the domain and names no target. A fact true of the domain belongs in the model, where every backend reads it; how one target spells, lays out, numbers, or places it belongs in a separate `target` block.
 1. **Constraints are syntax, not semantics.** The compiler parses and resolves constraints but does not evaluate them. Backends decide what a constraint means.
 1. **Behavior belongs to backends.** `owned` says a child is part of its parent. It does not say what happens on delete.
 1. **Abstraction is library-level.** Generics, kinds, classes, and instances let shared structure be declared once instead of copied between declarations or re-encoded in every backend.
@@ -551,6 +551,7 @@ Marking something deprecated changes nothing else; it remains part of the model 
 
 A `target` block holds what only one backend needs: how that target spells, lays out, numbers, or places the model.
 A fact true of the domain, such as a default, a constraint, or a deprecation, belongs in the model even though backends read it, and the model never names a target.
+A fact several targets share only because they follow the same encoding or API style, such as the JSON wire convention's discriminant, belongs to a convention, written once for every target that follows it; conventions are not designed yet, so today each target block repeats it.
 
 ```tdl
 target go for billing {

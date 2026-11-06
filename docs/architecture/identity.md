@@ -57,7 +57,7 @@ There is no `Value` class: "defined entirely by its contents" means "does not co
 
 ## Which fields identify an entity
 
-A backend decision, written in a target block when a backend needs it:
+Which fields identify an entity is a model fact (ADR-0001), but the model has no syntax for it yet, so a backend that needs it reads a `key` directive in its target block:
 
 ```tdl
 target sql for shop {
