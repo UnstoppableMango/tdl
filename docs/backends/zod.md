@@ -2,7 +2,7 @@
 
 The `zod` backend writes one TypeScript module of [Zod](https://zod.dev) schemas per model, each parsing a declaration's JSON wire value and inferring the type the `typescript` backend writes for it.
 The output imports `zod`, 4.3 or later, which is the consumer's dependency.
-[zod-backend.md](../architecture/zod-backend.md) is its design; phases 1, 2, 3a, and 3b are built, and [#1230](https://github.com/UnstoppableMango/tdl/issues/1230) tracks the rest.
+[zod-backend.md](../architecture/zod-backend.md) is its design; phases 1, 2, and 3 are built, and [#1230](https://github.com/UnstoppableMango/tdl/issues/1230) tracks the rest.
 
 ## Features
 
@@ -25,7 +25,7 @@ No importer is planned, so every Import cell is No.
 | `min` | Yes | No | `.min(n)` on a number | On a field, a schema of its own named for the struct and field; `min` and `max` together bounding at most 16 integers are a `z.literal` of each. |
 | `max` | Yes | No | `.max(n)` on a number | On a field, a schema of its own named for the struct and field; `min` and `max` together bounding at most 16 integers are a `z.literal` of each. |
 | `length` | Yes | No | a `codePoints` refine on a string, `.min()` and `.max()` on a list, a `size` refine on a map | A string counts code points, as TDL does, not Zod's UTF-16 units; a list's exact length of at most 16 is a `z.tuple`. |
-| `matches` | Planned (phase 3) | No | | Checked only under a `patterns` directive. |
+| `matches` | Yes | No | `.regex()` with a module constant printed from RE2's parse | Checked only under a `patterns` directive, and never for a pattern a backtracking engine can take exponential time on. |
 | `oneOf` | Yes | No | `z.enum`, `z.literal`, or the enum's `.extract` | Inferring the literal union `typescript` writes. |
 | `unique` | Yes | No | a `unique` refine on a list | |
 | `owned` | Yes | No | | Not written: a schema has no ownership, and a referenced entity is parsed by value. |
