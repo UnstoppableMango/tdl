@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -70,13 +71,13 @@ func (b Backend) Generate(ctx context.Context, req *plugin.Request) (*plugin.Res
 		}
 	}
 
-	language, ok := g.Text("language")
+	language, ok := g.blockText("language")
 	if !ok {
 		g.Error(g.block, "a yolo target block needs language(...) naming the language to write")
 		return g.Response(nil), nil
 	}
-	instructions, _ := g.Text("prompt")
-	model, ok := g.Text("model")
+	instructions, _ := g.blockText("prompt")
+	model, ok := g.blockText("model")
 	if !ok {
 		model = DefaultModel
 	}
@@ -122,8 +123,8 @@ func (b Backend) Generate(ctx context.Context, req *plugin.Request) (*plugin.Res
 	return g.Response(files), nil
 }
 
-// Text reads a directive on the target block.
-func (g *generator) Text(name string) (string, bool) {
+// blockText reads a directive on the target block.
+func (g *generator) blockText(name string) (string, bool) {
 	d, ok := g.Block(name)
 	if !ok {
 		return "", false
@@ -184,8 +185,10 @@ func (g *generator) call(c Call) (Result, error) {
 		if !SafePath(*in.Path) {
 			return Result{}, fmt.Errorf("the model wrote %q, outside the output directory", *in.Path)
 		}
-		g.files[*in.Path] = []byte(*in.Content)
-		return Result{ID: c.ID, Content: "wrote " + *in.Path}, nil
+		// Cleaned, so two spellings of one file are one file.
+		clean := path.Clean(*in.Path)
+		g.files[clean] = []byte(*in.Content)
+		return Result{ID: c.ID, Content: "wrote " + clean}, nil
 
 	case reportLoss:
 		var in struct {

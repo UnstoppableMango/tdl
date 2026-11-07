@@ -375,6 +375,25 @@ func TestNoFilesIsAnError(t *testing.T) {
 	}
 }
 
+// Two spellings of one path are one file, the last write winning.
+func TestPathsAreCleaned(t *testing.T) {
+	f := &fixed{replies: []yolo.Message{
+		{Role: yolo.Assistant, Stop: yolo.StopTool, Calls: []yolo.Call{
+			call("write_file", `{"path": "./lib//shop.ex", "content": "first"}`),
+			call("write_file", `{"path": "lib/shop.ex", "content": "second"}`),
+		}},
+		{Role: yolo.Assistant, Stop: yolo.StopEnd},
+	}}
+	resp, err := yolo.Backend{Provider: f}.Generate(context.Background(), request(t, order))
+	if err != nil {
+		t.Fatal(err)
+	}
+	files := resp.GetFiles()
+	if len(files) != 1 || files[0].GetPath() != "lib/shop.ex" || string(files[0].GetContent()) != "second" {
+		t.Errorf("files: %v", files)
+	}
+}
+
 // A model that never stops calling tools is cut off.
 func TestTurnsAreBounded(t *testing.T) {
 	f := &fixed{}
