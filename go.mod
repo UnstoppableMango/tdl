@@ -4,7 +4,7 @@ go 1.27
 
 require (
 	github.com/BurntSushi/toml v1.6.0
-	github.com/bufbuild/protocompile v0.14.2-0.20261022205402-b3c25bb4887d
+	github.com/bufbuild/protocompile v0.14.2-0.20261105212643-e229a0e11161
 	github.com/cloudwego/thriftgo v0.4.5
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/spf13/cobra v1.10.2
