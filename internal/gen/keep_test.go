@@ -222,24 +222,43 @@ func TestKeptOutputKeepsItsWarnings(t *testing.T) {
 // A record that lost a file line no longer says what was written, so it is
 // stale under --verify and a write regenerates.
 func TestIncompleteRecordRegenerates(t *testing.T) {
-	out, b := t.TempDir(), &fickle{}
-	runFickle(t, b, out, keepSource, gen.ModeWrite)
-	marker := filepath.Join(out, gen.MarkerName)
-	var kept []string
-	for line := range strings.Lines(read(t, marker)) {
-		if !strings.HasPrefix(line, "#@ fickle file ") {
-			kept = append(kept, line)
-		}
-	}
-	if err := os.WriteFile(marker, []byte(strings.Join(kept, "")), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	for name, damage := range map[string]func(line string) string{
+		"file lines lost": func(line string) string {
+			if strings.HasPrefix(line, "#@ fickle file ") {
+				return ""
+			}
+			return line
+		},
+		"count lost too": func(line string) string {
+			switch {
+			case strings.HasPrefix(line, "#@ fickle file "):
+				return ""
+			case strings.HasPrefix(line, "#@ fickle request "):
+				fields := strings.Fields(line)
+				return strings.Join(fields[:len(fields)-1], " ") + "\n"
+			}
+			return line
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			out, b := t.TempDir(), &fickle{}
+			runFickle(t, b, out, keepSource, gen.ModeWrite)
+			marker := filepath.Join(out, gen.MarkerName)
+			var kept []string
+			for line := range strings.Lines(read(t, marker)) {
+				kept = append(kept, damage(line))
+			}
+			if err := os.WriteFile(marker, []byte(strings.Join(kept, "")), 0o644); err != nil {
+				t.Fatal(err)
+			}
 
-	verify := runFickle(t, b, out, keepSource, gen.ModeVerify)
-	if b.calls != 1 || len(verify.Stale) != 1 || !strings.Contains(verify.Stale[0].Reason, "incomplete") {
-		t.Errorf("verify: %d calls, stale %v", b.calls, verify.Stale)
-	}
-	if runFickle(t, b, out, keepSource, gen.ModeWrite); b.calls != 2 {
-		t.Errorf("write made %d calls, want 2", b.calls)
+			verify := runFickle(t, b, out, keepSource, gen.ModeVerify)
+			if b.calls != 1 || len(verify.Stale) != 1 || !strings.Contains(verify.Stale[0].Reason, "incomplete") {
+				t.Errorf("verify: %d calls, stale %v", b.calls, verify.Stale)
+			}
+			if runFickle(t, b, out, keepSource, gen.ModeWrite); b.calls != 2 {
+				t.Errorf("write made %d calls, want 2", b.calls)
+			}
+		})
 	}
 }
