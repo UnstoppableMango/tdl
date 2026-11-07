@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.5.10](https://github.com/UnstoppableMango/tdl/compare/v0.5.9...v0.5.10) (2026-11-07)
+
+
+### Documentation
+
+* **context:** define Delegated backend ([#1514](https://github.com/UnstoppableMango/tdl/issues/1514)) ([9b24589](https://github.com/UnstoppableMango/tdl/commit/9b2458971d183e7c57e4513b8bbacb22b66ad177))
+
+
+### Dependencies
+
+* update dependency @types/vscode to ~1.145.0 ([#1499](https://github.com/UnstoppableMango/tdl/issues/1499)) ([0ae7b98](https://github.com/UnstoppableMango/tdl/commit/0ae7b9802c1c09e9cfa6d56ad761913d3a7f2ea9))
+* update github.com/bufbuild/protocompile digest to e229a0e ([#1495](https://github.com/UnstoppableMango/tdl/issues/1495)) ([daae1f2](https://github.com/UnstoppableMango/tdl/commit/daae1f2152e8eb909c0f6fd5dd49c61f0740b561))
+* update golang.org/x/exp digest to 47ce03d ([#1496](https://github.com/UnstoppableMango/tdl/issues/1496)) ([343e0da](https://github.com/UnstoppableMango/tdl/commit/343e0da1cbb825485b83fa180732221e3e4fffb6))
+* update module go.yaml.in/yaml/v3 to v4 ([#1500](https://github.com/UnstoppableMango/tdl/issues/1500)) ([995a2b4](https://github.com/UnstoppableMango/tdl/commit/995a2b49408aa59e043e5ce13a78c37dc4ca8930))
+
 ## [0.5.9](https://github.com/UnstoppableMango/tdl/compare/v0.5.8...v0.5.9) (2026-11-06)
 
 
