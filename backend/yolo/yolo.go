@@ -40,6 +40,9 @@ func (Backend) Describe() plugin.Description {
 	return plugin.Description{
 		Name:    Name,
 		Version: "0.1.0",
+		// A language model answers the same request differently, so tdl
+		// keeps the files it wrote while the request is unchanged.
+		Nondeterministic: true,
 		Directives: []*plugin.DirectiveSpec{
 			// The language to write, required.
 			{Name: "language", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: block},
