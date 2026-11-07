@@ -54,13 +54,21 @@ func (a *Anthropic) Send(ctx context.Context, c *Conversation) (Message, error) 
 	stream := a.client.Messages.NewStreaming(ctx, params)
 	defer stream.Close()
 	var reply anthropic.Message
+	stopped := false
 	for stream.Next() {
-		if err := reply.Accumulate(stream.Current()); err != nil {
+		event := stream.Current()
+		if err := reply.Accumulate(event); err != nil {
 			return Message{}, err
 		}
+		stopped = stopped || event.Type == "message_stop"
 	}
 	if err := stream.Err(); err != nil {
 		return Message{}, err
+	}
+	// The stop reason arrives before message_stop, so a stream cut off
+	// between the two would otherwise pass for a finished turn.
+	if !stopped {
+		return Message{}, errors.New("the stream ended before the turn did")
 	}
 
 	out := Message{Role: Assistant, native: reply.ToParam()}
