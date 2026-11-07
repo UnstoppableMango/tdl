@@ -41,23 +41,23 @@
 	},
 	{
 		"pname": "Microsoft.Testing.Extensions.Telemetry",
-		"version": "1.9.1",
-		"hash": "sha256-IlzmkqDCsiJlsbg2OQ/cTgs72dzUHYdAWv9jAbhTZWw="
+		"version": "2.5.1",
+		"hash": "sha256-oUfepzPeFMcOISetmTpWPKNSytXI6TCrpyf+TATzjZQ="
 	},
 	{
 		"pname": "Microsoft.Testing.Extensions.TrxReport.Abstractions",
-		"version": "1.9.1",
-		"hash": "sha256-4nIRA7gBhjcYZqAPK06EM2OzlhBrCzVWmszCyEp0Eso="
+		"version": "2.5.1",
+		"hash": "sha256-RSOwqSdDpTOZzb1UpG3XtEH7gC5RSzIxO3eNsMHQdLs="
 	},
 	{
 		"pname": "Microsoft.Testing.Platform",
-		"version": "1.9.1",
-		"hash": "sha256-3MemlXgL8sDuTwbzDPCroYRbxHafo2R4rEuHV59Xm3Y="
+		"version": "2.5.1",
+		"hash": "sha256-fTUJLHC4ZZkxSt8Fv0pwYdoD/AjI5JPwKdpr1Npu82k="
 	},
 	{
 		"pname": "Microsoft.Testing.Platform.MSBuild",
-		"version": "1.9.1",
-		"hash": "sha256-5lZwc0bDtmHey1dPJ5cT7A5G2E5Molk6EoVHm+7vxWc="
+		"version": "2.5.1",
+		"hash": "sha256-M1E2gk5/m8i8d/ZwDd9TaiZPKyejB8MhQ737rBKpj2k="
 	},
 	{
 		"pname": "Microsoft.TestPlatform.ObjectModel",
@@ -75,53 +75,58 @@
 		"hash": "sha256-9kylPGfKZc58yFqNKa77stomcoNnMeERXozWJzDcUIA="
 	},
 	{
+		"pname": "System.Security.AccessControl",
+		"version": "6.0.1",
+		"hash": "sha256-Ri4m95ZBfopDUGVahbvUIzuUy9D3FQwcXprP2I6IUUE="
+	},
+	{
 		"pname": "xunit.analyzers",
-		"version": "1.27.0",
-		"hash": "sha256-RjwU14pgJI+Rp2vMYx/2BgniZ5rNCzow8495Re5hkU4="
+		"version": "2.2.0",
+		"hash": "sha256-ZtPDtkLh8c6qcCwOHYkB2Rgmi/F3aQvCcKNNaAsj0iU="
 	},
 	{
 		"pname": "xunit.runner.visualstudio",
-		"version": "3.1.5",
-		"hash": "sha256-O5657884QGldszsEWQFCDRTXViFBmZ4GGC+4iU+usSQ="
+		"version": "4.0.1",
+		"hash": "sha256-c9jZppuLQF9rD6JGr+38OvuHBhWJ+XKyUPpDQP9Gn/U="
 	},
 	{
 		"pname": "xunit.v3",
-		"version": "3.2.2",
-		"hash": "sha256-R6I/IJjyimqmLxVNng52Gn5if/Ccd3iiLjdU1fIBRUM="
+		"version": "4.0.2",
+		"hash": "sha256-WxZncHabPSqnFkt8ECAOQJTB6VmgkU7mRheoHgtwVB4="
 	},
 	{
 		"pname": "xunit.v3.assert",
-		"version": "3.2.2",
-		"hash": "sha256-w3darI8cwsPEoKIQW5exkNygGSTimog7i5nCIPt4e8Y="
+		"version": "4.0.2",
+		"hash": "sha256-+C5zX4/TZGSpecqVS9Z6wjG8Z4jGj3LmDAyP0UQvFkg="
 	},
 	{
 		"pname": "xunit.v3.common",
-		"version": "3.2.2",
-		"hash": "sha256-kOWWD94aUCCDozO+db8Fyw3hGwNHFDXDGsSK07xfEpA="
+		"version": "4.0.2",
+		"hash": "sha256-FnlhYa5z5PyukvwlXMz+p+QlPTaod2cRzSN7uW+NIXk="
 	},
 	{
-		"pname": "xunit.v3.core.mtp-v1",
-		"version": "3.2.2",
-		"hash": "sha256-gX+ThEy/3ZI6HLQX+w7TAgCIEfSl/cYH2hyaGJWoYIM="
+		"pname": "xunit.v3.core.mtp-v2",
+		"version": "4.0.2",
+		"hash": "sha256-eE7QxlVYgGNtw9z4SydVm80n8VAkLH7/eealDRmRPXI="
 	},
 	{
 		"pname": "xunit.v3.extensibility.core",
-		"version": "3.2.2",
-		"hash": "sha256-IoW/eGhwHJfi4KD9+J+XdhodSc46wz0c6L/oauVO61E="
+		"version": "4.0.2",
+		"hash": "sha256-1IsWQHkATKBQfha64nVt6SOfgDmZrHI5V9N31J4xm3s="
 	},
 	{
-		"pname": "xunit.v3.mtp-v1",
-		"version": "3.2.2",
-		"hash": "sha256-xLTSJlR2Odqmac3DRTz7lQW6bAQyzuif/mmCHDN73CM="
+		"pname": "xunit.v3.mtp-v2",
+		"version": "4.0.2",
+		"hash": "sha256-6NN4hUd15HhxFOuaQRtV8qPkAgeS18YzET4m2UOMv6U="
 	},
 	{
 		"pname": "xunit.v3.runner.common",
-		"version": "3.2.2",
-		"hash": "sha256-mNTM8ubegG11egY55d/27oGDsPUwSxkyczjRbJ1Aweg="
+		"version": "4.0.2",
+		"hash": "sha256-1OTUcxT0p7j1aQrjyzsuNomUQ/CXFzxAdkqXvQctgOM="
 	},
 	{
 		"pname": "xunit.v3.runner.inproc.console",
-		"version": "3.2.2",
-		"hash": "sha256-G+3n7N4LU+5x/kpC+q7bZ+K1bGp4aLfj0/IEpB3zqJw="
+		"version": "4.0.2",
+		"hash": "sha256-JACQ2Q1SKdl4IYVCX4iTB+3Kv+aDxYnR54Vv1jDAds0="
 	}
 ]
