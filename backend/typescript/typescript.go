@@ -63,9 +63,6 @@ type generator struct {
 	// names maps each declared type name to the declaration declaring it.
 	names map[string]string
 
-	// enforced holds each constraint a literal union enforces.
-	enforced map[*ir.Constraint]bool
-
 	// lost is whether the declaration being rendered loses a fact, and
 	// tags the @tdl tags its JSDoc carries.
 	lost bool
@@ -95,7 +92,6 @@ func generate(req *plugin.Request, mapped bool) *plugin.Response {
 	g := &generator{
 		Session:  emit.NewSession(req, "TypeScript"),
 		names:    map[string]string{},
-		enforced: map[*ir.Constraint]bool{},
 		declares: map[*ir.Decl][]string{},
 		mapped:   mapped,
 	}
@@ -222,7 +218,7 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 		g.names[n] = name
 	}
 	g.declares[d] = declared
-	g.WarnUnenforced(d, func(c *ir.Constraint) bool { return g.enforced[c] })
+	g.WarnConstraints(d)
 	return text, nil
 }
 
@@ -306,8 +302,8 @@ func (g *generator) losses(d *ir.Decl) {
 		cs = append(cs, f.GetConstraints()...)
 	}
 	for _, c := range cs {
-		if !g.enforced[c] {
-			// WarnUnenforced warns about each.
+		if !g.Enforced(c) {
+			// WarnConstraints warns about each.
 			g.lost = true
 		}
 	}
@@ -361,7 +357,7 @@ func (g *generator) newtype(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	if n := g.narrow(ref, d.GetNewtype().GetValueConstraints(), nil); n != nil {
+	if n := g.Narrow(ref, d.GetNewtype().GetValueConstraints(), nil); n != nil {
 		if base, err = g.narrowed(n); err != nil {
 			return nil, err
 		}
@@ -501,7 +497,7 @@ func (g *generator) property(name string, r *emit.Ref, cs []*ir.Constraint) (str
 	if err != nil {
 		return "", err
 	}
-	if n := g.narrow(r, cs, r.Decl.GetNewtype().GetValueConstraints()); n != nil {
+	if n := g.Narrow(r, cs, r.Decl.GetNewtype().GetValueConstraints()); n != nil {
 		if typ, err = g.narrowed(n); err != nil {
 			return "", err
 		}
@@ -578,16 +574,6 @@ func (g *generator) record(r *emit.Ref) (string, error) {
 }
 
 func asWritten(name string) string { return name }
-
-// narrow is [emit.Session.Narrow], recording each constraint the narrowed
-// type states so it does not warn.
-func (g *generator) narrow(r *emit.Ref, own, inherited []*ir.Constraint) *emit.Narrowed {
-	n := g.Narrow(r, own, inherited)
-	for _, c := range n.GetEnforced() {
-		g.enforced[c] = true
-	}
-	return n
-}
 
 // narrowed spells a narrowed type: a union of literals, or a tuple.
 func (g *generator) narrowed(n *emit.Narrowed) (string, error) {

@@ -509,6 +509,8 @@ func TestConstraintsNarrowToLiterals(t *testing.T) {
 		field("pair", b.Named("Option", b.Named("List", b.Named("Size"))), constraint("length", integer("2"))),
 		field("long", b.Named("List", b.Named("int")), constraint("length", integer("17"))),
 		field("some", b.Named("List", b.Named("int")), constraint("length", lengthRange(1, 3))),
+		field("bounded", b.Named("float64"), constraint("oneOf", float("0.25"), integer("2")), constraint("min", float("0.5"))),
+		field("matched", b.Named("Grade"), constraint("matches", &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_REGEX, Text: "A"})),
 	))
 
 	resp := generate(t, b)
@@ -531,6 +533,8 @@ func TestConstraintsNarrowToLiterals(t *testing.T) {
 		"pair?: [Size, Size];",
 		"long: number[];",
 		"some: number[];",
+		"bounded: 0.25 | 2;",
+		"matched: Grade;",
 	)
 
 	// wide's range has 17 values, floor has no upper bound, and off's max
@@ -545,6 +549,8 @@ func TestConstraintsNarrowToLiterals(t *testing.T) {
 		"Heading.off carries 1 constraint(s)",
 		"Heading.long carries 1 constraint(s)",
 		"Heading.some carries 1 constraint(s)",
+		"Heading.bounded carries 1 constraint(s)",
+		"Heading.matched carries 1 constraint(s)",
 	}
 	if len(warned) != len(want) {
 		t.Fatalf("diagnostics = %q, want %q", warned, want)

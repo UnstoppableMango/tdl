@@ -337,6 +337,16 @@ accepts("Values", Values, '` + value + `');
 }
 
 // Every primitive the shared mapping types has a schema.
+// Every integer JSON writes as a number has a range, so a default on it
+// is checked.
+func TestEveryIntegerHasARange(t *testing.T) {
+	for name, integer := range emit.Numerics {
+		if _, ok := zod.IntRanges[name]; ok != integer {
+			t.Errorf("%s: range %v, integer %v", name, ok, integer)
+		}
+	}
+}
+
 func TestEveryScalarHasASchema(t *testing.T) {
 	var fields strings.Builder
 	for _, name := range slices.Sorted(maps.Keys(ts.Scalars)) {

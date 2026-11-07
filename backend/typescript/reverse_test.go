@@ -3,6 +3,7 @@ package typescript_test
 import (
 	"context"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -261,5 +262,11 @@ export interface Box {
 	}
 	if got != 3 {
 		t.Errorf("%d unsupported warnings, want 3 (mixed, named, nested): %v", got, diags)
+	}
+	// A nested tuple's warning names it as written.
+	if !slices.ContainsFunc(diags, func(d *plugin.Diagnostic) bool {
+		return strings.Contains(d.GetMessage(), "Box.nested is [number, number],")
+	}) {
+		t.Errorf("no warning naming the nested tuple as written: %v", diags)
 	}
 }
