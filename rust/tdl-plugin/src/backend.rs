@@ -47,6 +47,9 @@ pub struct Description {
     /// How the backend numbers fields and variants, or `None` for a backend
     /// that does not.
     pub numbering: Option<Numbering>,
+    /// Says the same request may not produce the same files, so the host
+    /// keeps what it wrote while the request is unchanged.
+    pub nondeterministic: bool,
 }
 
 impl Description {
@@ -69,6 +72,7 @@ impl Description {
             features: Features {
                 reuse: self.reuse,
                 reverse: self.reverse,
+                nondeterministic: self.nondeterministic,
                 ..Default::default()
             }
             .into(),
@@ -103,6 +107,7 @@ mod tests {
     fn a_reply_carries_the_description() {
         let desc = Description {
             reuse: true,
+            nondeterministic: true,
             directives: vec![DirectiveSpec {
                 name: "note".into(),
                 ..Default::default()
@@ -118,6 +123,13 @@ mod tests {
         assert_eq!(reply.directives, desc.directives);
         assert!(reply.features.reuse);
         assert!(!reply.features.reverse);
+        assert!(reply.features.nondeterministic);
+        assert!(
+            !Description::new("mine", "1.2.3")
+                .reply()
+                .features
+                .nondeterministic
+        );
         assert!(reply.numbering.is_unset());
     }
 

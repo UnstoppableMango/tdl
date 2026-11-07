@@ -1419,6 +1419,14 @@ pub struct Features {
     ///
     /// Field 2: `reverse`
     pub reverse: bool,
+    /// nondeterministic says the same request may not produce the same files,
+    /// as from a backend that hands the mapping to a language model. tdl then
+    /// records a hash of each request beside the files it writes and, while a
+    /// later request hashes the same, keeps those files rather than sending
+    /// the request. See docs/adr/0002-host-reuses-nondeterministic-output.md.
+    ///
+    /// Field 3: `nondeterministic`
+    pub nondeterministic: bool,
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
 }
@@ -1427,6 +1435,7 @@ impl ::core::fmt::Debug for Features {
         f.debug_struct("Features")
             .field("reuse", &self.reuse)
             .field("reverse", &self.reverse)
+            .field("nondeterministic", &self.nondeterministic)
             .finish()
     }
 }
@@ -1463,6 +1472,9 @@ impl ::buffa::Message for Features {
         if self.reverse {
             size += 1u64 + ::buffa::types::BOOL_ENCODED_LEN as u64;
         }
+        if self.nondeterministic {
+            size += 1u64 + ::buffa::types::BOOL_ENCODED_LEN as u64;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
     }
@@ -1478,6 +1490,9 @@ impl ::buffa::Message for Features {
         }
         if self.reverse {
             ::buffa::types::put_bool_field(2u32, self.reverse, buf);
+        }
+        if self.nondeterministic {
+            ::buffa::types::put_bool_field(3u32, self.nondeterministic, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -1506,6 +1521,13 @@ impl ::buffa::Message for Features {
                 )?;
                 self.reverse = ::buffa::types::decode_bool(buf)?;
             }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.nondeterministic = ::buffa::types::decode_bool(buf)?;
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -1516,6 +1538,7 @@ impl ::buffa::Message for Features {
     fn clear(&mut self) {
         self.reuse = false;
         self.reverse = false;
+        self.nondeterministic = false;
         self.__buffa_unknown_fields.clear();
     }
 }
