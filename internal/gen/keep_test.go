@@ -17,7 +17,10 @@ import (
 
 // fickle answers every request with different content, as a backend that
 // hands the mapping to a language model does.
-type fickle struct{ calls int }
+type fickle struct {
+	calls int
+	warn  string // a warning to report with every response, if set
+}
 
 func (f *fickle) Describe() plugin.Description {
 	return plugin.Description{Name: "fickle", Nondeterministic: true}
@@ -25,10 +28,18 @@ func (f *fickle) Describe() plugin.Description {
 
 func (f *fickle) Generate(_ context.Context, req *plugin.Request) (*plugin.Response, error) {
 	f.calls++
-	return &plugin.Response{Files: []*plugin.File{{
+	resp := &plugin.Response{Files: []*plugin.File{{
 		Path:    "out.txt",
 		Content: fmt.Appendf(nil, "call %d over %d declarations\n", f.calls, len(req.GetModel().GetDecls())),
-	}}}, nil
+	}}}
+	if f.warn != "" {
+		resp.Diagnostics = []*plugin.Diagnostic{{
+			Severity: plugin.Severity_SEVERITY_WARNING,
+			Message:  f.warn,
+			Code:     "lossy.constraint",
+		}}
+	}
+	return resp, nil
 }
 
 func lowerSource(t *testing.T, name, src string) *ir.Model {
@@ -190,5 +201,45 @@ func TestKeptRecordSurvivesOtherWrites(t *testing.T) {
 	}
 	if _, ok, _ := gen.Recorded(out, "fickle"); ok {
 		t.Error("clean left the record behind")
+	}
+}
+
+// Kept files are reported with the warnings the backend gave when it wrote
+// them, so a lossy generation stays visible on every later run.
+func TestKeptOutputKeepsItsWarnings(t *testing.T) {
+	out, b := t.TempDir(), &fickle{warn: "dropped a constraint"}
+	runFickle(t, b, out, keepSource, gen.ModeWrite)
+	b.warn = ""
+
+	for _, mode := range []gen.Mode{gen.ModeWrite, gen.ModeVerify} {
+		result := runFickle(t, b, out, keepSource, mode)
+		if b.calls != 1 || len(result.Diagnostics) != 1 || result.Diagnostics[0].GetMessage() != "dropped a constraint" || result.Diagnostics[0].GetCode() != "lossy.constraint" {
+			t.Errorf("mode %v: %d calls, diagnostics %v", mode, b.calls, result.Diagnostics)
+		}
+	}
+}
+
+// A record that lost a file line no longer says what was written, so it is
+// stale under --verify and a write regenerates.
+func TestIncompleteRecordRegenerates(t *testing.T) {
+	out, b := t.TempDir(), &fickle{}
+	runFickle(t, b, out, keepSource, gen.ModeWrite)
+	marker := filepath.Join(out, gen.MarkerName)
+	var kept []string
+	for line := range strings.Lines(read(t, marker)) {
+		if !strings.HasPrefix(line, "#@ fickle file ") {
+			kept = append(kept, line)
+		}
+	}
+	if err := os.WriteFile(marker, []byte(strings.Join(kept, "")), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	verify := runFickle(t, b, out, keepSource, gen.ModeVerify)
+	if b.calls != 1 || len(verify.Stale) != 1 || !strings.Contains(verify.Stale[0].Reason, "incomplete") {
+		t.Errorf("verify: %d calls, stale %v", b.calls, verify.Stale)
+	}
+	if runFickle(t, b, out, keepSource, gen.ModeWrite); b.calls != 2 {
+		t.Errorf("write made %d calls, want 2", b.calls)
 	}
 }

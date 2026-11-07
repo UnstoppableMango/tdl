@@ -111,16 +111,17 @@ An absolute path, or one containing `..`, is an error and nothing is written, so
 ### Nondeterministic backends
 
 A backend whose same request may produce different files, such as one that hands the mapping to a language model, sets `Features.nondeterministic` in its handshake (ADR-0002).
-For such a target, `tdl gen` hashes the request and records the hash in `.tdl-output`, with a hash of each file it wrote, as comment lines:
+For such a target, `tdl gen` hashes the request and records the hash in `.tdl-output`, with how many files it wrote, a hash of each, and the diagnostics the backend reported, as comment lines:
 
 ```text
-#@ yolo request <sha256>
+#@ yolo request <sha256> 1
 #@ yolo file <sha256> lib/order.ex
+#@ yolo diagnostics <base64>
 ```
 
 The hash leaves out positions, the output path, and the dry-run flag, so moving the model within its file or running from another directory keeps the output.
-While a later request hashes the same and every recorded file is unchanged, `tdl gen` keeps the files and sends no request; otherwise it sends the request and records the new hashes.
-`--verify` never sends the request: a changed request, a target never generated here, and a recorded file that is missing or edited are stale.
+While a later request hashes the same, the record lists as many files as it says, and every recorded file is unchanged, `tdl gen` keeps the files, reports the recorded diagnostics again, and sends no request; otherwise it sends the request and records anew.
+`--verify` never sends the request: a changed request, a target never generated here, an incomplete record, and a recorded file that is missing or edited are stale.
 `--clean` always sends it.
 
 ## Post-processing
