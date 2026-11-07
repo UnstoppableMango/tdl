@@ -145,7 +145,13 @@ func readKept(out string) (map[string]Kept, error) {
 		case "request":
 			hash, count, _ := strings.Cut(rest, " ")
 			k.Request = hash
-			k.count, _ = strconv.Atoi(count)
+			// A count that does not read leaves the record incomplete,
+			// never an empty output.
+			if n, err := strconv.Atoi(count); err == nil {
+				k.count = n
+			} else {
+				k.count = -1
+			}
 		case "file":
 			sum, rel, _ := strings.Cut(rest, " ")
 			if k.Files == nil {
