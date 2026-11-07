@@ -38,7 +38,7 @@ const (
 )
 
 // targets is every backend the round-trip goal covers, which is every one
-// but debug, with its normal form once it has a reader.
+// but those exempt, with its normal form once it has a reader.
 var targets = []roundtrip.Target{
 	{Backend: golang.Backend{}, Normalize: golang.Normalize},
 	{Backend: graphql.Backend{}, Normalize: graphql.Normalize},
@@ -59,6 +59,11 @@ var targets = []roundtrip.Target{
 	}},
 	{Backend: zod.Backend{}},
 }
+
+// exempt is every shipped backend the round-trip goal leaves out: debug,
+// which describes a model rather than generating one, and yolo, whose
+// output is whatever a language model answers and which never imports.
+var exempt = []string{"debug", "yolo"}
 
 // TestCorpus runs every target's cases in testdata/roundtrip/<target>, and
 // testdata/gen/smoke as a model-first case for each.
@@ -178,8 +183,8 @@ target TARGET for kinds {
 	}
 }
 
-// Every shipped backend but debug is a target, and every corpus directory
-// names one.
+// Every shipped backend is a target or exempt, and every corpus directory
+// names a target.
 func TestEveryTargetIsCovered(t *testing.T) {
 	var names []string
 	for _, target := range targets {
@@ -192,7 +197,7 @@ func TestEveryTargetIsCovered(t *testing.T) {
 	}
 	var shipped []string
 	for _, p := range plugins {
-		if name := strings.TrimPrefix(filepath.Base(p), "tdl-gen-"); name != "debug" {
+		if name := strings.TrimPrefix(filepath.Base(p), "tdl-gen-"); !slices.Contains(exempt, name) {
 			shipped = append(shipped, name)
 		}
 	}

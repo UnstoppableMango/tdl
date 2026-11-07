@@ -8,6 +8,7 @@ import (
 	"go/token"
 	"io"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -33,22 +34,33 @@ import (
 	"github.com/unstoppablemango/tdl/backend/smithy"
 	"github.com/unstoppablemango/tdl/backend/thrift"
 	"github.com/unstoppablemango/tdl/backend/typescript"
+	"github.com/unstoppablemango/tdl/backend/yolo"
 	"github.com/unstoppablemango/tdl/backend/zod"
 	"github.com/unstoppablemango/tdl/internal/analysis"
 	"github.com/unstoppablemango/tdl/internal/gen"
+	"github.com/unstoppablemango/tdl/internal/sema"
 	"github.com/unstoppablemango/tdl/ir"
+	tdlparser "github.com/unstoppablemango/tdl/parser"
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// shipped is every backend tdl compiles in, with the smallest model each
-// one generates a file from. [TestEveryBuiltinHasARow] fails until a
-// backend added to the registry has a row here.
+// shipped is every backend tdl compiles in, and every Go backend served
+// only as a plugin, with the smallest model each one generates a file
+// from. [TestEveryBuiltinHasARow] fails until a backend added to the
+// registry has a row here.
 var shipped = []struct {
 	backend plugin.Backend
 	model   func() *ir.Model
 
 	// packaged is whether nix/cmd.nix ships the backend as tdl-gen-<name>.
 	packaged bool
+
+	// pluginOnly is a backend tdl does not compile in, served only as
+	// tdl-gen-<name>.
+	pluginOnly bool
+
+	// setup prepares the environment both hosts run the backend in.
+	setup func(t *testing.T)
 
 	// valid checks that a file is something the target language accepts.
 	valid func(t *testing.T, f *plugin.File)
@@ -74,6 +86,37 @@ var shipped = []struct {
 	{backend: thrift.Backend{}, model: orderModel, packaged: true, valid: checkThrift, reverse: thriftSource},
 	{backend: typescript.Backend{}, model: orderModel, packaged: true, reverse: typescriptSource, needs: typescriptCompiler},
 	{backend: zod.Backend{}, model: orderModel, packaged: true},
+	{backend: yolo.Backend{}, model: yoloModel, packaged: true, pluginOnly: true, setup: replayYolo},
+}
+
+// yoloCase is the recorded conversation the yolo rows replay.
+const yoloCase = "../../testdata/yolo/order"
+
+// yoloModel is the model yoloCase recorded a conversation about.
+func yoloModel() *ir.Model {
+	path := filepath.Join(yoloCase, "source.tdl")
+	src, err := os.ReadFile(path)
+	if err != nil {
+		panic(err)
+	}
+	file, err := tdlparser.Parse("source.tdl", bytes.NewReader(src))
+	if err != nil {
+		panic(err)
+	}
+	m, diags := sema.Lower(file)
+	if len(diags) > 0 {
+		panic(diags.Error())
+	}
+	return m
+}
+
+// replayYolo has both hosts replay yoloCase rather than call a provider.
+func replayYolo(t *testing.T) {
+	dir, err := filepath.Abs(yoloCase)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv(yolo.ReplayEnv, dir)
 }
 
 // protoSource is a schema for the protobuf reverse to read.
@@ -178,6 +221,9 @@ func TestHostsAgree(t *testing.T) {
 	for _, row := range shipped {
 		name := row.backend.Describe().Name
 		t.Run(name, func(t *testing.T) {
+			if row.setup != nil {
+				row.setup(t)
+			}
 			sub, err := gen.Find(name)
 			if err != nil {
 				t.Fatalf("find: %v", err)
@@ -248,6 +294,9 @@ func TestBuiltinsResolveWithoutPath(t *testing.T) {
 	t.Setenv("PATH", t.TempDir())
 
 	for _, row := range shipped {
+		if row.pluginOnly {
+			continue
+		}
 		name := row.backend.Describe().Name
 		b, err := gen.Resolve(name)
 		if err != nil {
@@ -263,7 +312,9 @@ func TestBuiltinsResolveWithoutPath(t *testing.T) {
 func TestEveryBuiltinHasARow(t *testing.T) {
 	var names []string
 	for _, row := range shipped {
-		names = append(names, row.backend.Describe().Name)
+		if !row.pluginOnly {
+			names = append(names, row.backend.Describe().Name)
+		}
 	}
 	slices.Sort(names)
 	if !slices.Equal(names, gen.BuiltinNames()) {
