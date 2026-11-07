@@ -315,7 +315,8 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   `testdata/yolo/<case>/` holds a model, its conversation, the files it wants in `want/`, and `diagnostics.golden`; a case with only a `target.tdl` appends it to the smoke model.
   `go test ./backend/yolo -record` re-records every case live, which needs a key; the committed recordings were written by hand.
   `TestHostsAgree` replays `testdata/yolo/order` in both hosts, its `shipped` row is `pluginOnly`, the round-trip `exempt` list holds it beside `debug`, and `checks.gen-yolo` replays `testdata/yolo/smoke` through the packaged binary.
-  Phase 1 is built, and #1505 tracks the rest: `check` and `tries`, the opt-in `agent`, and host reuse of its output.
+  It declares itself nondeterministic, so `tdl gen` keeps its output while the request is unchanged and `--verify` needs no key.
+  Phase 1 is built, and #1505 tracks the rest: `check` and `tries`, and the opt-in `agent`.
 
 `cmd/tdl-gen-<name>` serves each backend as a plugin.
 `TestHostsAgree` in `internal/gen` holds each to producing the same bytes in process and over a pipe.
