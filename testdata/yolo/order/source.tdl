@@ -1,0 +1,12 @@
+package shop
+
+/// An order.
+type Order: Entity {
+  id: string
+  tags: {string}
+}
+
+target yolo for shop {
+  language("elixir")
+  prompt("Plain structs with @enforce_keys.")
+}

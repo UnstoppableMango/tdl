@@ -1,0 +1,4 @@
+20:3 warning lossy.primitive: uuid is written as String.t(), since Elixir has no UUID type.
+26:3 warning lossy.primitive: duration is written as an integer count of milliseconds.
+19:1 warning lossy.include: Timestamps' fields are written into Order.
+6:1 warning lossy.newtype: Email is a typespec over String.t(), with no type of its own.
