@@ -113,6 +113,13 @@ func (b Backend) Generate(ctx context.Context, req *plugin.Request) (*plugin.Res
 		g.Error(g.block, "the model wrote no files")
 		return g.Response(nil), nil
 	}
+	// The prompt holds an import's line but not what the dependency's own
+	// target block generates, so the model guessed each reference to it.
+	for _, ext := range g.Model.GetExterns() {
+		g.Lossy(emit.LossUnsupported, ext.GetPosition(),
+			"%s.%s comes from another file, whose output the model was not shown; check how the files refer to it",
+			ext.GetPackage(), ext.GetName())
+	}
 
 	paths := make([]string, 0, len(g.files))
 	for p := range g.files {

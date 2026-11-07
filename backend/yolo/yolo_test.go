@@ -522,3 +522,28 @@ func (r *rewriting) Send(ctx context.Context, c *yolo.Conversation) (yolo.Messag
 	}
 	return r.Provider.Send(ctx, c)
 }
+
+// The model is not shown what a dependency generates, so each extern warns.
+func TestExternsWarn(t *testing.T) {
+	f := &fixed{replies: []yolo.Message{
+		{Role: yolo.Assistant, Stop: yolo.StopTool, Calls: []yolo.Call{
+			call("write_file", `{"path": "shop.ex", "content": "x"}`),
+		}},
+		{Role: yolo.Assistant, Stop: yolo.StopEnd},
+	}}
+	req := request(t, order)
+	req.Model.Externs = append(req.Model.Externs, &ir.Extern{
+		Package: "money", Name: "Money", Position: &ir.Position{Line: 3, Column: 7},
+	})
+	resp, err := yolo.Backend{Provider: f}.Generate(context.Background(), req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := diagnostics(resp)
+	if !strings.Contains(got, "3:7 warning "+emit.LossUnsupported+": money.Money comes from another file") {
+		t.Errorf("diagnostics: %s", got)
+	}
+	if len(resp.GetFiles()) != 1 {
+		t.Errorf("files: %v", resp.GetFiles())
+	}
+}
