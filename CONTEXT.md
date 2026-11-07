@@ -30,6 +30,10 @@ _Avoid_: profile, shared target, standard
 What turns a resolved model into files for one target, or reads files back into a model.
 _Avoid_: generator, emitter
 
+**Delegated backend**:
+A backend that hands the mapping to a language model instead of encoding it, keeping for itself only the prompt, the file paths, the checks it runs on the result, and the loss it reports; the `yolo` target.
+_Avoid_: AI backend, LLM backend
+
 **Target**:
 The name a target block gives, saying which backend reads the block: the backend registered under that name, or the plugin `tdl-gen-<name>`.
 _Avoid_: generator, language, when the name is meant
