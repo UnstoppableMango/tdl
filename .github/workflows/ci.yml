@@ -52,6 +52,11 @@ jobs:
       - run: nix build .#
         if: ${{ !cancelled() }}
 
+      # The release uploads and attests these bytes; a second build must give
+      # the same. nix flake check built them for checks.tdl-release.
+      - run: nix build .#release --rebuild
+        if: ${{ !cancelled() }}
+
       # nix develop keeps the runner's PATH after its own, so the race run
       # finds the build's plugins and runs the C# corpus through
       # tdl-gen-csharp.

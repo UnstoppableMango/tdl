@@ -608,8 +608,8 @@ Use `PUT /pulls/{n}/merge-async`, which returns `{"status":"pending"}` and merge
 `.github/workflows/release-please.yml` calls the reusable workflow in `unmango/actions` as the thecluster[bot] GitHub App (`vars.RELEASE_APP_CLIENT_ID`, `secrets.RELEASE_APP_PRIVATE_KEY`), so release PRs trigger CI and commits are signed.
 
 release-please owns the version.
-Never hand-edit `toolVersion` in `internal/cli/version.go`, `version` in `flake.nix`, `version` in `editors/vscode/package.json` and `package-lock.json`, or `CHANGELOG.md`.
-The first two carry an `x-release-please-version` annotation, as does the README's release-asset example; the JSON files are listed in `release-please-config.json`.
+Never hand-edit `toolVersion` in `internal/cli/version.go`, `version` in `flake.nix`, `version` in `editors/vscode/package.json` and `package-lock.json`, `version` in `npm/tdl/package.json`, the `version=` line in the README's release-asset example, or `CHANGELOG.md`.
+The first two and the README line carry an `x-release-please-version` annotation; the JSON files are listed in `release-please-config.json`.
 
 When it reports a release, the `assets` job builds `packages.release` at the tag on a GitHub-hosted runner, attests every file with `actions/attest-build-provenance`, and uploads them to the release.
 

@@ -19,7 +19,9 @@ lib.composeExtensions gomod2nix.overlays.default (
 
     tdl-release = final.callPackage ./release.nix {
       inherit version;
-      go = final.go_1_27;
+      # Its GOOS and GOARCH name the build platform, whose tdl writes the
+      # completion scripts.
+      go = final.buildPackages.go_1_27;
     };
 
     tdl-gmk = final.callPackage ./gmk.nix {

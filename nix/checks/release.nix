@@ -46,8 +46,8 @@ runCommand "tdl-release-check" { } ''
   mkdir $TMPDIR/unpacked && tar -xzf ${native} -C $TMPDIR/unpacked tdl completions
   cd $TMPDIR/unpacked
   ./tdl version
-  for shell in bash zsh fish; do
-    grep -q tdl completions/tdl.$shell || fail "completions/tdl.$shell does not complete tdl"
-  done
+  grep -q __start_tdl completions/tdl.bash || fail "completions/tdl.bash is not tdl's"
+  grep -q '#compdef tdl' completions/tdl.zsh || fail "completions/tdl.zsh is not tdl's"
+  grep -q 'complete -c tdl' completions/tdl.fish || fail "completions/tdl.fish is not tdl's"
   touch $out
 ''
