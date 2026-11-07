@@ -20,6 +20,7 @@ import (
 type fickle struct {
 	calls int
 	warn  string // a warning to report with every response, if set
+	empty bool   // answer with no files
 }
 
 func (f *fickle) Describe() plugin.Description {
@@ -28,6 +29,9 @@ func (f *fickle) Describe() plugin.Description {
 
 func (f *fickle) Generate(_ context.Context, req *plugin.Request) (*plugin.Response, error) {
 	f.calls++
+	if f.empty {
+		return &plugin.Response{}, nil
+	}
 	resp := &plugin.Response{Files: []*plugin.File{{
 		Path:    "out.txt",
 		Content: fmt.Appendf(nil, "call %d over %d declarations\n", f.calls, len(req.GetModel().GetDecls())),
@@ -260,5 +264,21 @@ func TestIncompleteRecordRegenerates(t *testing.T) {
 				t.Errorf("write made %d calls, want 2", b.calls)
 			}
 		})
+	}
+}
+
+// A generation that wrote no files is a complete record, kept like any
+// other.
+func TestEmptyOutputIsKept(t *testing.T) {
+	out, b := t.TempDir(), &fickle{empty: true}
+	runFickle(t, b, out, keepSource, gen.ModeWrite)
+	if b.calls != 1 {
+		t.Fatalf("first run made %d calls", b.calls)
+	}
+	if again := runFickle(t, b, out, keepSource, gen.ModeWrite); b.calls != 1 || len(again.Written) != 0 {
+		t.Errorf("second run: %d calls, wrote %v", b.calls, again.Written)
+	}
+	if verify := runFickle(t, b, out, keepSource, gen.ModeVerify); b.calls != 1 || len(verify.Stale) != 0 {
+		t.Errorf("verify: %d calls, stale %v", b.calls, verify.Stale)
 	}
 }
