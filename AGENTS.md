@@ -86,6 +86,9 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
   `npm/tdl/tdl.js` is the `bin`: it finds the platform package through `lib/resolve.js`, exported as `@unmango/tdl/resolve` for `@unmango/tdl-typescript`, and runs its binary, passing through arguments, stdio, and the exit status. No package has an install script.
   The shim sits beside `package.json` because `.gitignore` ignores every `bin/`.
   `checks.npm-tdl` installs `@unmango/tdl` and the checking system's platform package offline with `--ignore-scripts`, then runs `tdl version`, `tdl gen` over the smoke model, and `tdl-gen-typescript` through the resolver.
+- `release.nix`: `packages.release`, the release assets: `tdl_<version>_<os>_<arch>.tar.gz` per `tdl-portable` target, each holding both binaries, `LICENSE`, `README.md`, and `completions/` written by the build platform's `tdl`, plus `SHA256SUMS`.
+  Members are sorted, owned by root, dated `SOURCE_DATE_EPOCH`, and gzipped without a name, so two builds give the same `SHA256SUMS`.
+  `checks.tdl-release` holds every tarball to the same file list, verifies the sums, and runs the checking system's `tdl`.
 - `dotnet.nix`: the .NET plugins, built with `buildDotnetModule`, which runs their tests (see [.NET SDK](#net-sdk)): `tdl-gen-csharp`, compiled with Native AOT and linked by `stdenv.cc`, and the SDK's debug port, a self-contained single file.
   On darwin the AOT link names the Swift runtime and ICU, so `swift` and `darwin.ICU` are build inputs there, as in nixpkgs' own dotnet `aot` test.
 - `rust.nix`: `tdl-rust`, the Rust workspace built with `rustPlatform` from `rust/Cargo.lock`, which runs its tests (see [Rust SDK](#rust-sdk)); it installs only `tdl-gen-rust_debug`, which `cmd.nix` does not ship.
@@ -606,7 +609,9 @@ Use `PUT /pulls/{n}/merge-async`, which returns `{"status":"pending"}` and merge
 
 release-please owns the version.
 Never hand-edit `toolVersion` in `internal/cli/version.go`, `version` in `flake.nix`, `version` in `editors/vscode/package.json` and `package-lock.json`, or `CHANGELOG.md`.
-The first two carry an `x-release-please-version` annotation; the JSON files are listed in `release-please-config.json`.
+The first two carry an `x-release-please-version` annotation, as does the README's release-asset example; the JSON files are listed in `release-please-config.json`.
+
+When it reports a release, the `assets` job builds `packages.release` at the tag on a GitHub-hosted runner, attests every file with `actions/attest-build-provenance`, and uploads them to the release.
 
 Two versions are not release-please's:
 
