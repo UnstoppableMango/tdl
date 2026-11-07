@@ -45,6 +45,10 @@ type Description struct {
 	// Numbering is how the backend numbers fields and variants, or nil
 	// for a backend that does not.
 	Numbering *Numbering
+
+	// Nondeterministic says the same request may not produce the same
+	// files, so tdl keeps what it wrote while the request is unchanged.
+	Nondeterministic bool
 }
 
 // Reply turns a description into the handshake reply that carries it.
@@ -54,7 +58,7 @@ func (d Description) Reply() *HandshakeReply {
 		Name:       d.Name,
 		Version:    d.Version,
 		Directives: d.Directives,
-		Features:   &Features{Reuse: d.Reuse, Reverse: d.Reverse},
+		Features:   &Features{Reuse: d.Reuse, Reverse: d.Reverse, Nondeterministic: d.Nondeterministic},
 		Numbering:  d.Numbering,
 	}
 }

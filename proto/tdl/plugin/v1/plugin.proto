@@ -156,6 +156,13 @@ message Features {
   // reverse says the plugin answers MODE_IMPORT, reading its target
   // language back into a model.
   bool reverse = 2;
+
+  // nondeterministic says the same request may not produce the same files,
+  // as from a backend that hands the mapping to a language model. tdl then
+  // records a hash of each request beside the files it writes and, while a
+  // later request hashes the same, keeps those files rather than sending
+  // the request. See docs/adr/0002-host-reuses-nondeterministic-output.md.
+  bool nondeterministic = 3;
 }
 
 // Request is everything a backend needs for one generation. Nothing

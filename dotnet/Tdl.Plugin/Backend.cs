@@ -51,6 +51,12 @@ public sealed record Description(string Name, string Version)
 	/// </summary>
 	public Numbering? Numbering { get; init; }
 
+	/// <summary>
+	/// Says the same request may not produce the same files, so the host keeps
+	/// what it wrote while the request is unchanged.
+	/// </summary>
+	public bool Nondeterministic { get; init; }
+
 	/// <summary>The handshake reply carrying this description.</summary>
 	public HandshakeReply Reply()
 	{
@@ -59,7 +65,7 @@ public sealed record Description(string Name, string Version)
 			Accepted = true,
 			Name = Name,
 			Version = Version,
-			Features = new Features { Reuse = Reuse, Reverse = Reverse },
+			Features = new Features { Reuse = Reuse, Reverse = Reverse, Nondeterministic = Nondeterministic },
 			Numbering = Numbering,
 		};
 		reply.Directives.AddRange(Directives);

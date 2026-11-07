@@ -275,7 +275,7 @@ func (r *genRun) generate(path string) error {
 			fmt.Fprintln(cmd.OutOrStdout(), w)
 		}
 		if r.makeTarget != "" {
-			for _, p := range slices.Concat(result.Written, result.Expected) {
+			for _, p := range slices.Concat(result.Written, result.Expected, result.Kept) {
 				r.outputs[p] = true
 			}
 		}

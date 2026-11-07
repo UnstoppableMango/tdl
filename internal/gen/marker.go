@@ -70,10 +70,14 @@ func Mark(out string, written []string) error {
 	for _, path := range written {
 		owned[path] = true
 	}
-	return writeMarker(out, owned)
+	kept, err := readKept(out)
+	if err != nil {
+		return err
+	}
+	return writeMarker(out, owned, kept)
 }
 
-func writeMarker(out string, owned map[string]bool) error {
+func writeMarker(out string, owned map[string]bool, kept map[string]Kept) error {
 	var b strings.Builder
 	b.WriteString(markerHeader)
 	for _, path := range slices.Sorted(maps.Keys(owned)) {
@@ -81,6 +85,7 @@ func writeMarker(out string, owned map[string]bool) error {
 			b.WriteString(filepath.ToSlash(rel) + "\n")
 		}
 	}
+	writeKept(&b, out, owned, kept)
 	if err := os.MkdirAll(out, 0o755); err != nil {
 		return fmt.Errorf("creating %s: %w", out, err)
 	}
@@ -106,7 +111,7 @@ func Clean(out string) ([]string, error) {
 		removed = append(removed, path)
 		pruneEmpty(out, filepath.Dir(path))
 	}
-	return removed, writeMarker(out, nil)
+	return removed, writeMarker(out, nil, nil)
 }
 
 // pruneEmpty removes dir and each parent below out that removing it
