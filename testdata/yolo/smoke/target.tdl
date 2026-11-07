@@ -1,0 +1,4 @@
+target yolo for smoke {
+  language("elixir")
+  prompt("Plain structs with @enforce_keys and typespecs, one module per declaration under Smoke.")
+}
