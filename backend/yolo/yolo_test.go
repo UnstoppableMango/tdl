@@ -2,8 +2,10 @@ package yolo_test
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
@@ -167,7 +169,7 @@ func compareWant(t *testing.T, dir string, resp *plugin.Response) {
 
 	want := map[string]string{}
 	root := filepath.Join(dir, wantDir)
-	_ = filepath.WalkDir(root, func(path string, e os.DirEntry, err error) error {
+	err = filepath.WalkDir(root, func(path string, e os.DirEntry, err error) error {
 		if err != nil || e.IsDir() {
 			return err
 		}
@@ -179,6 +181,9 @@ func compareWant(t *testing.T, dir string, resp *plugin.Response) {
 		want[filepath.ToSlash(rel)] = string(data)
 		return nil
 	})
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		t.Fatal(err)
+	}
 	got := map[string]string{}
 	for _, f := range resp.GetFiles() {
 		got[f.GetPath()] = string(f.GetContent())
@@ -305,6 +310,7 @@ func TestSafePath(t *testing.T) {
 		`lib\shop.ex`:     false,
 		"lib/..":          false,
 		"lib/..something": true,
+		".":               true,
 	} {
 		if got := yolo.SafePath(path); got != want {
 			t.Errorf("SafePath(%q) = %v, want %v", path, got, want)
@@ -321,6 +327,9 @@ func TestRefusedCallsGoBackToTheModel(t *testing.T) {
 			call("report_loss", `{"decl": "Nonesuch", "code": "lossy.key", "message": "m"}`),
 			call("write_file", `{"path": 1}`),
 			call("delete_file", `{}`),
+			call("write_file", `{"path": "./", "content": "x"}`),
+			call("report_loss", `{"decl": "Order", "code": "lossy.key"}`),
+			call("report_loss", `{"code": "lossy.key", "message": "m"}`),
 		}},
 		{Role: yolo.Assistant, Stop: yolo.StopTool, Calls: []yolo.Call{
 			call("write_file", `{"path": "shop.ex", "content": "defmodule Shop do\nend\n"}`),
@@ -336,8 +345,8 @@ func TestRefusedCallsGoBackToTheModel(t *testing.T) {
 		t.Fatalf("sent %d turns, want 3", len(f.seen))
 	}
 	results := f.seen[1].Messages[2].Results
-	if len(results) != 4 {
-		t.Fatalf("%d results, want 4", len(results))
+	if len(results) != 7 {
+		t.Fatalf("%d results, want 7", len(results))
 	}
 	for i, r := range results {
 		if !r.Error {
@@ -414,7 +423,7 @@ func TestTurnsAreBounded(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(f.seen) == 100 || !strings.Contains(diagnostics(resp), "still calling tools") {
+	if len(f.seen) != 50 || !strings.Contains(diagnostics(resp), "still calling tools") {
 		t.Errorf("sent %d turns; diagnostics %s", len(f.seen), diagnostics(resp))
 	}
 }
@@ -443,7 +452,8 @@ func TestPrompt(t *testing.T) {
 		}
 	}
 	for _, code := range emit.LossCodes {
-		if !strings.Contains(c.System, "- "+code+": ") {
+		_, rest, ok := strings.Cut(c.System, "- "+code+": ")
+		if line, _, _ := strings.Cut(rest, "\n"); !ok || strings.TrimSpace(line) == "" {
 			t.Errorf("the system prompt does not explain %s", code)
 		}
 	}
@@ -481,4 +491,34 @@ func TestReplayRefusesAnotherConversation(t *testing.T) {
 	if got := diagnostics(resp); !strings.Contains(got, "re-record") {
 		t.Errorf("diagnostics: %s", got)
 	}
+}
+
+// A replay refuses a conversation whose earlier messages changed after
+// they were answered.
+func TestReplayRefusesAChangedHistory(t *testing.T) {
+	dir := filepath.Join(cases, "order")
+	r, err := yolo.LoadReplay(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := yolo.Backend{Provider: &rewriting{Provider: r}}.Generate(context.Background(), request(t, Source(t, dir)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := diagnostics(resp); !strings.Contains(got, "changed the conversation") {
+		t.Errorf("diagnostics: %s", got)
+	}
+}
+
+// rewriting changes the first message before every turn but the first.
+type rewriting struct {
+	yolo.Provider
+	turns int
+}
+
+func (r *rewriting) Send(ctx context.Context, c *yolo.Conversation) (yolo.Message, error) {
+	if r.turns++; r.turns > 1 {
+		c.Messages[0].Text += "changed"
+	}
+	return r.Provider.Send(ctx, c)
 }

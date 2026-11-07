@@ -51,6 +51,7 @@ func (a *Anthropic) Send(ctx context.Context, c *Conversation) (Message, error) 
 	}
 
 	stream := a.client.Messages.NewStreaming(ctx, params)
+	defer stream.Close()
 	var reply anthropic.Message
 	for stream.Next() {
 		if err := reply.Accumulate(stream.Current()); err != nil {

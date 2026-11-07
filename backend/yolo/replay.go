@@ -71,7 +71,17 @@ func (r *Replay) Send(_ context.Context, c *Conversation) (Message, error) {
 		return Message{}, fmt.Errorf("the recording ends after %d turns%s", len(r.rec.Turns), stale)
 	}
 
-	sent := c.Messages[sentSince(r.rec.Turns[:r.next]):]
+	// Everything before this turn must still be what was recorded, since a
+	// live provider would see it again.
+	var history []Message
+	for _, t := range r.rec.Turns[:r.next] {
+		history = append(history, t.Sent...)
+		history = append(history, t.Reply)
+	}
+	if len(c.Messages) < len(history) || !sameMessages(c.Messages[:len(history)], history) {
+		return Message{}, fmt.Errorf("turn %d changed the conversation before it%s", r.next+1, stale)
+	}
+	sent := c.Messages[len(history):]
 	turn := r.rec.Turns[r.next]
 	if !sameMessages(sent, turn.Sent) {
 		got, _ := json.MarshalIndent(sent, "", "  ")

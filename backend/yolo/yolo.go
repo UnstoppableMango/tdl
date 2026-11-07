@@ -190,26 +190,29 @@ func (g *generator) call(c Call) (Result, error) {
 		}
 		// Cleaned, so two spellings of one file are one file.
 		clean := path.Clean(*in.Path)
+		if clean == "." {
+			return refuse("%q names the output directory, not a file", *in.Path)
+		}
 		g.files[clean] = []byte(*in.Content)
 		return Result{ID: c.ID, Content: "wrote " + clean}, nil
 
 	case reportLoss:
 		var in struct {
-			Decl    string `json:"decl"`
-			Code    string `json:"code"`
-			Message string `json:"message"`
+			Decl    *string `json:"decl"`
+			Code    string  `json:"code"`
+			Message *string `json:"message"`
 		}
-		if err := json.Unmarshal(c.Input, &in); err != nil {
+		if err := json.Unmarshal(c.Input, &in); err != nil || in.Decl == nil || in.Message == nil || *in.Message == "" {
 			return refuse("report_loss takes a decl, a code, and a message, all strings")
 		}
 		if !slices.Contains(emit.LossCodes, in.Code) {
 			return refuse("%q is not a loss code; use one of %s", in.Code, strings.Join(emit.LossCodes, ", "))
 		}
-		pos, ok := g.position(in.Decl)
+		pos, ok := g.position(*in.Decl)
 		if !ok {
-			return refuse("the model declares nothing named %q", in.Decl)
+			return refuse("the model declares nothing named %q", *in.Decl)
 		}
-		g.Lossy(in.Code, pos, "%s", in.Message)
+		g.Lossy(in.Code, pos, "%s", *in.Message)
 		return Result{ID: c.ID, Content: "reported"}, nil
 	}
 	return refuse("there is no tool named %q", c.Name)
