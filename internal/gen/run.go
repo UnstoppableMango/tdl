@@ -133,7 +133,7 @@ func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.M
 	result.Written = written
 	err = errors.Join(err, Mark(target.Out, written))
 	if hash != "" && err == nil {
-		err = Keep(target.Out, target.Name, hash, written)
+		err = Keep(target.Out, target.Name, hash, written, resp.GetDiagnostics())
 	}
 	if err != nil {
 		return result, fmt.Errorf("target %s: %w", target.Name, err)
@@ -156,25 +156,32 @@ func reuse(target Target, hash string, mode Mode) (Result, bool, error) {
 		return result, true, fmt.Errorf("target %s: %w", target.Name, err)
 	}
 
+	same := ok && kept.Complete() && kept.Request == hash
 	var stale []Stale
-	if ok && kept.Request == hash {
+	if same {
 		if stale, err = kept.Check(); err != nil {
 			return result, true, fmt.Errorf("target %s: %w", target.Name, err)
 		}
+		// Files kept are reported with the warnings they were written with.
+		result.Diagnostics = kept.Diagnostics
 	}
 
 	switch {
 	case mode == ModeVerify && !ok:
 		result.Stale = []Stale{{Path: target.Out, Reason: "target " + target.Name + " has never been generated here"}}
-	case mode == ModeVerify && kept.Request != hash:
+	case mode == ModeVerify && !kept.Complete():
+		result.Stale = []Stale{{Path: filepath.Join(target.Out, MarkerName), Reason: "the record of target " + target.Name + "'s files is incomplete"}}
+		result.Expected = kept.Paths()
+	case mode == ModeVerify && !same:
 		result.Stale = []Stale{{Path: target.Out, Reason: "target " + target.Name + "'s request changed since its files were generated"}}
 		result.Expected = kept.Paths()
 	case mode == ModeVerify:
 		result.Stale, result.Expected = stale, kept.Paths()
-	case ok && kept.Request == hash && len(stale) == 0:
+	case same && len(stale) == 0:
 		result.Kept = kept.Paths()
 	default:
-		// A changed request, or a kept file edited or removed: regenerate.
+		// A changed request, an incomplete record, or a kept file edited or
+		// removed: regenerate.
 		return result, false, nil
 	}
 	return result, true, nil

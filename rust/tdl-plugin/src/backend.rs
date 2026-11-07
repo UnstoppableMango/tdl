@@ -124,6 +124,12 @@ mod tests {
         assert!(reply.features.reuse);
         assert!(!reply.features.reverse);
         assert!(reply.features.nondeterministic);
+        assert!(
+            !Description::new("mine", "1.2.3")
+                .reply()
+                .features
+                .nondeterministic
+        );
         assert!(reply.numbering.is_unset());
     }
 

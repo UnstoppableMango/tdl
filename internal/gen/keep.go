@@ -2,6 +2,7 @@ package gen
 
 import (
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 
 	"google.golang.org/protobuf/proto"
@@ -20,22 +22,32 @@ import (
 // A backend that declares itself nondeterministic may answer one request
 // with different files each time, so tdl keeps what it wrote while the
 // request is unchanged (docs/adr/0002-host-reuses-nondeterministic-output.md).
-// The marker records, per target, the request's hash and a hash of each file
-// it wrote, as comment lines that [Owned] skips:
+// The marker records, per target, the request's hash with how many files it
+// wrote, a hash of each, and the diagnostics the backend reported, as
+// comment lines that [Owned] skips:
 //
-//	#@ yolo request <sha256>
+//	#@ yolo request <sha256> 1
 //	#@ yolo file <sha256> lib/order.ex
+//	#@ yolo diagnostics <base64 of a Response holding only diagnostics>
 
 // keptPrefix starts a marker line recording a kept target.
 const keptPrefix = "#@ "
 
 // Kept is what the marker records about one nondeterministic target's last
-// generation: the hash of the request, and each file it wrote with the hash
-// of its content, by path joined to out.
+// generation: the hash of the request, each file it wrote with the hash of
+// its content, by path joined to out, and the diagnostics it reported, which
+// a run keeping the files reports again.
 type Kept struct {
-	Request string
-	Files   map[string]string
+	Request     string
+	Files       map[string]string
+	Diagnostics []*plugin.Diagnostic
+
+	count int // how many files the request line says were written
 }
+
+// Complete says the record lists as many files as its request line says,
+// so a marker that lost lines is not read as an output that wrote fewer.
+func (k Kept) Complete() bool { return k.count == len(k.Files) }
 
 // RequestHash is the hash a request is kept under. It covers everything the
 // backend reads but what varies with where tdl runs: positions, the output
@@ -57,9 +69,9 @@ func digest(b []byte) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// Keep records in out's marker that target's request hashed to request and
-// wrote written, replacing what it recorded before.
-func Keep(out, target, request string, written []string) error {
+// Keep records in out's marker that target's request hashed to request,
+// wrote written, and reported diags, replacing what it recorded before.
+func Keep(out, target, request string, written []string, diags []*plugin.Diagnostic) error {
 	owned, err := Owned(out)
 	if err != nil {
 		return err
@@ -77,7 +89,7 @@ func Keep(out, target, request string, written []string) error {
 		files[path] = digest(content)
 		owned[path] = true
 	}
-	kept[target] = Kept{Request: request, Files: files}
+	kept[target] = Kept{Request: request, Files: files, Diagnostics: diags, count: len(files)}
 	return writeMarker(out, owned, kept)
 }
 
@@ -131,13 +143,20 @@ func readKept(out string) (map[string]Kept, error) {
 		k := kept[target]
 		switch kind {
 		case "request":
-			k.Request = rest
+			hash, count, _ := strings.Cut(rest, " ")
+			k.Request = hash
+			k.count, _ = strconv.Atoi(count)
 		case "file":
 			sum, rel, _ := strings.Cut(rest, " ")
 			if k.Files == nil {
 				k.Files = map[string]string{}
 			}
 			k.Files[filepath.Join(out, filepath.FromSlash(rel))] = sum
+		case "diagnostics":
+			var resp plugin.Response
+			if b, err := base64.StdEncoding.DecodeString(rest); err == nil && proto.Unmarshal(b, &resp) == nil {
+				k.Diagnostics = resp.GetDiagnostics()
+			}
 		default:
 			continue
 		}
@@ -154,13 +173,24 @@ func writeKept(b *strings.Builder, out string, owned map[string]bool, kept map[s
 		if k.Request == "" {
 			continue
 		}
-		fmt.Fprintf(b, "%s%s request %s\n", keptPrefix, target, k.Request)
+		var files []string
 		for _, path := range k.Paths() {
 			rel, err := filepath.Rel(out, path)
 			if err != nil || !owned[path] {
 				continue
 			}
-			fmt.Fprintf(b, "%s%s file %s %s\n", keptPrefix, target, k.Files[path], filepath.ToSlash(rel))
+			files = append(files, fmt.Sprintf("%s%s file %s %s\n", keptPrefix, target, k.Files[path], filepath.ToSlash(rel)))
+		}
+		// A file no longer listed shortens the record, so the count stays
+		// what the request wrote and the record reads as incomplete.
+		fmt.Fprintf(b, "%s%s request %s %d\n", keptPrefix, target, k.Request, k.count)
+		for _, line := range files {
+			b.WriteString(line)
+		}
+		if len(k.Diagnostics) > 0 {
+			if enc, err := (proto.MarshalOptions{Deterministic: true}).Marshal(&plugin.Response{Diagnostics: k.Diagnostics}); err == nil {
+				fmt.Fprintf(b, "%s%s diagnostics %s\n", keptPrefix, target, base64.StdEncoding.EncodeToString(enc))
+			}
 		}
 	}
 }
