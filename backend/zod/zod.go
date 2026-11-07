@@ -44,6 +44,14 @@ func (Backend) Describe() plugin.Description {
 			// A module and the schema it exports, for a declaration or an
 			// extern another module owns: imported, and not declared.
 			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{str[0], str[0]}, Placements: plugin.On(plugin.OnDecl)},
+			// Writes no brands, so every inferred type is typescript's; the
+			// checks stay.
+			{Name: "structural", Placements: plugin.On(plugin.OnBlock)},
+			// The name of a constrained field's own schema.
+			{Name: "newtype", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnField)},
+			// Checks matches constraints, which otherwise warn, since a
+			// backtracking engine runs the author's pattern on the input.
+			{Name: "patterns", Placements: plugin.On(plugin.OnBlock)},
 		},
 	}
 }
@@ -60,17 +68,20 @@ const (
 	helperDecimal helper = iota
 	helperInstant
 	helperUnique
+	helperCodePoints
+	helperSize
 	helpers
 )
 
 // helperNames is each helper's name, which no declaration may take.
-var helperNames = [helpers]string{"decimal", "instant", "unique"}
+var helperNames = [helpers]string{"decimal", "instant", "unique", "codePoints", "size"}
 
 // helperText is each helper's declaration. An instant is RFC 3339 with an
 // offset, and Zod's pattern lets a time without seconds through, so the
 // second pattern requires them. A set's elements are compared by a
 // canonical JSON encoding with sorted keys, since two equal objects are
-// distinct references.
+// distinct references. A string's length counts code points, as TDL's
+// does, where Zod's .length() counts UTF-16 code units.
 var helperText = [helpers]string{
 	`const decimal = z.string().regex(/^-?[0-9]+(\.[0-9]+)?$/);
 `,
@@ -98,12 +109,24 @@ var helperText = [helpers]string{
   return true;
 };
 `,
+	`const codePoints = (min: number, max: number) => (s: string): boolean => {
+  let n = 0;
+  for (const _ of s) {
+    n++;
+  }
+  return n >= min && n <= max;
+};
+`,
+	`const size = (min: number, max: number) => (r: object): boolean => {
+  const n = Object.keys(r).length;
+  return n >= min && n <= max;
+};
+`,
 }
 
 // moduleNames are the names the module declares for itself, which no
-// declaration may take: the import, the helpers, and the helpers later
-// phases add.
-var moduleNames = map[string]bool{"z": true, "codePoints": true, "size": true}
+// declaration may take: the import and the helpers.
+var moduleNames = map[string]bool{"z": true}
 
 func init() {
 	for _, n := range helperNames {
@@ -156,8 +179,22 @@ var primHelpers = map[string]helper{"decimal": helperDecimal, "instant": helperI
 type generator struct {
 	*emit.Session
 
-	// closed is whether the target block closes every object.
-	closed bool
+	// closed is whether the target block closes every object,
+	// structural whether it writes no brands, and checkPatterns whether
+	// it checks matches constraints.
+	closed, structural, checkPatterns bool
+
+	// While a schema's checks are written: prefix names its pattern
+	// constants, patterns holds them, onString is whether the schema is a
+	// z.string(), and stringSchemas holds each newtype whose schema is.
+	prefix        string
+	patterns      []pattern
+	onString      bool
+	stringSchemas map[*ir.Decl]bool
+
+	// regexChecked holds each matches constraint a schema checks, which a
+	// default must match too.
+	regexChecked map[*ir.Constraint]bool
 
 	// names maps each declared name to the declaration declaring it.
 	names map[string]string
@@ -192,9 +229,14 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		order:    map[*ir.Decl]int{},
 		lazy:     map[*ir.Decl]bool{},
 		declares: map[*ir.Decl][]string{},
+
+		stringSchemas: map[*ir.Decl]bool{},
+		regexChecked:  map[*ir.Constraint]bool{},
 	}
 	g.Externs = true
 	g.closed = g.Bare("closed")
+	g.structural = g.Bare("structural")
+	g.checkPatterns = g.Bare("patterns")
 
 	path := ts.File(req.GetModel().GetPackage()) + Suffix
 
@@ -311,7 +353,7 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 		declared, err = g.newtype(&b, d)
 	case d.GetStructure() != nil:
 		closed := g.closed || g.Tagged(d.GetDirectives(), "closed")
-		declared, err = g.object(&b, g.DeclName(d, emit.Pascal), d.GetMeta(), "", "", d.Fields(), closed)
+		declared, err = g.object(&b, g.DeclName(d, emit.Pascal), emit.LastSegment(name), d.GetMeta(), "", "", d.Fields(), closed)
 	case emit.Fielded(e):
 		declared, err = g.union(&b, d)
 	default:
@@ -410,26 +452,98 @@ func (g *generator) newtype(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	// A constraint inherited from the base newtype is its schema's.
+	var own, inherited []*ir.Constraint
+	for _, c := range d.GetNewtype().GetValueConstraints() {
+		if c.GetFrom() != nil {
+			inherited = append(inherited, c)
+			g.Enforce(c)
+		} else {
+			own = append(own, c)
+		}
+	}
+	name := g.DeclName(d, emit.Pascal)
 	g.forward = false
-	base, err := g.typ(ref)
+	g.prefix = name
+	base, n, checks, err := g.value(emit.LastSegment(d.GetMeta().GetName()), ref, own, inherited)
 	if err != nil {
 		return nil, err
 	}
-	name := g.DeclName(d, emit.Pascal)
+	if n == nil && !g.forward && g.isString(ref) {
+		g.stringSchemas[d] = true
+	}
+	declared := append([]string{name}, g.declarePatterns(b)...)
+	base.expr += checks
+	brand := g.qualified(d.GetMeta().GetName())
 	if g.forward {
 		g.lazy[d] = true
-		pair(b, name, d.GetMeta(), "z.ZodLazy<"+base.typ+">", "z.lazy(() => "+base.expr+")")
+		lazy := g.brand(schema{expr: "z.lazy(() => " + base.expr + ")", typ: "z.ZodLazy<" + base.typ + ">"}, brand)
+		pair(b, name, d.GetMeta(), lazy.typ, lazy.expr)
 	} else {
-		pair(b, name, d.GetMeta(), "", base.expr)
+		pair(b, name, d.GetMeta(), "", g.brand(base, brand).expr)
 	}
-	return []string{name}, nil
+	return declared, nil
+}
+
+// isString reports whether a schema of r is a z.string(), which has
+// .regex(): the string primitive, or a newtype whose schema is one.
+func (g *generator) isString(r *emit.Ref) bool {
+	if r.Form == emit.Named {
+		return g.stringSchemas[r.Decl]
+	}
+	return r.Form == emit.Prim && r.Name == "string"
+}
+
+// value is the schema of a value of r, a field's or a newtype's, with
+// constraints own written on it and inherited from r's newtype: the
+// narrowed type a literal union or tuple states, and the checks stating
+// the rest. subject names the value in messages.
+func (g *generator) value(subject string, r *emit.Ref, own, inherited []*ir.Constraint) (schema, *emit.Narrowed, string, error) {
+	g.patterns, g.onString = nil, false
+	n := g.Narrow(r, own, inherited)
+	g.exclude(subject, n, own, append(slices.Clone(own), inherited...))
+	// Only the schema written is spelled, so a reference the narrowed
+	// type replaces makes no getter or import.
+	var s schema
+	var err error
+	if n != nil {
+		s, err = g.spell(n)
+	} else {
+		s, err = g.typ(r)
+	}
+	if err != nil {
+		return schema{}, nil, "", err
+	}
+	rest := slices.DeleteFunc(slices.Clone(own), g.Enforced)
+	if len(rest) == 0 {
+		return s, n, "", nil
+	}
+	x, err := g.Expand(r)
+	if err != nil {
+		return schema{}, nil, "", err
+	}
+	if n == nil && r.Form == emit.Named && (g.lazy[r.Decl] || g.order[r.Decl] >= g.current) {
+		// A z.lazy has no number, string, or array checks, and a newtype
+		// written later may be one.
+		for _, c := range rest {
+			g.Enforce(c)
+			g.Lossy(emit.LossConstraint, c.GetPosition(), "%s: %s is not checked: %s is written later or is lazy, and Zod checks only a schema it can see",
+				subject, emit.ConstraintText(c), r.Decl.GetMeta().GetName())
+		}
+		return s, n, "", nil
+	}
+	g.onString = n == nil && g.isString(r)
+	return s, n, g.checks(subject, x, rest), nil
 }
 
 // object renders an entity, a value, a mixin, or a variant as a
 // z.object, or a z.strictObject when closed. A variant passes the
 // discriminant and its value, which come first.
-func (g *generator) object(b *strings.Builder, name string, meta *ir.Meta, disc, tag string, fields []*ir.Field, closed bool) ([]string, error) {
-	var body strings.Builder
+//
+// path is the object's TDL name, which a field's brand qualifies.
+func (g *generator) object(b *strings.Builder, name, path string, meta *ir.Meta, disc, tag string, fields []*ir.Field, closed bool) ([]string, error) {
+	var body, schemas strings.Builder
+	declared := []string{name}
 	seen := map[string]bool{}
 	if disc != "" {
 		seen[disc] = true
@@ -456,12 +570,13 @@ func (g *generator) object(b *strings.Builder, name string, meta *ir.Meta, disc,
 			return nil, err
 		}
 		g.forward = false
-		s, err := g.property(ref)
+		s, n, own, err := g.property(name, path, f, ref, &schemas)
 		if err != nil {
 			return nil, err
 		}
+		declared = append(declared, own...)
 		if def := f.GetDefaultValue(); def != nil {
-			s = g.withDefault(name, f, ref, s)
+			s = g.withDefault(name, f, ref, n, s)
 		}
 		emit.DocComment(&body, "  ", f.GetMeta())
 		if g.forward {
@@ -479,8 +594,9 @@ func (g *generator) object(b *strings.Builder, name string, meta *ir.Meta, disc,
 	if body.Len() > 0 {
 		expr = ctor + "({\n" + body.String() + "})"
 	}
+	b.WriteString(schemas.String())
 	pair(b, name, meta, "", expr)
-	return []string{name}, nil
+	return declared, nil
 }
 
 // enum renders a fieldless enum as a z.enum of its tags, the union of
@@ -513,12 +629,13 @@ func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	var members []string
 	for _, v := range d.GetEnumeration().GetVariants() {
 		member := g.VariantName(v, func(s string) string { return name + emit.Pascal(s) })
-		if _, err := g.object(b, member, v.GetMeta(), disc, emit.Tag(v), v.GetFields(), closed); err != nil {
+		names, err := g.object(b, member, emit.LastSegment(d.GetMeta().GetName())+"."+v.GetMeta().GetName(), v.GetMeta(), disc, emit.Tag(v), v.GetFields(), closed)
+		if err != nil {
 			return nil, err
 		}
 		b.WriteString("\n")
 		members = append(members, member)
-		declared = append(declared, member)
+		declared = append(declared, names...)
 	}
 	// The union's type is written, since one variant naming the enum
 	// would otherwise make it infer from itself.
@@ -532,9 +649,12 @@ func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	return declared, nil
 }
 
-// property is a field's schema: exactOptional when the key may be absent,
-// and nullable when the value may be null.
-func (g *generator) property(r *emit.Ref) (schema, error) {
+// property is a field's schema: the narrowed type its constraints state,
+// if any, exactOptional when the key may be absent, and nullable when the
+// value may be null. A constraint a check states gives the value a schema
+// of its own, written to schemas and named in own, branded for path and
+// the field.
+func (g *generator) property(owner, path string, f *ir.Field, r *emit.Ref, schemas *strings.Builder) (schema, *emit.Narrowed, []string, error) {
 	optional, nullable := false, false
 	for r.Form == emit.Option || r.Form == emit.Nullable {
 		if r.Form == emit.Option {
@@ -544,9 +664,35 @@ func (g *generator) property(r *emit.Ref) (schema, error) {
 		}
 		r = r.Elem
 	}
-	s, err := g.typ(r)
+	subject := path + "." + f.GetMeta().GetName()
+	if f.GetIncludedFrom() != nil {
+		// The mixin warns for the fields it gives.
+		mark := len(g.Diags)
+		defer func() { g.Diags = g.Diags[:mark] }()
+	}
+	inherited := r.Decl.GetNewtype().GetValueConstraints()
+	own := owner + emit.Pascal(f.GetMeta().GetName())
+	if name, ok := g.Text(f.GetDirectives(), "newtype"); ok {
+		own = name
+	}
+	g.prefix = own
+	s, n, checks, err := g.value(subject, r, f.GetConstraints(), inherited)
 	if err != nil {
-		return schema{}, err
+		return schema{}, nil, nil, err
+	}
+	var declared []string
+	if checks != "" {
+		declared = append(g.declarePatterns(schemas), own)
+		s.expr += checks
+		brand := g.qualified(subject)
+		if g.forward {
+			lazy := g.brand(schema{expr: "z.lazy(() => " + s.expr + ")", typ: "z.ZodLazy<" + s.typ + ">"}, brand)
+			pair(schemas, own, f.GetMeta(), lazy.typ, lazy.expr)
+		} else {
+			pair(schemas, own, f.GetMeta(), "", g.brand(s, brand).expr)
+		}
+		schemas.WriteString("\n")
+		s = schema{expr: own, typ: "typeof " + own}
 	}
 	if nullable {
 		s = orNull(s)
@@ -554,7 +700,58 @@ func (g *generator) property(r *emit.Ref) (schema, error) {
 	if optional {
 		s = schema{expr: s.expr + ".exactOptional()", typ: "z.ZodExactOptional<" + s.typ + ">", nullable: s.nullable}
 	}
-	return s, nil
+	return s, n, declared, nil
+}
+
+// spell is a narrowed type's schema: a z.enum of strings or of an enum's
+// variants, a z.literal of numbers, or a z.tuple. The design's
+// "Constraints TypeScript states" is the table.
+func (g *generator) spell(n *emit.Narrowed) (schema, error) {
+	// members is a z.enum's values and the object type naming them.
+	members := func(values []string) (string, string) {
+		quoted := make([]string, len(values))
+		entries := make([]string, len(values))
+		for i, v := range values {
+			quoted[i] = strconv.Quote(v)
+			entries[i] = quoted[i] + ": " + quoted[i]
+		}
+		return "[" + strings.Join(quoted, ", ") + "]", "z.ZodEnum<{ " + strings.Join(entries, "; ") + " }>"
+	}
+
+	if len(n.Values) == 0 && n.Kind != emit.NarrowTuple {
+		// Every argument was excluded.
+		return schema{expr: "z.never()", typ: "z.ZodNever"}, nil
+	}
+	switch n.Kind {
+	case emit.NarrowStrings:
+		list, typ := members(n.Values)
+		return schema{expr: "z.enum(" + list + ")", typ: typ}, nil
+	case emit.NarrowNumbers:
+		return schema{
+			expr: "z.literal([" + strings.Join(n.Values, ", ") + "])",
+			typ:  "z.ZodLiteral<" + strings.Join(n.Values, " | ") + ">",
+		}, nil
+	case emit.NarrowVariants:
+		enum, err := g.typ(n.Elem)
+		if err != nil {
+			return schema{}, err
+		}
+		// A variant's tag is its name (emit.Tag), which Values holds.
+		list, typ := members(n.Values)
+		return schema{expr: enum.expr + ".extract(" + list + ")", typ: typ}, nil
+	}
+	elem, err := g.typ(n.Elem)
+	if err != nil {
+		return schema{}, err
+	}
+	exprs, typs := make([]string, n.Len), make([]string, n.Len)
+	for i := range n.Len {
+		exprs[i], typs[i] = elem.expr, elem.typ
+	}
+	return schema{
+		expr: "z.tuple([" + strings.Join(exprs, ", ") + "])",
+		typ:  "z.ZodTuple<[" + strings.Join(typs, ", ") + "], null>",
+	}, nil
 }
 
 // orNull is a schema that also accepts null.

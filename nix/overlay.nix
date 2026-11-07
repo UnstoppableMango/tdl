@@ -15,6 +15,8 @@ lib.composeExtensions gomod2nix.overlays.default (
       go = final.go_1_27;
     };
 
+    tdl-npm = final.callPackage ./npm.nix { inherit version; };
+
     tdl-gmk = final.callPackage ./gmk.nix {
       inherit version;
       go = final.go_1_27;
@@ -23,6 +25,10 @@ lib.composeExtensions gomod2nix.overlays.default (
     vscode-tdl = final.callPackage ./vscode-extension.nix { inherit version; };
 
     tdl-dotnet = final.callPackage ./dotnet.nix { inherit version; };
+
+    tdl-rust = final.callPackage ./rust.nix { inherit version; };
+
+    protoc-gen-buffa = final.callPackage ./protoc-gen-buffa.nix { };
 
     pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
       (pyFinal: _: {

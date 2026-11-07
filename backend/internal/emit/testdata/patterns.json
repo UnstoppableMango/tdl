@@ -1,0 +1,437 @@
+[
+	{
+		"pattern": "\\s",
+		"inputs": [
+			" ",
+			"\t",
+			"\n",
+			"\u00a0",
+			"\u2003",
+			"\ufeff",
+			"x"
+		]
+	},
+	{
+		"pattern": "^\\S+$",
+		"inputs": [
+			"abc",
+			"a b",
+			"a\u00a0b",
+			"\u00a0"
+		]
+	},
+	{
+		"pattern": "\\p{Greek}",
+		"inputs": [
+			"λ",
+			"Ω",
+			"a",
+			"1"
+		]
+	},
+	{
+		"pattern": "^\\P{Greek}+$",
+		"inputs": [
+			"abc",
+			"aλc",
+			""
+		]
+	},
+	{
+		"pattern": "^\\pL+$",
+		"inputs": [
+			"abc",
+			"λx",
+			"a1",
+			"日本"
+		]
+	},
+	{
+		"pattern": "(?i)k",
+		"inputs": [
+			"k",
+			"K",
+			"\u212a",
+			"x"
+		]
+	},
+	{
+		"pattern": "(?i)^straße$",
+		"inputs": [
+			"STRASSE",
+			"STRAẞE",
+			"straße",
+			"Straße",
+			"strasse"
+		]
+	},
+	{
+		"pattern": "(?i)[a-c]",
+		"inputs": [
+			"B",
+			"b",
+			"d"
+		]
+	},
+	{
+		"pattern": "^.$",
+		"inputs": [
+			"a",
+			"😀",
+			"λ",
+			"\n",
+			"\r",
+			"\u2028",
+			"ab",
+			""
+		]
+	},
+	{
+		"pattern": "(?s)^.$",
+		"inputs": [
+			"\n",
+			"😀",
+			"\r"
+		]
+	},
+	{
+		"pattern": "^[^a]$",
+		"inputs": [
+			"b",
+			"a",
+			"😀",
+			"\n"
+		]
+	},
+	{
+		"pattern": "^[😀-😂]+$",
+		"inputs": [
+			"😀😁",
+			"😃",
+			"a"
+		]
+	},
+	{
+		"pattern": "\\d+",
+		"inputs": [
+			"123",
+			"٣",
+			"abc"
+		]
+	},
+	{
+		"pattern": "^\\w+$",
+		"inputs": [
+			"abc_1",
+			"é",
+			"a-b"
+		]
+	},
+	{
+		"pattern": "\\bcat\\b",
+		"inputs": [
+			"a cat sat",
+			"concat",
+			"cat",
+			"écat"
+		]
+	},
+	{
+		"pattern": "\\Bcat",
+		"inputs": [
+			"concat",
+			"cat"
+		]
+	},
+	{
+		"pattern": "(?m)^b$",
+		"inputs": [
+			"a\nb\nc",
+			"b",
+			"ab",
+			"a\r\nb"
+		]
+	},
+	{
+		"pattern": "(?m)a$",
+		"inputs": [
+			"a\nb",
+			"ba",
+			"ab"
+		]
+	},
+	{
+		"pattern": "^a$",
+		"inputs": [
+			"a",
+			"a\n",
+			"\na"
+		]
+	},
+	{
+		"pattern": "\\Aa\\z",
+		"inputs": [
+			"a",
+			"a\n"
+		]
+	},
+	{
+		"pattern": "(?P<year>\\d{4})-(?P<month>\\d{2})",
+		"inputs": [
+			"2026-11",
+			"26-11"
+		]
+	},
+	{
+		"pattern": "(?P<a>x)(?P<a>y)",
+		"inputs": [
+			"xy",
+			"x"
+		]
+	},
+	{
+		"pattern": "(?P<1st>a)b",
+		"inputs": [
+			"ab",
+			"b"
+		]
+	},
+	{
+		"pattern": "^a{2,3}$",
+		"inputs": [
+			"a",
+			"aa",
+			"aaa",
+			"aaaa"
+		]
+	},
+	{
+		"pattern": "^a{2,}$",
+		"inputs": [
+			"a",
+			"aa",
+			"aaaaa"
+		]
+	},
+	{
+		"pattern": "^(?:ab){2}$",
+		"inputs": [
+			"abab",
+			"ab",
+			"ababab"
+		]
+	},
+	{
+		"pattern": "^a+?b*?c??$",
+		"inputs": [
+			"a",
+			"aabbc",
+			"c"
+		]
+	},
+	{
+		"pattern": "(?U)^a+b$",
+		"inputs": [
+			"aab",
+			"b"
+		]
+	},
+	{
+		"pattern": "^(?:ab|cd)+$",
+		"inputs": [
+			"abcd",
+			"abc",
+			""
+		]
+	},
+	{
+		"pattern": "^(a|)$",
+		"inputs": [
+			"a",
+			"",
+			"b"
+		]
+	},
+	{
+		"pattern": "x*",
+		"inputs": [
+			"",
+			"y"
+		]
+	},
+	{
+		"pattern": "^[\\^\\]\\-\\\\/]+$",
+		"inputs": [
+			"^]-\\/",
+			"a",
+			"-"
+		]
+	},
+	{
+		"pattern": "^\\.\\*\\+\\?\\(\\)\\[\\]\\{\\}\\|\\$/$",
+		"inputs": [
+			".*+?()[]{}|$/",
+			"x"
+		]
+	},
+	{
+		"pattern": "^\\x{7f}\\x00\\t$",
+		"inputs": [
+			"\u0000\t",
+			"x"
+		]
+	},
+	{
+		"pattern": "^\\x{2028}$",
+		"inputs": [
+			"\u2028",
+			"\n"
+		]
+	},
+	{
+		"pattern": "^[[:alpha:]]+$",
+		"inputs": [
+			"abc",
+			"aé"
+		]
+	},
+	{
+		"pattern": "^[^\\x00-\\x{10FFFF}]$",
+		"inputs": [
+			"a",
+			""
+		]
+	},
+	{
+		"pattern": "^$",
+		"inputs": [
+			"",
+			"a"
+		]
+	},
+	{
+		"pattern": "^[A-Z0-9-]+$",
+		"inputs": [
+			"AB-12",
+			"ab",
+			""
+		]
+	},
+	{
+		"pattern": "^[^@]+@[^@]+$",
+		"inputs": [
+			"a@b",
+			"a@@b",
+			"@b"
+		]
+	},
+	{
+		"pattern": "(?i)^σ$",
+		"inputs": [
+			"σ",
+			"Σ",
+			"ς",
+			"s"
+		]
+	},
+	{
+		"pattern": "(?i)^ǅ$",
+		"inputs": [
+			"Ǆ",
+			"ǅ",
+			"ǆ",
+			"D"
+		]
+	},
+	{
+		"pattern": "(?i)^[^k]$",
+		"inputs": [
+			"k",
+			"K",
+			"\u212a",
+			"x"
+		]
+	},
+	{
+		"pattern": "^\\Qa.b*\\E$",
+		"inputs": [
+			"a.b*",
+			"axbb"
+		]
+	},
+	{
+		"pattern": "^\\pN+$",
+		"inputs": [
+			"123",
+			"٣",
+			"Ⅻ",
+			"a"
+		]
+	},
+	{
+		"pattern": "^\\p{Han}$",
+		"inputs": [
+			"日",
+			"a",
+			"日本"
+		]
+	},
+	{
+		"pattern": "^[[:^alpha:]]+$",
+		"inputs": [
+			"123",
+			"a1"
+		]
+	},
+	{
+		"pattern": "^\\v$",
+		"inputs": [
+			"\u000b",
+			"\n"
+		]
+	},
+	{
+		"pattern": "(?m:^a)+",
+		"inputs": [
+			"a",
+			"b\na",
+			"ba"
+		]
+	},
+	{
+		"pattern": "^[\\-a]+$",
+		"inputs": [
+			"-a-",
+			"b"
+		]
+	},
+	{
+		"pattern": "^ba{0}c$",
+		"inputs": [
+			"bc",
+			"bac"
+		]
+	},
+	{
+		"pattern": "^\\x{1F600}+$",
+		"inputs": [
+			"😀😀",
+			"😁"
+		]
+	},
+	{
+		"pattern": "(?:^)*a",
+		"inputs": [
+			"a",
+			"ba"
+		]
+	},
+	{
+		"pattern": "\\b+x",
+		"inputs": [
+			"x",
+			" x",
+			"ax"
+		]
+	}
+]

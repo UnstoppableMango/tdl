@@ -1,7 +1,7 @@
 # The Zod backend
 
 Design document.
-Phases 1 and 2 are built; the rest is tracked in [#1230](https://github.com/UnstoppableMango/tdl/issues/1230).
+Phases 1, 2, and 3 are built; the rest is tracked in [#1230](https://github.com/UnstoppableMango/tdl/issues/1230).
 
 The Zod backend turns a resolved model into a TypeScript module of [Zod](https://zod.dev) schemas.
 It is called `zod` in a target block, ships compiled into `tdl` and as `tdl-gen-zod`, and is implemented in `backend/zod`.
@@ -30,7 +30,7 @@ A schema that checks `quantity >= 1` and infers `number` throws the fact away at
 So the backend reads the preference as three rules:
 
 1. **State it in the type where TypeScript can**, as a narrowed type.
-   A `oneOf`, a small integer range, and a small exact list length infer literal unions and tuples, exactly as `typescript`'s `narrow.go` writes them, so `z.infer` refuses a violating literal at compile time with no brand.
+   A `oneOf`, a small integer range, and a small exact list length infer literal unions and tuples, exactly as `typescript` writes them from `emit.Narrow`, so `z.infer` refuses a violating literal at compile time with no brand.
 1. **Brand what TypeScript cannot state.**
    A constraint TypeScript has no type for (a pattern, a wide range, a string length) is checked by the schema and recorded in the output type with `.brand()`, so a `LineItemQuantity` is a number that went through the check, as a Rust or Python checked type is a value that went through its constructor.
    Zod brands only the output type: `z.input` stays plain, so parsing JSON needs no cast, which is the cost that made `typescript` write a newtype as a plain alias.
@@ -127,7 +127,7 @@ A mixin is a schema of its own, since a consumer may name it; an including struc
 `z.object` accepts a property it does not declare and strips it, so a newer producer adding a field still parses, as an open JSON Schema object validates.
 A `closed` directive on a struct or an enum, or on the target block for every one, writes `z.strictObject`, which refuses an undeclared property, the directive JSON Schema and OpenAPI read for `additionalProperties: false`.
 
-A field's default is `.default(value)` until phase 3b ([#1378](https://github.com/UnstoppableMango/tdl/issues/1378)), and `.prefault(value)` from then on, checked against the field's schema at generation time; one that fails warns and is dropped.
+A field's default is `.prefault(value)`, checked against the field's schema and its constraints at generation time; one that fails warns and is dropped.
 On a branded schema `.default()` takes the branded output type, so `LineItemQuantity.default(1)` does not type check; `.prefault()` takes the input type and parses the value through the schema, so the brand and the checks apply, and every default is written that way for one spelling.
 A default makes the field optional in `z.input` and leaves it required in `z.infer`, so a parsed value always holds it, and the inferred type still matches `typescript`, whose interface types the parsed value.
 A default on a foreign type warns and is dropped, since the backend cannot check it.
@@ -179,7 +179,7 @@ So a `Sku` is a `string` that came through `Sku.parse`, a checked type, and a pl
 The brand is the declaration's qualified name, so two packages' `Sku` stay distinct.
 A newtype over a newtype brands its parent's schema again, `export const WorkEmail = Email.refine(...).brand<"shop.WorkEmail">()`, and Zod's brands stack, so a `WorkEmail` is an `Email`, checked once for what each adds.
 
-Brands are on by default, so phase 3b ([#1378](https://github.com/UnstoppableMango/tdl/issues/1378)) changes the output of every newtype phases 1 and 2 wrote as a plain schema.
+Brands are on by default.
 The `structural` directive on the target block writes no brands at all, so every inferred type is `typescript`'s, for a consumer who shares values between code using both outputs and would rather not pay for the distinction.
 Under `structural` the constraints [Constraints](#constraints) brands are still checked, and a constrained field keeps its named schema; only the type forgets them, so the directive never changes which names the module exports.
 
@@ -199,9 +199,12 @@ Every `where` constraint is either a type TypeScript states, or a check whose pa
 | `min` and `max` on an integer, spanning at most 16 values | `z.literal([1, 2, 3, 4])` | `1 \| 2 \| 3 \| 4` |
 | `length(N)` on a list, for `N` at most 16 | `z.tuple([T, T, T])` | `[T, T, T]` |
 
-The first four are the literal unions `typescript` writes, by the same rule: the bound of 16 and the way a field's constraints combine with its newtype's are `narrow.go`'s, which moves into `backend/internal/emit` so both read it (see [Overlap with other targets](#overlap-with-other-targets)).
-The tuple is new to TypeScript output; `typescript` adopts it when the rule moves, so the two still agree, and its importer reads a tuple back as a list with `length(N)`.
+The first four are the literal unions `typescript` writes, by the same rule: the bound of 16 and the way a field's constraints combine with its newtype's are `emit.Narrow`'s, in `backend/internal/emit/narrow.go`, which both read (see [Overlap with other targets](#overlap-with-other-targets)).
+`typescript` writes the tuple too, so the two agree, and its importer reads a tuple of one type back as a list with `length(N)`; a length of 0 is not narrowed, since `[]` would read back as nothing.
 A field holding one of these needs no brand, and a newtype holding one brands the union, since the newtype is still nominal.
+A field narrows only when its own constraints say something the narrowed type states, so a field whose newtype narrows keeps the newtype's name, and a declaration a `foreign` directive maps never narrows, since its schema need not be a `z.enum`.
+Repeated `oneOf` values are written once, and a float `min` or `max` beside a `oneOf` is not stated by the union, so it warns or, in `zod`, excludes the values it refuses.
+A default is checked against every constraint the field and its newtype carry, a `oneOf` included, since `.prefault` must hold the narrowed input type.
 
 ### Checked and branded
 
@@ -217,7 +220,8 @@ Each other standard constraint is a check:
 
 A string's length counts code points, as `emit.Length` defines it in every target, and Zod's `.min()` and `.length()` on a string count UTF-16 code units, so a string of four emoji is length 8 to Zod.
 `codePoints` is a helper the module declares once, counting with a `for...of` loop, and `size` counts a record's keys.
-A `oneOf` beside another constraint on the same value stays a literal union, and the other constraints check it; an argument another constraint excludes warns and is left out, since it could never be held.
+A `oneOf` beside a `min`, `max`, or `length` on the same value stays a literal union of the arguments they accept, so the union states them too; an argument another constraint excludes warns and is left out, since it could never be held.
+A check on a field naming a newtype written later, or a lazy one, warns and is not written, since a `z.lazy` has no number, string, or array checks.
 Here **warn** leaves the declaration emitted without the check, as in JSON Schema.
 
 A constrained newtype brands its own schema, as above.
@@ -259,23 +263,26 @@ The printed pattern is a regex literal with the `u` flag and no other, so the en
 
 | `regexp/syntax` | ECMAScript |
 | --- | --- |
-| a literal | itself, with a syntax character or `/` escaped, and a non-printable as `\u{...}` |
+| a literal | itself, with a syntax character or `/` escaped, and anything but printable ASCII as `\u{...}`, so a Kelvin sign is not read as a `K` |
 | a case-folded literal | the class of its folds from `unicode.SimpleFold`, so `(?i)k` matches the Kelvin sign as in RE2, with no `i` flag |
-| a class | its ranges, as `regexp/syntax` resolved them, `\d` as `[0-9]` and `\p{Greek}` as Greek's ranges |
+| a class | its ranges, as `regexp/syntax` resolved them, `\d` as `[0-9]` and `\p{Greek}` as Greek's ranges, or the ranges it excludes after `^` when they are fewer, as `[^@]` |
 | any character but newline, any character | `[^\n]`, `[\u{0}-\u{10FFFF}]` |
 | beginning and end of text | `^`, `$`, which match only at the ends without the `m` flag |
 | beginning and end of line | `(?<=^\|\n)`, `(?=\n\|$)` |
 | `\b`, `\B` | themselves, ASCII in JavaScript without the `i` flag, as in RE2 |
-| a named capture | `(?<name>...)` |
+| a named capture | `(?<name>...)`, or a plain group for a name starting with a digit or used before, which RE2 allows and ECMAScript does not |
 | repetition, alternation, groups, laziness | themselves |
 
 Printing every class as ranges costs a long pattern for a Unicode class, and buys a pattern that means what `emit.Pattern` checked with Go's Unicode tables, whatever Unicode version the consumer's engine has.
-Each pattern is a module-level constant beside the schema that uses it, so it is compiled once, and `.regex()` tests it unanchored, as `matches` reads.
-A pattern RE2 refuses warns at generation time and its schema is emitted without the check.
+Each pattern is a module-level constant before the schema that uses it, under a comment holding the constraint as written, with any line terminator in it escaped, named for that schema (`SkuPattern`, `PaymentCardLast4Pattern`, a number after the second), so it is compiled once, and `.regex()` tests it unanchored, as `matches` reads.
+`.regex()` exists only on a string schema, so a `matches` on any other, such as a `uuid` or a literal union, warns and is not checked; beside a `oneOf` on a string, the pattern instead leaves out each argument it refuses, as [Checked and branded](#checked-and-branded) leaves out one a length refuses.
+Zod parses a default through the schema, so a default a checked pattern refuses warns and is not written, as does one held to a newtype written later whose pattern is checkable, since that newtype's schema is written after the default is decided.
+A pattern RE2 refuses warns at generation time and its schema is emitted without the check, as does one naming a surrogate code point: RE2 accepts `\x{D800}` but never sees one, since UTF-8 cannot hold it, while a JavaScript string holds a lone surrogate `JSON.parse` writes.
 
 RE2 has no backreferences and no lookaround, and the printer writes lookbehind only for the line anchors, so every printed pattern is one a linear-time engine could run.
 V8, SpiderMonkey, and JavaScriptCore backtrack by default, so a pattern such as `(a+)+$` takes exponential time on a hostile string, and a schema parsing untrusted JSON runs it on the parser's thread.
-The pattern is the model author's, not the attacker's, so the backend refuses the shape rather than the constraint: a pattern with an unbounded repetition nested inside another, or an alternation under an unbounded repetition where one branch can match a prefix of what another matches, as in `(a|aa)+$`, warns at generation time and its schema is emitted without the check, as a pattern RE2 refuses is.
+The pattern is the model author's, not the attacker's, so the backend refuses the shape rather than the constraint (`emit.Backtracks`): inside a repetition of more than one, bounded or not, a choice whose ways can start with the same character, so a failing match tries every way of splitting the input.
+That is a repetition, an optional part, or an alternation branch that can either go on or give way to what follows it, read from the characters each part can start with: `(a+)+$`, `(a+){2,100}$`, `(\w+\s?)+$`, and `(a|aa)+$`, which RE2 parses as `(a(?:|a))+$`, all warn at generation time and their schemas are emitted without the check, as a pattern RE2 refuses is, while `^([a-z0-9]+-)*[a-z0-9]+$` is checked, since a `-` ends each inner repetition.
 That catches the classic exponential shapes from the `regexp/syntax` tree; it is a heuristic, and polynomial backtracking such as `a*a*a*$` remains.
 Opting in to `patterns` is accepting that remainder for the patterns the model holds; [Open questions](#open-questions) weighs a linear-time engine that would remove it.
 
@@ -397,7 +404,7 @@ A Zod module is code, and reading it means evaluating it, which `z.toJSONSchema`
 | --- | --- | --- |
 | The primitive mapping, names, reserved words, property quoting | TypeScript | moves from `backend/typescript` into `backend/internal/ts` |
 | An extern's import path from both blocks' `out` | TypeScript | `backend/typescript/extern.go`, moving the same way |
-| A small range or `oneOf` as a literal union | TypeScript, Python | `narrow.go`, moving into `backend/internal/emit` |
+| A small range or `oneOf` as a literal union, a small exact list length as a tuple | TypeScript, Python | `emit.Narrow` in `backend/internal/emit/narrow.go` |
 | The wire convention, `kind` and tags | TypeScript, JSON Schema, OpenAPI, Go, Python | `emit.Discriminant`, `emit.Tag` |
 | `closed` | JSON Schema, OpenAPI | design only |
 | `length` counted in code points | Every backend that validates | `emit.Length` |
@@ -406,7 +413,7 @@ A Zod module is code, and reading it means evaluating it, which `z.toJSONSchema`
 | The class plan | Go, C#, Rust, Python | `emit.PlanInterfaces` |
 
 [java-backend.md](https://github.com/UnstoppableMango/tdl/blob/fc0682d/docs/design/java-backend.md#overlap-with-other-targets) puts the pattern walk in `backend/internal/emit` beside `Pattern`, with a small table per engine, written by whichever backend is built first.
-None is built yet, so Zod writes the walk in phase 3c ([#1379](https://github.com/UnstoppableMango/tdl/issues/1379)) with the ECMAScript table only.
+The walk is `emit.ECMAScript` and `emit.Backtracks` in `backend/internal/emit/pattern.go`, with the ECMAScript table only, and `backend/internal/emit/testdata/patterns.json` is the shared table every engine's printer is held to against Go's `regexp`.
 The walk is Go, and the C# backend is a .NET plugin that cannot call it; how .NET gets a pattern is [#1196](https://github.com/UnstoppableMango/tdl/issues/1196)'s decision.
 Like Python's, it prints every Unicode class as ranges.
 

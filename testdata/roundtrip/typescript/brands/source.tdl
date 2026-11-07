@@ -1,0 +1,24 @@
+// Newtypes a brand directive keeps apart, which read back with it.
+package auth
+
+type Secret: string
+type Username: string
+type Email: string
+type WorkEmail: Email
+type Grade: string where { oneOf("gold", "silver") }
+type Token: string | null
+
+type Login {
+  user: Username
+  secret: Secret
+  email: WorkEmail
+}
+
+target typescript for auth {
+  Secret => brand
+  Username => brand
+  Email => brand
+  WorkEmail => brand
+  Grade => brand
+  Token => brand
+}

@@ -31,6 +31,8 @@ These are designed and not built yet, and each page names the phase that builds 
 | [`sml`](sml.md) | Standard ML |
 | [`fsharp`](fsharp.md) | F# |
 | [`cml`](cml.md) | Context Mapper |
+| [`nix`](nix.md) | Nix `lib.types` |
+| [`mermaid`](mermaid.md) | Mermaid class diagrams |
 
 ## Import
 

@@ -18,8 +18,8 @@ schema = 3
     hash = 'sha256-Q/6abljNb1LER7789i1MO7C0X0ep9VVJAzQlpv3tDak='
 
   [mod.'github.com/bufbuild/protocompile']
-    version = 'v0.14.2-0.20261022205402-b3c25bb4887d'
-    hash = 'sha256-N45VoYCJkZsX78ibfk9Psunl7TJW238YExam3sR+Bgc='
+    version = 'v0.14.2-0.20261105212643-e229a0e11161'
+    hash = 'sha256-6J2Q33Xeo698MbMf/Qqx0PFb6vLYjJR5S+Aw5a4X/mE='
 
   [mod.'github.com/bytedance/gopkg']
     version = 'v0.1.4'
@@ -86,12 +86,16 @@ schema = 3
     hash = 'sha256-CtRJbhTw/TlvSxoYzmU5zMh5JGpoq1O4GSqX2wzL/IQ='
 
   [mod.'go.yaml.in/yaml/v3']
-    version = 'v3.0.6'
-    hash = 'sha256-4XBaZyVp0pU1FzRY+M/juXISzENKJ+v189aVvU0mvqM='
+    version = 'v3.0.5'
+    hash = 'sha256-ygho+GU5kE7vPMx+dZYyNfCaeMjNxj66XmrcVf3afFE='
+
+  [mod.'go.yaml.in/yaml/v4']
+    version = 'v4.0.0'
+    hash = 'sha256-QW79npXNAVF7ASc5myWf8i9uVzDHe52YJXuch3wwCDg='
 
   [mod.'golang.org/x/exp']
-    version = 'v0.0.0-20261014143641-f0251eb4aa3e'
-    hash = 'sha256-PLzyWDt9Ni7Qdd6uHw7avHSJxdSc+VEzf5JG9gFCywo='
+    version = 'v0.0.0-20261106192419-47ce03d25ef0'
+    hash = 'sha256-3xXjW9EkbIvMd52XRiK5Z9uwkfKUOXe12vVEzvYqAoI='
 
   [mod.'golang.org/x/sync']
     version = 'v0.24.0'

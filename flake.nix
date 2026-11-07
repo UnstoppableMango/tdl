@@ -48,7 +48,7 @@
         ./nix
       ];
 
-      _module.args.version = "0.5.8"; # x-release-please-version
+      _module.args.version = "0.5.9"; # x-release-please-version
 
       perSystem =
         { inputs', pkgs, ... }:
@@ -83,6 +83,11 @@
               markdownlint-cli2
               protobuf # protoc, for buf's C# generator
               protoc-gen-go
+              protoc-gen-buffa # for rust/, from nix/protoc-gen-buffa.nix
+              cargo
+              rustc
+              clippy
+              rustfmt
               smithy-cli
               typescript
               tree-sitter
@@ -128,7 +133,10 @@
               actionlint.enable = true;
               biome = {
                 enable = true;
-                includes = [ "editors/vscode/**/*.ts" ];
+                includes = [
+                  "editors/vscode/**/*.ts"
+                  "npm/**/*.js"
+                ];
                 settings = removeAttrs (builtins.fromJSON (builtins.readFile ./editors/vscode/biome.json)) [
                   "$schema"
                   "files"
@@ -142,6 +150,7 @@
                 settings.wrap = "keep";
               };
               nixfmt.enable = true;
+              rustfmt.enable = true;
               taplo.enable = true;
               yamlfmt = {
                 enable = true;
@@ -160,6 +169,8 @@
               "*.golden"
               "CHANGELOG.md"
               "nix/gomod2nix.toml"
+              "rust/Cargo.lock"
+              "rust/tdl-plugin/src/generated/*"
               "flake.lock"
               "*.tdl"
               ".github/skills/**/SKILL.md"

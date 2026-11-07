@@ -6,6 +6,8 @@ Review the generator and its input, never the output.
 | --- | --- | --- |
 | `ir/ir.pb.go` | `make generate` | `proto/tdl/ir/v1/ir.proto` |
 | `plugin/plugin.pb.go` | `make generate` | `proto/tdl/plugin/v1/plugin.proto` |
+| `dotnet/Tdl.Plugin/Generated/` | `make generate` | `proto/` |
+| `rust/tdl-plugin/src/generated/` | `make generate` | `proto/` |
 | `tree-sitter/grammar.js` | `make treesitter` | `docs/grammar.ebnf` |
 | `tree-sitter/src/` | `tree-sitter generate` | `tree-sitter/grammar.js` |
 | `editors/vscode/syntaxes/tdl.tmLanguage.json` | `make textmate` | `docs/grammar.ebnf` |
@@ -14,12 +16,13 @@ Review the generator and its input, never the output.
 | `testdata/plugin/*.txtpb` | `go test ./internal/gen -record` | `internal/gen` |
 | `nix/gomod2nix.toml` | `make tidy` | `go.mod` |
 | `dotnet/deps.json` | `make dotnet-deps` | the `dotnet/` projects' package references |
+| `rust/Cargo.lock` | `cargo` | the `rust/` manifests |
 | `CHANGELOG.md` | release-please | commit subjects |
 
 `tree-sitter/src/scanner.c` is hand-written; review it like any other source.
 
 The finding worth making is an input that changed without its output.
-CI catches this for `tree-sitter/`, the goldens, and `dotnet/deps.json`, but a stale `.pb.go` is easy to miss.
+CI catches this for `tree-sitter/`, the goldens, `dotnet/deps.json`, and the protobuf output, which `checks.generate` regenerates.
 
 `prototext` output is unstable across builds, and the test parses the text rather than comparing bytes, so a whitespace-only diff in `testdata/plugin/*.txtpb` is noise.
 

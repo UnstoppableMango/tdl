@@ -45,7 +45,7 @@ In Go, `plugin.Importer` is an optional interface beside `plugin.Backend`.
 
 ## Loss codes
 
-`backend/internal/emit/loss.go` holds the one list, so the forward and reverse directions name a loss the same way.
+`internal/host/loss.go` holds the one list, which `emit` re-exports for backends and `tdl` completes `--allow-lossy` from, so the forward and reverse directions name a loss the same way.
 
 | Code | What is lost |
 | --- | --- |

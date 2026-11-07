@@ -106,8 +106,19 @@ function type(sf, t) {
 	if (ts.isArrayTypeNode(t)) {
 		return { k: "array", elem: type(sf, t.elementType) };
 	}
+	if (ts.isTupleTypeNode(t) && t.elements.every((e) => !ts.isNamedTupleMember(e) && !ts.isOptionalTypeNode(e) && !ts.isRestTypeNode(e))) {
+		return { k: "tuple", types: t.elements.map((e) => type(sf, e)), text: t.getText(sf) };
+	}
 	if (ts.isUnionTypeNode(t)) {
 		return { k: "union", types: t.types.map((u) => type(sf, u)) };
+	}
+	if (ts.isIntersectionTypeNode(t)) {
+		return { k: "intersection", types: t.types.map((u) => type(sf, u)), text: t.getText(sf) };
+	}
+	if (ts.isTypeLiteralNode(t)) {
+		// A member of an object type has no position of its own.
+		const members = t.members.map((m) => ({ ...member(sf, m), line: undefined, col: undefined, docs: undefined }));
+		return { k: "object", members, text: t.getText(sf) };
 	}
 	if (ts.isTypeReferenceNode(t)) {
 		return { k: "ref", name: t.typeName.getText(sf), args: (t.typeArguments || []).map((a) => type(sf, a)) };

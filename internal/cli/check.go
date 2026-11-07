@@ -11,6 +11,8 @@ func newCheckCmd() *cobra.Command {
 		Use:   "check <file>...",
 		Short: "Parse and lower a TDL file and report every problem found",
 		Args:  cobra.MinimumNArgs(1),
+
+		ValidArgsFunction: tdlFiles,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return eachFile(cmd, args, func(path string) error {
 				file, err := loadFile(cmd, path)

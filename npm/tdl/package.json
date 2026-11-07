@@ -1,0 +1,26 @@
+{
+	"name": "@unmango/tdl",
+	"version": "0.5.9",
+	"description": "The Type Description Language compiler: describe a domain model once and generate types for TypeScript, Zod, Go, protobuf, and more",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/UnstoppableMango/tdl.git",
+		"directory": "npm/tdl"
+	},
+	"homepage": "https://github.com/UnstoppableMango/tdl",
+	"bin": {
+		"tdl": "tdl.js"
+	},
+	"exports": {
+		"./resolve": "./lib/resolve.js",
+		"./package.json": "./package.json"
+	},
+	"files": [
+		"tdl.js",
+		"lib"
+	],
+	"engines": {
+		"node": ">=18"
+	}
+}

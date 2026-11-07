@@ -126,7 +126,8 @@ An SDK wraps the generated protobuf types with what remains:
 Built-in backends keep calling it in process, and `TestHostsAgree` still holds them to the same bytes over a pipe.
 
 The .NET SDK, `Tdl.Plugin`, is a library holding the C# types `protoc` generates for both protos, framing over stdio, and the list above.
-A loss code table shared by both SDKs is checked against `reverse.md`, as `emit.LossCodes` is today.
+The Rust SDK, `tdl-plugin` in `rust/` (#1364), holds the types buffa generates for both protos, the same framing, and the list above but the round-trip helpers, which wait for a Rust backend that imports.
+A loss code table shared by every SDK is checked against `reverse.md`, as `emit.LossCodes` is today.
 
 ## The C# backend as a .NET plugin
 

@@ -30,6 +30,7 @@ command make vscode-check     # npm ci, then typecheck and biome check editors/v
 command make vscode-test      # in `nix develop .#vscode`: the extension in a headless VSCodium
 command make dotnet-test      # dotnet test dotnet/Tdl.slnx: the .NET plugin SDK and the csharp backend
 command make dotnet-deps      # restore dotnet/ and rewrite dotnet/deps.json, the NuGet lock Nix builds from
+command make rust-test        # cargo test over rust/: the Rust plugin SDK and its debug port
 command make mutate           # in the devShell: gremlins over the core packages; PKG=./lex for one
 command make test-treesitter  # the conformance corpus, run by tree-sitter
 command make check-treesitter # what CI runs: treesitter + a diff + test-treesitter
@@ -52,10 +53,12 @@ CI runs them as two steps.
 `editors/vscode/src/` is the only TypeScript.
 `editors/vscode/package-lock.json` pins TypeScript 7 and Biome, run through `npm run`.
 `editors/vscode/biome.json` configures Biome as formatter and linter; treefmt reads it, so a lint finding fails `nix flake check`.
+treefmt also runs it over `npm/**/*.js`, the npm package's shim.
 Biome's JSON formatter is off, because jsonfmt owns JSON.
 
 `.markdownlint-cli2.yaml` lists which markdown files are linted, so a bare `markdownlint-cli2` checks what CI checks.
 Files with no formatter: the three Makefiles, `.editorconfig`, `.gitattributes`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md` (mdformat would break the frontmatter), `.graphifyignore`, `docs/demo/demo.tape`, `docs/demo/demo.bash`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, `backend/typescript/outline.js`, `tree-sitter/src/scanner.c`, and everything in `dotnet/` but `deps.json`.
+rustfmt formats `rust/`, but for `Cargo.lock` and the generated code.
 `internal/ebnf` lints the two grammars instead, and their column alignment is deliberate.
 Also excluded from formatting: `*.tdl` (until `tdl fmt` is wired in, #1308), generated files, and `.claude/`.
 
@@ -78,8 +81,15 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
   `packages.default` links against the store's glibc loader, so it does not run outside Nix.
   `dontFixup` keeps the build platform's `strip` off the darwin/arm64 binaries, which the Go linker signs.
   `checks.tdl-portable` checks each binary's format and static linking, allows only the store paths nixpkgs' Go patches in as zoneinfo and `/etc/protocols` fallbacks, and runs the binary for the checking system over the smoke model.
+- `npm.nix`: `packages.npm`, the five npm packages packed as tarballs: `@unmango/tdl` from `npm/tdl/`, and one `@unmango/tdl-<os>-<cpu>` per `tdl-portable` target, written with `jq` around its two binaries, with `os` and `cpu` set, which `@unmango/tdl` names in `optionalDependencies` at the flake's version.
+  The build fails if `npm/tdl/package.json`'s version, which release-please bumps, is not the flake's.
+  `npm/tdl/tdl.js` is the `bin`: it finds the platform package through `lib/resolve.js`, exported as `@unmango/tdl/resolve` for `@unmango/tdl-typescript`, and runs its binary, passing through arguments, stdio, and the exit status. No package has an install script.
+  The shim sits beside `package.json` because `.gitignore` ignores every `bin/`.
+  `checks.npm-tdl` installs `@unmango/tdl` and the checking system's platform package offline with `--ignore-scripts`, then runs `tdl version`, `tdl gen` over the smoke model, and `tdl-gen-typescript` through the resolver.
 - `dotnet.nix`: the .NET plugins, built with `buildDotnetModule`, which runs their tests (see [.NET SDK](#net-sdk)): `tdl-gen-csharp`, compiled with Native AOT and linked by `stdenv.cc`, and the SDK's debug port, a self-contained single file.
   On darwin the AOT link names the Swift runtime and ICU, so `swift` and `darwin.ICU` are build inputs there, as in nixpkgs' own dotnet `aot` test.
+- `rust.nix`: `tdl-rust`, the Rust workspace built with `rustPlatform` from `rust/Cargo.lock`, which runs its tests (see [Rust SDK](#rust-sdk)); it installs only `tdl-gen-rust_debug`, which `cmd.nix` does not ship.
+- `protoc-gen-buffa.nix`: buffa's protoc plugin, which nixpkgs lacks, fetched from crates.io by hash, for `make generate` and `checks.generate`.
 - `tree-sitter-tdl.nix`: the grammar's Python binding in `tree-sitter/bindings/python/`, for graphify (see `docs/architecture/graphify.md`); the overlay adds it to every Python package set, and `checks.tree-sitter-tdl` runs its tests, which parse the prelude.
   The binding, `pyproject.toml`, and `setup.py` are `tree-sitter init` output with the highlights query exposed, the tests extended, and `scanner.c` listed with the sources so a source distribution carries it.
 - `zod.nix`: the `zod` npm package, fetched by hash, for `checks.gen-zod` and the devShell's `NODE_PATH`.
@@ -171,6 +181,7 @@ The plugin protocol in `docs/architecture/plugins.md` is complete.
 - `internal/gen`: the compiler side of the plugin protocol: the backend registry, request building, and writing returned files.
   `internal/gen/echo` is a test backend that writes a model as JSON and imports it back; it is not compiled into `tdl`.
 - `internal/host`: what a host does around a backend, importing none, so a backend hosting itself can use it.
+  `loss.go` declares the loss codes, which `emit` re-exports, so `tdl`'s completion lists them too.
   `check.go` holds every directive to its backend's `DirectiveSpec` (arity, kinds, placement, allowed values, repeats) before the backend runs, so a backend need not check them itself.
   `Silence` drops warnings with an allowed loss code, and `Allowed` reads which codes `tdl.toml` allows.
 - `internal/config`: reads the nearest `tdl.toml` above a file; only its `[lossy]` table so far.
@@ -183,7 +194,7 @@ The plugin protocol in `docs/architecture/plugins.md` is complete.
 ### Backends
 
 `backend/internal/emit` holds what every generator shares, reading `internal/analysis` through the request: which declarations belong to the model, reading one target's directives, positioned warnings, case helpers, `Numbers` for field numbering, `Cascade` (skip every declaration naming a skipped one), and `Resolve`, which expands a type reference to the prelude shape or declaration it names.
-It also holds the rules more than one target reads: the JSON wire convention (`Discriminant`, `Tag`), `Length` and `Pattern` for the `length` and `matches` constraints, and `PlanInterfaces`, the class plan for a target that writes a class as a nominal interface.
+It also holds the rules more than one target reads: the JSON wire convention (`Discriminant`, `Tag`), `Length` and `Pattern` for the `length` and `matches` constraints, `Narrow`, the narrowed type (a literal union or a tuple) a target with literal and tuple types writes for a `oneOf`, a small integer range, or a list's small exact length, `ECMAScript`, which prints a parsed pattern so a JavaScript engine matches what RE2 does, `Backtracks`, which refuses a pattern shape a backtracking engine takes exponential time on, `Surrogates`, which refuses a pattern naming a code point only JavaScript can see, and `PlanInterfaces`, the class plan for a target that writes a class as a nominal interface.
 `Resolve` refuses type parameters and arguments, since only Go generates generics.
 `backend/internal/irtest` builds `*ir.Model` values for backend tests, seeded with the prelude and the `Entity` class.
 
@@ -228,10 +239,10 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   It imports one file: `reverse.go` reads gqlparser's schema document, taking the package from the file's name; `annotate.go` writes the loss warnings and, under `roundtrip`, `@tdl` directives, which the schema then defines.
   Tests validate every response with `vektah/gqlparser`.
 - `backend/typescript`: one `.ts` file per model of JSON wire types, no runtime code.
-  A set is an array, a map a `Record`, unrepresentable primitives a string, a newtype a plain alias.
+  A set is an array, a map a `Record`, unrepresentable primitives a string, a newtype a plain alias, or under `brand` one intersected with a brand keyed by its qualified name, which import reads back.
   A fielded enum is a union discriminated on `kind`, renamed by a `discriminant` directive.
   An extern is imported with `import type`, through `backend/internal/ts`'s `imports.go`: from the module a `foreign` directive names, or from its dependency's file by a path relative to this one, which both blocks' `out` directives place.
-  `narrow.go` writes a `oneOf`, or an integer `min`/`max` pair spanning at most 16 values, as a literal union, which warns only that it reads back as `oneOf`.
+  A narrowed type from `emit.Narrow` is written as a literal union, which warns only that it reads back as `oneOf`, or a tuple, which import reads back as a list with its `length`.
   Tests run `tsc --noEmit --strict` when it is on `PATH`; `checks.gen-typescript` always does.
   It imports one file: `reverse.go` runs the embedded `outline.js` under `node` with the `typescript` package found from `tsc` on `PATH`, and reads the JSON outline it writes; without both, import and its tests skip.
   `annotate.go` writes the loss warnings and, under `roundtrip`, JSDoc `@tdl` tags, carrying a declaration whole where it loses anything.
@@ -240,14 +251,18 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   See `docs/architecture/typescript-content-mapper.md`.
 - `backend/zod`: one `<package>.zod.ts` module per model of Zod schemas, each a `const` and a same-named `type` inferred from it, parsing the JSON wire convention `typescript` types.
   It shares the primitive mapping, names, property quoting, and the extern import path with `typescript` through `backend/internal/ts`.
-  A struct is a `z.object`, or `z.strictObject` under `closed`; a fieldless enum a `z.enum`, a fielded one a `z.discriminatedUnion` of variant objects; a newtype a schema of its base, and an alias is expanded.
+  A struct is a `z.object`, or `z.strictObject` under `closed`; a fieldless enum a `z.enum`, a fielded one a `z.discriminatedUnion` of variant objects; a newtype a schema of its base branded with its qualified name, and an alias is expanded.
   `T?` is `.exactOptional()`, a set an array refusing duplicates through the module's `unique` helper, and `decimal` and `instant` are helpers too, each declared only when used.
   A field naming a declaration written later, its own, or a lazy newtype is a getter with its return type written; a newtype whose base is written later is a `z.lazy` with its type written.
-  A default is `.default()`, checked in `defaults.go` against the rules Zod would apply, since Zod checks none; one it would refuse warns and is not written.
+  A default is `.prefault()`, which parses it through the schema, checked in `defaults.go` against the rules Zod would apply and the constraints, so one it would refuse warns and is not written rather than failing every parse.
   A `foreign` directive imports a schema in place of a declaration or an extern, and an extern otherwise comes from its dependency's `zod` block, as in `typescript`.
-  Phases 1 and 2 are built, and #1230 tracks the rest: constraints, units, generics, and classes warn.
+  A narrowed type from `emit.Narrow` is a `z.enum`, a `z.literal`, an enum's `.extract`, or a `z.tuple`, inferring what `typescript` writes.
+  `checks.go` writes every other standard constraint as a check (`.min()`, `.max()`, the `codePoints` and `size` refines, `unique`): on a newtype's own schema, or on a schema of a constrained field's own, `LineItemQuantity`, named for its struct and field or by a `newtype` directive, and branded with both; a `oneOf` argument another constraint excludes warns and is left out.
+  The `structural` target-block directive writes no brands and keeps every check and name.
+  A `matches` is `.regex()` with a module constant printed by `emit.ECMAScript` (`patterns.go`), only under the `patterns` target-block directive; without it, or for a pattern `emit.Backtracks` or `emit.Surrogates` refuses, it warns.
+  Phases 1, 2, and 3 are built, and #1230 tracks the rest: units, generics, and classes warn.
   Tests run `tsc --strict --exactOptionalPropertyTypes` over every response and parse JSON with it under `node`, when `tsc`, `node`, and a `zod` package on `NODE_PATH` are found; the devShell sets `NODE_PATH` from `nix/zod.nix`, and `checks.gen-zod` always runs them on the smoke model.
-  An agreement test holds every inferred type and `typescript`'s type for the same declaration assignable to each other.
+  An agreement test, under `structural`, holds every inferred type and `typescript`'s type for the same declaration assignable to each other.
 - `backend/jsonschema`: one `.schema.json` document per model, every declaration under `$defs`.
   A fielded enum is a `oneOf` discriminated on `kind`, as in TypeScript; a newtype is a definition with its own constraints, and a base newtype is a `$ref`.
   `where` constraints become keywords (`minimum`, `pattern`, `minLength`, ...) chosen by what the constrained type holds, and one with no keyword warns.
@@ -294,7 +309,7 @@ Every backend reports what it cannot generate as a positioned warning rather tha
 `cmd/tdl-gen-<name>` serves each backend as a plugin.
 `TestHostsAgree` in `internal/gen` holds each to producing the same bytes in process and over a pipe.
 A backend that imports implements `plugin.Importer`, declares `Reverse`, and has a `reverse` column in `shipped`, which `TestImportHostsAgree` runs; `TestReverseIsDeclared` keeps the three in step.
-A warning a user can silence carries a loss code; `emit.LossCodes` must match the table in `reverse.md`.
+A warning a user can silence carries a loss code; `host.LossCodes`, which `emit.LossCodes` re-exports, must match the table in `reverse.md`.
 Output loss, what the output drops, is written with `emit.Session.Lossy` and always reported; read-back loss, what only import would miss, with `emit.Session.Lose`, reported under a bare `readback` directive and never under `roundtrip` (see `reverse.md`'s Loss codes).
 A backend added to the registry needs a row in the `shipped` table in `internal/gen/hosts_test.go` (`TestEveryBuiltinHasARow`) and, if shipped, an entry in `nix/cmd.nix` (`TestPackagedBackendsShip`).
 
@@ -362,9 +377,24 @@ CI runs the same command before the build and fails if `git diff` shows the lock
 `.github/renovate.json` pins Renovate's SDK to a release of the major `nix/dotnet.nix` builds with, since another major restores other implicit packages; Renovate reads the constraint as an exact version, so it names one.
 `checks.dotnet-sdk` builds and tests every project, and `checks.gen-dotnet-debug` runs the debug port through `tdl gen` beside the Go backend.
 
+### Rust SDK
+
+`rust/` is a Cargo workspace holding `tdl-plugin`, the SDK a backend written in Rust builds on, and `tdl-plugin-debug`, a port of `backend/debug` served as `tdl-gen-rust_debug`.
+The `rust` backend (#1273) will join it; the crates are not published.
+The SDK holds framing (`Conn`), the handshake answered from a `Description` (`serve`, `run`), a `Session` over the request and its analysis, diagnostics with loss codes, the cascade (`Skipped`), and case styles over name words.
+Like the .NET SDK it computes no fact the analysis carries, and `Session::new` returns an error for a request without one.
+A session finds a node's view by the node's address in the request, as the .NET SDK compares references, so a node cloned out of the request has none.
+`lossy` reports output loss and `lose` read-back loss, which reports only under `readback` and never under `roundtrip`; round-trip and import helpers wait for a Rust backend that imports.
+`tdl-plugin/src/generated/` is `buf generate` output from buffa's `protoc-gen-buffa`, one self-contained file per package (`file_per_package`, `strategy: all`) without views, and leaving out `pb` as the C# entry does; prost and rust-protobuf v3 cannot read Editions 2024.
+`buffa` is pinned exactly in `rust/Cargo.toml` to the version `nix/protoc-gen-buffa.nix` builds, since the generated code targets one runtime; bump both together and regenerate, since `.github/renovate.json` leaves `buffa` alone.
+The SDK's tests check the loss codes against `reverse.md` and the session, the framing, and the handshake; the debug port's replay `testdata/plugin/*.binpb` byte for byte, in process and over a connection.
+`checks.rust-sdk` builds and tests the workspace with no network, and `checks.gen-rust-debug` runs the debug port through `tdl gen` beside the Go backend.
+
 ## CLI
 
 The root command silences cobra's error printing; a command returns its error and `cmd/tdl` prints it.
+
+Shell completion is cobra's `completion` command; `complete.go` holds the value completion every command registers, served through `__complete`, and never starts a plugin.
 
 `file.go` is shared by every command that reads files: `loadFile` reads and parses one, and `eachFile` walks the arguments, reporting each failure and continuing.
 It prints the error alone, since diagnostics and `os.PathError` already name the file.
@@ -492,7 +522,8 @@ The protos are Editions 2024.
 Each file sets `features.field_presence = IMPLICIT` and `features.(pb.go).api_level = API_OPEN`; a field needing presence sets it itself, as `Range.low` does.
 `go_package` lives in `buf.gen.yaml` under managed mode.
 
-After changing `proto/`, run `make generate` and commit the `.pb.go` files.
+After changing `proto/`, run `make generate` and commit the `.pb.go` files, `dotnet/Tdl.Plugin/Generated/`, and `rust/tdl-plugin/src/generated/`.
+`checks.generate` runs `buf generate` in the sandbox with the devShell's plugins and fails on any difference from what is committed.
 Field numbers are a compatibility promise to plugins: add fields, never renumber or reuse.
 `.github/workflows/buf.yml` runs `buf lint`, `buf format`, and `buf breaking` against the base.
 It is advisory: it is outside the `required` job, so a reviewer must read it.

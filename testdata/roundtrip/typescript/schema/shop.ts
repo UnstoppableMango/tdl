@@ -21,6 +21,7 @@ export interface OrderLine {
   sku: string;
   quantity: number;
   grid: number[][];
+  dims: [number, number, number];
 }
 
 /**

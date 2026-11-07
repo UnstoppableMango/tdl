@@ -3,6 +3,7 @@ package typescript_test
 import (
 	"context"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -229,5 +230,43 @@ func TestAnnotatedOutputTypeChecks(t *testing.T) {
 		for _, f := range resp.GetFiles() {
 			typecheck(t, f)
 		}
+	}
+}
+
+// A tuple of one type reads back as a list with that length, as a list
+// with an exact length is written; a tuple of mixed types, a named or
+// optional element, or a tuple inside a collection has no TDL form.
+func TestImportReadsTuples(t *testing.T) {
+	src, diags := importTS(t, map[string]string{"shop.ts": `
+export interface Box {
+  dims: [number, number, number];
+  pair?: [string, string] | null;
+  mixed: [string, number];
+  named: [x: number, y: number];
+  nested: [number, number][];
+}
+`})
+	for _, s := range []string{
+		"dims: [float64] where { length(3) }",
+		"pair: [string]? | null where { length(2) }",
+	} {
+		if !strings.Contains(src, s) {
+			t.Errorf("import lacks %q:\n%s", s, src)
+		}
+	}
+	got := 0
+	for _, d := range diags {
+		if d.GetCode() == emit.LossUnsupported {
+			got++
+		}
+	}
+	if got != 3 {
+		t.Errorf("%d unsupported warnings, want 3 (mixed, named, nested): %v", got, diags)
+	}
+	// A nested tuple's warning names it as written.
+	if !slices.ContainsFunc(diags, func(d *plugin.Diagnostic) bool {
+		return strings.Contains(d.GetMessage(), "Box.nested is [number, number],")
+	}) {
+		t.Errorf("no warning naming the nested tuple as written: %v", diags)
 	}
 }

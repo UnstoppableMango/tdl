@@ -55,6 +55,8 @@ func genCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 			"silenced by the [lossy] table of the nearest tdl.toml above the\n" +
 			"file, or by --allow-lossy.",
 		Args: cobra.MinimumNArgs(1),
+
+		ValidArgsFunction: tdlFiles,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if r.watch && r.verify {
 				return fmt.Errorf("--watch regenerates, so it cannot be combined with --verify")
@@ -121,6 +123,8 @@ func genCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 	cmd.Flags().BoolVar(&r.watch, "watch", false, "regenerate when the file changes")
 	cmd.Flags().StringVar(&r.makeTarget, "make", "", "after a successful run, write a make dependency file for this target")
 	cmd.Flags().StringSliceVar(&r.allowLossy, "allow-lossy", nil, "silence warnings with these loss codes")
+	registerCompletion(cmd, "target", completeDeclaredTargets)
+	registerCompletion(cmd, "allow-lossy", completeLossCodes)
 	return cmd
 }
 

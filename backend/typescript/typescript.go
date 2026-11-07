@@ -40,6 +40,11 @@ func (Backend) Describe() plugin.Description {
 			// The property a discriminated union switches on: the default on
 			// the target block, an override on an enum.
 			{Name: "discriminant", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock, plugin.OnDecl)},
+			// Brands a newtype by its qualified name, so tsc refuses another
+			// newtype over the same base in its place: every newtype from the
+			// target block, one from a declaration. A declaration other than
+			// a newtype warns, since placement cannot say newtype only.
+			{Name: "brand", Placements: plugin.On(plugin.OnBlock, plugin.OnDecl)},
 			// A module and the type it exports, for a declaration another
 			// package owns.
 			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{str[0], str[0]}, Placements: plugin.On(plugin.OnDecl)},
@@ -58,9 +63,6 @@ type generator struct {
 	// names maps each declared type name to the declaration declaring it.
 	names map[string]string
 
-	// enforced holds each constraint a literal union enforces.
-	enforced map[*ir.Constraint]bool
-
 	// lost is whether the declaration being rendered loses a fact, and
 	// tags the @tdl tags its JSDoc carries.
 	lost bool
@@ -74,6 +76,9 @@ type generator struct {
 	// mapped is whether the file is a content mapper's module rather than
 	// one tdl gen writes: an extern is imported from its .tdl file.
 	mapped bool
+
+	// brand is whether the target block brands every newtype.
+	brand bool
 }
 
 // Generate returns one .ts file holding the model's declarations.
@@ -87,7 +92,6 @@ func generate(req *plugin.Request, mapped bool) *plugin.Response {
 	g := &generator{
 		Session:  emit.NewSession(req, "TypeScript"),
 		names:    map[string]string{},
-		enforced: map[*ir.Constraint]bool{},
 		declares: map[*ir.Decl][]string{},
 		mapped:   mapped,
 	}
@@ -97,6 +101,10 @@ func generate(req *plugin.Request, mapped bool) *plugin.Response {
 	// round trip would hide what it skips.
 	g.Roundtrip = !mapped && g.Bare("roundtrip")
 	g.Readback = g.Bare("readback")
+	g.brand = g.Bare("brand")
+	if g.brand {
+		g.Lose(emit.LossName, nil, "the target block's brand directive reads back as a brand directive on each newtype")
+	}
 
 	pkg := req.GetModel().GetPackage()
 	path := ts.File(pkg) + ".ts"
@@ -210,7 +218,7 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 		g.names[n] = name
 	}
 	g.declares[d] = declared
-	g.WarnUnenforced(d, func(c *ir.Constraint) bool { return g.enforced[c] })
+	g.WarnConstraints(d)
 	return text, nil
 }
 
@@ -238,6 +246,7 @@ func (g *generator) losses(d *ir.Decl) {
 	name := d.GetMeta().GetName()
 	written := g.DeclName(d, emit.Pascal)
 	g.declLosses(d, written)
+	g.strayBrand(d)
 
 	fields := d.Fields()
 	switch e := d.GetEnumeration(); {
@@ -293,10 +302,30 @@ func (g *generator) losses(d *ir.Decl) {
 		cs = append(cs, f.GetConstraints()...)
 	}
 	for _, c := range cs {
-		if !g.enforced[c] {
-			// WarnUnenforced warns about each.
+		if !g.Enforced(c) {
+			// WarnConstraints warns about each.
 			g.lost = true
 		}
+	}
+}
+
+// strayBrand warns about a brand directive on a declaration that is not a
+// newtype, which brands nothing. Like a fieldless variant's name, it is
+// not output loss and carries no loss code, and a mapped module leaves it
+// out; import misses the directive, which is read-back loss.
+func (g *generator) strayBrand(d *ir.Decl) {
+	if d.GetNewtype() != nil {
+		return
+	}
+	for _, dir := range plugin.Directives(g.Target, d.GetDirectives()) {
+		if dir.GetName() != "brand" {
+			continue
+		}
+		name := d.GetMeta().GetName()
+		if !g.mapped {
+			g.Warn(emit.Unsupported(dir.GetPosition(), "%s is not a newtype, so its brand directive has no effect", name))
+		}
+		g.lose(emit.LossName, dir.GetPosition(), "%s's brand directive brands nothing, and does not read back", name)
 	}
 }
 
@@ -317,8 +346,8 @@ func (g *generator) fieldsLosses(owner string, fields []*ir.Field) {
 }
 
 // newtype renders a newtype as an alias for its base, or for the literal
-// union its constraints spell. A branded type would make every value parsed
-// from JSON need a cast.
+// union its constraints spell. It is a plain alias unless branded, since a
+// branded type makes every value parsed from JSON need a cast.
 func (g *generator) newtype(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	ref, err := g.Resolve(d.GetNewtype().GetBase())
 	if err != nil {
@@ -328,13 +357,44 @@ func (g *generator) newtype(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	if lits := g.narrow(ref, d.GetNewtype().GetValueConstraints(), nil); lits != "" {
-		base = lits
+	if n := g.Narrow(ref, d.GetNewtype().GetValueConstraints(), nil); n != nil {
+		if base, err = g.narrowed(n); err != nil {
+			return nil, err
+		}
+	}
+	if g.branded(d) {
+		base = brandType(base, ts.Qualified(g.Model.GetPackage(), d.GetMeta().GetName()))
 	}
 	name := g.DeclName(d, emit.Pascal)
 	docComment(b, d.GetMeta(), g.tags...)
 	fmt.Fprintf(b, "export type %s = %s;\n", name, base)
 	return []string{name}, nil
+}
+
+// branded reports whether a newtype is branded: by its own brand
+// directive, or the target block's.
+func (g *generator) branded(d *ir.Decl) bool {
+	return g.brand || g.Tagged(d.GetDirectives(), "brand")
+}
+
+// brandKey is the property a brand's object holds, beneath which each
+// brand is a property keyed by a qualified name, so a newtype over a
+// branded newtype intersects both brands rather than two literal values.
+const brandKey = "__brand"
+
+// brandType intersects base with the brand for name. A base that may be
+// null is branded without the null, which no brand can hold.
+func brandType(base, name string) string {
+	nullable := strings.HasSuffix(base, " | null")
+	base = strings.TrimSuffix(base, " | null")
+	if strings.Contains(base, " | ") {
+		base = "(" + base + ")"
+	}
+	out := fmt.Sprintf("%s & { readonly %s: { readonly %s: true } }", base, brandKey, strconv.Quote(name))
+	if nullable {
+		out += " | null"
+	}
+	return out
 }
 
 // iface renders an entity, a value, or a mixin as an interface. A variant
@@ -437,8 +497,10 @@ func (g *generator) property(name string, r *emit.Ref, cs []*ir.Constraint) (str
 	if err != nil {
 		return "", err
 	}
-	if lits := g.narrow(r, cs, r.Decl.GetNewtype().GetValueConstraints()); lits != "" {
-		typ = lits
+	if n := g.Narrow(r, cs, r.Decl.GetNewtype().GetValueConstraints()); n != nil {
+		if typ, err = g.narrowed(n); err != nil {
+			return "", err
+		}
 	}
 	if nullable {
 		typ += " | null"
@@ -512,3 +574,25 @@ func (g *generator) record(r *emit.Ref) (string, error) {
 }
 
 func asWritten(name string) string { return name }
+
+// narrowed spells a narrowed type: a union of literals, or a tuple.
+func (g *generator) narrowed(n *emit.Narrowed) (string, error) {
+	if n.Kind == emit.NarrowTuple {
+		elem, err := g.typ(n.Elem)
+		if err != nil {
+			return "", err
+		}
+		elems := make([]string, n.Len)
+		for i := range elems {
+			elems[i] = elem
+		}
+		return "[" + strings.Join(elems, ", ") + "]", nil
+	}
+	values := slices.Clone(n.Values)
+	if n.Kind != emit.NarrowNumbers {
+		for i, v := range values {
+			values[i] = strconv.Quote(v)
+		}
+	}
+	return strings.Join(values, " | "), nil
+}

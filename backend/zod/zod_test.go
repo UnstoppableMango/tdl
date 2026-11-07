@@ -103,7 +103,7 @@ func TestDescribe(t *testing.T) {
 	for _, spec := range d.Directives {
 		declared[spec.GetName()] = true
 	}
-	for _, want := range []string{"name", "discriminant", "closed"} {
+	for _, want := range []string{"name", "discriminant", "closed", "foreign", "patterns"} {
 		if !declared[want] {
 			t.Errorf("directive %q is acted on but not declared", want)
 		}
@@ -118,9 +118,7 @@ func TestSmoke(t *testing.T) {
 	if len(resp.GetFiles()) != 1 || resp.GetFiles()[0].GetPath() != "smoke.zod.ts" {
 		t.Fatalf("files = %v, diagnostics = %v", resp.GetFiles(), resp.GetDiagnostics())
 	}
-	if !warned(resp, emit.LossConstraint, "LineItem.quantity") || len(resp.GetDiagnostics()) != 1 {
-		t.Errorf("diagnostics = %v, want one for LineItem.quantity's constraint", resp.GetDiagnostics())
-	}
+	quiet(t, resp)
 	typecheck(t, nil, resp)
 	parse(t, `import * as m from "./smoke.zod.js";
 
@@ -153,6 +151,13 @@ refuses("Order with a bad date", m.Order, json({ ...order, shipOn: "22/10/2026" 
 refuses("Order with a bad duration", m.Order, json({ ...order, took: "an hour" }));
 refuses("Order with bad bytes", m.Order, json({ ...order, receipt: "%%%" }));
 refuses("Order with a fractional quantity", m.Order, json({ ...order, items: [{ sku: "A-1", quantity: 1.5 }] }));
+refuses("Order with no quantity", m.Order, json({ ...order, items: [{ sku: "A-1", quantity: 0 }] }));
+const parcel = { carrier: "ups", priority: 2, dims: [1, 2.5, 3], stage: "Draft" };
+accepts("Parcel", m.Parcel, json(parcel));
+refuses("Parcel with an unknown carrier", m.Parcel, json({ ...parcel, carrier: "dhl" }));
+refuses("Parcel with priority 4", m.Parcel, json({ ...parcel, priority: 4 }));
+refuses("Parcel with two dims", m.Parcel, json({ ...parcel, dims: [1, 2] }));
+refuses("Parcel that is provisional", m.Parcel, json({ ...parcel, stage: "Provisional" }));
 refuses("Order with an unknown status", m.Order, json({ ...order, status: "Lost" }));
 refuses("Order with a Card without last4", m.Order, json({ ...order, payment: { kind: "Card" } }));
 accepts("Payment", m.Payment, json({ kind: "Cash" }));
@@ -172,9 +177,25 @@ accepts("Sparse", m.Sparse, json({ values: [1, null, 3] }));
 // each other.
 func TestAgreesWithTypeScript(t *testing.T) {
 	m := irtest.Conformance(t, smoke)
-	z := generate(t, zod.Backend{}, zod.Name, m)
+	// typescript's brands are not zod's, so the two agree only unbranded.
+	unbrand := func(ds []*ir.Directive) []*ir.Directive {
+		return slices.DeleteFunc(ds, func(d *ir.Directive) bool {
+			return d.GetTarget() == typescript.Name && d.GetName() == "brand"
+		})
+	}
+	for _, block := range m.GetTargets() {
+		block.Directives = unbrand(block.Directives)
+	}
+	for _, d := range m.GetDecls() {
+		d.Directives = unbrand(d.Directives)
+	}
 	tsResp := generate(t, typescript.Backend{}, typescript.Name, m)
-
+	for _, block := range m.GetTargets() {
+		if block.GetMeta().GetName() == zod.Name {
+			block.Directives = append(block.Directives, &ir.Directive{Name: "structural", Target: zod.Name})
+		}
+	}
+	z := generate(t, zod.Backend{}, zod.Name, m)
 	names := regexp.MustCompile(`(?m)^export type (\w+) =`).FindAllStringSubmatch(string(z.GetFiles()[0].GetContent()), -1)
 	if len(names) == 0 {
 		t.Fatal("the module declares no types")
@@ -186,9 +207,13 @@ import type * as Z from "./smoke.zod.js";
 type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 `)
 	declared := string(tsResp.GetFiles()[0].GetContent())
+	// A constrained field's own schema has no typescript declaration.
+	fieldSchemas := map[string]bool{"LineItemQuantity": true}
 	for _, n := range names {
 		if !regexp.MustCompile(`(?m)^export (interface|type) ` + n[1] + `\b`).MatchString(declared) {
-			t.Errorf("typescript declares no %s", n[1])
+			if !fieldSchemas[n[1]] {
+				t.Errorf("typescript declares no %s", n[1])
+			}
 			continue
 		}
 		b.WriteString("export const same" + n[1] + ": Same<T." + n[1] + ", Z." + n[1] + "> = true;\n")
@@ -197,9 +222,11 @@ type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 }
 
 // A field naming a declaration written later, or its own, is a getter
-// with its return type, so the module loads and a cycle infers.
+// with its return type, so the module loads and a cycle infers. The
+// literals below are plain values, so the model is structural; the
+// branded module type checks too.
 func TestRecursion(t *testing.T) {
-	resp, src := gen(t, `package shop
+	const model = `package shop
 
 type Customer: Entity {
   id: string
@@ -223,6 +250,15 @@ type Tree {
 enum Line {
   Item { sku: string }
   Bundle { lines: [Line] }
+}
+`
+	branded, _ := gen(t, model)
+	quiet(t, branded)
+	typecheck(t, nil, branded)
+
+	resp, src := gen(t, model+`
+target zod for shop {
+  structural
 }
 `)
 	quiet(t, resp)
@@ -301,6 +337,16 @@ accepts("Values", Values, '` + value + `');
 }
 
 // Every primitive the shared mapping types has a schema.
+// Every integer JSON writes as a number has a range, so a default on it
+// is checked.
+func TestEveryIntegerHasARange(t *testing.T) {
+	for name, integer := range emit.Numerics {
+		if _, ok := zod.IntRanges[name]; ok != integer {
+			t.Errorf("%s: range %v, integer %v", name, ok, integer)
+		}
+	}
+}
+
 func TestEveryScalarHasASchema(t *testing.T) {
 	var fields strings.Builder
 	for _, name := range slices.Sorted(maps.Keys(ts.Scalars)) {
@@ -578,31 +624,23 @@ type Account {
 		"/** * An account. * * @deprecated use User */ export type Account = z.infer<typeof Account>;")
 }
 
-// Phase 1 checks no where constraint and gives a unit no brand, and each
-// warns.
+// A unit is not generated yet, and warns.
 func TestNotYet(t *testing.T) {
 	resp, src := gen(t, `package shop
 
 unit kg
 
-type Qty: int where { min(1) }
-
 type Parcel {
   weight: decimal<kg>
-  count: int where { max(9) }
-  qty: Qty
 }
 `)
-	contains(t, src, `weight: decimal,`, `count: z.int(),`, `export const Qty = z.int();`)
-	absent(t, src, ".min(", ".max(")
+	contains(t, src, `weight: decimal,`)
 	for _, w := range []struct {
 		code  string
 		words []string
 	}{
 		{emit.LossUnit, []string{"kg is a unit"}},
 		{emit.LossUnit, []string{"Parcel.weight"}},
-		{emit.LossConstraint, []string{"Parcel.count"}},
-		{emit.LossConstraint, []string{"Qty"}},
 	} {
 		if !warned(resp, w.code, w.words...) {
 			t.Errorf("no %s warning mentions %v: %v", w.code, w.words, resp.GetDiagnostics())

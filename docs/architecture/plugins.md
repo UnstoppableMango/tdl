@@ -94,7 +94,7 @@ The plugin returns file contents, not files on disk:
 ```proto
 message Response {
   repeated File       files       = 1;
-  repeated string     post        = 2;
+  repeated string     post        = 2; // deprecated, ignored
   repeated Diagnostic diagnostics = 3;
 }
 
@@ -110,19 +110,33 @@ An absolute path, or one containing `..`, is an error and nothing is written, so
 
 ## Post-processing
 
-Not built: nothing reads `Response.post`.
+Not built; #1409 builds it.
 
-A plugin may ask for a command to run over the written files, typically a formatter.
-The commands are declared in `tdl.toml`:
+The project, not the plugin, chooses commands to run over a target's output, typically a formatter.
+A target block names them with `post`, and `tdl.toml` maps each name to a command line:
+
+```tdl
+target typescript for shop {
+  out("gen/ts")
+  post("biome")
+}
+```
 
 ```toml
 [post]
-gofmt = "gofmt -w"
+biome = "biome format --stdin-file-path={file}"
 ```
 
-The plugin requests `gofmt` by name and never supplies arguments.
-An undeclared name is skipped with a warning saying what to add, and the output is still written, unformatted.
-The allowlist is a record of what a build runs, not a security boundary, since the plugin is already arbitrary code.
+A command is a filter over one file: `tdl` writes the content to its stdin and takes its stdout as the new content.
+`{file}` is the file's destination path relative to the directory holding `tdl.toml`, and the command runs there, so a tool finds its own configuration as if the file were in place.
+Several names run in order, each one's output feeding the next, over every file the target returns.
+
+Post-processing runs before anything is compared or written, so `--verify`, `--clean`, `.tdl-output`, and `--make` see the bytes that land on disk.
+A command that exits non-zero or is not found, or a name `[post]` does not declare, is an error, and nothing is written for that target; skipping it instead would make `--verify` depend on the machine.
+The table is a record of what a build runs, not a security boundary, since the plugin is already arbitrary code.
+
+`Response.post` is deprecated and ignored.
+It once let a plugin request a command by name, but which formatter runs is the project's choice, and the backends that format their output do it in process.
 
 ## Dry run
 

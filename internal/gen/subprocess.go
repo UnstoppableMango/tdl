@@ -6,7 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -39,6 +42,41 @@ func Find(name string) (*Subprocess, error) {
 		return nil, fmt.Errorf("no backend named %s: %w", name, err)
 	}
 	return &Subprocess{Name: name, Path: path, Timeout: DefaultTimeout}, nil
+}
+
+// PathPlugins maps each tdl-gen-<name> on PATH to the path [Find] would
+// run, without starting any. A name a built-in serves is left out, since
+// [Resolve] never lets PATH shadow one.
+func PathPlugins() map[string]string {
+	plugins := map[string]string{}
+	for _, dir := range filepath.SplitList(os.Getenv("PATH")) {
+		if dir == "" {
+			continue
+		}
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			continue
+		}
+		for _, e := range entries {
+			name, ok := strings.CutPrefix(e.Name(), CommandPrefix)
+			if runtime.GOOS == "windows" {
+				name = strings.TrimSuffix(name, filepath.Ext(name))
+			}
+			if !ok || name == "" {
+				continue
+			}
+			if _, builtin := Builtin(name); builtin {
+				continue
+			}
+			if _, seen := plugins[name]; seen {
+				continue
+			}
+			if sub, err := Find(name); err == nil {
+				plugins[name] = sub.Path
+			}
+		}
+	}
+	return plugins
 }
 
 // Describe starts the plugin, shakes hands, and stops it again. Generate

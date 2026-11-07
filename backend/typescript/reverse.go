@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"slices"
 	"strconv"
@@ -94,7 +95,9 @@ type (
 		Args  []*tsType `json:"args,omitempty"`
 		Elem  *tsType   `json:"elem,omitempty"`
 		Types []*tsType `json:"types,omitempty"`
-		Text  string    `json:"text,omitempty"`
+		// Members is an object type's.
+		Members []*member `json:"members,omitempty"`
+		Text    string    `json:"text,omitempty"`
 		tsLit
 	}
 	tsLit struct {
@@ -183,6 +186,7 @@ func parse(ctx context.Context, files []*plugin.File) (*outline, error) {
 type reader struct {
 	reverse.Reader
 	path  string
+	pkg   string
 	stmts []*statement
 
 	// names maps each TypeScript type import reads to its TDL name.
@@ -241,6 +245,7 @@ func (r *reader) read(ctx context.Context, files []*plugin.File) (*ir.Model, err
 	if err != nil {
 		return nil, err
 	}
+	r.pkg = pkg
 	if pkg != "" || len(pdoc) > 0 {
 		file.Package = &ast.PackageDecl{Path: pkg, Doc: pdoc, DocP: make([]ast.Position, len(pdoc))}
 	}
@@ -591,8 +596,17 @@ func syntax(kind string) string {
 }
 
 // alias reads a type alias: a union of string literals naming variants is
-// an enum, `never` an enum with none, and anything else a newtype.
+// an enum, `never` an enum with none, and anything else a newtype. A
+// branded alias is a newtype with a brand directive.
 func (r *reader) alias(s *statement, head ast.DeclHead) (ast.Decl, error) {
+	if base, key := unbrand(s.Type); key != "" {
+		if want := ts.Qualified(r.pkg, head.N); key != want {
+			r.Warn(emit.LossUnsupported, r.pos(s.Line, s.Col), "%s's brand %q is not its qualified name %q, and is not read", s.Name, key, want)
+		} else {
+			r.Directive(head.N, "brand")
+		}
+		return r.newtype(s, head, base)
+	}
 	if s.Type.K == "never" {
 		return &ast.EnumDecl{DeclHead: head}, nil
 	}
@@ -608,8 +622,12 @@ func (r *reader) alias(s *statement, head ast.DeclHead) (ast.Decl, error) {
 	if enum != nil {
 		return enum, nil
 	}
+	return r.newtype(s, head, s.Type)
+}
 
-	typ, cs := r.typeOf(s.Type, s.Name, s.Line, s.Col, true)
+// newtype reads a type alias as a newtype over t.
+func (r *reader) newtype(s *statement, head ast.DeclHead, t *tsType) (ast.Decl, error) {
+	typ, cs := r.typeOf(t, s.Name, s.Line, s.Col, true)
 	if typ == nil {
 		return nil, nil
 	}
@@ -618,6 +636,60 @@ func (r *reader) alias(s *statement, head ast.DeclHead) (ast.Decl, error) {
 		d.Rbrace = d.P
 	}
 	return d, nil
+}
+
+// unbrand takes the brand off a branded alias's type, returning its base
+// and the brand's key, or t and "". A base that may be null is branded
+// without the null.
+func unbrand(t *tsType) (*tsType, string) {
+	members := unionOf(t)
+	at := -1
+	for i, m := range members {
+		if m.K == "null" {
+			continue
+		}
+		if at >= 0 {
+			return t, ""
+		}
+		at = i
+	}
+	if at < 0 {
+		return t, ""
+	}
+	base, key := brandOf(members[at])
+	if key == "" {
+		return t, ""
+	}
+	if len(members) == 1 {
+		return base, key
+	}
+	return &tsType{K: "union", Types: slices.Concat(unionOf(base), members[:at], members[at+1:])}, key
+}
+
+// brandOf reads a base intersected with one brand, as Generate writes it:
+// `Base & { readonly __brand: { readonly "<key>": true } }`.
+func brandOf(t *tsType) (*tsType, string) {
+	if t.K != "intersection" || len(t.Types) != 2 {
+		return nil, ""
+	}
+	outer, ok := only(t.Types[1])
+	if !ok || outer.Name != brandKey {
+		return nil, ""
+	}
+	inner, ok := only(outer.Type)
+	if !ok || inner.Type.K != "lit" || inner.Type.Bool == nil || !*inner.Type.Bool {
+		return nil, ""
+	}
+	return t.Types[0], inner.Name
+}
+
+// only is an object type's one required property.
+func only(t *tsType) (*member, bool) {
+	if t == nil || t.K != "object" || len(t.Members) != 1 {
+		return nil, false
+	}
+	m := t.Members[0]
+	return m, m.Kind == "property" && !m.Optional && m.Type != nil
 }
 
 // union reads a union of interfaces as a fielded enum, each interface a
@@ -721,6 +793,11 @@ func (r *reader) typeOf(t *tsType, what string, line, col int, top bool) (*ast.T
 	var out *ast.TypeRef
 	var cs []*ast.Constraint
 	switch {
+	case top && len(members) == 1 && members[0].K == "tuple":
+		out, cs = r.tuple(members[0], what, line, col)
+		if out == nil {
+			return nil, nil
+		}
 	case len(members) == 1 && members[0].K != "lit":
 		out = r.single(members[0], what, line, col)
 	case top && len(members) > 0:
@@ -740,6 +817,27 @@ func (r *reader) typeOf(t *tsType, what string, line, col int, top bool) (*ast.T
 		}
 	}
 	return out, cs
+}
+
+// tuple reads a tuple whose elements are one type as a list with that
+// length, as a list with an exact length is written, or warns and returns
+// nil.
+func (r *reader) tuple(t *tsType, what string, line, col int) (*ast.TypeRef, []*ast.Constraint) {
+	elems := t.Types
+	same := len(elems) > 0
+	for _, e := range elems {
+		same = same && reflect.DeepEqual(e, elems[0])
+	}
+	if !same {
+		r.Warn(emit.LossUnsupported, r.pos(line, col), "%s is a tuple whose elements are not one type, which TDL has no form for", what)
+		return nil, nil
+	}
+	elem, _ := r.typeOf(elems[0], what, line, col, false)
+	if elem == nil {
+		return nil, nil
+	}
+	length := &ast.Constraint{N: "length", Args: []*ast.Literal{{Kind: ast.LitInt, Text: strconv.Itoa(len(elems))}}}
+	return &ast.TypeRef{List: elem}, []*ast.Constraint{length}
 }
 
 // literals reads a union of string or of number literals as a string or

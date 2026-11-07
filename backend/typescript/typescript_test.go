@@ -468,6 +468,10 @@ func integer(n string) *ir.Literal {
 	return &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_INT, Text: n}
 }
 
+func lengthRange(lo, hi int64) *ir.Literal {
+	return &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_RANGE, Range: &ir.Range{Low: &lo, High: &hi}}
+}
+
 func float(n string) *ir.Literal {
 	return &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_FLOAT, Text: n}
 }
@@ -501,6 +505,12 @@ func TestConstraintsNarrowToLiterals(t *testing.T) {
 		field("wide", b.Named("int"), constraint("min", integer("0")), constraint("max", integer("16"))),
 		field("floor", b.Named("int"), constraint("min", integer("0"))),
 		field("off", b.Named("int"), constraint("oneOf", integer("1"), integer("9")), constraint("max", integer("5"))),
+		field("dims", b.Named("List", b.Named("float64")), constraint("length", integer("3"))),
+		field("pair", b.Named("Option", b.Named("List", b.Named("Size"))), constraint("length", integer("2"))),
+		field("long", b.Named("List", b.Named("int")), constraint("length", integer("17"))),
+		field("some", b.Named("List", b.Named("int")), constraint("length", lengthRange(1, 3))),
+		field("bounded", b.Named("float64"), constraint("oneOf", float("0.25"), integer("2")), constraint("min", float("0.5"))),
+		field("matched", b.Named("Grade"), constraint("matches", &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_REGEX, Text: "A"})),
 	))
 
 	resp := generate(t, b)
@@ -519,6 +529,12 @@ func TestConstraintsNarrowToLiterals(t *testing.T) {
 		"wide: number;",
 		"floor: number;",
 		"off: 1 | 9;",
+		"dims: [number, number, number];",
+		"pair?: [Size, Size];",
+		"long: number[];",
+		"some: number[];",
+		"bounded: 0.25 | 2;",
+		"matched: Grade;",
 	)
 
 	// wide's range has 17 values, floor has no upper bound, and off's max
@@ -531,6 +547,10 @@ func TestConstraintsNarrowToLiterals(t *testing.T) {
 		"Heading.wide carries 2 constraint(s)",
 		"Heading.floor carries 1 constraint(s)",
 		"Heading.off carries 1 constraint(s)",
+		"Heading.long carries 1 constraint(s)",
+		"Heading.some carries 1 constraint(s)",
+		"Heading.bounded carries 1 constraint(s)",
+		"Heading.matched carries 1 constraint(s)",
 	}
 	if len(warned) != len(want) {
 		t.Fatalf("diagnostics = %q, want %q", warned, want)

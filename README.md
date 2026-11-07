@@ -92,7 +92,7 @@ enum Status { Draft Placed Shipped Cancelled }
 ```
 
 `Order` conforms to `Entity`, so it has identity that survives its contents changing; `Address` does not.
-What a code generator needs goes in a separate `target` block, never in the model.
+How one language writes the model goes in a separate `target` block; the model names no target.
 
 ## Install
 
@@ -199,6 +199,24 @@ proto/.stamp: $(MODEL)
 
 Without Nix, build it with `go build -tags makeplugin -buildmode=c-shared -o tdl.so ./cmd/tdl-gmk` from a checkout, with `gnumake.h` on the include path.
 make derives the setup function from the file's name, so keep it `tdl.so`.
+
+### Shell completion
+
+The Nix package installs completion for bash, zsh, and fish, unless it was cross-compiled on a machine that cannot run it.
+fish, and bash with bash-completion, load them from the Nix profile with nothing more.
+zsh loads them when `fpath` holds the profile's `share/zsh/site-functions` before `compinit`, as NixOS and home-manager's zsh module arrange.
+It completes targets, loss codes, and other flag values, and `.tdl` files where a command reads them.
+
+Otherwise, load the script from `tdl completion`:
+
+```shell
+source <(tdl completion bash)       # bash with bash-completion, in ~/.bashrc
+source <(tdl completion zsh)        # zsh, in ~/.zshrc after compinit
+tdl completion fish | source        # fish, in config.fish
+tdl completion powershell | Out-String | Invoke-Expression  # PowerShell, in $PROFILE
+```
+
+`tdl completion <shell> --help` says how to install a script once instead.
 
 ## Usage
 
@@ -349,12 +367,12 @@ Warns counts only what the output loses: what a later `tdl import` would not rea
 | Alias | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | Optional and nullable | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | List, set, and map | Yes | Yes | No | Yes | Yes | Yes | Yes | Warns | Yes | Yes | Yes | Warns | Yes |
-| `min` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Planned |
-| `max` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Planned |
-| `length` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Planned |
-| `matches` | Planned | Yes | Warns | Warns | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Planned |
-| `oneOf` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Yes | Planned |
-| `unique` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Planned |
+| `min` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Yes |
+| `max` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Yes |
+| `length` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Yes |
+| `matches` | Planned | Yes | Warns | Warns | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Yes |
+| `oneOf` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Yes | Yes |
+| `unique` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Yes |
 | `owned` | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | No | Warns | Warns | Warns | Yes |
 | Field default | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | Yes | Warns | Warns | Warns | Yes |
 | `key` directive | Yes | Yes | No | Yes | No | No | No | No | Yes | No | No | No | No |
