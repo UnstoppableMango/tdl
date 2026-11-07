@@ -24,16 +24,10 @@ const DefaultFile = "model"
 const OutDirective = "out"
 
 // Scalars maps a TDL primitive to the TypeScript type of its JSON value.
-// Every numeric is a number, exact only to 2^53.
+// Every numeric, each of [emit.Numerics], is a number, exact only to
+// 2^53; init adds them.
 var Scalars = map[string]string{
 	"string":   "string",
-	"int":      "number",
-	"int32":    "number",
-	"int64":    "number",
-	"uint32":   "number",
-	"uint64":   "number",
-	"float32":  "number",
-	"float64":  "number",
 	"bool":     "boolean",
 	"bytes":    "string",
 	"decimal":  "string",
@@ -48,6 +42,9 @@ var Scalars = map[string]string{
 var reserved = map[string]bool{}
 
 func init() {
+	for name := range emit.Numerics {
+		Scalars[name] = "number"
+	}
 	for _, w := range strings.Fields(`
 		any as await boolean break case catch class const continue debugger default
 		delete do else enum export extends false finally for function if

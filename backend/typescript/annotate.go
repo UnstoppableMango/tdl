@@ -214,9 +214,9 @@ func (g *generator) newtypeLosses(d *ir.Decl, ref *emit.Ref) {
 }
 
 // allEnforced reports whether a literal union enforces every constraint,
-// since [emit.Session.WarnUnenforced] warns about the rest.
+// since [emit.Session.WarnConstraints] warns about the rest.
 func (g *generator) allEnforced(cs []*ir.Constraint) bool {
-	return !slices.ContainsFunc(cs, func(c *ir.Constraint) bool { return !g.enforced[c] })
+	return !slices.ContainsFunc(cs, func(c *ir.Constraint) bool { return !g.Enforced(c) })
 }
 
 func constraintsText(cs []*ast.Constraint) string {
@@ -357,7 +357,7 @@ func (g *generator) back(r *emit.Ref, cs []*ir.Constraint, m mode) (*ast.TypeRef
 	if m == modeProperty {
 		inherited = r.Decl.GetNewtype().GetValueConstraints()
 	}
-	if n := g.narrow(r, cs, inherited); n != nil {
+	if n := g.Narrow(r, cs, inherited); n != nil {
 		typ, c := g.narrowedBack(n)
 		typ.Optional, typ.Nullable = optional, nullable
 		return typ, []*ast.Constraint{c}, n

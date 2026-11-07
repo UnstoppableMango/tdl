@@ -106,3 +106,76 @@ type Box {
 	}
 	typecheck(t, nil, resp)
 }
+
+// Narrowing edge cases from the review of phase 3a.
+func TestNarrowEdges(t *testing.T) {
+	resp, src := gen(t, `package shop
+
+type Grade: string where { oneOf("A", "B") }
+
+type Dims: [int] where { length(2) }
+
+type Ids: [int] where { length(1..5) }
+
+enum Status {
+  Draft
+  Placed
+}
+
+type Box {
+  okGrade: Grade = "A"
+  badGrade: Grade = "C"
+  badDims: Dims = [1]
+  twice: string where { oneOf("a", "a", "b") }
+  laterTwice: Later where { oneOf(X, X) }
+  t: Range where { max(2) }
+  matched: Grade where { matches(/A/) }
+  three: Ids where { length(3) }
+  s: Status where { oneOf(Draft) }
+}
+
+enum Later {
+  X
+  Y
+}
+
+type Range: int where { min(1) max(3) }
+
+target zod for shop {
+  Status => foreign("./status.js", "StatusSchema")
+}
+`)
+	contains(t, src,
+		`okGrade: Grade.prefault("A"),`,
+		`badGrade: Grade,`,
+		`badDims: Dims,`,
+		`twice: z.enum(["a", "b"]),`,
+		`get laterTwice(): z.ZodEnum<{ "X": "X" }> {`,
+		`t: z.literal([1, 2]),`,
+		`matched: Grade`,
+		`three: z.tuple([z.int(), z.int(), z.int()]),`,
+		`s: StatusSchema,`)
+	absent(t, src, `get t()`, `StatusSchema.extract(`)
+	for _, field := range []string{"Box.badGrade", "Box.badDims"} {
+		if !warned(resp, emit.LossDefault, field) {
+			t.Errorf("no default warning for %s: %v", field, resp.GetDiagnostics())
+		}
+	}
+	if !warned(resp, emit.LossConstraint, "Box.s") {
+		t.Errorf("no constraint warning for Box.s: %v", resp.GetDiagnostics())
+	}
+	typecheck(t, map[string]string{"status.ts": "import * as z from \"zod\";\nexport const StatusSchema = z.string();\n"}, resp)
+}
+
+// A range too wide to list is not narrowed, however wide: the width
+// overflows int64, and a range ending at the largest int64 still ends.
+func TestNarrowWideRanges(t *testing.T) {
+	_, src := gen(t, `package shop
+
+type Box {
+  huge: int64 where { min(-9000000000000000000) max(9000000000000000000) }
+  top: int64 where { min(9223372036854775800) max(9223372036854775807) }
+}
+`)
+	absent(t, src, `huge: z.literal(`)
+}

@@ -2,6 +2,7 @@ package emit
 
 import (
 	"math"
+	"slices"
 	"strconv"
 
 	"github.com/unstoppablemango/tdl/ir"
@@ -12,11 +13,13 @@ import (
 // tuple. A wider range or a longer list keeps its type, and warns.
 const MaxNarrow = 16
 
-// integers are the primitives a `min`/`max` pair narrows.
-var integers = map[string]bool{"int": true, "int32": true, "int64": true, "uint32": true, "uint64": true}
-
-// jsonNumbers are the primitives JSON writes as a number.
-var jsonNumbers = map[string]bool{"int": true, "int32": true, "int64": true, "uint32": true, "uint64": true, "float32": true, "float64": true}
+// Numerics maps each primitive JSON writes as a number to whether it is
+// an integer, which a `min`/`max` pair narrows. Targets writing the JSON
+// wire convention read their numeric primitives from it.
+var Numerics = map[string]bool{
+	"int": true, "int32": true, "int64": true, "uint32": true, "uint64": true,
+	"float32": false, "float64": false,
+}
 
 // NarrowKind is what a narrowed type is.
 type NarrowKind int
@@ -57,12 +60,24 @@ type Narrowed struct {
 // An integer bounded by both `min` and `max`, with at most [MaxNarrow]
 // values between them, narrows to every one. A list with an exact
 // `length` from 1 to [MaxNarrow] narrows to a tuple.
+//
+// Each constraint the narrowed type states is recorded as [Session.Enforce]
+// does, so it does not warn.
 func (s *Session) Narrow(r *Ref, own, inherited []*ir.Constraint) *Narrowed {
+	n := s.narrow(r, own, inherited)
+	s.Enforce(n.GetEnforced()...)
+	return n
+}
+
+func (s *Session) narrow(r *Ref, own, inherited []*ir.Constraint) *Narrowed {
 	if len(own) == 0 {
 		return nil
 	}
+	if s.foreign(r) {
+		return nil
+	}
 	x, err := s.Expand(r)
-	if err != nil {
+	if err != nil || s.foreign(x) {
 		return nil
 	}
 
@@ -70,19 +85,25 @@ func (s *Session) Narrow(r *Ref, own, inherited []*ir.Constraint) *Narrowed {
 	n := &Narrowed{}
 	enforce := func(names ...string) {
 		for _, c := range own {
-			for _, name := range names {
-				if c.GetName() == name {
-					n.Enforced = append(n.Enforced, c)
-				}
+			if slices.Contains(names, c.GetName()) {
+				n.Enforced = append(n.Enforced, c)
+			}
+		}
+	}
+	// enforceBounds enforces each own `min` and `max` bounds read.
+	enforceBounds := func(read map[*ir.Constraint]bool) {
+		for _, c := range own {
+			if read[c] {
+				n.Enforced = append(n.Enforced, c)
 			}
 		}
 	}
 
 	if x.Form == List {
-		return tuple(x, all, n, enforce)
+		return stated(tuple(x, all, n, enforce))
 	}
 
-	lo, hi, bounded := bounds(all)
+	lo, hi, bounded, read := bounds(all)
 	var oneOf *ir.Constraint
 	for _, c := range all {
 		if c.GetName() == "oneOf" {
@@ -100,20 +121,44 @@ func (s *Session) Narrow(r *Ref, own, inherited []*ir.Constraint) *Narrowed {
 		}
 		enforce("oneOf")
 		if inRange {
-			enforce("min", "max")
+			enforceBounds(read)
 		}
-		return n
+		return stated(n)
 	}
 
-	if !bounded || x.Form != Prim || !integers[x.Name] || hi < lo || hi-lo >= MaxNarrow {
+	// hi-lo overflows int64 for a wide range, so the width is unsigned.
+	if !bounded || x.Form != Prim || !Numerics[x.Name] || hi < lo || uint64(hi)-uint64(lo) >= MaxNarrow {
 		return nil
 	}
 	n.Kind = NarrowNumbers
-	for v := lo; v <= hi; v++ {
+	for v := lo; ; v++ {
 		n.Values = append(n.Values, strconv.FormatInt(v, 10))
+		if v == hi {
+			break // v++ would overflow at math.MaxInt64
+		}
 	}
-	enforce("min", "max")
+	enforceBounds(read)
+	return stated(n)
+}
+
+// stated is n when it states at least one own constraint, or nil: a
+// narrowed type stating only inherited constraints would replace a
+// newtype's name and gain nothing.
+func stated(n *Narrowed) *Narrowed {
+	if n == nil || len(n.Enforced) == 0 {
+		return nil
+	}
 	return n
+}
+
+// foreign reports whether r names a declaration a `foreign` directive
+// maps to another type, whose schema or type is not narrowed.
+func (s *Session) foreign(r *Ref) bool {
+	if r.Form != Named {
+		return false
+	}
+	_, ok := s.Find(r.Decl.GetDirectives(), "foreign")
+	return ok
 }
 
 // GetEnforced is n's Enforced, or nil for a nil n.
@@ -124,34 +169,48 @@ func (n *Narrowed) GetEnforced() []*ir.Constraint {
 	return n.Enforced
 }
 
-// tuple narrows a list with an exact `length` among cs.
+// tuple narrows a list with an exact `length` among cs, which every
+// other `length` among them, exact or a range, allows.
 func tuple(x *Ref, cs []*ir.Constraint, n *Narrowed, enforce func(...string)) *Narrowed {
-	length := -1
+	type span struct{ low, high *int64 }
+	var spans []span
+	length := int64(-1)
 	for _, c := range cs {
 		if c.GetName() != "length" || len(c.GetArgs()) != 1 {
 			continue
 		}
 		low, high, err := Length(c.GetArgs()[0])
-		if err != nil || low == nil || high == nil || *low != *high {
+		if err != nil {
 			return nil
 		}
-		if length >= 0 && int64(length) != *low {
-			return nil
+		spans = append(spans, span{low, high})
+		if low != nil && high != nil && *low == *high {
+			if length >= 0 && length != *low {
+				return nil
+			}
+			length = *low
 		}
-		length = int(*low)
 	}
 	if length < 1 || length > MaxNarrow {
 		return nil
 	}
-	n.Kind, n.Len, n.Elem = NarrowTuple, length, x.Elem
+	for _, sp := range spans {
+		if (sp.low != nil && length < *sp.low) || (sp.high != nil && length > *sp.high) {
+			return nil
+		}
+	}
+	// The tuple's length lies within every one, so it states them all.
+	n.Kind, n.Len, n.Elem = NarrowTuple, int(length), x.Elem
 	enforce("length")
 	return n
 }
 
 // bounds reads the tightest integer `min` and `max` among cs. ok is false
-// unless both are present.
-func bounds(cs []*ir.Constraint) (lo, hi int64, ok bool) {
+// unless both are present. read holds each bound read: a float bound, or
+// one past int64, is not, so nothing narrowed states it.
+func bounds(cs []*ir.Constraint) (lo, hi int64, ok bool, read map[*ir.Constraint]bool) {
 	lo, hi = math.MinInt64, math.MaxInt64
+	read = map[*ir.Constraint]bool{}
 	var hasLo, hasHi bool
 	for _, c := range cs {
 		args := c.GetArgs()
@@ -164,12 +223,12 @@ func bounds(cs []*ir.Constraint) (lo, hi int64, ok bool) {
 		}
 		switch c.GetName() {
 		case "min":
-			lo, hasLo = max(lo, v), true
+			lo, hasLo, read[c] = max(lo, v), true, true
 		case "max":
-			hi, hasHi = min(hi, v), true
+			hi, hasHi, read[c] = min(hi, v), true, true
 		}
 	}
-	return lo, hi, hasLo && hasHi
+	return lo, hi, hasLo && hasHi, read
 }
 
 // literals reads each `oneOf` value as a literal of what x holds in JSON
@@ -179,7 +238,7 @@ func (n *Narrowed) literals(x *Ref, args []*ir.Literal, lo, hi int64) (inRange, 
 	switch {
 	case x.Form == Prim && x.Name == "string":
 		n.Kind = NarrowStrings
-	case x.Form == Prim && jsonNumbers[x.Name]:
+	case x.Form == Prim && numeric(x.Name):
 		n.Kind = NarrowNumbers
 	case x.Form == Named && x.Decl.GetEnumeration() != nil && !Fielded(x.Decl.GetEnumeration()):
 		n.Kind, n.Elem = NarrowVariants, x
@@ -188,22 +247,35 @@ func (n *Narrowed) literals(x *Ref, args []*ir.Literal, lo, hi int64) (inRange, 
 	}
 
 	inRange = true
+	seen := map[string]bool{}
+	add := func(v string) {
+		if !seen[v] {
+			seen[v] = true
+			n.Values = append(n.Values, v)
+		}
+	}
 	for _, a := range args {
 		switch kind := a.GetKind(); {
 		case n.Kind == NarrowStrings && kind == ir.LiteralKind_LITERAL_KIND_STRING,
 			n.Kind == NarrowVariants && kind == ir.LiteralKind_LITERAL_KIND_NAME:
-			n.Values = append(n.Values, a.GetText())
+			add(a.GetText())
 			inRange = false
 		case n.Kind == NarrowNumbers && (kind == ir.LiteralKind_LITERAL_KIND_INT || kind == ir.LiteralKind_LITERAL_KIND_FLOAT):
 			f, err := strconv.ParseFloat(a.GetText(), 64)
-			if err != nil || (kind == ir.LiteralKind_LITERAL_KIND_FLOAT && integers[x.Name]) {
+			if err != nil || (kind == ir.LiteralKind_LITERAL_KIND_FLOAT && Numerics[x.Name]) {
 				return false, false
 			}
-			n.Values = append(n.Values, strconv.FormatFloat(f, 'f', -1, 64))
+			add(strconv.FormatFloat(f, 'f', -1, 64))
 			inRange = inRange && f >= float64(lo) && f <= float64(hi)
 		default:
 			return false, false
 		}
 	}
 	return inRange, len(n.Values) > 0
+}
+
+// numeric reports whether JSON writes the primitive name as a number.
+func numeric(name string) bool {
+	_, ok := Numerics[name]
+	return ok
 }

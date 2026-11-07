@@ -107,7 +107,7 @@ function type(sf, t) {
 		return { k: "array", elem: type(sf, t.elementType) };
 	}
 	if (ts.isTupleTypeNode(t) && t.elements.every((e) => !ts.isNamedTupleMember(e) && !ts.isOptionalTypeNode(e) && !ts.isRestTypeNode(e))) {
-		return { k: "tuple", types: t.elements.map((e) => type(sf, e)) };
+		return { k: "tuple", types: t.elements.map((e) => type(sf, e)), text: t.getText(sf) };
 	}
 	if (ts.isUnionTypeNode(t)) {
 		return { k: "union", types: t.types.map((u) => type(sf, u)) };

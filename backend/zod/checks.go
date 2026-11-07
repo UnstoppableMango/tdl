@@ -84,7 +84,7 @@ func (g *generator) exclude(subject string, n *emit.Narrowed, own, cs []*ir.Cons
 	n.Values = kept
 	for _, c := range own {
 		if slices.Contains(bounds, c) {
-			g.enforced[c] = true
+			g.Enforce(c)
 		}
 	}
 }
@@ -96,13 +96,13 @@ func (g *generator) exclude(subject string, n *emit.Narrowed, own, cs []*ir.Cons
 func (g *generator) checks(subject string, x *emit.Ref, cs []*ir.Constraint) string {
 	var b strings.Builder
 	for _, c := range cs {
-		if g.enforced[c] {
+		if g.Enforced(c) {
 			continue
 		}
 		text := emit.ConstraintText(c)
 		msg := strconv.Quote(subject + ": " + text)
 		call, why := g.check(x, c, msg)
-		g.enforced[c] = true
+		g.Enforce(c)
 		if why != "" {
 			g.Lossy(emit.LossConstraint, c.GetPosition(), "%s: %s is not checked: %s", subject, text, why)
 			continue
@@ -232,7 +232,25 @@ func (g *generator) refusing(l *ir.Literal, cs []*ir.Constraint, pending bool) (
 				}
 				seen[key] = true
 			}
+		case "oneOf":
+			if !slices.ContainsFunc(args, func(a *ir.Literal) bool { return sameLiteral(a, l) }) {
+				return c, "is not one of " + emit.ConstraintText(c)
+			}
 		}
 	}
 	return nil, ""
+}
+
+// sameLiteral reports whether a and b are one value: equal numbers, or
+// equal text of one kind.
+func sameLiteral(a, b *ir.Literal) bool {
+	number := func(l *ir.Literal) bool {
+		return l.GetKind() == ir.LiteralKind_LITERAL_KIND_INT || l.GetKind() == ir.LiteralKind_LITERAL_KIND_FLOAT
+	}
+	if number(a) && number(b) {
+		x, err1 := strconv.ParseFloat(a.GetText(), 64)
+		y, err2 := strconv.ParseFloat(b.GetText(), 64)
+		return err1 == nil && err2 == nil && x == y
+	}
+	return a.GetKind() == b.GetKind() && a.GetText() == b.GetText()
 }

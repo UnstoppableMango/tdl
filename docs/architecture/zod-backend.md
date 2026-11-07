@@ -202,6 +202,9 @@ Every `where` constraint is either a type TypeScript states, or a check whose pa
 The first four are the literal unions `typescript` writes, by the same rule: the bound of 16 and the way a field's constraints combine with its newtype's are `emit.Narrow`'s, in `backend/internal/emit/narrow.go`, which both read (see [Overlap with other targets](#overlap-with-other-targets)).
 `typescript` writes the tuple too, so the two agree, and its importer reads a tuple of one type back as a list with `length(N)`; a length of 0 is not narrowed, since `[]` would read back as nothing.
 A field holding one of these needs no brand, and a newtype holding one brands the union, since the newtype is still nominal.
+A field narrows only when its own constraints say something the narrowed type states, so a field whose newtype narrows keeps the newtype's name, and a declaration a `foreign` directive maps never narrows, since its schema need not be a `z.enum`.
+Repeated `oneOf` values are written once, and a float `min` or `max` beside a `oneOf` is not stated by the union, so it warns or, in `zod`, excludes the values it refuses.
+A default is checked against every constraint the field and its newtype carry, a `oneOf` included, since `.prefault` must hold the narrowed input type.
 
 ### Checked and branded
 

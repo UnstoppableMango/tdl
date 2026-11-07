@@ -219,9 +219,6 @@ type generator struct {
 
 	// declares holds the names each rendered declaration declares.
 	declares map[*ir.Decl][]string
-
-	// enforced holds each constraint a narrowed type states.
-	enforced map[*ir.Constraint]bool
 }
 
 // Generate returns one .zod.ts module holding the model's schemas.
@@ -232,7 +229,6 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		order:    map[*ir.Decl]int{},
 		lazy:     map[*ir.Decl]bool{},
 		declares: map[*ir.Decl][]string{},
-		enforced: map[*ir.Constraint]bool{},
 
 		stringSchemas: map[*ir.Decl]bool{},
 		regexChecked:  map[*ir.Constraint]bool{},
@@ -388,7 +384,7 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	}
 	g.declares[d] = declared
 
-	g.WarnUnenforced(d, func(c *ir.Constraint) bool { return g.enforced[c] })
+	g.WarnConstraints(d)
 	g.LoseConforms(d, "Zod")
 	g.unitLosses(d)
 	return b.String(), nil
@@ -461,7 +457,7 @@ func (g *generator) newtype(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	for _, c := range d.GetNewtype().GetValueConstraints() {
 		if c.GetFrom() != nil {
 			inherited = append(inherited, c)
-			g.enforced[c] = true
+			g.Enforce(c)
 		} else {
 			own = append(own, c)
 		}
@@ -504,16 +500,21 @@ func (g *generator) isString(r *emit.Ref) bool {
 // the rest. subject names the value in messages.
 func (g *generator) value(subject string, r *emit.Ref, own, inherited []*ir.Constraint) (schema, *emit.Narrowed, string, error) {
 	g.patterns, g.onString = nil, false
-	n := g.narrow(r, own, inherited)
+	n := g.Narrow(r, own, inherited)
 	g.exclude(subject, n, own, append(slices.Clone(own), inherited...))
-	s, err := g.typ(r)
+	// Only the schema written is spelled, so a reference the narrowed
+	// type replaces makes no getter or import.
+	var s schema
+	var err error
 	if n != nil {
 		s, err = g.spell(n)
+	} else {
+		s, err = g.typ(r)
 	}
 	if err != nil {
 		return schema{}, nil, "", err
 	}
-	rest := slices.DeleteFunc(slices.Clone(own), func(c *ir.Constraint) bool { return g.enforced[c] })
+	rest := slices.DeleteFunc(slices.Clone(own), g.Enforced)
 	if len(rest) == 0 {
 		return s, n, "", nil
 	}
@@ -525,7 +526,7 @@ func (g *generator) value(subject string, r *emit.Ref, own, inherited []*ir.Cons
 		// A z.lazy has no number, string, or array checks, and a newtype
 		// written later may be one.
 		for _, c := range rest {
-			g.enforced[c] = true
+			g.Enforce(c)
 			g.Lossy(emit.LossConstraint, c.GetPosition(), "%s: %s is not checked: %s is written later or is lazy, and Zod checks only a schema it can see",
 				subject, emit.ConstraintText(c), r.Decl.GetMeta().GetName())
 		}
@@ -702,16 +703,6 @@ func (g *generator) property(owner, path string, f *ir.Field, r *emit.Ref, schem
 	return s, n, declared, nil
 }
 
-// narrow is [emit.Session.Narrow], recording each constraint the narrowed
-// type states so it does not warn.
-func (g *generator) narrow(r *emit.Ref, own, inherited []*ir.Constraint) *emit.Narrowed {
-	n := g.Narrow(r, own, inherited)
-	for _, c := range n.GetEnforced() {
-		g.enforced[c] = true
-	}
-	return n
-}
-
 // spell is a narrowed type's schema: a z.enum of strings or of an enum's
 // variants, a z.literal of numbers, or a z.tuple. The design's
 // "Constraints TypeScript states" is the table.
@@ -745,16 +736,8 @@ func (g *generator) spell(n *emit.Narrowed) (schema, error) {
 		if err != nil {
 			return schema{}, err
 		}
-		tags := make([]string, len(n.Values))
-		for i, v := range n.Values {
-			tags[i] = v
-			for _, variant := range n.Elem.Decl.GetEnumeration().GetVariants() {
-				if variant.GetMeta().GetName() == v {
-					tags[i] = emit.Tag(variant)
-				}
-			}
-		}
-		list, typ := members(tags)
+		// A variant's tag is its name (emit.Tag), which Values holds.
+		list, typ := members(n.Values)
 		return schema{expr: enum.expr + ".extract(" + list + ")", typ: typ}, nil
 	}
 	elem, err := g.typ(n.Elem)
