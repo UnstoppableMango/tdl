@@ -227,6 +227,14 @@ func call(name, input string) yolo.Call {
 	return yolo.Call{ID: name, Name: name, Input: []byte(input)}
 }
 
+// The host keeps a nondeterministic backend's output while the request is
+// unchanged, so regenerating never calls the model by accident.
+func TestNondeterministic(t *testing.T) {
+	if !(yolo.Backend{}).Describe().Nondeterministic {
+		t.Error("yolo does not declare itself nondeterministic")
+	}
+}
+
 // Without a key or a recording, nothing is sent and nothing written.
 func TestMissingKeyWritesNothing(t *testing.T) {
 	t.Setenv(yolo.ReplayEnv, "")
