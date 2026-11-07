@@ -781,9 +781,15 @@ type Features struct {
 	Reuse bool `protobuf:"varint,1,opt,name=reuse" json:"reuse,omitempty"`
 	// reverse says the plugin answers MODE_IMPORT, reading its target
 	// language back into a model.
-	Reverse       bool `protobuf:"varint,2,opt,name=reverse" json:"reverse,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Reverse bool `protobuf:"varint,2,opt,name=reverse" json:"reverse,omitempty"`
+	// nondeterministic says the same request may not produce the same files,
+	// as from a backend that hands the mapping to a language model. tdl then
+	// records a hash of each request beside the files it writes and, while a
+	// later request hashes the same, keeps those files rather than sending
+	// the request. See docs/adr/0002-host-reuses-nondeterministic-output.md.
+	Nondeterministic bool `protobuf:"varint,3,opt,name=nondeterministic" json:"nondeterministic,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *Features) Reset() {
@@ -826,6 +832,13 @@ func (x *Features) GetReuse() bool {
 func (x *Features) GetReverse() bool {
 	if x != nil {
 		return x.Reverse
+	}
+	return false
+}
+
+func (x *Features) GetNondeterministic() bool {
+	if x != nil {
+		return x.Nondeterministic
 	}
 	return false
 }
@@ -2154,10 +2167,11 @@ const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
 	"\n" +
 	"placements\x18\x06 \x03(\x0e2\x18.tdl.plugin.v1.PlacementR\n" +
 	"placements\x12\x16\n" +
-	"\x06values\x18\a \x03(\tR\x06values\":\n" +
+	"\x06values\x18\a \x03(\tR\x06values\"f\n" +
 	"\bFeatures\x12\x14\n" +
 	"\x05reuse\x18\x01 \x01(\bR\x05reuse\x12\x18\n" +
-	"\areverse\x18\x02 \x01(\bR\areverse\"\xa9\x01\n" +
+	"\areverse\x18\x02 \x01(\bR\areverse\x12*\n" +
+	"\x10nondeterministic\x18\x03 \x01(\bR\x10nondeterministic\"\xa9\x01\n" +
 	"\aRequest\x12\x16\n" +
 	"\x06target\x18\x01 \x01(\tR\x06target\x12&\n" +
 	"\x05model\x18\x02 \x01(\v2\x10.tdl.ir.v1.ModelR\x05model\x12\x10\n" +

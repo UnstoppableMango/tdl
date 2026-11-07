@@ -47,6 +47,9 @@ pub struct Description {
     /// How the backend numbers fields and variants, or `None` for a backend
     /// that does not.
     pub numbering: Option<Numbering>,
+    /// Says the same request may not produce the same files, so the host
+    /// keeps what it wrote while the request is unchanged.
+    pub nondeterministic: bool,
 }
 
 impl Description {
@@ -69,6 +72,7 @@ impl Description {
             features: Features {
                 reuse: self.reuse,
                 reverse: self.reverse,
+                nondeterministic: self.nondeterministic,
                 ..Default::default()
             }
             .into(),
