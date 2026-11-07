@@ -95,6 +95,10 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 - `zod.nix`: the `zod` npm package, fetched by hash, for `checks.gen-zod` and the devShell's `NODE_PATH`.
 - `demo.nix`: renders `docs/demo/demo.tape`, the README's GIF, with VHS. It is a package and not a check, since it runs a browser.
   The tape's `cat`, from `docs/demo/demo.bash`, highlights everything with bat, TDL through the syntax the `tdl` package installs.
+- `hercules.nix`: Hercules CI's jobs, on `herculesCI.ciSystems` alone (x86_64-linux, from the `systems` input).
+  `onPush.default`, the status `main` requires, builds the checks and every package but `demo`, and no devShell.
+  `onSchedule.nightly`, at 04:00 UTC, builds `demo` and every devShell, so vhs and the editors stay out of a pull request's fetch, and a Hydra failure in them blocks nothing; its result shows only on Hercules.
+  It declares `flake.herculesCI` as an attribute set, since the `systems` input's module sets `ciSystems` in it and flake-parts refuses two raw definitions of one output.
 - `overlay.nix`: names both packages and composes gomod2nix's overlay, so a consumer adding it also gets `buildGoApplication` and `mkGoEnv`.
 - `hm-module.nix`: the home-manager module.
 - `flake-module.nix`: the flake-parts module a consuming project imports.

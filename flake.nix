@@ -46,6 +46,7 @@
         systems.flakeModule or { }
         treefmt-nix.flakeModule
         ./nix
+        ./nix/hercules.nix
       ];
 
       _module.args.version = "0.5.9"; # x-release-please-version
