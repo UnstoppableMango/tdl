@@ -200,6 +200,11 @@ func (g *generator) call(c Call) (Result, error) {
 		if clean == "." {
 			return refuse("%q names the output directory, not a file", *in.Path)
 		}
+		for p := range g.files {
+			if strings.HasPrefix(p, clean+"/") || strings.HasPrefix(clean, p+"/") {
+				return refuse("%s and %s cannot both be files, since one would be the other's directory", clean, p)
+			}
+		}
 		g.files[clean] = []byte(*in.Content)
 		return Result{ID: c.ID, Content: "wrote " + clean}, nil
 

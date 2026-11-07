@@ -3,6 +3,7 @@ package yolo
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -73,17 +74,29 @@ func (a *Anthropic) Send(ctx context.Context, c *Conversation) (Message, error) 
 		}
 	}
 	out.Text = strings.Join(text, "\n")
-	switch reply.StopReason {
-	case anthropic.StopReasonToolUse:
-		out.Stop = StopTool
-	case anthropic.StopReasonMaxTokens, anthropic.StopReasonModelContextWindowExceeded:
-		out.Stop = StopLength
-	case anthropic.StopReasonRefusal:
-		out.Stop = StopRefused
-	default:
-		out.Stop = StopEnd
+	if out.Stop, err = anthropicStop(reply.StopReason); err != nil {
+		return Message{}, err
 	}
 	return out, nil
+}
+
+// anthropicStop is why a turn ended. A stream that closed before saying
+// so ended early, and a reason this provider does not know is not a
+// turn it can trust to be whole.
+func anthropicStop(r anthropic.StopReason) (Stop, error) {
+	switch r {
+	case anthropic.StopReasonEndTurn, anthropic.StopReasonStopSequence:
+		return StopEnd, nil
+	case anthropic.StopReasonToolUse:
+		return StopTool, nil
+	case anthropic.StopReasonMaxTokens, anthropic.StopReasonModelContextWindowExceeded:
+		return StopLength, nil
+	case anthropic.StopReasonRefusal:
+		return StopRefused, nil
+	case "":
+		return "", errors.New("the stream ended before the turn did")
+	}
+	return "", fmt.Errorf("the turn stopped for a reason this backend does not know, %q", r)
 }
 
 // anthropicMessage is a message as the API takes it: a reply this

@@ -40,7 +40,7 @@ func system() string {
 	var b strings.Builder
 	b.WriteString(`You are a code generator for TDL, the Type Description Language. TDL describes domain models: entities, values, enums, newtypes, classes, and collections, with no expressions or runtime. Its specification is at the end of this prompt.
 
-The user gives you a model written in TDL and the language to write it in. Write the model's declarations as idiomatic, compiling source in that language, following any instructions the user adds. Write every declaration the model declares; the prelude's types (string, int, List, Option, and so on) are TDL's own and map to the language's.
+The user gives you a model written in TDL and the language to write it in. Write the model's declarations as idiomatic, compiling source in that language, following any instructions the user adds. Write every declaration the model declares; the prelude's types (string, int, List, Option, and so on) are TDL's own and map to the language's. A declaration you leave out takes with it every declaration naming it, so the files still compile; report each one left out.
 
 Write each file with the write_file tool, one call per file. A path is relative to the output directory, uses forward slashes, and may not be absolute or contain "..". Writing a path again replaces the file.
 

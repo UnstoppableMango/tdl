@@ -110,18 +110,24 @@ type Recorder struct {
 
 // Send passes the turn on and records it.
 func (r *Recorder) Send(ctx context.Context, c *Conversation) (Message, error) {
+	seen := sentSince(r.rec.Turns)
+	if len(c.Messages) < seen {
+		return Message{}, fmt.Errorf("the conversation holds %d messages, fewer than the %d recorded before it", len(c.Messages), seen)
+	}
 	reply, err := r.Provider.Send(ctx, c)
 	if err != nil {
 		return reply, err
 	}
 	r.rec.Model, r.rec.System, r.rec.Tools = c.Model, recordedSystem(c.System), c.Tools
 	sent := make([]Message, 0, len(c.Messages))
-	for _, m := range c.Messages[sentSince(r.rec.Turns):] {
+	for _, m := range c.Messages[seen:] {
 		m.native = nil
 		sent = append(sent, m)
 	}
 	recorded := reply
 	recorded.native = nil
+	// The history holds a reply as the backend's own; record it so.
+	recorded.Role = Assistant
 	r.rec.Turns = append(r.rec.Turns, Turn{Sent: sent, Reply: recorded})
 	return reply, nil
 }

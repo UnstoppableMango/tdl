@@ -170,6 +170,9 @@ func compareWant(t *testing.T, dir string, resp *plugin.Response) {
 	want := map[string]string{}
 	root := filepath.Join(dir, wantDir)
 	err = filepath.WalkDir(root, func(path string, e os.DirEntry, err error) error {
+		if path == root && errors.Is(err, fs.ErrNotExist) {
+			return fs.SkipAll
+		}
 		if err != nil || e.IsDir() {
 			return err
 		}
@@ -181,7 +184,7 @@ func compareWant(t *testing.T, dir string, resp *plugin.Response) {
 		want[filepath.ToSlash(rel)] = string(data)
 		return nil
 	})
-	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+	if err != nil {
 		t.Fatal(err)
 	}
 	got := map[string]string{}
@@ -189,8 +192,8 @@ func compareWant(t *testing.T, dir string, resp *plugin.Response) {
 		got[f.GetPath()] = string(f.GetContent())
 	}
 	for path, content := range want {
-		if got[path] != content {
-			t.Errorf("%s:\n%s\nwant:\n%s", path, got[path], content)
+		if actual, ok := got[path]; !ok || actual != content {
+			t.Errorf("%s:\n%s\nwant:\n%s", path, actual, content)
 		}
 	}
 	for path := range got {
@@ -361,6 +364,30 @@ func TestRefusedCallsGoBackToTheModel(t *testing.T) {
 	}
 	if len(resp.GetFiles()) != 1 || resp.GetFiles()[0].GetPath() != "shop.ex" {
 		t.Errorf("files: %v", resp.GetFiles())
+	}
+}
+
+// A file and a directory cannot share a path, in either order, so the
+// model hears of it rather than the host failing to write.
+func TestPathCollisionsAreRefused(t *testing.T) {
+	f := &fixed{replies: []yolo.Message{
+		{Role: yolo.Assistant, Stop: yolo.StopTool, Calls: []yolo.Call{
+			call("write_file", `{"path": "lib/shop.ex", "content": "x"}`),
+			call("write_file", `{"path": "lib", "content": "x"}`),
+			call("write_file", `{"path": "lib/shop.ex/order.ex", "content": "x"}`),
+			call("write_file", `{"path": "lib/shop.exs", "content": "x"}`),
+		}},
+		{Role: yolo.Assistant, Stop: yolo.StopEnd, Text: "Done."},
+	}}
+	if _, err := (yolo.Backend{Provider: f}).Generate(context.Background(), request(t, order)); err != nil {
+		t.Fatal(err)
+	}
+	var refused []bool
+	for _, r := range f.seen[1].Messages[2].Results {
+		refused = append(refused, r.Error)
+	}
+	if want := []bool{false, true, true, false}; !slices.Equal(refused, want) {
+		t.Errorf("refused %v, want %v", refused, want)
 	}
 }
 
