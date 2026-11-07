@@ -121,6 +121,8 @@ func description(reply *plugin.HandshakeReply) plugin.Description {
 		Reuse:      reply.GetFeatures().GetReuse(),
 		Reverse:    reply.GetFeatures().GetReverse(),
 		Numbering:  reply.GetNumbering(),
+
+		Nondeterministic: reply.GetFeatures().GetNondeterministic(),
 	}
 }
 
