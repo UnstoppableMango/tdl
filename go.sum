@@ -12,6 +12,8 @@ github.com/bmatcuk/doublestar/v4 v4.10.0 h1:zU9WiOla1YA122oLM6i4EXvGW62DvKZVxIe6
 github.com/bmatcuk/doublestar/v4 v4.10.0/go.mod h1:xBQ8jztBU6kakFMg+8WGxn0c6z1fTSPVIjEY1Wr7jzc=
 github.com/bufbuild/protocompile v0.14.2-0.20261022205402-b3c25bb4887d h1:2mM9jB6J5TetrPworl/R3Tr2nBuU26Zp2/UNswqoY04=
 github.com/bufbuild/protocompile v0.14.2-0.20261022205402-b3c25bb4887d/go.mod h1:EiEThanO+gehQUqS+q5rj5UJGoqe2umSFDynfgmBiwM=
+github.com/bufbuild/protocompile v0.14.2-0.20261105212643-e229a0e11161 h1:G0JAKFG79rjm2z0R4pG2kghPchy9D0dtyRlwz9hMBxs=
+github.com/bufbuild/protocompile v0.14.2-0.20261105212643-e229a0e11161/go.mod h1:EiEThanO+gehQUqS+q5rj5UJGoqe2umSFDynfgmBiwM=
 github.com/bytedance/gopkg v0.1.4 h1:oZnQwnX82KAIWb7033bEwtxvTqXcYMxDBaQxo5JJHWM=
 github.com/bytedance/gopkg v0.1.4/go.mod h1:v1zWfPm21Fb+OsyXN2VAHdL6TBb2L88anLQgdyje6R4=
 github.com/cloudwego/gopkg v0.2.0 h1:EU8Ahrj0rCfKZQdah50zKnlrQ1o2AdPYM87UclIqLME=
