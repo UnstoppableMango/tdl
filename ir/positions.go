@@ -14,6 +14,10 @@ func WithoutPositions(m *Model) *Model {
 	return out
 }
 
+// ClearPositions clears every [Position] in m, which need not be a
+// [Model]: a plugin request carries positions outside its model too.
+func ClearPositions(m proto.Message) { clearPositions(m.ProtoReflect()) }
+
 func clearPositions(m protoreflect.Message) {
 	var clear []protoreflect.FieldDescriptor
 	m.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {

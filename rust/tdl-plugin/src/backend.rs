@@ -107,6 +107,7 @@ mod tests {
     fn a_reply_carries_the_description() {
         let desc = Description {
             reuse: true,
+            nondeterministic: true,
             directives: vec![DirectiveSpec {
                 name: "note".into(),
                 ..Default::default()
@@ -122,6 +123,7 @@ mod tests {
         assert_eq!(reply.directives, desc.directives);
         assert!(reply.features.reuse);
         assert!(!reply.features.reverse);
+        assert!(reply.features.nondeterministic);
         assert!(reply.numbering.is_unset());
     }
 

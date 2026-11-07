@@ -44,7 +44,7 @@ The plugin replies:
 - its name and version
 - directives it understands, each with arity, expected literal kinds, placements, and allowed values
 - how it numbers fields and variants, for a wire format that identifies them by number
-- optional features it supports, such as reuse across requests and import
+- optional features it supports, such as reuse across requests, import, and nondeterminism (see [Nondeterministic backends](#nondeterministic-backends))
 
 A refusal is a readable failure naming both versions, where a plugin silently ignoring fields it was compiled before would produce wrong code with no diagnostic.
 
@@ -107,6 +107,21 @@ message File {
 `tdl` writes them, which is what makes `--verify`, `--clean`, and the `.tdl-output` marker enforceable.
 
 An absolute path, or one containing `..`, is an error and nothing is written, so a plugin cannot reach outside its output directory.
+
+### Nondeterministic backends
+
+A backend whose same request may produce different files, such as one that hands the mapping to a language model, sets `Features.nondeterministic` in its handshake (ADR-0002).
+For such a target, `tdl gen` hashes the request and records the hash in `.tdl-output`, with a hash of each file it wrote, as comment lines:
+
+```text
+#@ yolo request <sha256>
+#@ yolo file <sha256> lib/order.ex
+```
+
+The hash leaves out positions, the output path, and the dry-run flag, so moving the model within its file or running from another directory keeps the output.
+While a later request hashes the same and every recorded file is unchanged, `tdl gen` keeps the files and sends no request; otherwise it sends the request and records the new hashes.
+`--verify` never sends the request: a changed request, a target never generated here, and a recorded file that is missing or edited are stale.
+`--clean` always sends it.
 
 ## Post-processing
 

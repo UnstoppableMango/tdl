@@ -77,6 +77,7 @@ type Result struct {
 	Removed  []string
 	Stale    []Stale
 	Expected []string // what a verify run would write
+	Kept     []string // what a nondeterministic backend wrote before, kept
 
 	Diagnostics []*plugin.Diagnostic
 }
@@ -88,6 +89,18 @@ func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.M
 		return Result{Target: target.Name, Diagnostics: problems}, fmt.Errorf("target %s cannot be generated from this model", target.Name)
 	}
 	req.DryRun = mode == ModeVerify
+
+	var hash string
+	if backend.Describe().Nondeterministic {
+		var err error
+		if hash, err = RequestHash(req); err != nil {
+			return Result{Target: target.Name}, fmt.Errorf("target %s: %w", target.Name, err)
+		}
+		if result, done, err := reuse(target, hash, mode); done || err != nil {
+			return result, err
+		}
+	}
+
 	resp, err := backend.Generate(ctx, req)
 	if err != nil {
 		return Result{Target: target.Name}, fmt.Errorf("target %s: %w", target.Name, err)
@@ -118,8 +131,51 @@ func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.M
 	// Written files are listed even when writing fails part way.
 	written, err := Write(target.Out, resp.GetFiles())
 	result.Written = written
-	if err := errors.Join(err, Mark(target.Out, written)); err != nil {
+	err = errors.Join(err, Mark(target.Out, written))
+	if hash != "" && err == nil {
+		err = Keep(target.Out, target.Name, hash, written)
+	}
+	if err != nil {
 		return result, fmt.Errorf("target %s: %w", target.Name, err)
 	}
 	return result, nil
+}
+
+// reuse decides, for a nondeterministic backend, whether the files it wrote
+// for the same request still stand, so the request need not be sent. A
+// verify run never sends it: a backend that answers differently each time
+// would always differ, so a changed request is stale without asking.
+// A clean run always regenerates.
+func reuse(target Target, hash string, mode Mode) (Result, bool, error) {
+	result := Result{Target: target.Name}
+	if mode == ModeClean {
+		return result, false, nil
+	}
+	kept, ok, err := Recorded(target.Out, target.Name)
+	if err != nil {
+		return result, true, fmt.Errorf("target %s: %w", target.Name, err)
+	}
+
+	var stale []Stale
+	if ok && kept.Request == hash {
+		if stale, err = kept.Check(); err != nil {
+			return result, true, fmt.Errorf("target %s: %w", target.Name, err)
+		}
+	}
+
+	switch {
+	case mode == ModeVerify && !ok:
+		result.Stale = []Stale{{Path: target.Out, Reason: "target " + target.Name + " has never been generated here"}}
+	case mode == ModeVerify && kept.Request != hash:
+		result.Stale = []Stale{{Path: target.Out, Reason: "target " + target.Name + "'s request changed since its files were generated"}}
+		result.Expected = kept.Paths()
+	case mode == ModeVerify:
+		result.Stale, result.Expected = stale, kept.Paths()
+	case ok && kept.Request == hash && len(stale) == 0:
+		result.Kept = kept.Paths()
+	default:
+		// A changed request, or a kept file edited or removed: regenerate.
+		return result, false, nil
+	}
+	return result, true, nil
 }
