@@ -39,7 +39,7 @@ func (a *Anthropic) Send(ctx context.Context, c *Conversation) (Message, error) 
 		msgs = append(msgs, anthropicMessage(m))
 	}
 	params := anthropic.MessageNewParams{
-		Model:     anthropic.Model(c.Model),
+		Model:     c.Model,
 		MaxTokens: maxTokens,
 		System:    []anthropic.TextBlockParam{{Text: c.System}},
 		Tools:     tools,
