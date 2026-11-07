@@ -179,6 +179,7 @@ The plugin protocol in `docs/architecture/plugins.md` is complete.
   `Request` builds every request a host sends, returning a length that can never hold or a refused pin as errors to report before the backend runs.
   Under a `roundtrip` directive it also carries the model as TDL (`source.go`), which `emit`'s round-trip helpers read; `Imported` lowers an import response that returns TDL source instead of a model.
 - `internal/gen`: the compiler side of the plugin protocol: the backend registry, request building, and writing returned files.
+  `keep.go` keeps a nondeterministic backend's output while its request hashes the same, recording the hashes in `.tdl-output` (ADR-0002).
   `internal/gen/echo` is a test backend that writes a model as JSON and imports it back; it is not compiled into `tdl`.
 - `internal/host`: what a host does around a backend, importing none, so a backend hosting itself can use it.
   `loss.go` declares the loss codes, which `emit` re-exports, so `tdl`'s completion lists them too.
