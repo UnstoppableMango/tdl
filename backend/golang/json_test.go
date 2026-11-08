@@ -259,6 +259,7 @@ type ScratchOrg {
   wrapped: Wrapped
   maybeTags: MaybeTags
   shape: Shape
+  renamed: [string]
 }
 
 enum Shape {
@@ -270,6 +271,7 @@ type Plain { name: string }
 
 target go for org {
   json
+  ScratchOrg.renamed => tag("json:\"other\"")
 }
 `
 
@@ -290,6 +292,15 @@ import (
 )
 
 func TestZeroValue(t *testing.T) {
+	out, err := json.Marshal(ScratchOrg{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	const zero = `+"`"+`{"flags":{},"tags":[],"named":[],"nullable":null,"nested":[],"boxes":[],"groups":{},"wrapped":null,"maybeTags":null,"shape":null,"other":[]}`+"`"+`
+	if string(out) != zero {
+		t.Fatalf("encoded\n%s\nwant\n%s", out, zero)
+	}
+
 	org := ScratchOrg{
 		Flags:  map[string][]string{"a": nil},
 		Nested: [][]string{nil},
@@ -297,11 +308,11 @@ func TestZeroValue(t *testing.T) {
 		Groups: Groups{"g": nil},
 		Shape:  ShapePoly{},
 	}
-	out, err := json.Marshal(org)
+	out, err = json.Marshal(org)
 	if err != nil {
 		t.Fatal(err)
 	}
-	const want = `+"`"+`{"flags":{"a":[]},"tags":[],"named":[],"nullable":null,"nested":[[]],"boxes":[{"kind":"Poly","points":[]},{"kind":"Dot"}],"groups":{"g":[]},"wrapped":null,"maybeTags":null,"shape":{"kind":"Poly","points":[]}}`+"`"+`
+	const want = `+"`"+`{"flags":{"a":[]},"tags":[],"named":[],"nullable":null,"nested":[[]],"boxes":[{"kind":"Poly","points":[]},{"kind":"Dot"}],"groups":{"g":[]},"wrapped":null,"maybeTags":null,"shape":{"kind":"Poly","points":[]},"other":[]}`+"`"+`
 	if string(out) != want {
 		t.Fatalf("encoded\n%s\nwant\n%s", out, want)
 	}
@@ -318,7 +329,7 @@ func TestZeroValue(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	const some = `+"`"+`{"flags":{},"tags":[],"named":[],"maybe":[],"nullable":[],"nested":[],"boxes":[],"groups":{},"wrapped":{"kind":"Poly","points":[]},"maybeTags":[],"shape":null}`+"`"+`
+	const some = `+"`"+`{"flags":{},"tags":[],"named":[],"maybe":[],"nullable":[],"nested":[],"boxes":[],"groups":{},"wrapped":{"kind":"Poly","points":[]},"maybeTags":[],"shape":null,"other":[]}`+"`"+`
 	if string(out) != some {
 		t.Fatalf("encoded\n%s\nwant\n%s", out, some)
 	}
@@ -369,4 +380,36 @@ target go for tree {
 	}
 	got := files(t, resp)
 	contains(t, got["wrap.go"], "func (w Wrap[T]) MarshalJSON() ([]byte, error)", "self := []T(w)")
+}
+
+// Import reads a MarshalJSON filling collections as this backend's own, and
+// warns about it no more than about the other JSON methods.
+func TestImportSkipsFillingMarshal(t *testing.T) {
+	resp := generateTDL(t, emptySource)
+	_, diags := importGo(t, files(t, resp))
+	for _, d := range diags {
+		msg := d.GetMessage()
+		if strings.Contains(msg, "MarshalJSON") && !strings.Contains(msg, "UnmarshalJSON") && !strings.Contains(msg, "ShapeDot") {
+			t.Errorf("import warns about a filling MarshalJSON: %s", msg)
+		}
+	}
+}
+
+func TestJSONMarshalCollisionIsSkipped(t *testing.T) {
+	resp := generateTDL(t, `package tree
+
+type Root {
+  marshalJSON: string
+  tags: [string]
+}
+
+target go for tree {
+  json
+}
+`)
+	w := uncodedWarnings(resp)
+	if len(w) != 1 {
+		t.Fatalf("diagnostics = %+v, want one warning", w)
+	}
+	contains(t, w[0].GetMessage(), "has a field named MarshalJSON")
 }

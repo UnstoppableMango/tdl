@@ -170,7 +170,10 @@ func (g *generator) writeEnumJSON(b *strings.Builder, decl *ir.Decl, name string
 			if err := g.marshalProblem(decl); err != nil {
 				return err
 			}
-			value, doc = "self", ", writing each empty list as [] and each empty map as {}, never null"
+			if err := g.marshalCollides(decl, g.variantName(name, v), v.GetFields()); err != nil {
+				return err
+			}
+			value, doc = "self", strings.TrimSuffix(fillDoc, ".")
 		}
 		fmt.Fprintf(b, "\n// MarshalJSON encodes a %s with its %s%s.\n", variant, strconv.Quote(disc), doc)
 		fmt.Fprintf(b, "func (%s %s) MarshalJSON() ([]byte, error) {\n", recv, variant)
@@ -362,6 +365,10 @@ return %s(v), err
 // to its own MarshalJSON. A Set is a Go map, which already warns, and is
 // left alone.
 
+// fillDoc ends the doc comment of every MarshalJSON that fills, which
+// import reads as this backend's output.
+const fillDoc = ", writing each empty list as [] and each empty map as {}, never null."
+
 // marshalLocals are the identifiers a generated MarshalJSON declares, past
 // the numbered ones fillLocal names.
 var marshalLocals = []string{"plain", "self"}
@@ -378,6 +385,18 @@ func (g *generator) marshalProblem(decl *ir.Decl) error {
 	return nil
 }
 
+// marshalCollides refuses a type with a field Go names MarshalJSON, which
+// the method would collide with.
+func (g *generator) marshalCollides(decl *ir.Decl, name string, fields []*ir.Field) error {
+	for _, f := range fields {
+		if g.fieldName(f) == "MarshalJSON" {
+			return emit.Unsupported(decl.GetMeta().GetPosition(),
+				"%s has a field named MarshalJSON, which the MarshalJSON writing its empty collections would collide with", name)
+		}
+	}
+	return nil
+}
+
 // fillLocal reports whether a name is one fill declares: out, e, or k and a
 // depth.
 func fillLocal(name string) bool {
@@ -389,10 +408,10 @@ func fillLocal(name string) bool {
 	return false
 }
 
-// fills reports whether a value of a type holds a list or map that its own
+// needsFill reports whether a value of a type holds a list or map that its own
 // MarshalJSON, if any, does not fill: a list or map, or an option, alias, or
 // newtype over a pointer holding one.
-func (g *generator) fills(id *ir.ID, fr *frame) bool {
+func (g *generator) needsFill(id *ir.ID, fr *frame) bool {
 	t, decl, fr, ok := g.resolveFill(id, fr)
 	if !ok {
 		return false
@@ -402,10 +421,10 @@ func (g *generator) fills(id *ir.ID, fr *frame) bool {
 	case decl.GetPrimitive() != nil:
 		name := decl.GetMeta().GetName()
 		return (name == "List" || name == "Map") && len(args) > 0
-	case g.pointer(decl, args):
-		return g.fills(args[0], fr)
+	case pointer(decl, args):
+		return g.needsFill(args[0], fr)
 	case decl.GetNewtype() != nil:
-		return !g.marshals(decl) && g.pointerNewtype(decl) && g.fills(decl.GetNewtype().GetBase(), bind(args, fr))
+		return !g.marshals(decl) && g.pointerNewtype(decl) && g.needsFill(decl.GetNewtype().GetBase(), bind(args, fr))
 	}
 	return false
 }
@@ -441,7 +460,7 @@ func (g *generator) resolveFill(id *ir.ID, fr *frame) (*ir.Type, *ir.Decl, *fram
 
 // pointer reports whether a declaration applied to args is Option or
 // Nullable, a Go pointer.
-func (g *generator) pointer(decl *ir.Decl, args []*ir.ID) bool {
+func pointer(decl *ir.Decl, args []*ir.ID) bool {
 	name := decl.GetMeta().GetName()
 	return decl.GetEnumeration() != nil && (name == "Option" || name == "Nullable") && len(args) == 1
 }
@@ -455,7 +474,7 @@ func (g *generator) pointerNewtype(decl *ir.Decl) bool {
 		if !ok {
 			return false
 		}
-		if g.pointer(base, t.GetArgs()) {
+		if pointer(base, t.GetArgs()) {
 			return true
 		}
 		decl = base
@@ -479,6 +498,9 @@ func (g *generator) marshals(decl *ir.Decl) bool {
 	return v
 }
 
+// computeMarshals is marshals without the memo: a struct with a field to
+// fill, or a newtype that is not a pointer, over a collection to fill or a
+// declaration with its own MarshalJSON.
 func (g *generator) computeMarshals(decl *ir.Decl) bool {
 	if !g.wire || !emit.IsOwn(decl) || g.isForeign(decl) {
 		return false
@@ -490,7 +512,7 @@ func (g *generator) computeMarshals(decl *ir.Decl) bool {
 	if nt == nil || g.pointerNewtype(decl) {
 		return false
 	}
-	if g.fills(nt.GetBase(), nil) {
+	if g.needsFill(nt.GetBase(), nil) {
 		return true
 	}
 	// A newtype over a struct or newtype marshalling itself loses its
@@ -502,14 +524,14 @@ func (g *generator) computeMarshals(decl *ir.Decl) bool {
 // fillsField reports whether a field encoding/json writes holds a
 // collection to fill.
 func (g *generator) fillsField(f *ir.Field) bool {
-	return g.wireName(f) != "" && g.fills(f.GetType(), nil)
+	return g.wireName(f) != "" && g.needsFill(f.GetType(), nil)
 }
 
 // fill writes statements replacing each nil list or map in lhs, a value of
 // the type, with an empty one. What it changes it copies first, so the value
 // being marshalled is left as it was.
 func (g *generator) fill(b *strings.Builder, lhs string, id *ir.ID, fr *frame, depth int) error {
-	if !g.fills(id, fr) {
+	if !g.needsFill(id, fr) {
 		return nil
 	}
 	t, decl, fr, _ := g.resolveFill(id, fr)
@@ -519,7 +541,7 @@ func (g *generator) fill(b *strings.Builder, lhs string, id *ir.ID, fr *frame, d
 		return g.fill(b, lhs, decl.GetNewtype().GetBase(), bind(args, fr), depth)
 	}
 	e := fmt.Sprintf("e%d", depth)
-	if g.pointer(decl, args) {
+	if pointer(decl, args) {
 		fmt.Fprintf(b, "if %s != nil {\n%s := *%s\n", lhs, e, lhs)
 		if err := g.fill(b, e, args[0], fr, depth+1); err != nil {
 			return err
@@ -540,7 +562,7 @@ func (g *generator) fill(b *strings.Builder, lhs string, id *ir.ID, fr *frame, d
 		}
 		elem = args[1]
 	}
-	if !g.fills(elem, fr) {
+	if !g.needsFill(elem, fr) {
 		b.WriteString("\n")
 		return nil
 	}
@@ -590,6 +612,9 @@ func (g *generator) writeMarshal(b *strings.Builder, decl *ir.Decl, name string)
 	if err := g.marshalProblem(decl); err != nil {
 		return err
 	}
+	if err := g.marshalCollides(decl, name, decl.Fields()); err != nil {
+		return err
+	}
 	var body strings.Builder
 	recv, self := receiver(decl, name), name+typeArgs(decl)
 	if nt := decl.GetNewtype(); nt != nil {
@@ -608,7 +633,7 @@ func (g *generator) writeMarshal(b *strings.Builder, decl *ir.Decl, name string)
 		}
 	}
 	g.use("encoding/json")
-	fmt.Fprintf(b, "\n// MarshalJSON encodes a %s, writing each empty list as [] and each empty map as {}, never null.\n", name)
+	fmt.Fprintf(b, "\n// MarshalJSON encodes a %s%s\n", name, fillDoc)
 	fmt.Fprintf(b, "func (%s %s) MarshalJSON() ([]byte, error) {\n%sreturn json.Marshal(self)\n}\n", recv, self, body.String())
 	return nil
 }
@@ -622,7 +647,7 @@ func (g *generator) warnParamFills(id *ir.ID, fr *frame, at *ir.Position) bool {
 		return false
 	}
 	for _, a := range t.GetArgs() {
-		if emit.IsOwn(decl) && g.fills(a, fr) {
+		if emit.IsOwn(decl) && g.needsFill(a, fr) {
 			g.Warn(emit.Unsupported(at,
 				"%s is applied to a type holding a list or map, and its JSON methods write its parameters as plain values, so an empty one there is null",
 				decl.GetMeta().GetName()))

@@ -491,7 +491,7 @@ func (g *generator) fields(b *strings.Builder, fields []*ir.Field) error {
 
 		g.doc(b, f.GetMeta())
 		fmt.Fprintf(b, "\t%s %s", g.fieldName(f), goType)
-		if g.wire {
+		if g.wire && g.wireName(f) != "" {
 			g.warnParamFills(f.GetType(), nil, f.GetMeta().GetPosition())
 		}
 		tag, ok := g.Text(f.GetDirectives(), "tag")
