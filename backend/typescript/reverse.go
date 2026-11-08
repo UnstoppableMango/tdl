@@ -75,6 +75,8 @@ type (
 		Heritage bool      `json:"heritage,omitempty"`
 		Members  []*member `json:"members,omitempty"`
 		Type     *tsType   `json:"type,omitempty"`
+		// Checks is how many if statements a constructor's body holds.
+		Checks int `json:"checks,omitempty"`
 	}
 	member struct {
 		Kind     string   `json:"kind"`
@@ -511,6 +513,9 @@ func (r *reader) statement(s *statement, doc *jsdoc, carried ast.Decl) (ast.Decl
 	if s.Kind == "empty-export" {
 		return nil, nil
 	}
+	if s.Kind == "constructor" && r.constructor(s) {
+		return nil, nil
+	}
 	if !declares(s) {
 		r.Warn(emit.LossUnsupported, r.pos(s.Line, s.Col), "%s has no TDL form", syntax(s.Syntax))
 		return nil, nil
@@ -607,22 +612,60 @@ func (r *reader) alias(s *statement, head ast.DeclHead) (ast.Decl, error) {
 		}
 		return r.newtype(s, head, base)
 	}
-	if s.Type.K == "never" {
-		return &ast.EnumDecl{DeclHead: head}, nil
-	}
-	members := unionOf(s.Type)
-	enum := &ast.EnumDecl{DeclHead: head}
-	for _, t := range members {
-		if t.K != "lit" || t.Str == nil || !tdlName(*t.Str) || slices.ContainsFunc(enum.Variants, func(v *ast.Variant) bool { return v.N == *t.Str }) {
-			enum = nil
-			break
+	if variants, ok := enumOf(s.Type); ok {
+		enum := &ast.EnumDecl{DeclHead: head}
+		for _, v := range variants {
+			enum.Variants = append(enum.Variants, &ast.Variant{DeclHead: ast.DeclHead{N: v, P: head.P}})
 		}
-		enum.Variants = append(enum.Variants, &ast.Variant{DeclHead: ast.DeclHead{N: *t.Str, P: head.P}})
-	}
-	if enum != nil {
 		return enum, nil
 	}
 	return r.newtype(s, head, s.Type)
+}
+
+// enumOf is the variants an unbranded alias's type reads back as, when it
+// reads back as an enum: `never`, or a union of distinct string literals
+// each a TDL name.
+func enumOf(t *tsType) ([]string, bool) {
+	if t.K == "never" {
+		return nil, true
+	}
+	var variants []string
+	for _, m := range unionOf(t) {
+		if m.K != "lit" || m.Str == nil || !tdlName(*m.Str) || slices.Contains(variants, *m.Str) {
+			return nil, false
+		}
+		variants = append(variants, *m.Str)
+	}
+	return variants, true
+}
+
+// constructor reads a newtype's constructor, a const of the alias's name,
+// as a construct directive, which a brand already implies, and reports
+// whether it was one. Its checks are not read.
+func (r *reader) constructor(s *statement) bool {
+	var alias *statement
+	for _, a := range r.stmts {
+		if a.Kind == "type" && a.Name == s.Name && a.Params == 0 {
+			alias = a
+		}
+	}
+	name := r.names[s.Name]
+	if alias == nil || r.variants[s.Name] || r.sums[s.Name] != nil || !tdlName(name) {
+		return false
+	}
+	if !s.Exported {
+		r.Respell(emit.LossUnsupported, r.pos(s.Line, s.Col), "%s's constructor regenerates exported", s.Name)
+	}
+	if _, key := unbrand(alias.Type); key == "" {
+		if _, enum := enumOf(alias.Type); enum {
+			return false
+		}
+		r.Directive(name, "construct")
+	}
+	if s.Checks > 0 && !r.Roundtrip {
+		r.Warn(emit.LossConstraint, r.pos(s.Line, s.Col), "%s's constructor checks %d constraint(s), which are not read", s.Name, s.Checks)
+	}
+	return true
 }
 
 // newtype reads a type alias as a newtype over t.

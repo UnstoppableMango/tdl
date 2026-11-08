@@ -11,7 +11,7 @@ The output targets Zod 4.3 or later, the release that added `.exactOptional()`, 
 
 ## Why a backend of its own
 
-The `typescript` backend writes declarations and no runtime code, and that is its promise: a file a consumer can include with no dependency.
+The `typescript` backend writes declarations, and at most a newtype's constructor, which checks with nothing but the language, and that is its promise: a file a consumer can include with no dependency.
 A Zod module is runtime code with a dependency, so it is a target of its own rather than a directive on `typescript`.
 Keeping them apart also keeps `typescript`'s importer simple, since `reverse.go` reads interfaces and aliases, not calls.
 

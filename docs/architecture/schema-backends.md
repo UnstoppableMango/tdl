@@ -139,7 +139,8 @@ export type WorkEmail = Email & { readonly __brand: { readonly "shop.WorkEmail":
 
 Each brand is a property of the one `__brand` object, so a newtype over a branded newtype intersects both, and a `WorkEmail` is still an `Email`; two string literals for one property would intersect to `never`.
 A literal union is parenthesized, and a base that may be null is branded without the null, `string & { ... } | null`.
-The output is types only, so a branded value is made with a cast (`"ann" as Username`).
+A branded newtype has a constructor, a function of its own name, so a branded value is made without a cast (`Username("ann")`); `construct` writes one for an unbranded newtype too.
+A constructor throws a `RangeError` for each constraint its parameter's type cannot state and it can check, `matches` only under `patterns`, so the output holds runtime code only under one of the two directives.
 `zod`'s brands use `z.$brand`, which `typescript` cannot name without importing zod, so the two backends' branded types are not mutually assignable: a project using both picks one as the source of nominal types, and the agreement test runs without `brand`, with zod `structural`.
 A `brand` on a declaration other than a newtype warns, since placement cannot say newtype only.
 A JSON Schema newtype is a definition holding its base and the constraints it writes itself; a base that is another newtype is a `$ref`, which checks the constraints inherited from it.
@@ -376,6 +377,7 @@ The file's name is the package, except `model`, the name of a model without one.
 | `never` | enum without variants |
 | `Base & { readonly __brand: { readonly "<package>.<Name>": true } }` | newtype over `Base`, with a `brand` directive |
 | any other type alias | newtype |
+| `const N = (v: T): N => ...`, beside alias `N` | a `construct` directive on `N`, unless `N` is branded; its checks warn `lossy.constraint` |
 | `p?: T`, `p: T \| null`, `p?: T \| null` | `T?`, `T \| null`, `T? \| null` |
 | `T \| null` in an element or a value | `T?` |
 | `T[]`, `Array<T>`, `ReadonlyArray<T>` | `[T]` |
@@ -390,7 +392,7 @@ A property keeps its name, unless it is not a TDL identifier: then it reads in c
 A variant's name is what its interface's name adds to the union's, or else the interface's own, with a `name` directive.
 The last `/** */` comment is a doc comment: its lines before the first tag are the doc, and `@deprecated` the deprecation; any other tag warns `lossy.doc`.
 The target block holds `name` and `discriminant` directives where the convention would write another, and `brand` on each branded newtype; a brand keyed by another name is not read and warns `lossy.unsupported`.
-A brand on the target block reads back on each newtype, which `readback` warns as `lossy.name`.
+A brand or a `construct` on the target block reads back on each newtype, which `readback` warns as `lossy.name`, as it does `patterns`, which does not read back.
 
 Generating, every fact the file cannot hold warns with its loss code: a primitive written as `string` or `number` that reads back as another, a set, collection sugar written by name, an option or nullable chain the file cannot write, a newtype or alias expanded, an entity or a mixin, an include, a constraint, `owned`, a default, a name that reads back otherwise, a package the file's name does not hold, a doc comment JSDoc cannot hold, a class, a unit, and generics.
 

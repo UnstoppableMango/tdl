@@ -246,9 +246,10 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   A fielded enum is a union of object types; a fieldless variant gets `_: Boolean`; a map is a warning.
   It imports one file: `reverse.go` reads gqlparser's schema document, taking the package from the file's name; `annotate.go` writes the loss warnings and, under `roundtrip`, `@tdl` directives, which the schema then defines.
   Tests validate every response with `vektah/gqlparser`.
-- `backend/typescript`: one `.ts` file per model of JSON wire types, no runtime code.
+- `backend/typescript`: one `.ts` file per model of JSON wire types, with no runtime code but a newtype's constructor under `construct` or `brand`.
   A set is an array, a map a `Record`, unrepresentable primitives a string, a newtype a plain alias, or under `brand` one intersected with a brand keyed by its qualified name, which import reads back.
   A fielded enum is a union discriminated on `kind`, renamed by a `discriminant` directive.
+  `construct.go` writes the constructor, a function named for the newtype that casts its base and throws a `RangeError` for each constraint the type cannot state, `matches` only under `patterns`; import reads one back as a `construct` directive.
   An extern is imported with `import type`, through `backend/internal/ts`'s `imports.go`: from the module a `foreign` directive names, or from its dependency's file by a path relative to this one, which both blocks' `out` directives place.
   A narrowed type from `emit.Narrow` is written as a literal union, which warns only that it reads back as `oneOf`, or a tuple, which import reads back as a list with its `length`.
   Tests run `tsc --noEmit --strict` when it is on `PATH`; `checks.gen-typescript` always does.
