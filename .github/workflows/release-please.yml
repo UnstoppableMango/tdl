@@ -60,3 +60,64 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.release.outputs.tag_name }}
         run: gh release upload "$TAG" result/* --repo "$GITHUB_REPOSITORY" --clobber
+
+  # The five npm packages, packed by Nix from the tagged commit, published with
+  # npm's trusted publishing: npm trusts this workflow's OIDC token in place of
+  # a stored token, and writes provenance. Each package's trusted publisher on
+  # npmjs.com names this file. The platform packages go first, so nothing
+  # @unmango/tdl depends on is missing when it appears; a version already
+  # published is skipped, so a rerun finishes what a failed run started.
+  # Trusted publishing accepts only GitHub-hosted runners.
+  npm:
+    needs: release
+    if: ${{ needs.release.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.release.outputs.tag_name }}
+          persist-credentials: false
+
+      - uses: unmango/actions/setup-nix@e8bbcbd12a2c521c5cb36957c00a7a8f4fe2e766 # v2.0.0
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      # Trusted publishing needs npm 11.5.1 or later, which Node 24 ships.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
+      - run: nix build .#npm
+
+      - name: Publish
+        env:
+          VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          have=$(npm --version)
+          [ "$(printf '%s\n' 11.5.1 "$have" | sort -V | head -1)" = 11.5.1 ] || {
+            echo "npm $have cannot publish through trusted publishing" >&2
+            exit 1
+          }
+
+          cd result
+          shopt -s nullglob
+          platforms=(unmango-tdl-*-"$VERSION".tgz)
+          [ ${#platforms[@]} = 4 ] && [ -f "unmango-tdl-$VERSION.tgz" ] || {
+            echo "packages.npm does not hold five packages at $VERSION:" >&2
+            ls >&2
+            exit 1
+          }
+
+          for tarball in "${platforms[@]}" "unmango-tdl-$VERSION.tgz"; do
+            name=$(tar -xzOf "$tarball" package/package.json | jq -r .name)
+            if npm view "$name@$VERSION" version > /dev/null 2>&1; then
+              echo "$name@$VERSION is already published"
+              continue
+            fi
+            npm publish "$tarball" --access public --provenance
+          done
