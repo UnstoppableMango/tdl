@@ -802,6 +802,9 @@ func (r *reader) checkMethods(t *typeInfo, sealedBy string) {
 		case name == "Validate" || name == "validate":
 		case name == "Key" && t.role == roleStruct:
 		case name == "is"+sealedBy && sealedBy != "":
+		case name == "MarshalJSON" && m.Doc != nil && strings.HasSuffix(strings.TrimSpace(m.Doc.Text()), fillDoc):
+			// Written under json to fill empty collections, which the
+			// convention, not the model, asks for.
 		case strings.HasPrefix(name, "is") && r.types[name[2:]] != nil && r.types[name[2:]].role == roleClass:
 		default:
 			r.Warn(emit.LossUnsupported, r.pos(m.Pos()), "method %s.%s has no TDL form", t.name, name)

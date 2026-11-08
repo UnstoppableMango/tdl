@@ -552,6 +552,7 @@ Marking something deprecated changes nothing else; it remains part of the model 
 A `target` block holds what only one backend needs: how that target spells, lays out, numbers, or places the model.
 A fact true of the domain, such as a default, a constraint, or a deprecation, belongs in the model even though backends read it, and the model never names a target.
 A fact several targets share only because they follow the same encoding or API style, such as the JSON wire convention's discriminant, belongs to a convention, written once for every target that follows it; conventions are not designed yet, so today each target block repeats it.
+The JSON wire convention writes an empty list as `[]` and an empty map as `{}`, at every depth, never `null`.
 
 ```tdl
 target go for billing {

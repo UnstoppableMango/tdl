@@ -85,7 +85,7 @@ _Avoid_: loss, round-trip loss
 ### Generated types
 
 **Wire convention**:
-The **convention** for JSON: the one shape several targets read and write for a model's values: properties named as the model spells them, an absent optional left out, and a fielded enum tagged by its discriminant, `kind` unless renamed.
+The **convention** for JSON: the one shape several targets read and write for a model's values: properties named as the model spells them, an absent optional left out, an empty list written `[]` and an empty map `{}` at every depth, never `null`, and a fielded enum tagged by its discriminant, `kind` unless renamed.
 _Avoid_: JSON format, serialization
 
 **Wire compatible**:

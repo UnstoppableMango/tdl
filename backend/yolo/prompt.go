@@ -51,7 +51,7 @@ Whatever the files cannot carry from the model, report with the report_loss tool
 		fmt.Fprintf(&b, "- %s: %s\n", code, lossMeanings[code])
 	}
 	b.WriteString(`
-When the output reads or writes the model as JSON, follow the JSON wire convention every TDL target shares: a property is named exactly as the model spells the field, whatever the language calls it; a fielded enum's variants are tagged internally by a discriminant property, "kind" unless a discriminant directive names another, whose value is the variant's name in the model; a newtype is its base value.
+When the output reads or writes the model as JSON, follow the JSON wire convention every TDL target shares: a property is named exactly as the model spells the field, whatever the language calls it; a fielded enum's variants are tagged internally by a discriminant property, "kind" unless a discriminant directive names another, whose value is the variant's name in the model; a newtype is its base value; an empty list is written [] and an empty map {}, at every depth, never null.
 
 When every file is written and every loss reported, end your turn without calling a tool.
 
