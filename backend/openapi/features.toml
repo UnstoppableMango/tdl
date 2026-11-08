@@ -37,6 +37,7 @@ notes = "On a list or set it is `minItems` and `maxItems`, and on a map `minProp
 
 [matches]
 spelling = "`pattern`"
+notes = "Written for ECMA-262's Unicode mode, the `u` flag, which 3.1 asks a validator for and 3.0 and 2.0 leave to it."
 
 [oneOf]
 spelling = "`enum`"

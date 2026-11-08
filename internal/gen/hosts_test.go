@@ -38,6 +38,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/zod"
 	"github.com/unstoppablemango/tdl/internal/analysis"
 	"github.com/unstoppablemango/tdl/internal/gen"
+	"github.com/unstoppablemango/tdl/internal/schematest"
 	"github.com/unstoppablemango/tdl/internal/sema"
 	"github.com/unstoppablemango/tdl/ir"
 	tdlparser "github.com/unstoppablemango/tdl/parser"
@@ -476,6 +477,7 @@ func compileJSONSchema(t *testing.T, f *plugin.File) {
 		return
 	}
 	c := sjs.NewCompiler()
+	c.UseRegexpEngine(schematest.Engine)
 	loc := "file:///" + f.GetPath()
 	if err := c.AddResource(loc, doc); err != nil {
 		t.Fatal(err)

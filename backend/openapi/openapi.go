@@ -68,6 +68,7 @@ var versions = map[string]version{
 	"3.1": {key: "openapi", value: "3.1.1", dialect: jsonschema.Dialect{
 		Name: "OpenAPI 3.1", Ref: components, Siblings: true, Deprecated: true, Const: true,
 		ContentEncoding: true, PropertyNames: true, Unions: jsonschema.UnionsReferenced, Formats: true,
+		Unicode: true,
 	}},
 	// A 3.0 schema ignores a $ref's siblings, has no const, and says null
 	// with `nullable`.

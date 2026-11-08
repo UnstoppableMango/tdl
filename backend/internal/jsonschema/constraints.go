@@ -2,6 +2,7 @@ package jsonschema
 
 import (
 	"encoding/json"
+	"errors"
 	"strconv"
 
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
@@ -57,7 +58,11 @@ func (b *Builder) kindOf(r *emit.Ref) kind {
 // still written without it.
 func (b *Builder) constrain(s *Object, k kind, owner string, cs []*ir.Constraint) {
 	for _, c := range cs {
-		if err := b.constraint(s, k, c); err != nil {
+		err := b.constraint(s, k, owner, c)
+		switch lost, ok := errors.AsType[lostError](err); {
+		case ok:
+			b.Lossy(emit.LossConstraint, c.GetPosition(), "%s: %s is not written: %s", owner, emit.ConstraintText(c), string(lost))
+		case err != nil:
 			b.Warn(emit.Unsupported(c.GetPosition(), "%s: %v", owner, err))
 		}
 	}
@@ -67,7 +72,13 @@ type constraintError string
 
 func (e constraintError) Error() string { return string(e) }
 
-func (b *Builder) constraint(s *Object, k kind, c *ir.Constraint) error {
+// lostError is why a constraint JSON Schema has a keyword for is not
+// written: a pattern no validator should run.
+type lostError string
+
+func (e lostError) Error() string { return string(e) }
+
+func (b *Builder) constraint(s *Object, k kind, owner string, c *ir.Constraint) error {
 	name, args := c.GetName(), c.GetArgs()
 	misplaced := constraintError(name + " has no JSON Schema keyword for this type")
 
@@ -110,7 +121,7 @@ func (b *Builder) constraint(s *Object, k kind, c *ir.Constraint) error {
 		if k != text || len(args) != 1 || args[0].GetKind() != ir.LiteralKind_LITERAL_KIND_REGEX {
 			return misplaced
 		}
-		s.Set("pattern", args[0].GetText())
+		return b.pattern(s, owner, c)
 	case "oneOf":
 		if k != numeric && k != text && k != fieldless {
 			return misplaced
@@ -164,4 +175,29 @@ func literal(l *ir.Literal) (any, bool) {
 		return n, true
 	}
 	return nil, false
+}
+
+// pattern writes a `matches` constraint as `pattern`, printed by
+// [emit.ECMAScriptSource] so that a validator reading it as ECMA-262 with
+// the u flag matches what RE2 matches. A pattern RE2 refuses, one naming
+// a surrogate, and one whose shape a backtracking engine takes
+// exponential time on are not written. Under a dialect that says nothing
+// of the flag, a pattern reading differently without it warns.
+func (b *Builder) pattern(s *Object, owner string, c *ir.Constraint) error {
+	re, err := emit.Pattern(c.GetArgs()[0])
+	switch {
+	case err != nil:
+		return lostError(err.Error())
+	case emit.Surrogates(re):
+		return lostError("it names a surrogate code point, which RE2 never sees and a validator can match")
+	case emit.Backtracks(re):
+		return lostError("validators commonly backtrack, and can take exponential time on this pattern's shape")
+	}
+	s.Set("pattern", emit.ECMAScriptSource(re))
+	if !b.Dialect.Unicode && emit.NeedsUnicode(re) {
+		b.Warn(emit.Unsupported(c.GetPosition(),
+			"%s: %s is written for Unicode mode, ECMA-262's u flag, which this dialect leaves to the validator; one without it reads the pattern differently",
+			owner, emit.ConstraintText(c)))
+	}
+	return nil
 }

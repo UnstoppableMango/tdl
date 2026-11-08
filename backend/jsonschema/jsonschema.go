@@ -68,7 +68,7 @@ var drafts = map[string]draft{
 		defs:   "$defs",
 		dialect: jsonschema.Dialect{
 			Name: "JSON Schema", Ref: "#/$defs/", Siblings: true, Deprecated: true,
-			Const: true, ContentEncoding: true, PropertyNames: true,
+			Const: true, ContentEncoding: true, PropertyNames: true, Unicode: true,
 		},
 	},
 	// Draft 7 ignores a $ref's siblings and has no `deprecated`.
