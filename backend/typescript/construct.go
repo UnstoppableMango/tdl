@@ -26,17 +26,17 @@ func (g *generator) constructed(d *ir.Decl) bool {
 	return g.construct || g.branded(d) || g.Tagged(d.GetDirectives(), "construct")
 }
 
-// globals are the names a constructor's checks refer to, and eval and
-// arguments, which a module cannot bind; a constructor named for one would
-// shadow it or not compile.
-var globals = map[string]bool{"RangeError": true, "Set": true, "Object": true, "eval": true, "arguments": true}
+// unbindable is the names no constructor takes: the globals its checks
+// refer to, which it would shadow, and eval and arguments, which a module
+// cannot bind.
+var unbindable = map[string]bool{"RangeError": true, "Set": true, "Object": true, "eval": true, "arguments": true}
 
 // constructor writes a newtype's constructor taking param, its base as
 // written, narrowed where its constraints narrow it, and records each
 // constraint it checks. A constraint it cannot check warns why.
 func (g *generator) constructor(b *strings.Builder, d *ir.Decl, name, param string) error {
 	subject := emit.LastSegment(d.GetMeta().GetName())
-	if globals[name] {
+	if unbindable[name] {
 		g.Warn(emit.Unsupported(d.GetMeta().GetPosition(), "%s would shadow %s in TypeScript, so it has no constructor", subject, name))
 		return nil
 	}
@@ -49,11 +49,21 @@ func (g *generator) constructor(b *strings.Builder, d *ir.Decl, name, param stri
 		return err
 	}
 
+	// A branded base is made only by its own constructor, which checks
+	// every constraint the newtype inherits.
+	viaBrand := ref.Form == emit.Named && ref.Decl.GetNewtype() != nil && g.branded(ref.Decl)
+
 	var checks []string
 	for _, c := range d.GetNewtype().GetValueConstraints() {
-		// A second rendering, under roundtrip, warns nothing again.
-		if g.unchecked[c] || g.Enforced(c) && !g.checked[c] {
-			continue // the narrowed type states it, or it warned
+		if viaBrand && c.GetFrom() != nil {
+			g.Enforce(c)
+			continue
+		}
+		// Skip what the narrowed type states, and what already warned it
+		// cannot be checked: a second rendering, under roundtrip, writes
+		// the same checks and warns nothing again.
+		if g.unchecked[c] || (g.Enforced(c) && !g.checked[c]) {
+			continue
 		}
 		text := emit.ConstraintText(c)
 		cond, why := g.condition(x, c)

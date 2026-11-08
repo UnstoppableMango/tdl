@@ -43,7 +43,7 @@ var outlineScript string
 // node, so both must be on PATH. docs/architecture/schema-backends.md has the
 // mapping.
 func (Backend) Import(ctx context.Context, req *plugin.ImportRequest) (*plugin.ImportResponse, error) {
-	r := &reader{names: map[string]string{}, sums: map[string]*sum{}, variants: map[string]bool{}}
+	r := &reader{names: map[string]string{}, sums: map[string]*sum{}, variants: map[string]bool{}, constructors: map[string]bool{}}
 	r.Readback = req.GetReadback()
 	return r.Response(r.read(ctx, req.GetFiles()))
 }
@@ -197,6 +197,8 @@ type reader struct {
 	// interfaces they absorb.
 	sums     map[string]*sum
 	variants map[string]bool
+	// constructors holds the names of the consts written as constructors.
+	constructors map[string]bool
 }
 
 // sum is a union read as a fielded enum: its discriminant, and each
@@ -355,6 +357,9 @@ func declares(s *statement) bool {
 func (r *reader) nameAll(carried map[*statement]ast.Decl) {
 	ifaces := map[string]*statement{}
 	for _, s := range r.stmts {
+		if s.Kind == "constructor" {
+			r.constructors[s.Name] = true
+		}
 		if !declares(s) {
 			continue
 		}
@@ -612,7 +617,8 @@ func (r *reader) alias(s *statement, head ast.DeclHead) (ast.Decl, error) {
 		}
 		return r.newtype(s, head, base)
 	}
-	if variants, ok := enumOf(s.Type); ok {
+	// A constructor says a union of string literals is a newtype's.
+	if variants, ok := enumOf(s.Type); ok && !r.constructors[s.Name] {
 		enum := &ast.EnumDecl{DeclHead: head}
 		for _, v := range variants {
 			enum.Variants = append(enum.Variants, &ast.Variant{DeclHead: ast.DeclHead{N: v, P: head.P}})
@@ -657,9 +663,6 @@ func (r *reader) constructor(s *statement) bool {
 		r.Respell(emit.LossUnsupported, r.pos(s.Line, s.Col), "%s's constructor regenerates exported", s.Name)
 	}
 	if _, key := unbrand(alias.Type); key == "" {
-		if _, enum := enumOf(alias.Type); enum {
-			return false
-		}
 		r.Directive(name, "construct")
 	}
 	if s.Checks > 0 && !r.Roundtrip {

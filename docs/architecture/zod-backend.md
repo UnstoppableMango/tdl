@@ -12,8 +12,8 @@ The output targets Zod 4.3 or later, the release that added `.exactOptional()`, 
 ## Why a backend of its own
 
 The `typescript` backend writes declarations, and at most a newtype's constructor, which checks with nothing but the language, and that is its promise: a file a consumer can include with no dependency.
-A Zod module is runtime code with a dependency, so it is a target of its own rather than a directive on `typescript`.
-Keeping them apart also keeps `typescript`'s importer simple, since `reverse.go` reads interfaces and aliases, not calls.
+A Zod module is runtime code with a dependency, checking every declaration, so it is a target of its own rather than a directive on `typescript`, whose `construct` directive checks only a newtype's own value.
+Keeping them apart also keeps `typescript`'s importer simple, since `reverse.go` reads interfaces, aliases, and a constructor's name, not schema calls.
 
 The two describe one wire format, and the Zod output is written so that its inferred types are the `typescript` backend's types, apart from what [Constraints](#constraints) adds.
 Without brands (the `structural` directive), the inferred type of every declaration is mutually assignable with the interface or alias `typescript` writes for it, and a test holds the two to that (see [Checking the output](#checking-the-output)).

@@ -6,6 +6,7 @@ type Secret: string
 type Code: string where { length(2..8) }
 type Token: string | null
 type Grade: string where { oneOf("gold", "silver") }
+type Tier: string where { oneOf("free", "paid") }
 
 type Login {
   secret: Secret
@@ -17,4 +18,5 @@ target typescript for auth {
   Code => construct
   Token => construct
   Grade => brand
+  Tier => construct
 }

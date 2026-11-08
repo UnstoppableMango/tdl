@@ -52,7 +52,7 @@ notes = "TypeScript has no ownership, and a referenced type is embedded by value
 notes = "The default is not written."
 
 [key]
-notes = "The output is types with no runtime code, so there is no key function to write."
+notes = "The output is types, with at most a newtype's constructor, so there is no key function to write."
 
 [name]
 spelling = "the property or type name"

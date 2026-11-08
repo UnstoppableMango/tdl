@@ -96,6 +96,24 @@ func TestConstructOnTheBlock(t *testing.T) {
 	})
 }
 
+// A newtype over a branded newtype takes it, which only its constructor
+// makes, so it does not check again what it inherits.
+func TestConstructTrustsABrandedBase(t *testing.T) {
+	src := check(t, generateModel(t, lowerSource(t, "shop.tdl", `package shop
+
+type Email: string where { length(3..) }
+type WorkEmail: Email where { length(..64) }
+
+target typescript for shop {
+  brand
+}
+`, nil)))
+	contains(t, src, `throw new RangeError("Email: length(3..)");`, `throw new RangeError("WorkEmail: length(..64)");`)
+	if strings.Count(src, "length(3..)") != 1 {
+		t.Errorf("WorkEmail checks Email's length again:\n%s", src)
+	}
+}
+
 // construct on a newtype covers that one alone.
 func TestConstructOnANewtype(t *testing.T) {
 	src := check(t, generateModel(t, lowerSource(t, "shop.tdl", `package shop
@@ -232,8 +250,10 @@ export const Code = (v: string): Code => {
   return v as Code;
 };
 export type Plain = string;
+export type Tier = "free" | "paid";
+export const Tier = (v: "free" | "paid"): Tier => v as Tier;
 `})
-	for _, s := range []string{"Secret => construct", "Code => construct", "Token => brand"} {
+	for _, s := range []string{"Secret => construct", "Code => construct", "Token => brand", "Tier => construct", `type Tier: string where { oneOf("free", "paid") }`} {
 		if !strings.Contains(src, s) {
 			t.Errorf("import lacks %q:\n%s", s, src)
 		}

@@ -190,7 +190,7 @@ func (g *generator) newtypeLosses(d *ir.Decl, ref *emit.Ref) {
 	g.typeLosses(d.GetNewtype().GetBase(), nil, modeAlias)
 
 	typ, cs, narrowed := g.back(ref, d.GetNewtype().GetValueConstraints(), modeAlias)
-	if narrowed != nil && narrowed.Kind != emit.NarrowTuple && !g.branded(d) && len(cs) == 1 && typ.N == "string" && !slices.ContainsFunc(cs[0].Args, func(l *ast.Literal) bool { return !tdlName(l.Text) }) {
+	if narrowed != nil && narrowed.Kind != emit.NarrowTuple && !g.constructed(d) && len(cs) == 1 && typ.N == "string" && !slices.ContainsFunc(cs[0].Args, func(l *ast.Literal) bool { return !tdlName(l.Text) }) {
 		g.lose(emit.LossNewtype, pos, "newtype %s is a union of string literals, which reads back as an enum", name)
 		return
 	}
