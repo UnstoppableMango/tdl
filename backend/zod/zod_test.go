@@ -528,6 +528,60 @@ target zod for shop {
 	typecheck(t, nil, resp)
 }
 
+// A name directive on a fieldless variant has nothing to rename, since the
+// variant is written only as its wire value, so it warns once at the
+// directive, with no loss code, and the module is the one written without
+// it. On a variant of a fielded enum, fieldless or not, it renames the
+// variant's schema, quietly, and a declaration's own name directive leaves
+// the warning naming the declaration as the model does.
+func TestNameOnAVariant(t *testing.T) {
+	const model = `package shop
+
+enum Status {
+  Live
+  Expired
+}
+
+enum Key {
+  Pr { n: int32 }
+  Other
+}
+`
+	_, plain := gen(t, model+`
+target zod for shop {
+  Status => name("State")
+  Key.Pr => name("Pull")
+  Key.Other => name("Rest")
+}
+`)
+	resp, src := gen(t, model+`
+target zod for shop {
+  Status => name("State")
+  Status.Live => name("live")
+  Key.Pr => name("Pull")
+  Key.Other => name("Rest")
+}
+`)
+	diags := resp.GetDiagnostics()
+	if len(diags) != 1 {
+		t.Fatalf("diagnostics = %v", diags)
+	}
+	d := diags[0]
+	if d.GetSeverity() != plugin.Severity_SEVERITY_WARNING || d.GetCode() != "" ||
+		d.GetPosition().GetLine() != 15 || d.GetPosition().GetColumn() != 18 ||
+		!strings.Contains(d.GetMessage(), "Status.Live") || !strings.Contains(d.GetMessage(), "no effect") {
+		t.Errorf("diagnostic = %+v", d)
+	}
+	if src != plain {
+		t.Errorf("the directive changed the module:\n%s\nwant:\n%s", src, plain)
+	}
+	contains(t, src,
+		`export const State = z.enum(["Live", "Expired"]);`,
+		`export const Pull = z.object({ kind: z.literal("Pr"), n:`,
+		`export const Rest = z.object({ kind: z.literal("Other"), });`)
+	absent(t, src, `"live"`)
+}
+
 // A variant field named like the discriminant skips its enum, and the
 // declarations naming it.
 func TestDiscriminantCollision(t *testing.T) {
