@@ -15,13 +15,63 @@ import (
 // lookaround, so the consumer's engine reads no flag and no Unicode table
 // of its own. docs/architecture/zod-backend.md's Patterns is the table.
 func ECMAScript(re *syntax.Regexp) string {
-	var b strings.Builder
-	printECMA(&b, map[string]bool{}, re)
-	return b.String()
+	p := &ecmaPrinter{named: map[string]bool{}}
+	p.print(re)
+	return p.b.String()
 }
 
-// printECMA prints re, recording in named each capture name it writes.
-func printECMA(b *strings.Builder, named map[string]bool, re *syntax.Regexp) {
+// ECMAScriptSource prints a pattern as [ECMAScript] does, as the source a
+// RegExp is built from rather than a literal's body, as JSON Schema's
+// `pattern` holds it: `/` is itself, and a code point below U+10000 is a
+// `\uXXXX` escape, which reads the same with and without the u flag, so
+// a pattern [NeedsUnicode] refuses reads the same in either mode.
+func ECMAScriptSource(re *syntax.Regexp) string {
+	p := &ecmaPrinter{named: map[string]bool{}, source: true}
+	p.print(re)
+	return p.b.String()
+}
+
+// NeedsUnicode reports whether a pattern printed by [ECMAScriptSource]
+// reads differently without the u flag, where an engine matches UTF-16
+// code units: a code point above U+FFFF in a literal or a class, a class
+// reaching the surrogates, which matches half of a pair (`.` and every
+// negated class among them), and any character.
+func NeedsUnicode(re *syntax.Regexp) bool {
+	switch re.Op {
+	case syntax.OpAnyChar, syntax.OpAnyCharNotNL:
+		return true
+	case syntax.OpLiteral:
+		for _, r := range re.Rune {
+			folds := []rune{r}
+			if re.Flags&syntax.FoldCase != 0 {
+				folds = orbit(r)
+			}
+			if slices.ContainsFunc(folds, func(f rune) bool { return f > 0xFFFF }) {
+				return true
+			}
+		}
+	case syntax.OpCharClass:
+		for i := 0; i+1 < len(re.Rune); i += 2 {
+			if lo, hi := re.Rune[i], re.Rune[i+1]; hi > 0xFFFF || lo <= 0xDFFF && hi >= 0xD800 {
+				return true
+			}
+		}
+	}
+	return slices.ContainsFunc(re.Sub, NeedsUnicode)
+}
+
+// ecmaPrinter prints a pattern in ECMAScript syntax.
+type ecmaPrinter struct {
+	b strings.Builder
+	// named is each capture name written so far.
+	named map[string]bool
+	// source is whether the pattern is a RegExp's source rather than a
+	// literal's body.
+	source bool
+}
+
+func (p *ecmaPrinter) print(re *syntax.Regexp) {
+	b := &p.b
 	switch re.Op {
 	case syntax.OpNoMatch:
 		b.WriteString("[]")
@@ -33,20 +83,20 @@ func printECMA(b *strings.Builder, named map[string]bool, re *syntax.Regexp) {
 				if folds := orbit(r); len(folds) > 1 {
 					b.WriteString("[")
 					for _, f := range folds {
-						b.WriteString(classRune(f))
+						b.WriteString(p.classRune(f))
 					}
 					b.WriteString("]")
 					continue
 				}
 			}
-			b.WriteString(literalRune(r))
+			b.WriteString(p.literalRune(r))
 		}
 	case syntax.OpCharClass:
-		printClass(b, re.Rune)
+		p.class(re.Rune)
 	case syntax.OpAnyCharNotNL:
 		b.WriteString(`[^\n]`)
 	case syntax.OpAnyChar:
-		b.WriteString(`[\u{0}-\u{10FFFF}]`)
+		b.WriteString("[" + p.classRune(0) + "-" + p.classRune(unicode.MaxRune) + "]")
 	case syntax.OpBeginText:
 		b.WriteString("^")
 	case syntax.OpEndText:
@@ -63,16 +113,16 @@ func printECMA(b *strings.Builder, named map[string]bool, re *syntax.Regexp) {
 		// ECMAScript names a group with an identifier, once, and RE2
 		// also allows one starting with a digit and one used twice; a
 		// group's name never changes what it matches.
-		if re.Name != "" && !unicode.IsDigit(rune(re.Name[0])) && !named[re.Name] {
-			named[re.Name] = true
+		if re.Name != "" && !unicode.IsDigit(rune(re.Name[0])) && !p.named[re.Name] {
+			p.named[re.Name] = true
 			b.WriteString("(?<" + re.Name + ">")
 		} else {
 			b.WriteString("(")
 		}
-		printECMA(b, named, re.Sub[0])
+		p.print(re.Sub[0])
 		b.WriteString(")")
 	case syntax.OpStar, syntax.OpPlus, syntax.OpQuest, syntax.OpRepeat:
-		printOperand(b, named, re.Sub[0])
+		p.operand(re.Sub[0])
 		switch re.Op {
 		case syntax.OpStar:
 			b.WriteString("*")
@@ -100,10 +150,10 @@ func printECMA(b *strings.Builder, named map[string]bool, re *syntax.Regexp) {
 		for _, s := range re.Sub {
 			if s.Op == syntax.OpAlternate {
 				b.WriteString("(?:")
-				printECMA(b, named, s)
+				p.print(s)
 				b.WriteString(")")
 			} else {
-				printECMA(b, named, s)
+				p.print(s)
 			}
 		}
 	case syntax.OpAlternate:
@@ -111,15 +161,15 @@ func printECMA(b *strings.Builder, named map[string]bool, re *syntax.Regexp) {
 			if i > 0 {
 				b.WriteString("|")
 			}
-			printECMA(b, named, s)
+			p.print(s)
 		}
 	}
 }
 
-// printOperand prints a repetition's operand, grouped unless it is one
-// atom. ECMAScript under u refuses a quantified assertion, so an anchor
-// is grouped too.
-func printOperand(b *strings.Builder, named map[string]bool, re *syntax.Regexp) {
+// operand prints a repetition's operand, grouped unless it is one atom.
+// ECMAScript under u refuses a quantified assertion, so an anchor is
+// grouped too.
+func (p *ecmaPrinter) operand(re *syntax.Regexp) {
 	atom := false
 	switch re.Op {
 	case syntax.OpCharClass, syntax.OpAnyChar, syntax.OpAnyCharNotNL, syntax.OpCapture, syntax.OpNoMatch, syntax.OpEmptyMatch:
@@ -128,18 +178,18 @@ func printOperand(b *strings.Builder, named map[string]bool, re *syntax.Regexp) 
 		atom = len(re.Rune) == 1
 	}
 	if atom {
-		printECMA(b, named, re)
+		p.print(re)
 		return
 	}
-	b.WriteString("(?:")
-	printECMA(b, named, re)
-	b.WriteString(")")
+	p.b.WriteString("(?:")
+	p.print(re)
+	p.b.WriteString(")")
 }
 
-// printClass prints a class's ranges, or the ranges it excludes when they
-// are fewer, since under u a negated class is its complement over code
-// points.
-func printClass(b *strings.Builder, ranges []rune) {
+// class prints a class's ranges, or the ranges it excludes when they are
+// fewer, since under u a negated class is its complement over code points.
+func (p *ecmaPrinter) class(ranges []rune) {
+	b := &p.b
 	negated := false
 	if len(ranges) > 0 && ranges[0] == 0 && ranges[len(ranges)-1] == unicode.MaxRune {
 		if comp := complement(ranges); len(comp) < len(ranges) {
@@ -152,12 +202,12 @@ func printClass(b *strings.Builder, ranges []rune) {
 	}
 	for i := 0; i+1 < len(ranges); i += 2 {
 		lo, hi := ranges[i], ranges[i+1]
-		b.WriteString(classRune(lo))
+		b.WriteString(p.classRune(lo))
 		if hi != lo {
 			if hi > lo+1 {
 				b.WriteString("-")
 			}
-			b.WriteString(classRune(hi))
+			b.WriteString(p.classRune(hi))
 		}
 	}
 	b.WriteString("]")
@@ -191,28 +241,33 @@ func orbit(r rune) []rune {
 
 // literalRune escapes a rune outside a class: a syntax character or the
 // literal's delimiter with a backslash, and anything but printable ASCII
-// as a code point escape, which the u flag reads.
-func literalRune(r rune) string {
-	if strings.ContainsRune(`^$\.*+?()[]{}|/`, r) {
+// as a code point escape.
+func (p *ecmaPrinter) literalRune(r rune) string {
+	if strings.ContainsRune(`^$\.*+?()[]{}|`, r) || r == '/' && !p.source {
 		return `\` + string(r)
 	}
-	return printable(r)
+	return p.printable(r)
 }
 
 // classRune escapes a rune inside a class.
-func classRune(r rune) string {
-	if strings.ContainsRune(`\]-[^/`, r) {
+func (p *ecmaPrinter) classRune(r rune) string {
+	if strings.ContainsRune(`\]-[^`, r) || r == '/' && !p.source {
 		return `\` + string(r)
 	}
-	return printable(r)
+	return p.printable(r)
 }
 
 // printable writes printable ASCII as itself and every other rune as a
 // code point escape, so a pattern reads the same in any editor: a Kelvin
 // sign is not mistaken for a K, and no combining mark joins a bracket.
-func printable(r rune) string {
+// A literal's body writes `\u{...}`, which the u flag reads; a source
+// writes `\uXXXX` where it can, which reads the same without the flag.
+func (p *ecmaPrinter) printable(r rune) string {
 	if r >= ' ' && r <= '~' {
 		return string(r)
+	}
+	if p.source && r <= 0xFFFF {
+		return fmt.Sprintf(`\u%04X`, r)
 	}
 	return fmt.Sprintf(`\u{%X}`, r)
 }

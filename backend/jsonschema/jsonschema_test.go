@@ -10,6 +10,7 @@ import (
 
 	"github.com/unstoppablemango/tdl/backend/internal/irtest"
 	"github.com/unstoppablemango/tdl/backend/jsonschema"
+	"github.com/unstoppablemango/tdl/internal/schematest"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -53,6 +54,7 @@ func compile(t *testing.T, f *plugin.File) *doc {
 		t.Fatalf("%s is not JSON: %v\n%s", f.GetPath(), err, src)
 	}
 	c := sjs.NewCompiler()
+	c.UseRegexpEngine(schematest.Engine)
 	c.AssertFormat()
 	if err := c.AddResource(loc, v); err != nil {
 		t.Fatal(err)
@@ -578,6 +580,79 @@ func TestConformance(t *testing.T) {
 			}
 			if len(resp.GetFiles()) > 0 {
 				check(t, resp)
+			}
+		})
+	}
+}
+
+// A pattern is printed as ECMAScript for a validator's u mode, so it
+// means what RE2 means.
+func TestPatterns(t *testing.T) {
+	b := irtest.New("shop")
+	b.Own(newtype("Space", b.Named("string"), constraint("matches", regex(`^\s$`))))
+	b.Own(newtype("Kelvin", b.Named("string"), constraint("matches", regex(`(?i)^k$`))))
+	b.Own(newtype("Greek", b.Named("string"), constraint("matches", regex(`^\p{Greek}$`))))
+	b.Own(newtype("Path", b.Named("string"), constraint("matches", regex(`^a/b$`))))
+	b.Own(newtype("One", b.Named("string"), constraint("matches", regex(`^.$`))))
+	refused := constraint("matches", regex(`(`))
+	refused.Position = &ir.Position{Line: 3}
+	b.Own(newtype("Refused", b.Named("string"), refused))
+	b.Own(newtype("Slow", b.Named("string"), constraint("matches", regex(`^(a+)+$`))))
+	b.Own(newtype("Surrogate", b.Named("string"), constraint("matches", regex(`\x{D800}`))))
+
+	resp := generate(t, b)
+	diagnostics(t, resp, 3)
+	for _, d := range resp.GetDiagnostics() {
+		if !strings.Contains(d.GetMessage(), "matches") || d.GetCode() != "lossy.constraint" {
+			t.Errorf("diagnostic = %+v", d)
+		}
+	}
+	if ds := resp.GetDiagnostics(); len(ds) > 0 && ds[0].GetPosition().GetLine() != 3 {
+		t.Errorf("refused pattern warns at %+v", ds[0].GetPosition())
+	}
+	d := check(t, resp)
+	d.contains(
+		`"Space": { "type": "string", "pattern": "^[\\u0009\\u000A\\u000C\\u000D ]$" }`,
+		`"Kelvin": { "type": "string", "pattern": "^[Kk\\u212A]$" }`,
+		`"Path": { "type": "string", "pattern": "^a/b$" }`,
+		`"Refused": { "type": "string" }`,
+		`"Slow": { "type": "string" }`,
+		`"Surrogate": { "type": "string" }`,
+	)
+	d.accepts("Space", `" "`, `"\t"`)
+	d.rejects("Space", `" "`, `" "`)
+	d.accepts("Kelvin", `"k"`, `"K"`, `"K"`)
+	d.accepts("Greek", `"λ"`, `"Ω"`)
+	d.rejects("Greek", `"a"`)
+	d.accepts("One", `"😀"`)
+}
+
+// Draft 7 says nothing of the u flag, so a pattern reading differently
+// without it warns, and is still written.
+func TestPatternsUnicodeModeWarning(t *testing.T) {
+	for _, draft := range []string{"draft-07", "2020-12"} {
+		t.Run(draft, func(t *testing.T) {
+			b := irtest.New("shop")
+			one := constraint("matches", regex(`^.$`))
+			one.Position = &ir.Position{Line: 7}
+			b.Own(newtype("One", b.Named("string"), one))
+			b.Own(newtype("Word", b.Named("string"), constraint("matches", regex(`^[a-z]+$`))))
+			block(b, directive("draft", draft))
+
+			resp := generate(t, b)
+			d := check(t, resp)
+			d.contains(`"pattern": "^[^\\n]$"`, `"pattern": "^[a-z]+$"`)
+			if draft == "2020-12" {
+				diagnostics(t, resp, 0)
+				return
+			}
+			diagnostics(t, resp, 1)
+			if len(resp.GetDiagnostics()) == 0 {
+				return
+			}
+			w := resp.GetDiagnostics()[0]
+			if w.GetPosition().GetLine() != 7 || !strings.Contains(w.GetMessage(), "Unicode mode") || w.GetCode() != "lossy.constraint" {
+				t.Errorf("diagnostic = %+v", w)
 			}
 		})
 	}

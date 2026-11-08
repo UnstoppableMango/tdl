@@ -67,6 +67,10 @@ type Dialect struct {
 	// Formats is whether a number carries OpenAPI's width formats: int32,
 	// int64, float, and double.
 	Formats bool
+	// Unicode is whether the dialect says a validator reads `pattern` with
+	// ECMA-262's u flag, as JSON Schema 2020-12 does. Where it does not, a
+	// pattern that reads differently without the flag warns.
+	Unicode bool
 }
 
 // scalar is the JSON form of a TDL primitive.

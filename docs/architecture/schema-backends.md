@@ -163,7 +163,12 @@ JSON Schema writes each standard constraint as the keyword that checks it, chose
 `oneOf` also applies to a fieldless enum, where it narrows the variants a field accepts.
 Here **warn** leaves the declaration emitted without the keyword, as a constraint warns in every other target, and so does a constraint name the spec does not define.
 A constraint on a `T?` or `T | null` field applies to the value when one is present.
-`matches` copies the pattern as written, and JSON Schema reads it as an ECMA-262 regular expression.
+`matches` is printed rather than copied, since JSON Schema reads a pattern as an ECMA-262 regular expression, which differs from RE2 in what `\s`, `(?i)`, `\p{Greek}`, and `.` match.
+The builder parses it with `emit.Pattern` and prints it with `emit.ECMAScriptSource`, the RegExp-source form of the table in [zod-backend.md](zod-backend.md#patterns), with no slashes and no flags.
+The printed pattern is written for the `u` flag, which JSON Schema 2020-12 says a validator should use and ajv uses by default, and means what RE2 means under it.
+It escapes every code point below U+10000 as `\uXXXX`, which reads the same with and without the flag, so only what `emit.NeedsUnicode` finds reads differently without it: a code point above U+FFFF, a class reaching the surrogates (every negated class among them), and `.`.
+Under draft-07, OpenAPI 3.0, and OpenAPI 2.0, which say nothing about flags, such a pattern is still written, with a `lossy.constraint` warning that the validator must read it in Unicode mode; under 2020-12 and OpenAPI 3.1 nothing warns (`Dialect.Unicode`).
+A pattern RE2 refuses, one naming a surrogate code point, and one whose shape `emit.Backtracks` refuses warn under `lossy.constraint` and the schema is written without `pattern`, since a validator commonly backtracks.
 
 TypeScript writes a constraint as a literal union where one is exact, and warns for the rest:
 
@@ -251,6 +256,7 @@ A YAML document carries the generated-code line as a comment, and a JSON one car
 | `bytes` | `contentEncoding: base64` | `format: byte` | `format: byte` |
 | map key schema | `propertyNames` | none | none |
 | fielded enum | `oneOf` with a `discriminator` | `oneOf` with a `discriminator` | warn |
+| a `pattern` needing the `u` flag | written | written, and warns | written, and warns |
 
 A schema of every version carries OpenAPI's width formats: `int32`, `int64` for `int`, `int64`, and `uint32`, `float`, and `double`.
 An `int32` writes no bounds beside its format, which already says them.

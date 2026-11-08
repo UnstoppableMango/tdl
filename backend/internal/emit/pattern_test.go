@@ -67,6 +67,49 @@ func TestECMAScriptSpelling(t *testing.T) {
 	}
 }
 
+func TestECMAScriptSourceSpelling(t *testing.T) {
+	for _, c := range []struct{ pattern, want string }{
+		{`\s`, `[\u0009\u000A\u000C\u000D ]`},
+		{`(?i)k`, `[Kk\u212A]`},
+		{`(?s).`, `[\u0000-\u{10FFFF}]`},
+		{`^a/b$`, `^a/b$`},
+		{`[/a]`, `[/a]`},
+		{`\x{1F600}`, `\u{1F600}`},
+		{`(?m)^a$`, `(?<=^|\n)a(?=\n|$)`},
+	} {
+		if got := emit.ECMAScriptSource(parsePattern(t, c.pattern)); got != c.want {
+			t.Errorf("%s: %s, want %s", c.pattern, got, c.want)
+		}
+	}
+}
+
+func TestNeedsUnicode(t *testing.T) {
+	for _, c := range []struct {
+		pattern string
+		want    bool
+	}{
+		{`^[a-z]+$`, false},
+		{`\s`, false},
+		{`(?i)k`, false},
+		// Greek reaches U+10140, Ancient Greek Numbers.
+		{`\p{Greek}`, true},
+		{`[\x{D000}-\x{E000}]`, true},
+		{`(?m)^a$`, false},
+		{`^.$`, true},
+		{`(?s).`, true},
+		{`[^a]`, true},
+		{`\S`, true},
+		{`\x{1F600}`, true},
+		{`[a\x{1F600}]`, true},
+		{`[\x{E000}-\x{FFFF}]`, false},
+		{`\pL`, true},
+	} {
+		if got := emit.NeedsUnicode(parsePattern(t, c.pattern)); got != c.want {
+			t.Errorf("NeedsUnicode(%s) = %v, want %v", c.pattern, got, c.want)
+		}
+	}
+}
+
 func TestSurrogates(t *testing.T) {
 	for _, c := range []struct {
 		pattern string
@@ -118,9 +161,11 @@ func TestBacktracks(t *testing.T) {
 	}
 }
 
-// TestECMAScriptAgreesWithRE2 runs every printed pattern under node as a
-// regex literal with the u flag and compares what it matches with Go's
-// regexp, unanchored as matches reads.
+// TestECMAScriptAgreesWithRE2 runs every printed pattern under node and
+// compares what it matches with Go's regexp, unanchored as matches reads:
+// [emit.ECMAScript] as a regex literal with the u flag, and
+// [emit.ECMAScriptSource] as a RegExp's source with the flag and, where
+// [emit.NeedsUnicode] says the flag changes nothing, without it.
 func TestECMAScriptAgreesWithRE2(t *testing.T) {
 	cases := patternCases(t)
 	if testing.Short() {
@@ -131,16 +176,43 @@ func TestECMAScriptAgreesWithRE2(t *testing.T) {
 		t.Skip("node is not on PATH")
 	}
 
+	type form struct {
+		name    string
+		printed string
+		// js is the expression building the regex.
+		js string
+	}
+	forms := make([][]form, len(cases))
 	var script strings.Builder
 	script.WriteString("const cases = [\n")
-	for _, c := range cases {
+	for i, c := range cases {
+		re := parsePattern(t, c.Pattern)
+		lit, src := emit.ECMAScript(re), emit.ECMAScriptSource(re)
+		quoted, err := json.Marshal(src)
+		if err != nil {
+			t.Fatal(err)
+		}
+		forms[i] = []form{
+			{"literal", "/" + lit + "/u", "/" + lit + "/u"},
+			{"source with u", src, "new RegExp(" + string(quoted) + ", \"u\")"},
+		}
+		if !emit.NeedsUnicode(re) {
+			forms[i] = append(forms[i], form{"source without u", src, "new RegExp(" + string(quoted) + ")"})
+		}
 		inputs, err := json.Marshal(c.Inputs)
 		if err != nil {
 			t.Fatal(err)
 		}
-		script.WriteString("  [/" + emit.ECMAScript(parsePattern(t, c.Pattern)) + "/u, " + string(inputs) + "],\n")
+		script.WriteString("  [[")
+		for j, f := range forms[i] {
+			if j > 0 {
+				script.WriteString(", ")
+			}
+			script.WriteString(f.js)
+		}
+		script.WriteString("], " + string(inputs) + "],\n")
 	}
-	script.WriteString("];\nconsole.log(JSON.stringify(cases.map(([re, inputs]) => inputs.map((s) => re.test(s)))));\n")
+	script.WriteString("];\nconsole.log(JSON.stringify(cases.map(([res, inputs]) => res.map((re) => inputs.map((s) => re.test(s))))));\n")
 	path := filepath.Join(t.TempDir(), "patterns.mjs")
 	if err := os.WriteFile(path, []byte(script.String()), 0o644); err != nil {
 		t.Fatal(err)
@@ -149,16 +221,17 @@ func TestECMAScriptAgreesWithRE2(t *testing.T) {
 	if err != nil {
 		t.Fatalf("node: %v\n%s", err, script.String())
 	}
-	var got [][]bool
+	var got [][][]bool
 	if err := json.Unmarshal(out, &got); err != nil {
 		t.Fatalf("%v: %s", err, out)
 	}
 	for i, c := range cases {
 		re := regexp.MustCompile(c.Pattern)
-		printed := emit.ECMAScript(parsePattern(t, c.Pattern))
-		for j, in := range c.Inputs {
-			if want := re.MatchString(in); got[i][j] != want {
-				t.Errorf("/%s/u on %q: node %v, RE2 %v (from %s)", printed, in, got[i][j], want, c.Pattern)
+		for k, f := range forms[i] {
+			for j, in := range c.Inputs {
+				if want := re.MatchString(in); got[i][k][j] != want {
+					t.Errorf("%s %s on %q: node %v, RE2 %v (from %s)", f.name, f.printed, in, got[i][k][j], want, c.Pattern)
+				}
 			}
 		}
 	}

@@ -24,7 +24,7 @@ Import generates the feature and reads it back, and counts only what reading bac
 | `min` | Yes | No | `minimum` | |
 | `max` | Yes | No | `maximum` | |
 | `length` | Yes | No | `minLength` and `maxLength` | On a list or set it is `minItems` and `maxItems`, and on a map `minProperties` and `maxProperties`. |
-| `matches` | Yes | No | `pattern` | |
+| `matches` | Yes | No | `pattern` | Written for ECMA-262's Unicode mode, the `u` flag, which 3.1 asks a validator for and 3.0 and 2.0 leave to it. |
 | `oneOf` | Yes | No | `enum` | |
 | `unique` | Yes | No | `uniqueItems` | |
 | `owned` | Yes | No | | Not written: a schema has no ownership, and a referenced entity is a `$ref`. |

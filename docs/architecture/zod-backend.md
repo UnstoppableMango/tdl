@@ -409,11 +409,12 @@ A Zod module is code, and reading it means evaluating it, which `z.toJSONSchema`
 | `closed` | JSON Schema, OpenAPI | design only |
 | `length` counted in code points | Every backend that validates | `emit.Length` |
 | The RE2 check | Every backend that validates `matches` | `emit.Pattern` |
-| A pattern printed from `regexp/syntax` | Rust, Java, Python | a walk in `backend/internal/emit` with a table per engine; .NET is a plugin and decides in #1196 |
+| A pattern printed from `regexp/syntax` | Rust, Java, Python, JSON Schema, OpenAPI | a walk in `backend/internal/emit` with a table per engine; .NET is a plugin and decides in #1196 |
 | The class plan | Go, C#, Rust, Python | `emit.PlanInterfaces` |
 
 [java-backend.md](https://github.com/UnstoppableMango/tdl/blob/fc0682d/docs/design/java-backend.md#overlap-with-other-targets) puts the pattern walk in `backend/internal/emit` beside `Pattern`, with a small table per engine, written by whichever backend is built first.
 The walk is `emit.ECMAScript` and `emit.Backtracks` in `backend/internal/emit/pattern.go`, with the ECMAScript table only, and `backend/internal/emit/testdata/patterns.json` is the shared table every engine's printer is held to against Go's `regexp`.
+JSON Schema and OpenAPI print through the same table as a RegExp's source, `emit.ECMAScriptSource`, which writes `/` as itself and a code point below U+10000 as `\uXXXX` (see [schema-backends.md](schema-backends.md#constraints)).
 The walk is Go, and the C# backend is a .NET plugin that cannot call it; how .NET gets a pattern is [#1196](https://github.com/UnstoppableMango/tdl/issues/1196)'s decision.
 Like Python's, it prints every Unicode class as ranges.
 

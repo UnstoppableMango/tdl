@@ -15,6 +15,7 @@ import (
 
 	"github.com/unstoppablemango/tdl/backend/internal/irtest"
 	"github.com/unstoppablemango/tdl/backend/openapi"
+	"github.com/unstoppablemango/tdl/internal/schematest"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -49,6 +50,7 @@ func metaschema(t *testing.T, version string) *sjs.Schema {
 	t.Helper()
 	m := metaschemas[version]
 	c := sjs.NewCompiler()
+	c.UseRegexpEngine(schematest.Engine)
 	for url, file := range m.files {
 		f, err := os.Open(filepath.Join("testdata", file))
 		if err != nil {
@@ -157,6 +159,7 @@ func (d *doc) schema(name string) *sjs.Schema {
 	d.t.Helper()
 	const loc = "file:///openapi.json"
 	c := sjs.NewCompiler()
+	c.UseRegexpEngine(schematest.Engine)
 	c.AssertFormat()
 	if err := c.AddResource(loc, d.v); err != nil {
 		d.t.Fatal(err)
@@ -498,5 +501,53 @@ func TestConformance(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func matches(pattern string, line int32) *ir.Constraint {
+	return &ir.Constraint{
+		Name:     "matches",
+		Args:     []*ir.Literal{{Kind: ir.LiteralKind_LITERAL_KIND_REGEX, Text: pattern}},
+		Position: &ir.Position{Line: line},
+	}
+}
+
+func constrained(name string, base *ir.ID, cs ...*ir.Constraint) *ir.Decl {
+	d := newtype(name, base)
+	d.GetNewtype().ValueConstraints = cs
+	return d
+}
+
+// A pattern is printed as ECMAScript for a validator's u mode, which only
+// 3.1, being JSON Schema 2020-12, asks for; under 3.0 and 2.0 a pattern
+// reading differently without it warns, and is still written.
+func TestPatterns(t *testing.T) {
+	for _, v := range []string{"3.1", "3.0", "2.0"} {
+		t.Run(v, func(t *testing.T) {
+			b := irtest.New("shop")
+			b.Own(constrained("One", b.Named("string"), matches(`^.$`, 4)))
+			b.Own(constrained("Lower", b.Named("string"), matches(`^[a-z]+$`, 5)))
+			b.Own(constrained("Word", b.Named("string"), matches(`(?i)^[a-z]+\s$`, 6)))
+			block(b, directive("openapi", v), directive("format", "json"))
+
+			resp := generate(t, b.Model)
+			d := check(t, resp, v)
+			d.contains(
+				`"pattern": "^[^\\n]$"`,
+				`"pattern": "^[a-z]+$"`,
+				`"pattern": "^[A-Za-z\\u017F\\u212A]+[\\u0009\\u000A\\u000C\\u000D ]$"`,
+			)
+			if v == "3.1" {
+				diagnostics(t, resp, 0)
+				d.accepts("One", `"😀"`)
+				d.accepts("Word", `"Kelvin\u212a "`)
+				d.rejects("Word", `"abc\u00a0"`)
+				return
+			}
+			diagnostics(t, resp, 1)
+			if ds := resp.GetDiagnostics(); len(ds) == 1 && (ds[0].GetPosition().GetLine() != 4 || !strings.Contains(ds[0].GetMessage(), "Unicode mode") || ds[0].GetCode() != "lossy.constraint") {
+				t.Errorf("diagnostic = %+v", ds[0])
+			}
+		})
 	}
 }
