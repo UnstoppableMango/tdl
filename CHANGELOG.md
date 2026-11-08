@@ -1,5 +1,44 @@
 # Changelog
 
+## [0.5.10](https://github.com/UnstoppableMango/tdl/compare/v0.5.9...v0.5.10) (2026-11-08)
+
+
+### Features
+
+* **dist:** publish the npm packages from release-please with trusted publishing ([#1531](https://github.com/UnstoppableMango/tdl/issues/1531)) ([1d47d48](https://github.com/UnstoppableMango/tdl/commit/1d47d48cd058fa3b18c58fd5f028def8beac45f9))
+* **dist:** release tarballs with checksums and attestations ([#1529](https://github.com/UnstoppableMango/tdl/issues/1529)) ([30fb2ca](https://github.com/UnstoppableMango/tdl/commit/30fb2ca1ec817f9f67056ddd593b7b722ac35c25))
+* **gen:** keep a nondeterministic backend's output while its request is unchanged ([#1516](https://github.com/UnstoppableMango/tdl/issues/1516)) ([2226c43](https://github.com/UnstoppableMango/tdl/commit/2226c43eb3f095cd93b23355d55619c6e7838143))
+* **typescript:** constructor functions for newtypes under construct ([#1536](https://github.com/UnstoppableMango/tdl/issues/1536)) ([5332716](https://github.com/UnstoppableMango/tdl/commit/5332716d7238490844d775b028a6121ad299e69f))
+* **yolo:** delegated backend phase 1, the plugin and the Anthropic provider ([#1517](https://github.com/UnstoppableMango/tdl/issues/1517)) ([12fd767](https://github.com/UnstoppableMango/tdl/commit/12fd7677cbd5e4e9d66bb39ee910606050c7016b))
+
+
+### Bug Fixes
+
+* **go:** write empty lists and maps as [] and {} under json ([#1534](https://github.com/UnstoppableMango/tdl/issues/1534)) ([3154a17](https://github.com/UnstoppableMango/tdl/commit/3154a17785034ab584a336927b68530f4175b17d))
+* **jsonschema,openapi:** print matches patterns through the ECMAScript table ([#1535](https://github.com/UnstoppableMango/tdl/issues/1535)) ([b2cf3ee](https://github.com/UnstoppableMango/tdl/commit/b2cf3eebeb45e8430a2a4f838c22937abce8f32d))
+* **zod,typescript:** narrowing fixes from the phase 3a review ([#1519](https://github.com/UnstoppableMango/tdl/issues/1519)) ([80fb3bb](https://github.com/UnstoppableMango/tdl/commit/80fb3bb2e277e90186bdd36ae8bc2c62a6fd58f1))
+* **zod:** warn when a name directive on a fieldless variant has no effect ([#1532](https://github.com/UnstoppableMango/tdl/issues/1532)) ([d55d766](https://github.com/UnstoppableMango/tdl/commit/d55d7668dac95f334b01098ab5e6e9345f18b3ac))
+
+
+### Documentation
+
+* **adr:** a plugin chooses its backend from the handshake's target ([#1528](https://github.com/UnstoppableMango/tdl/issues/1528)) ([c0c779d](https://github.com/UnstoppableMango/tdl/commit/c0c779d98b11e0bec44705b23df4f9fbe0cd8a90))
+* **context:** define Delegated backend ([#1514](https://github.com/UnstoppableMango/tdl/issues/1514)) ([9b24589](https://github.com/UnstoppableMango/tdl/commit/9b2458971d183e7c57e4513b8bbacb22b66ad177))
+
+
+### Dependencies
+
+* update dependency @types/vscode to ~1.145.0 ([#1499](https://github.com/UnstoppableMango/tdl/issues/1499)) ([0ae7b98](https://github.com/UnstoppableMango/tdl/commit/0ae7b9802c1c09e9cfa6d56ad761913d3a7f2ea9))
+* update github.com/bufbuild/protocompile digest to e229a0e ([#1495](https://github.com/UnstoppableMango/tdl/issues/1495)) ([daae1f2](https://github.com/UnstoppableMango/tdl/commit/daae1f2152e8eb909c0f6fd5dd49c61f0740b561))
+* update golang.org/x/exp digest to 47ce03d ([#1496](https://github.com/UnstoppableMango/tdl/issues/1496)) ([343e0da](https://github.com/UnstoppableMango/tdl/commit/343e0da1cbb825485b83fa180732221e3e4fffb6))
+* update module go.yaml.in/yaml/v3 to v4 ([#1500](https://github.com/UnstoppableMango/tdl/issues/1500)) ([995a2b4](https://github.com/UnstoppableMango/tdl/commit/995a2b49408aa59e043e5ce13a78c37dc4ca8930))
+* update module go.yaml.in/yaml/v3 to v4 ([#1533](https://github.com/UnstoppableMango/tdl/issues/1533)) ([bc84a76](https://github.com/UnstoppableMango/tdl/commit/bc84a764fed4958419d6d91db35aac885572de70))
+
+
+### Continuous Integration
+
+* **hercules:** leave demo and the devShells out of onPush ([#1520](https://github.com/UnstoppableMango/tdl/issues/1520)) ([352aec5](https://github.com/UnstoppableMango/tdl/commit/352aec57733fb5c5a806f074ca1a58844848e1bf)), closes [#1352](https://github.com/UnstoppableMango/tdl/issues/1352)
+
 ## [0.5.9](https://github.com/UnstoppableMango/tdl/compare/v0.5.8...v0.5.9) (2026-11-06)
 
 
