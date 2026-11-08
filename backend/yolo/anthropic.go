@@ -15,6 +15,13 @@ import (
 // uses.
 const DefaultModel = "claude-opus-5-5"
 
+// DefaultEffort is the effort a target block without an effort directive
+// asks for: high costs more than most models need.
+const DefaultEffort = "medium"
+
+// Efforts are the effort levels the effort directive takes.
+var Efforts = []string{"low", "medium", "high", "xhigh", "max"}
+
 // maxTokens bounds one turn. A turn writing a large file needs room, and
 // streaming keeps a long turn clear of the HTTP timeout.
 const maxTokens = 64000
@@ -45,10 +52,11 @@ func (a *Anthropic) Send(ctx context.Context, c *Conversation) (Message, error) 
 		System:    []anthropic.TextBlockParam{{Text: c.System}},
 		Tools:     tools,
 		Messages:  msgs,
-		// Mapping a model is the kind of work effort pays for.
-		OutputConfig: anthropic.OutputConfigParam{Effort: anthropic.OutputConfigEffortHigh},
 		// Every turn resends the system prompt, the spec, and the model.
 		CacheControl: anthropic.NewCacheControlEphemeralParam(),
+	}
+	if c.Effort != "" {
+		params.OutputConfig = anthropic.OutputConfigParam{Effort: anthropic.OutputConfigEffort(c.Effort)}
 	}
 
 	stream := a.client.Messages.NewStreaming(ctx, params)

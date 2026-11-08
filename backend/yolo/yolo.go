@@ -50,6 +50,8 @@ func (Backend) Describe() plugin.Description {
 			{Name: "prompt", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: block},
 			// The model answering, DefaultModel when absent.
 			{Name: "model", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: block},
+			// The effort the model spends, DefaultEffort when absent.
+			{Name: "effort", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: block, Values: Efforts},
 		},
 	}
 }
@@ -84,6 +86,10 @@ func (b Backend) Generate(ctx context.Context, req *plugin.Request) (*plugin.Res
 	if !ok {
 		model = DefaultModel
 	}
+	effort, ok := g.blockText("effort")
+	if !ok {
+		effort = DefaultEffort
+	}
 
 	provider := b.Provider
 	if provider == nil {
@@ -101,6 +107,7 @@ func (b Backend) Generate(ctx context.Context, req *plugin.Request) (*plugin.Res
 	}
 	conv := &Conversation{
 		Model:    model,
+		Effort:   effort,
 		System:   system(),
 		Tools:    tools,
 		Messages: []Message{{Role: User, Text: userPrompt(language, instructions, src)}},

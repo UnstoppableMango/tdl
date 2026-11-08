@@ -60,13 +60,18 @@ data: {"type":"message_stop"}`
 		"finished": {append(slices.Clone(events), stop), true},
 	} {
 		t.Run(name, func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			var body []byte
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				body, _ = io.ReadAll(r.Body)
 				w.Header().Set("Content-Type", "text/event-stream")
 				_, _ = io.WriteString(w, strings.Join(tc.events, "\n\n")+"\n\n")
 			}))
 			defer srv.Close()
 			a := NewAnthropic("key", option.WithBaseURL(srv.URL), option.WithMaxRetries(0))
-			reply, err := a.Send(context.Background(), &Conversation{Model: "m", Messages: []Message{{Role: User, Text: "hi"}}})
+			reply, err := a.Send(context.Background(), &Conversation{Model: "m", Effort: "low", Messages: []Message{{Role: User, Text: "hi"}}})
+			if !strings.Contains(string(body), `"effort":"low"`) {
+				t.Errorf("the request does not ask for the effort: %s", body)
+			}
 			if tc.ok && (err != nil || reply.Stop != StopEnd || reply.Text != "Done.") {
 				t.Errorf("reply %+v, %v; want a finished turn", reply, err)
 			}

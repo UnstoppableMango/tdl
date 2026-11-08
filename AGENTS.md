@@ -312,7 +312,7 @@ Every backend reports what it cannot generate as a positioned warning rather tha
 - `backend/debug`: describes the model it was given, to exercise the protocol.
 - `backend/yolo` (`yolo`): the delegated backend (see `CONTEXT.md`, #1505), served only as `tdl-gen-yolo` and never compiled into `tdl`, so `tdl` links no model client; `nix/cmd.nix` ships it.
   It holds one conversation per request with a language model through a `Provider`, Anthropic's through `anthropic-sdk-go` with `ANTHROPIC_API_KEY`, and the model answers with `write_file` and `report_loss` tool calls.
-  The prompt (`prompt.go`) is the model as TDL, the target block's `language` (required), `prompt`, the loss codes, the JSON wire convention, and `docs/spec.md`, which the `docs` package embeds; `model` picks the model, `claude-opus-5-5` by default.
+  The prompt (`prompt.go`) is the model as TDL, the target block's `language` (required), `prompt`, the loss codes, the JSON wire convention, and `docs/spec.md`, which the `docs` package embeds; `model` picks the model, `claude-opus-5-5` by default, and `effort` the effort it spends, `medium` by default.
   A path that is absolute or holds `..` ends the conversation with an error and nothing written; a `report_loss` with an unknown code or name is refused back to the model, and the rest become positioned warnings under their codes.
   Each extern warns `lossy.unsupported`, since the prompt does not show what its dependency generates.
   A missing key is an error before anything is sent, and a conversation is cut off after 50 turns.

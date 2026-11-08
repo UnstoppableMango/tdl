@@ -15,10 +15,13 @@ type Provider interface {
 	Send(ctx context.Context, c *Conversation) (Message, error)
 }
 
-// Conversation is everything a provider sends: the model's name, the
-// system prompt, the tools the model may call, and the messages so far.
+// Conversation is everything a provider sends: the model's name, how hard
+// it should think, the system prompt, the tools the model may call, and
+// the messages so far.
 type Conversation struct {
-	Model    string
+	Model string
+	// Effort is the effort level the model spends, one of Efforts.
+	Effort   string
 	System   string
 	Tools    []Tool
 	Messages []Message

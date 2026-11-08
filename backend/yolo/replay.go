@@ -24,6 +24,7 @@ const specMarker = "{{docs/spec.md}}"
 // messages and the model's reply.
 type Recording struct {
 	Model  string `json:"model"`
+	Effort string `json:"effort"`
 	System string `json:"system"`
 	Tools  []Tool `json:"tools"`
 	Turns  []Turn `json:"turns"`
@@ -63,6 +64,8 @@ func (r *Replay) Send(_ context.Context, c *Conversation) (Message, error) {
 	switch {
 	case c.Model != r.rec.Model:
 		return Message{}, fmt.Errorf("the model is %q, the recording %q%s", c.Model, r.rec.Model, stale)
+	case c.Effort != r.rec.Effort:
+		return Message{}, fmt.Errorf("the effort is %q, the recording %q%s", c.Effort, r.rec.Effort, stale)
 	case recordedSystem(c.System) != r.rec.System:
 		return Message{}, fmt.Errorf("the system prompt differs from the recording%s", stale)
 	case !reflect.DeepEqual(normalTools(c.Tools), normalTools(r.rec.Tools)):
@@ -118,7 +121,7 @@ func (r *Recorder) Send(ctx context.Context, c *Conversation) (Message, error) {
 	if err != nil {
 		return reply, err
 	}
-	r.rec.Model, r.rec.System, r.rec.Tools = c.Model, recordedSystem(c.System), c.Tools
+	r.rec.Model, r.rec.Effort, r.rec.System, r.rec.Tools = c.Model, c.Effort, recordedSystem(c.System), c.Tools
 	sent := make([]Message, 0, len(c.Messages))
 	for _, m := range c.Messages[seen:] {
 		m.native = nil

@@ -461,7 +461,8 @@ func TestPrompt(t *testing.T) {
 	src := strings.Replace(order, `language("elixir")`,
 		`language("elixir")
   prompt("Ecto embedded schemas")
-  model("claude-sonnet-5-5")`, 1)
+  model("claude-sonnet-5-5")
+  effort("low")`, 1)
 	f := &fixed{replies: []yolo.Message{{Role: yolo.Assistant, Stop: yolo.StopTool, Calls: []yolo.Call{
 		call("write_file", `{"path": "shop.ex", "content": "x"}`),
 	}}, {Role: yolo.Assistant, Stop: yolo.StopEnd}}}
@@ -469,8 +470,8 @@ func TestPrompt(t *testing.T) {
 		t.Fatal(err)
 	}
 	c := f.seen[0]
-	if c.Model != "claude-sonnet-5-5" {
-		t.Errorf("model %q", c.Model)
+	if c.Model != "claude-sonnet-5-5" || c.Effort != "low" {
+		t.Errorf("model %q, effort %q", c.Model, c.Effort)
 	}
 	first := c.Messages[0].Text
 	for _, want := range []string{"Write this model in elixir.", "Ecto embedded schemas", "type Order: Entity {", "target yolo for shop {"} {
@@ -499,8 +500,8 @@ func TestPrompt(t *testing.T) {
 func TestDefaultModel(t *testing.T) {
 	f := &fixed{replies: []yolo.Message{{Role: yolo.Assistant, Stop: yolo.StopEnd}}}
 	_, _ = yolo.Backend{Provider: f}.Generate(context.Background(), request(t, order))
-	if f.seen[0].Model != yolo.DefaultModel {
-		t.Errorf("model %q", f.seen[0].Model)
+	if f.seen[0].Model != yolo.DefaultModel || f.seen[0].Effort != yolo.DefaultEffort {
+		t.Errorf("model %q, effort %q", f.seen[0].Model, f.seen[0].Effort)
 	}
 }
 
