@@ -129,5 +129,6 @@ jobs:
               echo "$view" >&2
               exit 1
             fi
-            npm publish "$tarball" --access public --provenance --tag "$tag"
+            # ./ so npm reads a file, never owner/repo shorthand for GitHub.
+            npm publish "./$tarball" --access public --provenance --tag "$tag"
           done
