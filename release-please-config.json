@@ -10,6 +10,7 @@
 			"extra-files": [
 				"internal/cli/version.go",
 				"flake.nix",
+				"README.md",
 				{
 					"type": "json",
 					"path": "editors/vscode/package.json",

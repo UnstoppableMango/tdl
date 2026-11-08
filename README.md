@@ -104,6 +104,33 @@ nix run github:UnstoppableMango/tdl
 
 Or install it with `nix profile install github:UnstoppableMango/tdl`.
 
+### Release assets
+
+Each release carries `tdl_<version>_<os>_<arch>.tar.gz` for `linux` and `darwin`, `amd64` and `arm64`, and `SHA256SUMS`.
+A tarball holds `tdl`, `tdl-gen-typescript` for the TypeScript content mapper, `LICENSE`, `README.md`, and bash, zsh, and fish completion in `completions/`.
+The linux binaries are static, and nothing in a tarball needs Nix.
+Every file is attested, so `gh attestation verify` checks it was built by this repository's release workflow.
+
+```shell
+version=0.5.9 # x-release-please-version
+asset=tdl_${version}_linux_amd64.tar.gz
+curl -fsSLO "https://github.com/UnstoppableMango/tdl/releases/download/v$version/$asset"
+curl -fsSLO "https://github.com/UnstoppableMango/tdl/releases/download/v$version/SHA256SUMS"
+sha256sum --ignore-missing -c SHA256SUMS
+gh attestation verify "$asset" --repo UnstoppableMango/tdl
+tar -xzf "$asset" tdl && install tdl ~/.local/bin/
+```
+
+### go install
+
+With Go 1.27 or later, which `go.mod` requires:
+
+```shell
+go install github.com/unstoppablemango/tdl/cmd/tdl@latest
+```
+
+This builds `tdl` alone, with every backend but `csharp`, which is a .NET plugin only the Nix package ships.
+
 ### NixOS or home-manager
 
 `overlays.default` adds `pkgs.tdl`, `pkgs.tdl-gmk`, and `pkgs.vscode-tdl`, and includes the [gomod2nix](https://github.com/nix-community/gomod2nix) overlay it builds with.
@@ -207,6 +234,7 @@ fish, and bash with bash-completion, load them from the Nix profile with nothing
 zsh loads them when `fpath` holds the profile's `share/zsh/site-functions` before `compinit`, as NixOS and home-manager's zsh module arrange.
 It completes targets, loss codes, and other flag values, and `.tdl` files where a command reads them.
 
+A release tarball carries the same scripts in `completions/`.
 Otherwise, load the script from `tdl completion`:
 
 ```shell
