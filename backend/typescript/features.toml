@@ -15,7 +15,7 @@ notes = "A `discriminant` directive renames `kind`."
 
 [newtype]
 spelling = "`type N = Base`"
-notes = "A plain alias, so parsed JSON needs no cast; under a `brand` directive, an alias intersected with a brand keyed by its qualified name, so two newtypes over one base are not interchangeable."
+notes = "A plain alias, so parsed JSON needs no cast; under a `brand` directive, an alias intersected with a brand keyed by its qualified name, so two newtypes over one base are not interchangeable. Under `construct` or `brand`, a function of the same name builds one."
 
 [alias]
 spelling = "expanded where used"
@@ -28,22 +28,22 @@ spelling = "`T[]` and `Record<K, V>`"
 notes = "A set is an array, and reads back as a list."
 
 [min]
-notes = "Warns unless `min` and `max` together bound at most 16 integers, which are written as a literal union."
+notes = "Warns unless `min` and `max` together bound at most 16 integers, which are written as a literal union, or a newtype's constructor checks it."
 
 [max]
-notes = "Warns unless `min` and `max` together bound at most 16 integers, which are written as a literal union."
+notes = "Warns unless `min` and `max` together bound at most 16 integers, which are written as a literal union, or a newtype's constructor checks it."
 
 [length]
-notes = "A list's exact length of at most 16 is a tuple; any other length warns, since TypeScript has no type for it and validation is not generated."
+notes = "A list's exact length of at most 16 is a tuple; any other length warns, since TypeScript has no type for it, unless a newtype's constructor checks it."
 
 [matches]
-notes = "TypeScript has no type for a pattern, and validation is not generated."
+notes = "TypeScript has no type for a pattern; a newtype's constructor checks it under `patterns`."
 
 [oneOf]
 spelling = "a union of literal types"
 
 [unique]
-notes = "A set or a list is an array, which does not enforce uniqueness."
+notes = "A set or a list is an array, which does not enforce uniqueness; a newtype's constructor checks it on scalar elements."
 
 [owned]
 notes = "TypeScript has no ownership, and a referenced type is embedded by value."
@@ -52,7 +52,7 @@ notes = "TypeScript has no ownership, and a referenced type is embedded by value
 notes = "The default is not written."
 
 [key]
-notes = "The output is types with no runtime code, so there is no key function to write."
+notes = "The output is types, with at most a newtype's constructor, so there is no key function to write."
 
 [name]
 spelling = "the property or type name"

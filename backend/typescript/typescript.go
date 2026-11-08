@@ -1,5 +1,6 @@
 // Package typescript generates TypeScript declarations of JSON wire types
-// from a resolved model: interfaces and type aliases, with no runtime code.
+// from a resolved model: interfaces and type aliases, with no runtime code
+// but a newtype's constructor under a construct or brand directive.
 // The mapping is in docs/architecture/schema-backends.md.
 package typescript
 
@@ -45,6 +46,13 @@ func (Backend) Describe() plugin.Description {
 			// target block, one from a declaration. A declaration other than
 			// a newtype warns, since placement cannot say newtype only.
 			{Name: "brand", Placements: plugin.On(plugin.OnBlock, plugin.OnDecl)},
+			// Writes a constructor for a newtype, a function with its name
+			// checking what its type cannot state: every newtype from the
+			// target block, one from a declaration. brand turns it on.
+			{Name: "construct", Placements: plugin.On(plugin.OnBlock, plugin.OnDecl)},
+			// Checks a matches constraint in a constructor, running the
+			// author's pattern on JavaScript's backtracking engine.
+			{Name: "patterns", Placements: plugin.On(plugin.OnBlock)},
 			// A module and the type it exports, for a declaration another
 			// package owns.
 			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{str[0], str[0]}, Placements: plugin.On(plugin.OnDecl)},
@@ -77,8 +85,14 @@ type generator struct {
 	// one tdl gen writes: an extern is imported from its .tdl file.
 	mapped bool
 
-	// brand is whether the target block brands every newtype.
-	brand bool
+	// brand is whether the target block brands every newtype, construct
+	// whether it writes every newtype's constructor, and patterns whether
+	// a constructor checks a pattern.
+	brand, construct, patterns bool
+
+	// checked holds each constraint a constructor checks, and unchecked
+	// each one it warned it cannot.
+	checked, unchecked map[*ir.Constraint]bool
 }
 
 // Generate returns one .ts file holding the model's declarations.
@@ -94,6 +108,9 @@ func generate(req *plugin.Request, mapped bool) *plugin.Response {
 		names:    map[string]string{},
 		declares: map[*ir.Decl][]string{},
 		mapped:   mapped,
+
+		checked:   map[*ir.Constraint]bool{},
+		unchecked: map[*ir.Constraint]bool{},
 	}
 	g.Externs = true
 
@@ -104,6 +121,14 @@ func generate(req *plugin.Request, mapped bool) *plugin.Response {
 	g.brand = g.Bare("brand")
 	if g.brand {
 		g.Lose(emit.LossName, nil, "the target block's brand directive reads back as a brand directive on each newtype")
+	}
+	g.construct = g.Bare("construct")
+	if g.construct {
+		g.Lose(emit.LossName, nil, "the target block's construct directive reads back as a construct directive on each newtype")
+	}
+	g.patterns = g.Bare("patterns")
+	if g.patterns {
+		g.Lose(emit.LossName, nil, "the target block's patterns directive does not read back")
 	}
 
 	pkg := req.GetModel().GetPackage()
@@ -246,7 +271,9 @@ func (g *generator) losses(d *ir.Decl) {
 	name := d.GetMeta().GetName()
 	written := g.DeclName(d, emit.Pascal)
 	g.declLosses(d, written)
-	g.strayBrand(d)
+	g.stray(d, "brand")
+	g.stray(d, "construct")
+	g.constructLosses(d)
 
 	fields := d.Fields()
 	switch e := d.GetEnumeration(); {
@@ -302,30 +329,48 @@ func (g *generator) losses(d *ir.Decl) {
 		cs = append(cs, f.GetConstraints()...)
 	}
 	for _, c := range cs {
-		if !g.Enforced(c) {
+		if !g.Enforced(c) || g.unchecked[c] {
 			// WarnConstraints warns about each.
 			g.lost = true
 		}
 	}
 }
 
-// strayBrand warns about a brand directive on a declaration that is not a
-// newtype, which brands nothing. Like a fieldless variant's name, it is
-// not output loss and carries no loss code, and a mapped module leaves it
-// out; import misses the directive, which is read-back loss.
-func (g *generator) strayBrand(d *ir.Decl) {
+// stray warns about a brand or construct directive on a declaration that
+// is not a newtype, which has no effect. Like a fieldless variant's name,
+// it is not output loss and carries no loss code, and a mapped module
+// leaves it out; import misses the directive, which is read-back loss.
+func (g *generator) stray(d *ir.Decl, directive string) {
 	if d.GetNewtype() != nil {
 		return
 	}
 	for _, dir := range plugin.Directives(g.Target, d.GetDirectives()) {
-		if dir.GetName() != "brand" {
+		if dir.GetName() != directive {
 			continue
 		}
 		name := d.GetMeta().GetName()
 		if !g.mapped {
-			g.Warn(emit.Unsupported(dir.GetPosition(), "%s is not a newtype, so its brand directive has no effect", name))
+			g.Warn(emit.Unsupported(dir.GetPosition(), "%s is not a newtype, so its %s directive has no effect", name, directive))
 		}
-		g.lose(emit.LossName, dir.GetPosition(), "%s's brand directive brands nothing, and does not read back", name)
+		g.lose(emit.LossName, dir.GetPosition(), "%s's %s directive does nothing, and does not read back", name, directive)
+	}
+}
+
+// constructLosses warns about what a newtype's constructor does not read
+// back: a construct directive brand already implies, and each constraint
+// it checks, since import reads no check.
+func (g *generator) constructLosses(d *ir.Decl) {
+	if d.GetNewtype() == nil {
+		return
+	}
+	name := d.GetMeta().GetName()
+	if dir, ok := g.Find(d.GetDirectives(), "construct"); ok && g.branded(d) {
+		g.lose(emit.LossName, dir.GetPosition(), "%s's construct directive is implied by its brand, and does not read back", name)
+	}
+	for _, c := range d.GetNewtype().GetValueConstraints() {
+		if g.checked[c] {
+			g.lose(emit.LossConstraint, c.GetPosition(), "%s's %s is checked by its constructor, and does not read back", name, emit.ConstraintText(c))
+		}
 	}
 }
 
@@ -362,12 +407,18 @@ func (g *generator) newtype(b *strings.Builder, d *ir.Decl) ([]string, error) {
 			return nil, err
 		}
 	}
+	param := base
 	if g.branded(d) {
 		base = brandType(base, ts.Qualified(g.Model.GetPackage(), d.GetMeta().GetName()))
 	}
 	name := g.DeclName(d, emit.Pascal)
 	docComment(b, d.GetMeta(), g.tags...)
 	fmt.Fprintf(b, "export type %s = %s;\n", name, base)
+	if g.constructed(d) {
+		if err := g.constructor(b, d, name, param); err != nil {
+			return nil, err
+		}
+	}
 	return []string{name}, nil
 }
 

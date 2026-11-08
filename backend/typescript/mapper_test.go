@@ -360,6 +360,21 @@ func TestMapperDropsANoEffectRename(t *testing.T) {
 	}
 }
 
+// Under construct, the module carries the constructors tdl gen writes,
+// values included.
+func TestMapperWritesConstructors(t *testing.T) {
+	src := "package a\n\ntype Code: string where { length(2..8) }\n\ntarget typescript for a {\n  construct\n}\n"
+	dir := writeFiles(t, map[string]string{"a.tdl": src})
+	path := filepath.Join(dir, "a.tdl")
+	mod := serveMapper(t).transform(path)
+	if len(mod.Diagnostics) != 0 {
+		t.Errorf("diagnostics = %+v, want none", mod.Diagnostics)
+	}
+	if want := generated(t, path); mod.Text != want || !strings.Contains(mod.Text, "export const Code = (v: string): Code => {") {
+		t.Errorf("module = %q, want %q with Code's constructor", mod.Text, want)
+	}
+}
+
 // tsc 7.1 type checks a TypeScript project importing .tdl files through
 // the mapper, and reports a TDL error in the .tdl file.
 func TestMapperUnderTsc(t *testing.T) {

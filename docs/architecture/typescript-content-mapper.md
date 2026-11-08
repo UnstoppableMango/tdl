@@ -82,8 +82,8 @@ A transform reads the files a `.tdl` file imports from disk each time; lowering 
 ## The module
 
 One `.tdl` file is one module, holding the declarations that file declares, as the `typescript` backend writes them.
-The module is types only: interfaces, unions, and aliases, every one exported, and no runtime code.
-A TypeScript file imports it with `import type`; under `verbatimModuleSyntax`, a plain import of it is the compiler's own error.
+The module is types: interfaces, unions, and aliases, every one exported, and no runtime code unless a `construct` or `brand` directive adds newtypes' constructors.
+A TypeScript file imports the types with `import type`; under `verbatimModuleSyntax`, a plain import of a type is the compiler's own error, and a constructor is imported as a value.
 
 A file needs no `typescript` target block.
 When it has one, its directives apply as they do under `tdl gen` (`discriminant`, `foreign`, and the declaration directives), except `out` and `file`, which place files the mapper does not write, and `roundtrip`, since tsc never imports the module back.

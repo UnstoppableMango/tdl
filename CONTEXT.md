@@ -94,6 +94,7 @@ _Avoid_: round trip, interop
 
 **Checked type**:
 A generated type whose values can only be obtained by passing the checks its constraints imply, so code holding one knows the checks ran: a Rust or Python type built through its constructor, or a Zod brand.
+A `typescript` constructor checks, but its type is not a checked type, since a cast still makes a value without it.
 _Avoid_: branded type, refined type, validated type
 
 **Brand**:

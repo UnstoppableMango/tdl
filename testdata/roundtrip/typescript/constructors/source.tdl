@@ -1,0 +1,22 @@
+// Newtypes with constructors, which read back with a construct directive;
+// a checked constraint does not read back without the source annotation.
+package auth
+
+type Secret: string
+type Code: string where { length(2..8) }
+type Token: string | null
+type Grade: string where { oneOf("gold", "silver") }
+type Tier: string where { oneOf("free", "paid") }
+
+type Login {
+  secret: Secret
+  code: Code
+}
+
+target typescript for auth {
+  Secret => construct
+  Code => construct
+  Token => construct
+  Grade => brand
+  Tier => construct
+}

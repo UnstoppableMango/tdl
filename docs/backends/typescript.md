@@ -1,6 +1,7 @@
 # TypeScript
 
-The `typescript` backend writes one `.ts` file per model of JSON wire types: interfaces, both enum shapes, and newtypes as aliases, with no runtime code.
+The `typescript` backend writes one `.ts` file per model of JSON wire types: interfaces, both enum shapes, and newtypes as aliases.
+It writes no runtime code unless a `construct` or `brand` directive asks for [constructors](#constructors).
 [schema-backends.md](../architecture/schema-backends.md) is its design.
 
 ## Features
@@ -17,19 +18,19 @@ Import generates the feature and reads it back, and counts only what reading bac
 | Mixin `include` | Yes | Warns (`lossy.include`) | the mixin's properties, copied in | The include is flattened into the fields it copies. |
 | Fieldless enum | Yes | Yes | a union of string literals | |
 | Fielded enum | Yes | Yes | a union of interfaces discriminated on `kind` | A `discriminant` directive renames `kind`. |
-| Newtype | Yes | Yes | `type N = Base` | A plain alias, so parsed JSON needs no cast; under a `brand` directive, an alias intersected with a brand keyed by its qualified name, so two newtypes over one base are not interchangeable. |
+| Newtype | Yes | Yes | `type N = Base` | A plain alias, so parsed JSON needs no cast; under a `brand` directive, an alias intersected with a brand keyed by its qualified name, so two newtypes over one base are not interchangeable. Under `construct` or `brand`, a function of the same name builds one. |
 | Alias | Yes | Warns (`lossy.alias`) | expanded where used | |
 | Optional and nullable | Yes | Yes | `name?: T`, or a union with `null` | |
 | List, set, and map | Warns (`lossy.collection`) | Yes | `T[]` and `Record<K, V>` | A set is an array, and reads back as a list. |
-| `min` | Warns (`lossy.constraint`) | Yes | | Warns unless `min` and `max` together bound at most 16 integers, which are written as a literal union. |
-| `max` | Warns (`lossy.constraint`) | Yes | | Warns unless `min` and `max` together bound at most 16 integers, which are written as a literal union. |
-| `length` | Warns (`lossy.constraint`) | Yes | | A list's exact length of at most 16 is a tuple; any other length warns, since TypeScript has no type for it and validation is not generated. |
-| `matches` | Warns (`lossy.constraint`) | Yes | | TypeScript has no type for a pattern, and validation is not generated. |
+| `min` | Warns (`lossy.constraint`) | Yes | | Warns unless `min` and `max` together bound at most 16 integers, which are written as a literal union, or a newtype's constructor checks it. |
+| `max` | Warns (`lossy.constraint`) | Yes | | Warns unless `min` and `max` together bound at most 16 integers, which are written as a literal union, or a newtype's constructor checks it. |
+| `length` | Warns (`lossy.constraint`) | Yes | | A list's exact length of at most 16 is a tuple; any other length warns, since TypeScript has no type for it, unless a newtype's constructor checks it. |
+| `matches` | Warns (`lossy.constraint`) | Yes | | TypeScript has no type for a pattern; a newtype's constructor checks it under `patterns`. |
 | `oneOf` | Yes | Yes | a union of literal types | |
-| `unique` | Warns (`lossy.constraint`) | Yes | | A set or a list is an array, which does not enforce uniqueness. |
+| `unique` | Warns (`lossy.constraint`) | Yes | | A set or a list is an array, which does not enforce uniqueness; a newtype's constructor checks it on scalar elements. |
 | `owned` | Warns (`lossy.owned`) | Yes | | TypeScript has no ownership, and a referenced type is embedded by value. |
 | Field default | Warns (`lossy.default`) | Yes | | The default is not written. |
-| `key` directive | No | No | | The output is types with no runtime code, so there is no key function to write. |
+| `key` directive | No | No | | The output is types, with at most a newtype's constructor, so there is no key function to write. |
 | `name` directive | Yes | Warns (`lossy.name`) | the property or type name | The new name reads back as the field's own name rather than a directive. On a fielded variant it renames the interface, never the `kind` value; on a fieldless variant it has no effect and warns. |
 | `number` directive | No | No | | JSON has no field numbers. |
 | Doc comment | Yes | Yes | a JSDoc comment | |
@@ -60,6 +61,44 @@ export type Secret = string & { readonly __brand: { readonly "auth.Secret": true
 export type Username = string & { readonly __brand: { readonly "auth.Username": true } };
 ```
 
-tsc then refuses a `Secret` where a `Username` is expected, and a plain `string` for either; a value parsed from JSON takes a cast, `"ann" as Username`.
+tsc then refuses a `Secret` where a `Username` is expected, and a plain `string` for either; a value is made with the newtype's [constructor](#constructors), which `brand` turns on, `Username("ann")`.
 A newtype over a branded newtype adds its own brand to its parent's, so it is still its parent.
 `zod`'s brands are not these, so a project using both backends picks one as the source of nominal types.
+
+## Constructors
+
+The `construct` directive writes a function per newtype with the newtype's own name, beside its type, so a call site makes a value without a cast: on the target block for every newtype, or on one newtype.
+`brand` turns it on wherever it is written, and `construct` anywhere but a newtype warns.
+
+```tdl
+type Secret: string
+type Code: string where { length(2..8) }
+type Grade: string where { oneOf("gold", "silver") }
+
+target typescript for auth {
+  construct
+}
+```
+
+```ts
+export type Secret = string;
+export const Secret = (v: string): Secret => v as Secret;
+
+export type Code = string;
+export const Code = (v: string): Code => {
+  if ([...v].length < 2 || [...v].length > 8) {
+    throw new RangeError("Code: length(2..8)");
+  }
+  return v as Code;
+};
+
+export type Grade = "gold" | "silver";
+export const Grade = (v: "gold" | "silver"): Grade => v as Grade;
+```
+
+A constructor takes the newtype's base as the backend writes it, so a newtype over a newtype takes its parent, and checks only what that type cannot state.
+A constraint written as a literal union or a tuple is the parameter's type and has no check.
+Each other constraint, its own and inherited, throws a `RangeError` naming the newtype and the constraint: `min` and `max` on a number, `length` on a string (in code points), a list, a set, or a map, and `unique` on a list or a set of strings, numbers, booleans, or fieldless enums.
+`matches` is checked only under the `patterns` directive on the target block, as in `zod`, and a pattern whose shape JavaScript's engine backtracks on keeps warning.
+A constraint a constructor cannot check warns `lossy.constraint` with the reason.
+A checked constraint does not read back: import reads a constructor as a `construct` directive and warns that its checks are not read.

@@ -70,10 +70,27 @@ function statement(sf, s) {
 			docs: docs(sf, m),
 			init: m.initializer ? literal(sf, m.initializer) : undefined,
 		}));
+	} else if (constructorOf(s)) {
+		const d = s.declarationList.declarations[0];
+		const body = d.initializer.body;
+		out.kind = "constructor";
+		out.name = d.name.text;
+		out.checks = ts.isBlock(body) ? body.statements.filter((b) => ts.isIfStatement(b)).length : 0;
 	} else if (ts.isExportDeclaration(s) && !s.moduleSpecifier && s.exportClause && ts.isNamedExports(s.exportClause) && s.exportClause.elements.length === 0) {
 		out.kind = "empty-export";
 	}
 	return out;
+}
+
+// constructorOf reports whether s is a newtype's constructor as Generate
+// writes it: `const N = (v: T): N => ...`, one arrow function of one
+// parameter bound by const.
+function constructorOf(s) {
+	if (!ts.isVariableStatement(s) || !(s.declarationList.flags & ts.NodeFlags.Const) || s.declarationList.declarations.length !== 1) {
+		return false;
+	}
+	const d = s.declarationList.declarations[0];
+	return ts.isIdentifier(d.name) && !!d.initializer && ts.isArrowFunction(d.initializer) && d.initializer.parameters.length === 1;
 }
 
 function member(sf, m) {
