@@ -31,7 +31,7 @@ No importer is planned, so every Import cell is No.
 | `owned` | Yes | No | | Not written: a schema has no ownership, and a referenced entity is parsed by value. |
 | Field default | Yes | No | `.prefault(value)` | Parsed through the schema, so a branded field takes a plain value; checked when generated too, so one the schema refuses warns and is not written rather than failing every parse. |
 | `key` directive | No | No | | The backend declares no `key` directive, since a schema has no identity. |
-| `name` directive | Yes | No | the property or schema name | On a fielded variant it renames the variant's schema, never the `kind` value; on a fieldless variant it has no effect and warns. |
+| `name` directive | Yes | No | the property or schema name | On a fielded variant it renames the variant's schema, never the `kind` value; on a variant of a fieldless enum it has no effect and warns. |
 | `number` directive | No | No | | JSON has no field numbers. |
 | Doc comment | Yes | No | a JSDoc comment on the schema, its type, and each property | |
 | Type parameters | Planned (phase 5) | No | | |

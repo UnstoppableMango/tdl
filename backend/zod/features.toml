@@ -61,7 +61,7 @@ notes = "The backend declares no `key` directive, since a schema has no identity
 
 [name]
 spelling = "the property or schema name"
-notes = "On a fielded variant it renames the variant's schema, never the `kind` value; on a fieldless variant it has no effect and warns."
+notes = "On a fielded variant it renames the variant's schema, never the `kind` value; on a variant of a fieldless enum it has no effect and warns."
 
 [number]
 notes = "JSON has no field numbers."
