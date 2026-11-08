@@ -207,8 +207,15 @@ func (g *generator) call(c Call) (Result, error) {
 		if clean == "." {
 			return refuse("%q names the output directory, not a file", *in.Path)
 		}
+		// Compared without case, since the output may land on a filesystem
+		// that ignores it, as macOS's does by default.
+		fold := strings.ToLower(clean)
 		for p := range g.files {
-			if strings.HasPrefix(p, clean+"/") || strings.HasPrefix(clean, p+"/") {
+			lp := strings.ToLower(p)
+			if lp == fold && p != clean {
+				return refuse("%s and %s differ only in case, so they are one file where case is ignored", clean, p)
+			}
+			if strings.HasPrefix(lp, fold+"/") || strings.HasPrefix(fold, lp+"/") {
 				return refuse("%s and %s cannot both be files, since one would be the other's directory", clean, p)
 			}
 		}

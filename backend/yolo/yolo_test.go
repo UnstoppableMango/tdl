@@ -376,18 +376,33 @@ func TestPathCollisionsAreRefused(t *testing.T) {
 			call("write_file", `{"path": "lib", "content": "x"}`),
 			call("write_file", `{"path": "lib/shop.ex/order.ex", "content": "x"}`),
 			call("write_file", `{"path": "lib/shop.exs", "content": "x"}`),
+			call("write_file", `{"path": "LIB", "content": "x"}`),
+			call("write_file", `{"path": "Lib/Shop.ex", "content": "x"}`),
+			call("write_file", `{"path": "Lib/Shop.ex/order.ex", "content": "x"}`),
 		}},
 		{Role: yolo.Assistant, Stop: yolo.StopEnd, Text: "Done."},
 	}}
-	if _, err := (yolo.Backend{Provider: f}).Generate(context.Background(), request(t, order)); err != nil {
+	resp, err := (yolo.Backend{Provider: f}).Generate(context.Background(), request(t, order))
+	if err != nil {
 		t.Fatal(err)
 	}
 	var refused []bool
 	for _, r := range f.seen[1].Messages[2].Results {
 		refused = append(refused, r.Error)
 	}
-	if want := []bool{false, true, true, false}; !slices.Equal(refused, want) {
+	if want := []bool{false, true, true, false, true, true, true}; !slices.Equal(refused, want) {
 		t.Errorf("refused %v, want %v", refused, want)
+	}
+	var paths []string
+	for _, file := range resp.GetFiles() {
+		paths = append(paths, file.GetPath())
+	}
+	slices.Sort(paths)
+	if want := []string{"lib/shop.ex", "lib/shop.exs"}; !slices.Equal(paths, want) {
+		t.Errorf("files %v, want %v", paths, want)
+	}
+	if strings.Contains(diagnostics(resp), "error") {
+		t.Errorf("diagnostics %s", diagnostics(resp))
 	}
 }
 
