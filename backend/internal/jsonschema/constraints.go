@@ -182,7 +182,8 @@ func literal(l *ir.Literal) (any, bool) {
 // the u flag matches what RE2 matches. A pattern RE2 refuses, one naming
 // a surrogate, and one whose shape a backtracking engine takes
 // exponential time on are not written. Under a dialect that says nothing
-// of the flag, a pattern reading differently without it warns.
+// of the flag, a pattern reading differently without it warns under
+// lossy.constraint, since a validator without the flag may not hold it.
 func (b *Builder) pattern(s *Object, owner string, c *ir.Constraint) error {
 	re, err := emit.Pattern(c.GetArgs()[0])
 	switch {
@@ -195,9 +196,9 @@ func (b *Builder) pattern(s *Object, owner string, c *ir.Constraint) error {
 	}
 	s.Set("pattern", emit.ECMAScriptSource(re))
 	if !b.Dialect.Unicode && emit.NeedsUnicode(re) {
-		b.Warn(emit.Unsupported(c.GetPosition(),
+		b.Lossy(emit.LossConstraint, c.GetPosition(),
 			"%s: %s is written for Unicode mode, ECMA-262's u flag, which this dialect leaves to the validator; one without it reads the pattern differently",
-			owner, emit.ConstraintText(c)))
+			owner, emit.ConstraintText(c))
 	}
 	return nil
 }

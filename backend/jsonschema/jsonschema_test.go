@@ -629,7 +629,7 @@ func TestPatterns(t *testing.T) {
 
 // Draft 7 says nothing of the u flag, so a pattern reading differently
 // without it warns, and is still written.
-func TestPatternsWithoutUnicodeMode(t *testing.T) {
+func TestPatternsUnicodeModeWarning(t *testing.T) {
 	for _, draft := range []string{"draft-07", "2020-12"} {
 		t.Run(draft, func(t *testing.T) {
 			b := irtest.New("shop")
@@ -651,7 +651,7 @@ func TestPatternsWithoutUnicodeMode(t *testing.T) {
 				return
 			}
 			w := resp.GetDiagnostics()[0]
-			if w.GetPosition().GetLine() != 7 || !strings.Contains(w.GetMessage(), "Unicode mode") {
+			if w.GetPosition().GetLine() != 7 || !strings.Contains(w.GetMessage(), "Unicode mode") || w.GetCode() != "lossy.constraint" {
 				t.Errorf("diagnostic = %+v", w)
 			}
 		})

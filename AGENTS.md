@@ -274,7 +274,7 @@ Every backend reports what it cannot generate as a positioned warning rather tha
 - `backend/jsonschema`: one `.schema.json` document per model, every declaration under `$defs`.
   A fielded enum is a `oneOf` discriminated on `kind`, as in TypeScript; a newtype is a definition with its own constraints, and a base newtype is a `$ref`.
   `where` constraints become keywords (`minimum`, `pattern`, `minLength`, ...) chosen by what the constrained type holds, and one with no keyword warns.
-  A `matches` is printed by `emit.ECMAScriptSource` for a validator's `u` mode; under a dialect that does not ask for it (draft-07, OpenAPI 3.0 and 2.0) one reading differently without it warns, and one RE2, `emit.Surrogates`, or `emit.Backtracks` refuses warns and is not written.
+  A `matches` is printed by `emit.ECMAScriptSource` for a validator's `u` mode; under a dialect that does not ask for it (draft-07, OpenAPI 3.0 and 2.0) one reading differently without it warns under `lossy.constraint`, and one RE2, `emit.Surrogates`, or `emit.Backtracks` refuses warns and is not written.
   Tests compile documents with `internal/schematest.Engine`, which reads the printer's ECMAScript-only escapes back into RE2.
   `draft` picks 2020-12 or draft-07, `root` names the declaration the document validates, `id` sets `$id`, and `closed` refuses undeclared properties.
   Tests compile every response with `santhosh-tekuri/jsonschema` and validate instances against it; `checks.gen-jsonschema` runs `check-jsonschema`.
