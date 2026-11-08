@@ -113,11 +113,21 @@ jobs:
             exit 1
           }
 
+          # A prerelease, which release-please writes only under Release-As,
+          # goes to next, so latest keeps the last stable release.
+          tag=latest
+          [[ $VERSION != *-* ]] || tag=next
+
           for tarball in "${platforms[@]}" "unmango-tdl-$VERSION.tgz"; do
             name=$(tar -xzOf "$tarball" package/package.json | jq -r .name)
-            if npm view "$name@$VERSION" version > /dev/null 2>&1; then
+            # Publish only on E404; any other failure to look the version up
+            # stops the job rather than guessing.
+            if view=$(npm view "$name@$VERSION" version 2>&1); then
               echo "$name@$VERSION is already published"
               continue
+            elif [[ $view != *E404* ]]; then
+              echo "$view" >&2
+              exit 1
             fi
-            npm publish "$tarball" --access public --provenance
+            npm publish "$tarball" --access public --provenance --tag "$tag"
           done
