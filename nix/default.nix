@@ -278,6 +278,22 @@ in
             touch $out
           '';
 
+      # Runs tdl-gen-yolo from the package over the smoke model, replaying
+      # a recorded conversation, so the plugin starts, answers, and writes
+      # what the recording says without a key or the network.
+      checks.gen-yolo =
+        pkgs.runCommand "tdl-gen-yolo"
+          {
+            nativeBuildInputs = [ pkgs.tdl ];
+            TDL_YOLO_REPLAY = ../testdata/yolo/smoke;
+          }
+          ''
+            { cat ${../testdata/gen/smoke/source.tdl}; echo; cat $TDL_YOLO_REPLAY/target.tdl; } > source.tdl
+            tdl gen --target yolo -o out source.tdl
+            diff -r --exclude=.tdl-output $TDL_YOLO_REPLAY/want out
+            touch $out
+          '';
+
       # Type checks the haskell backend's module with every warning an error.
       checks.gen-haskell =
         pkgs.runCommand "tdl-gen-haskell"

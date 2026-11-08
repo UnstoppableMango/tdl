@@ -72,7 +72,7 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 
 `nix/` holds the packaging:
 
-- `cmd.nix`: the CLI. `meta.mainProgram` is what `lib.getExe` reads, since the package installs fourteen binaries.
+- `cmd.nix`: the CLI. `meta.mainProgram` is what `lib.getExe` reads, since the package installs fifteen binaries.
   It also installs bat's syntax as `share/bat/syntaxes/tdl.sublime-syntax`.
 - `vscode-extension.nix`: the editor extension (see [VS Code](#vs-code)).
 - `gmk.nix`: `tdl-gmk`, `cmd/tdl-gmk` built as the GNU make loadable object `lib/tdl.so`, with gnumake's header for cgo; `checks.gmk` loads it into make.
@@ -313,17 +313,29 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   Only phase 1 is built, and #1210 tracks the rest: no relationships or views yet.
   No Go library parses LikeC4, so tests compare text, and also run `likec4 validate --no-layout` when `likec4` is on `PATH`.
 - `backend/debug`: describes the model it was given, to exercise the protocol.
+- `backend/yolo` (`yolo`): the delegated backend (see `CONTEXT.md`, #1505), served only as `tdl-gen-yolo` and never compiled into `tdl`, so `tdl` links no model client; `nix/cmd.nix` ships it.
+  It holds one conversation per request with a language model through a `Provider`, Anthropic's through `anthropic-sdk-go` with `ANTHROPIC_API_KEY`, and the model answers with `write_file` and `report_loss` tool calls.
+  The prompt (`prompt.go`) is the model as TDL, the target block's `language` (required), `prompt`, the loss codes, the JSON wire convention, and `docs/spec.md`, which the `docs` package embeds; `model` picks the model, `claude-opus-5-5` by default, and `effort` the effort it spends, `medium` by default.
+  A path that is absolute or holds `..` ends the conversation with an error and nothing written; a `report_loss` with an unknown code or name is refused back to the model, and the rest become positioned warnings under their codes.
+  Each extern warns `lossy.unsupported`, since the prompt does not show what its dependency generates.
+  A missing key is an error before anything is sent, and a conversation is cut off after 50 turns.
+  `TDL_YOLO_REPLAY` names a directory whose `conversation.json` a `Replay` answers from instead, refusing a conversation other than the one it recorded; the recorded system prompt holds a marker in place of the spec.
+  `testdata/yolo/<case>/` holds a model, its conversation, the files it wants in `want/`, and `diagnostics.golden`; a case with only a `target.tdl` appends it to the smoke model.
+  `go test ./backend/yolo -record` re-records every case live, which needs a key; the committed recordings were written by hand.
+  `TestHostsAgree` replays `testdata/yolo/order` in both hosts, its `shipped` row is `pluginOnly`, the round-trip `exempt` list holds it beside `debug`, and `checks.gen-yolo` replays `testdata/yolo/smoke` through the packaged binary.
+  It declares itself nondeterministic, so `tdl gen` keeps its output while the request is unchanged and `--verify` needs no key.
+  Phase 1 is built, and #1505 tracks the rest: `check` and `tries`, and the opt-in `agent`.
 
 `cmd/tdl-gen-<name>` serves each backend as a plugin.
 `TestHostsAgree` in `internal/gen` holds each to producing the same bytes in process and over a pipe.
 A backend that imports implements `plugin.Importer`, declares `Reverse`, and has a `reverse` column in `shipped`, which `TestImportHostsAgree` runs; `TestReverseIsDeclared` keeps the three in step.
 A warning a user can silence carries a loss code; `host.LossCodes`, which `emit.LossCodes` re-exports, must match the table in `reverse.md`.
 Output loss, what the output drops, is written with `emit.Session.Lossy` and always reported; read-back loss, what only import would miss, with `emit.Session.Lose`, reported under a bare `readback` directive and never under `roundtrip` (see `reverse.md`'s Loss codes).
-A backend added to the registry needs a row in the `shipped` table in `internal/gen/hosts_test.go` (`TestEveryBuiltinHasARow`) and, if shipped, an entry in `nix/cmd.nix` (`TestPackagedBackendsShip`).
+A backend added to the registry needs a row in the `shipped` table in `internal/gen/hosts_test.go` (`TestEveryBuiltinHasARow`) and, if shipped, an entry in `nix/cmd.nix` (`TestPackagedBackendsShip`); a Go backend served only as a plugin has a `pluginOnly` row.
 
 `docs/architecture/schema-backends.md` maps the seven schema backends.
 `docs/architecture/reverse.md` is the import direction, target language to TDL, and #972 tracks the remaining importers.
-`backend/internal/roundtrip` runs a backend forward and back over `testdata/roundtrip/<target>/<case>/`; its `targets` table holds every backend but `debug`, with each one's normal form, and `TestEveryTargetIsCovered` checks it against `cmd/`.
+`backend/internal/roundtrip` runs a backend forward and back over `testdata/roundtrip/<target>/<case>/`; its `targets` table holds every backend but those in `exempt` (`debug` and `yolo`), with each one's normal form, and `TestEveryTargetIsCovered` checks it against `cmd/`.
 A model-first case's `lossy.golden` holds the codes generating with `readback` reports, and generating with `roundtrip` must warn exactly what generating with neither does.
 `TestConformanceComesBack` also takes every conformance case without an import through each target that imports, and `TestLossKinds` holds each such target to both kinds of loss.
 `testdata/gen/smoke/source.tdl` exercises the whole mapping, with a target block for each schema backend and for `salesforce`; the nix checks generate from it and run each language's tool on the output.

@@ -1,0 +1,86 @@
+{
+	"model": "claude-opus-5-5",
+	"effort": "medium",
+	"system": "You are a code generator for TDL, the Type Description Language. TDL describes domain models: entities, values, enums, newtypes, classes, and collections, with no expressions or runtime. Its specification is at the end of this prompt.\n\nThe user gives you a model written in TDL and the language to write it in. Write the model's declarations as idiomatic, compiling source in that language, following any instructions the user adds. Write every declaration the model declares; the prelude's types (string, int, List, Option, and so on) are TDL's own and map to the language's. A declaration you leave out takes with it every declaration naming it, so the files still compile; report each one left out.\n\nWrite each file with the write_file tool, one call per file. A path is relative to the output directory, uses forward slashes, and may not be absolute or contain \"..\". Writing a path again replaces the file.\n\nWhatever the files cannot carry from the model, report with the report_loss tool: name the declaration (\"Order\"), or a field or variant (\"Order.total\"), the loss code naming what was lost, and a sentence saying what happened. Report each loss once. The loss codes:\n\n- lossy.primitive: a primitive's width or kind, such as uuid written as a string\n- lossy.newtype: a newtype written as its base type, with no type of its own\n- lossy.collection: a set written as a list\n- lossy.optional: the difference between an optional field (T?) and a nullable one (T | null)\n- lossy.struct-kind: whether a struct is an entity, a value, or a mixin\n- lossy.include: a mixin include, flattened into the including struct\n- lossy.alias: an alias expanded at each use\n- lossy.constraint: a where constraint the output does not enforce\n- lossy.owned: the owned modifier\n- lossy.default: a field default\n- lossy.key: a key directive\n- lossy.name: a name the language's conventions forced you to change\n- lossy.number: a pinned number\n- lossy.order: declaration order\n- lossy.doc: doc comment text\n- lossy.generic: type parameters\n- lossy.class: a class, or a type's conformance to one\n- lossy.unit: a unit of measure\n- lossy.unsupported: anything else the output cannot express, including a declaration left out entirely\n\nWhen the output reads or writes the model as JSON, follow the JSON wire convention every TDL target shares: a property is named exactly as the model spells the field, whatever the language calls it; a fielded enum's variants are tagged internally by a discriminant property, \"kind\" unless a discriminant directive names another, whose value is the variant's name in the model; a newtype is its base value.\n\nWhen every file is written and every loss reported, end your turn without calling a tool.\n\nThe TDL specification:\n\n{{docs/spec.md}}",
+	"tools": [
+		{
+			"name": "write_file",
+			"description": "Write one file of the generated output.",
+			"schema": {
+				"type": "object",
+				"properties": {
+					"path": {
+						"type": "string",
+						"description": "The file's path, relative to the output directory, with forward slashes."
+					},
+					"content": {
+						"type": "string",
+						"description": "The file's whole content."
+					}
+				},
+				"required": [
+					"path",
+					"content"
+				]
+			}
+		},
+		{
+			"name": "report_loss",
+			"description": "Report a fact of the model the output does not carry.",
+			"schema": {
+				"type": "object",
+				"properties": {
+					"decl": {
+						"type": "string",
+						"description": "The declaration (Order), or field or variant (Order.total), the loss is about; empty for the model as a whole."
+					},
+					"code": {
+						"type": "string",
+						"description": "The loss code naming what was lost."
+					},
+					"message": {
+						"type": "string",
+						"description": "One sentence saying what was lost and why."
+					}
+				},
+				"required": [
+					"decl",
+					"code",
+					"message"
+				]
+			}
+		}
+	],
+	"turns": [
+		{
+			"sent": [
+				{
+					"role": "user",
+					"text": "Write this model in dart.\n\nThe model:\n\n```tdl\ntype Order: Entity {\n  id: string\n}\n\ntarget yolo for shop {\n  language(\"dart\")\n}\n```\n"
+				}
+			],
+			"reply": {
+				"role": "assistant",
+				"calls": [
+					{
+						"id": "toolu_01",
+						"name": "write_file",
+						"input": {
+							"content": "class Order {\n  final String id;\n  const Order(this.id);\n}\n",
+							"path": "lib/order.dart"
+						}
+					},
+					{
+						"id": "toolu_02",
+						"name": "write_file",
+						"input": {
+							"content": "name: shop\n",
+							"path": "../pubspec.yaml"
+						}
+					}
+				],
+				"stop": "tool"
+			}
+		}
+	]
+}

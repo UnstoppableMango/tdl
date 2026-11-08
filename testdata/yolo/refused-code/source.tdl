@@ -1,0 +1,10 @@
+package shop
+
+type Order: Entity {
+  id: uuid
+  quantity: int where { min(1) }
+}
+
+target yolo for shop {
+  language("kotlin")
+}

@@ -30,6 +30,7 @@ buildGoApplication {
     "cmd/tdl-gen-smithy"
     "cmd/tdl-gen-thrift"
     "cmd/tdl-gen-typescript"
+    "cmd/tdl-gen-yolo"
     "cmd/tdl-gen-zod"
   ];
 
