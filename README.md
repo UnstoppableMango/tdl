@@ -121,6 +121,15 @@ gh attestation verify "$asset" --repo UnstoppableMango/tdl
 tar -xzf "$asset" tdl && install tdl ~/.local/bin/
 ```
 
+### npm
+
+`@unmango/tdl` installs `tdl` for linux and darwin, amd64 and arm64, from the same binaries as the release assets, with no install script:
+
+```shell
+npm i -D @unmango/tdl
+npx tdl version
+```
+
 ### go install
 
 With Go 1.27 or later, which `go.mod` requires:

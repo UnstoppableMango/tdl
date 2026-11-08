@@ -632,6 +632,7 @@ Never hand-edit `toolVersion` in `internal/cli/version.go`, `version` in `flake.
 The first two and the README line carry an `x-release-please-version` annotation; the JSON files are listed in `release-please-config.json`.
 
 When it reports a release, the `assets` job builds `packages.release` at the tag on a GitHub-hosted runner, attests every file with `actions/attest-build-provenance`, and uploads them to the release.
+The `npm` job builds `packages.npm` at the tag and publishes the four platform packages, then `@unmango/tdl`, through npm's trusted publishing, which needs no stored token and writes provenance; each package's trusted publisher on npmjs.com names `release-please.yml`, and a version already published is skipped.
 
 Two versions are not release-please's:
 
