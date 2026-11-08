@@ -34,6 +34,9 @@ func (Backend) Describe() plugin.Description {
 		Reuse: true,
 		Directives: []*plugin.DirectiveSpec{
 			// The TypeScript name for a schema, property, or variant schema.
+			// It never changes a variant's wire value, the discriminant's
+			// value or a fieldless variant's z.enum member, and on a
+			// fieldless variant it warns, since that writes no name.
 			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.OnMembers()},
 			// The property a discriminated union switches on: the default on
 			// the target block, an override on an enum.
@@ -612,6 +615,13 @@ func (g *generator) enum(b *strings.Builder, d *ir.Decl) []string {
 	tags := make([]string, len(variants))
 	for i, v := range variants {
 		tags[i] = strconv.Quote(emit.Tag(v))
+		if dir, ok := g.Find(v.GetDirectives(), "name"); ok {
+			// Not output loss: the directive has nothing to rename, so the
+			// warning carries no loss code.
+			vname := v.GetMeta().GetName()
+			g.Warn(emit.Unsupported(dir.GetPosition(),
+				"%s.%s writes no zod name, only its wire value %q, which is its name, so its name directive has no effect", name, vname, vname))
+		}
 	}
 	pair(b, name, d.GetMeta(), "", "z.enum(["+strings.Join(tags, ", ")+"])")
 	return []string{name}
