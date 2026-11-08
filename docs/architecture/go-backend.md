@@ -218,8 +218,21 @@ func UnmarshalShape(data []byte) (Shape, error)
 `encoding/json` cannot decode an interface, so a struct or variant holding a fielded enum, directly or in a list, map, option, or newtype, gets an `UnmarshalJSON` that decodes those fields with it and every other field as usual.
 A struct holding only fields `encoding/json` decodes gets nothing.
 
-What the convention cannot carry warns: a variant field named like the discriminant skips the enum, a `Set` is a Go map, which `encoding/json` writes as an object rather than an array, and a generic declaration applied to a fielded enum decodes it as a plain value.
-A type parameter named like a local of the generated methods (`plain`, `data`, `raw`, `err`, `v`) skips the declaration.
+The convention writes an empty list as `[]` and an empty map as `{}`, never `null`, and `encoding/json` writes a nil slice or map as `null`.
+So a struct or newtype holding a list or map, directly or through an option, an alias, or another list or map, gets a `MarshalJSON` that marshals a copy with each nil one replaced by an empty one, and a variant's `MarshalJSON` does the same before writing the discriminant:
+
+```go
+func (s ScratchOrg) MarshalJSON() ([]byte, error)
+```
+
+A field holding a struct, variant, or newtype is left to that type's own `MarshalJSON`; a newtype over a struct or newtype that has one converts back to it, since Go drops methods across a type definition.
+A newtype over `T?` is a Go pointer type, which cannot declare a method, so a struct holding one fills through it.
+A `T?` or `T | null` collection stays absent or `null` when unset; when set, its list or map is filled like any other.
+Decoding `null` into a list or map still yields nil, without error.
+A declaration holding no list or map gets no `MarshalJSON`, and its output is what it was before the rule.
+
+What the convention cannot carry warns: a variant field named like the discriminant skips the enum, a `Set` is a Go map, which `encoding/json` writes as an object rather than an array, a generic declaration applied to a fielded enum decodes it as a plain value, and one applied to a type holding a list or map writes it as a plain value, a nil one as `null`.
+A type parameter named like a local of the generated methods (`plain`, `data`, `raw`, `err`, `v`, and in a `MarshalJSON` `self`, `out0`, `e0`, `k0` at any depth) skips the declaration.
 Import does not read `json` back: the tags return as `tag` directives, and the methods warn.
 
 ## Validation

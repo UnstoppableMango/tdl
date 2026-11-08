@@ -237,3 +237,136 @@ target go for tree {
 		"UnmarshalResult[T](raw)",
 	)
 }
+
+// emptySource holds a collection at every depth the JSON wire convention
+// writes as [] or {}, never null.
+const emptySource = `package org
+
+type Tags: [string]
+type Groups: Map<string, [string]>
+type Wrapped: Shape
+type MaybeTags: [string]?
+
+type ScratchOrg {
+  flags: {string -> [string]}
+  tags: [string]
+  named: Tags
+  maybe: [string]?
+  nullable: [string] | null
+  nested: [[string]]
+  boxes: [Shape]
+  groups: Groups
+  wrapped: Wrapped
+  maybeTags: MaybeTags
+  shape: Shape
+}
+
+enum Shape {
+  Poly { points: [int32] }
+  Dot
+}
+
+type Plain { name: string }
+
+target go for org {
+  json
+}
+`
+
+func TestJSONEmptyCollections(t *testing.T) {
+	resp := generateTDL(t, emptySource)
+	if w := uncodedWarnings(resp); len(w) != 0 {
+		t.Fatalf("diagnostics = %+v", w)
+	}
+	got := files(t, resp)
+	if strings.Contains(got["plain.go"], "MarshalJSON") {
+		t.Errorf("Plain holds no collection, and has a MarshalJSON:\n%s", got["plain.go"])
+	}
+	goTest(t, resp, `package org
+
+import (
+	"encoding/json"
+	"testing"
+)
+
+func TestZeroValue(t *testing.T) {
+	org := ScratchOrg{
+		Flags:  map[string][]string{"a": nil},
+		Nested: [][]string{nil},
+		Boxes:  []Shape{ShapePoly{}, ShapeDot{}},
+		Groups: Groups{"g": nil},
+		Shape:  ShapePoly{},
+	}
+	out, err := json.Marshal(org)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const want = `+"`"+`{"flags":{"a":[]},"tags":[],"named":[],"nullable":null,"nested":[[]],"boxes":[{"kind":"Poly","points":[]},{"kind":"Dot"}],"groups":{"g":[]},"wrapped":null,"maybeTags":null,"shape":{"kind":"Poly","points":[]}}`+"`"+`
+	if string(out) != want {
+		t.Fatalf("encoded\n%s\nwant\n%s", out, want)
+	}
+	if org.Flags["a"] != nil || org.Nested[0] != nil || org.Groups["g"] != nil {
+		t.Fatal("marshalling changed the value marshalled")
+	}
+
+	var empty []string
+	maybe := &empty
+	org = ScratchOrg{Maybe: maybe, Nullable: maybe, MaybeTags: MaybeTags(maybe)}
+	var wrapped Shape = ShapePoly{}
+	org.Wrapped = Wrapped(wrapped)
+	out, err = json.Marshal(org)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const some = `+"`"+`{"flags":{},"tags":[],"named":[],"maybe":[],"nullable":[],"nested":[],"boxes":[],"groups":{},"wrapped":{"kind":"Poly","points":[]},"maybeTags":[],"shape":null}`+"`"+`
+	if string(out) != some {
+		t.Fatalf("encoded\n%s\nwant\n%s", out, some)
+	}
+	if *maybe != nil {
+		t.Fatal("marshalling changed the value marshalled")
+	}
+}
+
+func TestNullDecodes(t *testing.T) {
+	var org ScratchOrg
+	doc := `+"`"+`{"flags":null,"tags":null,"named":null,"maybe":null,"nullable":null,"nested":[null],"boxes":null,"groups":{"g":null},"maybeTags":null,"shape":{"kind":"Poly","points":null}}`+"`"+`
+	if err := json.Unmarshal([]byte(doc), &org); err != nil {
+		t.Fatal(err)
+	}
+	if org.Tags != nil || org.Named != nil || org.Maybe != nil || len(org.Nested) != 1 || org.Groups["g"] != nil {
+		t.Fatalf("decoded %#v", org)
+	}
+	if p, ok := org.Shape.(ShapePoly); !ok || p.Points != nil {
+		t.Fatalf("decoded shape %#v", org.Shape)
+	}
+}
+`)
+}
+
+func TestJSONGenericOverCollectionWarns(t *testing.T) {
+	resp := generateTDL(t, `package tree
+
+type Box<T> { value: T }
+type Wrap<T>: [T]
+
+type Root {
+  box: Box<[string]>
+  boxes: [Box<{string -> int32}>]
+  plain: Box<string>
+  wrap: Wrap<[string]>
+}
+
+target go for tree {
+  json
+}
+`)
+	w := uncodedWarnings(resp)
+	if len(w) != 3 {
+		t.Fatalf("diagnostics = %+v, want three warnings", w)
+	}
+	for _, d := range w {
+		contains(t, d.GetMessage(), "so an empty one there is null")
+	}
+	got := files(t, resp)
+	contains(t, got["wrap.go"], "func (w Wrap[T]) MarshalJSON() ([]byte, error)", "self := []T(w)")
+}

@@ -71,6 +71,9 @@ type generator struct {
 
 	// wire is set by a json directive on the target block.
 	wire bool
+	// marshalled holds whether each declaration gets a MarshalJSON filling
+	// its collections.
+	marshalled map[*ir.Decl]bool
 
 	// cur is the index of the declaration being rendered.
 	cur int32
@@ -359,6 +362,9 @@ func (g *generator) structure(b *strings.Builder, decl *ir.Decl) error {
 	}
 	b.WriteString("}\n")
 	if g.wire {
+		if err := g.writeMarshal(b, decl, name); err != nil {
+			return err
+		}
 		if err := g.writeUnmarshal(b, decl, name, decl.Fields()); err != nil {
 			return err
 		}
@@ -485,6 +491,9 @@ func (g *generator) fields(b *strings.Builder, fields []*ir.Field) error {
 
 		g.doc(b, f.GetMeta())
 		fmt.Fprintf(b, "\t%s %s", g.fieldName(f), goType)
+		if g.wire {
+			g.warnParamFills(f.GetType(), nil, f.GetMeta().GetPosition())
+		}
 		tag, ok := g.Text(f.GetDirectives(), "tag")
 		if !ok && g.wire {
 			tag, ok = g.jsonTag(f), true
@@ -599,6 +608,9 @@ func (g *generator) newtype(b *strings.Builder, decl *ir.Decl) error {
 	g.doc(b, decl.GetMeta())
 	g.annotate(b, decl)
 	fmt.Fprintf(b, "type %s%s %s\n", g.declName(decl), g.typeParams(decl), base)
+	if err := g.writeMarshal(b, decl, g.declName(decl)); err != nil {
+		return err
+	}
 	g.writeValidation(b, decl, -1)
 	g.writeMarkers(b, g.declName(decl)+typeArgs(decl))
 	return nil
