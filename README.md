@@ -112,7 +112,7 @@ The linux binaries are static, and nothing in a tarball needs Nix.
 Every file is attested, so `gh attestation verify` checks it was built by this repository's release workflow.
 
 ```shell
-version=0.5.10 # x-release-please-version
+version=0.5.11 # x-release-please-version
 asset=tdl_${version}_linux_amd64.tar.gz
 curl -fsSLO "https://github.com/UnstoppableMango/tdl/releases/download/v$version/$asset"
 curl -fsSLO "https://github.com/UnstoppableMango/tdl/releases/download/v$version/SHA256SUMS"

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.11](https://github.com/UnstoppableMango/tdl/compare/v0.5.10...v0.5.11) (2026-11-09)
+
+
+### Code Refactoring
+
+* call ir.Literal.Source instead of two forwarding wrappers ([14430dc](https://github.com/UnstoppableMango/tdl/commit/14430dc2e4c4ecc222988cb4a3136f7fb14cbc0d))
+* call ir.Literal.Source instead of two forwarding wrappers (-6) ([#1546](https://github.com/UnstoppableMango/tdl/issues/1546)) ([14430dc](https://github.com/UnstoppableMango/tdl/commit/14430dc2e4c4ecc222988cb4a3136f7fb14cbc0d))
+
 ## [0.5.10](https://github.com/UnstoppableMango/tdl/compare/v0.5.9...v0.5.10) (2026-11-08)
 
 
