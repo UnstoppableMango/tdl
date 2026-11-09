@@ -56,13 +56,10 @@ func Source(c *ir.Constraint) string {
 	}
 	args := make([]string, len(c.GetArgs()))
 	for i, a := range c.GetArgs() {
-		args[i] = LiteralSource(a)
+		args[i] = a.Source()
 	}
 	return c.GetName() + "(" + strings.Join(args, ", ") + ")"
 }
-
-// LiteralSource is a literal as TDL source writes it.
-func LiteralSource(l *ir.Literal) string { return l.Source() }
 
 // constraintViews reads each constraint in cs.
 func constraintViews(cs []*ir.Constraint) []*plugin.ConstraintView {

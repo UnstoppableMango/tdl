@@ -238,7 +238,7 @@ func (g *generator) field(f *ir.Field) string {
 		s += " where " + strings.Join(texts, " ")
 	}
 	if def := f.GetDefaultValue(); def != nil {
-		s += " = " + emit.LiteralText(def)
+		s += " = " + def.Source()
 	}
 	return s
 }

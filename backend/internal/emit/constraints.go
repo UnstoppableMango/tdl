@@ -23,6 +23,3 @@ func Pattern(l *ir.Literal) (*syntax.Regexp, error) { return analysis.Pattern(l)
 // ConstraintText is a constraint as TDL source writes it, as
 // [plugin.ConstraintView] carries it.
 func ConstraintText(c *ir.Constraint) string { return analysis.Source(c) }
-
-// LiteralText is a literal as TDL source writes it.
-func LiteralText(l *ir.Literal) string { return analysis.LiteralSource(l) }

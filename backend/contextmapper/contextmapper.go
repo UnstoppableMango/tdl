@@ -519,7 +519,7 @@ func (g *generator) constraint(c *ir.Constraint, coll, isRef bool) string {
 	switch c.GetName() {
 	case "min", "max":
 		if a := arg(); a != nil && !isRef && !coll {
-			return c.GetName() + " = " + quote(emit.LiteralText(a))
+			return c.GetName() + " = " + quote(a.Source())
 		}
 	case "length":
 		// CML's length and size take one number, the most allowed, and

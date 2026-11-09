@@ -64,7 +64,7 @@ func (g *generator) withDefault(owner string, f *ir.Field, r *emit.Ref, n *emit.
 	warn := func(format string, args ...any) schema {
 		if f.GetIncludedFrom() == nil {
 			g.Lossy(emit.LossDefault, at, "%s.%s's default %s "+format,
-				append([]any{owner, f.GetMeta().GetName(), emit.LiteralText(def)}, args...)...)
+				append([]any{owner, f.GetMeta().GetName(), def.Source()}, args...)...)
 		}
 		return s
 	}

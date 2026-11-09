@@ -226,7 +226,7 @@ func (g *generator) refusing(l *ir.Literal, cs []*ir.Constraint, pending bool) (
 		case "unique":
 			seen := map[string]bool{}
 			for _, item := range l.GetItems() {
-				key := emit.LiteralText(item)
+				key := item.Source()
 				if seen[key] {
 					return c, "holds " + key + " twice, and " + emit.ConstraintText(c) + " refuses that"
 				}
