@@ -4,6 +4,7 @@
   nodejs,
   jq,
   tdl-portable,
+  tdl-gen-mermaid,
   version,
 }:
 let
@@ -28,7 +29,7 @@ let
   ) tdl-portable.targets;
 in
 # The six npm packages, packed: @unmango/tdl, the shim, one package per
-# platform carrying tdl-portable's binaries, and @unmango/tdl-typescript, the
+# platform carrying tdl-portable's binaries and tdl-gen-mermaid, and @unmango/tdl-typescript, the
 # content mapper's manifest. The release publishes these tarballs, and
 # checks.npm-tdl installs them, so what is tested is what ships.
 stdenvNoCC.mkDerivation {
@@ -68,14 +69,14 @@ stdenvNoCC.mkDerivation {
     ${lib.concatMapStrings (p: ''
       dir=$NIX_BUILD_TOP/packages/${p.dir}
       mkdir -p $dir/bin
-      cp ${tdl-portable}/${p.dir}/* $dir/bin/
+      cp ${tdl-portable}/${p.dir}/* ${tdl-gen-mermaid.portable}/${p.dir}/* $dir/bin/
       chmod -R u+w $dir
       jq -n --arg version "$version" \
         --slurpfile base tdl/package.json \
         '{
           name: "${p.name}",
           version: $version,
-          description: "The tdl and tdl-gen-typescript binaries for ${p.os} ${p.cpu}, installed by @unmango/tdl",
+          description: "The tdl, tdl-gen-typescript, and tdl-gen-mermaid binaries for ${p.os} ${p.cpu}, installed by @unmango/tdl",
           license: $base[0].license,
           repository: $base[0].repository,
           homepage: $base[0].homepage,
@@ -104,7 +105,8 @@ stdenvNoCC.mkDerivation {
     runHook postInstall
   '';
 
-  # Darwin binaries are signed by the Go linker; leave every byte as built.
+  # Darwin binaries are signed by the Go linker and bun; leave every byte as
+  # built.
   dontFixup = true;
 
   meta = {

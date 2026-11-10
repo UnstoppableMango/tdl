@@ -39,6 +39,8 @@ lib.composeExtensions gomod2nix.overlays.default (
 
     tdl-js = final.callPackage ./js.nix { inherit version; };
 
+    tdl-gen-mermaid = final.callPackage ./mermaid.nix { inherit version; };
+
     protoc-gen-buffa = final.callPackage ./protoc-gen-buffa.nix { };
 
     pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
