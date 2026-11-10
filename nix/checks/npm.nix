@@ -34,7 +34,8 @@ runCommand "tdl-npm-check"
     npm install --offline --ignore-scripts --no-audit --no-fund \
       ${tdl-npm}/unmango-tdl-${tdl-npm.version}.tgz \
       ${tdl-npm}/unmango-${native}-${tdl-npm.version}.tgz \
-      ${tdl-npm}/unmango-tdl-typescript-${tdl-npm.version}.tgz
+      ${tdl-npm}/unmango-tdl-typescript-${tdl-npm.version}.tgz \
+      ${tdl-npm}/unmango-remark-tdl-mermaid-${tdl-npm.version}.tgz
 
     # The shim's #!/usr/bin/env node is right everywhere but the build sandbox,
     # which has no /usr/bin/env.
@@ -74,6 +75,24 @@ runCommand "tdl-npm-check"
         process.exit(1);
       }
     '
+
+    # The remark plugin finds tdl through @unmango/tdl/resolve. Its
+    # transformer runs on a hand-written tree, since remark is not here.
+    cat > remark.mjs <<'EOF'
+    import remarkTdlMermaid from "@unmango/remark-tdl-mermaid";
+    import { readFileSync } from "node:fs";
+    const source = readFileSync("source.tdl", "utf8");
+    const tree = { type: "root", children: [{ type: "code", lang: "tdl", meta: "mermaid", value: source }] };
+    const file = { message: () => ({}), fail(reason) { throw new Error(reason); } };
+    await remarkTdlMermaid()(tree, file);
+    const [code] = tree.children;
+    const want = readFileSync(process.argv[2], "utf8");
+    if (code.lang !== "mermaid" || `''${code.value}\n` !== want) {
+      console.error("the remark plugin drew", code);
+      process.exit(1);
+    }
+    EOF
+    node remark.mjs ${../../testdata/mermaid/corpus/smoke/want/smoke.mmd}
 
     # A failing command's exit status reaches the caller.
     if npx --offline tdl check does-not-exist.tdl 2>/dev/null; then

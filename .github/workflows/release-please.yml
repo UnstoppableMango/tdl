@@ -61,7 +61,7 @@ jobs:
           TAG: ${{ needs.release.outputs.tag_name }}
         run: gh release upload "$TAG" result/* --repo "$GITHUB_REPOSITORY" --clobber
 
-  # The six npm packages, packed by Nix from the tagged commit, published with
+  # The seven npm packages, packed by Nix from the tagged commit, published with
   # npm's trusted publishing: npm trusts this workflow's OIDC token in place of
   # a stored token, and writes provenance. Each package's trusted publisher on
   # npmjs.com names this file. The platform packages go first, so nothing
@@ -107,10 +107,11 @@ jobs:
           cd result
           shopt -s nullglob
           platforms=(unmango-tdl-{linux,darwin}-*-"$VERSION".tgz)
-          # After the platform packages, since @unmango/tdl names them.
-          rest=("unmango-tdl-$VERSION.tgz" "unmango-tdl-typescript-$VERSION.tgz")
-          [ ${#platforms[@]} = 4 ] && [ -f "${rest[0]}" ] && [ -f "${rest[1]}" ] || {
-            echo "packages.npm does not hold six packages at $VERSION:" >&2
+          # After the platform packages, since @unmango/tdl names them, and
+          # the remark plugin after @unmango/tdl, which it depends on.
+          rest=("unmango-tdl-$VERSION.tgz" "unmango-tdl-typescript-$VERSION.tgz" "unmango-remark-tdl-mermaid-$VERSION.tgz")
+          [ ${#platforms[@]} = 4 ] && [ -f "${rest[0]}" ] && [ -f "${rest[1]}" ] && [ -f "${rest[2]}" ] || {
+            echo "packages.npm does not hold seven packages at $VERSION:" >&2
             ls >&2
             exit 1
           }
