@@ -390,24 +390,16 @@ func TestMapperUnderTsc(t *testing.T) {
 	if err := os.CopyFS(project, os.DirFS(filepath.Join("testdata", "mapper"))); err != nil {
 		t.Fatal(err)
 	}
+	// The package as it ships, which runs tdl-gen-typescript from PATH.
 	pkg := filepath.Join(project, "node_modules", "@unmango", "tdl-typescript")
-	if err := os.MkdirAll(pkg, 0o755); err != nil {
+	if err := os.CopyFS(pkg, os.DirFS(filepath.Join("..", "..", "npm", "tdl-typescript"))); err != nil {
 		t.Fatal(err)
 	}
-	manifest, err := json.Marshal(map[string]any{
-		"name":       "@unmango/tdl-typescript",
-		"version":    "0.0.0",
-		"typescript": map[string]any{"contentMapper": map[string]any{"exec": []string{bin, "content-mapper"}, "compilerOptions": []string{}}},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(pkg, "package.json"), manifest, 0o644); err != nil {
-		t.Fatal(err)
-	}
+	path := filepath.Dir(bin) + string(os.PathListSeparator) + os.Getenv("PATH")
 
 	run := func() (string, error) {
 		cmd := exec.Command(tsc, "--noEmit", "--runExternalCode", "-p", project)
+		cmd.Env = append(os.Environ(), "PATH="+path)
 		out, err := cmd.CombinedOutput()
 		return string(out), err
 	}

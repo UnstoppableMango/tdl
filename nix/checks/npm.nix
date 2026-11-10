@@ -23,7 +23,8 @@ runCommand "tdl-npm-check" { nativeBuildInputs = [ nodejs ]; } ''
 
   npm install --offline --ignore-scripts --no-audit --no-fund \
     ${tdl-npm}/unmango-tdl-${tdl-npm.version}.tgz \
-    ${tdl-npm}/unmango-${native}-${tdl-npm.version}.tgz
+    ${tdl-npm}/unmango-${native}-${tdl-npm.version}.tgz \
+    ${tdl-npm}/unmango-tdl-typescript-${tdl-npm.version}.tgz
 
   # The shim's #!/usr/bin/env node is right everywhere but the build sandbox,
   # which has no /usr/bin/env.
@@ -41,6 +42,15 @@ runCommand "tdl-npm-check" { nativeBuildInputs = [ nodejs ]; } ''
     const run = spawnSync(binaryPath("tdl-gen-typescript"), ["--help"], { encoding: "utf8" });
     if (!run.stderr.includes("usage: tdl-gen-typescript")) {
       console.error("tdl-gen-typescript did not run:", run.error ?? run.stderr);
+      process.exit(1);
+    }
+  '
+
+  # @unmango/tdl-typescript names the command tsc runs for .tdl files.
+  node -e '
+    const { contentMapper } = require("@unmango/tdl-typescript/package.json").typescript;
+    if (contentMapper.exec.join(" ") !== "tdl-gen-typescript content-mapper") {
+      console.error("@unmango/tdl-typescript runs", contentMapper.exec);
       process.exit(1);
     }
   '

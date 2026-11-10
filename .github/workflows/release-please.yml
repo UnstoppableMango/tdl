@@ -61,7 +61,7 @@ jobs:
           TAG: ${{ needs.release.outputs.tag_name }}
         run: gh release upload "$TAG" result/* --repo "$GITHUB_REPOSITORY" --clobber
 
-  # The five npm packages, packed by Nix from the tagged commit, published with
+  # The six npm packages, packed by Nix from the tagged commit, published with
   # npm's trusted publishing: npm trusts this workflow's OIDC token in place of
   # a stored token, and writes provenance. Each package's trusted publisher on
   # npmjs.com names this file. The platform packages go first, so nothing
@@ -106,9 +106,9 @@ jobs:
 
           cd result
           shopt -s nullglob
-          platforms=(unmango-tdl-*-"$VERSION".tgz)
-          [ ${#platforms[@]} = 4 ] && [ -f "unmango-tdl-$VERSION.tgz" ] || {
-            echo "packages.npm does not hold five packages at $VERSION:" >&2
+          platforms=(unmango-tdl-{linux,darwin}-*-"$VERSION".tgz)
+          [ ${#platforms[@]} = 4 ] && [ -f "unmango-tdl-$VERSION.tgz" ] && [ -f "unmango-tdl-typescript-$VERSION.tgz" ] || {
+            echo "packages.npm does not hold six packages at $VERSION:" >&2
             ls >&2
             exit 1
           }
@@ -118,7 +118,8 @@ jobs:
           tag=latest
           [[ $VERSION != *-* ]] || tag=next
 
-          for tarball in "${platforms[@]}" "unmango-tdl-$VERSION.tgz"; do
+          # The platform packages first, since @unmango/tdl names them.
+          for tarball in "${platforms[@]}" "unmango-tdl-$VERSION.tgz" "unmango-tdl-typescript-$VERSION.tgz"; do
             name=$(tar -xzOf "$tarball" package/package.json | jq -r .name)
             # Publish only on E404; any other failure to look the version up
             # stops the job rather than guessing.

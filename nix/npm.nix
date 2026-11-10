@@ -27,16 +27,20 @@ let
     }
   ) tdl-portable.targets;
 in
-# The five npm packages, packed: @unmango/tdl, the shim, and one package per
-# platform carrying tdl-portable's binaries. The release publishes these
-# tarballs, and checks.npm-tdl installs them, so what is tested is what ships.
+# The six npm packages, packed: @unmango/tdl, the shim, one package per
+# platform carrying tdl-portable's binaries, and @unmango/tdl-typescript, the
+# content mapper's manifest. The release publishes these tarballs, and
+# checks.npm-tdl installs them, so what is tested is what ships.
 stdenvNoCC.mkDerivation {
   pname = "tdl-npm";
   inherit version;
 
   src = lib.fileset.toSource {
-    root = ../npm/tdl;
-    fileset = ../npm/tdl;
+    root = ../npm;
+    fileset = lib.fileset.unions [
+      ../npm/tdl
+      ../npm/tdl-typescript
+    ];
   };
 
   nativeBuildInputs = [
@@ -50,15 +54,16 @@ stdenvNoCC.mkDerivation {
     runHook preBuild
     export HOME=$TMPDIR npm_config_cache=$TMPDIR/npm-cache
 
-    have=$(jq -r .version package.json)
-    [ "$have" = "$version" ] || {
-      echo "npm/tdl/package.json is version $have, but the flake is $version" >&2
-      exit 1
-    }
-
-    mkdir -p $NIX_BUILD_TOP/packages/tdl
-    cp -r . $NIX_BUILD_TOP/packages/tdl
-    chmod -R u+w $NIX_BUILD_TOP/packages/tdl
+    for pkg in tdl tdl-typescript; do
+      have=$(jq -r .version $pkg/package.json)
+      [ "$have" = "$version" ] || {
+        echo "npm/$pkg/package.json is version $have, but the flake is $version" >&2
+        exit 1
+      }
+      mkdir -p $NIX_BUILD_TOP/packages/$pkg
+      cp -r $pkg/. $NIX_BUILD_TOP/packages/$pkg
+      chmod -R u+w $NIX_BUILD_TOP/packages/$pkg
+    done
 
     ${lib.concatMapStrings (p: ''
       dir=$NIX_BUILD_TOP/packages/${p.dir}
@@ -66,7 +71,7 @@ stdenvNoCC.mkDerivation {
       cp ${tdl-portable}/${p.dir}/* $dir/bin/
       chmod -R u+w $dir
       jq -n --arg version "$version" \
-        --slurpfile base package.json \
+        --slurpfile base tdl/package.json \
         '{
           name: "${p.name}",
           version: $version,

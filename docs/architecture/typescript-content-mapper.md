@@ -1,7 +1,7 @@
 # Importing TDL into TypeScript
 
 Design document.
-Phases 1 and 2 are built; the rest is tracked in [#1226](https://github.com/UnstoppableMango/tdl/issues/1226).
+Phases 1 and 2 are built, as is the npm package ([#1228](https://github.com/UnstoppableMango/tdl/issues/1228)); the rest is tracked in [#1226](https://github.com/UnstoppableMango/tdl/issues/1226).
 
 `tdl gen` writes a `.ts` file, and a TypeScript project imports what was written.
 The types are stale from the moment a `.tdl` file changes until someone runs `tdl gen` again.
@@ -154,9 +154,9 @@ Runtime values, schemas a program validates JSON against, belong to the [zod bac
 `tsc` finds a mapper by package name, so the command needs a package to name it.
 `@unmango/tdl-typescript` is a `package.json` and a README, with no JavaScript, in `npm/tdl-typescript/`.
 It does not carry the binary: `tdl-gen-typescript` comes from `PATH`, as the C# source generator takes `tdl` from it.
-Platform packages carrying the binary, as esbuild publishes them, are [#1319](https://github.com/UnstoppableMango/tdl/issues/1319).
+Running it from `@unmango/tdl`'s platform packages, which carry it, is [#1390](https://github.com/UnstoppableMango/tdl/issues/1390).
 
-`release-please-config.json` versions it with the release, and a second job in `release-please.yml` publishes it with npm trusted publishing, gated on the release job's output as the NuGet job is.
+`release-please-config.json` versions it with the release, and `packages.npm` packs it beside `@unmango/tdl`, so the `npm` job in `release-please.yml` publishes it last with npm trusted publishing.
 The npm trusted publisher names `release-please.yml`; the scope's owner configures it before the first release.
 
 ## Testing
@@ -164,7 +164,7 @@ The npm trusted publisher names `release-please.yml`; the scope's owner configur
 - Go tests in `backend/typescript` drive the mapper over a pipe: initialize, open a project, transform the smoke model, conformance cases, and a file importing another, and close.
   The text of each module equals what the backend writes for `tdl gen`, and each diagnostic kind is asserted at its range.
 - A second test runs `tsc --noEmit --runExternalCode` over `backend/typescript/testdata/mapper/`, a TypeScript project importing `.tdl` files, when a `tsc` of 7.1 or later is on `PATH` and `-short` is not set, and skips otherwise.
-  It points the project at `tdl-gen-typescript` built by the test, and asserts a TDL error is reported in the `.tdl` file.
+  It installs `npm/tdl-typescript/` as the project's mapper package, puts `tdl-gen-typescript` built by the test on `PATH`, and asserts a TDL error is reported in the `.tdl` file.
 - `checks.typescript-content-mapper` runs the same project once nixpkgs carries TypeScript 7.1.
 
 ## Not designed here
