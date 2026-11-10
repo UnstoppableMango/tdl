@@ -6,15 +6,16 @@
 	"type": "module",
 	"workspaces": [
 		"tdl-plugin",
-		"tdl-plugin-debug"
+		"tdl-plugin-debug",
+		"tdl-gen-mermaid"
 	],
 	"engines": {
 		"node": ">=22"
 	},
 	"scripts": {
-		"build": "rm -rf */dist && tsc -p tdl-plugin && tsc -p tdl-plugin-debug",
+		"build": "rm -rf */dist && tsc -p tdl-plugin && tsc -p tdl-plugin-debug && tsc -p tdl-gen-mermaid",
 		"test": "npm run build && node --test '*/dist/test/**/*.test.js'",
-		"test:bun": "npm run build && bun test ./tdl-plugin/dist/test ./tdl-plugin-debug/dist/test",
+		"test:bun": "npm run build && bun test dist/test",
 		"check": "biome check",
 		"format": "biome check --write"
 	},

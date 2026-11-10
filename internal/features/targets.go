@@ -22,7 +22,8 @@ const HandFile = "features.toml"
 // compiling into tdl, with the directory of their source. One is measured
 // when tdl-gen-<name> is on PATH.
 var plugins = map[string]string{
-	"csharp": "dotnet/Tdl.Gen.CSharp",
+	"csharp":  "dotnet/Tdl.Gen.CSharp",
+	"mermaid": "js/tdl-gen-mermaid",
 }
 
 // Targets is every built-in backend but debug, which describes a model

@@ -10,7 +10,8 @@ buildNpmPackage {
   pname = "tdl-js";
   inherit version;
 
-  # The SDK's tests replay testdata/plugin and read reverse.md's loss codes.
+  # The SDK's tests replay testdata/plugin and read reverse.md's loss codes,
+  # and the mermaid backend's answer testdata/mermaid.
   src = lib.fileset.toSource {
     root = ../.;
     fileset = lib.fileset.unions [
@@ -19,7 +20,9 @@ buildNpmPackage {
       ../js/tsconfig.base.json
       (lib.fileset.fileFilter (f: !(lib.hasPrefix "." f.name)) ../js/tdl-plugin)
       (lib.fileset.fileFilter (f: !(lib.hasPrefix "." f.name)) ../js/tdl-plugin-debug)
+      (lib.fileset.fileFilter (f: !(lib.hasPrefix "." f.name)) ../js/tdl-gen-mermaid)
       ../testdata/plugin
+      ../testdata/mermaid
       ../docs/architecture/reverse.md
     ];
   };
@@ -44,14 +47,16 @@ buildNpmPackage {
     runHook preInstall
     npm prune --omit=dev --no-audit --no-fund
     mkdir -p $out/lib/tdl-js $out/bin
-    cp -r package.json node_modules tdl-plugin tdl-plugin-debug $out/lib/tdl-js/
-    makeWrapper ${lib.getExe nodejs} $out/bin/tdl-gen-js_debug \
-      --add-flags $out/lib/tdl-js/tdl-plugin-debug/dist/src/main.js
+    cp -r package.json node_modules tdl-plugin tdl-plugin-debug tdl-gen-mermaid $out/lib/tdl-js/
+    for bin in tdl-plugin-debug:tdl-gen-js_debug tdl-gen-mermaid:tdl-gen-mermaid; do
+      makeWrapper ${lib.getExe nodejs} $out/bin/''${bin#*:} \
+        --add-flags $out/lib/tdl-js/''${bin%%:*}/dist/src/main.js
+    done
     runHook postInstall
   '';
 
   meta = {
-    description = "The TDL backends written on the JS/TS plugin SDK: the debug port";
+    description = "The TDL backends written on the JS/TS plugin SDK: mermaid and the debug port";
     homepage = "https://github.com/UnstoppableMango/tdl";
     mainProgram = "tdl-gen-js_debug";
     license = lib.licenses.mit;

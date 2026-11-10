@@ -98,7 +98,8 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 - `dotnet-tool.nix`: `tdl-gen-csharp-tool`, `Tdl.Gen.CSharp.<version>.nupkg`, the same project packed as a framework-dependent .NET tool for nuget.org (#1492), with no runtime and `-p:PublishAot=false`, since AOT pins the runtime patch the package asks for.
   `checks.dotnet-tool` installs it with `dotnet tool install --tool-path` from its folder alone, with no network, and holds what `tdl gen` writes for the smoke model through the tool's shim, and every diagnostic, to what the AOT plugin writes.
 - `rust.nix`: `tdl-rust`, the Rust workspace built with `rustPlatform` from `rust/Cargo.lock`, which runs its tests (see [Rust SDK](#rust-sdk)); it installs only `tdl-gen-rust_debug`, which `cmd.nix` does not ship.
-- `js.nix`: `tdl-js`, the JS workspace built with `buildNpmPackage` and `importNpmLock` from `js/package-lock.json`, which runs its tests under node (see [JS SDK](#js-sdk)); it installs only `tdl-gen-js_debug`, a node script `cmd.nix` does not ship.
+- `js.nix`: `tdl-js`, the JS workspace built with `buildNpmPackage` and `importNpmLock` from `js/package-lock.json`, which runs its tests under node (see [JS SDK](#js-sdk)); it installs `tdl-gen-js_debug` and `tdl-gen-mermaid` as node scripts, which `cmd.nix` does not ship yet (#1487).
+  `checks.gen-mermaid` runs `tdl-gen-mermaid` through `tdl gen` over the smoke model.
 - `protoc-gen-buffa.nix`: buffa's protoc plugin, which nixpkgs lacks, fetched from crates.io by hash, for `make generate` and `checks.generate`.
 - `tree-sitter-tdl.nix`: the grammar's Python binding in `tree-sitter/bindings/python/`, for graphify (see `docs/architecture/graphify.md`); the overlay adds it to every Python package set, and `checks.tree-sitter-tdl` runs its tests, which parse the prelude.
   The binding, `pyproject.toml`, and `setup.py` are `tree-sitter init` output with the highlights query exposed, the tests extended, and `scanner.c` listed with the sources so a source distribution carries it.
@@ -317,12 +318,19 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   `Foreign.cs` maps a declaration, a primitive, or an extern to a `global::`-qualified type, and an extern to the type its dependency's `csharp` block generates; `attribute` writes an attribute on a declaration, or on every one from the target block.
   `dotnet/Tdl.DotNet` holds what it shares with the planned `fsharp` target: the primitive mapping, the namespace a package derives, and parsing `foreign` and `attribute`.
   Phases 1 and 2 are built, and #1194 tracks the rest: generics, classes, and validation warn.
-  Its tests cannot lower TDL, so `internal/gen/csharp_test.go` records requests: one beside each `testdata/csharp/cases/*/*.tdl`, and one per conformance case and the smoke model in `testdata/csharp/corpus/<case>/`, with the files it generates in `want/`.
+  Its tests cannot lower TDL, so `internal/gen/plugins_test.go` records requests: one beside each `testdata/csharp/cases/*/*.tdl`, and one per conformance case and the smoke model in `testdata/csharp/corpus/<case>/`, with the files it generates in `want/`.
   `go test ./internal/gen -record` rewrites them, generating through `tdl-gen-csharp` on `PATH`, and without `-record` compares with them when it is there; CI's race run puts the built plugins on `PATH`.
   The tests compile every response with `CSharpCompilation`, warnings as errors, and run the equality, key, and default checks in process; `checks.gen-csharp` builds the smoke model with `dotnet build` and the SDK's analyzers.
 - `backend/likec4`: LikeC4 source for an architecture diagram: `tdl.c4`, the specification of element kinds, the same bytes for every model, and one `<package>.c4` holding a package element and one element per structure, enum, newtype, or class; aliases, primitives, and units have none.
   Only phase 1 is built, and #1210 tracks the rest: no relationships or views yet.
   No Go library parses LikeC4, so tests compare text, and also run `likec4 validate --no-layout` when `likec4` is on `PATH`.
+- `js/tdl-gen-mermaid` (`mermaid`): a TypeScript plugin on the JS SDK, not compiled into `tdl`; `tdl` runs `tdl-gen-mermaid` from `PATH`, which `nix/js.nix` builds.
+  It writes one Mermaid `classDiagram` per package to `<package id>.mmd`, or to `<package id>.md` in a fenced block under `format("markdown")`.
+  Each own declaration is a class: a mixin `<<mixin>>`, a fieldless enum `<<enumeration>>`, a fielded enum `<<union>>` with a class per variant joined by `<|--`, a newtype `<<newtype>>`, a class `<<interface>>`, and a structure tagged `service` `<<service>>` with each field applying an `rpc`-tagged primitive a method; an alias is expanded.
+  Members use Mermaid's generic spelling (`List~T~`, `Map~K,V~`, `Option~T~`), and constraints, defaults, and docs are left out without a warning.
+  Its tests cannot lower TDL, so `internal/gen/plugins_test.go` records its requests in `testdata/mermaid/`, as for `csharp`; the TypeScript tests compare each response with `want/` and run `mermaid.parse` through a `jsdom` window.
+  Phase 1 is built, and #1482 tracks the rest: edges, externs, and the `direction`, `hide`, and `link` directives.
+  See `docs/architecture/mermaid-backend.md`.
 - `backend/debug`: describes the model it was given, to exercise the protocol.
 - `backend/yolo` (`yolo`): the delegated backend (see `CONTEXT.md`, #1505), served only as `tdl-gen-yolo` and never compiled into `tdl`, so `tdl` links no model client; `nix/cmd.nix` ships it.
   It holds one conversation per request with a language model through a `Provider`, Anthropic's through `anthropic-sdk-go` with `ANTHROPIC_API_KEY`, and the model answers with `write_file` and `report_loss` tool calls.
@@ -361,10 +369,10 @@ Generate is No on an error or a warning without a loss code, Warns on the loss c
 Generate leaves read-back loss out, as `tdl gen` does.
 Import generates with `readback` and without `roundtrip` and reads the files back, grading only read-back loss: the warnings `readback` adds and those import reports, never the output loss Generate shows.
 The same model is Yes, as is a difference output loss alone explains; a difference with no loss code anywhere is No.
-`features.toml` beside a backend's source (`backend/<package>/`, or `dotnet/Tdl.Gen.CSharp/` for `csharp`) holds the cells a measurement cannot: `spelling`, `notes`, and `planned`, which shows in place of Generate and fails once the row generates.
+`features.toml` beside a backend's source (`backend/<package>/`, `dotnet/Tdl.Gen.CSharp/` for `csharp`, or `js/tdl-gen-mermaid/` for `mermaid`) holds the cells a measurement cannot: `spelling`, `notes`, and `planned`, which shows in place of Generate and fails once the row generates.
 A cell may not hold a `|`.
 An Import cell a tool missing from PATH, or `-short`, leaves unmeasured keeps its committed text, so `make features` needs `smithy` and `tsc` to change those cells.
-A plugin this repository serves, `csharp`, is measured through `tdl-gen-csharp` when it is on PATH, as in CI's race run, and otherwise keeps every committed cell.
+A plugin this repository serves, `csharp` or `mermaid`, is measured through `tdl-gen-<name>` when it is on PATH, as in CI's race run, and otherwise keeps every committed cell.
 Every target but `debug` is embedded exactly once.
 Two matrices set one column of every table side by side, each cell its first word: `generate` in `README.md` and `import` in `docs/backends/README.md`, where a backend that imports nothing has no column.
 Each is embedded exactly once, and reads the tables after committed cells fill unmeasured ones.
@@ -424,7 +432,7 @@ The SDK's tests check the loss codes against `reverse.md` and the session, the f
 ### JS SDK
 
 `js/` is an npm workspace holding `@unmango/tdl-plugin` (`js/tdl-plugin`), the SDK a backend written in TypeScript builds on, and `js/tdl-plugin-debug`, a port of `backend/debug` served as `tdl-gen-js_debug` (#1480).
-The Mermaid backend (#1482) will join it; nothing is published until it ships.
+The Mermaid backend, `js/tdl-gen-mermaid`, builds on it (see [Backends](#backends)); nothing is published until it ships.
 It is ESM for Node 22 or later and Bun, using only what both have; `js/biome.json` refuses `bun` and `bun:test` imports.
 `tsc` compiles each package's `src/` and `test/` into its `dist/`, and the tests, written against `node:test` and `node:assert`, run from there under both `node --test` and `bun test`.
 The SDK holds framing (`Conn`, over any async iterable of bytes and a writable), the handshake answered from a `Description` (`serve`, `run`), a `Session` over the request and its analysis, diagnostics with loss codes, the cascade (`Skipped`), and case styles over name words.

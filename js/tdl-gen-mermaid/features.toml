@@ -1,0 +1,77 @@
+[struct-kind]
+spelling = "a class; a mixin is `<<mixin>>`"
+
+[include]
+spelling = "the mixin's fields as members"
+notes = "Phase 2 draws one inheritance edge per mixin."
+
+[enum]
+spelling = "an `<<enumeration>>` class, one member per variant"
+
+[fielded-enum]
+spelling = "a `<<union>>` class with a class per variant, each an inheritance edge from it"
+notes = "Variant classes are named `Enum_Variant` and labelled with the variant's name."
+
+[newtype]
+spelling = "a `<<newtype>>` class whose one member is its base"
+
+[alias]
+spelling = "expanded where used, with no class"
+
+[optional]
+spelling = "`Option~T~`; a nullable union is written as text"
+
+[collection]
+spelling = "`List~T~`, `Set~T~`, and `Map~K,V~`"
+notes = "Phase 2 adds an edge to each declaration a field names."
+
+[min]
+notes = "A diagram enforces nothing, so constraints are left out without a warning."
+
+[max]
+notes = "Left out without a warning."
+
+[length]
+notes = "Left out without a warning."
+
+[matches]
+notes = "Left out without a warning."
+
+[oneOf]
+notes = "Left out without a warning."
+
+[unique]
+notes = "Left out without a warning."
+
+[owned]
+notes = "Phase 2 draws a composition edge."
+
+[default]
+notes = "Left out without a warning."
+
+[key]
+notes = "The backend declares no `key` directive, since a diagram has no identity keys."
+
+[name]
+notes = "The backend declares no `name` directive."
+
+[number]
+notes = "The backend declares no `number` directive, since a diagram has no field numbers."
+
+[doc]
+notes = "Left out without a warning."
+
+[generic]
+spelling = "`class Page~T~`, and `Page~T~` where applied"
+
+[class]
+spelling = "an `<<interface>>` class"
+notes = "Phase 2 draws a realization edge to each conformance."
+
+[unit]
+spelling = "the unit as an argument, `decimal~kg~`"
+notes = "A unit has no class."
+
+[import]
+spelling = "the extern's name"
+notes = "Phase 2 draws the extern as a class in its package's namespace."

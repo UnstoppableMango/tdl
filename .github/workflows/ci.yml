@@ -59,8 +59,14 @@ jobs:
 
       # nix develop keeps the runner's PATH after its own, so the race run
       # finds the build's plugins and runs the C# corpus through
-      # tdl-gen-csharp.
-      - run: echo "$PWD/result/bin" >> "$GITHUB_PATH"
+      # tdl-gen-csharp, and the Mermaid corpus through tdl-gen-mermaid,
+      # which tdl-js holds until it ships beside tdl (#1487).
+      - run: nix build .#tdl-js -o result-js
+        if: ${{ !cancelled() }}
+
+      - run: |
+          echo "$PWD/result/bin" >> "$GITHUB_PATH"
+          echo "$PWD/result-js/bin" >> "$GITHUB_PATH"
 
       # The race detector and coverage run separately. Together, every
       # covered statement increments an atomic counter the race detector
