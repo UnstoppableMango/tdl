@@ -107,7 +107,9 @@ jobs:
           cd result
           shopt -s nullglob
           platforms=(unmango-tdl-{linux,darwin}-*-"$VERSION".tgz)
-          [ ${#platforms[@]} = 4 ] && [ -f "unmango-tdl-$VERSION.tgz" ] && [ -f "unmango-tdl-typescript-$VERSION.tgz" ] || {
+          # After the platform packages, since @unmango/tdl names them.
+          rest=("unmango-tdl-$VERSION.tgz" "unmango-tdl-typescript-$VERSION.tgz")
+          [ ${#platforms[@]} = 4 ] && [ -f "${rest[0]}" ] && [ -f "${rest[1]}" ] || {
             echo "packages.npm does not hold six packages at $VERSION:" >&2
             ls >&2
             exit 1
@@ -118,8 +120,7 @@ jobs:
           tag=latest
           [[ $VERSION != *-* ]] || tag=next
 
-          # The platform packages first, since @unmango/tdl names them.
-          for tarball in "${platforms[@]}" "unmango-tdl-$VERSION.tgz" "unmango-tdl-typescript-$VERSION.tgz"; do
+          for tarball in "${platforms[@]}" "${rest[@]}"; do
             name=$(tar -xzOf "$tarball" package/package.json | jq -r .name)
             # Publish only on E404; any other failure to look the version up
             # stops the job rather than guessing.

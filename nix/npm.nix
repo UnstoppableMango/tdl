@@ -108,7 +108,7 @@ stdenvNoCC.mkDerivation {
   dontFixup = true;
 
   meta = {
-    description = "The @unmango/tdl npm packages, packed";
+    description = "The @unmango/tdl and @unmango/tdl-typescript npm packages, packed";
     homepage = "https://github.com/UnstoppableMango/tdl";
     license = lib.licenses.mit;
   };
