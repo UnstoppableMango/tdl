@@ -1,0 +1,27 @@
+{
+	"name": "@unmango/tdl-typescript",
+	"version": "0.5.11",
+	"description": "A TypeScript content mapper for the Type Description Language: import .tdl files from TypeScript and tsc checks them",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/UnstoppableMango/tdl.git",
+		"directory": "npm/tdl-typescript"
+	},
+	"homepage": "https://github.com/UnstoppableMango/tdl/blob/main/docs/architecture/typescript-content-mapper.md",
+	"keywords": [
+		"tdl",
+		"typescript",
+		"content-mapper"
+	],
+	"files": [],
+	"typescript": {
+		"contentMapper": {
+			"exec": [
+				"tdl-gen-typescript",
+				"content-mapper"
+			],
+			"compilerOptions": []
+		}
+	}
+}
