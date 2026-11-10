@@ -90,6 +90,7 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
   Members are sorted, owned by root, dated `SOURCE_DATE_EPOCH`, and gzipped without a name, so two builds give the same `SHA256SUMS`.
   `checks.tdl-release` holds every tarball to the same file list, verifies the sums, and runs the checking system's `tdl`.
 - `dotnet.nix`: the .NET plugins, built with `buildDotnetModule`, which runs their tests (see [.NET SDK](#net-sdk)): `tdl-gen-csharp`, compiled with Native AOT and linked by `stdenv.cc`, and the SDK's debug port, a self-contained single file.
+  The same csproj packs as the nuget.org tool in `dotnet-tool.nix`.
   On darwin the AOT link names the Swift runtime and ICU, so `swift` and `darwin.ICU` are build inputs there, as in nixpkgs' own dotnet `aot` test.
 - `dotnet-tool.nix`: `tdl-gen-csharp-tool`, `Tdl.Gen.CSharp.<version>.nupkg`, the same project packed as a framework-dependent .NET tool for nuget.org (#1492), with no runtime and `-p:PublishAot=false`, since AOT pins the runtime patch the package asks for.
   The build fails if the csproj's `<Version>`, which release-please bumps, is not the flake's.
@@ -638,7 +639,6 @@ The first two, the csproj line, and the README line carry an `x-release-please-v
 When it reports a release, the `assets` job builds `packages.release` at the tag on a GitHub-hosted runner, attests every file with `actions/attest-build-provenance`, and uploads them to the release.
 The `npm` job builds `packages.npm` at the tag and publishes the four platform packages, then `@unmango/tdl`, then `@unmango/tdl-typescript`, through npm's trusted publishing, which needs no stored token and writes provenance; each package's trusted publisher on npmjs.com names `release-please.yml`, and a version already published is skipped.
 The `nuget` job builds `packages.tdl-gen-csharp-tool` at the tag and pushes it to nuget.org through trusted publishing: `NuGet/login` trades the job's OIDC token for a short-lived key as `vars.NUGET_USER`, whose policy on nuget.org names `release-please.yml`, and `--skip-duplicate` skips a version already pushed.
-The C# source generator's package (#1203) joins that job.
 
 Two versions are not release-please's:
 

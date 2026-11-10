@@ -133,7 +133,7 @@ npx tdl version
 ### .NET tool
 
 The `csharp` backend is a .NET plugin, `tdl-gen-csharp`, which `tdl` runs from `PATH`.
-The Nix package ships it; beside a `tdl` from anywhere else, install the `Tdl.Gen.CSharp` tool from NuGet, which needs .NET 10 or later:
+The Nix package ships it; beside a `tdl` from npm, the release assets, or `go install`, install the `Tdl.Gen.CSharp` tool from NuGet, which needs .NET 10 or later:
 
 ```shell
 dotnet tool install -g Tdl.Gen.CSharp

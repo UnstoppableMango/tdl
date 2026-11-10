@@ -14,7 +14,8 @@
 	<!-- The .NET tool on nuget.org: `dotnet tool install -g Tdl.Gen.CSharp`
 	     puts tdl-gen-csharp on PATH, where tdl looks for it. Framework
 	     dependent, so one package runs on every platform with .NET 10 or
-	     later. AOT stays for nix/dotnet.nix's binary. -->
+	     later. AOT stays for nix/dotnet.nix's binary, which takes the same
+	     Version. -->
 	<PropertyGroup>
 		<PackAsTool>true</PackAsTool>
 		<PackageId>Tdl.Gen.CSharp</PackageId>

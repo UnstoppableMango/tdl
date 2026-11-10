@@ -3,7 +3,7 @@
 The `csharp` backend for [TDL](https://github.com/UnstoppableMango/tdl), the Type Description Language.
 `tdl gen` runs `tdl-gen-csharp` from `PATH` to write C# records, enums, and newtypes from a model's `csharp` target block.
 
-Install it beside a `tdl` from Nix, npm, or the release assets:
+Install it beside a `tdl` from npm, the release assets, or `go install` (the Nix package already ships the plugin):
 
 ```shell
 dotnet tool install -g Tdl.Gen.CSharp

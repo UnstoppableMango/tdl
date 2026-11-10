@@ -46,8 +46,7 @@ buildDotnetModule {
       --no-restore \
       --output pack \
       -p:PublishAot=false \
-      -p:ContinuousIntegrationBuild=true \
-      -p:Deterministic=true
+      -p:ContinuousIntegrationBuild=true
 
     runHook postBuild
   '';
