@@ -33,7 +33,7 @@ func Write(out string, files []*plugin.File) ([]string, error) {
 		if !ok {
 			return nil, escaping(f.GetPath())
 		}
-		if _, err := t.stat(rel); err == nil && !owned[path] {
+		if t.exists(rel) && !owned[path] {
 			return nil, fmt.Errorf("%s: tdl did not write this file, so it will not overwrite it", path)
 		}
 		paths[i], rels[i] = path, rel

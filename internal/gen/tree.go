@@ -93,11 +93,13 @@ func (t *tree) readFile(rel string) ([]byte, error) {
 	return t.root.ReadFile(rel)
 }
 
-func (t *tree) stat(rel string) (fs.FileInfo, error) {
+// exists reports whether something is at rel.
+func (t *tree) exists(rel string) bool {
 	if t.root == nil {
-		return nil, &fs.PathError{Op: "stat", Path: filepath.Join(t.dir, rel), Err: fs.ErrNotExist}
+		return false
 	}
-	return t.root.Stat(rel)
+	_, err := t.root.Stat(rel)
+	return err == nil
 }
 
 // local is rel for a path tdl is about to read or remove, refusing one
