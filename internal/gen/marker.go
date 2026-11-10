@@ -3,8 +3,8 @@ package gen
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"maps"
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -26,98 +26,128 @@ const legacyMarker = "This directory is written by `tdl gen`.\n" +
 // Owned returns the files the marker in out lists, as paths joined to out.
 // A directory with no marker owns nothing.
 func Owned(out string) (map[string]bool, error) {
-	content, err := os.ReadFile(filepath.Join(out, MarkerName))
+	t, err := openTree(out)
+	if err != nil {
+		return nil, err
+	}
+	defer t.Close()
+	return t.owned()
+}
+
+func (t *tree) owned() (map[string]bool, error) {
+	content, err := t.readFile(MarkerName)
 	switch {
-	case errors.Is(err, os.ErrNotExist):
+	case errors.Is(err, fs.ErrNotExist):
 		return map[string]bool{}, nil
 	case err != nil:
-		return nil, fmt.Errorf("reading %s: %w", filepath.Join(out, MarkerName), err)
+		return nil, fmt.Errorf("reading %s: %w", filepath.Join(t.dir, MarkerName), err)
 	case string(content) == legacyMarker:
-		return present(out)
+		return t.present()
 	}
 
 	owned := map[string]bool{}
 	for line := range strings.Lines(string(content)) {
 		line = strings.TrimSpace(line)
 		if line != "" && !strings.HasPrefix(line, "#") {
-			owned[filepath.Join(out, filepath.FromSlash(line))] = true
+			owned[filepath.Join(t.dir, filepath.FromSlash(line))] = true
 		}
 	}
 	return owned, nil
 }
 
-// present is every file under out but the marker.
-func present(out string) (map[string]bool, error) {
+// present is every file under the directory but the marker.
+func (t *tree) present() (map[string]bool, error) {
 	files := map[string]bool{}
-	err := filepath.WalkDir(out, func(path string, d os.DirEntry, err error) error {
-		if err == nil && !d.IsDir() && path != filepath.Join(out, MarkerName) {
-			files[path] = true
+	err := fs.WalkDir(t.root.FS(), ".", func(path string, d fs.DirEntry, err error) error {
+		if err == nil && !d.IsDir() && path != MarkerName {
+			files[filepath.Join(t.dir, filepath.FromSlash(path))] = true
 		}
 		return err
 	})
 	if err != nil {
-		return nil, fmt.Errorf("walking %s: %w", out, err)
+		return nil, fmt.Errorf("walking %s: %w", t.dir, err)
 	}
 	return files, nil
 }
 
 // Mark adds written to the files the marker in out lists.
 func Mark(out string, written []string) error {
-	owned, err := Owned(out)
+	t, err := openTree(out)
+	if err != nil {
+		return err
+	}
+	defer t.Close()
+	owned, err := t.owned()
 	if err != nil {
 		return err
 	}
 	for _, path := range written {
 		owned[path] = true
 	}
-	kept, err := readKept(out)
+	kept, err := t.readKept()
 	if err != nil {
 		return err
 	}
-	return writeMarker(out, owned, kept)
+	return t.writeMarker(owned, kept)
 }
 
-func writeMarker(out string, owned map[string]bool, kept map[string]Kept) error {
+func (t *tree) writeMarker(owned map[string]bool, kept map[string]Kept) error {
 	var b strings.Builder
 	b.WriteString(markerHeader)
 	for _, path := range slices.Sorted(maps.Keys(owned)) {
-		if rel, err := filepath.Rel(out, path); err == nil {
+		if rel, err := filepath.Rel(t.dir, path); err == nil {
 			b.WriteString(filepath.ToSlash(rel) + "\n")
 		}
 	}
-	writeKept(&b, out, owned, kept)
-	if err := os.MkdirAll(out, 0o755); err != nil {
-		return fmt.Errorf("creating %s: %w", out, err)
+	t.writeKept(&b, owned, kept)
+	if err := t.create(); err != nil {
+		return err
 	}
-	return os.WriteFile(filepath.Join(out, MarkerName), []byte(b.String()), 0o644)
+	return t.root.WriteFile(MarkerName, []byte(b.String()), 0o644)
 }
 
 // Clean removes the files the marker in out lists, and any directory that
-// leaves empty, and empties the list.
+// leaves empty, and empties the list. A listed path leaving out through a
+// symlink is not followed: it is reported, and the rest are still removed.
 func Clean(out string) ([]string, error) {
-	owned, err := Owned(out)
+	t, err := openTree(out)
+	if err != nil {
+		return nil, err
+	}
+	defer t.Close()
+	owned, err := t.owned()
 	if err != nil || len(owned) == 0 {
 		return nil, err
 	}
 
 	var removed []string
+	var refused []error
 	for _, path := range slices.Sorted(maps.Keys(owned)) {
-		switch err := os.Remove(path); {
-		case errors.Is(err, os.ErrNotExist):
+		rel, ok := t.rel(path)
+		if !ok {
+			refused = append(refused, outside(path, "remove"))
+			continue
+		}
+		switch err := t.root.Remove(rel); {
+		case errors.Is(err, fs.ErrNotExist):
 			continue
 		case err != nil:
-			return removed, fmt.Errorf("removing %s: %w", path, err)
+			return removed, errors.Join(append(refused, fmt.Errorf("removing %s: %w", path, err))...)
 		}
 		removed = append(removed, path)
-		pruneEmpty(out, filepath.Dir(path))
+		t.pruneEmpty(filepath.Dir(rel))
 	}
-	return removed, writeMarker(out, nil, nil)
+	return removed, errors.Join(append(refused, t.writeMarker(nil, nil))...)
 }
 
-// pruneEmpty removes dir and each parent below out that removing it
-// leaves empty. os.Remove refuses a directory still holding something.
-func pruneEmpty(out, dir string) {
-	for dir != filepath.Clean(out) && os.Remove(dir) == nil {
+// pruneEmpty removes dir and each parent below the directory that removing
+// it leaves empty. Removing refuses a directory still holding something, and
+// a symlink is never removed, since the directory it names is not emptied.
+func (t *tree) pruneEmpty(dir string) {
+	for dir != "." {
+		if info, err := t.root.Lstat(dir); err != nil || !info.IsDir() || t.root.Remove(dir) != nil {
+			return
+		}
 		dir = filepath.Dir(dir)
 	}
 }

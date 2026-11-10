@@ -6,8 +6,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io/fs"
 	"maps"
-	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -42,7 +42,8 @@ type Kept struct {
 	Files       map[string]string
 	Diagnostics []*plugin.Diagnostic
 
-	count int // how many files the request line says were written
+	out   string // the output directory the marker is in
+	count int    // how many files the request line says were written
 }
 
 // Complete says the record lists as many files as its request line says,
@@ -72,31 +73,45 @@ func digest(b []byte) string {
 // Keep records in out's marker that target's request hashed to request,
 // wrote written, and reported diags, replacing what it recorded before.
 func Keep(out, target, request string, written []string, diags []*plugin.Diagnostic) error {
-	owned, err := Owned(out)
+	t, err := openTree(out)
 	if err != nil {
 		return err
 	}
-	kept, err := readKept(out)
+	defer t.Close()
+	owned, err := t.owned()
+	if err != nil {
+		return err
+	}
+	kept, err := t.readKept()
 	if err != nil {
 		return err
 	}
 	files := map[string]string{}
 	for _, path := range written {
-		content, err := os.ReadFile(path)
+		rel, ok := t.rel(path)
+		if !ok {
+			return outside(path, "read")
+		}
+		content, err := t.readFile(rel)
 		if err != nil {
 			return fmt.Errorf("reading %s: %w", path, err)
 		}
 		files[path] = digest(content)
 		owned[path] = true
 	}
-	kept[target] = Kept{Request: request, Files: files, Diagnostics: diags, count: len(files)}
-	return writeMarker(out, owned, kept)
+	kept[target] = Kept{Request: request, Files: files, Diagnostics: diags, out: t.dir, count: len(files)}
+	return t.writeMarker(owned, kept)
 }
 
 // Recorded returns what out's marker records about target, and whether it
 // records anything.
 func Recorded(out, target string) (Kept, bool, error) {
-	kept, err := readKept(out)
+	t, err := openTree(out)
+	if err != nil {
+		return Kept{}, false, err
+	}
+	defer t.Close()
+	kept, err := t.readKept()
 	if err != nil {
 		return Kept{}, false, err
 	}
@@ -106,10 +121,19 @@ func Recorded(out, target string) (Kept, bool, error) {
 
 // Check compares the files a kept generation wrote with what is on disk.
 func (k Kept) Check() ([]Stale, error) {
+	t, err := openTree(k.out)
+	if err != nil {
+		return nil, err
+	}
+	defer t.Close()
 	var stale []Stale
 	for _, path := range slices.Sorted(maps.Keys(k.Files)) {
-		switch content, err := os.ReadFile(path); {
-		case errors.Is(err, os.ErrNotExist):
+		rel, ok := t.rel(path)
+		if !ok {
+			return nil, outside(path, "read")
+		}
+		switch content, err := t.readFile(rel); {
+		case errors.Is(err, fs.ErrNotExist):
 			stale = append(stale, Stale{Path: path, Reason: "missing"})
 		case err != nil:
 			return nil, fmt.Errorf("reading %s: %w", path, err)
@@ -123,13 +147,13 @@ func (k Kept) Check() ([]Stale, error) {
 // Paths is every file the kept generation wrote.
 func (k Kept) Paths() []string { return slices.Sorted(maps.Keys(k.Files)) }
 
-func readKept(out string) (map[string]Kept, error) {
-	content, err := os.ReadFile(filepath.Join(out, MarkerName))
+func (t *tree) readKept() (map[string]Kept, error) {
+	content, err := t.readFile(MarkerName)
 	switch {
-	case errors.Is(err, os.ErrNotExist):
+	case errors.Is(err, fs.ErrNotExist):
 		return map[string]Kept{}, nil
 	case err != nil:
-		return nil, fmt.Errorf("reading %s: %w", filepath.Join(out, MarkerName), err)
+		return nil, fmt.Errorf("reading %s: %w", filepath.Join(t.dir, MarkerName), err)
 	}
 
 	kept := map[string]Kept{}
@@ -141,6 +165,7 @@ func readKept(out string) (map[string]Kept, error) {
 		target, rest, _ := strings.Cut(rest, " ")
 		kind, rest, _ := strings.Cut(rest, " ")
 		k := kept[target]
+		k.out = t.dir
 		switch kind {
 		case "request":
 			hash, count, _ := strings.Cut(rest, " ")
@@ -157,7 +182,7 @@ func readKept(out string) (map[string]Kept, error) {
 			if k.Files == nil {
 				k.Files = map[string]string{}
 			}
-			k.Files[filepath.Join(out, filepath.FromSlash(rel))] = sum
+			k.Files[filepath.Join(t.dir, filepath.FromSlash(rel))] = sum
 		case "diagnostics":
 			var resp plugin.Response
 			if b, err := base64.StdEncoding.DecodeString(rest); err == nil && proto.Unmarshal(b, &resp) == nil {
@@ -173,7 +198,7 @@ func readKept(out string) (map[string]Kept, error) {
 
 // writeKept appends each target's record to a marker, leaving out a file
 // the marker no longer lists, and a target with no request.
-func writeKept(b *strings.Builder, out string, owned map[string]bool, kept map[string]Kept) {
+func (t *tree) writeKept(b *strings.Builder, owned map[string]bool, kept map[string]Kept) {
 	for _, target := range slices.Sorted(maps.Keys(kept)) {
 		k := kept[target]
 		if k.Request == "" {
@@ -181,7 +206,7 @@ func writeKept(b *strings.Builder, out string, owned map[string]bool, kept map[s
 		}
 		var files []string
 		for _, path := range k.Paths() {
-			rel, err := filepath.Rel(out, path)
+			rel, err := filepath.Rel(t.dir, path)
 			if err != nil || !owned[path] {
 				continue
 			}

@@ -107,6 +107,8 @@ message File {
 `tdl` writes them, which is what makes `--verify`, `--clean`, and the `.tdl-output` marker enforceable.
 
 An absolute path, or one containing `..`, is an error and nothing is written, so a plugin cannot reach outside its output directory.
+Every read, write, and removal under the output directory goes through an `os.Root` opened there, so a symlink inside it pointing out of it is refused too: a write naming one writes nothing, and `--clean` reports a marker entry through one and removes the rest.
+An output directory that is itself a symlink opens at its target.
 
 ### Nondeterministic backends
 
