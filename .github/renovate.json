@@ -23,6 +23,17 @@
 			"enabled": false
 		},
 		{
+			"description": "The generated code in js/tdl-plugin/src/generated targets one protobuf-es release: bump the runtime and the plugin together in js/ and run make generate, by hand.",
+			"matchManagers": [
+				"npm"
+			],
+			"matchPackageNames": [
+				"@bufbuild/protobuf",
+				"@bufbuild/protoc-gen-es"
+			],
+			"enabled": false
+		},
+		{
 			"groupName": "tdl",
 			"matchPackageNames": [
 				"/unstoppablemango/tdl/"

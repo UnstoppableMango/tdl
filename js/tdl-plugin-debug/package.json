@@ -1,0 +1,24 @@
+{
+	"name": "@unmango/tdl-plugin-debug",
+	"version": "0.1.0",
+	"private": true,
+	"description": "A port of the Go debug backend on the TypeScript plugin SDK, served as tdl-gen-js_debug",
+	"license": "MIT",
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/src/index.d.ts",
+			"default": "./dist/src/index.js"
+		}
+	},
+	"bin": {
+		"tdl-gen-js_debug": "dist/src/main.js"
+	},
+	"engines": {
+		"node": ">=22"
+	},
+	"dependencies": {
+		"@bufbuild/protobuf": "2.17.0",
+		"@unmango/tdl-plugin": "0.1.0"
+	}
+}

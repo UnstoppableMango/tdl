@@ -47,6 +47,7 @@ in
           tdl-dotnet
           tdl-gen-csharp-tool
           tdl-rust
+          tdl-js
           protoc-gen-buffa
           ;
         default = pkgs.tdl;
@@ -145,14 +146,60 @@ in
             touch $out
           '';
 
+      # Building the JS workspace runs its tests under node, which replay
+      # testdata/plugin through the debug port.
+      checks.js-sdk-node = pkgs.tdl-js;
+
+      # The same compiled tests under bun test.
+      checks.js-sdk-bun = pkgs.tdl-js.overrideAttrs (old: {
+        pname = "tdl-js-bun";
+        nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.bun ];
+        checkPhase = ''
+          runHook preCheck
+          HOME=$TMPDIR bun test ./tdl-plugin/dist/test ./tdl-plugin-debug/dist/test
+          runHook postCheck
+        '';
+      });
+
+      # Runs the JS debug port from PATH through tdl gen, and holds it to
+      # the file and the warnings the Go debug backend writes for the same
+      # model.
+      checks.gen-js-debug =
+        pkgs.runCommand "tdl-gen-js-debug"
+          {
+            nativeBuildInputs = [
+              pkgs.tdl
+              pkgs.tdl-js
+            ];
+          }
+          ''
+            cp ${../testdata/plugin/catalog.tdl} go.tdl
+            sed 's/^target debug /target js_debug /' go.tdl > js.tdl
+            tdl gen -o go go.tdl 2> go.err
+            tdl gen -o js js.tdl 2> js.err
+            sed -i 's/^target js_debug$/target debug/' js/model.txt
+            diff go/model.txt js/model.txt
+            sed -i 's/^js\.tdl:/go.tdl:/; s/js_debug does not/debug does not/' js.err
+            diff go.err js.err
+            touch $out
+          '';
+
       # make generate leaves no diff: buf regenerates every language's
       # types from proto/ with the devShell's plugins, offline, and the
       # result must be what is committed.
       checks.generate =
+        let
+          # protoc-gen-es, as js/'s lock pins it.
+          jsModules = pkgs.importNpmLock.buildNodeModules {
+            npmRoot = ../js;
+            inherit (pkgs) nodejs;
+          };
+        in
         pkgs.runCommand "tdl-generate"
           {
             nativeBuildInputs = [
               pkgs.buf
+              pkgs.nodejs
               pkgs.protobuf
               pkgs.protoc-gen-go
               pkgs.protoc-gen-buffa
@@ -167,6 +214,7 @@ in
                 ../plugin/plugin.pb.go
                 ../dotnet/Tdl.Plugin/Generated
                 ../rust/tdl-plugin/src/generated
+                ../js/tdl-plugin/src/generated
               ];
             };
           }
@@ -176,7 +224,9 @@ in
             cp -r $src work
             chmod -R u+w work
             cd work
+            ln -s ${jsModules}/node_modules js/node_modules
             buf generate
+            rm js/node_modules
             diff -r ../committed .
             touch $out
           '';

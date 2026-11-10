@@ -6,6 +6,7 @@
 *.pb.go linguist-generated
 dotnet/Tdl.Plugin/Generated/** linguist-generated
 rust/tdl-plugin/src/generated/** linguist-generated
+js/tdl-plugin/src/generated/** linguist-generated
 tree-sitter/grammar.js linguist-generated
 tree-sitter/src/** linguist-generated
 tree-sitter/src/scanner.c -linguist-generated

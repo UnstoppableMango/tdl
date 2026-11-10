@@ -31,6 +31,8 @@ command make vscode-test      # in `nix develop .#vscode`: the extension in a he
 command make dotnet-test      # dotnet test dotnet/Tdl.slnx: the .NET plugin SDK and the csharp backend
 command make dotnet-deps      # restore dotnet/ and rewrite dotnet/deps.json, the NuGet lock Nix builds from
 command make rust-test        # cargo test over rust/: the Rust plugin SDK and its debug port
+command make js-test          # npm ci, then js/'s tests under node --test and bun test
+command make js-check         # npm ci, then build js/ (typecheck) and biome check it
 command make mutate           # in the devShell: gremlins over the core packages; PKG=./lex for one
 command make test-treesitter  # the conformance corpus, run by tree-sitter
 command make check-treesitter # what CI runs: treesitter + a diff + test-treesitter
@@ -39,7 +41,7 @@ command make check-treesitter # what CI runs: treesitter + a diff + test-treesit
 Prefix `make` with `command` (see the shell autoload note in the global instructions).
 
 `generate`, `treesitter`, and `textmate` are file targets, so each reruns only when its inputs are newer.
-`tree-sitter/Makefile` and `editors/vscode/Makefile` hold the targets for their directories; the root delegates to them.
+`tree-sitter/Makefile`, `editors/vscode/Makefile`, and `js/Makefile` hold the targets for their directories; the root delegates to them.
 `check-treesitter` passes `-B`, because a fresh checkout gives every file the same mtime and a file target would skip the regeneration the diff is meant to test.
 `mutate` runs `tools/mutate`, which runs gremlins once per package with `GOFLAGS=-short`, merges the reports into `mutate.json`, and prints the survivors `mutation/equivalent.txt` does not list; `internal/mutation` reads both.
 It mutates `lex`, `parser`, `ast`, `internal/sema`, and `internal/analysis`, and nothing runs it in CI (see `docs/architecture/mutation-testing.md`).
@@ -50,14 +52,15 @@ CI runs them as two steps.
 
 `nix fmt` formats Go, Nix, YAML, JSON, TOML, Markdown, protobuf, and TypeScript, and `nix flake check` fails on anything unformatted.
 
-`editors/vscode/src/` is the only TypeScript.
-`editors/vscode/package-lock.json` pins TypeScript 7 and Biome, run through `npm run`.
+`editors/vscode/src/` and `js/` are the only TypeScript.
+Each `package-lock.json` pins TypeScript 7 and Biome, run through `npm run`.
 `editors/vscode/biome.json` configures Biome as formatter and linter; treefmt reads it, so a lint finding fails `nix flake check`.
-treefmt also runs it over `npm/**/*.js`, the npm package's shim.
+treefmt also runs it over `js/**/*.ts`, but for the generated code, and `npm/**/*.js`, the npm package's shim.
+`js/biome.json` carries the same formatter settings and refuses Bun-only imports.
 Biome's JSON formatter is off, because jsonfmt owns JSON.
 
 `.markdownlint-cli2.yaml` lists which markdown files are linted, so a bare `markdownlint-cli2` checks what CI checks.
-Files with no formatter: the three Makefiles, `.editorconfig`, `.gitattributes`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md` (mdformat would break the frontmatter), `.graphifyignore`, `docs/demo/demo.tape`, `docs/demo/demo.bash`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, `backend/typescript/outline.js`, `tree-sitter/src/scanner.c`, and everything in `dotnet/` but `deps.json`.
+Files with no formatter: the four Makefiles, `.editorconfig`, `.gitattributes`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md` (mdformat would break the frontmatter), `.graphifyignore`, `docs/demo/demo.tape`, `docs/demo/demo.bash`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, `backend/typescript/outline.js`, `tree-sitter/src/scanner.c`, and everything in `dotnet/` but `deps.json`.
 rustfmt formats `rust/`, but for `Cargo.lock` and the generated code.
 `internal/ebnf` lints the two grammars instead, and their column alignment is deliberate.
 Also excluded from formatting: `*.tdl` (until `tdl fmt` is wired in, #1308), generated files, and `.claude/`.
@@ -95,6 +98,7 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 - `dotnet-tool.nix`: `tdl-gen-csharp-tool`, `Tdl.Gen.CSharp.<version>.nupkg`, the same project packed as a framework-dependent .NET tool for nuget.org (#1492), with no runtime and `-p:PublishAot=false`, since AOT pins the runtime patch the package asks for.
   `checks.dotnet-tool` installs it with `dotnet tool install --tool-path` from its folder alone, with no network, and holds what `tdl gen` writes for the smoke model through the tool's shim, and every diagnostic, to what the AOT plugin writes.
 - `rust.nix`: `tdl-rust`, the Rust workspace built with `rustPlatform` from `rust/Cargo.lock`, which runs its tests (see [Rust SDK](#rust-sdk)); it installs only `tdl-gen-rust_debug`, which `cmd.nix` does not ship.
+- `js.nix`: `tdl-js`, the JS workspace built with `buildNpmPackage` and `importNpmLock` from `js/package-lock.json`, which runs its tests under node (see [JS SDK](#js-sdk)); it installs only `tdl-gen-js_debug`, a node script `cmd.nix` does not ship.
 - `protoc-gen-buffa.nix`: buffa's protoc plugin, which nixpkgs lacks, fetched from crates.io by hash, for `make generate` and `checks.generate`.
 - `tree-sitter-tdl.nix`: the grammar's Python binding in `tree-sitter/bindings/python/`, for graphify (see `docs/architecture/graphify.md`); the overlay adds it to every Python package set, and `checks.tree-sitter-tdl` runs its tests, which parse the prelude.
   The binding, `pyproject.toml`, and `setup.py` are `tree-sitter init` output with the highlights query exposed, the tests extended, and `scanner.c` listed with the sources so a source distribution carries it.
@@ -417,6 +421,22 @@ A session finds a node's view by the node's address in the request, as the .NET 
 The SDK's tests check the loss codes against `reverse.md` and the session, the framing, and the handshake; the debug port's replay `testdata/plugin/*.binpb` byte for byte, in process and over a connection.
 `checks.rust-sdk` builds and tests the workspace with no network, and `checks.gen-rust-debug` runs the debug port through `tdl gen` beside the Go backend.
 
+### JS SDK
+
+`js/` is an npm workspace holding `@unmango/tdl-plugin` (`js/tdl-plugin`), the SDK a backend written in TypeScript builds on, and `js/tdl-plugin-debug`, a port of `backend/debug` served as `tdl-gen-js_debug` (#1480).
+The Mermaid backend (#1482) will join it; nothing is published until it ships.
+It is ESM for Node 22 or later and Bun, using only what both have; `js/biome.json` refuses `bun` and `bun:test` imports.
+`tsc` compiles each package's `src/` and `test/` into its `dist/`, and the tests, written against `node:test` and `node:assert`, run from there under both `node --test` and `bun test`.
+The SDK holds framing (`Conn`, over any async iterable of bytes and a writable), the handshake answered from a `Description` (`serve`, `run`), a `Session` over the request and its analysis, diagnostics with loss codes, the cascade (`Skipped`), and case styles over name words.
+Like the other SDKs it computes no fact the analysis carries, and the `Session` constructor throws a `ProtocolError` for a request without one.
+A session reaches the model through methods only, so a later transport can sit behind the same API, and finds a node's view by the node's identity in the request, so a node cloned out of it has none.
+`lossy` reports output loss and `lose` read-back loss, which reports only under `readback` and never under `roundtrip`; round-trip and import helpers wait for a JS backend that imports.
+`tdl-plugin/src/generated/` is `buf generate` output from protobuf-es's `protoc-gen-es`, run from `js/node_modules` (so `make generate` runs `npm ci` there first), leaving out `pb` as the C# and Rust entries do.
+`@bufbuild/protobuf` and `@bufbuild/protoc-gen-es` are pinned exactly to one version, since the generated code targets one runtime; bump both together and regenerate, since `.github/renovate.json` leaves them alone.
+The SDK's tests check the loss codes against `reverse.md` and the session, the framing, and the handshake; the debug port's replay `testdata/plugin/*.binpb` byte for byte, in process and over a connection.
+`checks.js-sdk-node` and `checks.js-sdk-bun` build and test the workspace with no network, and `checks.gen-js-debug` runs the debug port through `tdl gen` beside the Go backend.
+CI's `check` job runs `make js-check`.
+
 ## CLI
 
 The root command silences cobra's error printing; a command returns its error and `cmd/tdl` prints it.
@@ -549,7 +569,7 @@ The protos are Editions 2024.
 Each file sets `features.field_presence = IMPLICIT` and `features.(pb.go).api_level = API_OPEN`; a field needing presence sets it itself, as `Range.low` does.
 `go_package` lives in `buf.gen.yaml` under managed mode.
 
-After changing `proto/`, run `make generate` and commit the `.pb.go` files, `dotnet/Tdl.Plugin/Generated/`, and `rust/tdl-plugin/src/generated/`.
+After changing `proto/`, run `make generate` and commit the `.pb.go` files, `dotnet/Tdl.Plugin/Generated/`, `rust/tdl-plugin/src/generated/`, and `js/tdl-plugin/src/generated/`.
 `checks.generate` runs `buf generate` in the sandbox with the devShell's plugins and fails on any difference from what is committed.
 Field numbers are a compatibility promise to plugins: add fields, never renumber or reuse.
 `.github/workflows/buf.yml` runs `buf lint`, `buf format`, and `buf breaking` against the base.

@@ -1,0 +1,34 @@
+{
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+	"files": {
+		"includes": [
+			"*/src/**",
+			"*/test/**",
+			"!*/src/generated"
+		]
+	},
+	"formatter": {
+		"indentStyle": "tab",
+		"lineWidth": 120
+	},
+	"json": {
+		"formatter": {
+			"enabled": false
+		}
+	},
+	"linter": {
+		"rules": {
+			"style": {
+				"noRestrictedImports": {
+					"level": "error",
+					"options": {
+						"paths": {
+							"bun": "The SDK runs on Node and Bun alike; use a node: module both have.",
+							"bun:test": "Tests run under node --test and bun test alike; use node:test."
+						}
+					}
+				}
+			}
+		}
+	}
+}
