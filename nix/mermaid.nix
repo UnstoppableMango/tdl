@@ -100,7 +100,11 @@ stdenvNoCC.mkDerivation (
     buildPhase = ''
       runHook preBuild
       export HOME=$TMPDIR
-      bun build --compile --compile-executable-path=${lib.getExe bun} \
+      # On darwin bun clones the executable it writes into, and a clone of a
+      # read-only store file is one it cannot open to write, so it writes
+      # into a writable copy.
+      install -m 755 ${lib.getExe bun} $TMPDIR/bun
+      bun build --compile --compile-executable-path=$TMPDIR/bun \
         ${entry} --outfile $out/bin/tdl-gen-mermaid
       runHook postBuild
     '';
