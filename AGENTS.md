@@ -91,6 +91,9 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
   `checks.tdl-release` holds every tarball to the same file list, verifies the sums, and runs the checking system's `tdl`.
 - `dotnet.nix`: the .NET plugins, built with `buildDotnetModule`, which runs their tests (see [.NET SDK](#net-sdk)): `tdl-gen-csharp`, compiled with Native AOT and linked by `stdenv.cc`, and the SDK's debug port, a self-contained single file.
   On darwin the AOT link names the Swift runtime and ICU, so `swift` and `darwin.ICU` are build inputs there, as in nixpkgs' own dotnet `aot` test.
+- `dotnet-tool.nix`: `tdl-gen-csharp-tool`, `Tdl.Gen.CSharp.<version>.nupkg`, the same project packed as a framework-dependent .NET tool for nuget.org (#1492), with no runtime and `-p:PublishAot=false`, since AOT pins the runtime patch the package asks for.
+  The build fails if the csproj's `<Version>`, which release-please bumps, is not the flake's.
+  `checks.dotnet-tool` installs it with `dotnet tool install --tool-path` from its folder alone, with no network, and holds what `tdl gen` writes for the smoke model through the tool's shim, and every diagnostic, to what the AOT plugin writes.
 - `rust.nix`: `tdl-rust`, the Rust workspace built with `rustPlatform` from `rust/Cargo.lock`, which runs its tests (see [Rust SDK](#rust-sdk)); it installs only `tdl-gen-rust_debug`, which `cmd.nix` does not ship.
 - `protoc-gen-buffa.nix`: buffa's protoc plugin, which nixpkgs lacks, fetched from crates.io by hash, for `make generate` and `checks.generate`.
 - `tree-sitter-tdl.nix`: the grammar's Python binding in `tree-sitter/bindings/python/`, for graphify (see `docs/architecture/graphify.md`); the overlay adds it to every Python package set, and `checks.tree-sitter-tdl` runs its tests, which parse the prelude.
@@ -300,6 +303,7 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   Phases 1 to 4 are built, and #1207 tracks the rest: units and validation warn.
   Tests run `ghc -fno-code -Wall -Werror` when `ghc` is on `PATH`; `checks.gen-haskell` always does.
 - `dotnet/Tdl.Gen.CSharp` (`csharp`): a .NET plugin on the SDK, not compiled into `tdl`; `tdl` runs `tdl-gen-csharp` from `PATH`, and `nix/cmd.nix` ships it beside the Go binaries.
+  Outside Nix it is the `Tdl.Gen.CSharp` .NET tool on nuget.org, whose `PackAsTool` metadata and package README sit beside it.
   It writes one `Order.g.cs` per declaration, or one file for the whole target that a `file` directive in the target block names, in the namespace a `namespace` directive names or the package derives.
   It builds each declaration with Roslyn's `SyntaxFactory` and lays it out with `NormalizeWhitespace`, then `Syntax.cs` decides blank lines and wraps a generated `Equals`; `TdlEquality` is a fixed text.
   A struct is a sealed record with `required` `init` properties, a fieldless enum a C# enum, a fielded enum an abstract record closed by a private constructor with a nested sealed record per variant, and a newtype a readonly record struct; an alias is expanded.
@@ -628,11 +632,13 @@ Use `PUT /pulls/{n}/merge-async`, which returns `{"status":"pending"}` and merge
 `.github/workflows/release-please.yml` calls the reusable workflow in `unmango/actions` as the thecluster[bot] GitHub App (`vars.RELEASE_APP_CLIENT_ID`, `secrets.RELEASE_APP_PRIVATE_KEY`), so release PRs trigger CI and commits are signed.
 
 release-please owns the version.
-Never hand-edit `toolVersion` in `internal/cli/version.go`, `version` in `flake.nix`, `version` in `editors/vscode/package.json` and `package-lock.json`, `version` in `npm/tdl/package.json` and `npm/tdl-typescript/package.json`, the `version=` line in the README's release-asset example, or `CHANGELOG.md`.
-The first two and the README line carry an `x-release-please-version` annotation; the JSON files are listed in `release-please-config.json`.
+Never hand-edit `toolVersion` in `internal/cli/version.go`, `version` in `flake.nix`, `version` in `editors/vscode/package.json` and `package-lock.json`, `version` in `npm/tdl/package.json` and `npm/tdl-typescript/package.json`, `<Version>` in `dotnet/Tdl.Gen.CSharp/Tdl.Gen.CSharp.csproj`, the `version=` line in the README's release-asset example, or `CHANGELOG.md`.
+The first two, the csproj line, and the README line carry an `x-release-please-version` annotation; the JSON files are listed in `release-please-config.json`.
 
 When it reports a release, the `assets` job builds `packages.release` at the tag on a GitHub-hosted runner, attests every file with `actions/attest-build-provenance`, and uploads them to the release.
 The `npm` job builds `packages.npm` at the tag and publishes the four platform packages, then `@unmango/tdl`, then `@unmango/tdl-typescript`, through npm's trusted publishing, which needs no stored token and writes provenance; each package's trusted publisher on npmjs.com names `release-please.yml`, and a version already published is skipped.
+The `nuget` job builds `packages.tdl-gen-csharp-tool` at the tag and pushes it to nuget.org through trusted publishing: `NuGet/login` trades the job's OIDC token for a short-lived key as `vars.NUGET_USER`, whose policy on nuget.org names `release-please.yml`, and `--skip-duplicate` skips a version already pushed.
+The C# source generator's package (#1203) joins that job.
 
 Two versions are not release-please's:
 

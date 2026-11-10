@@ -5,9 +5,35 @@
 		<RootNamespace>Tdl.Gen.CSharp</RootNamespace>
 		<Description>The csharp target: C# source from a TDL model, built with Roslyn.</Description>
 		<!-- One native binary with no runtime to start, so each tdl gen
-		     pays no JIT for Roslyn. -->
+		     pays no JIT for Roslyn. AOT pins the runtime patch the package
+		     targets, so the tool package is packed with
+		     -p:PublishAot=false (nix/dotnet-tool.nix). -->
 		<PublishAot>true</PublishAot>
 	</PropertyGroup>
+
+	<!-- The .NET tool on nuget.org: `dotnet tool install -g Tdl.Gen.CSharp`
+	     puts tdl-gen-csharp on PATH, where tdl looks for it. Framework
+	     dependent, so one package runs on every platform with .NET 10 or
+	     later. AOT stays for nix/dotnet.nix's binary. -->
+	<PropertyGroup>
+		<PackAsTool>true</PackAsTool>
+		<PackageId>Tdl.Gen.CSharp</PackageId>
+		<ToolCommandName>tdl-gen-csharp</ToolCommandName>
+		<RollForward>Major</RollForward>
+		<Version>0.5.11</Version> <!-- x-release-please-version -->
+		<Authors>Erik Rasmussen</Authors>
+		<PackageDescription>The csharp backend for TDL, the Type Description Language: tdl gen runs it from PATH to write C# records, enums, and newtypes from a model.</PackageDescription>
+		<PackageTags>tdl;codegen;csharp;roslyn</PackageTags>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageProjectUrl>https://github.com/UnstoppableMango/tdl</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/UnstoppableMango/tdl</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="/" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />

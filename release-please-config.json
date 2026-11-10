@@ -11,6 +11,7 @@
 				"internal/cli/version.go",
 				"flake.nix",
 				"README.md",
+				"dotnet/Tdl.Gen.CSharp/Tdl.Gen.CSharp.csproj",
 				{
 					"type": "json",
 					"path": "editors/vscode/package.json",

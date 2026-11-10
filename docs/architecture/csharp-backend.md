@@ -5,6 +5,7 @@ Phases 1 and 2 are built; the rest is tracked in [#1194](https://github.com/Unst
 
 The C# backend turns a resolved model into C# source.
 It is called `csharp` in a target block, ships as `tdl-gen-csharp`, a .NET plugin `tdl` runs from `PATH`, and is implemented in `dotnet/Tdl.Gen.CSharp` on the SDK of [plugin-sdk.md](plugin-sdk.md).
+The Nix package ships it compiled with Native AOT; everywhere else it is the `Tdl.Gen.CSharp` .NET tool on nuget.org, the same project packed framework dependent, so one package serves every platform (#1492).
 
 C# and F# compile to one runtime and share its base class library, its serializer, its attributes, and its interfaces.
 They share nothing else a backend cares about: C# has no type declaration order, no `and` groups, no modules, and no sum types.

@@ -45,6 +45,7 @@ in
           tdl-portable
           vscode-tdl
           tdl-dotnet
+          tdl-gen-csharp-tool
           tdl-rust
           protoc-gen-buffa
           ;
@@ -88,6 +89,12 @@ in
       # Building the .NET plugins runs their tests: the SDK's replay
       # testdata/plugin, and the C# backend's compile what it generates.
       checks.dotnet-sdk = pkgs.tdl-dotnet;
+
+      # Installs the .NET tool offline and holds what it writes for the smoke
+      # model to what the AOT plugin writes.
+      checks.dotnet-tool = pkgs.callPackage ./checks/dotnet-tool.nix {
+        dotnet-sdk = pkgs.dotnetCorePackages.sdk_10_0;
+      };
 
       # Runs the .NET debug port from PATH through tdl gen, and holds it to
       # the file the Go debug backend writes for the same model.
