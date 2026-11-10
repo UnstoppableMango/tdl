@@ -76,13 +76,26 @@ func TestCleanRefusesASymlinkLeavingTheTree(t *testing.T) {
 	}
 
 	removed, err := gen.Clean(out)
-	assertLeaves(t, err, filepath.Join("link", "victim.txt"))
+	assertLeaves(t, err, "link/victim.txt")
 	if _, err := os.Stat(victim); err != nil {
 		t.Errorf("the file outside was removed: %v", err)
 	}
 	if want := filepath.Join(out, "mine.txt"); len(removed) != 1 || removed[0] != want {
 		t.Errorf("removed %v, want only %s", removed, want)
 	}
+	// The entry stays listed, so the next clean reports it again.
+	_, err = gen.Clean(out)
+	assertLeaves(t, err, "link/victim.txt")
+}
+
+func TestOrphanedRefusesASymlinkLeavingTheTree(t *testing.T) {
+	out, outside := escapingLink(t)
+	handwrite(t, filepath.Join(outside, "x.txt"))
+	if err := os.WriteFile(filepath.Join(out, gen.MarkerName), []byte("link/x.txt\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := gen.Orphaned(out, nil)
+	assertLeaves(t, err, "link/x.txt")
 }
 
 func TestVerifyRefusesASymlinkLeavingTheTree(t *testing.T) {
@@ -103,8 +116,8 @@ func TestKeptCheckRefusesASymlinkLeavingTheTree(t *testing.T) {
 	if err != nil || !ok {
 		t.Fatalf("recorded: %v, %v", ok, err)
 	}
-	_, err = kept.Check()
-	assertLeaves(t, err, filepath.Join("link", "x.txt"))
+	_, err = kept.Check(out)
+	assertLeaves(t, err, "link/x.txt")
 }
 
 // An output directory that is itself a symlink is opened at its target.

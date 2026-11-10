@@ -42,8 +42,7 @@ type Kept struct {
 	Files       map[string]string
 	Diagnostics []*plugin.Diagnostic
 
-	out   string // the output directory the marker is in
-	count int    // how many files the request line says were written
+	count int // how many files the request line says were written
 }
 
 // Complete says the record lists as many files as its request line says,
@@ -88,9 +87,9 @@ func Keep(out, target, request string, written []string, diags []*plugin.Diagnos
 	}
 	files := map[string]string{}
 	for _, path := range written {
-		rel, ok := t.rel(path)
-		if !ok {
-			return outside(path, "read")
+		rel, err := t.local(path, "read")
+		if err != nil {
+			return err
 		}
 		content, err := t.readFile(rel)
 		if err != nil {
@@ -99,7 +98,7 @@ func Keep(out, target, request string, written []string, diags []*plugin.Diagnos
 		files[path] = digest(content)
 		owned[path] = true
 	}
-	kept[target] = Kept{Request: request, Files: files, Diagnostics: diags, out: t.dir, count: len(files)}
+	kept[target] = Kept{Request: request, Files: files, Diagnostics: diags, count: len(files)}
 	return t.writeMarker(owned, kept)
 }
 
@@ -119,18 +118,19 @@ func Recorded(out, target string) (Kept, bool, error) {
 	return k, ok, nil
 }
 
-// Check compares the files a kept generation wrote with what is on disk.
-func (k Kept) Check() ([]Stale, error) {
-	t, err := openTree(k.out)
+// Check compares the files a kept generation wrote under out with what is
+// on disk.
+func (k Kept) Check(out string) ([]Stale, error) {
+	t, err := openTree(out)
 	if err != nil {
 		return nil, err
 	}
 	defer t.Close()
 	var stale []Stale
 	for _, path := range slices.Sorted(maps.Keys(k.Files)) {
-		rel, ok := t.rel(path)
-		if !ok {
-			return nil, outside(path, "read")
+		rel, err := t.local(path, "read")
+		if err != nil {
+			return nil, err
 		}
 		switch content, err := t.readFile(rel); {
 		case errors.Is(err, fs.ErrNotExist):
@@ -165,7 +165,6 @@ func (t *tree) readKept() (map[string]Kept, error) {
 		target, rest, _ := strings.Cut(rest, " ")
 		kind, rest, _ := strings.Cut(rest, " ")
 		k := kept[target]
-		k.out = t.dir
 		switch kind {
 		case "request":
 			hash, count, _ := strings.Cut(rest, " ")

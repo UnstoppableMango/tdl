@@ -159,7 +159,7 @@ func reuse(target Target, hash string, mode Mode) (Result, bool, error) {
 	same := ok && kept.Complete() && kept.Request == hash
 	var stale []Stale
 	if same {
-		if stale, err = kept.Check(); err != nil {
+		if stale, err = kept.Check(target.Out); err != nil {
 			return result, true, fmt.Errorf("target %s: %w", target.Name, err)
 		}
 		// Files kept are reported with the warnings they were written with.

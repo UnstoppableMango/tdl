@@ -108,7 +108,8 @@ func (t *tree) writeMarker(owned map[string]bool, kept map[string]Kept) error {
 
 // Clean removes the files the marker in out lists, and any directory that
 // leaves empty, and empties the list. A listed path leaving out through a
-// symlink is not followed: it is reported, and the rest are still removed.
+// symlink is not followed: it is reported and stays listed, so the next
+// clean reports it again, and the rest are still removed.
 func Clean(out string) ([]string, error) {
 	t, err := openTree(out)
 	if err != nil {
@@ -122,10 +123,12 @@ func Clean(out string) ([]string, error) {
 
 	var removed []string
 	var refused []error
+	kept := map[string]bool{}
 	for _, path := range slices.Sorted(maps.Keys(owned)) {
-		rel, ok := t.rel(path)
-		if !ok {
-			refused = append(refused, outside(path, "remove"))
+		rel, err := t.local(path, "remove")
+		if err != nil {
+			refused = append(refused, err)
+			kept[path] = true
 			continue
 		}
 		switch err := t.root.Remove(rel); {
@@ -137,7 +140,7 @@ func Clean(out string) ([]string, error) {
 		removed = append(removed, path)
 		t.pruneEmpty(filepath.Dir(rel))
 	}
-	return removed, errors.Join(append(refused, t.writeMarker(nil, nil))...)
+	return removed, errors.Join(append(refused, t.writeMarker(kept, nil))...)
 }
 
 // pruneEmpty removes dir and each parent below the directory that removing

@@ -100,8 +100,17 @@ func (t *tree) stat(rel string) (fs.FileInfo, error) {
 	return t.root.Stat(rel)
 }
 
-// outside is the error for a path that leaves the output directory, which
-// tdl would otherwise do to: write, read, or remove.
-func outside(path, verb string) error {
-	return fmt.Errorf("%s: tdl will not %s a file outside the output directory", path, verb)
+// local is rel for a path tdl is about to read or remove, refusing one
+// that leaves the directory with an error naming the path as the marker
+// spells it; verb says what tdl would have done.
+func (t *tree) local(path, verb string) (string, error) {
+	rel, ok := t.rel(path)
+	if !ok {
+		name := path
+		if r, err := filepath.Rel(t.dir, path); err == nil {
+			name = filepath.ToSlash(r)
+		}
+		return "", fmt.Errorf("%s: tdl will not %s a file outside the output directory", name, verb)
+	}
+	return rel, nil
 }

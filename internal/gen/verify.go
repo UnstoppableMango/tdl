@@ -71,9 +71,11 @@ func Orphaned(out string, expected map[string]bool) ([]Stale, error) {
 		if expected[path] {
 			continue
 		}
-		if rel, ok := t.rel(path); !ok {
-			return nil, outside(path, "read")
-		} else if _, err := t.stat(rel); err == nil {
+		rel, err := t.local(path, "read")
+		if err != nil {
+			return nil, err
+		}
+		if _, err := t.stat(rel); err == nil {
 			stale = append(stale, Stale{Path: path, Reason: "no longer generated"})
 		}
 	}
