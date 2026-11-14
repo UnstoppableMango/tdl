@@ -1,6 +1,6 @@
 {
 	"name": "@unmango/tdl-typescript",
-	"version": "0.5.11",
+	"version": "0.5.12",
 	"description": "A TypeScript content mapper for the Type Description Language: import .tdl files from TypeScript and tsc checks them",
 	"license": "MIT",
 	"repository": {

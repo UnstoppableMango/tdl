@@ -1,6 +1,6 @@
 {
 	"name": "@unmango/tdl",
-	"version": "0.5.11",
+	"version": "0.5.12",
 	"description": "The Type Description Language compiler: describe a domain model once and generate types for TypeScript, Zod, Go, protobuf, and more",
 	"license": "MIT",
 	"repository": {

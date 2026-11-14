@@ -49,7 +49,7 @@
         ./nix/hercules.nix
       ];
 
-      _module.args.version = "0.5.11"; # x-release-please-version
+      _module.args.version = "0.5.12"; # x-release-please-version
 
       perSystem =
         { inputs', pkgs, ... }:
