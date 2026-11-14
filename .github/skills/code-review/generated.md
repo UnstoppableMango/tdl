@@ -28,7 +28,7 @@ CI catches this for `tree-sitter/`, the goldens, `dotnet/deps.json`, and the pro
 
 ## release-please owns versions
 
-Never hand-edit `toolVersion` in `internal/cli/version.go`, `version` in `flake.nix`, `version` in `editors/vscode/package.json` and `package-lock.json`, `version` in `npm/tdl/package.json` and `npm/tdl-typescript/package.json`, the `version=` line in the README's release-asset example, or `CHANGELOG.md`.
+Never hand-edit `toolVersion` in `internal/cli/version.go`, `version` in `flake.nix`, `version` in `editors/vscode/package.json` and `package-lock.json`, `version` in `npm/tdl/package.json` and `npm/tdl-typescript/package.json`, `<Version>` in `dotnet/Tdl.Gen.CSharp/Tdl.Gen.CSharp.csproj`, the `version=` line in the README's release-asset example, or `CHANGELOG.md`.
 
 `specVersion` tracks `docs/spec.md` and must not gain an `x-release-please-version` annotation.
 `metadata.version` in `tree-sitter/tree-sitter.json` is bumped by hand with a regeneration, because `tree-sitter generate` copies it into `parser.c`.

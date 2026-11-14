@@ -130,6 +130,25 @@ npm i -D @unmango/tdl
 npx tdl version
 ```
 
+### .NET tool
+
+The `csharp` backend is a .NET plugin, `tdl-gen-csharp`, which `tdl` runs from `PATH`.
+The Nix package ships it; beside a `tdl` from npm, the release assets, or `go install`, install the `Tdl.Gen.CSharp` tool from NuGet, which needs .NET 10 or later:
+
+```shell
+dotnet tool install -g Tdl.Gen.CSharp
+tdl gen --target csharp -o out model.tdl
+```
+
+A local tool manifest's tools are not on `PATH`, so to keep the plugin in a project, install it into a folder there and put that on `PATH`:
+
+```shell
+dotnet tool install --tool-path .tools Tdl.Gen.CSharp
+PATH="$PWD/.tools:$PATH" tdl gen --target csharp -o out model.tdl
+```
+
+Each release publishes the tool at `tdl`'s version.
+
 ### go install
 
 With Go 1.27 or later, which `go.mod` requires:
@@ -138,7 +157,7 @@ With Go 1.27 or later, which `go.mod` requires:
 go install github.com/unstoppablemango/tdl/cmd/tdl@latest
 ```
 
-This builds `tdl` alone, with every backend but `csharp`, which is a .NET plugin only the Nix package ships.
+This builds `tdl` alone, with every backend but `csharp`, which is a .NET plugin: install it as the [.NET tool](#net-tool).
 
 ### NixOS or home-manager
 

@@ -33,6 +33,8 @@ lib.composeExtensions gomod2nix.overlays.default (
 
     tdl-dotnet = final.callPackage ./dotnet.nix { inherit version; };
 
+    tdl-gen-csharp-tool = final.callPackage ./dotnet-tool.nix { inherit version; };
+
     tdl-rust = final.callPackage ./rust.nix { inherit version; };
 
     protoc-gen-buffa = final.callPackage ./protoc-gen-buffa.nix { };

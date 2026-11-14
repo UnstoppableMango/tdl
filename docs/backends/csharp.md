@@ -2,6 +2,13 @@
 
 The `csharp` backend writes records, enums, and newtypes as readonly record structs, one `.g.cs` file per declaration or one for the whole target.
 It is a .NET plugin, `tdl-gen-csharp`, which `tdl gen` runs from `PATH`.
+The Nix package ships it compiled ahead of time; beside a `tdl` from npm, the release assets, or `go install`, install it from NuGet as a .NET tool, which needs .NET 10 or later:
+
+```shell
+dotnet tool install -g Tdl.Gen.CSharp
+```
+
+A local tool manifest's tools are not on `PATH`, where `tdl` looks, so in a project use `dotnet tool install --tool-path .tools Tdl.Gen.CSharp` and put `.tools` on `PATH` instead.
 [csharp-backend.md](../architecture/csharp-backend.md) is its design.
 
 ## Features
