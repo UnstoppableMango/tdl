@@ -42,7 +42,7 @@ demo:
 generate: ${PROTO_GO} ${PROTO_CS} ${PROTO_RS} ${PROTO_JS}
 
 # protoc-gen-es runs from js/node_modules, so js/ is installed first.
-${PROTO_GO} ${PROTO_CS} ${PROTO_RS} ${PROTO_JS} &: ${PROTO_SRC} buf.gen.yaml buf.yaml | js/node_modules/.package-lock.json
+${PROTO_GO} ${PROTO_CS} ${PROTO_RS} ${PROTO_JS} &: ${PROTO_SRC} buf.gen.yaml buf.yaml js/package-lock.json | js/node_modules/.package-lock.json
 	buf generate
 
 js/node_modules/.package-lock.json: js/package.json js/package-lock.json

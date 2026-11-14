@@ -26,6 +26,9 @@ export async function run(backend: Backend): Promise<void> {
 		// A backend that fails cannot answer; tdl reports what it wrote.
 		process.stderr.write(`plugin: ${e instanceof Error ? e.message : String(e)}\n`);
 		process.exitCode = 1;
+		// Conn holds stdin's iterator, which keeps the process alive while
+		// tdl holds the pipe open.
+		process.stdin.destroy();
 	}
 }
 
