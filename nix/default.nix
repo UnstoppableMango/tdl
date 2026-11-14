@@ -48,6 +48,7 @@ in
           tdl-gen-csharp-tool
           tdl-rust
           tdl-js
+          tdl-gen-mermaid
           protoc-gen-buffa
           ;
         default = pkgs.tdl;
@@ -184,22 +185,9 @@ in
             touch $out
           '';
 
-      # Runs the mermaid plugin from PATH through tdl gen over the smoke
-      # model, and holds it to the diagram its tests compare with.
-      checks.gen-mermaid =
-        pkgs.runCommand "tdl-gen-mermaid"
-          {
-            nativeBuildInputs = [
-              pkgs.tdl
-              pkgs.tdl-js
-            ];
-          }
-          ''
-            cp ${../testdata/gen/smoke/source.tdl} source.tdl
-            tdl gen --target mermaid -o out source.tdl
-            diff ${../testdata/mermaid/corpus/smoke/want/smoke.mmd} out/smoke.mmd
-            touch $out
-          '';
+      # tdl-gen-mermaid: the executable pkgs.tdl ships, and the portable one
+      # for this system, each through tdl gen over the smoke model.
+      checks.tdl-gen-mermaid = pkgs.callPackage ./checks/mermaid.nix { go = pkgs.go_1_27; };
 
       # make generate leaves no diff: buf regenerates every language's
       # types from proto/ with the devShell's plugins, offline, and the

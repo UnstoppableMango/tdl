@@ -5,7 +5,7 @@ Design document.
 The Mermaid backend turns a resolved model into a [Mermaid](https://mermaid.js.org) class diagram, which GitHub, GitLab, and most documentation sites render with nothing installed.
 It is called `mermaid` in a target block and is written in TypeScript on the JS/TS plugin SDK (`js/tdl-plugin`), in `js/tdl-gen-mermaid`.
 It is not compiled into `tdl`: `tdl gen` runs `tdl-gen-mermaid` from `PATH`, as it runs `tdl-gen-csharp`.
-[#1482](https://github.com/UnstoppableMango/tdl/issues/1482) is its spec; phase 1 (#1484) is built, and relationships and externs (#1485), the `direction`, `hide`, and `link` directives (#1486), and the single executable (#1487) follow.
+[#1482](https://github.com/UnstoppableMango/tdl/issues/1482) is its spec; phase 1 (#1484) and the single executable (#1487) are built, and relationships and externs (#1485) and the `direction`, `hide`, and `link` directives (#1486) follow.
 It is output only: nothing reads a class diagram back.
 
 ## Output
@@ -69,6 +69,15 @@ Constraints, defaults, doc comments, and deprecation are left out without a warn
 | `rpc` | a primitive of two type arguments | makes a service field applying it an rpc |
 | `stream` | a primitive of one type argument | marks an rpc argument streamed |
 
+## Distribution
+
+`tdl-gen-mermaid` ships as a Bun single executable, so it needs no JS runtime: `bun build --compile` bundles the compiled plugin and its dependencies into a copy of Bun (`nix/mermaid.nix`).
+`nix/cmd.nix` links the one written into nixpkgs' own `bun` beside the Go binaries, so `pkgs.tdl` puts it on `PATH`.
+For the release tarballs and the `@unmango/tdl-<os>-<cpu>` npm packages, it is cross-compiled from one platform for linux and darwin, amd64 and arm64, with `--compile-executable-path` naming each platform's official Bun release, fetched by hash, so the sandbox needs no network.
+Those are the official Bun binaries, so the linux ones need glibc, while `tdl` beside them is static.
+The npm shim puts its platform package's binaries first on `PATH`, so `tdl` run through it finds `tdl-gen-mermaid`.
+Node's single executable applications are not used.
+
 ## Testing
 
 The backend's tests cannot lower TDL, so `internal/gen/plugins_test.go` records the requests tdl sends it: one beside each `testdata/mermaid/cases/*/*.tdl`, and one per conformance case and the smoke model in `testdata/mermaid/corpus/<case>/`.
@@ -76,4 +85,4 @@ The backend's tests cannot lower TDL, so `internal/gen/plugins_test.go` records 
 The TypeScript tests answer every recorded request, compare the files with `want/` (`TDL_RECORD=1` rewrites a case's), and run `mermaid.parse` over every diagram.
 Mermaid needs a DOM, so they install a `jsdom` window as a global; `mermaid` and `jsdom` are dev dependencies only.
 They run under `node --test` and `bun test`, in `checks.js-sdk-node` and `checks.js-sdk-bun`.
-`checks.gen-mermaid` runs the plugin through `tdl gen` over the smoke model.
+`checks.tdl-gen-mermaid` runs the executable `pkgs.tdl` ships and this system's portable one through `tdl gen` over the smoke model, and `checks.npm-tdl` the npm platform package's.
