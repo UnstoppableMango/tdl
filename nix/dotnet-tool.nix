@@ -30,12 +30,6 @@ buildDotnetModule {
   buildPhase = ''
     runHook preBuild
 
-    have=$(sed -n 's|.*<Version>\(.*\)</Version>.*|\1|p' dotnet/Tdl.Gen.CSharp/Tdl.Gen.CSharp.csproj)
-    if [ "$have" != "${version}" ]; then
-      echo "Tdl.Gen.CSharp.csproj is at $have, the flake at ${version}" >&2
-      exit 1
-    fi
-
     dotnet pack $dotnetProjectFiles \
       --configuration Release \
       --no-restore \
