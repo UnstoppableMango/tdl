@@ -27,11 +27,9 @@ buildDotnetModule {
   dotnet-sdk = dotnetCorePackages.sdk_10_0;
   dotnet-runtime = dotnetCorePackages.runtime_10_0;
 
-  # The configure hook restores for this system's runtime, which also
-  # restores the runtime-independent target the tool package builds. Packing
-  # with no runtime and PublishAot off, which the csproj sets for
-  # nix/dotnet.nix, gives a package that names no runtime and asks for any
-  # .NET 10, not the patch AOT targets.
+  # The csproj sets PublishAot for dotnet.nix's binary. Left on here, the
+  # package would require the exact .NET patch the SDK ships (10.0.14)
+  # instead of any .NET 10.
   buildPhase = ''
     runHook preBuild
 
