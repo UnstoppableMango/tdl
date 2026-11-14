@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.5.12](https://github.com/UnstoppableMango/tdl/compare/v0.5.11...v0.5.12) (2026-11-14)
+
+
+### Features
+
+* **csharp:** ship tdl-gen-csharp as the Tdl.Gen.CSharp .NET tool ([#1559](https://github.com/UnstoppableMango/tdl/issues/1559)) ([ebcba7f](https://github.com/UnstoppableMango/tdl/commit/ebcba7f37a7ccd98dcd5891e3903f7bfed4cc434))
+* **js:** JS/TS plugin SDK phase 1, the workspace, protocol, session, and debug port ([#1557](https://github.com/UnstoppableMango/tdl/issues/1557)) ([e959f48](https://github.com/UnstoppableMango/tdl/commit/e959f4862a6e02d74cdcefba0c77c67670847650)), closes [#1481](https://github.com/UnstoppableMango/tdl/issues/1481)
+* **typescript:** publish @unmango/tdl-typescript, the content mapper's npm package ([#1553](https://github.com/UnstoppableMango/tdl/issues/1553)) ([a81022f](https://github.com/UnstoppableMango/tdl/commit/a81022f5cfe73ba9d8736d343d30b9a7ac5d2233))
+
+
+### Bug Fixes
+
+* **gen:** confine output writes to the output directory through symlinks ([#1556](https://github.com/UnstoppableMango/tdl/issues/1556)) ([94ec37b](https://github.com/UnstoppableMango/tdl/commit/94ec37b7e4a202cdb62bc121ef63544afb84968c))
+
+
+### Dependencies
+
+* update dependency microsoft.codeanalysis.csharp to 5.9.0 ([#1174](https://github.com/UnstoppableMango/tdl/issues/1174)) ([38335f8](https://github.com/UnstoppableMango/tdl/commit/38335f8f9cbeefa5899baa3f179bba2f5bf51134))
+
 ## [0.5.11](https://github.com/UnstoppableMango/tdl/compare/v0.5.10...v0.5.11) (2026-11-09)
 
 
