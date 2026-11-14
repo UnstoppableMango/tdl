@@ -100,6 +100,9 @@ jobs:
       - run: nix develop -c make vscode-check
         if: ${{ !cancelled() }}
 
+      - run: nix develop -c make js-check
+        if: ${{ !cancelled() }}
+
       # The treesitter shell is a subset of the default one realised above.
       - run: nix develop .#treesitter --command make check-treesitter
         if: ${{ !cancelled() }}

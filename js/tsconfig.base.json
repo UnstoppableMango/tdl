@@ -1,0 +1,26 @@
+{
+	"compilerOptions": {
+		"target": "es2022",
+		"lib": [
+			"es2022"
+		],
+		"module": "nodenext",
+		"moduleResolution": "nodenext",
+		"strict": true,
+		"exactOptionalPropertyTypes": true,
+		"noUncheckedIndexedAccess": true,
+		"verbatimModuleSyntax": true,
+		"declaration": true,
+		"sourceMap": true,
+		"skipLibCheck": true,
+		"types": [
+			"node"
+		],
+		"rootDir": "${configDir}",
+		"outDir": "${configDir}/dist"
+	},
+	"include": [
+		"${configDir}/src",
+		"${configDir}/test"
+	]
+}

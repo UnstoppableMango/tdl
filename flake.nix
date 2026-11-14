@@ -85,6 +85,7 @@
               protobuf # protoc, for buf's C# generator
               protoc-gen-go
               protoc-gen-buffa # for rust/, from nix/protoc-gen-buffa.nix
+              bun # js/'s tests run under bun test as well as node --test
               cargo
               rustc
               clippy
@@ -136,6 +137,7 @@
                 enable = true;
                 includes = [
                   "editors/vscode/**/*.ts"
+                  "js/**/*.ts"
                   "npm/**/*.js"
                 ];
                 settings = removeAttrs (builtins.fromJSON (builtins.readFile ./editors/vscode/biome.json)) [
@@ -172,6 +174,7 @@
               "nix/gomod2nix.toml"
               "rust/Cargo.lock"
               "rust/tdl-plugin/src/generated/*"
+              "js/tdl-plugin/src/generated/**"
               "flake.lock"
               "*.tdl"
               ".github/skills/**/SKILL.md"

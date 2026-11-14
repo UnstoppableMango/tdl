@@ -127,6 +127,7 @@ Built-in backends keep calling it in process, and `TestHostsAgree` still holds t
 
 The .NET SDK, `Tdl.Plugin`, is a library holding the C# types `protoc` generates for both protos, framing over stdio, and the list above.
 The Rust SDK, `tdl-plugin` in `rust/` (#1364), holds the types buffa generates for both protos, the same framing, and the list above but the round-trip helpers, which wait for a Rust backend that imports.
+The JS/TS SDK, `@unmango/tdl-plugin` in `js/` (#1480), holds the types protobuf-es generates for both protos, the same framing, and the same list but the round-trip helpers, and runs on Node and Bun.
 A loss code table shared by every SDK is checked against `reverse.md`, as `emit.LossCodes` is today.
 
 ## The C# backend as a .NET plugin

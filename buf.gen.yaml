@@ -40,3 +40,18 @@ plugins:
     # As for C#: leaving out pb drops Go's options and their imports.
     exclude_types:
       - pb
+  # The JS/TS SDK's types, from protobuf-es. The plugin is the one js/'s
+  # lock pins beside the @bufbuild/protobuf runtime, so `npm ci` in js/
+  # comes first.
+  - local:
+      - node
+      - js/node_modules/@bufbuild/protoc-gen-es/bin/protoc-gen-es
+    out: js/tdl-plugin/src/generated
+    # plugin.proto names ir.proto's types, so both are generated in one run.
+    strategy: all
+    opt:
+      - target=ts
+      - import_extension=js
+    # As for C#: leaving out pb drops Go's options and their imports.
+    exclude_types:
+      - pb

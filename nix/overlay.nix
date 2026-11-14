@@ -37,6 +37,8 @@ lib.composeExtensions gomod2nix.overlays.default (
 
     tdl-rust = final.callPackage ./rust.nix { inherit version; };
 
+    tdl-js = final.callPackage ./js.nix { inherit version; };
+
     protoc-gen-buffa = final.callPackage ./protoc-gen-buffa.nix { };
 
     pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [

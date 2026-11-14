@@ -1,0 +1,27 @@
+{
+	"name": "tdl-js",
+	"private": true,
+	"description": "The TDL backends written in TypeScript, and the plugin SDK they build on",
+	"license": "MIT",
+	"type": "module",
+	"workspaces": [
+		"tdl-plugin",
+		"tdl-plugin-debug"
+	],
+	"engines": {
+		"node": ">=22"
+	},
+	"scripts": {
+		"build": "rm -rf */dist && tsc -p tdl-plugin && tsc -p tdl-plugin-debug",
+		"test": "npm run build && node --test '*/dist/test/**/*.test.js'",
+		"test:bun": "npm run build && bun test ./tdl-plugin/dist/test ./tdl-plugin-debug/dist/test",
+		"check": "biome check",
+		"format": "biome check --write"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.6.6",
+		"@bufbuild/protoc-gen-es": "2.17.0",
+		"@types/node": "^22.19.0",
+		"typescript": "^7.0.2"
+	}
+}
