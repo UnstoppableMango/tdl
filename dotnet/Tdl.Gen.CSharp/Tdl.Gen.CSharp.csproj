@@ -4,10 +4,6 @@
 		<AssemblyName>tdl-gen-csharp</AssemblyName>
 		<RootNamespace>Tdl.Gen.CSharp</RootNamespace>
 		<Description>The csharp target: C# source from a TDL model, built with Roslyn.</Description>
-		<!-- One native binary with no runtime to start, so each tdl gen
-		     pays no JIT for Roslyn. AOT pins the runtime patch the package
-		     targets, so the tool package is packed with
-		     -p:PublishAot=false (nix/dotnet-tool.nix). -->
 		<PublishAot>true</PublishAot>
 	</PropertyGroup>
 
