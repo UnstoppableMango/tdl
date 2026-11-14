@@ -4,9 +4,6 @@
   lib,
   version,
 }:
-# tdl-gen-csharp as the .NET tool nuget.org carries: Tdl.Gen.CSharp, framework
-# dependent, so one package serves every platform. The release publishes
-# $out/Tdl.Gen.CSharp.<version>.nupkg; checks.dotnet-tool installs it.
 buildDotnetModule {
   pname = "tdl-gen-csharp-tool";
   inherit version;
