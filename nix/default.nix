@@ -156,7 +156,7 @@ in
         nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.bun ];
         checkPhase = ''
           runHook preCheck
-          HOME=$TMPDIR bun test ./tdl-plugin/dist/test ./tdl-plugin-debug/dist/test
+          HOME=$TMPDIR bun test dist/test
           runHook postCheck
         '';
       });
@@ -181,6 +181,23 @@ in
             diff go/model.txt js/model.txt
             sed -i 's/^js\.tdl:/go.tdl:/; s/js_debug does not/debug does not/' js.err
             diff go.err js.err
+            touch $out
+          '';
+
+      # Runs the mermaid plugin from PATH through tdl gen over the smoke
+      # model, and holds it to the diagram its tests compare with.
+      checks.gen-mermaid =
+        pkgs.runCommand "tdl-gen-mermaid"
+          {
+            nativeBuildInputs = [
+              pkgs.tdl
+              pkgs.tdl-js
+            ];
+          }
+          ''
+            cp ${../testdata/gen/smoke/source.tdl} source.tdl
+            tdl gen --target mermaid -o out source.tdl
+            diff ${../testdata/mermaid/corpus/smoke/want/smoke.mmd} out/smoke.mmd
             touch $out
           '';
 

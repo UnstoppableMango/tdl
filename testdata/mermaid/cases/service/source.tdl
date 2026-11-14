@@ -1,0 +1,25 @@
+// A structure tagged service is drawn with each rpc a method.
+package widgets
+
+primitive Fn: type -> type -> type
+primitive Stream: type -> type
+
+type Widget {
+  id: string
+}
+
+type GetWidgetRequest {
+  id: string
+}
+
+type WidgetService {
+  getWidget: Fn<GetWidgetRequest, Widget>
+  watch: Fn<GetWidgetRequest, Stream<Widget>>
+  name: string
+}
+
+target mermaid for widgets {
+  Fn => rpc
+  Stream => stream
+  WidgetService => service
+}

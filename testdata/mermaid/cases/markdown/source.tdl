@@ -1,0 +1,10 @@
+// format("markdown") writes the diagram in a fenced block of a .md file.
+package shop.billing
+
+type Invoice {
+  total: decimal
+}
+
+target mermaid for shop.billing {
+  format("markdown")
+}

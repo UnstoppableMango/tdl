@@ -123,3 +123,7 @@ target haskell for smoke {
 target zod for smoke {
   out("zod")
 }
+
+target mermaid for smoke {
+  out("mermaid")
+}

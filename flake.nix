@@ -180,6 +180,7 @@
               ".github/skills/**/SKILL.md"
               "tree-sitter/src/*.json"
               "editors/vscode/syntaxes/*.json"
+              "testdata/mermaid/**/want/**"
             ];
           };
         };

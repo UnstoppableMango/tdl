@@ -12,3 +12,6 @@ ignores:
   - "CHANGELOG.md"
   # One import directive, with no heading to lint.
   - "CLAUDE.md"
+  # The mermaid backend's output under format("markdown"), compared byte for
+  # byte: a fenced diagram with no heading.
+  - "testdata/mermaid/**/want/**"
