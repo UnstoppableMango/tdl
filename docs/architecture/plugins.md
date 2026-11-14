@@ -107,6 +107,9 @@ message File {
 `tdl` writes them, which is what makes `--verify`, `--clean`, and the `.tdl-output` marker enforceable.
 
 An absolute path, or one containing `..`, is an error and nothing is written, so a plugin cannot reach outside its output directory.
+Writing a response's files, `--verify`, `--clean`, and the `.tdl-output` marker go through an `os.Root` opened at the output directory, so a symlink inside it pointing out of it is refused too: a write naming one writes nothing, and `--clean` reports a marker entry through one and removes the rest.
+An output directory that is itself a symlink opens at its target.
+The `--make` dependency file is the user's path, not a backend's, and is written without the root.
 
 ### Nondeterministic backends
 

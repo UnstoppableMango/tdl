@@ -2,7 +2,6 @@ package gen
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -10,34 +9,50 @@ import (
 )
 
 // Write puts a response's files under out. A path is relative to out; an
-// absolute one, one climbing out with "..", or a file already there that
-// the marker does not list is refused before anything is written.
+// absolute one, one leaving out with ".." or through a symlink, or a file
+// already there that the marker does not list is refused before anything is
+// written.
 func Write(out string, files []*plugin.File) ([]string, error) {
-	owned, err := Owned(out)
+	t, err := openTree(out)
 	if err != nil {
 		return nil, err
 	}
-	cleaned := make([]string, len(files))
+	defer t.Close()
+	owned, err := t.owned()
+	if err != nil {
+		return nil, err
+	}
+	paths := make([]string, len(files))
+	rels := make([]string, len(files))
 	for i, f := range files {
 		path, err := resolve(out, f.GetPath())
 		if err != nil {
 			return nil, err
 		}
-		if _, err := os.Stat(path); err == nil && !owned[path] {
+		rel, ok := t.rel(path)
+		if !ok {
+			return nil, escaping(f.GetPath())
+		}
+		if t.exists(rel) && !owned[path] {
 			return nil, fmt.Errorf("%s: tdl did not write this file, so it will not overwrite it", path)
 		}
-		cleaned[i] = path
+		paths[i], rels[i] = path, rel
+	}
+	if len(files) > 0 {
+		if err := t.create(); err != nil {
+			return nil, err
+		}
 	}
 
 	written := make([]string, 0, len(files))
 	for i, f := range files {
-		if err := os.MkdirAll(filepath.Dir(cleaned[i]), 0o755); err != nil {
-			return written, fmt.Errorf("creating %s: %w", filepath.Dir(cleaned[i]), err)
+		if err := t.root.MkdirAll(filepath.Dir(rels[i]), 0o755); err != nil {
+			return written, fmt.Errorf("creating %s: %w", filepath.Dir(paths[i]), err)
 		}
-		if err := os.WriteFile(cleaned[i], f.GetContent(), 0o644); err != nil {
-			return written, fmt.Errorf("writing %s: %w", cleaned[i], err)
+		if err := t.root.WriteFile(rels[i], f.GetContent(), 0o644); err != nil {
+			return written, fmt.Errorf("writing %s: %w", paths[i], err)
 		}
-		written = append(written, cleaned[i])
+		written = append(written, paths[i])
 	}
 	return written, nil
 }
@@ -55,7 +70,11 @@ func resolve(out, path string) (string, error) {
 	full := filepath.Join(out, path)
 	rel, err := filepath.Rel(out, full)
 	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-		return "", fmt.Errorf("%s: a backend may not write outside the output directory", path)
+		return "", escaping(path)
 	}
 	return full, nil
+}
+
+func escaping(path string) error {
+	return fmt.Errorf("%s: a backend may not write outside the output directory", path)
 }
