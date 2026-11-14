@@ -135,13 +135,6 @@ jobs:
             npm publish "./$tarball" --access public --provenance --tag "$tag"
           done
 
-  # The NuGet packages, packed by Nix from the tagged commit, pushed with
-  # nuget.org's trusted publishing: NuGet/login trades this workflow's OIDC
-  # token for an API key that lives an hour, so no key is stored. The policy
-  # on nuget.org names this file, and vars.NUGET_USER is the account that
-  # owns it. It pushes Tdl.Gen.CSharp, the csharp plugin as a .NET tool, and
-  # is the job the C# source generator's package (#1203) shares. A version
-  # already pushed is skipped, so a rerun finishes what a failed run started.
   nuget:
     needs: release
     if: ${{ needs.release.outputs.release_created == 'true' }}
