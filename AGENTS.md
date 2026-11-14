@@ -84,11 +84,11 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
   `packages.default` links against the store's glibc loader, so it does not run outside Nix.
   `dontFixup` keeps the build platform's `strip` off the darwin/arm64 binaries, which the Go linker signs.
   `checks.tdl-portable` checks each binary's format and static linking, allows only the store paths nixpkgs' Go patches in as zoneinfo and `/etc/protocols` fallbacks, and runs the binary for the checking system over the smoke model.
-- `npm.nix`: `packages.npm`, the six npm packages packed as tarballs: `@unmango/tdl` from `npm/tdl/`, `@unmango/tdl-typescript`, the content mapper's manifest, from `npm/tdl-typescript/`, and one `@unmango/tdl-<os>-<cpu>` per `tdl-portable` target, written with `jq` around its two binaries and `tdl-gen-mermaid`'s portable one, with `os` and `cpu` set, which `@unmango/tdl` names in `optionalDependencies` at the flake's version.
-  The build fails if either `package.json`'s version, which release-please bumps, is not the flake's.
+- `npm.nix`: `packages.npm`, the seven npm packages packed as tarballs: `@unmango/tdl` from `npm/tdl/`, `@unmango/tdl-typescript`, the content mapper's manifest, from `npm/tdl-typescript/`, `@unmango/remark-tdl-mermaid` from `tdl-js`'s build, depending on `@unmango/tdl` at the flake's version, and one `@unmango/tdl-<os>-<cpu>` per `tdl-portable` target, written with `jq` around its two binaries and `tdl-gen-mermaid`'s portable one, with `os` and `cpu` set, which `@unmango/tdl` names in `optionalDependencies` at the flake's version.
+  The build fails if any of the three `package.json`s' version, which release-please bumps, is not the flake's.
   `npm/tdl/tdl.js` is the `bin`: it finds the platform package through `lib/resolve.js`, exported as `@unmango/tdl/resolve` for `@unmango/tdl-typescript`, and runs its binary with the package's `bin` first on `PATH`, so `tdl` finds `tdl-gen-mermaid`, passing through arguments, stdio, and the exit status. No package has an install script.
   The shim sits beside `package.json` because `.gitignore` ignores every `bin/`.
-  `checks.npm-tdl` installs `@unmango/tdl`, the checking system's platform package, and `@unmango/tdl-typescript` offline with `--ignore-scripts`, then runs `tdl version`, `tdl gen` over the smoke model for `typescript` and `mermaid`, and `tdl-gen-typescript` through the resolver, and reads the mapper command from `@unmango/tdl-typescript`.
+  `checks.npm-tdl` installs `@unmango/tdl`, the checking system's platform package, and `@unmango/tdl-typescript` offline with `--ignore-scripts`, then runs `tdl version`, `tdl gen` over the smoke model for `typescript` and `mermaid`, `tdl-gen-typescript` through the resolver, and the remark plugin's transformer, which finds `tdl` the same way, and reads the mapper command from `@unmango/tdl-typescript`.
 - `release.nix`: `packages.release`, the release assets: `tdl_<version>_<os>_<arch>.tar.gz` per `tdl-portable` target, each holding both binaries, `tdl-gen-mermaid`'s portable one, `LICENSE`, `README.md`, and `completions/` written by the build platform's `tdl`, plus `SHA256SUMS`.
   Members are sorted, owned by root, dated `SOURCE_DATE_EPOCH`, and gzipped without a name, so two builds give the same `SHA256SUMS`.
   `checks.tdl-release` holds every tarball to the same file list, verifies the sums, and runs the checking system's `tdl`.
@@ -98,7 +98,7 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 - `dotnet-tool.nix`: `tdl-gen-csharp-tool`, `Tdl.Gen.CSharp.<version>.nupkg`, the same project packed as a framework-dependent .NET tool for nuget.org (#1492), with no runtime and `-p:PublishAot=false`, since AOT pins the runtime patch the package asks for.
   `checks.dotnet-tool` installs it with `dotnet tool install --tool-path` from its folder alone, with no network, and holds what `tdl gen` writes for the smoke model through the tool's shim, and every diagnostic, to what the AOT plugin writes.
 - `rust.nix`: `tdl-rust`, the Rust workspace built with `rustPlatform` from `rust/Cargo.lock`, which runs its tests (see [Rust SDK](#rust-sdk)); it installs only `tdl-gen-rust_debug`, which `cmd.nix` does not ship.
-- `js.nix`: `tdl-js`, the JS workspace built with `buildNpmPackage` and `importNpmLock` from `js/package-lock.json`, which runs its tests under node (see [JS SDK](#js-sdk)); it installs `tdl-gen-js_debug` and `tdl-gen-mermaid` as node scripts, which nothing ships.
+- `js.nix`: `tdl-js`, the JS workspace built with `buildNpmPackage` and `importNpmLock` from `js/package-lock.json`, which runs its tests under node (see [JS SDK](#js-sdk)); it installs `tdl-gen-js_debug` and `tdl-gen-mermaid` as node scripts, which nothing ships, and the remark plugin's build, which `npm.nix` packs.
 - `mermaid.nix`: `tdl-gen-mermaid`, the mermaid plugin as a Bun single executable: `bun build --compile` over `tdl-js`'s build, written into nixpkgs' own `bun` so it runs under Nix, which `cmd.nix` ships.
   `passthru.portable` cross-compiles it for the four `tdl-portable` targets into `<goos>-<goarch>/`, each written into that platform's official Bun release, fetched by hash for the `bunVersion` nixpkgs' `bun` must match, so bumping nixpkgs' `bun` means bumping the hashes.
   The linux ones need the system's glibc, unlike the Go binaries; `dontFixup` keeps strip and patchelf off them, since the bundle is a section of the executable and bun signs the darwin ones.
@@ -435,7 +435,12 @@ The SDK's tests check the loss codes against `reverse.md` and the session, the f
 ### JS SDK
 
 `js/` is an npm workspace holding `@unmango/tdl-plugin` (`js/tdl-plugin`), the SDK a backend written in TypeScript builds on, and `js/tdl-plugin-debug`, a port of `backend/debug` served as `tdl-gen-js_debug` (#1480).
-The Mermaid backend, `js/tdl-gen-mermaid`, builds on it (see [Backends](#backends)); nothing is published until it ships.
+The Mermaid backend, `js/tdl-gen-mermaid`, builds on it (see [Backends](#backends)); the SDK is not published.
+`js/remark-tdl-mermaid`, published as `@unmango/remark-tdl-mermaid`, is a remark plugin that replaces each fence whose info string is `tdl mermaid` with the diagram `tdl gen --target mermaid` writes for it (#1538).
+It writes the fence to a temporary directory, appending `target mermaid for <package> { }` when the fence has no `target mermaid` block, runs `tdl`, found through `@unmango/tdl/resolve` unless its `tdl` option names one, with that binary's directory first on `PATH`, and maps each diagnostic's line in the fence back to the markdown: an error fails the file and a warning is a message.
+Its tests run a real `tdl`, named by `TDL` or found on `PATH`, and skip without one; `checks.remark-tdl-mermaid` runs them under node and bun against the packaged `tdl`.
+`@types/mdast` and `vfile` are optional peer dependencies, since only its types name them.
+Its `package.json` does not name `@unmango/tdl`, which would pull every platform package into the workspace's lock; `npm.nix` adds the dependency, at the flake's version, when it packs the package.
 It is ESM for Node 22 or later and Bun, using only what both have; `js/biome.json` refuses `bun` and `bun:test` imports.
 `tsc` compiles each package's `src/` and `test/` into its `dist/`, and the tests, written against `node:test` and `node:assert`, run from there under both `node --test` and `bun test`.
 The SDK holds framing (`Conn`, over any async iterable of bytes and a writable), the handshake answered from a `Description` (`serve`, `run`), a `Session` over the request and its analysis, diagnostics with loss codes, the cascade (`Skipped`), and case styles over name words.
@@ -663,11 +668,11 @@ Use `PUT /pulls/{n}/merge-async`, which returns `{"status":"pending"}` and merge
 `.github/workflows/release-please.yml` calls the reusable workflow in `unmango/actions` as the thecluster[bot] GitHub App (`vars.RELEASE_APP_CLIENT_ID`, `secrets.RELEASE_APP_PRIVATE_KEY`), so release PRs trigger CI and commits are signed.
 
 release-please owns the version.
-Never hand-edit `toolVersion` in `internal/cli/version.go`, `version` in `flake.nix`, `version` in `editors/vscode/package.json` and `package-lock.json`, `version` in `npm/tdl/package.json` and `npm/tdl-typescript/package.json`, `<Version>` in `dotnet/Tdl.Gen.CSharp/Tdl.Gen.CSharp.csproj`, the `version=` line in the README's release-asset example, or `CHANGELOG.md`.
+Never hand-edit `toolVersion` in `internal/cli/version.go`, `version` in `flake.nix`, `version` in `editors/vscode/package.json` and `package-lock.json`, `version` in `npm/tdl/package.json`, `npm/tdl-typescript/package.json`, `js/remark-tdl-mermaid/package.json`, and that workspace's entry in `js/package-lock.json`, `<Version>` in `dotnet/Tdl.Gen.CSharp/Tdl.Gen.CSharp.csproj`, the `version=` line in the README's release-asset example, or `CHANGELOG.md`.
 The first two, the csproj line, and the README line carry an `x-release-please-version` annotation; the JSON files are listed in `release-please-config.json`.
 
 When it reports a release, the `assets` job builds `packages.release` at the tag on a GitHub-hosted runner, attests every file with `actions/attest-build-provenance`, and uploads them to the release.
-The `npm` job builds `packages.npm` at the tag and publishes the four platform packages, then `@unmango/tdl`, then `@unmango/tdl-typescript`, through npm's trusted publishing, which needs no stored token and writes provenance; each package's trusted publisher on npmjs.com names `release-please.yml`, and a version already published is skipped.
+The `npm` job builds `packages.npm` at the tag and publishes the four platform packages, then `@unmango/tdl`, then `@unmango/tdl-typescript` and `@unmango/remark-tdl-mermaid`, through npm's trusted publishing, which needs no stored token and writes provenance; each package's trusted publisher on npmjs.com names `release-please.yml`, and a version already published is skipped.
 The `nuget` job builds `packages.tdl-gen-csharp-tool` at the tag and pushes it to nuget.org through trusted publishing: `NuGet/login` trades the job's OIDC token for a short-lived key as `vars.NUGET_USER`, whose policy on nuget.org names `release-please.yml`, and `--skip-duplicate` skips a version already pushed.
 
 Two versions are not release-please's:

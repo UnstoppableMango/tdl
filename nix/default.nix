@@ -162,6 +162,20 @@ in
         '';
       });
 
+      # The remark plugin's tests, under node and bun, against the packaged
+      # tdl, which carries tdl-gen-mermaid beside it.
+      checks.remark-tdl-mermaid = pkgs.tdl-js.overrideAttrs (old: {
+        pname = "remark-tdl-mermaid";
+        nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.bun ];
+        checkPhase = ''
+          runHook preCheck
+          export TDL=${pkgs.lib.getExe pkgs.tdl} HOME=$TMPDIR
+          node --test 'remark-tdl-mermaid/dist/test/**/*.test.js'
+          (cd remark-tdl-mermaid && bun test ./dist/test)
+          runHook postCheck
+        '';
+      });
+
       # Runs the JS debug port from PATH through tdl gen, and holds it to
       # the file and the warnings the Go debug backend writes for the same
       # model.
