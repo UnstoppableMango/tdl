@@ -535,6 +535,15 @@ pub struct HandshakeReply {
     ///
     /// Field 7: `numbering`
     pub numbering: ::buffa::MessageField<Numbering, ::buffa::Inline<Numbering>>,
+    /// import_patterns name the files this backend's importer reads, for a
+    /// directory argument to `tdl import`, which tdl walks for the files they
+    /// match. Each is a glob matched against a file's base name, as Go's
+    /// path.Match reads one; one starting with `!` excludes what it matches.
+    /// A file is read when an include matches it and no exclude does. A
+    /// backend that imports nothing, or declares none, is given only files.
+    ///
+    /// Field 8: `import_patterns`
+    pub import_patterns: ::buffa::alloc::vec::Vec<::buffa::alloc::string::String>,
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
 }
@@ -548,6 +557,7 @@ impl ::core::fmt::Debug for HandshakeReply {
             .field("directives", &self.directives)
             .field("features", &self.features)
             .field("numbering", &self.numbering)
+            .field("import_patterns", &self.import_patterns)
             .finish()
     }
 }
@@ -614,6 +624,9 @@ impl ::buffa::Message for HandshakeReply {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        for v in &self.import_patterns {
+            size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
     }
@@ -659,6 +672,9 @@ impl ::buffa::Message for HandshakeReply {
                 buf,
             );
             self.numbering.write_to(__cache, buf);
+        }
+        for v in &self.import_patterns {
+            ::buffa::types::put_string_field(8u32, v, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -735,6 +751,17 @@ impl ::buffa::Message for HandshakeReply {
                     ctx,
                 )?;
             }
+            8u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __elem = ::buffa::types::decode_string(buf)?;
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&__elem),
+                )?;
+                self.import_patterns.push(__elem);
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -750,6 +777,7 @@ impl ::buffa::Message for HandshakeReply {
         self.directives.clear();
         self.features = ::buffa::MessageField::none();
         self.numbering = ::buffa::MessageField::none();
+        self.import_patterns.clear();
         self.__buffa_unknown_fields.clear();
     }
 }

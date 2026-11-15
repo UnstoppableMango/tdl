@@ -72,6 +72,8 @@ func (Backend) Describe() plugin.Description {
 			{Name: "readback", Placements: plugin.On(plugin.OnBlock)},
 		},
 		Reverse: true,
+		// The files a directory argument to `tdl import` yields.
+		ImportPatterns: []string{"*.proto"},
 		Numbering: &plugin.Numbering{
 			Fields:  emit.DeclareRule(fieldNumbers),
 			Values:  emit.DeclareRule(enumNumbers),
