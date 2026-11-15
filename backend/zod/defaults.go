@@ -172,8 +172,8 @@ func (g *generator) literal(r *emit.Ref, l *ir.Literal) (string, string) {
 			return "", "is out of float32's range"
 		}
 		if f == 0 {
-			// JSON has no negative zero, and the unique helper compares
-			// JSON text, so -0 is written 0.
+			// The unique helper compares JSON.stringify's text, which
+			// writes -0 as 0, so -0 is written 0 too.
 			f = 0
 		}
 		return strconv.FormatFloat(f, 'g', -1, 64), ""

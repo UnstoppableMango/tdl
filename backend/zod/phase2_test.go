@@ -431,6 +431,8 @@ func TestExternNeedsOut(t *testing.T) {
 func TestUniqueDefaultComparesWrittenValues(t *testing.T) {
 	resp, src := gen(t, `package shop
 
+type Plain: [float64]
+
 type T {
   spelled: [float64] where { unique } = [1, 1.0]
   nested: [[float64]] where { unique } = [[1], [1.0]]
@@ -438,6 +440,7 @@ type T {
   escaped: [string] where { unique } = ["\t", "	"]
   distinct: [float64] where { unique } = [1, 2.5]
   wrapped: Floats = [2, 2.0]
+  narrowed: Plain where { unique } = [3, 3.0]
   zero: [float64] where { unique } = [0, -0.0]
 }
 
@@ -451,6 +454,7 @@ type Floats: [float64] where { unique }
 		// stands for already lower to one text.
 		{"escaped", `"\t"`},
 		{"wrapped", "2"},
+		{"narrowed", "3"},
 		// JSON has no negative zero, so the helper reads both as 0.
 		{"zero", "0"},
 	} {

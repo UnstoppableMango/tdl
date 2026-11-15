@@ -192,7 +192,8 @@ func bound(n *int64, open string) string {
 //
 // unique compares the values literal writes for r's elements, which the
 // module's unique helper sees, so it is checked only when r is a list or a
-// set; an item literal cannot write is left to literal to report.
+// set, or a newtype of one; an item literal cannot write is left to
+// literal to report.
 func (g *generator) refusing(r *emit.Ref, l *ir.Literal, cs []*ir.Constraint, pending bool) (*ir.Constraint, string) {
 	for _, c := range cs {
 		args := c.GetArgs()
@@ -228,15 +229,13 @@ func (g *generator) refusing(r *emit.Ref, l *ir.Literal, cs []*ir.Constraint, pe
 				return c, "does not match " + emit.ConstraintText(c)
 			}
 		case "unique":
-			for r != nil && (r.Form == emit.Option || r.Form == emit.Nullable) {
-				r = r.Elem
-			}
-			if r == nil || (r.Form != emit.List && r.Form != emit.Set) {
+			elem := g.elem(r)
+			if elem == nil {
 				continue
 			}
 			seen := map[string]bool{}
 			for _, item := range l.GetItems() {
-				key, why := g.literal(r.Elem, item)
+				key, why := g.literal(elem, item)
 				if why != "" {
 					continue
 				}
@@ -252,6 +251,22 @@ func (g *generator) refusing(r *emit.Ref, l *ir.Literal, cs []*ir.Constraint, pe
 		}
 	}
 	return nil, ""
+}
+
+// elem is the element of the list or set r names, through newtypes, or
+// nil.
+func (g *generator) elem(r *emit.Ref) *emit.Ref {
+	for r != nil && r.Form == emit.Named && r.Decl.GetNewtype() != nil {
+		base, err := g.Resolve(r.Decl.GetNewtype().GetBase())
+		if err != nil {
+			return nil
+		}
+		r = base
+	}
+	if r == nil || r.Form != emit.List && r.Form != emit.Set {
+		return nil
+	}
+	return r.Elem
 }
 
 // sameLiteral reports whether a and b are one value: equal numbers, or
