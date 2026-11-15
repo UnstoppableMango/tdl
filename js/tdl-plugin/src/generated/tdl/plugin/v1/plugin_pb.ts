@@ -879,9 +879,9 @@ export type Response = Message<"tdl.plugin.v1.Response"> & {
   files: File[];
 
   /**
-   * post is deprecated and ignored; never renumber or reuse it. It once
-   * named commands to run over the written files. A target block's post
-   * directive and the post table in tdl.toml choose them now.
+   * post is deprecated and ignored; never renumber or reuse it. A target
+   * block's post directive and the post table in tdl.toml choose the
+   * commands run over generated files.
    *
    * @generated from field: repeated string post = 2;
    */

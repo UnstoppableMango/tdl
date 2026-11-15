@@ -5695,9 +5695,9 @@ namespace Tdl.Plugin.V1 {
         = pb::FieldCodec.ForString(18);
     private readonly pbc::RepeatedField<string> post_ = new pbc::RepeatedField<string>();
     /// <summary>
-    /// post is deprecated and ignored; never renumber or reuse it. It once
-    /// named commands to run over the written files. A target block's post
-    /// directive and the post table in tdl.toml choose them now.
+    /// post is deprecated and ignored; never renumber or reuse it. A target
+    /// block's post directive and the post table in tdl.toml choose the
+    /// commands run over generated files.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]

@@ -24,6 +24,7 @@ func TestSplitWords(t *testing.T) {
 		{`printf "%s \"x\"" ''`, []string{"printf", `%s "x"`, ""}},
 		{`a\ b c`, []string{"a b", "c"}},
 		{`x'y'"z"`, []string{"xyz"}},
+		{`echo "C:\tmp \" \\" 'a\b'`, []string{"echo", `C:\tmp " \`, `a\b`}},
 	}
 	for _, tc := range tests {
 		got, err := splitWords(tc.line)
@@ -139,7 +140,7 @@ func TestPostApplyErrors(t *testing.T) {
 		want  []string
 	}{
 		{"exits non-zero", []string{"sh", "-c", "echo broken >&2; exit 3"}, files, []string{"post command c failed on a.ts", "exit status 3", "broken"}},
-		{"not on PATH", []string{"tdl-no-such-command"}, files, []string{"post command c", "tdl-no-such-command was not found"}},
+		{"not on PATH", []string{"tdl-no-such-command"}, files, []string{"post command c on a.ts", "tdl-no-such-command was not found"}},
 		{"no such file", []string{script}, files, []string{"post command c", script + " was not found"}},
 		{"escaping path", []string{"cat"}, []*plugin.File{{Path: "../x.ts"}}, []string{"outside the output directory"}},
 	}

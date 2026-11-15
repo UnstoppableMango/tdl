@@ -17,9 +17,9 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// FilePlaceholder is replaced, in each word of a post command line, with
+// filePlaceholder is replaced, in each word of a post command line, with
 // the destination path of the file being processed.
-const FilePlaceholder = "{file}"
+const filePlaceholder = "{file}"
 
 // Post is the commands a target block's post directive names, read through
 // tdl.toml's [post] table. Each is a filter over one file: tdl writes the
@@ -120,7 +120,7 @@ func (p *Post) Apply(ctx context.Context, out string, files []*plugin.File) ([]*
 func (c Command) run(ctx context.Context, dir, file string, content []byte) ([]byte, error) {
 	args := make([]string, len(c.Args))
 	for i, a := range c.Args {
-		args[i] = strings.ReplaceAll(a, FilePlaceholder, file)
+		args[i] = strings.ReplaceAll(a, filePlaceholder, file)
 	}
 
 	cmd := exec.CommandContext(ctx, args[0], args[1:]...)
@@ -135,7 +135,7 @@ func (c Command) run(ctx context.Context, dir, file string, content []byte) ([]b
 	case err == nil:
 		return stdout.Bytes(), nil
 	case errors.Is(err, exec.ErrNotFound), errors.Is(err, os.ErrNotExist):
-		return nil, fmt.Errorf("post command %s: %s was not found", c.Name, args[0])
+		return nil, fmt.Errorf("post command %s on %s: %s was not found", c.Name, file, args[0])
 	case errors.As(err, &exit):
 		msg := fmt.Sprintf("post command %s failed on %s: %v", c.Name, file, err)
 		if s := strings.TrimSpace(stderr.String()); s != "" {
@@ -148,8 +148,9 @@ func (c Command) run(ctx context.Context, dir, file string, content []byte) ([]b
 
 // splitWords splits a command line into words as a shell would, without
 // expanding anything: whitespace separates words, single quotes keep
-// everything inside them, and within double quotes or outside quotes a
-// backslash keeps the character after it.
+// everything inside them, a backslash outside quotes keeps the character
+// after it, and one inside double quotes does so only before $, `, ", \,
+// or a newline, and is otherwise kept itself.
 func splitWords(line string) ([]string, error) {
 	var words []string
 	var word strings.Builder
@@ -160,6 +161,9 @@ func splitWords(line string) ([]string, error) {
 	for _, r := range line {
 		switch {
 		case escaped:
+			if quote == '"' && !strings.ContainsRune("$`\"\\\n", r) {
+				word.WriteRune('\\')
+			}
 			word.WriteRune(r)
 			escaped = false
 		case quote == '\'':

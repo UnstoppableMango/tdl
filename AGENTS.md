@@ -131,6 +131,7 @@ Each check is one invocation over all files.
 `gen.files` is separate and empty by default, because `tdl gen` fails on a file with no target block.
 It is exported as `flakeModules.default` with a `tdl` alias.
 `checks.flake-module` evaluates a consumer flake against `testdata/conformance/entity` that sets `src` but not `enable` and builds the result, without `tdl-gen`, which needs generated output on disk; it also asserts that `enable = false`, or setting nothing, defines no check or shell.
+It also asserts that `post.packages`, the commands `tdl.toml`'s `[post]` table names, reach the `PATH` of `tdl-gen` and `devShells.tdl`.
 
 ## Architecture
 

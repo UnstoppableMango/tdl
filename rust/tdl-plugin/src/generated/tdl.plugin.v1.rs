@@ -3729,9 +3729,9 @@ impl ::buffa::ExtensionSet for ConstraintView {
 pub struct Response {
     /// Field 1: `files`
     pub files: ::buffa::alloc::vec::Vec<File>,
-    /// post is deprecated and ignored; never renumber or reuse it. It once
-    /// named commands to run over the written files. A target block's post
-    /// directive and the post table in tdl.toml choose them now.
+    /// post is deprecated and ignored; never renumber or reuse it. A target
+    /// block's post directive and the post table in tdl.toml choose the
+    /// commands run over generated files.
     ///
     /// Field 2: `post`
     pub post: ::buffa::alloc::vec::Vec<::buffa::alloc::string::String>,
