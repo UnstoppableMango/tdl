@@ -117,7 +117,7 @@ A model-first case's `lossy.golden` holds the codes generating with `readback` r
 ## Feature tables
 
 `docs/backends/<target>.md` is a backend's page for model authors, holding a table of what it does with each feature of the language between `<!-- tdl:features <target> -->` and `<!-- /tdl:features -->`.
-`internal/features` measures it and `tools/features` (`make features`) writes it; `TestTablesAreCurrent` compares and never writes.
+`internal/features` measures it and `tools/features` (`command make features`) writes it; `TestTablesAreCurrent` compares and never writes.
 A row is a directory of `testdata/features` holding `source.tdl`; a subdirectory named for a backend holds its own source, for a feature that backend reaches only through its own directives.
 A source's target block is written for `feature` and renamed for each backend, in its imports too.
 Generate is No on an error or a warning without a loss code, Warns on the loss codes the row owns (`Row.Codes`), and Yes otherwise, since a source cannot use a feature alone.
@@ -126,7 +126,7 @@ Import generates with `readback` and without `roundtrip` and reads the files bac
 The same model is Yes, as is a difference output loss alone explains; a difference with no loss code anywhere is No.
 `features.toml` beside a backend's source (`backend/<package>/`, or `dotnet/Tdl.Gen.CSharp/` for `csharp`) holds the cells a measurement cannot: `spelling`, `notes`, and `planned`, which shows in place of Generate and fails once the row generates.
 A cell may not hold a `|`.
-An Import cell a tool missing from PATH, or `-short`, leaves unmeasured keeps its committed text, so `make features` needs `smithy` and `tsc` to change those cells.
+An Import cell a tool missing from PATH, or `-short`, leaves unmeasured keeps its committed text, so `command make features` needs `smithy` and `tsc` to change those cells.
 A plugin this repository serves, `csharp`, is measured through `tdl-gen-csharp` when it is on PATH, as in CI's race run, and otherwise keeps every committed cell.
 Every target but `debug` is embedded exactly once.
 Two matrices set one column of every table side by side, each cell its first word: `generate` in `README.md` and `import` in `docs/backends/README.md`, where a backend that imports nothing has no column.

@@ -15,12 +15,12 @@ A lexical name the lexer owns is a production with no expression and a `/*@ toke
 ## Derived grammars
 
 Both derived grammars are committed and checked by tests that compare, never write: `go test ./internal/treesitter` and `go test ./internal/textmate`.
-After a grammar change, run `make treesitter` and `make textmate` and read the diffs.
+After a grammar change, run `command make treesitter` and `command make textmate` and read the diffs.
 A keyword added to `lex` and `reserved_word` shows up in both.
 
-`make test-treesitter` runs `tree-sitter/corpus.sh`: `testdata/conformance/*/source.tdl` must parse with no ERROR node and `testdata/invalid/*/source.tdl` must produce one.
+`command make test-treesitter` runs `tree-sitter/corpus.sh`: `testdata/conformance/*/source.tdl` must parse with no ERROR node and `testdata/invalid/*/source.tdl` must produce one.
 It also compiles the hand-written `tree-sitter/queries/highlights.scm`; `TestHighlightsCoverKeywords` checks it covers every keyword.
-CI runs `make check-treesitter` in `nix develop .#treesitter`, since the regeneration diff is only stable against the pinned CLI.
+CI runs `command make check-treesitter` in `nix develop .#treesitter`, since the regeneration diff is only stable against the pinned CLI.
 That shell holds only go, gnumake, node, and tree-sitter to keep its closure small; node runs `grammar.js`.
 
 ## TextMate grammar
@@ -57,7 +57,7 @@ esbuild bundles it into `dist/extension.js`.
 `nix/vscode-extension.nix` builds it with `buildNpmPackage` and `importNpmLock`, so a lock file update needs no hash change.
 It rewrites `tdl.server.path`'s default to `lib.getExe tdl` with `jq`, and a `jq -e` over the source fails the build if the setting is renamed.
 `checks.vscode-tdl` builds it, typecheck included.
-Install it with `programs.tdl.vscode.enable`, through `vscode-with-extensions` or `programs.vscode.profiles.<name>.extensions`, or with `make vscode-install` while iterating on colors.
+Install it with `programs.tdl.vscode.enable`, through `vscode-with-extensions` or `programs.vscode.profiles.<name>.extensions`, or with `command make vscode-install` while iterating on colors.
 A copy placed in an extensions folder registers on a remote server and does nothing locally.
 After regenerating the grammar, reinstall and reload the window.
 

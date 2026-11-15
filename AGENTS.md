@@ -17,7 +17,7 @@ command make fmt      # nix fmt (treefmt) + buf format
 Prefix `make` with `command`: zsh with Prezto shadows it with an autoload stub that fails in an agent's subprocess.
 Nix builds the project, and `nix flake check` fails on anything unformatted.
 
-After changing `go.mod`, run `make tidy` so `nix/gomod2nix.toml` stays in sync; otherwise `nix build` fails.
+After changing `go.mod`, run `command make tidy` so `nix/gomod2nix.toml` stays in sync; otherwise `nix build` fails.
 Renovate does the same for its own updates through the `gomod2nix` preset in `.github/renovate.json`.
 Neither `gomod2nix` nor `protoc-gen-go` is on `PATH`.
 Run generators through the devShell: `nix develop --command make tidy`, and `buf generate` inside `nix develop` or with `PATH="$(go env GOPATH)/bin:$PATH"`.
