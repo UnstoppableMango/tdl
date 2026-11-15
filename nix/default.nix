@@ -56,6 +56,16 @@ in
         # The tarballs and SHA256SUMS the release uploads and attests.
         release = pkgs.tdl-release;
         tree-sitter-tdl = pkgs.python3Packages.tree-sitter-tdl;
+        # Every plugin the Go tests run from PATH, for CI's race run: a plugin
+        # this repository serves outside `tdl` joins here, not the workflow.
+        plugins = pkgs.symlinkJoin {
+          name = "tdl-plugins";
+          paths = [
+            pkgs.tdl
+            # tdl-gen-mermaid, until it ships beside tdl (#1487).
+            pkgs.tdl-js
+          ];
+        };
         # The README's demo GIF; `make demo` copies it into docs/demo.
         demo = pkgs.callPackage ./demo.nix { };
       };

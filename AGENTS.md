@@ -319,7 +319,7 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   `dotnet/Tdl.DotNet` holds what it shares with the planned `fsharp` target: the primitive mapping, the namespace a package derives, and parsing `foreign` and `attribute`.
   Phases 1 and 2 are built, and #1194 tracks the rest: generics, classes, and validation warn.
   Its tests cannot lower TDL, so `internal/gen/plugins_test.go` records requests: one beside each `testdata/csharp/cases/*/*.tdl`, and one per conformance case and the smoke model in `testdata/csharp/corpus/<case>/`, with the files it generates in `want/`.
-  `go test ./internal/gen -record` rewrites them, generating through `tdl-gen-csharp` on `PATH`, and without `-record` compares with them when it is there; CI's race run puts the built plugins on `PATH`.
+  `go test ./internal/gen -record` rewrites them, generating through `tdl-gen-csharp` on `PATH`, and without `-record` compares with them when it is there; CI's race run puts `packages.plugins` on `PATH`.
   The tests compile every response with `CSharpCompilation`, warnings as errors, and run the equality, key, and default checks in process; `checks.gen-csharp` builds the smoke model with `dotnet build` and the SDK's analyzers.
 - `backend/likec4`: LikeC4 source for an architecture diagram: `tdl.c4`, the specification of element kinds, the same bytes for every model, and one `<package>.c4` holding a package element and one element per structure, enum, newtype, or class; aliases, primitives, and units have none.
   Only phase 1 is built, and #1210 tracks the rest: no relationships or views yet.
