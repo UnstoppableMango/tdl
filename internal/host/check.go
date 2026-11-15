@@ -35,7 +35,7 @@ func CheckDirectives(target string, model *ir.Model, desc plugin.Description) []
 	for _, s := range desc.Directives {
 		specs[s.GetName()] = s
 	}
-	specs = withHost(specs)
+	withHost(specs)
 
 	var problems []*plugin.Diagnostic
 	for _, n := range nodeDirectives(target, model) {
@@ -108,14 +108,13 @@ func checkEach(target string, n node, specs map[string]*plugin.DirectiveSpec) []
 				"%s does not declare the directive %s", target, d.GetName()))
 			continue
 		}
-		if _, own := hostSpecs[d.GetName()]; own && !placed(spec, n.placement) {
-			problems = append(problems, problem(d.GetPosition(), plugin.Severity_SEVERITY_ERROR,
-				"%s is written on %s, and tdl reads it only on %s", d.GetName(), placementNames[n.placement], where(spec)))
-			continue
-		}
 		if !placed(spec, n.placement) {
+			reader := target
+			if _, own := hostSpecs[d.GetName()]; own {
+				reader = "tdl"
+			}
 			problems = append(problems, problem(d.GetPosition(), plugin.Severity_SEVERITY_ERROR,
-				"%s is written on %s, and %s reads it only on %s", d.GetName(), placementNames[n.placement], target, where(spec)))
+				"%s is written on %s, and %s reads it only on %s", d.GetName(), placementNames[n.placement], reader, where(spec)))
 			continue
 		}
 		problems = append(problems, checkOne(d, spec)...)

@@ -282,3 +282,25 @@ func TestEmptyOutputIsKept(t *testing.T) {
 		t.Errorf("verify: %d calls, stale %v", b.calls, verify.Stale)
 	}
 }
+
+// Changing a post command line regenerates a nondeterministic backend's
+// kept output, so the new command processes it.
+func TestChangedPostRegenerates(t *testing.T) {
+	out, b := t.TempDir(), &fickle{}
+	run := func(line string) gen.Result {
+		t.Helper()
+		target := gen.Target{Name: "fickle", Out: out, Root: out, Post: []gen.Command{{Name: "f", Line: line}}}
+		result, err := gen.Run(context.Background(), b, target, lowerSource(t, "shop.tdl", keepSource), gen.ModeWrite)
+		if err != nil {
+			t.Fatalf("run: %v", err)
+		}
+		return result
+	}
+	run("cat")
+	if again := run("cat"); b.calls != 1 || len(again.Kept) != 1 {
+		t.Fatalf("an unchanged post line regenerated: %d calls, kept %v", b.calls, again.Kept)
+	}
+	if changed := run("tr a-z A-Z"); b.calls != 2 || len(changed.Written) != 1 {
+		t.Errorf("a changed post line kept the output: %d calls, wrote %v", b.calls, changed.Written)
+	}
+}

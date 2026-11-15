@@ -250,10 +250,6 @@ func (r *genRun) generate(path string) error {
 			r.cleaned[out] = true
 		}
 
-		if err := t.Configure(cfg); err != nil {
-			return err
-		}
-
 		backend, err := r.backend(cmd.Context(), t.Name)
 		if err != nil {
 			return err
@@ -265,6 +261,9 @@ func (r *genRun) generate(path string) error {
 		reportDiagnostics(cmd, problems)
 		if host.Fatal(problems) {
 			return fmt.Errorf("target %s uses a directive incorrectly", t.Name)
+		}
+		if err := t.Configure(cfg); err != nil {
+			return err
 		}
 
 		result, err := gen.Run(cmd.Context(), backend, t, model, mode)

@@ -18,8 +18,9 @@ type Target struct {
 	Out   string
 	Block *ir.TargetBlock
 
-	// Dir is the directory holding tdl.toml, where commands run.
-	Dir string
+	// Root is the directory holding tdl.toml: where post commands run, and
+	// what a relative program in any command line is relative to.
+	Root string
 	// Post holds the commands the block's post directive names, from
 	// tdl.toml; [Target.Configure] reads them.
 	Post []Command
@@ -102,6 +103,7 @@ func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.M
 		if hash, err = RequestHash(req); err != nil {
 			return Result{Target: target.Name}, fmt.Errorf("target %s: %w", target.Name, err)
 		}
+		hash = withPost(hash, target.Post)
 		if result, done, err := reuse(target, hash, mode); done || err != nil {
 			return result, err
 		}

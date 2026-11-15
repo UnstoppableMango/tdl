@@ -149,12 +149,13 @@ It may be repeated, the later entry's names following the earlier one's.
 
 A command is a filter over one file: `tdl` writes the content to its stdin and takes its stdout as the new content.
 The command line is split into words as a shell would split it, single and double quotes and backslashes included, but nothing is expanded and no shell runs; a command wanting one names `sh -c`.
+A program named by a relative path, such as `./scripts/fmt`, is relative to the directory holding `tdl.toml`.
 `{file}` in a word is the file's destination path relative to the directory holding `tdl.toml`, with forward slashes, and the command runs there, so a tool finds its own configuration as if the file were in place.
 Several names run in order, each one's output feeding the next, over every file the target returns.
 
 Post-processing runs before anything is compared or written, so `--verify`, `--clean`, `.tdl-output`, and `--make` see the bytes that land on disk, and `--watch` runs it on every regeneration.
 A command that exits non-zero, whose stderr the error carries, or is not found, or a name `[post]` does not declare, including when no `tdl.toml` is found, is an error naming the target, and nothing is written for it; skipping it instead would make `--verify` depend on the machine.
-A nondeterministic backend's kept output (ADR-0002) is not post-processed again, since it was when it was written.
+A nondeterministic backend's kept output (ADR-0002) is not post-processed again, since it was when it was written; the post command lines join its request's hash, so changing one regenerates it.
 The table is a record of what a build runs, not a security boundary, since the plugin is already arbitrary code.
 The flake-parts module's `post.packages` puts the commands on `PATH` for `checks.tdl-gen` and `devShells.tdl`.
 

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/unstoppablemango/tdl/internal/config"
@@ -24,7 +25,7 @@ type Command struct {
 // is an error, since skipping the command would make what is written
 // depend on the machine.
 func (t *Target) Configure(cfg *config.Config) error {
-	t.Dir = cfg.Dir()
+	t.Root = cfg.Dir()
 	var err error
 	t.Post, err = commands(t.Name, host.Names(t.Block, host.PostDirective), host.PostDirective, cfg.Post, cfg.Path)
 	return err
@@ -50,13 +51,14 @@ func commands(target string, names []string, table string, lines map[string]stri
 }
 
 // run runs a command line in dir, replacing each placeholder in its words,
-// with stdin as its input, and returns its stdout. A command that is not
-// found or that exits non-zero is an error carrying what it wrote to
-// stderr, or, when it writes stdout only on success, nothing more.
-func (c Command) run(ctx context.Context, dir string, placeholders map[string]string, stdin []byte) ([]byte, []byte, error) {
+// with stdin as its input, and returns its stdout. A program named by a
+// relative path, such as ./scripts/fmt, is relative to root, the directory
+// holding tdl.toml, wherever tdl runs. A command that is not found or that
+// exits non-zero is an error carrying what it wrote to stderr.
+func (c Command) run(ctx context.Context, root, dir string, placeholders map[string]string, stdin []byte) ([]byte, []byte, error) {
 	words, err := splitWords(c.Line)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%s: %w", c.Name, err)
+		return nil, nil, fmt.Errorf("%s: %w", c.Line, err)
 	}
 	for i, w := range words {
 		for k, v := range placeholders {
@@ -64,9 +66,13 @@ func (c Command) run(ctx context.Context, dir string, placeholders map[string]st
 		}
 		words[i] = w
 	}
-	path, err := exec.LookPath(words[0])
+	program := words[0]
+	if strings.ContainsRune(program, '/') && !filepath.IsAbs(program) {
+		program = filepath.Join(root, program)
+	}
+	path, err := exec.LookPath(program)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%s: %w", c.Name, err)
+		return nil, nil, err
 	}
 
 	cmd := exec.CommandContext(ctx, path, words[1:]...)
@@ -75,7 +81,7 @@ func (c Command) run(ctx context.Context, dir string, placeholders map[string]st
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 	if err := cmd.Run(); err != nil {
-		return stdout.Bytes(), stderr.Bytes(), fmt.Errorf("%s (%s): %w", c.Name, c.Line, err)
+		return stdout.Bytes(), stderr.Bytes(), fmt.Errorf("%s: %w", c.Line, err)
 	}
 	return stdout.Bytes(), stderr.Bytes(), nil
 }

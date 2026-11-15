@@ -185,3 +185,30 @@ func TestPostBiome(t *testing.T) {
 		t.Errorf("biome check: %v\n%s", err, out)
 	}
 }
+
+// A program named by a relative path is relative to the directory holding
+// tdl.toml, wherever tdl runs.
+func TestPostRelativeProgram(t *testing.T) {
+	dir, file := postModel(t, `post("local")`, "[post]\nlocal = \"./bin/up\"\n")
+	writeFiles(t, dir, map[string]string{"bin/up": "#!/bin/sh\ntr a-z A-Z\n"})
+	if err := os.Chmod(filepath.Join(dir, "bin", "up"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(t.TempDir())
+	if _, errOut, err := run(t, newGenCmd(), file); err != nil {
+		t.Fatalf("gen: %v\n%s", err, errOut)
+	}
+	if got := readOut(t, dir); !strings.Contains(got, "ORDER") {
+		t.Errorf("model.txt was not upper-cased:\n%s", got)
+	}
+}
+
+// A misused post directive is reported where it is written, before its
+// names are looked up.
+func TestPostMisuseIsADirectiveError(t *testing.T) {
+	_, file := postModel(t, "post(1)", "")
+	_, errOut, err := run(t, newGenCmd(), file)
+	if err == nil || !strings.Contains(errOut, "post argument 1 is") {
+		t.Errorf("gen = %v\n%s", err, errOut)
+	}
+}

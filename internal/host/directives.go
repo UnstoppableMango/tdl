@@ -41,13 +41,12 @@ func Directives() []string {
 	return names
 }
 
-// withHost returns specs with the host's directives in place of any a
+// withHost puts the host's directives into specs, in place of any a
 // backend declares under the same names.
-func withHost(specs map[string]*plugin.DirectiveSpec) map[string]*plugin.DirectiveSpec {
+func withHost(specs map[string]*plugin.DirectiveSpec) {
 	for name, spec := range hostSpecs {
 		specs[name] = spec
 	}
-	return specs
 }
 
 // checkNames reports a host directive's argument that is not a string; the
