@@ -207,7 +207,7 @@ A bare `json` directive on the target block opts in to the JSON wire convention 
 Without it, the generated types carry no `encoding/json` opinion.
 
 Every field gets a `json` struct tag holding its JSON key, with `omitempty` when it is `T?`: its name in the model, or what a `wire` directive on it says.
-A `name` directive renames only the Go identifier, so `name` and `wire` together give ``OrgName string `json:"orgName"` ``.
+A `name` directive renames only the Go identifier, so `name("OrgName")` and `wire("orgName")` together give the field `OrgName` the tag `json:"orgName"`.
 A variant's discriminant value is its wire value, the `wire` directive's or else its name; a `wire` on a fielded variant without `json` warns that it has no effect.
 A `tag` directive on a field replaces its tag, and decoding reads the property that tag names; beside a `wire` naming another key, the tag wins and warns.
 
