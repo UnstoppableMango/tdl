@@ -138,7 +138,7 @@ func TestDescribe(t *testing.T) {
 	for _, spec := range d.Directives {
 		declared[spec.GetName()] = true
 	}
-	for _, want := range []string{"name", "label", "plural", "key", "length", "scale", "prefix", "apiVersion"} {
+	for _, want := range []string{"name", "label", "plural", "key", "length", "scale", "standard", "prefix", "apiVersion"} {
 		if !declared[want] {
 			t.Errorf("directive %q is acted on but not declared", want)
 		}
@@ -443,4 +443,119 @@ func TestConformance(t *testing.T) {
 			files(t, resp)
 		})
 	}
+}
+
+// An entity marked standard adds custom fields to that standard object and
+// writes no object file, and a lookup to it names the object.
+func TestStandardObject(t *testing.T) {
+	b := irtest.New("shop")
+	name := irtest.Field("name", b.Named("string"))
+	name.Directives = []*ir.Directive{directive("standard", irtest.Text("Name"))}
+	customer := entity("Customer", name, irtest.Field("tier", b.Named("string")))
+	customer.Directives = []*ir.Directive{directive("standard", irtest.Text("Account"))}
+	b.Own(customer)
+	b.Own(entity("Order", irtest.Field("customer", b.Named("Customer"))))
+	b.Own(value("Receipt", irtest.Field("buyer", b.Named("Customer"))))
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Errorf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	all := files(t, resp)
+	contains(t, file(t, all, "objects/Account/fields/Tier__c.field-meta.xml"),
+		"<fullName>Tier__c</fullName>", "<label>Tier</label>", "<type>Text</type>")
+	for p := range all {
+		if strings.HasPrefix(p, "objects/Account/") && p != "objects/Account/fields/Tier__c.field-meta.xml" {
+			t.Errorf("standard object wrote %s", p)
+		}
+		if strings.HasPrefix(p, "objects/Customer") {
+			t.Errorf("standard object wrote %s", p)
+		}
+	}
+	contains(t, file(t, all, "objects/Order__c/fields/Customer__c.field-meta.xml"),
+		"<referenceTo>Account</referenceTo>", "<relationshipName>OrderCustomer</relationshipName>")
+	contains(t, file(t, all, "classes/Receipt.cls"), "public Account buyer;")
+}
+
+// A custom object's field can stand for a standard field too, and a
+// standard object's relationship names start with its API name.
+func TestStandardField(t *testing.T) {
+	b := irtest.New("shop")
+	created := irtest.Field("createdAt", b.Named("instant"))
+	created.Directives = []*ir.Directive{directive("standard", irtest.Text("CreatedDate"))}
+	b.Own(entity("Order", created, irtest.Field("total", b.Named("decimal"))))
+	contact := entity("Person", irtest.Field("order", b.Named("Order")))
+	contact.Directives = []*ir.Directive{directive("standard", irtest.Text("Contact"))}
+	b.Own(contact)
+
+	all := files(t, generate(t, b))
+	file(t, all, "objects/Order__c/Order__c.object-meta.xml")
+	file(t, all, "objects/Order__c/fields/Total__c.field-meta.xml")
+	if _, ok := all["objects/Order__c/fields/CreatedAt__c.field-meta.xml"]; ok {
+		t.Error("standard field has a field file")
+	}
+	contains(t, file(t, all, "objects/Contact/fields/Order__c.field-meta.xml"),
+		"<referenceTo>Order__c</referenceTo>", "<relationshipName>ContactOrder</relationshipName>")
+}
+
+func TestStandardRefused(t *testing.T) {
+	for _, tc := range []struct {
+		name, std, want string
+	}{
+		{"custom", "Tier__c", "is a custom or managed-package name"},
+		{"managed", "acme__Thing", "is a custom or managed-package name"},
+		{"invalid", "Not An Object", "not an API name"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			b := irtest.New("shop")
+			d := entity("Customer", irtest.Field("tier", b.Named("string")))
+			d.Directives = []*ir.Directive{directive("standard", irtest.Text(tc.std))}
+			b.Own(d)
+			resp := generate(t, b)
+			warned(t, resp, tc.want)
+			if len(resp.GetFiles()) != 0 {
+				t.Errorf("files = %v", resp.GetFiles())
+			}
+		})
+	}
+
+	// Two entities cannot both be one standard object.
+	b := irtest.New("shop")
+	for _, n := range []string{"Customer", "Company"} {
+		d := entity(n, irtest.Field("tier", b.Named("string")))
+		d.Directives = []*ir.Directive{directive("standard", irtest.Text("Account"))}
+		b.Own(d)
+	}
+	warned(t, generate(t, b), "Company would declare Account in Salesforce, and Customer already does")
+}
+
+// What a standard object already has, or what does not apply to it, warns
+// and is ignored.
+func TestStandardIgnored(t *testing.T) {
+	b := irtest.New("shop")
+	id := irtest.Field("number", b.Named("string"))
+	id.Directives = []*ir.Directive{directive("standard", irtest.Text("AccountNumber"))}
+	customer := entity("Customer", id, irtest.Field("tier", b.Named("string")))
+	customer.Directives = []*ir.Directive{
+		directive("standard", irtest.Text("Account")),
+		directive("label", irtest.Text("Client")),
+		directive("plural", irtest.Text("Clients")),
+		directive("key", irtest.Name("number")),
+	}
+	b.Own(customer)
+	line := irtest.Field("sku", b.Named("string"))
+	line.Directives = []*ir.Directive{directive("standard", irtest.Text("Name"))}
+	receipt := value("Receipt", line)
+	receipt.Directives = []*ir.Directive{directive("standard", irtest.Text("Account"))}
+	b.Own(receipt)
+
+	resp := generate(t, b)
+	warned(t, resp, "Account is a standard object, which keeps its own label")
+	warned(t, resp, "Account is a standard object, which keeps its own plural")
+	warned(t, resp, "Customer is keyed by number, which stands for a standard field")
+	warned(t, resp, "standard maps an entity to a standard object, and Receipt is not an entity")
+	warned(t, resp, "standard on Receipt.sku maps a field of an entity")
+	all := files(t, resp)
+	file(t, all, "objects/Account/fields/Tier__c.field-meta.xml")
+	contains(t, file(t, all, "classes/Receipt.cls"), "public String sku;")
 }
