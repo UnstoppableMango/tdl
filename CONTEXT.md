@@ -82,6 +82,13 @@ _Avoid_: loss, lossy output
 A fact the output keeps but the opposite direction would not recover: a generated entity reads back as a value, an imported unexported Go type regenerates exported.
 _Avoid_: loss, round-trip loss
 
+### Ownership
+
+**Eject**:
+To generate one target a last time in a form meant for people and hand its files over, so `tdl` never writes them again while the model keeps generating every other target; ejecting every target leaves TDL.
+An ejected file carries no generated-code marker and no annotations, and says in comments what the model stated that the file does not enforce.
+_Avoid_: export, detach, vendor, unmanage
+
 ### Generated types
 
 **Wire convention**:
