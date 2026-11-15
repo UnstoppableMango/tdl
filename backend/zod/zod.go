@@ -875,5 +875,3 @@ func (g *generator) record(r *emit.Ref) (schema, error) {
 	}
 	return schema{}, emit.Unsupported(r.Pos, "a Zod record key is a string, a number, or a fieldless enum, and this one is %s", key.expr)
 }
-
-func asWritten(name string) string { return name }
