@@ -189,6 +189,17 @@ func TestAgreesWithTypeScript(t *testing.T) {
 	for _, d := range m.GetDecls() {
 		d.Directives = unbrand(d.Directives)
 	}
+	// Both rename a fieldless and a fielded variant's wire value.
+	wire := map[string]string{"Status.Draft": "draft", "Payment.Card": "card"}
+	for _, d := range m.GetDecls() {
+		for _, v := range d.GetEnumeration().GetVariants() {
+			if tag, ok := wire[emit.LastSegment(d.GetMeta().GetName())+"."+v.GetMeta().GetName()]; ok {
+				for _, target := range []string{typescript.Name, zod.Name} {
+					v.Directives = append(v.Directives, &ir.Directive{Name: "wire", Target: target, Args: []*ir.Literal{irtest.Text(tag)}})
+				}
+			}
+		}
+	}
 	tsResp := generate(t, typescript.Backend{}, typescript.Name, m)
 	for _, block := range m.GetTargets() {
 		if block.GetMeta().GetName() == zod.Name {
@@ -196,6 +207,9 @@ func TestAgreesWithTypeScript(t *testing.T) {
 		}
 	}
 	z := generate(t, zod.Backend{}, zod.Name, m)
+	for _, resp := range []*plugin.Response{tsResp, z} {
+		contains(t, string(resp.GetFiles()[0].GetContent()), `"draft"`, `"card"`)
+	}
 	names := regexp.MustCompile(`(?m)^export type (\w+) =`).FindAllStringSubmatch(string(z.GetFiles()[0].GetContent()), -1)
 	if len(names) == 0 {
 		t.Fatal("the module declares no types")
@@ -736,5 +750,71 @@ func TestNoPackage(t *testing.T) {
 	resp := generate(t, zod.Backend{}, zod.Name, lower(t, "type A {\n  a: string\n}\n"))
 	if len(resp.GetFiles()) != 1 || resp.GetFiles()[0].GetPath() != "model.zod.ts" {
 		t.Errorf("files = %v", resp.GetFiles())
+	}
+}
+
+// A wire directive renames a variant's wire value: a z.enum member, a
+// discriminant's literal, a default, and a narrowed enum's members.
+func TestWire(t *testing.T) {
+	resp, src := gen(t, `package shop
+
+enum Status {
+  Draft
+  Placed
+  Closed
+}
+
+enum Event {
+  Opened { at: instant }
+  Closed
+}
+
+type Order {
+  status: Status = Draft
+  open: Status where { oneOf(Draft, Placed) }
+  event: Event
+}
+
+target zod for shop {
+  Status.Draft => wire("draft")
+  Event.Opened => wire("opened")
+}
+`)
+	quiet(t, resp)
+	contains(t, src,
+		`export const Status = z.enum(["draft", "Placed", "Closed"]);`,
+		`kind: z.literal("opened")`,
+		`kind: z.literal("Closed")`,
+		`status: Status.prefault("draft")`,
+		`Status.extract(["draft", "Placed"])`)
+	typecheck(t, nil, resp)
+	parse(t, `import { Order } from "./shop.zod.js";
+const json = (o: object) => JSON.stringify(o);
+accepts("renamed", Order, json({ status: "draft", open: "Placed", event: { kind: "opened", at: "2026-01-01T00:00:00Z" } }));
+accepts("the default", Order, json({ open: "draft", event: { kind: "Closed" } }));
+refuses("a fieldless variant's name", Order, json({ status: "Draft", open: "Placed", event: { kind: "Closed" } }));
+refuses("a fielded variant's name", Order, json({ status: "draft", open: "Placed", event: { kind: "Opened", at: "2026-01-01T00:00:00Z" } }));`, resp)
+}
+
+func TestWireCollision(t *testing.T) {
+	resp := generate(t, zod.Backend{}, zod.Name, lower(t, `package shop
+
+enum Status {
+  Draft
+  Placed
+}
+
+target zod for shop {
+  Status.Draft => wire("Placed")
+}
+`))
+	var errs []string
+	for _, d := range resp.GetDiagnostics() {
+		if d.GetSeverity() == plugin.Severity_SEVERITY_ERROR {
+			errs = append(errs, d.GetMessage())
+		}
+	}
+	if len(errs) != 1 || !strings.Contains(errs[0], `wire value "Placed" is the name of Status.Placed`) {
+		t.Fatalf("errors = %q", errs)
 	}
 }

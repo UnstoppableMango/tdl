@@ -15,8 +15,8 @@ Import generates the feature and reads it back, and counts only what reading bac
 | --- | --- | --- | --- | --- |
 | Entity, value, and mixin | Yes | Warns (`lossy.struct-kind`) | a `struct` | An entity reads back as one only when a `key` directive gives it a `Key` method, and a mixin reads back as a value. |
 | Mixin `include` | Yes | Warns (`lossy.include`) | the mixin's fields, copied in | Reads back as fields of the struct, without the include. |
-| Fieldless enum | Yes | Yes | a `string` type with constants | |
-| Fielded enum | Yes | Yes | a sealed interface with a struct per variant | |
+| Fieldless enum | Yes | Yes | a `string` type with constants | A `wire` directive on a variant renames its wire value, which reads back as its name. |
+| Fielded enum | Yes | Yes | a sealed interface with a struct per variant | A `wire` directive on a variant renames its discriminant value under `json`, which does not read back. |
 | Newtype | Yes | Yes | a defined type, such as `type CartId string` | |
 | Alias | Yes | Warns (`lossy.alias`) | expanded where used | Reads back as the type it expands to. |
 | Optional and nullable | Yes | Warns (`lossy.optional`) | a pointer, `*T` | An optional and a nullable value are both a pointer, so a nullable value reads back as `T?`. |

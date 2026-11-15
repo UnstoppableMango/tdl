@@ -119,7 +119,7 @@ func (ShapeCircle) isShape() {}
 Always emitting the interface would make `Status` unusable as a map key or a constant; always emitting constants cannot express a variant with fields.
 The cost is that adding a field to one variant changes the generated Go for the whole enum, which is a breaking change to the model anyway.
 
-A fieldless variant's string is its name as written; a consumer states a wire format with `tag`.
+A fieldless variant's string is its wire value: its name as written, or what a `wire` directive says.
 A variant's doc comment and deprecation go on its constant.
 
 A generic enum with a field-carrying variant is a generic interface whose marker takes the enum's parameters, so a `ResultOk[int]` does not satisfy `Result[string]`:
@@ -207,6 +207,7 @@ A bare `json` directive on the target block opts in to the JSON wire convention 
 Without it, the generated types carry no `encoding/json` opinion.
 
 Every field gets a `json` struct tag holding its name in the model, with `omitempty` when it is `T?`.
+A variant's discriminant value is its wire value, the `wire` directive's or else its name; a `wire` on a fielded variant without `json` warns that it has no effect.
 A `tag` directive on a field replaces its tag, and decoding reads the property that tag names.
 
 Each variant of a fielded enum gets a `MarshalJSON` writing the discriminant before its fields, and `Unmarshal<Enum>` decodes one by it:
@@ -322,7 +323,11 @@ The backend understands nine and declares all nine in its handshake, so the comp
   A last segment that is a Go keyword, as in `github.com/acme/type`, is an error, since every file carries the clause.
 - `name("Account")`, on a declaration, a field, or an enum variant.
   Overrides the Go identifier without renaming the model.
-  On a variant it replaces the whole identifier, enum prefix included, and a constant's value stays the variant's TDL name.
+  On a variant it replaces the whole identifier, enum prefix included, and a constant's value stays the variant's wire value.
+- `wire("live")`, on an enum variant.
+  The variant's wire value: a fieldless variant's constant, and a fielded variant's discriminant value under `json`.
+  A wire value naming another variant, or another variant's wire value, is an error, and the enum is not generated.
+  Import reads a constant's value back as the variant's name, so without `roundtrip` the directive does not read back.
 - `tag("json:\"email_address\"")`, on a field.
   Emitted verbatim as the struct tag; a struct tag is an open convention, so the backend does not parse it.
   On a declaration or a variant it has nothing to set, so it warns at the directive.

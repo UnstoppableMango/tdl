@@ -8,9 +8,11 @@ notes = "Reads back as fields of the struct, without the include."
 
 [enum]
 spelling = "a `string` type with constants"
+notes = "A `wire` directive on a variant renames its wire value, which reads back as its name."
 
 [fielded-enum]
 spelling = "a sealed interface with a struct per variant"
+notes = "A `wire` directive on a variant renames its discriminant value under `json`, which does not read back."
 
 [newtype]
 spelling = "a defined type, such as `type CartId string`"

@@ -427,6 +427,22 @@ func TestVariantNames(t *testing.T) {
 	d.absent("Shape")
 }
 
+// A wire directive renames a fielded variant's discriminant value, and the
+// discriminator's mapping with it.
+func TestWire(t *testing.T) {
+	b := irtest.New("shop")
+	card := variant("Card", irtest.Field("last4", b.Named("string")))
+	card.Directives = []*ir.Directive{directive("wire", "card")}
+	b.Own(enum("Payment", card, variant("Cash")))
+	b.Own(enum("Status", variant("Draft")))
+	b.Model.Decls[len(b.Model.Decls)-1].GetEnumeration().Variants[0].Directives = []*ir.Directive{directive("wire", "draft")}
+
+	d := check(t, generate(t, b.Model), "3.1")
+	d.contains(`card: "#/components/schemas/PaymentCard"`, `- draft`)
+	d.accepts("Payment", `{"kind": "card", "last4": "4242"}`)
+	d.rejects("Payment", `{"kind": "Card", "last4": "4242"}`)
+}
+
 func TestDiscriminantAndClosed(t *testing.T) {
 	b := irtest.New("shop")
 	b.Own(enum("Payment", variant("Card", irtest.Field("last4", b.Named("string"))), variant("Cash")))

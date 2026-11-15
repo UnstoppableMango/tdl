@@ -33,6 +33,9 @@ func (Backend) Describe() plugin.Description {
 		// Each request stands alone.
 		Reuse: true,
 		Directives: []*plugin.DirectiveSpec{
+			// A variant's wire value: the discriminant's value, or the
+			// string literal a fieldless variant is written as.
+			{Name: "wire", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnVariant)},
 			// The TypeScript name for a type, property, or variant interface.
 			// It never changes a variant's wire value, the discriminant's
 			// value or a fieldless variant's string literal, and on a
@@ -211,6 +214,9 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	if ok, err := g.DeclaresLossy(d, func(id *ir.ID) { g.typeLosses(id, nil, modeProperty) }); !ok {
 		return "", err
 	}
+	if err := g.CheckTags(d); err != nil {
+		return "", err
+	}
 
 	g.lost, g.tags = false, nil
 	text, declared, err := g.render(d)
@@ -299,6 +305,7 @@ func (g *generator) losses(d *ir.Decl) {
 			vname := v.GetMeta().GetName()
 			member := g.VariantName(v, func(s string) string { return written + emit.Pascal(s) })
 			g.renamed(v.GetDirectives(), member != written+emit.Pascal(vname), "%s.%s", name, vname)
+			g.lost = g.LoseTag(name, v) || g.lost
 			g.docLoss(v.GetMeta())
 			g.fieldsLosses(name+"."+vname, v.GetFields())
 			fields = append(fields, v.GetFields()...)
@@ -306,6 +313,7 @@ func (g *generator) losses(d *ir.Decl) {
 	default:
 		for _, v := range e.GetVariants() {
 			vname, pos := v.GetMeta().GetName(), v.GetMeta().GetPosition()
+			g.lost = g.LoseTag(name, v) || g.lost
 			if len(v.GetMeta().GetDoc()) > 0 || v.GetMeta().GetDeprecated() != nil {
 				g.lose(emit.LossDoc, pos, "%s.%s's doc comment has no place in a union of string literals", name, vname)
 			}
@@ -317,7 +325,7 @@ func (g *generator) losses(d *ir.Decl) {
 				// and the module still says what the model says.
 				if !g.mapped {
 					g.Warn(emit.Unsupported(dir.GetPosition(),
-						"%s.%s writes no TypeScript name, only its wire value %q, which is its name, so its name directive has no effect", name, vname, vname))
+						"%s.%s writes no TypeScript name, only its wire value %q, so its name directive has no effect", name, vname, g.Tag(v)))
 				}
 				g.lose(emit.LossName, dir.GetPosition(), "%s.%s is written by its name, and its name directive does not read back", name, vname)
 			}
@@ -486,14 +494,15 @@ func (g *generator) iface(b *strings.Builder, name string, meta *ir.Meta, tags [
 	return []string{name}, nil
 }
 
-// literals renders a fieldless enum as a union of its variant names.
+// literals renders a fieldless enum as a union of its variants' wire
+// values.
 func (g *generator) literals(b *strings.Builder, d *ir.Decl) []string {
 	name := g.DeclName(d, emit.Pascal)
 	variants := d.GetEnumeration().GetVariants()
 
 	values := make([]string, len(variants))
 	for i, v := range variants {
-		values[i] = strconv.Quote(v.GetMeta().GetName())
+		values[i] = strconv.Quote(g.Tag(v))
 	}
 	typ := strings.Join(values, " | ")
 	if typ == "" {
@@ -517,7 +526,7 @@ func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	for _, v := range d.GetEnumeration().GetVariants() {
 		member := g.VariantName(v, func(s string) string { return name + emit.Pascal(s) })
 		ifaces.WriteString("\n")
-		if _, err := g.iface(&ifaces, member, v.GetMeta(), nil, disc, emit.Tag(v), v.GetFields()); err != nil {
+		if _, err := g.iface(&ifaces, member, v.GetMeta(), nil, disc, g.Tag(v), v.GetFields()); err != nil {
 			return nil, err
 		}
 		members = append(members, member)
