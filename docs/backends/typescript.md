@@ -16,8 +16,8 @@ Import generates the feature and reads it back, and counts only what reading bac
 | --- | --- | --- | --- | --- |
 | Entity, value, and mixin | Yes | Warns (`lossy.struct-kind`) | `interface` | Entities, values, and mixins are all interfaces, so each reads back as a value. |
 | Mixin `include` | Yes | Warns (`lossy.include`) | the mixin's properties, copied in | The include is flattened into the fields it copies. |
-| Fieldless enum | Yes | Yes | a union of string literals | |
-| Fielded enum | Yes | Yes | a union of interfaces discriminated on `kind` | A `discriminant` directive renames `kind`. |
+| Fieldless enum | Yes | Yes | a union of string literals | A `wire` directive on a variant renames its wire value, which reads back as its name. |
+| Fielded enum | Yes | Yes | a union of interfaces discriminated on `kind` | A `discriminant` directive renames `kind`. A `wire` directive on a variant renames its wire value, which reads back as its name. |
 | Newtype | Yes | Yes | `type N = Base` | A plain alias, so parsed JSON needs no cast; under a `brand` directive, an alias intersected with a brand keyed by its qualified name, so two newtypes over one base are not interchangeable. Under `construct` or `brand`, a function of the same name builds one. |
 | Alias | Yes | Warns (`lossy.alias`) | expanded where used | |
 | Optional and nullable | Yes | Yes | `name?: T`, or a union with `null` | |

@@ -7,10 +7,11 @@ spelling = "the mixin's properties, copied in"
 
 [enum]
 spelling = "`string` with `enum`"
+notes = "A `wire` directive on a variant renames its wire value."
 
 [fielded-enum]
 spelling = "a `oneOf` with a `discriminator`"
-notes = "OpenAPI 2.0 has no `oneOf`, so there it warns and is skipped."
+notes = "OpenAPI 2.0 has no `oneOf`, so there it warns and is skipped. A `wire` directive on a variant renames its wire value."
 
 [newtype]
 spelling = "a schema"

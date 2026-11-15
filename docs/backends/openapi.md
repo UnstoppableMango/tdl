@@ -15,8 +15,8 @@ Import generates the feature and reads it back, and counts only what reading bac
 | --- | --- | --- | --- | --- |
 | Entity, value, and mixin | Yes | No | an `object` schema | Entities, values, and mixins are all objects. |
 | Mixin `include` | Yes | No | the mixin's properties, copied in | |
-| Fieldless enum | Yes | No | `string` with `enum` | |
-| Fielded enum | Yes | No | a `oneOf` with a `discriminator` | OpenAPI 2.0 has no `oneOf`, so there it warns and is skipped. |
+| Fieldless enum | Yes | No | `string` with `enum` | A `wire` directive on a variant renames its wire value. |
+| Fielded enum | Yes | No | a `oneOf` with a `discriminator` | OpenAPI 2.0 has no `oneOf`, so there it warns and is skipped. A `wire` directive on a variant renames its wire value. |
 | Newtype | Yes | No | a schema | |
 | Alias | Yes | No | expanded where used | |
 | Optional and nullable | Yes | No | left out of `required`, or nullable | Nullable is `anyOf` with `null` in 3.1, `nullable` in 3.0, and `x-nullable` in 2.0. |

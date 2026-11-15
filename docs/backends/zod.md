@@ -16,8 +16,8 @@ No importer is planned, so every Import cell is No.
 | --- | --- | --- | --- | --- |
 | Entity, value, and mixin | Yes | No | `z.object` | Entities, values, and mixins are all objects; a `closed` directive makes one a `z.strictObject`. |
 | Mixin `include` | Yes | No | the mixin's properties, copied in | |
-| Fieldless enum | Yes | No | `z.enum` of the variants' names | |
-| Fielded enum | Yes | No | a `z.discriminatedUnion` on `kind` | A `discriminant` directive renames `kind`. |
+| Fieldless enum | Yes | No | `z.enum` of the variants' wire values | A `wire` directive on a variant renames its wire value. |
+| Fielded enum | Yes | No | a `z.discriminatedUnion` on `kind` | A `discriminant` directive renames `kind`. A `wire` directive on a variant renames its wire value. |
 | Newtype | Yes | No | a schema of its base, branded with its qualified name | A `structural` directive writes no brands. |
 | Alias | Yes | No | expanded where used | |
 | Optional and nullable | Yes | No | `.exactOptional()` or `.nullable()` | |

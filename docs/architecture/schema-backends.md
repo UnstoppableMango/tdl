@@ -123,8 +123,8 @@ A fielded enum is each target's sum type:
 - In Thrift, Smithy, and GraphQL, each variant is a struct named after the enum and the variant, such as `PaymentCard`.
   Smithy targets `Unit` for a variant with no fields.
   A GraphQL object needs a field, so a fieldless variant carries a placeholder `_: Boolean` that is always null.
-- In TypeScript, each variant is an interface with a `kind` field holding the variant's name, which a `discriminant` directive renames.
-- In JSON Schema, the enum is a `oneOf` of one object per variant, titled with the variant's name, and the discriminant is a required property holding a `const` of that name, renamed the same way.
+- In TypeScript, each variant is an interface with a `kind` field holding the variant's wire value, its name unless a `wire` directive renames it, and a `discriminant` directive renames `kind`.
+- In JSON Schema, the enum is a `oneOf` of one object per variant, titled with the variant's wire value, and the discriminant is a required property holding a `const` of that value, renamed the same way.
 
 A protobuf enum starts with an `_UNSPECIFIED` value at zero, and its values are prefixed with the enum's name, since enum values share one scope per package.
 
@@ -262,7 +262,7 @@ A schema of every version carries OpenAPI's width formats: `int32`, `int64` for 
 An `int32` writes no bounds beside its format, which already says them.
 
 A fielded enum is a `oneOf` of one schema per variant, each its own component named as TypeScript names the variant's interface, such as `PaymentCard`, and a `name` directive on the variant renames it.
-The `discriminator` names the discriminant property and maps each variant's name to its schema, which is the shape OpenAPI code generators read.
+The `discriminator` names the discriminant property and maps each variant's wire value to its schema, which is the shape OpenAPI code generators read.
 OpenAPI 2.0 has no `oneOf`, so there a fielded enum warns and is skipped, along with every declaration naming it.
 
 ## Import
