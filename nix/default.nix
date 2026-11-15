@@ -495,8 +495,9 @@ in
       # generated output on disk, and the fixture has none.
       checks.flake-module =
         let
-          consumer =
-            tdl:
+          consumer = consumerWith pkgs; # already carries the overlay
+          consumerWith =
+            consumerPkgs: tdl:
             inputs.flake-parts.lib.mkFlake
               {
                 inputs = {
@@ -508,7 +509,7 @@ in
                 systems = [ system ];
                 imports = [ ./flake-module.nix ];
                 perSystem = _: {
-                  _module.args.pkgs = pkgs; # already carries the overlay
+                  _module.args.pkgs = consumerPkgs;
                   inherit tdl;
                 };
               };
@@ -520,6 +521,9 @@ in
           # checks: the shell is opt-in.
           implied = consumer model;
           shelled = consumer (model // { devShell.enable = true; });
+          # A consumer taking package from the flake rather than applying the
+          # overlay has no pkgs.tdl-gmk, and still evaluates (#1401).
+          bare = consumerWith (import inputs.nixpkgs { inherit system; }) (model // { package = pkgs.tdl; });
           # post.packages reach the generation check's PATH and the shell.
           posted = consumer (
             model
@@ -542,6 +546,11 @@ in
             "tdl-fmt"
           ];
         assert
+          defines bare == [
+            "tdl-check"
+            "tdl-fmt"
+          ];
+        assert
           defines shelled == [
             "tdl"
             "tdl-check"
@@ -552,6 +561,7 @@ in
         pkgs.linkFarmFromDrvs "tdl-flake-module" [
           implied.checks.${system}.tdl-check
           implied.checks.${system}.tdl-fmt
+          bare.checks.${system}.tdl-check
           shelled.devShells.${system}.tdl
           # A shell pulling devShells.tdl in with inputsFrom still gets TDL_GMK.
           (pkgs.runCommand "tdl-flake-module-inputs-from" { } ''

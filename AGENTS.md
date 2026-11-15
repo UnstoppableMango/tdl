@@ -132,7 +132,7 @@ Each check is one invocation over all files.
 `files` is a list of strings relative to one `src`, because a `path` is copied into the store alone and an `include` would stop resolving.
 `gen.files` is separate and empty by default, because `tdl gen` fails on a file with no target block.
 It is exported as `flakeModules.default` with a `tdl` alias.
-`checks.flake-module` evaluates a consumer flake against `testdata/conformance/entity` that sets `src` but not `enable`, asserts it defines exactly `tdl-check` and `tdl-fmt`, and builds them, without `tdl-gen`, which needs generated output on disk; a second consumer sets `devShell.enable` and builds `devShells.tdl` and a shell pulling it in with `inputsFrom`; it also asserts that `enable = false`, or setting nothing, defines no check or shell.
+`checks.flake-module` evaluates a consumer flake against `testdata/conformance/entity` that sets `src` but not `enable`, asserts it defines exactly `tdl-check` and `tdl-fmt`, and builds them, without `tdl-gen`, which needs generated output on disk; a second consumer, on nixpkgs without the overlay and with `package` set, defines and builds the same checks; a third sets `devShell.enable` and builds `devShells.tdl` and a shell pulling it in with `inputsFrom`; it also asserts that `enable = false`, or setting nothing, defines no check or shell.
 It also asserts that `post.packages`, the commands `tdl.toml`'s `[post]` table names, reach the `PATH` of `tdl-gen` and `devShells.tdl`.
 
 ## Architecture

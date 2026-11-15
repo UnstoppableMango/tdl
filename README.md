@@ -228,6 +228,7 @@ A failure, such as an import that does not exist, stops make with the error.
 
 With `tdl.devShell.enable = true`, `devShells.tdl` sets `TDL_GMK` to the object and puts nixpkgs' `gnumake` on `PATH`, since the object links against nixpkgs' libc and a system make cannot load it.
 Set `tdl.make.enable = false` to leave both out.
+The object comes from `pkgs.tdl-gmk`, so this needs tdl's overlay, as in the example above.
 
 ```nix
 perSystem = { config, pkgs, ... }: {
