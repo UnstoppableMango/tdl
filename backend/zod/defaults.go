@@ -82,7 +82,7 @@ func (g *generator) withDefault(owner string, f *ir.Field, r *emit.Ref, n *emit.
 	if why := outside(n, def); why != "" {
 		return warn("is not written: %s", why)
 	}
-	if c, why := g.refusing(def, f.GetConstraints(), false); c != nil {
+	if c, why := g.refusing(r, def, f.GetConstraints(), false); c != nil {
 		return warn("is not written: it %s", why)
 	}
 	return schema{expr: s.expr + ".prefault(" + lit + ")", typ: "z.ZodPrefault<" + s.typ + ">", nullable: s.nullable}
@@ -128,7 +128,7 @@ func (g *generator) literal(r *emit.Ref, l *ir.Literal) (string, string) {
 			if err != nil {
 				return "", err.Error()
 			}
-			if c, why := g.refusing(l, d.GetNewtype().GetValueConstraints(), g.order[d] >= g.current); c != nil {
+			if c, why := g.refusing(base, l, d.GetNewtype().GetValueConstraints(), g.order[d] >= g.current); c != nil {
 				return "", why + ", which " + d.GetMeta().GetName() + " requires"
 			}
 			return g.literal(base, l)
@@ -170,6 +170,11 @@ func (g *generator) literal(r *emit.Ref, l *ir.Literal) (string, string) {
 		}
 		if name == "float32" && math.Abs(f) > math.MaxFloat32 {
 			return "", "is out of float32's range"
+		}
+		if f == 0 {
+			// JSON has no negative zero, and the unique helper compares
+			// JSON text, so -0 is written 0.
+			f = 0
 		}
 		return strconv.FormatFloat(f, 'g', -1, 64), ""
 	case "decimal":
