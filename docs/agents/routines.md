@@ -13,7 +13,7 @@ Thursday keeps mutation testing off Monday, when code reduction changes the code
 
 ## Every run
 
-1. Re-read `AGENTS.md`, `CONTEXT.md`, and `docs/agents/domain.md`, plus the architecture doc the routine's section names.
+1. Re-read `AGENTS.md` and the `docs/agents/` files it links for the routine's area, `CONTEXT.md`, and `docs/agents/domain.md`, plus the architecture doc the routine's section names.
 1. Drive the open pull requests from earlier runs (CI, reviews) before opening new ones; the section says which count against its cap.
 1. Work the [queue](#the-queue) before the routine's own sweep.
 1. Fetch and branch from the latest default branch for every pull request.
@@ -25,7 +25,7 @@ Neither routine invokes a skill by name, since a routine session may not load th
 
 Name every concept the way `CONTEXT.md` does, in issue titles, test names, commit messages, and pull request text, and avoid the words it lists to avoid.
 Never edit `CONTEXT.md` or write an ADR: a routine records no term and makes no decision.
-A change that would contradict an ADR, or a decision recorded in `docs/spec.md`, the Conventions in `AGENTS.md`, or `docs/architecture/`, is skipped and filed as an issue instead.
+A change that would contradict an ADR, or a decision recorded in `docs/spec.md`, `docs/agents/language.md`, or `docs/architecture/`, is skipped and filed as an issue instead.
 
 ### Filing an issue
 
