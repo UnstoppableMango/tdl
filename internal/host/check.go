@@ -10,9 +10,30 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// OutDirective is the one directive tdl reads itself: where a target
-// block's output goes. A backend need not declare it.
+// OutDirective is where a target block's output goes. tdl reads it itself,
+// and a backend need not declare it.
 const OutDirective = "out"
+
+// PostDirective names the commands, declared in tdl.toml's [post] table,
+// that tdl runs over each file a target returns before writing it. tdl
+// reads it itself, so every target accepts it and a backend need not
+// declare it.
+const PostDirective = "post"
+
+// Directives are the specs of the directives tdl reads itself and checks
+// for every target, whatever its backend declares.
+var Directives = []*plugin.DirectiveSpec{
+	{
+		Name:       PostDirective,
+		MinArgs:    1,
+		MaxArgs:    -1,
+		Placements: []plugin.Placement{plugin.Placement_PLACEMENT_BLOCK},
+	},
+}
+
+// allStrings lists the directives every argument of which must be a
+// string, which arg_kinds, constraining by position, cannot say.
+var allStrings = map[string]bool{PostDirective: true}
 
 // problem reports something wrong with a target block, found before any
 // backend runs.
@@ -31,6 +52,9 @@ func problem(pos *ir.Position, severity plugin.Severity, format string, args ...
 func CheckDirectives(target string, model *ir.Model, desc plugin.Description) []*plugin.Diagnostic {
 	specs := map[string]*plugin.DirectiveSpec{}
 	for _, s := range desc.Directives {
+		specs[s.GetName()] = s
+	}
+	for _, s := range Directives {
 		specs[s.GetName()] = s
 	}
 
@@ -188,7 +212,11 @@ func checkOne(d *ir.Directive, spec *plugin.DirectiveSpec) []*plugin.Diagnostic 
 
 	// arg_kinds constrains by position; a shorter list constrains only the
 	// arguments it covers.
-	for i, want := range spec.GetArgKinds() {
+	kinds := spec.GetArgKinds()
+	if allStrings[spec.GetName()] {
+		kinds = slices.Repeat([]ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_STRING}, len(d.GetArgs()))
+	}
+	for i, want := range kinds {
 		if i >= len(d.GetArgs()) {
 			break
 		}

@@ -491,12 +491,23 @@ in
           };
           # Setting src is enough to enable the module.
           implied = consumer model;
+          # post.packages reach the generation check's PATH and the shell.
+          posted = consumer (
+            model
+            // {
+              gen.files = [ "source.tdl" ];
+              post.packages = [ pkgs.hello ];
+            }
+          );
+          onPath = drv: builtins.elem pkgs.hello (drv.nativeBuildInputs or [ ] ++ drv.buildInputs or [ ]);
           defines = flake: builtins.attrNames (flake.checks.${system} // flake.devShells.${system});
         in
         # enable = false turns everything off, and a consumer setting nothing
         # gets nothing.
         assert defines (consumer (model // { enable = false; })) == [ ];
         assert defines (consumer { }) == [ ];
+        assert onPath posted.checks.${system}.tdl-gen;
+        assert onPath posted.devShells.${system}.tdl;
         pkgs.linkFarmFromDrvs "tdl-flake-module" [
           implied.checks.${system}.tdl-check
           implied.checks.${system}.tdl-fmt

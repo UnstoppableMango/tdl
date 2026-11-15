@@ -2,7 +2,7 @@
 
 Design document.
 The protocol is implemented: the wire types are in `plugin/`, generated from `proto/tdl/plugin/v1/plugin.proto`, and the compiler side is `internal/gen`.
-The `tdl.toml` settings below, post-processing commands and per-plugin timeouts, are not built.
+Of the `tdl.toml` settings below, post-processing commands are built in `internal/gen/post.go`, and per-plugin timeouts are not.
 
 A backend turns a resolved model into files.
 The backends in `internal/gen/registry.go` ship with `tdl`; any other target name resolves to `tdl-gen-<name>` on `PATH`.
@@ -129,8 +129,6 @@ While a later request hashes the same, the record lists as many files as it says
 
 ## Post-processing
 
-Not built; #1409 builds it.
-
 The project, not the plugin, chooses commands to run over a target's output, typically a formatter.
 A target block names them with `post`, and `tdl.toml` maps each name to a command line:
 
@@ -146,12 +144,18 @@ target typescript for shop {
 biome = "biome format --stdin-file-path={file}"
 ```
 
+`post` is a target-block directive taking one or more strings.
+`tdl` reads it itself, so every target accepts it without its backend declaring it, and holds it to that shape before the backend runs.
+A command line is split into words, with single and double quotes and backslashes read as a shell reads them, and never passed to a shell.
 A command is a filter over one file: `tdl` writes the content to its stdin and takes its stdout as the new content.
 `{file}` is the file's destination path relative to the directory holding `tdl.toml`, and the command runs there, so a tool finds its own configuration as if the file were in place.
 Several names run in order, each one's output feeding the next, over every file the target returns.
 
 Post-processing runs before anything is compared or written, so `--verify`, `--clean`, `.tdl-output`, and `--make` see the bytes that land on disk.
-A command that exits non-zero or is not found, or a name `[post]` does not declare, is an error, and nothing is written for that target; skipping it instead would make `--verify` depend on the machine.
+A command that exits non-zero or is not found, or a name `[post]` does not declare, including when there is no `tdl.toml`, is an error naming the target, with the command's stderr relayed, and nothing is written for that target; skipping it instead would make `--verify` depend on the machine.
+`--watch` runs the commands on every regeneration, and `tdl request`, `tdl import`, `tdl play`, and the language server, which write no target output, never run them.
+A nondeterministic backend's kept files were post-processed when written, and its request hash covers the directive's names but not the command lines `[post]` maps them to, so changing a command line alone keeps them; `--clean` regenerates.
+The flake-parts module's `post.packages` puts the commands on `PATH` for `checks.tdl-gen` and `devShells.tdl`.
 The table is a record of what a build runs, not a security boundary, since the plugin is already arbitrary code.
 
 `Response.post` is deprecated and ignored.

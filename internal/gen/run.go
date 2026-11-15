@@ -17,6 +17,10 @@ type Target struct {
 	Name  string
 	Out   string
 	Block *ir.TargetBlock
+
+	// Post is what runs over each returned file before anything is
+	// compared or written, from [ResolvePost]; nil runs nothing.
+	Post *Post
 }
 
 // Targets returns the target blocks in a model, with their output
@@ -111,8 +115,13 @@ func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.M
 		return result, fmt.Errorf("target %s reported errors", target.Name)
 	}
 
+	files, err := target.Post.Apply(ctx, target.Out, resp.GetFiles())
+	if err != nil {
+		return result, fmt.Errorf("target %s: %w", target.Name, err)
+	}
+
 	if mode == ModeVerify {
-		stale, expected, err := Verify(target.Out, resp.GetFiles())
+		stale, expected, err := Verify(target.Out, files)
 		result.Stale, result.Expected = stale, expected
 		if err != nil {
 			return result, fmt.Errorf("target %s: %w", target.Name, err)
@@ -129,7 +138,7 @@ func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.M
 	}
 
 	// Written files are listed even when writing fails part way.
-	written, err := Write(target.Out, resp.GetFiles())
+	written, err := Write(target.Out, files)
 	result.Written = written
 	err = errors.Join(err, Mark(target.Out, written))
 	if hash != "" && err == nil {
