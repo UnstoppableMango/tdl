@@ -199,9 +199,9 @@ The plugin protocol in `docs/architecture/plugins.md` is complete.
 - `internal/host`: what a host does around a backend, importing none, so a backend hosting itself can use it.
   `loss.go` declares the loss codes, which `emit` re-exports, so `tdl`'s completion lists them too.
   `check.go` holds every directive to its backend's `DirectiveSpec` (arity, kinds, placement, allowed values, repeats) before the backend runs, so a backend need not check them itself.
-  `directives.go` declares the directives tdl reads itself beside `out`, `post`, which every backend accepts in a target block and `check.go` holds to tdl's own spec.
+  `directives.go` declares the directives tdl reads itself beside `out`, `post` and `check`, which every backend accepts in a target block and `check.go` holds to tdl's own spec.
   `Silence` drops warnings with an allowed loss code, and `Allowed` reads which codes `tdl.toml` allows.
-- `internal/config`: reads the nearest `tdl.toml` above a file; only its `[lossy]` and `[post]` tables so far.
+- `internal/config`: reads the nearest `tdl.toml` above a file; only its `[lossy]`, `[post]`, and `[check]` tables so far.
 - `internal/makefn`: what the make functions in `cmd/tdl-gmk` return, `Files` and `Imports`, kept out of the plugin so they test without make.
   `cmd/tdl-gmk` is behind the `makeplugin` build tag, since a `main` package built with `-buildmode=c-shared` links against symbols only make defines; `go build ./...` and the linters never see it.
 - `internal/cli`: cobra commands (`ast`, `check`, `fmt`, `gen`, `import`, `ir`, `lsp`, `play`, `request`, `tokens`, `version`). See [CLI](#cli).
@@ -394,7 +394,7 @@ New work goes through the skills and the issue tracker:
 A phase's pull request closes its ticket.
 A spec issue's sub-issues are its phases, and an open ticket is unbuilt work, so write a plan as tickets, never as a `*-plan.md`.
 Wanted work with no spec is a `needs-triage` issue.
-The `tdl.toml` project model (#1307) is the furthest-ahead spec: only its `[lossy]` and `[post]` tables are built.
+The `tdl.toml` project model (#1307) is the furthest-ahead spec: only its `[lossy]`, `[post]`, and `[check]` tables are built.
 `CONTEXT.md` is the glossary: one canonical word per concept, and the words to avoid.
 
 ### .NET SDK
@@ -459,6 +459,7 @@ A file named `-` is standard input, shown as `<stdin>` in positions.
 `gen --make <target>` writes a make dependency file once the whole run succeeds, naming every file it read through a `sema.Recording` loader, and leaves an existing one alone when the run fails.
 `gen` and `import` both drop warnings whose loss code `tdl.toml` or `--allow-lossy` allows, and print a code after the message.
 `gen` runs the commands a target block's `post` directive names, which `tdl.toml`'s `[post]` maps to command lines, over every file the target returns before anything is compared or written (`internal/gen/post.go`; see `docs/architecture/plugins.md`'s Post-processing); a missing name, `tdl.toml`, or command is an error.
+It then runs the commands a `check` directive names, which `[check]` maps, in a temporary copy of the post-processed output beside the output directory (`internal/gen/checks.go`; see Checks there); a failure writes, marks, and cleans nothing, and `--verify` and kept nondeterministic output run no check.
 `import` reports read-back loss, what the TDL keeps but regenerating writes differently, only under `--readback`, which sets `ImportRequest.readback`; an importer writes it with `reverse.Reader.Respell` and everything else with `Warn`.
 
 `request --target <name>` writes, as framed messages, a `Handshake` and one `RequestSet`: the requests `gen` would send that backend, and every diagnostic, a file with an error yielding no request.

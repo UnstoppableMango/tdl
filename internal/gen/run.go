@@ -24,6 +24,8 @@ type Target struct {
 	// Post holds the commands the block's post directive names, from
 	// tdl.toml; [Target.Configure] reads them.
 	Post []Command
+	// Check holds the commands the block's check directive names.
+	Check []Command
 }
 
 // Targets returns the target blocks in a model, with their output
@@ -132,6 +134,12 @@ func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.M
 			return result, fmt.Errorf("target %s: %w", target.Name, err)
 		}
 		return result, nil
+	}
+
+	// Checked before anything is cleaned, written, or marked, so a failing
+	// check leaves the directory as it was.
+	if err := Check(ctx, target, files); err != nil {
+		return result, fmt.Errorf("target %s: %w", target.Name, err)
 	}
 
 	if mode == ModeClean {
