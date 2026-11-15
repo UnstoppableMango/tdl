@@ -137,6 +137,9 @@
               defining `$(tdl-files dir...)` and `$(tdl-imports file...)`, so a
               Makefile can write `load $(TDL_GMK)`, and put the make that can
               load it on PATH.
+
+              The `make` options matter only while `devShell.enable` is on,
+              since the shell is the only thing that reads them.
             '';
           };
 
@@ -145,10 +148,15 @@
 
         devShell.enable = lib.mkOption {
           type = lib.types.bool;
-          default = true;
+          default = false;
+          example = true;
           description = ''
             Define `devShells.tdl`, holding the CLI and the backends. It is a
             shell to pull into another one with `inputsFrom`, not one to enter.
+
+            It is opt-in, so setting `src` defines only the checks. Under
+            `make.enable` the shell names `make.package`, which defaults to
+            `pkgs.tdl-gmk` and exists only under tdl's overlay.
           '';
         };
       };
