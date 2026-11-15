@@ -31,20 +31,20 @@ func (l *lowerer) walkImports(file *ast.File, from string, onPath map[string]boo
 		name, src, err := l.loader.Load(from, imp.Path)
 		if err != nil {
 			l.diags.add(imp, "cannot read import %q: %v", imp.Path, err)
-			l.bindUnread(imp, root)
+			l.bindUnresolved(imp, root)
 			continue
 		}
 
 		if onPath[name] {
 			l.diags.add(imp, "import cycle: %s", strings.Join(append(chain, name), " -> "))
-			l.bindUnread(imp, root)
+			l.bindUnresolved(imp, root)
 			continue
 		}
 
 		dep, perr := parser.Parse(name, strings.NewReader(src))
 		if perr != nil {
 			l.diags.add(imp, "import %q does not parse: %v", imp.Path, perr)
-			l.bindUnread(imp, root)
+			l.bindUnresolved(imp, root)
 			continue
 		}
 
@@ -143,7 +143,11 @@ type aliasImport struct {
 func (l *lowerer) bindImport(imp *ast.ImportDecl, pkg string, dep *ast.File) {
 	if imp.Alias != "_" {
 		if prev, ok := l.aliases[imp.Alias]; ok {
-			l.diags.add(imp, "import alias %s is bound twice, first to %s", imp.Alias, prev.pkg)
+			first := prev.pkg
+			if first == "" {
+				first = prev.path
+			}
+			l.diags.add(imp, "import alias %s is bound twice, first to %s", imp.Alias, first)
 			return
 		}
 		decls := map[string]ast.Decl{}
@@ -172,9 +176,10 @@ func (l *lowerer) bindImport(imp *ast.ImportDecl, pkg string, dep *ast.File) {
 	}
 }
 
-// bindUnread binds the alias of a root import that failed to load, so a
-// reference through it is not reported again.
-func (l *lowerer) bindUnread(imp *ast.ImportDecl, root bool) {
+// bindUnresolved binds the alias of a root import that was already
+// reported, as unreadable, unparsable, or a cycle, so a reference through
+// it is not reported again.
+func (l *lowerer) bindUnresolved(imp *ast.ImportDecl, root bool) {
 	if !root || imp.Alias == "_" {
 		return
 	}
