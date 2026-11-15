@@ -22,9 +22,8 @@ jobs:
   # One job rather than a build and a test job: each job on a fresh runner
   # pays to fetch nixpkgs and evaluate the flake, and the checks and the
   # devShell share most of their closure (go, node, typescript, smithy).
-  # The runner image ships Nix with the cluster's substituter configured.
   check:
-    runs-on: thecluster
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
@@ -32,6 +31,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+
+      - uses: unmango/actions/setup-nix@e8bbcbd12a2c521c5cb36957c00a7a8f4fe2e766 # v2.0.0
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
