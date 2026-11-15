@@ -12,7 +12,7 @@
 		<PackageId>Tdl.Gen.CSharp</PackageId>
 		<ToolCommandName>tdl-gen-csharp</ToolCommandName>
 		<RollForward>Major</RollForward>
-		<Version>0.5.11</Version> <!-- x-release-please-version -->
+		<Version>0.5.12</Version> <!-- x-release-please-version -->
 		<Authors>Erik Rasmussen</Authors>
 		<PackageDescription>The csharp backend for TDL, the Type Description Language: tdl gen runs it from PATH to write C# records, enums, and newtypes from a model.</PackageDescription>
 		<PackageTags>tdl;codegen;csharp;roslyn</PackageTags>
