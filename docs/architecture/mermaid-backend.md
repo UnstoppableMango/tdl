@@ -37,6 +37,8 @@ Each of the model's own declarations is one class, its id the declaration's name
 
 The prelude's declarations are not drawn.
 Variant classes are prefixed with their enum because Mermaid's class ids share one namespace, and labelled with the variant's name as written.
+A variant's id that a declaration holds, `Payment_Card` beside a `type Payment_Card`, takes a trailing `_` until it is free.
+A declaration named for a word Mermaid's grammar refuses as a class id (`note`, `style`, `link`, ...), which neither backticks nor quotes admit, takes the same `_` and a label: `class note_["note"]`.
 A declaration's type parameters go on its class, `class Page~T~`.
 
 A field is a member, `+List~LineItem~ items`: its type in Mermaid's generic spelling, then its name.
@@ -44,6 +46,7 @@ A structure including a mixin lists the mixin's fields among its own until phase
 
 A service is a structure tagged `service` whose fields apply a primitive tagged `rpc` to a request and a response, as in the `protobuf` backend.
 Each such field is a method, `+getWidget(GetWidgetRequest) Widget`, and an argument wrapped in a primitive tagged `stream` is written `stream Widget`.
+An alias to such an application is expanded first, so a field typed by it is a method too.
 A field that is no rpc stays an attribute.
 
 ## Types

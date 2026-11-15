@@ -12,9 +12,13 @@ type GetWidgetRequest {
   id: string
 }
 
+// An alias to an rpc is still an rpc.
+alias ListWidgets = Fn<GetWidgetRequest, Stream<Widget>>
+
 type WidgetService {
   getWidget: Fn<GetWidgetRequest, Widget>
   watch: Fn<GetWidgetRequest, Stream<Widget>>
+  list: ListWidgets
   name: string
 }
 

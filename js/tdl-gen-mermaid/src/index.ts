@@ -88,8 +88,9 @@ export function packageId(pkg: string): string {
 
 // The diagram: a class per drawn declaration, then the edges between them.
 function draw(s: Session): string {
-	const d = new Diagram(s);
-	for (const decl of s.own()) {
+	const own = s.own();
+	const d = new Diagram(s, own);
+	for (const decl of own) {
 		d.decl(decl);
 	}
 	// Mermaid refuses a diagram with no statement.
@@ -103,14 +104,18 @@ class Diagram {
 	readonly lines: string[] = [];
 	readonly edges: string[] = [];
 	readonly #s: Session;
+	// Every class id taken, so a variant's id never merges with another class.
+	readonly #taken: Set<string>;
 
-	constructor(s: Session) {
+	constructor(s: Session, own: readonly ir.Decl[]) {
 		this.#s = s;
+		this.#taken = new Set(own.map((d) => lastSegment(d.meta?.name ?? "")));
 	}
 
 	decl(d: ir.Decl): void {
 		const name = lastSegment(d.meta?.name ?? "");
-		const id = name + typeParams(d);
+		const cls = this.#classId(name);
+		const id = cls + typeParams(d) + (cls === name ? "" : `["${name}"]`);
 		switch (d.node.case) {
 			case "structure": {
 				if (this.#s.tagged(d.directives, "service")) {
@@ -138,8 +143,9 @@ class Diagram {
 				this.#class(id, "union", []);
 				for (const v of vs) {
 					const vname = v.meta?.name ?? "";
-					this.#class(`${name}_${vname}["${vname}"]`, undefined, this.#members(v.fields));
-					this.edges.push(`  ${name} <|-- ${name}_${vname}`);
+					const vid = this.#variantId(name, vname);
+					this.#class(`${vid}["${vname}"]`, undefined, this.#members(v.fields));
+					this.edges.push(`  ${cls} <|-- ${vid}`);
 				}
 				return;
 			}
@@ -153,6 +159,28 @@ class Diagram {
 			// An alias is expanded where it is used, and a primitive or a unit
 			// has no class.
 		}
+	}
+
+	// A declaration's class id: its name, or for a name Mermaid reserves, the
+	// name with `_` appended until nothing else holds it, labeled with the name.
+	#classId(name: string): string {
+		return KEYWORDS.has(name) ? this.#free(`${name}_`) : name;
+	}
+
+	// A fielded variant's class id, `Enum_Variant`, or with `_` appended until
+	// nothing else holds it.
+	#variantId(name: string, variant: string): string {
+		return this.#free(`${name}_${variant}`);
+	}
+
+	// The id with `_` appended until no class holds it, then taken.
+	#free(id: string): string {
+		let free = id;
+		while (this.#taken.has(free)) {
+			free += "_";
+		}
+		this.#taken.add(free);
+		return free;
 	}
 
 	#class(id: string, stereotype: string | undefined, members: string[]): void {
@@ -171,7 +199,7 @@ class Diagram {
 	// A service's field as a method: an rpc's request and response as its
 	// parameter and result, or an attribute when its type is no rpc.
 	#rpc(f: ir.Field): string {
-		const t = this.#type(f.type);
+		const t = this.#expanded(f.type);
 		const [req, res] = t?.args ?? [];
 		if (!t || !this.#ctorTagged(t, "rpc") || t.args.length !== 2 || !req || !res) {
 			return this.#members([f])[0] as string;
@@ -180,7 +208,7 @@ class Diagram {
 	}
 
 	#rpcArg(id: ir.ID): string {
-		const t = this.#type(id);
+		const t = this.#expanded(id);
 		const [inner] = t?.args ?? [];
 		if (t && inner && t.args.length === 1 && this.#ctorTagged(t, "stream")) {
 			return `stream ${this.#spell(inner)}`;
@@ -199,6 +227,11 @@ class Diagram {
 
 	#type(id: ir.ID | undefined): ir.Type | undefined {
 		return id && this.#s.model()?.types[id.index];
+	}
+
+	// A type with its aliases expanded, as the analysis resolves it.
+	#expanded(id: ir.ID | undefined): ir.Type | undefined {
+		return id && this.#type(this.#s.typeView(id)?.id ?? id);
 	}
 
 	// A type as a member writes it, in Mermaid's generic spelling.
@@ -246,6 +279,23 @@ class Diagram {
 		return args.length === 0 ? "" : `~${args.map((a) => this.#spell(a)).join(",")}~`;
 	}
 }
+
+// The words Mermaid's class diagram grammar refuses as a class id, which
+// neither backticks nor quotes admit.
+const KEYWORDS = new Set([
+	"call",
+	"callback",
+	"class",
+	"classDef",
+	"classDiagram",
+	"click",
+	"cssClass",
+	"href",
+	"link",
+	"namespace",
+	"note",
+	"style",
+]);
 
 // A declaration's type parameters, as `~T~`, or nothing.
 function typeParams(d: ir.Decl): string {
