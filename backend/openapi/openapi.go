@@ -33,12 +33,12 @@ func (Backend) Describe() plugin.Description {
 		// Each request is answered from the request alone.
 		Reuse: true,
 		Directives: []*plugin.DirectiveSpec{
-			// The schema's name for a type or a variant, or a field's
-			// property name.
+			// The schema's name for a type or a variant. On a field it
+			// renames the property and warns, since wire renames a JSON key.
 			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.OnMembers()},
-			// A variant's wire value: the discriminant's value, or a
-			// fieldless variant's enum member.
-			{Name: "wire", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnVariant)},
+			// A field's property name, and a variant's wire value: the
+			// discriminant's value, or a fieldless variant's enum member.
+			{Name: "wire", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnField, plugin.OnVariant)},
 			// The property a fielded enum's variants are told apart by.
 			// Written on the target block it is the default, and on an enum
 			// it wins.

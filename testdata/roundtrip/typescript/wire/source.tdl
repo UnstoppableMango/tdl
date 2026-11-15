@@ -1,5 +1,6 @@
 // Variants whose wire values a wire directive renames, which read back
-// as their names without the source annotation.
+// as their names without the source annotation, and a field whose JSON
+// key it renames, which reads back with it.
 package shop
 
 enum Status {
@@ -13,11 +14,12 @@ enum Payment {
 }
 
 type Order {
-  status: Status
+  orderStatus: Status
   payment: Payment
 }
 
 target typescript for shop {
   Status.Live => wire("live")
   Payment.Card => wire("card")
+  Order.orderStatus => wire("order-status")
 }

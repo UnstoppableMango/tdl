@@ -13,8 +13,8 @@ import (
 
 // A bare `json` directive on the target block opts in to the JSON wire
 // convention the schema backends share (backend/internal/emit/wire.go): a
-// property is named as the model spells it, and a fielded enum is tagged
-// internally by its discriminant.
+// property is named as the model spells it, or as a `wire` directive
+// renames it, and a fielded enum is tagged internally by its discriminant.
 //
 // Every field gets a `json` struct tag, unless a `tag` directive sets its
 // tag. A fielded enum's variants marshal with the discriminant, and an
@@ -28,10 +28,10 @@ import (
 // a type parameter would shadow.
 var jsonLocals = []string{"plain", "data", "raw", "err", "v"}
 
-// jsonTag is a field's struct tag under the convention: its name in the
-// model, omitted when the field is optional and absent.
+// jsonTag is a field's struct tag under the convention: its JSON key,
+// omitted when the field is optional and absent.
 func (g *generator) jsonTag(f *ir.Field) string {
-	name := f.GetMeta().GetName()
+	name := g.Key(f)
 	if g.optional(f.GetType()) {
 		name += ",omitempty"
 	}
@@ -56,7 +56,7 @@ func (g *generator) optional(id *ir.ID) bool {
 func (g *generator) wireName(f *ir.Field) string {
 	tag, ok := g.Text(f.GetDirectives(), "tag")
 	if !ok {
-		return f.GetMeta().GetName()
+		return g.Key(f)
 	}
 	j, ok := reflect.StructTag(tag).Lookup("json")
 	if !ok {
@@ -658,4 +658,50 @@ func (g *generator) warnParamFills(id *ir.ID, fr *frame, at *ir.Position) bool {
 		}
 	}
 	return false
+}
+
+// tagKey is the JSON key a struct tag names, and whether it names one.
+func tagKey(tag string) (string, bool) {
+	j, ok := reflect.StructTag(tag).Lookup("json")
+	if !ok {
+		return "", false
+	}
+	name, _, _ := strings.Cut(j, ",")
+	return name, name != "" && name != "-"
+}
+
+// wireKey reads a struct tag that holds only the json key the convention
+// writes, `json:"key"` or `json:"key,omitempty"`, and returns the key.
+func wireKey(tag string) (string, bool) {
+	name, ok := tagKey(tag)
+	if !ok {
+		return "", false
+	}
+	if tag != `json:`+strconv.Quote(name) && tag != `json:`+strconv.Quote(name+",omitempty") {
+		return "", false
+	}
+	return name, true
+}
+
+// wireLosses warns about a field's wire directive that the output does
+// not carry: one beside a tag naming another key, which the tag
+// overrides, and one without the json directive, which writes no tag.
+func (g *generator) wireLosses(owner string, f *ir.Field) {
+	d, ok := g.Find(f.GetDirectives(), emit.Wire)
+	if !ok {
+		return
+	}
+	field := owner + "." + f.GetMeta().GetName()
+	key := g.Key(f)
+	if tag, ok := g.Text(f.GetDirectives(), "tag"); ok {
+		if name, ok := tagKey(tag); ok && name != key {
+			g.Warn(emit.Unsupported(d.GetPosition(),
+				"%s's tag names the JSON key %q and its wire directive %q, and the tag wins", field, name, key))
+		}
+		return
+	}
+	if !g.wire {
+		g.Warn(emit.Unsupported(d.GetPosition(),
+			"%s's wire directive names a JSON key, which only the target block's json directive writes, so it has no effect", field))
+	}
 }
