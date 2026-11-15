@@ -90,7 +90,7 @@ _Avoid_: JSON format, serialization
 
 **Wire value**:
 What a variant is written as in the **wire convention**: a fielded variant's discriminant value, and a fieldless variant's string. It is the variant's name, unless a target's `wire` directive renames it.
-_Avoid_: wire name, wire tag
+_Avoid_: wire name
 
 **Wire compatible**:
 What two targets' generated types are when each reads every value the other writes in the wire convention.

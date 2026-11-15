@@ -500,7 +500,12 @@ func TestNames(t *testing.T) {
 	b.Own(clash)
 
 	resp := generate(t, b)
-	diagnostics(t, resp, 2)
+	// A field's name still renames its property, and warns that wire
+	// renames a JSON key.
+	diagnostics(t, resp, 3)
+	if msg := resp.GetDiagnostics()[0].GetMessage(); !strings.Contains(msg, `write wire("created_at")`) {
+		t.Errorf("first diagnostic = %q, want the field's name warning", msg)
+	}
 	d := check(t, resp)
 	d.accepts("PurchaseOrder", `{"id": "1"}`)
 	d.accepts("Stamp", `{"created_at": "x"}`)
