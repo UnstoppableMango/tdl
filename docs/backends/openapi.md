@@ -30,7 +30,7 @@ Import generates the feature and reads it back, and counts only what reading bac
 | `owned` | Yes | No | | Not written: a schema has no ownership, and a referenced entity is a `$ref`. |
 | Field default | Yes | No | | Not written, and nothing warns. |
 | `key` directive | No | No | | The backend declares no `key` directive, since a schema has no identity. |
-| `name` directive | Yes | No | the property or schema name | |
+| `name` directive | Yes | No | the schema name | On a field it renames the property, which is its JSON key, and warns, since the wire convention spells a key as the model does and a `wire` directive renames one. |
 | `number` directive | No | No | | JSON has no field numbers. |
 | Doc comment | Yes | No | `description` | |
 | Type parameters | No | No | | Type parameters are not generated yet, so a parameterized declaration and every one applying it are skipped. |

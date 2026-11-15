@@ -329,6 +329,35 @@ func TestWireUnderReadback(t *testing.T) {
 	}
 }
 
+// A wire directive on a field renames its property, the JSON key; a name
+// directive on a field still does, and warns at the directive, and beside
+// wire it has no effect.
+func TestWireOnAField(t *testing.T) {
+	b := irtest.New("shop")
+	org, slug, head := irtest.Field("name", b.Named("string")), irtest.Field("slug", b.Named("string")), irtest.Field("head", b.Named("string"))
+	org.Directives = []*ir.Directive{directive("wire", "org-name")}
+	at := &ir.Position{Filename: irtest.OwnFile, Line: 9}
+	slug.Directives = []*ir.Directive{directive("name", "handle"), directive("wire", "orgSlug")}
+	slug.Directives[0].Position = at
+	head.Directives = []*ir.Directive{directive("name", "lead")}
+	head.Directives[0].Position = at
+	b.Own(value("Org", org, slug, head))
+
+	resp := generate(t, b)
+	diags := resp.GetDiagnostics()
+	if len(diags) != 2 {
+		t.Fatalf("diagnostics = %+v", diags)
+	}
+	for _, d := range diags {
+		if d.GetCode() != "" || !proto.Equal(d.GetPosition(), at) {
+			t.Errorf("diagnostic = %+v", d)
+		}
+	}
+	contains(t, diags[0].GetMessage(), "Org.slug", `"handle"`, `"orgSlug"`, "name has no effect")
+	contains(t, diags[1].GetMessage(), "Org.head", `wire("lead")`)
+	contains(t, check(t, resp), `"org-name": string;`, `orgSlug: string;`, `lead: string;`)
+}
+
 func TestWireCollisionIsAnError(t *testing.T) {
 	b := irtest.New("shop")
 	a, c := variant("A"), variant("C")

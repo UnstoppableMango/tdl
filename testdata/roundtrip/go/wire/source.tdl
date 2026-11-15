@@ -1,5 +1,6 @@
 // Variants whose wire values a wire directive renames, which read back
-// as their names without the source annotation.
+// as their names without the source annotation, and a field whose JSON
+// key it renames, which reads back with it.
 package shop
 
 enum Status {
@@ -21,4 +22,5 @@ target go for shop {
   json
   Status.Live => wire("live")
   Payment.Card => wire("card")
+  Order.status => wire("order_status")
 }

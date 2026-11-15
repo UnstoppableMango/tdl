@@ -800,7 +800,9 @@ func (r *reader) fields(members []*member, owner, disc string) ([]*ast.Field, er
 				continue
 			}
 			path = owner + "." + name
-			r.Directive(path, "name", reverse.StrLit(m.Name))
+			// The property is the field's JSON key, a fact of the wire
+			// convention, which wire renames.
+			r.Directive(path, emit.Wire, reverse.StrLit(m.Name))
 		}
 		if m.Readonly {
 			r.Warn(emit.LossUnsupported, r.pos(m.Line, m.Col), "%s is readonly, which is not read", path)
