@@ -104,3 +104,44 @@ func TestLoadRejectsAWrongType(t *testing.T) {
 		t.Error("a string where a list belongs was accepted")
 	}
 }
+
+// [post] and [check] map names to command lines, and Dir is where the
+// manifest is, which those commands run relative to.
+func TestCommandTables(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, config.FileName)
+	write(t, path, `
+[post]
+biome = "biome format --stdin-file-path={file}"
+
+[check]
+tsc = "tsc --noEmit"
+`)
+	c, err := config.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := c.Post["biome"]; got != "biome format --stdin-file-path={file}" {
+		t.Errorf("post.biome = %q", got)
+	}
+	if got := c.Check["tsc"]; got != "tsc --noEmit" {
+		t.Errorf("check.tsc = %q", got)
+	}
+	if c.Dir() != root {
+		t.Errorf("dir = %q, want %q", c.Dir(), root)
+	}
+	if dir := (&config.Config{}).Dir(); dir != "" {
+		t.Errorf("no manifest has dir %q", dir)
+	}
+}
+
+// A command that is not a string is refused rather than ignored.
+func TestCommandMustBeAString(t *testing.T) {
+	for _, table := range []string{"post", "check"} {
+		path := filepath.Join(t.TempDir(), config.FileName)
+		write(t, path, "["+table+"]\nbiome = [\"biome\", \"format\"]\n")
+		if _, err := config.Load(path); err == nil {
+			t.Errorf("[%s] accepted a list", table)
+		}
+	}
+}

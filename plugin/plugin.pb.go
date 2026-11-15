@@ -1628,9 +1628,9 @@ func (x *ConstraintView) GetProblem() string {
 type Response struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Files []*File                `protobuf:"bytes,1,rep,name=files" json:"files,omitempty"`
-	// post names commands to run over the written files, by name only. The
-	// project decides what a name maps to; a name it has not declared is
-	// skipped with a warning.
+	// post is deprecated and ignored: which commands run over a target's
+	// output is the project's choice, named by a target block's post directive
+	// and mapped to command lines by tdl.toml's [post] table.
 	Post          []string      `protobuf:"bytes,2,rep,name=post" json:"post,omitempty"`
 	Diagnostics   []*Diagnostic `protobuf:"bytes,3,rep,name=diagnostics" json:"diagnostics,omitempty"`
 	unknownFields protoimpl.UnknownFields

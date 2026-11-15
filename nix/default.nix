@@ -492,11 +492,21 @@ in
           # Setting src is enough to enable the module.
           implied = consumer model;
           defines = flake: builtins.attrNames (flake.checks.${system} // flake.devShells.${system});
+          posted = consumer (
+            model
+            // {
+              gen.files = [ "source.tdl" ];
+              post.packages = [ pkgs.hello ];
+            }
+          );
         in
         # enable = false turns everything off, and a consumer setting nothing
         # gets nothing.
         assert defines (consumer (model // { enable = false; })) == [ ];
         assert defines (consumer { }) == [ ];
+        # post.packages reach the generation check's PATH and the shell's.
+        assert builtins.elem pkgs.hello posted.checks.${system}.tdl-gen.nativeBuildInputs;
+        assert builtins.elem pkgs.hello posted.devShells.${system}.tdl.nativeBuildInputs;
         pkgs.linkFarmFromDrvs "tdl-flake-module" [
           implied.checks.${system}.tdl-check
           implied.checks.${system}.tdl-fmt

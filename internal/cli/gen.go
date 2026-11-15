@@ -262,6 +262,9 @@ func (r *genRun) generate(path string) error {
 		if host.Fatal(problems) {
 			return fmt.Errorf("target %s uses a directive incorrectly", t.Name)
 		}
+		if err := t.Configure(cfg); err != nil {
+			return err
+		}
 
 		result, err := gen.Run(cmd.Context(), backend, t, model, mode)
 		reportDiagnostics(cmd, host.Silence(result.Diagnostics, slices.Concat(cfg.Allowed(t.Name), r.allowLossy)))

@@ -124,13 +124,14 @@ It is exported as `homeModules.default` and `homeManagerModules.default`, each w
 `checks.hm-module` evaluates a minimal configuration and asserts both packages land where the options say; it uses `allowUnfree` because `programs.vscode.enable` evaluates the editor.
 
 `flake-module.nix` declares `perSystem.tdl`.
+`post.packages` puts the commands `[post]` names on `PATH` in `tdl-gen` and `devShells.tdl`.
 `enable` defaults to `src != null`, so setting `src` turns the module on and `enable = false` turns it off.
 It defines `devShells.tdl` for `inputsFrom`, which under `make.enable` exports `TDL_GMK` from its `shellHook`, since `inputsFrom` drops a shell's variables, and carries nixpkgs' `gnumake`, plus one check per property a model should hold: `tdl-check` parses and lowers, `tdl-fmt` runs `tdl fmt --check`, and `tdl-gen` runs `tdl gen --verify`.
 Each check is one invocation over all files.
 `files` is a list of strings relative to one `src`, because a `path` is copied into the store alone and an `include` would stop resolving.
 `gen.files` is separate and empty by default, because `tdl gen` fails on a file with no target block.
 It is exported as `flakeModules.default` with a `tdl` alias.
-`checks.flake-module` evaluates a consumer flake against `testdata/conformance/entity` that sets `src` but not `enable` and builds the result, without `tdl-gen`, which needs generated output on disk; it also asserts that `enable = false`, or setting nothing, defines no check or shell.
+`checks.flake-module` evaluates a consumer flake against `testdata/conformance/entity` that sets `src` but not `enable` and builds the result, without `tdl-gen`, which needs generated output on disk; it also asserts that `enable = false`, or setting nothing, defines no check or shell, and that `post.packages` reaches `tdl-gen` and the shell.
 
 ## Architecture
 
@@ -198,8 +199,9 @@ The plugin protocol in `docs/architecture/plugins.md` is complete.
 - `internal/host`: what a host does around a backend, importing none, so a backend hosting itself can use it.
   `loss.go` declares the loss codes, which `emit` re-exports, so `tdl`'s completion lists them too.
   `check.go` holds every directive to its backend's `DirectiveSpec` (arity, kinds, placement, allowed values, repeats) before the backend runs, so a backend need not check them itself.
+  `directives.go` declares the directives tdl reads itself beside `out`, `post`, which every backend accepts in a target block and `check.go` holds to tdl's own spec.
   `Silence` drops warnings with an allowed loss code, and `Allowed` reads which codes `tdl.toml` allows.
-- `internal/config`: reads the nearest `tdl.toml` above a file; only its `[lossy]` table so far.
+- `internal/config`: reads the nearest `tdl.toml` above a file; only its `[lossy]` and `[post]` tables so far.
 - `internal/makefn`: what the make functions in `cmd/tdl-gmk` return, `Files` and `Imports`, kept out of the plugin so they test without make.
   `cmd/tdl-gmk` is behind the `makeplugin` build tag, since a `main` package built with `-buildmode=c-shared` links against symbols only make defines; `go build ./...` and the linters never see it.
 - `internal/cli`: cobra commands (`ast`, `check`, `fmt`, `gen`, `import`, `ir`, `lsp`, `play`, `request`, `tokens`, `version`). See [CLI](#cli).
@@ -392,7 +394,7 @@ New work goes through the skills and the issue tracker:
 A phase's pull request closes its ticket.
 A spec issue's sub-issues are its phases, and an open ticket is unbuilt work, so write a plan as tickets, never as a `*-plan.md`.
 Wanted work with no spec is a `needs-triage` issue.
-The `tdl.toml` project model (#1307) is the furthest-ahead spec: only its `[lossy]` table is built.
+The `tdl.toml` project model (#1307) is the furthest-ahead spec: only its `[lossy]` and `[post]` tables are built.
 `CONTEXT.md` is the glossary: one canonical word per concept, and the words to avoid.
 
 ### .NET SDK
@@ -456,6 +458,7 @@ A file named `-` is standard input, shown as `<stdin>` in positions.
 `import --from <target>` asks a backend for a model, prints it through `internal/unlower`, and lowers the printed source again, writing nothing when that fails.
 `gen --make <target>` writes a make dependency file once the whole run succeeds, naming every file it read through a `sema.Recording` loader, and leaves an existing one alone when the run fails.
 `gen` and `import` both drop warnings whose loss code `tdl.toml` or `--allow-lossy` allows, and print a code after the message.
+`gen` runs the commands a target block's `post` directive names, which `tdl.toml`'s `[post]` maps to command lines, over every file the target returns before anything is compared or written (`internal/gen/post.go`; see `docs/architecture/plugins.md`'s Post-processing); a missing name, `tdl.toml`, or command is an error.
 `import` reports read-back loss, what the TDL keeps but regenerating writes differently, only under `--readback`, which sets `ImportRequest.readback`; an importer writes it with `reverse.Reader.Respell` and everything else with `Warn`.
 
 `request --target <name>` writes, as framed messages, a `Handshake` and one `RequestSet`: the requests `gen` would send that backend, and every diagnostic, a file with an error yielding no request.
