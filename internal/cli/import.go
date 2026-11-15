@@ -40,16 +40,20 @@ func importCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "import --from <target> <file>...",
+		Use:   "import --from <target> <file|dir>...",
 		Short: "Turn a target language's source back into TDL",
 		Long: "Turn a target language's source back into TDL.\n\n" +
 			"The backend named by --from reads the files and returns a model,\n" +
 			"which tdl prints as TDL and lowers once more before writing it, so\n" +
 			"the result always passes `tdl check`. A target tdl has no backend\n" +
 			"for resolves to tdl-gen-<name> on PATH, as in `tdl gen`.\n\n" +
+			"A directory argument stands for the files under it the backend\n" +
+			"reads, such as every .proto file, found in sorted order and\n" +
+			"skipping directories whose names start with a dot. Directories\n" +
+			"and files mix freely.\n\n" +
 			"What the source cannot say in TDL, or says ambiguously, is a\n" +
 			"warning naming a loss code, such as lossy.collection. The [lossy]\n" +
-			"table of the nearest tdl.toml above the first file, or\n" +
+			"table of the nearest tdl.toml above the first argument, or\n" +
 			"--allow-lossy, silences one.\n\n" +
 			"The result goes to standard output unless -o names a file.",
 		Args: cobra.MinimumNArgs(1),
@@ -67,8 +71,12 @@ func importCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 				return fmt.Errorf("%s does not import; compiled-in backends that do: %v", from, gen.ReverseNames())
 			}
 
-			files := make([]*plugin.File, 0, len(args))
-			for _, path := range args {
+			paths, err := importPaths(backend, from, args)
+			if err != nil {
+				return err
+			}
+			files := make([]*plugin.File, 0, len(paths))
+			for _, path := range paths {
 				data, err := readSource(cmd, path)
 				if err != nil {
 					return err
@@ -77,8 +85,11 @@ func importCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 			}
 
 			dir := "."
-			if !isStdin(args[0]) {
-				dir = filepath.Dir(args[0])
+			if first := args[0]; !isStdin(first) {
+				dir = filepath.Dir(first)
+				if isDir(first) {
+					dir = first
+				}
 			}
 			codes, err := host.Allowed(dir, from)
 			if err != nil {
@@ -137,6 +148,50 @@ func importCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 	registerCompletion(cmd, "allow-lossy", completeLossCodes)
 	cmd.Flags().BoolVar(&readback, "readback", false, "also warn what regenerating would write differently, such as a name or a file layout")
 	return cmd
+}
+
+// importPaths expands each directory argument into the files under it
+// the backend reads. The backend is asked which those are only when an
+// argument is a directory, since a plugin's description costs a process.
+func importPaths(backend plugin.Backend, from string, args []string) ([]string, error) {
+	if !slices.ContainsFunc(args, isDir) {
+		return args, nil
+	}
+	patterns, err := importPatterns(backend)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", from, err)
+	}
+	var paths []string
+	for _, arg := range args {
+		if !isDir(arg) {
+			paths = append(paths, arg)
+			continue
+		}
+		found, err := host.ImportFiles(from, arg, patterns)
+		if err != nil {
+			return nil, err
+		}
+		paths = append(paths, found...)
+	}
+	return paths, nil
+}
+
+// importPatterns returns the files a backend says its importer reads.
+func importPatterns(b plugin.Backend) ([]string, error) {
+	if sub, ok := b.(*gen.Subprocess); ok {
+		desc, err := sub.Probe()
+		return desc.ImportPatterns, err
+	}
+	return b.Describe().ImportPatterns, nil
+}
+
+// isDir reports whether a command-line argument names a directory.
+func isDir(arg string) bool {
+	if isStdin(arg) {
+		return false
+	}
+	info, err := os.Stat(arg)
+	return err == nil && info.IsDir()
 }
 
 // asImporter returns a backend that imports. A plugin is asked when it

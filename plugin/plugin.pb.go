@@ -445,9 +445,16 @@ type HandshakeReply struct {
 	// format that identifies them by number. tdl numbers every member and
 	// reports a pin the rules refuse before generating. A backend that does
 	// not number leaves it unset and receives no numbers.
-	Numbering     *Numbering `protobuf:"bytes,7,opt,name=numbering" json:"numbering,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Numbering *Numbering `protobuf:"bytes,7,opt,name=numbering" json:"numbering,omitempty"`
+	// import_patterns name the files this backend's importer reads, for a
+	// directory argument to `tdl import`, which tdl walks for the files they
+	// match. Each is a glob matched against a file's base name, as Go's
+	// path.Match reads one; one starting with `!` excludes what it matches.
+	// A file is read when an include matches it and no exclude does. A
+	// backend that imports nothing, or declares none, is given only files.
+	ImportPatterns []string `protobuf:"bytes,8,rep,name=import_patterns,json=importPatterns" json:"import_patterns,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *HandshakeReply) Reset() {
@@ -525,6 +532,13 @@ func (x *HandshakeReply) GetFeatures() *Features {
 func (x *HandshakeReply) GetNumbering() *Numbering {
 	if x != nil {
 		return x.Numbering
+	}
+	return nil
+}
+
+func (x *HandshakeReply) GetImportPatterns() []string {
+	if x != nil {
+		return x.ImportPatterns
 	}
 	return nil
 }
@@ -2136,7 +2150,7 @@ const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
 	"\n" +
 	"ir_version\x18\x02 \x01(\tR\tirVersion\x12\x14\n" +
 	"\x05watch\x18\x03 \x01(\bR\x05watch\x12'\n" +
-	"\x04mode\x18\x04 \x01(\x0e2\x13.tdl.plugin.v1.ModeR\x04mode\"\x9f\x02\n" +
+	"\x04mode\x18\x04 \x01(\x0e2\x13.tdl.plugin.v1.ModeR\x04mode\"\xc8\x02\n" +
 	"\x0eHandshakeReply\x12\x1a\n" +
 	"\baccepted\x18\x01 \x01(\bR\baccepted\x12\x18\n" +
 	"\arefusal\x18\x02 \x01(\tR\arefusal\x12\x12\n" +
@@ -2146,7 +2160,8 @@ const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
 	"directives\x18\x05 \x03(\v2\x1c.tdl.plugin.v1.DirectiveSpecR\n" +
 	"directives\x123\n" +
 	"\bfeatures\x18\x06 \x01(\v2\x17.tdl.plugin.v1.FeaturesR\bfeatures\x126\n" +
-	"\tnumbering\x18\a \x01(\v2\x18.tdl.plugin.v1.NumberingR\tnumbering\"\xa3\x01\n" +
+	"\tnumbering\x18\a \x01(\v2\x18.tdl.plugin.v1.NumberingR\tnumbering\x12'\n" +
+	"\x0fimport_patterns\x18\b \x03(\tR\x0eimportPatterns\"\xa3\x01\n" +
 	"\tNumbering\x121\n" +
 	"\x06fields\x18\x01 \x01(\v2\x19.tdl.plugin.v1.NumberRuleR\x06fields\x121\n" +
 	"\x06values\x18\x02 \x01(\v2\x19.tdl.plugin.v1.NumberRuleR\x06values\x12\x18\n" +

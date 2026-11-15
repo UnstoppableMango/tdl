@@ -174,6 +174,8 @@ The plugin answers with an `ImportResponse`, a model and diagnostics, and `tdl` 
 A plugin may return TDL source in place of the model; `tdl` lowers it, and reports source that does not lower as an error.
 A plugin declares the `reverse` feature to receive one; `tdl` sends no request to a plugin whose reply lacks it, and a plugin that does not import refuses the mode.
 In Go, such a backend also implements `plugin.Importer`.
+Its reply's `import_patterns` name the files it reads, base-name globs with a leading `!` excluding what it matches (`*.go`, `!*_test.go`), so `tdl import` can walk a directory argument for them; `plugin.MatchImport` reads them.
+A plugin declaring none is given only files, and `tdl import` refuses a directory for it.
 [reverse.md](reverse.md) is the design.
 
 ## Transform

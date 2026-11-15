@@ -123,6 +123,7 @@ func description(reply *plugin.HandshakeReply) plugin.Description {
 		Numbering:  reply.GetNumbering(),
 
 		Nondeterministic: reply.GetFeatures().GetNondeterministic(),
+		ImportPatterns:   reply.GetImportPatterns(),
 	}
 }
 
