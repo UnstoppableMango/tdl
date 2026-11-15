@@ -103,15 +103,14 @@ func splitWords(line string) ([]string, error) {
 	var word strings.Builder
 	inWord := false
 	for i := 0; i < len(line); i++ {
-		c := line[i]
-		switch {
-		case c == ' ' || c == '\t' || c == '\n':
+		switch line[i] {
+		case ' ', '\t', '\n':
 			if inWord {
 				words = append(words, word.String())
 				word.Reset()
 				inWord = false
 			}
-		case c == '\'':
+		case '\'':
 			end := strings.IndexByte(line[i+1:], '\'')
 			if end < 0 {
 				return nil, errors.New("unterminated single quote")
@@ -119,7 +118,7 @@ func splitWords(line string) ([]string, error) {
 			word.WriteString(line[i+1 : i+1+end])
 			i += end + 1
 			inWord = true
-		case c == '"':
+		case '"':
 			i++
 			for ; i < len(line) && line[i] != '"'; i++ {
 				if line[i] == '\\' && i+1 < len(line) && strings.IndexByte(`"\$`+"`", line[i+1]) >= 0 {
@@ -131,7 +130,7 @@ func splitWords(line string) ([]string, error) {
 				return nil, errors.New("unterminated double quote")
 			}
 			inWord = true
-		case c == '\\':
+		case '\\':
 			if i+1 >= len(line) {
 				return nil, errors.New("a trailing backslash escapes nothing")
 			}
@@ -139,7 +138,7 @@ func splitWords(line string) ([]string, error) {
 			word.WriteByte(line[i])
 			inWord = true
 		default:
-			word.WriteByte(c)
+			word.WriteByte(line[i])
 			inWord = true
 		}
 	}
