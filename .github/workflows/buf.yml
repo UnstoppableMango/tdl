@@ -6,6 +6,8 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]
 
+permissions: {}
+
 jobs:
   buf:
     runs-on: ubuntu-latest

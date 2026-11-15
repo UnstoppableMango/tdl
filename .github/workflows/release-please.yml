@@ -87,9 +87,11 @@ jobs:
           cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
       # Trusted publishing needs npm 11.5.1 or later, which Node 24 ships.
+      # registry-url is what Scorecard's Packaging check looks for.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
+          registry-url: https://registry.npmjs.org
 
       - run: nix build .#npm
 
@@ -98,6 +100,11 @@ jobs:
           VERSION: ${{ needs.release.outputs.version }}
         run: |
           set -euo pipefail
+          # registry-url writes an .npmrc whose token reads NODE_AUTH_TOKEN.
+          # Unset, npm sends the unexpanded text as a token; empty, it sends
+          # none, so npm view stays anonymous and publish authenticates only
+          # through the token trusted publishing exchanges, as before.
+          export NODE_AUTH_TOKEN=
           have=$(npm --version)
           [ "$(printf '%s\n' 11.5.1 "$have" | sort -V | head -1)" = 11.5.1 ] || {
             echo "npm $have cannot publish through trusted publishing" >&2
