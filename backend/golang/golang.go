@@ -523,8 +523,11 @@ func quoteTag(tag string) string {
 func (g *generator) enumeration(b *strings.Builder, decl *ir.Decl) error {
 	name := g.declName(decl)
 	variants := decl.GetEnumeration().GetVariants()
-	if err := g.CheckTags(decl); err != nil {
-		return err
+	// A fielded variant's wire value is written only under json.
+	if g.wire || !emit.Fielded(decl.GetEnumeration()) {
+		if err := g.CheckTags(decl); err != nil {
+			return err
+		}
 	}
 
 	if !emit.Fielded(decl.GetEnumeration()) {
