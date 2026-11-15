@@ -1,0 +1,21 @@
+// A name Mermaid reserves is quoted, and a variant's class never takes a
+// declaration's id.
+package notes
+
+type note {
+  text: string
+}
+
+enum Shape {
+  Circle { radius: float64 }
+}
+
+type Shape_Circle {
+  label: string
+}
+
+enum style {
+  Bold { weight: int32 }
+}
+
+target mermaid for notes { }

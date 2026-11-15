@@ -3,7 +3,7 @@ using Tdl.Plugin.V1;
 namespace Tdl.Gen.CSharp.Tests;
 
 // Repo finds the requests tdl recorded for the C# backend, which
-// internal/gen/csharp_test.go writes, from the test assembly's directory.
+// internal/gen/plugins_test.go writes, from the test assembly's directory.
 static class Repo
 {
 	public static string Root { get; } = FindRoot();

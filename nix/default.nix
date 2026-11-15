@@ -56,6 +56,16 @@ in
         # The tarballs and SHA256SUMS the release uploads and attests.
         release = pkgs.tdl-release;
         tree-sitter-tdl = pkgs.python3Packages.tree-sitter-tdl;
+        # Every plugin the Go tests run from PATH, for CI's race run: a plugin
+        # this repository serves outside `tdl` joins here, not the workflow.
+        plugins = pkgs.symlinkJoin {
+          name = "tdl-plugins";
+          paths = [
+            pkgs.tdl
+            # tdl-gen-mermaid, until it ships beside tdl (#1487).
+            pkgs.tdl-js
+          ];
+        };
         # The README's demo GIF; `make demo` copies it into docs/demo.
         demo = pkgs.callPackage ./demo.nix { };
       };
@@ -156,7 +166,7 @@ in
         nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.bun ];
         checkPhase = ''
           runHook preCheck
-          HOME=$TMPDIR bun test ./tdl-plugin/dist/test ./tdl-plugin-debug/dist/test
+          HOME=$TMPDIR bun test dist/test
           runHook postCheck
         '';
       });
@@ -181,6 +191,23 @@ in
             diff go/model.txt js/model.txt
             sed -i 's/^js\.tdl:/go.tdl:/; s/js_debug does not/debug does not/' js.err
             diff go.err js.err
+            touch $out
+          '';
+
+      # Runs the mermaid plugin from PATH through tdl gen over the smoke
+      # model, and holds it to the diagram its tests compare with.
+      checks.gen-mermaid =
+        pkgs.runCommand "tdl-gen-mermaid"
+          {
+            nativeBuildInputs = [
+              pkgs.tdl
+              pkgs.tdl-js
+            ];
+          }
+          ''
+            cp ${../testdata/gen/smoke/source.tdl} source.tdl
+            tdl gen --target mermaid -o out source.tdl
+            diff ${../testdata/mermaid/corpus/smoke/want/smoke.mmd} out/smoke.mmd
             touch $out
           '';
 

@@ -16,16 +16,16 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// The C# backend is a .NET plugin, whose tests cannot lower TDL. Its
-// requests are recorded here: testdata/csharp/cases holds the models its
-// unit tests read, and testdata/csharp/corpus the conformance corpus and
-// the smoke model, each with the files it generates.
+// The plugins this repository serves in other languages cannot lower TDL
+// in their tests, so their requests are recorded here: under
+// testdata/<target>/, cases holds the models a plugin's unit tests read,
+// and corpus the conformance corpus and the smoke model, each with the
+// files it generates. The C# backend is a .NET plugin, and the Mermaid
+// backend a TypeScript one.
 
-const csharpTarget = "csharp"
-
-// csharpRequest lowers a file and builds the request tdl sends the C#
-// backend for it, whether or not the file has a csharp target block.
-func csharpRequest(t *testing.T, path string) *plugin.Request {
+// pluginRequest lowers a file and builds the request tdl sends the target's
+// backend for it, whether or not the file has a block for that target.
+func pluginRequest(t *testing.T, target, path string) *plugin.Request {
 	t.Helper()
 	src, err := os.ReadFile(path)
 	if err != nil {
@@ -39,28 +39,34 @@ func csharpRequest(t *testing.T, path string) *plugin.Request {
 	if len(diags) > 0 {
 		t.Fatalf("lowering %s: %v", path, diags.Error())
 	}
-	req, _ := analysis.Request(model, plugin.Description{Name: csharpTarget}, csharpTarget, "")
+	req, _ := analysis.Request(model, plugin.Description{Name: target}, target, "")
 	return req
 }
 
-// TestCSharpCases records a request for every file under
-// testdata/csharp/cases, beside it.
-func TestCSharpCases(t *testing.T) {
-	sources, err := filepath.Glob("../../testdata/csharp/cases/*/*.tdl")
+func TestCSharpCases(t *testing.T)  { checkPluginCases(t, "csharp") }
+func TestCSharpCorpus(t *testing.T) { checkPluginCorpus(t, "csharp") }
+
+// checkPluginCases records a request for every file under
+// testdata/<target>/cases, beside it.
+func checkPluginCases(t *testing.T, target string) {
+	t.Helper()
+	dir := "../../testdata/" + target + "/cases/"
+	sources, err := filepath.Glob(dir + "*/*.tdl")
 	if err != nil || len(sources) == 0 {
 		t.Fatalf("no cases found: %v", err)
 	}
 	for _, src := range sources {
-		t.Run(strings.TrimPrefix(src, "../../testdata/csharp/cases/"), func(t *testing.T) {
-			checkBinary(t, strings.TrimSuffix(src, ".tdl")+".request.binpb", csharpRequest(t, src))
+		t.Run(strings.TrimPrefix(src, dir), func(t *testing.T) {
+			checkBinary(t, strings.TrimSuffix(src, ".tdl")+".request.binpb", pluginRequest(t, target, src))
 		})
 	}
 }
 
-// TestCSharpCorpus records a request for every conformance case and the
-// smoke model, and compares what tdl-gen-csharp generates for each with the
-// files beside it when the plugin is on PATH. -record rewrites both.
-func TestCSharpCorpus(t *testing.T) {
+// checkPluginCorpus records a request for every conformance case and the
+// smoke model, and compares what tdl-gen-<target> generates for each with
+// the files beside it when the plugin is on PATH. -record rewrites both.
+func checkPluginCorpus(t *testing.T, target string) {
+	t.Helper()
 	cases, err := filepath.Glob("../../testdata/conformance/*")
 	if err != nil {
 		t.Fatal(err)
@@ -71,7 +77,8 @@ func TestCSharpCorpus(t *testing.T) {
 	})
 	cases = append(cases, "../../testdata/gen/smoke")
 
-	backend, err := gen.Resolve(csharpTarget)
+	corpus := "../../testdata/" + target + "/corpus"
+	backend, err := gen.Resolve(target)
 	if err != nil {
 		backend = nil
 	}
@@ -81,16 +88,16 @@ func TestCSharpCorpus(t *testing.T) {
 		name := filepath.Base(dir)
 		want[name] = true
 		t.Run(name, func(t *testing.T) {
-			out := filepath.Join("../../testdata/csharp/corpus", name)
+			out := filepath.Join(corpus, name)
 			if *record {
 				if err := os.MkdirAll(out, 0o755); err != nil {
 					t.Fatal(err)
 				}
 			}
-			req := csharpRequest(t, filepath.Join(dir, "source.tdl"))
+			req := pluginRequest(t, target, filepath.Join(dir, "source.tdl"))
 			checkBinary(t, filepath.Join(out, "request.binpb"), req)
 			if backend == nil {
-				t.Skip("tdl-gen-csharp is not on PATH")
+				t.Skipf("tdl-gen-%s is not on PATH", target)
 			}
 			resp, err := backend.Generate(context.Background(), req)
 			if err != nil {
@@ -105,13 +112,13 @@ func TestCSharpCorpus(t *testing.T) {
 		})
 	}
 
-	dirs, err := os.ReadDir("../../testdata/csharp/corpus")
+	dirs, err := os.ReadDir(corpus)
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, d := range dirs {
 		if !want[d.Name()] {
-			t.Errorf("testdata/csharp/corpus/%s is no corpus case; delete it", d.Name())
+			t.Errorf("testdata/%s/corpus/%s is no corpus case; delete it", target, d.Name())
 		}
 	}
 }
@@ -165,3 +172,6 @@ func checkCorpusFiles(t *testing.T, dir string, files []*plugin.File) {
 		t.Errorf("files = %v, want %v", got, have)
 	}
 }
+
+func TestMermaidCases(t *testing.T)  { checkPluginCases(t, "mermaid") }
+func TestMermaidCorpus(t *testing.T) { checkPluginCorpus(t, "mermaid") }
