@@ -546,5 +546,3 @@ func Hoist(v any) {
 		}
 	}
 }
-
-func asWritten(name string) string { return name }

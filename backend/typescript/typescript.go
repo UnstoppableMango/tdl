@@ -635,8 +635,6 @@ func (g *generator) record(r *emit.Ref) (string, error) {
 	return "", emit.Unsupported(r.Pos, "a TypeScript record key is a string, a number, or a fieldless enum, and this one is %s", key)
 }
 
-func asWritten(name string) string { return name }
-
 // narrowed spells a narrowed type: a union of literals, or a tuple.
 func (g *generator) narrowed(n *emit.Narrowed) (string, error) {
 	if n.Kind == emit.NarrowTuple {
