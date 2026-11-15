@@ -162,6 +162,35 @@ The flake-parts module's `post.packages` puts the commands on `PATH` for `checks
 `Response.post` is deprecated and ignored.
 It once let a plugin request a command by name, but which formatter runs is the project's choice, and the backends that format their output do it in process.
 
+## Checks
+
+A project may also hold a target's output to a tool, a compiler or a linter, with `tdl` running it rather than a separate build step.
+A target block names the commands with `check`, and `tdl.toml`'s `[check]` table maps each name to a command line, split as `[post]`'s are:
+
+```tdl
+target typescript for shop {
+  out("gen/ts")
+  post("biome")
+  check("tsc")
+}
+```
+
+```toml
+[check]
+tsc = "tsc --noEmit --strict shop.ts"
+```
+
+`check` is a host directive like `post`: in a target block, one or more names, repeatable.
+After the files have gone through `post`, `tdl` writes them into a temporary directory laid out as the output directory would be, placed beside it (in the nearest directory above it that exists, when its parent does not yet), so a tool run there finds the configuration above the real output as if the files were in place.
+Each named command runs in order with that directory as its working directory, which `{dir}` in a command line also names, absolute; a command wanting the files by a glob names `sh -c`.
+A command exiting non-zero is an error naming the target and the command, carrying everything it printed on either stream, and nothing is written, marked, or cleaned for that target.
+A name `[check]` does not declare, no `tdl.toml`, or a command that is not found is an error too, never a skip, so a result does not depend on the machine.
+The temporary directory is always removed.
+
+`--verify` runs no check, though it still refuses a name `[check]` does not declare, and neither does reusing a nondeterministic backend's kept output (ADR-0002): both compare bytes that were checked when they were written.
+`tdl check` and the language server run no check either.
+The delegated backend reads the same directive from its request for its retry loop (#1508); the host still runs the checks once at the end, as the final gate.
+
 ## Dry run
 
 `tdl gen --verify` sets the dry-run flag.

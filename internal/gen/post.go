@@ -1,6 +1,7 @@
 package gen
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"path/filepath"
@@ -31,11 +32,11 @@ func Post(ctx context.Context, t Target, files []*plugin.File) ([]*plugin.File, 
 
 		content := f.GetContent()
 		for _, c := range t.Post {
-			stdout, stderr, err := c.run(ctx, t.Root, t.Root, map[string]string{"{file}": rel}, content)
-			if err != nil {
-				return nil, withOutput(fmt.Errorf("post %s on %s: %w", c.Name, dest, err), stderr)
+			var stdout, stderr bytes.Buffer
+			if err := c.run(ctx, t.Root, t.Root, map[string]string{"{file}": rel}, content, &stdout, &stderr); err != nil {
+				return nil, withOutput(fmt.Errorf("post %s on %s: %w", c.Name, dest, err), stderr.Bytes())
 			}
-			content = stdout
+			content = stdout.Bytes()
 		}
 		out[i] = &plugin.File{Path: f.GetPath(), Content: content}
 	}

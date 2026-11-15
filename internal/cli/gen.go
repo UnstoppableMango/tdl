@@ -51,6 +51,12 @@ func genCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 			"--watch regenerates when the file changes, holding open any\n" +
 			"plugin that declared it can serve more than one request. It\n" +
 			"takes a single file, since it does not return.\n\n" +
+			"A target block's post(\"<name>\") runs the command the nearest\n" +
+			"tdl.toml's [post] table gives that name over every file before it\n" +
+			"is compared or written, as a filter from stdin to stdout. Its\n" +
+			"check(\"<name>\") runs [check]'s command in a temporary copy of the\n" +
+			"output beside it, and a failure writes nothing; --verify runs no\n" +
+			"check.\n\n" +
 			"A warning naming a loss code, such as lossy.collection, is\n" +
 			"silenced by the [lossy] table of the nearest tdl.toml above the\n" +
 			"file, or by --allow-lossy.",

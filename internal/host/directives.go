@@ -12,12 +12,18 @@ import (
 // returns before anything is compared or written.
 const PostDirective = "post"
 
+// CheckDirective names, in a target block, the commands tdl.toml's [check]
+// table maps to command lines, which tdl runs over a staged copy of the
+// target's post-processed output before writing it.
+const CheckDirective = "check"
+
 // hostSpecs are the directives tdl reads itself beside out, which every
 // backend accepts and none need declare. Each takes one or more names, as
 // strings, in the target block, and may be repeated, its names following
 // the earlier entry's.
 var hostSpecs = map[string]*plugin.DirectiveSpec{
-	PostDirective: nameList(PostDirective),
+	PostDirective:  nameList(PostDirective),
+	CheckDirective: nameList(CheckDirective),
 }
 
 func nameList(name string) *plugin.DirectiveSpec {

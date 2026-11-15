@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -20,14 +21,17 @@ type Command struct {
 	Line string
 }
 
-// Configure reads the commands a target's post directive names from the
-// manifest. A name the manifest does not declare, or no manifest at all,
+// Configure reads the commands a target's post and check directives name
+// from the manifest. A name the manifest does not declare, or no manifest at all,
 // is an error, since skipping the command would make what is written
 // depend on the machine.
 func (t *Target) Configure(cfg *config.Config) error {
 	t.Root = cfg.Dir()
 	var err error
-	t.Post, err = commands(t.Name, host.Names(t.Block, host.PostDirective), host.PostDirective, cfg.Post, cfg.Path)
+	if t.Post, err = commands(t.Name, host.Names(t.Block, host.PostDirective), host.PostDirective, cfg.Post, cfg.Path); err != nil {
+		return err
+	}
+	t.Check, err = commands(t.Name, host.Names(t.Block, host.CheckDirective), host.CheckDirective, cfg.Check, cfg.Path)
 	return err
 }
 
@@ -51,14 +55,14 @@ func commands(target string, names []string, table string, lines map[string]stri
 }
 
 // run runs a command line in dir, replacing each placeholder in its words,
-// with stdin as its input, and returns its stdout. A program named by a
-// relative path, such as ./scripts/fmt, is relative to root, the directory
-// holding tdl.toml, wherever tdl runs. A command that is not found or that
-// exits non-zero is an error carrying what it wrote to stderr.
-func (c Command) run(ctx context.Context, root, dir string, placeholders map[string]string, stdin []byte) ([]byte, []byte, error) {
+// with stdin as its input and its output streams going to stdout and
+// stderr. A program named by a relative path, such as ./scripts/fmt, is
+// relative to root, the directory holding tdl.toml, wherever tdl runs. A
+// command that is not found or that exits non-zero is an error.
+func (c Command) run(ctx context.Context, root, dir string, placeholders map[string]string, stdin []byte, stdout, stderr io.Writer) error {
 	words, err := splitWords(c.Line)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%s: %w", c.Line, err)
+		return fmt.Errorf("%s: %w", c.Line, err)
 	}
 	for i, w := range words {
 		for k, v := range placeholders {
@@ -72,18 +76,17 @@ func (c Command) run(ctx context.Context, root, dir string, placeholders map[str
 	}
 	path, err := exec.LookPath(program)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	cmd := exec.CommandContext(ctx, path, words[1:]...)
 	cmd.Dir = dir
 	cmd.Stdin = bytes.NewReader(stdin)
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout, cmd.Stderr = &stdout, &stderr
+	cmd.Stdout, cmd.Stderr = stdout, stderr
 	if err := cmd.Run(); err != nil {
-		return stdout.Bytes(), stderr.Bytes(), fmt.Errorf("%s: %w", c.Line, err)
+		return fmt.Errorf("%s: %w", c.Line, err)
 	}
-	return stdout.Bytes(), stderr.Bytes(), nil
+	return nil
 }
 
 // withOutput appends a command's output to its error, when it wrote any.
