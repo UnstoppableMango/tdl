@@ -675,3 +675,22 @@ func TestRoundTrip(t *testing.T) {
 }
 `)
 }
+
+// A tag naming no JSON key replaces the whole struct tag, so a wire
+// directive beside it warns.
+func TestWireBesideATagWithoutAKey(t *testing.T) {
+	resp := generateTDL(t, `package shop
+
+type Org { name: string }
+
+target go for shop {
+  json
+  Org.name { tag("yaml:\"n\"") wire("orgName") }
+}
+`)
+	w := uncodedWarnings(resp)
+	if len(w) != 1 {
+		t.Fatalf("diagnostics = %+v, want one warning", w)
+	}
+	contains(t, w[0].GetMessage(), "names no JSON key", `"orgName"`)
+}

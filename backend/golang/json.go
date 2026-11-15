@@ -58,18 +58,13 @@ func (g *generator) wireName(f *ir.Field) string {
 	if !ok {
 		return g.Key(f)
 	}
-	j, ok := reflect.StructTag(tag).Lookup("json")
-	if !ok {
-		return g.fieldName(f)
+	if name, ok := tagKey(tag); ok {
+		return name
 	}
-	name, _, _ := strings.Cut(j, ",")
-	switch name {
-	case "-":
+	if j, _ := reflect.StructTag(tag).Lookup("json"); strings.HasPrefix(j, "-") {
 		return ""
-	case "":
-		return g.fieldName(f)
 	}
-	return name
+	return g.fieldName(f)
 }
 
 // jsonProblem says why a declaration's JSON methods cannot be generated.
@@ -694,9 +689,14 @@ func (g *generator) wireLosses(owner string, f *ir.Field) {
 	field := owner + "." + f.GetMeta().GetName()
 	key := g.Key(f)
 	if tag, ok := g.Text(f.GetDirectives(), "tag"); ok {
-		if name, ok := tagKey(tag); ok && name != key {
+		name, named := tagKey(tag)
+		switch {
+		case named && name != key:
 			g.Warn(emit.Unsupported(d.GetPosition(),
 				"%s's tag names the JSON key %q and its wire directive %q, and the tag wins", field, name, key))
+		case !named && g.wire:
+			g.Warn(emit.Unsupported(d.GetPosition(),
+				"%s's tag replaces its whole struct tag and names no JSON key, so its wire directive %q has no effect", field, key))
 		}
 		return
 	}

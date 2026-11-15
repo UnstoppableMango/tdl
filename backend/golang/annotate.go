@@ -428,7 +428,11 @@ func (g *generator) docBack(meta *ir.Meta, at site) ([]string, *ast.Deprecation,
 // name as a wire directive, and any other tag as a tag directive.
 func (g *generator) keyLoss(owner string, f *ir.Field) {
 	name := f.GetMeta().GetName()
-	tag, tagged := g.Text(f.GetDirectives(), "tag")
+	t, tagged := g.Find(f.GetDirectives(), "tag")
+	tag := ""
+	if tagged {
+		tag = t.GetArgs()[0].GetText()
+	}
 	if d, ok := g.Find(f.GetDirectives(), emit.Wire); ok {
 		if !g.wire || tagged || g.Key(f) == name {
 			g.Lose(emit.LossName, d.GetPosition(), "%s.%s's wire directive does not read back", owner, name)
@@ -436,7 +440,6 @@ func (g *generator) keyLoss(owner string, f *ir.Field) {
 		return
 	}
 	if key, ok := wireKey(tag); tagged && ok && key != name {
-		d, _ := g.Find(f.GetDirectives(), "tag")
-		g.Lose(emit.LossName, d.GetPosition(), "%s.%s's tag reads back as a wire directive", owner, name)
+		g.Lose(emit.LossName, t.GetPosition(), "%s.%s's tag reads back as a wire directive", owner, name)
 	}
 }
