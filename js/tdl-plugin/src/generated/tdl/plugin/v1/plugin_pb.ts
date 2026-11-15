@@ -879,9 +879,9 @@ export type Response = Message<"tdl.plugin.v1.Response"> & {
   files: File[];
 
   /**
-   * post names commands to run over the written files, by name only. The
-   * project decides what a name maps to; a name it has not declared is
-   * skipped with a warning.
+   * post is deprecated and ignored: which commands run over a target's
+   * output is the project's choice, named by a target block's post directive
+   * and mapped to command lines by tdl.toml's [post] table.
    *
    * @generated from field: repeated string post = 2;
    */

@@ -5695,9 +5695,9 @@ namespace Tdl.Plugin.V1 {
         = pb::FieldCodec.ForString(18);
     private readonly pbc::RepeatedField<string> post_ = new pbc::RepeatedField<string>();
     /// <summary>
-    /// post names commands to run over the written files, by name only. The
-    /// project decides what a name maps to; a name it has not declared is
-    /// skipped with a warning.
+    /// post is deprecated and ignored: which commands run over a target's
+    /// output is the project's choice, named by a target block's post directive
+    /// and mapped to command lines by tdl.toml's [post] table.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]

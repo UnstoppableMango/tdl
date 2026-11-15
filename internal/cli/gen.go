@@ -250,6 +250,10 @@ func (r *genRun) generate(path string) error {
 			r.cleaned[out] = true
 		}
 
+		if err := t.Configure(cfg); err != nil {
+			return err
+		}
+
 		backend, err := r.backend(cmd.Context(), t.Name)
 		if err != nil {
 			return err

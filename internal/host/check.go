@@ -27,12 +27,15 @@ func problem(pos *ir.Position, severity plugin.Severity, format string, args ...
 // where its spec does not place it, or given a value its spec does not
 // list is an error, reported before anything is generated. An undeclared
 // directive is a warning and is passed through anyway, since a backend may
-// handle more than it advertises.
+// handle more than it advertises. The directives tdl reads itself
+// ([Directives]) are held to tdl's own specs, whatever the backend
+// declares.
 func CheckDirectives(target string, model *ir.Model, desc plugin.Description) []*plugin.Diagnostic {
 	specs := map[string]*plugin.DirectiveSpec{}
 	for _, s := range desc.Directives {
 		specs[s.GetName()] = s
 	}
+	specs = withHost(specs)
 
 	var problems []*plugin.Diagnostic
 	for _, n := range nodeDirectives(target, model) {
@@ -105,12 +108,18 @@ func checkEach(target string, n node, specs map[string]*plugin.DirectiveSpec) []
 				"%s does not declare the directive %s", target, d.GetName()))
 			continue
 		}
+		if _, own := hostSpecs[d.GetName()]; own && !placed(spec, n.placement) {
+			problems = append(problems, problem(d.GetPosition(), plugin.Severity_SEVERITY_ERROR,
+				"%s is written on %s, and tdl reads it only on %s", d.GetName(), placementNames[n.placement], where(spec)))
+			continue
+		}
 		if !placed(spec, n.placement) {
 			problems = append(problems, problem(d.GetPosition(), plugin.Severity_SEVERITY_ERROR,
 				"%s is written on %s, and %s reads it only on %s", d.GetName(), placementNames[n.placement], target, where(spec)))
 			continue
 		}
 		problems = append(problems, checkOne(d, spec)...)
+		problems = append(problems, checkNames(d)...)
 	}
 	return problems
 }
