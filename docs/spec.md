@@ -596,6 +596,7 @@ A directive a backend declares repeatable may appear more than once at one speci
 
 The compiler resolves every path against the model, and a path that names nothing is an error.
 Directives are opaque: the compiler checks their shape and hands them to the backend.
+Two directives belong to `tdl` rather than a backend, and every target accepts them in its block: `out` names where the output goes, and `post` names commands, declared in `tdl.toml`, that run over each generated file before it is written.
 
 Target blocks may appear in a `.tdl` file or in a separate file.
 The standard library ships a target for each supported language, and a project may replace any of them.

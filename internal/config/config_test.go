@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -102,5 +103,42 @@ func TestLoadRejectsAWrongType(t *testing.T) {
 	write(t, path, "[lossy]\nallow = \"lossy.order\"\n")
 	if _, err := config.Load(path); err == nil {
 		t.Error("a string where a list belongs was accepted")
+	}
+}
+
+// [post] maps each name to its command line, and Dir is the directory the
+// manifest was found in, where those commands run.
+func TestLoadReadsPost(t *testing.T) {
+	root := t.TempDir()
+	write(t, filepath.Join(root, config.FileName), `
+[post]
+biome = "biome format --stdin-file-path={file}"
+up = "tr a-z A-Z"
+`)
+	c, err := config.Find(filepath.Join(root))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]string{"biome": "biome format --stdin-file-path={file}", "up": "tr a-z A-Z"}
+	if !maps.Equal(c.Post, want) {
+		t.Errorf("post = %v, want %v", c.Post, want)
+	}
+	if c.Dir() != root {
+		t.Errorf("dir = %q, want %q", c.Dir(), root)
+	}
+}
+
+func TestDirWithoutAManifest(t *testing.T) {
+	if dir := (&config.Config{}).Dir(); dir != "" {
+		t.Errorf("dir = %q, want none", dir)
+	}
+}
+
+// A [post] entry that is not a command line is an error naming it.
+func TestLoadRejectsANonStringPost(t *testing.T) {
+	path := filepath.Join(t.TempDir(), config.FileName)
+	write(t, path, "[post]\nbiome = [\"biome\", \"format\"]\n")
+	if _, err := config.Load(path); err == nil || !strings.Contains(err.Error(), "post.biome") {
+		t.Errorf("err = %v, want one naming post.biome", err)
 	}
 }

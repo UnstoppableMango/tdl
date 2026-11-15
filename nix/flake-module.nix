@@ -24,6 +24,10 @@
         '';
 
       enabled = list: cfg.src != null && list != [ ];
+
+      # What a generation run needs on PATH beside tdl: the plugins it
+      # resolves and the post commands it runs.
+      tools = cfg.gen.backends ++ cfg.post.packages;
     in
     {
       options.tdl = {
@@ -110,6 +114,20 @@
           };
         };
 
+        post.packages = lib.mkOption {
+          type = lib.types.listOf lib.types.package;
+          default = [ ];
+          example = lib.literalExpression "[ pkgs.biome ]";
+          description = ''
+            Packages put on PATH for the generation check and the devShell,
+            holding the commands the `[post]` table of the project's
+            `tdl.toml` names. A target block's `post` directive runs them over
+            every file it generates, so `tdl gen --verify` needs them too.
+            The check reads the `tdl.toml` nearest the model, so it belongs
+            inside `src`.
+          '';
+        };
+
         make = {
           enable = lib.mkOption {
             type = lib.types.bool;
@@ -139,7 +157,7 @@
         devShells = lib.optionalAttrs cfg.devShell.enable {
           tdl = pkgs.mkShellNoCC (
             {
-              packages = [ cfg.package ] ++ cfg.gen.backends;
+              packages = [ cfg.package ] ++ tools;
             }
             // lib.optionalAttrs cfg.make.enable {
               # The object links against nixpkgs' libc, so only a make from
@@ -148,7 +166,7 @@
                 cfg.package
                 pkgs.gnumake
               ]
-              ++ cfg.gen.backends;
+              ++ tools;
               # Exported from the hook rather than set as an attribute, because
               # inputsFrom merges a shell's hooks and packages but drops its
               # variables.
@@ -167,7 +185,7 @@
             tdl-fmt = runIn "tdl-fmt" [ ] "tdl fmt --check ${lib.escapeShellArgs cfg.files}";
           }
           // lib.optionalAttrs (enabled cfg.gen.files) {
-            tdl-gen = runIn "tdl-gen" cfg.gen.backends "tdl gen --verify ${lib.escapeShellArgs cfg.gen.files}";
+            tdl-gen = runIn "tdl-gen" tools "tdl gen --verify ${lib.escapeShellArgs cfg.gen.files}";
           };
       };
     };

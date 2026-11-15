@@ -240,3 +240,41 @@ func TestBlockRepeatsAreTies(t *testing.T) {
 		t.Errorf("problems = %v", problems)
 	}
 }
+
+// Every target accepts `post` on its block with one or more string
+// arguments, whether or not its backend declares it.
+func TestPostIsCheckedForEveryTarget(t *testing.T) {
+	post := func(args ...*ir.Literal) *ir.Directive {
+		return &ir.Directive{Name: host.PostDirective, Target: "t", Args: args}
+	}
+	block := func(ds ...*ir.Directive) *ir.Model {
+		return &ir.Model{Targets: []*ir.TargetBlock{{Meta: &ir.Meta{Name: "t"}, Directives: ds}}}
+	}
+	num := &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_INT, Text: "1"}
+
+	tests := []struct {
+		name  string
+		model *ir.Model
+		want  string
+	}{
+		{"one", block(post(str("biome"))), ""},
+		{"several", block(post(str("biome"), str("sed"))), ""},
+		{"no arguments", block(post()), "post takes at least 1 argument(s), got 0"},
+		{"a later argument not a string", block(post(str("biome"), num)), "post argument 2 is an integer, want a string"},
+		{"on a declaration", modelWith(post(str("biome"))), "post is written on a declaration, and t reads it only on the target block"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			problems := host.CheckDirectives("t", tc.model, spec())
+			if tc.want == "" {
+				if len(problems) != 0 {
+					t.Errorf("problems = %v", problems)
+				}
+				return
+			}
+			if len(problems) != 1 || !strings.Contains(problems[0].GetMessage(), tc.want) || !host.Fatal(problems) {
+				t.Errorf("problems = %v, want one error containing %q", problems, tc.want)
+			}
+		})
+	}
+}

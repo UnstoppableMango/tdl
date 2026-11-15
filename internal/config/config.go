@@ -1,5 +1,5 @@
 // Package config reads tdl.toml, the project manifest. It reads only the
-// [lossy] table so far; issue #1307 describes the rest.
+// [lossy] and [post] tables so far; issue #1307 describes the rest.
 package config
 
 import (
@@ -28,6 +28,19 @@ type Config struct {
 
 	// Targets holds, per target, the codes [lossy.<target>] allows.
 	Targets map[string][]string
+
+	// Post maps each name a target block's post directive may use to the
+	// command line [post] gives it.
+	Post map[string]string
+}
+
+// Dir is the directory holding the manifest, where post commands run, or
+// "" when none was found.
+func (c *Config) Dir() string {
+	if c.Path == "" {
+		return ""
+	}
+	return filepath.Dir(c.Path)
 }
 
 // Find reads the manifest in dir or the nearest directory above it. It
@@ -54,18 +67,28 @@ func Find(dir string) (*Config, error) {
 }
 
 // Load reads one manifest. A key it does not know inside [lossy] is an
-// error, so a misspelled `allow` is not silently ignored; other tables are
-// left to the commands that read them.
+// error, so a misspelled `allow` is not silently ignored, and so is a [post]
+// entry that is not a string; other tables are left to the commands that
+// read them.
 func Load(path string) (*Config, error) {
 	var raw struct {
 		Lossy map[string]toml.Primitive `toml:"lossy"`
+		Post  map[string]toml.Primitive `toml:"post"`
 	}
 	md, err := toml.DecodeFile(path, &raw)
 	if err != nil {
 		return nil, err
 	}
 
-	c := &Config{Path: path, Targets: map[string][]string{}}
+	c := &Config{Path: path, Targets: map[string][]string{}, Post: map[string]string{}}
+	for name, prim := range raw.Post {
+		var command string
+		if err := md.PrimitiveDecode(prim, &command); err != nil {
+			return nil, fmt.Errorf("%s: post.%s: %w", path, name, err)
+		}
+		c.Post[name] = command
+	}
+
 	for key, prim := range raw.Lossy {
 		if key == "allow" {
 			if err := md.PrimitiveDecode(prim, &c.Allow); err != nil {

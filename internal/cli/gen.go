@@ -53,7 +53,13 @@ func genCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 			"takes a single file, since it does not return.\n\n" +
 			"A warning naming a loss code, such as lossy.collection, is\n" +
 			"silenced by the [lossy] table of the nearest tdl.toml above the\n" +
-			"file, or by --allow-lossy.",
+			"file, or by --allow-lossy.\n\n" +
+			"A target block's post directive names commands from the [post]\n" +
+			"table of that tdl.toml, which run over each file before it is\n" +
+			"compared or written: each reads the content on stdin and writes\n" +
+			"the new content to stdout, runs in the directory holding\n" +
+			"tdl.toml, and has {file} in its command line replaced with the\n" +
+			"file's destination relative to there.",
 		Args: cobra.MinimumNArgs(1),
 
 		ValidArgsFunction: tdlFiles,
@@ -261,6 +267,10 @@ func (r *genRun) generate(path string) error {
 		reportDiagnostics(cmd, problems)
 		if host.Fatal(problems) {
 			return fmt.Errorf("target %s uses a directive incorrectly", t.Name)
+		}
+
+		if t.Post, err = gen.ResolvePost(t.Block, cfg); err != nil {
+			return err
 		}
 
 		result, err := gen.Run(cmd.Context(), backend, t, model, mode)
