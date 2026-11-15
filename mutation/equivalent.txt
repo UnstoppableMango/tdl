@@ -68,3 +68,10 @@ internal/sema/types.go:127:5 invert-loopctrl
 
 # With no arguments the branch builds the same ParamRef.
 internal/sema/types.go:92:18 conditionals-boundary
+
+# From the triage of #1134 (#1353).
+
+# Problems' only caller in the module, Request, builds one view per
+# constraint, so the guard against fewer views than constraints never fires;
+# it stays because Problems is exported.
+internal/analysis/constraints.go:103:9 conditionals-boundary
