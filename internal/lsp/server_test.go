@@ -129,6 +129,36 @@ func TestDiagnosticsRangeOverTheNode(t *testing.T) {
 	}
 }
 
+// TestAliasedReferenceIsChecked publishes a name a dependency does not
+// declare, read through an import alias, at the reference.
+func TestAliasedReferenceIsChecked(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, filepath.Join(dir, "common.tdl"), "package common\n\ntype Money {\n  amount: string\n}\n")
+
+	src := "package p\n\n" +
+		"import \"common.tdl\" as common\n\n" +
+		"type Order {\n" +
+		"  total: common.Monee\n" +
+		"}\n"
+	path := filepath.Join(dir, "order.tdl")
+	writeFile(t, path, src)
+
+	diags := newSession(t).open(path, src)
+	if len(diags) != 1 {
+		t.Fatalf("expected one diagnostic, got %v", messages(t, diags))
+	}
+	if msg := message(t, diags[0]); !strings.Contains(msg, `"common.tdl" declares no Monee`) {
+		t.Errorf("message = %q", msg)
+	}
+	want := protocol.Range{
+		Start: protocol.Position{Line: 5, Character: 9},
+		End:   protocol.Position{Line: 5, Character: 21},
+	}
+	if got := diags[0].Range; got != want {
+		t.Errorf("range = %v, want %v", got, want)
+	}
+}
+
 // TestDefinitionJumpsToADeclaration checks the range covers the declared
 // name rather than the `type` keyword.
 func TestDefinitionJumpsToADeclaration(t *testing.T) {

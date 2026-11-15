@@ -70,7 +70,7 @@ func lowerFile(file *ast.File, cfg config) *lowerer {
 		model:    &ir.Model{},
 		types:    map[string]int32{},
 		unitKeys: map[string]int32{},
-		aliases:  map[string]string{},
+		aliases:  map[string]*aliasImport{},
 		externs:  map[string]int32{},
 		depDecls: map[string][]*ir.Directive{},
 		depFiles: map[string]*ast.File{},
@@ -141,7 +141,7 @@ type lowerer struct {
 	model    *ir.Model
 	types    map[string]int32           // interning key to index
 	unitKeys map[string]int32           // reduced dimensions to Model.units index
-	aliases  map[string]string          // import alias to package name
+	aliases  map[string]*aliasImport    // import alias to what it names
 	externs  map[string]int32           // "pkg.Name" to index
 	depDecls map[string][]*ir.Directive // "pkg.Name" to its dependency's declaration-level directives
 	depFiles map[string]*ast.File       // package to the parse tree of a root import declaring it

@@ -177,19 +177,22 @@ func (l *lowerer) unitType(unit *ir.ID, at ast.Node) *ir.ID {
 	})
 }
 
-// qualified resolves `alias.Name` to an extern. Whether the dependency
-// declares that name is not checked; the backend resolves it.
+// qualified resolves `alias.Name` to an extern, once the dependency's
+// parse tree shows it declares and exports a type by that name. The
+// dependency is not lowered.
 func (l *lowerer) qualified(t *ast.TypeRef) *ir.ID {
 	// Recorded with no target, so a cursor on `money.Money` finds nothing
 	// rather than a neighboring reference.
 	l.record(t.P, t.Qualifier+"."+t.N, binding{}, false)
 
-	pkg, ok := l.aliases[t.Qualifier]
-	if !ok {
-		l.diags.add(t, "undefined import alias: %s", t.Qualifier)
-		return &ir.ID{Index: ir.Unresolved, Name: t.Qualifier + "." + t.N}
+	imp, decl, ok := l.aliased(t.Qualifier, t.N, t)
+	if ok {
+		if _, class := decl.(*ast.ClassDecl); !class {
+			return l.extern(imp.pkg, t.N, t)
+		}
+		l.diags.add(t, "%s.%s is a class, not a type", t.Qualifier, t.N)
 	}
-	return l.extern(pkg, t.N, t)
+	return &ir.ID{Index: ir.Unresolved, Name: t.Qualifier + "." + t.N}
 }
 
 // ctor resolves a constructor name against the enclosing scope. An

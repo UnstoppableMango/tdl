@@ -31,17 +31,20 @@ func (l *lowerer) walkImports(file *ast.File, from string, onPath map[string]boo
 		name, src, err := l.loader.Load(from, imp.Path)
 		if err != nil {
 			l.diags.add(imp, "cannot read import %q: %v", imp.Path, err)
+			l.bindUnread(imp, root)
 			continue
 		}
 
 		if onPath[name] {
 			l.diags.add(imp, "import cycle: %s", strings.Join(append(chain, name), " -> "))
+			l.bindUnread(imp, root)
 			continue
 		}
 
 		dep, perr := parser.Parse(name, strings.NewReader(src))
 		if perr != nil {
 			l.diags.add(imp, "import %q does not parse: %v", imp.Path, perr)
+			l.bindUnread(imp, root)
 			continue
 		}
 
@@ -127,15 +130,29 @@ func (l *lowerer) depDeclDirectives(dep *ast.File, pkg string) {
 	}
 }
 
+// aliasImport is what an import alias names: the dependency's package and
+// its declarations by name, read from its parse tree.
+type aliasImport struct {
+	pkg   string
+	path  string              // the import path as written
+	decls map[string]ast.Decl // nil when the dependency could not be read
+}
+
 // bindImport binds what an import brings into scope: an alias to a
 // package, or for a `_` import, the dependency's exported names.
 func (l *lowerer) bindImport(imp *ast.ImportDecl, pkg string, dep *ast.File) {
 	if imp.Alias != "_" {
 		if prev, ok := l.aliases[imp.Alias]; ok {
-			l.diags.add(imp, "import alias %s is bound twice, first to %s", imp.Alias, prev)
+			l.diags.add(imp, "import alias %s is bound twice, first to %s", imp.Alias, prev.pkg)
 			return
 		}
-		l.aliases[imp.Alias] = pkg
+		decls := map[string]ast.Decl{}
+		for _, decl := range dep.Decls {
+			if name := decl.Name(); namesAType(decl) && decls[name] == nil {
+				decls[name] = decl
+			}
+		}
+		l.aliases[imp.Alias] = &aliasImport{pkg: pkg, path: imp.Path, decls: decls}
 		return
 	}
 
@@ -153,6 +170,43 @@ func (l *lowerer) bindImport(imp *ast.ImportDecl, pkg string, dep *ast.File) {
 			l.diags.add(imp, "%s from %q is already declared here", name, imp.Path)
 		}
 	}
+}
+
+// bindUnread binds the alias of a root import that failed to load, so a
+// reference through it is not reported again.
+func (l *lowerer) bindUnread(imp *ast.ImportDecl, root bool) {
+	if !root || imp.Alias == "_" {
+		return
+	}
+	if _, ok := l.aliases[imp.Alias]; !ok {
+		l.aliases[imp.Alias] = &aliasImport{path: imp.Path}
+	}
+}
+
+// aliased resolves `alias.name` to the declaration the dependency's parse
+// tree holds, reporting an undefined alias, a name the dependency does not
+// declare, and one it does not export. It reports false for a reference
+// that does not resolve, including one into a dependency that could not be
+// read, whose import already reported it.
+func (l *lowerer) aliased(alias, name string, at ast.Node) (*aliasImport, ast.Decl, bool) {
+	imp, ok := l.aliases[alias]
+	if !ok {
+		l.diags.add(at, "undefined import alias: %s", alias)
+		return nil, nil, false
+	}
+	if imp.decls == nil {
+		return nil, nil, false
+	}
+	decl, ok := imp.decls[name]
+	if !ok {
+		l.diags.add(at, "%q declares no %s", imp.path, name)
+		return nil, nil, false
+	}
+	if !exported(decl) {
+		l.diags.add(at, "%s.%s is not exported", alias, name)
+		return nil, nil, false
+	}
+	return imp, decl, true
 }
 
 // exported reports whether decl is visible outside its package: an
