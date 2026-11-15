@@ -176,14 +176,19 @@ func (g *generator) object(d *ir.Decl) ([]*plugin.File, error) {
 	var files []*plugin.File
 	for _, f := range d.Fields() {
 		what := name + "." + f.GetMeta().GetName()
-		if _, ok, err := g.standardName(what, f.GetDirectives()); ok {
+		if std, ok, err := g.standardName(what, f.GetDirectives()); ok {
 			// The object already has the field, so nothing is written.
 			switch {
 			case err != nil:
 				g.Warn(err)
+			case seen[strings.ToLower(std)]:
+				g.Warn(emit.Unsupported(f.GetMeta().GetPosition(), "%s has two fields standing for %s", name, std))
 			case f == key:
 				g.Warn(emit.Unsupported(f.GetMeta().GetPosition(),
 					"%s is keyed by %s, which stands for a standard field, and only a custom field is made an external ID", name, f.GetMeta().GetName()))
+			}
+			if err == nil {
+				seen[strings.ToLower(std)] = true
 			}
 			continue
 		}

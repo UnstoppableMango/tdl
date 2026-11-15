@@ -118,6 +118,10 @@ func (g *generator) decl(d *ir.Decl) ([]*plugin.File, error) {
 		return nil, err
 	}
 
+	if d.GetStructure().GetKind() != ir.StructKind_STRUCT_KIND_ENTITY {
+		g.strayStandard(d)
+	}
+
 	var files []*plugin.File
 	var err error
 	switch e := d.GetEnumeration(); {
@@ -139,9 +143,6 @@ func (g *generator) decl(d *ir.Decl) ([]*plugin.File, error) {
 	}
 	if err != nil {
 		return nil, err
-	}
-	if d.GetStructure().GetKind() != ir.StructKind_STRUCT_KIND_ENTITY {
-		g.strayStandard(d)
 	}
 	g.WarnConstraints(d)
 	return files, nil

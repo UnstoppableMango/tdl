@@ -77,8 +77,9 @@ A lookup to the entity names `Account`, and so does an Apex member holding it, s
 
 `standard("<FieldApiName>")` on a field of any entity marks a field the object already has, such as `Name` or `CreatedDate`: nothing is written for it.
 A `key` naming such a field warns, since only a custom field is made an external ID.
+Two fields standing for one standard field warn.
 
-The directive names a standard object or field, so a name holding `__`, a custom object's `Tier__c` or a managed package's `acme__Thing`, warns and skips the entity.
+The directive names a standard object or field, so a name holding `__`, a custom object's `Tier__c` or a managed package's `acme__Thing`, warns: on an entity it skips the entity, and on a field it drops the field.
 The backend holds no list of standard objects or their fields, so it trusts the name.
 `standard` on a declaration that is not an entity, or on its fields, warns and does nothing.
 Import reading standard objects back waits on the Salesforce importer (#1457, #1458), and is the rest of #1463.

@@ -484,9 +484,9 @@ func TestStandardField(t *testing.T) {
 	created := irtest.Field("createdAt", b.Named("instant"))
 	created.Directives = []*ir.Directive{directive("standard", irtest.Text("CreatedDate"))}
 	b.Own(entity("Order", created, irtest.Field("total", b.Named("decimal"))))
-	contact := entity("Person", irtest.Field("order", b.Named("Order")))
-	contact.Directives = []*ir.Directive{directive("standard", irtest.Text("Contact"))}
-	b.Own(contact)
+	person := entity("Person", irtest.Field("order", b.Named("Order")))
+	person.Directives = []*ir.Directive{directive("standard", irtest.Text("Contact"))}
+	b.Own(person)
 
 	all := files(t, generate(t, b))
 	file(t, all, "objects/Order__c/Order__c.object-meta.xml")
@@ -527,15 +527,26 @@ func TestStandardRefused(t *testing.T) {
 		b.Own(d)
 	}
 	warned(t, generate(t, b), "Company would declare Account in Salesforce, and Customer already does")
+
+	// Nor can two fields both be one standard field.
+	b = irtest.New("shop")
+	var fields []*ir.Field
+	for _, n := range []string{"name", "title"} {
+		f := irtest.Field(n, b.Named("string"))
+		f.Directives = []*ir.Directive{directive("standard", irtest.Text("Name"))}
+		fields = append(fields, f)
+	}
+	b.Own(entity("Order", fields...))
+	warned(t, generate(t, b), "Order has two fields standing for Name")
 }
 
 // What a standard object already has, or what does not apply to it, warns
 // and is ignored.
 func TestStandardIgnored(t *testing.T) {
 	b := irtest.New("shop")
-	id := irtest.Field("number", b.Named("string"))
-	id.Directives = []*ir.Directive{directive("standard", irtest.Text("AccountNumber"))}
-	customer := entity("Customer", id, irtest.Field("tier", b.Named("string")))
+	number := irtest.Field("number", b.Named("string"))
+	number.Directives = []*ir.Directive{directive("standard", irtest.Text("AccountNumber"))}
+	customer := entity("Customer", number, irtest.Field("tier", b.Named("string")))
 	customer.Directives = []*ir.Directive{
 		directive("standard", irtest.Text("Account")),
 		directive("label", irtest.Text("Client")),
