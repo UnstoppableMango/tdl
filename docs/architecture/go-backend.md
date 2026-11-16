@@ -206,9 +206,10 @@ Both warn, because an interface missing its embed is satisfied by types that do 
 A bare `json` directive on the target block opts in to the JSON wire convention the TypeScript, JSON Schema, and OpenAPI backends share: a property is named as the model spells it, and a fielded enum is tagged internally by its discriminant, `kind` or the `discriminant` directive's.
 Without it, the generated types carry no `encoding/json` opinion.
 
-Every field gets a `json` struct tag holding its name in the model, with `omitempty` when it is `T?`.
+Every field gets a `json` struct tag holding its JSON key, with `omitempty` when it is `T?`: its name in the model, or what a `wire` directive on it says.
+A `name` directive renames only the Go identifier, so `name("OrgName")` and `wire("orgName")` together give the field `OrgName` the tag `json:"orgName"`.
 A variant's discriminant value is its wire value, the `wire` directive's or else its name; a `wire` on a fielded variant without `json` warns that it has no effect.
-A `tag` directive on a field replaces its tag, and decoding reads the property that tag names.
+A `tag` directive on a field replaces its tag, and decoding reads the property that tag names; beside a `wire` naming another key, the tag wins and warns.
 
 Each variant of a fielded enum gets a `MarshalJSON` writing the discriminant before its fields, and `Unmarshal<Enum>` decodes one by it:
 
@@ -236,7 +237,7 @@ A field named `marshalJSON` would collide with the method, so a type holding one
 
 What the convention cannot carry warns: a variant field named like the discriminant skips the enum, a `Set` is a Go map, which `encoding/json` writes as an object rather than an array, a generic declaration applied to a fielded enum decodes it as a plain value, and one applied to a type holding a list or map writes it as a plain value, a nil one as `null`.
 A type parameter named like a local of the generated methods (`plain`, `data`, `raw`, `err`, `v`, and in a `MarshalJSON` `self`, `out0`, `e0`, `k0` at any depth) skips the declaration.
-Import does not read `json` back: the tags return as `tag` directives, and the methods warn.
+Import does not read `json` back: a tag holding only a json key other than the field's name returns as a `wire` directive, any other tag as a `tag` directive, and the methods warn.
 
 ## Validation
 
@@ -324,6 +325,8 @@ The backend understands nine and declares all nine in its handshake, so the comp
 - `name("Account")`, on a declaration, a field, or an enum variant.
   Overrides the Go identifier without renaming the model.
   On a variant it replaces the whole identifier, enum prefix included, and a constant's value stays the variant's wire value.
+- `wire("orgName")`, on a field.
+  Its JSON key in the `json` struct tag; without `json` it warns that it has no effect.
 - `wire("live")`, on an enum variant.
   The variant's wire value: a fieldless variant's constant, and a fielded variant's discriminant value under `json`.
   A wire value naming another variant, or another variant's wire value, is an error, and the enum is not generated.

@@ -394,7 +394,7 @@ The file's name is the package, except `model`, the name of a model without one.
 | a class, a method, an index signature, an object literal type, another union or type, `extends`, `readonly` | `lossy.unsupported` |
 | a declaration not exported | the declaration, with `lossy.unsupported` |
 
-A property keeps its name, unless it is not a TDL identifier: then it reads in camel case with a `name` directive.
+A property keeps its name, unless it is not a TDL identifier: then it reads in camel case with a `wire` directive, since the property is the field's JSON key.
 A variant's name is what its interface's name adds to the union's, or else the interface's own, with a `name` directive.
 The last `/** */` comment is a doc comment: its lines before the first tag are the doc, and `@deprecated` the deprecation; any other tag warns `lossy.doc`.
 The target block holds `name` and `discriminant` directives where the convention would write another, and `brand` on each branded newtype; a brand keyed by another name is not read and warns `lossy.unsupported`.

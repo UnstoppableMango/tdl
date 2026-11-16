@@ -61,8 +61,8 @@ notes = "Parsed through the schema, so a branded field takes a plain value; chec
 notes = "The backend declares no `key` directive, since a schema has no identity."
 
 [name]
-spelling = "the property or schema name"
-notes = "On a fielded variant it renames the variant's schema, never the `kind` value; on a variant of a fieldless enum it has no effect and warns."
+spelling = "the schema name"
+notes = "On a fielded variant it renames the variant's schema, never the `kind` value; on a variant of a fieldless enum it has no effect and warns. On a field it renames the property, which is its JSON key, and warns, since the wire convention spells a key as the model does and a `wire` directive renames one."
 
 [number]
 notes = "JSON has no field numbers."
