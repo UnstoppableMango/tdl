@@ -424,3 +424,46 @@ func TestExternNeedsOut(t *testing.T) {
 		t.Errorf("diagnostics = %v", resp.GetDiagnostics())
 	}
 }
+
+// A list default's unique check compares the values the default writes,
+// as the module's unique helper does, not the source spelling: 1 and 1.0
+// are one float64, and [1] and [1.0] one list of them.
+func TestUniqueDefaultComparesWrittenValues(t *testing.T) {
+	resp, src := gen(t, `package shop
+
+type Plain: [float64]
+
+type T {
+  spelled: [float64] where { unique } = [1, 1.0]
+  nested: [[float64]] where { unique } = [[1], [1.0]]
+  same: [float64] where { unique } = [1, 1]
+  escaped: [string] where { unique } = ["\t", "	"]
+  distinct: [float64] where { unique } = [1, 2.5]
+  wrapped: Floats = [2, 2.0]
+  narrowed: Plain where { unique } = [3, 3.0]
+  zero: [float64] where { unique } = [0, -0.0]
+}
+
+type Floats: [float64] where { unique }
+`)
+	for _, c := range []struct{ field, value string }{
+		{"spelled", "1"},
+		{"nested", "[1]"},
+		{"same", "1"},
+		// The lexer unescapes a string, so an escape and the character it
+		// stands for already lower to one text.
+		{"escaped", `"\t"`},
+		{"wrapped", "2"},
+		{"narrowed", "3"},
+		// JSON has no negative zero, so the helper reads both as 0.
+		{"zero", "0"},
+	} {
+		if !warned(resp, emit.LossDefault, "T."+c.field+"'s default", "holds "+c.value+" twice, and unique refuses that") {
+			t.Errorf("no unique warning for T.%s naming %s: %v", c.field, c.value, resp.GetDiagnostics())
+		}
+	}
+	if n := strings.Count(src, ".prefault("); n != 1 {
+		t.Errorf("%d defaults written, want 1:\n%s", n, src)
+	}
+	contains(t, src, `.prefault([1, 2.5])`)
+}

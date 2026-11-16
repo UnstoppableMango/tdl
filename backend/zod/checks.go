@@ -75,7 +75,7 @@ func (g *generator) exclude(subject string, n *emit.Narrowed, own, cs []*ir.Cons
 			lit = &ir.Literal{Kind: ir.LiteralKind_LITERAL_KIND_FLOAT, Text: v}
 			shown = v
 		}
-		if c, _ := g.refusing(lit, bounds, true); c != nil {
+		if c, _ := g.refusing(nil, lit, bounds, true); c != nil {
 			g.Lossy(emit.LossConstraint, c.GetPosition(), "%s: oneOf argument %s is excluded by %s, and is left out", subject, shown, emit.ConstraintText(c))
 			continue
 		}
@@ -182,14 +182,19 @@ func bound(n *int64, open string) string {
 	return strconv.FormatInt(*n, 10)
 }
 
-// refusing is the first of cs a literal fails, and why, or nil. Zod
-// parses no default and the backend writes no check for a literal union,
+// refusing is the first of cs a literal for a schema of r fails, and why,
+// or nil. Zod parses no default and the backend writes no check for a literal union,
 // so both are checked here; a pattern only when a schema checks it, or,
 // when pending, when the schema not yet written may, since a newtype
 // written later checks its pattern after the default is decided. A
 // literal union passes pending too, since it states every pattern it
 // filters by.
-func (g *generator) refusing(l *ir.Literal, cs []*ir.Constraint, pending bool) (*ir.Constraint, string) {
+//
+// unique compares the values literal writes for r's elements, which the
+// module's unique helper sees, so it is checked only when r is a list or a
+// set, or a newtype of one; an item literal cannot write is left to
+// literal to report.
+func (g *generator) refusing(r *emit.Ref, l *ir.Literal, cs []*ir.Constraint, pending bool) (*ir.Constraint, string) {
 	for _, c := range cs {
 		args := c.GetArgs()
 		switch c.GetName() {
@@ -224,9 +229,16 @@ func (g *generator) refusing(l *ir.Literal, cs []*ir.Constraint, pending bool) (
 				return c, "does not match " + emit.ConstraintText(c)
 			}
 		case "unique":
+			elem := g.elem(r)
+			if elem == nil {
+				continue
+			}
 			seen := map[string]bool{}
 			for _, item := range l.GetItems() {
-				key := item.Source()
+				key, why := g.literal(elem, item)
+				if why != "" {
+					continue
+				}
 				if seen[key] {
 					return c, "holds " + key + " twice, and " + emit.ConstraintText(c) + " refuses that"
 				}
@@ -239,6 +251,22 @@ func (g *generator) refusing(l *ir.Literal, cs []*ir.Constraint, pending bool) (
 		}
 	}
 	return nil, ""
+}
+
+// elem is the element of the list or set r names, through newtypes, or
+// nil.
+func (g *generator) elem(r *emit.Ref) *emit.Ref {
+	for r != nil && r.Form == emit.Named && r.Decl.GetNewtype() != nil {
+		base, err := g.Resolve(r.Decl.GetNewtype().GetBase())
+		if err != nil {
+			return nil
+		}
+		r = base
+	}
+	if r == nil || r.Form != emit.List && r.Form != emit.Set {
+		return nil
+	}
+	return r.Elem
 }
 
 // sameLiteral reports whether a and b are one value: equal numbers, or
