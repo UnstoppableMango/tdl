@@ -8,12 +8,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/unstoppablemango/tdl/internal/tooltest"
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
 // The tests type check every response with tsc and run it under node with
-// the zod package installed. Without tsc, node, or zod, or under -short,
-// they check the text alone; checks.gen-zod and the devShell provide all
+// the zod package installed; checks.gen-zod and the devShell provide all
 // three, zod through NODE_PATH.
 
 // tscFlags are the compiler options every check uses: strict, with
@@ -25,26 +25,21 @@ var tscFlags = []string{
 	"--module", "nodenext", "--moduleResolution", "nodenext", "--target", "es2022",
 }
 
-// toolchain is tsc, node, and the zod package's directory, or why one is
-// missing.
-func toolchain() (tsc, node, zod string, why string) {
-	if testing.Short() {
-		return "", "", "", "-short"
+// toolchain is tsc, node, and the zod package's directory, from the zod
+// package on NODE_PATH; false means the test checks the text alone.
+func toolchain(t *testing.T) (tsc, node, zod string, ok bool) {
+	t.Helper()
+	if tsc, ok = tooltest.Lookup(t, "tsc"); !ok {
+		return "", "", "", false
 	}
-	tsc, err := exec.LookPath("tsc")
-	if err != nil {
-		return "", "", "", "tsc is not on PATH"
-	}
-	node, err = exec.LookPath("node")
-	if err != nil {
-		return "", "", "", "node is not on PATH"
-	}
+	node, _ = tooltest.Lookup(t, "node")
 	for _, dir := range filepath.SplitList(os.Getenv("NODE_PATH")) {
 		if _, err := os.Stat(filepath.Join(dir, "zod", "package.json")); err == nil {
-			return tsc, node, filepath.Join(dir, "zod"), ""
+			return tsc, node, filepath.Join(dir, "zod"), true
 		}
 	}
-	return "", "", "", "no zod package on NODE_PATH"
+	t.Fatal("no zod package on NODE_PATH, which the devShell sets; -short skips the tests that run it")
+	return "", "", "", false
 }
 
 // project writes files into a directory that resolves zod, as an ES
@@ -105,9 +100,8 @@ func typecheck(t *testing.T, extra map[string]string, resps ...*plugin.Response)
 // typecheckFiles runs tsc over files, keyed by their paths in one tree.
 func typecheckFiles(t *testing.T, files map[string]string) {
 	t.Helper()
-	tsc, _, zod, why := toolchain()
-	if why != "" {
-		t.Logf("not type checked: %s", why)
+	tsc, _, zod, ok := toolchain(t)
+	if !ok {
 		return
 	}
 	dir := project(t, zod, files)
@@ -122,9 +116,8 @@ func typecheckFiles(t *testing.T, files map[string]string) {
 // alone.
 func rejects(t *testing.T, snippet string, resps ...*plugin.Response) {
 	t.Helper()
-	tsc, _, zod, why := toolchain()
-	if why != "" {
-		t.Logf("not type checked: %s", why)
+	tsc, _, zod, ok := toolchain(t)
+	if !ok {
 		return
 	}
 	files := responseFiles(resps...)
@@ -170,9 +163,8 @@ func parse(t *testing.T, script string, resps ...*plugin.Response) {
 // the script at its root.
 func parseFiles(t *testing.T, files map[string]string, script string) {
 	t.Helper()
-	tsc, node, zod, why := toolchain()
-	if why != "" {
-		t.Logf("not run: %s", why)
+	tsc, node, zod, ok := toolchain(t)
+	if !ok {
 		return
 	}
 	files["harness.ts"] = harness

@@ -15,8 +15,9 @@ import (
 
 const root = "../.."
 
-// Every committed table is what measuring the backends writes now. A cell
-// a tool missing from PATH leaves unmeasured keeps its committed text.
+// Every committed table is what measuring the backends writes now. Under
+// -short, a cell needing a tool or plugin keeps its committed text;
+// otherwise one missing from PATH fails the test.
 func TestTablesAreCurrent(t *testing.T) {
 	docs, err := features.Update(root, testing.Short())
 	if err != nil {

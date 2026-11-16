@@ -12,6 +12,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/backend/internal/irtest"
 	"github.com/unstoppablemango/tdl/backend/typescript"
+	"github.com/unstoppablemango/tdl/internal/tooltest"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 	"google.golang.org/protobuf/proto"
@@ -43,8 +44,7 @@ func readsBackOtherwise(d *plugin.Diagnostic) bool {
 	return false
 }
 
-// check returns the response's one file, type checked by tsc when it is on
-// PATH.
+// check returns the response's one file, type checked by tsc.
 func check(t *testing.T, resp *plugin.Response) string {
 	t.Helper()
 	if len(resp.GetFiles()) != 1 {
@@ -55,16 +55,12 @@ func check(t *testing.T, resp *plugin.Response) string {
 	return string(f.GetContent())
 }
 
-// typecheck runs `tsc --noEmit --strict` over a file. Without tsc, or
-// under -short, these tests check substrings only; checks.gen-typescript
-// runs it regardless.
+// typecheck runs `tsc --noEmit --strict` over a file; checks.gen-typescript
+// runs it over the smoke model too.
 func typecheck(t *testing.T, f *plugin.File) {
 	t.Helper()
-	if testing.Short() {
-		return
-	}
-	tsc, err := exec.LookPath("tsc")
-	if err != nil {
+	tsc, ok := tooltest.Lookup(t, "tsc")
+	if !ok {
 		return
 	}
 	path := filepath.Join(t.TempDir(), filepath.Base(f.GetPath()))

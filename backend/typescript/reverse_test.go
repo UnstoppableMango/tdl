@@ -12,6 +12,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/backend/typescript"
 	"github.com/unstoppablemango/tdl/internal/sema"
+	"github.com/unstoppablemango/tdl/internal/tooltest"
 	"github.com/unstoppablemango/tdl/internal/unlower"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/parser"
@@ -22,9 +23,8 @@ import (
 // reads TypeScript with the compiler.
 func needsCompiler(t *testing.T) {
 	t.Helper()
-	if _, _, err := typescript.Compiler(); err != nil {
-		t.Skip(err)
-	}
+	_, _, err := typescript.Compiler()
+	tooltest.Need(t, err)
 }
 
 // importTS imports files by path, and returns the TDL printed from the

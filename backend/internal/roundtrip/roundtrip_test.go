@@ -27,6 +27,7 @@ import (
 	"github.com/unstoppablemango/tdl/internal/analysis"
 	"github.com/unstoppablemango/tdl/internal/gen/echo"
 	"github.com/unstoppablemango/tdl/internal/sema"
+	"github.com/unstoppablemango/tdl/internal/tooltest"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/parser"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -311,9 +312,7 @@ func TestImportReadback(t *testing.T) {
 		}
 		t.Run(desc.Name, func(t *testing.T) {
 			if target.Needs != nil {
-				if err := target.Needs(); err != nil {
-					t.Skip(err)
-				}
+				tooltest.Need(t, target.Needs())
 			}
 			cases, err := filepath.Glob(filepath.Join(corpus, desc.Name, "*", roundtrip.Expected))
 			if err != nil {
