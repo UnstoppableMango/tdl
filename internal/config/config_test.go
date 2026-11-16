@@ -142,3 +142,22 @@ func TestLoadRejectsANonStringPost(t *testing.T) {
 		t.Errorf("err = %v, want one naming post.biome", err)
 	}
 }
+
+// [check] maps names to command lines as [post] does, and refuses an entry
+// that is not a string.
+func TestCheckTable(t *testing.T) {
+	path := filepath.Join(t.TempDir(), config.FileName)
+	write(t, path, "[check]\ntsc = \"tsc --noEmit\"\n")
+	c, err := config.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := c.Check["tsc"]; got != "tsc --noEmit" {
+		t.Errorf("check.tsc = %q", got)
+	}
+
+	write(t, path, "[check]\ntsc = [\"tsc\"]\n")
+	if _, err := config.Load(path); err == nil {
+		t.Error("[check] accepted a list")
+	}
+}

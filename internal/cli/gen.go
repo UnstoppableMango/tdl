@@ -59,7 +59,10 @@ func genCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 			"compared or written: each reads the content on stdin and writes\n" +
 			"the new content to stdout, runs in the directory holding\n" +
 			"tdl.toml, and has {file} in its command line replaced with the\n" +
-			"file's destination relative to there.",
+			"file's destination relative to there. Its check directive names\n" +
+			"commands from [check], which run in a temporary copy of the\n" +
+			"processed output beside the output directory, and a failure\n" +
+			"writes nothing; --verify runs no check.",
 		Args: cobra.MinimumNArgs(1),
 
 		ValidArgsFunction: tdlFiles,
@@ -270,6 +273,9 @@ func (r *genRun) generate(path string) error {
 		}
 
 		if t.Post, err = gen.ResolvePost(t.Block, cfg); err != nil {
+			return err
+		}
+		if t.Checks, err = gen.ResolveChecks(t.Block, cfg); err != nil {
 			return err
 		}
 

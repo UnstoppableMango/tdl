@@ -35,12 +35,12 @@ type Post struct {
 	Commands []Command
 }
 
-// Command is one post command.
+// Command is one post or check command.
 type Command struct {
-	// Name is what the directive and [post] call it.
+	// Name is what the directive and its tdl.toml table call it.
 	Name string
 
-	// Args is the command line split into words, with {file} left in.
+	// Args is the command line split into words, with placeholders left in.
 	Args []string
 }
 
@@ -49,37 +49,46 @@ type Command struct {
 // an error naming the target for a name cfg does not declare, including
 // when there is no tdl.toml.
 func ResolvePost(block *ir.TargetBlock, cfg *config.Config) (*Post, error) {
+	cmds, err := commands(block, cfg, host.PostDirective, cfg.Post)
+	if err != nil || cmds == nil {
+		return nil, err
+	}
+	return &Post{Dir: cfg.Dir(), Commands: cmds}, nil
+}
+
+// commands reads the names a target block's directive gives, across
+// repeated entries, through the manifest table of the same name. It
+// returns nil when the block has none, and an error naming the target for
+// a name the table does not declare, including when there is no tdl.toml.
+func commands(block *ir.TargetBlock, cfg *config.Config, directive string, table map[string]string) ([]Command, error) {
 	target := block.GetMeta().GetName()
 	var names []string
 	for _, d := range block.GetDirectives() {
-		if d.GetName() == host.PostDirective {
+		if d.GetName() == directive {
 			for _, a := range d.GetArgs() {
 				names = append(names, a.GetText())
 			}
 		}
 	}
-	if len(names) == 0 {
-		return nil, nil
-	}
 
-	post := &Post{Dir: cfg.Dir()}
+	var cmds []Command
 	for _, name := range names {
 		if cfg.Path == "" {
-			return nil, fmt.Errorf("target %s: post names %q, but no %s was found above the model; add one with a [post] table declaring %s = \"<command>\"",
-				target, name, config.FileName, name)
+			return nil, fmt.Errorf("target %s: %s names %q, but no %s was found above the model; add one with a [%s] table declaring %s = \"<command>\"",
+				target, directive, name, config.FileName, directive, name)
 		}
-		line, ok := cfg.Post[name]
+		line, ok := table[name]
 		if !ok {
-			return nil, fmt.Errorf("target %s: post names %q, which [post] in %s does not declare; add %s = \"<command>\" there",
-				target, name, cfg.Path, name)
+			return nil, fmt.Errorf("target %s: %s names %q, which [%s] in %s does not declare; add %s = \"<command>\" there",
+				target, directive, name, directive, cfg.Path, name)
 		}
 		args, err := splitWords(line)
 		if err != nil {
-			return nil, fmt.Errorf("target %s: post.%s in %s: %w", target, name, cfg.Path, err)
+			return nil, fmt.Errorf("target %s: %s.%s in %s: %w", target, directive, name, cfg.Path, err)
 		}
-		post.Commands = append(post.Commands, Command{Name: name, Args: args})
+		cmds = append(cmds, Command{Name: name, Args: args})
 	}
-	return post, nil
+	return cmds, nil
 }
 
 // Apply runs every command over every file, returning the files with

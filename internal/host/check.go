@@ -20,6 +20,11 @@ const OutDirective = "out"
 // declare it.
 const PostDirective = "post"
 
+// CheckDirective names the commands, declared in tdl.toml's [check]
+// table, that tdl runs over a staged copy of a target's post-processed
+// output before writing it. tdl reads it itself, as it reads post.
+const CheckDirective = "check"
+
 // Directives are the specs of the directives tdl reads itself and checks
 // for every target, whatever its backend declares.
 var Directives = []*plugin.DirectiveSpec{
@@ -29,11 +34,17 @@ var Directives = []*plugin.DirectiveSpec{
 		MaxArgs:    -1,
 		Placements: []plugin.Placement{plugin.Placement_PLACEMENT_BLOCK},
 	},
+	{
+		Name:       CheckDirective,
+		MinArgs:    1,
+		MaxArgs:    -1,
+		Placements: []plugin.Placement{plugin.Placement_PLACEMENT_BLOCK},
+	},
 }
 
 // allStrings lists the directives every argument of which must be a
 // string, which arg_kinds, constraining by position, cannot say.
-var allStrings = map[string]bool{PostDirective: true}
+var allStrings = map[string]bool{PostDirective: true, CheckDirective: true}
 
 // problem reports something wrong with a target block, found before any
 // backend runs.
