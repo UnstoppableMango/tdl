@@ -6,11 +6,12 @@ notes = "Entities, values, and mixins are all objects; a `closed` directive make
 spelling = "the mixin's properties, copied in"
 
 [enum]
-spelling = "`z.enum` of the variants' names"
+spelling = "`z.enum` of the variants' wire values"
+notes = "A `wire` directive on a variant renames its wire value."
 
 [fielded-enum]
 spelling = "a `z.discriminatedUnion` on `kind`"
-notes = "A `discriminant` directive renames `kind`."
+notes = "A `discriminant` directive renames `kind`. A `wire` directive on a variant renames its wire value."
 
 [newtype]
 spelling = "a schema of its base, branded with its qualified name"

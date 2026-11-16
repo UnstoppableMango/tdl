@@ -15,8 +15,8 @@ Import generates the feature and reads it back, and counts only what reading bac
 | --- | --- | --- | --- | --- |
 | Entity, value, and mixin | Yes | No | `object` | Entities, values, and mixins are all objects. |
 | Mixin `include` | Yes | No | the mixin's properties, copied in | |
-| Fieldless enum | Yes | No | `string` with `enum` | |
-| Fielded enum | Yes | No | a `oneOf` discriminated on `kind` | A `discriminant` directive renames `kind`. |
+| Fieldless enum | Yes | No | `string` with `enum` | A `wire` directive on a variant renames its wire value. |
+| Fielded enum | Yes | No | a `oneOf` discriminated on `kind` | A `discriminant` directive renames `kind`. A `wire` directive on a variant renames its wire value. |
 | Newtype | Yes | No | a definition | A newtype over another newtype is a `$ref`, which checks the constraints it inherits. |
 | Alias | Yes | No | expanded where used | |
 | Optional and nullable | Yes | No | left out of `required`, or `anyOf` with `null` | |

@@ -306,6 +306,45 @@ func TestEnums(t *testing.T) {
 	)
 }
 
+// A wire directive renames a variant's wire value: an enum member, a
+// discriminant's value, and a oneOf on the enum.
+func TestWire(t *testing.T) {
+	b := irtest.New("shop")
+	active := variant("Active")
+	active.Directives = []*ir.Directive{directive("wire", "active")}
+	card := variant("Card", irtest.Field("last4", b.Named("string")))
+	card.Directives = []*ir.Directive{directive("wire", "card")}
+	b.Own(enum("Status", active, variant("InProgress"), variant("Done")))
+	b.Own(enum("Payment", card, variant("Cash")))
+	open := irtest.Field("open", b.Named("Status"))
+	open.Constraints = []*ir.Constraint{{Name: "oneOf", Args: []*ir.Literal{irtest.Name("Active"), irtest.Name("InProgress")}}}
+	b.Own(value("Ticket", irtest.Field("status", b.Named("Status")), irtest.Field("payment", b.Named("Payment")), open))
+
+	resp := generate(t, b)
+	diagnostics(t, resp, 0)
+	d := check(t, resp)
+	d.contains(`"Status": { "type": "string", "enum": [ "active", "InProgress", "Done" ] }`)
+	d.accepts("Ticket", `{"status": "active", "open": "active", "payment": {"kind": "card", "last4": "4242"}}`)
+	d.rejects("Ticket",
+		`{"status": "Active", "open": "active", "payment": {"kind": "Cash"}}`,
+		`{"status": "active", "open": "Done", "payment": {"kind": "Cash"}}`,
+		`{"status": "active", "open": "active", "payment": {"kind": "Card", "last4": "4242"}}`,
+	)
+}
+
+func TestWireCollisionIsAnError(t *testing.T) {
+	b := irtest.New("shop")
+	active := variant("Active")
+	active.Directives = []*ir.Directive{directive("wire", "Done")}
+	b.Own(enum("Status", active, variant("Done")))
+
+	resp := generate(t, b)
+	diagnostics(t, resp, 1)
+	if d := resp.GetDiagnostics()[0]; d.GetSeverity() != plugin.Severity_SEVERITY_ERROR || !strings.Contains(d.GetMessage(), "is the name of Status.Done") {
+		t.Errorf("diagnostic = %+v, want a collision error", d)
+	}
+}
+
 // The discriminant defaults to `kind`, the target block overrides it, and
 // an enum's directive overrides the block's.
 func TestDiscriminant(t *testing.T) {

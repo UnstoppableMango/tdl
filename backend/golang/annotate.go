@@ -219,8 +219,10 @@ func (g *generator) variantLosses(d *ir.Decl, goName string) {
 		vname, vpos := v.GetMeta().GetName(), v.GetMeta().GetPosition()
 		ident := g.variantName(goName, v)
 		if !emit.Fielded(e) {
-			// A constant's value is the variant's name.
-			g.CheckRenamed(v.GetDirectives(), ident != goName+exported(vname), "%s.%s", name, vname)
+			// A constant's value reads back as the variant's name.
+			if !g.LoseTag(name, v) {
+				g.CheckRenamed(v.GetDirectives(), ident != goName+exported(vname), "%s.%s", name, vname)
+			}
 			g.docLoss(v.GetMeta(), siteConst)
 			continue
 		}
@@ -233,6 +235,9 @@ func (g *generator) variantLosses(d *ir.Decl, goName string) {
 		default:
 			g.CheckRenamed(v.GetDirectives(), ident != goName+exported(back), "%s.%s", name, vname)
 		}
+		// Import reads the variant's name from its struct, not the
+		// discriminant's value.
+		g.LoseTag(name, v)
 		g.docLoss(v.GetMeta(), siteType)
 		g.fieldsLosses(name+"."+vname, v.GetFields(), false)
 	}

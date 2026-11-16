@@ -7,10 +7,11 @@ spelling = "the mixin's properties, copied in"
 
 [enum]
 spelling = "`string` with `enum`"
+notes = "A `wire` directive on a variant renames its wire value."
 
 [fielded-enum]
 spelling = "a `oneOf` discriminated on `kind`"
-notes = "A `discriminant` directive renames `kind`."
+notes = "A `discriminant` directive renames `kind`. A `wire` directive on a variant renames its wire value."
 
 [newtype]
 spelling = "a definition"

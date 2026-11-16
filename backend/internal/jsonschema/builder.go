@@ -182,6 +182,9 @@ func (b *Builder) decl(d *ir.Decl) ([]def, error) {
 	if ok, err := emit.Declares(d); !ok {
 		return nil, err
 	}
+	if err := b.CheckTags(d); err != nil {
+		return nil, err
+	}
 
 	n := b.DeclName(d, emit.Pascal)
 	if err := b.free(pos, name, n); err != nil {
@@ -204,7 +207,7 @@ func (b *Builder) decl(d *ir.Decl) ([]def, error) {
 	default:
 		values := make([]any, len(e.GetVariants()))
 		for i, v := range e.GetVariants() {
-			values[i] = v.GetMeta().GetName()
+			values[i] = b.Tag(v)
 		}
 		s.Set("type", "string").Set("enum", values)
 	}
@@ -250,7 +253,7 @@ func (b *Builder) newtype(s *Object, d *ir.Decl) error {
 			own = append(own, c)
 		}
 	}
-	b.constrain(s, b.kindOf(ref), emit.LastSegment(d.GetMeta().GetName()), own)
+	b.constrain(s, ref, emit.LastSegment(d.GetMeta().GetName()), own)
 	return nil
 }
 
@@ -306,8 +309,8 @@ func (b *Builder) constant(v string) *Object {
 }
 
 // union renders an enum where any variant carries fields: a oneOf of one
-// object per variant, each holding the discriminant with the variant's name
-// as its value. It returns the definitions the variants take, in a dialect
+// object per variant, each holding the discriminant with the variant's wire
+// value. It returns the definitions the variants take, in a dialect
 // that names them.
 func (b *Builder) union(s *Object, d *ir.Decl, name string) ([]def, error) {
 	owner := emit.LastSegment(d.GetMeta().GetName())
@@ -323,7 +326,7 @@ func (b *Builder) union(s *Object, d *ir.Decl, name string) ([]def, error) {
 	mapping := NewObject()
 	taken := map[string]bool{name: true}
 	for _, v := range d.GetEnumeration().GetVariants() {
-		tag := emit.Tag(v)
+		tag := b.Tag(v)
 		m := NewObject()
 		if b.Dialect.Unions == UnionsInline {
 			m.Set("title", tag)
@@ -379,7 +382,7 @@ func (b *Builder) property(owner string, f *ir.Field) (*Object, bool, error) {
 		return nil, false, err
 	}
 	if len(f.GetConstraints()) > 0 {
-		b.constrain(s, b.kindOf(r), owner+"."+f.GetMeta().GetName(), f.GetConstraints())
+		b.constrain(s, r, owner+"."+f.GetMeta().GetName(), f.GetConstraints())
 	}
 	if nullable {
 		s = b.orNull(s)

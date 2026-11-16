@@ -38,6 +38,9 @@ func (Backend) Describe() plugin.Description {
 			// value or a z.enum member, and on a variant of a fieldless enum
 			// it warns, since that writes no name.
 			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.OnMembers()},
+			// A variant's wire value: the discriminant's value, or a z.enum
+			// member.
+			{Name: "wire", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnVariant)},
 			// The property a discriminated union switches on: the default on
 			// the target block, an override on an enum.
 			{Name: "discriminant", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock, plugin.OnDecl)},
@@ -347,6 +350,9 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 		g.foreignLosses(d)
 		return "", nil
 	}
+	if err := g.CheckTags(d); err != nil {
+		return "", err
+	}
 
 	var b strings.Builder
 	var declared []string
@@ -614,13 +620,13 @@ func (g *generator) enum(b *strings.Builder, d *ir.Decl) []string {
 	}
 	tags := make([]string, len(variants))
 	for i, v := range variants {
-		tags[i] = strconv.Quote(emit.Tag(v))
+		tags[i] = strconv.Quote(g.Tag(v))
 		if dir, ok := g.Find(v.GetDirectives(), "name"); ok {
 			// Not output loss: the directive has nothing to rename, so the
 			// warning carries no loss code.
 			dname, vname := d.GetMeta().GetName(), v.GetMeta().GetName()
 			g.Warn(emit.Unsupported(dir.GetPosition(),
-				"%s.%s writes no zod name, only its wire value %q, which is its name, so its name directive has no effect", dname, vname, vname))
+				"%s.%s writes no zod name, only its wire value %q, so its name directive has no effect", dname, vname, g.Tag(v)))
 		}
 	}
 	pair(b, name, d.GetMeta(), "", "z.enum(["+strings.Join(tags, ", ")+"])")
@@ -639,7 +645,7 @@ func (g *generator) union(b *strings.Builder, d *ir.Decl) ([]string, error) {
 	var members []string
 	for _, v := range d.GetEnumeration().GetVariants() {
 		member := g.VariantName(v, func(s string) string { return name + emit.Pascal(s) })
-		names, err := g.object(b, member, emit.LastSegment(d.GetMeta().GetName())+"."+v.GetMeta().GetName(), v.GetMeta(), disc, emit.Tag(v), v.GetFields(), closed)
+		names, err := g.object(b, member, emit.LastSegment(d.GetMeta().GetName())+"."+v.GetMeta().GetName(), v.GetMeta(), disc, g.Tag(v), v.GetFields(), closed)
 		if err != nil {
 			return nil, err
 		}
@@ -746,7 +752,7 @@ func (g *generator) spell(n *emit.Narrowed) (schema, error) {
 		if err != nil {
 			return schema{}, err
 		}
-		// A variant's tag is its name (emit.Tag), which Values holds.
+		// Values holds each variant's wire value (emit.Session.Tag).
 		list, typ := members(n.Values)
 		return schema{expr: enum.expr + ".extract(" + list + ")", typ: typ}, nil
 	}

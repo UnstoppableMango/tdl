@@ -182,7 +182,7 @@ func (g *generator) writeEnumJSON(b *strings.Builder, decl *ir.Decl, name string
 			fmt.Fprintf(b, "self := plain(%s)\n%s", recv, fills.String())
 		}
 		fmt.Fprintf(b, "return json.Marshal(struct {\nTDLDiscriminant string `json:%s`\nplain\n}{%s, %s})\n}\n",
-			strconv.Quote(disc), strconv.Quote(emit.Tag(v)), value)
+			strconv.Quote(disc), strconv.Quote(g.Tag(v)), value)
 	}
 
 	self := name + args
@@ -195,7 +195,7 @@ func (g *generator) writeEnumJSON(b *strings.Builder, decl *ir.Decl, name string
 	b.WriteString("switch *head.TDLDiscriminant {\n")
 	for _, v := range decl.GetEnumeration().GetVariants() {
 		fmt.Fprintf(b, "case %s:\nvar v %s\nerr := json.Unmarshal(data, &v)\nreturn v, err\n",
-			strconv.Quote(emit.Tag(v)), g.variantName(name, v)+args)
+			strconv.Quote(g.Tag(v)), g.variantName(name, v)+args)
 	}
 	fmt.Fprintf(b, "}\nreturn nil, fmt.Errorf(%s, *head.TDLDiscriminant)\n}\n",
 		strconv.Quote(name+": unknown "+disc+" %q"))
