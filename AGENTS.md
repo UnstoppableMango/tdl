@@ -650,7 +650,7 @@ Check a Go style finding against `.golangci.yml` before acting on it.
 Reply with what changed, or why nothing did, then resolve.
 
 The one required check is the `required` job in `.github/workflows/ci.yml`.
-It needs `check`, on the self-hosted Linux runner, and `darwin`, on `macos-latest`.
+It needs `check`, on `ubuntu-latest`, and `darwin`, on `macos-latest`.
 A new CI job goes in its `needs`, not in the ruleset (declared in Pulumi in `UnstoppableMango/vcs`).
 
 Pull requests are stacked, and GitHub rebases the rest of the stack on merge; reset local branches from the remote afterwards.
