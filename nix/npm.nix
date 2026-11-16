@@ -5,6 +5,7 @@
   jq,
   tdl-portable,
   tdl-gen-mermaid,
+  tdl-js,
   version,
 }:
 let
@@ -28,9 +29,11 @@ let
     }
   ) tdl-portable.targets;
 in
-# The six npm packages, packed: @unmango/tdl, the shim, one package per
-# platform carrying tdl-portable's binaries and tdl-gen-mermaid, and @unmango/tdl-typescript, the
-# content mapper's manifest. The release publishes these tarballs, and
+# The seven npm packages, packed: @unmango/tdl, the shim, one package per
+# platform carrying tdl-portable's binaries and tdl-gen-mermaid,
+# @unmango/tdl-typescript, the content mapper's manifest, and
+# @unmango/remark-tdl-mermaid, the remark plugin tdl-js builds, depending on
+# @unmango/tdl at this version. The release publishes these tarballs, and
 # checks.npm-tdl installs them, so what is tested is what ships.
 stdenvNoCC.mkDerivation {
   pname = "tdl-npm";
@@ -91,6 +94,20 @@ stdenvNoCC.mkDerivation {
       mv package.json.tmp $NIX_BUILD_TOP/packages/tdl/package.json
     '') platforms}
 
+    remark=$NIX_BUILD_TOP/packages/remark-tdl-mermaid
+    built=${tdl-js}/lib/tdl-js/remark-tdl-mermaid
+    have=$(jq -r .version $built/package.json)
+    [ "$have" = "$version" ] || {
+      echo "js/remark-tdl-mermaid/package.json is version $have, but the flake is $version" >&2
+      exit 1
+    }
+    mkdir -p $remark/dist
+    cp $built/README.md $remark/
+    cp -r $built/dist/src $remark/dist/src
+    jq --arg version "$version" '.dependencies["@unmango/tdl"] = $version | del(.devDependencies)' \
+      $built/package.json > $remark/package.json
+    chmod -R u+w $remark
+
     mkdir -p $NIX_BUILD_TOP/tarballs
     for dir in $NIX_BUILD_TOP/packages/*; do
       npm pack --offline --pack-destination $NIX_BUILD_TOP/tarballs "$dir"
@@ -110,7 +127,7 @@ stdenvNoCC.mkDerivation {
   dontFixup = true;
 
   meta = {
-    description = "The @unmango/tdl and @unmango/tdl-typescript npm packages, packed";
+    description = "The @unmango/tdl, @unmango/tdl-typescript, and @unmango/remark-tdl-mermaid npm packages, packed";
     homepage = "https://github.com/UnstoppableMango/tdl";
     license = lib.licenses.mit;
   };
