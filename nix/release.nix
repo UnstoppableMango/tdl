@@ -3,6 +3,7 @@
   stdenvNoCC,
   go,
   tdl-portable,
+  tdl-gen-mermaid,
   version,
 }:
 let
@@ -12,7 +13,8 @@ let
   tdl = "${tdl-portable}/${go.GOOS}-${go.GOARCH}/tdl";
 in
 # The release assets: tdl_<version>_<os>_<arch>.tar.gz per tdl-portable target,
-# each holding tdl, tdl-gen-typescript, LICENSE, README.md, and completions/,
+# each holding tdl, tdl-gen-typescript, tdl-gen-mermaid, LICENSE, README.md,
+# and completions/,
 # and SHA256SUMS. The release job uploads and attests these files as built, so
 # every byte must be reproducible: names sorted, owner and mtime fixed, gzip
 # without a name or timestamp.
@@ -40,7 +42,8 @@ stdenvNoCC.mkDerivation {
       name=tdl_${version}_''${target/\//_}
       stage=$NIX_BUILD_TOP/stage/$name
       mkdir -p $stage
-      cp ${tdl-portable}/''${target/\//-}/* LICENSE README.md $stage/
+      cp ${tdl-portable}/''${target/\//-}/* ${tdl-gen-mermaid.portable}/''${target/\//-}/* \
+        LICENSE README.md $stage/
       cp -r completions $stage/
       chmod -R u+w,go-w $stage
       # Members are named without ./, so `tar -xzf <tarball> tdl` finds one.
@@ -59,7 +62,8 @@ stdenvNoCC.mkDerivation {
     runHook postInstall
   '';
 
-  # The tarballs hold darwin binaries the Go linker signed; leave every byte.
+  # The tarballs hold darwin binaries the Go linker and bun signed; leave
+  # every byte.
   dontFixup = true;
 
   meta = {
