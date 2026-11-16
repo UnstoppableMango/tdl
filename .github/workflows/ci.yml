@@ -71,11 +71,6 @@ jobs:
       - run: nix build .#
         if: ${{ !cancelled() }}
 
-      # The release uploads and attests these bytes; a second build must give
-      # the same. nix flake check built them for checks.tdl-release.
-      - run: nix build .#release --rebuild
-        if: ${{ !cancelled() }}
-
       # The npm packages windows-npm installs. nix flake check built them
       # for checks.npm-tdl.
       - run: nix build .#npm -o result-npm
@@ -91,26 +86,11 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-      # nix develop keeps the runner's PATH after its own, so the race run
-      # finds every plugin packages.plugins joins and runs the recorded
-      # corpora through them (tdl-gen-csharp, tdl-gen-mermaid). Its own out
-      # link, since the release build above replaced result.
-      - run: nix build .#plugins -o result-plugins
-        if: ${{ !cancelled() }}
-
-      - run: echo "$PWD/result-plugins/bin" >> "$GITHUB_PATH"
-
-      # The race detector and coverage run separately. Together, every
-      # covered statement increments an atomic counter the race detector
-      # tracks, which on the runner made the protocompile tests over ten
-      # times slower and timed them out. The coverage run is -short: the
-      # race run already ran go, smithy, tsc, ghc, dotnet, and likec4 on generated code,
-      # and test code is outside the coverage profile.
-      - run: nix develop -c go test -race ./...
-        if: ${{ !cancelled() }}
-        env:
-          CGO_ENABLED: "1"
-
+      # nix flake check above ran the race tests with every plugin and tool
+      # (checks.go-test), golangci-lint, Biome, the tree-sitter regeneration
+      # diff, markdownlint, and a second release build (nix/gate.nix).
+      # This job uploads coverage, from the -short run checks.go-cover also
+      # builds, since the shared Hercules jobs have no coverage effect.
       - id: test
         run: nix develop -c go test -short -coverpkg=./... -coverprofile=cover.profile ./...
         if: ${{ !cancelled() }}
@@ -131,22 +111,6 @@ jobs:
             --key go \
             --value-file cover.profile \
             --use-oidc
-
-      - run: nix develop -c golangci-lint run ./...
-        if: ${{ !cancelled() }}
-
-      - run: nix develop -c make vscode-check
-        if: ${{ !cancelled() }}
-
-      - run: nix develop -c make js-check
-        if: ${{ !cancelled() }}
-
-      # The treesitter shell is a subset of the default one realised above.
-      - run: nix develop .#treesitter --command make check-treesitter
-        if: ${{ !cancelled() }}
-
-      - uses: DavidAnson/markdownlint-cli2-action@696eb3f2509270d7b882d2aa68347bc676e7af34 # v25.0.0
-        if: ${{ !cancelled() }}
 
   # Nix does not run on Windows, so this job sets Go up from go.mod and
   # runs the suite -short, which skips the tools the check job runs on

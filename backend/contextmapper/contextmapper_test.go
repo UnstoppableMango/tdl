@@ -11,6 +11,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/contextmapper"
 	"github.com/unstoppablemango/tdl/backend/internal/irtest"
 	"github.com/unstoppablemango/tdl/internal/sema"
+	"github.com/unstoppablemango/tdl/internal/tooltest"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/parser"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -45,16 +46,13 @@ func generate(t *testing.T, m *ir.Model) (string, *plugin.Response) {
 	return string(resp.GetFiles()[0].GetContent()), resp
 }
 
-// validate runs cml-check, the Context Mapper parser and validator, when it
-// is on PATH. testdata/cmlcheck builds it from the context-mapper-dsl jar;
+// validate runs cml-check, the Context Mapper parser and validator, over a
+// file. nix/cml-check.nix builds it from testdata/cmlcheck;
 // docs/architecture/contextmapper-spike.md weighs Context Mapper's own CLI.
 func validate(t *testing.T, f *plugin.File) {
 	t.Helper()
-	if testing.Short() {
-		return
-	}
-	cli, err := exec.LookPath("cml-check")
-	if err != nil {
+	cli, ok := tooltest.Lookup(t, "cml-check")
+	if !ok {
 		return
 	}
 	path := filepath.Join(t.TempDir(), f.GetPath())

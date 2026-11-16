@@ -2,6 +2,7 @@ package features
 
 import (
 	"errors"
+	"fmt"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -20,7 +21,7 @@ const HandFile = "features.toml"
 
 // plugins are the backends this repository serves as plugins rather than
 // compiling into tdl, with the directory of their source. One is measured
-// when tdl-gen-<name> is on PATH.
+// through tdl-gen-<name> on PATH.
 var plugins = map[string]string{
 	"csharp":  "dotnet/Tdl.Gen.CSharp",
 	"mermaid": "js/tdl-gen-mermaid",
@@ -28,8 +29,8 @@ var plugins = map[string]string{
 
 // Targets is every built-in backend but debug, which describes a model
 // rather than generating one, and every plugin in plugins. A backend whose
-// import runs a tool needs it on PATH, and short skips running it at all;
-// a plugin missing from PATH is not measured.
+// import runs a tool needs it on PATH, and a plugin missing from PATH is
+// not measured; short measures neither, leaving their cells unmeasured.
 func Targets(short bool) []Target {
 	needs := map[string]func() error{
 		smithy.Name: func() error {
@@ -56,10 +57,22 @@ func Targets(short bool) []Target {
 	}
 	for _, name := range sortedKeys(plugins) {
 		t := Target{Name: name, Hand: filepath.Join(plugins[name], HandFile)}
-		if b, err := gen.Find(name); err == nil {
+		if b, err := gen.Find(name); err == nil && !short {
 			t.Backend = b
 		}
 		out = append(out, t)
 	}
 	return out
+}
+
+// missing says why t cannot be measured whole here: a plugin missing from
+// PATH, or a tool its import runs. Nil means nothing is missing.
+func (t Target) missing() error {
+	if t.Backend == nil {
+		return fmt.Errorf("%s%s is not on PATH", gen.CommandPrefix, t.Name)
+	}
+	if t.Needs != nil {
+		return t.Needs()
+	}
+	return nil
 }

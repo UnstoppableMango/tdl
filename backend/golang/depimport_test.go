@@ -10,6 +10,7 @@ import (
 
 	"github.com/unstoppablemango/tdl/backend/golang"
 	"github.com/unstoppablemango/tdl/internal/sema"
+	"github.com/unstoppablemango/tdl/internal/tooltest"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/parser"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -81,13 +82,7 @@ target go for acme.money {
 // and builds it.
 func buildModule(t *testing.T, pkgs map[string]*plugin.Response) {
 	t.Helper()
-	if testing.Short() {
-		t.Skip("runs go build on the generated packages")
-	}
-	goBin, err := exec.LookPath("go")
-	if err != nil {
-		t.Skip("go is not on PATH")
-	}
+	goBin := tooltest.Require(t, "go")
 	dir := t.TempDir()
 	write := func(name, src string) {
 		path := filepath.Join(dir, name)
