@@ -12,6 +12,7 @@ import (
 	"github.com/unstoppablemango/tdl/internal/analysis"
 	"github.com/unstoppablemango/tdl/internal/gen"
 	"github.com/unstoppablemango/tdl/internal/gen/echo"
+	"github.com/unstoppablemango/tdl/internal/tooltest"
 	"github.com/unstoppablemango/tdl/internal/unlower"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -52,9 +53,7 @@ func TestImportHostsAgree(t *testing.T) {
 		name := row.backend.Describe().Name
 		t.Run(name, func(t *testing.T) {
 			if row.needs != nil {
-				if err := row.needs(); err != nil {
-					t.Skip(err)
-				}
+				tooltest.Need(t, row.needs())
 			}
 			importer, ok := row.backend.(plugin.Importer)
 			if !ok {

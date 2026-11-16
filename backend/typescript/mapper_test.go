@@ -17,6 +17,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/typescript"
 	"github.com/unstoppablemango/tdl/internal/analysis"
 	"github.com/unstoppablemango/tdl/internal/sema"
+	"github.com/unstoppablemango/tdl/internal/tooltest"
 	"github.com/unstoppablemango/tdl/parser"
 )
 
@@ -421,31 +422,10 @@ func TestMapperUnderTsc(t *testing.T) {
 	}
 }
 
-// tsc71 is a tsc of 7.1 or later on PATH; without one, or with -short, the
-// test skips.
+// tsc71 is a tsc of 7.1 or later on PATH, the first with content mappers.
 func tsc71(t *testing.T) string {
 	t.Helper()
-	if testing.Short() {
-		t.Skip("-short skips running tsc")
-	}
-	tsc, err := exec.LookPath("tsc")
-	if err != nil {
-		t.Skip("tsc is not on PATH")
-	}
-	out, err := exec.Command(tsc, "--version").Output()
-	if err != nil {
-		t.Skipf("tsc --version: %v", err)
-	}
-	m := regexp.MustCompile(`Version (\d+)\.(\d+)`).FindStringSubmatch(string(out))
-	if m == nil {
-		t.Skipf("tsc --version printed %q", out)
-	}
-	major, _ := strconv.Atoi(m[1])
-	minor, _ := strconv.Atoi(m[2])
-	if major < 7 || (major == 7 && minor < 1) {
-		t.Skipf("tsc %s.%s has no content mappers", m[1], m[2])
-	}
-	return tsc
+	return tooltest.RequireVersion(t, "tsc", []string{"--version"}, regexp.MustCompile(`Version (\d+)\.(\d+)`), 7, 1)
 }
 
 func TestMapperRefusesBadFrames(t *testing.T) {
