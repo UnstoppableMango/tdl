@@ -112,6 +112,9 @@ func TestReverseIsDeclared(t *testing.T) {
 		if declared := row.backend.Describe().Reverse; declared != imports {
 			t.Errorf("%s: declares reverse %t, implements Importer %t", name, declared, imports)
 		}
+		if declared := len(row.backend.Describe().ImportPatterns) > 0; declared != imports {
+			t.Errorf("%s: declares import patterns %t, implements Importer %t", name, declared, imports)
+		}
 		if imports != (row.reverse != nil) {
 			t.Errorf("%s: implements Importer %t, has a reverse column %t", name, imports, row.reverse != nil)
 		}

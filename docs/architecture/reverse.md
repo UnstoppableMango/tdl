@@ -37,6 +37,7 @@ It writes only the declarations `emit.IsOwn` reports, so the prelude is never pr
 - `Features.reverse` declares that a plugin answers `IMPORT`.
   The host refuses import mode when the reply lacks it, so a plugin that ignores `mode` is never sent an `ImportRequest`.
 - `ImportRequest` carries the target name, the source files, and the loss codes the user allowed.
+- `HandshakeReply.import_patterns` name the files an importer reads, for a directory argument.
 - `ImportResponse` carries the model and diagnostics.
 - `Diagnostic.code` is a stable string, set on every loss warning.
 
@@ -121,7 +122,7 @@ A reverse backend writes only directives its forward twin declares.
 ## Configuration
 
 `tdl.toml` is found by walking up from the input file; the nearest one is read, and one further up is not merged in.
-`tdl import` walks up from its first file.
+`tdl import` walks up from its first argument, or from inside it when that is a directory.
 This design reads one table of it:
 
 ```toml
@@ -140,10 +141,16 @@ Silencing is diagnostics policy, not type mapping, which is why it lives in the 
 ## Command
 
 ```text
-tdl import --from <target> [-o out.tdl] [--package <path>] [--allow-lossy <code>,...] [--readback] <files>...
+tdl import --from <target> [-o out.tdl] [--package <path>] [--allow-lossy <code>,...] [--readback] <file|dir>...
 ```
 
 `--from` resolves through `gen.Resolve`, so a plugin on `PATH` imports the same way a built-in does.
+
+A directory argument stands for the files under it the backend reads, by the patterns its handshake reply declares: `host.ImportFiles` walks it recursively, skips a directory whose name starts with `.`, and sorts what it finds, each file spelled as the argument joined with its path under it.
+Directories and files mix freely, and `-` is still standard input.
+A directory yielding no file is an error naming it, and so is a directory given to a backend declaring no patterns.
+Ignore files such as `.gitignore` are not read.
+An importer keeps its own limits: `thrift`, `graphql`, and `typescript` read one file, and `go` refuses files from two directories, since each is a package.
 
 ## Readers
 

@@ -3,6 +3,7 @@ package cli
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -184,5 +185,98 @@ func TestImportReadback(t *testing.T) {
 	_, errOut, err = run(t, importCmd(resolve), "--from", "go", "--readback", path)
 	if err != nil || !strings.Contains(errOut, "Item.id is unexported, and regenerates as Id (lossy.name)") {
 		t.Errorf("err = %v, stderr = %q, want the respelling", err, errOut)
+	}
+}
+
+// A directory argument stands for the files under it the backend reads,
+// sorted, skipping dot-directories; echo reads the first.
+func TestImportReadsADirectory(t *testing.T) {
+	dir := filepath.Dir(echoFile(t))
+	for path, data := range map[string]string{
+		"z/zz.json":       "not json",
+		".hidden/a.json":  "not json",
+		"notes.txt":       "not json",
+		"z/ignored.proto": "not json",
+	} {
+		full := filepath.Join(dir, filepath.FromSlash(path))
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(full, []byte(data), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	paths, err := importPaths(echo.Backend{}, echo.Name, []string{dir, "-"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{filepath.Join(dir, echo.File), filepath.Join(dir, "z", "zz.json"), "-"}
+	if !slices.Equal(paths, want) {
+		t.Errorf("paths = %v, want %v", paths, want)
+	}
+
+	// model.json sorts before the subdirectory's file, so echo reads it.
+	out, errOut, err := run(t, importCmd(echoResolver), "--from", "echo", dir)
+	if err != nil {
+		t.Fatalf("import: %v\n%s", err, errOut)
+	}
+	if out != shopSource {
+		t.Errorf("printed\n%s\nwant\n%s", out, shopSource)
+	}
+}
+
+// A directory holding nothing the backend reads is an error naming it, and
+// so is a directory given to a backend that names no files.
+func TestImportRefusesADirectory(t *testing.T) {
+	empty := t.TempDir()
+	_, _, err := run(t, importCmd(echoResolver), "--from", "echo", empty)
+	if err == nil || !strings.Contains(err.Error(), empty+" holds no file echo reads") {
+		t.Errorf("err = %v, want one naming the empty directory", err)
+	}
+
+	_, err = importPaths(unpatterned{}, "unpatterned", []string{empty})
+	if err == nil || !strings.Contains(err.Error(), "unpatterned names no files to read from one") {
+		t.Errorf("err = %v, want a refusal naming the backend", err)
+	}
+}
+
+// unpatterned imports but declares no files.
+type unpatterned struct{ echo.Backend }
+
+func (unpatterned) Describe() plugin.Description {
+	return plugin.Description{Name: "unpatterned", Reverse: true}
+}
+
+// The go importer reads a package directory without its tests, and
+// refuses a directory holding two packages.
+func TestImportReadsAGoPackage(t *testing.T) {
+	dir := t.TempDir()
+	write := func(path, src string) {
+		t.Helper()
+		full := filepath.Join(dir, filepath.FromSlash(path))
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(full, []byte(src), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("shop/order.go", "package shop\n\ntype Order struct {\n\tID string `json:\"id\"`\n}\n")
+	write("shop/order_test.go", "package shop\n\nfunc broken( {\n")
+
+	goResolver := func(string) (plugin.Backend, error) { return golang.Backend{}, nil }
+	out, errOut, err := run(t, importCmd(goResolver), "--from", "go", filepath.Join(dir, "shop"))
+	if err != nil {
+		t.Fatalf("import: %v\n%s", err, errOut)
+	}
+	if !strings.Contains(out, "type Order {") || strings.Contains(errOut, "test file") {
+		t.Errorf("printed\n%s\nstderr\n%s", out, errOut)
+	}
+
+	write("shop/billing/invoice.go", "package billing\n\ntype Invoice struct{}\n")
+	_, errOut, err = run(t, importCmd(goResolver), "--from", "go", filepath.Join(dir, "shop"))
+	if err == nil || !strings.Contains(errOut, "different directories") {
+		t.Errorf("err = %v, stderr = %q, want two packages refused", err, errOut)
 	}
 }
