@@ -1,5 +1,5 @@
 // Package config reads tdl.toml, the project manifest. It reads only the
-// [lossy] and [post] tables so far; issue #1307 describes the rest.
+// [lossy], [post], and [check] tables so far; issue #1307 describes the rest.
 package config
 
 import (
@@ -32,6 +32,10 @@ type Config struct {
 	// Post maps each name a target block's post directive may use to the
 	// command line [post] gives it.
 	Post map[string]string
+
+	// Check maps each name a target block's check directive may use to the
+	// command line [check] gives it.
+	Check map[string]string
 }
 
 // Dir is the directory holding the manifest, where post commands run, or
@@ -68,25 +72,32 @@ func Find(dir string) (*Config, error) {
 
 // Load reads one manifest. A key it does not know inside [lossy] is an
 // error, so a misspelled `allow` is not silently ignored, and so is a [post]
-// entry that is not a string; other tables are left to the commands that
+// or [check] entry that is not a string; other tables are left to the commands that
 // read them.
 func Load(path string) (*Config, error) {
 	var raw struct {
 		Lossy map[string]toml.Primitive `toml:"lossy"`
 		Post  map[string]toml.Primitive `toml:"post"`
+		Check map[string]toml.Primitive `toml:"check"`
 	}
 	md, err := toml.DecodeFile(path, &raw)
 	if err != nil {
 		return nil, err
 	}
 
-	c := &Config{Path: path, Targets: map[string][]string{}, Post: map[string]string{}}
-	for name, prim := range raw.Post {
-		var command string
-		if err := md.PrimitiveDecode(prim, &command); err != nil {
-			return nil, fmt.Errorf("%s: post.%s: %w", path, name, err)
+	c := &Config{Path: path, Targets: map[string][]string{}, Post: map[string]string{}, Check: map[string]string{}}
+	for table, prims := range map[string]map[string]toml.Primitive{"post": raw.Post, "check": raw.Check} {
+		into := c.Post
+		if table == "check" {
+			into = c.Check
 		}
-		c.Post[name] = command
+		for name, prim := range prims {
+			var command string
+			if err := md.PrimitiveDecode(prim, &command); err != nil {
+				return nil, fmt.Errorf("%s: %s.%s: %w", path, table, name, err)
+			}
+			into[name] = command
+		}
 	}
 
 	for key, prim := range raw.Lossy {

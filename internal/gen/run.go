@@ -21,6 +21,11 @@ type Target struct {
 	// Post is what runs over each returned file before anything is
 	// compared or written, from [ResolvePost]; nil runs nothing.
 	Post *Post
+
+	// Checks is what runs over a staged copy of those files before they
+	// are written, from [ResolveChecks]; nil runs nothing. A verify run
+	// runs none.
+	Checks *Checks
 }
 
 // Targets returns the target blocks in a model, with their output
@@ -127,6 +132,12 @@ func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.M
 			return result, fmt.Errorf("target %s: %w", target.Name, err)
 		}
 		return result, nil
+	}
+
+	// Checked before anything is cleaned, written, or marked, so a failing
+	// check leaves the directory as it was.
+	if err := target.Checks.Run(ctx, target.Out, files); err != nil {
+		return result, fmt.Errorf("target %s: %w", target.Name, err)
 	}
 
 	if mode == ModeClean {
