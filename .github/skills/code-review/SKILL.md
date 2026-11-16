@@ -5,7 +5,7 @@ description: Review a pull request against this repository's invariants. Use whe
 
 # Reviewing TDL
 
-`AGENTS.md` describes the architecture.
+`docs/agents/architecture.md` and `docs/agents/backends.md` describe the architecture.
 This skill says what to check.
 
 ## Order of work
