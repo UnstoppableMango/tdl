@@ -47,6 +47,11 @@ func (Backend) Describe() plugin.Description {
 			{Name: "length", MinArgs: 1, MaxArgs: 1, ArgKinds: num, Placements: plugin.On(plugin.OnField)},
 			// The decimal places of a Number field holding a decimal.
 			{Name: "scale", MinArgs: 1, MaxArgs: 1, ArgKinds: num, Placements: plugin.On(plugin.OnField)},
+			// On an entity: the standard object it stands for, which gets
+			// the entity's fields as custom fields and no object file. On
+			// an entity's field: the standard field it stands for, which is
+			// not written.
+			{Name: "standard", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnDecl, plugin.OnField)},
 			// On the target block: prepended to every Apex type's name,
 			// since an org has one class namespace.
 			{Name: "prefix", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock)},
@@ -111,6 +116,10 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 func (g *generator) decl(d *ir.Decl) ([]*plugin.File, error) {
 	if ok, err := emit.Declares(d); !ok {
 		return nil, err
+	}
+
+	if d.GetStructure().GetKind() != ir.StructKind_STRUCT_KIND_ENTITY {
+		g.strayStandard(d)
 	}
 
 	var files []*plugin.File

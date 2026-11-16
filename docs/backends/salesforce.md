@@ -39,3 +39,18 @@ Import generates the feature and reads it back, and counts only what reading bac
 | Import and extern | No | No | | An extern is not generated yet, so a declaration naming one is skipped. |
 
 <!-- /tdl:features -->
+
+## Standard objects
+
+A `standard` directive maps an entity to an object the org already declares, so its fields become custom fields on that object and no object file is written:
+
+```tdl
+target salesforce for shop {
+  Customer => standard("Account")
+  Customer.name => standard("Name")
+}
+```
+
+On a field, `standard` names a field the object already has, which is not written.
+A lookup to `Customer` names `Account`.
+[Standard objects](../architecture/salesforce-backend.md#standard-objects) has the details.

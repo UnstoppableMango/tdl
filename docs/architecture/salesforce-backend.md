@@ -14,6 +14,7 @@ Apex names an entity by its SObject type, `Order__c`, so an entity gets no Apex 
 | TDL | Output |
 | --- | --- |
 | entity | a `CustomObject` named `<Name>__c`, with a `CustomField` per field it can store |
+| entity marked `standard("Account")` | a `CustomField` per field it can store on the standard object, and no object file |
 | value, mixin | an Apex `public class` with a public member per field |
 | fieldless enum | an Apex `public enum`, and a restricted picklist wherever an object field holds it |
 | fielded enum | an Apex class holding a `Kind` enum, a `kind` member, and an inner class and member per variant with fields |
@@ -58,6 +59,31 @@ Such a field warns and the object is written without it, where a schema backend 
 An object's name field is an auto number, `<Name>-{0000}`, since a model says nothing about what names a row.
 Its sharing model is `ReadWrite` and its deployment status is deployed.
 
+## Standard objects
+
+Hand-written Salesforce source adds custom fields to the objects an org already declares, such as `Account`, and looks up to them.
+A `standard("<ApiName>")` directive on an entity maps it to that standard object, under whatever name the model gives it:
+
+```tdl
+target salesforce for shop {
+  Customer => standard("Account")
+  Customer.name => standard("Name")
+}
+```
+
+The org declares the object, so no object file is written: each field the entity can store is a custom field in `objects/Account/fields/`, written as on a custom object.
+A lookup to the entity names `Account`, and so does an Apex member holding it, since `Account` is its SObject type.
+`label` and `plural` belong to the object, which keeps its own, so on a standard entity they warn and do nothing.
+
+`standard("<FieldApiName>")` on a field of any entity marks a field the object already has, such as `Name` or `CreatedDate`: nothing is written for it.
+A `key` naming such a field warns, since only a custom field is made an external ID.
+Two fields standing for one standard field warn.
+
+The directive names a standard object or field, so a name holding `__`, a custom object's `Tier__c` or a managed package's `acme__Thing`, warns: on an entity it skips the entity, and on a field it drops the field.
+The backend holds no list of standard objects or their fields, so it trusts the name.
+`standard` on a declaration that is not an entity, or on its fields, warns and does nothing.
+Import reading standard objects back waits on the Salesforce importer (#1457, #1458), and is the rest of #1463.
+
 A `key` directive, as the `go` target reads it, makes the named field a unique external ID.
 An external ID is one `Text` or `Number` field, so a key of several fields or of any other type warns and the object is written without one.
 
@@ -83,6 +109,7 @@ An Apex type is Pascal case, and a `prefix` directive on the target block prepen
 | `key(field)` | an entity | the field that becomes a unique external ID |
 | `length(n)` | a `Text` field | its length, from 1 to 255 |
 | `scale(n)` | a `decimal` field | its decimal places |
+| `standard("X")` | an entity, an entity's field | the standard object or field it stands for (see [Standard objects](#standard-objects)) |
 | `prefix("X")` | the target block | prepended to every Apex type's name |
 | `apiVersion("X")` | the target block | the API version each class declares, `66.0` by default |
 
@@ -91,7 +118,8 @@ Each of these warns and skips the declaration reaching it:
 - a name that is not a letter followed by letters, digits, and single underscores, or that ends in an underscore
 - a name longer than 40 characters, not counting `__c`
 - an Apex name that is a reserved word, which includes `type`, `date`, and `number`
-- an Apex type named like a standard type an org already declares, such as `Account`, `Contact`, `Order`, or `User`, which `name` or `prefix` resolves
+- an Apex type named like a standard type an org already declares, such as `Account`, `Contact`, `Order`, or `User`, which `name` or `prefix` resolves; an entity has no Apex type, and one marked `standard` names the org's own
+- a `standard` directive naming a custom or managed-package name, one holding `__`
 - two names differing only in case, since Salesforce compares names without case
 
 ## Output
@@ -102,6 +130,7 @@ The target's `out` is a package directory such as `force-app/main/default`.
 ```text
 objects/<Object>__c/<Object>__c.object-meta.xml
 objects/<Object>__c/fields/<Field>__c.field-meta.xml
+objects/<Standard>/fields/<Field>__c.field-meta.xml
 classes/<Class>.cls
 classes/<Class>.cls-meta.xml
 ```

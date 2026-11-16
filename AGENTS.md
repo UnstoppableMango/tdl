@@ -298,6 +298,7 @@ Every backend reports what it cannot generate as a positioned warning rather tha
 - `backend/salesforce`: Salesforce DX source, one file per component.
   An entity is a custom object, with a warning for each field that has no column; values, mixins, and enums are Apex.
   A `key` directive makes a field a unique external ID.
+  A `standard` directive maps an entity to a standard object, writing its fields under `objects/<Object>/fields/` and no object file, and on a field names a standard field, which is not written.
   Tests check the XML is well formed and `checks.gen-salesforce` runs `xmllint`; nothing checks the Apex.
   See `docs/architecture/salesforce-backend.md`.
 - `backend/haskell`: one module per model, `Shop/Billing.hs` for package `shop.billing` unless a `module` directive names it.

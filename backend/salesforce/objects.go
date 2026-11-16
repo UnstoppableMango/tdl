@@ -103,22 +103,60 @@ var columns = map[string]column{
 	"duration": {typ: "Text", length: 64},
 }
 
-// objectName is an entity's API name.
+// objectName is an entity's API name: the standard object a `standard`
+// directive names, or its custom object's.
 func (g *generator) objectName(d *ir.Decl) string {
+	if s, ok := g.Text(d.GetDirectives(), "standard"); ok {
+		return s
+	}
 	return g.DeclName(d, emit.Pascal) + "__c"
+}
+
+// standardName returns the standard object or field a `standard` directive
+// in dirs names, and whether there is one, or says why it cannot be one.
+func (g *generator) standardName(what string, dirs []*ir.Directive) (string, bool, error) {
+	dir, ok := g.Find(dirs, "standard")
+	if !ok {
+		return "", false, nil
+	}
+	n := dir.GetArgs()[0].GetText()
+	if strings.Contains(n, "__") {
+		return "", true, emit.Unsupported(dir.GetPosition(),
+			"%s stands for %s, which is a custom or managed-package name, not a standard one", what, n)
+	}
+	if err := checkName(dir.GetPosition(), what, n); err != nil {
+		return "", true, err
+	}
+	return n, true, nil
 }
 
 // object renders an entity as a custom object and a file per field it can
 // store. A field with no column is warned about and the object is still
-// written, since an object missing a column still deploys.
+// written, since an object missing a column still deploys. An entity a
+// `standard` directive marks writes only its fields, under the standard
+// object, since the org already declares the object.
 func (g *generator) object(d *ir.Decl) ([]*plugin.File, error) {
 	pos := d.GetMeta().GetPosition()
 	name := d.GetMeta().GetName()
 	base := g.DeclName(d, emit.Pascal)
-	if err := checkName(pos, name, base); err != nil {
-		return nil, err
-	}
 	api := base + "__c"
+	std, isStd, err := g.standardName(name, d.GetDirectives())
+	switch {
+	case err != nil:
+		return nil, err
+	case isStd:
+		base, api = std, std
+		for _, n := range []string{"label", "plural"} {
+			if dir, ok := g.Find(d.GetDirectives(), n); ok {
+				g.Warn(emit.Unsupported(dir.GetPosition(),
+					"%s is a standard object, which keeps its own %s, so the %s directive on %s does nothing", std, n, n, name))
+			}
+		}
+	default:
+		if err := checkName(pos, name, base); err != nil {
+			return nil, err
+		}
+	}
 	if err := claim(g.objects, pos, name, api); err != nil {
 		return nil, err
 	}
@@ -137,6 +175,23 @@ func (g *generator) object(d *ir.Decl) ([]*plugin.File, error) {
 	seen := map[string]bool{}
 	var files []*plugin.File
 	for _, f := range d.Fields() {
+		what := name + "." + f.GetMeta().GetName()
+		if std, ok, err := g.standardName(what, f.GetDirectives()); ok {
+			// The object already has the field, so nothing is written.
+			switch {
+			case err != nil:
+				g.Warn(err)
+			case seen[strings.ToLower(std)]:
+				g.Warn(emit.Unsupported(f.GetMeta().GetPosition(), "%s has two fields standing for %s", name, std))
+			case f == key:
+				g.Warn(emit.Unsupported(f.GetMeta().GetPosition(),
+					"%s is keyed by %s, which stands for a standard field, and only a custom field is made an external ID", name, f.GetMeta().GetName()))
+			}
+			if err == nil {
+				seen[strings.ToLower(std)] = true
+			}
+			continue
+		}
 		fld, err := g.field(base, f)
 		if err != nil {
 			g.Warn(err)
@@ -159,6 +214,9 @@ func (g *generator) object(d *ir.Decl) ([]*plugin.File, error) {
 		files = append(files, xmlFile(path.Join(dir, "fields", fld.FullName+".field-meta.xml"), fld))
 	}
 
+	if isStd {
+		return files, nil
+	}
 	obj := &customObject{
 		NS:               metadataNS,
 		DeploymentStatus: "Deployed",
@@ -306,6 +364,27 @@ func (g *generator) sizes(f *ir.Field, fld *customField, prim string) error {
 		fld.Scale = &n
 	}
 	return nil
+}
+
+// strayStandard warns about each `standard` directive on a declaration that
+// is not an entity, or on its fields, which does nothing there.
+func (g *generator) strayStandard(d *ir.Decl) {
+	name := d.GetMeta().GetName()
+	if dir, ok := g.Find(d.GetDirectives(), "standard"); ok {
+		g.Warn(emit.Unsupported(dir.GetPosition(), "standard maps an entity to a standard object, and %s is not an entity", name))
+	}
+	stray := func(owner string, fields []*ir.Field) {
+		for _, f := range fields {
+			if dir, ok := g.Find(f.GetDirectives(), "standard"); ok {
+				g.Warn(emit.Unsupported(dir.GetPosition(),
+					"standard on %s.%s maps a field of an entity to a standard field, and %s is not an entity", owner, f.GetMeta().GetName(), name))
+			}
+		}
+	}
+	stray(name, d.Fields())
+	for _, v := range d.GetEnumeration().GetVariants() {
+		stray(name+"."+v.GetMeta().GetName(), v.GetFields())
+	}
 }
 
 func picklist(d *ir.Decl) bool {
