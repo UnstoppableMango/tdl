@@ -94,7 +94,7 @@ func caseRequest(t *testing.T, dir string) *plugin.Request {
 	if len(problems) > 0 {
 		t.Fatalf("request: %v", problems)
 	}
-	if err := gen.Depend(req, sema.FSLoader{}); err != nil {
+	if _, err := gen.Depend(req, sema.FSLoader{}); err != nil {
 		t.Fatal(err)
 	}
 	return req
