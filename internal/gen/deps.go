@@ -22,13 +22,16 @@ import (
 // part of the request, so regenerating one changes the request's hash.
 //
 // It reads each dependency through loader, as lowering did, and its output
-// through the dependency's `.tdl-output`. A dependency that cannot be read
-// was reported by lowering; one with no block for the target, no out
-// directive, or no output yet contributes nothing.
-func Depend(req *plugin.Request, loader sema.Loader) error {
+// through the dependency's `.tdl-output`, returning every marker and file
+// it read, for `--make`. A dependency that cannot be read was reported by
+// lowering; one with no block for the target, no out directive, an out
+// that is the request's own, or no output yet contributes nothing. A
+// record that lists a file outside its directory, or one that cannot be
+// read, is an error.
+func Depend(req *plugin.Request, loader sema.Loader) ([]string, error) {
 	model := req.GetModel()
 	if len(model.GetImports()) == 0 || loader == nil {
-		return nil
+		return nil, nil
 	}
 	if req.Analysis == nil {
 		req.Analysis = &plugin.Analysis{}
@@ -41,21 +44,20 @@ func Depend(req *plugin.Request, loader sema.Loader) error {
 		externs[i] = &plugin.Item{}
 	}
 
+	// A package may span several files, and a file be imported twice.
 	seen := map[string]bool{}
+	var read []string
 	for _, imp := range model.GetImports() {
 		pkg := imp.GetPackage()
-		if seen[pkg] {
-			continue
-		}
 		name, src, err := loader.Load(imp.GetPosition().GetFilename(), imp.GetPath())
-		if err != nil {
+		if err != nil || seen[name] {
 			continue
 		}
+		seen[name] = true
 		dep, err := parser.Parse(name, strings.NewReader(src))
 		if err != nil {
 			continue
 		}
-		seen[pkg] = true
 
 		decls := map[string]ast.Decl{}
 		for _, d := range dep.Decls {
@@ -69,14 +71,26 @@ func Depend(req *plugin.Request, loader sema.Loader) error {
 			}
 		}
 
-		files, err := dependencyFiles(req.GetOut(), req.GetTarget(), pkg, depOut(dep, name, req.GetTarget(), pkg))
+		dir := depOut(dep, name, req.GetTarget(), pkg)
+		if dir != "" && sameDir(dir, req.GetOut()) {
+			// Its record is this target's own last output.
+			continue
+		}
+		files, paths, err := dependencyFiles(req.GetOut(), req.GetTarget(), pkg, dir)
 		if err != nil {
-			return fmt.Errorf("reading %s's output: %w", pkg, err)
+			return nil, fmt.Errorf("reading %s's output: %w", pkg, err)
 		}
 		req.Dependencies = append(req.Dependencies, files...)
+		read = append(read, paths...)
 	}
 	req.Analysis.Source.Externs = externs
-	return nil
+	return read, nil
+}
+
+// sameDir reports whether two directories are one path.
+func sameDir(a, b string) bool {
+	rel, err := relative(a, b)
+	return err == nil && rel == "."
 }
 
 // depOut is the out directive of dep's block for target, relative to the
@@ -105,41 +119,44 @@ func depOut(dep *ast.File, name, target, pkg string) string {
 }
 
 // dependencyFiles reads the files target's record in depOut's marker
-// lists, each with its path relative to out.
-func dependencyFiles(out, target, pkg, depOut string) ([]*plugin.DependencyFile, error) {
+// lists, each with its path relative to out, and returns every path it
+// read: the marker, then the files.
+func dependencyFiles(out, target, pkg, depOut string) ([]*plugin.DependencyFile, []string, error) {
 	if depOut == "" {
-		return nil, nil
+		return nil, nil, nil
 	}
 	kept, ok, err := Recorded(depOut, target)
 	if err != nil || !ok {
-		return nil, err
+		return nil, nil, err
 	}
 	t, err := openTree(depOut)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer t.Close()
 
+	read := []string{filepath.Join(depOut, MarkerName)}
 	var files []*plugin.DependencyFile
 	for _, path := range kept.Paths() {
 		rel, err := t.local(path, "read")
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		content, err := t.readFile(rel)
 		if errors.Is(err, fs.ErrNotExist) {
 			continue
 		}
 		if err != nil {
-			return nil, fmt.Errorf("reading %s: %w", path, err)
+			return nil, nil, fmt.Errorf("reading %s: %w", path, err)
 		}
 		from, err := relative(out, path)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		files = append(files, &plugin.DependencyFile{Package: pkg, Path: filepath.ToSlash(from), Content: content})
+		read = append(read, path)
 	}
-	return files, nil
+	return files, read, nil
 }
 
 // relative is path relative to dir, either of which may be relative to the
