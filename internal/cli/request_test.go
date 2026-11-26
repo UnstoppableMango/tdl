@@ -44,15 +44,17 @@ func testResolver(name string) (plugin.Backend, error) {
 	return described{plugin.Description{Name: name}}, nil
 }
 
-// readRequestSet decodes what request wrote, checking the handshake.
-func readRequestSet(t *testing.T, out string) *plugin.RequestSet {
+// readRequestSet decodes what request wrote, checking the handshake names
+// target.
+func readRequestSet(t *testing.T, out, target string) *plugin.RequestSet {
 	t.Helper()
 	conn := plugin.NewConn(strings.NewReader(out), nil)
 	var hello plugin.Handshake
 	if err := conn.Recv(&hello); err != nil {
 		t.Fatalf("reading the handshake: %v", err)
 	}
-	if hello.GetFramingVersion() != plugin.FramingVersion || hello.GetIrVersion() != plugin.IRVersion {
+	if hello.GetFramingVersion() != plugin.FramingVersion || hello.GetIrVersion() != plugin.IRVersion ||
+		hello.GetTarget() != target {
 		t.Errorf("handshake = %v", &hello)
 	}
 	var set plugin.RequestSet
@@ -71,7 +73,13 @@ func runRequest(t *testing.T, stdin []byte, args ...string) *plugin.RequestSet {
 	if err != nil {
 		t.Fatalf("request: %v\n%s", err, errOut)
 	}
-	return readRequestSet(t, out)
+	target := ""
+	for i, a := range args[:len(args)-1] {
+		if a == "--target" {
+			target = args[i+1]
+		}
+	}
+	return readRequestSet(t, out, target)
 }
 
 // overlay frames an Overlay holding path and text pairs.

@@ -2,6 +2,7 @@ package gen_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -114,25 +115,42 @@ func TestPluginThatDies(t *testing.T) {
 	}
 }
 
-func TestPluginThatRefuses(t *testing.T) {
-	dir := t.TempDir()
-	script := filepath.Join(dir, gen.CommandPrefix+"refuses")
-	body := "#!/bin/sh\nexec " + goBin(t) + " run " + refuserPath(t) + "\n"
-	if err := os.WriteFile(script, []byte(body), 0o755); err != nil {
-		t.Fatal(err)
-	}
+// A plugin serving two targets sees which one it is started for, in the
+// handshake of a generate and of an import, and a target it refuses is
+// refused in its own words.
+func TestHandshakeNamesTheTarget(t *testing.T) {
+	dir := twinDir(t)
 	onPath(t, dir)
 
-	sub, err := gen.Find("refuses")
+	for _, target := range []string{"left", "right"} {
+		sub, err := gen.Find(target)
+		if err != nil {
+			t.Fatalf("find: %v", err)
+		}
+		resp, err := sub.Generate(context.Background(), &plugin.Request{Target: target, Model: sampleModel()})
+		if err != nil {
+			t.Fatalf("%s: generate: %v", target, err)
+		}
+		if got := resp.GetFiles(); len(got) != 1 || got[0].GetPath() != target+".txt" {
+			t.Errorf("%s: generated %v, want %s.txt", target, got, target)
+		}
+
+		imported, err := sub.Import(context.Background(), &plugin.ImportRequest{Target: target})
+		if err != nil {
+			t.Fatalf("%s: import: %v", target, err)
+		}
+		if got := imported.GetSource(); got != "imported as "+target {
+			t.Errorf("%s: import saw %q", target, got)
+		}
+	}
+
+	sub, err := gen.Find("vb")
 	if err != nil {
 		t.Fatalf("find: %v", err)
 	}
-	_, err = sub.Generate(context.Background(), &plugin.Request{Target: "refuses", Model: sampleModel()})
-	if err == nil {
-		t.Fatal("a refusal was treated as acceptance")
-	}
-	if !strings.Contains(err.Error(), "refused") {
-		t.Errorf("err = %v", err)
+	_, err = sub.Generate(context.Background(), &plugin.Request{Target: "vb", Model: sampleModel()})
+	if want := "tdl-gen-vb refused: serves left, right; asked for vb"; err == nil || err.Error() != want {
+		t.Errorf("err = %v, want %q", err, want)
 	}
 }
 
@@ -145,13 +163,52 @@ func goBin(t *testing.T) string {
 	return path
 }
 
-// refuserPath writes a plugin that always refuses the handshake.
-func refuserPath(t *testing.T) string {
-	t.Helper()
+var twinOnce struct {
+	sync.Once
+	dir string
+	err error
+}
 
-	dir := t.TempDir()
-	path := filepath.Join(dir, "main.go")
-	src := `package main
+// twinDir builds a plugin that serves the targets left and right, without
+// the SDK, and links it as tdl-gen-left, tdl-gen-right, and tdl-gen-vb.
+func twinDir(t *testing.T) string {
+	t.Helper()
+	goBin(t)
+
+	twinOnce.Do(func() {
+		dir, err := os.MkdirTemp("", "tdl-twin")
+		if err != nil {
+			twinOnce.err = err
+			return
+		}
+		src := filepath.Join(dir, "main.go")
+		if err := os.WriteFile(src, []byte(twinSource), 0o644); err != nil {
+			twinOnce.err = err
+			return
+		}
+		bin := filepath.Join(dir, "twin")
+		if out, err := exec.Command("go", "build", "-o", bin, src).CombinedOutput(); err != nil {
+			twinOnce.err = fmt.Errorf("%w: %s", err, out)
+			return
+		}
+		for _, target := range []string{"left", "right", "vb"} {
+			if err := os.Symlink(bin, filepath.Join(dir, gen.CommandPrefix+target)); err != nil {
+				twinOnce.err = err
+				return
+			}
+		}
+		twinOnce.dir = dir
+	})
+
+	if twinOnce.err != nil {
+		t.Fatalf("building the twin plugin: %v", twinOnce.err)
+	}
+	return twinOnce.dir
+}
+
+// twinSource answers for the target its handshake names, and refuses any
+// other.
+const twinSource = `package main
 
 import (
 	"os"
@@ -161,15 +218,26 @@ import (
 
 func main() {
 	conn := plugin.NewConn(os.Stdin, os.Stdout)
-	_ = conn.Recv(&plugin.Handshake{})
+	var hello plugin.Handshake
+	if err := conn.Recv(&hello); err != nil {
+		os.Exit(1)
+	}
+	target := hello.GetTarget()
+	if target != "left" && target != "right" {
+		_ = conn.Send(&plugin.HandshakeReply{Refusal: "serves left, right; asked for " + target})
+		return
+	}
 	_ = conn.Send(&plugin.HandshakeReply{
-		Accepted: false,
-		Refusal:  "this plugin only speaks framing 99",
+		Accepted: true,
+		Name:     target,
+		Features: &plugin.Features{Reverse: true},
 	})
+	if hello.GetMode() == plugin.Mode_MODE_IMPORT {
+		_ = conn.Recv(&plugin.ImportRequest{})
+		_ = conn.Send(&plugin.ImportResponse{Source: "imported as " + target})
+		return
+	}
+	_ = conn.Recv(&plugin.Request{})
+	_ = conn.Send(&plugin.Response{Files: []*plugin.File{{Path: target + ".txt"}}})
 }
 `
-	if err := os.WriteFile(path, []byte(src), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	return path
-}
