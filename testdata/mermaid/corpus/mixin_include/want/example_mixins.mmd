@@ -17,11 +17,9 @@ classDiagram
   class User {
     +string id
     +string email
-    +instant createdAt
-    +instant updatedAt
-    +string name
   }
-  class Snapshot {
-    +instant createdAt
-    +instant updatedAt
-  }
+  class Snapshot
+  Timestamps <|-- User
+  Named <|-- User
+  User ..|> Auditable
+  Timestamps <|-- Snapshot

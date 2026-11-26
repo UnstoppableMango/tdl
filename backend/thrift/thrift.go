@@ -41,7 +41,7 @@ func (Backend) Describe() plugin.Description {
 			{Name: "number", MinArgs: 1, MaxArgs: 1, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_INT}, Placements: plugin.On(plugin.OnField, plugin.OnVariant)},
 			// Writes, as tdl.* annotations, every fact the IDL alone would
 			// lose, so import rebuilds the model.
-			{Name: "roundtrip", Placements: plugin.On(plugin.OnBlock)},
+			{Name: "annotate", Placements: plugin.On(plugin.OnBlock)},
 			{Name: "readback", Placements: plugin.On(plugin.OnBlock)},
 		},
 		Reverse: true,
@@ -123,7 +123,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		return g.Response(nil), nil
 	}
 
-	g.Roundtrip = g.Bare("roundtrip")
+	g.Annotate = g.Bare("annotate")
 	g.Readback = g.Bare("readback")
 	if pkg := req.GetModel().GetPackage(); g.ns != pkg {
 		g.Lose(emit.LossName, nsPos, "package %s is written %s, which reads back as the package", pkg, g.ns)
@@ -197,7 +197,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	for _, d := range order {
 		r := out[d]
 		kvs := r.kvs
-		if !inPlace && g.Roundtrip {
+		if !inPlace && g.Annotate {
 			kvs = append(kvs, kv{"tdl.at", strconv.Itoa(g.Index(d.GetMeta().GetName()))})
 		}
 		b.WriteString("\n")

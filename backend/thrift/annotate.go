@@ -20,13 +20,13 @@ const carrier = "tdl"
 type kv struct{ key, value string }
 
 // annotations is a node's parenthesized annotations: its deprecation, then
-// the tdl.* ones when roundtrip is on, or "".
+// the tdl.* ones when annotate is on, or "".
 func (g *generator) annotations(meta *ir.Meta, kvs ...kv) string {
 	var parts []string
 	if reason, ok := emit.Deprecated(meta); ok {
 		parts = append(parts, "deprecated = "+quote(reason))
 	}
-	if g.Roundtrip {
+	if g.Annotate {
 		for _, a := range kvs {
 			parts = append(parts, a.key+" = "+literal(a.value))
 		}
@@ -235,7 +235,7 @@ func (g *generator) newtypeSource(d *ir.Decl) string {
 // namespace renames it, the package's doc comment, the imports, and every
 // top-level item no Thrift definition declares, by its index in the file.
 func (g *generator) fileAnnotation(emitted map[string]bool) string {
-	if !g.Roundtrip {
+	if !g.Annotate {
 		return ""
 	}
 	var kvs []kv
