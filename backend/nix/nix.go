@@ -49,7 +49,13 @@ var keywords = []string{"assert", "else", "if", "in", "inherit", "let", "or", "r
 type helper struct{ name, text string }
 
 // helpers is every helper, in the order the file declares them.
-var helpers []helper
+var helpers = []helper{
+	{"after", afterHelper},
+	{"struct", structHelper},
+	{"optional", optionalHelper},
+	{"nullable", "  nullable = type: types.nullOr type // { emptyValue = { }; };\n"},
+	{"duration", durationHelper},
+}
 
 type generator struct {
 	*emit.Session
