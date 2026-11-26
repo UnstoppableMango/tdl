@@ -15,6 +15,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/haskell"
 	"github.com/unstoppablemango/tdl/backend/jsonschema"
 	"github.com/unstoppablemango/tdl/backend/likec4"
+	"github.com/unstoppablemango/tdl/backend/nix"
 	"github.com/unstoppablemango/tdl/backend/openapi"
 	"github.com/unstoppablemango/tdl/backend/protobuf"
 	"github.com/unstoppablemango/tdl/backend/salesforce"
@@ -34,6 +35,7 @@ var builtin = map[string]plugin.Backend{
 	haskell.Name:    haskell.Backend{},
 	jsonschema.Name: jsonschema.Backend{},
 	likec4.Name:     likec4.Backend{},
+	nix.Name:        nix.Backend{},
 	openapi.Name:    openapi.Backend{},
 	protobuf.Name:   protobuf.Backend{},
 	salesforce.Name: salesforce.Backend{},
