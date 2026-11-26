@@ -3,7 +3,7 @@
 Design document.
 All of it is built.
 
-graphify builds the code graph an agent queries instead of grepping (see `AGENTS.md`).
+graphify builds the code graph an agent queries instead of grepping (see `docs/agents/knowledge-graph.md`).
 It parses each language with a tree-sitter grammar and a Python extractor, and it knows no TDL: a `.tdl` file lands in its unclassified list and is never read.
 The `.tdl` files are the specification's corpus, the prelude, the examples, and the smoke models, and none of them is in the graph.
 
@@ -82,7 +82,7 @@ graphify is moving extractors out of `extract.py`, so the first bump is the real
 - `.graphifyignore` stops ignoring `testdata/**/*.tdl`, since 64 of the 70 `.tdl` files are conformance and invalid cases; the goldens and other fixtures stay out.
 - `checks.graphify` runs `graphify update` over the prelude and two conformance cases, and asserts the graph holds the `Entity` node and an `implements` edge into it.
   It is the one test of the binding and the patch together, and needs no model or network.
-- `AGENTS.md`'s knowledge graph section says graphify reads TDL and where the extractor lives.
+- `docs/agents/knowledge-graph.md` says graphify reads TDL and where the extractor lives.
 
 ## Not covered
 

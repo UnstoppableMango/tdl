@@ -13,7 +13,7 @@ Thursday keeps mutation testing off Monday, when code reduction changes the code
 
 ## Every run
 
-1. Re-read `AGENTS.md`, `CONTEXT.md`, and `docs/agents/domain.md`, plus the architecture doc the routine's section names.
+1. Re-read `AGENTS.md` and the `docs/agents/` files it links for the routine's area, `CONTEXT.md`, and `docs/agents/domain.md`, plus the architecture doc the routine's section names.
 1. Drive the open pull requests from earlier runs (CI, reviews) before opening new ones; the section says which count against its cap.
 1. Work the [queue](#the-queue) before the routine's own sweep.
 1. Fetch and branch from the latest default branch for every pull request.
@@ -25,7 +25,7 @@ Neither routine invokes a skill by name, since a routine session may not load th
 
 Name every concept the way `CONTEXT.md` does, in issue titles, test names, commit messages, and pull request text, and avoid the words it lists to avoid.
 Never edit `CONTEXT.md` or write an ADR: a routine records no term and makes no decision.
-A change that would contradict an ADR, or a decision recorded in `docs/spec.md`, the Conventions in `AGENTS.md`, or `docs/architecture/`, is skipped and filed as an issue instead.
+A change that would contradict an ADR, or a decision recorded in `docs/spec.md`, `docs/agents/language.md`, or `docs/architecture/`, is skipped and filed as an issue instead.
 
 ### Filing an issue
 
@@ -102,7 +102,7 @@ The first run under these rules surveys the code and creates the issue; later ru
 1. Work the [queue](#the-queue): `ready-for-agent` issues of kind `dead-code`, `duplicate-code`, and `removal`, each in its own pull request saying `Closes #N`, counted against the cap.
 1. Otherwise take the top `open` target and build it, or its next step.
    A target too big for one pull request is split across runs; each step meets the floor alone, and no step grows the code to set up the next.
-1. Fill any room left under the size limit with small cuts: dead or unreachable code; unused functions, types, constants, and parameters; needless indirection, such as single-use wrappers or one-implementation interfaces; stale comments; positions in `mutation/equivalent.txt` that `make mutate` prints as stale.
+1. Fill any room left under the size limit with small cuts: dead or unreachable code; unused functions, types, constants, and parameters; needless indirection, such as single-use wrappers or one-implementation interfaces; stale comments; positions in `mutation/equivalent.txt` that `command make mutate` prints as stale.
    Use `go vet`, golangci-lint's unused checks, `deadcode` (`golang.org/x/tools/cmd/deadcode`), and `dupl` where available.
 1. Survey for new targets while reading, and update the targets issue: re-estimate, mark progress, add new rows.
    A cut that changes behavior is a `removal` issue, never a target.

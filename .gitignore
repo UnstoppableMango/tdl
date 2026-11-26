@@ -35,7 +35,7 @@ scratch.tdl
 .claude/*
 !.claude/skills/
 
-# graphify, see the knowledge graph section of AGENTS.md
+# graphify, see docs/agents/knowledge-graph.md
 graphify-out/
 
 # .NET, for dotnet/

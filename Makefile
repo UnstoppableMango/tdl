@@ -16,7 +16,7 @@ TS_GRAMMAR  := tree-sitter/grammar.js
 FEATURES    := $(shell git grep -l '<!-- tdl:features' -- '*.md')
 
 .PHONY: build test cover play demo generate treesitter textmate features vscode-install \
-	vscode-check test-treesitter check-treesitter dotnet-test rust-test js-test js-check dotnet-deps mutate update lint check fmt tidy
+	vscode-check vscode-test test-treesitter check-treesitter dotnet-test rust-test js-test js-check dotnet-deps mutate update lint check fmt tidy
 
 build:
 	nix build .#
@@ -70,6 +70,9 @@ vscode-install: ${TMLANGUAGE}
 
 vscode-check:
 	${MAKE} -C ${VSCODE} check
+
+vscode-test: ${TMLANGUAGE}
+	${MAKE} -C ${VSCODE} test
 
 dotnet-test:
 	dotnet test dotnet/Tdl.slnx

@@ -5,7 +5,7 @@
 TDL is a language for describing domain models.
 This repository holds its specification and its Go reference implementation.
 
-`AGENTS.md` is the full guide.
+`AGENTS.md` links the full guide, one file per area in `docs/agents/`.
 To review a pull request, read the `code-review` skill in `.github/skills/code-review/`.
 
 Two conventions look like defects and are not:
