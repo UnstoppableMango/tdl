@@ -322,6 +322,13 @@ var lossyPrimitives = map[string]string{
 	"date":    "instant",
 }
 
+// wired reports whether a primitive is a helper type under json, which
+// import reads back as itself.
+func (g *generator) wired(prim string) bool {
+	_, ok := wireFor(prim)
+	return ok && g.wire
+}
+
 // typeLosses warns about what a type loses in Go: a primitive's kind, and
 // sugar import writes another way. A newtype or alias it names warns where
 // it is declared.
@@ -345,7 +352,7 @@ func (g *generator) typeLosses(id *ir.ID, at *ir.Position) {
 			name == "Set" && wrote != ir.SyntacticForm_SYNTACTIC_FORM_BRACES,
 			name == "Map" && wrote != ir.SyntacticForm_SYNTACTIC_FORM_ARROW:
 			g.Lose(emit.LossCollection, pos, "%s reads back written as sugar", name)
-		case lossyPrimitives[name] != "":
+		case lossyPrimitives[name] != "" && !g.wired(name):
 			g.LosePrimitive(name, lossyPrimitives[name], pos, "%s is Go %s, which reads back as %s", name, primitives[name], lossyPrimitives[name])
 		}
 	case decl.GetEnumeration() != nil && name == "Nullable":

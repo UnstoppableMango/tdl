@@ -339,6 +339,45 @@ in
             touch $out
           '';
 
+      # Runs the Go the go backend writes under json and parses what it
+      # prints with the schemas the zod backend writes for the same model,
+      # so Go writes the wire convention zod reads.
+      checks.gen-go-zod =
+        let
+          zod = pkgs.callPackage ./zod.nix { };
+        in
+        pkgs.runCommand "tdl-gen-go-zod"
+          {
+            nativeBuildInputs = [
+              pkgs.tdl
+              pkgs.go
+              pkgs.nodejs
+              pkgs.typescript
+            ];
+          }
+          ''
+            export HOME=$TMPDIR GOCACHE=$TMPDIR/go-cache GOFLAGS= GOPROXY=off GOTOOLCHAIN=local CGO_ENABLED=0
+            mkdir out
+            cp ${../testdata/gen/wire/source.tdl} out/source.tdl
+            tdl gen out/source.tdl
+            cp ${../testdata/gen/wire/main.go} out/go/main.go
+            printf 'module example.com/wire\n\ngo 1.21\n' > out/go/go.mod
+            (cd out/go && go run .) > values.jsonl
+            cd out/zod
+            ln -s ${zod}/lib/node_modules node_modules
+            echo '{"type": "module"}' > package.json
+            tsc --strict --exactOptionalPropertyTypes \
+              --module nodenext --moduleResolution nodenext --target es2022 *.zod.ts
+            node --input-type=module -e '
+              import { readFileSync } from "node:fs";
+              const { Lease } = await import("./wire.zod.js");
+              for (const line of readFileSync("../../values.jsonl", "utf8").trim().split("\n")) {
+                const r = Lease.safeParse(JSON.parse(line));
+                if (!r.success) { console.error(line, r.error.message); process.exit(1); }
+              }'
+            touch $out
+          '';
+
       # Builds the csharp plugin's files with every warning an error and the
       # SDK's analyzers, which the plugin's own tests do not run. The project
       # references nothing but the framework, so it restores nothing from

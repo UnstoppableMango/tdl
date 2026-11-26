@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-// leaseSource holds a duration directly, in a list, in a map, as T?, and as
-// a map key.
+// leaseSource holds a duration directly, in a list, in a map, as T?, as a
+// map key, and under a newtype and a newtype over that.
 const leaseSource = `package lease
 
 type Lease {
@@ -15,7 +15,13 @@ type Lease {
   byName: Map<string, duration>
   maybe: duration?
   byTtl: Map<duration, string>
+  grace: Grace
+  notice: Notice
 }
+
+type Grace: duration
+
+type Notice: Grace
 
 target go for lease {
   json
@@ -37,6 +43,7 @@ func TestJSONDuration(t *testing.T) {
 		"Maybe *Duration `json:\"maybe,omitempty\"`",
 		"ByTtl map[Duration]string `json:\"byTtl\"`",
 	)
+	contains(t, got["grace.go"], "type Grace Duration")
 	contains(t, got["duration.go"], "type Duration time.Duration")
 
 	goTest(t, resp, `package lease
@@ -126,7 +133,7 @@ func TestRefuses(t *testing.T) {
 	}
 }
 
-const doc = `+"`"+`{"ttl":"PT1M30S","ttls":["PT0S","P1DT1H30M"],"byName":{"week":"P7D"},"maybe":"PT0.5S","byTtl":{"PT1M":"m"}}`+"`"+`
+const doc = `+"`"+`{"ttl":"PT1M30S","ttls":["PT0S","P1DT1H30M"],"byName":{"week":"P7D"},"maybe":"PT0.5S","byTtl":{"PT1M":"m"},"grace":"PT1H","notice":"P7D"}`+"`"+`
 
 func TestRoundTrip(t *testing.T) {
 	half := Duration(500 * time.Millisecond)
@@ -136,6 +143,8 @@ func TestRoundTrip(t *testing.T) {
 		ByName: map[string]Duration{"week": Duration(7 * 24 * time.Hour)},
 		Maybe:  &half,
 		ByTtl:  map[Duration]string{Duration(time.Minute): "m"},
+		Grace:  Grace(time.Hour),
+		Notice: Notice(7 * 24 * time.Hour),
 	}
 	out, err := json.Marshal(want)
 	if err != nil {
@@ -153,6 +162,16 @@ func TestRoundTrip(t *testing.T) {
 	}
 }
 `)
+}
+
+// Import reads the helper type back as the primitive, and declares
+// nothing for it.
+func TestImportReadsDuration(t *testing.T) {
+	src, _ := importGo(t, files(t, generateTDL(t, leaseSource)))
+	contains(t, src, "ttl: duration", "ttls: [duration]", "maybe: duration?", "type Grace: duration", "type Notice: Grace")
+	if strings.Contains(src, "type Duration") {
+		t.Errorf("import declares the helper type:\n%s", src)
+	}
 }
 
 // A model declaring its own Duration gets WireDuration in its file, and a
@@ -243,4 +262,152 @@ target go for lease {
 	if _, ok := got["duration.go"]; ok {
 		t.Errorf("a helper is written for a foreign duration")
 	}
+}
+
+// A type carrying a helper's doc over another type is not the helper.
+func TestImportReadsOnlyTheHelper(t *testing.T) {
+	src, _ := importGo(t, map[string]string{"lease.go": `package lease
+
+// Duration is a time.Duration that the JSON wire convention writes as an ISO 8601 duration with no year or month part, such as PT1M30S.
+type Duration int32
+
+// Date is a calendar date that the JSON wire convention writes as YYYY-MM-DD.
+type Date struct {
+	Year     int
+	Month    int
+	Day      int
+	Calendar string
+}
+`})
+	contains(t, src, "type Duration: int32", "calendar: string")
+}
+
+// dateSource holds a date directly, in a list, as T?, as a map key, and
+// under a newtype.
+const dateSource = `package lease
+
+type Lease {
+  on: date
+  dates: [date]
+  until: date?
+  byDay: Map<date, string>
+  signed: Signed
+}
+
+type Signed: date
+
+target go for lease {
+  json
+}
+`
+
+// Under json, a date is the package's Date, which writes YYYY-MM-DD and
+// reads it back.
+func TestJSONDate(t *testing.T) {
+	resp := generateTDL(t, dateSource)
+	if w := uncodedWarnings(resp); len(w) != 0 {
+		t.Fatalf("diagnostics = %+v", w)
+	}
+	for _, d := range resp.GetDiagnostics() {
+		if strings.Contains(d.GetMessage(), "instant") {
+			t.Errorf("a date warns it reads back as instant: %s", d.GetMessage())
+		}
+	}
+	got := files(t, resp)
+	contains(t, got["lease.go"], "On Date `json:\"on\"`", "Until *Date `json:\"until,omitempty\"`", "ByDay map[Date]string `json:\"byDay\"`")
+	contains(t, got["date.go"], "type Date struct {")
+
+	goTest(t, resp, `package lease
+
+import (
+	"encoding/json"
+	"reflect"
+	"strings"
+	"testing"
+	"time"
+)
+
+const doc = `+"`"+`{"on":"2026-11-13","dates":["0001-01-01","9999-12-31"],"until":"2024-02-29","byDay":{"2026-01-02":"x"},"signed":"2026-11-26"}`+"`"+`
+
+func TestRoundTrip(t *testing.T) {
+	leap := Date{2024, time.February, 29}
+	want := Lease{
+		On:     Date{2026, time.November, 13},
+		Dates:  []Date{{1, time.January, 1}, {9999, time.December, 31}},
+		Until:  &leap,
+		ByDay:  map[Date]string{{2026, time.January, 2}: "x"},
+		Signed: Signed{2026, time.November, 26},
+	}
+	out, err := json.Marshal(want)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(out) != doc {
+		t.Errorf("wrote %s, want %s", out, doc)
+	}
+	var got Lease
+	if err := json.Unmarshal([]byte(doc), &got); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("read %#v, want %#v", got, want)
+	}
+}
+
+func TestRefuses(t *testing.T) {
+	for _, in := range []string{"2026-13-01", "2026-02-30", "2026-11-13T00:00:00Z", "26-11-13", "2026-1-13", "", " 2026-11-13"} {
+		var d Date
+		if err := json.Unmarshal([]byte("\"" + in + "\""), &d); err == nil || !strings.Contains(err.Error(), "YYYY-MM-DD") {
+			t.Errorf("%q: error %v", in, err)
+		}
+	}
+	if out, err := json.Marshal(Date{}); err != nil || string(out) != `+"`"+`"0001-01-01"`+"`"+` {
+		t.Errorf("the zero Date writes %s, %v", out, err)
+	}
+	if got := (Date{2026, time.November, 13}).Time(); !got.Equal(time.Date(2026, time.November, 13, 0, 0, 0, 0, time.UTC)) {
+		t.Errorf("Time() = %v", got)
+	}
+	for _, d := range []Date{{2026, time.February, 30}, {2026, 0, 1}, {10000, time.January, 1}, {-1, time.January, 1}} {
+		if _, err := json.Marshal(d); err == nil {
+			t.Errorf("%v marshals", d)
+		}
+	}
+}
+`)
+}
+
+// Import reads the helper back as date, and a newtype over it as one over
+// date.
+func TestImportReadsDate(t *testing.T) {
+	src, diags := importGo(t, files(t, generateTDL(t, dateSource)))
+	contains(t, src, "on: date", "until: date?", "byDay: {date -> string}", "type Signed: date")
+	if strings.Contains(src, "type Date") {
+		t.Errorf("import declares the helper type:\n%s", src)
+	}
+	for _, d := range diags {
+		if strings.Contains(d.GetMessage(), "Text") {
+			t.Errorf("import warns about a helper method: %s", d.GetMessage())
+		}
+	}
+}
+
+// Without json, a date is a time.Time and still warns that it reads back
+// as instant.
+func TestDateWithoutJSON(t *testing.T) {
+	resp := generateTDL(t, "package lease\n\ntype Lease { on: date }\n\ntarget go for lease {\n  readback\n}\n")
+	contains(t, files(t, resp)["lease.go"], "On time.Time")
+	var warned bool
+	for _, d := range resp.GetDiagnostics() {
+		warned = warned || strings.Contains(d.GetMessage(), "reads back as instant")
+	}
+	if !warned {
+		t.Errorf("diagnostics = %v, want the instant warning", resp.GetDiagnostics())
+	}
+}
+
+// A model declaring its own Date gets WireDate.
+func TestJSONDateNameClash(t *testing.T) {
+	resp := generateTDL(t, "package lease\n\ntype Date { on: date }\n\ntarget go for lease {\n  json\n}\n")
+	contains(t, files(t, resp)["wire_date.go"], "type WireDate struct {")
+	goTest(t, resp, "package lease\n")
 }

@@ -60,6 +60,7 @@ const (
 	roleAlias
 	roleVariant // a sealed interface's variant struct
 	roleKey     // the struct a Key method returns
+	roleWire    // a helper type json writes for a primitive
 )
 
 type goFile struct {
@@ -83,6 +84,8 @@ type typeInfo struct {
 	anns     []kv
 	// source is the declaration a //tdl:source directive carries.
 	source ast.Decl
+	// prim is the primitive a helper type stands for.
+	prim string
 }
 
 type reader struct {
@@ -480,9 +483,13 @@ func (r *reader) classify() {
 				t.role = roleClass
 			}
 		case *goast.StructType:
-			t.role = roleStruct
-			if t.spec.Assign.IsValid() {
+			switch {
+			case t.spec.Assign.IsValid():
 				t.role = roleAlias
+			case wireHelper(t) != "":
+				t.role, t.prim = roleWire, wireHelper(t)
+			default:
+				t.role = roleStruct
 			}
 		default:
 			switch {
@@ -490,6 +497,8 @@ func (r *reader) classify() {
 				t.role = roleAlias
 			case len(t.consts) > 0 || (isIdent(t.spec.Type, "string") && t.source != nil && isEnum(t.source)):
 				t.role = roleEnum
+			case wireHelper(t) != "":
+				t.role, t.prim = roleWire, wireHelper(t)
 			default:
 				t.role = roleNewtype
 			}
@@ -546,7 +555,7 @@ func (r *reader) classify() {
 
 	for _, t := range r.order {
 		switch t.role {
-		case roleVariant, roleKey:
+		case roleVariant, roleKey, roleWire:
 		case roleSkip:
 			if t.source == nil {
 				r.Warn(emit.LossUnsupported, r.pos(t.spec.Pos()), "%s is an interface without a method marking it, which TDL has no form for", t.name)
@@ -557,6 +566,21 @@ func (r *reader) classify() {
 			r.primary = append(r.primary, t)
 		}
 	}
+}
+
+// wireHelper is the primitive a type json writes for one stands for, read
+// from its doc comment and its underlying type, or "".
+func wireHelper(t *typeInfo) string {
+	if t.doc == nil || t.source != nil {
+		return ""
+	}
+	doc := strings.TrimSpace(t.doc.Text())
+	for _, w := range wireTypes {
+		if doc == t.name+" "+w.doc && w.over(t.spec.Type, t.file.imports) {
+			return w.prim
+		}
+	}
+	return ""
 }
 
 func isIdent(e goast.Expr, name string) bool {
@@ -808,6 +832,8 @@ func (r *reader) checkMethods(t *typeInfo, sealedBy string) {
 		case name == "MarshalJSON" && m.Doc != nil && strings.HasSuffix(strings.TrimSpace(m.Doc.Text()), fillDoc):
 			// Written under json to fill empty collections, which the
 			// convention, not the model, asks for.
+		case (name == "MarshalText" || name == "UnmarshalText") && m.Doc != nil && strings.HasSuffix(strings.TrimSpace(m.Doc.Text()), overDoc):
+			// Written under json for a newtype over a helper type.
 		case strings.HasPrefix(name, "is") && r.types[name[2:]] != nil && r.types[name[2:]].role == roleClass:
 		default:
 			r.Warn(emit.LossUnsupported, r.pos(m.Pos()), "method %s.%s has no TDL form", t.name, name)
@@ -1206,6 +1232,8 @@ func (r *reader) named(t *typeInfo, args []*ast.TypeArg, p token.Pos, what strin
 	case roleClass:
 		r.Warn(emit.LossUnsupported, r.pos(p), "%s names the interface %s, which TDL has no form for", what, t.name)
 		return nil
+	case roleWire:
+		return &ast.TypeRef{P: r.at(p), N: t.prim, Args: args}
 	case roleSkip, roleVariant, roleKey:
 		if t.source == nil {
 			r.Warn(emit.LossUnsupported, r.pos(p), "%s names %s, which is not imported", what, t.name)

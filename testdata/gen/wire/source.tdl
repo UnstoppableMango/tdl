@@ -1,0 +1,26 @@
+// The values the Go backend writes under json, which checks.gen-go-zod
+// parses with the zod backend's schemas.
+package wire
+
+type Lease {
+  ttl: duration
+  ttls: [duration]
+  byName: Map<string, duration>
+  maybe: duration?
+  byTtl: Map<duration, string>
+  on: date
+  until: date?
+  grace: Grace
+}
+
+type Grace: duration
+
+target go for wire {
+  out("go")
+  package("example.com/wire/main")
+  json
+}
+
+target zod for wire {
+  out("zod")
+}
