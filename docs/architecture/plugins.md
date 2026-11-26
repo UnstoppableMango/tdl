@@ -155,7 +155,7 @@ Post-processing runs before anything is compared or written, so `--verify`, `--c
 A command that exits non-zero or is not found, or a name `[post]` does not declare, including when there is no `tdl.toml`, is an error naming the target, with the command's stderr relayed, and nothing is written for that target; skipping it instead would make `--verify` depend on the machine.
 `--watch` runs the commands on every regeneration, and `tdl request`, `tdl import`, `tdl play`, and the language server, which write no target output, never run them.
 A nondeterministic backend's kept files were post-processed when written, and its request hash covers the directive's names but not the command lines `[post]` maps them to, so changing a command line alone keeps them; `--clean` regenerates.
-The flake-parts module's `post.packages` puts the commands on `PATH` for `checks.tdl-gen` and `devShells.tdl`.
+The flake-parts module's `post.packages` puts the commands on `PATH` for `checks.tdl-gen`, and for `devShells.tdl` under `devShell.enable`.
 The table is a record of what a build runs, not a security boundary, since the plugin is already arbitrary code.
 
 `Response.post` is deprecated and ignored.

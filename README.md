@@ -189,9 +189,11 @@ The home-manager module (`homeModules.default`, also `homeManagerModules.default
 ### In a project
 
 `flakeModules.default` is a [flake-parts](https://flake.parts) module for a project that contains `.tdl` files.
-It adds `devShells.tdl` (pull it into your shell with `inputsFrom`) and checks that each model parses and lowers, is canonically formatted, and, for `gen.files`, that generated output on disk is current.
+It adds checks that each model parses and lowers, is canonically formatted, and, for `gen.files`, that generated output on disk is current.
 `files` are strings relative to `src`, so `include` paths keep resolving.
 Setting `src` turns the module on; `tdl.enable = false` turns it off.
+`tdl.devShell.enable = true` also adds `devShells.tdl`, a shell holding the CLI and `gen.backends` to pull into your own with `inputsFrom`.
+It is off by default, because its make support names `pkgs.tdl-gmk`, which only tdl's overlay provides.
 
 ```nix
 {
@@ -224,8 +226,22 @@ Set `tdl.fmt.enable = false` to skip the formatting check.
 Both return sorted paths relative to the directory of the Makefile that loaded the object, wherever make runs from.
 A failure, such as an import that does not exist, stops make with the error.
 
-`devShells.tdl` sets `TDL_GMK` to the object and puts nixpkgs' `gnumake` on `PATH`, since the object links against nixpkgs' libc and a system make cannot load it.
+With `tdl.devShell.enable = true`, `devShells.tdl` sets `TDL_GMK` to the object and puts nixpkgs' `gnumake` on `PATH`, since the object links against nixpkgs' libc and a system make cannot load it.
 Set `tdl.make.enable = false` to leave both out.
+The object comes from `pkgs.tdl-gmk`, so this needs tdl's overlay, as in the example above.
+
+```nix
+perSystem = { config, pkgs, ... }: {
+  tdl = {
+    src = ./model;
+    devShell.enable = true;
+  };
+
+  devShells.default = pkgs.mkShell {
+    inputsFrom = [ config.devShells.tdl ];
+  };
+};
+```
 
 ```make
 load $(TDL_GMK)
