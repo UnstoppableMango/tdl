@@ -235,6 +235,16 @@ A declaration holding no list or map gets no `MarshalJSON`.
 A field a `tag` directive renames is filled as any other; a tag adding `omitempty` leaves an empty one out, as the tag asks.
 A field named `marshalJSON` would collide with the method, so a type holding one alongside a list or map is skipped.
 
+A `duration` is a `time.Duration`, which `encoding/json` writes as integer nanoseconds, and the convention writes as an ISO 8601 string such as `PT1M30S`.
+So under `json` the package declares a `Duration` over `time.Duration`, once and only when the model uses one, whose `String` and `MarshalText` write that string, which `encoding/json` uses for a value and a map key, and every `duration` at any depth is that type:
+
+```go
+type Duration time.Duration
+```
+
+It is `WireDuration` when the package declares a `Duration`, refusing the field when it declares both, and is written to its own file, or to the one a `file` directive names.
+A `foreign` directive on `duration` still names its type.
+
 What the convention cannot carry warns: a variant field named like the discriminant skips the enum, a `Set` is a Go map, which `encoding/json` writes as an object rather than an array, a generic declaration applied to a fielded enum decodes it as a plain value, and one applied to a type holding a list or map writes it as a plain value, a nil one as `null`.
 A type parameter named like a local of the generated methods (`plain`, `data`, `raw`, `err`, `v`, and in a `MarshalJSON` `self`, `out0`, `e0`, `k0` at any depth) skips the declaration.
 Import does not read `json` back: a tag holding only a json key other than the field's name returns as a `wire` directive, any other tag as a `tag` directive, and the methods warn.

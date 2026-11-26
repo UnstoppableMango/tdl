@@ -107,6 +107,9 @@ type generator struct {
 	// imports maps each import path the current file uses to its alias, or
 	// "" for none.
 	imports map[string]string
+	// wireUsed holds the primitives whose helper type the current
+	// declaration names (see wire.go).
+	wireUsed map[string]bool
 
 	// foreign holds the declarations mapped to another package's type;
 	// aliases holds the identifiers those imports are named by.
@@ -218,13 +221,24 @@ func (g *generator) render(pkg string) []*plugin.File {
 		pieces []*piece
 	}
 	var groups []group
+	helpers := g.wirePieces(pieces)
 	if d, ok := g.Block("file"); ok {
 		if len(pieces) > 0 || g.hasHeader() {
-			groups = append(groups, group{d.GetArgs()[0].GetText(), d.GetPosition(), pieces})
+			all := slices.Clone(pieces)
+			for _, h := range helpers {
+				all = append(all, h.piece)
+			}
+			groups = append(groups, group{d.GetArgs()[0].GetText(), d.GetPosition(), all})
 		}
 	} else {
 		for _, p := range pieces {
 			groups = append(groups, group{fileName(p.decl.GetMeta().GetName()), p.decl.GetMeta().GetPosition(), []*piece{p}})
+		}
+		for _, h := range helpers {
+			path := wirePath(h.name, func(path string) bool {
+				return slices.ContainsFunc(groups, func(gr group) bool { return gr.path == path })
+			})
+			groups = append(groups, group{path: path, pieces: []*piece{h.piece}})
 		}
 		if len(groups) == 0 && g.hasHeader() {
 			groups = append(groups, group{path: headerFile})
@@ -261,6 +275,7 @@ type piece struct {
 	decl    *ir.Decl
 	body    string
 	imports map[string]string
+	wire    map[string]bool
 }
 
 // source assembles pieces into one formatted Go file at path.
@@ -299,6 +314,7 @@ func (g *generator) piece(decl *ir.Decl) (*piece, error) {
 	}
 	g.declLosses(decl)
 	g.imports = map[string]string{}
+	g.wireUsed = map[string]bool{}
 	g.curClasses = g.paramClasses(decl, true)
 
 	var body strings.Builder
@@ -331,7 +347,7 @@ func (g *generator) piece(decl *ir.Decl) (*piece, error) {
 		return nil, nil
 	}
 
-	return &piece{decl: decl, body: body.String(), imports: g.imports}, nil
+	return &piece{decl: decl, body: body.String(), imports: g.imports, wire: g.wireUsed}, nil
 }
 
 // strayTags warns at a `tag` on a declaration or a variant, which has no
@@ -670,12 +686,14 @@ func (g *generator) useAs(path, alias string) {
 // importNames maps each package the backend imports itself from the name
 // generated code uses to its path.
 var importNames = map[string]string{
-	"errors": "errors",
-	"fmt":    "fmt",
-	"json":   "encoding/json",
-	"regexp": "regexp",
-	"time":   "time",
-	"utf8":   "unicode/utf8",
+	"errors":  "errors",
+	"fmt":     "fmt",
+	"json":    "encoding/json",
+	"regexp":  "regexp",
+	"strconv": "strconv",
+	"strings": "strings",
+	"time":    "time",
+	"utf8":    "unicode/utf8",
 }
 
 // writeImports writes one import on its own line, several as a sorted block.
