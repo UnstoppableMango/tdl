@@ -6,7 +6,8 @@ import (
 )
 
 // The JSON wire convention, shared by every backend that writes or reads a
-// model as JSON: a property is named as the model spells it, a fielded
+// model as JSON: a property is named as the model spells it, unless the
+// target's `wire` directive renames its key, a fielded
 // enum's variants are tagged internally by a discriminant property whose
 // value is the variant's wire value, and a newtype is its base value. A
 // variant's wire value is its name in the model, unless the target's
@@ -25,7 +26,8 @@ func (s *Session) Discriminant(enum *ir.Decl) string {
 	return analysis.Discriminant(s.Model, s.Target, enum)
 }
 
-// Wire is the directive renaming a variant's wire value.
+// Wire is the directive renaming a variant's wire value or a field's JSON
+// key.
 const Wire = "wire"
 
 // Tag is a variant's wire value: the discriminant's value for a fielded
@@ -94,4 +96,44 @@ func (s *Session) LoseTag(owner string, v *ir.Variant) bool {
 	d, _ := s.Find(v.GetDirectives(), Wire)
 	s.Lose(LossName, d.GetPosition(), "%s.%s's wire value %q does not read back", owner, v.GetMeta().GetName(), tag)
 	return true
+}
+
+// Key is a field's JSON key: the target's `wire` directive on it, else its
+// name in the model. A `name` directive does not change it.
+func (s *Session) Key(f *ir.Field) string {
+	if w, ok := s.Text(f.GetDirectives(), Wire); ok {
+		return w
+	}
+	return f.GetMeta().GetName()
+}
+
+// Property is a field's property name in a target whose properties are
+// its JSON keys: its [Session.Key] under a `wire` directive, else a `name`
+// directive's argument, else its name in the model. A field's `name`
+// renames its JSON key against the wire convention, which
+// [Session.WarnPropertyName] says.
+func (s *Session) Property(f *ir.Field) string {
+	if _, ok := s.Find(f.GetDirectives(), Wire); ok {
+		return s.Key(f)
+	}
+	return s.FieldName(f, func(n string) string { return n })
+}
+
+// WarnPropertyName warns, without a loss code, at a `name` directive on a
+// field of owner in a target whose properties are its JSON keys: a JSON
+// key is a fact of the wire convention, which `wire` states.
+func (s *Session) WarnPropertyName(owner string, f *ir.Field) {
+	d, ok := s.Find(f.GetDirectives(), "name")
+	if !ok {
+		return
+	}
+	field := owner + "." + f.GetMeta().GetName()
+	name := d.GetArgs()[0].GetText()
+	if key, ok := s.Text(f.GetDirectives(), Wire); ok {
+		s.Warn(Unsupported(d.GetPosition(),
+			"%s has both a name directive, %q, and a wire directive, %q, and its JSON key is wire's, so name has no effect", field, name, key))
+		return
+	}
+	s.Warn(Unsupported(d.GetPosition(),
+		"%s's name directive renames its JSON key to %q, which the wire convention spells as the model does: write wire(%q) to rename the key", field, name, name))
 }

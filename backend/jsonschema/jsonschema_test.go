@@ -332,6 +332,24 @@ func TestWire(t *testing.T) {
 	)
 }
 
+// A wire directive on a field renames its property, in properties and
+// required alike; a name directive on a field warns.
+func TestWireOnAField(t *testing.T) {
+	b := irtest.New("shop")
+	org, slug, head := irtest.Field("name", b.Named("string")), irtest.Field("slug", b.Named("string")), irtest.Field("head", b.Named("string"))
+	org.Directives = []*ir.Directive{directive("wire", "orgName")}
+	slug.Directives = []*ir.Directive{directive("name", "handle"), directive("wire", "org_slug")}
+	head.Directives = []*ir.Directive{directive("name", "lead")}
+	b.Own(value("Org", org, slug, head))
+
+	resp := generate(t, b)
+	diagnostics(t, resp, 2)
+	d := check(t, resp)
+	d.contains(`"required": [ "orgName", "org_slug", "lead" ]`)
+	d.accepts("Org", `{"orgName": "Acme", "org_slug": "acme", "lead": "Ada"}`)
+	d.rejects("Org", `{"name": "Acme", "slug": "acme", "head": "Ada"}`)
+}
+
 func TestWireCollisionIsAnError(t *testing.T) {
 	b := irtest.New("shop")
 	active := variant("Active")
@@ -482,7 +500,12 @@ func TestNames(t *testing.T) {
 	b.Own(clash)
 
 	resp := generate(t, b)
-	diagnostics(t, resp, 2)
+	// A field's name still renames its property, and warns that wire
+	// renames a JSON key.
+	diagnostics(t, resp, 3)
+	if msg := resp.GetDiagnostics()[0].GetMessage(); !strings.Contains(msg, `write wire("created_at")`) {
+		t.Errorf("first diagnostic = %q, want the field's name warning", msg)
+	}
 	d := check(t, resp)
 	d.accepts("PurchaseOrder", `{"id": "1"}`)
 	d.accepts("Stamp", `{"created_at": "x"}`)

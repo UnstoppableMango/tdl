@@ -818,3 +818,35 @@ target zod for shop {
 		t.Fatalf("errors = %q", errs)
 	}
 }
+
+// A wire directive on a field renames its property, the JSON key, and a
+// name directive on a field warns.
+func TestWireOnAField(t *testing.T) {
+	resp, src := gen(t, `package shop
+
+type Org {
+  name: string
+  slug: string?
+  head: string
+}
+
+target zod for shop {
+  Org.name => wire("org-name")
+  Org.slug { name("handle") wire("orgSlug") }
+  Org.head => name("lead")
+}
+`)
+	var msgs []string
+	for _, d := range resp.GetDiagnostics() {
+		if d.GetCode() == "" {
+			msgs = append(msgs, d.GetMessage())
+		}
+	}
+	if len(msgs) != 2 || !strings.Contains(msgs[0], "name has no effect") || !strings.Contains(msgs[1], `wire("lead")`) {
+		t.Fatalf("warnings = %q", msgs)
+	}
+	contains(t, src, `"org-name": z.string(),`, `orgSlug: z.string().exactOptional(),`, `lead: z.string(),`)
+	parse(t, `import { Org } from "./shop.zod.js";
+accepts("renamed", Org, JSON.stringify({ "org-name": "Acme", lead: "Ada" }));
+refuses("the model's key", Org, JSON.stringify({ name: "Acme", lead: "Ada" }));`, resp)
+}

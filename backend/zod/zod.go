@@ -36,11 +36,12 @@ func (Backend) Describe() plugin.Description {
 			// The TypeScript name for a schema, property, or variant schema.
 			// It never changes a variant's wire value, the discriminant's
 			// value or a z.enum member, and on a variant of a fieldless enum
-			// it warns, since that writes no name.
+			// it warns, since that writes no name. On a field it renames the
+			// property and warns, since wire renames a JSON key.
 			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.OnMembers()},
-			// A variant's wire value: the discriminant's value, or a z.enum
-			// member.
-			{Name: "wire", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnVariant)},
+			// A field's property name, its JSON key, and a variant's wire
+			// value: the discriminant's value, or a z.enum member.
+			{Name: "wire", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnField, plugin.OnVariant)},
 			// The property a discriminated union switches on: the default on
 			// the target block, an override on an enum.
 			{Name: "discriminant", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock, plugin.OnDecl)},
@@ -560,8 +561,9 @@ func (g *generator) object(b *strings.Builder, name, path string, meta *ir.Meta,
 	}
 
 	for _, f := range fields {
-		prop := g.FieldName(f, asWritten)
+		prop := g.Property(f)
 		pos := f.GetMeta().GetPosition()
+		g.WarnPropertyName(path, f)
 		if seen[prop] {
 			if prop == disc {
 				return nil, emit.Unsupported(pos,
@@ -570,7 +572,7 @@ func (g *generator) object(b *strings.Builder, name, path string, meta *ir.Meta,
 			return nil, emit.Unsupported(pos, "%s has two properties named %s in TypeScript", name, prop)
 		}
 		if prop == "__proto__" {
-			return nil, emit.Unsupported(pos, "%s.%s sets an object's prototype in JavaScript, and a name directive can rename it", name, prop)
+			return nil, emit.Unsupported(pos, "%s.%s sets an object's prototype in JavaScript, and a wire directive can rename it", name, prop)
 		}
 		seen[prop] = true
 
@@ -873,5 +875,3 @@ func (g *generator) record(r *emit.Ref) (schema, error) {
 	}
 	return schema{}, emit.Unsupported(r.Pos, "a Zod record key is a string, a number, or a fieldless enum, and this one is %s", key.expr)
 }
-
-func asWritten(name string) string { return name }

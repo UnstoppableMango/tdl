@@ -270,7 +270,8 @@ func (b *Builder) object(s *Object, owner, disc, tag string, fields []*ir.Field,
 	}
 
 	for _, f := range fields {
-		prop := b.FieldName(f, asWritten)
+		prop := b.Property(f)
+		b.WarnPropertyName(owner, f)
 		if _, dup := props.Get(prop); dup {
 			if prop == disc {
 				return emit.Unsupported(f.GetMeta().GetPosition(),
@@ -545,5 +546,3 @@ func Hoist(v any) {
 		}
 	}
 }
-
-func asWritten(name string) string { return name }

@@ -885,7 +885,13 @@ func (r *reader) fields(list *goast.FieldList, owner string, scope map[string]bo
 			}
 			if f.Tag != nil {
 				if tag, err := strconv.Unquote(f.Tag.Value); err == nil {
-					r.Directive(path, "tag", reverse.StrLit(tag))
+					// A tag holding only a json key other than the field's
+					// name renames its JSON key, which wire says.
+					if key, ok := wireKey(tag); ok && key != name {
+						r.Directive(path, emit.Wire, reverse.StrLit(key))
+					} else {
+						r.Directive(path, "tag", reverse.StrLit(tag))
+					}
 				}
 			}
 			read[name] = true

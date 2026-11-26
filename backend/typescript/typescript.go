@@ -33,13 +33,15 @@ func (Backend) Describe() plugin.Description {
 		// Each request stands alone.
 		Reuse: true,
 		Directives: []*plugin.DirectiveSpec{
-			// A variant's wire value: the discriminant's value, or the
-			// string literal a fieldless variant is written as.
-			{Name: "wire", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnVariant)},
+			// A field's property name, its JSON key, and a variant's wire
+			// value: the discriminant's value, or the string literal a
+			// fieldless variant is written as.
+			{Name: "wire", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnField, plugin.OnVariant)},
 			// The TypeScript name for a type, property, or variant interface.
 			// It never changes a variant's wire value, the discriminant's
 			// value or a fieldless variant's string literal, and on a
-			// fieldless variant it warns, since that writes no name.
+			// fieldless variant it warns, since that writes no name. On a field
+			// it renames the property and warns, since wire renames a JSON key.
 			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.OnMembers()},
 			// The property a discriminated union switches on: the default on
 			// the target block, an override on an enum.
@@ -473,7 +475,7 @@ func (g *generator) iface(b *strings.Builder, name string, meta *ir.Meta, tags [
 		if err != nil {
 			return nil, err
 		}
-		prop := g.FieldName(f, asWritten)
+		prop := g.Property(f)
 		if seen[prop] {
 			if prop == disc {
 				return nil, emit.Unsupported(f.GetMeta().GetPosition(),
@@ -634,8 +636,6 @@ func (g *generator) record(r *emit.Ref) (string, error) {
 	}
 	return "", emit.Unsupported(r.Pos, "a TypeScript record key is a string, a number, or a fieldless enum, and this one is %s", key)
 }
-
-func asWritten(name string) string { return name }
 
 // narrowed spells a narrowed type: a union of literals, or a tuple.
 func (g *generator) narrowed(n *emit.Narrowed) (string, error) {

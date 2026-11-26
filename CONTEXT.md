@@ -85,12 +85,12 @@ _Avoid_: loss, round-trip loss
 ### Generated types
 
 **Wire convention**:
-The **convention** for JSON: the one shape several targets read and write for a model's values: properties named as the model spells them, an absent optional left out, an empty list written `[]` and an empty map `{}` at every depth, never `null`, and a fielded enum tagged by its discriminant, `kind` unless renamed, whose value is the variant's **wire value**.
+The **convention** for JSON: the one shape several targets read and write for a model's values: properties named as the model spells them, unless a target's `wire` directive renames one, an absent optional left out, an empty list written `[]` and an empty map `{}` at every depth, never `null`, and a fielded enum tagged by its discriminant, `kind` unless renamed, whose value is the variant's **wire value**.
 _Avoid_: JSON format, serialization
 
 **Wire value**:
 What a variant is written as in the **wire convention**: a fielded variant's discriminant value, and a fieldless variant's string. It is the variant's name, unless a target's `wire` directive renames it.
-_Avoid_: wire name, wire tag
+_Avoid_: wire name
 
 **Wire compatible**:
 What two targets' generated types are when each reads every value the other writes in the wire convention.

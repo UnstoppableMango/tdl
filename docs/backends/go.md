@@ -30,7 +30,7 @@ Import generates the feature and reads it back, and counts only what reading bac
 | `owned` | Warns (`lossy.owned`) | Yes | | Go does not carry ownership, and the field holds what it names by value. |
 | Field default | Warns (`lossy.default`) | Yes | | Go has no field defaults, so the zero value stands. |
 | `key` directive | Yes | Yes | a `Key()` method | A key of several fields returns a `<Name>Key` struct. |
-| `name` directive | Yes | Warns (`lossy.name`) | the identifier, as written | The name is used verbatim, so `grandTotal` is an unexported field, and it reads back as the field's own name. |
+| `name` directive | Yes | Warns (`lossy.name`) | the identifier, as written | The name is used verbatim, so `grandTotal` is an unexported field, and it reads back as the field's own name. Under `json` a field's JSON key stays its name in the model, and a `wire` directive renames it; import reads a json tag naming another key back with `wire`. |
 | `number` directive | No | No | | Go has no field numbers, and the backend does not declare the directive, so it warns without a loss code and is ignored. |
 | Doc comment | Yes | Yes | a `//` doc comment | |
 | Type parameters | Yes | Yes | type parameters, constrained by `any` or `comparable` | |

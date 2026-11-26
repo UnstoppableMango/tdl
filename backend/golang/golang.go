@@ -40,9 +40,10 @@ func (Backend) Describe() plugin.Description {
 			// The package clause, written as an import path.
 			{Name: "package", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock)},
 			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.OnMembers()},
-			// A variant's wire value: a fieldless variant's constant, and a
-			// fielded variant's discriminant value under json.
-			{Name: "wire", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnVariant)},
+			// A field's JSON key in its json struct tag, and a variant's wire
+			// value: a fieldless variant's constant, and a fielded variant's
+			// discriminant value under json.
+			{Name: "wire", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnField, plugin.OnVariant)},
 			// A struct tag, emitted verbatim.
 			{Name: "tag", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnField)},
 			// Field names identifying an entity. ArgKinds constrains by
