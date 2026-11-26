@@ -667,7 +667,7 @@ Reply with what changed, or why nothing did, then resolve.
 
 The one required check is the `required` job in `.github/workflows/ci.yml`.
 It needs `check`, on `ubuntu-latest`, and `darwin`, on `macos-latest`.
-A new CI job goes in its `needs`, not in the ruleset, unless it is advisory like `buf.yml` and `codeql.yml` (declared in Pulumi in `UnstoppableMango/vcs`).
+A new CI job goes in its `needs`, not in the ruleset (declared in Pulumi in `UnstoppableMango/vcs`), unless it is advisory like `buf.yml` and `codeql.yml`.
 
 Pull requests are stacked, and GitHub rebases the rest of the stack on merge; reset local branches from the remote afterwards.
 `gh pr merge` and `PUT /pulls/{n}/merge` refuse a stacked pull request.
