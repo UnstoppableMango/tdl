@@ -71,9 +71,9 @@ func Find(dir string) (*Config, error) {
 }
 
 // Load reads one manifest. A key it does not know inside [lossy] is an
-// error, so a misspelled `allow` is not silently ignored, and so is a [post]
-// or [check] entry that is not a string; other tables are left to the commands that
-// read them.
+// error, so a misspelled `allow` is not silently ignored, and so is a
+// [post] or [check] entry that is not a string; other tables are left to
+// the commands that read them.
 func Load(path string) (*Config, error) {
 	var raw struct {
 		Lossy map[string]toml.Primitive `toml:"lossy"`
