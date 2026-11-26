@@ -12,6 +12,7 @@ tree-sitter/src/*
 tree-sitter/bindings/
 tree-sitter/setup.py
 editors/vscode/syntaxes/
+skills/*/references/
 
 # Fixtures and recorded output, but the corpora's TDL, which graphify reads
 testdata/**
