@@ -169,7 +169,7 @@ jobs:
       - run: go test -short ./...
 
   required:
-    needs: [check, darwin]
+    needs: [check, darwin, windows]
     if: always()
     runs-on: ubuntu-latest
     steps:

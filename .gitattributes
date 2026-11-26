@@ -1,6 +1,8 @@
 # Every text file is checked out with LF, on Windows too, so goldens and
 # generated output compare byte for byte on every OS.
 * text=auto eol=lf
+*.binpb binary
+*.gif binary
 
 # Files a tool writes, marked so GitHub collapses them in diffs and the
 # code reduction routine leaves them out of its line count

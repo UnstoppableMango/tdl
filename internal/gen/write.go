@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/unstoppablemango/tdl/internal/host"
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
@@ -63,7 +64,9 @@ func resolve(out, path string) (string, error) {
 	switch {
 	case path == "":
 		return "", fmt.Errorf("the backend returned a file with no path")
-	case rooted(path):
+	// A response path is slash-separated, so a leading backslash is refused
+	// on every OS rather than read as a name on Unix and a root on Windows.
+	case host.Rooted(path) || strings.HasPrefix(path, `\`):
 		return "", fmt.Errorf("%s: a backend may not write an absolute path", path)
 	}
 

@@ -1,6 +1,7 @@
 package sema
 
 import (
+	"path/filepath"
 	"strings"
 
 	"github.com/unstoppablemango/tdl/ast"
@@ -21,7 +22,10 @@ func (l *lowerer) loadImports(file *ast.File) {
 		return
 	}
 
-	l.walkImports(file, file.Filename, map[string]bool{file.Filename: true}, []string{file.Filename}, true)
+	// Imports resolve to slash-separated names, so the root is spelled the
+	// same way when a cycle comes back to it.
+	root := filepath.ToSlash(file.Filename)
+	l.walkImports(file, file.Filename, map[string]bool{root: true}, []string{root}, true)
 }
 
 // walkImports records file's imports and recurses. Only `root` imports are
