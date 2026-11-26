@@ -19,7 +19,7 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// Under a `roundtrip` directive, what import would not read back from a
+// Under an `annotate` directive, what import would not read back from a
 // declaration is carried on it as //tdl: comment directives, which a doc
 // comment's text leaves out:
 //
@@ -69,7 +69,7 @@ func writeAnns(b *strings.Builder, anns []kv) {
 // hasHeader reports whether the package clause carries annotations, which
 // need a file even when no declaration has one.
 func (g *generator) hasHeader() bool {
-	return g.Roundtrip && len(g.header) > 0
+	return g.Annotate && len(g.header) > 0
 }
 
 // headerComment is the package's doc comment and annotations.
@@ -141,7 +141,7 @@ func (g *generator) orderLosses(pieces []*piece, path func(*piece) string) {
 // packageLosses warns when the package clause or the package's doc
 // comment does not read back.
 func (g *generator) packageLosses(pkg string, pos *ir.Position) {
-	if g.Roundtrip {
+	if g.Annotate {
 		return
 	}
 	back := pkg
@@ -161,7 +161,7 @@ func (g *generator) packageLosses(pkg string, pos *ir.Position) {
 // foreignLoss warns when a declaration mapped to another package's type is
 // not what import reads for one: an empty struct named for the type.
 func (g *generator) foreignLoss(d *ir.Decl, f foreignType) {
-	if g.Roundtrip {
+	if g.Annotate {
 		return
 	}
 	name := d.GetMeta().GetName()

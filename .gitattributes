@@ -12,6 +12,7 @@ tree-sitter/src/** linguist-generated
 tree-sitter/src/scanner.c -linguist-generated
 editors/vscode/syntaxes/tdl.tmLanguage.json linguist-generated
 editors/bat/tdl.sublime-syntax linguist-generated
+skills/*/references/** linguist-generated
 
 # Locks
 flake.lock linguist-generated
@@ -25,6 +26,7 @@ rust/Cargo.lock linguist-generated
 *.binpb linguist-generated
 testdata/plugin/*.txtpb linguist-generated
 testdata/csharp/corpus/*/want/** linguist-generated
+**/testdata/fuzz/** linguist-generated
 
 # release-please
 CHANGELOG.md linguist-generated

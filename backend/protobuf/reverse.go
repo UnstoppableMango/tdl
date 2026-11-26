@@ -25,7 +25,7 @@ import (
 // struct, each enum an enum, and a message holding only a oneof of its own
 // nested messages, as Generate writes a fielded enum, an enum with fields.
 // What regenerating needs goes in a protobuf target block. Under the
-// annotations a `roundtrip` directive writes, it rebuilds the model the
+// annotations an `annotate` directive writes, it rebuilds the model the
 // files were generated from. docs/architecture/schema-backends.md has the
 // mapping.
 func (Backend) Import(ctx context.Context, req *plugin.ImportRequest) (*plugin.ImportResponse, error) {
@@ -152,7 +152,7 @@ func (r *reader) read(ctx context.Context, files []*plugin.File) (*ir.Model, err
 		}
 		r.files = append(r.files, s)
 		if r.ext(fd.GetOptions(), "file") != nil {
-			r.Roundtrip = true
+			r.Annotated = true
 		}
 	}
 
@@ -210,7 +210,7 @@ func (r *reader) read(ctx context.Context, files []*plugin.File) (*ir.Model, err
 		}
 		emitted = append(emitted, decls...)
 	}
-	if !r.Roundtrip {
+	if !r.Annotated {
 		r.block(file)
 	}
 
@@ -372,7 +372,7 @@ func (r *reader) file(s *protoFile) ([]reverse.Item, error) {
 		}
 		it.Extra = r.extra
 		out = append(out, *it)
-		if !r.Roundtrip && len(r.files) > 1 {
+		if !r.Annotated && len(r.files) > 1 {
 			r.Directive(it.Decl.Name(), "file", reverse.StrLit(path.Base(s.fd.GetName())))
 		}
 	}
@@ -407,7 +407,7 @@ func (r *reader) message(s *protoFile, p []int32, scope string, m *descriptorpb.
 	full := scope + "." + m.GetName()
 	name := r.names[full]
 	ann := r.ext(m.GetOptions(), "message")
-	if !r.Roundtrip && emit.Pascal(m.GetName()) != m.GetName() {
+	if !r.Annotated && emit.Pascal(m.GetName()) != m.GetName() {
 		r.Directive(name, "name", reverse.StrLit(m.GetName()))
 	}
 	if r.isSum(full, m) {
@@ -510,7 +510,7 @@ func (r *reader) member(members []ast.Member, f *ast.Field, ann protoreflect.Mes
 // pins writes a number directive on each slot whose number allocation
 // would not give it.
 func (r *reader) pins(slots []slot, rule emit.NumberRule, skip map[int64]bool) {
-	if r.Roundtrip || len(slots) == 0 {
+	if r.Annotated || len(slots) == 0 {
 		return
 	}
 	rule.Skip = skip
@@ -554,7 +554,7 @@ func (r *reader) reserved(s *protoFile, p []int32, name string, m *descriptorpb.
 	return numbers
 }
 
-// field reads one field: from its annotation under roundtrip, and
+// field reads one field: from its annotation under annotate, and
 // otherwise from its name and type. It returns nil for a field it skips.
 func (r *reader) field(s *protoFile, p []int32, f *descriptorpb.FieldDescriptorProto, owner string) (*ast.Field, error) {
 	pos := s.astPos(p...)
@@ -572,14 +572,14 @@ func (r *reader) field(s *protoFile, p []int32, f *descriptorpb.FieldDescriptorP
 		}
 		out = &ast.Field{Type: typ}
 		out.N = emit.Camel(f.GetName())
-		if !r.Roundtrip && emit.Snake(out.N) != f.GetName() {
+		if !r.Annotated && emit.Snake(out.N) != f.GetName() {
 			r.Directive(owner+"."+out.N, "name", reverse.StrLit(f.GetName()))
 		}
 	}
 	h := reverse.Head(out.N, comments(s.loc(p...)), pos, f.GetOptions().GetDeprecated())
 	out.DeclHead = h
 	r.fieldOptions(f, owner+"."+out.N)
-	if t := s.loc(p...).GetTrailingComments(); t != "" && !r.Roundtrip {
+	if t := s.loc(p...).GetTrailingComments(); t != "" && !r.Annotated {
 		r.Warn(emit.LossDoc, s.pos(p...), "%s.%s's trailing comment is not a doc comment, and is dropped", owner, out.N)
 	}
 	return out, nil
@@ -588,7 +588,7 @@ func (r *reader) field(s *protoFile, p []int32, f *descriptorpb.FieldDescriptorP
 // fieldOptions writes a field's options other than deprecated, and a JSON
 // name protobuf would not derive, as option directives.
 func (r *reader) fieldOptions(f *descriptorpb.FieldDescriptorProto, at string) {
-	if r.Roundtrip {
+	if r.Annotated {
 		return
 	}
 	r.options(f.GetOptions(), at)
@@ -686,11 +686,11 @@ func (r *reader) sum(s *protoFile, p []int32, full, name string, m *descriptorpb
 		np := child(p, msgNested, int32(j))
 		vname := r.declName(n.GetOptions(), "message", n.GetName())
 		path := name + "." + vname
-		if !r.Roundtrip && emit.Pascal(n.GetName()) != n.GetName() {
+		if !r.Annotated && emit.Pascal(n.GetName()) != n.GetName() {
 			r.Directive(path, "name", reverse.StrLit(n.GetName()))
 		}
 		v := &ast.Variant{DeclHead: reverse.Head(vname, comments(s.loc(np...)), s.astPos(np...), f.GetOptions().GetDeprecated())}
-		if !r.Roundtrip && hasOptions(f.GetOptions(), "deprecated") {
+		if !r.Annotated && hasOptions(f.GetOptions(), "deprecated") {
 			r.Warn(emit.LossUnsupported, s.pos(np...), "%s's member %s carries options a variant has no form for", m.GetName(), f.GetName())
 		}
 		var fields []slot
@@ -723,7 +723,7 @@ func (r *reader) enum(s *protoFile, p []int32, full string, e *descriptorpb.Enum
 	name := r.names[full]
 	ann := r.ext(e.GetOptions(), "enum")
 	decl := &ast.EnumDecl{DeclHead: reverse.Head(name, comments(s.loc(p...)), s.astPos(p...), e.GetOptions().GetDeprecated())}
-	if !r.Roundtrip {
+	if !r.Annotated {
 		if emit.Pascal(e.GetName()) != e.GetName() {
 			r.Directive(name, "name", reverse.StrLit(e.GetName()))
 		}
@@ -740,7 +740,7 @@ func (r *reader) enum(s *protoFile, p []int32, full string, e *descriptorpb.Enum
 	for i, v := range e.GetValue() {
 		vp := child(p, enumValue, int32(i))
 		if v.GetNumber() == 0 {
-			if v.GetName() != prefix+"_UNSPECIFIED" && !r.Roundtrip {
+			if v.GetName() != prefix+"_UNSPECIFIED" && !r.Annotated {
 				r.Respell(emit.LossName, s.pos(vp...), "%s's zero value %s regenerates as %s_UNSPECIFIED", e.GetName(), v.GetName(), prefix)
 			}
 			continue
@@ -750,7 +750,7 @@ func (r *reader) enum(s *protoFile, p []int32, full string, e *descriptorpb.Enum
 			vname = n
 		}
 		path := name + "." + vname
-		if !r.Roundtrip {
+		if !r.Annotated {
 			if renamed {
 				r.Directive(path, "name", reverse.StrLit(v.GetName()))
 			}
@@ -875,7 +875,7 @@ func (r *reader) single(s *protoFile, p []int32, f *descriptorpb.FieldDescriptor
 		r.Warn(emit.LossOptional, s.pos(p...), "%s is a %s, which regenerates as optional %s", f.GetName(), strings.TrimPrefix(full, "."), scalars[n])
 		return &ast.TypeRef{N: n, Optional: true}
 	}
-	if r.Roundtrip {
+	if r.Annotated {
 		return &ast.TypeRef{N: emit.LastSegment(full)}
 	}
 	return &ast.TypeRef{N: r.stand(full)}

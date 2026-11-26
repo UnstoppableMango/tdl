@@ -215,13 +215,13 @@ func TestAnnotatedOutputTypeChecks(t *testing.T) {
 		model.Targets = append(model.Targets, &ir.TargetBlock{
 			Meta:       &ir.Meta{Name: typescript.Name},
 			ForPackage: model.GetPackage(),
-			Directives: []*ir.Directive{{Name: "roundtrip", Target: typescript.Name}},
+			Directives: []*ir.Directive{{Name: "annotate", Target: typescript.Name}},
 		})
 		resp, err := typescript.Backend{}.Generate(context.Background(), &plugin.Request{Target: typescript.Name, Model: model})
 		if err != nil {
 			t.Fatal(err)
 		}
-		// Under roundtrip output loss still warns, but nothing fails.
+		// Under annotate output loss still warns, but nothing fails.
 		for _, d := range resp.GetDiagnostics() {
 			if d.GetSeverity() == plugin.Severity_SEVERITY_ERROR {
 				t.Errorf("%s: %v", path, d)
