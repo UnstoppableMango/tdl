@@ -21,8 +21,9 @@ jobs:
       app-private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
   # The release assets, built by Nix from the tagged commit: one tarball per
-  # platform and SHA256SUMS, uploaded to the release release-please just made
-  # and attested, so `gh attestation verify` ties each file to this workflow.
+  # platform, the SBOM, and SHA256SUMS, uploaded to the release release-please
+  # just made and attested, so `gh attestation verify` ties each file to this
+  # workflow, with the attestation bundle beside them.
   # A GitHub-hosted runner, so the provenance names no self-hosted machine.
   assets:
     needs: release

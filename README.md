@@ -110,7 +110,7 @@ Each release carries `tdl_<version>_<os>_<arch>.tar.gz` for `linux` and `darwin`
 A tarball holds `tdl`, `tdl-gen-typescript` for the TypeScript content mapper, `tdl-gen-mermaid` for the `mermaid` backend, `LICENSE`, `README.md`, and bash, zsh, and fish completion in `completions/`.
 Nothing in a tarball needs Nix: `tdl` and `tdl-gen-typescript` are static on linux, and `tdl-gen-mermaid`, a Bun single executable, needs glibc there.
 `tdl` runs `tdl-gen-mermaid` from `PATH`, so install both to use the `mermaid` target.
-Every file is attested, so `gh attestation verify` checks it was built by this repository's release workflow; the provenance bundle itself is `tdl_<version>.intoto.jsonl`.
+Every other file is attested, so `gh attestation verify` checks it was built by this repository's release workflow; `tdl_<version>.intoto.jsonl` is the attestation bundle.
 
 ```shell
 version=0.5.13 # x-release-please-version

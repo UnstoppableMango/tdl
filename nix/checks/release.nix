@@ -42,7 +42,8 @@ runCommand "tdl-release-check" { nativeBuildInputs = [ jq ]; } ''
   jq -e '.bomFormat == "CycloneDX"
     and .metadata.component.name == "github.com/unstoppablemango/tdl"
     and .metadata.component.version == "v${version}"
-    and (.components | map(.name) | index("google.golang.org/protobuf") != null)' $sbom > /dev/null \
+    and (.components | map(.name) | index("google.golang.org/protobuf") != null)
+    and (.components | map(.name) | length == (unique | length))' $sbom > /dev/null \
     || fail "$sbom is not a CycloneDX SBOM of the tdl module and what it links"
 
   for target in ${lib.escapeShellArgs tdl-portable.targets}; do
