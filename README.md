@@ -471,6 +471,7 @@ command make fmt     # nix fmt + buf format
 
 Without Nix, `go build ./...` and `go test ./...` work directly.
 [AGENTS.md](AGENTS.md) has the full command list and architecture.
+[CONTRIBUTING.md](CONTRIBUTING.md) covers issues, pull requests, and the test policy, and [SECURITY.md](SECURITY.md) how to report a vulnerability.
 
 Releases come from [release-please](https://github.com/googleapis/release-please); never edit a version or `CHANGELOG.md` by hand.
 
