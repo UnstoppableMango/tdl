@@ -1859,6 +1859,8 @@ target go for p {
 func TestTargetPathNamesNothing(t *testing.T) {
 	tests := []struct{ src, want string }{
 		{"target go for p { Missing => rule }", "target path Missing names nothing"},
+		{"target go for p { Missing { } }", "target path Missing names nothing"},
+		{"type V4 { x: string }\ntarget go for p { V4 { nope { } } }", "V4 has no field nope"},
 		{"type V2 { x: string }\ntarget go for p { V2.nope => rule }", "V2 has no field nope"},
 		{"type V3 { x: string }\ntarget go for p { V3.x.y => rule }", "nothing is beneath a field"},
 		{"enum Pay { A { x: string } B }\ntarget go for p { Pay.C => rule }", "Pay has no variant C"},
@@ -1879,9 +1881,16 @@ func TestTargetPathNamesNothing(t *testing.T) {
 // TestEmptyNestedTargetBlock checks an empty nested block lowers to
 // nothing rather than reading as a directive (found by FuzzParse).
 func TestEmptyNestedTargetBlock(t *testing.T) {
-	model := lower(t, "type Empty { x: string }\ntarget go for p { Empty { } }")
+	model := lower(t, "type Empty { x: string }\ntarget go for p { Empty { x { } } }")
 	if got := model.GetTargets()[0].GetDirectives(); len(got) != 0 {
-		t.Errorf("directives = %v, want none", got)
+		t.Errorf("block directives = %v, want none", got)
+	}
+	decl, _, _ := model.FindDecl("Empty")
+	if got := decl.GetDirectives(); len(got) != 0 {
+		t.Errorf("Empty's directives = %v, want none", got)
+	}
+	if got := decl.Fields()[0].GetDirectives(); len(got) != 0 {
+		t.Errorf("Empty.x's directives = %v, want none", got)
 	}
 }
 
