@@ -36,6 +36,16 @@
 					"type": "json",
 					"path": "npm/tdl-typescript/package.json",
 					"jsonpath": "$.version"
+				},
+				{
+					"type": "json",
+					"path": "js/remark-tdl-mermaid/package.json",
+					"jsonpath": "$.version"
+				},
+				{
+					"type": "json",
+					"path": "js/package-lock.json",
+					"jsonpath": "$.packages['remark-tdl-mermaid'].version"
 				}
 			],
 			"changelog-sections": [
