@@ -1,6 +1,8 @@
 package analysis_test
 
 import (
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -264,5 +266,110 @@ func TestWords(t *testing.T) {
 		if got := analysis.Words(in); !slices.Equal(got, want) {
 			t.Errorf("Words(%q) = %q, want %q", in, got, want)
 		}
+	}
+}
+
+// names are the declarations ids name, by name.
+func names(m *ir.Model, ids []*ir.ID) []string {
+	var out []string
+	for _, id := range ids {
+		out = append(out, declName(m, id))
+	}
+	return out
+}
+
+func TestMemberReferences(t *testing.T) {
+	m, a := analyze(t, "go")
+	members := func(decl string) []*plugin.MemberView {
+		_, id, ok := m.FindDecl(decl)
+		if !ok {
+			t.Fatalf("no declaration %s", decl)
+		}
+		return a.GetDecls()[id.GetIndex()].GetFields()
+	}
+
+	order := members("Order")
+	for i, want := range [][]string{
+		{"string"},
+		{"int"},
+		{"string", "Set"}, // Tags expands to {string}
+		{"string", "Email", "Map"},
+		{"Email", "Option"},
+		{"WorkEmail", "Nullable"},
+		{"Payment"},
+	} {
+		if got := names(m, order[i].GetReferences()); !slices.Equal(got, want) {
+			t.Errorf("Order field %d references %v, want %v", i, got, want)
+		}
+	}
+
+	// A type argument's declaration comes before its constructor's, as in
+	// DeclView.references.
+	if got, want := names(m, members("Boxed")[0].GetReferences()), []string{"string", "Maybe"}; !slices.Equal(got, want) {
+		t.Errorf("Boxed.maybe references %v, want %v", got, want)
+	}
+
+	_, id, _ := m.FindDecl("Payment")
+	card := a.GetDecls()[id.GetIndex()].GetVariants()[0]
+	if len(card.GetReferences()) != 0 {
+		t.Errorf("variant Card references %v, want none", names(m, card.GetReferences()))
+	}
+	if got := names(m, card.GetFields()[0].GetReferences()); !slices.Equal(got, []string{"string"}) {
+		t.Errorf("Card.last4 references %v, want [string]", got)
+	}
+}
+
+// TestMemberReferencesCoverDecl holds every declaration in the conformance
+// corpus to naming, through its members and a newtype's base or an alias's
+// target, exactly what DeclView.references lists, in the same order.
+func TestMemberReferencesCoverDecl(t *testing.T) {
+	dirs, err := filepath.Glob("../../testdata/conformance/*")
+	if err != nil || len(dirs) == 0 {
+		t.Fatalf("no corpus found: %v", err)
+	}
+	for _, dir := range dirs {
+		t.Run(filepath.Base(dir), func(t *testing.T) {
+			path := filepath.Join(dir, "source.tdl")
+			src, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			file, err := parser.Parse(path, strings.NewReader(string(src)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			m, diags := sema.Lower(file, sema.WithLoader(sema.FSLoader{}))
+			if len(diags) > 0 {
+				t.Fatal(diags)
+			}
+			a := analysis.Analyze(m, "")
+			for i, d := range m.GetDecls() {
+				v := a.GetDecls()[i]
+				var got []*ir.ID
+				add := func(ids []*ir.ID) {
+					for _, id := range ids {
+						if !slices.ContainsFunc(got, func(g *ir.ID) bool { return g.GetIndex() == id.GetIndex() }) {
+							got = append(got, id)
+						}
+					}
+				}
+				for _, f := range v.GetFields() {
+					add(f.GetReferences())
+				}
+				for _, variant := range v.GetVariants() {
+					for _, f := range variant.GetFields() {
+						add(f.GetReferences())
+					}
+				}
+				for _, base := range []*ir.ID{d.GetNewtype().GetBase(), d.GetAlias().GetTarget()} {
+					if m.Type(base) != nil {
+						add(a.GetTypes()[base.GetIndex()].GetReferences())
+					}
+				}
+				if g, w := names(m, got), names(m, v.GetReferences()); !slices.Equal(g, w) {
+					t.Errorf("%s: members name %v, DeclView.references %v", d.GetMeta().GetName(), g, w)
+				}
+			}
+		})
 	}
 }

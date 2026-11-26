@@ -82,50 +82,51 @@ namespace Tdl.Plugin.V1 {
             "bGRzGAcgAygLMhkudGRsLnBsdWdpbi52MS5NZW1iZXJWaWV3UgZmaWVsZHMS",
             "NQoIdmFyaWFudHMYCCADKAsyGS50ZGwucGx1Z2luLnYxLk1lbWJlclZpZXdS",
             "CHZhcmlhbnRzEj8KC2NvbnN0cmFpbnRzGAkgAygLMh0udGRsLnBsdWdpbi52",
-            "MS5Db25zdHJhaW50Vmlld1ILY29uc3RyYWludHMiggIKCk1lbWJlclZpZXcS",
+            "MS5Db25zdHJhaW50Vmlld1ILY29uc3RyYWludHMisQIKCk1lbWJlclZpZXcS",
             "FAoFd29yZHMYASADKAlSBXdvcmRzEjEKBmZpZWxkcxgCIAMoCzIZLnRkbC5w",
             "bHVnaW4udjEuTWVtYmVyVmlld1IGZmllbGRzEhYKBm51bWJlchgDIAEoA1IG",
             "bnVtYmVyEhgKB2lubGluZWQYBCADKANSB2lubGluZWQSPwoLY29uc3RyYWlu",
             "dHMYBSADKAsyHS50ZGwucGx1Z2luLnYxLkNvbnN0cmFpbnRWaWV3Ugtjb25z",
             "dHJhaW50cxIWCgZzb3VyY2UYBiABKAlSBnNvdXJjZRIgCgtkZXByZWNhdGlv",
-            "bhgHIAEoCVILZGVwcmVjYXRpb24ifgoOQ29uc3RyYWludFZpZXcSFgoGc291",
-            "cmNlGAEgASgJUgZzb3VyY2USKAoGbGVuZ3RoGAIgASgLMhAudGRsLmlyLnYx",
-            "LlJhbmdlUgZsZW5ndGgSEAoDcmUyGAMgASgIUgNyZTISGAoHcHJvYmxlbRgE",
-            "IAEoCVIHcHJvYmxlbSKGAQoIUmVzcG9uc2USKQoFZmlsZXMYASADKAsyEy50",
-            "ZGwucGx1Z2luLnYxLkZpbGVSBWZpbGVzEhIKBHBvc3QYAiADKAlSBHBvc3QS",
-            "OwoLZGlhZ25vc3RpY3MYAyADKAsyGS50ZGwucGx1Z2luLnYxLkRpYWdub3N0",
-            "aWNSC2RpYWdub3N0aWNzIjQKBEZpbGUSEgoEcGF0aBgBIAEoCVIEcGF0aBIY",
-            "Cgdjb250ZW50GAIgASgMUgdjb250ZW50Io8BCg1JbXBvcnRSZXF1ZXN0EhYK",
-            "BnRhcmdldBgBIAEoCVIGdGFyZ2V0EikKBWZpbGVzGAIgAygLMhMudGRsLnBs",
-            "dWdpbi52MS5GaWxlUgVmaWxlcxIfCgthbGxvd19sb3NzeRgDIAMoCVIKYWxs",
-            "b3dMb3NzeRIaCghyZWFkYmFjaxgEIAEoCFIIcmVhZGJhY2sijQEKDkltcG9y",
-            "dFJlc3BvbnNlEiYKBW1vZGVsGAEgASgLMhAudGRsLmlyLnYxLk1vZGVsUgVt",
-            "b2RlbBI7CgtkaWFnbm9zdGljcxgCIAMoCzIZLnRkbC5wbHVnaW4udjEuRGlh",
-            "Z25vc3RpY1ILZGlhZ25vc3RpY3MSFgoGc291cmNlGAMgASgJUgZzb3VyY2Ui",
-            "oAEKCkRpYWdub3N0aWMSMwoIc2V2ZXJpdHkYASABKA4yFy50ZGwucGx1Z2lu",
-            "LnYxLlNldmVyaXR5UghzZXZlcml0eRIYCgdtZXNzYWdlGAIgASgJUgdtZXNz",
-            "YWdlEi8KCHBvc2l0aW9uGAMgASgLMhMudGRsLmlyLnYxLlBvc2l0aW9uUghw",
-            "b3NpdGlvbhISCgRjb2RlGAQgASgJUgRjb2RlIn0KClJlcXVlc3RTZXQSMgoI",
-            "cmVxdWVzdHMYASADKAsyFi50ZGwucGx1Z2luLnYxLlJlcXVlc3RSCHJlcXVl",
-            "c3RzEjsKC2RpYWdub3N0aWNzGAIgAygLMhkudGRsLnBsdWdpbi52MS5EaWFn",
-            "bm9zdGljUgtkaWFnbm9zdGljcyI7CgdPdmVybGF5EjAKBWZpbGVzGAEgAygL",
-            "MhoudGRsLnBsdWdpbi52MS5PdmVybGF5RmlsZVIFZmlsZXMiNQoLT3Zlcmxh",
-            "eUZpbGUSEgoEcGF0aBgBIAEoCVIEcGF0aBISCgR0ZXh0GAIgASgJUgR0ZXh0",
-            "Ki0KBE1vZGUSFAoQTU9ERV9VTlNQRUNJRklFRBAAEg8KC01PREVfSU1QT1JU",
-            "EAEqkQEKCVBsYWNlbWVudBIZChVQTEFDRU1FTlRfVU5TUEVDSUZJRUQQABIT",
-            "Cg9QTEFDRU1FTlRfQkxPQ0sQARISCg5QTEFDRU1FTlRfREVDTBACEhMKD1BM",
-            "QUNFTUVOVF9GSUVMRBADEhUKEVBMQUNFTUVOVF9WQVJJQU5UEAQSFAoQUExB",
-            "Q0VNRU5UX0VYVEVSThAFKr8BCgRGb3JtEhQKEEZPUk1fVU5TUEVDSUZJRUQQ",
-            "ABISCg5GT1JNX1BSSU1JVElWRRABEg0KCUZPUk1fTElTVBACEgwKCEZPUk1f",
-            "U0VUEAMSDAoIRk9STV9NQVAQBBIPCgtGT1JNX09QVElPThAFEhEKDUZPUk1f",
-            "TlVMTEFCTEUQBhIOCgpGT1JNX05BTUVEEAcSDwoLRk9STV9FWFRFUk4QCBIO",
-            "CgpGT1JNX1BBUkFNEAkSDQoJRk9STV9VTklUEAoqTgoIU2V2ZXJpdHkSGAoU",
-            "U0VWRVJJVFlfVU5TUEVDSUZJRUQQABISCg5TRVZFUklUWV9FUlJPUhABEhQK",
-            "EFNFVkVSSVRZX1dBUk5JTkcQAkKmAQoRY29tLnRkbC5wbHVnaW4udjFCC1Bs",
-            "dWdpblByb3RvWiZnaXRodWIuY29tL3Vuc3RvcHBhYmxlbWFuZ28vdGRsL3Bs",
-            "dWdpbqICA1RQWKoCDVRkbC5QbHVnaW4uVjHKAg1UZGxcUGx1Z2luXFYx4gIZ",
-            "VGRsXFBsdWdpblxWMVxHUEJNZXRhZGF0YeoCD1RkbDo6UGx1Z2luOjpWMZID",
-            "BwgC0j4CEAFiCGVkaXRpb25zcOkH"));
+            "bhgHIAEoCVILZGVwcmVjYXRpb24SLQoKcmVmZXJlbmNlcxgIIAMoCzINLnRk",
+            "bC5pci52MS5JRFIKcmVmZXJlbmNlcyJ+Cg5Db25zdHJhaW50VmlldxIWCgZz",
+            "b3VyY2UYASABKAlSBnNvdXJjZRIoCgZsZW5ndGgYAiABKAsyEC50ZGwuaXIu",
+            "djEuUmFuZ2VSBmxlbmd0aBIQCgNyZTIYAyABKAhSA3JlMhIYCgdwcm9ibGVt",
+            "GAQgASgJUgdwcm9ibGVtIoYBCghSZXNwb25zZRIpCgVmaWxlcxgBIAMoCzIT",
+            "LnRkbC5wbHVnaW4udjEuRmlsZVIFZmlsZXMSEgoEcG9zdBgCIAMoCVIEcG9z",
+            "dBI7CgtkaWFnbm9zdGljcxgDIAMoCzIZLnRkbC5wbHVnaW4udjEuRGlhZ25v",
+            "c3RpY1ILZGlhZ25vc3RpY3MiNAoERmlsZRISCgRwYXRoGAEgASgJUgRwYXRo",
+            "EhgKB2NvbnRlbnQYAiABKAxSB2NvbnRlbnQijwEKDUltcG9ydFJlcXVlc3QS",
+            "FgoGdGFyZ2V0GAEgASgJUgZ0YXJnZXQSKQoFZmlsZXMYAiADKAsyEy50ZGwu",
+            "cGx1Z2luLnYxLkZpbGVSBWZpbGVzEh8KC2FsbG93X2xvc3N5GAMgAygJUgph",
+            "bGxvd0xvc3N5EhoKCHJlYWRiYWNrGAQgASgIUghyZWFkYmFjayKNAQoOSW1w",
+            "b3J0UmVzcG9uc2USJgoFbW9kZWwYASABKAsyEC50ZGwuaXIudjEuTW9kZWxS",
+            "BW1vZGVsEjsKC2RpYWdub3N0aWNzGAIgAygLMhkudGRsLnBsdWdpbi52MS5E",
+            "aWFnbm9zdGljUgtkaWFnbm9zdGljcxIWCgZzb3VyY2UYAyABKAlSBnNvdXJj",
+            "ZSKgAQoKRGlhZ25vc3RpYxIzCghzZXZlcml0eRgBIAEoDjIXLnRkbC5wbHVn",
+            "aW4udjEuU2V2ZXJpdHlSCHNldmVyaXR5EhgKB21lc3NhZ2UYAiABKAlSB21l",
+            "c3NhZ2USLwoIcG9zaXRpb24YAyABKAsyEy50ZGwuaXIudjEuUG9zaXRpb25S",
+            "CHBvc2l0aW9uEhIKBGNvZGUYBCABKAlSBGNvZGUifQoKUmVxdWVzdFNldBIy",
+            "CghyZXF1ZXN0cxgBIAMoCzIWLnRkbC5wbHVnaW4udjEuUmVxdWVzdFIIcmVx",
+            "dWVzdHMSOwoLZGlhZ25vc3RpY3MYAiADKAsyGS50ZGwucGx1Z2luLnYxLkRp",
+            "YWdub3N0aWNSC2RpYWdub3N0aWNzIjsKB092ZXJsYXkSMAoFZmlsZXMYASAD",
+            "KAsyGi50ZGwucGx1Z2luLnYxLk92ZXJsYXlGaWxlUgVmaWxlcyI1CgtPdmVy",
+            "bGF5RmlsZRISCgRwYXRoGAEgASgJUgRwYXRoEhIKBHRleHQYAiABKAlSBHRl",
+            "eHQqLQoETW9kZRIUChBNT0RFX1VOU1BFQ0lGSUVEEAASDwoLTU9ERV9JTVBP",
+            "UlQQASqRAQoJUGxhY2VtZW50EhkKFVBMQUNFTUVOVF9VTlNQRUNJRklFRBAA",
+            "EhMKD1BMQUNFTUVOVF9CTE9DSxABEhIKDlBMQUNFTUVOVF9ERUNMEAISEwoP",
+            "UExBQ0VNRU5UX0ZJRUxEEAMSFQoRUExBQ0VNRU5UX1ZBUklBTlQQBBIUChBQ",
+            "TEFDRU1FTlRfRVhURVJOEAUqvwEKBEZvcm0SFAoQRk9STV9VTlNQRUNJRklF",
+            "RBAAEhIKDkZPUk1fUFJJTUlUSVZFEAESDQoJRk9STV9MSVNUEAISDAoIRk9S",
+            "TV9TRVQQAxIMCghGT1JNX01BUBAEEg8KC0ZPUk1fT1BUSU9OEAUSEQoNRk9S",
+            "TV9OVUxMQUJMRRAGEg4KCkZPUk1fTkFNRUQQBxIPCgtGT1JNX0VYVEVSThAI",
+            "Eg4KCkZPUk1fUEFSQU0QCRINCglGT1JNX1VOSVQQCipOCghTZXZlcml0eRIY",
+            "ChRTRVZFUklUWV9VTlNQRUNJRklFRBAAEhIKDlNFVkVSSVRZX0VSUk9SEAES",
+            "FAoQU0VWRVJJVFlfV0FSTklORxACQqYBChFjb20udGRsLnBsdWdpbi52MUIL",
+            "UGx1Z2luUHJvdG9aJmdpdGh1Yi5jb20vdW5zdG9wcGFibGVtYW5nby90ZGwv",
+            "cGx1Z2luogIDVFBYqgINVGRsLlBsdWdpbi5WMcoCDVRkbFxQbHVnaW5cVjHi",
+            "AhlUZGxcUGx1Z2luXFYxXEdQQk1ldGFkYXRh6gIPVGRsOjpQbHVnaW46OlYx",
+            "kgMHCALSPgIQAWIIZWRpdGlvbnNw6Qc="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::Tdl.Ir.V1.IrReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::Tdl.Plugin.V1.Mode), typeof(global::Tdl.Plugin.V1.Placement), typeof(global::Tdl.Plugin.V1.Form), typeof(global::Tdl.Plugin.V1.Severity), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -142,7 +143,7 @@ namespace Tdl.Plugin.V1 {
             new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.TypeView), global::Tdl.Plugin.V1.TypeView.Parser, new[]{ "Form", "Id", "Name", "Elem", "Key", "Decl", "Extern", "Refusal", "References" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.Refusal), global::Tdl.Plugin.V1.Refusal.Parser, new[]{ "Reason", "Subject", "Position" }, null, new[]{ typeof(global::Tdl.Plugin.V1.Refusal.Types.Reason) }, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.DeclView), global::Tdl.Plugin.V1.DeclView.Parser, new[]{ "Own", "References", "Fielded", "Discriminant", "Underlying", "Words", "Fields", "Variants", "Constraints" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.MemberView), global::Tdl.Plugin.V1.MemberView.Parser, new[]{ "Words", "Fields", "Number", "Inlined", "Constraints", "Source", "Deprecation" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.MemberView), global::Tdl.Plugin.V1.MemberView.Parser, new[]{ "Words", "Fields", "Number", "Inlined", "Constraints", "Source", "Deprecation", "References" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.ConstraintView), global::Tdl.Plugin.V1.ConstraintView.Parser, new[]{ "Source", "Length", "Re2", "Problem" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.Response), global::Tdl.Plugin.V1.Response.Parser, new[]{ "Files", "Post", "Diagnostics" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.File), global::Tdl.Plugin.V1.File.Parser, new[]{ "Path", "Content" }, null, null, null, null),
@@ -4925,6 +4926,7 @@ namespace Tdl.Plugin.V1 {
       constraints_ = other.constraints_.Clone();
       source_ = other.source_;
       deprecation_ = other.deprecation_;
+      references_ = other.references_.Clone();
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -5041,6 +5043,24 @@ namespace Tdl.Plugin.V1 {
       }
     }
 
+    /// <summary>Field number for the "references" field.</summary>
+    public const int ReferencesFieldNumber = 8;
+    private static readonly pb::FieldCodec<global::Tdl.Ir.V1.ID> _repeated_references_codec
+        = pb::FieldCodec.ForMessage(66, global::Tdl.Ir.V1.ID.Parser);
+    private readonly pbc::RepeatedField<global::Tdl.Ir.V1.ID> references_ = new pbc::RepeatedField<global::Tdl.Ir.V1.ID>();
+    /// <summary>
+    /// references are the declarations a field names through its type and
+    /// its type arguments, walked as DeclView.references walks a body, with
+    /// aliases expanded, each once. A field naming its own declaration
+    /// includes it, and prelude declarations stay in the list. Unset on a
+    /// variant, whose fields carry their own.
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pbc::RepeatedField<global::Tdl.Ir.V1.ID> References {
+      get { return references_; }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -5063,6 +5083,7 @@ namespace Tdl.Plugin.V1 {
       if(!constraints_.Equals(other.constraints_)) return false;
       if (Source != other.Source) return false;
       if (Deprecation != other.Deprecation) return false;
+      if(!references_.Equals(other.references_)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -5077,6 +5098,7 @@ namespace Tdl.Plugin.V1 {
       hash ^= constraints_.GetHashCode();
       if (Source.Length != 0) hash ^= Source.GetHashCode();
       if (Deprecation.Length != 0) hash ^= Deprecation.GetHashCode();
+      hash ^= references_.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -5111,6 +5133,7 @@ namespace Tdl.Plugin.V1 {
         output.WriteRawTag(58);
         output.WriteString(Deprecation);
       }
+      references_.WriteTo(output, _repeated_references_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -5137,6 +5160,7 @@ namespace Tdl.Plugin.V1 {
         output.WriteRawTag(58);
         output.WriteString(Deprecation);
       }
+      references_.WriteTo(ref output, _repeated_references_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -5160,6 +5184,7 @@ namespace Tdl.Plugin.V1 {
       if (Deprecation.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(Deprecation);
       }
+      size += references_.CalculateSize(_repeated_references_codec);
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -5185,6 +5210,7 @@ namespace Tdl.Plugin.V1 {
       if (other.Deprecation.Length != 0) {
         Deprecation = other.Deprecation;
       }
+      references_.Add(other.references_);
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -5233,6 +5259,10 @@ namespace Tdl.Plugin.V1 {
             Deprecation = input.ReadString();
             break;
           }
+          case 66: {
+            references_.AddEntriesFrom(input, _repeated_references_codec);
+            break;
+          }
         }
       }
     #endif
@@ -5279,6 +5309,10 @@ namespace Tdl.Plugin.V1 {
           }
           case 58: {
             Deprecation = input.ReadString();
+            break;
+          }
+          case 66: {
+            references_.AddEntriesFrom(ref input, _repeated_references_codec);
             break;
           }
         }
