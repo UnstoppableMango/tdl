@@ -1,0 +1,2 @@
+[check]
+enforce = '''sh -c 'grep -q @enforce_keys lib/shop/order.ex || { echo "lib/shop/order.ex: Shop.Order has no @enforce_keys"; exit 1; }' '''
