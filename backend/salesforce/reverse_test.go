@@ -2,6 +2,7 @@ package salesforce_test
 
 import (
 	"context"
+	"path"
 	"strings"
 	"testing"
 
@@ -319,7 +320,32 @@ func TestNormalize(t *testing.T) {
 			t.Errorf("%s = %s, want unread elements dropped", f.GetPath(), s)
 		}
 	}
+	private := object("A__c", "")
+	private.Content = []byte(strings.Replace(string(private.Content), "ReadWrite", "Private", 1))
+	norm, err := salesforce.Normalize([]*plugin.File{private, object("A__c", "")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a, b := string(norm[0].GetContent()), string(norm[1].GetContent()); a != b {
+		t.Errorf("an unread sharingModel normalizes to\n%s\nwant\n%s", a, b)
+	}
 	if _, err := salesforce.Normalize([]*plugin.File{{Path: "objects/A__c/A__c.object-meta.xml", Content: []byte("<CustomObject>")}}); err == nil {
 		t.Error("Normalize accepted broken XML")
+	}
+}
+
+// A directory hands import its Apex classes and unread folders, so they warn
+// as named files do.
+func TestImportPatternsReachUnreadFiles(t *testing.T) {
+	for _, name := range []string{"A__c.object-meta.xml", "B__c.field-meta.xml", "All.listView-meta.xml", "A.cls", "A.cls-meta.xml"} {
+		matched := false
+		for _, p := range (salesforce.Backend{}).Describe().ImportPatterns {
+			if ok, _ := path.Match(p, name); ok {
+				matched = true
+			}
+		}
+		if !matched {
+			t.Errorf("no import pattern matches %s", name)
+		}
 	}
 }

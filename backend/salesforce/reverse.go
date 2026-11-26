@@ -558,6 +558,12 @@ func Normalize(files []*plugin.File) ([]*plugin.File, error) {
 		switch v := v.(type) {
 		case *customObject:
 			v.NS, v.Other = metadataNS, nil
+			// Import reads none of these, so regenerating writes the
+			// defaults.
+			api, _, _ := objectPath(f.GetPath())
+			base := strings.TrimSuffix(api, "__c")
+			v.DeploymentStatus, v.SharingModel = "Deployed", "ReadWrite"
+			v.NameField = nameField{DisplayFormat: base + "-{0000}", Label: v.Label + " Number", Type: "AutoNumber"}
 		case *customField:
 			v.NS, v.Other = metadataNS, nil
 		}

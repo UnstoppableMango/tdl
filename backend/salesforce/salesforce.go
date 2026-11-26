@@ -65,8 +65,10 @@ func (Backend) Describe() plugin.Description {
 			{Name: "readback", Placements: plugin.On(plugin.OnBlock)},
 		},
 		Reverse: true,
-		// Import reads objects and their fields; Apex waits on #1459.
-		ImportPatterns: []string{"*.object-meta.xml", "*.field-meta.xml", "*.validationRule-meta.xml"},
+		// Import reads objects and their fields, and is handed every other
+		// component too, so a directory's Apex classes and unread folders
+		// warn as named files do; Apex waits on #1459.
+		ImportPatterns: []string{"*-meta.xml", "*.cls"},
 	}
 }
 
