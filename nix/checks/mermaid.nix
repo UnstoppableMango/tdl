@@ -55,7 +55,7 @@ runCommand "tdl-gen-mermaid-check"
         windows/amd64) want="PE32+ executable" machine="x86-64" ;;
         windows/arm64) want="PE32+ executable" machine="Aarch64|ARM64" ;;
       esac
-      [[ $desc == "$want"* && $desc =~ $machine ]] || fail "$target is not $want $machine"
+      [[ $desc == "$want"* && ( -z $machine || $desc =~ $machine ) ]] || fail "$target is not $want $machine"
     done
 
     # The portable one, first on PATH. On linux it names the system's glibc

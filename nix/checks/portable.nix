@@ -39,7 +39,8 @@ runCommand "tdl-portable-check" { nativeBuildInputs = [ file ]; } ''
         windows/amd64) want="PE32+ executable" machine="x86-64" ;;
         windows/arm64) want="PE32+ executable" machine="Aarch64|ARM64" ;;
       esac
-      [[ $desc == "$want"* && $desc =~ $machine ]] || fail "$path is not $want $machine"
+      # darwin's bash refuses an empty pattern, so only a set machine is matched.
+      [[ $desc == "$want"* && ( -z $machine || $desc =~ $machine ) ]] || fail "$path is not $want $machine"
       if [[ $target == linux/* && $desc != *"statically linked"* ]]; then
         fail "$path is not statically linked"
       fi
