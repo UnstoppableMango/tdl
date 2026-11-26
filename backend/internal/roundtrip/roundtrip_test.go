@@ -17,6 +17,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/internal/roundtrip"
 	"github.com/unstoppablemango/tdl/backend/jsonschema"
 	"github.com/unstoppablemango/tdl/backend/likec4"
+	"github.com/unstoppablemango/tdl/backend/nix"
 	"github.com/unstoppablemango/tdl/backend/openapi"
 	"github.com/unstoppablemango/tdl/backend/protobuf"
 	"github.com/unstoppablemango/tdl/backend/salesforce"
@@ -45,6 +46,7 @@ var targets = []roundtrip.Target{
 	{Backend: haskell.Backend{}},
 	{Backend: jsonschema.Backend{}},
 	{Backend: likec4.Backend{}},
+	{Backend: nix.Backend{}},
 	{Backend: openapi.Backend{}},
 	{Backend: protobuf.Backend{}, Normalize: protobuf.Normalize},
 	{Backend: salesforce.Backend{}},
