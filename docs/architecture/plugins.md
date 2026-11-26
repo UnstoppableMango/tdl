@@ -155,7 +155,7 @@ Post-processing runs before anything is compared or written, so `--verify`, `--c
 A command that exits non-zero or is not found, or a name `[post]` does not declare, including when there is no `tdl.toml`, is an error naming the target, with the command's stderr relayed, and nothing is written for that target; skipping it instead would make `--verify` depend on the machine.
 `--watch` runs the commands on every regeneration, and `tdl request`, `tdl import`, `tdl play`, and the language server, which write no target output, never run them.
 A nondeterministic backend's kept files were post-processed when written, and its request hash covers the directive's names but not the command lines `[post]` maps them to, so changing a command line alone keeps them; `--clean` regenerates.
-The flake-parts module's `post.packages` puts the commands on `PATH` for `checks.tdl-gen` and `devShells.tdl`.
+The flake-parts module's `post.packages` puts the commands on `PATH` for `checks.tdl-gen`, and for `devShells.tdl` under `devShell.enable`.
 The table is a record of what a build runs, not a security boundary, since the plugin is already arbitrary code.
 
 `Response.post` is deprecated and ignored.
@@ -174,6 +174,8 @@ The plugin answers with an `ImportResponse`, a model and diagnostics, and `tdl` 
 A plugin may return TDL source in place of the model; `tdl` lowers it, and reports source that does not lower as an error.
 A plugin declares the `reverse` feature to receive one; `tdl` sends no request to a plugin whose reply lacks it, and a plugin that does not import refuses the mode.
 In Go, such a backend also implements `plugin.Importer`.
+Its reply's `import_patterns` name the files it reads, base-name globs with a leading `!` excluding what it matches (`*.go`, `!*_test.go`), so `tdl import` can walk a directory argument for them; `plugin.MatchImport` reads them.
+A plugin declaring none is given only files, and `tdl import` refuses a directory for it.
 [reverse.md](reverse.md) is the design.
 
 ## Transform

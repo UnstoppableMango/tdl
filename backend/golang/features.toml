@@ -8,9 +8,11 @@ notes = "Reads back as fields of the struct, without the include."
 
 [enum]
 spelling = "a `string` type with constants"
+notes = "A `wire` directive on a variant renames its wire value, which reads back as its name."
 
 [fielded-enum]
 spelling = "a sealed interface with a struct per variant"
+notes = "A `wire` directive on a variant renames its discriminant value under `json`, which does not read back."
 
 [newtype]
 spelling = "a defined type, such as `type CartId string`"
@@ -56,7 +58,7 @@ notes = "A key of several fields returns a `<Name>Key` struct."
 
 [name]
 spelling = "the identifier, as written"
-notes = "The name is used verbatim, so `grandTotal` is an unexported field, and it reads back as the field's own name."
+notes = "The name is used verbatim, so `grandTotal` is an unexported field, and it reads back as the field's own name. Under `json` a field's JSON key stays its name in the model, and a `wire` directive renames it; import reads a json tag naming another key back with `wire`."
 
 [number]
 notes = "Go has no field numbers, and the backend does not declare the directive, so it warns without a loss code and is ignored."

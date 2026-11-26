@@ -8,3 +8,8 @@ import _ "embed"
 //
 //go:embed spec.md
 var Spec string
+
+// Grammar is docs/grammar.ebnf, which the specification links to.
+//
+//go:embed grammar.ebnf
+var Grammar string

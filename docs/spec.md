@@ -45,6 +45,7 @@ import "std/si" as si
 A file declares at most one package.
 A doc comment above `package` documents the package.
 An import binds a path to a local name; `_` merges the imported names into the current scope without a qualifier.
+A name read through an alias, `si.Metre`, must be one the imported file declares and exports, and of the kind its position takes: a type where a type belongs, a class after `requires`, in a conformance list, or after `instance`.
 
 There is no version syntax; the repository holding a schema versions it.
 

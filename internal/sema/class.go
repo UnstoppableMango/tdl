@@ -77,12 +77,15 @@ func (l *lowerer) classRef(r *ast.ClassRef) *ir.ClassRef {
 	if r.Qualifier != "" {
 		l.record(r.P, r.Qualifier+"."+r.N, binding{}, false)
 
-		pkg, ok := l.aliases[r.Qualifier]
+		imp, decl, ok := l.aliased(r.Qualifier, r.N, r)
 		if !ok {
-			l.diags.add(r, "undefined import alias: %s", r.Qualifier)
 			return out
 		}
-		out.Extern = l.extern(pkg, r.N, r)
+		if _, class := decl.(*ast.ClassDecl); !class {
+			l.diags.add(r, "%s.%s is not a class", r.Qualifier, r.N)
+			return out
+		}
+		out.Extern = l.extern(imp.pkg, r.N, r)
 		return out
 	}
 

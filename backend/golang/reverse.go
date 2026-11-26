@@ -202,8 +202,8 @@ func (r *reader) read(files []*plugin.File) (*ast.File, error) {
 	return file, nil
 }
 
-// parse parses every file, sorted by path, which must share one package
-// clause.
+// parse parses every file, sorted by path, which must share one directory
+// and one package clause.
 func (r *reader) parse(files []*plugin.File) error {
 	sorted := slices.SortedFunc(slices.Values(files), func(a, b *plugin.File) int { return cmp.Compare(a.GetPath(), b.GetPath()) })
 	for _, f := range sorted {
@@ -214,6 +214,9 @@ func (r *reader) parse(files []*plugin.File) error {
 			continue
 		case !strings.HasSuffix(p, ".go"):
 			return reverse.Failf(&ir.Position{Filename: p}, "import reads .go files, and was given %s", p)
+		}
+		if len(r.files) > 0 && path.Dir(p) != path.Dir(r.files[0].path) {
+			return reverse.Failf(&ir.Position{Filename: p}, "%s and %s are in different directories, so different packages; import reads one", r.files[0].path, p)
 		}
 		parsed, err := goparser.ParseFile(r.fset, p, f.GetContent(), goparser.ParseComments|goparser.SkipObjectResolution)
 		if err != nil {
@@ -882,7 +885,13 @@ func (r *reader) fields(list *goast.FieldList, owner string, scope map[string]bo
 			}
 			if f.Tag != nil {
 				if tag, err := strconv.Unquote(f.Tag.Value); err == nil {
-					r.Directive(path, "tag", reverse.StrLit(tag))
+					// A tag holding only a json key other than the field's
+					// name renames its JSON key, which wire says.
+					if key, ok := wireKey(tag); ok && key != name {
+						r.Directive(path, emit.Wire, reverse.StrLit(key))
+					} else {
+						r.Directive(path, "tag", reverse.StrLit(tag))
+					}
 				}
 			}
 			read[name] = true

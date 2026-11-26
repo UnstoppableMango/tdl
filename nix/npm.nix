@@ -4,6 +4,8 @@
   nodejs,
   jq,
   tdl-portable,
+  tdl-gen-mermaid,
+  tdl-js,
   version,
 }:
 let
@@ -27,9 +29,11 @@ let
     }
   ) tdl-portable.targets;
 in
-# The six npm packages, packed: @unmango/tdl, the shim, one package per
-# platform carrying tdl-portable's binaries, and @unmango/tdl-typescript, the
-# content mapper's manifest. The release publishes these tarballs, and
+# The seven npm packages, packed: @unmango/tdl, the shim, one package per
+# platform carrying tdl-portable's binaries and tdl-gen-mermaid,
+# @unmango/tdl-typescript, the content mapper's manifest, and
+# @unmango/remark-tdl-mermaid, the remark plugin tdl-js builds, depending on
+# @unmango/tdl at this version. The release publishes these tarballs, and
 # checks.npm-tdl installs them, so what is tested is what ships.
 stdenvNoCC.mkDerivation {
   pname = "tdl-npm";
@@ -68,14 +72,14 @@ stdenvNoCC.mkDerivation {
     ${lib.concatMapStrings (p: ''
       dir=$NIX_BUILD_TOP/packages/${p.dir}
       mkdir -p $dir/bin
-      cp ${tdl-portable}/${p.dir}/* $dir/bin/
+      cp ${tdl-portable}/${p.dir}/* ${tdl-gen-mermaid.portable}/${p.dir}/* $dir/bin/
       chmod -R u+w $dir
       jq -n --arg version "$version" \
         --slurpfile base tdl/package.json \
         '{
           name: "${p.name}",
           version: $version,
-          description: "The tdl and tdl-gen-typescript binaries for ${p.os} ${p.cpu}, installed by @unmango/tdl",
+          description: "The tdl, tdl-gen-typescript, and tdl-gen-mermaid binaries for ${p.os} ${p.cpu}, installed by @unmango/tdl",
           license: $base[0].license,
           repository: $base[0].repository,
           homepage: $base[0].homepage,
@@ -89,6 +93,20 @@ stdenvNoCC.mkDerivation {
         $NIX_BUILD_TOP/packages/tdl/package.json > package.json.tmp
       mv package.json.tmp $NIX_BUILD_TOP/packages/tdl/package.json
     '') platforms}
+
+    remark=$NIX_BUILD_TOP/packages/remark-tdl-mermaid
+    built=${tdl-js}/lib/tdl-js/remark-tdl-mermaid
+    have=$(jq -r .version $built/package.json)
+    [ "$have" = "$version" ] || {
+      echo "js/remark-tdl-mermaid/package.json is version $have, but the flake is $version" >&2
+      exit 1
+    }
+    mkdir -p $remark/dist
+    cp $built/README.md $remark/
+    cp -r $built/dist/src $remark/dist/src
+    jq --arg version "$version" '.dependencies["@unmango/tdl"] = $version | del(.devDependencies)' \
+      $built/package.json > $remark/package.json
+    chmod -R u+w $remark
 
     mkdir -p $NIX_BUILD_TOP/tarballs
     for dir in $NIX_BUILD_TOP/packages/*; do
@@ -104,11 +122,12 @@ stdenvNoCC.mkDerivation {
     runHook postInstall
   '';
 
-  # Darwin binaries are signed by the Go linker; leave every byte as built.
+  # Darwin binaries are signed by the Go linker and bun; leave every byte as
+  # built.
   dontFixup = true;
 
   meta = {
-    description = "The @unmango/tdl and @unmango/tdl-typescript npm packages, packed";
+    description = "The @unmango/tdl, @unmango/tdl-typescript, and @unmango/remark-tdl-mermaid npm packages, packed";
     homepage = "https://github.com/UnstoppableMango/tdl";
     license = lib.licenses.mit;
   };

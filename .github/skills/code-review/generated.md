@@ -13,6 +13,7 @@ Review the generator and its input, never the output.
 | `tree-sitter/src/` | `tree-sitter generate` | `tree-sitter/grammar.js` |
 | `editors/vscode/syntaxes/tdl.tmLanguage.json` | `make textmate` | `docs/grammar.ebnf` |
 | `editors/bat/tdl.sublime-syntax` | `make textmate` | `docs/grammar.ebnf` |
+| `skills/*/references/` | `make skills` | `docs/spec.md`, `docs/grammar.ebnf`, `prelude/std.tdl`, `internal/cli/version.go` |
 | `testdata/conformance/*/ir.golden` | `go test ./internal/sema -update` | `internal/sema` |
 | `testdata/plugin/*.txtpb` | `go test ./internal/gen -record` | `internal/gen` |
 | `nix/gomod2nix.toml` | `make tidy` | `go.mod` |
@@ -29,7 +30,7 @@ CI catches this for `tree-sitter/`, the goldens, `dotnet/deps.json`, and the pro
 
 ## release-please owns versions
 
-Never hand-edit `toolVersion` in `internal/cli/version.go`, `version` in `flake.nix`, `version` in `editors/vscode/package.json` and `package-lock.json`, `version` in `npm/tdl/package.json` and `npm/tdl-typescript/package.json`, `<Version>` in `dotnet/Tdl.Gen.CSharp/Tdl.Gen.CSharp.csproj`, the `version=` line in the README's release-asset example, or `CHANGELOG.md`.
+Never hand-edit `toolVersion` in `internal/cli/version.go`, `version` in `flake.nix`, `version` in `editors/vscode/package.json` and `package-lock.json`, `version` in `npm/tdl/package.json`, `npm/tdl-typescript/package.json`, `js/remark-tdl-mermaid/package.json`, and that workspace's entry in `js/package-lock.json`, `<Version>` in `dotnet/Tdl.Gen.CSharp/Tdl.Gen.CSharp.csproj`, the `version=` line in the README's release-asset example, or `CHANGELOG.md`.
 
 `specVersion` tracks `docs/spec.md` and must not gain an `x-release-please-version` annotation.
 `metadata.version` in `tree-sitter/tree-sitter.json` is bumped by hand with a regeneration, because `tree-sitter generate` copies it into `parser.c`.

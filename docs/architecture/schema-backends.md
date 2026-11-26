@@ -123,8 +123,8 @@ A fielded enum is each target's sum type:
 - In Thrift, Smithy, and GraphQL, each variant is a struct named after the enum and the variant, such as `PaymentCard`.
   Smithy targets `Unit` for a variant with no fields.
   A GraphQL object needs a field, so a fieldless variant carries a placeholder `_: Boolean` that is always null.
-- In TypeScript, each variant is an interface with a `kind` field holding the variant's name, which a `discriminant` directive renames.
-- In JSON Schema, the enum is a `oneOf` of one object per variant, titled with the variant's name, and the discriminant is a required property holding a `const` of that name, renamed the same way.
+- In TypeScript, each variant is an interface with a `kind` field holding the variant's wire value, its name unless a `wire` directive renames it, and a `discriminant` directive renames `kind`.
+- In JSON Schema, the enum is a `oneOf` of one object per variant, titled with the variant's wire value, and the discriminant is a required property holding a `const` of that value, renamed the same way.
 
 A protobuf enum starts with an `_UNSPECIFIED` value at zero, and its values are prefixed with the enum's name, since enum values share one scope per package.
 
@@ -262,7 +262,7 @@ A schema of every version carries OpenAPI's width formats: `int32`, `int64` for 
 An `int32` writes no bounds beside its format, which already says them.
 
 A fielded enum is a `oneOf` of one schema per variant, each its own component named as TypeScript names the variant's interface, such as `PaymentCard`, and a `name` directive on the variant renames it.
-The `discriminator` names the discriminant property and maps each variant's name to its schema, which is the shape OpenAPI code generators read.
+The `discriminator` names the discriminant property and maps each variant's wire value to its schema, which is the shape OpenAPI code generators read.
 OpenAPI 2.0 has no `oneOf`, so there a fielded enum warns and is skipped, along with every declaration naming it.
 
 ## Import
@@ -394,7 +394,7 @@ The file's name is the package, except `model`, the name of a model without one.
 | a class, a method, an index signature, an object literal type, another union or type, `extends`, `readonly` | `lossy.unsupported` |
 | a declaration not exported | the declaration, with `lossy.unsupported` |
 
-A property keeps its name, unless it is not a TDL identifier: then it reads in camel case with a `name` directive.
+A property keeps its name, unless it is not a TDL identifier: then it reads in camel case with a `wire` directive, since the property is the field's JSON key.
 A variant's name is what its interface's name adds to the union's, or else the interface's own, with a `name` directive.
 The last `/** */` comment is a doc comment: its lines before the first tag are the doc, and `@deprecated` the deprecation; any other tag warns `lossy.doc`.
 The target block holds `name` and `discriminant` directives where the convention would write another, and `brand` on each branded newtype; a brand keyed by another name is not read and warns `lossy.unsupported`.

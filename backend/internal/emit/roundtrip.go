@@ -264,16 +264,26 @@ func PrintItem(d ast.Decl) string {
 // node is written with differs from the convention import reads. It
 // reports whether the name directive is lost.
 func (s *Session) CheckRenamed(dirs []*ir.Directive, readerWrites bool, format string, args ...any) bool {
-	d, has := s.Find(dirs, "name")
+	return s.checkDirective(dirs, "name", readerWrites, format, args...)
+}
+
+// CheckWire is [Session.CheckRenamed] for a `wire` directive, which import
+// writes for a JSON key it does not read back as the field's name.
+func (s *Session) CheckWire(dirs []*ir.Directive, readerWrites bool, format string, args ...any) bool {
+	return s.checkDirective(dirs, Wire, readerWrites, format, args...)
+}
+
+func (s *Session) checkDirective(dirs []*ir.Directive, name string, readerWrites bool, format string, args ...any) bool {
+	d, has := s.Find(dirs, name)
 	if has == readerWrites {
 		return false
 	}
 	what := fmt.Sprintf(format, args...)
 	if has {
-		s.Lose(LossName, d.GetPosition(), "%s's name directive restates the convention, and does not read back", what)
+		s.Lose(LossName, d.GetPosition(), "%s's %s directive restates the convention, and does not read back", what, name)
 		return true
 	}
-	s.Lose(LossName, nil, "%s reads back with a name directive", what)
+	s.Lose(LossName, nil, "%s reads back with a %s directive", what, name)
 	return true
 }
 

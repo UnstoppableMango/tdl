@@ -219,8 +219,10 @@ func (g *generator) variantLosses(d *ir.Decl, goName string) {
 		vname, vpos := v.GetMeta().GetName(), v.GetMeta().GetPosition()
 		ident := g.variantName(goName, v)
 		if !emit.Fielded(e) {
-			// A constant's value is the variant's name.
-			g.CheckRenamed(v.GetDirectives(), ident != goName+exported(vname), "%s.%s", name, vname)
+			// A constant's value reads back as the variant's name.
+			if !g.LoseTag(name, v) {
+				g.CheckRenamed(v.GetDirectives(), ident != goName+exported(vname), "%s.%s", name, vname)
+			}
 			g.docLoss(v.GetMeta(), siteConst)
 			continue
 		}
@@ -233,6 +235,9 @@ func (g *generator) variantLosses(d *ir.Decl, goName string) {
 		default:
 			g.CheckRenamed(v.GetDirectives(), ident != goName+exported(back), "%s.%s", name, vname)
 		}
+		// Import reads the variant's name from its struct, not the
+		// discriminant's value.
+		g.LoseTag(name, v)
 		g.docLoss(v.GetMeta(), siteType)
 		g.fieldsLosses(name+"."+vname, v.GetFields(), false)
 	}
@@ -301,6 +306,8 @@ func (g *generator) fieldLoss(owner string, f *ir.Field) {
 	} else {
 		g.CheckRenamed(f.GetDirectives(), exported(back) != goName, "%s.%s", owner, name)
 	}
+	g.wireLosses(owner, f)
+	g.keyLoss(owner, f)
 	g.LoseOwnedDefault(owner, "Go", f)
 	g.typeLosses(f.GetType(), pos)
 	g.docLoss(f.GetMeta(), siteField)
@@ -414,4 +421,25 @@ func (g *generator) docBack(meta *ir.Meta, at site) ([]string, *ast.Deprecation,
 	}
 	lines, dep := readDoc(cg, at != sitePackage)
 	return lines, dep, true
+}
+
+// keyLoss warns when a field's JSON key does not read back as written:
+// import reads a struct tag holding only a json key other than the field's
+// name as a wire directive, and any other tag as a tag directive.
+func (g *generator) keyLoss(owner string, f *ir.Field) {
+	name := f.GetMeta().GetName()
+	t, tagged := g.Find(f.GetDirectives(), "tag")
+	tag := ""
+	if tagged {
+		tag = t.GetArgs()[0].GetText()
+	}
+	if d, ok := g.Find(f.GetDirectives(), emit.Wire); ok {
+		if !g.wire || tagged || g.Key(f) == name {
+			g.Lose(emit.LossName, d.GetPosition(), "%s.%s's wire directive does not read back", owner, name)
+		}
+		return
+	}
+	if key, ok := wireKey(tag); tagged && ok && key != name {
+		g.Lose(emit.LossName, t.GetPosition(), "%s.%s's tag reads back as a wire directive", owner, name)
+	}
 }

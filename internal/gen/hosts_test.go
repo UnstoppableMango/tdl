@@ -323,7 +323,12 @@ func TestEveryBuiltinHasARow(t *testing.T) {
 	}
 }
 
-// Every packaged backend is listed in nix/cmd.nix's subPackages.
+// foreignPlugins are the backends this repository writes in another
+// language, which nix/cmd.nix links into its bin beside the Go binaries.
+var foreignPlugins = []string{"csharp", "mermaid"}
+
+// Every packaged backend is listed in nix/cmd.nix's subPackages, and every
+// foreign plugin is linked into its bin.
 func TestPackagedBackendsShip(t *testing.T) {
 	src, err := os.ReadFile("../../nix/cmd.nix")
 	if err != nil {
@@ -336,6 +341,12 @@ func TestPackagedBackendsShip(t *testing.T) {
 		pkg := `"cmd/` + gen.CommandPrefix + row.backend.Describe().Name + `"`
 		if !strings.Contains(string(src), pkg) {
 			t.Errorf("nix/cmd.nix does not list %s in subPackages", pkg)
+		}
+	}
+	for _, name := range foreignPlugins {
+		link := "$out/bin/" + gen.CommandPrefix + name + "\n"
+		if !strings.Contains(string(src), link) {
+			t.Errorf("nix/cmd.nix does not link %s", strings.TrimSuffix(link, "\n"))
 		}
 	}
 }

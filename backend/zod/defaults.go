@@ -136,7 +136,7 @@ func (g *generator) literal(r *emit.Ref, l *ir.Literal) (string, string) {
 			if kind != ir.LiteralKind_LITERAL_KIND_NAME {
 				return "", "is not a variant of " + d.GetMeta().GetName()
 			}
-			return strconv.Quote(text), ""
+			return strconv.Quote(g.TagOf(d, text)), ""
 		}
 		return "", "is on " + d.GetMeta().GetName() + ", which no literal can hold"
 	}

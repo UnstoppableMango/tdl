@@ -49,7 +49,7 @@
         ./nix/hercules.nix
       ];
 
-      _module.args.version = "0.5.12"; # x-release-please-version
+      _module.args.version = "0.5.13"; # x-release-please-version
 
       perSystem =
         { inputs', pkgs, ... }:
@@ -178,6 +178,8 @@
               "flake.lock"
               "*.tdl"
               ".github/skills/**/SKILL.md"
+              "skills/**/SKILL.md"
+              "skills/*/references/**"
               "tree-sitter/src/*.json"
               "editors/vscode/syntaxes/*.json"
               "testdata/mermaid/**/want/**"

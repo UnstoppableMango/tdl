@@ -40,7 +40,7 @@ const (
 type Narrowed struct {
 	Kind NarrowKind
 	// Values is a union's members: each string's text, each number as
-	// JSON writes it, or each variant's name.
+	// JSON writes it, or each variant's wire value ([Session.Tag]).
 	Values []string
 	// Len is a tuple's length. Elem is a tuple's element, or the enum a
 	// union of variants narrows.
@@ -65,6 +65,11 @@ type Narrowed struct {
 // does, so it does not warn.
 func (s *Session) Narrow(r *Ref, own, inherited []*ir.Constraint) *Narrowed {
 	n := s.narrow(r, own, inherited)
+	if n != nil && n.Kind == NarrowVariants {
+		for i, v := range n.Values {
+			n.Values[i] = s.TagOf(n.Elem.Decl, v)
+		}
+	}
 	s.Enforce(n.GetEnforced()...)
 	return n
 }

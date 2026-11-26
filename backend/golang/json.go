@@ -13,8 +13,8 @@ import (
 
 // A bare `json` directive on the target block opts in to the JSON wire
 // convention the schema backends share (backend/internal/emit/wire.go): a
-// property is named as the model spells it, and a fielded enum is tagged
-// internally by its discriminant.
+// property is named as the model spells it, or as a `wire` directive
+// renames it, and a fielded enum is tagged internally by its discriminant.
 //
 // Every field gets a `json` struct tag, unless a `tag` directive sets its
 // tag. A fielded enum's variants marshal with the discriminant, and an
@@ -28,10 +28,10 @@ import (
 // a type parameter would shadow.
 var jsonLocals = []string{"plain", "data", "raw", "err", "v"}
 
-// jsonTag is a field's struct tag under the convention: its name in the
-// model, omitted when the field is optional and absent.
+// jsonTag is a field's struct tag under the convention: its JSON key,
+// omitted when the field is optional and absent.
 func (g *generator) jsonTag(f *ir.Field) string {
-	name := f.GetMeta().GetName()
+	name := g.Key(f)
 	if g.optional(f.GetType()) {
 		name += ",omitempty"
 	}
@@ -56,20 +56,15 @@ func (g *generator) optional(id *ir.ID) bool {
 func (g *generator) wireName(f *ir.Field) string {
 	tag, ok := g.Text(f.GetDirectives(), "tag")
 	if !ok {
-		return f.GetMeta().GetName()
+		return g.Key(f)
 	}
-	j, ok := reflect.StructTag(tag).Lookup("json")
-	if !ok {
-		return g.fieldName(f)
+	if name, ok := tagKey(tag); ok {
+		return name
 	}
-	name, _, _ := strings.Cut(j, ",")
-	switch name {
-	case "-":
+	if j, _ := reflect.StructTag(tag).Lookup("json"); strings.HasPrefix(j, "-") {
 		return ""
-	case "":
-		return g.fieldName(f)
 	}
-	return name
+	return g.fieldName(f)
 }
 
 // jsonProblem says why a declaration's JSON methods cannot be generated.
@@ -182,7 +177,7 @@ func (g *generator) writeEnumJSON(b *strings.Builder, decl *ir.Decl, name string
 			fmt.Fprintf(b, "self := plain(%s)\n%s", recv, fills.String())
 		}
 		fmt.Fprintf(b, "return json.Marshal(struct {\nTDLDiscriminant string `json:%s`\nplain\n}{%s, %s})\n}\n",
-			strconv.Quote(disc), strconv.Quote(emit.Tag(v)), value)
+			strconv.Quote(disc), strconv.Quote(g.Tag(v)), value)
 	}
 
 	self := name + args
@@ -195,7 +190,7 @@ func (g *generator) writeEnumJSON(b *strings.Builder, decl *ir.Decl, name string
 	b.WriteString("switch *head.TDLDiscriminant {\n")
 	for _, v := range decl.GetEnumeration().GetVariants() {
 		fmt.Fprintf(b, "case %s:\nvar v %s\nerr := json.Unmarshal(data, &v)\nreturn v, err\n",
-			strconv.Quote(emit.Tag(v)), g.variantName(name, v)+args)
+			strconv.Quote(g.Tag(v)), g.variantName(name, v)+args)
 	}
 	fmt.Fprintf(b, "}\nreturn nil, fmt.Errorf(%s, *head.TDLDiscriminant)\n}\n",
 		strconv.Quote(name+": unknown "+disc+" %q"))
@@ -658,4 +653,55 @@ func (g *generator) warnParamFills(id *ir.ID, fr *frame, at *ir.Position) bool {
 		}
 	}
 	return false
+}
+
+// tagKey is the JSON key a struct tag names, and whether it names one.
+func tagKey(tag string) (string, bool) {
+	j, ok := reflect.StructTag(tag).Lookup("json")
+	if !ok {
+		return "", false
+	}
+	name, _, _ := strings.Cut(j, ",")
+	return name, name != "" && name != "-"
+}
+
+// wireKey reads a struct tag that holds only the json key the convention
+// writes, `json:"key"` or `json:"key,omitempty"`, and returns the key.
+func wireKey(tag string) (string, bool) {
+	name, ok := tagKey(tag)
+	if !ok {
+		return "", false
+	}
+	if tag != `json:`+strconv.Quote(name) && tag != `json:`+strconv.Quote(name+",omitempty") {
+		return "", false
+	}
+	return name, true
+}
+
+// wireLosses warns about a field's wire directive that the output does
+// not carry: one beside a tag naming another key, which the tag
+// overrides, and one without the json directive, which writes no tag.
+func (g *generator) wireLosses(owner string, f *ir.Field) {
+	d, ok := g.Find(f.GetDirectives(), emit.Wire)
+	if !ok {
+		return
+	}
+	field := owner + "." + f.GetMeta().GetName()
+	key := g.Key(f)
+	if tag, ok := g.Text(f.GetDirectives(), "tag"); ok {
+		name, named := tagKey(tag)
+		switch {
+		case named && name != key:
+			g.Warn(emit.Unsupported(d.GetPosition(),
+				"%s's tag names the JSON key %q and its wire directive %q, and the tag wins", field, name, key))
+		case !named && g.wire:
+			g.Warn(emit.Unsupported(d.GetPosition(),
+				"%s's tag replaces its whole struct tag and names no JSON key, so its wire directive %q has no effect", field, key))
+		}
+		return
+	}
+	if !g.wire {
+		g.Warn(emit.Unsupported(d.GetPosition(),
+			"%s's wire directive names a JSON key, which only the target block's json directive writes, so it has no effect", field))
+	}
 }

@@ -11,9 +11,15 @@ import (
 // specVersion tracks docs/spec.md and must not be given the annotation: a
 // release that changes no spec text has not changed the spec.
 const (
-	toolVersion = "0.5.12" // x-release-please-version
+	toolVersion = "0.5.13" // x-release-please-version
 	specVersion = "0.1.0-draft"
 )
+
+// Versions returns the tool and spec versions `tdl version` prints, for a
+// generator recording which release it copied from.
+func Versions() (tool, spec string) {
+	return toolVersion, specVersion
+}
 
 func newVersionCmd() *cobra.Command {
 	return &cobra.Command{

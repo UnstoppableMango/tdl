@@ -108,12 +108,13 @@ Or install it with `nix profile install github:UnstoppableMango/tdl`.
 ### Release assets
 
 Each release carries `tdl_<version>_<os>_<arch>.tar.gz` for `linux` and `darwin`, `amd64` and `arm64`, and `SHA256SUMS`.
-A tarball holds `tdl`, `tdl-gen-typescript` for the TypeScript content mapper, `LICENSE`, `README.md`, and bash, zsh, and fish completion in `completions/`.
-The linux binaries are static, and nothing in a tarball needs Nix.
+A tarball holds `tdl`, `tdl-gen-typescript` for the TypeScript content mapper, `tdl-gen-mermaid` for the `mermaid` backend, `LICENSE`, `README.md`, and bash, zsh, and fish completion in `completions/`.
+Nothing in a tarball needs Nix: `tdl` and `tdl-gen-typescript` are static on linux, and `tdl-gen-mermaid`, a Bun single executable, needs glibc there.
+`tdl` runs `tdl-gen-mermaid` from `PATH`, so install both to use the `mermaid` target.
 Every file is attested, so `gh attestation verify` checks it was built by this repository's release workflow.
 
 ```shell
-version=0.5.12 # x-release-please-version
+version=0.5.13 # x-release-please-version
 asset=tdl_${version}_linux_amd64.tar.gz
 curl -fsSLO "https://github.com/UnstoppableMango/tdl/releases/download/v$version/$asset"
 curl -fsSLO "https://github.com/UnstoppableMango/tdl/releases/download/v$version/SHA256SUMS"
@@ -190,9 +191,11 @@ The home-manager module (`homeModules.default`, also `homeManagerModules.default
 ### In a project
 
 `flakeModules.default` is a [flake-parts](https://flake.parts) module for a project that contains `.tdl` files.
-It adds `devShells.tdl` (pull it into your shell with `inputsFrom`) and checks that each model parses and lowers, is canonically formatted, and, for `gen.files`, that generated output on disk is current.
+It adds checks that each model parses and lowers, is canonically formatted, and, for `gen.files`, that generated output on disk is current.
 `files` are strings relative to `src`, so `include` paths keep resolving.
 Setting `src` turns the module on; `tdl.enable = false` turns it off.
+`tdl.devShell.enable = true` also adds `devShells.tdl`, a shell holding the CLI and `gen.backends` to pull into your own with `inputsFrom`.
+It is off by default, because its make support names `pkgs.tdl-gmk`, which only tdl's overlay provides.
 
 ```nix
 {
@@ -225,8 +228,22 @@ Set `tdl.fmt.enable = false` to skip the formatting check.
 Both return sorted paths relative to the directory of the Makefile that loaded the object, wherever make runs from.
 A failure, such as an import that does not exist, stops make with the error.
 
-`devShells.tdl` sets `TDL_GMK` to the object and puts nixpkgs' `gnumake` on `PATH`, since the object links against nixpkgs' libc and a system make cannot load it.
+With `tdl.devShell.enable = true`, `devShells.tdl` sets `TDL_GMK` to the object and puts nixpkgs' `gnumake` on `PATH`, since the object links against nixpkgs' libc and a system make cannot load it.
 Set `tdl.make.enable = false` to leave both out.
+The object comes from `pkgs.tdl-gmk`, so this needs tdl's overlay, as in the example above.
+
+```nix
+perSystem = { config, pkgs, ... }: {
+  tdl = {
+    src = ./model;
+    devShell.enable = true;
+  };
+
+  devShells.default = pkgs.mkShell {
+    inputsFrom = [ config.devShells.tdl ];
+  };
+};
+```
 
 ```make
 load $(TDL_GMK)
@@ -454,6 +471,7 @@ command make fmt     # nix fmt + buf format
 
 Without Nix, `go build ./...` and `go test ./...` work directly.
 [AGENTS.md](AGENTS.md) has the full command list and architecture.
+[CONTRIBUTING.md](CONTRIBUTING.md) covers issues, pull requests, and the test policy, and [SECURITY.md](SECURITY.md) how to report a vulnerability.
 
 Releases come from [release-please](https://github.com/googleapis/release-please); never edit a version or `CHANGELOG.md` by hand.
 
