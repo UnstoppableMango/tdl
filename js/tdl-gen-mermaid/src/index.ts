@@ -93,11 +93,14 @@ function draw(s: Session): string {
 	for (const decl of own) {
 		d.decl(decl);
 	}
+	for (const decl of own) {
+		d.relations(decl);
+	}
 	// Mermaid refuses a diagram with no statement.
 	if (d.lines.length === 0) {
 		d.lines.push(`  note "${s.model()?.package || "The model"} declares nothing drawn as a class"`);
 	}
-	return [HEADER, "classDiagram", ...d.lines, ...d.edges, ""].join("\n");
+	return [HEADER, "classDiagram", ...d.lines, ...d.namespaces(), ...d.edges, ""].join("\n");
 }
 
 class Diagram {
@@ -106,6 +109,10 @@ class Diagram {
 	readonly #s: Session;
 	// Every class id taken, so a variant's id never merges with another class.
 	readonly #taken: Set<string>;
+	// The class id each drawn declaration and fielded variant took.
+	readonly #ids = new Map<ir.Decl | ir.Variant, string>();
+	// The class id each drawn extern took, by its index in Model.externs.
+	readonly #externs = new Map<number, string>();
 
 	constructor(s: Session, own: readonly ir.Decl[]) {
 		this.#s = s;
@@ -118,20 +125,23 @@ class Diagram {
 		const id = cls + typeParams(d) + (cls === name ? "" : `["${name}"]`);
 		switch (d.node.case) {
 			case "structure": {
+				this.#ids.set(d, cls);
 				if (this.#s.tagged(d.directives, "service")) {
 					this.#class(
 						id,
 						"service",
-						fields(d).map((f) => this.#rpc(f)),
+						fields(d).map((f) => this.#rpc(f) ?? this.#member(f)),
 					);
 					return;
 				}
 				const stereotype = d.node.value.kind === ir.StructKind.MIXIN ? "mixin" : undefined;
-				this.#class(id, stereotype, this.#members(fields(d)));
+				// An included field is drawn on its mixin, joined by one edge.
+				this.#class(id, stereotype, this.#members(fields(d).filter((f) => !f.includedFrom)));
 				return;
 			}
 			case "enumeration": {
 				const vs = variants(d);
+				this.#ids.set(d, cls);
 				if (!this.#s.declView(d)?.fielded) {
 					this.#class(
 						id,
@@ -144,21 +154,172 @@ class Diagram {
 				for (const v of vs) {
 					const vname = v.meta?.name ?? "";
 					const vid = this.#variantId(name, vname);
+					this.#ids.set(v, vid);
 					this.#class(`${vid}["${vname}"]`, undefined, this.#members(v.fields));
 					this.edges.push(`  ${cls} <|-- ${vid}`);
 				}
 				return;
 			}
 			case "newtype":
+				this.#ids.set(d, cls);
 				this.#class(id, "newtype", [`+${this.#spell(d.node.value.base)}`]);
 				return;
 			case "class":
+				this.#ids.set(d, cls);
 				this.#class(id, "interface", this.#members(d.node.value.fields));
 				return;
 			default:
 			// An alias is expanded where it is used, and a primitive or a unit
 			// has no class.
 		}
+	}
+
+	/**
+	 * The edges from a drawn declaration: one inheritance edge per mixin it
+	 * includes, a realization edge per class of the model's it conforms to,
+	 * and an edge per drawn declaration or extern each field names.
+	 */
+	relations(d: ir.Decl): void {
+		const from = this.#ids.get(d);
+		if (from === undefined) {
+			return;
+		}
+		switch (d.node.case) {
+			case "structure": {
+				const service = this.#s.tagged(d.directives, "service");
+				const mixins = new Set<ir.Decl>();
+				for (const f of fields(d)) {
+					const mixin = f.includedFrom && this.#s.declAt(f.includedFrom);
+					if (mixin) {
+						mixins.add(mixin);
+					}
+				}
+				for (const m of mixins) {
+					const id = this.#ids.get(m);
+					if (id !== undefined) {
+						this.edges.push(`  ${id} <|-- ${from}`);
+					}
+				}
+				this.#conforms(from, d.node.value.conforms);
+				// A service's rpcs draw no edges, and an included field's edges are
+				// its mixin's.
+				this.#fieldEdges(
+					from,
+					fields(d).filter((f) => !f.includedFrom && !(service && this.#rpc(f) !== undefined)),
+				);
+				return;
+			}
+			case "enumeration":
+				this.#conforms(from, d.node.value.conforms);
+				for (const v of variants(d)) {
+					const vid = this.#ids.get(v);
+					if (vid !== undefined) {
+						this.#fieldEdges(vid, v.fields);
+					}
+				}
+				return;
+			case "class":
+				this.#fieldEdges(from, d.node.value.fields);
+				return;
+			default:
+		}
+	}
+
+	/** The externs fields name, each package's in one `namespace` block. */
+	namespaces(): string[] {
+		const byPackage = new Map<string, string[]>();
+		for (const [i, id] of this.#externs) {
+			const e = this.#s.model()?.externs[i];
+			const pkg = packageId(e?.package ?? "");
+			const label = e && id !== e.name ? `["${e.name}"]` : "";
+			byPackage.set(pkg, [...(byPackage.get(pkg) ?? []), `    class ${id}${label}`]);
+		}
+		return [...byPackage].flatMap(([pkg, classes]) => [`  namespace ${pkg} {`, ...classes, "  }"]);
+	}
+
+	#conforms(from: string, refs: readonly ir.ClassRef[]): void {
+		for (const r of refs) {
+			const c = r.class && this.#s.declAt(r.class);
+			const id = c && this.#ids.get(c);
+			if (id !== undefined) {
+				this.edges.push(`  ${from} ..|> ${id}`);
+			}
+		}
+	}
+
+	// An edge per drawn declaration or extern each field names, labelled with
+	// the field's name: a composition for an owned field, else an
+	// association, its far end's cardinality read from the field's outermost
+	// type.
+	#fieldEdges(from: string, fs: readonly ir.Field[]): void {
+		for (const f of fs) {
+			if (!f.type) {
+				continue;
+			}
+			const arrow = f.owned ? "*--" : "-->";
+			const many = this.#cardinality(f.type);
+			const name = f.meta?.name ?? "";
+			const targets = [
+				...this.#s
+					.typeReferences([f.type])
+					.map((d) => this.#ids.get(d))
+					.filter((id) => id !== undefined),
+				...this.#externsNamed(f.type),
+			];
+			for (const to of targets) {
+				this.edges.push(`  ${from} "1" ${arrow} "${many}" ${to} : ${name}`);
+			}
+		}
+	}
+
+	#cardinality(id: ir.ID): string {
+		switch (this.#s.typeView(id)?.form) {
+			case protocol.Form.LIST:
+			case protocol.Form.SET:
+			case protocol.Form.MAP:
+				return "*";
+			case protocol.Form.OPTION:
+			case protocol.Form.NULLABLE:
+				return "0..1";
+			default:
+				return "1";
+		}
+	}
+
+	// The class ids of the externs a type names, through its arguments and
+	// with aliases expanded, each once, drawing each on first use.
+	#externsNamed(id: ir.ID): string[] {
+		const out: string[] = [];
+		const walk = (x: ir.ID) => {
+			const t = this.#expanded(x);
+			if (!t) {
+				return;
+			}
+			for (const a of t.args) {
+				walk(a);
+			}
+			if (t.extern) {
+				const cls = this.#externId(t.extern.index);
+				if (cls !== undefined && !out.includes(cls)) {
+					out.push(cls);
+				}
+			}
+		};
+		walk(id);
+		return out;
+	}
+
+	#externId(i: number): string | undefined {
+		const e = this.#s.model()?.externs[i];
+		if (!e) {
+			return undefined;
+		}
+		let id = this.#externs.get(i);
+		if (id === undefined) {
+			id = this.#free(KEYWORDS.has(e.name) ? `${e.name}_` : e.name);
+			this.#externs.set(i, id);
+		}
+		return id;
 	}
 
 	// A declaration's class id: its name, or for a name Mermaid reserves, the
@@ -193,16 +354,20 @@ class Diagram {
 	}
 
 	#members(fs: readonly ir.Field[]): string[] {
-		return fs.map((f) => `+${this.#spell(f.type)} ${f.meta?.name ?? ""}`);
+		return fs.map((f) => this.#member(f));
+	}
+
+	#member(f: ir.Field): string {
+		return `+${this.#spell(f.type)} ${f.meta?.name ?? ""}`;
 	}
 
 	// A service's field as a method: an rpc's request and response as its
-	// parameter and result, or an attribute when its type is no rpc.
-	#rpc(f: ir.Field): string {
+	// parameter and result, or undefined when its type is no rpc.
+	#rpc(f: ir.Field): string | undefined {
 		const t = this.#expanded(f.type);
 		const [req, res] = t?.args ?? [];
 		if (!t || !this.#ctorTagged(t, "rpc") || t.args.length !== 2 || !req || !res) {
-			return this.#members([f])[0] as string;
+			return undefined;
 		}
 		return `+${f.meta?.name ?? ""}(${this.#rpcArg(req)}) ${this.#rpcArg(res)}`;
 	}

@@ -332,7 +332,8 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   Each own declaration is a class: a mixin `<<mixin>>`, a fieldless enum `<<enumeration>>`, a fielded enum `<<union>>` with a class per variant joined by `<|--`, a newtype `<<newtype>>`, a class `<<interface>>`, and a structure tagged `service` `<<service>>` with each field applying an `rpc`-tagged primitive a method; an alias is expanded.
   Members use Mermaid's generic spelling (`List~T~`, `Map~K,V~`, `Option~T~`), and constraints, defaults, and docs are left out without a warning.
   Its tests cannot lower TDL, so `internal/gen/plugins_test.go` records its requests in `testdata/mermaid/`, as for `csharp`; the TypeScript tests compare each response with `want/` and run `mermaid.parse` through a `jsdom` window.
-  Phase 1 is built, and #1482 tracks the rest: edges, externs, and the `direction`, `hide`, and `link` directives.
+  Edges follow the classes: an inheritance edge per included mixin, a realization edge per conformance to a class of the model's, and per field one edge to each drawn declaration or extern its type names, `*--` when `owned`, with the far end's cardinality from its outermost type; an extern is a class in its package's `namespace` block.
+  Phases 1 and 2 are built, and #1482 tracks the rest: the `direction`, `hide`, and `link` directives.
   See `docs/architecture/mermaid-backend.md`.
 - `backend/debug`: describes the model it was given, to exercise the protocol.
 - `backend/yolo` (`yolo`): the delegated backend (see `CONTEXT.md`, #1505), served only as `tdl-gen-yolo` and never compiled into `tdl`, so `tdl` links no model client; `nix/cmd.nix` ships it.

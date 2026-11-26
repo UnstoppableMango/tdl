@@ -1,0 +1,44 @@
+// Fields draw edges to the declarations and externs they name, with the
+// cardinality of their outermost type.
+package shop
+
+import "money.tdl" as money
+
+class Priced {
+  price: money.Money
+}
+
+mixin Audited {
+  by: User
+  at: instant
+}
+
+type User: Entity {
+  id: string
+}
+
+type Page<T> {
+  items: [T]
+}
+
+type LineItem {
+  sku: string
+  price: money.Money
+}
+
+type Order: Entity, Priced {
+  id: string
+  items: [LineItem] owned
+  page: Page<LineItem>
+  buyer: User?
+  next: Order | null
+  price: money.Money
+  include Audited
+}
+
+enum Payment {
+  Card { holder: User }
+  Cash
+}
+
+target mermaid for shop { }
