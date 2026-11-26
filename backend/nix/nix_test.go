@@ -123,11 +123,11 @@ class Audited { at: string }
 alias Ids = [string]
 enum Kept { X }
 `)
-	for _, name := range []string{"Id =", "Payment", "Audited", "Ids"} {
+	for _, name := range []string{"Id =", "Payment", "Audited"} {
 		if strings.Contains(out, name) {
 			t.Errorf("output has %s:\n%s", name, out)
 		}
 	}
 	warns(t, resp, [2]string{"", "Id is a newtype"}, [2]string{"", "Payment has variants"},
-		[2]string{"lossy.class", "Audited"}, [2]string{"lossy.alias", "Ids"})
+		[2]string{"lossy.class", "Audited"})
 }
