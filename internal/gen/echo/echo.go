@@ -23,7 +23,7 @@ const File = "model.json"
 type Backend struct{}
 
 func (Backend) Describe() plugin.Description {
-	return plugin.Description{Name: Name, Version: "0.1.0", Reverse: true}
+	return plugin.Description{Name: Name, Version: "0.1.0", Reverse: true, ImportPatterns: []string{"*.json", "*.tdl"}}
 }
 
 // Generate writes the model as JSON.

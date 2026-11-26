@@ -52,6 +52,10 @@ func TestImportRefusesWhatItCannotRead(t *testing.T) {
 	_, diags = importGo(t, map[string]string{"a.go": "package shop", "b.go": "package billing"})
 	failed(t, diags, "is package billing")
 
+	// Two directories are two packages, even under one package clause.
+	_, diags = importGo(t, map[string]string{"a/a.go": "package shop", "b/b.go": "package shop"})
+	failed(t, diags, "different directories")
+
 	_, diags = importGo(t, map[string]string{"a.proto": "syntax = \"proto3\";"})
 	failed(t, diags, "reads .go files")
 

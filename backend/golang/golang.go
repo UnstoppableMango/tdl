@@ -65,6 +65,8 @@ func (Backend) Describe() plugin.Description {
 			{Name: "discriminant", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock, plugin.OnDecl)},
 		},
 		Reverse: true,
+		// The files a directory argument to `tdl import` yields.
+		ImportPatterns: []string{"*.go", "!*_test.go"},
 	}
 }
 
