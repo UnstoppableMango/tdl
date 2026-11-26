@@ -85,7 +85,7 @@ func TestFmtCheckListsOnlyStaleFiles(t *testing.T) {
 	if err := cmd.Execute(); err == nil {
 		t.Fatal("expected a non-zero exit when a file is not canonical")
 	}
-	if got, want := out.String(), messy+"\n"; got != want {
+	if got, want := out.String(), filepath.ToSlash(messy)+"\n"; got != want {
 		t.Errorf("stdout = %q, want %q", got, want)
 	}
 	if errOut.Len() != 0 {
