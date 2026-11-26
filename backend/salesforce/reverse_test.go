@@ -297,3 +297,29 @@ func TestFieldsRefuseWhatCannotRegenerate(t *testing.T) {
 		t.Errorf("reads as\n%s", got)
 	}
 }
+
+// Normalize drops what import does not read from objects and fields, keeps
+// every other file as written, and refuses an object that does not parse.
+func TestNormalize(t *testing.T) {
+	apex := &plugin.File{Path: "classes/A.cls", Content: []byte("public class A {}")}
+	files := []*plugin.File{
+		object("A__c", "<enableHistory>true</enableHistory>"),
+		field("A__c", "B__c", "<label>B</label><type>Checkbox</type><trackHistory>true</trackHistory>"),
+		apex,
+	}
+	out, err := salesforce.Normalize(files)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(out) != 3 || out[2] != apex {
+		t.Fatalf("Normalize = %v, want the Apex file kept", out)
+	}
+	for _, f := range out[:2] {
+		if s := string(f.GetContent()); strings.Contains(s, "History") || !strings.Contains(s, "<label>") {
+			t.Errorf("%s = %s, want unread elements dropped", f.GetPath(), s)
+		}
+	}
+	if _, err := salesforce.Normalize([]*plugin.File{{Path: "objects/A__c/A__c.object-meta.xml", Content: []byte("<CustomObject>")}}); err == nil {
+		t.Error("Normalize accepted broken XML")
+	}
+}
