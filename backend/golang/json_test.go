@@ -413,3 +413,92 @@ target go for tree {
 	}
 	contains(t, w[0].GetMessage(), "has a field named MarshalJSON")
 }
+
+// wireSource renames a fieldless and a fielded variant's wire values.
+const wireSource = `package shop
+
+enum Status {
+  Live
+  Expired
+}
+
+enum Payment {
+  Card { last4: string }
+  Cash
+}
+
+type Order {
+  status: Status
+  payment: Payment
+}
+
+target go for shop {
+  json
+  Status.Live => wire("live")
+  Payment.Card => wire("card")
+}
+`
+
+func TestWireRenamesVariants(t *testing.T) {
+	resp := generateTDL(t, wireSource)
+	if w := uncodedWarnings(resp); len(w) != 0 {
+		t.Fatalf("diagnostics = %+v", w)
+	}
+	got := files(t, resp)
+	contains(t, got["status.go"], `StatusLive    Status = "live"`, `StatusExpired Status = "Expired"`)
+	goTest(t, resp, `package shop
+
+import (
+	"encoding/json"
+	"reflect"
+	"testing"
+)
+
+const doc = `+"`"+`{"status":"live","payment":{"kind":"card","last4":"4242"}}`+"`"+`
+
+func TestRoundTrip(t *testing.T) {
+	var o Order
+	if err := json.Unmarshal([]byte(doc), &o); err != nil {
+		t.Fatal(err)
+	}
+	want := Order{Status: StatusLive, Payment: PaymentCard{Last4: "4242"}}
+	if !reflect.DeepEqual(o, want) {
+		t.Fatalf("decoded %#v, want %#v", o, want)
+	}
+	out, err := json.Marshal(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(out) != doc {
+		t.Fatalf("encoded\n%s\nwant\n%s", out, doc)
+	}
+}
+`)
+}
+
+func TestWireWithoutJSONWarns(t *testing.T) {
+	resp := generateTDL(t, strings.Replace(wireSource, "  json\n", "", 1))
+	w := uncodedWarnings(resp)
+	if len(w) != 1 {
+		t.Fatalf("diagnostics = %+v, want one warning", w)
+	}
+	contains(t, w[0].GetMessage(), "Payment.Card", "has no effect")
+	contains(t, files(t, resp)["status.go"], `= "live"`)
+}
+
+func TestWireCollisionIsAnError(t *testing.T) {
+	resp := generateTDL(t, strings.Replace(wireSource, `wire("live")`, `wire("Expired")`, 1))
+	var errs []*plugin.Diagnostic
+	for _, d := range resp.GetDiagnostics() {
+		if d.GetSeverity() == plugin.Severity_SEVERITY_ERROR {
+			errs = append(errs, d)
+		}
+	}
+	if len(errs) != 1 {
+		t.Fatalf("diagnostics = %+v, want one error", resp.GetDiagnostics())
+	}
+	contains(t, errs[0].GetMessage(), `Status.Live's wire value "Expired" is the name of Status.Expired`)
+	if _, ok := files(t, resp)["status.go"]; ok {
+		t.Error("the colliding enum is generated")
+	}
+}

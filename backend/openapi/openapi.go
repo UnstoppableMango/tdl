@@ -36,6 +36,9 @@ func (Backend) Describe() plugin.Description {
 			// The schema's name for a type or a variant, or a field's
 			// property name.
 			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.OnMembers()},
+			// A variant's wire value: the discriminant's value, or a
+			// fieldless variant's enum member.
+			{Name: "wire", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnVariant)},
 			// The property a fielded enum's variants are told apart by.
 			// Written on the target block it is the default, and on an enum
 			// it wins.

@@ -56,9 +56,10 @@ func (b *Builder) kindOf(r *emit.Ref) kind {
 // constrain writes each constraint as the keyword that checks it on a value
 // of kind k. One JSON Schema cannot say is a warning, and the schema is
 // still written without it.
-func (b *Builder) constrain(s *Object, k kind, owner string, cs []*ir.Constraint) {
+func (b *Builder) constrain(s *Object, r *emit.Ref, owner string, cs []*ir.Constraint) {
+	k, enum := b.kindOf(r), b.enumOf(r)
 	for _, c := range cs {
-		err := b.constraint(s, k, owner, c)
+		err := b.constraint(s, k, enum, owner, c)
 		switch lost, ok := errors.AsType[lostError](err); {
 		case ok:
 			b.Lossy(emit.LossConstraint, c.GetPosition(), "%s: %s is not written: %s", owner, emit.ConstraintText(c), string(lost))
@@ -78,7 +79,7 @@ type lostError string
 
 func (e lostError) Error() string { return string(e) }
 
-func (b *Builder) constraint(s *Object, k kind, owner string, c *ir.Constraint) error {
+func (b *Builder) constraint(s *Object, k kind, enum *ir.Decl, owner string, c *ir.Constraint) error {
 	name, args := c.GetName(), c.GetArgs()
 	misplaced := constraintError(name + " has no JSON Schema keyword for this type")
 
@@ -128,7 +129,7 @@ func (b *Builder) constraint(s *Object, k kind, owner string, c *ir.Constraint) 
 		}
 		values := make([]any, 0, len(args))
 		for _, a := range args {
-			v, ok := literal(a)
+			v, ok := b.literal(enum, a)
 			if !ok {
 				return constraintError("oneOf takes literal values")
 			}
@@ -162,11 +163,28 @@ func number(l *ir.Literal) (json.Number, bool) {
 	return "", false
 }
 
-// literal is a constraint argument as a JSON value. A name is an enum
-// variant, which is its name in JSON.
-func literal(l *ir.Literal) (any, bool) {
+// enumOf is the fieldless enum a reference holds, through any newtype and
+// any optionality, or nil.
+func (b *Builder) enumOf(r *emit.Ref) *ir.Decl {
+	for r.Form == emit.Option || r.Form == emit.Nullable {
+		r = r.Elem
+	}
+	if x, err := b.Expand(r); err == nil && x.Form == emit.Named && x.Decl.GetEnumeration() != nil {
+		return x.Decl
+	}
+	return nil
+}
+
+// literal is a constraint argument as a JSON value. A name is a variant of
+// enum, which is its wire value in JSON.
+func (b *Builder) literal(enum *ir.Decl, l *ir.Literal) (any, bool) {
 	switch l.GetKind() {
-	case ir.LiteralKind_LITERAL_KIND_STRING, ir.LiteralKind_LITERAL_KIND_NAME:
+	case ir.LiteralKind_LITERAL_KIND_STRING:
+		return l.GetText(), true
+	case ir.LiteralKind_LITERAL_KIND_NAME:
+		if enum != nil {
+			return b.TagOf(enum, l.GetText()), true
+		}
 		return l.GetText(), true
 	case ir.LiteralKind_LITERAL_KIND_BOOL:
 		return l.GetText() == "true", true

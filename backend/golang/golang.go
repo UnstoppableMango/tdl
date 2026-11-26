@@ -40,6 +40,9 @@ func (Backend) Describe() plugin.Description {
 			// The package clause, written as an import path.
 			{Name: "package", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock)},
 			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.OnMembers()},
+			// A variant's wire value: a fieldless variant's constant, and a
+			// fielded variant's discriminant value under json.
+			{Name: "wire", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnVariant)},
 			// A struct tag, emitted verbatim.
 			{Name: "tag", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnField)},
 			// Field names identifying an entity. ArgKinds constrains by
@@ -520,6 +523,12 @@ func quoteTag(tag string) string {
 func (g *generator) enumeration(b *strings.Builder, decl *ir.Decl) error {
 	name := g.declName(decl)
 	variants := decl.GetEnumeration().GetVariants()
+	// A fielded variant's wire value is written only under json.
+	if g.wire || !emit.Fielded(decl.GetEnumeration()) {
+		if err := g.CheckTags(decl); err != nil {
+			return err
+		}
+	}
 
 	if !emit.Fielded(decl.GetEnumeration()) {
 		if len(decl.Params()) > 0 {
@@ -532,9 +541,9 @@ func (g *generator) enumeration(b *strings.Builder, decl *ir.Decl) error {
 		fmt.Fprintf(b, "type %s string\n\nconst (\n", name)
 		for _, v := range variants {
 			g.doc(b, v.GetMeta())
-			// The value is the variant's name as written.
+			// The value is the variant's wire value.
 			fmt.Fprintf(b, "\t%s %s = %q\n",
-				g.variantName(name, v), name, v.GetMeta().GetName())
+				g.variantName(name, v), name, g.Tag(v))
 		}
 		b.WriteString(")\n")
 		g.writeMarkers(b, name)
@@ -566,6 +575,11 @@ func (g *generator) enumeration(b *strings.Builder, decl *ir.Decl) error {
 
 	for i, v := range variants {
 		variant := g.variantName(name, v)
+		if d, ok := g.Find(v.GetDirectives(), emit.Wire); ok && !g.wire {
+			g.Warn(emit.Unsupported(d.GetPosition(),
+				"%s.%s carries fields, so its wire value is the discriminant's, which only the target block's json directive writes: its wire directive has no effect",
+				decl.GetMeta().GetName(), v.GetMeta().GetName()))
+		}
 		b.WriteString("\n")
 		g.doc(b, v.GetMeta())
 		fmt.Fprintf(b, "type %s%s struct {\n", variant, params)
