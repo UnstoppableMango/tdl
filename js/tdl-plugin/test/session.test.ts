@@ -122,7 +122,7 @@ describe("Session", () => {
 
 		assert.equal(s.block("out")?.args[0]?.text, "./gen");
 		assert.equal(s.block("note"), undefined);
-		assert.ok(s.bare("roundtrip"));
+		assert.ok(s.bare("annotate"));
 		assert.ok(!s.bare("closed"));
 	});
 

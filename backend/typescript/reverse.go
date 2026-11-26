@@ -36,7 +36,7 @@ var outlineScript string
 // else names, each tagged by one string-literal property, as Generate
 // writes a fielded enum, an enum with fields, and any other type alias a
 // newtype. The file's name is the package. What regenerating needs goes in
-// a typescript target block. Under the JSDoc @tdl tags a `roundtrip`
+// a typescript target block. Under the JSDoc @tdl tags an `annotate`
 // directive writes, it rebuilds the model the file was generated from.
 //
 // The file is parsed by the TypeScript compiler, which import runs under
@@ -241,7 +241,7 @@ func (r *reader) read(ctx context.Context, files []*plugin.File) (*ir.Model, err
 			return nil, err
 		}
 		docs[s] = doc
-		r.Roundtrip = r.Roundtrip || len(doc.tdl) > 0
+		r.Annotated = r.Annotated || len(doc.tdl) > 0
 	}
 
 	file := &ast.File{Filename: r.path}
@@ -304,7 +304,7 @@ func packageBack(file string) string {
 }
 
 // header reads what the file says of the whole model: the package, from
-// the file's name, and under roundtrip the file annotations.
+// the file's name, and under annotate the file annotations.
 func (r *reader) header(file *ast.File, docs map[*statement]*jsdoc) (string, []reverse.Item, []string, error) {
 	pkg := packageBack(r.path)
 	if pkg != "" && !tdlName(pkg) {
@@ -665,7 +665,7 @@ func (r *reader) constructor(s *statement) bool {
 	if _, key := unbrand(alias.Type); key == "" {
 		r.Directive(name, "construct")
 	}
-	if s.Checks > 0 && !r.Roundtrip {
+	if s.Checks > 0 && !r.Annotated {
 		r.Warn(emit.LossConstraint, r.pos(s.Line, s.Col), "%s's constructor checks %d constraint(s), which are not read", s.Name, s.Checks)
 	}
 	return true

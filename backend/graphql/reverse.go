@@ -43,7 +43,7 @@ var primitives = map[string]string{
 // struct, each enum an enum, and a union of object types nothing else
 // names, as Generate writes a fielded enum, an enum with fields. The file's
 // name is the package. What regenerating needs goes in a graphql target
-// block. Under the @tdl directives a `roundtrip` directive writes, it
+// block. Under the @tdl directives an `annotate` directive writes, it
 // rebuilds the model the schema was generated from.
 // docs/architecture/schema-backends.md has the mapping.
 func (Backend) Import(_ context.Context, req *plugin.ImportRequest) (*plugin.ImportResponse, error) {
@@ -79,7 +79,7 @@ func (r *reader) read(files []*plugin.File) (*ir.Model, error) {
 		return nil, reverse.Failf(r.pos(nil), "%s is not a valid schema: %v", r.path, err)
 	}
 	r.doc = doc
-	r.Roundtrip = slices.ContainsFunc(doc.Directives, func(d *gqlast.DirectiveDefinition) bool { return d.Name == directive })
+	r.Annotated = slices.ContainsFunc(doc.Directives, func(d *gqlast.DirectiveDefinition) bool { return d.Name == directive })
 
 	file := &ast.File{Filename: r.path}
 	pkg, items, pdoc, err := r.header(file)
@@ -123,7 +123,7 @@ func (r *reader) at(p *gqlast.Position) ast.Position {
 }
 
 // header reads what the schema says of the whole file: the package, from
-// the file's name, and under roundtrip the schema extension's annotations.
+// the file's name, and under annotate the schema extension's annotations.
 // What else a schema definition, an extension, or a directive definition
 // says has no TDL form.
 func (r *reader) header(file *ast.File) (string, []reverse.Item, []string, error) {
@@ -140,7 +140,7 @@ func (r *reader) header(file *ast.File) (string, []reverse.Item, []string, error
 	for _, s := range slices.Concat(r.doc.Schema, r.doc.SchemaExtension) {
 		anns = append(anns, tdl(s.Directives)...)
 		r.unknown(s.Directives, s.Position, "the schema")
-		if len(s.OperationTypes) > 0 && !r.Roundtrip {
+		if len(s.OperationTypes) > 0 && !r.Annotated {
 			r.Warn(emit.LossUnsupported, r.pos(s.Position), "the schema's root operation types have no TDL form")
 		}
 	}
@@ -267,7 +267,7 @@ func (r *reader) scalar(def *gqlast.Definition) {
 		r.Warn(emit.LossUnsupported, r.pos(def.Position), "scalar %s has no TDL form", def.Name)
 		return
 	}
-	if !r.Roundtrip && def.Description != "" && def.Description != custom[def.Name] {
+	if !r.Annotated && def.Description != "" && def.Description != custom[def.Name] {
 		r.Warn(emit.LossDoc, r.pos(def.Position), "scalar %s's description is not read", def.Name)
 	}
 	r.unknown(def.Directives, def.Position, def.Name)
@@ -301,9 +301,9 @@ func (r *reader) head(name, desc string, dirs gqlast.DirectiveList, p *gqlast.Po
 	return h
 }
 
-// unknown warns about directives with no TDL form, unless roundtrip.
+// unknown warns about directives with no TDL form, unless annotating.
 func (r *reader) unknown(dirs gqlast.DirectiveList, p *gqlast.Position, what string) {
-	if r.Roundtrip {
+	if r.Annotated {
 		return
 	}
 	for _, d := range dirs {
@@ -316,7 +316,7 @@ func (r *reader) unknown(dirs gqlast.DirectiveList, p *gqlast.Position, what str
 // rename writes a name directive on a type whose GraphQL name the
 // generator would not derive from its TDL name.
 func (r *reader) rename(name, written string) {
-	if !r.Roundtrip && emit.Pascal(written) != written {
+	if !r.Annotated && emit.Pascal(written) != written {
 		r.Directive(name, "name", reverse.StrLit(written))
 	}
 }
@@ -401,7 +401,7 @@ func (r *reader) fields(in gqlast.FieldList, owner string) ([]field, error) {
 	return out, nil
 }
 
-// field reads one field: from its annotation under roundtrip, and
+// field reads one field: from its annotation under annotate, and
 // otherwise from its name and type. It returns nil for a field it skips.
 func (r *reader) field(f *gqlast.FieldDefinition, owner string) (*ast.Field, error) {
 	var out *ast.Field
@@ -442,7 +442,7 @@ func (r *reader) enum(def *gqlast.Definition) (ast.Decl, error) {
 		vname := emit.FromScreaming(v.Name)
 		if n, ok := get(tdl(v.Directives), "name"); ok {
 			vname = n
-		} else if !r.Roundtrip && emit.ScreamingSnake(vname) != v.Name {
+		} else if !r.Annotated && emit.ScreamingSnake(vname) != v.Name {
 			r.Directive(name+"."+vname, "name", reverse.StrLit(v.Name))
 		}
 		decl.Variants = append(decl.Variants, &ast.Variant{DeclHead: r.head(vname, v.Description, v.Directives, v.Position, member)})
@@ -474,7 +474,7 @@ func (r *reader) union(def *gqlast.Definition) (ast.Decl, error) {
 			vname = n
 		}
 		path := name + "." + vname
-		if !r.Roundtrip && m != def.Name+emit.Pascal(vname) {
+		if !r.Annotated && m != def.Name+emit.Pascal(vname) {
 			r.Directive(path, "name", reverse.StrLit(m))
 		}
 		kind := object
