@@ -120,11 +120,12 @@ func TestImported(t *testing.T) {
 	}
 }
 
-// A bare roundtrip, annotate's deprecated spelling, reaches the backend as
-// annotate and carries the source.
+// A bare roundtrip, annotate's deprecated spelling, reaches a backend
+// declaring annotate as annotate and carries the source.
 func TestRoundtripIsReadAsAnnotate(t *testing.T) {
 	m := lower(t, "package shop\n\ntype Order {\n  id: string\n}\n\ntarget wire for shop {\n  roundtrip\n}\n")
-	req, _ := analysis.Request(m, plugin.Description{Name: "wire"}, "wire", "out")
+	desc := plugin.Description{Name: "wire", Directives: []*plugin.DirectiveSpec{{Name: "annotate"}}}
+	req, _ := analysis.Request(m, desc, "wire", "out")
 	if ds := req.GetModel().GetTargets()[0].GetDirectives(); len(ds) != 1 || ds[0].GetName() != "annotate" {
 		t.Errorf("block directives = %v", ds)
 	}

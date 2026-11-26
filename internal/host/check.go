@@ -37,14 +37,31 @@ var Directives = []*plugin.DirectiveSpec{
 // new name.
 var Renamed = map[string]string{"roundtrip": "annotate"}
 
-// Rename is the name a target block's directive is read as: its new name
-// when d is a bare directive written in an old spelling, and its own name
-// otherwise.
-func Rename(d *ir.Directive) string {
-	if to, ok := Renamed[d.GetName()]; ok && len(d.GetArgs()) == 0 {
-		return to
+// Rename is the name a target block's directive is read as for a backend
+// described by desc: its new name when d is a bare directive written in
+// an old spelling that desc does not declare but whose new name it does,
+// and its own name otherwise, so a backend still declaring the old
+// spelling receives it.
+func Rename(d *ir.Directive, desc plugin.Description) string {
+	to, ok := Renamed[d.GetName()]
+	if !ok || len(d.GetArgs()) > 0 || declares(desc, d.GetName()) || !declares(desc, to) {
+		return d.GetName()
 	}
-	return d.GetName()
+	return to
+}
+
+// RenameBlocks renames, in place, each directive m's target blocks carry
+// in an old spelling, as [Rename] reads it.
+func RenameBlocks(m *ir.Model, desc plugin.Description) {
+	for _, b := range m.GetTargets() {
+		for _, d := range b.GetDirectives() {
+			d.Name = Rename(d, desc)
+		}
+	}
+}
+
+func declares(desc plugin.Description, name string) bool {
+	return slices.ContainsFunc(desc.Directives, func(s *plugin.DirectiveSpec) bool { return s.GetName() == name })
 }
 
 // allStrings lists the directives every argument of which must be a
@@ -76,8 +93,8 @@ func CheckDirectives(target string, model *ir.Model, desc plugin.Description) []
 
 	var problems []*plugin.Diagnostic
 	for _, n := range nodeDirectives(target, model) {
-		problems = append(problems, checkEach(target, n, specs)...)
-		problems = append(problems, checkTies(n.directives, specs)...)
+		problems = append(problems, checkEach(target, n, specs, desc)...)
+		problems = append(problems, checkTies(n, specs, desc)...)
 	}
 	return problems
 }
@@ -132,7 +149,7 @@ func orList(items []string) string {
 	return strings.Join(items[:len(items)-1], ", ") + ", or " + items[len(items)-1]
 }
 
-func checkEach(target string, n node, specs map[string]*plugin.DirectiveSpec) []*plugin.Diagnostic {
+func checkEach(target string, n node, specs map[string]*plugin.DirectiveSpec, desc plugin.Description) []*plugin.Diagnostic {
 	ds := n.directives
 	var problems []*plugin.Diagnostic
 	for _, d := range ds {
@@ -141,7 +158,7 @@ func checkEach(target string, n node, specs map[string]*plugin.DirectiveSpec) []
 		}
 		name := d.GetName()
 		if n.placement == plugin.Placement_PLACEMENT_BLOCK {
-			if to := Rename(d); to != name {
+			if to := Rename(d, desc); to != name {
 				problems = append(problems, problem(d.GetPosition(), plugin.Severity_SEVERITY_WARNING,
 					"%s is deprecated; write %s", name, to))
 				name = to
@@ -150,12 +167,12 @@ func checkEach(target string, n node, specs map[string]*plugin.DirectiveSpec) []
 		spec, declared := specs[name]
 		if !declared {
 			problems = append(problems, problem(d.GetPosition(), plugin.Severity_SEVERITY_WARNING,
-				"%s does not declare the directive %s", target, d.GetName()))
+				"%s does not declare the directive %s", target, name))
 			continue
 		}
 		if !placed(spec, n.placement) {
 			problems = append(problems, problem(d.GetPosition(), plugin.Severity_SEVERITY_ERROR,
-				"%s is written on %s, and %s reads it only on %s", d.GetName(), placementNames[n.placement], target, where(spec)))
+				"%s is written on %s, and %s reads it only on %s", name, placementNames[n.placement], target, where(spec)))
 			continue
 		}
 		problems = append(problems, checkOne(d, spec)...)
@@ -166,15 +183,19 @@ func checkEach(target string, n node, specs map[string]*plugin.DirectiveSpec) []
 // checkTies reports a name appearing twice on one node. Lowering keeps
 // every entry at the winning specificity, so a repeat is a tie, allowed
 // only for a directive declared repeatable.
-func checkTies(ds []*ir.Directive, specs map[string]*plugin.DirectiveSpec) []*plugin.Diagnostic {
+func checkTies(n node, specs map[string]*plugin.DirectiveSpec, desc plugin.Description) []*plugin.Diagnostic {
 	var problems []*plugin.Diagnostic
 	seen := map[string]bool{}
-	for _, d := range ds {
-		if seen[d.GetName()] && !specs[d.GetName()].GetRepeatable() {
-			problems = append(problems, problem(d.GetPosition(), plugin.Severity_SEVERITY_ERROR,
-				"two entries at the same specificity set %s; one of them has to go", d.GetName()))
+	for _, d := range n.directives {
+		name := d.GetName()
+		if n.placement == plugin.Placement_PLACEMENT_BLOCK {
+			name = Rename(d, desc)
 		}
-		seen[d.GetName()] = true
+		if seen[name] && !specs[name].GetRepeatable() {
+			problems = append(problems, problem(d.GetPosition(), plugin.Severity_SEVERITY_ERROR,
+				"two entries at the same specificity set %s; one of them has to go", name))
+		}
+		seen[name] = true
 	}
 	return problems
 }
