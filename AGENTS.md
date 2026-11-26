@@ -25,6 +25,7 @@ command make generate         # buf generate: proto/ -> ir/ir.pb.go
 command make treesitter       # docs/grammar.ebnf -> tree-sitter/grammar.js -> tree-sitter/src/
 command make textmate         # docs/grammar.ebnf -> the TextMate grammar and editors/bat/tdl.sublime-syntax
 command make features         # testdata/features -> each backend's feature table in docs/
+command make skills           # docs/spec.md, the grammar, the prelude, and the versions -> each skill's references/
 command make vscode-install   # package editors/vscode and install it into a running VS Code
 command make vscode-check     # npm ci, then typecheck and biome check editors/vscode
 command make vscode-test      # in `nix develop .#vscode`: the extension in a headless VSCodium
@@ -40,7 +41,7 @@ command make check-treesitter # what CI runs: treesitter + a diff + test-treesit
 
 Prefix `make` with `command` (see the shell autoload note in the global instructions).
 
-`generate`, `treesitter`, and `textmate` are file targets, so each reruns only when its inputs are newer.
+`generate`, `treesitter`, `textmate`, and `skills` are file targets, so each reruns only when its inputs are newer.
 `tree-sitter/Makefile`, `editors/vscode/Makefile`, and `js/Makefile` hold the targets for their directories; the root delegates to them.
 `check-treesitter` passes `-B`, because a fresh checkout gives every file the same mtime and a file target would skip the regeneration the diff is meant to test.
 `mutate` runs `tools/mutate`, which runs gremlins once per package with `GOFLAGS=-short`, merges the reports into `mutate.json`, and prints the survivors `mutation/equivalent.txt` does not list; `internal/mutation` reads both.
@@ -60,7 +61,7 @@ treefmt also runs it over `js/**/*.ts`, but for the generated code, and `npm/**/
 Biome's JSON formatter is off, because jsonfmt owns JSON.
 
 `.markdownlint-cli2.yaml` lists which markdown files are linted, so a bare `markdownlint-cli2` checks what CI checks.
-Files with no formatter: the four Makefiles, `.editorconfig`, `.gitattributes`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md` (mdformat would break the frontmatter), `.graphifyignore`, `docs/demo/demo.tape`, `docs/demo/demo.bash`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, `nix/vendor-modules.sh`, `nix/sbom.jq`, `backend/typescript/outline.js`, `tree-sitter/src/scanner.c`, and everything in `dotnet/` but `deps.json`.
+Files with no formatter: the four Makefiles, `.editorconfig`, `.gitattributes`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md` and `skills/**/SKILL.md` (mdformat would break the frontmatter), `.graphifyignore`, `docs/demo/demo.tape`, `docs/demo/demo.bash`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, `nix/vendor-modules.sh`, `nix/sbom.jq`, `backend/typescript/outline.js`, `tree-sitter/src/scanner.c`, and everything in `dotnet/` but `deps.json`.
 rustfmt formats `rust/`, but for `Cargo.lock` and the generated code.
 `internal/ebnf` lints the two grammars instead, and their column alignment is deliberate.
 Also excluded from formatting: `*.tdl` (until `tdl fmt` is wired in, #1308), generated files, and `.claude/`.
@@ -414,6 +415,16 @@ Wanted work with no spec is a `needs-triage` issue.
 The `tdl.toml` project model (#1307) is the furthest-ahead spec: only its `[lossy]` and `[post]` tables are built.
 `CONTEXT.md` is the glossary: one canonical word per concept, and the words to avoid.
 
+### Skill library
+
+`skills/<name>/` holds the skill library (#1446): Agent Skills for agents working with TDL in other projects, installed with `npx skills add` and, later, Nix.
+`.github/skills/` is for reviewing this repository and is never installed.
+Each skill is `tdl-<task>`, with a short hand-written `SKILL.md` whose frontmatter holds only `name` and `description`, and `references/` copied by `make skills` (`tools/skills`).
+`internal/skills` lists each skill's references: `tdl-modeling` carries `docs/spec.md`, `docs/grammar.ebnf`, and the prelude, and every skill `references/version.md`, the `toolVersion` and `specVersion` it was copied from, which `SKILL.md` tells the agent to compare with `tdl version` and warn on, never refuse.
+release-please rewrites the version line through its annotation, which `make skills` writes too.
+Its tests compare every reference with what `make skills` writes and never write, hold the frontmatter to the folder's name, and hold every ```` ```tdl ```` block in a hand-written file to a whole file that parses, lowers with no diagnostic, and is canonical; a fragment goes in a plain block.
+After a change to the spec or the prelude, run `make skills`.
+
 ### .NET SDK
 
 `dotnet/` holds `Tdl.Plugin`, the SDK a backend written in .NET builds on, its tests, `Tdl.Plugin.Debug`, a port of `backend/debug` served as `tdl-gen-dotnet_debug`, and the `csharp` backend with `Tdl.DotNet` (see [Backends](#backends)).
@@ -677,8 +688,8 @@ Use `PUT /pulls/{n}/merge-async`, which returns `{"status":"pending"}` and merge
 `.github/workflows/release-please.yml` calls the reusable workflow in `unmango/actions` as the thecluster[bot] GitHub App (`vars.RELEASE_APP_CLIENT_ID`, `secrets.RELEASE_APP_PRIVATE_KEY`), so release PRs trigger CI and commits are signed.
 
 release-please owns the version.
-Never hand-edit `toolVersion` in `internal/cli/version.go`, `version` in `flake.nix`, `version` in `editors/vscode/package.json` and `package-lock.json`, `version` in `npm/tdl/package.json`, `npm/tdl-typescript/package.json`, `js/remark-tdl-mermaid/package.json`, and that workspace's entry in `js/package-lock.json`, `<Version>` in `dotnet/Tdl.Gen.CSharp/Tdl.Gen.CSharp.csproj`, the `version=` line in the README's release-asset example, or `CHANGELOG.md`.
-The first two, the csproj line, and the README line carry an `x-release-please-version` annotation; the JSON files are listed in `release-please-config.json`.
+Never hand-edit `toolVersion` in `internal/cli/version.go`, `version` in `flake.nix`, `version` in `editors/vscode/package.json` and `package-lock.json`, `version` in `npm/tdl/package.json`, `npm/tdl-typescript/package.json`, `js/remark-tdl-mermaid/package.json`, and that workspace's entry in `js/package-lock.json`, `<Version>` in `dotnet/Tdl.Gen.CSharp/Tdl.Gen.CSharp.csproj`, the `version=` line in the README's release-asset example, the `tdl:` line in each `skills/*/references/version.md`, or `CHANGELOG.md`.
+The first two, the csproj line, the README line, and the skills' version lines carry an `x-release-please-version` annotation; the JSON files are listed in `release-please-config.json`.
 
 When it reports a release, the `assets` job builds `packages.release` at the tag on a GitHub-hosted runner, attests every file with `actions/attest-build-provenance`, and uploads them to the release with the bundle as `tdl_<version>.intoto.jsonl`.
 The `npm` job builds `packages.npm` at the tag and publishes the four platform packages, then `@unmango/tdl`, then `@unmango/tdl-typescript` and `@unmango/remark-tdl-mermaid`, through npm's trusted publishing, which needs no stored token and writes provenance; each package's trusted publisher on npmjs.com names `release-please.yml`, and a version already published is skipped.
