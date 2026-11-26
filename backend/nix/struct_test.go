@@ -126,3 +126,15 @@ in [
 		t.Errorf("got  %s\nwant %s", got, want)
 	}
 }
+
+func TestRecursiveEvaluates(t *testing.T) {
+	_, out := gen(t, "package shop\ntype Node {\n  children: [Node]\n  next: Node?\n}\n")
+	contains(t, out, "children = mkOption { type = types.listOf (opaque Node); };")
+	got := evaluate(t, out, `[
+  (eval m.Node { children = [ { children = [ ]; } ]; })
+  (builtins.length (lib.optionAttrSetToDocList (lib.evalModules { modules = [ { options.x = lib.mkOption { type = m.Node; }; } ]; }).options) > 0)
+]`)
+	if want := `["{\"children\":[{\"children\":[]}]}",true]`; got != want {
+		t.Errorf("got  %s\nwant %s", got, want)
+	}
+}

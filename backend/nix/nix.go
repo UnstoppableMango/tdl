@@ -54,9 +54,17 @@ var helpers = []helper{
 	{"struct", structHelper},
 	{"optional", optionalHelper},
 	{"nullable", "  nullable = type: types.nullOr type // { emptyValue = { }; };\n"},
+	{"opaque", opaqueHelper},
 	{"duration", durationHelper},
 	{"set", setHelper},
 	{"keyed", "  keyed = key: value: types.addCheck (types.attrsOf value) (m: lib.all key.check (lib.attrNames m));\n"},
+}
+
+// reserved is what a declaration cannot be bound as, since the file binds
+// it, or a helper reads it.
+func reserved(name string) bool {
+	return slices.Contains([]string{"lib", "types", "mkOption", "builtins"}, name) ||
+		slices.ContainsFunc(helpers, func(h helper) bool { return h.name == name })
 }
 
 type generator struct {
@@ -64,6 +72,9 @@ type generator struct {
 
 	// used is the helpers the declaration being rendered uses.
 	used map[string]bool
+
+	// current is the struct being rendered.
+	current *ir.Decl
 }
 
 // Generate returns one .nix file: a function of lib returning an attribute
@@ -156,6 +167,8 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	switch {
 	case !ident.MatchString(attr) || slices.Contains(keywords, attr):
 		return "", emit.Unsupported(pos, "%s would be bound as %q, which is not a Nix identifier", name, attr)
+	case reserved(attr):
+		return "", emit.Unsupported(pos, "%s would be bound as %s, which the file binds itself", name, attr)
 	}
 	g.LoseConforms(d, "Nix")
 
