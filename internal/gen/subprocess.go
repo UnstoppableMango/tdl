@@ -255,14 +255,18 @@ func (s *Subprocess) start(ctx context.Context) (*session, error) {
 	}, nil
 }
 
-// shake sends the handshake and reads the reply, refusing a plugin that
-// will not accept what is about to be sent.
+// shake sends the handshake, naming the target this session serves, and
+// reads the reply. A refusal is the plugin's own text after its name, since
+// only the plugin knows whether it refused a version, a mode, or the
+// target. The reply's name is not checked against the target: a plugin on
+// PATH is trusted to serve what it is started for.
 func (s *session) shake(watch bool, mode plugin.Mode) (*plugin.HandshakeReply, error) {
 	err := s.conn.Send(&plugin.Handshake{
 		FramingVersion: plugin.FramingVersion,
 		IrVersion:      plugin.IRVersion,
 		Watch:          watch,
 		Mode:           mode,
+		Target:         s.name,
 	})
 	if err != nil {
 		return nil, s.wrap(err)
@@ -273,11 +277,7 @@ func (s *session) shake(watch bool, mode plugin.Mode) (*plugin.HandshakeReply, e
 		return nil, s.wrap(err)
 	}
 	if !reply.GetAccepted() {
-		if mode == plugin.Mode_MODE_IMPORT {
-			return nil, fmt.Errorf("%s refused to import: %s", s.name, reply.GetRefusal())
-		}
-		return nil, fmt.Errorf("%s refused framing %d and %s: %s",
-			s.name, plugin.FramingVersion, plugin.IRVersion, reply.GetRefusal())
+		return nil, fmt.Errorf("%s%s refused: %s", CommandPrefix, s.name, reply.GetRefusal())
 	}
 	return &reply, nil
 }

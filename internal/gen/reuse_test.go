@@ -155,7 +155,7 @@ func (once) Generate(context.Context, *plugin.Request) (*plugin.Response, error)
 }
 
 func main() {
-	if err := plugin.ServeConn(context.Background(), once{}, plugin.NewConn(os.Stdin, os.Stdout)); err != nil {
+	if err := plugin.ServeConn(context.Background(), plugin.NewConn(os.Stdin, os.Stdout), once{}); err != nil {
 		os.Exit(1)
 	}
 }

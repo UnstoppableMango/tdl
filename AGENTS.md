@@ -61,7 +61,7 @@ treefmt also runs it over `js/**/*.ts`, but for the generated code, and `npm/**/
 Biome's JSON formatter is off, because jsonfmt owns JSON.
 
 `.markdownlint-cli2.yaml` lists which markdown files are linted, so a bare `markdownlint-cli2` checks what CI checks.
-Files with no formatter: the four Makefiles, `.editorconfig`, `.gitattributes`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md` and `skills/**/SKILL.md` (mdformat would break the frontmatter), `.graphifyignore`, `docs/demo/demo.tape`, `docs/demo/demo.bash`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, `backend/typescript/outline.js`, `tree-sitter/src/scanner.c`, and everything in `dotnet/` but `deps.json`.
+Files with no formatter: the four Makefiles, `.editorconfig`, `.gitattributes`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md` and `skills/**/SKILL.md` (mdformat would break the frontmatter), `.graphifyignore`, `docs/demo/demo.tape`, `docs/demo/demo.bash`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, `nix/vendor-modules.sh`, `nix/sbom.jq`, `backend/typescript/outline.js`, `tree-sitter/src/scanner.c`, and everything in `dotnet/` but `deps.json`.
 rustfmt formats `rust/`, but for `Cargo.lock` and the generated code.
 `internal/ebnf` lints the two grammars instead, and their column alignment is deliberate.
 Also excluded from formatting: `*.tdl` (until `tdl fmt` is wired in, #1308), generated files, and `.claude/`.
@@ -76,12 +76,13 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 
 `nix/` holds the packaging:
 
-- `cmd.nix`: the CLI. `meta.mainProgram` is what `lib.getExe` reads, since the package installs fifteen binaries and links `tdl-gen-csharp` and `tdl-gen-mermaid` beside them (`TestPackagedBackendsShip`).
+- `cmd.nix`: the CLI. `meta.mainProgram` is what `lib.getExe` reads, since the package installs sixteen binaries and links `tdl-gen-csharp` and `tdl-gen-mermaid` beside them (`TestPackagedBackendsShip`).
   It also installs bat's syntax as `share/bat/syntaxes/tdl.sublime-syntax`.
 - `vscode-extension.nix`: the editor extension (see [VS Code](#vs-code)).
 - `gmk.nix`: `tdl-gmk`, `cmd/tdl-gmk` built as the GNU make loadable object `lib/tdl.so`, with gnumake's header for cgo; `checks.gmk` loads it into make.
 - `portable.nix`: `tdl-portable`, `tdl` and `tdl-gen-typescript` for linux, darwin, and windows, amd64 and arm64, cross-compiled with `CGO_ENABLED=0` into `<goos>-<goarch>/`, `.exe` on windows, for release assets and npm (#1385, #1432).
   The linux binaries are static; the darwin ones link only `libSystem`, as every Go binary on darwin does.
+  `vendor-modules.sh` writes the `vendor/modules.txt` gomod2nix leaves out, so each binary's build info names the modules it links.
   `packages.default` links against the store's glibc loader, so it does not run outside Nix.
   `dontFixup` keeps the build platform's `strip` off the darwin/arm64 binaries, which the Go linker signs.
   `checks.tdl-portable` checks each binary's format and static linking, allows only the store paths nixpkgs' Go patches in as zoneinfo and `/etc/protocols` fallbacks, and runs the binary for the checking system over the smoke model.
@@ -91,8 +92,10 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
   The shim sits beside `package.json` because `.gitignore` ignores every `bin/`.
   `checks.npm-tdl` installs `@unmango/tdl`, the checking system's platform package, and `@unmango/tdl-typescript` offline with `--ignore-scripts`, then runs `tdl version`, `tdl gen` over the smoke model for `typescript` and `mermaid`, `tdl-gen-typescript` through the resolver, and the remark plugin's transformer, which finds `tdl` the same way, and reads the mapper command from `@unmango/tdl-typescript`.
 - `release.nix`: `packages.release`, the release assets: `tdl_<version>_<os>_<arch>.tar.gz` per linux and darwin `tdl-portable` target, and `tdl_<version>_windows_<arch>.zip` per windows one, which adds `completions/tdl.ps1`, each holding both binaries, `tdl-gen-mermaid`'s portable one, `LICENSE`, `README.md`, and `completions/` written by the build platform's `tdl`, plus `SHA256SUMS`.
+  It also writes `tdl_<version>.cdx.json`, a CycloneDX SBOM `cyclonedx-gomod bin` reads from each binary's build info, merged across binaries and targets by `sbom.jq`, with no timestamp or serial number, which `SHA256SUMS` names.
   Members are sorted, owned by root, dated `SOURCE_DATE_EPOCH`, and gzipped without a name, so two builds give the same `SHA256SUMS`.
-  `checks.tdl-release` holds every tarball to one file list and every zip to another, verifies the sums, and runs the checking system's `tdl`.
+  `checks.tdl-release` holds every tarball to one file list and every zip to another, checks the SBOM names the `tdl` module, verifies the sums, and runs the checking system's `tdl`.
+  The `assets` job uploads the provenance bundle beside them as `tdl_<version>.intoto.jsonl`, the suffix Scorecard's Signed-Releases check reads, and `SHA256SUMS` does not name it.
 - `dotnet.nix`: the .NET plugins, built with `buildDotnetModule`, which runs their tests (see [.NET SDK](#net-sdk)): `tdl-gen-csharp`, compiled with Native AOT and linked by `stdenv.cc`, and the SDK's debug port, a self-contained single file.
   The same csproj packs as the nuget.org tool in `dotnet-tool.nix`.
   On darwin the AOT link names the Swift runtime and ICU, so `swift` and `darwin.ICU` are build inputs there, as in nixpkgs' own dotnet `aot` test.
@@ -301,6 +304,13 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   A fielded enum is a `oneOf` of one component per variant with a `discriminator`; 2.0 has no `oneOf`, so there it warns and is skipped.
   `title` and `version` set `info`; `name`, `discriminant`, and `closed` mean what they mean in `jsonschema`.
   Tests validate every response against the OpenAPI Initiative's schema for its version, vendored in `backend/openapi/testdata/`; `checks.gen-openapi` runs `vacuum lint` on all three versions.
+- `backend/nix` (`nix`): one `<package path>.nix` per model, or the file a `file` directive in the target block names: `{ lib }:` returning a `rec` set of `lib.types` option types, whose values are the JSON wire convention.
+  A struct is `struct`, a submodule the file declares whose value leaves out an unset `T?`, which `optional` marks; `T | null` is `nullable`, a `nullOr` with no empty value, so it must be set.
+  `after` wraps a type's merge, through `merge.v2` and `substSubModules`, for `struct` and `set`; a struct reached from itself is `opaque` where it is named, so option docs end.
+  A fieldless enum is `types.enum` of its wire values, a set is `set`, a `listOf` whose merged value refuses duplicates, and a map `attrsOf`, or `keyed` when its key is a string's wire form or a fieldless enum; any other key warns under `lossy.collection`.
+  A primitive JSON writes as a string is a `strMatching` its wire form, and `uint64` warns under `lossy.primitive`.
+  Phase 1 is built, and #1437 tracks the rest: fielded enums, newtypes, defaults, constraints, generics, and externs warn or are skipped.
+  Tests run `nixfmt --check` when it is on `PATH`, and evaluate values through `lib.evalModules` when `nix-instantiate` and `<nixpkgs>` are found; `checks.gen-nix` always does both over the smoke model with `testdata/nix/smoke.nix`.
 - `backend/salesforce`: Salesforce DX source, one file per component.
   An entity is a custom object, with a warning for each field that has no column; values, mixins, and enums are Apex.
   A `key` directive makes a field a unique external ID.
@@ -692,7 +702,7 @@ release-please owns the version.
 Never hand-edit `toolVersion` in `internal/cli/version.go`, `version` in `flake.nix`, `version` in `editors/vscode/package.json` and `package-lock.json`, `version` in `npm/tdl/package.json`, `npm/tdl-typescript/package.json`, `js/remark-tdl-mermaid/package.json`, and that workspace's entry in `js/package-lock.json`, `<Version>` in `dotnet/Tdl.Gen.CSharp/Tdl.Gen.CSharp.csproj`, the `version=` line in the README's release-asset example, the `tdl:` line in each `skills/*/references/version.md`, or `CHANGELOG.md`.
 The first two, the csproj line, the README line, and the skills' version lines carry an `x-release-please-version` annotation; the JSON files are listed in `release-please-config.json`.
 
-When it reports a release, the `assets` job builds `packages.release` at the tag on a GitHub-hosted runner, attests every file with `actions/attest-build-provenance`, and uploads them to the release.
+When it reports a release, the `assets` job builds `packages.release` at the tag on a GitHub-hosted runner, attests every file with `actions/attest-build-provenance`, and uploads them to the release with the bundle as `tdl_<version>.intoto.jsonl`.
 The `npm` job builds `packages.npm` at the tag and publishes the six platform packages, then `@unmango/tdl`, then `@unmango/tdl-typescript` and `@unmango/remark-tdl-mermaid`, through npm's trusted publishing, which needs no stored token and writes provenance; each package's trusted publisher on npmjs.com names `release-please.yml`, and a version already published is skipped.
 The `nuget` job builds `packages.tdl-gen-csharp-tool` at the tag and pushes it to nuget.org through trusted publishing: `NuGet/login` trades the job's OIDC token for a short-lived key as `vars.NUGET_USER`, whose policy on nuget.org names `release-please.yml`, and `--skip-duplicate` skips a version already pushed.
 
