@@ -392,6 +392,27 @@ in
             touch $out
           '';
 
+      # Evaluates the nix backend's file against nixpkgs' lib, through
+      # values lib.evalModules must accept and refuse.
+      checks.gen-nix =
+        pkgs.runCommand "tdl-gen-nix"
+          {
+            nativeBuildInputs = [
+              pkgs.tdl
+              pkgs.nix
+              pkgs.nixfmt
+            ];
+          }
+          ''
+            export HOME=$TMPDIR NIX_STATE_DIR=$TMPDIR/state NIX_STORE_DIR=$TMPDIR/store NIX_LOG_DIR=$TMPDIR/log
+            cp ${../testdata/gen/smoke/source.tdl} source.tdl
+            tdl gen --target nix -o out source.tdl
+            nixfmt --check out/smoke.nix
+            nix-instantiate --eval --strict ${../testdata/nix/smoke.nix} \
+              --arg lib 'import ${pkgs.path}/lib' --arg file "$PWD/out/smoke.nix"
+            touch $out
+          '';
+
       # Checks the jsonschema backend's document against its metaschema,
       # with a second implementation beside the one its tests use.
       checks.gen-jsonschema =
