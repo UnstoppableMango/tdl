@@ -211,13 +211,21 @@ jobs:
           node-version: 24
           architecture: ${{ matrix.cpu }}
 
+      # The manifest names the two tarballs, so npm installs what it lists.
       - name: Install offline
         shell: bash
+        env:
+          CPU: ${{ matrix.cpu }}
         run: |
           mkdir project && cd project
-          echo '{ "name": "project", "private": true }' > package.json
-          npm install --offline --ignore-scripts --no-audit --no-fund \
-            ../packages/unmango-tdl-[0-9]*.tgz ../packages/unmango-tdl-win32-${{ matrix.cpu }}-*.tgz
+          tdl=$(echo ../packages/unmango-tdl-[0-9]*.tgz)
+          platform=$(echo ../packages/unmango-tdl-win32-"$CPU"-*.tgz)
+          node -e '
+            const [tdl, platform, cpu] = process.argv.slice(1);
+            const dependencies = { "@unmango/tdl": `file:${tdl}`, [`@unmango/tdl-win32-${cpu}`]: `file:${platform}` };
+            require("node:fs").writeFileSync("package.json", JSON.stringify({ name: "project", private: true, dependencies }));
+          ' "$tdl" "$platform" "$CPU"
+          npm install --offline --ignore-scripts --no-audit --no-fund
 
       # tdl.exe runs, finds tdl-gen-mermaid.exe on the PATH the shim puts
       # first, and the resolver finds tdl-gen-typescript.exe.
