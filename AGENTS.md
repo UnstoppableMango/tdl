@@ -205,7 +205,7 @@ The plugin protocol in `docs/architecture/plugins.md` is complete.
 - `internal/host`: what a host does around a backend, importing none, so a backend hosting itself can use it.
   `loss.go` declares the loss codes, which `emit` re-exports, so `tdl`'s completion lists them too.
   `check.go` holds every directive to its backend's `DirectiveSpec` (arity, kinds, placement, allowed values, repeats) before the backend runs, so a backend need not check them itself; `Directives` holds the specs of those `tdl` reads itself for every target, `post` so far, and `out` is never checked.
-  `Silence` drops warnings with an allowed loss code, and `Allowed` reads which codes `tdl.toml` allows.
+  `Silence` drops warnings with an allowed loss code.
   `ImportFiles` (`walk.go`) expands a directory argument to `tdl import` into the files a backend's import patterns match.
 - `internal/config`: reads the nearest `tdl.toml` above a file; only its `[lossy]` and `[post]` tables so far.
 - `internal/makefn`: what the make functions in `cmd/tdl-gmk` return, `Files` and `Imports`, kept out of the plugin so they test without make.
@@ -478,6 +478,7 @@ A file named `-` is standard input, shown as `<stdin>` in positions.
 A directory argument to `import` stands for the files under it that the backend's `import_patterns` match, walked by `host.ImportFiles` in sorted order, skipping dot-directories; the backend is asked for them only when an argument is a directory.
 `gen --make <target>` writes a make dependency file once the whole run succeeds, naming every file it read through a `sema.Recording` loader, and leaves an existing one alone when the run fails.
 `gen` and `import` both drop warnings whose loss code `tdl.toml` or `--allow-lossy` allows, and print a code after the message.
+Under `--strict`, or `[lossy] strict = true`, a warning that survives exits 1 once every file has run, after writing; `gen --make` then leaves its dependency file alone, as for any failed run.
 `import` reports read-back loss, what the TDL keeps but regenerating writes differently, only under `--readback`, which sets `ImportRequest.readback`; an importer writes it with `reverse.Reader.Respell` and everything else with `Warn`.
 
 `request --target <name>` writes, as framed messages, a `Handshake` and one `RequestSet`: the requests `gen` would send that backend, and every diagnostic, a file with an error yielding no request.

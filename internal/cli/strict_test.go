@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -104,6 +105,7 @@ func TestGenStrictVerify(t *testing.T) {
 		{"warning", "lossy.order", []string{"--strict"}, false, []string{strictSummary}},
 		{"drift", "lossy.order", nil, true, []string{"1 file failed"}},
 		{"both", "lossy.order", []string{"--strict"}, true, []string{"1 file failed", strictSummary}},
+		{"drift under strict", "lossy.order", []string{"--strict", "--allow-lossy", "lossy.order"}, true, []string{"1 file failed"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -127,6 +129,9 @@ func TestGenStrictVerify(t *testing.T) {
 			}
 			if !tc.stale && strings.Contains(err.Error(), "failed") {
 				t.Errorf("err = %q, want no drift", err)
+			}
+			if !slices.Contains(tc.want, strictSummary) && strings.Contains(err.Error(), strictSummary) {
+				t.Errorf("err = %q, want no strict summary", err)
 			}
 		})
 	}

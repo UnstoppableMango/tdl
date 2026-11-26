@@ -100,12 +100,12 @@ func genCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 				r.cleaned, r.expected = map[string]bool{}, map[string]map[string]bool{}
 				r.read, r.outputs = map[string]bool{}, map[string]bool{}
 				if err := eachFile(cmd, args, r.generate); err != nil {
-					return errors.Join(err, strictError(r.warnings))
+					return errors.Join(err, strictError(r.warned))
 				}
 				if err := r.orphans(); err != nil {
-					return errors.Join(err, strictError(r.warnings))
+					return errors.Join(err, strictError(r.warned))
 				}
-				if err := strictError(r.warnings); err != nil {
+				if err := strictError(r.warned); err != nil {
 					return err
 				}
 				return r.depFile()
@@ -115,8 +115,9 @@ func genCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 			path := args[0]
 			save := func() {
 				// Each save is its own run for --clean.
-				r.cleaned, r.warnings = map[string]bool{}, 0
-				if err := errors.Join(r.generate(path), strictError(r.warnings)); err != nil {
+				r.cleaned, r.warned = map[string]bool{}, 0
+				err := r.generate(path)
+				if err := errors.Join(err, strictError(r.warned)); err != nil {
 					fmt.Fprintln(cmd.ErrOrStderr(), err)
 				}
 			}
@@ -136,7 +137,7 @@ func genCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 	cmd.Flags().BoolVar(&r.watch, "watch", false, "regenerate when the file changes")
 	cmd.Flags().StringVar(&r.makeTarget, "make", "", "after a successful run, write a make dependency file for this target")
 	cmd.Flags().StringSliceVar(&r.allowLossy, "allow-lossy", nil, "silence warnings with these loss codes")
-	cmd.Flags().BoolVar(&r.strict, "strict", false, "exit non-zero when a warning remains after silencing")
+	cmd.Flags().BoolVar(&r.strict, "strict", false, strictUsage)
 	registerCompletion(cmd, "target", completeDeclaredTargets)
 	registerCompletion(cmd, "allow-lossy", completeLossCodes)
 	return cmd
@@ -164,10 +165,10 @@ type genRun struct {
 	// tdl.toml allows.
 	allowLossy []string
 
-	// strict is --strict, and warnings counts the warnings printed for
+	// strict is --strict, and warned counts the warnings printed for
 	// files under it, by the flag or by their tdl.toml.
-	strict   bool
-	warnings int
+	strict bool
+	warned int
 
 	// cleaned holds the output directories --clean has emptied in this run.
 	// Each is emptied once, since -o applies to every file given.
@@ -242,14 +243,11 @@ func (r *genRun) generate(path string) error {
 		}
 	}
 
-	strict := cfg.Strict
-	if r.cmd.Flags().Changed("strict") {
-		strict = r.strict
-	}
+	strict := strictFor(cmd, cfg, r.strict)
 	report := func(diags []*plugin.Diagnostic) {
 		reportDiagnostics(cmd, diags)
 		if strict {
-			r.warnings += warnings(diags)
+			r.warned += countWarnings(diags)
 		}
 	}
 
@@ -400,6 +398,17 @@ func (r *genRun) checkMakeTarget() error {
 	return nil
 }
 
+const strictUsage = "exit non-zero when a warning remains after silencing"
+
+// strictFor reports whether a file under cfg is strict: --strict when it
+// was given, and [lossy] strict otherwise.
+func strictFor(cmd *cobra.Command, cfg *config.Config, flag bool) bool {
+	if cmd.Flags().Changed("strict") {
+		return flag
+	}
+	return cfg.Strict
+}
+
 // strictError reports the n warnings --strict, or a tdl.toml's [lossy]
 // strict, counted over a run.
 func strictError(n int) error {
@@ -409,8 +418,8 @@ func strictError(n int) error {
 	return fmt.Errorf("%d warning(s) remain under --strict", n)
 }
 
-// warnings counts the diagnostics that are warnings.
-func warnings(diags []*plugin.Diagnostic) int {
+// countWarnings counts the diagnostics that are warnings.
+func countWarnings(diags []*plugin.Diagnostic) int {
 	n := 0
 	for _, d := range diags {
 		if d.GetSeverity() == plugin.Severity_SEVERITY_WARNING {

@@ -137,7 +137,8 @@ allow = ["lossy.collection"]
 `--allow-lossy` on `tdl gen` and `tdl import` adds codes to the list.
 
 `--strict` on either command exits 1, after writing, when a warning survives that silencing, with or without a loss code, and prints `N warning(s) remain under --strict`.
-`gen` counts across every file and combines it with `--verify`, reporting drift and warnings together; under `--watch` it prints the line after each run and keeps watching.
+`gen` counts across every file and combines it with `--verify`, reporting drift and warnings together; under `--watch` it prints the line after each run and keeps watching, and a run that fails it writes no `--make` dependency file.
+`strict` is a key of `[lossy]`, so no target is named `strict`.
 `strict = true` in `[lossy]` turns it on for every file whose nearest `tdl.toml` sets it, and `--strict=false` turns it off for one invocation.
 
 Silencing is diagnostics policy, not type mapping, which is why it lives in the manifest and not in a target block ([workflow.md](https://github.com/UnstoppableMango/tdl/blob/fc0682d/docs/design/workflow.md)).

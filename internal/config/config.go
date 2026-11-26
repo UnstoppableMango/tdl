@@ -29,8 +29,8 @@ type Config struct {
 	// Targets holds, per target, the codes [lossy.<target>] allows.
 	Targets map[string][]string
 
-	// Strict is [lossy] strict: gen and import exit non-zero when a
-	// warning survives silencing, unless --strict=false says otherwise.
+	// Strict is [lossy] strict: whether a warning that survives silencing
+	// fails the run. A target cannot be named strict.
 	Strict bool
 
 	// Post maps each name a target block's post directive may use to the

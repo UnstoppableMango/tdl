@@ -100,9 +100,6 @@ func importCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 				return err
 			}
 			allowed := slices.Concat(cfg.Allowed(from), allowLossy)
-			if !cmd.Flags().Changed("strict") {
-				strict = cfg.Strict
-			}
 
 			resp, err := importer.Import(cmd.Context(), &plugin.ImportRequest{
 				Target:     from,
@@ -116,8 +113,8 @@ func importCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 			kept := host.Silence(resp.GetDiagnostics(), allowed)
 			reportDiagnostics(cmd, kept)
 			remaining := 0
-			if strict {
-				remaining = warnings(kept)
+			if strictFor(cmd, cfg, strict) {
+				remaining = countWarnings(kept)
 			}
 			if host.Fatal(kept) {
 				return errors.Join(fmt.Errorf("%s reported errors; nothing was written", from), strictError(remaining))
@@ -159,7 +156,7 @@ func importCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 	registerCompletion(cmd, "from", completeImporters)
 	registerCompletion(cmd, "package", cobra.NoFileCompletions)
 	registerCompletion(cmd, "allow-lossy", completeLossCodes)
-	cmd.Flags().BoolVar(&strict, "strict", false, "exit non-zero when a warning remains after silencing")
+	cmd.Flags().BoolVar(&strict, "strict", false, strictUsage)
 	cmd.Flags().BoolVar(&readback, "readback", false, "also warn what regenerating would write differently, such as a name or a file layout")
 	return cmd
 }
