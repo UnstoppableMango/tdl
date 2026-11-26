@@ -25,6 +25,7 @@ rust/Cargo.lock linguist-generated
 *.binpb linguist-generated
 testdata/plugin/*.txtpb linguist-generated
 testdata/csharp/corpus/*/want/** linguist-generated
+**/testdata/fuzz/** linguist-generated
 
 # release-please
 CHANGELOG.md linguist-generated

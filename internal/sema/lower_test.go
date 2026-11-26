@@ -1876,6 +1876,15 @@ func TestTargetPathNamesNothing(t *testing.T) {
 	}
 }
 
+// TestEmptyNestedTargetBlock checks an empty nested block lowers to
+// nothing rather than reading as a directive (found by FuzzParse).
+func TestEmptyNestedTargetBlock(t *testing.T) {
+	model := lower(t, "type Empty { x: string }\ntarget go for p { Empty { } }")
+	if got := model.GetTargets()[0].GetDirectives(); len(got) != 0 {
+		t.Errorf("directives = %v, want none", got)
+	}
+}
+
 func TestTargetForAnotherPackage(t *testing.T) {
 	diags := lowerDiags(t, `target go for elsewhere { out("./gen") }`)
 	if !strings.Contains(diags.Error(), "is for package elsewhere") {
