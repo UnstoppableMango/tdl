@@ -215,10 +215,25 @@ func (r *reader) object(o *objectFiles) error {
 		r.Directive(name, "plural", reverse.StrLit(obj.PluralLabel))
 	}
 
-	// unread names the elements that mean something to an org and nothing
-	// to the model, warned about once for the object.
-	unread := map[string]bool{}
 	pos := filePos(o.object)
+	unread := r.unread(o, &obj, base)
+	decl := &ast.StructDecl{DeclHead: head(name, obj.Description, pos), Keyword: "type", Conforms: []*ast.ClassRef{{N: "Entity"}}}
+	r.decls = append(r.decls, decl)
+	if err := r.fields(decl, o, base, unread); err != nil {
+		return err
+	}
+	if len(unread) > 0 {
+		r.Warn(emit.LossUnsupported, pos, "%s has elements with no TDL form, which are not read: %s",
+			o.api, strings.Join(slices.Sorted(maps.Keys(unread)), ", "))
+	}
+	return nil
+}
+
+// unread returns the names of what an object holds that means something to
+// an org and nothing to the model, to warn about once for the object, and
+// warns about each validation rule.
+func (r *reader) unread(o *objectFiles, obj *customObject, base string) map[string]bool {
+	unread := map[string]bool{}
 	for _, e := range obj.Other {
 		if e.XMLName.Local == "validationRules" {
 			r.Warn(emit.LossConstraint, at(o.object, e.XMLName.Local), "%s has a validation rule, which is not read", o.api)
@@ -242,9 +257,13 @@ func (r *reader) object(o *objectFiles) error {
 	if obj.NameField != (nameField{DisplayFormat: base + "-{0000}", Label: obj.Label + " Number", Type: "AutoNumber"}) {
 		unread["nameField"] = true
 	}
+	return unread
+}
 
-	decl := &ast.StructDecl{DeclHead: head(name, obj.Description, pos), Keyword: "type", Conforms: []*ast.ClassRef{{N: "Entity"}}}
-	r.decls = append(r.decls, decl)
+// fields reads an object's field files into decl, and its external ID into
+// a key directive.
+func (r *reader) fields(decl *ast.StructDecl, o *objectFiles, base string, unread map[string]bool) error {
+	name := decl.N
 	var key string
 	seen := map[string]bool{}
 	for _, f := range o.fields {
@@ -270,10 +289,6 @@ func (r *reader) object(o *objectFiles) error {
 		case isKey:
 			r.Warn(emit.LossUnsupported, filePos(f), "%s has a second external ID, %s, and only %s is read as its key", o.api, fld.N, key)
 		}
-	}
-	if len(unread) > 0 {
-		r.Warn(emit.LossUnsupported, pos, "%s has elements with no TDL form, which are not read: %s",
-			o.api, strings.Join(slices.Sorted(maps.Keys(unread)), ", "))
 	}
 	return nil
 }
