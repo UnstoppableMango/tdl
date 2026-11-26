@@ -14,7 +14,7 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// startScript runs body as a plugin and sends handshakes until a write
+// startUntilBrokenPipe runs body as a plugin and sends handshakes until a write
 // fails, which it does once the plugin closes its stdin.
 func startUntilBrokenPipe(t *testing.T, ctx context.Context, body string) (*session, error) {
 	t.Helper()
