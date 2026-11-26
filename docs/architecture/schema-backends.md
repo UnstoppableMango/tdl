@@ -447,6 +447,6 @@ The normal form for comparing models is the `smithy ast` JSON of the shapes each
 
 The spec's wire convention says how some values are written, and where it is silent these backends and the Go backend can disagree about one value.
 It writes a `duration` as an ISO 8601 string, which TypeScript types as a string and Zod checks with `z.iso.duration()`; under `json`, Go writes one through a generated `Duration` type.
-TypeScript types a `date` as a string, while Go's `encoding/json` writes a date as a full timestamp.
+It writes a `date` as `YYYY-MM-DD`, which Zod checks with `z.iso.date()`, and Go writes through a generated `Date`, and an `instant` as RFC 3339 with an offset, which Go's `time.Time` already writes.
 A Go pointer marshals to `null`, and TypeScript types `T?` as an absent key.
 The `tag` directive is how a Go consumer aligns them; a wire encoding is a decision for the spec.

@@ -483,9 +483,13 @@ func (r *reader) classify() {
 				t.role = roleClass
 			}
 		case *goast.StructType:
-			t.role = roleStruct
-			if t.spec.Assign.IsValid() {
+			switch {
+			case t.spec.Assign.IsValid():
 				t.role = roleAlias
+			case wireHelper(t) != "":
+				t.role, t.prim = roleWire, wireHelper(t)
+			default:
+				t.role = roleStruct
 			}
 		default:
 			switch {
