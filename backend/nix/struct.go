@@ -24,45 +24,76 @@ var prims = map[string]string{
 	"float64":  "types.number",
 	"bytes":    matching(`([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?`),
 	"decimal":  matching(`-?[0-9]+(\.[0-9]+)?`),
-	"uuid":     matching(`[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}`),
-	"date":     matching(`[0-9]{4}-[0-9]{2}-[0-9]{2}`),
-	"instant":  matching(`[0-9]{4}-[0-9]{2}-[0-9]{2}[Tt][0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?([Zz]|[+-][0-9]{2}:[0-9]{2})`),
-	"duration": matching(`P([0-9]+W|([0-9]+Y)?([0-9]+M)?([0-9]+D)?(T([0-9]+H)?([0-9]+M)?([0-9]+([.,][0-9]+)?S)?)?)`),
+	"uuid":     matching(`[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff`),
+	"date":     matching(date),
+	"instant":  matching(date + `[Tt]` + hms + `(\.[0-9]+)?([Zz]|[+-]([01][0-9]|2[0-3]):[0-5][0-9])`),
+	"duration": "duration",
 }
+
+// The wire forms of RFC 3339's full-date and time, as zod and JSON Schema
+// read them.
+const (
+	date = `[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])`
+	hms  = `([01][0-9]|2[0-3]):[0-5][0-9]:([0-5][0-9]|60)`
+)
 
 // matching is a string type checked by a POSIX ERE, which builtins.match
 // anchors at both ends.
 func matching(ere string) string { return "types.strMatching " + str(ere) }
 
-// structHelper is a submodule whose optional fields, unset, are absent
-// from its value, so toJSON leaves them out. nixpkgs rebuilds a submodule
+// afterHelper applies f to a type's merged value. nixpkgs merges through
+// merge.v2 where it has one, and rebuilds a type holding submodules
 // through substSubModules, which must keep the wrapper.
+const afterHelper = `  after =
+    f: base:
+    base
+    // {
+      merge =
+        if base.merge ? v2 then
+          base.merge
+          // {
+            v2 =
+              args:
+              let
+                r = base.merge.v2 args;
+              in
+              r // { value = f args.loc r.value; };
+          }
+        else
+          loc: defs: f loc (base.merge loc defs);
+      substSubModules = m: after f (base.substSubModules m);
+    };
+`
+
+// structHelper is a submodule whose optional fields, unset, are absent
+// from its value, so toJSON leaves them out.
 const structHelper = `  struct =
     options:
     let
       absent = n: v: v == null && options.${n}.optional or false;
-      drop = lib.filterAttrs (n: v: !absent n v);
-      wrap =
-        base:
-        base
-        // {
-          merge =
-            if base.merge ? v2 then
-              base.merge
-              // {
-                v2 =
-                  args:
-                  let
-                    r = base.merge.v2 args;
-                  in
-                  r // { value = drop r.value; };
-              }
-            else
-              loc: defs: drop (base.merge loc defs);
-          substSubModules = m: wrap (base.substSubModules m);
-        };
     in
-    wrap (types.submodule { options = lib.mapAttrs (_: o: removeAttrs o [ "optional" ]) options; });
+    after (_: lib.filterAttrs (n: v: !absent n v)) (
+      types.submodule { options = lib.mapAttrs (_: o: removeAttrs o [ "optional" ]) options; }
+    );
+`
+
+// opaqueHelper hides a struct's options from docs, for a struct reached
+// from itself, whose docs would otherwise never end.
+const opaqueHelper = `  opaque =
+    type:
+    type
+    // {
+      getSubOptions = _: { };
+      substSubModules = m: opaque (type.substSubModules m);
+    };
+`
+
+// durationHelper is an ISO 8601 duration. An ERE cannot look ahead, so a
+// check refuses P, and a T ending it, which hold no component.
+const durationHelper = `  duration =
+    types.addCheck
+      (types.strMatching "P([0-9]+W|([0-9]+Y)?([0-9]+M)?([0-9]+D)?(T([0-9]+H)?([0-9]+M)?([0-9]+([.,][0-9]+)?S)?)?)")
+      (s: builtins.match "P|.*T" s == null);
 `
 
 // optionalHelper is an option that defaults to null, marked for struct.
@@ -83,7 +114,8 @@ const optionalHelper = `  optional =
 // structure renders an entity, a value, or a mixin, which emit alike, as
 // a submodule. A mixin's fields are already copied into each includer.
 func (g *generator) structure(b *strings.Builder, d *ir.Decl, attr string) error {
-	g.used["struct"] = true
+	g.used["struct"], g.used["after"] = true, true
+	g.current = d
 	owner := emit.LastSegment(d.GetMeta().GetName())
 	var fields strings.Builder
 	seen := map[string]bool{}
@@ -163,7 +195,10 @@ func (g *generator) typ(r *emit.Ref) (string, error) {
 		if !ok {
 			return "", emit.Unsupported(r.Pos, "primitive %s has no Nix type", r.Name)
 		}
-		if r.Name == "uint64" {
+		switch r.Name {
+		case "duration":
+			g.used["duration"] = true
+		case "uint64":
 			g.Lossy(emit.LossPrimitive, r.Pos, "uint64 is an unsigned Nix int, which stops at 2^63-1")
 		}
 		return t, nil
@@ -177,7 +212,24 @@ func (g *generator) typ(r *emit.Ref) (string, error) {
 	case emit.Set, emit.Map:
 		return "", emit.Unsupported(r.Pos, "sets and maps are not generated yet")
 	}
+	if r.Decl.GetStructure() != nil && g.reaches(r.Decl, g.current, map[*ir.Decl]bool{}) {
+		g.used["opaque"] = true
+		return "opaque " + g.attr(r.Decl), nil
+	}
 	return g.attr(r.Decl), nil
+}
+
+// reaches reports whether from names to, through any number of
+// declarations.
+func (g *generator) reaches(from, to *ir.Decl, seen map[*ir.Decl]bool) bool {
+	if from == to {
+		return true
+	}
+	if seen[from] {
+		return false
+	}
+	seen[from] = true
+	return slices.ContainsFunc(g.References(from), func(d *ir.Decl) bool { return g.reaches(d, to, seen) })
 }
 
 // hasUnit reports whether a type is measured in a unit.

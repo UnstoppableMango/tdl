@@ -50,9 +50,12 @@ type helper struct{ name, text string }
 
 // helpers is every helper, in the order the file declares them.
 var helpers = []helper{
+	{"after", afterHelper},
 	{"struct", structHelper},
 	{"optional", optionalHelper},
 	{"nullable", "  nullable = type: types.nullOr type // { emptyValue = { }; };\n"},
+	{"opaque", opaqueHelper},
+	{"duration", durationHelper},
 }
 
 // reserved is what a declaration cannot be bound as, since the file binds
@@ -67,6 +70,9 @@ type generator struct {
 
 	// used is the helpers the declaration being rendered uses.
 	used map[string]bool
+
+	// current is the struct being rendered.
+	current *ir.Decl
 }
 
 // Generate returns one .nix file: a function of lib returning an attribute
