@@ -97,6 +97,24 @@ func TestFileDirective(t *testing.T) {
 	}
 }
 
+func TestBindings(t *testing.T) {
+	resp, out := gen(t, `package shop
+enum A { X }
+enum B { X }
+enum C { X }
+enum D { X }
+target nix for shop {
+  B => name("types")
+  C => name("if")
+  D => name("A")
+}
+`)
+	if strings.Contains(out, "types =") || strings.Contains(out, "if =") || strings.Count(out, "A =") != 1 {
+		t.Errorf("output binds a name it must not:\n%s", out)
+	}
+	warns(t, resp, [2]string{"", "which the file binds itself"}, [2]string{"", "not a Nix identifier"}, [2]string{"", "and A already is"})
+}
+
 func TestSkipsWhatPhaseOneLacks(t *testing.T) {
 	resp, out := gen(t, `package shop
 type Id: string
