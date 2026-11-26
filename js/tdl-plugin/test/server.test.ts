@@ -1,14 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 
-import { create, equals } from "@bufbuild/protobuf";
+import { create, equals, type MessageInitShape } from "@bufbuild/protobuf";
 
 import { type Backend, type Description, reply } from "../src/backend.js";
 import { Conn, FRAMING_VERSION, IR_VERSION } from "../src/conn.js";
 import { ProtocolError, UnexpectedEofError } from "../src/error.js";
 import {
 	FileSchema,
-	type Handshake,
 	HandshakeReplySchema,
 	HandshakeSchema,
 	Mode,
@@ -26,7 +25,7 @@ function echo(reverse = false): Backend {
 	};
 }
 
-const hello = (init: Partial<Handshake> = {}) =>
+const hello = (init: MessageInitShape<typeof HandshakeSchema> = {}) =>
 	create(HandshakeSchema, { framingVersion: FRAMING_VERSION, irVersion: IR_VERSION, ...init });
 
 async function exchange(backend: Backend, input: Uint8Array) {

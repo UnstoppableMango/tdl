@@ -2,7 +2,7 @@
 // testdata/roundtrip, holding it to docs/architecture/reverse.md's goal.
 //
 // A case is a directory. One holding source.tdl is model first: the model
-// is generated with the `roundtrip` directive on and must import back
+// is generated with the `annotate` directive on and must import back
 // equal, positions aside, warning only what it warns without the
 // directive, and generated with the `readback` directive must warn
 // exactly the loss codes in lossy.golden. One holding expected.tdl is schema first:
@@ -46,7 +46,7 @@ const (
 
 // Directive is the bare target-block directive that makes a backend write
 // every fact its mapping would lose.
-const Directive = "roundtrip"
+const Directive = "annotate"
 
 // Readback is the bare target-block directive that makes a backend warn
 // about what import would not read back, besides what its output loses.
@@ -167,7 +167,7 @@ func modelFirst(t *testing.T, target Target, importer plugin.Importer, source st
 	comesBack(t, target, importer, source, model)
 }
 
-// comesBack generates model with the roundtrip directive on, which must
+// comesBack generates model with the annotate directive on, which must
 // warn about only what generating without it does, and imports the files,
 // which must print to TDL lowering to the same model.
 func comesBack(t *testing.T, target Target, importer plugin.Importer, source string, model *ir.Model) {
@@ -408,7 +408,7 @@ func withDirective(model *ir.Model, target, name string) *ir.Model {
 	return out
 }
 
-// withoutDirective drops the roundtrip directive from model's blocks for
+// withoutDirective drops the annotate directive from model's blocks for
 // target, and a block for target left empty when original had none, so a
 // backend may write the directive back or not.
 func withoutDirective(model *ir.Model, target string, original *ir.Model) *ir.Model {

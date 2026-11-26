@@ -63,7 +63,7 @@ func (Backend) Describe() plugin.Description {
 			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: []ir.LiteralKind{str[0], str[0]}, Placements: plugin.On(plugin.OnDecl)},
 			// Writes, as JSDoc @tdl tags, every fact the declarations alone
 			// would lose, so import rebuilds the model.
-			{Name: "roundtrip", Placements: plugin.On(plugin.OnBlock)},
+			{Name: "annotate", Placements: plugin.On(plugin.OnBlock)},
 			{Name: "readback", Placements: plugin.On(plugin.OnBlock)},
 		},
 		Reverse: true,
@@ -123,7 +123,7 @@ func generate(req *plugin.Request, mapped bool) *plugin.Response {
 
 	// A mapped module is read by tsc, never imported back, and a
 	// round trip would hide what it skips.
-	g.Roundtrip = !mapped && g.Bare("roundtrip")
+	g.Annotate = !mapped && g.Bare("annotate")
 	g.Readback = g.Bare("readback")
 	g.brand = g.Bare("brand")
 	if g.brand {

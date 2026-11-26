@@ -14,7 +14,7 @@ import (
 	"github.com/unstoppablemango/tdl/ir"
 )
 
-// Generating warns about each fact the Smithy loses. Under a `roundtrip`
+// Generating warns about each fact the Smithy loses. Under an `annotate`
 // directive, a declaration whose shapes do not read back as it carries
 // itself whole as TDL in a tdl#source trait, and what no shape carries,
 // such as the package and the declarations Smithy has no form for, goes
@@ -61,7 +61,7 @@ func (g *generator) carry(kept []rendered, shapes []*shape) {
 	for changed := true; changed; {
 		changed = false
 		r := &reader{}
-		r.Roundtrip = true
+		r.Annotated = true
 		if err := r.prepare(shapes, at, g.ns); err != nil {
 			return
 		}
@@ -85,7 +85,7 @@ func (g *generator) carry(kept []rendered, shapes []*shape) {
 
 // metadata is the tdl metadata statement: the package when the namespace
 // does not say it, or no shape does, the package's doc comment, the imports, and every
-// top-level item not emitted, by its index. Roundtrip always writes it,
+// top-level item not emitted, by its index. Annotating always writes it,
 // since it is how import knows to infer no directives.
 func (g *generator) metadata(emitted map[string]bool, shapes bool) string {
 	var a annotations

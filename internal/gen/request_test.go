@@ -50,23 +50,23 @@ func TestHostNumbersAsTheBackendWould(t *testing.T) {
 	}
 }
 
-// A backend writing roundtrip annotations writes the same files from the
+// A backend writing annotations writes the same files from the
 // TDL tdl sends as from the TDL it would print itself.
 func TestHostCarriesSourceAsTheBackendWould(t *testing.T) {
 	carrying := 0
 	for _, name := range gen.BuiltinNames() {
 		backend, _ := gen.Builtin(name)
-		if !slices.ContainsFunc(backend.Describe().Directives, func(d *plugin.DirectiveSpec) bool { return d.GetName() == "roundtrip" }) {
+		if !slices.ContainsFunc(backend.Describe().Directives, func(d *plugin.DirectiveSpec) bool { return d.GetName() == "annotate" }) {
 			continue
 		}
 		carrying++
 		for path, model := range corpora(t) {
-			req, problems := analysis.Request(withRoundtrip(model, name), backend.Describe(), name, "out")
+			req, problems := analysis.Request(withAnnotate(model, name), backend.Describe(), name, "out")
 			if host.Fatal(problems) {
 				continue
 			}
 			if req.GetAnalysis().GetSource() == nil {
-				t.Fatalf("%s: %s: the request carries no source under roundtrip", path, name)
+				t.Fatalf("%s: %s: the request carries no source under annotate", path, name)
 			}
 			fromHost, err := backend.Generate(context.Background(), req)
 			if err != nil {
@@ -84,14 +84,14 @@ func TestHostCarriesSourceAsTheBackendWould(t *testing.T) {
 		}
 	}
 	if carrying == 0 {
-		t.Fatal("no built-in backend writes roundtrip annotations")
+		t.Fatal("no built-in backend writes annotations")
 	}
 }
 
-// withRoundtrip adds the roundtrip directive to target's block.
-func withRoundtrip(model *ir.Model, target string) *ir.Model {
+// withAnnotate adds the annotate directive to target's block.
+func withAnnotate(model *ir.Model, target string) *ir.Model {
 	out := proto.CloneOf(model)
-	d := &ir.Directive{Name: "roundtrip", Target: target}
+	d := &ir.Directive{Name: "annotate", Target: target}
 	for _, b := range out.GetTargets() {
 		if b.GetMeta().GetName() == target {
 			b.Directives = append(b.Directives, d)

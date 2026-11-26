@@ -32,3 +32,9 @@ classDiagram
   Expr <|-- Expr_Neg
   Expr <|-- Expr_Binary
   Expr <|-- Expr_Note
+  Expr_Neg "1" --> "1" Expr : operand
+  Expr_Binary "1" --> "1" BinOp : op
+  Expr_Binary "1" --> "1" Expr : lhs
+  Expr_Binary "1" --> "1" Expr : rhs
+  Expr_Note "1" --> "1" Annotated : annotated
+  Annotated "1" --> "1" Expr : expr

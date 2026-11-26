@@ -144,7 +144,7 @@ A deprecation is appended to the description, and is an `@deprecated` ApexDoc ta
 
 `tdl import --from salesforce` reads the object and field metadata among its files, `objects/<Object>/<Object>.object-meta.xml` and `objects/<Object>/fields/*.field-meta.xml`, into package `salesforce`, since the source names none.
 A field's object is the `objects/<Object>/` segment of its path, and a field with no object file beside it warns and is not read.
-Apex is not read yet (#1459), so one warning without a loss code names the first class and skips every class, and `roundtrip` writes nothing yet (#1461).
+Apex is not read yet (#1459), so one warning without a loss code names the first class and skips every class, and `annotate` writes nothing yet (#1461).
 
 A custom object is an entity, and its fields read back as generating writes them:
 

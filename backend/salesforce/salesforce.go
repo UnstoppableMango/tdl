@@ -59,7 +59,7 @@ func (Backend) Describe() plugin.Description {
 			{Name: "apiVersion", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock)},
 			// On the target block: write what generating loses, for import.
 			// Nothing is written yet (#1461).
-			{Name: "roundtrip", Placements: plugin.On(plugin.OnBlock)},
+			{Name: "annotate", Placements: plugin.On(plugin.OnBlock)},
 			// On the target block: also report what import would not read
 			// back.
 			{Name: "readback", Placements: plugin.On(plugin.OnBlock)},
@@ -106,7 +106,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	if d, ok := g.Block("apiVersion"); ok {
 		g.apiVersion = d.GetArgs()[0].GetText()
 	}
-	g.Roundtrip, g.Readback = g.Bare("roundtrip"), g.Bare("readback")
+	g.Annotate, g.Readback = g.Bare("annotate"), g.Bare("readback")
 
 	own := g.Own()
 	out := map[*ir.Decl][]*plugin.File{}

@@ -65,7 +65,7 @@ public class SessionTests
 
 		Assert.Equal("./gen", s.Block("out")?.Args[0].Text);
 		Assert.Null(s.Block("note"));
-		Assert.True(s.Bare("roundtrip"));
+		Assert.True(s.Bare("annotate"));
 		Assert.False(s.Bare("closed"));
 	}
 
@@ -184,7 +184,7 @@ public class SessionTests
 	}
 }
 
-public class RoundtripTests
+public class AnnotationTests
 {
 	// Reports read-back loss, so a helper's every warning shows.
 	static Session Catalog() => new(Repo.Request("catalog"), "Debug") { Readback = true };
@@ -227,11 +227,11 @@ public class RoundtripTests
 		Assert.Equal([1, 3], carried.Select(c => c.At));
 		Assert.Equal("type Marker { }", carried[0].Source);
 		Assert.StartsWith("target debug for catalog {", carried[1].Source);
-		Assert.DoesNotContain("roundtrip", carried[1].Source);
+		Assert.DoesNotContain("annotate", carried[1].Source);
 	}
 
 	[Fact]
-	public void WithoutRoundtripThereIsNoSource()
+	public void WithoutAnnotateThereIsNoSource()
 	{
 		var s = new Session(Repo.Request("shop"), "Debug");
 
@@ -245,9 +245,9 @@ public class RoundtripTests
 	[InlineData(true, false, new[] { "output", "skipped", "read back" })]
 	[InlineData(false, true, new[] { "output", "skipped" })]
 	[InlineData(true, true, new[] { "output", "skipped" })]
-	public void OutputLossAlwaysWarnsAndReadBackLossOnlyUnderReadback(bool readback, bool roundtrip, string[] want)
+	public void OutputLossAlwaysWarnsAndReadBackLossOnlyUnderReadback(bool readback, bool annotate, string[] want)
 	{
-		var s = new Session(Repo.Request("catalog"), "Debug") { Readback = readback, Roundtrip = roundtrip };
+		var s = new Session(Repo.Request("catalog"), "Debug") { Readback = readback, Annotate = annotate };
 		s.Lossy(LossCodes.Constraint, null, "output");
 		s.Skip(new Unsupported("skipped", null));
 		s.Lose(LossCodes.Doc, null, "read back");

@@ -160,7 +160,7 @@ target TARGET for kinds {
 			}{
 				{"out(\"gen\")", false},
 				{"readback", true},
-				{"roundtrip", false},
+				{"annotate", false},
 			} {
 				t.Run(tt.directive, func(t *testing.T) {
 					text := strings.NewReplacer("TARGET", desc.Name, "DIRECTIVE", tt.directive).Replace(src)
