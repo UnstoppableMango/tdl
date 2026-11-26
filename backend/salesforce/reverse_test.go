@@ -158,3 +158,31 @@ func TestObjectsRefuseBrokenXML(t *testing.T) {
 		t.Errorf("diagnostics = %v, want one error", diags)
 	}
 }
+
+// Objects reading as one entity, or as a prelude name, warn and skip all
+// but the first; a skipped folder warns for each file in it; and the last
+// objects/ segment of a path names the object, even with a folder named
+// objects above it.
+func TestObjectsSkip(t *testing.T) {
+	files := []*plugin.File{
+		object("Line_Item__c", ""),
+		object("LineItem__c", ""),
+		object("Entity__c", ""),
+		object("Account", ""),
+		{Path: "objects/Account/validationRules/R.validationRule-meta.xml", Content: []byte("<ValidationRule/>")},
+	}
+	files[0].Path = "objects/proj/" + files[0].Path
+	got, diags := readBack(t, files)
+	for _, text := range []string{"LineItem__c reads as LineItem", "Entity__c reads as Entity", "Account.object-meta.xml is not read", "R.validationRule-meta.xml is not read"} {
+		if !hasDiag(diags, "lossy.unsupported", text) {
+			t.Errorf("no warning containing %q in %v", text, diags)
+		}
+	}
+	// The fifth is Line_Item__c's name field, which object writes for Thing.
+	if len(diags) != 5 {
+		t.Errorf("%d warnings, want 5: %v", len(diags), diags)
+	}
+	if !strings.Contains(got, "type LineItem: Entity { }") || !strings.Contains(got, `LineItem => name("Line_Item")`) {
+		t.Errorf("reads as\n%s", got)
+	}
+}
