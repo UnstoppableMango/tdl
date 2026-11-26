@@ -65,7 +65,7 @@ jobs:
           nix develop -c make dotnet-deps
           git diff --exit-code dotnet/deps.json
 
-      - run: nix flake check
+      - run: nix flake check --keep-going
         if: ${{ !cancelled() }}
 
       - run: nix build .#
