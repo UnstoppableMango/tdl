@@ -236,14 +236,14 @@ A field a `tag` directive renames is filled as any other; a tag adding `omitempt
 A field named `marshalJSON` would collide with the method, so a type holding one alongside a list or map is skipped.
 
 A `duration` is a `time.Duration`, which `encoding/json` writes as integer nanoseconds, and the convention writes as an ISO 8601 string such as `PT1M30S`.
-So under `json` the package declares a `Duration` over `time.Duration`, once and only when the model uses one, with `String`, `MarshalJSON`, and `UnmarshalJSON`, and every `duration` at any depth is that type:
+So under `json` the package declares a `Duration` over `time.Duration`, once and only when the model uses one, whose `String` and `MarshalText` write that string and whose `UnmarshalText` reads it, which `encoding/json` uses for a value and a map key, and every `duration` at any depth is that type:
 
 ```go
 type Duration time.Duration
 ```
 
-It is `WireDuration` when the model declares a `Duration`, and is written to its own file, or to the one a `file` directive names.
-Decoding reads weeks, days, hours, minutes, and seconds with a fraction and a sign, and refuses a year or month part, which has no fixed length.
+It is `WireDuration` when the package declares a `Duration`, refusing the field when it declares both, and is written to its own file, or to the one a `file` directive names.
+Decoding reads days, hours, minutes, and seconds with a fraction and a sign, or weeks alone, and refuses a year or month part, which has no fixed length.
 A `foreign` directive on `duration` still names its type.
 
 What the convention cannot carry warns: a variant field named like the discriminant skips the enum, a `Set` is a Go map, which `encoding/json` writes as an object rather than an array, a generic declaration applied to a fielded enum decodes it as a plain value, and one applied to a type holding a list or map writes it as a plain value, a nil one as `null`.
