@@ -212,7 +212,7 @@ message Analysis {
   repeated DeclView decls = 2; // indexed like Model.decls
 
   // source is the model as TDL, set only when the target block carries the
-  // roundtrip directive.
+  // annotate directive.
   Source source = 3;
 }
 
@@ -230,7 +230,7 @@ message Source {
 // Item is one top-level item of the model as TDL.
 message Item {
   // source is the item, doc comment included. The target block is written
-  // without its roundtrip directive, and is empty when it holds nothing
+  // without its annotate directive, and is empty when it holds nothing
   // else.
   string source = 1;
   // name is a declaration's name, or empty for an instance or the target

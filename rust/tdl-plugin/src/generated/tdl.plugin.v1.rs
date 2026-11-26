@@ -1831,7 +1831,7 @@ pub struct Analysis {
     /// Field 2: `decls`
     pub decls: ::buffa::alloc::vec::Vec<DeclView>,
     /// source is the model as TDL, set only when the target block carries the
-    /// roundtrip directive.
+    /// annotate directive.
     ///
     /// Field 3: `source`
     pub source: ::buffa::MessageField<Source, ::buffa::Inline<Source>>,
@@ -2149,7 +2149,7 @@ impl ::buffa::ExtensionSet for Source {
 #[derive(Clone, PartialEq, Default)]
 pub struct Item {
     /// source is the item, doc comment included. The target block is written
-    /// without its roundtrip directive, and is empty when it holds nothing
+    /// without its annotate directive, and is empty when it holds nothing
     /// else.
     ///
     /// Field 1: `source`

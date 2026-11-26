@@ -189,17 +189,17 @@ fn output_loss_always_warns_and_read_back_loss_only_under_readback() {
         (false, true, &["output", "skipped"]),
         (true, true, &["output", "skipped"]),
     ];
-    for (readback, roundtrip, want) in cases {
+    for (readback, annotate, want) in cases {
         let mut s = Session::new(&req, "Debug").unwrap();
         s.readback = readback;
-        s.roundtrip = roundtrip;
+        s.annotate = annotate;
 
         s.lossy(loss::CONSTRAINT, None, "output");
         s.skip(Problem::unsupported("skipped", None));
         s.lose(loss::DOC, None, "read back");
 
         let got: Vec<_> = s.diagnostics.iter().map(|d| d.message.as_str()).collect();
-        assert_eq!(got, want, "readback {readback}, roundtrip {roundtrip}");
+        assert_eq!(got, want, "readback {readback}, annotate {annotate}");
     }
 }
 
