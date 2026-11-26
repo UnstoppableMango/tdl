@@ -172,6 +172,9 @@ What has no TDL form warns and is not read:
 - a checkbox default other than false, and a picklist value marked default, warn `lossy.default`
 - every other element and folder generating does not write, or writes differently, such as a `sharingModel` other than `ReadWrite` or a `listViews` folder, is named in one `lossy.unsupported` warning per object
 - a `Number` whose precision is not 18 is read and warns `lossy.unsupported`, until a `precision` directive exists (#1458)
+- a `Text` length outside 1 to 255, or a scale above 18, is read without its `length` or `scale` and warns `lossy.unsupported`
+- an external ID on a field other than `Text` or `Number` is not read as the key and warns `lossy.unsupported`
+- an object or field whose name is another's, by case or by the convention, `Line_Item__c` beside `LineItem__c`, or a prelude declaration's, drops under `lossy.unsupported`, and a picklist's enum takes its entity's name first
 
 Each object and field file's normal form for the round-trip corpus is the file parsed and written again without those elements.
 
