@@ -58,13 +58,6 @@ var helpers = []helper{
 	{"duration", durationHelper},
 }
 
-// reserved is what a declaration cannot be bound as, since the file binds
-// it, or a helper reads it.
-func reserved(name string) bool {
-	return slices.Contains([]string{"lib", "types", "mkOption", "builtins"}, name) ||
-		slices.ContainsFunc(helpers, func(h helper) bool { return h.name == name })
-}
-
 type generator struct {
 	*emit.Session
 
@@ -165,8 +158,6 @@ func (g *generator) decl(d *ir.Decl) (string, error) {
 	switch {
 	case !ident.MatchString(attr) || slices.Contains(keywords, attr):
 		return "", emit.Unsupported(pos, "%s would be bound as %q, which is not a Nix identifier", name, attr)
-	case reserved(attr):
-		return "", emit.Unsupported(pos, "%s would be bound as %s, which the file binds itself", name, attr)
 	}
 	g.LoseConforms(d, "Nix")
 
