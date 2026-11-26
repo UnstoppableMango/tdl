@@ -8,6 +8,7 @@ import (
 
 	"github.com/unstoppablemango/tdl/internal/analysis"
 	"github.com/unstoppablemango/tdl/internal/host"
+	"github.com/unstoppablemango/tdl/internal/sema"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -21,6 +22,11 @@ type Target struct {
 	// Post is what runs over each returned file before anything is
 	// compared or written, from [ResolvePost]; nil runs nothing.
 	Post *Post
+
+	// Loader reads the model's imports again for a nondeterministic
+	// backend, so [Depend] can send what each dependency declares and
+	// generated; nil sends nothing.
+	Loader sema.Loader
 }
 
 // Targets returns the target blocks in a model, with their output
@@ -96,6 +102,9 @@ func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.M
 
 	var hash string
 	if backend.Describe().Nondeterministic {
+		if err := Depend(req, target.Loader); err != nil {
+			return Result{Target: target.Name}, fmt.Errorf("target %s: %w", target.Name, err)
+		}
 		var err error
 		if hash, err = RequestHash(req); err != nil {
 			return Result{Target: target.Name}, fmt.Errorf("target %s: %w", target.Name, err)

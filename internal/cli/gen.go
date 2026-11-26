@@ -272,6 +272,7 @@ func (r *genRun) generate(path string) error {
 		if t.Post, err = gen.ResolvePost(t.Block, cfg); err != nil {
 			return err
 		}
+		t.Loader = loader
 
 		result, err := gen.Run(cmd.Context(), backend, t, model, mode)
 		reportDiagnostics(cmd, host.Silence(result.Diagnostics, slices.Concat(cfg.Allowed(t.Name), r.allowLossy)))
