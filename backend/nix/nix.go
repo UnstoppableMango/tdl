@@ -55,6 +55,8 @@ var helpers = []helper{
 	{"optional", optionalHelper},
 	{"nullable", "  nullable = type: types.nullOr type // { emptyValue = { }; };\n"},
 	{"duration", durationHelper},
+	{"set", setHelper},
+	{"keyed", "  keyed = key: value: types.addCheck (types.attrsOf value) (m: lib.all key.check (lib.attrNames m));\n"},
 }
 
 type generator struct {
