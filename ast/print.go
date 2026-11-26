@@ -498,7 +498,7 @@ func (p *printer) entries(entries []*TargetEntry, indent string, headLine int, e
 	for _, e := range entries {
 		p.flush(inner, e.P)
 		switch {
-		case e.Entries != nil:
+		case e.Directive == nil:
 			p.b.WriteString(inner + e.Path)
 			p.entries(e.Entries, inner, e.P.Line, e.Rbrace, end)
 		case e.Path != "":

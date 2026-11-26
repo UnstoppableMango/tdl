@@ -53,6 +53,10 @@ func (p *parser) parseTargetEntry() *ast.TargetEntry {
 	case p.at(lex.LBRACE):
 		entry.Path = dotted
 		entry.Entries, entry.Rbrace = p.parseTargetEntries()
+		if entry.Entries == nil {
+			// An empty block is still a block, never a directive.
+			entry.Entries = []*ast.TargetEntry{}
+		}
 	case p.accept(lex.FATARROW):
 		entry.Path = dotted
 		entry.Directive = p.parseDirective()
