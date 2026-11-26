@@ -90,7 +90,12 @@ func (g *generator) dependencies(src *plugin.Source) string {
 	var b strings.Builder
 	b.WriteString("\nThe model imports these packages, which are generated separately. Refer to what they declare; never write their declarations yourself.\n\n")
 	for _, imp := range imports {
-		fmt.Fprintf(&b, "- %s, imported as %s", imp.GetPackage(), imp.GetAlias())
+		switch alias := imp.GetAlias(); alias {
+		case "_":
+			fmt.Fprintf(&b, "- %s, whose names the model uses unqualified", imp.GetPackage())
+		default:
+			fmt.Fprintf(&b, "- %s, imported as %s", imp.GetPackage(), alias)
+		}
 		if lang, ok := g.Text(imp.GetDirectives(), "language"); ok {
 			fmt.Fprintf(&b, ", written in %s", lang)
 		}
