@@ -18,7 +18,7 @@ Its first consumer is a C# backend written in C#, which reaches the .NET compile
 | Kind | Share of `emit` | Examples | Where it goes |
 | --- | --- | --- | --- |
 | Facts | about half | type forms, alias and newtype expansion, references, numbering, length bounds, TDL source text | the host, shipped as data |
-| Decisions | a little under half | diagnostics and loss codes, the cascade over what a backend skipped, case styles, round-trip muting | an SDK per language |
+| Decisions | a little under half | diagnostics and loss codes, the cascade over what a backend skipped, case styles, annotation muting | an SDK per language |
 | Language policy | a few percent | JSDoc and ApexDoc comment blocks | one backend |
 
 A fact is a pure function of the model, the target, and its directives.
@@ -101,11 +101,11 @@ A backend that does not number declares none and receives no numbers.
 
 ## Round trips and import
 
-Under `roundtrip`, six backends write the TDL a target cannot express into annotations.
+Under `annotate`, six backends write the TDL a target cannot express into annotations.
 That text comes from `internal/unlower` and `ast`, which only Go can call.
 The analysis therefore carries it, each top-level item, declaration, field, and conformance list as source, plus the imports and the target block, so a plugin copies text rather than printing TDL.
-`Analysis.source` holds the items in order, each declaration's with its name and conformance list, and the target block without its `roundtrip` directive; each field's `MemberView` holds its source and its deprecation apart, since a target that carries deprecation itself copies the field without it.
-The host fills them only under `roundtrip`.
+`Analysis.source` holds the items in order, each declaration's with its name and conformance list, and the target block without its `annotate` directive; each field's `MemberView` holds its source and its deprecation apart, since a target that carries deprecation itself copies the field without it.
+The host fills them only under `annotate`.
 
 The import direction has the same problem in reverse: `backend/internal/reverse` builds an `ast.File` and lowers it with `sema` inside the plugin.
 An `ImportResponse` may carry TDL source instead of a model, and the host parses and lowers it, as `tdl import` already lowers its own printed output again.
@@ -120,14 +120,14 @@ An SDK wraps the generated protobuf types with what remains:
 - positioned warnings and errors, with the loss codes in [reverse.md](reverse.md#loss-codes);
 - the cascade, skipping and warning on every declaration naming a refused one;
 - name lookup through a `name` directive, and case styles over the shipped words;
-- the round-trip helpers that mute a loss warning a carried annotation recovers.
+- the annotation helpers that mute a loss warning a carried annotation recovers.
 
 `emit` becomes the Go SDK, reading the analysis instead of computing it.
 Built-in backends keep calling it in process, and `TestHostsAgree` still holds them to the same bytes over a pipe.
 
 The .NET SDK, `Tdl.Plugin`, is a library holding the C# types `protoc` generates for both protos, framing over stdio, and the list above.
-The Rust SDK, `tdl-plugin` in `rust/` (#1364), holds the types buffa generates for both protos, the same framing, and the list above but the round-trip helpers, which wait for a Rust backend that imports.
-The JS/TS SDK, `@unmango/tdl-plugin` in `js/` (#1480), holds the types protobuf-es generates for both protos, the same framing, and the same list but the round-trip helpers, and runs on Node and Bun.
+The Rust SDK, `tdl-plugin` in `rust/` (#1364), holds the types buffa generates for both protos, the same framing, and the list above but the annotation helpers, which wait for a Rust backend that imports.
+The JS/TS SDK, `@unmango/tdl-plugin` in `js/` (#1480), holds the types protobuf-es generates for both protos, the same framing, and the same list but the annotation helpers, and runs on Node and Bun.
 A loss code table shared by every SDK is checked against `reverse.md`, as `emit.LossCodes` is today.
 
 ## The C# backend as a .NET plugin
