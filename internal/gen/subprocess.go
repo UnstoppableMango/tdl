@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/unstoppablemango/tdl/plugin"
@@ -209,6 +210,23 @@ func (s *session) wait() {
 	s.waitOnce.Do(func() { _ = s.cmd.Wait() })
 }
 
+// stopWait bounds how long wrap waits for a plugin that closed a pipe to
+// exit, since one may close its stdin and keep running.
+const stopWait = time.Second
+
+// waitStopped waits for the child as wait does, giving up after stopWait.
+func (s *session) waitStopped() {
+	done := make(chan struct{})
+	go func() {
+		s.wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(stopWait):
+	}
+}
+
 // safeBuffer collects a plugin's stderr. os/exec writes it from its own
 // goroutine while wrap reads it from another.
 type safeBuffer struct {
@@ -290,16 +308,22 @@ func (s *session) wrap(err error) error {
 	}
 
 	msg := fmt.Sprintf("%s: %v", s.name, err)
-	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+	if stopped(err) {
 		msg = fmt.Sprintf("%s stopped before answering", s.name)
-		// The plugin is gone, so wait for the rest of its stderr.
-		// CommandContext kills the child at the deadline.
-		s.wait()
+		// The plugin is likely gone, so wait for the rest of its stderr.
+		s.waitStopped()
 	}
 	if out := strings.TrimSpace(s.stderr.String()); out != "" {
 		msg += "\n" + indent(out)
 	}
 	return errors.New(msg)
+}
+
+// stopped reports whether err means the plugin closed its end: stdout at
+// EOF, or stdin, which fails a write with a broken pipe (#1545).
+func stopped(err error) bool {
+	return errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) ||
+		errors.Is(err, syscall.EPIPE)
 }
 
 func indent(s string) string {
