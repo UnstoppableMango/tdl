@@ -3,13 +3,19 @@ package salesforce
 import (
 	"encoding/xml"
 	"fmt"
+	"maps"
+	"path"
+	"slices"
 	"strings"
+	"sync"
 
 	"github.com/unstoppablemango/tdl/ast"
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/backend/internal/reverse"
 	"github.com/unstoppablemango/tdl/ir"
+	"github.com/unstoppablemango/tdl/parser"
 	"github.com/unstoppablemango/tdl/plugin"
+	"github.com/unstoppablemango/tdl/prelude"
 )
 
 // importPackage is the package an import reads into, since Salesforce
@@ -33,7 +39,27 @@ type objectFiles struct {
 	fields []*plugin.File
 	rules  []*plugin.File
 	other  []*plugin.File
+
+	// skip is set when the object's entity name is taken, which name has
+	// warned about.
+	skip bool
 }
+
+// preludeNames are the prelude's declarations, which a declaration read
+// would shadow.
+var preludeNames = sync.OnceValue(func() map[string]bool {
+	names := map[string]bool{}
+	file, err := parser.Parse("prelude.tdl", strings.NewReader(prelude.Source))
+	if err != nil {
+		panic(err)
+	}
+	for _, d := range file.Decls {
+		if n, ok := d.(interface{ Name() string }); ok {
+			names[n.Name()] = true
+		}
+	}
+	return names
+})
 
 // readObjects reads the object and field metadata among files into a
 // model: each custom object an entity.
@@ -62,14 +88,25 @@ func (r *reader) read(files []*plugin.File) (*ir.Model, error) {
 }
 
 // group sorts files by the object folder holding them, in the order each
-// folder first appears.
+// folder first appears, and warns about each file outside one.
 func (r *reader) group(files []*plugin.File) []*objectFiles {
 	var out []*objectFiles
 	byAPI := map[string]*objectFiles{}
+	apex := false
 	for _, f := range files {
 		p := f.GetPath()
 		api, rest, ok := objectPath(p)
 		if !ok {
+			if strings.HasSuffix(p, ".cls") || strings.HasSuffix(p, ".cls-meta.xml") {
+				if !apex {
+					// No loss code: the classes are not lost, only not read
+					// yet (#1459).
+					r.Warn("", filePos(f), "Apex classes are not read yet, so %s and every other class is skipped", p)
+				}
+				apex = true
+				continue
+			}
+			r.Warn(emit.LossUnsupported, filePos(f), "%s is not an object or a field, and is not read", p)
 			continue
 		}
 		o := byAPI[api]
@@ -124,15 +161,38 @@ func (r *reader) name(o *objectFiles) {
 	if err != nil || o.object == nil {
 		return
 	}
-	r.entities[strings.ToLower(o.api)] = emit.Pascal(base)
+	n := emit.Pascal(base)
+	if r.taken(n) || preludeNames()[n] {
+		r.Warn(emit.LossUnsupported, filePos(o.object), "%s reads as %s, which another declaration has, so the object is not read", o.api, n)
+		o.skip = true
+		return
+	}
+	r.entities[strings.ToLower(o.api)] = n
+}
+
+// skipAll warns that every file in an object folder is not read, and why.
+func (r *reader) skipAll(o *objectFiles, why string) {
+	for _, group := range [][]*plugin.File{{o.object}, o.fields, o.rules, o.other} {
+		for _, f := range group {
+			if f != nil {
+				r.Warn(emit.LossUnsupported, filePos(f), "%s, so %s is not read", why, f.GetPath())
+			}
+		}
+	}
 }
 
 // object reads one object folder into an entity, warning about everything
 // in it that has no TDL form.
 func (r *reader) object(o *objectFiles) error {
 	base, err := custom(o.api)
-	if err != nil || o.object == nil {
-		// What is skipped warns in the next part of the stack.
+	switch {
+	case o.skip:
+		return nil
+	case err != nil:
+		r.skipAll(o, err.Error())
+		return nil
+	case o.object == nil:
+		r.skipAll(o, o.api+" has no object file")
 		return nil
 	}
 	var obj customObject
@@ -152,9 +212,50 @@ func (r *reader) object(o *objectFiles) error {
 	}
 
 	pos := filePos(o.object)
+	unread := r.unread(o, &obj, base)
 	decl := &ast.StructDecl{DeclHead: head(name, obj.Description, pos), Keyword: "type", Conforms: []*ast.ClassRef{{N: "Entity"}}}
 	r.decls = append(r.decls, decl)
+	if len(unread) > 0 {
+		r.Warn(emit.LossUnsupported, pos, "%s has elements with no TDL form, which are not read: %s",
+			o.api, strings.Join(slices.Sorted(maps.Keys(unread)), ", "))
+	}
 	return nil
+}
+
+// unread returns the names of what an object holds that means something to
+// an org and nothing to the model, to warn about once for the object, and
+// warns about each validation rule.
+func (r *reader) unread(o *objectFiles, obj *customObject, base string) map[string]bool {
+	unread := map[string]bool{}
+	for _, e := range obj.Other {
+		if e.XMLName.Local == "validationRules" {
+			r.Warn(emit.LossConstraint, at(o.object, e.XMLName.Local), "%s has a validation rule, which is not read", o.api)
+			continue
+		}
+		unread[e.XMLName.Local] = true
+	}
+	for _, f := range o.rules {
+		r.Warn(emit.LossConstraint, filePos(f), "%s has a validation rule, %s, which is not read", o.api, path.Base(f.GetPath()))
+	}
+	for _, f := range o.other {
+		_, rest, _ := objectPath(f.GetPath())
+		unread[strings.Split(rest, "/")[0]] = true
+	}
+	if obj.DeploymentStatus != "Deployed" {
+		unread["deploymentStatus"] = true
+	}
+	if obj.SharingModel != "ReadWrite" {
+		unread["sharingModel"] = true
+	}
+	if obj.NameField != (nameField{DisplayFormat: base + "-{0000}", Label: obj.Label + " Number", Type: "AutoNumber"}) {
+		unread["nameField"] = true
+	}
+	return unread
+}
+
+// taken reports whether an entity is named n.
+func (r *reader) taken(n string) bool {
+	return slices.Contains(slices.Collect(maps.Values(r.entities)), n)
 }
 
 // head is a node's head from its description, whose last line is a
@@ -177,6 +278,18 @@ func head(name, desc string, pos *ir.Position) ast.DeclHead {
 
 func filePos(f *plugin.File) *ir.Position {
 	return &ir.Position{Filename: f.GetPath(), Line: 1, Column: 1}
+}
+
+// at is where an element first opens in a file, or the file's start.
+func at(f *plugin.File, elem string) *ir.Position {
+	src := string(f.GetContent())
+	i := strings.Index(src, "<"+elem+">")
+	if i < 0 {
+		return filePos(f)
+	}
+	line := strings.Count(src[:i], "\n")
+	col := i - strings.LastIndex(src[:i], "\n")
+	return &ir.Position{Filename: f.GetPath(), Line: int32(line + 1), Column: int32(col)}
 }
 
 func astPos(p *ir.Position) ast.Position {
