@@ -8,7 +8,7 @@ import { execFile } from "node:child_process";
 import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { delimiter, dirname, join } from "node:path";
+import { delimiter, dirname, join, resolve } from "node:path";
 
 import type { Code, Nodes, Parents, Root } from "mdast";
 import type { VFile } from "vfile";
@@ -67,9 +67,12 @@ function code(source: string): string {
 		.join("\n");
 }
 
-/** The package a fence declares, read from its first package clause. */
+/**
+ * The package a fence declares, read from its first package clause, which
+ * may break lines between its tokens.
+ */
 function packageOf(source: string): string | undefined {
-	return /^[ \t]*package[ \t]+([\w.]+)/m.exec(code(source))?.[1];
+	return /^\s*package\s+(\w+(?:\s*\.\s*\w+)*)/m.exec(code(source))?.[1]?.replace(/\s+/g, "");
 }
 
 /** The fence's source with an empty target mermaid block, unless it has one. */
@@ -133,6 +136,10 @@ export default function remarkTdlMermaid(options: Options = {}): (tree: Root, fi
 			}
 		}
 
+		// An explicit relative path names a file from here, not from the
+		// temporary directory tdl runs in; a bare name is looked up on PATH.
+		if (tdl !== undefined && /[\\/]/.test(tdl)) tdl = resolve(tdl);
+
 		for (const { parent, index, node } of found) {
 			const lines = node.value.split("\n").length;
 			const report = (reason: string, place: Place) =>
@@ -170,11 +177,14 @@ export default function remarkTdlMermaid(options: Options = {}): (tree: Root, fi
 				}
 
 				const written = await readdir(join(dir, "out")).catch(() => []);
-				const diagrams = written.filter((f) => f.endsWith(".mmd"));
+				// format("markdown") writes the diagram fenced in a .md file.
+				const diagrams = written.filter((f) => f.endsWith(".mmd") || f.endsWith(".md"));
 				if (diagrams.length !== 1) {
 					fail(`tdl gen wrote ${diagrams.length} Mermaid diagrams for one fence, where one was expected`);
 				}
-				const value = await readFile(join(dir, "out", diagrams[0] as string), "utf8");
+				const name = diagrams[0] as string;
+				let value = await readFile(join(dir, "out", name), "utf8");
+				if (name.endsWith(".md")) value = /^```mermaid\n([\s\S]*?)```/m.exec(value)?.[1] ?? value;
 				const drawn: Code = { type: "code", lang: "mermaid", meta: null, value: value.replace(/\n$/, "") };
 				if (node.position) drawn.position = node.position;
 				parent.children[index] = drawn;

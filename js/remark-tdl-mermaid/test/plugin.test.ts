@@ -120,6 +120,39 @@ target mermaid for widgets {
 		assert.match(code.value, /\+getWidget\(string\) Widget/);
 	});
 
+	test("a package clause may break lines between its tokens", async () => {
+		const source = shop.replace("package shop", "package\n  shop");
+		const { tree, file } = await run(`\`\`\`tdl mermaid\n${source}\`\`\`\n`);
+		const [code] = codes(tree);
+		assert.ok(code);
+		assert.equal(code.lang, "mermaid");
+		assert.equal(`${code.value}\n`, generate(`${shop}\ntarget mermaid for shop { }\n`, "shop"));
+		assert.deepEqual(file.messages, []);
+	});
+
+	test("a markdown format block draws the diagram it fences", async () => {
+		const source = `${shop}\ntarget mermaid for shop {\n  format("markdown")\n}\n`;
+		const { tree, file } = await run(`\`\`\`tdl mermaid\n${source}\`\`\`\n`);
+		const [code] = codes(tree);
+		assert.ok(code);
+		assert.equal(code.lang, "mermaid");
+		assert.equal(`${code.value}\n`, generate(`${shop}\ntarget mermaid for shop { }\n`, "shop"));
+		assert.deepEqual(file.messages, []);
+	});
+
+	test("a relative tdl path is found from the caller's directory", async () => {
+		const cwd = process.cwd();
+		process.chdir(dirname(tdl as string));
+		try {
+			const processor = remark().use(remarkTdlMermaid, { tdl: "./tdl" });
+			const file = new VFile({ path: "doc.md", value: `\`\`\`tdl mermaid\n${shop}\`\`\`\n` });
+			const tree = (await processor.run(processor.parse(file), file)) as Root;
+			assert.equal(codes(tree)[0]?.lang, "mermaid");
+		} finally {
+			process.chdir(cwd);
+		}
+	});
+
 	test("a lowering error fails the file at its markdown line", async () => {
 		const md = `# Shop\n\nSome text.\n\n\`\`\`tdl mermaid\npackage shop\n\ntype Order {\n  lines: [Nope]\n}\n\`\`\`\n`;
 		await assert.rejects(run(md), (err: unknown) => {
