@@ -21,8 +21,9 @@ jobs:
       app-private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
 
   # The release assets, built by Nix from the tagged commit: one tarball per
-  # platform and SHA256SUMS, uploaded to the release release-please just made
-  # and attested, so `gh attestation verify` ties each file to this workflow.
+  # platform, the SBOM, and SHA256SUMS, uploaded to the release release-please
+  # just made and attested, so `gh attestation verify` ties each file to this
+  # workflow, with the attestation bundle beside them.
   # A GitHub-hosted runner, so the provenance names no self-hosted machine.
   assets:
     needs: release
@@ -51,15 +52,23 @@ jobs:
           VERSION: ${{ needs.release.outputs.version }}
         run: test -f "result/tdl_${VERSION}_linux_amd64.tar.gz"
 
-      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+      - id: attest
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: result/*
 
+      # result/ is read-only; Scorecard reads the bundle's .intoto.jsonl suffix.
       - name: Upload to the release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.release.outputs.tag_name }}
-        run: gh release upload "$TAG" result/* --repo "$GITHUB_REPOSITORY" --clobber
+          VERSION: ${{ needs.release.outputs.version }}
+          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+        run: |
+          mkdir "$RUNNER_TEMP/assets"
+          cp result/* "$RUNNER_TEMP/assets/"
+          cp "$BUNDLE" "$RUNNER_TEMP/assets/tdl_${VERSION}.intoto.jsonl"
+          gh release upload "$TAG" "$RUNNER_TEMP"/assets/* --repo "$GITHUB_REPOSITORY" --clobber
 
   # The seven npm packages, packed by Nix from the tagged commit, published with
   # npm's trusted publishing: npm trusts this workflow's OIDC token in place of

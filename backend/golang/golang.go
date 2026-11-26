@@ -55,7 +55,7 @@ func (Backend) Describe() plugin.Description {
 			{Name: "file", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock)},
 			// Writes, as //tdl: comment directives, every fact the Go
 			// source alone would lose, so import rebuilds the model.
-			{Name: "roundtrip", Placements: plugin.On(plugin.OnBlock)},
+			{Name: "annotate", Placements: plugin.On(plugin.OnBlock)},
 			{Name: "readback", Placements: plugin.On(plugin.OnBlock)},
 			// Opts in to the JSON wire convention: json struct tags, and
 			// methods encoding and decoding a fielded enum by its
@@ -131,7 +131,7 @@ type generator struct {
 // holding them all when the target block names it.
 func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Response, error) {
 	g := &generator{Session: emit.NewSession(req, "Go")}
-	g.Roundtrip = g.Bare("roundtrip")
+	g.Annotate = g.Bare("annotate")
 	g.Readback = g.Bare("readback")
 	g.wire = g.Bare("json")
 
@@ -144,7 +144,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	// Every file carries the package clause, so a bad one is an error,
 	// unless an annotation carries the package.
 	if token.IsKeyword(pkg) {
-		if !g.Roundtrip {
+		if !g.Annotate {
 			g.Error(pkgPos, "%q is a Go keyword and cannot be a package name", pkg)
 			return g.Response(nil), nil
 		}
@@ -160,7 +160,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 
 	start := len(g.Diags)
 	files := g.render(pkg)
-	if g.Roundtrip {
+	if g.Annotate {
 		// What import would read from the files decides what the
 		// annotations carry, so they are rendered again with them.
 		g.simulate(files, pkg)
