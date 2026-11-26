@@ -278,13 +278,13 @@ func TestAnnotatedOutputTypeChecks(t *testing.T) {
 		model.Targets = append(model.Targets, &ir.TargetBlock{
 			Meta:       &ir.Meta{Name: golang.Name},
 			ForPackage: model.GetPackage(),
-			Directives: []*ir.Directive{{Name: "roundtrip", Target: golang.Name}},
+			Directives: []*ir.Directive{{Name: "annotate", Target: golang.Name}},
 		})
 		resp, err := golang.Backend{}.Generate(context.Background(), &plugin.Request{Target: golang.Name, Model: model})
 		if err != nil {
 			t.Fatal(err)
 		}
-		// Under roundtrip output loss still warns, but nothing fails.
+		// Under annotate output loss still warns, but nothing fails.
 		for _, d := range resp.GetDiagnostics() {
 			if d.GetSeverity() == plugin.Severity_SEVERITY_ERROR {
 				t.Errorf("%s: %v", path, d)

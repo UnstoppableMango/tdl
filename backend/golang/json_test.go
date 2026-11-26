@@ -103,7 +103,7 @@ func uncodedWarnings(resp *plugin.Response) []*plugin.Diagnostic {
 
 // The generated types read and write the JSON the TypeScript from the same
 // model describes.
-func TestJSONRoundTrips(t *testing.T) {
+func TestJSONIsWireCompatible(t *testing.T) {
 	resp := generateTDL(t, treeSource)
 	goTest(t, resp, `package tree
 

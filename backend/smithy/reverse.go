@@ -73,7 +73,7 @@ func CLI() (string, error) {
 // nothing else names an enum with fields, and each simple shape, list, or
 // map that is not a collection a member needs a newtype. The namespace is
 // the package. What regenerating needs goes in a smithy target block.
-// Under the tdl metadata and tdl#source traits a `roundtrip` directive
+// Under the tdl metadata and tdl#source traits an `annotate` directive
 // writes, it rebuilds the model the files were generated from.
 // docs/architecture/schema-backends.md has the mapping.
 func (Backend) Import(ctx context.Context, req *plugin.ImportRequest) (*plugin.ImportResponse, error) {
@@ -202,7 +202,7 @@ func (r *reader) read(ctx context.Context, files []*plugin.File) (*ir.Model, err
 	if err != nil {
 		return nil, reverse.Failf(nil, "%v", err)
 	}
-	r.Roundtrip = meta != nil
+	r.Annotated = meta != nil
 
 	var namespaces []string
 	var own []*shape
@@ -260,7 +260,7 @@ func (r *reader) read(ctx context.Context, files []*plugin.File) (*ir.Model, err
 	if pkg != "" && file.Package == nil {
 		file.Package = &ast.PackageDecl{Path: pkg}
 	}
-	if !r.Roundtrip {
+	if !r.Annotated {
 		for _, key := range slices.Sorted(maps.Keys(m.metadata)) {
 			r.Warn(emit.LossUnsupported, nil, "metadata %s has no TDL form", key)
 		}
@@ -279,7 +279,7 @@ func (r *reader) read(ctx context.Context, files []*plugin.File) (*ir.Model, err
 	return reverse.Lower(file)
 }
 
-// metadataKey is the metadata a `roundtrip` directive writes.
+// metadataKey is the metadata an `annotate` directive writes.
 const metadataKey = "tdl"
 
 // annotations is the tdl metadata: what no shape carries.
@@ -300,7 +300,7 @@ func readMetadata(metadata map[string]json.RawMessage) (*annotations, error) {
 	dec.DisallowUnknownFields()
 	var a annotations
 	if err := dec.Decode(&a); err != nil {
-		return nil, fmt.Errorf("the tdl metadata is not what roundtrip writes: %v", err)
+		return nil, fmt.Errorf("the tdl metadata is not what annotate writes: %v", err)
 	}
 	return &a, nil
 }
