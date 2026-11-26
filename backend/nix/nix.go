@@ -52,6 +52,8 @@ var helpers = []helper{
 	{"struct", structHelper},
 	{"optional", optionalHelper},
 	{"nullable", "  nullable = type: types.nullOr type // { emptyValue = { }; };\n"},
+	{"set", "  set = type: types.addCheck (types.listOf type) lib.allUnique;\n"},
+	{"keyed", "  keyed = key: value: types.addCheck (types.attrsOf value) (m: lib.all key.check (lib.attrNames m));\n"},
 }
 
 // reserved is what a declaration cannot be bound as, since the file binds

@@ -167,15 +167,16 @@ func (g *generator) typ(r *emit.Ref) (string, error) {
 			g.Lossy(emit.LossPrimitive, r.Pos, "uint64 is an unsigned Nix int, which stops at 2^63-1")
 		}
 		return t, nil
-	case emit.List, emit.Option, emit.Nullable:
+	case emit.List, emit.Set, emit.Option, emit.Nullable:
 		elem, err := g.typ(r.Elem)
 		if err != nil {
 			return "", err
 		}
-		fn := map[emit.Form]string{emit.List: "types.listOf", emit.Option: "types.nullOr", emit.Nullable: "types.nullOr"}[r.Form]
+		fn := map[emit.Form]string{emit.List: "types.listOf", emit.Set: "set", emit.Option: "types.nullOr", emit.Nullable: "types.nullOr"}[r.Form]
+		g.used["set"] = g.used["set"] || r.Form == emit.Set
 		return fn + " " + arg(elem), nil
-	case emit.Set, emit.Map:
-		return "", emit.Unsupported(r.Pos, "sets and maps are not generated yet")
+	case emit.Map:
+		return g.attrs(r)
 	}
 	return g.attr(r.Decl), nil
 }
