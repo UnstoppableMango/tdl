@@ -76,10 +76,10 @@ The host drops a warning whose code is allowed, so a backend may ignore the allo
 A code names a fact, and the kind of loss decides when it is reported (see `CONTEXT.md`):
 
 - **Output loss** is a fact the output drops or weakens: a skipped declaration, a dropped constraint, default, or key, a unit, generic, or class not generated, a primitive widened (`uuid` written `string`), a `Set` written as a list, `owned` not carried, a newtype with no form of its own.
-  `tdl gen` always reports it, under `roundtrip` too, since an annotation does not make generated code enforce a constraint or declare a skipped type.
+  `tdl gen` always reports it, under `annotate` too, since an annotation does not make generated code enforce a constraint or declare a skipped type.
   A backend writes it with `Session.Lossy` or `Session.Skip`.
 - **Read-back loss** is a fact the output keeps but import would not recover: struct kind, a `name` against the convention, a redundant `number` pin, declaration order, doc comment text, an alias expanded, optional and sugar spelling, a primitive whose values are kept but whose spelling is not (`int` reads back as `int64`).
-  `tdl gen` reports it only under a bare `readback` directive in the target block, and never under `roundtrip`, whose annotations carry it.
+  `tdl gen` reports it only under a bare `readback` directive in the target block, and never under `annotate`, whose annotations carry it.
   A backend writes it with `Session.Lose`; `Session.LosePrimitive` picks the kind for a primitive.
 
 Every backend that imports declares `readback`.
@@ -94,10 +94,11 @@ Importing has the same two kinds, seen from the source:
 
 Importing never reports what generating lost; the feature tables' Import column follows the same rule, and the round-trip harness and the Import column import with `readback` set.
 
-## Round-trip annotations
+## Annotations
 
-A bare `roundtrip` directive in a target block makes a backend write every fact its mapping would lose, in the target's own extension syntax.
+A bare `annotate` directive in a target block makes a backend write every fact its mapping would lose, in the target's own extension syntax.
 Without it, output is unchanged.
+`roundtrip`, its former spelling, is read as `annotate` for one release, with a warning that it is deprecated; a request carries only `annotate`.
 
 | Backend | Annotation |
 | --- | --- |
@@ -113,7 +114,7 @@ Without it, output is unchanged.
 The Go reverse also reads what the output already says: a constraint from the `fmt.Errorf` text in `Validate`, which writes it as TDL, and a `key` from `Key()`.
 
 A declaration the target cannot express at all, which generating skips with a warning, is carried whole as TDL.
-A `roundtrip` output warns about output loss only, the same warnings generating without `roundtrip` or `readback` gives; the round-trip harness holds every backend to that.
+An `annotate` output warns about output loss only, the same warnings generating without `annotate` or `readback` gives; the round-trip harness holds every backend to that.
 
 A schema written by hand carries no annotations and needs none.
 It imports to TDL plus a target block holding what regeneration reads: `number`, `name`, `option`, `file`, `package`, `edition`, `discriminant`, and the like.

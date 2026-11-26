@@ -181,7 +181,7 @@ The plugin protocol in `docs/architecture/plugins.md` is complete.
   Private.
 - `internal/unlower`: ir to ast, the reverse of `sema`, for reverse backends.
   It writes the model's own declarations and leaves to lowering what lowering computes: inherited constraints, mixin fields, struct kinds, and a class directive's expansion.
-  `TestCorpusRoundTrips` holds it to lowering the printed corpus back to an equal model.
+  `TestCorpusLowersBack` holds it to lowering the printed corpus back to an equal model.
 - `ir`: the resolved model backends consume.
   `ir.pb.go` is generated from `proto/tdl/ir/v1/ir.proto`; `model.go` holds hand-written lookups, and `WithoutPositions` clears positions so `proto.Equal` compares two models.
   Three interned tables, each its own ID space: `Decls`, `Types`, `Units`.
@@ -194,10 +194,10 @@ The plugin protocol in `docs/architecture/plugins.md` is complete.
   Public.
 - `internal/analysis`: what every backend serving one target would otherwise compute, sent in `plugin.Request.Analysis`: each type table entry resolved to the prelude's shapes with aliases expanded, or refused with a reason; and per declaration, whether it is the prelude's, what it names, its enum discriminant, its newtype chain's end, and the words of its names.
   `emit` reads it, and derives it when a request carries none.
-  `Scope` cuts a model down to one target's block and directives, which is all a request carries.
+  `Scope` cuts a model down to one target's block and directives, which is all a request carries, renaming a block directive in a deprecated spelling (`host.Renamed`).
   It also reads each constraint (`constraints.go`) and, under a backend's declared `Numbering`, numbers every field and variant (`numbers.go`); `emit.Length`, `Pattern`, `ConstraintText`, and `Session.Numbers` share that code, and `Session.NumbersIn` reads the numbers a request carries.
   `Request` builds every request a host sends, returning a length that can never hold or a refused pin as errors to report before the backend runs.
-  Under a `roundtrip` directive it also carries the model as TDL (`source.go`), which `emit`'s round-trip helpers read; `Imported` lowers an import response that returns TDL source instead of a model.
+  Under an `annotate` directive it also carries the model as TDL (`source.go`), which `emit`'s annotation helpers read; `Imported` lowers an import response that returns TDL source instead of a model.
 - `internal/gen`: the compiler side of the plugin protocol: the backend registry, request building, and writing returned files.
   `keep.go` keeps a nondeterministic backend's output while its request hashes the same, recording the hashes in `.tdl-output` (ADR-0002).
   `post.go` runs the commands a target block's `post` directive names, through `tdl.toml`'s `[post]` table, over each returned file before anything is compared or written.
@@ -205,6 +205,7 @@ The plugin protocol in `docs/architecture/plugins.md` is complete.
 - `internal/host`: what a host does around a backend, importing none, so a backend hosting itself can use it.
   `loss.go` declares the loss codes, which `emit` re-exports, so `tdl`'s completion lists them too.
   `check.go` holds every directive to its backend's `DirectiveSpec` (arity, kinds, placement, allowed values, repeats) before the backend runs, so a backend need not check them itself; `Directives` holds the specs of those `tdl` reads itself for every target, `post` so far, and `out` is never checked.
+  `Renamed` maps a deprecated block directive to its new name, `roundtrip` to `annotate` for one release; `CheckDirectives` warns about the old spelling and checks it as the new.
   `Silence` drops warnings with an allowed loss code, and `Allowed` reads which codes `tdl.toml` allows.
   `ImportFiles` (`walk.go`) expands a directory argument to `tdl import` into the files a backend's import patterns match.
 - `internal/config`: reads the nearest `tdl.toml` above a file; only its `[lossy]` and `[post]` tables so far.
@@ -229,7 +230,7 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   An enum with no variant fields is a string type with constants holding the variants' wire values; otherwise a sealed interface with a struct per variant.
   `decimal`, `uuid`, and `date` map to placeholders unless a `foreign` directive names a type.
   A `key` directive becomes a `Key()` method, returning a `<Name>Key` struct for several fields.
-  It imports: `reverse.go` reads a package with `go/parser`, taking constraints back from `validate`'s messages and keys from `Key`; `annotate.go` writes the loss warnings and, under `roundtrip`, `//tdl:` comment directives, carrying a declaration whole where reading the unannotated files back misses something.
+  It imports: `reverse.go` reads a package with `go/parser`, taking constraints back from `validate`'s messages and keys from `Key`; `annotate.go` writes the loss warnings and, under `annotate`, `//tdl:` comment directives, carrying a declaration whole where reading the unannotated files back misses something.
   `Normalize` is its normal form for the round-trip corpus.
   See `docs/architecture/go-backend.md`; #1191 tracks the remaining phases.
 - `backend/protobuf`: `.proto` files in the directories the package spells, named for its last segment unless a `file` directive says otherwise.
@@ -241,12 +242,12 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   A type tagged `service` becomes a service; its fields apply primitives tagged `rpc`, with arguments in a `stream`-tagged primitive streamed.
   `format.go` lays out every file with protocompile's printer under its `Legacy` preset, which reproduces `buf format`, so formatting the output changes nothing.
   Tests compile every response with `bufbuild/protocompile`, and `TestOutputIsBufFormatted` runs `buf format -d` when `buf` is on `PATH`.
-  It imports: `reverse.go` reads files compiled by `compile.go` into an `ast.File` and lowers it, and `annotate.go` writes the loss warnings and, under `roundtrip`, the options `tdl/annotations.proto` declares.
+  It imports: `reverse.go` reads files compiled by `compile.go` into an `ast.File` and lowers it, and `annotate.go` writes the loss warnings and, under `annotate`, the options `tdl/annotations.proto` declares.
   `Normalize` is its normal form for the round-trip corpus.
 - `backend/thrift`: one `.thrift` file per model under `namespace *`, in dependency order.
   A fielded enum is a union of per-variant structs; a newtype is a `typedef`; field ids come from `emit.Numbers`.
   Tests parse and resolve every response with thriftgo.
-  It imports one file: `reverse.go` reads thriftgo's AST, which has no positions, so `locate` scans the source for each definition's keyword; `annotate.go` writes the loss warnings and, under `roundtrip`, `tdl.*` annotations, encoding a value so thriftgo's partial unescaping reads it back.
+  It imports one file: `reverse.go` reads thriftgo's AST, which has no positions, so `locate` scans the source for each definition's keyword; `annotate.go` writes the loss warnings and, under `annotate`, `tdl.*` annotations, encoding a value so thriftgo's partial unescaping reads it back.
   `Normalize` is its normal form for the round-trip corpus.
 - `backend/smithy`: one Smithy IDL 2.0 file per model.
   Each list or map a field holds becomes a named shape (`LineItemList`, `StringLongMap`); a shadowed prelude shape is written `smithy.api#`.
@@ -254,12 +255,12 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   `shapes.go` is the shape model both directions share: generating builds shapes and renders them, and import reads them from the CLI's JSON AST.
   Tests run `smithy validate` when it is on `PATH`; `checks.gen-smithy` always does.
   It imports: `reverse.go` runs `smithy ast` from `PATH` and reads the JSON, which has no positions, so `locate` scans the source for each shape's statement; without the CLI, import and its tests skip.
-  `annotate.go` writes the loss warnings and, under `roundtrip`, `metadata tdl` and a `tdl#source` trait on each declaration whose shapes the reader does not read back as it.
+  `annotate.go` writes the loss warnings and, under `annotate`, `metadata tdl` and a `tdl#source` trait on each declaration whose shapes the reader does not read back as it.
   `Normalize` is its normal form for the round-trip corpus.
 - `backend/graphql`: one schema per model, output types only.
   Primitives GraphQL lacks, including 64-bit and unsigned integers, become custom scalars declared on use.
   A fielded enum is a union of object types; a fieldless variant gets `_: Boolean`; a map is a warning.
-  It imports one file: `reverse.go` reads gqlparser's schema document, taking the package from the file's name; `annotate.go` writes the loss warnings and, under `roundtrip`, `@tdl` directives, which the schema then defines.
+  It imports one file: `reverse.go` reads gqlparser's schema document, taking the package from the file's name; `annotate.go` writes the loss warnings and, under `annotate`, `@tdl` directives, which the schema then defines.
   Tests validate every response with `vektah/gqlparser`.
 - `backend/typescript`: one `.ts` file per model of JSON wire types, with no runtime code but a newtype's constructor under `construct` or `brand`.
   A set is an array, a map a `Record`, unrepresentable primitives a string, a newtype a plain alias, or under `brand` one intersected with a brand keyed by its qualified name, which import reads back.
@@ -269,7 +270,7 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   A narrowed type from `emit.Narrow` is written as a literal union, which warns only that it reads back as `oneOf`, or a tuple, which import reads back as a list with its `length`.
   Tests run `tsc --noEmit --strict` when it is on `PATH`; `checks.gen-typescript` always does.
   It imports one file: `reverse.go` runs the embedded `outline.js` under `node` with the `typescript` package found from `tsc` on `PATH`, and reads the JSON outline it writes; without both, import and its tests skip.
-  `annotate.go` writes the loss warnings and, under `roundtrip`, JSDoc `@tdl` tags, carrying a declaration whole where it loses anything.
+  `annotate.go` writes the loss warnings and, under `annotate`, JSDoc `@tdl` tags, carrying a declaration whole where it loses anything.
   `Normalize` is its normal form for the round-trip corpus.
   `mapper.go` is a TypeScript 7.1 content mapper, served by `tdl-gen-typescript content-mapper`: tsc sends it a `.tdl` file and it lowers the file and returns the module this backend writes, importing an extern from its `.tdl` file; `TestMapperUnderTsc` runs tsc when a 7.1 or later is on `PATH`, through `npm/tdl-typescript/` as it ships.
   See `docs/architecture/typescript-content-mapper.md`.
@@ -357,13 +358,13 @@ Every backend reports what it cannot generate as a positioned warning rather tha
 `TestHostsAgree` in `internal/gen` holds each to producing the same bytes in process and over a pipe.
 A backend that imports implements `plugin.Importer`, declares `Reverse`, and has a `reverse` column in `shipped`, which `TestImportHostsAgree` runs; `TestReverseIsDeclared` keeps the three in step.
 A warning a user can silence carries a loss code; `host.LossCodes`, which `emit.LossCodes` re-exports, must match the table in `reverse.md`.
-Output loss, what the output drops, is written with `emit.Session.Lossy` and always reported; read-back loss, what only import would miss, with `emit.Session.Lose`, reported under a bare `readback` directive and never under `roundtrip` (see `reverse.md`'s Loss codes).
+Output loss, what the output drops, is written with `emit.Session.Lossy` and always reported; read-back loss, what only import would miss, with `emit.Session.Lose`, reported under a bare `readback` directive and never under `annotate` (see `reverse.md`'s Loss codes).
 A backend added to the registry needs a row in the `shipped` table in `internal/gen/hosts_test.go` (`TestEveryBuiltinHasARow`) and, if shipped, an entry in `nix/cmd.nix` (`TestPackagedBackendsShip`); a Go backend served only as a plugin has a `pluginOnly` row.
 
 `docs/architecture/schema-backends.md` maps the seven schema backends.
 `docs/architecture/reverse.md` is the import direction, target language to TDL, and #972 tracks the remaining importers.
 `backend/internal/roundtrip` runs a backend forward and back over `testdata/roundtrip/<target>/<case>/`; its `targets` table holds every backend but those in `exempt` (`debug` and `yolo`), with each one's normal form, and `TestEveryTargetIsCovered` checks it against `cmd/`.
-A model-first case's `lossy.golden` holds the codes generating with `readback` reports, and generating with `roundtrip` must warn exactly what generating with neither does.
+A model-first case's `lossy.golden` holds the codes generating with `readback` reports, and generating with `annotate` must warn exactly what generating with neither does.
 `TestConformanceComesBack` also takes every conformance case without an import through each target that imports, and `TestLossKinds` holds each such target to both kinds of loss.
 `testdata/gen/smoke/source.tdl` exercises the whole mapping, with a target block for each schema backend and for `salesforce`; the nix checks generate from it and run each language's tool on the output.
 
@@ -375,7 +376,7 @@ A row is a directory of `testdata/features` holding `source.tdl`; a subdirectory
 A source's target block is written for `feature` and renamed for each backend, in its imports too.
 Generate is No on an error or a warning without a loss code, Warns on the loss codes the row owns (`Row.Codes`), and Yes otherwise, since a source cannot use a feature alone.
 Generate leaves read-back loss out, as `tdl gen` does.
-Import generates with `readback` and without `roundtrip` and reads the files back, grading only read-back loss: the warnings `readback` adds and those import reports, never the output loss Generate shows.
+Import generates with `readback` and without `annotate` and reads the files back, grading only read-back loss: the warnings `readback` adds and those import reports, never the output loss Generate shows.
 The same model is Yes, as is a difference output loss alone explains; a difference with no loss code anywhere is No.
 `features.toml` beside a backend's source (`backend/<package>/`, `dotnet/Tdl.Gen.CSharp/` for `csharp`, or `js/tdl-gen-mermaid/` for `mermaid`) holds the cells a measurement cannot: `spelling`, `notes`, and `planned`, which shows in place of Generate and fails once the row generates.
 A cell may not hold a `|`.
@@ -414,7 +415,7 @@ The `tdl.toml` project model (#1307) is the furthest-ahead spec: only its `[loss
 ### .NET SDK
 
 `dotnet/` holds `Tdl.Plugin`, the SDK a backend written in .NET builds on, its tests, `Tdl.Plugin.Debug`, a port of `backend/debug` served as `tdl-gen-dotnet_debug`, and the `csharp` backend with `Tdl.DotNet` (see [Backends](#backends)).
-The SDK holds framing, the handshake, a `Session` over the request and its analysis, `Resolve` and constraint sources, diagnostics and loss codes, the cascade, names and case styles, and the round-trip helpers; it computes no fact the analysis carries, and throws on a request without one.
+The SDK holds framing, the handshake, a `Session` over the request and its analysis, `Resolve` and constraint sources, diagnostics and loss codes, the cascade, names and case styles, and the annotation helpers; it computes no fact the analysis carries, and throws on a request without one.
 `Tdl.Plugin/Generated/` is `buf generate` output from protoc's C# generator, so `make generate` needs `protoc`, which the devShell carries; its version must match the `Google.Protobuf` package.
 `buf.gen.yaml` leaves out the `pb` package, so the generated descriptors drop the Go options and name neither `go_features.proto` nor `descriptor.proto`.
 The tests replay `testdata/plugin/*.binpb` byte for byte and check `LossCodes` against `reverse.md`.
@@ -431,7 +432,7 @@ The `rust` backend (#1273) will join it; the crates are not published.
 The SDK holds framing (`Conn`), the handshake answered from a `Description` (`serve`, `run`), a `Session` over the request and its analysis, diagnostics with loss codes, the cascade (`Skipped`), and case styles over name words.
 Like the .NET SDK it computes no fact the analysis carries, and `Session::new` returns an error for a request without one.
 A session finds a node's view by the node's address in the request, as the .NET SDK compares references, so a node cloned out of the request has none.
-`lossy` reports output loss and `lose` read-back loss, which reports only under `readback` and never under `roundtrip`; round-trip and import helpers wait for a Rust backend that imports.
+`lossy` reports output loss and `lose` read-back loss, which reports only under `readback` and never under `annotate`; annotation and import helpers wait for a Rust backend that imports.
 `tdl-plugin/src/generated/` is `buf generate` output from buffa's `protoc-gen-buffa`, one self-contained file per package (`file_per_package`, `strategy: all`) without views, and leaving out `pb` as the C# entry does; prost and rust-protobuf v3 cannot read Editions 2024.
 `buffa` is pinned exactly in `rust/Cargo.toml` to the version `nix/protoc-gen-buffa.nix` builds, since the generated code targets one runtime; bump both together and regenerate, since `.github/renovate.json` leaves `buffa` alone.
 The SDK's tests check the loss codes against `reverse.md` and the session, the framing, and the handshake; the debug port's replay `testdata/plugin/*.binpb` byte for byte, in process and over a connection.
@@ -451,7 +452,7 @@ It is ESM for Node 22 or later and Bun, using only what both have; `js/biome.jso
 The SDK holds framing (`Conn`, over any async iterable of bytes and a writable), the handshake answered from a `Description` (`serve`, `run`), a `Session` over the request and its analysis, diagnostics with loss codes, the cascade (`Skipped`), and case styles over name words.
 Like the other SDKs it computes no fact the analysis carries, and the `Session` constructor throws a `ProtocolError` for a request without one.
 A session reaches the model through methods only, so a later transport can sit behind the same API, and finds a node's view by the node's identity in the request, so a node cloned out of it has none.
-`lossy` reports output loss and `lose` read-back loss, which reports only under `readback` and never under `roundtrip`; round-trip and import helpers wait for a JS backend that imports.
+`lossy` reports output loss and `lose` read-back loss, which reports only under `readback` and never under `annotate`; annotation and import helpers wait for a JS backend that imports.
 `tdl-plugin/src/generated/` is `buf generate` output from protobuf-es's `protoc-gen-es`, run from `js/node_modules` (so `make generate` runs `npm ci` there first), leaving out `pb` as the C# and Rust entries do.
 `@bufbuild/protobuf` and `@bufbuild/protoc-gen-es` are pinned exactly to one version, since the generated code targets one runtime; bump both together and regenerate, since `.github/renovate.json` leaves them alone.
 The SDK's tests check the loss codes against `reverse.md` and the session, the framing, and the handshake; the debug port's replay `testdata/plugin/*.binpb` byte for byte, in process and over a connection.

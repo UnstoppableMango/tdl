@@ -330,7 +330,7 @@ The backend understands nine and declares all nine in its handshake, so the comp
 - `wire("live")`, on an enum variant.
   The variant's wire value: a fieldless variant's constant, and a fielded variant's discriminant value under `json`.
   A wire value naming another variant, or another variant's wire value, is an error, and the enum is not generated.
-  Import reads a constant's value back as the variant's name, so without `roundtrip` the directive does not read back.
+  Import reads a constant's value back as the variant's name, so without `annotate` the directive does not read back.
 - `tag("json:\"email_address\"")`, on a field.
   Emitted verbatim as the struct tag; a struct tag is an open convention, so the backend does not parse it.
   On a declaration or a variant it has nothing to set, so it warns at the directive.
@@ -346,7 +346,7 @@ The backend understands nine and declares all nine in its handshake, so the comp
   Opts in to the JSON wire convention, under [JSON](#json).
 - `discriminant("type")`, on the target block or a fielded enum.
   The property a fielded enum is tagged by under `json`.
-- `roundtrip`, bare, on the target block.
+- `annotate`, bare, on the target block.
   Writes as `//tdl:` comment directives what import would not read back, under [Import](#import).
 
 A directive the backend does not declare is a compiler warning and is passed through anyway.
@@ -381,7 +381,7 @@ These warn and the declaration is still emitted:
 
 A warning does not stop a run, so a model that is mostly generatable generates.
 An error stops it, and only two things earn one: output `go/format` cannot parse, and a package clause Go will not accept.
-Under `roundtrip`, a keyword clause gets a trailing underscore instead, since an annotation carries the package.
+Under `annotate`, a keyword clause gets a trailing underscore instead, since an annotation carries the package.
 
 A warning about something the model loses carries a loss code from [reverse.md](reverse.md), so `tdl.toml` can silence it; [Import](#import) lists the ones only import would notice.
 
@@ -421,7 +421,7 @@ The target block holds a `name` directive where the convention would write anoth
 
 Generating, every fact the package cannot hold warns with its loss code: `int`, `uuid`, `decimal`, and `date` written as another primitive, collection sugar written by name, `T | null` and `Option<T>`, an alias expanded, an entity without a key or a mixin, an include, a constraint not checked, `owned`, a default, a name or a package clause that reads back otherwise, a doc comment gofmt changes, conformance its markers do not say, a key not generated, a foreign declaration that is not an empty struct, a class's fields, a unit, generics Go cannot state, and files whose path order is not the model's.
 
-Under a `roundtrip` directive, each of those is carried instead as a `//tdl:` comment directive, which a doc comment's text leaves out, its value a Go string literal:
+Under an `annotate` directive, each of those is carried instead as a `//tdl:` comment directive, which a doc comment's text leaves out, its value a Go string literal:
 
 - on a declaration's type: `source`, the declaration as TDL, and `at`, its index among the file's items when the files' order is not the model's;
 - on the first file's package clause: `package` when the clause does not hold it, `doc` for the package's doc comment when the Go one does not read back, `import` for each import, and `item` for each top-level item with no Go type, as its index and the item as TDL. An alias, a unit, an instance, a target block, a foreign declaration, and a declaration Go cannot express are each one.
