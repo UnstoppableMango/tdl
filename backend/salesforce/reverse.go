@@ -14,7 +14,6 @@ import (
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/backend/internal/reverse"
 	"github.com/unstoppablemango/tdl/ir"
-	"github.com/unstoppablemango/tdl/lex"
 	"github.com/unstoppablemango/tdl/parser"
 	"github.com/unstoppablemango/tdl/plugin"
 	"github.com/unstoppablemango/tdl/prelude"
@@ -31,9 +30,7 @@ type reader struct {
 	// entities maps each custom object read, lower-cased since Salesforce
 	// ignores case, to the entity it reads as.
 	entities map[string]string
-	// enums maps each enum a picklist reads as to its values.
-	enums map[string][]string
-	decls []ast.Decl
+	decls    []ast.Decl
 }
 
 // objectFiles is what the input holds under one objects/<Object>/ folder.
@@ -66,10 +63,10 @@ var preludeNames = sync.OnceValue(func() map[string]bool {
 })
 
 // readObjects reads the object and field metadata among files into a
-// model: each custom object an entity, and each picklist's values an enum.
+// model: each custom object an entity.
 // What has no TDL form warns and is skipped.
 func readObjects(files []*plugin.File, readback bool) (*plugin.ImportResponse, error) {
-	r := &reader{entities: map[string]string{}, enums: map[string][]string{}}
+	r := &reader{entities: map[string]string{}}
 	r.Readback = readback
 	return r.Response(r.read(files))
 }
@@ -215,10 +212,25 @@ func (r *reader) object(o *objectFiles) error {
 		r.Directive(name, "plural", reverse.StrLit(obj.PluralLabel))
 	}
 
-	// unread names the elements that mean something to an org and nothing
-	// to the model, warned about once for the object.
-	unread := map[string]bool{}
 	pos := filePos(o.object)
+	unread := r.unread(o, &obj, base)
+	decl := &ast.StructDecl{DeclHead: head(name, obj.Description, pos), Keyword: "type", Conforms: []*ast.ClassRef{{N: "Entity"}}}
+	r.decls = append(r.decls, decl)
+	if err := r.fields(decl, o, unread); err != nil {
+		return err
+	}
+	if len(unread) > 0 {
+		r.Warn(emit.LossUnsupported, pos, "%s has elements with no TDL form, which are not read: %s",
+			o.api, strings.Join(slices.Sorted(maps.Keys(unread)), ", "))
+	}
+	return nil
+}
+
+// unread returns the names of what an object holds that means something to
+// an org and nothing to the model, to warn about once for the object, and
+// warns about each validation rule.
+func (r *reader) unread(o *objectFiles, obj *customObject, base string) map[string]bool {
+	unread := map[string]bool{}
 	for _, e := range obj.Other {
 		if e.XMLName.Local == "validationRules" {
 			r.Warn(emit.LossConstraint, at(o.object, e.XMLName.Local), "%s has a validation rule, which is not read", o.api)
@@ -242,14 +254,18 @@ func (r *reader) object(o *objectFiles) error {
 	if obj.NameField != (nameField{DisplayFormat: base + "-{0000}", Label: obj.Label + " Number", Type: "AutoNumber"}) {
 		unread["nameField"] = true
 	}
+	return unread
+}
 
-	decl := &ast.StructDecl{DeclHead: head(name, obj.Description, pos), Keyword: "type", Conforms: []*ast.ClassRef{{N: "Entity"}}}
-	r.decls = append(r.decls, decl)
+// fields reads an object's field files into decl, and its external ID into
+// a key directive.
+func (r *reader) fields(decl *ast.StructDecl, o *objectFiles, unread map[string]bool) error {
+	name := decl.N
 	var key string
 	seen := map[string]bool{}
 	for _, f := range o.fields {
 		before := len(r.Entries)
-		fld, isKey, err := r.field(name, o.api, base, f, unread)
+		fld, isKey, err := r.field(name, o.api, f, unread)
 		if err != nil {
 			return err
 		}
@@ -271,17 +287,13 @@ func (r *reader) object(o *objectFiles) error {
 			r.Warn(emit.LossUnsupported, filePos(f), "%s has a second external ID, %s, and only %s is read as its key", o.api, fld.N, key)
 		}
 	}
-	if len(unread) > 0 {
-		r.Warn(emit.LossUnsupported, pos, "%s has elements with no TDL form, which are not read: %s",
-			o.api, strings.Join(slices.Sorted(maps.Keys(unread)), ", "))
-	}
 	return nil
 }
 
 // field reads one field file, returning nil for a field it skips, and
 // whether the field is an external ID. Elements with no model meaning are
 // added to unread.
-func (r *reader) field(entity, api, object string, f *plugin.File, unread map[string]bool) (*ast.Field, bool, error) {
+func (r *reader) field(entity, api string, f *plugin.File, unread map[string]bool) (*ast.Field, bool, error) {
 	var cf customField
 	if err := xml.Unmarshal(f.GetContent(), &cf); err != nil {
 		return nil, false, reverse.Failf(filePos(f), "%s is not field metadata: %v", f.GetPath(), err)
@@ -296,7 +308,7 @@ func (r *reader) field(entity, api, object string, f *plugin.File, unread map[st
 	what := api + "." + cf.FullName
 	// The field's own directives go before those its type writes.
 	before := len(r.Entries)
-	typ := r.fieldType(&cf, entity, object, base, what, pos, unread)
+	typ := r.fieldType(&cf, entity, base, what, pos)
 	if typ == nil {
 		r.Entries = r.Entries[:before]
 		return nil, false, nil
@@ -332,7 +344,7 @@ func (r *reader) field(entity, api, object string, f *plugin.File, unread map[st
 }
 
 // fieldType is the type a field reads as, or nil when it has none.
-func (r *reader) fieldType(cf *customField, entity, object, base, what string, pos *ir.Position, unread map[string]bool) *ast.TypeRef {
+func (r *reader) fieldType(cf *customField, entity, base, what string, pos *ir.Position) *ast.TypeRef {
 	scale := 0
 	if cf.Scale != nil {
 		scale = *cf.Scale
@@ -373,114 +385,14 @@ func (r *reader) fieldType(cf *customField, entity, object, base, what string, p
 		return &ast.TypeRef{N: "date"}
 	case "DateTime":
 		return &ast.TypeRef{N: "instant"}
-	case "Lookup":
-		target, ok := r.entities[strings.ToLower(cf.ReferenceTo)]
-		if !ok {
-			why := "is not among the objects imported"
-			if _, err := custom(cf.ReferenceTo); err != nil {
-				why = "is a standard or managed-package object"
-			}
-			r.Warn(emit.LossUnsupported, pos, "%s looks up %s, which %s, so the field is not read", what, cf.ReferenceTo, why)
-			return nil
-		}
-		want := "SetNull"
-		if cf.Required {
-			want = "Restrict"
-		}
-		if cf.DeleteConstraint != want {
-			unread["deleteConstraint"] = true
-		}
-		if cf.RelationshipName != object+base || cf.RelationshipLabel != label(object)+" "+cf.Label {
-			unread["relationshipName"] = true
-		}
-		return &ast.TypeRef{N: target}
-	case "Picklist", "MultiselectPicklist":
-		enum := r.picklist(cf, entity, base, what, pos, unread)
-		if enum == "" {
-			return nil
-		}
-		if cf.Type == "Picklist" {
-			return &ast.TypeRef{N: enum}
-		}
-		if cf.Required {
-			r.Respell(emit.LossOptional, pos, "%s is required, and a multi-select picklist regenerates without saying so", what)
-		}
-		if cf.VisibleLines != 4 {
-			unread["visibleLines"] = true
-		}
-		return &ast.TypeRef{Set: &ast.TypeRef{N: enum}}
 	}
 	r.Warn(emit.LossUnsupported, pos, "%s is a %s field, which is not read", what, cmp.Or(cf.Type, "typeless"))
 	return nil
 }
 
-// picklist returns the enum a picklist's values read as, declaring it the
-// first time, or "" when they cannot be one. The enum is named for the
-// field, and for its entity too when another enum has the name.
-func (r *reader) picklist(cf *customField, entity, base, what string, pos *ir.Position, unread map[string]bool) string {
-	if cf.ValueSet == nil || len(cf.ValueSet.Definition.Values) == 0 {
-		r.Warn(emit.LossUnsupported, pos, "%s has no values of its own, so the field is not read", what)
-		return ""
-	}
-	set := cf.ValueSet
-	if !set.Restricted || set.Definition.Sorted {
-		unread["valueSet"] = true
-	}
-	var values []string
-	for _, v := range set.Definition.Values {
-		if _, keyword := lex.Lookup(v.FullName); keyword || !identifier(v.FullName) {
-			r.Warn(emit.LossUnsupported, pos, "%s has the value %q, which is not a TDL name, so the field is not read", what, v.FullName)
-			return ""
-		}
-		if v.Label != label(v.FullName) {
-			unread["valueSet"] = true
-		}
-		if v.Default {
-			r.Warn(emit.LossDefault, pos, "%s defaults to %s, which is not read", what, v.FullName)
-		}
-		values = append(values, v.FullName)
-	}
-
-	name := emit.Pascal(base)
-	if have, ok := r.enums[name]; ok && !slices.Equal(have, values) || r.taken(name) || preludeNames()[name] {
-		name = entity + name
-	}
-	if r.taken(name) || preludeNames()[name] {
-		r.Warn(emit.LossUnsupported, pos, "%s reads as enum %s, which another declaration has, so the field is not read", what, name)
-		return ""
-	}
-	if have, ok := r.enums[name]; ok {
-		if slices.Equal(have, values) {
-			return name
-		}
-		r.Warn(emit.LossUnsupported, pos, "%s reads as enum %s, which another field declares with other values, so the field is not read", what, name)
-		return ""
-	}
-	r.enums[name] = values
-	decl := &ast.EnumDecl{DeclHead: ast.DeclHead{N: name, P: astPos(pos)}}
-	for _, v := range values {
-		decl.Variants = append(decl.Variants, &ast.Variant{DeclHead: ast.DeclHead{N: v, P: astPos(pos)}})
-	}
-	r.decls = append(r.decls, decl)
-	return name
-}
-
 // taken reports whether an entity is named n.
 func (r *reader) taken(n string) bool {
 	return slices.Contains(slices.Collect(maps.Values(r.entities)), n)
-}
-
-func identifier(s string) bool {
-	if s == "" {
-		return false
-	}
-	for i, c := range s {
-		letter := c == '_' || c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z'
-		if !letter && (i == 0 || c < '0' || c > '9') {
-			return false
-		}
-	}
-	return true
 }
 
 // head is a node's head from its description, whose last line is a
@@ -520,4 +432,3 @@ func at(f *plugin.File, elem string) *ir.Position {
 func astPos(p *ir.Position) ast.Position {
 	return ast.Position{Filename: p.GetFilename(), Line: int(p.GetLine()), Col: int(p.GetColumn())}
 }
-
