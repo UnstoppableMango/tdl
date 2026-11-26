@@ -20,6 +20,7 @@ let
     "completions/tdl.fish"
     "completions/tdl.zsh"
     "tdl"
+    "tdl-gen-mermaid"
     "tdl-gen-typescript"
   ];
 in

@@ -107,8 +107,9 @@ Or install it with `nix profile install github:UnstoppableMango/tdl`.
 ### Release assets
 
 Each release carries `tdl_<version>_<os>_<arch>.tar.gz` for `linux` and `darwin`, `amd64` and `arm64`, and `SHA256SUMS`.
-A tarball holds `tdl`, `tdl-gen-typescript` for the TypeScript content mapper, `LICENSE`, `README.md`, and bash, zsh, and fish completion in `completions/`.
-The linux binaries are static, and nothing in a tarball needs Nix.
+A tarball holds `tdl`, `tdl-gen-typescript` for the TypeScript content mapper, `tdl-gen-mermaid` for the `mermaid` backend, `LICENSE`, `README.md`, and bash, zsh, and fish completion in `completions/`.
+Nothing in a tarball needs Nix: `tdl` and `tdl-gen-typescript` are static on linux, and `tdl-gen-mermaid`, a Bun single executable, needs glibc there.
+`tdl` runs `tdl-gen-mermaid` from `PATH`, so install both to use the `mermaid` target.
 Every file is attested, so `gh attestation verify` checks it was built by this repository's release workflow.
 
 ```shell
