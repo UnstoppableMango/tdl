@@ -28,10 +28,10 @@ directive @tdl(name: String, kind: String, conforms: String, source: String, inc
 // kv is one @tdl argument.
 type kv struct{ key, value string }
 
-// annotations is a node's @tdl directives when roundtrip is on, one per
+// annotations is a node's @tdl directives when annotate is on, one per
 // argument, or "".
 func (g *generator) annotations(kvs []kv) string {
-	if !g.Roundtrip || len(kvs) == 0 {
+	if !g.Annotate || len(kvs) == 0 {
 		return ""
 	}
 	g.annotated = true
@@ -277,7 +277,7 @@ func packageBack(pkg string) string {
 // name does not, the package's doc comment, the imports, and every
 // top-level item no GraphQL type declares, by its index in the file; or "".
 func (g *generator) schemaExtension(emitted map[string]bool) string {
-	if !g.Roundtrip {
+	if !g.Annotate {
 		return ""
 	}
 	var kvs []kv

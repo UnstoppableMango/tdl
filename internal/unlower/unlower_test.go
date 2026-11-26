@@ -15,10 +15,10 @@ import (
 	"github.com/unstoppablemango/tdl/parser"
 )
 
-// TestCorpusRoundTrips unlowers every conformance case, prints it, and
+// TestCorpusLowersBack unlowers every conformance case, prints it, and
 // checks the printed file lowers to the same model, positions aside, and
 // is already canonical.
-func TestCorpusRoundTrips(t *testing.T) {
+func TestCorpusLowersBack(t *testing.T) {
 	dirs, err := filepath.Glob("../../testdata/conformance/*")
 	if err != nil || len(dirs) == 0 {
 		t.Fatalf("no corpus found: %v", err)
@@ -101,11 +101,11 @@ func read(t *testing.T, path string) string {
 	return string(data)
 }
 
-// TestRoundTrips covers what the conformance corpus does not: directives
+// TestLowersBack covers what the conformance corpus does not: directives
 // reaching variants, variant fields, externs, and class fields; blocks
 // sharing a target; overridden class directives; and mixins including
 // mixins.
-func TestRoundTrips(t *testing.T) {
+func TestLowersBack(t *testing.T) {
 	loader := mapLoader{"money.tdl": "package money\n\ntype Money {\n  cents: int\n}\n"}
 	cases := map[string]string{
 		"directives": `package shop

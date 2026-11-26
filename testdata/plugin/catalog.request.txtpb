@@ -847,13 +847,13 @@ model: {
       target: "debug"
     }
     directives: {
-      name: "roundtrip"
+      name: "annotate"
       position: {
         filename: "catalog.tdl"
         line: 20
         column: 3
         end_line: 20
-        end_column: 12
+        end_column: 11
       }
       target: "debug"
     }
