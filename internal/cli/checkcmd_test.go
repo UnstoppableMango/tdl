@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/unstoppablemango/tdl/internal/gen"
 )
 
 // A passing check lets the run write as usual, and runs in the staged
@@ -182,5 +184,79 @@ func TestGenCheckErrors(t *testing.T) {
 				t.Error("gen wrote output")
 			}
 		})
+	}
+}
+
+// The staged copy holds what the output directory already holds, so a
+// check sees a hand-written file beside the generated ones, but not a file
+// tdl owns that --clean removes.
+func TestGenCheckSeesTheWholeOutputDirectory(t *testing.T) {
+	dir := t.TempDir()
+	out := filepath.Join(dir, "models", "out")
+	writeFiles(t, dir, map[string]string{"models/out/sub/hand.txt": "kept\n"})
+
+	toml := "[check]\nhand = 'sh -c \"test -f sub/hand.txt && test -f model.txt\"'\n"
+	path := writePostProject(t, dir, "  check(\"hand\")\n", toml)
+	if _, errOut, err := run(t, newGenCmd(), path); err != nil {
+		t.Fatalf("gen: %v\n%s", err, errOut)
+	}
+
+	// A file tdl owns but no longer generates is staged by a plain run and
+	// left out under --clean, as each run would leave the directory.
+	owned := filepath.Join(out, "old.txt")
+	if err := os.WriteFile(owned, []byte("old\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	marker := filepath.Join(out, gen.MarkerName)
+	m, err := os.ReadFile(marker)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(marker, append(m, "old.txt\n"...), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	writeFiles(t, dir, map[string]string{"tdl.toml": "[check]\nold = 'sh -c \"test -f old.txt\"'\n"})
+	path = writePostProject(t, dir, "  check(\"old\")\n", "")
+	if _, errOut, err := run(t, newGenCmd(), path); err != nil {
+		t.Errorf("gen without --clean did not stage old.txt: %v\n%s", err, errOut)
+	}
+	if _, _, err := run(t, newGenCmd(), "--clean", path); err == nil {
+		t.Error("gen --clean staged a file it removes")
+	}
+}
+
+// A program named by a relative path is relative to tdl.toml, as in post.
+func TestGenCheckProgramIsRelativeToTheManifest(t *testing.T) {
+	dir := t.TempDir()
+	writeFiles(t, dir, map[string]string{"bin/ok": "#!/bin/sh\nexit 0\n"})
+	if err := os.Chmod(filepath.Join(dir, "bin", "ok"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	path := writePostProject(t, dir, "  check(\"ok\")\n", "[check]\nok = \"./bin/ok {dir}\"\n")
+	if _, errOut, err := run(t, newGenCmd(), path); err != nil {
+		t.Fatalf("gen: %v\n%s", err, errOut)
+	}
+}
+
+// When the directory above the output cannot be written, the copy is
+// staged in the system's temporary directory instead.
+func TestGenCheckStagesElsewhereBesideAReadOnlyParent(t *testing.T) {
+	if os.Getuid() == 0 {
+		t.Skip("root writes to read-only directories")
+	}
+	dir := t.TempDir()
+	writeFiles(t, dir, map[string]string{"models/out/.keep": ""})
+	path := writePostProject(t, dir, "  check(\"ok\")\n", "[check]\nok = \"true\"\n")
+	models := filepath.Join(dir, "models")
+	if err := os.Chmod(models, 0o555); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(models, 0o755) })
+
+	if _, errOut, err := run(t, newGenCmd(), path); err != nil {
+		t.Fatalf("gen: %v\n%s", err, errOut)
+	}
+	if _, err := os.Stat(filepath.Join(models, "out", "model.txt")); err != nil {
+		t.Error(err)
 	}
 }

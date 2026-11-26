@@ -152,7 +152,9 @@ func (b Backend) Generate(ctx context.Context, req *plugin.Request) (*plugin.Res
 		if req.GetDryRun() {
 			break
 		}
-		err := checks.Run(ctx, req.GetOut(), g.written())
+		// Staged over what the output directory holds, as the host stages it
+		// without --clean.
+		err := checks.Run(ctx, req.GetOut(), g.written(), nil)
 		var failed *host.CheckFailure
 		switch {
 		case err == nil:
