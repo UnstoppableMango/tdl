@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/unstoppablemango/tdl/internal/gen"
+	"github.com/unstoppablemango/tdl/internal/host"
 	"github.com/unstoppablemango/tdl/internal/sema"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/parser"
@@ -290,7 +291,7 @@ func TestKeptOutputRunsNoCheck(t *testing.T) {
 	runFickle(t, b, out, keepSource, gen.ModeWrite)
 
 	ran := filepath.Join(t.TempDir(), "ran")
-	checks := &gen.Checks{Commands: []gen.Command{{Name: "fail", Args: []string{"sh", "-c", "touch " + ran + "; exit 1"}}}}
+	checks := &host.Checks{Commands: []host.Command{{Name: "fail", Args: []string{"sh", "-c", "touch " + ran + "; exit 1"}}}}
 	target := gen.Target{Name: "fickle", Out: out, Checks: checks}
 	result, err := gen.Run(context.Background(), b, target, lowerSource(t, "shop.tdl", keepSource), gen.ModeWrite)
 	if err != nil {

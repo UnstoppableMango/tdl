@@ -1,4 +1,4 @@
-package gen
+package host
 
 import (
 	"bytes"
@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/unstoppablemango/tdl/internal/config"
-	"github.com/unstoppablemango/tdl/internal/host"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -33,7 +32,7 @@ type Checks struct {
 // an error naming the target for a name cfg does not declare, including
 // when there is no tdl.toml.
 func ResolveChecks(block *ir.TargetBlock, cfg *config.Config) (*Checks, error) {
-	cmds, err := commands(block, cfg, host.CheckDirective, cfg.Check)
+	cmds, err := Commands(block, cfg, CheckDirective, cfg.Check)
 	if err != nil || cmds == nil {
 		return nil, err
 	}
@@ -62,7 +61,7 @@ func (c *Checks) Run(ctx context.Context, out string, files []*plugin.File) (err
 		err = errors.Join(err, os.RemoveAll(staged))
 	}()
 
-	if _, err := Write(staged, files); err != nil {
+	if err := stage(staged, files); err != nil {
 		return fmt.Errorf("staging the files to check: %w", err)
 	}
 	for _, cmd := range c.Commands {
@@ -93,13 +92,48 @@ func (c Command) check(ctx context.Context, dir string) error {
 	case errors.Is(err, exec.ErrNotFound), errors.Is(err, os.ErrNotExist):
 		return fmt.Errorf("check command %s: %s was not found", c.Name, args[0])
 	case errors.As(err, &exit):
-		msg := fmt.Sprintf("check command %s failed: %v", c.Name, err)
-		if s := strings.TrimSpace(output.String()); s != "" {
-			msg += "\n" + s
-		}
-		return errors.New(msg)
+		return &CheckFailure{Name: c.Name, Status: exit.String(), Output: strings.TrimSpace(output.String())}
 	}
 	return fmt.Errorf("check command %s: %w", c.Name, err)
+}
+
+// CheckFailure is a check command that ran and exited non-zero, as
+// opposed to one that could not run at all.
+type CheckFailure struct {
+	// Name is what the check directive and [check] call the command.
+	Name string
+	// Status is how it exited: "exit status 1".
+	Status string
+	// Output is everything it printed on either stream, trimmed.
+	Output string
+}
+
+func (f *CheckFailure) Error() string {
+	msg := fmt.Sprintf("check command %s failed: %s", f.Name, f.Status)
+	if f.Output != "" {
+		msg += "\n" + f.Output
+	}
+	return msg
+}
+
+// stage writes files under dir, which is new and empty, through an
+// [os.Root], so that no path leaves it.
+func stage(dir string, files []*plugin.File) error {
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return err
+	}
+	defer root.Close()
+	for _, f := range files {
+		rel := filepath.FromSlash(f.GetPath())
+		if err := root.MkdirAll(filepath.Dir(rel), 0o755); err != nil {
+			return err
+		}
+		if err := root.WriteFile(rel, f.GetContent(), 0o644); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // existingParent returns the nearest directory above out that exists,

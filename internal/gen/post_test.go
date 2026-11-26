@@ -4,41 +4,14 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 
 	"github.com/unstoppablemango/tdl/internal/config"
+	"github.com/unstoppablemango/tdl/internal/host"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
-
-func TestSplitWords(t *testing.T) {
-	tests := []struct {
-		line string
-		want []string
-	}{
-		{"tr a-z A-Z", []string{"tr", "a-z", "A-Z"}},
-		{"  biome\tformat  --stdin-file-path={file} ", []string{"biome", "format", "--stdin-file-path={file}"}},
-		{`sed 's/a b/c d/'`, []string{"sed", "s/a b/c d/"}},
-		{`printf "%s \"x\"" ''`, []string{"printf", `%s "x"`, ""}},
-		{`a\ b c`, []string{"a b", "c"}},
-		{`x'y'"z"`, []string{"xyz"}},
-		{`echo "C:\tmp \" \\" 'a\b'`, []string{"echo", `C:\tmp " \`, `a\b`}},
-	}
-	for _, tc := range tests {
-		got, err := splitWords(tc.line)
-		if err != nil || !slices.Equal(got, tc.want) {
-			t.Errorf("splitWords(%q) = %q, %v; want %q", tc.line, got, err, tc.want)
-		}
-	}
-
-	for _, bad := range []string{"", "   ", "tr 'a", `tr "a`, `tr \`} {
-		if got, err := splitWords(bad); err == nil {
-			t.Errorf("splitWords(%q) = %q, want an error", bad, got)
-		}
-	}
-}
 
 func postBlock(names ...string) *ir.TargetBlock {
 	var args []*ir.Literal
@@ -98,7 +71,7 @@ func TestResolvePost(t *testing.T) {
 // {file} the destination relative to it.
 func TestPostApply(t *testing.T) {
 	dir := t.TempDir()
-	post := &Post{Dir: dir, Commands: []Command{
+	post := &Post{Dir: dir, Commands: []host.Command{
 		{Name: "tag", Args: []string{"sh", "-c", `cat; echo "$1 $(pwd)"`, "sh", "{file}"}},
 		{Name: "up", Args: []string{"tr", "a-z", "A-Z"}},
 	}}
@@ -146,7 +119,7 @@ func TestPostApplyErrors(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			post := &Post{Dir: dir, Commands: []Command{{Name: "c", Args: tc.args}}}
+			post := &Post{Dir: dir, Commands: []host.Command{{Name: "c", Args: tc.args}}}
 			_, err := post.Apply(context.Background(), dir, tc.files)
 			if err == nil {
 				t.Fatal("applied")

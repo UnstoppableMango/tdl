@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/unstoppablemango/tdl/internal/config"
@@ -32,16 +31,7 @@ type Post struct {
 
 	// Commands run in the order the directive names them, each one's output
 	// feeding the next.
-	Commands []Command
-}
-
-// Command is one post or check command.
-type Command struct {
-	// Name is what the directive and its tdl.toml table call it.
-	Name string
-
-	// Args is the command line split into words, with placeholders left in.
-	Args []string
+	Commands []host.Command
 }
 
 // ResolvePost reads a target block's post directive through cfg, the
@@ -49,46 +39,11 @@ type Command struct {
 // an error naming the target for a name cfg does not declare, including
 // when there is no tdl.toml.
 func ResolvePost(block *ir.TargetBlock, cfg *config.Config) (*Post, error) {
-	cmds, err := commands(block, cfg, host.PostDirective, cfg.Post)
+	cmds, err := host.Commands(block, cfg, host.PostDirective, cfg.Post)
 	if err != nil || cmds == nil {
 		return nil, err
 	}
 	return &Post{Dir: cfg.Dir(), Commands: cmds}, nil
-}
-
-// commands reads the names a target block's directive gives, across
-// repeated entries, through the manifest table of the same name. It
-// returns nil when the block has none, and an error naming the target for
-// a name the table does not declare, including when there is no tdl.toml.
-func commands(block *ir.TargetBlock, cfg *config.Config, directive string, table map[string]string) ([]Command, error) {
-	target := block.GetMeta().GetName()
-	var names []string
-	for _, d := range block.GetDirectives() {
-		if d.GetName() == directive {
-			for _, a := range d.GetArgs() {
-				names = append(names, a.GetText())
-			}
-		}
-	}
-
-	var cmds []Command
-	for _, name := range names {
-		if cfg.Path == "" {
-			return nil, fmt.Errorf("target %s: %s names %q, but no %s was found above the model; add one with a [%s] table declaring %s = \"<command>\"",
-				target, directive, name, config.FileName, directive, name)
-		}
-		line, ok := table[name]
-		if !ok {
-			return nil, fmt.Errorf("target %s: %s names %q, which [%s] in %s does not declare; add %s = \"<command>\" there",
-				target, directive, name, directive, cfg.Path, name)
-		}
-		args, err := splitWords(line)
-		if err != nil {
-			return nil, fmt.Errorf("target %s: %s.%s in %s: %w", target, directive, name, cfg.Path, err)
-		}
-		cmds = append(cmds, Command{Name: name, Args: args})
-	}
-	return cmds, nil
 }
 
 // Apply runs every command over every file, returning the files with
@@ -116,7 +71,7 @@ func (p *Post) Apply(ctx context.Context, out string, files []*plugin.File) ([]*
 
 		content := f.GetContent()
 		for _, c := range p.Commands {
-			if content, err = c.run(ctx, p.Dir, rel, content); err != nil {
+			if content, err = filter(ctx, c, p.Dir, rel, content); err != nil {
 				return nil, err
 			}
 		}
@@ -125,8 +80,8 @@ func (p *Post) Apply(ctx context.Context, out string, files []*plugin.File) ([]*
 	return processed, nil
 }
 
-// run filters one file's content through the command.
-func (c Command) run(ctx context.Context, dir, file string, content []byte) ([]byte, error) {
+// filter runs one post command over one file's content.
+func filter(ctx context.Context, c host.Command, dir, file string, content []byte) ([]byte, error) {
 	args := make([]string, len(c.Args))
 	for i, a := range c.Args {
 		args[i] = strings.ReplaceAll(a, filePlaceholder, file)
@@ -153,66 +108,4 @@ func (c Command) run(ctx context.Context, dir, file string, content []byte) ([]b
 		return nil, errors.New(msg)
 	}
 	return nil, fmt.Errorf("post command %s on %s: %w", c.Name, file, err)
-}
-
-// splitWords splits a command line into words as a shell would, without
-// expanding anything: whitespace separates words, single quotes keep
-// everything inside them, a backslash outside quotes keeps the character
-// after it, and one inside double quotes does so only before $, `, ", \,
-// or a newline, and is otherwise kept itself.
-func splitWords(line string) ([]string, error) {
-	var words []string
-	var word strings.Builder
-	inWord := false
-	var quote rune
-	escaped := false
-
-	for _, r := range line {
-		switch {
-		case escaped:
-			if quote == '"' && !strings.ContainsRune("$`\"\\\n", r) {
-				word.WriteRune('\\')
-			}
-			word.WriteRune(r)
-			escaped = false
-		case quote == '\'':
-			if r == '\'' {
-				quote = 0
-			} else {
-				word.WriteRune(r)
-			}
-		case r == '\\':
-			escaped, inWord = true, true
-		case quote == '"':
-			if r == '"' {
-				quote = 0
-			} else {
-				word.WriteRune(r)
-			}
-		case r == '\'' || r == '"':
-			quote, inWord = r, true
-		case r == ' ' || r == '\t' || r == '\n':
-			if inWord {
-				words = append(words, word.String())
-				word.Reset()
-				inWord = false
-			}
-		default:
-			word.WriteRune(r)
-			inWord = true
-		}
-	}
-	switch {
-	case escaped:
-		return nil, fmt.Errorf("the command line ends in a backslash")
-	case quote != 0:
-		return nil, fmt.Errorf("the command line has an unterminated %s quote", strconv.QuoteRune(quote))
-	}
-	if inWord {
-		words = append(words, word.String())
-	}
-	if len(words) == 0 {
-		return nil, fmt.Errorf("the command line is empty")
-	}
-	return words, nil
 }

@@ -23,9 +23,9 @@ type Target struct {
 	Post *Post
 
 	// Checks is what runs over a staged copy of those files before they
-	// are written, from [ResolveChecks]; nil runs nothing. A verify run
-	// runs none.
-	Checks *Checks
+	// are written, from [host.ResolveChecks]; nil runs nothing. A verify
+	// run runs none.
+	Checks *host.Checks
 }
 
 // Targets returns the target blocks in a model, with their output
