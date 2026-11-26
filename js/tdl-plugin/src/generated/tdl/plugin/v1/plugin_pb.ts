@@ -811,11 +811,11 @@ export type MemberView = Message<"tdl.plugin.v1.MemberView"> & {
   deprecation: string;
 
   /**
-   * references are the declarations a field names through its type and
-   * its type arguments, walked as DeclView.references walks a body, with
-   * aliases expanded, each once. A field naming its own declaration
-   * includes it, and prelude declarations stay in the list. Unset on a
-   * variant, whose fields carry their own.
+   * references are the declarations a structure's or variant's field
+   * names through its type and its type arguments, walked as
+   * DeclView.references walks a body, with aliases expanded, each once. A
+   * field naming its own declaration includes it, and prelude declarations
+   * stay in the list. Unset on a variant, whose fields carry their own.
    *
    * @generated from field: repeated tdl.ir.v1.ID references = 8;
    */

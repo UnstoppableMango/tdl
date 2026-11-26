@@ -5049,11 +5049,11 @@ namespace Tdl.Plugin.V1 {
         = pb::FieldCodec.ForMessage(66, global::Tdl.Ir.V1.ID.Parser);
     private readonly pbc::RepeatedField<global::Tdl.Ir.V1.ID> references_ = new pbc::RepeatedField<global::Tdl.Ir.V1.ID>();
     /// <summary>
-    /// references are the declarations a field names through its type and
-    /// its type arguments, walked as DeclView.references walks a body, with
-    /// aliases expanded, each once. A field naming its own declaration
-    /// includes it, and prelude declarations stay in the list. Unset on a
-    /// variant, whose fields carry their own.
+    /// references are the declarations a structure's or variant's field
+    /// names through its type and its type arguments, walked as
+    /// DeclView.references walks a body, with aliases expanded, each once. A
+    /// field naming its own declaration includes it, and prelude declarations
+    /// stay in the list. Unset on a variant, whose fields carry their own.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]

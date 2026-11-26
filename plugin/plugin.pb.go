@@ -1461,11 +1461,11 @@ type MemberView struct {
 	// `deprecated("reason")`, which precedes source when the field is
 	// written whole.
 	Deprecation string `protobuf:"bytes,7,opt,name=deprecation" json:"deprecation,omitempty"`
-	// references are the declarations a field names through its type and
-	// its type arguments, walked as DeclView.references walks a body, with
-	// aliases expanded, each once. A field naming its own declaration
-	// includes it, and prelude declarations stay in the list. Unset on a
-	// variant, whose fields carry their own.
+	// references are the declarations a structure's or variant's field
+	// names through its type and its type arguments, walked as
+	// DeclView.references walks a body, with aliases expanded, each once. A
+	// field naming its own declaration includes it, and prelude declarations
+	// stay in the list. Unset on a variant, whose fields carry their own.
 	References    []*ir.ID `protobuf:"bytes,8,rep,name=references" json:"references,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

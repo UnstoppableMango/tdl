@@ -329,6 +329,9 @@ func TestMemberReferencesCoverDecl(t *testing.T) {
 	}
 	for _, dir := range dirs {
 		t.Run(filepath.Base(dir), func(t *testing.T) {
+			if reason, err := os.ReadFile(filepath.Join(dir, "pending")); err == nil {
+				t.Skip(strings.TrimSpace(string(reason)))
+			}
 			path := filepath.Join(dir, "source.tdl")
 			src, err := os.ReadFile(path)
 			if err != nil {

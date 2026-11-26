@@ -3278,11 +3278,11 @@ pub struct MemberView {
     ///
     /// Field 7: `deprecation`
     pub deprecation: ::buffa::alloc::string::String,
-    /// references are the declarations a field names through its type and
-    /// its type arguments, walked as DeclView.references walks a body, with
-    /// aliases expanded, each once. A field naming its own declaration
-    /// includes it, and prelude declarations stay in the list. Unset on a
-    /// variant, whose fields carry their own.
+    /// references are the declarations a structure's or variant's field
+    /// names through its type and its type arguments, walked as
+    /// DeclView.references walks a body, with aliases expanded, each once. A
+    /// field naming its own declaration includes it, and prelude declarations
+    /// stay in the list. Unset on a variant, whose fields carry their own.
     ///
     /// Field 8: `references`
     pub references: ::buffa::alloc::vec::Vec<super::super::ir::v1::ID>,
