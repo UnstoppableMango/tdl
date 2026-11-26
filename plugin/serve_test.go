@@ -41,7 +41,7 @@ func serve(t *testing.T, b plugin.Backend, msgs ...proto.Message) (*plugin.Conn,
 			t.Fatal(err)
 		}
 	}
-	err := plugin.ServeConn(context.Background(), b, plugin.NewConn(&in, &out))
+	err := plugin.ServeConn(context.Background(), plugin.NewConn(&in, &out), b)
 	return plugin.NewConn(&out, nil), err
 }
 
@@ -113,5 +113,49 @@ func TestServeGeneratesByDefault(t *testing.T) {
 	}
 	if len(resp.GetFiles()) == 0 {
 		t.Error("generating returned no files")
+	}
+}
+
+// A connection is served by the backend its handshake names, and a target
+// none serves is refused with the names of those that are.
+func TestServeChoosesTheTarget(t *testing.T) {
+	var in, out bytes.Buffer
+	send := plugin.NewConn(nil, &in)
+	h := hello(plugin.Mode_MODE_IMPORT)
+	h.Target = "reader"
+	for _, m := range []proto.Message{h, &plugin.ImportRequest{Files: []*plugin.File{{Path: "a"}}}} {
+		if err := send.Send(m); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := plugin.ServeConn(context.Background(), plugin.NewConn(&in, &out), shout{}, reader{}); err != nil {
+		t.Fatalf("serve: %v", err)
+	}
+	var reply plugin.HandshakeReply
+	if err := plugin.NewConn(&out, nil).Recv(&reply); err != nil {
+		t.Fatal(err)
+	}
+	if !reply.GetAccepted() || reply.GetName() != "reader" {
+		t.Errorf("reply = %v, want reader accepted", &reply)
+	}
+
+	h = hello(plugin.Mode_MODE_UNSPECIFIED)
+	h.Target = "vb"
+	in.Reset()
+	out.Reset()
+	if err := send.Send(h); err != nil {
+		t.Fatal(err)
+	}
+	err := plugin.ServeConn(context.Background(), plugin.NewConn(&in, &out), shout{}, reader{})
+	want := "serves reader, shout; asked for vb"
+	if err == nil || !strings.Contains(err.Error(), want) {
+		t.Errorf("err = %v, want %q", err, want)
+	}
+	reply.Reset()
+	if err := plugin.NewConn(&out, nil).Recv(&reply); err != nil {
+		t.Fatal(err)
+	}
+	if reply.GetAccepted() || reply.GetRefusal() != want {
+		t.Errorf("reply = %v, want refusal %q", &reply, want)
 	}
 }
