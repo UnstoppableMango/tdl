@@ -19,6 +19,7 @@ npm installs the one platform package that matches the machine, from the `option
 No package runs an install script, so `--ignore-scripts` changes nothing.
 An install that leaves out optional dependencies, with `--omit=optional` or a lock file written on another platform, leaves `tdl` without a binary, and it says so.
 
-Each platform package also carries `tdl-gen-typescript`, which the TypeScript content mapper runs.
+Each platform package also carries `tdl-gen-typescript`, which the TypeScript content mapper runs, and `tdl-gen-mermaid`, the `mermaid` backend, which `tdl` finds beside itself when run through the package.
+`tdl-gen-mermaid` is a Bun single executable, so on Linux it needs glibc.
 
 On another platform, build from source with `go install github.com/unstoppablemango/tdl/cmd/tdl@latest`, or use the Nix flake.

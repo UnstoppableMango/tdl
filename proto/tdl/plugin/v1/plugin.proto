@@ -70,6 +70,14 @@ message HandshakeReply {
   // reports a pin the rules refuse before generating. A backend that does
   // not number leaves it unset and receives no numbers.
   Numbering numbering = 7;
+
+  // import_patterns name the files this backend's importer reads, for a
+  // directory argument to `tdl import`, which tdl walks for the files they
+  // match. Each is a glob matched against a file's base name, as Go's
+  // path.Match reads one; one starting with `!` excludes what it matches.
+  // A file is read when an include matches it and no exclude does. A
+  // backend that imports nothing, or declares none, is given only files.
+  repeated string import_patterns = 8;
 }
 
 // Numbering is the rules a backend numbers members by. Numbers start at 1;

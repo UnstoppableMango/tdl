@@ -2,10 +2,15 @@ package golang_test
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/unstoppablemango/tdl/backend/golang"
+	"github.com/unstoppablemango/tdl/backend/jsonschema"
+	"github.com/unstoppablemango/tdl/backend/openapi"
+	"github.com/unstoppablemango/tdl/backend/typescript"
+	"github.com/unstoppablemango/tdl/backend/zod"
 	"github.com/unstoppablemango/tdl/internal/sema"
 	"github.com/unstoppablemango/tdl/parser"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -412,4 +417,280 @@ target go for tree {
 		t.Fatalf("diagnostics = %+v, want one warning", w)
 	}
 	contains(t, w[0].GetMessage(), "has a field named MarshalJSON")
+}
+
+// wireSource renames a fieldless and a fielded variant's wire values.
+const wireSource = `package shop
+
+enum Status {
+  Live
+  Expired
+}
+
+enum Payment {
+  Card { last4: string }
+  Cash
+}
+
+type Order {
+  status: Status
+  payment: Payment
+}
+
+target go for shop {
+  json
+  Status.Live => wire("live")
+  Payment.Card => wire("card")
+}
+`
+
+func TestWireRenamesVariants(t *testing.T) {
+	resp := generateTDL(t, wireSource)
+	if w := uncodedWarnings(resp); len(w) != 0 {
+		t.Fatalf("diagnostics = %+v", w)
+	}
+	got := files(t, resp)
+	contains(t, got["status.go"], `StatusLive    Status = "live"`, `StatusExpired Status = "Expired"`)
+	goTest(t, resp, `package shop
+
+import (
+	"encoding/json"
+	"reflect"
+	"testing"
+)
+
+const doc = `+"`"+`{"status":"live","payment":{"kind":"card","last4":"4242"}}`+"`"+`
+
+func TestRoundTrip(t *testing.T) {
+	var o Order
+	if err := json.Unmarshal([]byte(doc), &o); err != nil {
+		t.Fatal(err)
+	}
+	want := Order{Status: StatusLive, Payment: PaymentCard{Last4: "4242"}}
+	if !reflect.DeepEqual(o, want) {
+		t.Fatalf("decoded %#v, want %#v", o, want)
+	}
+	out, err := json.Marshal(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(out) != doc {
+		t.Fatalf("encoded\n%s\nwant\n%s", out, doc)
+	}
+}
+`)
+}
+
+func TestWireWithoutJSONWarns(t *testing.T) {
+	resp := generateTDL(t, strings.Replace(wireSource, "  json\n", "", 1))
+	w := uncodedWarnings(resp)
+	if len(w) != 1 {
+		t.Fatalf("diagnostics = %+v, want one warning", w)
+	}
+	contains(t, w[0].GetMessage(), "Payment.Card", "has no effect")
+	contains(t, files(t, resp)["status.go"], `= "live"`)
+}
+
+func TestWireCollisionIsAnError(t *testing.T) {
+	resp := generateTDL(t, strings.Replace(wireSource, `wire("live")`, `wire("Expired")`, 1))
+	var errs []*plugin.Diagnostic
+	for _, d := range resp.GetDiagnostics() {
+		if d.GetSeverity() == plugin.Severity_SEVERITY_ERROR {
+			errs = append(errs, d)
+		}
+	}
+	if len(errs) != 1 {
+		t.Fatalf("diagnostics = %+v, want one error", resp.GetDiagnostics())
+	}
+	contains(t, errs[0].GetMessage(), `Status.Live's wire value "Expired" is the name of Status.Expired`)
+	if _, ok := files(t, resp)["status.go"]; ok {
+		t.Error("the colliding enum is generated")
+	}
+}
+
+// A wire directive on a field renames its JSON key, and name renames only
+// the Go identifier.
+func TestWireRenamesFieldKeys(t *testing.T) {
+	resp := generateTDL(t, `package shop
+
+type Org {
+  name: string
+  slug: string?
+  head: string
+}
+
+target go for shop {
+  json
+  Org.name => wire("orgName")
+  Org.slug { name("Handle") wire("org_slug") }
+  Org.head => name("Lead")
+}
+`)
+	if w := uncodedWarnings(resp); len(w) != 0 {
+		t.Fatalf("diagnostics = %+v", w)
+	}
+	contains(t, files(t, resp)["org.go"],
+		"Name string `json:\"orgName\"`",
+		"Handle *string `json:\"org_slug,omitempty\"`",
+		"Lead string `json:\"head\"`")
+	goTest(t, resp, `package shop
+
+import (
+	"encoding/json"
+	"testing"
+)
+
+func TestRoundTrip(t *testing.T) {
+	const doc = `+"`"+`{"orgName":"Acme","org_slug":"acme","head":"Ada"}`+"`"+`
+	var o Org
+	if err := json.Unmarshal([]byte(doc), &o); err != nil {
+		t.Fatal(err)
+	}
+	if o.Name != "Acme" || o.Handle == nil || *o.Handle != "acme" || o.Lead != "Ada" {
+		t.Fatalf("decoded %+v", o)
+	}
+	out, err := json.Marshal(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(out) != doc {
+		t.Fatalf("encoded %s, want %s", out, doc)
+	}
+}
+`)
+}
+
+// A tag naming a JSON key wins over a wire directive naming another, and
+// warns; a wire directive without json warns that it has no effect.
+func TestWireBesideTag(t *testing.T) {
+	resp := generateTDL(t, `package shop
+
+type Org {
+  name: string
+  slug: string
+}
+
+target go for shop {
+  json
+  Org.name { tag("json:\"title\"") wire("orgName") }
+  Org.slug { tag("json:\"slug\" yaml:\"s\"") wire("slug") }
+}
+`)
+	w := uncodedWarnings(resp)
+	if len(w) != 1 {
+		t.Fatalf("diagnostics = %+v, want one warning", w)
+	}
+	contains(t, w[0].GetMessage(), "Org.name", `"title"`, `"orgName"`, "the tag wins")
+	contains(t, files(t, resp)["org.go"], "Name string `json:\"title\"`")
+
+	resp = generateTDL(t, `package shop
+
+type Org { name: string }
+
+target go for shop {
+  Org.name => wire("orgName")
+}
+`)
+	w = uncodedWarnings(resp)
+	if len(w) != 1 {
+		t.Fatalf("diagnostics = %+v, want one warning", w)
+	}
+	contains(t, w[0].GetMessage(), "Org.name", "has no effect")
+}
+
+// One wire directive per target gives every JSON backend the same key, and
+// the Go type reads the JSON the TypeScript type describes.
+func TestWireKeyAgreesAcrossBackends(t *testing.T) {
+	const src = `package shop
+
+type Org { name: string }
+`
+	backends := map[string]plugin.Backend{
+		golang.Name:     golang.Backend{},
+		typescript.Name: typescript.Backend{},
+		zod.Name:        zod.Backend{},
+		jsonschema.Name: jsonschema.Backend{},
+		openapi.Name:    openapi.Backend{},
+	}
+	var b strings.Builder
+	b.WriteString(src)
+	for name := range backends {
+		fmt.Fprintf(&b, "\ntarget %s for shop {\n", name)
+		if name == golang.Name {
+			b.WriteString("  json\n")
+		}
+		b.WriteString("  Org.name => wire(\"orgName\")\n}\n")
+	}
+	file, err := parser.Parse("main.tdl", strings.NewReader(b.String()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	model, diags := sema.Lower(file)
+	if len(diags) > 0 {
+		t.Fatal(diags.Error())
+	}
+	want := map[string]string{
+		golang.Name:     "`json:\"orgName\"`",
+		typescript.Name: "orgName: string;",
+		zod.Name:        "orgName: z.string(),",
+		jsonschema.Name: `"orgName"`,
+		openapi.Name:    "orgName:",
+	}
+	var goResp *plugin.Response
+	for name, backend := range backends {
+		resp, err := backend.Generate(context.Background(), &plugin.Request{Target: name, Model: model})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var all strings.Builder
+		for _, f := range resp.GetFiles() {
+			all.Write(f.GetContent())
+		}
+		if !strings.Contains(all.String(), want[name]) || strings.Contains(all.String(), `"name"`) {
+			t.Errorf("%s writes\n%s\nwant the key orgName and never name", name, all.String())
+		}
+		if name == golang.Name {
+			goResp = resp
+		}
+	}
+	goTest(t, goResp, `package shop
+
+import (
+	"encoding/json"
+	"testing"
+)
+
+// A value of the TypeScript type: interface Org { orgName: string; }
+const doc = `+"`"+`{"orgName":"Acme"}`+"`"+`
+
+func TestRoundTrip(t *testing.T) {
+	var o Org
+	if err := json.Unmarshal([]byte(doc), &o); err != nil || o.Name != "Acme" {
+		t.Fatalf("decoded %+v, %v", o, err)
+	}
+	out, _ := json.Marshal(o)
+	if string(out) != doc {
+		t.Fatalf("encoded %s", out)
+	}
+}
+`)
+}
+
+// A tag naming no JSON key replaces the whole struct tag, so a wire
+// directive beside it warns.
+func TestWireBesideATagWithoutAKey(t *testing.T) {
+	resp := generateTDL(t, `package shop
+
+type Org { name: string }
+
+target go for shop {
+  json
+  Org.name { tag("yaml:\"n\"") wire("orgName") }
+}
+`)
+	w := uncodedWarnings(resp)
+	if len(w) != 1 {
+		t.Fatalf("diagnostics = %+v, want one warning", w)
+	}
+	contains(t, w[0].GetMessage(), "names no JSON key", `"orgName"`)
 }

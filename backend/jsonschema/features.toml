@@ -7,10 +7,11 @@ spelling = "the mixin's properties, copied in"
 
 [enum]
 spelling = "`string` with `enum`"
+notes = "A `wire` directive on a variant renames its wire value."
 
 [fielded-enum]
 spelling = "a `oneOf` discriminated on `kind`"
-notes = "A `discriminant` directive renames `kind`."
+notes = "A `discriminant` directive renames `kind`. A `wire` directive on a variant renames its wire value."
 
 [newtype]
 spelling = "a definition"
@@ -55,7 +56,8 @@ notes = "Not written, and nothing warns."
 notes = "The backend declares no `key` directive, since a schema has no identity."
 
 [name]
-spelling = "the property or definition name"
+spelling = "the definition name"
+notes = "On a field it renames the property, which is its JSON key, and warns, since the wire convention spells a key as the model does and a `wire` directive renames one."
 
 [number]
 notes = "JSON has no field numbers."

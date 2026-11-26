@@ -16,8 +16,8 @@ No importer is planned, so every Import cell is No.
 | --- | --- | --- | --- | --- |
 | Entity, value, and mixin | Yes | No | `z.object` | Entities, values, and mixins are all objects; a `closed` directive makes one a `z.strictObject`. |
 | Mixin `include` | Yes | No | the mixin's properties, copied in | |
-| Fieldless enum | Yes | No | `z.enum` of the variants' names | |
-| Fielded enum | Yes | No | a `z.discriminatedUnion` on `kind` | A `discriminant` directive renames `kind`. |
+| Fieldless enum | Yes | No | `z.enum` of the variants' wire values | A `wire` directive on a variant renames its wire value. |
+| Fielded enum | Yes | No | a `z.discriminatedUnion` on `kind` | A `discriminant` directive renames `kind`. A `wire` directive on a variant renames its wire value. |
 | Newtype | Yes | No | a schema of its base, branded with its qualified name | A `structural` directive writes no brands. |
 | Alias | Yes | No | expanded where used | |
 | Optional and nullable | Yes | No | `.exactOptional()` or `.nullable()` | |
@@ -31,7 +31,7 @@ No importer is planned, so every Import cell is No.
 | `owned` | Yes | No | | Not written: a schema has no ownership, and a referenced entity is parsed by value. |
 | Field default | Yes | No | `.prefault(value)` | Parsed through the schema, so a branded field takes a plain value; checked when generated too, so one the schema refuses warns and is not written rather than failing every parse. |
 | `key` directive | No | No | | The backend declares no `key` directive, since a schema has no identity. |
-| `name` directive | Yes | No | the property or schema name | On a fielded variant it renames the variant's schema, never the `kind` value; on a variant of a fieldless enum it has no effect and warns. |
+| `name` directive | Yes | No | the schema name | On a fielded variant it renames the variant's schema, never the `kind` value; on a variant of a fieldless enum it has no effect and warns. On a field it renames the property, which is its JSON key, and warns, since the wire convention spells a key as the model does and a `wire` directive renames one. |
 | `number` directive | No | No | | JSON has no field numbers. |
 | Doc comment | Yes | No | a JSDoc comment on the schema, its type, and each property | |
 | Type parameters | Planned (phase 5) | No | | |

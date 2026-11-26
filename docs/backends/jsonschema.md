@@ -15,8 +15,8 @@ Import generates the feature and reads it back, and counts only what reading bac
 | --- | --- | --- | --- | --- |
 | Entity, value, and mixin | Yes | No | `object` | Entities, values, and mixins are all objects. |
 | Mixin `include` | Yes | No | the mixin's properties, copied in | |
-| Fieldless enum | Yes | No | `string` with `enum` | |
-| Fielded enum | Yes | No | a `oneOf` discriminated on `kind` | A `discriminant` directive renames `kind`. |
+| Fieldless enum | Yes | No | `string` with `enum` | A `wire` directive on a variant renames its wire value. |
+| Fielded enum | Yes | No | a `oneOf` discriminated on `kind` | A `discriminant` directive renames `kind`. A `wire` directive on a variant renames its wire value. |
 | Newtype | Yes | No | a definition | A newtype over another newtype is a `$ref`, which checks the constraints it inherits. |
 | Alias | Yes | No | expanded where used | |
 | Optional and nullable | Yes | No | left out of `required`, or `anyOf` with `null` | |
@@ -30,7 +30,7 @@ Import generates the feature and reads it back, and counts only what reading bac
 | `owned` | Yes | No | | Not written: a schema has no ownership, and a referenced entity is a `$ref`. |
 | Field default | Yes | No | | Not written, and nothing warns. |
 | `key` directive | No | No | | The backend declares no `key` directive, since a schema has no identity. |
-| `name` directive | Yes | No | the property or definition name | |
+| `name` directive | Yes | No | the definition name | On a field it renames the property, which is its JSON key, and warns, since the wire convention spells a key as the model does and a `wire` directive renames one. |
 | `number` directive | No | No | | JSON has no field numbers. |
 | Doc comment | Yes | No | `description` | |
 | Type parameters | No | No | | Type parameters are not generated yet, so a parameterized declaration and every one applying it are skipped. |

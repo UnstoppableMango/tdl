@@ -16,8 +16,8 @@ Import generates the feature and reads it back, and counts only what reading bac
 | --- | --- | --- | --- | --- |
 | Entity, value, and mixin | Yes | Warns (`lossy.struct-kind`) | `interface` | Entities, values, and mixins are all interfaces, so each reads back as a value. |
 | Mixin `include` | Yes | Warns (`lossy.include`) | the mixin's properties, copied in | The include is flattened into the fields it copies. |
-| Fieldless enum | Yes | Yes | a union of string literals | |
-| Fielded enum | Yes | Yes | a union of interfaces discriminated on `kind` | A `discriminant` directive renames `kind`. |
+| Fieldless enum | Yes | Yes | a union of string literals | A `wire` directive on a variant renames its wire value, which reads back as its name. |
+| Fielded enum | Yes | Yes | a union of interfaces discriminated on `kind` | A `discriminant` directive renames `kind`. A `wire` directive on a variant renames its wire value, which reads back as its name. |
 | Newtype | Yes | Yes | `type N = Base` | A plain alias, so parsed JSON needs no cast; under a `brand` directive, an alias intersected with a brand keyed by its qualified name, so two newtypes over one base are not interchangeable. Under `construct` or `brand`, a function of the same name builds one. |
 | Alias | Yes | Warns (`lossy.alias`) | expanded where used | |
 | Optional and nullable | Yes | Yes | `name?: T`, or a union with `null` | |
@@ -31,7 +31,7 @@ Import generates the feature and reads it back, and counts only what reading bac
 | `owned` | Warns (`lossy.owned`) | Yes | | TypeScript has no ownership, and a referenced type is embedded by value. |
 | Field default | Warns (`lossy.default`) | Yes | | The default is not written. |
 | `key` directive | No | No | | The output is types, with at most a newtype's constructor, so there is no key function to write. |
-| `name` directive | Yes | Warns (`lossy.name`) | the property or type name | The new name reads back as the field's own name rather than a directive. On a fielded variant it renames the interface, never the `kind` value; on a fieldless variant it has no effect and warns. |
+| `name` directive | Yes | Warns (`lossy.name`) | the type name | The new name reads back as the declaration's own name rather than a directive. On a fielded variant it renames the interface, never the `kind` value; on a fieldless variant it has no effect and warns. On a field it renames the property, which is its JSON key, and warns, since the wire convention spells a key as the model does and a `wire` directive renames one. Import reads a property that is not a TDL name back with a `wire` directive. |
 | `number` directive | No | No | | JSON has no field numbers. |
 | Doc comment | Yes | Yes | a JSDoc comment | |
 | Type parameters | No | No | | Type parameters are not generated yet, so a parameterized declaration and every one applying it are skipped. |

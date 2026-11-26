@@ -15,8 +15,8 @@ Import generates the feature and reads it back, and counts only what reading bac
 | --- | --- | --- | --- | --- |
 | Entity, value, and mixin | Yes | No | an `object` schema | Entities, values, and mixins are all objects. |
 | Mixin `include` | Yes | No | the mixin's properties, copied in | |
-| Fieldless enum | Yes | No | `string` with `enum` | |
-| Fielded enum | Yes | No | a `oneOf` with a `discriminator` | OpenAPI 2.0 has no `oneOf`, so there it warns and is skipped. |
+| Fieldless enum | Yes | No | `string` with `enum` | A `wire` directive on a variant renames its wire value. |
+| Fielded enum | Yes | No | a `oneOf` with a `discriminator` | OpenAPI 2.0 has no `oneOf`, so there it warns and is skipped. A `wire` directive on a variant renames its wire value. |
 | Newtype | Yes | No | a schema | |
 | Alias | Yes | No | expanded where used | |
 | Optional and nullable | Yes | No | left out of `required`, or nullable | Nullable is `anyOf` with `null` in 3.1, `nullable` in 3.0, and `x-nullable` in 2.0. |
@@ -30,7 +30,7 @@ Import generates the feature and reads it back, and counts only what reading bac
 | `owned` | Yes | No | | Not written: a schema has no ownership, and a referenced entity is a `$ref`. |
 | Field default | Yes | No | | Not written, and nothing warns. |
 | `key` directive | No | No | | The backend declares no `key` directive, since a schema has no identity. |
-| `name` directive | Yes | No | the property or schema name | |
+| `name` directive | Yes | No | the schema name | On a field it renames the property, which is its JSON key, and warns, since the wire convention spells a key as the model does and a `wire` directive renames one. |
 | `number` directive | No | No | | JSON has no field numbers. |
 | Doc comment | Yes | No | `description` | |
 | Type parameters | No | No | | Type parameters are not generated yet, so a parameterized declaration and every one applying it are skipped. |
