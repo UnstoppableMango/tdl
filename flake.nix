@@ -178,6 +178,8 @@
               "flake.lock"
               "*.tdl"
               ".github/skills/**/SKILL.md"
+              "skills/**/SKILL.md"
+              "skills/*/references/**"
               "tree-sitter/src/*.json"
               "editors/vscode/syntaxes/*.json"
               "testdata/mermaid/**/want/**"

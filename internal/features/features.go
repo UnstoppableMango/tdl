@@ -6,7 +6,7 @@
 // generating with no warning is Yes, warning only loss codes is Warns, and
 // an error, a skip, or any warning without a code is No. Generate leaves
 // read-back loss out, as `tdl gen` does. Import generates with the
-// readback directive and without roundtrip and reads the files back: the
+// readback directive and without annotate and reads the files back: the
 // same model is Yes, a different one Warns with the read-back loss either
 // direction reported, never the output loss Generate shows, and a failure No. What a measurement cannot say, how the target spells a
 // feature and why, comes from backend/<name>/features.toml.

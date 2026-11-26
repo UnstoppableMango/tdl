@@ -9,6 +9,7 @@ go test ./...                      # all tests
 go test -race ./...                # what CI runs; the plugin subprocess needs it
 go test -short ./...               # skips running external tools on generated code
 go test ./parser -run TestConformanceCorpusParses   # a single test
+go test ./parser -run '^$' -fuzz '^FuzzParse$' -fuzztime 5m   # fuzz one target (FuzzLex in ./lex)
 go build ./...
 
 command make build            # nix build .#
@@ -25,6 +26,7 @@ command make generate         # buf generate: proto/ -> ir/ir.pb.go
 command make treesitter       # docs/grammar.ebnf -> tree-sitter/grammar.js -> tree-sitter/src/
 command make textmate         # docs/grammar.ebnf -> the TextMate grammar and editors/bat/tdl.sublime-syntax
 command make features         # testdata/features -> each backend's feature table in docs/
+command make skills           # docs/spec.md, the grammar, the prelude, and the versions -> each skill's references/
 command make vscode-install   # package editors/vscode and install it into a running VS Code
 command make vscode-check     # npm ci, then typecheck and biome check editors/vscode
 command make vscode-test      # in `nix develop .#vscode`: the extension in a headless VSCodium
@@ -40,7 +42,7 @@ command make check-treesitter # what CI runs: treesitter + a diff + test-treesit
 
 Prefix `make` with `command` (see the shell autoload note in the global instructions).
 
-`generate`, `treesitter`, and `textmate` are file targets, so each reruns only when its inputs are newer.
+`generate`, `treesitter`, `textmate`, and `skills` are file targets, so each reruns only when its inputs are newer.
 `tree-sitter/Makefile`, `editors/vscode/Makefile`, and `js/Makefile` hold the targets for their directories; the root delegates to them.
 `check-treesitter` passes `-B`, because a fresh checkout gives every file the same mtime and a file target would skip the regeneration the diff is meant to test.
 `mutate` runs `tools/mutate`, which runs gremlins once per package with `GOFLAGS=-short`, merges the reports into `mutate.json`, and prints the survivors `mutation/equivalent.txt` does not list; `internal/mutation` reads both.
@@ -60,7 +62,7 @@ treefmt also runs it over `js/**/*.ts`, but for the generated code, and `npm/**/
 Biome's JSON formatter is off, because jsonfmt owns JSON.
 
 `.markdownlint-cli2.yaml` lists which markdown files are linted, so a bare `markdownlint-cli2` checks what CI checks.
-Files with no formatter: the four Makefiles, `.editorconfig`, `.gitattributes`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md` (mdformat would break the frontmatter), `.graphifyignore`, `docs/demo/demo.tape`, `docs/demo/demo.bash`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, `backend/typescript/outline.js`, `tree-sitter/src/scanner.c`, and everything in `dotnet/` but `deps.json`.
+Files with no formatter: the four Makefiles, `.editorconfig`, `.gitattributes`, `docs/grammar.ebnf`, `docs/notation.ebnf`, `.github/skills/**/SKILL.md` and `skills/**/SKILL.md` (mdformat would break the frontmatter), `.graphifyignore`, `docs/demo/demo.tape`, `docs/demo/demo.bash`, `tree-sitter/corpus.sh`, `editors/vscode/install.sh`, `nix/vendor-modules.sh`, `nix/sbom.jq`, `backend/typescript/outline.js`, `tree-sitter/src/scanner.c`, and everything in `dotnet/` but `deps.json`.
 rustfmt formats `rust/`, but for `Cargo.lock` and the generated code.
 `internal/ebnf` lints the two grammars instead, and their column alignment is deliberate.
 Also excluded from formatting: `*.tdl` (until `tdl fmt` is wired in, #1308), generated files, and `.claude/`.
@@ -75,12 +77,13 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 
 `nix/` holds the packaging:
 
-- `cmd.nix`: the CLI. `meta.mainProgram` is what `lib.getExe` reads, since the package installs fifteen binaries and links `tdl-gen-csharp` and `tdl-gen-mermaid` beside them (`TestPackagedBackendsShip`).
+- `cmd.nix`: the CLI. `meta.mainProgram` is what `lib.getExe` reads, since the package installs sixteen binaries and links `tdl-gen-csharp` and `tdl-gen-mermaid` beside them (`TestPackagedBackendsShip`).
   It also installs bat's syntax as `share/bat/syntaxes/tdl.sublime-syntax`.
 - `vscode-extension.nix`: the editor extension (see [VS Code](#vs-code)).
 - `gmk.nix`: `tdl-gmk`, `cmd/tdl-gmk` built as the GNU make loadable object `lib/tdl.so`, with gnumake's header for cgo; `checks.gmk` loads it into make.
 - `portable.nix`: `tdl-portable`, `tdl` and `tdl-gen-typescript` for linux and darwin, amd64 and arm64, cross-compiled with `CGO_ENABLED=0` into `<goos>-<goarch>/`, for release assets and npm (#1385).
   The linux binaries are static; the darwin ones link only `libSystem`, as every Go binary on darwin does.
+  `vendor-modules.sh` writes the `vendor/modules.txt` gomod2nix leaves out, so each binary's build info names the modules it links.
   `packages.default` links against the store's glibc loader, so it does not run outside Nix.
   `dontFixup` keeps the build platform's `strip` off the darwin/arm64 binaries, which the Go linker signs.
   `checks.tdl-portable` checks each binary's format and static linking, allows only the store paths nixpkgs' Go patches in as zoneinfo and `/etc/protocols` fallbacks, and runs the binary for the checking system over the smoke model.
@@ -90,8 +93,10 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
   The shim sits beside `package.json` because `.gitignore` ignores every `bin/`.
   `checks.npm-tdl` installs `@unmango/tdl`, the checking system's platform package, and `@unmango/tdl-typescript` offline with `--ignore-scripts`, then runs `tdl version`, `tdl gen` over the smoke model for `typescript` and `mermaid`, `tdl-gen-typescript` through the resolver, and the remark plugin's transformer, which finds `tdl` the same way, and reads the mapper command from `@unmango/tdl-typescript`.
 - `release.nix`: `packages.release`, the release assets: `tdl_<version>_<os>_<arch>.tar.gz` per `tdl-portable` target, each holding both binaries, `tdl-gen-mermaid`'s portable one, `LICENSE`, `README.md`, and `completions/` written by the build platform's `tdl`, plus `SHA256SUMS`.
+  It also writes `tdl_<version>.cdx.json`, a CycloneDX SBOM `cyclonedx-gomod bin` reads from each binary's build info, merged across binaries and targets by `sbom.jq`, with no timestamp or serial number, which `SHA256SUMS` names.
   Members are sorted, owned by root, dated `SOURCE_DATE_EPOCH`, and gzipped without a name, so two builds give the same `SHA256SUMS`.
-  `checks.tdl-release` holds every tarball to the same file list, verifies the sums, and runs the checking system's `tdl`.
+  `checks.tdl-release` holds every tarball to the same file list, checks the SBOM names the `tdl` module, verifies the sums, and runs the checking system's `tdl`.
+  The `assets` job uploads the provenance bundle beside them as `tdl_<version>.intoto.jsonl`, the suffix Scorecard's Signed-Releases check reads, and `SHA256SUMS` does not name it.
 - `dotnet.nix`: the .NET plugins, built with `buildDotnetModule`, which runs their tests (see [.NET SDK](#net-sdk)): `tdl-gen-csharp`, compiled with Native AOT and linked by `stdenv.cc`, and the SDK's debug port, a self-contained single file.
   The same csproj packs as the nuget.org tool in `dotnet-tool.nix`.
   On darwin the AOT link names the Swift runtime and ICU, so `swift` and `darwin.ICU` are build inputs there, as in nixpkgs' own dotnet `aot` test.
@@ -181,7 +186,7 @@ The plugin protocol in `docs/architecture/plugins.md` is complete.
   Private.
 - `internal/unlower`: ir to ast, the reverse of `sema`, for reverse backends.
   It writes the model's own declarations and leaves to lowering what lowering computes: inherited constraints, mixin fields, struct kinds, and a class directive's expansion.
-  `TestCorpusRoundTrips` holds it to lowering the printed corpus back to an equal model.
+  `TestCorpusLowersBack` holds it to lowering the printed corpus back to an equal model.
 - `ir`: the resolved model backends consume.
   `ir.pb.go` is generated from `proto/tdl/ir/v1/ir.proto`; `model.go` holds hand-written lookups, and `WithoutPositions` clears positions so `proto.Equal` compares two models.
   Three interned tables, each its own ID space: `Decls`, `Types`, `Units`.
@@ -196,8 +201,8 @@ The plugin protocol in `docs/architecture/plugins.md` is complete.
   `emit` reads it, and derives it when a request carries none.
   `Scope` cuts a model down to one target's block and directives, which is all a request carries.
   It also reads each constraint (`constraints.go`) and, under a backend's declared `Numbering`, numbers every field and variant (`numbers.go`); `emit.Length`, `Pattern`, `ConstraintText`, and `Session.Numbers` share that code, and `Session.NumbersIn` reads the numbers a request carries.
-  `Request` builds every request a host sends, returning a length that can never hold or a refused pin as errors to report before the backend runs.
-  Under a `roundtrip` directive it also carries the model as TDL (`source.go`), which `emit`'s round-trip helpers read; `Imported` lowers an import response that returns TDL source instead of a model.
+  `Request` builds every request a host sends, returning a length that can never hold or a refused pin as errors to report before the backend runs, and renaming a block directive in a deprecated spelling (`host.Rename`).
+  Under an `annotate` directive it also carries the model as TDL (`source.go`), which `emit`'s annotation helpers read; `Imported` lowers an import response that returns TDL source instead of a model.
 - `internal/gen`: the compiler side of the plugin protocol: the backend registry, request building, and writing returned files.
   `keep.go` keeps a nondeterministic backend's output while its request hashes the same, recording the hashes in `.tdl-output` (ADR-0002).
   `post.go` runs the commands a target block's `post` directive names, through `tdl.toml`'s `[post]` table, over each returned file before anything is compared or written.
@@ -206,6 +211,7 @@ The plugin protocol in `docs/architecture/plugins.md` is complete.
 - `internal/host`: what a host does around a backend, importing none, so a backend hosting itself can use it.
   `loss.go` declares the loss codes, which `emit` re-exports, so `tdl`'s completion lists them too.
   `check.go` holds every directive to its backend's `DirectiveSpec` (arity, kinds, placement, allowed values, repeats) before the backend runs, so a backend need not check them itself; `Directives` holds the specs of those `tdl` reads itself for every target, `post` and `check`, and `out` is never checked.
+  `Renamed` maps a deprecated block directive to its new name, `roundtrip` to `annotate` for one release; `CheckDirectives` warns about the old spelling and checks it as the new, unless the backend still declares the old one or does not declare the new.
   `Silence` drops warnings with an allowed loss code, and `Allowed` reads which codes `tdl.toml` allows.
   `ImportFiles` (`walk.go`) expands a directory argument to `tdl import` into the files a backend's import patterns match.
   `command.go` resolves a `post` or `check` directive's names through their `tdl.toml` table and splits each command line into words; `checks.go` runs the commands `check` names over a temporary copy of the files beside the output directory, which the delegated backend also does between attempts.
@@ -227,11 +233,11 @@ Every backend reports what it cannot generate as a positioned warning rather tha
 
 - `backend/golang` (`go`): one file per declaration, or one file for the whole target that a `file` directive in the target block names.
   `types.go` maps IR types to Go and walks types itself, since `Resolve` refuses type parameters.
-  `generics.go` maps type parameters and infers `comparable` for map keys; `classes.go` makes a class an interface with one unexported marker method; `validate.go` turns `where` constraints into `Validate`; `json.go` writes the JSON wire convention under a `json` directive, each field's `json` tag holding its `wire` key, and import reads a tag holding only another key back as `wire`; `foreign.go` maps a declaration to another package's type, and an extern to the type its dependency's `go` block generates.
+  `generics.go` maps type parameters and infers `comparable` for map keys; `classes.go` makes a class an interface with one unexported marker method; `validate.go` turns `where` constraints into `Validate`; `json.go` writes the JSON wire convention under a `json` directive, each field's `json` tag holding its `wire` key, and import reads a tag holding only another key back as `wire`; `wire.go` declares, under `json`, a `Duration` type writing a `duration` as the convention's ISO 8601 string; `foreign.go` maps a declaration to another package's type, and an extern to the type its dependency's `go` block generates.
   An enum with no variant fields is a string type with constants holding the variants' wire values; otherwise a sealed interface with a struct per variant.
   `decimal`, `uuid`, and `date` map to placeholders unless a `foreign` directive names a type.
   A `key` directive becomes a `Key()` method, returning a `<Name>Key` struct for several fields.
-  It imports: `reverse.go` reads a package with `go/parser`, taking constraints back from `validate`'s messages and keys from `Key`; `annotate.go` writes the loss warnings and, under `roundtrip`, `//tdl:` comment directives, carrying a declaration whole where reading the unannotated files back misses something.
+  It imports: `reverse.go` reads a package with `go/parser`, taking constraints back from `validate`'s messages and keys from `Key`; `annotate.go` writes the loss warnings and, under `annotate`, `//tdl:` comment directives, carrying a declaration whole where reading the unannotated files back misses something.
   `Normalize` is its normal form for the round-trip corpus.
   See `docs/architecture/go-backend.md`; #1191 tracks the remaining phases.
 - `backend/protobuf`: `.proto` files in the directories the package spells, named for its last segment unless a `file` directive says otherwise.
@@ -243,12 +249,12 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   A type tagged `service` becomes a service; its fields apply primitives tagged `rpc`, with arguments in a `stream`-tagged primitive streamed.
   `format.go` lays out every file with protocompile's printer under its `Legacy` preset, which reproduces `buf format`, so formatting the output changes nothing.
   Tests compile every response with `bufbuild/protocompile`, and `TestOutputIsBufFormatted` runs `buf format -d` when `buf` is on `PATH`.
-  It imports: `reverse.go` reads files compiled by `compile.go` into an `ast.File` and lowers it, and `annotate.go` writes the loss warnings and, under `roundtrip`, the options `tdl/annotations.proto` declares.
+  It imports: `reverse.go` reads files compiled by `compile.go` into an `ast.File` and lowers it, and `annotate.go` writes the loss warnings and, under `annotate`, the options `tdl/annotations.proto` declares.
   `Normalize` is its normal form for the round-trip corpus.
 - `backend/thrift`: one `.thrift` file per model under `namespace *`, in dependency order.
   A fielded enum is a union of per-variant structs; a newtype is a `typedef`; field ids come from `emit.Numbers`.
   Tests parse and resolve every response with thriftgo.
-  It imports one file: `reverse.go` reads thriftgo's AST, which has no positions, so `locate` scans the source for each definition's keyword; `annotate.go` writes the loss warnings and, under `roundtrip`, `tdl.*` annotations, encoding a value so thriftgo's partial unescaping reads it back.
+  It imports one file: `reverse.go` reads thriftgo's AST, which has no positions, so `locate` scans the source for each definition's keyword; `annotate.go` writes the loss warnings and, under `annotate`, `tdl.*` annotations, encoding a value so thriftgo's partial unescaping reads it back.
   `Normalize` is its normal form for the round-trip corpus.
 - `backend/smithy`: one Smithy IDL 2.0 file per model.
   Each list or map a field holds becomes a named shape (`LineItemList`, `StringLongMap`); a shadowed prelude shape is written `smithy.api#`.
@@ -256,12 +262,12 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   `shapes.go` is the shape model both directions share: generating builds shapes and renders them, and import reads them from the CLI's JSON AST.
   Tests run `smithy validate` when it is on `PATH`; `checks.gen-smithy` always does.
   It imports: `reverse.go` runs `smithy ast` from `PATH` and reads the JSON, which has no positions, so `locate` scans the source for each shape's statement; without the CLI, import and its tests skip.
-  `annotate.go` writes the loss warnings and, under `roundtrip`, `metadata tdl` and a `tdl#source` trait on each declaration whose shapes the reader does not read back as it.
+  `annotate.go` writes the loss warnings and, under `annotate`, `metadata tdl` and a `tdl#source` trait on each declaration whose shapes the reader does not read back as it.
   `Normalize` is its normal form for the round-trip corpus.
 - `backend/graphql`: one schema per model, output types only.
   Primitives GraphQL lacks, including 64-bit and unsigned integers, become custom scalars declared on use.
   A fielded enum is a union of object types; a fieldless variant gets `_: Boolean`; a map is a warning.
-  It imports one file: `reverse.go` reads gqlparser's schema document, taking the package from the file's name; `annotate.go` writes the loss warnings and, under `roundtrip`, `@tdl` directives, which the schema then defines.
+  It imports one file: `reverse.go` reads gqlparser's schema document, taking the package from the file's name; `annotate.go` writes the loss warnings and, under `annotate`, `@tdl` directives, which the schema then defines.
   Tests validate every response with `vektah/gqlparser`.
 - `backend/typescript`: one `.ts` file per model of JSON wire types, with no runtime code but a newtype's constructor under `construct` or `brand`.
   A set is an array, a map a `Record`, unrepresentable primitives a string, a newtype a plain alias, or under `brand` one intersected with a brand keyed by its qualified name, which import reads back.
@@ -271,7 +277,7 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   A narrowed type from `emit.Narrow` is written as a literal union, which warns only that it reads back as `oneOf`, or a tuple, which import reads back as a list with its `length`.
   Tests run `tsc --noEmit --strict` when it is on `PATH`; `checks.gen-typescript` always does.
   It imports one file: `reverse.go` runs the embedded `outline.js` under `node` with the `typescript` package found from `tsc` on `PATH`, and reads the JSON outline it writes; without both, import and its tests skip.
-  `annotate.go` writes the loss warnings and, under `roundtrip`, JSDoc `@tdl` tags, carrying a declaration whole where it loses anything.
+  `annotate.go` writes the loss warnings and, under `annotate`, JSDoc `@tdl` tags, carrying a declaration whole where it loses anything.
   `Normalize` is its normal form for the round-trip corpus.
   `mapper.go` is a TypeScript 7.1 content mapper, served by `tdl-gen-typescript content-mapper`: tsc sends it a `.tdl` file and it lowers the file and returns the module this backend writes, importing an extern from its `.tdl` file; `TestMapperUnderTsc` runs tsc when a 7.1 or later is on `PATH`, through `npm/tdl-typescript/` as it ships.
   See `docs/architecture/typescript-content-mapper.md`.
@@ -302,6 +308,13 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   A fielded enum is a `oneOf` of one component per variant with a `discriminator`; 2.0 has no `oneOf`, so there it warns and is skipped.
   `title` and `version` set `info`; `name`, `discriminant`, and `closed` mean what they mean in `jsonschema`.
   Tests validate every response against the OpenAPI Initiative's schema for its version, vendored in `backend/openapi/testdata/`; `checks.gen-openapi` runs `vacuum lint` on all three versions.
+- `backend/nix` (`nix`): one `<package path>.nix` per model, or the file a `file` directive in the target block names: `{ lib }:` returning a `rec` set of `lib.types` option types, whose values are the JSON wire convention.
+  A struct is `struct`, a submodule the file declares whose value leaves out an unset `T?`, which `optional` marks; `T | null` is `nullable`, a `nullOr` with no empty value, so it must be set.
+  `after` wraps a type's merge, through `merge.v2` and `substSubModules`, for `struct` and `set`; a struct reached from itself is `opaque` where it is named, so option docs end.
+  A fieldless enum is `types.enum` of its wire values, a set is `set`, a `listOf` whose merged value refuses duplicates, and a map `attrsOf`, or `keyed` when its key is a string's wire form or a fieldless enum; any other key warns under `lossy.collection`.
+  A primitive JSON writes as a string is a `strMatching` its wire form, and `uint64` warns under `lossy.primitive`.
+  Phase 1 is built, and #1437 tracks the rest: fielded enums, newtypes, defaults, constraints, generics, and externs warn or are skipped.
+  Tests run `nixfmt --check` when it is on `PATH`, and evaluate values through `lib.evalModules` when `nix-instantiate` and `<nixpkgs>` are found; `checks.gen-nix` always does both over the smoke model with `testdata/nix/smoke.nix`.
 - `backend/salesforce`: Salesforce DX source, one file per component.
   An entity is a custom object, with a warning for each field that has no column; values, mixins, and enums are Apex.
   A `key` directive makes a field a unique external ID.
@@ -339,12 +352,14 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   Each own declaration is a class: a mixin `<<mixin>>`, a fieldless enum `<<enumeration>>`, a fielded enum `<<union>>` with a class per variant joined by `<|--`, a newtype `<<newtype>>`, a class `<<interface>>`, and a structure tagged `service` `<<service>>` with each field applying an `rpc`-tagged primitive a method; an alias is expanded.
   Members use Mermaid's generic spelling (`List~T~`, `Map~K,V~`, `Option~T~`), and constraints, defaults, and docs are left out without a warning.
   Its tests cannot lower TDL, so `internal/gen/plugins_test.go` records its requests in `testdata/mermaid/`, as for `csharp`; the TypeScript tests compare each response with `want/` and run `mermaid.parse` through a `jsdom` window.
-  Phase 1 is built, and #1482 tracks the rest: edges, externs, and the `direction`, `hide`, and `link` directives.
+  Edges follow the classes: an inheritance edge per included mixin, a realization edge per conformance to a class of the model's, and per field one edge to each drawn declaration or extern its type names, `*--` when `owned`, with the far end's cardinality from its outermost type; an extern is a class in its package's `namespace` block.
+  Phases 1 and 2 are built, and #1482 tracks the rest: the `direction`, `hide`, and `link` directives.
   See `docs/architecture/mermaid-backend.md`.
 - `backend/debug`: describes the model it was given, to exercise the protocol.
 - `backend/yolo` (`yolo`): the delegated backend (see `CONTEXT.md`, #1505), served only as `tdl-gen-yolo` and never compiled into `tdl`, so `tdl` links no model client; `nix/cmd.nix` ships it.
-  It holds one conversation per request with a language model through a `Provider`, Anthropic's through `anthropic-sdk-go` with `ANTHROPIC_API_KEY`, and the model answers with `write_file` and `report_loss` tool calls.
-  The prompt (`prompt.go`) is the model as TDL, the target block's `language` (required), `prompt`, the loss codes, the JSON wire convention, and `docs/spec.md`, which the `docs` package embeds; `model` picks the model, `claude-opus-5-5` by default, and `effort` the effort it spends, `medium` by default.
+  It holds one conversation per request with a language model through a `Provider`, and the model answers with `write_file` and `report_loss` tool calls.
+  The `provider` directive picks it: `anthropic`, the default, through `anthropic-sdk-go` with `ANTHROPIC_API_KEY`, or `openai` (`openai.go`), Chat Completions through `openai-go` against `OPENAI_BASE_URL` with `OPENAI_API_KEY`, either alone enough, for OpenAI and the servers speaking its API (#1513).
+  The prompt (`prompt.go`) is the model as TDL, the target block's `language` (required), `prompt`, the loss codes, the JSON wire convention, and `docs/spec.md`, which the `docs` package embeds; `model` picks the model, `claude-opus-5-5` by default and required under `openai`, and `effort` the effort it spends, `medium` by default; under `openai` it is sent as `reasoning_effort` only when written, and only `low`, `medium`, or `high`.
   A path that is absolute or holds `..` ends the conversation with an error and nothing written; a `report_loss` with an unknown code or name is refused back to the model, and the rest become positioned warnings under their codes.
   Each extern warns `lossy.unsupported`, since the prompt does not show what its dependency generates.
   A missing key is an error before anything is sent, and a conversation is cut off after 50 turns, counted across every try.
@@ -352,7 +367,7 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   A case holding a `tdl.toml` runs its checks.
   `TDL_YOLO_REPLAY` names a directory whose `conversation.json` a `Replay` answers from instead, refusing a conversation other than the one it recorded; the recorded system prompt holds a marker in place of the spec.
   `testdata/yolo/<case>/` holds a model, its conversation, the files it wants in `want/`, and `diagnostics.golden`; a case with only a `target.tdl` appends it to the smoke model.
-  `go test ./backend/yolo -record` re-records every case live, which needs a key; the committed recordings were written by hand.
+  `go test ./backend/yolo -record` re-records every case live against the provider its block names, which needs a key; the committed recordings were written by hand, `testdata/yolo/openai` among them.
   `TestHostsAgree` replays `testdata/yolo/order` in both hosts, its `shipped` row is `pluginOnly`, the round-trip `exempt` list holds it beside `debug`, and `checks.gen-yolo` replays `testdata/yolo/smoke` through the packaged binary.
   It declares itself nondeterministic, so `tdl gen` keeps its output while the request is unchanged and `--verify` needs no key.
   Phases 1 and 2 are built, and #1505 tracks the rest: the opt-in `agent`.
@@ -361,13 +376,13 @@ Every backend reports what it cannot generate as a positioned warning rather tha
 `TestHostsAgree` in `internal/gen` holds each to producing the same bytes in process and over a pipe.
 A backend that imports implements `plugin.Importer`, declares `Reverse`, and has a `reverse` column in `shipped`, which `TestImportHostsAgree` runs; `TestReverseIsDeclared` keeps the three in step.
 A warning a user can silence carries a loss code; `host.LossCodes`, which `emit.LossCodes` re-exports, must match the table in `reverse.md`.
-Output loss, what the output drops, is written with `emit.Session.Lossy` and always reported; read-back loss, what only import would miss, with `emit.Session.Lose`, reported under a bare `readback` directive and never under `roundtrip` (see `reverse.md`'s Loss codes).
+Output loss, what the output drops, is written with `emit.Session.Lossy` and always reported; read-back loss, what only import would miss, with `emit.Session.Lose`, reported under a bare `readback` directive and never under `annotate` (see `reverse.md`'s Loss codes).
 A backend added to the registry needs a row in the `shipped` table in `internal/gen/hosts_test.go` (`TestEveryBuiltinHasARow`) and, if shipped, an entry in `nix/cmd.nix` (`TestPackagedBackendsShip`); a Go backend served only as a plugin has a `pluginOnly` row.
 
 `docs/architecture/schema-backends.md` maps the seven schema backends.
 `docs/architecture/reverse.md` is the import direction, target language to TDL, and #972 tracks the remaining importers.
 `backend/internal/roundtrip` runs a backend forward and back over `testdata/roundtrip/<target>/<case>/`; its `targets` table holds every backend but those in `exempt` (`debug` and `yolo`), with each one's normal form, and `TestEveryTargetIsCovered` checks it against `cmd/`.
-A model-first case's `lossy.golden` holds the codes generating with `readback` reports, and generating with `roundtrip` must warn exactly what generating with neither does.
+A model-first case's `lossy.golden` holds the codes generating with `readback` reports, and generating with `annotate` must warn exactly what generating with neither does.
 `TestConformanceComesBack` also takes every conformance case without an import through each target that imports, and `TestLossKinds` holds each such target to both kinds of loss.
 `testdata/gen/smoke/source.tdl` exercises the whole mapping, with a target block for each schema backend and for `salesforce`; the nix checks generate from it and run each language's tool on the output.
 
@@ -379,7 +394,7 @@ A row is a directory of `testdata/features` holding `source.tdl`; a subdirectory
 A source's target block is written for `feature` and renamed for each backend, in its imports too.
 Generate is No on an error or a warning without a loss code, Warns on the loss codes the row owns (`Row.Codes`), and Yes otherwise, since a source cannot use a feature alone.
 Generate leaves read-back loss out, as `tdl gen` does.
-Import generates with `readback` and without `roundtrip` and reads the files back, grading only read-back loss: the warnings `readback` adds and those import reports, never the output loss Generate shows.
+Import generates with `readback` and without `annotate` and reads the files back, grading only read-back loss: the warnings `readback` adds and those import reports, never the output loss Generate shows.
 The same model is Yes, as is a difference output loss alone explains; a difference with no loss code anywhere is No.
 `features.toml` beside a backend's source (`backend/<package>/`, `dotnet/Tdl.Gen.CSharp/` for `csharp`, or `js/tdl-gen-mermaid/` for `mermaid`) holds the cells a measurement cannot: `spelling`, `notes`, and `planned`, which shows in place of Generate and fails once the row generates.
 A cell may not hold a `|`.
@@ -395,6 +410,8 @@ The tables stay out of `docs/architecture/`, which is for building the backend, 
 ### Tests and goldens
 
 After any change to lowering or `ir.Dump`, run `go test ./internal/sema -update` and read the diff.
+`FuzzLex` and `FuzzParse` are seeded from both corpora, so every `go test` runs the seeds; `.github/workflows/fuzz.yml` fuzzes each weekly, and never on a pull request.
+A crasher it uploads is committed with its fix under the package's `testdata/fuzz/<target>/` as a regression seed.
 `testdata/plugin/` holds recorded protocol exchanges for other implementations to replay, regenerated with `go test ./internal/gen -record`.
 `internal/sema/corpus_test.go` asserts the conformance corpus lowers with no diagnostic.
 
@@ -415,10 +432,20 @@ Wanted work with no spec is a `needs-triage` issue.
 The `tdl.toml` project model (#1307) is the furthest-ahead spec: only its `[lossy]`, `[post]`, and `[check]` tables are built.
 `CONTEXT.md` is the glossary: one canonical word per concept, and the words to avoid.
 
+### Skill library
+
+`skills/<name>/` holds the skill library (#1446): Agent Skills for agents working with TDL in other projects, installed with `npx skills add` and, later, Nix.
+`.github/skills/` is for reviewing this repository and is never installed.
+Each skill is `tdl-<task>`, with a short hand-written `SKILL.md` whose frontmatter holds only `name` and `description`, and `references/` copied by `make skills` (`tools/skills`).
+`internal/skills` lists each skill's references: `tdl-modeling` carries `docs/spec.md`, `docs/grammar.ebnf`, and the prelude, and every skill `references/version.md`, the `toolVersion` and `specVersion` it was copied from, which `SKILL.md` tells the agent to compare with `tdl version` and warn on, never refuse.
+release-please rewrites the version line through its annotation, which `make skills` writes too.
+Its tests compare every reference with what `make skills` writes and never write, hold the frontmatter to the folder's name, and hold every ```` ```tdl ```` block in a hand-written file to a whole file that parses, lowers with no diagnostic, and is canonical; a fragment goes in a plain block.
+After a change to the spec or the prelude, run `make skills`.
+
 ### .NET SDK
 
 `dotnet/` holds `Tdl.Plugin`, the SDK a backend written in .NET builds on, its tests, `Tdl.Plugin.Debug`, a port of `backend/debug` served as `tdl-gen-dotnet_debug`, and the `csharp` backend with `Tdl.DotNet` (see [Backends](#backends)).
-The SDK holds framing, the handshake, a `Session` over the request and its analysis, `Resolve` and constraint sources, diagnostics and loss codes, the cascade, names and case styles, and the round-trip helpers; it computes no fact the analysis carries, and throws on a request without one.
+The SDK holds framing, the handshake, a `Session` over the request and its analysis, `Resolve` and constraint sources, diagnostics and loss codes, the cascade, names and case styles, and the annotation helpers; it computes no fact the analysis carries, and throws on a request without one.
 `Tdl.Plugin/Generated/` is `buf generate` output from protoc's C# generator, so `make generate` needs `protoc`, which the devShell carries; its version must match the `Google.Protobuf` package.
 `buf.gen.yaml` leaves out the `pb` package, so the generated descriptors drop the Go options and name neither `go_features.proto` nor `descriptor.proto`.
 The tests replay `testdata/plugin/*.binpb` byte for byte and check `LossCodes` against `reverse.md`.
@@ -435,7 +462,7 @@ The `rust` backend (#1273) will join it; the crates are not published.
 The SDK holds framing (`Conn`), the handshake answered from a `Description` (`serve`, `run`), a `Session` over the request and its analysis, diagnostics with loss codes, the cascade (`Skipped`), and case styles over name words.
 Like the .NET SDK it computes no fact the analysis carries, and `Session::new` returns an error for a request without one.
 A session finds a node's view by the node's address in the request, as the .NET SDK compares references, so a node cloned out of the request has none.
-`lossy` reports output loss and `lose` read-back loss, which reports only under `readback` and never under `roundtrip`; round-trip and import helpers wait for a Rust backend that imports.
+`lossy` reports output loss and `lose` read-back loss, which reports only under `readback` and never under `annotate`; annotation and import helpers wait for a Rust backend that imports.
 `tdl-plugin/src/generated/` is `buf generate` output from buffa's `protoc-gen-buffa`, one self-contained file per package (`file_per_package`, `strategy: all`) without views, and leaving out `pb` as the C# entry does; prost and rust-protobuf v3 cannot read Editions 2024.
 `buffa` is pinned exactly in `rust/Cargo.toml` to the version `nix/protoc-gen-buffa.nix` builds, since the generated code targets one runtime; bump both together and regenerate, since `.github/renovate.json` leaves `buffa` alone.
 The SDK's tests check the loss codes against `reverse.md` and the session, the framing, and the handshake; the debug port's replay `testdata/plugin/*.binpb` byte for byte, in process and over a connection.
@@ -455,7 +482,7 @@ It is ESM for Node 22 or later and Bun, using only what both have; `js/biome.jso
 The SDK holds framing (`Conn`, over any async iterable of bytes and a writable), the handshake answered from a `Description` (`serve`, `run`), a `Session` over the request and its analysis, diagnostics with loss codes, the cascade (`Skipped`), and case styles over name words.
 Like the other SDKs it computes no fact the analysis carries, and the `Session` constructor throws a `ProtocolError` for a request without one.
 A session reaches the model through methods only, so a later transport can sit behind the same API, and finds a node's view by the node's identity in the request, so a node cloned out of it has none.
-`lossy` reports output loss and `lose` read-back loss, which reports only under `readback` and never under `roundtrip`; round-trip and import helpers wait for a JS backend that imports.
+`lossy` reports output loss and `lose` read-back loss, which reports only under `readback` and never under `annotate`; annotation and import helpers wait for a JS backend that imports.
 `tdl-plugin/src/generated/` is `buf generate` output from protobuf-es's `protoc-gen-es`, run from `js/node_modules` (so `make generate` runs `npm ci` there first), leaving out `pb` as the C# and Rust entries do.
 `@bufbuild/protobuf` and `@bufbuild/protoc-gen-es` are pinned exactly to one version, since the generated code targets one runtime; bump both together and regenerate, since `.github/renovate.json` leaves them alone.
 The SDK's tests check the loss codes against `reverse.md` and the session, the framing, and the handshake; the debug port's replay `testdata/plugin/*.binpb` byte for byte, in process and over a connection.
@@ -663,12 +690,16 @@ DeepSource (`.deepsource.toml`) runs the `go`, `shell`, `secrets`, and `test-cov
 Coverage comes from the `check` job's `cover.profile`, authenticated with OIDC; the CLI comes from the devShell.
 Check a Go style finding against `.golangci.yml` before acting on it.
 
+CodeQL (`.github/workflows/codeql.yml`) analyses the Go `go build ./...` compiles, so neither tests nor `cmd/tdl-gmk`, and the workflows, on every pull request, every push to `main`, and weekly.
+It overlaps DeepSource, but OpenSSF Scorecard's SAST check counts CodeQL and not DeepSource (#1565).
+It is advisory, outside the `required` job's `needs`; triage each alert by fixing it, filing a `needs-triage` issue, or dismissing it with a reason.
+
 `main` requires every review thread resolved and no approval.
 Reply with what changed, or why nothing did, then resolve.
 
 The one required check is the `required` job in `.github/workflows/ci.yml`.
 It needs `check`, on `ubuntu-latest`, and `darwin`, on `macos-latest`.
-A new CI job goes in its `needs`, not in the ruleset (declared in Pulumi in `UnstoppableMango/vcs`).
+A new CI job goes in its `needs`, not in the ruleset (declared in Pulumi in `UnstoppableMango/vcs`), unless it is advisory like `buf.yml` and `codeql.yml`.
 
 Pull requests are stacked, and GitHub rebases the rest of the stack on merge; reset local branches from the remote afterwards.
 `gh pr merge` and `PUT /pulls/{n}/merge` refuse a stacked pull request.
@@ -679,10 +710,10 @@ Use `PUT /pulls/{n}/merge-async`, which returns `{"status":"pending"}` and merge
 `.github/workflows/release-please.yml` calls the reusable workflow in `unmango/actions` as the thecluster[bot] GitHub App (`vars.RELEASE_APP_CLIENT_ID`, `secrets.RELEASE_APP_PRIVATE_KEY`), so release PRs trigger CI and commits are signed.
 
 release-please owns the version.
-Never hand-edit `toolVersion` in `internal/cli/version.go`, `version` in `flake.nix`, `version` in `editors/vscode/package.json` and `package-lock.json`, `version` in `npm/tdl/package.json`, `npm/tdl-typescript/package.json`, `js/remark-tdl-mermaid/package.json`, and that workspace's entry in `js/package-lock.json`, `<Version>` in `dotnet/Tdl.Gen.CSharp/Tdl.Gen.CSharp.csproj`, the `version=` line in the README's release-asset example, or `CHANGELOG.md`.
-The first two, the csproj line, and the README line carry an `x-release-please-version` annotation; the JSON files are listed in `release-please-config.json`.
+Never hand-edit `toolVersion` in `internal/cli/version.go`, `version` in `flake.nix`, `version` in `editors/vscode/package.json` and `package-lock.json`, `version` in `npm/tdl/package.json`, `npm/tdl-typescript/package.json`, `js/remark-tdl-mermaid/package.json`, and that workspace's entry in `js/package-lock.json`, `<Version>` in `dotnet/Tdl.Gen.CSharp/Tdl.Gen.CSharp.csproj`, the `version=` line in the README's release-asset example, the `tdl:` line in each `skills/*/references/version.md`, or `CHANGELOG.md`.
+The first two, the csproj line, the README line, and the skills' version lines carry an `x-release-please-version` annotation; the JSON files are listed in `release-please-config.json`.
 
-When it reports a release, the `assets` job builds `packages.release` at the tag on a GitHub-hosted runner, attests every file with `actions/attest-build-provenance`, and uploads them to the release.
+When it reports a release, the `assets` job builds `packages.release` at the tag on a GitHub-hosted runner, attests every file with `actions/attest-build-provenance`, and uploads them to the release with the bundle as `tdl_<version>.intoto.jsonl`.
 The `npm` job builds `packages.npm` at the tag and publishes the four platform packages, then `@unmango/tdl`, then `@unmango/tdl-typescript` and `@unmango/remark-tdl-mermaid`, through npm's trusted publishing, which needs no stored token and writes provenance; each package's trusted publisher on npmjs.com names `release-please.yml`, and a version already published is skipped.
 The `nuget` job builds `packages.tdl-gen-csharp-tool` at the tag and pushes it to nuget.org through trusted publishing: `NuGet/login` trades the job's OIDC token for a short-lived key as `vars.NUGET_USER`, whose policy on nuget.org names `release-please.yml`, and `--skip-duplicate` skips a version already pushed.
 

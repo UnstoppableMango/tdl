@@ -35,8 +35,6 @@ classDiagram
     +Payment payment
     +Status status
     +string fax
-    +instant createdAt
-    +instant updatedAt
   }
   class LineItem {
     +Sku sku
@@ -75,3 +73,12 @@ classDiagram
   }
   Payment <|-- Payment_Card
   Payment <|-- Payment_Cash
+  Timestamps <|-- Order
+  Order "1" --> "*" LineItem : items
+  Order "1" --> "1" WorkEmail : contact
+  Order "1" --> "1" Skus : skus
+  Order "1" --> "1" Payment : payment
+  Order "1" --> "1" Status : status
+  LineItem "1" --> "1" Sku : sku
+  Counts "1" --> "*" Status : byStatus
+  Parcel "1" --> "1" Status : stage

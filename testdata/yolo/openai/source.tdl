@@ -1,0 +1,13 @@
+package shop
+
+/// An order.
+type Order: Entity {
+  id: string
+  quantity: int
+}
+
+target yolo for shop {
+  language("kotlin")
+  provider("openai")
+  model("gpt-5.5")
+}

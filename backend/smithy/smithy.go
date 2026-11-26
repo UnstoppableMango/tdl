@@ -37,7 +37,7 @@ func (Backend) Describe() plugin.Description {
 			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.OnMembers()},
 			// Write what Smithy cannot say as tdl#source traits and tdl
 			// metadata, so import rebuilds the model.
-			{Name: "roundtrip", Placements: plugin.On(plugin.OnBlock)},
+			{Name: "annotate", Placements: plugin.On(plugin.OnBlock)},
 			{Name: "readback", Placements: plugin.On(plugin.OnBlock)},
 		},
 		Reverse: true,
@@ -113,7 +113,7 @@ type rendered struct {
 }
 
 // Generate returns one .smithy file holding the model's declarations, and
-// under roundtrip a tdl.smithy defining the trait it uses.
+// under annotate a tdl.smithy defining the trait it uses.
 func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Response, error) {
 	g := &generator{
 		Session:     emit.NewSession(req, "Smithy"),
@@ -121,7 +121,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		claimed:     map[string]claim{},
 		collections: map[string]*shape{},
 	}
-	g.Roundtrip = g.Bare("roundtrip")
+	g.Annotate = g.Bare("annotate")
 	g.Readback = g.Bare("readback")
 
 	pkg := req.GetModel().GetPackage()
@@ -203,7 +203,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		shapes = append(shapes, g.collections[name])
 	}
 	metadata := ""
-	if g.Roundtrip {
+	if g.Annotate {
 		g.carry(kept, shapes)
 		metadata = g.metadata(emitted, len(shapes) > 0)
 	}

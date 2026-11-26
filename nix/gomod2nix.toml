@@ -45,6 +45,10 @@ schema = 3
     version = 'v0.4.5'
     hash = 'sha256-8svpWfJNDlBYBPD6TAeuzVnsxdjlCqQJm2ionSXEWRw='
 
+  [mod.'github.com/coder/websocket']
+    version = 'v1.8.15'
+    hash = 'sha256-6QnIQMMUSzrDXaUfO+9cl4uDh0SHizFUf4GpHmJedtk='
+
   [mod.'github.com/go-json-experiment/json']
     version = 'v0.0.0-20260623181947-01eb4420fa68'
     hash = 'sha256-seBJtfIsnvK6iJ7+2nuyMensxDCGCo9770hKzsq+fBw='
@@ -64,6 +68,10 @@ schema = 3
   [mod.'github.com/invopop/jsonschema']
     version = 'v0.14.0'
     hash = 'sha256-gndZdk5eUqIsFMDsYjcDEbKpY5XCC4sLLZZ55Z4KCHk='
+
+  [mod.'github.com/openai/openai-go/v3']
+    version = 'v3.108.0'
+    hash = 'sha256-k0UEWBRrsGaXEYK9VlDL9eX6R3r86zidKjv/YaH9G60='
 
   [mod.'github.com/pb33f/ordered-map/v2']
     version = 'v2.3.1'
@@ -98,8 +106,8 @@ schema = 3
     hash = 'sha256-QsYonFnbD/zaxUYAJMzDNI3ju0TjcBJrh8/DBhaJfbM='
 
   [mod.'github.com/tidwall/gjson']
-    version = 'v1.18.0'
-    hash = 'sha256-CO6hqDu8Y58Po6A01e5iTpwiUBQ5khUZsw7czaJHw0I='
+    version = 'v1.20.1'
+    hash = 'sha256-p/TxYkGppOsZfxShhIoqh6z4N19lFVQblpqhaKFBpsE='
 
   [mod.'github.com/tidwall/match']
     version = 'v1.1.1'
@@ -166,8 +174,8 @@ schema = 3
     hash = 'sha256-gViyLpsZFBKTEUtK6Li3m6plz5J/VCAcpTLymQVRpj4='
 
   [mod.'golang.org/x/text']
-    version = 'v0.38.0'
-    hash = 'sha256-PzREcn7yzTAJ0WBvyYL/2/r+tfoeKTY/E5HVXi/CJsU='
+    version = 'v0.43.0'
+    hash = 'sha256-gykmMKFe61Tc4tblLPd3IyMKCqL0MSTQpgb6yE5EnDA='
 
   [mod.'google.golang.org/protobuf']
     version = 'v1.37.0-rc.1'

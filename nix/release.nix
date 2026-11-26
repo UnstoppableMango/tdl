@@ -4,6 +4,8 @@
   go,
   tdl-portable,
   tdl-gen-mermaid,
+  cyclonedx-gomod,
+  jq,
   version,
 }:
 let
@@ -15,6 +17,7 @@ in
 # The release assets: tdl_<version>_<os>_<arch>.tar.gz per tdl-portable target,
 # each holding tdl, tdl-gen-typescript, tdl-gen-mermaid, LICENSE, README.md,
 # and completions/,
+# tdl_<version>.cdx.json, a CycloneDX SBOM of the Go modules they link,
 # and SHA256SUMS. The release job uploads and attests these files as built, so
 # every byte must be reproducible: names sorted, owner and mtime fixed, gzip
 # without a name or timestamp.
@@ -29,6 +32,11 @@ stdenvNoCC.mkDerivation {
       ../README.md
     ];
   };
+
+  nativeBuildInputs = [
+    cyclonedx-gomod
+    jq
+  ];
 
   buildPhase = ''
     runHook preBuild
@@ -52,7 +60,18 @@ stdenvNoCC.mkDerivation {
         -- *) | gzip -9n > $NIX_BUILD_TOP/dist/$name.tar.gz
     done
 
-    (cd $NIX_BUILD_TOP/dist && sha256sum *.tar.gz > SHA256SUMS)
+    mkdir $NIX_BUILD_TOP/boms
+    for target in ${lib.escapeShellArgs tdl-portable.targets}; do
+      for bin in tdl tdl-gen-typescript; do
+        cyclonedx-gomod bin -json -noserial -notimestamp -version v${version} \
+          -output $NIX_BUILD_TOP/boms/''${target/\//-}-$bin.json \
+          ${tdl-portable}/''${target/\//-}/$bin
+      done
+    done
+    jq --slurp --sort-keys -f ${./sbom.jq} $NIX_BUILD_TOP/boms/*.json \
+      > $NIX_BUILD_TOP/dist/tdl_${version}.cdx.json
+
+    (cd $NIX_BUILD_TOP/dist && sha256sum *.tar.gz *.cdx.json > SHA256SUMS)
     runHook postBuild
   '';
 
@@ -67,7 +86,7 @@ stdenvNoCC.mkDerivation {
   dontFixup = true;
 
   meta = {
-    description = "The tdl release assets: a tarball per platform and SHA256SUMS";
+    description = "The tdl release assets: a tarball per platform, an SBOM, and SHA256SUMS";
     homepage = "https://github.com/UnstoppableMango/tdl";
     license = lib.licenses.mit;
   };
