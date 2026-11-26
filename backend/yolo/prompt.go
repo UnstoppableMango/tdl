@@ -72,7 +72,7 @@ func userPrompt(language, instructions string, src *plugin.Source, checks *host.
 		fmt.Fprintf(&b, "\n%s\n", instructions)
 	}
 	if checks != nil && len(checks.Commands) > 0 {
-		b.WriteString("\nWhen you end your turn, the project runs these commands in the output directory, in order, and sends you the first failure to fix:\n\n")
+		b.WriteString("\nWhen you end your turn, the project runs these commands, in order, in a copy of the output directory holding the files you wrote ({dir} names it), and sends you the first failure to fix:\n\n")
 		for _, c := range checks.Commands {
 			fmt.Fprintf(&b, "- %s\n", c.Line)
 		}
@@ -83,16 +83,24 @@ func userPrompt(language, instructions string, src *plugin.Source, checks *host.
 	return b.String()
 }
 
+// maxOutput bounds how much of a failed check's output goes back to the
+// model, so a noisy compiler cannot fill its context. The end is kept,
+// where a compiler usually summarizes.
+const maxOutput = 16 << 10
+
 // retryPrompt hands a failed check back to the model.
 func retryPrompt(f *host.CheckFailure, try, tries int) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "The check %s failed (%s)", f.Name, f.Status)
-	if f.Output != "" {
-		fmt.Fprintf(&b, ":\n\n```\n%s\n```\n", f.Output)
-	} else {
+	switch out := f.Output; {
+	case out == "":
 		b.WriteString(", printing nothing.\n")
+	case len(out) > maxOutput:
+		fmt.Fprintf(&b, ". The last %d bytes of what it printed:\n\n```\n%s\n```\n", maxOutput, strings.ToValidUTF8(out[len(out)-maxOutput:], ""))
+	default:
+		fmt.Fprintf(&b, ":\n\n```\n%s\n```\n", out)
 	}
-	fmt.Fprintf(&b, "\nThat was try %d of %d. Fix the files with write_file, then end your turn again.\n", try, tries)
+	fmt.Fprintf(&b, "\nThat was try %d of %d. Answer again in full: write every file with write_file and report every loss with report_loss, since nothing from this try is kept. Then end your turn.\n", try, tries)
 	return b.String()
 }
 

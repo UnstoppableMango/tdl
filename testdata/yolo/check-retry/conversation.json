@@ -56,7 +56,7 @@
 			"sent": [
 				{
 					"role": "user",
-					"text": "Write this model in elixir.\n\nWhen you end your turn, the project runs these commands in the output directory, in order, and sends you the first failure to fix:\n\n- sh -c 'grep -q @enforce_keys lib/shop/order.ex || { echo \"lib/shop/order.ex: Shop.Order has no @enforce_keys\"; exit 1; }' \n\nThe model:\n\n```tdl\n/// An order.\ntype Order: Entity {\n  id: string\n}\n\ntarget yolo for shop {\n  language(\"elixir\")\n  check(\"enforce\")\n}\n```\n"
+					"text": "Write this model in elixir.\n\nWhen you end your turn, the project runs these commands, in order, in a copy of the output directory holding the files you wrote ({dir} names it), and sends you the first failure to fix:\n\n- sh -c 'grep -q @enforce_keys lib/shop/order.ex || { echo \"lib/shop/order.ex: Shop.Order has no @enforce_keys\"; exit 1; }' \n\nThe model:\n\n```tdl\n/// An order.\ntype Order: Entity {\n  id: string\n}\n\ntarget yolo for shop {\n  language(\"elixir\")\n  check(\"enforce\")\n}\n```\n"
 				}
 			],
 			"reply": {
@@ -96,7 +96,7 @@
 			"sent": [
 				{
 					"role": "user",
-					"text": "The check enforce failed (exit status 1):\n\n```\nlib/shop/order.ex: Shop.Order has no @enforce_keys\n```\n\nThat was try 1 of 3. Fix the files with write_file, then end your turn again.\n"
+					"text": "The check enforce failed (exit status 1):\n\n```\nlib/shop/order.ex: Shop.Order has no @enforce_keys\n```\n\nThat was try 1 of 3. Answer again in full: write every file with write_file and report every loss with report_loss, since nothing from this try is kept. Then end your turn.\n"
 				}
 			],
 			"reply": {

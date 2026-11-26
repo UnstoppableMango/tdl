@@ -56,7 +56,7 @@
 			"sent": [
 				{
 					"role": "user",
-					"text": "Write this model in elixir.\n\nWhen you end your turn, the project runs these commands in the output directory, in order, and sends you the first failure to fix:\n\n- sh -c 'grep -q @enforce_keys lib/shop/order.ex || { echo \"lib/shop/order.ex: Shop.Order has no @enforce_keys\"; exit 1; }' \n\nThe model:\n\n```tdl\n/// An order.\ntype Order: Entity {\n  id: string\n}\n\ntarget yolo for shop {\n  language(\"elixir\")\n  check(\"enforce\")\n}\n```\n"
+					"text": "Write this model in elixir.\n\nWhen you end your turn, the project runs these commands, in order, in a copy of the output directory holding the files you wrote ({dir} names it), and sends you the first failure to fix:\n\n- sh -c 'grep -q @enforce_keys lib/shop/order.ex || { echo \"lib/shop/order.ex: Shop.Order has no @enforce_keys\"; exit 1; }' \n\nThe model:\n\n```tdl\n/// An order.\ntype Order: Entity {\n  id: string\n}\n\ntarget yolo for shop {\n  language(\"elixir\")\n  check(\"enforce\")\n}\n```\n"
 				}
 			],
 			"reply": {

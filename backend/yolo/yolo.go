@@ -134,6 +134,10 @@ func (b Backend) Generate(ctx context.Context, req *plugin.Request) (*plugin.Res
 		Tools:    tools,
 		Messages: []Message{{Role: User, Text: userPrompt(language, instructions, src, checks)}},
 	}
+	// Each try is a whole answer: a retry starts with no files and no
+	// reported loss, so a stray file or a loss the fix removed does not
+	// outlive the try that made it.
+	before := len(g.Diags)
 	for try := 1; ; try++ {
 		if err := g.converse(ctx, provider, conv); err != nil {
 			g.Error(g.block, "%v", err)
@@ -142,6 +146,11 @@ func (b Backend) Generate(ctx context.Context, req *plugin.Request) (*plugin.Res
 		if len(g.files) == 0 {
 			g.Error(g.block, "the model wrote no files")
 			return g.Response(nil), nil
+		}
+		// A dry run's files are compared, not written, and the host runs
+		// no check for one.
+		if req.GetDryRun() {
+			break
 		}
 		err := checks.Run(ctx, req.GetOut(), g.written())
 		var failed *host.CheckFailure
@@ -155,6 +164,8 @@ func (b Backend) Generate(ctx context.Context, req *plugin.Request) (*plugin.Res
 			return g.Response(nil), nil
 		default:
 			conv.Messages = append(conv.Messages, Message{Role: User, Text: retryPrompt(failed, try, tries)})
+			g.files = map[string][]byte{}
+			g.Diags = g.Diags[:before]
 			continue
 		}
 		break
@@ -192,11 +203,11 @@ func (g *generator) written() []*plugin.File {
 func (g *generator) checks(block *ir.TargetBlock) (*host.Checks, int, error) {
 	tries := DefaultTries
 	if d, ok := g.Block("tries"); ok {
-		n, err := strconv.Atoi(d.GetArgs()[0].GetText())
+		n, err := strconv.ParseInt(strings.ReplaceAll(d.GetArgs()[0].GetText(), "_", ""), 0, 0)
 		if err != nil || n < 1 {
 			return nil, 0, fmt.Errorf("tries(%s) must be a whole number of at least 1", d.GetArgs()[0].GetText())
 		}
-		tries = n
+		tries = int(n)
 	}
 	if block == nil {
 		return nil, tries, nil
@@ -250,7 +261,7 @@ func (g *generator) converse(ctx context.Context, p Provider, conv *Conversation
 		}
 		conv.Messages = append(conv.Messages, Message{Role: User, Results: results})
 	}
-	return fmt.Errorf("%s was still calling tools after %d turns", conv.Model, maxTurns)
+	return fmt.Errorf("%s was still calling tools after %d turns, counted across every try", conv.Model, maxTurns)
 }
 
 // call answers one tool call. A call the model can correct is refused back

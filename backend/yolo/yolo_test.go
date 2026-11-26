@@ -666,3 +666,21 @@ func TestMissingCheckCommandIsNotRetried(t *testing.T) {
 		t.Errorf("diagnostics: %s", got)
 	}
 }
+
+// A dry run's files are compared, not written, so no check runs for one.
+func TestDryRunRunsNoCheck(t *testing.T) {
+	src := strings.Replace(order, `language("elixir")`, `language("elixir")`+"\n  check(\"mix\")", 1)
+	f := &fixed{replies: []yolo.Message{
+		{Role: yolo.Assistant, Calls: []yolo.Call{call("write_file", `{"path": "order.ex", "content": "x"}`)}, Stop: yolo.StopTool},
+		{Role: yolo.Assistant, Text: "done", Stop: yolo.StopEnd},
+	}}
+	req := checked(t, "[check]\nmix = \"false\"\n", src)
+	req.DryRun = true
+	resp, err := yolo.Backend{Provider: f}.Generate(context.Background(), req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.GetFiles()) != 1 || diagnostics(resp) != "" {
+		t.Errorf("wrote %d files: %s", len(resp.GetFiles()), diagnostics(resp))
+	}
+}
