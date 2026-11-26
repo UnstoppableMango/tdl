@@ -57,7 +57,9 @@ func (o *OpenAI) Send(ctx context.Context, c *Conversation) (Message, error) {
 		return Message{}, errors.New("the reply held no choice")
 	}
 	choice := reply.Choices[0]
-	out := Message{Role: Assistant, Text: choice.Message.Content, native: choice.Message.ToParam()}
+	// No native form: the SDK's own drops a call whose type a local
+	// server left out, and a tool message would then answer nothing.
+	out := Message{Role: Assistant, Text: choice.Message.Content}
 	for _, tc := range choice.Message.ToolCalls {
 		f := tc.AsFunction()
 		input := json.RawMessage(f.Function.Arguments)
@@ -96,16 +98,15 @@ func openAIStop(r string) (Stop, error) {
 	return "", fmt.Errorf("the turn stopped for a reason this backend does not know, %q", r)
 }
 
-// openAIMessages is a message as the API takes it. A user message
-// carrying results is one tool message per result, since the API has no
-// other place for them.
+// openAIMessages is a message as the API takes it, built from its parts.
+// A user message carrying results is one tool message per result, since
+// the API has no other place for them.
 func openAIMessages(m Message) []openai.ChatCompletionMessageParamUnion {
-	if p, ok := m.native.(openai.ChatCompletionMessageParamUnion); ok {
-		return []openai.ChatCompletionMessageParamUnion{p}
-	}
 	if m.Role == Assistant {
 		var p openai.ChatCompletionAssistantMessageParam
-		if m.Text != "" {
+		// The API refuses an assistant message with neither content nor
+		// calls.
+		if m.Text != "" || len(m.Calls) == 0 {
 			p.Content.OfString = openai.String(m.Text)
 		}
 		for _, c := range m.Calls {

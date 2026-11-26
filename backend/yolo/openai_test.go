@@ -69,8 +69,9 @@ func completion(message, finish string) string {
 // A call goes out as a function tool, comes back as a call, and its
 // result goes back as a tool message after the assistant's turn.
 func TestOpenAIToolRoundTrip(t *testing.T) {
+	// The call carries no type, as some local servers write it.
 	srv := newChatServer(t,
-		completion(`{"role":"assistant","content":null,"tool_calls":[{"id":"call_1","type":"function","function":{"name":"write_file","arguments":"{\"path\":\"a.kt\",\"content\":\"x\"}"}}]}`, "tool_calls"),
+		completion(`{"role":"assistant","content":null,"tool_calls":[{"id":"call_1","function":{"name":"write_file","arguments":"{\"path\":\"a.kt\",\"content\":\"x\"}"}}]}`, "tool_calls"),
 		completion(`{"role":"assistant","content":"Done."}`, "stop"),
 	)
 	o := NewOpenAI(option.WithBaseURL(srv.URL+"/v1/"), option.WithAPIKey("key"), option.WithMaxRetries(0))
@@ -156,6 +157,7 @@ func TestOpenAIMessagesFromParts(t *testing.T) {
 		{Role: User, Text: "hi"},
 		{Role: Assistant, Text: "writing", Calls: []Call{{ID: "c1", Name: "write_file", Input: json.RawMessage(`{"path":"/x"}`)}}, Stop: StopTool},
 		{Role: User, Results: []Result{{ID: "c1", Content: "no content", Error: true}}},
+		{Role: Assistant, Stop: StopEnd},
 	}}
 	if _, err := o.Send(context.Background(), conv); err != nil {
 		t.Fatal(err)
@@ -168,6 +170,9 @@ func TestOpenAIMessagesFromParts(t *testing.T) {
 	}
 	if tool := msgs[3].(map[string]any); tool["content"] != "error: no content" {
 		t.Errorf("tool %v", tool)
+	}
+	if empty, ok := msgs[4].(map[string]any)["content"]; !ok || empty != "" {
+		t.Errorf("an empty assistant turn went as %v", msgs[4])
 	}
 }
 
