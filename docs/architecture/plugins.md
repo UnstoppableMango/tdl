@@ -34,19 +34,36 @@ The messages are the same; [grpc-transport.md](https://github.com/UnstoppableMan
 - ir schema version
 - whether this is a watch session
 - the mode: generate, or import for `tdl import`
+- the target it wants served, as the request's `target` names it
 
 The ir schema version is the protobuf package, `tdl.ir.v1`.
 Within a version, field numbers are never reused and new fields are additive, so a plugin built against an older `v1` keeps working.
 
 The plugin replies:
 
-- accept, or refuse with the version it needs
-- its name and version
+- accept, or refuse with what it needed
+- the target it serves as its name, and the executable's version
 - directives it understands, each with arity, expected literal kinds, placements, and allowed values
 - how it numbers fields and variants, for a wire format that identifies them by number
 - optional features it supports, such as reuse across requests, import, and nondeterminism (see [Nondeterministic backends](#nondeterministic-backends))
 
-A refusal is a readable failure naming both versions, where a plugin silently ignoring fields it was compiled before would produce wrong code with no diagnostic.
+A refusal is a readable failure, where a plugin silently ignoring fields it was compiled before would produce wrong code with no diagnostic.
+A version refusal names both versions, and a target refusal the target asked for and those the plugin serves.
+The host shows the plugin's text after its name, `tdl-gen-fsharp refused: serves csharp, fsharp; asked for vb`, and does not compare the reply's name with the target, trusting a plugin on `PATH` to serve what it was started for.
+A host built before the target field sends none (ADR-0003).
+
+### Serving several backends
+
+One plugin executable may serve several backends, such as `csharp` and `fsharp` from one Native AOT binary.
+Each target is still started as `tdl-gen-<target>`, typically a link to the shared executable, and one connection serves one target.
+The Go SDK takes every backend in the plugin's main, `plugin.Serve(csharp.Backend{}, fsharp.Backend{})`, and picks one at the handshake by its description's name:
+
+1. the handshake's target;
+1. with no target and one backend, that backend;
+1. with no target and several, the executable's base name with `tdl-gen-` stripped.
+
+Anything else is refused, `serves csharp, fsharp; asked for vb`, which covers an unserved target, the shared executable started under its own name, and a single-backend plugin asked for another target.
+After the handshake the connection is that backend's alone, exactly as if it were the only one.
 
 ### Directive declarations
 
