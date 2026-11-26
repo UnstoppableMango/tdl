@@ -217,10 +217,10 @@ func TestCheckDelegated(t *testing.T) {
 		t.Fatal(err)
 	}
 	for name, bad := range map[string]func([][]string) [][]string{
-		"yes":     func(r [][]string) [][]string { r[0][1] = "Yes"; return r },
-		"import":  func(r [][]string) [][]string { r[0][2] = features.Depends; return r },
-		"order":   func(r [][]string) [][]string { r[0], r[1] = r[1], r[0]; return r },
-		"missing": func(r [][]string) [][]string { return r[1:] },
+		"yes":            func(r [][]string) [][]string { r[0][1] = "Yes"; return r },
+		"import-depends": func(r [][]string) [][]string { r[0][2] = features.Depends; return r },
+		"order":          func(r [][]string) [][]string { r[0], r[1] = r[1], r[0]; return r },
+		"missing":        func(r [][]string) [][]string { return r[1:] },
 	} {
 		rows := slices.Clone(rows)
 		for i := range rows {

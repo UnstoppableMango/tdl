@@ -5,7 +5,7 @@ Use it for a language TDL has no backend for, such as Elixir, Kotlin, Swift, or 
 The name is a warning to anyone reading the model: nothing about the output is promised.
 
 It is a plugin, `tdl-gen-yolo`, which `tdl gen` runs from `PATH` and the Nix package ships beside `tdl`.
-`tdl` itself never talks to a model.
+`tdl` itself never talks to a language model.
 [#1505](https://github.com/UnstoppableMango/tdl/issues/1505) is its spec, and its sub-issues are the phases: phase 1 is built, and checks, retries, and an agent CLI are not.
 
 ```tdl
@@ -18,7 +18,7 @@ target yolo for shop {
 
 ## What it does not promise
 
-The model writes whatever files it decides on, and the same request can come back different every time.
+The language model writes whatever files it decides on, and the same request can come back different every time.
 Nothing checks that they compile, follow the JSON wire convention, or hold every declaration, until a check command does (phase 2).
 Read what it writes before committing it, as you would a colleague's first draft.
 
@@ -27,8 +27,8 @@ It does not import.
 
 ## How it works
 
-The backend holds one conversation per target block with the model.
-The prompt holds the model as TDL, the block's `language` and `prompt`, what each loss code means, the JSON wire convention, and the [specification](../spec.md).
+The backend holds one conversation per target block with the language model.
+The prompt holds your model as TDL, the block's `language` and `prompt`, what each loss code means, the JSON wire convention, and the [specification](../spec.md).
 The model answers with two tools:
 
 - `write_file(path, content)` writes one file under `out`.
@@ -73,21 +73,21 @@ The backend declares itself nondeterministic, so `tdl` keeps its output while th
 `tdl gen` records a hash of the request in `.tdl-output`, with each file it wrote and the warnings the model reported.
 While the next request hashes the same and the files are there unedited, it keeps them, reports the recorded warnings again, and starts no conversation.
 
-So regenerating is a deliberate act: change the model or a directive, or run `tdl gen --clean`.
-Moving a declaration within its file does not regenerate, and editing or removing a kept file does.
+So regenerating is a deliberate act: change your model or a directive, or run `tdl gen --clean`.
+Shifting the model within its file, such as adding a comment above it, does not regenerate; reordering declarations, or editing or removing a kept file, does.
 `tdl gen --verify`, the flake module's `tdl-gen` check, and CI only compare hashes, so they need no key and no network.
 Commit the output and `.tdl-output` together.
 
 ## Cost
 
-Each regeneration is a paid conversation with the model, billed to the key in `ANTHROPIC_API_KEY`; without one, `tdl gen` fails before anything is sent.
+Each regeneration is a paid conversation with the language model, billed to the key in `ANTHROPIC_API_KEY`; without one, `tdl gen` fails before anything is sent.
 The prompt carries the whole specification, several thousand tokens, before the source of your own model.
 `effort` trades cost for care: `high` and above spend noticeably more, and the 50-turn cap bounds a conversation that never ends.
 Reuse is what keeps the bill to the regenerations you ask for.
 
 ## Features
 
-What the output does with each feature of the language is up to the model, so no cell can be measured: grading one recorded answer would promise nothing about the next.
+What the output does with each feature of the language is up to the language model, so no cell can be measured: grading one recorded answer would promise nothing about the next.
 Each Generate cell reads "Depends on the model", and `make features` checks the table's shape without rewriting it.
 It does not import, so every Import cell is No.
 

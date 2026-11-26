@@ -15,8 +15,8 @@ var planned = regexp.MustCompile(`^(Planned \(.+\)|No)$`)
 // Generate or Import cell but a Planned naming a phase or a No. Once the
 // backend is built, its table is measured instead.
 func CheckPlanned(rows [][]string) error {
-	const what = "Planned (phase) or No"
-	return checkCells(rows, map[int]rule{1: {planned, what}, 2: {planned, what}})
+	r := rule{planned, "Planned (phase) or No"}
+	return checkCells(rows, r, r)
 }
 
 // rule is what a column of a table written by hand may hold, and how an
@@ -27,9 +27,9 @@ type rule struct {
 }
 
 // checkCells checks a table written by hand: a row per feature in table
-// order, under [Header], and each column in rules holding what its rule
-// allows.
-func checkCells(rows [][]string, rules map[int]rule) error {
+// order, under [Header], and its Generate and Import cells holding what
+// their rules allow.
+func checkCells(rows [][]string, generate, imports rule) error {
 	if len(rows) != len(Rows) {
 		return fmt.Errorf("%d rows, want one per feature, %d", len(rows), len(Rows))
 	}
@@ -42,9 +42,9 @@ func checkCells(rows [][]string, rules map[int]rule) error {
 		if r[0] != Rows[i].Title {
 			problems = append(problems, fmt.Errorf("row %d is %q, want %q", i+1, r[0], Rows[i].Title))
 		}
-		for _, j := range []int{1, 2} {
-			if !rules[j].cell.MatchString(r[j]) {
-				problems = append(problems, fmt.Errorf("%s: %s is %q, want %s", r[0], Header[j], r[j], rules[j].what))
+		for i, rule := range []rule{generate, imports} {
+			if j := i + 1; !rule.cell.MatchString(r[j]) {
+				problems = append(problems, fmt.Errorf("%s: %s is %q, want %s", r[0], Header[j], r[j], rule.what))
 			}
 		}
 	}

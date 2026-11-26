@@ -11,12 +11,14 @@ const Depends = "Depends on the model"
 // like a measured one.
 var delegated = []string{"yolo"}
 
+var (
+	depends = rule{regexp.MustCompile(`^` + regexp.QuoteMeta(Depends) + `$`), Depends}
+	noCell  = rule{regexp.MustCompile(`^No$`), "No"}
+)
+
 // CheckDelegated checks a delegated backend's table: a row per feature in
 // table order, under [Header], every Generate cell [Depends], and every
 // Import cell No, since a delegated backend does not import.
 func CheckDelegated(rows [][]string) error {
-	return checkCells(rows, map[int]rule{
-		1: {regexp.MustCompile(`^` + regexp.QuoteMeta(Depends) + `$`), Depends},
-		2: {regexp.MustCompile(`^No$`), "No"},
-	})
+	return checkCells(rows, depends, noCell)
 }

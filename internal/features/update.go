@@ -55,15 +55,10 @@ func Update(root string, short bool) (map[string][]byte, error) {
 		names = append(names, t.Name)
 	}
 	for _, name := range delegated {
-		docs := where[name]
+		rows, errs := written(embedded, where[name], name, "a delegated backend", CheckDelegated)
 		delete(where, name)
-		if errs := once(name, docs); errs != nil {
+		if errs != nil {
 			problems = append(problems, errs...)
-			continue
-		}
-		rows := Parse(embedded[docs[0]], name)
-		if err := CheckDelegated(rows); err != nil {
-			problems = append(problems, fmt.Errorf("%s: %s is a delegated backend: %w", docs[0], name, err))
 			continue
 		}
 		tables[name] = Grid{Header: Header, Rows: rows}
@@ -78,14 +73,8 @@ func Update(root string, short bool) (map[string][]byte, error) {
 	// What remains is a backend with no code, whose table is written by
 	// hand and only checked.
 	for _, name := range sortedKeys(where) {
-		docs := where[name]
-		if errs := once(name, docs); errs != nil {
-			problems = append(problems, errs...)
-			continue
-		}
-		if err := CheckPlanned(Parse(embedded[docs[0]], name)); err != nil {
-			problems = append(problems, fmt.Errorf("%s: %s is no target, so a planned table: %w", docs[0], name, err))
-		}
+		_, errs := written(embedded, where[name], name, "no target, so a planned table", CheckPlanned)
+		problems = append(problems, errs...)
 	}
 
 	out := map[string][]byte{}
@@ -97,6 +86,19 @@ func Update(root string, short bool) (map[string][]byte, error) {
 		out[doc] = spliced
 	}
 	return out, errors.Join(problems...)
+}
+
+// written reads the table name that one of docs embeds, which is written
+// by hand, and checks it; kind says what the table is in an error.
+func written(embedded map[string][]byte, docs []string, name, kind string, check func([][]string) error) ([][]string, []error) {
+	if errs := once(name, docs); errs != nil {
+		return nil, errs
+	}
+	rows := Parse(embedded[docs[0]], name)
+	if err := check(rows); err != nil {
+		return nil, []error{fmt.Errorf("%s: %s is %s: %w", docs[0], name, kind, err)}
+	}
+	return rows, nil
 }
 
 // once reports a table embedded in any number of docs but one.
