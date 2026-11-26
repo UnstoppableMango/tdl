@@ -114,6 +114,13 @@
             ];
           };
 
+          devShells.govulncheck = pkgs.mkShell {
+            packages = [
+              pkgs.go_1_27
+              pkgs.govulncheck
+            ];
+          };
+
           # What `make vscode-test` needs: the extension's toolchain, go to
           # build the server, and an editor under a virtual display.
           # VSCodium rather than a build @vscode/test-electron downloads, which

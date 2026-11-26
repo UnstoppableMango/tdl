@@ -160,7 +160,13 @@ jobs:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
           cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-      - run: nix develop -c govulncheck ./...
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .go/mod
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('go.sum') }}
+          restore-keys: ${{ runner.os }}-go-mod-
+
+      - run: nix develop .#govulncheck -c govulncheck ./...
 
   required:
     needs: [check, darwin]

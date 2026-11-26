@@ -10,7 +10,7 @@ go test -race ./...                # what CI runs; the plugin subprocess needs i
 go test -short ./...               # skips running external tools on generated code
 go test ./parser -run TestConformanceCorpusParses   # a single test
 go build ./...
-govulncheck ./...                  # in the devShell; what CI's advisory govulncheck job runs
+govulncheck ./...                  # in the devShell or .#govulncheck; CI's advisory govulncheck job
 
 command make build            # nix build .#
 command make test             # go test ./...
