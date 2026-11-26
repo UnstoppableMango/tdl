@@ -278,3 +278,29 @@ func TestPostIsCheckedForEveryTarget(t *testing.T) {
 		})
 	}
 }
+
+// A bare roundtrip on the block is the deprecated spelling of annotate: it
+// warns once and is checked as annotate, while roundtrip with arguments or
+// on a declaration is a directive of its own.
+func TestRoundtripIsDeprecatedForAnnotate(t *testing.T) {
+	desc := plugin.Description{Name: "t", Directives: []*plugin.DirectiveSpec{
+		{Name: "annotate", Placements: []plugin.Placement{plugin.Placement_PLACEMENT_BLOCK}},
+	}}
+	block := &ir.Model{Targets: []*ir.TargetBlock{{
+		Meta:       &ir.Meta{Name: "t"},
+		Directives: []*ir.Directive{{Name: "roundtrip", Target: "t"}},
+	}}}
+	problems := host.CheckDirectives("t", block, desc)
+	if len(problems) != 1 || problems[0].GetSeverity() != plugin.Severity_SEVERITY_WARNING ||
+		problems[0].GetMessage() != "roundtrip is deprecated; write annotate" {
+		t.Errorf("problems = %v", problems)
+	}
+
+	if got := host.Rename(&ir.Directive{Name: "roundtrip", Args: []*ir.Literal{str("x")}}); got != "roundtrip" {
+		t.Errorf("roundtrip with an argument is read as %s", got)
+	}
+	problems = host.CheckDirectives("t", modelWith(&ir.Directive{Name: "roundtrip", Target: "t"}), desc)
+	if len(problems) != 1 || problems[0].GetMessage() != "t does not declare the directive roundtrip" {
+		t.Errorf("problems on a declaration = %v", problems)
+	}
+}

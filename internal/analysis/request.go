@@ -10,7 +10,7 @@ import (
 // Request builds the request for one target from a model: the model cut
 // to the target's block and directives, and its analysis, holding the
 // numbers the backend's Numbering gives its members and, under the
-// roundtrip directive, the model as TDL. It returns what the analysis
+// annotate directive, the model as TDL. It returns what the analysis
 // found wrong in the model, which a host reports before running the
 // backend: a constraint that cannot hold, and a number the rules refuse.
 func Request(m *ir.Model, desc plugin.Description, target, out string) (*plugin.Request, []*plugin.Diagnostic) {

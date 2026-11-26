@@ -6,13 +6,16 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
+	"github.com/unstoppablemango/tdl/internal/host"
 	"github.com/unstoppablemango/tdl/ir"
 )
 
 var directiveName = (&ir.Directive{}).ProtoReflect().Descriptor().FullName()
 
 // Scope returns a copy of m holding only target's directives and target
-// blocks, which is what a request for target carries. m is left alone.
+// blocks, which is what a request for target carries, with each block
+// directive written in a [host.Renamed] spelling under its new name. m is
+// left alone.
 func Scope(m *ir.Model, target string) *ir.Model {
 	out := proto.Clone(m).(*ir.Model)
 	out.Targets = slices.DeleteFunc(out.Targets, func(b *ir.TargetBlock) bool {
@@ -23,6 +26,11 @@ func Scope(m *ir.Model, target string) *ir.Model {
 		b.GetMeta().Order = int32(i)
 	}
 	scope(out.ProtoReflect(), target)
+	for _, b := range out.Targets {
+		for _, d := range b.GetDirectives() {
+			d.Name = host.Rename(d)
+		}
+	}
 	return out
 }
 

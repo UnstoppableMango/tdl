@@ -31,6 +31,22 @@ var Directives = []*plugin.DirectiveSpec{
 	},
 }
 
+// Renamed maps the old spelling of a bare target-block directive to the
+// name replacing it. tdl reads the old spelling as the new one for a
+// release, warning that it is deprecated, and a request carries only the
+// new name.
+var Renamed = map[string]string{"roundtrip": "annotate"}
+
+// Rename is the name a target block's directive is read as: its new name
+// when d is a bare directive written in an old spelling, and its own name
+// otherwise.
+func Rename(d *ir.Directive) string {
+	if to, ok := Renamed[d.GetName()]; ok && len(d.GetArgs()) == 0 {
+		return to
+	}
+	return d.GetName()
+}
+
 // allStrings lists the directives every argument of which must be a
 // string, which arg_kinds, constraining by position, cannot say.
 var allStrings = map[string]bool{PostDirective: true}
@@ -123,7 +139,15 @@ func checkEach(target string, n node, specs map[string]*plugin.DirectiveSpec) []
 		if d.GetName() == OutDirective {
 			continue
 		}
-		spec, declared := specs[d.GetName()]
+		name := d.GetName()
+		if n.placement == plugin.Placement_PLACEMENT_BLOCK {
+			if to := Rename(d); to != name {
+				problems = append(problems, problem(d.GetPosition(), plugin.Severity_SEVERITY_WARNING,
+					"%s is deprecated; write %s", name, to))
+				name = to
+			}
+		}
+		spec, declared := specs[name]
 		if !declared {
 			problems = append(problems, problem(d.GetPosition(), plugin.Severity_SEVERITY_WARNING,
 				"%s does not declare the directive %s", target, d.GetName()))

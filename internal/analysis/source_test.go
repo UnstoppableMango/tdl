@@ -22,7 +22,7 @@ enum Status {
 }
 
 target wire for shop {
-  roundtrip
+  annotate
   Order => key(id)
 }
 `
@@ -64,10 +64,10 @@ func TestCarry(t *testing.T) {
 	}
 }
 
-// A target block holding only roundtrip is carried as nothing, and another
+// A target block holding only annotate is carried as nothing, and another
 // target's request carries no source.
-func TestCarryOnlyUnderRoundtrip(t *testing.T) {
-	m := lower(t, "package shop\n\ntype Order {\n  id: string\n}\n\ntarget wire for shop {\n  roundtrip\n}\n")
+func TestCarryOnlyUnderAnnotate(t *testing.T) {
+	m := lower(t, "package shop\n\ntype Order {\n  id: string\n}\n\ntarget wire for shop {\n  annotate\n}\n")
 	req, _ := analysis.Request(m, plugin.Description{Name: "wire"}, "wire", "out")
 	items := req.GetAnalysis().GetSource().GetItems()
 	if len(items) != 2 || items[1].GetSource() != "" {
@@ -76,29 +76,29 @@ func TestCarryOnlyUnderRoundtrip(t *testing.T) {
 
 	req, _ = analysis.Request(m, plugin.Description{Name: "other"}, "other", "out")
 	if src := req.GetAnalysis().GetSource(); src != nil {
-		t.Errorf("source without roundtrip = %v", src)
+		t.Errorf("source without annotate = %v", src)
 	}
 	if f := view(t, req.GetModel(), req.GetAnalysis(), "Order").GetFields()[0]; f.GetSource() != "" {
-		t.Errorf("field source without roundtrip = %q", f.GetSource())
+		t.Errorf("field source without annotate = %q", f.GetSource())
 	}
 }
 
-// Only a bare roundtrip in the block itself asks for the source: another
-// bare directive does not, and roundtrip on a declaration stays in the
+// Only a bare annotate in the block itself asks for the source: another
+// bare directive does not, and annotate on a declaration stays in the
 // carried block.
-func TestRoundtripIsTheBlocksBareDirective(t *testing.T) {
+func TestAnnotateIsTheBlocksBareDirective(t *testing.T) {
 	m := lower(t, "package shop\n\ntype Order {\n  id: string\n}\n\ntarget other for shop {\n  flag\n}\n")
-	if analysis.Roundtrip(m, "other") {
-		t.Error("a bare flag is roundtrip")
+	if analysis.Annotate(m, "other") {
+		t.Error("a bare flag is annotate")
 	}
 
-	m = lower(t, "package shop\n\ntype Order {\n  id: string\n}\n\ntarget wire for shop {\n  roundtrip\n  Order => roundtrip\n}\n")
+	m = lower(t, "package shop\n\ntype Order {\n  id: string\n}\n\ntarget wire for shop {\n  annotate\n  Order => annotate\n}\n")
 	items := analysis.ModelSource(m, "wire").GetItems()
-	if block := "target wire for shop {\n  Order => roundtrip\n}"; len(items) != 2 || items[1].GetSource() != block {
+	if block := "target wire for shop {\n  Order => annotate\n}"; len(items) != 2 || items[1].GetSource() != block {
 		t.Errorf("items = %v, want the block %q", items, block)
 	}
 
-	if analysis.WithoutRoundtrip(&ast.TargetDecl{N: "wire"}) == nil {
+	if analysis.WithoutAnnotate(&ast.TargetDecl{N: "wire"}) == nil {
 		t.Error("an empty block is dropped")
 	}
 }
@@ -117,5 +117,21 @@ func TestImported(t *testing.T) {
 	}
 	if m, err := analysis.Imported(&plugin.ImportResponse{}); m != nil || err != nil {
 		t.Errorf("an empty response = %v, %v", m, err)
+	}
+}
+
+// A bare roundtrip, annotate's deprecated spelling, reaches the backend as
+// annotate and carries the source.
+func TestRoundtripIsReadAsAnnotate(t *testing.T) {
+	m := lower(t, "package shop\n\ntype Order {\n  id: string\n}\n\ntarget wire for shop {\n  roundtrip\n}\n")
+	req, _ := analysis.Request(m, plugin.Description{Name: "wire"}, "wire", "out")
+	if ds := req.GetModel().GetTargets()[0].GetDirectives(); len(ds) != 1 || ds[0].GetName() != "annotate" {
+		t.Errorf("block directives = %v", ds)
+	}
+	if req.GetAnalysis().GetSource() == nil {
+		t.Error("the request carries no source")
+	}
+	if m.GetTargets()[0].GetDirectives()[0].GetName() != "roundtrip" {
+		t.Error("the model was changed")
 	}
 }

@@ -14,21 +14,21 @@ import (
 	"github.com/unstoppablemango/tdl/ir"
 )
 
-// Generating warns about each fact the TypeScript loses. Under a
-// `roundtrip` directive, a declaration that loses any carries itself whole
+// Generating warns about each fact the TypeScript loses. Under an
+// `annotate` directive, a declaration that loses any carries itself whole
 // as TDL in a JSDoc `@tdl source` tag, and what no declaration carries,
 // such as the package and the declarations TypeScript has no form for,
 // goes in @tdl tags on an `export {};` at the end of the file.
 
 // lose warns about a fact of the declaration being rendered that does not
-// read back, which makes it carry itself under roundtrip.
+// read back, which makes it carry itself under annotate.
 func (g *generator) lose(code string, pos *ir.Position, format string, args ...any) {
 	g.lost = true
 	g.Lose(code, pos, format, args...)
 }
 
 // drop is [generator.lose] for a fact the output itself drops or weakens,
-// which warns under roundtrip too.
+// which warns under annotate too.
 func (g *generator) drop(code string, pos *ir.Position, format string, args ...any) {
 	g.lost = true
 	g.Lossy(code, pos, format, args...)
@@ -64,9 +64,9 @@ func docComment(b *strings.Builder, m *ir.Meta, tags ...string) {
 }
 
 // source is the @tdl tag carrying a declaration whole, when it loses
-// anything under roundtrip.
+// anything under annotate.
 func (g *generator) source(d *ir.Decl) []string {
-	if !g.Roundtrip || !g.lost {
+	if !g.Annotate || !g.lost {
 		return nil
 	}
 	if src := g.DeclSource(d.GetMeta().GetName()); src != "" {
@@ -80,7 +80,7 @@ func (g *generator) source(d *ir.Decl) []string {
 // comment, the imports, and every top-level item not emitted, by its
 // index; or "".
 func (g *generator) footer(path string, emitted map[string]bool) string {
-	if !g.Roundtrip {
+	if !g.Annotate {
 		return ""
 	}
 	var tags []string
