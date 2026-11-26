@@ -55,5 +55,5 @@
 // Messages are protobuf, framed with a varint length prefix, in both
 // directions over one connection. tdl sends a [Handshake] first and a
 // plugin answers with a [HandshakeReply], refusing a version it does not
-// support. [Conn] is the codec.
+// support or a target it does not serve. [Conn] is the codec.
 package plugin
