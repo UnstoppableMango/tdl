@@ -2,6 +2,8 @@
 
 The `mermaid` backend draws a model as one Mermaid class diagram per package, in a `.mmd` file or, under `format("markdown")`, in a fenced block of a `.md` file that GitHub renders.
 It is a TypeScript plugin on the JS/TS plugin SDK, `tdl-gen-mermaid`, which `tdl gen` runs from `PATH`.
+It ships as a single executable beside `tdl` in the Nix package, the release tarballs, and the npm platform packages, so it needs no JS runtime.
+In markdown, [`@unmango/remark-tdl-mermaid`](../../js/remark-tdl-mermaid/README.md) draws each fence written ```` ```tdl mermaid ```` with this backend.
 [mermaid-backend.md](../architecture/mermaid-backend.md) is its design, and [#1482](https://github.com/UnstoppableMango/tdl/issues/1482) tracks the phases: phases 1 and 2 draw classes, their members, and the edges between them, and the `direction`, `hide`, and `link` directives come in phase 3.
 
 ## Features

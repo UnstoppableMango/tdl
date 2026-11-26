@@ -42,7 +42,7 @@ enum Payment {
 }
 
 target typescript for shop {
-  Order.lineCount => name("line-count")
+  Order.lineCount => wire("line-count")
   Payment => discriminant("type")
   Payment.Wire => name("Wire")
 }

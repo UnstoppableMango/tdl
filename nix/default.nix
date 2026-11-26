@@ -48,6 +48,7 @@ in
           tdl-gen-csharp-tool
           tdl-rust
           tdl-js
+          tdl-gen-mermaid
           protoc-gen-buffa
           ;
         default = pkgs.tdl;
@@ -60,11 +61,7 @@ in
         # this repository serves outside `tdl` joins here, not the workflow.
         plugins = pkgs.symlinkJoin {
           name = "tdl-plugins";
-          paths = [
-            pkgs.tdl
-            # tdl-gen-mermaid, until it ships beside tdl (#1487).
-            pkgs.tdl-js
-          ];
+          paths = [ pkgs.tdl ];
         };
         # The README's demo GIF; `make demo` copies it into docs/demo.
         demo = pkgs.callPackage ./demo.nix { };
@@ -171,6 +168,20 @@ in
         '';
       });
 
+      # The remark plugin's tests, under node and bun, against the packaged
+      # tdl, which carries tdl-gen-mermaid beside it.
+      checks.remark-tdl-mermaid = pkgs.tdl-js.overrideAttrs (old: {
+        pname = "remark-tdl-mermaid";
+        nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.bun ];
+        checkPhase = ''
+          runHook preCheck
+          export TDL=${pkgs.lib.getExe pkgs.tdl} HOME=$TMPDIR
+          node --test 'remark-tdl-mermaid/dist/test/**/*.test.js'
+          (cd remark-tdl-mermaid && bun test ./dist/test)
+          runHook postCheck
+        '';
+      });
+
       # Runs the JS debug port from PATH through tdl gen, and holds it to
       # the file and the warnings the Go debug backend writes for the same
       # model.
@@ -194,22 +205,9 @@ in
             touch $out
           '';
 
-      # Runs the mermaid plugin from PATH through tdl gen over the smoke
-      # model, and holds it to the diagram its tests compare with.
-      checks.gen-mermaid =
-        pkgs.runCommand "tdl-gen-mermaid"
-          {
-            nativeBuildInputs = [
-              pkgs.tdl
-              pkgs.tdl-js
-            ];
-          }
-          ''
-            cp ${../testdata/gen/smoke/source.tdl} source.tdl
-            tdl gen --target mermaid -o out source.tdl
-            diff ${../testdata/mermaid/corpus/smoke/want/smoke.mmd} out/smoke.mmd
-            touch $out
-          '';
+      # tdl-gen-mermaid: the executable pkgs.tdl ships, and the portable one
+      # for this system, each through tdl gen over the smoke model.
+      checks.tdl-gen-mermaid = pkgs.callPackage ./checks/mermaid.nix { go = pkgs.go_1_27; };
 
       # make generate leaves no diff: buf regenerates every language's
       # types from proto/ with the devShell's plugins, offline, and the
@@ -495,8 +493,9 @@ in
       # generated output on disk, and the fixture has none.
       checks.flake-module =
         let
-          consumer =
-            tdl:
+          consumer = consumerWith pkgs; # already carries the overlay
+          consumerWith =
+            consumerPkgs: tdl:
             inputs.flake-parts.lib.mkFlake
               {
                 inputs = {
@@ -508,7 +507,7 @@ in
                 systems = [ system ];
                 imports = [ ./flake-module.nix ];
                 perSystem = _: {
-                  _module.args.pkgs = pkgs; # already carries the overlay
+                  _module.args.pkgs = consumerPkgs;
                   inherit tdl;
                 };
               };
@@ -516,14 +515,20 @@ in
             src = ../testdata/conformance/entity;
             files = [ "source.tdl" ];
           };
-          # Setting src is enough to enable the module.
+          # Setting src is enough to enable the module, and defines only the
+          # checks: the shell is opt-in.
           implied = consumer model;
+          shelled = consumer (model // { devShell.enable = true; });
+          # A consumer taking package from the flake rather than applying the
+          # overlay has no pkgs.tdl-gmk, and still evaluates (#1401).
+          bare = consumerWith (import inputs.nixpkgs { inherit system; }) (model // { package = pkgs.tdl; });
           # post.packages reach the generation check's PATH and the shell.
           posted = consumer (
             model
             // {
               gen.files = [ "source.tdl" ];
               post.packages = [ pkgs.hello ];
+              devShell.enable = true;
             }
           );
           onPath = drv: builtins.elem pkgs.hello (drv.nativeBuildInputs or [ ] ++ drv.buildInputs or [ ]);
@@ -533,15 +538,32 @@ in
         # gets nothing.
         assert defines (consumer (model // { enable = false; })) == [ ];
         assert defines (consumer { }) == [ ];
+        assert
+          defines implied == [
+            "tdl-check"
+            "tdl-fmt"
+          ];
+        assert
+          defines bare == [
+            "tdl-check"
+            "tdl-fmt"
+          ];
+        assert
+          defines shelled == [
+            "tdl"
+            "tdl-check"
+            "tdl-fmt"
+          ];
         assert onPath posted.checks.${system}.tdl-gen;
         assert onPath posted.devShells.${system}.tdl;
         pkgs.linkFarmFromDrvs "tdl-flake-module" [
           implied.checks.${system}.tdl-check
           implied.checks.${system}.tdl-fmt
-          implied.devShells.${system}.tdl
+          bare.checks.${system}.tdl-check
+          shelled.devShells.${system}.tdl
           # A shell pulling devShells.tdl in with inputsFrom still gets TDL_GMK.
           (pkgs.runCommand "tdl-flake-module-inputs-from" { } ''
-            ${(pkgs.mkShellNoCC { inputsFrom = [ implied.devShells.${system}.tdl ]; }).shellHook}
+            ${(pkgs.mkShellNoCC { inputsFrom = [ shelled.devShells.${system}.tdl ]; }).shellHook}
             test -f "$TDL_GMK"
             touch $out
           '')

@@ -282,6 +282,95 @@ func TestNameOnAFieldlessVariantUnderReadback(t *testing.T) {
 	}
 }
 
+// A wire directive renames a variant's wire value: a fieldless variant's
+// string literal, a fielded variant's discriminant value, and a oneOf
+// narrowing the enum, but not the interface's name.
+func TestWire(t *testing.T) {
+	b := irtest.New("shop")
+	live := variant("Live")
+	live.Directives = []*ir.Directive{directive("wire", "live")}
+	b.Own(enum("Status", live, variant("Expired"), variant("Draft")))
+	card := variant("Card", irtest.Field("last4", b.Named("string")))
+	card.Directives = []*ir.Directive{directive("wire", "card")}
+	b.Own(enum("Payment", card, variant("Cash")))
+	open := irtest.Field("open", b.Named("Status"))
+	open.Constraints = []*ir.Constraint{constraint("oneOf", irtest.Name("Live"), irtest.Name("Draft"))}
+	b.Own(value("Ticket", open))
+
+	resp := generate(t, b)
+	if len(resp.GetDiagnostics()) != 0 {
+		t.Fatalf("diagnostics = %+v", resp.GetDiagnostics())
+	}
+	contains(t, check(t, resp),
+		`export type Status = "live" | "Expired" | "Draft";`,
+		`export interface PaymentCard { kind: "card"; last4: string; }`,
+		`open: "live" | "Draft";`,
+	)
+}
+
+// A wire value is read-back loss, since import reads a tag as the
+// variant's name.
+func TestWireUnderReadback(t *testing.T) {
+	b := irtest.New("shop")
+	live := variant("Live")
+	live.Directives = []*ir.Directive{directive("wire", "live")}
+	b.Own(enum("Status", live, variant("Expired")))
+	b.Model.Targets = []*ir.TargetBlock{{
+		Meta:       &ir.Meta{Name: typescript.Name},
+		Directives: []*ir.Directive{{Name: "readback", Target: typescript.Name}},
+	}}
+
+	resp, err := typescript.Backend{}.Generate(context.Background(), &plugin.Request{Target: typescript.Name, Model: b.Model})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d := resp.GetDiagnostics(); len(d) != 1 || d[0].GetCode() != emit.LossName || !strings.Contains(d[0].GetMessage(), `Status.Live's wire value "live"`) {
+		t.Errorf("diagnostics = %+v", d)
+	}
+}
+
+// A wire directive on a field renames its property, the JSON key; a name
+// directive on a field still does, and warns at the directive, and beside
+// wire it has no effect.
+func TestWireOnAField(t *testing.T) {
+	b := irtest.New("shop")
+	org, slug, head := irtest.Field("name", b.Named("string")), irtest.Field("slug", b.Named("string")), irtest.Field("head", b.Named("string"))
+	org.Directives = []*ir.Directive{directive("wire", "org-name")}
+	at := &ir.Position{Filename: irtest.OwnFile, Line: 9}
+	slug.Directives = []*ir.Directive{directive("name", "handle"), directive("wire", "orgSlug")}
+	slug.Directives[0].Position = at
+	head.Directives = []*ir.Directive{directive("name", "lead")}
+	head.Directives[0].Position = at
+	b.Own(value("Org", org, slug, head))
+
+	resp := generate(t, b)
+	diags := resp.GetDiagnostics()
+	if len(diags) != 2 {
+		t.Fatalf("diagnostics = %+v", diags)
+	}
+	for _, d := range diags {
+		if d.GetCode() != "" || !proto.Equal(d.GetPosition(), at) {
+			t.Errorf("diagnostic = %+v", d)
+		}
+	}
+	contains(t, diags[0].GetMessage(), "Org.slug", `"handle"`, `"orgSlug"`, "name has no effect")
+	contains(t, diags[1].GetMessage(), "Org.head", `wire("lead")`)
+	contains(t, check(t, resp), `"org-name": string;`, `orgSlug: string;`, `lead: string;`)
+}
+
+func TestWireCollisionIsAnError(t *testing.T) {
+	b := irtest.New("shop")
+	a, c := variant("A"), variant("C")
+	a.Directives = []*ir.Directive{directive("wire", "b")}
+	c.Directives = []*ir.Directive{directive("wire", "b")}
+	b.Own(enum("Status", a, c))
+
+	resp := generate(t, b)
+	if d := resp.GetDiagnostics(); len(d) != 1 || d[0].GetSeverity() != plugin.Severity_SEVERITY_ERROR || !strings.Contains(d[0].GetMessage(), `Status.C's wire value "b" is also Status.A's`) {
+		t.Errorf("diagnostics = %+v", d)
+	}
+}
+
 // The discriminant defaults to `kind`, the target block overrides it, and
 // an enum's directive overrides the block's.
 func TestDiscriminant(t *testing.T) {

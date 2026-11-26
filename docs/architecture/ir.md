@@ -147,8 +147,10 @@ A reference into a dependency is an `ID` into an `externs` table, one entry per 
 A backend resolves it through the model's import table or maps it with a `foreign` directive.
 A target path naming a declaration a `_` import merged in resolves to its `Extern` entry, whose `directives` field holds the winning directives; the path reaches nothing beneath it.
 
-Whether the dependency declares that name is not checked, since that would mean resolving every reachable package to lower one file.
+A dependency is parsed, not lowered, and a reference into it is checked against its parse tree: an `alias.Name` the dependency does not declare, does not export, or declares as the wrong kind, a class as a type or a type as a class, is an error at the reference.
+What the name refers to is not resolved, since that would mean lowering every reachable package to lower one file, so its type arguments are not checked against its parameters.
 The one exception is an instance for an extern: the class's fields bind it, so the dependency declaring it is lowered on demand and its fields are checked against the class, compared by the declarations their types name.
+A dependency that cannot be read or does not parse is reported at its import, and a reference through it is not reported again.
 
 This allows separate compilation, and generated code usually wants an import rather than a copy.
 

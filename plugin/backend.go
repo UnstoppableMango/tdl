@@ -49,6 +49,11 @@ type Description struct {
 	// Nondeterministic says the same request may not produce the same
 	// files, so tdl keeps what it wrote while the request is unchanged.
 	Nondeterministic bool
+
+	// ImportPatterns name the files an importer reads, for a directory
+	// argument to `tdl import`: base-name globs, with a leading `!`
+	// excluding what it matches. See [MatchImport].
+	ImportPatterns []string
 }
 
 // Reply turns a description into the handshake reply that carries it.
@@ -60,6 +65,8 @@ func (d Description) Reply() *HandshakeReply {
 		Directives: d.Directives,
 		Features:   &Features{Reuse: d.Reuse, Reverse: d.Reverse, Nondeterministic: d.Nondeterministic},
 		Numbering:  d.Numbering,
+
+		ImportPatterns: d.ImportPatterns,
 	}
 }
 

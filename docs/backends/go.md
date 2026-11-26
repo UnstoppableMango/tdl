@@ -15,8 +15,8 @@ Import generates the feature and reads it back, and counts only what reading bac
 | --- | --- | --- | --- | --- |
 | Entity, value, and mixin | Yes | Warns (`lossy.struct-kind`) | a `struct` | An entity reads back as one only when a `key` directive gives it a `Key` method, and a mixin reads back as a value. |
 | Mixin `include` | Yes | Warns (`lossy.include`) | the mixin's fields, copied in | Reads back as fields of the struct, without the include. |
-| Fieldless enum | Yes | Yes | a `string` type with constants | |
-| Fielded enum | Yes | Yes | a sealed interface with a struct per variant | |
+| Fieldless enum | Yes | Yes | a `string` type with constants | A `wire` directive on a variant renames its wire value, which reads back as its name. |
+| Fielded enum | Yes | Yes | a sealed interface with a struct per variant | A `wire` directive on a variant renames its discriminant value under `json`, which does not read back. |
 | Newtype | Yes | Yes | a defined type, such as `type CartId string` | |
 | Alias | Yes | Warns (`lossy.alias`) | expanded where used | Reads back as the type it expands to. |
 | Optional and nullable | Yes | Warns (`lossy.optional`) | a pointer, `*T` | An optional and a nullable value are both a pointer, so a nullable value reads back as `T?`. |
@@ -30,7 +30,7 @@ Import generates the feature and reads it back, and counts only what reading bac
 | `owned` | Warns (`lossy.owned`) | Yes | | Go does not carry ownership, and the field holds what it names by value. |
 | Field default | Warns (`lossy.default`) | Yes | | Go has no field defaults, so the zero value stands. |
 | `key` directive | Yes | Yes | a `Key()` method | A key of several fields returns a `<Name>Key` struct. |
-| `name` directive | Yes | Warns (`lossy.name`) | the identifier, as written | The name is used verbatim, so `grandTotal` is an unexported field, and it reads back as the field's own name. |
+| `name` directive | Yes | Warns (`lossy.name`) | the identifier, as written | The name is used verbatim, so `grandTotal` is an unexported field, and it reads back as the field's own name. Under `json` a field's JSON key stays its name in the model, and a `wire` directive renames it; import reads a json tag naming another key back with `wire`. |
 | `number` directive | No | No | | Go has no field numbers, and the backend does not declare the directive, so it warns without a loss code and is ignored. |
 | Doc comment | Yes | Yes | a `//` doc comment | |
 | Type parameters | Yes | Yes | type parameters, constrained by `any` or `comparable` | |

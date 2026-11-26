@@ -1,6 +1,7 @@
 package emit_test
 
 import (
+	"errors"
 	"slices"
 	"strings"
 	"testing"
@@ -85,8 +86,51 @@ func TestDiscriminant(t *testing.T) {
 	}
 
 	v := &ir.Variant{Meta: &ir.Meta{Name: "Card"}, Directives: []*ir.Directive{{Name: "name", Target: "x", Args: []*ir.Literal{irtest.Text("CardPayment")}}}}
-	if got := emit.Tag(v); got != "Card" {
+	if got := session(b).Tag(v); got != "Card" {
 		t.Errorf("Tag = %q, want the model's name", got)
+	}
+	v.Directives = append(v.Directives, wire("x", "card"))
+	if got := session(b).Tag(v); got != "card" {
+		t.Errorf("Tag = %q, want the wire directive's", got)
+	}
+}
+
+func wire(target, value string) *ir.Directive {
+	return &ir.Directive{Name: "wire", Target: target, Args: []*ir.Literal{irtest.Text(value)}}
+}
+
+func TestCheckTags(t *testing.T) {
+	variant := func(name string, ds ...*ir.Directive) *ir.Variant {
+		return &ir.Variant{Meta: &ir.Meta{Name: name}, Directives: ds}
+	}
+	enum := func(vs ...*ir.Variant) *ir.Decl {
+		return &ir.Decl{Meta: &ir.Meta{Name: "shop.Status"}, Node: &ir.Decl_Enumeration{Enumeration: &ir.Enum{Variants: vs}}}
+	}
+	for _, tt := range []struct {
+		name string
+		enum *ir.Decl
+		want string
+	}{
+		{"renamed", enum(variant("Live", wire("x", "live")), variant("Expired")), ""},
+		{"restated", enum(variant("Live", wire("x", "Live")), variant("Expired")), ""},
+		{"another target's", enum(variant("Live", wire("y", "Expired")), variant("Expired")), ""},
+		{"another variant's name", enum(variant("Live", wire("x", "Expired")), variant("Expired")), `Status.Live's wire value "Expired" is the name of Status.Expired`},
+		{"later variant's name", enum(variant("Expired"), variant("Live", wire("x", "Expired"))), `Status.Live's wire value "Expired" is the name of Status.Expired`},
+		{"two the same", enum(variant("Live", wire("x", "on")), variant("Running", wire("x", "on"))), `Status.Running's wire value "on" is also Status.Live's`},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			err := session(irtest.New("shop")).CheckTags(tt.enum)
+			switch {
+			case tt.want == "" && err != nil:
+				t.Fatalf("CheckTags = %v, want nil", err)
+			case tt.want != "" && (err == nil || !strings.Contains(err.Error(), tt.want)):
+				t.Fatalf("CheckTags = %v, want %q", err, tt.want)
+			case tt.want != "":
+				if _, ok := errors.AsType[*emit.InvalidError](err); !ok {
+					t.Errorf("CheckTags = %T, want an InvalidError", err)
+				}
+			}
+		})
 	}
 }
 

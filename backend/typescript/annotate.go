@@ -155,7 +155,12 @@ func (g *generator) declLosses(d *ir.Decl, written string) {
 // field.
 func (g *generator) fieldLosses(owner string, f *ir.Field, ref *emit.Ref) {
 	name, pos := f.GetMeta().GetName(), f.GetMeta().GetPosition()
-	written := g.FieldName(f, asWritten)
+	if !g.mapped {
+		// A mapped module leaves it out, as it does a fieldless variant's
+		// name, since tsc would show it as an error.
+		g.WarnPropertyName(owner, f)
+	}
+	written := g.Property(f)
 	back := written
 	if !tdlIdent.MatchString(written) {
 		back = emit.Camel(written)
@@ -163,7 +168,13 @@ func (g *generator) fieldLosses(owner string, f *ir.Field, ref *emit.Ref) {
 	if back != name {
 		g.lose(emit.LossName, pos, "%s.%s is written %s, which reads back as %s", owner, name, written, back)
 	} else {
-		g.renamed(f.GetDirectives(), back != written, "%s.%s", owner, name)
+		// Import reads a property whose name is not a TDL name with a wire
+		// directive, and never writes a field's name directive.
+		if d, ok := g.Find(f.GetDirectives(), "name"); ok {
+			g.lose(emit.LossName, d.GetPosition(), "%s.%s's name directive reads back as a wire directive", owner, name)
+		} else if g.CheckWire(f.GetDirectives(), back != written, "%s.%s", owner, name) {
+			g.lost = true
+		}
 	}
 	if g.LoseOwnedDefault(owner, "TypeScript", f) {
 		g.lost = true

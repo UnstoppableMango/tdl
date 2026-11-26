@@ -8,10 +8,11 @@ notes = "The include is flattened into the fields it copies."
 
 [enum]
 spelling = "a union of string literals"
+notes = "A `wire` directive on a variant renames its wire value, which reads back as its name."
 
 [fielded-enum]
 spelling = "a union of interfaces discriminated on `kind`"
-notes = "A `discriminant` directive renames `kind`."
+notes = "A `discriminant` directive renames `kind`. A `wire` directive on a variant renames its wire value, which reads back as its name."
 
 [newtype]
 spelling = "`type N = Base`"
@@ -55,8 +56,8 @@ notes = "The default is not written."
 notes = "The output is types, with at most a newtype's constructor, so there is no key function to write."
 
 [name]
-spelling = "the property or type name"
-notes = "The new name reads back as the field's own name rather than a directive. On a fielded variant it renames the interface, never the `kind` value; on a fieldless variant it has no effect and warns."
+spelling = "the type name"
+notes = "The new name reads back as the declaration's own name rather than a directive. On a fielded variant it renames the interface, never the `kind` value; on a fieldless variant it has no effect and warns. On a field it renames the property, which is its JSON key, and warns, since the wire convention spells a key as the model does and a `wire` directive renames one. Import reads a property that is not a TDL name back with a `wire` directive."
 
 [number]
 notes = "JSON has no field numbers."
