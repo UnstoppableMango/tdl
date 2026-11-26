@@ -365,7 +365,12 @@ type Handshake struct {
 	Watch bool `protobuf:"varint,3,opt,name=watch" json:"watch,omitempty"`
 	// mode says which requests follow: Request, or ImportRequest under
 	// MODE_IMPORT.
-	Mode          Mode `protobuf:"varint,4,opt,name=mode,enum=tdl.plugin.v1.Mode" json:"mode,omitempty"`
+	Mode Mode `protobuf:"varint,4,opt,name=mode,enum=tdl.plugin.v1.Mode" json:"mode,omitempty"`
+	// target is the target the host wants served, as Request.target names
+	// it. A plugin answers for this target alone, and should refuse one it
+	// does not serve, naming those it does. A host built before this field
+	// sends none.
+	Target        string `protobuf:"bytes,5,opt,name=target" json:"target,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -428,13 +433,22 @@ func (x *Handshake) GetMode() Mode {
 	return Mode_MODE_UNSPECIFIED
 }
 
+func (x *Handshake) GetTarget() string {
+	if x != nil {
+		return x.Target
+	}
+	return ""
+}
+
 // HandshakeReply is the plugin's answer.
 type HandshakeReply struct {
 	state    protoimpl.MessageState `protogen:"open.v1"`
 	Accepted bool                   `protobuf:"varint,1,opt,name=accepted" json:"accepted,omitempty"`
-	// refusal says what the plugin needed, when accepted is false. It should
-	// name both versions.
+	// refusal says what the plugin needed, when accepted is false: both
+	// versions, or the target asked for and the targets it serves. The host
+	// shows it after the plugin's name.
 	Refusal string `protobuf:"bytes,2,opt,name=refusal" json:"refusal,omitempty"`
+	// name is the target served, and version the executable's version.
 	Name    string `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
 	Version string `protobuf:"bytes,4,opt,name=version" json:"version,omitempty"`
 	// directives are what this backend understands. tdl checks the target
@@ -2234,13 +2248,14 @@ var File_tdl_plugin_v1_plugin_proto protoreflect.FileDescriptor
 
 const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
 	"\n" +
-	"\x1atdl/plugin/v1/plugin.proto\x12\rtdl.plugin.v1\x1a!google/protobuf/go_features.proto\x1a\x12tdl/ir/v1/ir.proto\"\x92\x01\n" +
+	"\x1atdl/plugin/v1/plugin.proto\x12\rtdl.plugin.v1\x1a!google/protobuf/go_features.proto\x1a\x12tdl/ir/v1/ir.proto\"\xaa\x01\n" +
 	"\tHandshake\x12'\n" +
 	"\x0fframing_version\x18\x01 \x01(\x05R\x0eframingVersion\x12\x1d\n" +
 	"\n" +
 	"ir_version\x18\x02 \x01(\tR\tirVersion\x12\x14\n" +
 	"\x05watch\x18\x03 \x01(\bR\x05watch\x12'\n" +
-	"\x04mode\x18\x04 \x01(\x0e2\x13.tdl.plugin.v1.ModeR\x04mode\"\xc8\x02\n" +
+	"\x04mode\x18\x04 \x01(\x0e2\x13.tdl.plugin.v1.ModeR\x04mode\x12\x16\n" +
+	"\x06target\x18\x05 \x01(\tR\x06target\"\xc8\x02\n" +
 	"\x0eHandshakeReply\x12\x1a\n" +
 	"\baccepted\x18\x01 \x01(\bR\baccepted\x12\x18\n" +
 	"\arefusal\x18\x02 \x01(\tR\arefusal\x12\x12\n" +

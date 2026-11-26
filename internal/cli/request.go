@@ -88,7 +88,7 @@ func requestCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 			}
 
 			conn := plugin.NewConn(nil, cmd.OutOrStdout())
-			if err := conn.Send(&plugin.Handshake{FramingVersion: plugin.FramingVersion, IrVersion: plugin.IRVersion}); err != nil {
+			if err := conn.Send(&plugin.Handshake{FramingVersion: plugin.FramingVersion, IrVersion: plugin.IRVersion, Target: r.target}); err != nil {
 				return err
 			}
 			return conn.Send(r.set)

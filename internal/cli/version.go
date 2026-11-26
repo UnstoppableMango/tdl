@@ -15,6 +15,12 @@ const (
 	specVersion = "0.1.0-draft"
 )
 
+// Versions returns the tool and spec versions `tdl version` prints, for a
+// generator recording which release it copied from.
+func Versions() (tool, spec string) {
+	return toolVersion, specVersion
+}
+
 func newVersionCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",

@@ -2,6 +2,7 @@
   buildGoApplication,
   lib,
   go,
+  jq,
   version,
 }:
 let
@@ -29,6 +30,13 @@ buildGoApplication {
   # Static on linux, and linked only to libSystem on darwin as every darwin Go
   # binary is, so they run outside Nix.
   CGO_ENABLED = 0;
+
+  # So the build info names the modules each binary links, for the SBOM.
+  nativeBuildInputs = [ jq ];
+  postConfigure = ''
+    source ${./vendor-modules.sh}
+    writeVendorModules
+  '';
 
   # Every target is cross-compiled from the build platform, and Go cross-compiles
   # pure Go with GOOS and GOARCH alone.
