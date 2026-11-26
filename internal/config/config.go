@@ -29,6 +29,10 @@ type Config struct {
 	// Targets holds, per target, the codes [lossy.<target>] allows.
 	Targets map[string][]string
 
+	// Strict is [lossy] strict: gen and import exit non-zero when a
+	// warning survives silencing, unless --strict=false says otherwise.
+	Strict bool
+
 	// Post maps each name a target block's post directive may use to the
 	// command line [post] gives it.
 	Post map[string]string
@@ -93,6 +97,12 @@ func Load(path string) (*Config, error) {
 		if key == "allow" {
 			if err := md.PrimitiveDecode(prim, &c.Allow); err != nil {
 				return nil, fmt.Errorf("%s: lossy.allow: %w", path, err)
+			}
+			continue
+		}
+		if key == "strict" {
+			if err := md.PrimitiveDecode(prim, &c.Strict); err != nil {
+				return nil, fmt.Errorf("%s: lossy.strict: %w", path, err)
 			}
 			continue
 		}

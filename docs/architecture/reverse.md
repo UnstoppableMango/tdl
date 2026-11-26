@@ -136,12 +136,16 @@ allow = ["lossy.collection"]
 `[lossy]` applies to every backend, and `[lossy.<target>]` to one, in both directions.
 `--allow-lossy` on `tdl gen` and `tdl import` adds codes to the list.
 
+`--strict` on either command exits 1, after writing, when a warning survives that silencing, with or without a loss code, and prints `N warning(s) remain under --strict`.
+`gen` counts across every file and combines it with `--verify`, reporting drift and warnings together; under `--watch` it prints the line after each run and keeps watching.
+`strict = true` in `[lossy]` turns it on for every file whose nearest `tdl.toml` sets it, and `--strict=false` turns it off for one invocation.
+
 Silencing is diagnostics policy, not type mapping, which is why it lives in the manifest and not in a target block ([workflow.md](https://github.com/UnstoppableMango/tdl/blob/fc0682d/docs/design/workflow.md)).
 
 ## Command
 
 ```text
-tdl import --from <target> [-o out.tdl] [--package <path>] [--allow-lossy <code>,...] [--readback] <file|dir>...
+tdl import --from <target> [-o out.tdl] [--package <path>] [--allow-lossy <code>,...] [--strict] [--readback] <file|dir>...
 ```
 
 `--from` resolves through `gen.Resolve`, so a plugin on `PATH` imports the same way a built-in does.

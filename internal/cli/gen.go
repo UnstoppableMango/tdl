@@ -54,6 +54,10 @@ func genCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 			"A warning naming a loss code, such as lossy.collection, is\n" +
 			"silenced by the [lossy] table of the nearest tdl.toml above the\n" +
 			"file, or by --allow-lossy.\n\n" +
+			"--strict exits non-zero when any warning survives that silencing,\n" +
+			"with or without a loss code, once every file has run; files are\n" +
+			"still written. [lossy] strict = true in tdl.toml turns it on for\n" +
+			"the files below it, and --strict=false turns it off.\n\n" +
 			"A target block's post directive names commands from the [post]\n" +
 			"table of that tdl.toml, which run over each file before it is\n" +
 			"compared or written: each reads the content on stdin and writes\n" +
@@ -96,9 +100,12 @@ func genCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 				r.cleaned, r.expected = map[string]bool{}, map[string]map[string]bool{}
 				r.read, r.outputs = map[string]bool{}, map[string]bool{}
 				if err := eachFile(cmd, args, r.generate); err != nil {
-					return err
+					return errors.Join(err, strictError(r.warnings))
 				}
 				if err := r.orphans(); err != nil {
+					return errors.Join(err, strictError(r.warnings))
+				}
+				if err := strictError(r.warnings); err != nil {
 					return err
 				}
 				return r.depFile()
@@ -108,8 +115,8 @@ func genCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 			path := args[0]
 			save := func() {
 				// Each save is its own run for --clean.
-				r.cleaned = map[string]bool{}
-				if err := r.generate(path); err != nil {
+				r.cleaned, r.warnings = map[string]bool{}, 0
+				if err := errors.Join(r.generate(path), strictError(r.warnings)); err != nil {
 					fmt.Fprintln(cmd.ErrOrStderr(), err)
 				}
 			}
@@ -129,6 +136,7 @@ func genCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 	cmd.Flags().BoolVar(&r.watch, "watch", false, "regenerate when the file changes")
 	cmd.Flags().StringVar(&r.makeTarget, "make", "", "after a successful run, write a make dependency file for this target")
 	cmd.Flags().StringSliceVar(&r.allowLossy, "allow-lossy", nil, "silence warnings with these loss codes")
+	cmd.Flags().BoolVar(&r.strict, "strict", false, "exit non-zero when a warning remains after silencing")
 	registerCompletion(cmd, "target", completeDeclaredTargets)
 	registerCompletion(cmd, "allow-lossy", completeLossCodes)
 	return cmd
@@ -155,6 +163,11 @@ type genRun struct {
 	// allowLossy holds the loss codes --allow-lossy silences, beside those
 	// tdl.toml allows.
 	allowLossy []string
+
+	// strict is --strict, and warnings counts the warnings printed for
+	// files under it, by the flag or by their tdl.toml.
+	strict   bool
+	warnings int
 
 	// cleaned holds the output directories --clean has emptied in this run.
 	// Each is emptied once, since -o applies to every file given.
@@ -229,6 +242,17 @@ func (r *genRun) generate(path string) error {
 		}
 	}
 
+	strict := cfg.Strict
+	if r.cmd.Flags().Changed("strict") {
+		strict = r.strict
+	}
+	report := func(diags []*plugin.Diagnostic) {
+		reportDiagnostics(cmd, diags)
+		if strict {
+			r.warnings += warnings(diags)
+		}
+	}
+
 	targets, err := gen.Targets(model, r.out)
 	if err != nil {
 		return err
@@ -264,7 +288,7 @@ func (r *genRun) generate(path string) error {
 		// Checked before running so a mistyped directive fails with a
 		// position instead of after some files are written.
 		problems := host.CheckDirectives(t.Name, model, backend.Describe())
-		reportDiagnostics(cmd, problems)
+		report(problems)
 		if host.Fatal(problems) {
 			return fmt.Errorf("target %s uses a directive incorrectly", t.Name)
 		}
@@ -274,7 +298,7 @@ func (r *genRun) generate(path string) error {
 		}
 
 		result, err := gen.Run(cmd.Context(), backend, t, model, mode)
-		reportDiagnostics(cmd, host.Silence(result.Diagnostics, slices.Concat(cfg.Allowed(t.Name), r.allowLossy)))
+		report(host.Silence(result.Diagnostics, slices.Concat(cfg.Allowed(t.Name), r.allowLossy)))
 		if err != nil {
 			return err
 		}
@@ -374,6 +398,26 @@ func (r *genRun) checkMakeTarget() error {
 		}
 	}
 	return nil
+}
+
+// strictError reports the n warnings --strict, or a tdl.toml's [lossy]
+// strict, counted over a run.
+func strictError(n int) error {
+	if n == 0 {
+		return nil
+	}
+	return fmt.Errorf("%d warning(s) remain under --strict", n)
+}
+
+// warnings counts the diagnostics that are warnings.
+func warnings(diags []*plugin.Diagnostic) int {
+	n := 0
+	for _, d := range diags {
+		if d.GetSeverity() == plugin.Severity_SEVERITY_WARNING {
+			n++
+		}
+	}
+	return n
 }
 
 // reportDiagnostics prints backend or directive diagnostics in the
