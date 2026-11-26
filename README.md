@@ -420,11 +420,13 @@ Each built-in backend also ships as a `tdl-gen-<name>` plugin.
 | [`smithy`](docs/backends/smithy.md) | Structures, both enum shapes, named collection shapes |
 | [`thrift`](docs/backends/thrift.md) | Structs, both enum shapes, newtypes as typedefs, collections, `number` pins |
 | [`typescript`](docs/backends/typescript.md) | JSON wire types: interfaces, both enum shapes, newtypes as aliases |
+| [`yolo`](docs/backends/yolo.md) | Whatever a language model writes for the `language` you name, kept until the request changes |
 | `debug` | A description of the model it was given |
 | Anything else | `tdl-gen-<name>` on `PATH`, over the [plugin protocol](docs/architecture/plugins.md) |
 
 What each backend generates from each feature of the language, measured by `make features`.
 Yes generates it, Warns loses part of it under a loss code that `tdl.toml` can allow, No skips it or refuses the model, and Planned names a phase that will generate it.
+Depends is `yolo`'s, whose output is whatever the language model answering it writes.
 A backend's page names the codes and phases.
 Warns counts only what the output loses: what a later `tdl import` would not read back is reported with a bare `readback` directive in the target block.
 
