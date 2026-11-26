@@ -75,7 +75,7 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 
 `nix/` holds the packaging:
 
-- `cmd.nix`: the CLI. `meta.mainProgram` is what `lib.getExe` reads, since the package installs fifteen binaries and links `tdl-gen-csharp` and `tdl-gen-mermaid` beside them (`TestPackagedBackendsShip`).
+- `cmd.nix`: the CLI. `meta.mainProgram` is what `lib.getExe` reads, since the package installs sixteen binaries and links `tdl-gen-csharp` and `tdl-gen-mermaid` beside them (`TestPackagedBackendsShip`).
   It also installs bat's syntax as `share/bat/syntaxes/tdl.sublime-syntax`.
 - `vscode-extension.nix`: the editor extension (see [VS Code](#vs-code)).
 - `gmk.nix`: `tdl-gmk`, `cmd/tdl-gmk` built as the GNU make loadable object `lib/tdl.so`, with gnumake's header for cgo; `checks.gmk` loads it into make.
@@ -302,7 +302,8 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   Tests validate every response against the OpenAPI Initiative's schema for its version, vendored in `backend/openapi/testdata/`; `checks.gen-openapi` runs `vacuum lint` on all three versions.
 - `backend/nix` (`nix`): one `<package path>.nix` per model, or the file a `file` directive in the target block names: `{ lib }:` returning a `rec` set of `lib.types` option types, whose values are the JSON wire convention.
   A struct is `struct`, a submodule the file declares whose value leaves out an unset `T?`, which `optional` marks; `T | null` is `nullable`, a `nullOr` with no empty value, so it must be set.
-  A fieldless enum is `types.enum` of its wire values, a set is `set`, a `listOf` refusing duplicates, and a map `attrsOf`, or `keyed` when its key is a string's wire form or a fieldless enum; any other key warns under `lossy.collection`.
+  `after` wraps a type's merge, through `merge.v2` and `substSubModules`, for `struct` and `set`; a struct reached from itself is `opaque` where it is named, so option docs end.
+  A fieldless enum is `types.enum` of its wire values, a set is `set`, a `listOf` whose merged value refuses duplicates, and a map `attrsOf`, or `keyed` when its key is a string's wire form or a fieldless enum; any other key warns under `lossy.collection`.
   A primitive JSON writes as a string is a `strMatching` its wire form, and `uint64` warns under `lossy.primitive`.
   Phase 1 is built, and #1437 tracks the rest: fielded enums, newtypes, defaults, constraints, generics, and externs warn or are skipped.
   Tests run `nixfmt --check` when it is on `PATH`, and evaluate values through `lib.evalModules` when `nix-instantiate` and `<nixpkgs>` are found; `checks.gen-nix` always does both over the smoke model with `testdata/nix/smoke.nix`.

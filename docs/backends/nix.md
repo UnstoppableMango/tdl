@@ -24,7 +24,7 @@ No importer is planned, so every Import cell is No.
 | Fieldless enum | Yes | No | `types.enum` of the wire values | A `wire` directive on a variant renames its wire value. |
 | Fielded enum | Planned (phase 2) | No | | |
 | Newtype | Planned (phase 2) | No | | |
-| Alias | Planned (phase 2) | No | | Expanded where used until then. |
+| Alias | Yes | No | expanded where used | Phase 2 makes it a `let` binding. |
 | Optional and nullable | Yes | No | `T?` left out of the value when unset, a nullable one a required `nullOr` | |
 | List, set, and map | Yes | No | `listOf`, `listOf` refusing duplicates, and `attrsOf` | A map's key is a string, a string's wire form, or a fieldless enum. |
 | `min` | Planned (phase 3) | No | | |

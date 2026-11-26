@@ -16,8 +16,8 @@ planned = "phase 2"
 planned = "phase 2"
 
 [alias]
-planned = "phase 2"
-notes = "Expanded where used until then."
+spelling = "expanded where used"
+notes = "Phase 2 makes it a `let` binding."
 
 [optional]
 spelling = "`T?` left out of the value when unset, a nullable one a required `nullOr`"

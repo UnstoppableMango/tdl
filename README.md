@@ -437,7 +437,7 @@ Warns counts only what the output loses: what a later `tdl import` would not rea
 | Fieldless enum | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | Fielded enum | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Planned | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | Newtype | Yes | Yes | Warns | Yes | Yes | Yes | Yes | Planned | Yes | Warns | Yes | Yes | Yes | Yes | Yes |
-| Alias | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Planned | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| Alias | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | Optional and nullable | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
 | List, set, and map | Yes | Yes | No | Yes | Yes | Yes | Yes | Yes | Yes | Warns | Yes | Yes | Yes | Warns | Yes |
 | `min` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Planned | Yes | Warns | Warns | Warns | Warns | Warns | Yes |
