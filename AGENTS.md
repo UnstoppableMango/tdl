@@ -201,7 +201,7 @@ The plugin protocol in `docs/architecture/plugins.md` is complete.
 - `internal/gen`: the compiler side of the plugin protocol: the backend registry, request building, and writing returned files.
   `keep.go` keeps a nondeterministic backend's output while its request hashes the same, recording the hashes in `.tdl-output` (ADR-0002).
   `post.go` runs the commands a target block's `post` directive names, through `tdl.toml`'s `[post]` table, over each returned file before anything is compared or written.
-  `checks.go` runs the commands a `check` directive names, through `[check]`, over a temporary copy of the post-processed files beside the output directory, before anything is cleaned, written, or marked; a verify run or kept output runs none.
+  `checks.go` runs the commands a `check` directive names, through `[check]`, over a temporary copy of the output directory as the run would leave it, staged beside it, before anything is cleaned, written, or marked; a verify run or kept output runs none.
   `internal/gen/echo` is a test backend that writes a model as JSON and imports it back; it is not compiled into `tdl`.
 - `internal/host`: what a host does around a backend, importing none, so a backend hosting itself can use it.
   `loss.go` declares the loss codes, which `emit` re-exports, so `tdl`'s completion lists them too.

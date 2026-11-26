@@ -22,9 +22,9 @@ type Target struct {
 	// compared or written, from [ResolvePost]; nil runs nothing.
 	Post *Post
 
-	// Checks is what runs over a staged copy of those files before they
-	// are written, from [ResolveChecks]; nil runs nothing. A verify run
-	// runs none.
+	// Checks is what runs over a staged copy of the output directory, with
+	// those files written into it, before anything is written, from
+	// [ResolveChecks]; nil runs nothing. A verify run runs none.
 	Checks *Checks
 }
 
@@ -136,7 +136,7 @@ func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.M
 
 	// Checked before anything is cleaned, written, or marked, so a failing
 	// check leaves the directory as it was.
-	if err := target.Checks.Run(ctx, target.Out, files); err != nil {
+	if err := target.Checks.Run(ctx, target.Out, files, mode == ModeClean); err != nil {
 		return result, fmt.Errorf("target %s: %w", target.Name, err)
 	}
 
