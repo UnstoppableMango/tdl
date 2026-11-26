@@ -18,6 +18,8 @@ func main() {
 			ByName: map[string]Duration{"week": Duration(7 * 24 * time.Hour)},
 			Maybe:  &half,
 			ByTtl:  map[Duration]string{Duration(time.Minute): "m"},
+			On:     Date{2026, time.November, 13},
+			Until:  &Date{2024, time.February, 29},
 			Grace:  Grace(time.Hour),
 		},
 	} {

@@ -3,14 +3,16 @@ package golang
 import (
 	"fmt"
 	goast "go/ast"
+	"slices"
 	"strings"
 
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/ir"
 )
 
-// The JSON wire convention writes a duration as an ISO 8601 string, which
-// encoding/json does not do for a time.Duration. The helper implements
+// The JSON wire convention writes a duration as an ISO 8601 string and a
+// date as YYYY-MM-DD, which encoding/json does not do for a time.Duration
+// or a time.Time. The helper implements
 // encoding.TextMarshaler, which encoding/json uses for a value and a map key. Under json, the package
 // declares a helper type in its place, written once and only when the model
 // uses the primitive. It is named for the primitive, or Wire and that name
@@ -24,8 +26,10 @@ type wireType struct {
 	// doc follows the type's name in its doc comment, which import reads
 	// to tell the helper from a newtype.
 	doc string
-	// base is the type it is declared over, as package path and name.
+	// base is the type it is declared over, as package path and name, or
+	// "" for a struct holding fields.
 	base    string
+	fields  []string
 	imports []string
 	// body writes the type and its methods, given its name.
 	body func(name string) string
@@ -34,6 +38,19 @@ type wireType struct {
 // over reports whether a type expression is what the helper type is
 // declared over, in a file importing packages by those names.
 func (w wireType) over(e goast.Expr, imports map[string]string) bool {
+	if w.base == "" {
+		st, ok := e.(*goast.StructType)
+		if !ok {
+			return false
+		}
+		var names []string
+		for _, f := range st.Fields.List {
+			for _, n := range f.Names {
+				names = append(names, n.Name)
+			}
+		}
+		return slices.Equal(names, w.fields)
+	}
 	path, name, _ := strings.Cut(w.base, ".")
 	sel, ok := e.(*goast.SelectorExpr)
 	if !ok {
@@ -51,6 +68,14 @@ var wireTypes = []wireType{
 		base:    "time.Duration",
 		imports: []string{"fmt", "strconv", "strings", "time"},
 		body:    durationBody,
+	},
+	{
+		prim:    "date",
+		name:    "Date",
+		doc:     "is a calendar date that the JSON wire convention writes as YYYY-MM-DD.",
+		fields:  []string{"Year", "Month", "Day"},
+		imports: []string{"fmt", "time"},
+		body:    dateBody,
 	},
 }
 
@@ -276,6 +301,53 @@ func ($r *$T) UnmarshalText(text []byte) error {
 		v = -v
 	}
 	*$r = $T(v)
+	return nil
+}
+`)
+}
+
+// dateBody writes a Date: a year, month, and day, which String and
+// MarshalText write as YYYY-MM-DD and UnmarshalText reads, refusing
+// anything else.
+func dateBody(name string) string {
+	return strings.NewReplacer("$T", name, "$r", strings.ToLower(name[:1])).Replace(`type $T struct {
+	Year  int
+	Month time.Month
+	Day   int
+}
+
+// String writes $r as YYYY-MM-DD.
+func ($r $T) String() string {
+	return fmt.Sprintf("%04d-%02d-%02d", $r.Year, int($r.Month), $r.Day)
+}
+
+// Time is $r at midnight UTC.
+func ($r $T) Time() time.Time {
+	return time.Date($r.Year, $r.Month, $r.Day, 0, 0, 0, 0, time.UTC)
+}
+
+// MarshalText writes $r as YYYY-MM-DD, which encoding/json writes as a
+// string, as a map key too. The zero $T is 0001-01-01, as the zero
+// time.Time is, and a date the calendar does not hold or a year outside 0
+// to 9999 is refused.
+func ($r $T) MarshalText() ([]byte, error) {
+	if $r == ($T{}) {
+		return []byte("0001-01-01"), nil
+	}
+	t := $r.Time()
+	if $r.Year < 0 || $r.Year > 9999 || t.Year() != $r.Year || t.Month() != $r.Month || t.Day() != $r.Day {
+		return nil, fmt.Errorf("%s is not a calendar date YYYY-MM-DD holds", $r)
+	}
+	return []byte($r.String()), nil
+}
+
+// UnmarshalText reads a date written YYYY-MM-DD.
+func ($r *$T) UnmarshalText(text []byte) error {
+	t, err := time.Parse(time.DateOnly, string(text))
+	if err != nil || len(text) != len(time.DateOnly) {
+		return fmt.Errorf("%q is not a date written YYYY-MM-DD", text)
+	}
+	*$r = $T{Year: t.Year(), Month: t.Month(), Day: t.Day()}
 	return nil
 }
 `)

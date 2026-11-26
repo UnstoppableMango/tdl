@@ -8,6 +8,8 @@ type Lease {
   byName: Map<string, duration>
   maybe: duration?
   byTtl: Map<duration, string>
+  on: date
+  until: date?
   grace: Grace
 }
 
