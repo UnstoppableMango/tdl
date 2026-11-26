@@ -1,0 +1,74 @@
+[struct-kind]
+spelling = "a `submodule`"
+notes = "Entities, values, and mixins are all submodules, closed to undeclared attributes."
+
+[include]
+spelling = "the mixin's options, copied in"
+
+[enum]
+spelling = "`types.enum` of the wire values"
+notes = "A `wire` directive on a variant renames its wire value."
+
+[fielded-enum]
+planned = "phase 2"
+
+[newtype]
+planned = "phase 2"
+
+[alias]
+planned = "phase 2"
+notes = "Expanded where used until then."
+
+[optional]
+spelling = "`T?` left out of the value when unset, a nullable one a required `nullOr`"
+
+[collection]
+spelling = "`listOf`, `listOf` refusing duplicates, and `attrsOf`"
+notes = "A map's key is a string, a string's wire form, or a fieldless enum."
+
+[min]
+planned = "phase 3"
+
+[max]
+planned = "phase 3"
+
+[length]
+planned = "phase 3"
+
+[matches]
+planned = "phase 3"
+notes = "A pattern POSIX ERE cannot state will warn."
+
+[oneOf]
+planned = "phase 3"
+
+[unique]
+planned = "phase 3"
+
+[default]
+planned = "phase 2"
+
+[key]
+notes = "The target has no methods."
+
+[name]
+spelling = "the declaration's attribute"
+notes = "On a field it warns, since `wire` renames a JSON key."
+
+[number]
+notes = "The target has no field numbers."
+
+[doc]
+spelling = "`#` comments, and a field's `description`"
+
+[generic]
+planned = "phase 4"
+
+[class]
+notes = "Conformance checks nothing at evaluation."
+
+[unit]
+notes = "A unit-typed field is its base type."
+
+[import]
+planned = "phase 4"

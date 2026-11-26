@@ -300,6 +300,12 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   A fielded enum is a `oneOf` of one component per variant with a `discriminator`; 2.0 has no `oneOf`, so there it warns and is skipped.
   `title` and `version` set `info`; `name`, `discriminant`, and `closed` mean what they mean in `jsonschema`.
   Tests validate every response against the OpenAPI Initiative's schema for its version, vendored in `backend/openapi/testdata/`; `checks.gen-openapi` runs `vacuum lint` on all three versions.
+- `backend/nix` (`nix`): one `<package path>.nix` per model, or the file a `file` directive in the target block names: `{ lib }:` returning a `rec` set of `lib.types` option types, whose values are the JSON wire convention.
+  A struct is `struct`, a submodule the file declares whose value leaves out an unset `T?`, which `optional` marks; `T | null` is `nullable`, a `nullOr` with no empty value, so it must be set.
+  A fieldless enum is `types.enum` of its wire values, a set is `set`, a `listOf` refusing duplicates, and a map `attrsOf`, or `keyed` when its key is a string's wire form or a fieldless enum; any other key warns under `lossy.collection`.
+  A primitive JSON writes as a string is a `strMatching` its wire form, and `uint64` warns under `lossy.primitive`.
+  Phase 1 is built, and #1437 tracks the rest: fielded enums, newtypes, defaults, constraints, generics, and externs warn or are skipped.
+  Tests run `nixfmt --check` when it is on `PATH`, and evaluate values through `lib.evalModules` when `nix-instantiate` and `<nixpkgs>` are found; `checks.gen-nix` always does both over the smoke model with `testdata/nix/smoke.nix`.
 - `backend/salesforce`: Salesforce DX source, one file per component.
   An entity is a custom object, with a warning for each field that has no column; values, mixins, and enums are Apex.
   A `key` directive makes a field a unique external ID.
