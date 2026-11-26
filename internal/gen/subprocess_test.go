@@ -2,7 +2,6 @@ package gen_test
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -163,47 +162,26 @@ func goBin(t *testing.T) string {
 	return path
 }
 
-var twinOnce struct {
-	sync.Once
-	dir string
-	err error
-}
-
 // twinDir builds a plugin that serves the targets left and right, without
 // the SDK, and links it as tdl-gen-left, tdl-gen-right, and tdl-gen-vb.
 func twinDir(t *testing.T) string {
 	t.Helper()
-	goBin(t)
 
-	twinOnce.Do(func() {
-		dir, err := os.MkdirTemp("", "tdl-twin")
-		if err != nil {
-			twinOnce.err = err
-			return
-		}
-		src := filepath.Join(dir, "main.go")
-		if err := os.WriteFile(src, []byte(twinSource), 0o644); err != nil {
-			twinOnce.err = err
-			return
-		}
-		bin := filepath.Join(dir, "twin")
-		if out, err := exec.Command("go", "build", "-o", bin, src).CombinedOutput(); err != nil {
-			twinOnce.err = fmt.Errorf("%w: %s", err, out)
-			return
-		}
-		for _, target := range []string{"left", "right", "vb"} {
-			if err := os.Symlink(bin, filepath.Join(dir, gen.CommandPrefix+target)); err != nil {
-				twinOnce.err = err
-				return
-			}
-		}
-		twinOnce.dir = dir
-	})
-
-	if twinOnce.err != nil {
-		t.Fatalf("building the twin plugin: %v", twinOnce.err)
+	dir := t.TempDir()
+	src := filepath.Join(dir, "main.go")
+	if err := os.WriteFile(src, []byte(twinSource), 0o644); err != nil {
+		t.Fatal(err)
 	}
-	return twinOnce.dir
+	bin := filepath.Join(dir, "twin")
+	if out, err := exec.Command(goBin(t), "build", "-o", bin, src).CombinedOutput(); err != nil {
+		t.Fatalf("building the twin plugin: %v\n%s", err, out)
+	}
+	for _, target := range []string{"left", "right", "vb"} {
+		if err := os.Symlink(bin, filepath.Join(dir, gen.CommandPrefix+target)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return dir
 }
 
 // twinSource answers for the target its handshake names, and refuses any

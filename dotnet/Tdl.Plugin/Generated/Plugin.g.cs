@@ -374,9 +374,9 @@ namespace Tdl.Plugin.V1 {
     private string target_ = "";
     /// <summary>
     /// target is the target the host wants served, as Request.target names
-    /// it. A plugin serving several backends answers for this one alone; one
-    /// serving a single backend refuses a target it does not serve. A host
-    /// built before this field sends none.
+    /// it. A plugin answers for this target alone, and should refuse one it
+    /// does not serve, naming those it does. A host built before this field
+    /// sends none.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]

@@ -64,9 +64,9 @@ export type Handshake = Message<"tdl.plugin.v1.Handshake"> & {
 
   /**
    * target is the target the host wants served, as Request.target names
-   * it. A plugin serving several backends answers for this one alone; one
-   * serving a single backend refuses a target it does not serve. A host
-   * built before this field sends none.
+   * it. A plugin answers for this target alone, and should refuse one it
+   * does not serve, naming those it does. A host built before this field
+   * sends none.
    *
    * @generated from field: string target = 5;
    */
