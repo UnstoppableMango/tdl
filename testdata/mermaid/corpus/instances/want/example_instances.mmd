@@ -30,3 +30,9 @@ classDiagram
     +Page~Audited~ applies
     +Page~Plain~ doesNot
   }
+  Audited ..|> Auditable
+  Audited ..|> Archived
+  Uses "1" --> "1" Audited : applies
+  Uses "1" --> "1" Page : applies
+  Uses "1" --> "1" Plain : doesNot
+  Uses "1" --> "1" Page : doesNot

@@ -292,7 +292,7 @@ The target block holds what regeneration reads: a `name` directive where the con
 
 Generating, every fact the schema cannot hold warns with its loss code: an `int`, `uuid`, `decimal`, or `date` written as another primitive, a set, a newtype or alias expanded, `T | null`, a `T?` with presence it already had, an entity or a mixin, an include, a constraint, `owned`, a default, a name or number that reads back otherwise, a class, a unit, and generics.
 
-Under a `roundtrip` directive, each of those is written instead as a custom option declared in `tdl/annotations.proto`, which the output includes:
+Under an `annotate` directive, each of those is written instead as a custom option declared in `tdl/annotations.proto`, which the output includes:
 
 - `(tdl.file)` on the first file: the TDL package when `package` renames it, the imports, and every top-level item with no protobuf form, as TDL with its index among the file's declarations. A newtype, an alias, a class, a unit, an instance, a target block, and a declaration protobuf cannot express are each one.
 - `(tdl.message)` and `(tdl.enum)`: the TDL name, the kind (`KIND_ENTITY` or `KIND_MIXIN`), the conformance list beyond `Entity`, and an index when the output spans files.
@@ -326,7 +326,7 @@ The target block holds a `name` directive where the convention would write anoth
 
 Generating, every fact the IDL cannot hold warns with its loss code: an `int`, `uint32`, `float32`, `decimal`, `uuid`, `instant`, `date`, or `duration` written as another primitive, collection sugar written by name, `T | null`, an alias expanded, an entity or a mixin, an include, a constraint, `owned`, a default, a name or number that reads back otherwise, the order dependencies impose, a doc comment a `/** */` block cannot hold, a class, a unit, and generics.
 
-Under a `roundtrip` directive, each of those is written instead as an annotation whose key starts `tdl.`:
+Under an `annotate` directive, each of those is written instead as an annotation whose key starts `tdl.`:
 
 - on `namespace *`, or `namespace tdl tdl` without a package: `tdl.package` when `package` renames it, `tdl.doc` for the package's doc comment, `tdl.import` for each import, and `tdl.item` for each top-level item with no Thrift form, as its index among the file's declarations and the item as TDL.
 - on a definition: `tdl.name`, `tdl.kind` (`entity` or `mixin`), `tdl.conforms`, and `tdl.at`, its index, when the output reorders the declarations.
@@ -360,7 +360,7 @@ The target block holds a `name` directive where the convention would write anoth
 
 Generating, every fact the schema cannot hold warns with its loss code: an `int`, `uint32`, or `float32` written as another primitive, a set, collection sugar written by name, `T | null`, a newtype or alias expanded, an entity or a mixin, an include, a constraint, `owned`, a default, a name that reads back otherwise, a package the file's name does not hold, a doc comment a description cannot hold, a class, a unit, and generics.
 
-Under a `roundtrip` directive, each of those is written instead as a `@tdl` directive, which the schema defines, with one argument per use:
+Under an `annotate` directive, each of those is written instead as a `@tdl` directive, which the schema defines, with one argument per use:
 
 - on `extend schema`: `package` when the file's name does not hold it, `doc` for the package's doc comment, `import` for each import, and `item` for each top-level item with no GraphQL type, as its index among the file's declarations and the item as TDL. A newtype, an alias, a class, a unit, an instance, a target block, and a declaration GraphQL cannot express are each one.
 - on a type: `name`, `kind` (`entity` or `mixin`), and `conforms`.
@@ -402,7 +402,7 @@ A brand or a `construct` on the target block reads back on each newtype, which `
 
 Generating, every fact the file cannot hold warns with its loss code: a primitive written as `string` or `number` that reads back as another, a set, collection sugar written by name, an option or nullable chain the file cannot write, a newtype or alias expanded, an entity or a mixin, an include, a constraint, `owned`, a default, a name that reads back otherwise, a package the file's name does not hold, a doc comment JSDoc cannot hold, a class, a unit, and generics.
 
-Under a `roundtrip` directive, each is written instead as a JSDoc `@tdl <key> <value>` tag, its value a Go string literal with `*/` written `*\u002f`:
+Under an `annotate` directive, each is written instead as a JSDoc `@tdl <key> <value>` tag, its value a Go string literal with `*/` written `*\u002f`:
 
 - `source` on a declaration that loses anything: the declaration as TDL.
 - on an `export {};` at the end of the file: `package` when the file's name does not hold it, `doc` for the package's doc comment, `import` for each import, and `item` for each top-level item with no TypeScript form, as its index among the file's declarations and the item as TDL.
@@ -436,7 +436,7 @@ The target block holds a `name` directive where the convention would write anoth
 
 Generating, every fact the model cannot hold warns with its loss code: an `int`, `uint32`, `uuid`, `date`, or `duration` written as another primitive, collection sugar written by name, `T | null` or `Option<T>`, a newtype or alias expanded, an entity or a mixin, an include, a constraint, `owned`, a default, a name that reads back otherwise, a package `package` renames, the package's doc comment, a doc comment's trailing whitespace, a class, a unit, and generics.
 
-Under a `roundtrip` directive, what the model cannot hold is written instead:
+Under an `annotate` directive, what the model cannot hold is written instead:
 
 - `@tdl#source` on a declaration whose shapes do not read back as it: the declaration as TDL. Generating reads its own shapes back to decide, so a declaration that reads back whole carries nothing. The trait is defined in a generated `tdl.smithy`, written only when a shape uses it.
 - `metadata tdl`: `package` when the namespace does not hold it, `doc` for the package's doc comment, `import` for each import, and `item` for each top-level item with no shape, as its index among the file's declarations and the item as TDL. It is always written, since it is how import knows the files are annotated and infers no directive.

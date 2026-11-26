@@ -36,6 +36,12 @@ message Handshake {
   // mode says which requests follow: Request, or ImportRequest under
   // MODE_IMPORT.
   Mode mode = 4;
+
+  // target is the target the host wants served, as Request.target names
+  // it. A plugin answers for this target alone, and should refuse one it
+  // does not serve, naming those it does. A host built before this field
+  // sends none.
+  string target = 5;
 }
 
 // Mode is the direction of a connection.
@@ -52,10 +58,12 @@ enum Mode {
 message HandshakeReply {
   bool accepted = 1;
 
-  // refusal says what the plugin needed, when accepted is false. It should
-  // name both versions.
+  // refusal says what the plugin needed, when accepted is false: both
+  // versions, or the target asked for and the targets it serves. The host
+  // shows it after the plugin's name.
   string refusal = 2;
 
+  // name is the target served, and version the executable's version.
   string name = 3;
   string version = 4;
 
@@ -204,7 +212,7 @@ message Analysis {
   repeated DeclView decls = 2; // indexed like Model.decls
 
   // source is the model as TDL, set only when the target block carries the
-  // roundtrip directive.
+  // annotate directive.
   Source source = 3;
 }
 
@@ -222,7 +230,7 @@ message Source {
 // Item is one top-level item of the model as TDL.
 message Item {
   // source is the item, doc comment included. The target block is written
-  // without its roundtrip directive, and is empty when it holds nothing
+  // without its annotate directive, and is empty when it holds nothing
   // else.
   string source = 1;
   // name is a declaration's name, or empty for an instance or the target

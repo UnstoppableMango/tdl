@@ -29,7 +29,7 @@ import (
 // interface carrying a marker a class, and any other named type a newtype.
 // A constraint comes back from the message Validate writes, and a key from
 // Key. What regenerating needs goes in a go target block. Under the //tdl:
-// directives a `roundtrip` directive writes, it rebuilds the model the
+// directives an `annotate` directive writes, it rebuilds the model the
 // package was generated from. docs/architecture/go-backend.md has the mapping.
 func (Backend) Import(_ context.Context, req *plugin.ImportRequest) (*plugin.ImportResponse, error) {
 	r := newReader()
@@ -295,7 +295,7 @@ func (r *reader) parseAnns(cg *goast.CommentGroup) ([]kv, error) {
 		if !ok {
 			continue
 		}
-		r.Roundtrip = true
+		r.Annotated = true
 		key, raw, _ := strings.Cut(rest, " ")
 		value := raw
 		if key != "at" {
@@ -1238,7 +1238,7 @@ func (r *reader) qualified(x *goast.SelectorExpr, what string) *ast.TypeRef {
 		return &ast.TypeRef{P: p, N: name}
 	}
 	name := x.Sel.Name
-	if r.Roundtrip {
+	if r.Annotated {
 		return &ast.TypeRef{P: p, N: name}
 	}
 	if _, taken := r.types[name]; taken || slices.Contains(slices.Collect(mapValues(r.foreign)), name) {
@@ -1274,7 +1274,7 @@ func indexed(e goast.Expr) (goast.Expr, []goast.Expr) {
 // layout writes a file directive when the files are not one per
 // declaration, named for it, and warns when they are several.
 func (r *reader) layout() {
-	if r.Roundtrip {
+	if r.Annotated {
 		return
 	}
 	perDecl := true
