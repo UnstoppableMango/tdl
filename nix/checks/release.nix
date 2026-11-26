@@ -1,6 +1,7 @@
 {
   lib,
   runCommand,
+  jq,
   go,
   tdl-portable,
   tdl-release,
@@ -25,15 +26,24 @@ let
   ];
 in
 # Holds the release assets to what a release promises: one tarball per
-# tdl-portable target holding the same files, SHA256SUMS naming each, and the
-# tarball for this system unpacking to a tdl that runs and completes.
-runCommand "tdl-release-check" { } ''
+# tdl-portable target holding the same files, an SBOM naming the modules they
+# link, SHA256SUMS naming each, and the tarball for this system unpacking to a
+# tdl that runs and completes.
+runCommand "tdl-release-check" { nativeBuildInputs = [ jq ]; } ''
   fail() { echo "$*" >&2; exit 1; }
   cd ${tdl-release}
 
   sha256sum -c SHA256SUMS
-  [ "$(wc -l < SHA256SUMS)" = ${toString (lib.length tdl-portable.targets)} ] \
-    || fail "SHA256SUMS does not name one tarball per target"
+  [ "$(wc -l < SHA256SUMS)" = ${toString (lib.length tdl-portable.targets + 1)} ] \
+    || fail "SHA256SUMS does not name one tarball per target and the SBOM"
+
+  sbom=tdl_${version}.cdx.json
+  grep -q " $sbom\$" SHA256SUMS || fail "SHA256SUMS does not name $sbom"
+  jq -e '.bomFormat == "CycloneDX"
+    and .metadata.component.name == "github.com/unstoppablemango/tdl"
+    and .metadata.component.version == "v${version}"
+    and (.components | map(.name) | index("google.golang.org/protobuf") != null)' $sbom > /dev/null \
+    || fail "$sbom is not a CycloneDX SBOM of the tdl module and what it links"
 
   for target in ${lib.escapeShellArgs tdl-portable.targets}; do
     tarball=tdl_${version}_''${target/\//_}.tar.gz
