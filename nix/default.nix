@@ -357,8 +357,9 @@ in
           }
           ''
             export HOME=$TMPDIR GOCACHE=$TMPDIR/go-cache GOFLAGS= GOPROXY=off GOTOOLCHAIN=local CGO_ENABLED=0
-            cp ${../testdata/gen/wire/source.tdl} source.tdl
-            tdl gen -o out source.tdl
+            mkdir out
+            cp ${../testdata/gen/wire/source.tdl} out/source.tdl
+            tdl gen out/source.tdl
             cp ${../testdata/gen/wire/main.go} out/go/main.go
             printf 'module example.com/wire\n\ngo 1.21\n' > out/go/go.mod
             (cd out/go && go run .) > values.jsonl
