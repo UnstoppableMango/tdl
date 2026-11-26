@@ -116,6 +116,79 @@ target salesforce for salesforce {
 `)
 }
 
+// What generating writes for fields reads back as the source.
+func TestFieldsReadBack(t *testing.T) {
+	comesBack(t, `package salesforce
+
+type Customer: Entity {
+  name: string
+  vip: bool
+  since: date?
+}
+
+type Order: Entity {
+  sku: string
+  total: decimal
+  units: int64?
+  placedAt: instant
+  /// The old code.
+  deprecated("use sku") ref: string?
+}
+
+target salesforce for salesforce {
+  Order => key(sku)
+  Order.sku => name("SKU")
+  Order.sku => label("Stock unit")
+  Order.sku => length(40)
+  Order.total => scale(2)
+}
+`)
+}
+
+// Fields with no TDL form warn under their codes and are not read.
+func TestFieldsWarn(t *testing.T) {
+	files := []*plugin.File{
+		object("Thing__c", ""),
+		field("Thing__c", "Name__c", "<label>Name</label><length>255</length><required>true</required><type>Text</type><unique>true</unique>"),
+		field("Thing__c", "Due__c", "<label>Due</label><type>Time</type>"),
+		field("Thing__c", "acme__Tier__c", "<label>Tier</label><type>Text</type>"),
+		field("Thing__c", "Done__c", "<defaultValue>true</defaultValue><label>Done</label><trackHistory>true</trackHistory><type>Checkbox</type>"),
+	}
+	got, diags := readBack(t, files)
+	for _, want := range []struct{ code, text string }{
+		{"lossy.constraint", "Name__c is unique"},
+		{"lossy.unsupported", "Time field"},
+		{"lossy.unsupported", "managed package"},
+		{"lossy.default", "Done__c defaults to true"},
+		{"lossy.unsupported", "no TDL form, which are not read: trackHistory"},
+	} {
+		if !hasDiag(diags, want.code, want.text) {
+			t.Errorf("no %q warning containing %q in %v", want.code, want.text, diags)
+		}
+	}
+	if len(diags) != 5 {
+		t.Errorf("%d warnings, want 5: %v", len(diags), diags)
+	}
+	const wantTDL = "package salesforce\n\ntype Thing: Entity {\n  name: string\n  done: bool\n}\n"
+	if got != wantTDL {
+		t.Errorf("reads as\n%s\nwant\n%s", got, wantTDL)
+	}
+}
+
+// A required checkbox is a respelling, reported only under readback.
+func TestRequiredCheckboxIsReadBackLoss(t *testing.T) {
+	files := []*plugin.File{object("Thing__c", ""), field("Thing__c", "Done__c", "<defaultValue>false</defaultValue><label>Done</label><required>true</required><type>Checkbox</type>")}
+	for _, readback := range []bool{false, true} {
+		resp, err := salesforce.ReadObjects(files, readback)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := hasDiag(resp.GetDiagnostics(), "lossy.optional", "never empty"); got != readback || len(resp.GetDiagnostics()) > 1 {
+			t.Errorf("readback %t: %v", readback, resp.GetDiagnostics())
+		}
+	}
+}
+
 // What has no TDL form warns under its code and is not read.
 func TestObjectsWarn(t *testing.T) {
 	files := []*plugin.File{
@@ -183,6 +256,29 @@ func TestObjectsSkip(t *testing.T) {
 		t.Errorf("%d warnings, want 5: %v", len(diags), diags)
 	}
 	if !strings.Contains(got, "type LineItem: Entity { }") || !strings.Contains(got, `LineItem => name("Line_Item")`) {
+		t.Errorf("reads as\n%s", got)
+	}
+}
+
+// Fields that cannot regenerate as read warn: a second field reading as
+// one name, a length or scale generating
+// refuses, and an external ID on a type generating never keys.
+func TestFieldsRefuseWhatCannotRegenerate(t *testing.T) {
+	files := []*plugin.File{
+		object("Thing__c", ""),
+		field("Thing__c", "Code__c", "<label>Code</label><length>255</length><type>Text</type>"),
+		field("Thing__c", "code__c", "<label>Code</label><length>255</length><type>Text</type>"),
+		field("Thing__c", "Note__c", "<label>Note</label><type>Text</type>"),
+		field("Thing__c", "Rate__c", "<label>Rate</label><precision>18</precision><scale>20</scale><type>Number</type>"),
+		field("Thing__c", "Done__c", "<defaultValue>false</defaultValue><externalId>true</externalId><label>Done</label><type>Checkbox</type>"),
+	}
+	got, diags := readBack(t, files)
+	for _, text := range []string{"which another field has", "holds 0 characters", "20 decimal places", "not read as a key"} {
+		if !hasDiag(diags, "lossy.unsupported", text) {
+			t.Errorf("no warning containing %q in %v", text, diags)
+		}
+	}
+	if strings.Contains(got, "length(") || strings.Contains(got, "scale(") || strings.Contains(got, "key(") {
 		t.Errorf("reads as\n%s", got)
 	}
 }
