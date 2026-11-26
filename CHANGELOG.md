@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.5.13](https://github.com/UnstoppableMango/tdl/compare/v0.5.12...v0.5.13) (2026-11-26)
+
+
+### Features
+
+* **gen:** run tdl.toml post commands over generated files ([#1582](https://github.com/UnstoppableMango/tdl/issues/1582)) ([562136c](https://github.com/UnstoppableMango/tdl/commit/562136ce63ddabacbc9a90276b2a5cd4c22b3cdd))
+* **mermaid:** Mermaid backend phase 1, classes, members, and format ([#1558](https://github.com/UnstoppableMango/tdl/issues/1558)) ([f6cb745](https://github.com/UnstoppableMango/tdl/commit/f6cb7456292f5bc44d8ca63f33b801846eeb0e3e))
+* **salesforce:** map entities to standard objects with a standard directive ([#1578](https://github.com/UnstoppableMango/tdl/issues/1578)) ([1d3f391](https://github.com/UnstoppableMango/tdl/commit/1d3f3911074f5ca405c4db53551fd2e6cf5b7004))
+
+
+### Bug Fixes
+
+* **nix:** make the flake module's devShells.tdl opt-in ([#1585](https://github.com/UnstoppableMango/tdl/issues/1585)) ([deead18](https://github.com/UnstoppableMango/tdl/commit/deead188433db4627043ad5e7960caf02537c362))
+* **nix:** run the demo's Chromium without its own sandbox ([#1594](https://github.com/UnstoppableMango/tdl/issues/1594)) ([e4f6b2e](https://github.com/UnstoppableMango/tdl/commit/e4f6b2ec9cec918f022f507ca374132d1346b9c6))
+* **zod:** compare a list default's unique items by written value ([#1577](https://github.com/UnstoppableMango/tdl/issues/1577)) ([94e218f](https://github.com/UnstoppableMango/tdl/commit/94e218fcc24e9218580db98d691bccce3ef3da6f))
+
+
+### Continuous Integration
+
+* run the Linux check job on a GitHub-hosted runner ([#1591](https://github.com/UnstoppableMango/tdl/issues/1591)) ([2b266c0](https://github.com/UnstoppableMango/tdl/commit/2b266c08a0f26ca85250fd5028956e6866aa654f))
+* workflow hygiene for Scorecard's Token-Permissions and Packaging checks ([#1575](https://github.com/UnstoppableMango/tdl/issues/1575)) ([e98fae8](https://github.com/UnstoppableMango/tdl/commit/e98fae8de6eeebd78b34da74b6403af8c3141aa6)), closes [#1567](https://github.com/UnstoppableMango/tdl/issues/1567)
+
 ## [0.5.12](https://github.com/UnstoppableMango/tdl/compare/v0.5.11...v0.5.12) (2026-11-14)
 
 
