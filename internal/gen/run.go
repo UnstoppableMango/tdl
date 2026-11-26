@@ -88,6 +88,7 @@ type Result struct {
 	Stale    []Stale
 	Expected []string // what a verify run would write
 	Kept     []string // what a nondeterministic backend wrote before, kept
+	Read     []string // dependency output a nondeterministic backend's request holds
 
 	Diagnostics []*plugin.Diagnostic
 }
@@ -101,25 +102,27 @@ func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.M
 	req.DryRun = mode == ModeVerify
 
 	var hash string
+	var read []string
 	if backend.Describe().Nondeterministic {
-		if err := Depend(req, target.Loader); err != nil {
+		var err error
+		if read, err = Depend(req, target.Loader); err != nil {
 			return Result{Target: target.Name}, fmt.Errorf("target %s: %w", target.Name, err)
 		}
-		var err error
 		if hash, err = RequestHash(req); err != nil {
-			return Result{Target: target.Name}, fmt.Errorf("target %s: %w", target.Name, err)
+			return Result{Target: target.Name, Read: read}, fmt.Errorf("target %s: %w", target.Name, err)
 		}
 		if result, done, err := reuse(target, hash, mode); done || err != nil {
+			result.Read = read
 			return result, err
 		}
 	}
 
 	resp, err := backend.Generate(ctx, req)
 	if err != nil {
-		return Result{Target: target.Name}, fmt.Errorf("target %s: %w", target.Name, err)
+		return Result{Target: target.Name, Read: read}, fmt.Errorf("target %s: %w", target.Name, err)
 	}
 
-	result := Result{Target: target.Name, Diagnostics: resp.GetDiagnostics()}
+	result := Result{Target: target.Name, Diagnostics: resp.GetDiagnostics(), Read: read}
 	if host.Fatal(resp.GetDiagnostics()) {
 		return result, fmt.Errorf("target %s reported errors", target.Name)
 	}

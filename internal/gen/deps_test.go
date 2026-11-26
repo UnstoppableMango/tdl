@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -85,7 +86,11 @@ func runFile(t *testing.T, b plugin.Backend, path string, mode gen.Mode) gen.Res
 func dependRequest(t *testing.T, dir string) *plugin.Request {
 	t.Helper()
 	path := filepath.Join(dir, "shop.tdl")
-	file, err := parser.Parse(path, strings.NewReader(dependentSource))
+	src, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	file, err := parser.Parse(path, strings.NewReader(string(src)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,7 +99,7 @@ func dependRequest(t *testing.T, dir string) *plugin.Request {
 		t.Fatal(diags)
 	}
 	req, _ := analysis.Request(model, (&fickle{}).Describe(), "fickle", filepath.Join(dir, "gen/shop"))
-	if err := gen.Depend(req, sema.FSLoader{}); err != nil {
+	if _, err := gen.Depend(req, sema.FSLoader{}); err != nil {
 		t.Fatal(err)
 	}
 	return req
@@ -149,6 +154,49 @@ func TestDependWithoutOutput(t *testing.T) {
 		t.Errorf("dependencies = %v", deps)
 	}
 	if externs := req.GetAnalysis().GetSource().GetExterns(); len(externs) != 1 || externs[0].GetSource() != invoiceSource {
+		t.Errorf("externs = %v", externs)
+	}
+}
+
+// A dependency writing into the dependent's own out sends nothing, since
+// that record is the dependent's own last output, and the dependent keeps
+// its files.
+func TestDependSkipsTheRequestsOwnOut(t *testing.T) {
+	dir := depProject(t)
+	shared := strings.Replace(depSource, "gen/billing", "gen/shop", 1)
+	if err := os.WriteFile(filepath.Join(dir, "billing.tdl"), []byte(shared), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	b := &fickle{}
+	shop := filepath.Join(dir, "shop.tdl")
+	runFile(t, b, shop, gen.ModeWrite)
+	if r := runFile(t, b, shop, gen.ModeWrite); len(r.Kept) != 1 || b.calls != 1 {
+		t.Errorf("the dependent regenerated over its own output: kept %v after %d calls", r.Kept, b.calls)
+	}
+}
+
+// Every file a package spans is read, and what was read is returned for
+// --make.
+func TestDependReadsEveryFileOfAPackage(t *testing.T) {
+	dir := depProject(t)
+	files := map[string]string{
+		"payment.tdl": "package shop.billing\n\ntype Payment {\n  id: string\n}\n",
+		"shop.tdl":    "package shop\n\nimport \"billing.tdl\" as billing\nimport \"payment.tdl\" as payment\n\ntype Order {\n  invoice: billing.Invoice\n  payment: payment.Payment\n}\n\ntarget fickle for shop {\n  out(\"gen/shop\")\n}\n",
+	}
+	for name, src := range files {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(src), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	runFile(t, &fickle{}, filepath.Join(dir, "billing.tdl"), gen.ModeWrite)
+	r := runFile(t, &fickle{}, filepath.Join(dir, "shop.tdl"), gen.ModeWrite)
+	want := []string{filepath.Join(dir, "gen/billing", gen.MarkerName), filepath.Join(dir, "gen/billing/out.txt")}
+	if !slices.Equal(r.Read, want) {
+		t.Errorf("read %v, want %v", r.Read, want)
+	}
+
+	externs := dependRequest(t, dir).GetAnalysis().GetSource().GetExterns()
+	if len(externs) != 2 || externs[1].GetSource() != "type Payment {\n  id: string\n}" {
 		t.Errorf("externs = %v", externs)
 	}
 }

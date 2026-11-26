@@ -289,6 +289,9 @@ func (r *genRun) generate(path string) error {
 			for _, p := range slices.Concat(result.Written, result.Expected, result.Kept) {
 				r.outputs[p] = true
 			}
+			for _, p := range result.Read {
+				r.read[p] = true
+			}
 		}
 		for _, p := range result.Expected {
 			r.expected[out][p] = true

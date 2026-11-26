@@ -150,7 +150,8 @@ func (r *requestRun) request(path string) {
 		return
 	}
 
-	model, diags := sema.Lower(file, sema.WithLoader(sema.Overlay{Text: r.text}))
+	loader := sema.Overlay{Text: r.text}
+	model, diags := sema.Lower(file, sema.WithLoader(loader))
 	for _, d := range diags {
 		r.fail(&ir.Position{
 			Filename:  d.Pos.Filename,
@@ -187,6 +188,13 @@ func (r *requestRun) request(path string) {
 	for _, block := range blocks {
 		req, problems := analysis.Request(model, r.desc, r.target, gen.Out(block))
 		r.set.Diagnostics = append(r.set.Diagnostics, host.Silence(problems, allowed)...)
+		if r.desc.Nondeterministic && !host.Fatal(problems) {
+			// As gen sends it, so a host running the backend sees the same.
+			if _, err := gen.Depend(req, loader); err != nil {
+				r.fail(block.GetMeta().GetPosition(), err.Error())
+				continue
+			}
+		}
 		if !host.Fatal(problems) {
 			r.set.Requests = append(r.set.Requests, req)
 		}
