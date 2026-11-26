@@ -125,6 +125,12 @@ func stage(dir string, files []*plugin.File) error {
 	}
 	defer root.Close()
 	for _, f := range files {
+		switch {
+		case f.GetPath() == "":
+			return fmt.Errorf("the backend returned a file with no path")
+		case filepath.IsAbs(f.GetPath()):
+			return fmt.Errorf("%s: a backend may not write an absolute path", f.GetPath())
+		}
 		rel := filepath.FromSlash(f.GetPath())
 		if err := root.MkdirAll(filepath.Dir(rel), 0o755); err != nil {
 			return err
