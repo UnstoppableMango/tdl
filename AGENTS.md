@@ -194,9 +194,9 @@ The plugin protocol in `docs/architecture/plugins.md` is complete.
   Public.
 - `internal/analysis`: what every backend serving one target would otherwise compute, sent in `plugin.Request.Analysis`: each type table entry resolved to the prelude's shapes with aliases expanded, or refused with a reason; and per declaration, whether it is the prelude's, what it names, its enum discriminant, its newtype chain's end, and the words of its names.
   `emit` reads it, and derives it when a request carries none.
-  `Scope` cuts a model down to one target's block and directives, which is all a request carries, renaming a block directive in a deprecated spelling (`host.Renamed`).
+  `Scope` cuts a model down to one target's block and directives, which is all a request carries.
   It also reads each constraint (`constraints.go`) and, under a backend's declared `Numbering`, numbers every field and variant (`numbers.go`); `emit.Length`, `Pattern`, `ConstraintText`, and `Session.Numbers` share that code, and `Session.NumbersIn` reads the numbers a request carries.
-  `Request` builds every request a host sends, returning a length that can never hold or a refused pin as errors to report before the backend runs.
+  `Request` builds every request a host sends, returning a length that can never hold or a refused pin as errors to report before the backend runs, and renaming a block directive in a deprecated spelling (`host.Rename`).
   Under an `annotate` directive it also carries the model as TDL (`source.go`), which `emit`'s annotation helpers read; `Imported` lowers an import response that returns TDL source instead of a model.
 - `internal/gen`: the compiler side of the plugin protocol: the backend registry, request building, and writing returned files.
   `keep.go` keeps a nondeterministic backend's output while its request hashes the same, recording the hashes in `.tdl-output` (ADR-0002).
@@ -205,7 +205,7 @@ The plugin protocol in `docs/architecture/plugins.md` is complete.
 - `internal/host`: what a host does around a backend, importing none, so a backend hosting itself can use it.
   `loss.go` declares the loss codes, which `emit` re-exports, so `tdl`'s completion lists them too.
   `check.go` holds every directive to its backend's `DirectiveSpec` (arity, kinds, placement, allowed values, repeats) before the backend runs, so a backend need not check them itself; `Directives` holds the specs of those `tdl` reads itself for every target, `post` so far, and `out` is never checked.
-  `Renamed` maps a deprecated block directive to its new name, `roundtrip` to `annotate` for one release; `CheckDirectives` warns about the old spelling and checks it as the new.
+  `Renamed` maps a deprecated block directive to its new name, `roundtrip` to `annotate` for one release; `CheckDirectives` warns about the old spelling and checks it as the new, unless the backend still declares the old one or does not declare the new.
   `Silence` drops warnings with an allowed loss code, and `Allowed` reads which codes `tdl.toml` allows.
   `ImportFiles` (`walk.go`) expands a directory argument to `tdl import` into the files a backend's import patterns match.
 - `internal/config`: reads the nearest `tdl.toml` above a file; only its `[lossy]` and `[post]` tables so far.
