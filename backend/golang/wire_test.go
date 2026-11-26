@@ -1,8 +1,12 @@
 package golang_test
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
-// leaseSource holds a duration directly, in a list, in a map, and as T?.
+// leaseSource holds a duration directly, in a list, in a map, as T?, and
+// under a newtype and a newtype over that.
 const leaseSource = `package lease
 
 type Lease {
@@ -10,7 +14,13 @@ type Lease {
   ttls: [duration]
   byName: Map<string, duration>
   maybe: duration?
+  grace: Grace
+  notice: Notice
 }
+
+type Grace: duration
+
+type Notice: Grace
 
 target go for lease {
   json
@@ -31,6 +41,7 @@ func TestJSONDuration(t *testing.T) {
 		"ByName map[string]Duration `json:\"byName\"`",
 		"Maybe *Duration `json:\"maybe,omitempty\"`",
 	)
+	contains(t, got["grace.go"], "type Grace Duration")
 	contains(t, got["duration.go"], "type Duration time.Duration")
 
 	goTest(t, resp, `package lease
@@ -118,7 +129,7 @@ func TestRefuses(t *testing.T) {
 	}
 }
 
-const doc = `+"`"+`{"ttl":"PT1M30S","ttls":["PT0S","P1DT1H30M"],"byName":{"week":"P7D"},"maybe":"PT0.5S"}`+"`"+`
+const doc = `+"`"+`{"ttl":"PT1M30S","ttls":["PT0S","P1DT1H30M"],"byName":{"week":"P7D"},"maybe":"PT0.5S","grace":"PT1H","notice":"P7D"}`+"`"+`
 
 func TestRoundTrip(t *testing.T) {
 	half := Duration(500 * time.Millisecond)
@@ -127,6 +138,8 @@ func TestRoundTrip(t *testing.T) {
 		Ttls:   []Duration{0, Duration(25*time.Hour + 30*time.Minute)},
 		ByName: map[string]Duration{"week": Duration(7 * 24 * time.Hour)},
 		Maybe:  &half,
+		Grace:  Grace(time.Hour),
+		Notice: Notice(7 * 24 * time.Hour),
 	}
 	out, err := json.Marshal(want)
 	if err != nil {
@@ -144,6 +157,16 @@ func TestRoundTrip(t *testing.T) {
 	}
 }
 `)
+}
+
+// Import reads the helper type back as the primitive, and declares
+// nothing for it.
+func TestImportReadsDuration(t *testing.T) {
+	src, _ := importGo(t, files(t, generateTDL(t, leaseSource)))
+	contains(t, src, "ttl: duration", "ttls: [duration]", "maybe: duration?", "type Grace: duration", "type Notice: Grace")
+	if strings.Contains(src, "type Duration") {
+		t.Errorf("import declares the helper type:\n%s", src)
+	}
 }
 
 // A model declaring its own Duration gets WireDuration in its file.

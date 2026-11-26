@@ -244,7 +244,9 @@ type Duration time.Duration
 
 It is `WireDuration` when the model declares a `Duration`, and is written to its own file, or to the one a `file` directive names.
 Decoding reads weeks, days, hours, minutes, and seconds with a fraction and a sign, and refuses a year or month part, which has no fixed length.
+A newtype over it, directly or through another newtype, gets a `MarshalJSON` and an `UnmarshalJSON` converting back to call its methods, since Go drops methods across a type definition.
 A `foreign` directive on `duration` still names its type.
+Import reads the helper as `duration` and declares nothing for it.
 
 What the convention cannot carry warns: a variant field named like the discriminant skips the enum, a `Set` is a Go map, which `encoding/json` writes as an object rather than an array, a generic declaration applied to a fielded enum decodes it as a plain value, and one applied to a type holding a list or map writes it as a plain value, a nil one as `null`.
 A type parameter named like a local of the generated methods (`plain`, `data`, `raw`, `err`, `v`, and in a `MarshalJSON` `self`, `out0`, `e0`, `k0` at any depth) skips the declaration.

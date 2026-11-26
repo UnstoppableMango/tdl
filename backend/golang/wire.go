@@ -247,3 +247,41 @@ func ($r *$T) UnmarshalJSON(data []byte) error {
 }
 `)
 }
+
+// overDoc ends the doc comment of the JSON methods a newtype over a helper
+// type gets, which import reads as this backend's output.
+const overDoc = "it is over, since Go drops methods across a type definition."
+
+// overWire reports whether a type is a helper type, or an own newtype over
+// one, past aliases.
+func (g *generator) overWire(id *ir.ID) bool {
+	for seen := map[*ir.Decl]bool{}; ; {
+		t, decl, _, ok := g.resolveFill(id, nil)
+		if !ok || seen[decl] {
+			return false
+		}
+		seen[decl] = true
+		if decl.GetPrimitive() != nil {
+			_, ok := wireFor(decl.GetMeta().GetName())
+			return ok && g.wire && len(t.GetArgs()) == 0
+		}
+		if decl.GetNewtype() == nil || !emit.IsOwn(decl) {
+			return false
+		}
+		id = decl.GetNewtype().GetBase()
+	}
+}
+
+// writeOverWire writes a newtype's JSON methods when it is over a helper
+// type, whose methods its type definition drops, converting back to call
+// them.
+func (g *generator) writeOverWire(b *strings.Builder, decl *ir.Decl, name, base string) {
+	if !g.overWire(decl.GetNewtype().GetBase()) {
+		return
+	}
+	recv, self := receiver(decl, name), name+typeArgs(decl)
+	fmt.Fprintf(b, "\n// MarshalJSON encodes a %s as the %s %s\n", name, base, overDoc)
+	fmt.Fprintf(b, "func (%s %s) MarshalJSON() ([]byte, error) {\nreturn %s(%s).MarshalJSON()\n}\n", recv, self, base, recv)
+	fmt.Fprintf(b, "\n// UnmarshalJSON decodes a %s as the %s %s\n", name, base, overDoc)
+	fmt.Fprintf(b, "func (%s *%s) UnmarshalJSON(data []byte) error {\nreturn (*%s)(%s).UnmarshalJSON(data)\n}\n", recv, self, base, recv)
+}
