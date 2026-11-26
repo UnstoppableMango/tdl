@@ -11,10 +11,14 @@ const packages = {
 	"darwin x64": "@unmango/tdl-darwin-x64",
 	"linux arm64": "@unmango/tdl-linux-arm64",
 	"linux x64": "@unmango/tdl-linux-x64",
+	"win32 arm64": "@unmango/tdl-win32-arm64",
+	"win32 x64": "@unmango/tdl-win32-x64",
 };
 
-function binaryPath(name) {
-	const key = `${process.platform} ${process.arch}`;
+// packageFor names the platform package for a platform and an arch, or
+// throws when none is shipped.
+function packageFor(platform, arch) {
+	const key = `${platform} ${arch}`;
 	const pkg = packages[key];
 	if (!pkg) {
 		throw new Error(
@@ -22,6 +26,16 @@ function binaryPath(name) {
 				"Install with Nix, or build with go install github.com/unstoppablemango/tdl/cmd/tdl@latest.",
 		);
 	}
+	return pkg;
+}
+
+// executable is a binary's file name on a platform: name.exe on Windows.
+function executable(name, platform) {
+	return platform === "win32" ? `${name}.exe` : name;
+}
+
+function binaryPath(name) {
+	const pkg = packageFor(process.platform, process.arch);
 	let manifest;
 	try {
 		manifest = require.resolve(`${pkg}/package.json`);
@@ -31,7 +45,7 @@ function binaryPath(name) {
 				"skipped optional dependencies (--omit=optional, or a lock file written on another platform) leaves it out.",
 		);
 	}
-	return path.join(path.dirname(manifest), "bin", name);
+	return path.join(path.dirname(manifest), "bin", executable(name, process.platform));
 }
 
-module.exports = { binaryPath, packages };
+module.exports = { binaryPath, executable, packageFor, packages };

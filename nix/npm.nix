@@ -10,6 +10,11 @@
 }:
 let
   # tdl-portable's GOOS/GOARCH to npm's os/cpu, which name the platform packages.
+  npmOS = {
+    linux = "linux";
+    darwin = "darwin";
+    windows = "win32";
+  };
   cpu = {
     amd64 = "x64";
     arm64 = "arm64";
@@ -18,11 +23,12 @@ let
     target:
     let
       parts = lib.splitString "/" target;
-      os = builtins.elemAt parts 0;
+      goos = builtins.elemAt parts 0;
       arch = builtins.elemAt parts 1;
+      os = npmOS.${goos};
     in
     {
-      dir = "${os}-${arch}";
+      dir = "${goos}-${arch}";
       inherit os;
       cpu = cpu.${arch};
       name = "@unmango/tdl-${os}-${cpu.${arch}}";

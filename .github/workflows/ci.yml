@@ -64,6 +64,21 @@ jobs:
       - run: nix build .#release --rebuild
         if: ${{ !cancelled() }}
 
+      # The npm packages windows-npm installs. nix flake check built them
+      # for checks.npm-tdl.
+      - run: nix build .#npm -o result-npm
+        if: ${{ !cancelled() }}
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: npm-windows
+          path: |
+            result-npm/unmango-tdl-0*.tgz
+            result-npm/unmango-tdl-win32-*.tgz
+          if-no-files-found: error
+          retention-days: 1
+
       # nix develop keeps the runner's PATH after its own, so the race run
       # finds every plugin packages.plugins joins and runs the recorded
       # corpora through them (tdl-gen-csharp, tdl-gen-mermaid). Its own out
@@ -167,6 +182,38 @@ jobs:
       - run: go build ./...
 
       - run: go test -short ./...
+
+  # The packed @unmango/tdl and this runner's platform package, from the check
+  # job's Nix build, install with no registry and run, as they would from npm.
+  windows-npm:
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-latest
+            cpu: x64
+          - runner: windows-11-arm
+            cpu: arm64
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: npm-windows
+          path: packages
+
+      - name: Install offline
+        shell: bash
+        run: |
+          mkdir project && cd project
+          echo '{ "name": "project", "private": true }' > package.json
+          npm install --offline --ignore-scripts --no-audit --no-fund \
+            ../packages/unmango-tdl-0*.tgz ../packages/unmango-tdl-win32-${{ matrix.cpu }}-*.tgz
+
+      - run: npx --offline tdl version
+        working-directory: project
 
   required:
     needs: [check, darwin, windows]

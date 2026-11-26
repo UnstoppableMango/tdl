@@ -17,9 +17,11 @@ runCommand "tdl-portable-check" { nativeBuildInputs = [ file ]; } ''
 
   for target in ${lib.escapeShellArgs tdl-portable.targets}; do
     dir=${tdl-portable}/''${target/\//-}
+    exe= machine=
+    [[ $target == windows/* ]] && exe=.exe
     for bin in tdl tdl-gen-typescript; do
-      path=$dir/$bin
-      [ -x "$path" ] || fail "$path is missing"
+      path=$dir/$bin$exe
+      [ -f "$path" ] || fail "$path is missing"
       desc=$(file -b "$path")
       echo "$target $bin: $desc"
       case $target in
@@ -27,8 +29,10 @@ runCommand "tdl-portable-check" { nativeBuildInputs = [ file ]; } ''
         linux/arm64) want="ELF 64-bit LSB executable, ARM aarch64" ;;
         darwin/amd64) want="Mach-O 64-bit x86_64 executable" ;;
         darwin/arm64) want="Mach-O 64-bit arm64 executable" ;;
+        windows/amd64) want="PE32+ executable" machine=", x86-64," ;;
+        windows/arm64) want="PE32+ executable" machine=", ARM64," ;;
       esac
-      [[ $desc == "$want"* ]] || fail "$path is not $want"
+      [[ $desc == "$want"* && $desc == *"$machine"* ]] || fail "$path is not $want$machine"
       if [[ $target == linux/* && $desc != *"statically linked"* ]]; then
         fail "$path is not statically linked"
       fi
