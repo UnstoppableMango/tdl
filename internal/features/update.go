@@ -13,8 +13,10 @@ import (
 
 // Update measures every target and returns, for each markdown file under
 // root embedding a table, its content with the tables rewritten. Every
-// target and matrix is embedded exactly once, and a table naming neither
-// is a planned backend's, which is checked by [CheckPlanned] and left as it is.
+// target, delegated backend, and matrix is embedded exactly once. A
+// delegated backend's table is checked by [CheckDelegated] and left as it
+// is, and a table naming none of them is a planned backend's, which is
+// checked by [CheckPlanned] and left as it is.
 func Update(root string, short bool) (map[string][]byte, error) {
 	embedded, err := embedding(root)
 	if err != nil {
@@ -51,6 +53,21 @@ func Update(root string, short bool) (map[string][]byte, error) {
 		}
 		tables[t.Name] = grid
 		names = append(names, t.Name)
+	}
+	for _, name := range delegated {
+		docs := where[name]
+		delete(where, name)
+		if errs := once(name, docs); errs != nil {
+			problems = append(problems, errs...)
+			continue
+		}
+		rows := Parse(embedded[docs[0]], name)
+		if err := CheckDelegated(rows); err != nil {
+			problems = append(problems, fmt.Errorf("%s: %s is a delegated backend: %w", docs[0], name, err))
+			continue
+		}
+		tables[name] = Grid{Header: Header, Rows: rows}
+		names = append(names, name)
 	}
 	slices.Sort(names)
 	for _, name := range sortedKeys(matrices) {

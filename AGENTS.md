@@ -386,6 +386,7 @@ Two matrices set one column of every table side by side, each cell its first wor
 Each is embedded exactly once, and reads the tables after committed cells fill unmeasured ones.
 A table naming no target or matrix belongs to a backend with no code: it is written by hand, holds every row in order with only `Planned (phase N)` or `No` in Generate and Import, and `CheckPlanned` checks it without rewriting it.
 When the backend is built and registered, the same table is measured, and its `features.toml` takes the phases.
+A delegated backend's table, `yolo`'s (`internal/features/delegated.go`), is written by hand too, every Generate cell `Depends on the model` and every Import cell `No`, since measuring it would grade one recorded answer; `CheckDelegated` checks it, and the `generate` matrix reads it as it reads a measured one.
 The tables stay out of `docs/architecture/`, which is for building the backend, not using it.
 
 ### Tests and goldens
