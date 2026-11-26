@@ -27,9 +27,10 @@ type wireType struct {
 	// to tell the helper from a newtype.
 	doc string
 	// base is the type it is declared over, as package path and name, or
-	// "" for a struct holding fields.
+	// "" for a struct holding fields, each a name and a type spelled the
+	// same way.
 	base    string
-	fields  []string
+	fields  [][2]string
 	imports []string
 	// body writes the type and its methods, given its name.
 	body func(name string) string
@@ -43,21 +44,29 @@ func (w wireType) over(e goast.Expr, imports map[string]string) bool {
 		if !ok {
 			return false
 		}
-		var names []string
+		var fields [][2]string
 		for _, f := range st.Fields.List {
 			for _, n := range f.Names {
-				names = append(names, n.Name)
+				fields = append(fields, [2]string{n.Name, typeSpelling(f.Type, imports)})
 			}
 		}
-		return slices.Equal(names, w.fields)
+		return slices.Equal(fields, w.fields)
 	}
-	path, name, _ := strings.Cut(w.base, ".")
-	sel, ok := e.(*goast.SelectorExpr)
-	if !ok {
-		return false
+	return typeSpelling(e, imports) == w.base
+}
+
+// typeSpelling spells a predeclared or imported type as wireType does, or
+// returns "" for any other expression.
+func typeSpelling(e goast.Expr, imports map[string]string) string {
+	switch e := e.(type) {
+	case *goast.Ident:
+		return e.Name
+	case *goast.SelectorExpr:
+		if pkg, ok := e.X.(*goast.Ident); ok && imports[pkg.Name] != "" {
+			return imports[pkg.Name] + "." + e.Sel.Name
+		}
 	}
-	pkg, ok := sel.X.(*goast.Ident)
-	return ok && imports[pkg.Name] == path && sel.Sel.Name == name
+	return ""
 }
 
 var wireTypes = []wireType{
@@ -73,7 +82,7 @@ var wireTypes = []wireType{
 		prim:    "date",
 		name:    "Date",
 		doc:     "is a calendar date that the JSON wire convention writes as YYYY-MM-DD.",
-		fields:  []string{"Year", "Month", "Day"},
+		fields:  [][2]string{{"Year", "int"}, {"Month", "time.Month"}, {"Day", "int"}},
 		imports: []string{"fmt", "time"},
 		body:    dateBody,
 	},

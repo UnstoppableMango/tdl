@@ -278,8 +278,15 @@ type Date struct {
 	Day      int
 	Calendar string
 }
+
+// Day is a calendar date that the JSON wire convention writes as YYYY-MM-DD.
+type Day struct {
+	Year  string
+	Month string
+	Day   string
+}
 `})
-	contains(t, src, "type Duration: int32", "calendar: string")
+	contains(t, src, "type Duration: int32", "calendar: string", "year: string")
 }
 
 // dateSource holds a date directly, in a list, as T?, as a map key, and
