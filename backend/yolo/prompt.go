@@ -6,6 +6,7 @@ import (
 
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/docs"
+	"github.com/unstoppablemango/tdl/internal/host"
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
@@ -63,16 +64,35 @@ The TDL specification:
 }
 
 // userPrompt is the first message: the language, the user's instructions,
-// and the model.
-func userPrompt(language, instructions string, src *plugin.Source) string {
+// the commands checking the files, and the model.
+func userPrompt(language, instructions string, src *plugin.Source, checks *host.Checks) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Write this model in %s.\n", language)
 	if instructions != "" {
 		fmt.Fprintf(&b, "\n%s\n", instructions)
 	}
+	if checks != nil && len(checks.Commands) > 0 {
+		b.WriteString("\nWhen you end your turn, the project runs these commands in the output directory, in order, and sends you the first failure to fix:\n\n")
+		for _, c := range checks.Commands {
+			fmt.Fprintf(&b, "- %s\n", c.Line)
+		}
+	}
 	b.WriteString("\nThe model:\n\n```tdl\n")
 	b.WriteString(modelText(src))
 	b.WriteString("```\n")
+	return b.String()
+}
+
+// retryPrompt hands a failed check back to the model.
+func retryPrompt(f *host.CheckFailure, try, tries int) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "The check %s failed (%s)", f.Name, f.Status)
+	if f.Output != "" {
+		fmt.Fprintf(&b, ":\n\n```\n%s\n```\n", f.Output)
+	} else {
+		b.WriteString(", printing nothing.\n")
+	}
+	fmt.Fprintf(&b, "\nThat was try %d of %d. Fix the files with write_file, then end your turn again.\n", try, tries)
 	return b.String()
 }
 

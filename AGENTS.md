@@ -347,13 +347,15 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   The prompt (`prompt.go`) is the model as TDL, the target block's `language` (required), `prompt`, the loss codes, the JSON wire convention, and `docs/spec.md`, which the `docs` package embeds; `model` picks the model, `claude-opus-5-5` by default, and `effort` the effort it spends, `medium` by default.
   A path that is absolute or holds `..` ends the conversation with an error and nothing written; a `report_loss` with an unknown code or name is refused back to the model, and the rest become positioned warnings under their codes.
   Each extern warns `lossy.unsupported`, since the prompt does not show what its dependency generates.
-  A missing key is an error before anything is sent, and a conversation is cut off after 50 turns.
+  A missing key is an error before anything is sent, and a conversation is cut off after 50 turns, counted across every try.
+  Under the host's `check` directive it reads the same `tdl.toml` the host does, the nearest above the model's file, lists the command lines in the prompt, and runs them through `host.Checks` each time the model ends its turn; a failure goes back to the model as a message, at most `tries(N)` times (3 by default), and the last is an error that writes nothing, while a command that is not found is an error at once.
+  A case holding a `tdl.toml` runs its checks.
   `TDL_YOLO_REPLAY` names a directory whose `conversation.json` a `Replay` answers from instead, refusing a conversation other than the one it recorded; the recorded system prompt holds a marker in place of the spec.
   `testdata/yolo/<case>/` holds a model, its conversation, the files it wants in `want/`, and `diagnostics.golden`; a case with only a `target.tdl` appends it to the smoke model.
   `go test ./backend/yolo -record` re-records every case live, which needs a key; the committed recordings were written by hand.
   `TestHostsAgree` replays `testdata/yolo/order` in both hosts, its `shipped` row is `pluginOnly`, the round-trip `exempt` list holds it beside `debug`, and `checks.gen-yolo` replays `testdata/yolo/smoke` through the packaged binary.
   It declares itself nondeterministic, so `tdl gen` keeps its output while the request is unchanged and `--verify` needs no key.
-  Phase 1 is built, and #1505 tracks the rest: `check` and `tries`, and the opt-in `agent`.
+  Phases 1 and 2 are built, and #1505 tracks the rest: the opt-in `agent`.
 
 `cmd/tdl-gen-<name>` serves each backend as a plugin.
 `TestHostsAgree` in `internal/gen` holds each to producing the same bytes in process and over a pipe.

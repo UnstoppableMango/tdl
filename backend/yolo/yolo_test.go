@@ -56,7 +56,14 @@ func Source(t *testing.T, dir string) string {
 
 func lower(t *testing.T, src string) *ir.Model {
 	t.Helper()
-	file, err := parser.Parse("source.tdl", strings.NewReader(src))
+	return lowerAt(t, "source.tdl", src)
+}
+
+// lowerAt lowers src as the file at path, so the backend finds the
+// tdl.toml beside it.
+func lowerAt(t *testing.T, path, src string) *ir.Model {
+	t.Helper()
+	file, err := parser.Parse(path, strings.NewReader(src))
 	if err != nil {
 		t.Fatalf("parsing: %v", err)
 	}
@@ -89,7 +96,14 @@ func TestCases(t *testing.T) {
 		}
 		dir := filepath.Join(cases, d.Name())
 		t.Run(d.Name(), func(t *testing.T) {
-			req := request(t, Source(t, dir))
+			// Lowered beside the case's tdl.toml, which a check case
+			// holds, with the output in a directory of its own, beside
+			// which the checks stage the files.
+			model := lowerAt(t, filepath.Join(dir, "source.tdl"), Source(t, dir))
+			req, diags := analysis.Request(model, yolo.Backend{}.Describe(), yolo.Name, filepath.Join(t.TempDir(), "out"))
+			if len(diags) > 0 {
+				t.Fatalf("request: %v", diags)
+			}
 
 			var provider yolo.Provider
 			var recorder *yolo.Recorder
@@ -588,5 +602,67 @@ func TestExternsWarn(t *testing.T) {
 	}
 	if len(resp.GetFiles()) != 1 {
 		t.Errorf("files: %v", resp.GetFiles())
+	}
+}
+
+// checked lowers src as a file beside a tdl.toml holding manifest, with
+// the output in a directory of its own.
+func checked(t *testing.T, manifest, src string) *plugin.Request {
+	t.Helper()
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "tdl.toml"), []byte(manifest), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	model := lowerAt(t, filepath.Join(dir, "source.tdl"), src)
+	req, diags := analysis.Request(model, yolo.Backend{}.Describe(), yolo.Name, filepath.Join(dir, "out"))
+	if len(diags) > 0 {
+		t.Fatalf("request: %v", diags)
+	}
+	return req
+}
+
+// What no try can fix is an error before anything is sent: a tries below
+// one, or a check name tdl.toml does not declare.
+func TestCheckSetupErrors(t *testing.T) {
+	for name, tc := range map[string]struct{ manifest, directives, want string }{
+		"no tries":   {"", `tries(0)`, "at least 1"},
+		"undeclared": {"[check]\n", `check("mix")`, `"mix"`},
+		"no table":   {"", `check("mix")`, `"mix"`},
+	} {
+		t.Run(name, func(t *testing.T) {
+			src := strings.Replace(order, `language("elixir")`, `language("elixir")`+"\n  "+tc.directives, 1)
+			f := &fixed{}
+			resp, err := yolo.Backend{Provider: f}.Generate(context.Background(), checked(t, tc.manifest, src))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(f.seen) != 0 || len(resp.GetFiles()) != 0 {
+				t.Errorf("sent %d turns and wrote %d files", len(f.seen), len(resp.GetFiles()))
+			}
+			if got := diagnostics(resp); !strings.Contains(got, "error") || !strings.Contains(got, tc.want) {
+				t.Errorf("diagnostics: %s", got)
+			}
+		})
+	}
+}
+
+// A check command that is not found is the project's to fix, not the
+// model's, so it is an error after the first answer, with no retry.
+func TestMissingCheckCommandIsNotRetried(t *testing.T) {
+	src := strings.Replace(order, `language("elixir")`, `language("elixir")`+"\n  check(\"mix\")", 1)
+	f := &fixed{replies: []yolo.Message{
+		{Role: yolo.Assistant, Calls: []yolo.Call{call("write_file", `{"path": "order.ex", "content": "x"}`)}, Stop: yolo.StopTool},
+		{Role: yolo.Assistant, Text: "done", Stop: yolo.StopEnd},
+	}}
+	req := checked(t, "[check]\nmix = \"tdl-no-such-command --strict\"\n", src)
+	resp, err := yolo.Backend{Provider: f}.Generate(context.Background(), req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(f.seen) != 2 || len(resp.GetFiles()) != 0 {
+		t.Errorf("sent %d turns and wrote %d files", len(f.seen), len(resp.GetFiles()))
+	}
+	if got := diagnostics(resp); !strings.Contains(got, "was not found") {
+		t.Errorf("diagnostics: %s", got)
 	}
 }

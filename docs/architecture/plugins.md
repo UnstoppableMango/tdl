@@ -189,7 +189,8 @@ The temporary directory is always removed.
 `--verify` runs no check, though it still refuses a name `[check]` does not declare, and neither does reusing a nondeterministic backend's kept output (ADR-0002): both compare bytes that were checked when they were written.
 So the flake-parts module's `checks.tdl-gen`, which runs `tdl gen --verify`, needs no check command on its `PATH`.
 `tdl request`, `tdl import`, `tdl play`, and the language server never run checks.
-The delegated backend will read the same directive from its request for its retry loop (#1508); the host still runs the checks once at the end, as the final gate.
+The delegated backend reads the same directive from its request, and the same `[check]` table, for its retry loop: each time the model ends its turn it stages the files beside the request's output directory and runs the commands, sending a failure, its exit status and output, back to the model, at most `tries(N)` times (3 by default); the last failure is an error that writes nothing.
+Its loop runs over the model's files before `post`, so a check that only a formatter would satisfy costs it a try; the host still runs the checks once at the end, over the post-processed files, as the final gate.
 
 ## Dry run
 
