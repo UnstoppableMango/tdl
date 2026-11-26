@@ -1,8 +1,12 @@
 package golang_test
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
-// leaseSource holds a duration directly, in a list, in a map, and as T?.
+// leaseSource holds a duration directly, in a list, in a map, as T?, and as
+// a map key.
 const leaseSource = `package lease
 
 type Lease {
@@ -10,6 +14,7 @@ type Lease {
   ttls: [duration]
   byName: Map<string, duration>
   maybe: duration?
+  byTtl: Map<duration, string>
 }
 
 target go for lease {
@@ -30,6 +35,7 @@ func TestJSONDuration(t *testing.T) {
 		"Ttls []Duration `json:\"ttls\"`",
 		"ByName map[string]Duration `json:\"byName\"`",
 		"Maybe *Duration `json:\"maybe,omitempty\"`",
+		"ByTtl map[Duration]string `json:\"byTtl\"`",
 	)
 	contains(t, got["duration.go"], "type Duration time.Duration")
 
@@ -60,7 +66,7 @@ func TestWrites(t *testing.T) {
 	}
 }
 
-const doc = `+"`"+`{"ttl":"PT1M30S","ttls":["PT0S","P1DT1H30M"],"byName":{"week":"P7D"},"maybe":"PT0.5S"}`+"`"+`
+const doc = `+"`"+`{"ttl":"PT1M30S","ttls":["PT0S","P1DT1H30M"],"byName":{"week":"P7D"},"maybe":"PT0.5S","byTtl":{"PT1M":"m"}}`+"`"+`
 
 func TestMarshals(t *testing.T) {
 	half := Duration(500 * time.Millisecond)
@@ -69,6 +75,7 @@ func TestMarshals(t *testing.T) {
 		Ttls:   []Duration{0, Duration(25*time.Hour + 30*time.Minute)},
 		ByName: map[string]Duration{"week": Duration(7 * 24 * time.Hour)},
 		Maybe:  &half,
+		ByTtl:  map[Duration]string{Duration(time.Minute): "m"},
 	}
 	out, err := json.Marshal(want)
 	if err != nil {
@@ -81,7 +88,8 @@ func TestMarshals(t *testing.T) {
 `)
 }
 
-// A model declaring its own Duration gets WireDuration in its file.
+// A model declaring its own Duration gets WireDuration in its file, and a
+// package declaring both names refuses the field.
 func TestJSONDurationNameClash(t *testing.T) {
 	resp := generateTDL(t, `package lease
 
@@ -93,8 +101,35 @@ target go for lease {
 `)
 	got := files(t, resp)
 	contains(t, got["duration.go"], "Length WireDuration `json:\"length\"`")
-	contains(t, got["wire_duration.go"], "type WireDuration time.Duration", "func (w WireDuration) MarshalJSON() ([]byte, error)")
+	contains(t, got["wire_duration.go"], "type WireDuration time.Duration", "func (w WireDuration) MarshalText() ([]byte, error)")
 	goTest(t, resp, "package lease\n")
+}
+
+func TestJSONDurationBothNamesTaken(t *testing.T) {
+	resp := generateTDL(t, `package lease
+
+type Duration { length: duration }
+
+enum Wire {
+  Duration { n: int }
+  Other { n: int }
+}
+
+target go for lease {
+  json
+}
+`)
+	got := files(t, resp)
+	if _, ok := got["wire_duration.go"]; ok {
+		t.Errorf("a helper is written beside the variant WireDuration")
+	}
+	var refused bool
+	for _, d := range resp.GetDiagnostics() {
+		refused = refused || strings.Contains(d.GetMessage(), "declares both")
+	}
+	if !refused {
+		t.Errorf("diagnostics = %v, want one refusing duration", resp.GetDiagnostics())
+	}
 }
 
 // Without json, a duration is a time.Duration and no helper is written.
