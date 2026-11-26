@@ -82,7 +82,7 @@ var shipped = []struct {
 	{backend: likec4.Backend{}, model: orderModel, packaged: true},
 	{backend: openapi.Backend{}, model: orderModel, packaged: true, valid: parseYAML},
 	{backend: protobuf.Backend{}, model: orderModel, packaged: true, valid: compileProto, reverse: protoSource},
-	{backend: salesforce.Backend{}, model: orderModel, packaged: true, valid: parseXML},
+	{backend: salesforce.Backend{}, model: orderModel, packaged: true, valid: parseXML, reverse: salesforceSource},
 	{backend: smithy.Backend{}, model: orderModel, packaged: true, reverse: smithySource, needs: smithyCLI},
 	{backend: thrift.Backend{}, model: orderModel, packaged: true, valid: checkThrift, reverse: thriftSource},
 	{backend: typescript.Backend{}, model: orderModel, packaged: true, reverse: typescriptSource, needs: typescriptCompiler},
@@ -144,6 +144,34 @@ type Order {
   tags: [String!]!
 }
 `)}}
+}
+
+// salesforceSource is an object and a field for the salesforce reverse to
+// read.
+func salesforceSource() []*plugin.File {
+	return []*plugin.File{
+		{Path: "objects/Order__c/Order__c.object-meta.xml", Content: []byte(`<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <deploymentStatus>Deployed</deploymentStatus>
+    <description>An order.</description>
+    <label>Order</label>
+    <nameField>
+        <displayFormat>Order-{0000}</displayFormat>
+        <label>Order Number</label>
+        <type>AutoNumber</type>
+    </nameField>
+    <pluralLabel>Orders</pluralLabel>
+    <sharingModel>ReadWrite</sharingModel>
+</CustomObject>
+`)},
+		{Path: "objects/Order__c/fields/Code__c.field-meta.xml", Content: []byte(`<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Code__c</fullName>
+    <label>Code</label>
+    <length>255</length>
+    <required>true</required>
+    <type>Text</type>
+</CustomField>
+`)},
+	}
 }
 
 // goSource is a package for the go reverse to read.

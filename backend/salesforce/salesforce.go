@@ -57,8 +57,24 @@ func (Backend) Describe() plugin.Description {
 			{Name: "prefix", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock)},
 			// On the target block: the API version each Apex class declares.
 			{Name: "apiVersion", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock)},
+			// On the target block: write what generating loses, for import.
+			// Nothing is written yet (#1461).
+			{Name: "roundtrip", Placements: plugin.On(plugin.OnBlock)},
+			// On the target block: also report what import would not read
+			// back.
+			{Name: "readback", Placements: plugin.On(plugin.OnBlock)},
 		},
+		Reverse: true,
+		// Import reads objects and their fields; Apex waits on #1459.
+		ImportPatterns: []string{"*.object-meta.xml", "*.field-meta.xml", "*.validationRule-meta.xml"},
 	}
+}
+
+// Import reads custom objects and their fields into entities, and each
+// picklist's values into an enum. The mapping is in
+// docs/architecture/salesforce-backend.md.
+func (Backend) Import(_ context.Context, req *plugin.ImportRequest) (*plugin.ImportResponse, error) {
+	return readObjects(req.GetFiles(), req.GetReadback())
 }
 
 type generator struct {
@@ -88,6 +104,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	if d, ok := g.Block("apiVersion"); ok {
 		g.apiVersion = d.GetArgs()[0].GetText()
 	}
+	g.Roundtrip, g.Readback = g.Bare("roundtrip"), g.Bare("readback")
 
 	own := g.Own()
 	out := map[*ir.Decl][]*plugin.File{}

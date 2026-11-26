@@ -65,6 +65,11 @@ type Target struct {
 	// Needs says why the target's reader cannot run here, such as a tool
 	// missing from PATH, which skips its cases. Nil needs nothing.
 	Needs func() error
+
+	// Pending says why the target's reader cannot yet read back every
+	// model, which skips smoke, the conformance corpus, and the loss-kind
+	// test for it. Empty reads them all.
+	Pending string
 }
 
 // Run runs every case in dir, a target's directory of the corpus, and
@@ -98,6 +103,9 @@ func Run(t *testing.T, target Target, dir string, smoke ...string) {
 		t.Run("smoke", func(t *testing.T) {
 			if !imports {
 				t.Skipf("%s does not import yet", name)
+			}
+			if target.Pending != "" {
+				t.Skip(target.Pending)
 			}
 			model := lower(t, path, read(t, path))
 			comesBack(t, target, importer, path, model)

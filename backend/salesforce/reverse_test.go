@@ -43,7 +43,7 @@ func generateTDL(t *testing.T, src string) []*plugin.File {
 // readBack imports files and prints the model as TDL.
 func readBack(t *testing.T, files []*plugin.File) (string, []*plugin.Diagnostic) {
 	t.Helper()
-	resp, err := salesforce.ReadObjects(files, true)
+	resp, err := salesforce.Backend{}.Import(context.Background(), &plugin.ImportRequest{Target: salesforce.Name, Files: files, Readback: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -191,7 +191,7 @@ func TestFieldsWarn(t *testing.T) {
 func TestRequiredCheckboxIsReadBackLoss(t *testing.T) {
 	files := []*plugin.File{object("Thing__c", ""), field("Thing__c", "Done__c", "<defaultValue>false</defaultValue><label>Done</label><required>true</required><type>Checkbox</type>")}
 	for _, readback := range []bool{false, true} {
-		resp, err := salesforce.ReadObjects(files, readback)
+		resp, err := salesforce.Backend{}.Import(context.Background(), &plugin.ImportRequest{Target: salesforce.Name, Files: files, Readback: readback})
 		if err != nil {
 			t.Fatal(err)
 		}

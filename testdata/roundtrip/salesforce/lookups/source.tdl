@@ -1,0 +1,10 @@
+package salesforce
+
+type Order: Entity {
+  customer: Customer
+  referrer: Customer?
+}
+
+type Customer: Entity {
+  name: string
+}

@@ -305,6 +305,8 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   A `key` directive makes a field a unique external ID.
   A `standard` directive maps an entity to a standard object, writing its fields under `objects/<Object>/fields/` and no object file, and on a field names a standard field, which is not written.
   Tests check the XML is well formed and `checks.gen-salesforce` runs `xmllint`; nothing checks the Apex.
+  It imports objects and fields: `reverse.go` reads them with `encoding/xml` into package `salesforce`, each custom object an entity and each picklist an enum; Apex waits on #1459 and `roundtrip` annotations on #1461.
+  `Normalize` is its normal form for the round-trip corpus, whose `Pending` skips smoke, the conformance corpus, and `TestLossKinds` until they land.
   See `docs/architecture/salesforce-backend.md`.
 - `backend/haskell`: one module per model, `Shop/Billing.hs` for package `shop.billing` unless a `module` directive names it.
   A struct is a record, an enum a sum type, a newtype a `newtype`, and an alias a `type` synonym; fields keep the model's names under `NoFieldSelectors` and `DuplicateRecordFields`.
@@ -363,6 +365,7 @@ A backend added to the registry needs a row in the `shipped` table in `internal/
 `docs/architecture/schema-backends.md` maps the seven schema backends.
 `docs/architecture/reverse.md` is the import direction, target language to TDL, and #972 tracks the remaining importers.
 `backend/internal/roundtrip` runs a backend forward and back over `testdata/roundtrip/<target>/<case>/`; its `targets` table holds every backend but those in `exempt` (`debug` and `yolo`), with each one's normal form, and `TestEveryTargetIsCovered` checks it against `cmd/`.
+A target whose reader cannot yet read back every model sets `Pending`, which skips smoke, `TestConformanceComesBack`, and `TestLossKinds` for it.
 A model-first case's `lossy.golden` holds the codes generating with `readback` reports, and generating with `roundtrip` must warn exactly what generating with neither does.
 `TestConformanceComesBack` also takes every conformance case without an import through each target that imports, and `TestLossKinds` holds each such target to both kinds of loss.
 `testdata/gen/smoke/source.tdl` exercises the whole mapping, with a target block for each schema backend and for `salesforce`; the nix checks generate from it and run each language's tool on the output.

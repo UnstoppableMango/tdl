@@ -1,0 +1,20 @@
+package salesforce
+
+/// An order.
+///
+/// It has two paragraphs.
+type Order: Entity {
+  code: string
+  note: string?
+  total: decimal
+  units: int64?
+  paid: bool
+  due: date?
+  placedAt: instant
+  deprecated("use code") ref: string?
+}
+
+deprecated
+type Archive: Entity {
+  label: string
+}

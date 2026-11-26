@@ -163,7 +163,7 @@ An importer keeps its own limits: `thrift`, `graphql`, and `typescript` read one
 | `typescript` | the TypeScript compiler API, run by an embedded script under `node` |
 | `smithy` | `smithy ast`, the CLI's JSON AST |
 | `jsonschema` | `encoding/json`, after `santhosh-tekuri/jsonschema` compiles the document |
-| `salesforce` | `encoding/xml` and a recognizer for Apex |
+| `salesforce` | `encoding/xml` for objects and fields; Apex is not read yet (#1459) |
 
 `typescript` needs `node` and `tsc` on `PATH`, and `smithy` the Smithy CLI, and each says so when one is missing.
 Each is replaced by a Go parser: Smithy IDL is small enough to parse from its published grammar, and TypeScript moves to `microsoft/typescript-go` once its AST is importable.
@@ -183,7 +183,7 @@ Schema-first tests compare each schema in a normal form:
 | `typescript` | the compiler API's outline as JSON, without positions, its JSDoc read into doc comments and tags |
 | `smithy` | the `smithy ast` JSON of the shapes each file declares, and the metadata |
 | `jsonschema` | the parsed document with object keys sorted |
-| `salesforce` | the parsed XML, and the Apex recognizer's output |
+| `salesforce` | each object and field parsed and written again without the elements import does not read; Apex compared as written until it is read |
 
 Formatting and ordinary comments are not part of a model, so they are not compared.
 
