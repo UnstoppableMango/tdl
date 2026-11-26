@@ -658,7 +658,7 @@ DeepSource (`.deepsource.toml`) runs the `go`, `shell`, `secrets`, and `test-cov
 Coverage comes from the `check` job's `cover.profile`, authenticated with OIDC; the CLI comes from the devShell.
 Check a Go style finding against `.golangci.yml` before acting on it.
 
-CodeQL (`.github/workflows/codeql.yml`) analyses Go and the workflows on every pull request, every push to `main`, and weekly.
+CodeQL (`.github/workflows/codeql.yml`) analyses the Go `go build ./...` compiles, so neither tests nor `cmd/tdl-gmk`, and the workflows, on every pull request, every push to `main`, and weekly.
 It overlaps DeepSource, but OpenSSF Scorecard's SAST check counts CodeQL and not DeepSource (#1565).
 It is advisory, outside the `required` job's `needs`; triage each alert by fixing it, filing a `needs-triage` issue, or dismissing it with a reason.
 
@@ -667,7 +667,7 @@ Reply with what changed, or why nothing did, then resolve.
 
 The one required check is the `required` job in `.github/workflows/ci.yml`.
 It needs `check`, on `ubuntu-latest`, and `darwin`, on `macos-latest`.
-A new CI job goes in its `needs`, not in the ruleset (declared in Pulumi in `UnstoppableMango/vcs`).
+A new CI job goes in its `needs`, not in the ruleset, unless it is advisory like `buf.yml` and `codeql.yml` (declared in Pulumi in `UnstoppableMango/vcs`).
 
 Pull requests are stacked, and GitHub rebases the rest of the stack on merge; reset local branches from the remote afterwards.
 `gh pr merge` and `PUT /pulls/{n}/merge` refuse a stacked pull request.
