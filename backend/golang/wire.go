@@ -32,7 +32,7 @@ var wireTypes = []wireType{
 		prim:    "duration",
 		name:    "Duration",
 		doc:     "is a time.Duration that the JSON wire convention writes as an ISO 8601 duration with no year or month part, such as PT1M30S.",
-		imports: []string{"encoding/json", "strconv", "strings", "time"},
+		imports: []string{"encoding/json", "fmt", "strconv", "strings", "time"},
 		body:    durationBody,
 	},
 }
@@ -102,7 +102,9 @@ func wirePath(name string, taken func(string) bool) string {
 	return path
 }
 
-// durationBody writes a Duration, whose String writes the convention's form.
+// durationBody writes a Duration: String writes the convention's form, and
+// UnmarshalJSON reads weeks, days, hours, minutes, and seconds with a
+// fraction, and refuses a year or month part.
 func durationBody(name string) string {
 	return strings.NewReplacer("$T", name, "$r", strings.ToLower(name[:1])).Replace(`type $T time.Duration
 
@@ -147,6 +149,101 @@ func ($r $T) String() string {
 // MarshalJSON writes $r as an ISO 8601 duration string.
 func ($r $T) MarshalJSON() ([]byte, error) {
 	return json.Marshal($r.String())
+}
+
+// UnmarshalJSON reads an ISO 8601 duration string with no year or month part.
+func ($r *$T) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		return nil
+	}
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return fmt.Errorf("a duration is an ISO 8601 string: %w", err)
+	}
+	bad := fmt.Errorf("%q is not an ISO 8601 duration", s)
+	rest, neg := s, false
+	if rest != "" && (rest[0] == '-' || rest[0] == '+') {
+		rest, neg = rest[1:], rest[0] == '-'
+	}
+	rest, ok := strings.CutPrefix(rest, "P")
+	if !ok || rest == "" {
+		return bad
+	}
+	const limit = uint64(1) << 63
+	total, last, inTime := uint64(0), ^uint64(0), false
+	for rest != "" {
+		if rest[0] == 'T' {
+			if inTime || len(rest) == 1 {
+				return bad
+			}
+			rest, inTime = rest[1:], true
+			continue
+		}
+		i := 0
+		for i < len(rest) && rest[i] >= '0' && rest[i] <= '9' {
+			i++
+		}
+		whole, frac := rest[:i], ""
+		if i < len(rest) && (rest[i] == '.' || rest[i] == ',') {
+			j := i + 1
+			for j < len(rest) && rest[j] >= '0' && rest[j] <= '9' {
+				j++
+			}
+			frac, i = rest[i+1:j], j
+			if frac == "" {
+				return bad
+			}
+		}
+		if whole == "" || i == len(rest) {
+			return bad
+		}
+		unit := rest[i]
+		rest = rest[i+1:]
+		var scale uint64
+		switch {
+		case unit == 'Y' || (unit == 'M' && !inTime):
+			return fmt.Errorf("%q has a year or month part, which has no fixed length", s)
+		case unit == 'W' && !inTime:
+			scale = uint64(7 * 24 * time.Hour)
+		case unit == 'D' && !inTime:
+			scale = uint64(24 * time.Hour)
+		case unit == 'H' && inTime:
+			scale = uint64(time.Hour)
+		case unit == 'M' && inTime:
+			scale = uint64(time.Minute)
+		case unit == 'S' && inTime:
+			scale = uint64(time.Second)
+		default:
+			return bad
+		}
+		if scale >= last || (frac != "" && unit != 'S') {
+			return bad
+		}
+		last = scale
+		n, err := strconv.ParseUint(whole, 10, 64)
+		if err != nil || n > limit/scale {
+			return fmt.Errorf("%q does not fit a time.Duration", s)
+		}
+		n *= scale
+		if frac != "" {
+			frac = (frac + "00000000")[:9]
+			f, _ := strconv.ParseUint(frac, 10, 64)
+			n += f
+		}
+		if n > limit-total {
+			return fmt.Errorf("%q does not fit a time.Duration", s)
+		}
+		total += n
+	}
+	if total == limit && !neg {
+		return fmt.Errorf("%q does not fit a time.Duration", s)
+	}
+	v := int64(total)
+	if neg {
+		v = -v
+	}
+	*$r = $T(v)
+	return nil
 }
 `)
 }
