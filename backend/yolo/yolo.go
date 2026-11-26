@@ -150,7 +150,12 @@ func (b Backend) Generate(ctx context.Context, req *plugin.Request) (*plugin.Res
 func (g *generator) modelAndEffort(provider string) (model, effort string, ok bool) {
 	model, hasModel := g.blockText("model")
 	effort, hasEffort := g.blockText("effort")
-	if provider != ProviderOpenAI {
+	if !slices.Contains(Providers, provider) {
+		d, _ := g.Block("provider")
+		g.Error(d.GetPosition(), "there is no provider named %q; use one of %s", provider, strings.Join(Providers, ", "))
+		return "", "", false
+	}
+	if provider == ProviderAnthropic {
 		if !hasModel {
 			model = DefaultModel
 		}

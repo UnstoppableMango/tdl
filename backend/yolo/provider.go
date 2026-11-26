@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+
+	"github.com/openai/openai-go/v3/option"
 )
 
 // Provider is a language model service: it takes a conversation and
@@ -110,6 +112,8 @@ const KeyEnv = "ANTHROPIC_API_KEY"
 const (
 	OpenAIBaseURLEnv = "OPENAI_BASE_URL"
 	OpenAIKeyEnv     = "OPENAI_API_KEY"
+
+	openAIDefaultBaseURL = "https://api.openai.com/v1/"
 )
 
 // FromEnv is the provider the environment names: a replay of the
@@ -139,7 +143,13 @@ func Live(name string) (Provider, error) {
 		if os.Getenv(OpenAIBaseURLEnv) == "" && os.Getenv(OpenAIKeyEnv) == "" {
 			return nil, errors.New("the yolo backend's openai provider needs " + OpenAIBaseURLEnv + ", " + OpenAIKeyEnv + ", or both set")
 		}
-		return NewOpenAI(), nil
+		// The SDK takes an exported but empty OPENAI_BASE_URL as the base
+		// URL itself, which no request reaches.
+		var opts []option.RequestOption
+		if os.Getenv(OpenAIBaseURLEnv) == "" {
+			opts = append(opts, option.WithBaseURL(openAIDefaultBaseURL))
+		}
+		return NewOpenAI(opts...), nil
 	}
 	return nil, fmt.Errorf("there is no provider named %q", name)
 }

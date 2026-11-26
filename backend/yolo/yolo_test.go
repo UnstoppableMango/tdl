@@ -306,6 +306,18 @@ func TestOpenAIRefusesBeforeSending(t *testing.T) {
 	}
 }
 
+// A provider the host did not check is still refused before anything is
+// sent.
+func TestUnknownProviderIsRefused(t *testing.T) {
+	src := strings.Replace(order, `language("elixir")`, `language("elixir") provider("gemini")`, 1)
+	f := &fixed{}
+	resp, err := yolo.Backend{Provider: f}.Generate(context.Background(), request(t, src))
+	if err == nil && len(f.seen) == 0 && strings.Contains(diagnostics(resp), `"gemini"`) {
+		return
+	}
+	t.Errorf("sent %d turns, %v: %s", len(f.seen), err, diagnostics(resp))
+}
+
 // A base URL alone is enough, since a local server needs no key.
 func TestOpenAIBaseURLNeedsNoKey(t *testing.T) {
 	t.Setenv(yolo.OpenAIBaseURLEnv, "http://localhost:11434/v1")
