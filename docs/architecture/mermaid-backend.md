@@ -78,9 +78,14 @@ A field's targets are its type's `TypeView.references` that the diagram draws, t
 A variant's field draws from the variant's class, and a class's field from the class.
 The far end's cardinality is the field's outermost type: `*` for a list, set, or map, `0..1` for an option or a nullable union, and `1` otherwise.
 A service's rpcs draw no edges, and an included field draws none of its own, since its mixin draws them.
+A newtype draws no edge: its one member names its base.
+
+The model records where an included field came from, not which mixins a structure includes, so the inheritance edges are read from the fields: a mixin with no fields draws no edge, and a field a mixin took from another mixin draws its edge from the mixin that declared it.
+A field from a mixin the diagram does not draw, one of another package's, stays a member.
 
 An extern a field names is a memberless class inside `namespace <package id> { }`, with no warning: `namespace acme_money { class Money }`.
 Its id is its name, with `_` appended while a declaration or a variant holds it, and then labelled with the name.
+A namespace's id is the package's, with `_` appended while Mermaid reserves it or a class holds it.
 
 ## Directives
 

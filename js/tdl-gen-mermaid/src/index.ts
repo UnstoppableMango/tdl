@@ -114,8 +114,13 @@ class Diagram {
 	// The class id each drawn extern took, by its index in Model.externs.
 	readonly #externs = new Map<number, string>();
 
+	// The request's own declarations, which the diagram draws but for aliases,
+	// primitives, and units.
+	readonly #drawn: Set<ir.Decl>;
+
 	constructor(s: Session, own: readonly ir.Decl[]) {
 		this.#s = s;
+		this.#drawn = new Set(own);
 		this.#taken = new Set(own.map((d) => lastSegment(d.meta?.name ?? "")));
 	}
 
@@ -130,13 +135,12 @@ class Diagram {
 					this.#class(
 						id,
 						"service",
-						fields(d).map((f) => this.#rpc(f) ?? this.#member(f)),
+						this.#own(fields(d)).map((f) => this.#rpc(f) ?? this.#member(f)),
 					);
 					return;
 				}
 				const stereotype = d.node.value.kind === ir.StructKind.MIXIN ? "mixin" : undefined;
-				// An included field is drawn on its mixin, joined by one edge.
-				this.#class(id, stereotype, this.#members(fields(d).filter((f) => !f.includedFrom)));
+				this.#class(id, stereotype, this.#members(this.#own(fields(d))));
 				return;
 			}
 			case "enumeration": {
@@ -189,7 +193,7 @@ class Diagram {
 				const service = this.#s.tagged(d.directives, "service");
 				const mixins = new Set<ir.Decl>();
 				for (const f of fields(d)) {
-					const mixin = f.includedFrom && this.#s.declAt(f.includedFrom);
+					const mixin = this.#mixin(f);
 					if (mixin) {
 						mixins.add(mixin);
 					}
@@ -205,7 +209,7 @@ class Diagram {
 				// its mixin's.
 				this.#fieldEdges(
 					from,
-					fields(d).filter((f) => !f.includedFrom && !(service && this.#rpc(f) !== undefined)),
+					this.#own(fields(d)).filter((f) => !(service && this.#rpc(f) !== undefined)),
 				);
 				return;
 			}
@@ -225,7 +229,11 @@ class Diagram {
 		}
 	}
 
-	/** The externs fields name, each package's in one `namespace` block. */
+	/**
+	 * The externs fields name, each package's in one `namespace` block, its
+	 * id the package's, with `_` appended while Mermaid reserves it or a
+	 * class holds it.
+	 */
 	namespaces(): string[] {
 		const byPackage = new Map<string, string[]>();
 		for (const [i, id] of this.#externs) {
@@ -234,7 +242,23 @@ class Diagram {
 			const label = e && id !== e.name ? `["${e.name}"]` : "";
 			byPackage.set(pkg, [...(byPackage.get(pkg) ?? []), `    class ${id}${label}`]);
 		}
-		return [...byPackage].flatMap(([pkg, classes]) => [`  namespace ${pkg} {`, ...classes, "  }"]);
+		return [...byPackage].flatMap(([pkg, classes]) => [
+			`  namespace ${this.#free(KEYWORDS.has(pkg) ? `${pkg}_` : pkg)} {`,
+			...classes,
+			"  }",
+		]);
+	}
+
+	// The drawn mixin a field was copied from, or undefined for a field the
+	// structure wrote or one from a mixin the diagram does not draw.
+	#mixin(f: ir.Field): ir.Decl | undefined {
+		const m = f.includedFrom && this.#s.declAt(f.includedFrom);
+		return m && this.#drawn.has(m) ? m : undefined;
+	}
+
+	// A structure's fields but those a drawn mixin stands for.
+	#own(fs: readonly ir.Field[]): ir.Field[] {
+		return fs.filter((f) => !this.#mixin(f));
 	}
 
 	#conforms(from: string, refs: readonly ir.ClassRef[]): void {

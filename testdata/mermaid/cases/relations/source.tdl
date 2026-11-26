@@ -3,6 +3,7 @@
 package shop
 
 import "money.tdl" as money
+import "style.tdl" as style
 
 class Priced {
   price: money.Money
@@ -33,6 +34,7 @@ type Order: Entity, Priced {
   buyer: User?
   next: Order | null
   price: money.Money
+  theme: style.Theme
   include Audited
 }
 

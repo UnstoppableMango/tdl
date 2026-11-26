@@ -26,6 +26,7 @@ classDiagram
     +Option~User~ buyer
     +Order | null next
     +Money price
+    +Theme theme
   }
   class Payment {
     <<union>>
@@ -36,6 +37,9 @@ classDiagram
   class Payment_Cash["Cash"]
   namespace acme_money {
     class Money
+  }
+  namespace style_ {
+    class Theme
   }
   Payment <|-- Payment_Card
   Payment <|-- Payment_Cash
@@ -50,4 +54,5 @@ classDiagram
   Order "1" --> "0..1" User : buyer
   Order "1" --> "0..1" Order : next
   Order "1" --> "1" Money : price
+  Order "1" --> "1" Theme : theme
   Payment_Card "1" --> "1" User : holder
