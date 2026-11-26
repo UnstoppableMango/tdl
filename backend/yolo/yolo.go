@@ -48,9 +48,14 @@ func (Backend) Describe() plugin.Description {
 			{Name: "language", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: block},
 			// Free-text instructions added to the prompt.
 			{Name: "prompt", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: block},
-			// The model answering, DefaultModel when absent.
+			// The service answering, the first of Providers when absent.
+			{Name: "provider", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: block, Values: Providers},
+			// The model answering, DefaultModel when absent under
+			// anthropic, and required under openai.
 			{Name: "model", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: block},
-			// The effort the model spends, DefaultEffort when absent.
+			// The effort the model spends, DefaultEffort when absent under
+			// anthropic; under openai, one of OpenAIEfforts, and not sent
+			// when absent.
 			{Name: "effort", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: block, Values: Efforts},
 		},
 	}
@@ -82,18 +87,18 @@ func (b Backend) Generate(ctx context.Context, req *plugin.Request) (*plugin.Res
 		return g.Response(nil), nil
 	}
 	instructions, _ := g.blockText("prompt")
-	model, ok := g.blockText("model")
+	name, ok := g.blockText("provider")
 	if !ok {
-		model = DefaultModel
+		name = Providers[0]
 	}
-	effort, ok := g.blockText("effort")
+	model, effort, ok := g.modelAndEffort(name)
 	if !ok {
-		effort = DefaultEffort
+		return g.Response(nil), nil
 	}
 
 	provider := b.Provider
 	if provider == nil {
-		p, err := FromEnv()
+		p, err := FromEnv(name)
 		if err != nil {
 			g.Error(g.block, "%v", err)
 			return g.Response(nil), nil
@@ -138,6 +143,33 @@ func (b Backend) Generate(ctx context.Context, req *plugin.Request) (*plugin.Res
 		files[i] = &plugin.File{Path: p, Content: g.files[p]}
 	}
 	return g.Response(files), nil
+}
+
+// modelAndEffort reads the model and effort directives as the provider
+// takes them, reporting an error when they do not fit it.
+func (g *generator) modelAndEffort(provider string) (model, effort string, ok bool) {
+	model, hasModel := g.blockText("model")
+	effort, hasEffort := g.blockText("effort")
+	if provider != ProviderOpenAI {
+		if !hasModel {
+			model = DefaultModel
+		}
+		if !hasEffort {
+			effort = DefaultEffort
+		}
+		return model, effort, true
+	}
+	// An OpenAI-compatible server serves models no default can name.
+	if !hasModel {
+		g.Error(g.block, `a yolo target block with provider("openai") needs model(...) naming the model`)
+		return "", "", false
+	}
+	if hasEffort && !slices.Contains(OpenAIEfforts, effort) {
+		d, _ := g.Block("effort")
+		g.Error(d.GetPosition(), "the openai provider takes effort %s, not %q", strings.Join(OpenAIEfforts, ", "), effort)
+		return "", "", false
+	}
+	return model, effort, true
 }
 
 // blockText reads a directive on the target block.

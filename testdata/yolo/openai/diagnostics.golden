@@ -1,0 +1,1 @@
+4:1 warning lossy.struct-kind: A Kotlin data class carries no identity, so nothing marks Order as an entity.

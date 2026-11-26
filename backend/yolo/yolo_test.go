@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -21,8 +22,9 @@ import (
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
-// record re-records every case against Anthropic's API, which needs
-// ANTHROPIC_API_KEY, and rewrites what each case wants.
+// record re-records every case against its provider's live API, which
+// needs ANTHROPIC_API_KEY, or OPENAI_BASE_URL or OPENAI_API_KEY for a
+// provider("openai") case, and rewrites what each case wants.
 var record = flag.Bool("record", false, "re-record testdata/yolo against the live API")
 
 const (
@@ -89,16 +91,21 @@ func TestCases(t *testing.T) {
 		}
 		dir := filepath.Join(cases, d.Name())
 		t.Run(d.Name(), func(t *testing.T) {
-			req := request(t, Source(t, dir))
+			src := Source(t, dir)
+			req := request(t, src)
 
 			var provider yolo.Provider
 			var recorder *yolo.Recorder
 			if *record {
-				key := os.Getenv(yolo.KeyEnv)
-				if key == "" {
-					t.Fatalf("-record needs %s", yolo.KeyEnv)
+				name := yolo.ProviderAnthropic
+				if m := providerDirective.FindStringSubmatch(src); m != nil {
+					name = m[1]
 				}
-				recorder = &yolo.Recorder{Provider: yolo.NewAnthropic(key)}
+				live, err := yolo.Live(name)
+				if err != nil {
+					t.Fatalf("-record: %v", err)
+				}
+				recorder = &yolo.Recorder{Provider: live}
 				provider = recorder
 			} else {
 				r, err := yolo.LoadReplay(dir)
@@ -123,6 +130,9 @@ func TestCases(t *testing.T) {
 		})
 	}
 }
+
+// providerDirective finds the provider a case's target block names.
+var providerDirective = regexp.MustCompile(`provider\("(\w+)"\)`)
 
 func diagnostics(resp *plugin.Response) string {
 	var b strings.Builder
@@ -256,6 +266,63 @@ func TestMissingKeyWritesNothing(t *testing.T) {
 	}
 	if got := diagnostics(resp); !strings.Contains(got, "error") || !strings.Contains(got, yolo.KeyEnv) {
 		t.Errorf("diagnostics: %s", got)
+	}
+}
+
+// The openai provider needs an endpoint or a key, a model, and an effort
+// it can send; without one, nothing is sent and nothing written.
+func TestOpenAIRefusesBeforeSending(t *testing.T) {
+	openai := func(directives string) string {
+		return strings.Replace(order, `language("elixir")`, `language("elixir")
+  provider("openai")
+  `+directives, 1)
+	}
+	for name, tc := range map[string]struct {
+		src, env, want string
+	}{
+		"no endpoint or key": {openai(`model("gpt-5.5")`), "", yolo.OpenAIBaseURLEnv},
+		"no model":           {openai(`effort("low")`), "set", `model(...)`},
+		"xhigh":              {openai(`model("gpt-5.5") effort("xhigh")`), "set", "low, medium, high"},
+		"max":                {openai(`model("gpt-5.5") effort("max")`), "set", `not "max"`},
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Setenv(yolo.ReplayEnv, "")
+			t.Setenv(yolo.OpenAIBaseURLEnv, tc.env)
+			t.Setenv(yolo.OpenAIKeyEnv, "")
+			resp, err := yolo.Backend{}.Generate(context.Background(), request(t, tc.src))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(resp.GetFiles()) != 0 {
+				t.Errorf("wrote %d files", len(resp.GetFiles()))
+			}
+			if got := diagnostics(resp); !strings.Contains(got, "error") || !strings.Contains(got, tc.want) {
+				t.Errorf("diagnostics: %s", got)
+			}
+			if name == "no endpoint or key" && !strings.Contains(diagnostics(resp), yolo.OpenAIKeyEnv) {
+				t.Errorf("the error does not name %s", yolo.OpenAIKeyEnv)
+			}
+		})
+	}
+}
+
+// A base URL alone is enough, since a local server needs no key.
+func TestOpenAIBaseURLNeedsNoKey(t *testing.T) {
+	t.Setenv(yolo.OpenAIBaseURLEnv, "http://localhost:11434/v1")
+	t.Setenv(yolo.OpenAIKeyEnv, "")
+	if _, err := yolo.Live(yolo.ProviderOpenAI); err != nil {
+		t.Error(err)
+	}
+}
+
+// Under openai, the model is the one written and no effort is sent unless
+// one is; Anthropic keeps its defaults.
+func TestOpenAIModelAndEffort(t *testing.T) {
+	src := strings.Replace(order, `language("elixir")`, `language("elixir") provider("openai") model("qwen3")`, 1)
+	f := &fixed{replies: []yolo.Message{{Role: yolo.Assistant, Stop: yolo.StopEnd}}}
+	_, _ = yolo.Backend{Provider: f}.Generate(context.Background(), request(t, src))
+	if f.seen[0].Model != "qwen3" || f.seen[0].Effort != "" {
+		t.Errorf("model %q, effort %q", f.seen[0].Model, f.seen[0].Effort)
 	}
 }
 

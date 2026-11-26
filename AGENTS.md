@@ -341,14 +341,15 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   See `docs/architecture/mermaid-backend.md`.
 - `backend/debug`: describes the model it was given, to exercise the protocol.
 - `backend/yolo` (`yolo`): the delegated backend (see `CONTEXT.md`, #1505), served only as `tdl-gen-yolo` and never compiled into `tdl`, so `tdl` links no model client; `nix/cmd.nix` ships it.
-  It holds one conversation per request with a language model through a `Provider`, Anthropic's through `anthropic-sdk-go` with `ANTHROPIC_API_KEY`, and the model answers with `write_file` and `report_loss` tool calls.
-  The prompt (`prompt.go`) is the model as TDL, the target block's `language` (required), `prompt`, the loss codes, the JSON wire convention, and `docs/spec.md`, which the `docs` package embeds; `model` picks the model, `claude-opus-5-5` by default, and `effort` the effort it spends, `medium` by default.
+  It holds one conversation per request with a language model through a `Provider`, and the model answers with `write_file` and `report_loss` tool calls.
+  The `provider` directive picks it: `anthropic`, the default, through `anthropic-sdk-go` with `ANTHROPIC_API_KEY`, or `openai` (`openai.go`), Chat Completions through `openai-go` against `OPENAI_BASE_URL` with `OPENAI_API_KEY`, either alone enough, for OpenAI and the servers speaking its API (#1513).
+  The prompt (`prompt.go`) is the model as TDL, the target block's `language` (required), `prompt`, the loss codes, the JSON wire convention, and `docs/spec.md`, which the `docs` package embeds; `model` picks the model, `claude-opus-5-5` by default and required under `openai`, and `effort` the effort it spends, `medium` by default; under `openai` it is sent as `reasoning_effort` only when written, and only `low`, `medium`, or `high`.
   A path that is absolute or holds `..` ends the conversation with an error and nothing written; a `report_loss` with an unknown code or name is refused back to the model, and the rest become positioned warnings under their codes.
   Each extern warns `lossy.unsupported`, since the prompt does not show what its dependency generates.
   A missing key is an error before anything is sent, and a conversation is cut off after 50 turns.
   `TDL_YOLO_REPLAY` names a directory whose `conversation.json` a `Replay` answers from instead, refusing a conversation other than the one it recorded; the recorded system prompt holds a marker in place of the spec.
   `testdata/yolo/<case>/` holds a model, its conversation, the files it wants in `want/`, and `diagnostics.golden`; a case with only a `target.tdl` appends it to the smoke model.
-  `go test ./backend/yolo -record` re-records every case live, which needs a key; the committed recordings were written by hand.
+  `go test ./backend/yolo -record` re-records every case live against the provider its block names, which needs a key; the committed recordings were written by hand, `testdata/yolo/openai` among them.
   `TestHostsAgree` replays `testdata/yolo/order` in both hosts, its `shipped` row is `pluginOnly`, the round-trip `exempt` list holds it beside `debug`, and `checks.gen-yolo` replays `testdata/yolo/smoke` through the packaged binary.
   It declares itself nondeterministic, so `tdl gen` keeps its output while the request is unchanged and `--verify` needs no key.
   Phase 1 is built, and #1505 tracks the rest: `check` and `tries`, and the opt-in `agent`.
