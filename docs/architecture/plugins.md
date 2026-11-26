@@ -52,6 +52,19 @@ A version refusal names both versions, and a target refusal the target asked for
 The host shows the plugin's text after its name, `tdl-gen-fsharp refused: serves csharp, fsharp; asked for vb`, and does not compare the reply's name with the target, trusting a plugin on `PATH` to serve what it was started for.
 A host built before the target field sends none (ADR-0003).
 
+### Serving several backends
+
+One plugin executable may serve several backends, such as `csharp` and `fsharp` from one Native AOT binary.
+Each target is still started as `tdl-gen-<target>`, typically a link to the shared executable, and one connection serves one target.
+The Go SDK takes every backend in the plugin's main, `plugin.Serve(csharp.Backend{}, fsharp.Backend{})`, and picks one at the handshake by its description's name:
+
+1. the handshake's target;
+1. with no target and one backend, that backend;
+1. with no target and several, the executable's base name with `tdl-gen-` stripped.
+
+Anything else is refused, `serves csharp, fsharp; asked for vb`, which covers an unserved target, the shared executable started under its own name, and a single-backend plugin asked for another target.
+After the handshake the connection is that backend's alone, exactly as if it were the only one.
+
 ### Directive declarations
 
 The plugin declares directives by name, arity, and literal kind: `tag` takes one string, `slice` takes none.

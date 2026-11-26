@@ -15,6 +15,12 @@
 //
 // Build it as tdl-gen-<name> and put it on PATH.
 //
+// One executable may serve several backends that share a core: list them
+// all, as plugin.Serve(csharp{}, fsharp{}), and link the executable as
+// tdl-gen-<name> for each. Every connection is served by the backend whose
+// name the handshake asks for; [ServeConn] says how one is chosen when the
+// host names none.
+//
 // # What a request contains
 //
 // The prelude's declarations (string, List, Option, and the rest) are in
