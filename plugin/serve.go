@@ -28,6 +28,10 @@ func Serve(bs ...Backend) error {
 // executable, tdl-gen-<name>. Any other target is refused, naming the
 // targets served. The rest of the connection is that backend's alone.
 func ServeConn(ctx context.Context, conn *Conn, bs ...Backend) error {
+	if err := distinct(bs); err != nil {
+		return err
+	}
+
 	var hello Handshake
 	if err := conn.Recv(&hello); err != nil {
 		return fmt.Errorf("plugin: reading the handshake: %w", err)
@@ -101,6 +105,23 @@ func serveImports(ctx context.Context, b Importer, conn *Conn) error {
 			return fmt.Errorf("plugin: answering: %w", err)
 		}
 	}
+}
+
+// distinct refuses a plugin serving no backend, or two under one name,
+// since the handshake could never choose between them.
+func distinct(bs []Backend) error {
+	if len(bs) == 0 {
+		return errors.New("plugin: no backend to serve")
+	}
+	seen := map[string]bool{}
+	for _, b := range bs {
+		name := b.Describe().Name
+		if seen[name] {
+			return fmt.Errorf("plugin: two backends are named %s", name)
+		}
+		seen[name] = true
+	}
+	return nil
 }
 
 // choose picks the backend a connection serves: the one named target, or
