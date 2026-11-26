@@ -3,19 +3,13 @@ package salesforce
 import (
 	"encoding/xml"
 	"fmt"
-	"maps"
-	"path"
-	"slices"
 	"strings"
-	"sync"
 
 	"github.com/unstoppablemango/tdl/ast"
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/backend/internal/reverse"
 	"github.com/unstoppablemango/tdl/ir"
-	"github.com/unstoppablemango/tdl/parser"
 	"github.com/unstoppablemango/tdl/plugin"
-	"github.com/unstoppablemango/tdl/prelude"
 )
 
 // importPackage is the package an import reads into, since Salesforce
@@ -29,7 +23,7 @@ type reader struct {
 	// entities maps each custom object read, lower-cased since Salesforce
 	// ignores case, to the entity it reads as.
 	entities map[string]string
-	decls []ast.Decl
+	decls    []ast.Decl
 }
 
 // objectFiles is what the input holds under one objects/<Object>/ folder.
@@ -39,30 +33,10 @@ type objectFiles struct {
 	fields []*plugin.File
 	rules  []*plugin.File
 	other  []*plugin.File
-
-	// skip is set when the object's entity name is taken, which name has
-	// warned about.
-	skip bool
 }
 
-// preludeNames are the prelude's declarations, which a declaration read
-// would shadow.
-var preludeNames = sync.OnceValue(func() map[string]bool {
-	names := map[string]bool{}
-	file, err := parser.Parse("prelude.tdl", strings.NewReader(prelude.Source))
-	if err != nil {
-		panic(err)
-	}
-	for _, d := range file.Decls {
-		if n, ok := d.(interface{ Name() string }); ok {
-			names[n.Name()] = true
-		}
-	}
-	return names
-})
-
 // readObjects reads the object and field metadata among files into a
-// model, each custom object an entity.
+// model: each custom object an entity.
 // What has no TDL form warns and is skipped.
 func readObjects(files []*plugin.File, readback bool) (*plugin.ImportResponse, error) {
 	r := &reader{entities: map[string]string{}}
@@ -88,25 +62,14 @@ func (r *reader) read(files []*plugin.File) (*ir.Model, error) {
 }
 
 // group sorts files by the object folder holding them, in the order each
-// folder first appears, and warns about each file outside one.
+// folder first appears.
 func (r *reader) group(files []*plugin.File) []*objectFiles {
 	var out []*objectFiles
 	byAPI := map[string]*objectFiles{}
-	apex := false
 	for _, f := range files {
 		p := f.GetPath()
 		api, rest, ok := objectPath(p)
 		if !ok {
-			if strings.HasSuffix(p, ".cls") || strings.HasSuffix(p, ".cls-meta.xml") {
-				if !apex {
-					// No loss code: the classes are not lost, only not read
-					// yet (#1459).
-					r.Warn("", filePos(f), "Apex classes are not read yet, so %s and every other class is skipped", p)
-				}
-				apex = true
-				continue
-			}
-			r.Warn(emit.LossUnsupported, filePos(f), "%s is not an object or a field, and is not read", p)
 			continue
 		}
 		o := byAPI[api]
@@ -161,38 +124,15 @@ func (r *reader) name(o *objectFiles) {
 	if err != nil || o.object == nil {
 		return
 	}
-	n := emit.Pascal(base)
-	if r.taken(n) || preludeNames()[n] {
-		r.Warn(emit.LossUnsupported, filePos(o.object), "%s reads as %s, which another declaration has, so the object is not read", o.api, n)
-		o.skip = true
-		return
-	}
-	r.entities[strings.ToLower(o.api)] = n
-}
-
-// skipAll warns that every file in an object folder is not read, and why.
-func (r *reader) skipAll(o *objectFiles, why string) {
-	for _, group := range [][]*plugin.File{{o.object}, o.fields, o.rules, o.other} {
-		for _, f := range group {
-			if f != nil {
-				r.Warn(emit.LossUnsupported, filePos(f), "%s, so %s is not read", why, f.GetPath())
-			}
-		}
-	}
+	r.entities[strings.ToLower(o.api)] = emit.Pascal(base)
 }
 
 // object reads one object folder into an entity, warning about everything
 // in it that has no TDL form.
 func (r *reader) object(o *objectFiles) error {
 	base, err := custom(o.api)
-	switch {
-	case o.skip:
-		return nil
-	case err != nil:
-		r.skipAll(o, err.Error())
-		return nil
-	case o.object == nil:
-		r.skipAll(o, o.api+" has no object file")
+	if err != nil || o.object == nil {
+		// What is skipped warns in the next part of the stack.
 		return nil
 	}
 	var obj customObject
@@ -211,46 +151,10 @@ func (r *reader) object(o *objectFiles) error {
 		r.Directive(name, "plural", reverse.StrLit(obj.PluralLabel))
 	}
 
-	// unread names the elements that mean something to an org and nothing
-	// to the model, warned about once for the object.
-	unread := map[string]bool{}
 	pos := filePos(o.object)
-	for _, e := range obj.Other {
-		if e.XMLName.Local == "validationRules" {
-			r.Warn(emit.LossConstraint, at(o.object, e.XMLName.Local), "%s has a validation rule, which is not read", o.api)
-			continue
-		}
-		unread[e.XMLName.Local] = true
-	}
-	for _, f := range o.rules {
-		r.Warn(emit.LossConstraint, filePos(f), "%s has a validation rule, %s, which is not read", o.api, path.Base(f.GetPath()))
-	}
-	for _, f := range o.other {
-		_, rest, _ := objectPath(f.GetPath())
-		unread[strings.Split(rest, "/")[0]] = true
-	}
-	if obj.DeploymentStatus != "Deployed" {
-		unread["deploymentStatus"] = true
-	}
-	if obj.SharingModel != "ReadWrite" {
-		unread["sharingModel"] = true
-	}
-	if obj.NameField != (nameField{DisplayFormat: base + "-{0000}", Label: obj.Label + " Number", Type: "AutoNumber"}) {
-		unread["nameField"] = true
-	}
-
 	decl := &ast.StructDecl{DeclHead: head(name, obj.Description, pos), Keyword: "type", Conforms: []*ast.ClassRef{{N: "Entity"}}}
 	r.decls = append(r.decls, decl)
-	if len(unread) > 0 {
-		r.Warn(emit.LossUnsupported, pos, "%s has elements with no TDL form, which are not read: %s",
-			o.api, strings.Join(slices.Sorted(maps.Keys(unread)), ", "))
-	}
 	return nil
-}
-
-// taken reports whether an entity is named n.
-func (r *reader) taken(n string) bool {
-	return slices.Contains(slices.Collect(maps.Values(r.entities)), n)
 }
 
 // head is a node's head from its description, whose last line is a
@@ -275,19 +179,6 @@ func filePos(f *plugin.File) *ir.Position {
 	return &ir.Position{Filename: f.GetPath(), Line: 1, Column: 1}
 }
 
-// at is where an element first opens in a file, or the file's start.
-func at(f *plugin.File, elem string) *ir.Position {
-	src := string(f.GetContent())
-	i := strings.Index(src, "<"+elem+">")
-	if i < 0 {
-		return filePos(f)
-	}
-	line := strings.Count(src[:i], "\n")
-	col := i - strings.LastIndex(src[:i], "\n")
-	return &ir.Position{Filename: f.GetPath(), Line: int32(line + 1), Column: int32(col)}
-}
-
 func astPos(p *ir.Position) ast.Position {
 	return ast.Position{Filename: p.GetFilename(), Line: int(p.GetLine()), Col: int(p.GetColumn())}
 }
-
