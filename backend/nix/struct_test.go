@@ -23,6 +23,7 @@ type Cart {
   id: uuid
   deprecated("gone") fax: string
   status: Status
+  took: duration
   include Stamped
 }
 
@@ -106,7 +107,7 @@ in ` + checks
 func TestStructEvaluates(t *testing.T) {
 	_, out := gen(t, cart)
 	got := evaluate(t, out, `let
-  good = { total = 1; count = 2; code = null; both = "b"; skus = [ "a" ]; sparse = [ 1 null ]; id = "00000000-0000-0000-0000-000000000000"; fax = "f"; status = "Draft"; at = "2026-01-02T03:04:05Z"; };
+  good = { total = 1; count = 2; code = null; both = "b"; skus = [ "a" ]; sparse = [ 1 null ]; id = "00000000-0000-0000-0000-000000000000"; fax = "f"; status = "Draft"; took = "PT1H"; at = "2026-01-02T03:04:05Z"; };
 in [
   (eval m.Cart good)
   (ok m.Cart (good // { total = 3000000000; }))
@@ -116,9 +117,24 @@ in [
   (ok m.Cart (removeAttrs good [ "code" ]))
   (ok m.Cart (removeAttrs good [ "total" ]))
   (eval m.Cart (good // { note = "n"; }) != eval m.Cart good)
+  (ok m.Cart (good // { at = "2026-13-02T03:04:05Z"; }))
+  (ok m.Cart (good // { took = "PT"; }))
+  (ok m.Cart (good // { took = "P"; }))
 ]`)
-	want := `["{\"at\":\"2026-01-02T03:04:05Z\",\"both\":\"b\",\"code\":null,\"count\":2,\"fax\":\"f\",\"id\":\"00000000-0000-0000-0000-000000000000\",\"skus\":[\"a\"],\"sparse\":[1,null],\"status\":\"Draft\",\"total\":1}",false,false,false,false,false,false,true]`
+	want := `["{\"at\":\"2026-01-02T03:04:05Z\",\"both\":\"b\",\"code\":null,\"count\":2,\"fax\":\"f\",\"id\":\"00000000-0000-0000-0000-000000000000\",\"skus\":[\"a\"],\"sparse\":[1,null],\"status\":\"Draft\",\"took\":\"PT1H\",\"total\":1}",false,false,false,false,false,false,true,false,false,false]`
 	if got != want {
+		t.Errorf("got  %s\nwant %s", got, want)
+	}
+}
+
+func TestRecursiveEvaluates(t *testing.T) {
+	_, out := gen(t, "package shop\ntype Node {\n  children: [Node]\n  next: Node?\n}\n")
+	contains(t, out, "children = mkOption { type = types.listOf (opaque Node); };")
+	got := evaluate(t, out, `[
+  (eval m.Node { children = [ { children = [ ]; } ]; })
+  (builtins.length (lib.optionAttrSetToDocList (lib.evalModules { modules = [ { options.x = lib.mkOption { type = m.Node; }; } ]; }).options) > 0)
+]`)
+	if want := `["{\"children\":[{\"children\":[]}]}",true]`; got != want {
 		t.Errorf("got  %s\nwant %s", got, want)
 	}
 }
