@@ -119,3 +119,17 @@ func TestImported(t *testing.T) {
 		t.Errorf("an empty response = %v, %v", m, err)
 	}
 }
+
+// A nondeterministic backend gets the model as TDL without roundtrip, but
+// no field's source, which only annotations read.
+func TestSourceForNondeterministic(t *testing.T) {
+	m := lower(t, "package shop\n\ntype Order {\n  id: string\n}\n\ntarget wire for shop {\n  flag\n}\n")
+	req, _ := analysis.Request(m, plugin.Description{Name: "wire", Nondeterministic: true}, "wire", "out")
+	items := req.GetAnalysis().GetSource().GetItems()
+	if len(items) != 2 || items[0].GetSource() != "type Order {\n  id: string\n}" {
+		t.Errorf("items = %v", items)
+	}
+	if f := view(t, req.GetModel(), req.GetAnalysis(), "Order").GetFields()[0]; f.GetSource() != "" {
+		t.Errorf("field source = %q", f.GetSource())
+	}
+}

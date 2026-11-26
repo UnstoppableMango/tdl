@@ -49,84 +49,88 @@ namespace Tdl.Plugin.V1 {
             "LnBsdWdpbi52MS5QbGFjZW1lbnRSCnBsYWNlbWVudHMSFgoGdmFsdWVzGAcg",
             "AygJUgZ2YWx1ZXMiZgoIRmVhdHVyZXMSFAoFcmV1c2UYASABKAhSBXJldXNl",
             "EhgKB3JldmVyc2UYAiABKAhSB3JldmVyc2USKgoQbm9uZGV0ZXJtaW5pc3Rp",
-            "YxgDIAEoCFIQbm9uZGV0ZXJtaW5pc3RpYyKpAQoHUmVxdWVzdBIWCgZ0YXJn",
+            "YxgDIAEoCFIQbm9uZGV0ZXJtaW5pc3RpYyLsAQoHUmVxdWVzdBIWCgZ0YXJn",
             "ZXQYASABKAlSBnRhcmdldBImCgVtb2RlbBgCIAEoCzIQLnRkbC5pci52MS5N",
             "b2RlbFIFbW9kZWwSEAoDb3V0GAMgASgJUgNvdXQSFwoHZHJ5X3J1bhgEIAEo",
             "CFIGZHJ5UnVuEjMKCGFuYWx5c2lzGAUgASgLMhcudGRsLnBsdWdpbi52MS5B",
-            "bmFseXNpc1IIYW5hbHlzaXMilwEKCEFuYWx5c2lzEi0KBXR5cGVzGAEgAygL",
-            "MhcudGRsLnBsdWdpbi52MS5UeXBlVmlld1IFdHlwZXMSLQoFZGVjbHMYAiAD",
-            "KAsyFy50ZGwucGx1Z2luLnYxLkRlY2xWaWV3UgVkZWNscxItCgZzb3VyY2UY",
-            "AyABKAsyFS50ZGwucGx1Z2luLnYxLlNvdXJjZVIGc291cmNlIk0KBlNvdXJj",
-            "ZRIpCgVpdGVtcxgBIAMoCzITLnRkbC5wbHVnaW4udjEuSXRlbVIFaXRlbXMS",
-            "GAoHaW1wb3J0cxgCIAMoCVIHaW1wb3J0cyJOCgRJdGVtEhYKBnNvdXJjZRgB",
-            "IAEoCVIGc291cmNlEhIKBG5hbWUYAiABKAlSBG5hbWUSGgoIY29uZm9ybXMY",
-            "AyABKAlSCGNvbmZvcm1zItUCCghUeXBlVmlldxInCgRmb3JtGAEgASgOMhMu",
-            "dGRsLnBsdWdpbi52MS5Gb3JtUgRmb3JtEh0KAmlkGAIgASgLMg0udGRsLmly",
-            "LnYxLklEUgJpZBISCgRuYW1lGAMgASgJUgRuYW1lEiEKBGVsZW0YBCABKAsy",
-            "DS50ZGwuaXIudjEuSURSBGVsZW0SHwoDa2V5GAUgASgLMg0udGRsLmlyLnYx",
-            "LklEUgNrZXkSIQoEZGVjbBgGIAEoCzINLnRkbC5pci52MS5JRFIEZGVjbBIl",
-            "CgZleHRlcm4YByABKAsyDS50ZGwuaXIudjEuSURSBmV4dGVybhIwCgdyZWZ1",
-            "c2FsGAggASgLMhYudGRsLnBsdWdpbi52MS5SZWZ1c2FsUgdyZWZ1c2FsEi0K",
-            "CnJlZmVyZW5jZXMYCSADKAsyDS50ZGwuaXIudjEuSURSCnJlZmVyZW5jZXMi",
-            "vgIKB1JlZnVzYWwSNQoGcmVhc29uGAEgASgOMh0udGRsLnBsdWdpbi52MS5S",
-            "ZWZ1c2FsLlJlYXNvblIGcmVhc29uEhgKB3N1YmplY3QYAiABKAlSB3N1Ympl",
-            "Y3QSLwoIcG9zaXRpb24YAyABKAsyEy50ZGwuaXIudjEuUG9zaXRpb25SCHBv",
-            "c2l0aW9uIrABCgZSZWFzb24SFgoSUkVBU09OX1VOU1BFQ0lGSUVEEAASFQoR",
-            "UkVBU09OX1VOUkVTT0xWRUQQARIQCgxSRUFTT05fUEFSQU0QAhIPCgtSRUFT",
-            "T05fVU5JVBADEhAKDFJFQVNPTl9DTEFTUxAEEhQKEFJFQVNPTl9VTklUX0RF",
-            "Q0wQBRIUChBSRUFTT05fVFlQRV9BUkdTEAYSFgoSUkVBU09OX01JU1NJTkdf",
-            "QVJHEAci+QIKCERlY2xWaWV3EhAKA293bhgBIAEoCFIDb3duEi0KCnJlZmVy",
-            "ZW5jZXMYAiADKAsyDS50ZGwuaXIudjEuSURSCnJlZmVyZW5jZXMSGAoHZmll",
-            "bGRlZBgDIAEoCFIHZmllbGRlZBIiCgxkaXNjcmltaW5hbnQYBCABKAlSDGRp",
-            "c2NyaW1pbmFudBItCgp1bmRlcmx5aW5nGAUgASgLMg0udGRsLmlyLnYxLklE",
-            "Ugp1bmRlcmx5aW5nEhQKBXdvcmRzGAYgAygJUgV3b3JkcxIxCgZmaWVsZHMY",
-            "ByADKAsyGS50ZGwucGx1Z2luLnYxLk1lbWJlclZpZXdSBmZpZWxkcxI1Cgh2",
-            "YXJpYW50cxgIIAMoCzIZLnRkbC5wbHVnaW4udjEuTWVtYmVyVmlld1IIdmFy",
-            "aWFudHMSPwoLY29uc3RyYWludHMYCSADKAsyHS50ZGwucGx1Z2luLnYxLkNv",
-            "bnN0cmFpbnRWaWV3Ugtjb25zdHJhaW50cyKCAgoKTWVtYmVyVmlldxIUCgV3",
-            "b3JkcxgBIAMoCVIFd29yZHMSMQoGZmllbGRzGAIgAygLMhkudGRsLnBsdWdp",
-            "bi52MS5NZW1iZXJWaWV3UgZmaWVsZHMSFgoGbnVtYmVyGAMgASgDUgZudW1i",
-            "ZXISGAoHaW5saW5lZBgEIAMoA1IHaW5saW5lZBI/Cgtjb25zdHJhaW50cxgF",
-            "IAMoCzIdLnRkbC5wbHVnaW4udjEuQ29uc3RyYWludFZpZXdSC2NvbnN0cmFp",
-            "bnRzEhYKBnNvdXJjZRgGIAEoCVIGc291cmNlEiAKC2RlcHJlY2F0aW9uGAcg",
-            "ASgJUgtkZXByZWNhdGlvbiJ+Cg5Db25zdHJhaW50VmlldxIWCgZzb3VyY2UY",
-            "ASABKAlSBnNvdXJjZRIoCgZsZW5ndGgYAiABKAsyEC50ZGwuaXIudjEuUmFu",
-            "Z2VSBmxlbmd0aBIQCgNyZTIYAyABKAhSA3JlMhIYCgdwcm9ibGVtGAQgASgJ",
-            "Ugdwcm9ibGVtIoYBCghSZXNwb25zZRIpCgVmaWxlcxgBIAMoCzITLnRkbC5w",
-            "bHVnaW4udjEuRmlsZVIFZmlsZXMSEgoEcG9zdBgCIAMoCVIEcG9zdBI7Cgtk",
-            "aWFnbm9zdGljcxgDIAMoCzIZLnRkbC5wbHVnaW4udjEuRGlhZ25vc3RpY1IL",
-            "ZGlhZ25vc3RpY3MiNAoERmlsZRISCgRwYXRoGAEgASgJUgRwYXRoEhgKB2Nv",
-            "bnRlbnQYAiABKAxSB2NvbnRlbnQijwEKDUltcG9ydFJlcXVlc3QSFgoGdGFy",
-            "Z2V0GAEgASgJUgZ0YXJnZXQSKQoFZmlsZXMYAiADKAsyEy50ZGwucGx1Z2lu",
-            "LnYxLkZpbGVSBWZpbGVzEh8KC2FsbG93X2xvc3N5GAMgAygJUgphbGxvd0xv",
-            "c3N5EhoKCHJlYWRiYWNrGAQgASgIUghyZWFkYmFjayKNAQoOSW1wb3J0UmVz",
-            "cG9uc2USJgoFbW9kZWwYASABKAsyEC50ZGwuaXIudjEuTW9kZWxSBW1vZGVs",
-            "EjsKC2RpYWdub3N0aWNzGAIgAygLMhkudGRsLnBsdWdpbi52MS5EaWFnbm9z",
-            "dGljUgtkaWFnbm9zdGljcxIWCgZzb3VyY2UYAyABKAlSBnNvdXJjZSKgAQoK",
-            "RGlhZ25vc3RpYxIzCghzZXZlcml0eRgBIAEoDjIXLnRkbC5wbHVnaW4udjEu",
-            "U2V2ZXJpdHlSCHNldmVyaXR5EhgKB21lc3NhZ2UYAiABKAlSB21lc3NhZ2US",
-            "LwoIcG9zaXRpb24YAyABKAsyEy50ZGwuaXIudjEuUG9zaXRpb25SCHBvc2l0",
-            "aW9uEhIKBGNvZGUYBCABKAlSBGNvZGUifQoKUmVxdWVzdFNldBIyCghyZXF1",
-            "ZXN0cxgBIAMoCzIWLnRkbC5wbHVnaW4udjEuUmVxdWVzdFIIcmVxdWVzdHMS",
-            "OwoLZGlhZ25vc3RpY3MYAiADKAsyGS50ZGwucGx1Z2luLnYxLkRpYWdub3N0",
-            "aWNSC2RpYWdub3N0aWNzIjsKB092ZXJsYXkSMAoFZmlsZXMYASADKAsyGi50",
-            "ZGwucGx1Z2luLnYxLk92ZXJsYXlGaWxlUgVmaWxlcyI1CgtPdmVybGF5Rmls",
-            "ZRISCgRwYXRoGAEgASgJUgRwYXRoEhIKBHRleHQYAiABKAlSBHRleHQqLQoE",
-            "TW9kZRIUChBNT0RFX1VOU1BFQ0lGSUVEEAASDwoLTU9ERV9JTVBPUlQQASqR",
-            "AQoJUGxhY2VtZW50EhkKFVBMQUNFTUVOVF9VTlNQRUNJRklFRBAAEhMKD1BM",
-            "QUNFTUVOVF9CTE9DSxABEhIKDlBMQUNFTUVOVF9ERUNMEAISEwoPUExBQ0VN",
-            "RU5UX0ZJRUxEEAMSFQoRUExBQ0VNRU5UX1ZBUklBTlQQBBIUChBQTEFDRU1F",
-            "TlRfRVhURVJOEAUqvwEKBEZvcm0SFAoQRk9STV9VTlNQRUNJRklFRBAAEhIK",
-            "DkZPUk1fUFJJTUlUSVZFEAESDQoJRk9STV9MSVNUEAISDAoIRk9STV9TRVQQ",
-            "AxIMCghGT1JNX01BUBAEEg8KC0ZPUk1fT1BUSU9OEAUSEQoNRk9STV9OVUxM",
-            "QUJMRRAGEg4KCkZPUk1fTkFNRUQQBxIPCgtGT1JNX0VYVEVSThAIEg4KCkZP",
-            "Uk1fUEFSQU0QCRINCglGT1JNX1VOSVQQCipOCghTZXZlcml0eRIYChRTRVZF",
-            "UklUWV9VTlNQRUNJRklFRBAAEhIKDlNFVkVSSVRZX0VSUk9SEAESFAoQU0VW",
-            "RVJJVFlfV0FSTklORxACQqYBChFjb20udGRsLnBsdWdpbi52MUILUGx1Z2lu",
-            "UHJvdG9aJmdpdGh1Yi5jb20vdW5zdG9wcGFibGVtYW5nby90ZGwvcGx1Z2lu",
-            "ogIDVFBYqgINVGRsLlBsdWdpbi5WMcoCDVRkbFxQbHVnaW5cVjHiAhlUZGxc",
-            "UGx1Z2luXFYxXEdQQk1ldGFkYXRh6gIPVGRsOjpQbHVnaW46OlYxkgMHCALS",
-            "PgIQAWIIZWRpdGlvbnNw6Qc="));
+            "bmFseXNpc1IIYW5hbHlzaXMSQQoMZGVwZW5kZW5jaWVzGAYgAygLMh0udGRs",
+            "LnBsdWdpbi52MS5EZXBlbmRlbmN5RmlsZVIMZGVwZW5kZW5jaWVzIlgKDkRl",
+            "cGVuZGVuY3lGaWxlEhgKB3BhY2thZ2UYASABKAlSB3BhY2thZ2USEgoEcGF0",
+            "aBgCIAEoCVIEcGF0aBIYCgdjb250ZW50GAMgASgMUgdjb250ZW50IpcBCghB",
+            "bmFseXNpcxItCgV0eXBlcxgBIAMoCzIXLnRkbC5wbHVnaW4udjEuVHlwZVZp",
+            "ZXdSBXR5cGVzEi0KBWRlY2xzGAIgAygLMhcudGRsLnBsdWdpbi52MS5EZWNs",
+            "Vmlld1IFZGVjbHMSLQoGc291cmNlGAMgASgLMhUudGRsLnBsdWdpbi52MS5T",
+            "b3VyY2VSBnNvdXJjZSJ8CgZTb3VyY2USKQoFaXRlbXMYASADKAsyEy50ZGwu",
+            "cGx1Z2luLnYxLkl0ZW1SBWl0ZW1zEhgKB2ltcG9ydHMYAiADKAlSB2ltcG9y",
+            "dHMSLQoHZXh0ZXJucxgDIAMoCzITLnRkbC5wbHVnaW4udjEuSXRlbVIHZXh0",
+            "ZXJucyJOCgRJdGVtEhYKBnNvdXJjZRgBIAEoCVIGc291cmNlEhIKBG5hbWUY",
+            "AiABKAlSBG5hbWUSGgoIY29uZm9ybXMYAyABKAlSCGNvbmZvcm1zItUCCghU",
+            "eXBlVmlldxInCgRmb3JtGAEgASgOMhMudGRsLnBsdWdpbi52MS5Gb3JtUgRm",
+            "b3JtEh0KAmlkGAIgASgLMg0udGRsLmlyLnYxLklEUgJpZBISCgRuYW1lGAMg",
+            "ASgJUgRuYW1lEiEKBGVsZW0YBCABKAsyDS50ZGwuaXIudjEuSURSBGVsZW0S",
+            "HwoDa2V5GAUgASgLMg0udGRsLmlyLnYxLklEUgNrZXkSIQoEZGVjbBgGIAEo",
+            "CzINLnRkbC5pci52MS5JRFIEZGVjbBIlCgZleHRlcm4YByABKAsyDS50ZGwu",
+            "aXIudjEuSURSBmV4dGVybhIwCgdyZWZ1c2FsGAggASgLMhYudGRsLnBsdWdp",
+            "bi52MS5SZWZ1c2FsUgdyZWZ1c2FsEi0KCnJlZmVyZW5jZXMYCSADKAsyDS50",
+            "ZGwuaXIudjEuSURSCnJlZmVyZW5jZXMivgIKB1JlZnVzYWwSNQoGcmVhc29u",
+            "GAEgASgOMh0udGRsLnBsdWdpbi52MS5SZWZ1c2FsLlJlYXNvblIGcmVhc29u",
+            "EhgKB3N1YmplY3QYAiABKAlSB3N1YmplY3QSLwoIcG9zaXRpb24YAyABKAsy",
+            "Ey50ZGwuaXIudjEuUG9zaXRpb25SCHBvc2l0aW9uIrABCgZSZWFzb24SFgoS",
+            "UkVBU09OX1VOU1BFQ0lGSUVEEAASFQoRUkVBU09OX1VOUkVTT0xWRUQQARIQ",
+            "CgxSRUFTT05fUEFSQU0QAhIPCgtSRUFTT05fVU5JVBADEhAKDFJFQVNPTl9D",
+            "TEFTUxAEEhQKEFJFQVNPTl9VTklUX0RFQ0wQBRIUChBSRUFTT05fVFlQRV9B",
+            "UkdTEAYSFgoSUkVBU09OX01JU1NJTkdfQVJHEAci+QIKCERlY2xWaWV3EhAK",
+            "A293bhgBIAEoCFIDb3duEi0KCnJlZmVyZW5jZXMYAiADKAsyDS50ZGwuaXIu",
+            "djEuSURSCnJlZmVyZW5jZXMSGAoHZmllbGRlZBgDIAEoCFIHZmllbGRlZBIi",
+            "CgxkaXNjcmltaW5hbnQYBCABKAlSDGRpc2NyaW1pbmFudBItCgp1bmRlcmx5",
+            "aW5nGAUgASgLMg0udGRsLmlyLnYxLklEUgp1bmRlcmx5aW5nEhQKBXdvcmRz",
+            "GAYgAygJUgV3b3JkcxIxCgZmaWVsZHMYByADKAsyGS50ZGwucGx1Z2luLnYx",
+            "Lk1lbWJlclZpZXdSBmZpZWxkcxI1Cgh2YXJpYW50cxgIIAMoCzIZLnRkbC5w",
+            "bHVnaW4udjEuTWVtYmVyVmlld1IIdmFyaWFudHMSPwoLY29uc3RyYWludHMY",
+            "CSADKAsyHS50ZGwucGx1Z2luLnYxLkNvbnN0cmFpbnRWaWV3Ugtjb25zdHJh",
+            "aW50cyKCAgoKTWVtYmVyVmlldxIUCgV3b3JkcxgBIAMoCVIFd29yZHMSMQoG",
+            "ZmllbGRzGAIgAygLMhkudGRsLnBsdWdpbi52MS5NZW1iZXJWaWV3UgZmaWVs",
+            "ZHMSFgoGbnVtYmVyGAMgASgDUgZudW1iZXISGAoHaW5saW5lZBgEIAMoA1IH",
+            "aW5saW5lZBI/Cgtjb25zdHJhaW50cxgFIAMoCzIdLnRkbC5wbHVnaW4udjEu",
+            "Q29uc3RyYWludFZpZXdSC2NvbnN0cmFpbnRzEhYKBnNvdXJjZRgGIAEoCVIG",
+            "c291cmNlEiAKC2RlcHJlY2F0aW9uGAcgASgJUgtkZXByZWNhdGlvbiJ+Cg5D",
+            "b25zdHJhaW50VmlldxIWCgZzb3VyY2UYASABKAlSBnNvdXJjZRIoCgZsZW5n",
+            "dGgYAiABKAsyEC50ZGwuaXIudjEuUmFuZ2VSBmxlbmd0aBIQCgNyZTIYAyAB",
+            "KAhSA3JlMhIYCgdwcm9ibGVtGAQgASgJUgdwcm9ibGVtIoYBCghSZXNwb25z",
+            "ZRIpCgVmaWxlcxgBIAMoCzITLnRkbC5wbHVnaW4udjEuRmlsZVIFZmlsZXMS",
+            "EgoEcG9zdBgCIAMoCVIEcG9zdBI7CgtkaWFnbm9zdGljcxgDIAMoCzIZLnRk",
+            "bC5wbHVnaW4udjEuRGlhZ25vc3RpY1ILZGlhZ25vc3RpY3MiNAoERmlsZRIS",
+            "CgRwYXRoGAEgASgJUgRwYXRoEhgKB2NvbnRlbnQYAiABKAxSB2NvbnRlbnQi",
+            "jwEKDUltcG9ydFJlcXVlc3QSFgoGdGFyZ2V0GAEgASgJUgZ0YXJnZXQSKQoF",
+            "ZmlsZXMYAiADKAsyEy50ZGwucGx1Z2luLnYxLkZpbGVSBWZpbGVzEh8KC2Fs",
+            "bG93X2xvc3N5GAMgAygJUgphbGxvd0xvc3N5EhoKCHJlYWRiYWNrGAQgASgI",
+            "UghyZWFkYmFjayKNAQoOSW1wb3J0UmVzcG9uc2USJgoFbW9kZWwYASABKAsy",
+            "EC50ZGwuaXIudjEuTW9kZWxSBW1vZGVsEjsKC2RpYWdub3N0aWNzGAIgAygL",
+            "MhkudGRsLnBsdWdpbi52MS5EaWFnbm9zdGljUgtkaWFnbm9zdGljcxIWCgZz",
+            "b3VyY2UYAyABKAlSBnNvdXJjZSKgAQoKRGlhZ25vc3RpYxIzCghzZXZlcml0",
+            "eRgBIAEoDjIXLnRkbC5wbHVnaW4udjEuU2V2ZXJpdHlSCHNldmVyaXR5EhgK",
+            "B21lc3NhZ2UYAiABKAlSB21lc3NhZ2USLwoIcG9zaXRpb24YAyABKAsyEy50",
+            "ZGwuaXIudjEuUG9zaXRpb25SCHBvc2l0aW9uEhIKBGNvZGUYBCABKAlSBGNv",
+            "ZGUifQoKUmVxdWVzdFNldBIyCghyZXF1ZXN0cxgBIAMoCzIWLnRkbC5wbHVn",
+            "aW4udjEuUmVxdWVzdFIIcmVxdWVzdHMSOwoLZGlhZ25vc3RpY3MYAiADKAsy",
+            "GS50ZGwucGx1Z2luLnYxLkRpYWdub3N0aWNSC2RpYWdub3N0aWNzIjsKB092",
+            "ZXJsYXkSMAoFZmlsZXMYASADKAsyGi50ZGwucGx1Z2luLnYxLk92ZXJsYXlG",
+            "aWxlUgVmaWxlcyI1CgtPdmVybGF5RmlsZRISCgRwYXRoGAEgASgJUgRwYXRo",
+            "EhIKBHRleHQYAiABKAlSBHRleHQqLQoETW9kZRIUChBNT0RFX1VOU1BFQ0lG",
+            "SUVEEAASDwoLTU9ERV9JTVBPUlQQASqRAQoJUGxhY2VtZW50EhkKFVBMQUNF",
+            "TUVOVF9VTlNQRUNJRklFRBAAEhMKD1BMQUNFTUVOVF9CTE9DSxABEhIKDlBM",
+            "QUNFTUVOVF9ERUNMEAISEwoPUExBQ0VNRU5UX0ZJRUxEEAMSFQoRUExBQ0VN",
+            "RU5UX1ZBUklBTlQQBBIUChBQTEFDRU1FTlRfRVhURVJOEAUqvwEKBEZvcm0S",
+            "FAoQRk9STV9VTlNQRUNJRklFRBAAEhIKDkZPUk1fUFJJTUlUSVZFEAESDQoJ",
+            "Rk9STV9MSVNUEAISDAoIRk9STV9TRVQQAxIMCghGT1JNX01BUBAEEg8KC0ZP",
+            "Uk1fT1BUSU9OEAUSEQoNRk9STV9OVUxMQUJMRRAGEg4KCkZPUk1fTkFNRUQQ",
+            "BxIPCgtGT1JNX0VYVEVSThAIEg4KCkZPUk1fUEFSQU0QCRINCglGT1JNX1VO",
+            "SVQQCipOCghTZXZlcml0eRIYChRTRVZFUklUWV9VTlNQRUNJRklFRBAAEhIK",
+            "DlNFVkVSSVRZX0VSUk9SEAESFAoQU0VWRVJJVFlfV0FSTklORxACQqYBChFj",
+            "b20udGRsLnBsdWdpbi52MUILUGx1Z2luUHJvdG9aJmdpdGh1Yi5jb20vdW5z",
+            "dG9wcGFibGVtYW5nby90ZGwvcGx1Z2luogIDVFBYqgINVGRsLlBsdWdpbi5W",
+            "McoCDVRkbFxQbHVnaW5cVjHiAhlUZGxcUGx1Z2luXFYxXEdQQk1ldGFkYXRh",
+            "6gIPVGRsOjpQbHVnaW46OlYxkgMHCALSPgIQAWIIZWRpdGlvbnNw6Qc="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::Tdl.Ir.V1.IrReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::Tdl.Plugin.V1.Mode), typeof(global::Tdl.Plugin.V1.Placement), typeof(global::Tdl.Plugin.V1.Form), typeof(global::Tdl.Plugin.V1.Severity), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -136,9 +140,10 @@ namespace Tdl.Plugin.V1 {
             new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.NumberRule), global::Tdl.Plugin.V1.NumberRule.Parser, new[]{ "Max", "Reserved" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.DirectiveSpec), global::Tdl.Plugin.V1.DirectiveSpec.Parser, new[]{ "Name", "MinArgs", "MaxArgs", "ArgKinds", "Repeatable", "Placements", "Values" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.Features), global::Tdl.Plugin.V1.Features.Parser, new[]{ "Reuse", "Reverse", "Nondeterministic" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.Request), global::Tdl.Plugin.V1.Request.Parser, new[]{ "Target", "Model", "Out", "DryRun", "Analysis" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.Request), global::Tdl.Plugin.V1.Request.Parser, new[]{ "Target", "Model", "Out", "DryRun", "Analysis", "Dependencies" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.DependencyFile), global::Tdl.Plugin.V1.DependencyFile.Parser, new[]{ "Package", "Path", "Content" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.Analysis), global::Tdl.Plugin.V1.Analysis.Parser, new[]{ "Types_", "Decls", "Source" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.Source), global::Tdl.Plugin.V1.Source.Parser, new[]{ "Items", "Imports" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.Source), global::Tdl.Plugin.V1.Source.Parser, new[]{ "Items", "Imports", "Externs" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.Item), global::Tdl.Plugin.V1.Item.Parser, new[]{ "Source", "Name", "Conforms" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.TypeView), global::Tdl.Plugin.V1.TypeView.Parser, new[]{ "Form", "Id", "Name", "Elem", "Key", "Decl", "Extern", "Refusal", "References" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Tdl.Plugin.V1.Refusal), global::Tdl.Plugin.V1.Refusal.Parser, new[]{ "Reason", "Subject", "Position" }, null, new[]{ typeof(global::Tdl.Plugin.V1.Refusal.Types.Reason) }, null, null),
@@ -2395,6 +2400,7 @@ namespace Tdl.Plugin.V1 {
       out_ = other.out_;
       dryRun_ = other.dryRun_;
       analysis_ = other.analysis_ != null ? other.analysis_.Clone() : null;
+      dependencies_ = other.dependencies_.Clone();
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -2483,6 +2489,24 @@ namespace Tdl.Plugin.V1 {
       }
     }
 
+    /// <summary>Field number for the "dependencies" field.</summary>
+    public const int DependenciesFieldNumber = 6;
+    private static readonly pb::FieldCodec<global::Tdl.Plugin.V1.DependencyFile> _repeated_dependencies_codec
+        = pb::FieldCodec.ForMessage(50, global::Tdl.Plugin.V1.DependencyFile.Parser);
+    private readonly pbc::RepeatedField<global::Tdl.Plugin.V1.DependencyFile> dependencies_ = new pbc::RepeatedField<global::Tdl.Plugin.V1.DependencyFile>();
+    /// <summary>
+    /// dependencies are the files each import's dependency already generated
+    /// for this target, sent only to a backend that declares itself
+    /// nondeterministic, so it can refer to what they declare. A dependency
+    /// with no block for this target, no out directive, or no output yet
+    /// sends nothing.
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pbc::RepeatedField<global::Tdl.Plugin.V1.DependencyFile> Dependencies {
+      get { return dependencies_; }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -2503,6 +2527,7 @@ namespace Tdl.Plugin.V1 {
       if (Out != other.Out) return false;
       if (DryRun != other.DryRun) return false;
       if (!object.Equals(Analysis, other.Analysis)) return false;
+      if(!dependencies_.Equals(other.dependencies_)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -2515,6 +2540,7 @@ namespace Tdl.Plugin.V1 {
       if (Out.Length != 0) hash ^= Out.GetHashCode();
       if (DryRun != false) hash ^= DryRun.GetHashCode();
       if (analysis_ != null) hash ^= Analysis.GetHashCode();
+      hash ^= dependencies_.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -2553,6 +2579,7 @@ namespace Tdl.Plugin.V1 {
         output.WriteRawTag(42);
         output.WriteMessage(Analysis);
       }
+      dependencies_.WriteTo(output, _repeated_dependencies_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -2583,6 +2610,7 @@ namespace Tdl.Plugin.V1 {
         output.WriteRawTag(42);
         output.WriteMessage(Analysis);
       }
+      dependencies_.WriteTo(ref output, _repeated_dependencies_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -2608,6 +2636,7 @@ namespace Tdl.Plugin.V1 {
       if (analysis_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Analysis);
       }
+      size += dependencies_.CalculateSize(_repeated_dependencies_codec);
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -2641,6 +2670,7 @@ namespace Tdl.Plugin.V1 {
         }
         Analysis.MergeFrom(other.Analysis);
       }
+      dependencies_.Add(other.dependencies_);
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -2684,6 +2714,10 @@ namespace Tdl.Plugin.V1 {
               Analysis = new global::Tdl.Plugin.V1.Analysis();
             }
             input.ReadMessage(Analysis);
+            break;
+          }
+          case 50: {
+            dependencies_.AddEntriesFrom(input, _repeated_dependencies_codec);
             break;
           }
         }
@@ -2731,6 +2765,292 @@ namespace Tdl.Plugin.V1 {
             input.ReadMessage(Analysis);
             break;
           }
+          case 50: {
+            dependencies_.AddEntriesFrom(ref input, _repeated_dependencies_codec);
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  /// <summary>
+  /// DependencyFile is one file a dependency's own target block generated.
+  /// </summary>
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class DependencyFile : pb::IMessage<DependencyFile>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<DependencyFile> _parser = new pb::MessageParser<DependencyFile>(() => new DependencyFile());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<DependencyFile> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[7]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public DependencyFile() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public DependencyFile(DependencyFile other) : this() {
+      package_ = other.package_;
+      path_ = other.path_;
+      content_ = other.content_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public DependencyFile Clone() {
+      return new DependencyFile(this);
+    }
+
+    /// <summary>Field number for the "package" field.</summary>
+    public const int PackageFieldNumber = 1;
+    private string package_ = "";
+    /// <summary>
+    /// package is the dependency's package.
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string Package {
+      get { return package_; }
+      set {
+        package_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "path" field.</summary>
+    public const int PathFieldNumber = 2;
+    private string path_ = "";
+    /// <summary>
+    /// path is the file's path relative to the request's out, with forward
+    /// slashes; it may begin with "..".
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string Path {
+      get { return path_; }
+      set {
+        path_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "content" field.</summary>
+    public const int ContentFieldNumber = 3;
+    private pb::ByteString content_ = pb::ByteString.Empty;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pb::ByteString Content {
+      get { return content_; }
+      set {
+        content_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as DependencyFile);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(DependencyFile other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (Package != other.Package) return false;
+      if (Path != other.Path) return false;
+      if (Content != other.Content) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (Package.Length != 0) hash ^= Package.GetHashCode();
+      if (Path.Length != 0) hash ^= Path.GetHashCode();
+      if (Content.Length != 0) hash ^= Content.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (Package.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(Package);
+      }
+      if (Path.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(Path);
+      }
+      if (Content.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteBytes(Content);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (Package.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(Package);
+      }
+      if (Path.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(Path);
+      }
+      if (Content.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteBytes(Content);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (Package.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Package);
+      }
+      if (Path.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Path);
+      }
+      if (Content.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeBytesSize(Content);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(DependencyFile other) {
+      if (other == null) {
+        return;
+      }
+      if (other.Package.Length != 0) {
+        Package = other.Package;
+      }
+      if (other.Path.Length != 0) {
+        Path = other.Path;
+      }
+      if (other.Content.Length != 0) {
+        Content = other.Content;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            Package = input.ReadString();
+            break;
+          }
+          case 18: {
+            Path = input.ReadString();
+            break;
+          }
+          case 26: {
+            Content = input.ReadBytes();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            Package = input.ReadString();
+            break;
+          }
+          case 18: {
+            Path = input.ReadString();
+            break;
+          }
+          case 26: {
+            Content = input.ReadBytes();
+            break;
+          }
         }
       }
     }
@@ -2758,7 +3078,7 @@ namespace Tdl.Plugin.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[7]; }
+      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[8]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -2822,8 +3142,8 @@ namespace Tdl.Plugin.V1 {
     public const int SourceFieldNumber = 3;
     private global::Tdl.Plugin.V1.Source source_;
     /// <summary>
-    /// source is the model as TDL, set only when the target block carries the
-    /// roundtrip directive.
+    /// source is the model as TDL, set when the target block carries the
+    /// roundtrip directive or the backend declares itself nondeterministic.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -3032,7 +3352,7 @@ namespace Tdl.Plugin.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[8]; }
+      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[9]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -3054,6 +3374,7 @@ namespace Tdl.Plugin.V1 {
     public Source(Source other) : this() {
       items_ = other.items_.Clone();
       imports_ = other.imports_.Clone();
+      externs_ = other.externs_.Clone();
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -3092,6 +3413,24 @@ namespace Tdl.Plugin.V1 {
       get { return imports_; }
     }
 
+    /// <summary>Field number for the "externs" field.</summary>
+    public const int ExternsFieldNumber = 3;
+    private static readonly pb::FieldCodec<global::Tdl.Plugin.V1.Item> _repeated_externs_codec
+        = pb::FieldCodec.ForMessage(26, global::Tdl.Plugin.V1.Item.Parser);
+    private readonly pbc::RepeatedField<global::Tdl.Plugin.V1.Item> externs_ = new pbc::RepeatedField<global::Tdl.Plugin.V1.Item>();
+    /// <summary>
+    /// externs are the declarations the model's externs name, as `tdl fmt`
+    /// prints them in their own file, indexed like Model.externs, for a
+    /// backend that declares itself nondeterministic. An extern whose file
+    /// tdl could not read has an empty item. Empty when the host read no
+    /// dependency.
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pbc::RepeatedField<global::Tdl.Plugin.V1.Item> Externs {
+      get { return externs_; }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -3109,6 +3448,7 @@ namespace Tdl.Plugin.V1 {
       }
       if(!items_.Equals(other.items_)) return false;
       if(!imports_.Equals(other.imports_)) return false;
+      if(!externs_.Equals(other.externs_)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -3118,6 +3458,7 @@ namespace Tdl.Plugin.V1 {
       int hash = 1;
       hash ^= items_.GetHashCode();
       hash ^= imports_.GetHashCode();
+      hash ^= externs_.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -3138,6 +3479,7 @@ namespace Tdl.Plugin.V1 {
     #else
       items_.WriteTo(output, _repeated_items_codec);
       imports_.WriteTo(output, _repeated_imports_codec);
+      externs_.WriteTo(output, _repeated_externs_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -3150,6 +3492,7 @@ namespace Tdl.Plugin.V1 {
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
       items_.WriteTo(ref output, _repeated_items_codec);
       imports_.WriteTo(ref output, _repeated_imports_codec);
+      externs_.WriteTo(ref output, _repeated_externs_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -3162,6 +3505,7 @@ namespace Tdl.Plugin.V1 {
       int size = 0;
       size += items_.CalculateSize(_repeated_items_codec);
       size += imports_.CalculateSize(_repeated_imports_codec);
+      size += externs_.CalculateSize(_repeated_externs_codec);
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -3176,6 +3520,7 @@ namespace Tdl.Plugin.V1 {
       }
       items_.Add(other.items_);
       imports_.Add(other.imports_);
+      externs_.Add(other.externs_);
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -3201,6 +3546,10 @@ namespace Tdl.Plugin.V1 {
           }
           case 18: {
             imports_.AddEntriesFrom(input, _repeated_imports_codec);
+            break;
+          }
+          case 26: {
+            externs_.AddEntriesFrom(input, _repeated_externs_codec);
             break;
           }
         }
@@ -3230,6 +3579,10 @@ namespace Tdl.Plugin.V1 {
             imports_.AddEntriesFrom(ref input, _repeated_imports_codec);
             break;
           }
+          case 26: {
+            externs_.AddEntriesFrom(ref input, _repeated_externs_codec);
+            break;
+          }
         }
       }
     }
@@ -3255,7 +3608,7 @@ namespace Tdl.Plugin.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[9]; }
+      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[10]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -3547,7 +3900,7 @@ namespace Tdl.Plugin.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[10]; }
+      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[11]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -4117,7 +4470,7 @@ namespace Tdl.Plugin.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[11]; }
+      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[12]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -4446,7 +4799,7 @@ namespace Tdl.Plugin.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[12]; }
+      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[13]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -4933,7 +5286,7 @@ namespace Tdl.Plugin.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[13]; }
+      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[14]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -5341,7 +5694,7 @@ namespace Tdl.Plugin.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[14]; }
+      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[15]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -5681,7 +6034,7 @@ namespace Tdl.Plugin.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[15]; }
+      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[16]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -5930,7 +6283,7 @@ namespace Tdl.Plugin.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[16]; }
+      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[17]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -6169,7 +6522,7 @@ namespace Tdl.Plugin.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[17]; }
+      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[18]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -6478,7 +6831,7 @@ namespace Tdl.Plugin.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[18]; }
+      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[19]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -6763,7 +7116,7 @@ namespace Tdl.Plugin.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[19]; }
+      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[20]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -7090,7 +7443,7 @@ namespace Tdl.Plugin.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[20]; }
+      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[21]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -7319,7 +7672,7 @@ namespace Tdl.Plugin.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[21]; }
+      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[22]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -7509,7 +7862,7 @@ namespace Tdl.Plugin.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[22]; }
+      get { return global::Tdl.Plugin.V1.PluginReflection.Descriptor.MessageTypes[23]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]

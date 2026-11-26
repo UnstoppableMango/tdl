@@ -194,6 +194,23 @@ message Request {
   // analysis is what tdl derives from the model for this target, so a
   // plugin in any language reads it rather than computing it.
   Analysis analysis = 5;
+
+  // dependencies are the files each import's dependency already generated
+  // for this target, sent only to a backend that declares itself
+  // nondeterministic, so it can refer to what they declare. A dependency
+  // with no block for this target, no out directive, or no output yet
+  // sends nothing.
+  repeated DependencyFile dependencies = 6;
+}
+
+// DependencyFile is one file a dependency's own target block generated.
+message DependencyFile {
+  // package is the dependency's package.
+  string package = 1;
+  // path is the file's path relative to the request's out, with forward
+  // slashes; it may begin with "..".
+  string path = 2;
+  bytes content = 3;
 }
 
 // Analysis holds facts about a model that are the same for every backend
@@ -203,8 +220,8 @@ message Analysis {
   repeated TypeView types = 1; // indexed like Model.types
   repeated DeclView decls = 2; // indexed like Model.decls
 
-  // source is the model as TDL, set only when the target block carries the
-  // roundtrip directive.
+  // source is the model as TDL, set when the target block carries the
+  // roundtrip directive or the backend declares itself nondeterministic.
   Source source = 3;
 }
 
@@ -217,6 +234,12 @@ message Source {
   repeated Item items = 1;
   // imports are the model's imports, each as `tdl fmt` prints it.
   repeated string imports = 2;
+  // externs are the declarations the model's externs name, as `tdl fmt`
+  // prints them in their own file, indexed like Model.externs, for a
+  // backend that declares itself nondeterministic. An extern whose file
+  // tdl could not read has an empty item. Empty when the host read no
+  // dependency.
+  repeated Item externs = 3;
 }
 
 // Item is one top-level item of the model as TDL.

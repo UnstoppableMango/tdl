@@ -18,7 +18,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file tdl/plugin/v1/plugin.proto.
  */
 export const file_tdl_plugin_v1_plugin: GenFile = /*@__PURE__*/
-  fileDesc("Chp0ZGwvcGx1Z2luL3YxL3BsdWdpbi5wcm90bxINdGRsLnBsdWdpbi52MSJqCglIYW5kc2hha2USFwoPZnJhbWluZ192ZXJzaW9uGAEgASgFEhIKCmlyX3ZlcnNpb24YAiABKAkSDQoFd2F0Y2gYAyABKAgSIQoEbW9kZRgEIAEoDjITLnRkbC5wbHVnaW4udjEuTW9kZSL1AQoOSGFuZHNoYWtlUmVwbHkSEAoIYWNjZXB0ZWQYASABKAgSDwoHcmVmdXNhbBgCIAEoCRIMCgRuYW1lGAMgASgJEg8KB3ZlcnNpb24YBCABKAkSMAoKZGlyZWN0aXZlcxgFIAMoCzIcLnRkbC5wbHVnaW4udjEuRGlyZWN0aXZlU3BlYxIpCghmZWF0dXJlcxgGIAEoCzIXLnRkbC5wbHVnaW4udjEuRmVhdHVyZXMSKwoJbnVtYmVyaW5nGAcgASgLMhgudGRsLnBsdWdpbi52MS5OdW1iZXJpbmcSFwoPaW1wb3J0X3BhdHRlcm5zGAggAygJIoIBCglOdW1iZXJpbmcSKQoGZmllbGRzGAEgASgLMhkudGRsLnBsdWdpbi52MS5OdW1iZXJSdWxlEikKBnZhbHVlcxgCIAEoCzIZLnRkbC5wbHVnaW4udjEuTnVtYmVyUnVsZRIPCgdyZXNlcnZlGAMgASgJEg4KBmlubGluZRgEIAEoCSI9CgpOdW1iZXJSdWxlEgsKA21heBgBIAEoAxIiCghyZXNlcnZlZBgCIAMoCzIQLnRkbC5pci52MS5SYW5nZSK+AQoNRGlyZWN0aXZlU3BlYxIMCgRuYW1lGAEgASgJEhAKCG1pbl9hcmdzGAIgASgFEhAKCG1heF9hcmdzGAMgASgFEikKCWFyZ19raW5kcxgEIAMoDjIWLnRkbC5pci52MS5MaXRlcmFsS2luZBISCgpyZXBlYXRhYmxlGAUgASgIEiwKCnBsYWNlbWVudHMYBiADKA4yGC50ZGwucGx1Z2luLnYxLlBsYWNlbWVudBIOCgZ2YWx1ZXMYByADKAkiRAoIRmVhdHVyZXMSDQoFcmV1c2UYASABKAgSDwoHcmV2ZXJzZRgCIAEoCBIYChBub25kZXRlcm1pbmlzdGljGAMgASgIIoMBCgdSZXF1ZXN0Eg4KBnRhcmdldBgBIAEoCRIfCgVtb2RlbBgCIAEoCzIQLnRkbC5pci52MS5Nb2RlbBILCgNvdXQYAyABKAkSDwoHZHJ5X3J1bhgEIAEoCBIpCghhbmFseXNpcxgFIAEoCzIXLnRkbC5wbHVnaW4udjEuQW5hbHlzaXMigQEKCEFuYWx5c2lzEiYKBXR5cGVzGAEgAygLMhcudGRsLnBsdWdpbi52MS5UeXBlVmlldxImCgVkZWNscxgCIAMoCzIXLnRkbC5wbHVnaW4udjEuRGVjbFZpZXcSJQoGc291cmNlGAMgASgLMhUudGRsLnBsdWdpbi52MS5Tb3VyY2UiPQoGU291cmNlEiIKBWl0ZW1zGAEgAygLMhMudGRsLnBsdWdpbi52MS5JdGVtEg8KB2ltcG9ydHMYAiADKAkiNgoESXRlbRIOCgZzb3VyY2UYASABKAkSDAoEbmFtZRgCIAEoCRIQCghjb25mb3JtcxgDIAEoCSKXAgoIVHlwZVZpZXcSIQoEZm9ybRgBIAEoDjITLnRkbC5wbHVnaW4udjEuRm9ybRIZCgJpZBgCIAEoCzINLnRkbC5pci52MS5JRBIMCgRuYW1lGAMgASgJEhsKBGVsZW0YBCABKAsyDS50ZGwuaXIudjEuSUQSGgoDa2V5GAUgASgLMg0udGRsLmlyLnYxLklEEhsKBGRlY2wYBiABKAsyDS50ZGwuaXIudjEuSUQSHQoGZXh0ZXJuGAcgASgLMg0udGRsLmlyLnYxLklEEicKB3JlZnVzYWwYCCABKAsyFi50ZGwucGx1Z2luLnYxLlJlZnVzYWwSIQoKcmVmZXJlbmNlcxgJIAMoCzINLnRkbC5pci52MS5JRCKjAgoHUmVmdXNhbBItCgZyZWFzb24YASABKA4yHS50ZGwucGx1Z2luLnYxLlJlZnVzYWwuUmVhc29uEg8KB3N1YmplY3QYAiABKAkSJQoIcG9zaXRpb24YAyABKAsyEy50ZGwuaXIudjEuUG9zaXRpb24isAEKBlJlYXNvbhIWChJSRUFTT05fVU5TUEVDSUZJRUQQABIVChFSRUFTT05fVU5SRVNPTFZFRBABEhAKDFJFQVNPTl9QQVJBTRACEg8KC1JFQVNPTl9VTklUEAMSEAoMUkVBU09OX0NMQVNTEAQSFAoQUkVBU09OX1VOSVRfREVDTBAFEhQKEFJFQVNPTl9UWVBFX0FSR1MQBhIWChJSRUFTT05fTUlTU0lOR19BUkcQByKfAgoIRGVjbFZpZXcSCwoDb3duGAEgASgIEiEKCnJlZmVyZW5jZXMYAiADKAsyDS50ZGwuaXIudjEuSUQSDwoHZmllbGRlZBgDIAEoCBIUCgxkaXNjcmltaW5hbnQYBCABKAkSIQoKdW5kZXJseWluZxgFIAEoCzINLnRkbC5pci52MS5JRBINCgV3b3JkcxgGIAMoCRIpCgZmaWVsZHMYByADKAsyGS50ZGwucGx1Z2luLnYxLk1lbWJlclZpZXcSKwoIdmFyaWFudHMYCCADKAsyGS50ZGwucGx1Z2luLnYxLk1lbWJlclZpZXcSMgoLY29uc3RyYWludHMYCSADKAsyHS50ZGwucGx1Z2luLnYxLkNvbnN0cmFpbnRWaWV3IsABCgpNZW1iZXJWaWV3Eg0KBXdvcmRzGAEgAygJEikKBmZpZWxkcxgCIAMoCzIZLnRkbC5wbHVnaW4udjEuTWVtYmVyVmlldxIOCgZudW1iZXIYAyABKAMSDwoHaW5saW5lZBgEIAMoAxIyCgtjb25zdHJhaW50cxgFIAMoCzIdLnRkbC5wbHVnaW4udjEuQ29uc3RyYWludFZpZXcSDgoGc291cmNlGAYgASgJEhMKC2RlcHJlY2F0aW9uGAcgASgJImAKDkNvbnN0cmFpbnRWaWV3Eg4KBnNvdXJjZRgBIAEoCRIgCgZsZW5ndGgYAiABKAsyEC50ZGwuaXIudjEuUmFuZ2USCwoDcmUyGAMgASgIEg8KB3Byb2JsZW0YBCABKAkibAoIUmVzcG9uc2USIgoFZmlsZXMYASADKAsyEy50ZGwucGx1Z2luLnYxLkZpbGUSDAoEcG9zdBgCIAMoCRIuCgtkaWFnbm9zdGljcxgDIAMoCzIZLnRkbC5wbHVnaW4udjEuRGlhZ25vc3RpYyIlCgRGaWxlEgwKBHBhdGgYASABKAkSDwoHY29udGVudBgCIAEoDCJqCg1JbXBvcnRSZXF1ZXN0Eg4KBnRhcmdldBgBIAEoCRIiCgVmaWxlcxgCIAMoCzITLnRkbC5wbHVnaW4udjEuRmlsZRITCgthbGxvd19sb3NzeRgDIAMoCRIQCghyZWFkYmFjaxgEIAEoCCJxCg5JbXBvcnRSZXNwb25zZRIfCgVtb2RlbBgBIAEoCzIQLnRkbC5pci52MS5Nb2RlbBIuCgtkaWFnbm9zdGljcxgCIAMoCzIZLnRkbC5wbHVnaW4udjEuRGlhZ25vc3RpYxIOCgZzb3VyY2UYAyABKAkifQoKRGlhZ25vc3RpYxIpCghzZXZlcml0eRgBIAEoDjIXLnRkbC5wbHVnaW4udjEuU2V2ZXJpdHkSDwoHbWVzc2FnZRgCIAEoCRIlCghwb3NpdGlvbhgDIAEoCzITLnRkbC5pci52MS5Qb3NpdGlvbhIMCgRjb2RlGAQgASgJImYKClJlcXVlc3RTZXQSKAoIcmVxdWVzdHMYASADKAsyFi50ZGwucGx1Z2luLnYxLlJlcXVlc3QSLgoLZGlhZ25vc3RpY3MYAiADKAsyGS50ZGwucGx1Z2luLnYxLkRpYWdub3N0aWMiNAoHT3ZlcmxheRIpCgVmaWxlcxgBIAMoCzIaLnRkbC5wbHVnaW4udjEuT3ZlcmxheUZpbGUiKQoLT3ZlcmxheUZpbGUSDAoEcGF0aBgBIAEoCRIMCgR0ZXh0GAIgASgJKi0KBE1vZGUSFAoQTU9ERV9VTlNQRUNJRklFRBAAEg8KC01PREVfSU1QT1JUEAEqkQEKCVBsYWNlbWVudBIZChVQTEFDRU1FTlRfVU5TUEVDSUZJRUQQABITCg9QTEFDRU1FTlRfQkxPQ0sQARISCg5QTEFDRU1FTlRfREVDTBACEhMKD1BMQUNFTUVOVF9GSUVMRBADEhUKEVBMQUNFTUVOVF9WQVJJQU5UEAQSFAoQUExBQ0VNRU5UX0VYVEVSThAFKr8BCgRGb3JtEhQKEEZPUk1fVU5TUEVDSUZJRUQQABISCg5GT1JNX1BSSU1JVElWRRABEg0KCUZPUk1fTElTVBACEgwKCEZPUk1fU0VUEAMSDAoIRk9STV9NQVAQBBIPCgtGT1JNX09QVElPThAFEhEKDUZPUk1fTlVMTEFCTEUQBhIOCgpGT1JNX05BTUVEEAcSDwoLRk9STV9FWFRFUk4QCBIOCgpGT1JNX1BBUkFNEAkSDQoJRk9STV9VTklUEAoqTgoIU2V2ZXJpdHkSGAoUU0VWRVJJVFlfVU5TUEVDSUZJRUQQABISCg5TRVZFUklUWV9FUlJPUhABEhQKEFNFVkVSSVRZX1dBUk5JTkcQAkKmAQoRY29tLnRkbC5wbHVnaW4udjFCC1BsdWdpblByb3RvWiZnaXRodWIuY29tL3Vuc3RvcHBhYmxlbWFuZ28vdGRsL3BsdWdpbqICA1RQWKoCDVRkbC5QbHVnaW4uVjHKAg1UZGxcUGx1Z2luXFYx4gIZVGRsXFBsdWdpblxWMVxHUEJNZXRhZGF0YeoCD1RkbDo6UGx1Z2luOjpWMZIDBwgC0j4CEAFiCGVkaXRpb25zcOkH", [file_tdl_ir_v1_ir]);
+  fileDesc("Chp0ZGwvcGx1Z2luL3YxL3BsdWdpbi5wcm90bxINdGRsLnBsdWdpbi52MSJqCglIYW5kc2hha2USFwoPZnJhbWluZ192ZXJzaW9uGAEgASgFEhIKCmlyX3ZlcnNpb24YAiABKAkSDQoFd2F0Y2gYAyABKAgSIQoEbW9kZRgEIAEoDjITLnRkbC5wbHVnaW4udjEuTW9kZSL1AQoOSGFuZHNoYWtlUmVwbHkSEAoIYWNjZXB0ZWQYASABKAgSDwoHcmVmdXNhbBgCIAEoCRIMCgRuYW1lGAMgASgJEg8KB3ZlcnNpb24YBCABKAkSMAoKZGlyZWN0aXZlcxgFIAMoCzIcLnRkbC5wbHVnaW4udjEuRGlyZWN0aXZlU3BlYxIpCghmZWF0dXJlcxgGIAEoCzIXLnRkbC5wbHVnaW4udjEuRmVhdHVyZXMSKwoJbnVtYmVyaW5nGAcgASgLMhgudGRsLnBsdWdpbi52MS5OdW1iZXJpbmcSFwoPaW1wb3J0X3BhdHRlcm5zGAggAygJIoIBCglOdW1iZXJpbmcSKQoGZmllbGRzGAEgASgLMhkudGRsLnBsdWdpbi52MS5OdW1iZXJSdWxlEikKBnZhbHVlcxgCIAEoCzIZLnRkbC5wbHVnaW4udjEuTnVtYmVyUnVsZRIPCgdyZXNlcnZlGAMgASgJEg4KBmlubGluZRgEIAEoCSI9CgpOdW1iZXJSdWxlEgsKA21heBgBIAEoAxIiCghyZXNlcnZlZBgCIAMoCzIQLnRkbC5pci52MS5SYW5nZSK+AQoNRGlyZWN0aXZlU3BlYxIMCgRuYW1lGAEgASgJEhAKCG1pbl9hcmdzGAIgASgFEhAKCG1heF9hcmdzGAMgASgFEikKCWFyZ19raW5kcxgEIAMoDjIWLnRkbC5pci52MS5MaXRlcmFsS2luZBISCgpyZXBlYXRhYmxlGAUgASgIEiwKCnBsYWNlbWVudHMYBiADKA4yGC50ZGwucGx1Z2luLnYxLlBsYWNlbWVudBIOCgZ2YWx1ZXMYByADKAkiRAoIRmVhdHVyZXMSDQoFcmV1c2UYASABKAgSDwoHcmV2ZXJzZRgCIAEoCBIYChBub25kZXRlcm1pbmlzdGljGAMgASgIIrgBCgdSZXF1ZXN0Eg4KBnRhcmdldBgBIAEoCRIfCgVtb2RlbBgCIAEoCzIQLnRkbC5pci52MS5Nb2RlbBILCgNvdXQYAyABKAkSDwoHZHJ5X3J1bhgEIAEoCBIpCghhbmFseXNpcxgFIAEoCzIXLnRkbC5wbHVnaW4udjEuQW5hbHlzaXMSMwoMZGVwZW5kZW5jaWVzGAYgAygLMh0udGRsLnBsdWdpbi52MS5EZXBlbmRlbmN5RmlsZSJACg5EZXBlbmRlbmN5RmlsZRIPCgdwYWNrYWdlGAEgASgJEgwKBHBhdGgYAiABKAkSDwoHY29udGVudBgDIAEoDCKBAQoIQW5hbHlzaXMSJgoFdHlwZXMYASADKAsyFy50ZGwucGx1Z2luLnYxLlR5cGVWaWV3EiYKBWRlY2xzGAIgAygLMhcudGRsLnBsdWdpbi52MS5EZWNsVmlldxIlCgZzb3VyY2UYAyABKAsyFS50ZGwucGx1Z2luLnYxLlNvdXJjZSJjCgZTb3VyY2USIgoFaXRlbXMYASADKAsyEy50ZGwucGx1Z2luLnYxLkl0ZW0SDwoHaW1wb3J0cxgCIAMoCRIkCgdleHRlcm5zGAMgAygLMhMudGRsLnBsdWdpbi52MS5JdGVtIjYKBEl0ZW0SDgoGc291cmNlGAEgASgJEgwKBG5hbWUYAiABKAkSEAoIY29uZm9ybXMYAyABKAkilwIKCFR5cGVWaWV3EiEKBGZvcm0YASABKA4yEy50ZGwucGx1Z2luLnYxLkZvcm0SGQoCaWQYAiABKAsyDS50ZGwuaXIudjEuSUQSDAoEbmFtZRgDIAEoCRIbCgRlbGVtGAQgASgLMg0udGRsLmlyLnYxLklEEhoKA2tleRgFIAEoCzINLnRkbC5pci52MS5JRBIbCgRkZWNsGAYgASgLMg0udGRsLmlyLnYxLklEEh0KBmV4dGVybhgHIAEoCzINLnRkbC5pci52MS5JRBInCgdyZWZ1c2FsGAggASgLMhYudGRsLnBsdWdpbi52MS5SZWZ1c2FsEiEKCnJlZmVyZW5jZXMYCSADKAsyDS50ZGwuaXIudjEuSUQiowIKB1JlZnVzYWwSLQoGcmVhc29uGAEgASgOMh0udGRsLnBsdWdpbi52MS5SZWZ1c2FsLlJlYXNvbhIPCgdzdWJqZWN0GAIgASgJEiUKCHBvc2l0aW9uGAMgASgLMhMudGRsLmlyLnYxLlBvc2l0aW9uIrABCgZSZWFzb24SFgoSUkVBU09OX1VOU1BFQ0lGSUVEEAASFQoRUkVBU09OX1VOUkVTT0xWRUQQARIQCgxSRUFTT05fUEFSQU0QAhIPCgtSRUFTT05fVU5JVBADEhAKDFJFQVNPTl9DTEFTUxAEEhQKEFJFQVNPTl9VTklUX0RFQ0wQBRIUChBSRUFTT05fVFlQRV9BUkdTEAYSFgoSUkVBU09OX01JU1NJTkdfQVJHEAcinwIKCERlY2xWaWV3EgsKA293bhgBIAEoCBIhCgpyZWZlcmVuY2VzGAIgAygLMg0udGRsLmlyLnYxLklEEg8KB2ZpZWxkZWQYAyABKAgSFAoMZGlzY3JpbWluYW50GAQgASgJEiEKCnVuZGVybHlpbmcYBSABKAsyDS50ZGwuaXIudjEuSUQSDQoFd29yZHMYBiADKAkSKQoGZmllbGRzGAcgAygLMhkudGRsLnBsdWdpbi52MS5NZW1iZXJWaWV3EisKCHZhcmlhbnRzGAggAygLMhkudGRsLnBsdWdpbi52MS5NZW1iZXJWaWV3EjIKC2NvbnN0cmFpbnRzGAkgAygLMh0udGRsLnBsdWdpbi52MS5Db25zdHJhaW50VmlldyLAAQoKTWVtYmVyVmlldxINCgV3b3JkcxgBIAMoCRIpCgZmaWVsZHMYAiADKAsyGS50ZGwucGx1Z2luLnYxLk1lbWJlclZpZXcSDgoGbnVtYmVyGAMgASgDEg8KB2lubGluZWQYBCADKAMSMgoLY29uc3RyYWludHMYBSADKAsyHS50ZGwucGx1Z2luLnYxLkNvbnN0cmFpbnRWaWV3Eg4KBnNvdXJjZRgGIAEoCRITCgtkZXByZWNhdGlvbhgHIAEoCSJgCg5Db25zdHJhaW50VmlldxIOCgZzb3VyY2UYASABKAkSIAoGbGVuZ3RoGAIgASgLMhAudGRsLmlyLnYxLlJhbmdlEgsKA3JlMhgDIAEoCBIPCgdwcm9ibGVtGAQgASgJImwKCFJlc3BvbnNlEiIKBWZpbGVzGAEgAygLMhMudGRsLnBsdWdpbi52MS5GaWxlEgwKBHBvc3QYAiADKAkSLgoLZGlhZ25vc3RpY3MYAyADKAsyGS50ZGwucGx1Z2luLnYxLkRpYWdub3N0aWMiJQoERmlsZRIMCgRwYXRoGAEgASgJEg8KB2NvbnRlbnQYAiABKAwiagoNSW1wb3J0UmVxdWVzdBIOCgZ0YXJnZXQYASABKAkSIgoFZmlsZXMYAiADKAsyEy50ZGwucGx1Z2luLnYxLkZpbGUSEwoLYWxsb3dfbG9zc3kYAyADKAkSEAoIcmVhZGJhY2sYBCABKAgicQoOSW1wb3J0UmVzcG9uc2USHwoFbW9kZWwYASABKAsyEC50ZGwuaXIudjEuTW9kZWwSLgoLZGlhZ25vc3RpY3MYAiADKAsyGS50ZGwucGx1Z2luLnYxLkRpYWdub3N0aWMSDgoGc291cmNlGAMgASgJIn0KCkRpYWdub3N0aWMSKQoIc2V2ZXJpdHkYASABKA4yFy50ZGwucGx1Z2luLnYxLlNldmVyaXR5Eg8KB21lc3NhZ2UYAiABKAkSJQoIcG9zaXRpb24YAyABKAsyEy50ZGwuaXIudjEuUG9zaXRpb24SDAoEY29kZRgEIAEoCSJmCgpSZXF1ZXN0U2V0EigKCHJlcXVlc3RzGAEgAygLMhYudGRsLnBsdWdpbi52MS5SZXF1ZXN0Ei4KC2RpYWdub3N0aWNzGAIgAygLMhkudGRsLnBsdWdpbi52MS5EaWFnbm9zdGljIjQKB092ZXJsYXkSKQoFZmlsZXMYASADKAsyGi50ZGwucGx1Z2luLnYxLk92ZXJsYXlGaWxlIikKC092ZXJsYXlGaWxlEgwKBHBhdGgYASABKAkSDAoEdGV4dBgCIAEoCSotCgRNb2RlEhQKEE1PREVfVU5TUEVDSUZJRUQQABIPCgtNT0RFX0lNUE9SVBABKpEBCglQbGFjZW1lbnQSGQoVUExBQ0VNRU5UX1VOU1BFQ0lGSUVEEAASEwoPUExBQ0VNRU5UX0JMT0NLEAESEgoOUExBQ0VNRU5UX0RFQ0wQAhITCg9QTEFDRU1FTlRfRklFTEQQAxIVChFQTEFDRU1FTlRfVkFSSUFOVBAEEhQKEFBMQUNFTUVOVF9FWFRFUk4QBSq/AQoERm9ybRIUChBGT1JNX1VOU1BFQ0lGSUVEEAASEgoORk9STV9QUklNSVRJVkUQARINCglGT1JNX0xJU1QQAhIMCghGT1JNX1NFVBADEgwKCEZPUk1fTUFQEAQSDwoLRk9STV9PUFRJT04QBRIRCg1GT1JNX05VTExBQkxFEAYSDgoKRk9STV9OQU1FRBAHEg8KC0ZPUk1fRVhURVJOEAgSDgoKRk9STV9QQVJBTRAJEg0KCUZPUk1fVU5JVBAKKk4KCFNldmVyaXR5EhgKFFNFVkVSSVRZX1VOU1BFQ0lGSUVEEAASEgoOU0VWRVJJVFlfRVJST1IQARIUChBTRVZFUklUWV9XQVJOSU5HEAJCpgEKEWNvbS50ZGwucGx1Z2luLnYxQgtQbHVnaW5Qcm90b1omZ2l0aHViLmNvbS91bnN0b3BwYWJsZW1hbmdvL3RkbC9wbHVnaW6iAgNUUFiqAg1UZGwuUGx1Z2luLlYxygINVGRsXFBsdWdpblxWMeICGVRkbFxQbHVnaW5cVjFcR1BCTWV0YWRhdGHqAg9UZGw6OlBsdWdpbjo6VjGSAwcIAtI+AhABYghlZGl0aW9uc3DpBw", [file_tdl_ir_v1_ir]);
 
 /**
  * Handshake is what tdl sends first, before any request.
@@ -375,6 +375,17 @@ export type Request = Message<"tdl.plugin.v1.Request"> & {
    * @generated from field: tdl.plugin.v1.Analysis analysis = 5;
    */
   analysis?: Analysis | undefined;
+
+  /**
+   * dependencies are the files each import's dependency already generated
+   * for this target, sent only to a backend that declares itself
+   * nondeterministic, so it can refer to what they declare. A dependency
+   * with no block for this target, no out directive, or no output yet
+   * sends nothing.
+   *
+   * @generated from field: repeated tdl.plugin.v1.DependencyFile dependencies = 6;
+   */
+  dependencies: DependencyFile[];
 };
 
 /**
@@ -383,6 +394,40 @@ export type Request = Message<"tdl.plugin.v1.Request"> & {
  */
 export const RequestSchema: GenMessage<Request> = /*@__PURE__*/
   messageDesc(file_tdl_plugin_v1_plugin, 6);
+
+/**
+ * DependencyFile is one file a dependency's own target block generated.
+ *
+ * @generated from message tdl.plugin.v1.DependencyFile
+ */
+export type DependencyFile = Message<"tdl.plugin.v1.DependencyFile"> & {
+  /**
+   * package is the dependency's package.
+   *
+   * @generated from field: string package = 1;
+   */
+  package: string;
+
+  /**
+   * path is the file's path relative to the request's out, with forward
+   * slashes; it may begin with "..".
+   *
+   * @generated from field: string path = 2;
+   */
+  path: string;
+
+  /**
+   * @generated from field: bytes content = 3;
+   */
+  content: Uint8Array;
+};
+
+/**
+ * Describes the message tdl.plugin.v1.DependencyFile.
+ * Use `create(DependencyFileSchema)` to create a new message.
+ */
+export const DependencyFileSchema: GenMessage<DependencyFile> = /*@__PURE__*/
+  messageDesc(file_tdl_plugin_v1_plugin, 7);
 
 /**
  * Analysis holds facts about a model that are the same for every backend
@@ -407,8 +452,8 @@ export type Analysis = Message<"tdl.plugin.v1.Analysis"> & {
   decls: DeclView[];
 
   /**
-   * source is the model as TDL, set only when the target block carries the
-   * roundtrip directive.
+   * source is the model as TDL, set when the target block carries the
+   * roundtrip directive or the backend declares itself nondeterministic.
    *
    * @generated from field: tdl.plugin.v1.Source source = 3;
    */
@@ -420,7 +465,7 @@ export type Analysis = Message<"tdl.plugin.v1.Analysis"> & {
  * Use `create(AnalysisSchema)` to create a new message.
  */
 export const AnalysisSchema: GenMessage<Analysis> = /*@__PURE__*/
-  messageDesc(file_tdl_plugin_v1_plugin, 7);
+  messageDesc(file_tdl_plugin_v1_plugin, 8);
 
 /**
  * Source is the model as TDL, for a backend writing annotations that carry
@@ -444,6 +489,17 @@ export type Source = Message<"tdl.plugin.v1.Source"> & {
    * @generated from field: repeated string imports = 2;
    */
   imports: string[];
+
+  /**
+   * externs are the declarations the model's externs name, as `tdl fmt`
+   * prints them in their own file, indexed like Model.externs, for a
+   * backend that declares itself nondeterministic. An extern whose file
+   * tdl could not read has an empty item. Empty when the host read no
+   * dependency.
+   *
+   * @generated from field: repeated tdl.plugin.v1.Item externs = 3;
+   */
+  externs: Item[];
 };
 
 /**
@@ -451,7 +507,7 @@ export type Source = Message<"tdl.plugin.v1.Source"> & {
  * Use `create(SourceSchema)` to create a new message.
  */
 export const SourceSchema: GenMessage<Source> = /*@__PURE__*/
-  messageDesc(file_tdl_plugin_v1_plugin, 8);
+  messageDesc(file_tdl_plugin_v1_plugin, 9);
 
 /**
  * Item is one top-level item of the model as TDL.
@@ -490,7 +546,7 @@ export type Item = Message<"tdl.plugin.v1.Item"> & {
  * Use `create(ItemSchema)` to create a new message.
  */
 export const ItemSchema: GenMessage<Item> = /*@__PURE__*/
-  messageDesc(file_tdl_plugin_v1_plugin, 9);
+  messageDesc(file_tdl_plugin_v1_plugin, 10);
 
 /**
  * TypeView is one entry of the type table, resolved.
@@ -574,7 +630,7 @@ export type TypeView = Message<"tdl.plugin.v1.TypeView"> & {
  * Use `create(TypeViewSchema)` to create a new message.
  */
 export const TypeViewSchema: GenMessage<TypeView> = /*@__PURE__*/
-  messageDesc(file_tdl_plugin_v1_plugin, 10);
+  messageDesc(file_tdl_plugin_v1_plugin, 11);
 
 /**
  * Refusal says why a type is one no schema backend writes. Each backend
@@ -607,7 +663,7 @@ export type Refusal = Message<"tdl.plugin.v1.Refusal"> & {
  * Use `create(RefusalSchema)` to create a new message.
  */
 export const RefusalSchema: GenMessage<Refusal> = /*@__PURE__*/
-  messageDesc(file_tdl_plugin_v1_plugin, 11);
+  messageDesc(file_tdl_plugin_v1_plugin, 12);
 
 /**
  * @generated from enum tdl.plugin.v1.Refusal.Reason
@@ -673,7 +729,7 @@ export enum Refusal_Reason {
  * Describes the enum tdl.plugin.v1.Refusal.Reason.
  */
 export const Refusal_ReasonSchema: GenEnum<Refusal_Reason> = /*@__PURE__*/
-  enumDesc(file_tdl_plugin_v1_plugin, 11, 0);
+  enumDesc(file_tdl_plugin_v1_plugin, 12, 0);
 
 /**
  * DeclView is one entry of the declaration table, as one target sees it.
@@ -759,7 +815,7 @@ export type DeclView = Message<"tdl.plugin.v1.DeclView"> & {
  * Use `create(DeclViewSchema)` to create a new message.
  */
 export const DeclViewSchema: GenMessage<DeclView> = /*@__PURE__*/
-  messageDesc(file_tdl_plugin_v1_plugin, 12);
+  messageDesc(file_tdl_plugin_v1_plugin, 13);
 
 /**
  * MemberView is a field or a variant.
@@ -828,7 +884,7 @@ export type MemberView = Message<"tdl.plugin.v1.MemberView"> & {
  * Use `create(MemberViewSchema)` to create a new message.
  */
 export const MemberViewSchema: GenMessage<MemberView> = /*@__PURE__*/
-  messageDesc(file_tdl_plugin_v1_plugin, 13);
+  messageDesc(file_tdl_plugin_v1_plugin, 14);
 
 /**
  * ConstraintView is what tdl reads from one constraint.
@@ -876,7 +932,7 @@ export type ConstraintView = Message<"tdl.plugin.v1.ConstraintView"> & {
  * Use `create(ConstraintViewSchema)` to create a new message.
  */
 export const ConstraintViewSchema: GenMessage<ConstraintView> = /*@__PURE__*/
-  messageDesc(file_tdl_plugin_v1_plugin, 14);
+  messageDesc(file_tdl_plugin_v1_plugin, 15);
 
 /**
  * Response is what a backend returns: file contents, which tdl writes, so
@@ -910,7 +966,7 @@ export type Response = Message<"tdl.plugin.v1.Response"> & {
  * Use `create(ResponseSchema)` to create a new message.
  */
 export const ResponseSchema: GenMessage<Response> = /*@__PURE__*/
-  messageDesc(file_tdl_plugin_v1_plugin, 15);
+  messageDesc(file_tdl_plugin_v1_plugin, 16);
 
 /**
  * File is one generated file, with a path relative to Request.out. An
@@ -936,7 +992,7 @@ export type File = Message<"tdl.plugin.v1.File"> & {
  * Use `create(FileSchema)` to create a new message.
  */
 export const FileSchema: GenMessage<File> = /*@__PURE__*/
-  messageDesc(file_tdl_plugin_v1_plugin, 16);
+  messageDesc(file_tdl_plugin_v1_plugin, 17);
 
 /**
  * ImportRequest is everything a reverse backend needs to read one set of
@@ -985,7 +1041,7 @@ export type ImportRequest = Message<"tdl.plugin.v1.ImportRequest"> & {
  * Use `create(ImportRequestSchema)` to create a new message.
  */
 export const ImportRequestSchema: GenMessage<ImportRequest> = /*@__PURE__*/
-  messageDesc(file_tdl_plugin_v1_plugin, 17);
+  messageDesc(file_tdl_plugin_v1_plugin, 18);
 
 /**
  * ImportResponse is what a reverse backend returns: a model, or TDL
@@ -1022,7 +1078,7 @@ export type ImportResponse = Message<"tdl.plugin.v1.ImportResponse"> & {
  * Use `create(ImportResponseSchema)` to create a new message.
  */
 export const ImportResponseSchema: GenMessage<ImportResponse> = /*@__PURE__*/
-  messageDesc(file_tdl_plugin_v1_plugin, 18);
+  messageDesc(file_tdl_plugin_v1_plugin, 19);
 
 /**
  * Diagnostic is a problem a backend found.
@@ -1062,7 +1118,7 @@ export type Diagnostic = Message<"tdl.plugin.v1.Diagnostic"> & {
  * Use `create(DiagnosticSchema)` to create a new message.
  */
 export const DiagnosticSchema: GenMessage<Diagnostic> = /*@__PURE__*/
-  messageDesc(file_tdl_plugin_v1_plugin, 19);
+  messageDesc(file_tdl_plugin_v1_plugin, 20);
 
 /**
  * RequestSet is what `tdl request` writes after its Handshake: every
@@ -1096,7 +1152,7 @@ export type RequestSet = Message<"tdl.plugin.v1.RequestSet"> & {
  * Use `create(RequestSetSchema)` to create a new message.
  */
 export const RequestSetSchema: GenMessage<RequestSet> = /*@__PURE__*/
-  messageDesc(file_tdl_plugin_v1_plugin, 20);
+  messageDesc(file_tdl_plugin_v1_plugin, 21);
 
 /**
  * Overlay is what `tdl request --overlay` reads from standard input: the
@@ -1118,7 +1174,7 @@ export type Overlay = Message<"tdl.plugin.v1.Overlay"> & {
  * Use `create(OverlaySchema)` to create a new message.
  */
 export const OverlaySchema: GenMessage<Overlay> = /*@__PURE__*/
-  messageDesc(file_tdl_plugin_v1_plugin, 21);
+  messageDesc(file_tdl_plugin_v1_plugin, 22);
 
 /**
  * OverlayFile is one file's text.
@@ -1142,7 +1198,7 @@ export type OverlayFile = Message<"tdl.plugin.v1.OverlayFile"> & {
  * Use `create(OverlayFileSchema)` to create a new message.
  */
 export const OverlayFileSchema: GenMessage<OverlayFile> = /*@__PURE__*/
-  messageDesc(file_tdl_plugin_v1_plugin, 22);
+  messageDesc(file_tdl_plugin_v1_plugin, 23);
 
 /**
  * Mode is the direction of a connection.
