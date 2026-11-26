@@ -7,6 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Last commit](https://img.shields.io/github/last-commit/UnstoppableMango/tdl)](https://github.com/UnstoppableMango/tdl/commits/main)
 [![Hercules CI](https://hercules-ci.com/api/v1/site/github/account/UnstoppableMango/project/tdl/badge)](https://hercules-ci.com/github/UnstoppableMango/tdl)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/UnstoppableMango/tdl/badge)](https://scorecard.dev/viewer/?uri=github.com/UnstoppableMango/tdl)
 
 TDL is a language for describing domain models: what things are, what identifies them, how they relate, and what values they may hold.
 It compiles a model into equivalent definitions in other formats, such as Go, protobuf, or GraphQL.
