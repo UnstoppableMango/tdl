@@ -48,7 +48,11 @@ var keywords = []string{"assert", "else", "if", "in", "inherit", "let", "or", "r
 type helper struct{ name, text string }
 
 // helpers is every helper, in the order the file declares them.
-var helpers []helper
+var helpers = []helper{
+	{"struct", structHelper},
+	{"optional", optionalHelper},
+	{"nullable", "  nullable = type: types.nullOr type // { emptyValue = { }; };\n"},
+}
 
 // reserved is what a declaration cannot be bound as, since the file binds
 // it, or a helper reads it.
