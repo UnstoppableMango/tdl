@@ -77,17 +77,6 @@ const structHelper = `  struct =
     );
 `
 
-// opaqueHelper hides a struct's options from docs, for a struct reached
-// from itself, whose docs would otherwise never end.
-const opaqueHelper = `  opaque =
-    type:
-    type
-    // {
-      getSubOptions = _: { };
-      substSubModules = m: opaque (type.substSubModules m);
-    };
-`
-
 // durationHelper is an ISO 8601 duration. An ERE cannot look ahead, so a
 // check refuses P, and a T ending it, which hold no component.
 const durationHelper = `  duration =
@@ -115,7 +104,6 @@ const optionalHelper = `  optional =
 // a submodule. A mixin's fields are already copied into each includer.
 func (g *generator) structure(b *strings.Builder, d *ir.Decl, attr string) error {
 	g.used["struct"], g.used["after"] = true, true
-	g.current = d
 	owner := emit.LastSegment(d.GetMeta().GetName())
 	var fields strings.Builder
 	seen := map[string]bool{}
@@ -212,24 +200,7 @@ func (g *generator) typ(r *emit.Ref) (string, error) {
 	case emit.Set, emit.Map:
 		return "", emit.Unsupported(r.Pos, "sets and maps are not generated yet")
 	}
-	if r.Decl.GetStructure() != nil && g.reaches(r.Decl, g.current, map[*ir.Decl]bool{}) {
-		g.used["opaque"] = true
-		return "opaque " + g.attr(r.Decl), nil
-	}
 	return g.attr(r.Decl), nil
-}
-
-// reaches reports whether from names to, through any number of
-// declarations.
-func (g *generator) reaches(from, to *ir.Decl, seen map[*ir.Decl]bool) bool {
-	if from == to {
-		return true
-	}
-	if seen[from] {
-		return false
-	}
-	seen[from] = true
-	return slices.ContainsFunc(g.References(from), func(d *ir.Decl) bool { return g.reaches(d, to, seen) })
 }
 
 // hasUnit reports whether a type is measured in a unit.

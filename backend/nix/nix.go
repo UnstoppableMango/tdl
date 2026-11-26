@@ -54,7 +54,6 @@ var helpers = []helper{
 	{"struct", structHelper},
 	{"optional", optionalHelper},
 	{"nullable", "  nullable = type: types.nullOr type // { emptyValue = { }; };\n"},
-	{"opaque", opaqueHelper},
 	{"duration", durationHelper},
 }
 
@@ -63,9 +62,6 @@ type generator struct {
 
 	// used is the helpers the declaration being rendered uses.
 	used map[string]bool
-
-	// current is the struct being rendered.
-	current *ir.Decl
 }
 
 // Generate returns one .nix file: a function of lib returning an attribute
