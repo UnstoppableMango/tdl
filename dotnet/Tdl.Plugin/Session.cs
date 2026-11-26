@@ -82,7 +82,7 @@ public sealed partial class Session
 	/// Makes <see cref="Lose"/> report nothing, since annotations carry what
 	/// it would.
 	/// </summary>
-	public bool Roundtrip { get; set; }
+	public bool Annotate { get; set; }
 
 	/// <summary>
 	/// Makes <see cref="Lose"/> report read-back loss, which it otherwise
@@ -200,7 +200,7 @@ public sealed partial class Session
 	/// <summary>
 	/// Warns that a fact is lost, with the loss code that names it. It
 	/// reports output loss: what the output itself drops or weakens, which
-	/// annotations do not restore, so it warns under roundtrip too.
+	/// annotations do not restore, so it warns under annotate too.
 	/// <see cref="Lose"/> reports read-back loss.
 	/// </summary>
 	public void Lossy(string code, Position? position, string message) =>

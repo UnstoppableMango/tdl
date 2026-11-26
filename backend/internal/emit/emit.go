@@ -30,9 +30,9 @@ type Session struct {
 	// rather than refusing it.
 	Externs bool
 
-	// Roundtrip makes [Session.Lose] report nothing, since annotations
+	// Annotate makes [Session.Lose] report nothing, since annotations
 	// carry what it would.
-	Roundtrip bool
+	Annotate bool
 
 	// Readback makes [Session.Lose] report read-back loss, which it
 	// otherwise leaves out: a backend sets it from a bare `readback`

@@ -35,7 +35,7 @@ func (Backend) Describe() plugin.Description {
 			{Name: "name", MinArgs: 1, MaxArgs: 1, ArgKinds: []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_STRING}, Placements: plugin.OnMembers()},
 			// Writes, as @tdl directives, every fact the schema alone would
 			// lose, so import rebuilds the model.
-			{Name: "roundtrip", Placements: plugin.On(plugin.OnBlock)},
+			{Name: "annotate", Placements: plugin.On(plugin.OnBlock)},
 			{Name: "readback", Placements: plugin.On(plugin.OnBlock)},
 		},
 		Reverse: true,
@@ -120,7 +120,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		local:   map[string]bool{},
 		names:   map[string]string{},
 	}
-	g.Roundtrip = g.Bare("roundtrip")
+	g.Annotate = g.Bare("annotate")
 	g.Readback = g.Bare("readback")
 
 	pkg := req.GetModel().GetPackage()

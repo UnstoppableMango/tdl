@@ -14,8 +14,9 @@ TMLANGUAGE  := ${VSCODE}/syntaxes/tdl.tmLanguage.json
 SUBLIME     := editors/bat/tdl.sublime-syntax
 TS_GRAMMAR  := tree-sitter/grammar.js
 FEATURES    := $(shell git grep -l '<!-- tdl:features' -- '*.md')
+SKILL_REFS  := $(addprefix skills/tdl-modeling/references/,spec.md grammar.ebnf std.tdl version.md)
 
-.PHONY: build test cover play demo generate treesitter textmate features vscode-install \
+.PHONY: build test cover play demo generate treesitter textmate features skills vscode-install \
 	vscode-check test-treesitter check-treesitter dotnet-test rust-test js-test js-check dotnet-deps mutate update lint check fmt tidy
 
 build:
@@ -64,6 +65,11 @@ features: ${FEATURES}
 # The documents are inputs too: a cell the measurement skips keeps its text.
 ${FEATURES} &: ${GO_SRC} ${TEST_DATA} $(wildcard backend/*/features.toml dotnet/*/features.toml)
 	go run ./tools/features
+
+skills: ${SKILL_REFS}
+
+${SKILL_REFS} &: docs/spec.md docs/grammar.ebnf prelude/std.tdl internal/cli/version.go $(call gosrc,internal/skills tools/skills)
+	go run ./tools/skills
 
 vscode-install: ${TMLANGUAGE}
 	${MAKE} -C ${VSCODE} install
