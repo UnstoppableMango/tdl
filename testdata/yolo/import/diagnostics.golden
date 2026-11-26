@@ -1,0 +1,1 @@
+10:10 warning lossy.unsupported: money.Money comes from another file with no foreign directive, and its package has no yolo output yet for the model to import; check how the files refer to it

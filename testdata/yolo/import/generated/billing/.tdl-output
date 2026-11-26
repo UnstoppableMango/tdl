@@ -1,0 +1,5 @@
+# Written by `tdl gen`, which owns the files listed below.
+# `tdl gen --clean` removes them; anything else here is left alone.
+lib/shop/billing/invoice.ex
+#@ yolo request 0000000000000000000000000000000000000000000000000000000000000000 1
+#@ yolo file e7aa762ca467e37c24dc508a9bb616fc22f16202ffd4af1f4c10f619dec4fb4e lib/shop/billing/invoice.ex

@@ -63,8 +63,8 @@ The TDL specification:
 }
 
 // userPrompt is the first message: the language, the user's instructions,
-// and the model.
-func userPrompt(language, instructions string, src *plugin.Source) string {
+// the model, and what it needs from the packages it imports.
+func userPrompt(language, instructions string, src *plugin.Source, deps string) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Write this model in %s.\n", language)
 	if instructions != "" {
@@ -73,6 +73,66 @@ func userPrompt(language, instructions string, src *plugin.Source) string {
 	b.WriteString("\nThe model:\n\n```tdl\n")
 	b.WriteString(modelText(src))
 	b.WriteString("```\n")
+	b.WriteString(deps)
+	return b.String()
+}
+
+// dependencies is what the prompt says about the packages the model
+// imports, which are generated separately: each import's language and
+// output directory, the declarations the model uses from them, their
+// foreign mappings, and the files they generated. It is "" for a model
+// importing nothing.
+func (g *generator) dependencies(src *plugin.Source) string {
+	imports := g.Model.GetImports()
+	if len(imports) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	b.WriteString("\nThe model imports these packages, which are generated separately. Refer to what they declare; never write their declarations yourself.\n\n")
+	for _, imp := range imports {
+		fmt.Fprintf(&b, "- %s, imported as %s", imp.GetPackage(), imp.GetAlias())
+		if lang, ok := g.Text(imp.GetDirectives(), "language"); ok {
+			fmt.Fprintf(&b, ", written in %s", lang)
+		}
+		if dir, ok := g.depDir(imp); ok {
+			fmt.Fprintf(&b, ", into %s relative to the output directory", dir)
+		}
+		b.WriteString("\n")
+	}
+
+	var decls []string
+	for i, ext := range g.Model.GetExterns() {
+		if i < len(src.GetExterns()) && src.GetExterns()[i].GetSource() != "" {
+			decls = append(decls, fmt.Sprintf("// in package %s\n%s", ext.GetPackage(), src.GetExterns()[i].GetSource()))
+		}
+	}
+	if len(decls) > 0 {
+		b.WriteString("\nThe declarations the model uses from them, each declared in another package and generated separately:\n\n```tdl\n")
+		b.WriteString(strings.Join(decls, "\n\n"))
+		b.WriteString("\n```\n")
+	}
+
+	var mapped []string
+	for _, ext := range g.Model.GetExterns() {
+		if module, name, ok := g.foreign(ext); ok {
+			mapped = append(mapped, fmt.Sprintf("- %s.%s is %s from %s; use that and do not write it.\n", ext.GetPackage(), ext.GetName(), name, module))
+		}
+	}
+	if len(mapped) > 0 {
+		b.WriteString("\nThese are mapped to existing code:\n\n")
+		b.WriteString(strings.Join(mapped, ""))
+	}
+
+	if files := g.deps; len(files) > 0 {
+		b.WriteString("\nThe imported packages generated these files, each under its path relative to the output directory. Import these paths and the names they declare rather than inventing your own, and do not write these files.\n")
+		for _, f := range files {
+			fmt.Fprintf(&b, "\n%s, from %s:\n\n````\n%s", f.GetPath(), f.GetPackage(), f.GetContent())
+			if !strings.HasSuffix(string(f.GetContent()), "\n") {
+				b.WriteString("\n")
+			}
+			b.WriteString("````\n")
+		}
+	}
 	return b.String()
 }
 
