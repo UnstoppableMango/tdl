@@ -23,6 +23,11 @@ runCommand "tdl-demo"
     ];
     FONTCONFIG_FILE = makeFontsConf { fontDirectories = [ jetbrains-mono ]; };
     COLORTERM = "truecolor";
+    # Chromium's own sandbox needs a user namespace nested in the build's,
+    # which a builder restricting unprivileged user namespaces (Ubuntu's
+    # AppArmor default, many container hosts) refuses, and Chromium then
+    # exits before VHS can reach it. The Nix sandbox already confines it.
+    VHS_NO_SANDBOX = "1";
   }
   ''
     export HOME=$TMPDIR
