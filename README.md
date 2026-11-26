@@ -420,44 +420,42 @@ Each built-in backend also ships as a `tdl-gen-<name>` plugin.
 | [`smithy`](docs/backends/smithy.md) | Structures, both enum shapes, named collection shapes |
 | [`thrift`](docs/backends/thrift.md) | Structs, both enum shapes, newtypes as typedefs, collections, `number` pins |
 | [`typescript`](docs/backends/typescript.md) | JSON wire types: interfaces, both enum shapes, newtypes as aliases |
-| [`yolo`](docs/backends/yolo.md) | Whatever a language model writes for the `language` you name, kept until the request changes |
 | `debug` | A description of the model it was given |
 | Anything else | `tdl-gen-<name>` on `PATH`, over the [plugin protocol](docs/architecture/plugins.md) |
 
 What each backend generates from each feature of the language, measured by `make features`.
 Yes generates it, Warns loses part of it under a loss code that `tdl.toml` can allow, No skips it or refuses the model, and Planned names a phase that will generate it.
-Depends is `yolo`'s, whose output is whatever the language model answering it writes.
 A backend's page names the codes and phases.
 Warns counts only what the output loses: what a later `tdl import` would not read back is reported with a bare `readback` directive in the target block.
 
 <!-- tdl:features generate -->
 
-| Feature | `csharp` | `go` | `graphql` | `haskell` | `jsonschema` | `likec4` | `mermaid` | `openapi` | `protobuf` | `salesforce` | `smithy` | `thrift` | `typescript` | `yolo` | `zod` |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Entity, value, and mixin | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Depends | Yes |
-| Mixin `include` | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Depends | Yes |
-| Fieldless enum | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Depends | Yes |
-| Fielded enum | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Depends | Yes |
-| Newtype | Yes | Yes | Warns | Yes | Yes | Yes | Yes | Yes | Warns | Yes | Yes | Yes | Yes | Depends | Yes |
-| Alias | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Depends | Yes |
-| Optional and nullable | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Depends | Yes |
-| List, set, and map | Yes | Yes | No | Yes | Yes | Yes | Yes | Yes | Warns | Yes | Yes | Yes | Warns | Depends | Yes |
-| `min` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Depends | Yes |
-| `max` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Depends | Yes |
-| `length` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Depends | Yes |
-| `matches` | Planned | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Depends | Yes |
-| `oneOf` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Yes | Depends | Yes |
-| `unique` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Yes | Warns | Warns | Warns | Warns | Warns | Depends | Yes |
-| `owned` | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Yes | Warns | No | Warns | Warns | Warns | Depends | Yes |
-| Field default | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Yes | Warns | Yes | Warns | Warns | Warns | Depends | Yes |
-| `key` directive | Yes | Yes | No | Yes | No | No | No | No | No | Yes | No | No | No | Depends | No |
-| `name` directive | Yes | Yes | Yes | Yes | Yes | No | No | Yes | Yes | Yes | Yes | Yes | Yes | Depends | Yes |
-| `number` directive | No | No | No | No | No | No | No | No | Yes | No | No | Yes | No | Depends | No |
-| Doc comment | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Depends | Yes |
-| Type parameters | Planned | Yes | No | Yes | No | Yes | Yes | No | No | No | No | No | No | Depends | Planned |
-| Class | Planned | Warns | Warns | Yes | No | Yes | Yes | No | Warns | No | Warns | Warns | Warns | Depends | Planned |
-| Unit | Warns | Planned | Warns | Planned | No | Yes | Yes | No | Warns | No | Warns | Warns | Warns | Depends | Planned |
-| Import and extern | Yes | Yes | No | Yes | No | Yes | Yes | No | Yes | No | No | No | Yes | Depends | Yes |
+| Feature | `csharp` | `go` | `graphql` | `haskell` | `jsonschema` | `likec4` | `mermaid` | `nix` | `openapi` | `protobuf` | `salesforce` | `smithy` | `thrift` | `typescript` | `yolo` | `zod` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Entity, value, and mixin | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Depends | Yes |
+| Mixin `include` | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Depends | Yes |
+| Fieldless enum | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Depends | Yes |
+| Fielded enum | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Planned | Yes | Yes | Yes | Yes | Yes | Yes | Depends | Yes |
+| Newtype | Yes | Yes | Warns | Yes | Yes | Yes | Yes | Planned | Yes | Warns | Yes | Yes | Yes | Yes | Depends | Yes |
+| Alias | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Depends | Yes |
+| Optional and nullable | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Depends | Yes |
+| List, set, and map | Yes | Yes | No | Yes | Yes | Yes | Yes | Yes | Yes | Warns | Yes | Yes | Yes | Warns | Depends | Yes |
+| `min` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Planned | Yes | Warns | Warns | Warns | Warns | Warns | Depends | Yes |
+| `max` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Planned | Yes | Warns | Warns | Warns | Warns | Warns | Depends | Yes |
+| `length` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Planned | Yes | Warns | Warns | Warns | Warns | Warns | Depends | Yes |
+| `matches` | Planned | Yes | Warns | Warns | Yes | Yes | Yes | Planned | Yes | Warns | Warns | Warns | Warns | Warns | Depends | Yes |
+| `oneOf` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Planned | Yes | Warns | Warns | Warns | Warns | Yes | Depends | Yes |
+| `unique` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Planned | Yes | Warns | Warns | Warns | Warns | Warns | Depends | Yes |
+| `owned` | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Yes | Yes | Warns | No | Warns | Warns | Warns | Depends | Yes |
+| Field default | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Planned | Yes | Warns | Yes | Warns | Warns | Warns | Depends | Yes |
+| `key` directive | Yes | Yes | No | Yes | No | No | No | No | No | No | Yes | No | No | No | Depends | No |
+| `name` directive | Yes | Yes | Yes | Yes | Yes | No | No | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Depends | Yes |
+| `number` directive | No | No | No | No | No | No | No | No | No | Yes | No | No | Yes | No | Depends | No |
+| Doc comment | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Depends | Yes |
+| Type parameters | Planned | Yes | No | Yes | No | Yes | Yes | Planned | No | No | No | No | No | No | Depends | Planned |
+| Class | Planned | Warns | Warns | Yes | No | Yes | Yes | Warns | No | Warns | No | Warns | Warns | Warns | Depends | Planned |
+| Unit | Warns | Planned | Warns | Planned | No | Yes | Yes | Warns | No | Warns | No | Warns | Warns | Warns | Depends | Planned |
+| Import and extern | Yes | Yes | No | Yes | No | Yes | Yes | Planned | No | Yes | No | No | No | Yes | Depends | Yes |
 
 <!-- /tdl:features -->
 
@@ -472,6 +470,7 @@ command make fmt     # nix fmt + buf format
 
 Without Nix, `go build ./...` and `go test ./...` work directly.
 [AGENTS.md](AGENTS.md) has the full command list and architecture.
+[CONTRIBUTING.md](CONTRIBUTING.md) covers issues, pull requests, and the test policy, and [SECURITY.md](SECURITY.md) how to report a vulnerability.
 
 Releases come from [release-please](https://github.com/googleapis/release-please); never edit a version or `CHANGELOG.md` by hand.
 

@@ -28,6 +28,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/haskell"
 	"github.com/unstoppablemango/tdl/backend/jsonschema"
 	"github.com/unstoppablemango/tdl/backend/likec4"
+	"github.com/unstoppablemango/tdl/backend/nix"
 	"github.com/unstoppablemango/tdl/backend/openapi"
 	"github.com/unstoppablemango/tdl/backend/protobuf"
 	"github.com/unstoppablemango/tdl/backend/salesforce"
@@ -80,6 +81,7 @@ var shipped = []struct {
 	{backend: haskell.Backend{}, model: orderModel, packaged: true},
 	{backend: jsonschema.Backend{}, model: orderModel, packaged: true, valid: compileJSONSchema},
 	{backend: likec4.Backend{}, model: orderModel, packaged: true},
+	{backend: nix.Backend{}, model: orderModel, packaged: true},
 	{backend: openapi.Backend{}, model: orderModel, packaged: true, valid: parseYAML},
 	{backend: protobuf.Backend{}, model: orderModel, packaged: true, valid: compileProto, reverse: protoSource},
 	{backend: salesforce.Backend{}, model: orderModel, packaged: true, valid: parseXML},
