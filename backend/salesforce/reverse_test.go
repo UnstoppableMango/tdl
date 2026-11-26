@@ -243,3 +243,57 @@ func TestObjectsRefuseBrokenXML(t *testing.T) {
 		t.Errorf("diagnostics = %v, want one error", diags)
 	}
 }
+
+// Objects reading as one entity, or as a prelude name, warn and skip all
+// but the first; a skipped folder warns for each file in it; and the last
+// objects/ segment of a path names the object, even with a folder named
+// objects above it.
+func TestObjectsSkip(t *testing.T) {
+	files := []*plugin.File{
+		object("Line_Item__c", ""),
+		object("LineItem__c", ""),
+		object("Entity__c", ""),
+		object("Account", ""),
+		{Path: "objects/Account/validationRules/R.validationRule-meta.xml", Content: []byte("<ValidationRule/>")},
+	}
+	files[0].Path = "objects/proj/" + files[0].Path
+	got, diags := readBack(t, files)
+	for _, text := range []string{"LineItem__c reads as LineItem", "Entity__c reads as Entity", "Account.object-meta.xml is not read", "R.validationRule-meta.xml is not read"} {
+		if !hasDiag(diags, "lossy.unsupported", text) {
+			t.Errorf("no warning containing %q in %v", text, diags)
+		}
+	}
+	// The fifth is Line_Item__c's name field, which object writes for Thing.
+	if len(diags) != 5 {
+		t.Errorf("%d warnings, want 5: %v", len(diags), diags)
+	}
+	if !strings.Contains(got, "type LineItem: Entity { }") || !strings.Contains(got, `LineItem => name("Line_Item")`) {
+		t.Errorf("reads as\n%s", got)
+	}
+}
+
+// Fields that cannot regenerate as read warn: a second field reading as
+// one name, an enum taking a prelude name, a length or scale generating
+// refuses, and an external ID on a type generating never keys.
+func TestFieldsRefuseWhatCannotRegenerate(t *testing.T) {
+	values := "<valueSet><restricted>true</restricted><valueSetDefinition><sorted>false</sorted>" +
+		"<value><fullName>Open</fullName><default>false</default><label>Open</label></value></valueSetDefinition></valueSet>"
+	files := []*plugin.File{
+		object("Thing__c", ""),
+		field("Thing__c", "Code__c", "<label>Code</label><length>255</length><type>Text</type>"),
+		field("Thing__c", "code__c", "<label>Code</label><length>255</length><type>Text</type>"),
+		field("Thing__c", "Entity__c", "<label>Entity</label><type>Picklist</type>"+values),
+		field("Thing__c", "Note__c", "<label>Note</label><type>Text</type>"),
+		field("Thing__c", "Rate__c", "<label>Rate</label><precision>18</precision><scale>20</scale><type>Number</type>"),
+		field("Thing__c", "Done__c", "<defaultValue>false</defaultValue><externalId>true</externalId><label>Done</label><type>Checkbox</type>"),
+	}
+	got, diags := readBack(t, files)
+	for _, text := range []string{"which another field has", "holds 0 characters", "20 decimal places", "not read as a key"} {
+		if !hasDiag(diags, "lossy.unsupported", text) {
+			t.Errorf("no warning containing %q in %v", text, diags)
+		}
+	}
+	if strings.Contains(got, "length(") || strings.Contains(got, "scale(") || strings.Contains(got, "key(") || !strings.Contains(got, "entity: ThingEntity") {
+		t.Errorf("reads as\n%s", got)
+	}
+}

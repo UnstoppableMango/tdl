@@ -8,13 +8,16 @@ import (
 	"path"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/unstoppablemango/tdl/ast"
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/backend/internal/reverse"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/lex"
+	"github.com/unstoppablemango/tdl/parser"
 	"github.com/unstoppablemango/tdl/plugin"
+	"github.com/unstoppablemango/tdl/prelude"
 )
 
 // importPackage is the package an import reads into, since Salesforce
@@ -40,7 +43,27 @@ type objectFiles struct {
 	fields []*plugin.File
 	rules  []*plugin.File
 	other  []*plugin.File
+
+	// skip is set when the object's entity name is taken, which name has
+	// warned about.
+	skip bool
 }
+
+// preludeNames are the prelude's declarations, which a declaration read
+// would shadow.
+var preludeNames = sync.OnceValue(func() map[string]bool {
+	names := map[string]bool{}
+	file, err := parser.Parse("prelude.tdl", strings.NewReader(prelude.Source))
+	if err != nil {
+		panic(err)
+	}
+	for _, d := range file.Decls {
+		if n, ok := d.(interface{ Name() string }); ok {
+			names[n.Name()] = true
+		}
+	}
+	return names
+})
 
 // readObjects reads the object and field metadata among files into a
 // model: each custom object an entity, and each picklist's values an enum.
@@ -110,10 +133,11 @@ func (r *reader) group(files []*plugin.File) []*objectFiles {
 	return out
 }
 
-// objectPath splits a path at its objects/<Object>/ segment.
+// objectPath splits a path at its last objects/<Object>/ segment, so a
+// folder above the project named objects does not take its place.
 func objectPath(p string) (api, rest string, ok bool) {
 	parts := strings.Split(p, "/")
-	for i := 0; i+2 < len(parts); i++ {
+	for i := len(parts) - 3; i >= 0; i-- {
 		if parts[i] == "objects" {
 			return parts[i+1], strings.Join(parts[i+2:], "/"), true
 		}
@@ -141,23 +165,38 @@ func (r *reader) name(o *objectFiles) {
 	if err != nil || o.object == nil {
 		return
 	}
-	r.entities[strings.ToLower(o.api)] = emit.Pascal(base)
+	n := emit.Pascal(base)
+	if r.taken(n) || preludeNames()[n] {
+		r.Warn(emit.LossUnsupported, filePos(o.object), "%s reads as %s, which another declaration has, so the object is not read", o.api, n)
+		o.skip = true
+		return
+	}
+	r.entities[strings.ToLower(o.api)] = n
+}
+
+// skipAll warns that every file in an object folder is not read, and why.
+func (r *reader) skipAll(o *objectFiles, why string) {
+	for _, group := range [][]*plugin.File{{o.object}, o.fields, o.rules, o.other} {
+		for _, f := range group {
+			if f != nil {
+				r.Warn(emit.LossUnsupported, filePos(f), "%s, so %s is not read", why, f.GetPath())
+			}
+		}
+	}
 }
 
 // object reads one object folder into an entity, warning about everything
 // in it that has no TDL form.
 func (r *reader) object(o *objectFiles) error {
 	base, err := custom(o.api)
-	if err != nil {
-		for _, f := range o.fields {
-			r.Warn(emit.LossUnsupported, filePos(f), "%s, so its field %s is not read", err, path.Base(f.GetPath()))
-		}
+	switch {
+	case o.skip:
 		return nil
-	}
-	if o.object == nil {
-		for _, f := range o.fields {
-			r.Warn(emit.LossUnsupported, filePos(f), "%s has no object file beside it, so it is not read", f.GetPath())
-		}
+	case err != nil:
+		r.skipAll(o, err.Error())
+		return nil
+	case o.object == nil:
+		r.skipAll(o, o.api+" has no object file")
 		return nil
 	}
 	var obj customObject
@@ -191,7 +230,8 @@ func (r *reader) object(o *objectFiles) error {
 		r.Warn(emit.LossConstraint, filePos(f), "%s has a validation rule, %s, which is not read", o.api, path.Base(f.GetPath()))
 	}
 	for _, f := range o.other {
-		unread[strings.Split(strings.SplitN(f.GetPath(), o.api+"/", 2)[1], "/")[0]] = true
+		_, rest, _ := objectPath(f.GetPath())
+		unread[strings.Split(rest, "/")[0]] = true
 	}
 	if obj.DeploymentStatus != "Deployed" {
 		unread["deploymentStatus"] = true
@@ -206,7 +246,9 @@ func (r *reader) object(o *objectFiles) error {
 	decl := &ast.StructDecl{DeclHead: head(name, obj.Description, pos), Keyword: "type", Conforms: []*ast.ClassRef{{N: "Entity"}}}
 	r.decls = append(r.decls, decl)
 	var key string
+	seen := map[string]bool{}
 	for _, f := range o.fields {
+		before := len(r.Entries)
 		fld, isKey, err := r.field(name, o.api, base, f, unread)
 		if err != nil {
 			return err
@@ -214,6 +256,12 @@ func (r *reader) object(o *objectFiles) error {
 		if fld == nil {
 			continue
 		}
+		if seen[strings.ToLower(fld.N)] {
+			r.Entries = r.Entries[:before]
+			r.Warn(emit.LossUnsupported, filePos(f), "%s reads as %s.%s, which another field has, so it is not read", path.Base(f.GetPath()), name, fld.N)
+			continue
+		}
+		seen[strings.ToLower(fld.N)] = true
 		decl.Members = append(decl.Members, fld)
 		switch {
 		case isKey && key == "":
@@ -273,10 +321,14 @@ func (r *reader) field(entity, api, object string, f *plugin.File, unread map[st
 	if cf.Unique && !cf.ExternalID {
 		r.Warn(emit.LossConstraint, at(f, "unique"), "%s is unique, which is not read", what)
 	}
-	if cf.ExternalID && !cf.Unique {
+	key := cf.ExternalID
+	if key && cf.Type != "Text" && cf.Type != "Number" {
+		r.Warn(emit.LossUnsupported, pos, "%s is an external ID, which a %s field regenerates without, so it is not read as a key", what, cf.Type)
+		key = false
+	} else if key && !cf.Unique {
 		unread["unique"] = true
 	}
-	return &ast.Field{DeclHead: head(name, cf.Description, pos), Type: typ}, cf.ExternalID, nil
+	return &ast.Field{DeclHead: head(name, cf.Description, pos), Type: typ}, key, nil
 }
 
 // fieldType is the type a field reads as, or nil when it has none.
@@ -288,7 +340,10 @@ func (r *reader) fieldType(cf *customField, entity, object, base, what string, p
 	path := entity + "." + emit.Camel(base)
 	switch cf.Type {
 	case "Text":
-		if cf.Length != columns["string"].length {
+		switch {
+		case cf.Length < 1 || cf.Length > columns["string"].length:
+			r.Warn(emit.LossUnsupported, pos, "%s holds %d characters, which regenerates as %d", what, cf.Length, columns["string"].length)
+		case cf.Length != columns["string"].length:
 			r.Directive(path, "length", reverse.IntLit(int64(cf.Length)))
 		}
 		return &ast.TypeRef{N: "string"}
@@ -299,7 +354,10 @@ func (r *reader) fieldType(cf *customField, entity, object, base, what string, p
 		if scale == 0 {
 			return &ast.TypeRef{N: "int64"}
 		}
-		if scale != columns["decimal"].scale {
+		switch {
+		case scale < 0 || scale > columns["decimal"].precision:
+			r.Warn(emit.LossUnsupported, pos, "%s has %d decimal places, which regenerates as %d", what, scale, columns["decimal"].scale)
+		case scale != columns["decimal"].scale:
 			r.Directive(path, "scale", reverse.IntLit(int64(scale)))
 		}
 		return &ast.TypeRef{N: "decimal"}
@@ -384,8 +442,12 @@ func (r *reader) picklist(cf *customField, entity, base, what string, pos *ir.Po
 	}
 
 	name := emit.Pascal(base)
-	if have, ok := r.enums[name]; ok && !slices.Equal(have, values) || r.taken(name) {
+	if have, ok := r.enums[name]; ok && !slices.Equal(have, values) || r.taken(name) || preludeNames()[name] {
 		name = entity + name
+	}
+	if r.taken(name) || preludeNames()[name] {
+		r.Warn(emit.LossUnsupported, pos, "%s reads as enum %s, which another declaration has, so the field is not read", what, name)
+		return ""
 	}
 	if have, ok := r.enums[name]; ok {
 		if slices.Equal(have, values) {
