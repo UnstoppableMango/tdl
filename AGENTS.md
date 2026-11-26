@@ -10,6 +10,7 @@ go test -race ./...                # what CI runs; the plugin subprocess needs i
 go test -short ./...               # skips running external tools on generated code
 go test ./parser -run TestConformanceCorpusParses   # a single test
 go build ./...
+govulncheck ./...                  # in the devShell; what CI's advisory govulncheck job runs
 
 command make build            # nix build .#
 command make test             # go test ./...
@@ -664,6 +665,7 @@ Reply with what changed, or why nothing did, then resolve.
 The one required check is the `required` job in `.github/workflows/ci.yml`.
 It needs `check`, on `ubuntu-latest`, and `darwin`, on `macos-latest`.
 A new CI job goes in its `needs`, not in the ruleset (declared in Pulumi in `UnstoppableMango/vcs`).
+The `govulncheck` job is the exception: it is advisory and outside `needs`, so a newly published advisory blocks no unrelated work; read its result like `buf.yml`'s.
 
 Pull requests are stacked, and GitHub rebases the rest of the stack on merge; reset local branches from the remote afterwards.
 `gh pr merge` and `PUT /pulls/{n}/merge` refuse a stacked pull request.

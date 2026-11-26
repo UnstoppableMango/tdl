@@ -144,6 +144,24 @@ jobs:
       - run: nix build .#
         if: ${{ !cancelled() }}
 
+  # Advisory: outside required's needs, so a newly published advisory
+  # never blocks unrelated work.
+  govulncheck:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: unmango/actions/setup-nix@e8bbcbd12a2c521c5cb36957c00a7a8f4fe2e766 # v2.0.0
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - run: nix develop -c govulncheck ./...
+
   required:
     needs: [check, darwin]
     if: always()

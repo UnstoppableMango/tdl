@@ -76,6 +76,7 @@
               gomod2nix
               gopls
               golangci-lint
+              govulncheck
               ghc
               gnumake
               nixfmt
