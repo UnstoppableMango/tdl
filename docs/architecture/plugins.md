@@ -59,8 +59,8 @@ Each target is still started as `tdl-gen-<target>`, typically a link to the shar
 The Go SDK takes every backend in the plugin's main, `plugin.Serve(csharp.Backend{}, fsharp.Backend{})`, and picks one at the handshake by its description's name:
 
 1. the handshake's target;
-2. with no target and one backend, that backend;
-3. with no target and several, the executable's base name with `tdl-gen-` stripped.
+1. with no target and one backend, that backend;
+1. with no target and several, the executable's base name with `tdl-gen-` stripped.
 
 Anything else is refused, `serves csharp, fsharp; asked for vb`, which covers an unserved target, the shared executable started under its own name, and a single-backend plugin asked for another target.
 After the handshake the connection is that backend's alone, exactly as if it were the only one.
