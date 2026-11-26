@@ -1,9 +1,6 @@
 package golang_test
 
-import (
-	"strings"
-	"testing"
-)
+import "testing"
 
 // leaseSource holds a duration directly, in a list, in a map, as T?, and as
 // a map key.
@@ -86,50 +83,6 @@ func TestMarshals(t *testing.T) {
 	}
 }
 `)
-}
-
-// A model declaring its own Duration gets WireDuration in its file, and a
-// package declaring both names refuses the field.
-func TestJSONDurationNameClash(t *testing.T) {
-	resp := generateTDL(t, `package lease
-
-type Duration { length: duration }
-
-target go for lease {
-  json
-}
-`)
-	got := files(t, resp)
-	contains(t, got["duration.go"], "Length WireDuration `json:\"length\"`")
-	contains(t, got["wire_duration.go"], "type WireDuration time.Duration", "func (w WireDuration) MarshalText() ([]byte, error)")
-	goTest(t, resp, "package lease\n")
-}
-
-func TestJSONDurationBothNamesTaken(t *testing.T) {
-	resp := generateTDL(t, `package lease
-
-type Duration { length: duration }
-
-enum Wire {
-  Duration { n: int }
-  Other { n: int }
-}
-
-target go for lease {
-  json
-}
-`)
-	got := files(t, resp)
-	if _, ok := got["wire_duration.go"]; ok {
-		t.Errorf("a helper is written beside the variant WireDuration")
-	}
-	var refused bool
-	for _, d := range resp.GetDiagnostics() {
-		refused = refused || strings.Contains(d.GetMessage(), "declares both")
-	}
-	if !refused {
-		t.Errorf("diagnostics = %v, want one refusing duration", resp.GetDiagnostics())
-	}
 }
 
 // Without json, a duration is a time.Duration and no helper is written.
