@@ -76,7 +76,7 @@ Constraints, defaults, doc comments, and deprecation are left out without a warn
 
 `tdl-gen-mermaid` ships as a Bun single executable, so it needs no JS runtime: `bun build --compile` bundles the compiled plugin and its dependencies into a copy of Bun (`nix/mermaid.nix`).
 `nix/cmd.nix` links the one written into nixpkgs' own `bun` beside the Go binaries, so `pkgs.tdl` puts it on `PATH`.
-For the release tarballs and the `@unmango/tdl-<os>-<cpu>` npm packages, it is cross-compiled from one platform for linux and darwin, amd64 and arm64, with `--compile-executable-path` naming each platform's official Bun release, fetched by hash, so the sandbox needs no network.
+For the release tarballs and the `@unmango/tdl-<os>-<cpu>` npm packages, it is cross-compiled from one platform for linux, darwin, and windows, amd64 and arm64, as `tdl-gen-mermaid.exe` on windows, with `--compile-executable-path` naming each platform's official Bun release, fetched by hash, so the sandbox needs no network.
 Those are the official Bun binaries, so the linux ones need glibc, while `tdl` beside them is static.
 The npm shim puts its platform package's binaries first on `PATH`, so `tdl` run through it finds `tdl-gen-mermaid`.
 Node's single executable applications are not used.

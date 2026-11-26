@@ -74,7 +74,7 @@ jobs:
         with:
           name: npm-windows
           path: |
-            result-npm/unmango-tdl-0*.tgz
+            result-npm/unmango-tdl-[0-9]*.tgz
             result-npm/unmango-tdl-win32-*.tgz
           if-no-files-found: error
           retention-days: 1
@@ -204,16 +204,40 @@ jobs:
           name: npm-windows
           path: packages
 
+      # A node built for the runner's own cpu, so process.arch names the
+      # platform package this row installs.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          architecture: ${{ matrix.cpu }}
+
       - name: Install offline
         shell: bash
         run: |
           mkdir project && cd project
           echo '{ "name": "project", "private": true }' > package.json
           npm install --offline --ignore-scripts --no-audit --no-fund \
-            ../packages/unmango-tdl-0*.tgz ../packages/unmango-tdl-win32-${{ matrix.cpu }}-*.tgz
+            ../packages/unmango-tdl-[0-9]*.tgz ../packages/unmango-tdl-win32-${{ matrix.cpu }}-*.tgz
 
-      - run: npx --offline tdl version
+      # tdl.exe runs, finds tdl-gen-mermaid.exe on the PATH the shim puts
+      # first, and the resolver finds tdl-gen-typescript.exe.
+      - name: Run tdl and its plugins
+        shell: bash
         working-directory: project
+        run: |
+          npx --offline tdl version
+          printf 'package m\n\nprimitive string\n\ntype M {\n  id: string\n}\n\ntarget mermaid for m {}\n' > m.tdl
+          npx --offline tdl gen --target mermaid -o out m.tdl
+          grep -rq classDiagram out
+          node -e '
+            const { spawnSync } = require("node:child_process");
+            const { binaryPath } = require("@unmango/tdl/resolve");
+            const run = spawnSync(binaryPath("tdl-gen-typescript"), ["--help"], { encoding: "utf8" });
+            if (!run.stderr.includes("usage: tdl-gen-typescript")) {
+              console.error("tdl-gen-typescript did not run:", run.error ?? run.stderr);
+              process.exit(1);
+            }
+          '
 
   required:
     needs: [check, darwin, windows, windows-npm]

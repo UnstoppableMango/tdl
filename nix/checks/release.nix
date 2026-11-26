@@ -56,6 +56,8 @@ runCommand "tdl-release-check" { nativeBuildInputs = [ unzip ]; } ''
       zipinfo -1 "$archive" | LC_ALL=C sort > $TMPDIR/have
       diff -u ${builtins.toFile "zipped" (lib.concatLines zipped)} $TMPDIR/have \
         || fail "$archive does not hold what every zip holds"
+      unzip -p "$archive" completions/tdl.ps1 | grep -q Register-ArgumentCompleter \
+        || fail "$archive's completions/tdl.ps1 is not tdl's"
       continue
     fi
     tarball=tdl_${version}_''${target/\//_}.tar.gz

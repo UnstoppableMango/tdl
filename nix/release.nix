@@ -53,7 +53,6 @@ stdenvNoCC.mkDerivation {
       if [[ $target == windows/* ]]; then
         cp tdl.ps1 $stage/completions/
         chmod -R u+w,go-w $stage
-        find $stage -type f -exec chmod a-x {} +
         # A zip's times are local and in two-second steps; the sandbox is
         # UTC and SOURCE_DATE_EPOCH falls on one. -X leaves out the uid,
         # gid, and extended times, and -D the directory entries.

@@ -35,7 +35,7 @@ let
     }
   ) tdl-portable.targets;
 in
-# The seven npm packages, packed: @unmango/tdl, the shim, one package per
+# The nine npm packages, packed: @unmango/tdl, the shim, one package per
 # platform carrying tdl-portable's binaries and tdl-gen-mermaid,
 # @unmango/tdl-typescript, the content mapper's manifest, and
 # @unmango/remark-tdl-mermaid, the remark plugin tdl-js builds, depending on
