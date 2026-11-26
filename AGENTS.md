@@ -9,6 +9,7 @@ go test ./...                      # all tests
 go test -race ./...                # what CI runs; the plugin subprocess needs it
 go test -short ./...               # skips running external tools on generated code
 go test ./parser -run TestConformanceCorpusParses   # a single test
+go test ./parser -run '^$' -fuzz '^FuzzParse$' -fuzztime 5m   # fuzz one target (FuzzLex in ./lex)
 go build ./...
 
 command make build            # nix build .#
@@ -403,6 +404,8 @@ The tables stay out of `docs/architecture/`, which is for building the backend, 
 ### Tests and goldens
 
 After any change to lowering or `ir.Dump`, run `go test ./internal/sema -update` and read the diff.
+`FuzzLex` and `FuzzParse` are seeded from both corpora, so every `go test` runs the seeds; `.github/workflows/fuzz.yml` fuzzes each weekly, and never on a pull request.
+A crasher it uploads is committed with its fix under the package's `testdata/fuzz/<target>/` as a regression seed.
 `testdata/plugin/` holds recorded protocol exchanges for other implementations to replay, regenerated with `go test ./internal/gen -record`.
 `internal/sema/corpus_test.go` asserts the conformance corpus lowers with no diagnostic.
 
