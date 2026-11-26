@@ -3,6 +3,7 @@ package golang
 import (
 	"fmt"
 	goast "go/ast"
+	"slices"
 	"strings"
 
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
@@ -26,8 +27,9 @@ type wireType struct {
 	// to tell the helper from a newtype.
 	doc string
 	// base is the type it is declared over, as package path and name, or
-	// "" for a struct.
+	// "" for a struct holding fields.
 	base    string
+	fields  []string
 	imports []string
 	// body writes the type and its methods, given its name.
 	body func(name string) string
@@ -37,8 +39,17 @@ type wireType struct {
 // declared over, in a file importing packages by those names.
 func (w wireType) over(e goast.Expr, imports map[string]string) bool {
 	if w.base == "" {
-		_, ok := e.(*goast.StructType)
-		return ok
+		st, ok := e.(*goast.StructType)
+		if !ok {
+			return false
+		}
+		var names []string
+		for _, f := range st.Fields.List {
+			for _, n := range f.Names {
+				names = append(names, n.Name)
+			}
+		}
+		return slices.Equal(names, w.fields)
 	}
 	path, name, _ := strings.Cut(w.base, ".")
 	sel, ok := e.(*goast.SelectorExpr)
@@ -62,6 +73,7 @@ var wireTypes = []wireType{
 		prim:    "date",
 		name:    "Date",
 		doc:     "is a calendar date that the JSON wire convention writes as YYYY-MM-DD.",
+		fields:  []string{"Year", "Month", "Day"},
 		imports: []string{"fmt", "time"},
 		body:    dateBody,
 	},
@@ -309,11 +321,20 @@ func ($r $T) String() string {
 	return fmt.Sprintf("%04d-%02d-%02d", $r.Year, int($r.Month), $r.Day)
 }
 
+// Time is $r at midnight UTC.
+func ($r $T) Time() time.Time {
+	return time.Date($r.Year, $r.Month, $r.Day, 0, 0, 0, 0, time.UTC)
+}
+
 // MarshalText writes $r as YYYY-MM-DD, which encoding/json writes as a
-// string, as a map key too. It refuses a date the calendar does not hold
-// or a year outside 0 to 9999.
+// string, as a map key too. The zero $T is 0001-01-01, as the zero
+// time.Time is, and a date the calendar does not hold or a year outside 0
+// to 9999 is refused.
 func ($r $T) MarshalText() ([]byte, error) {
-	t := time.Date($r.Year, $r.Month, $r.Day, 0, 0, 0, 0, time.UTC)
+	if $r == ($T{}) {
+		return []byte("0001-01-01"), nil
+	}
+	t := $r.Time()
 	if $r.Year < 0 || $r.Year > 9999 || t.Year() != $r.Year || t.Month() != $r.Month || t.Day() != $r.Day {
 		return nil, fmt.Errorf("%s is not a calendar date YYYY-MM-DD holds", $r)
 	}

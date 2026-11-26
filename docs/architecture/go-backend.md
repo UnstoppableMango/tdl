@@ -245,7 +245,7 @@ type Duration time.Duration
 It is `WireDuration` when the package declares a `Duration`, refusing the field when it declares both, and is written to its own file, or to the one a `file` directive names.
 Decoding reads days, hours, minutes, and seconds with a fraction and a sign, or weeks alone, and refuses a year or month part, which has no fixed length.
 A `date` is a `time.Time`, which `encoding/json` writes as a full timestamp, and the convention writes as `YYYY-MM-DD`.
-So under `json` the package also declares a `Date`, a struct of `Year`, `Month`, and `Day`, whose `MarshalText` writes that form and refuses a date the calendar does not hold, and whose `UnmarshalText` reads only that form; it is `WireDate` when the package declares a `Date`.
+So under `json` the package also declares a `Date`, a struct of `Year`, `Month`, and `Day`, with a `Time` method, whose `MarshalText` writes that form, the zero `Date` as `0001-01-01` as the zero `time.Time` is, and refuses a date the calendar does not hold, and whose `UnmarshalText` reads only that form; it is `WireDate` when the package declares a `Date`.
 A newtype over either, directly or through another newtype, gets a `MarshalText` and an `UnmarshalText` converting back to call its methods, since Go drops methods across a type definition.
 A `foreign` directive on `duration` or `date` still names its type, such as `cloud.google.com/go/civil.Date`.
 Import reads each helper as its primitive and declares nothing for it, so under `json` a `date` does not warn that it reads back as `instant`.

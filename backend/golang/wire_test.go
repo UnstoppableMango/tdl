@@ -264,14 +264,22 @@ target go for lease {
 	}
 }
 
-// A type carrying the helper's doc over another type is a newtype.
+// A type carrying a helper's doc over another type is not the helper.
 func TestImportReadsOnlyTheHelper(t *testing.T) {
 	src, _ := importGo(t, map[string]string{"lease.go": `package lease
 
 // Duration is a time.Duration that the JSON wire convention writes as an ISO 8601 duration with no year or month part, such as PT1M30S.
 type Duration int32
+
+// Date is a calendar date that the JSON wire convention writes as YYYY-MM-DD.
+type Date struct {
+	Year     int
+	Month    int
+	Day      int
+	Calendar string
+}
 `})
-	contains(t, src, "type Duration: int32")
+	contains(t, src, "type Duration: int32", "calendar: string")
 }
 
 // dateSource holds a date directly, in a list, as T?, as a map key, and
@@ -353,7 +361,13 @@ func TestRefuses(t *testing.T) {
 			t.Errorf("%q: error %v", in, err)
 		}
 	}
-	for _, d := range []Date{{}, {2026, time.February, 30}, {10000, time.January, 1}, {-1, time.January, 1}} {
+	if out, err := json.Marshal(Date{}); err != nil || string(out) != `+"`"+`"0001-01-01"`+"`"+` {
+		t.Errorf("the zero Date writes %s, %v", out, err)
+	}
+	if got := (Date{2026, time.November, 13}).Time(); !got.Equal(time.Date(2026, time.November, 13, 0, 0, 0, 0, time.UTC)) {
+		t.Errorf("Time() = %v", got)
+	}
+	for _, d := range []Date{{2026, time.February, 30}, {2026, 0, 1}, {10000, time.January, 1}, {-1, time.January, 1}} {
 		if _, err := json.Marshal(d); err == nil {
 			t.Errorf("%v marshals", d)
 		}
