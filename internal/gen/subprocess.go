@@ -210,23 +210,6 @@ func (s *session) wait() {
 	s.waitOnce.Do(func() { _ = s.cmd.Wait() })
 }
 
-// stopWait bounds how long wrap waits for a plugin that closed a pipe to
-// exit, since one may close its stdin and keep running.
-const stopWait = time.Second
-
-// waitStopped waits for the child as wait does, giving up after stopWait.
-func (s *session) waitStopped() {
-	done := make(chan struct{})
-	go func() {
-		s.wait()
-		close(done)
-	}()
-	select {
-	case <-done:
-	case <-time.After(stopWait):
-	}
-}
-
 // safeBuffer collects a plugin's stderr. os/exec writes it from its own
 // goroutine while wrap reads it from another.
 type safeBuffer struct {
@@ -311,7 +294,8 @@ func (s *session) wrap(err error) error {
 	if stopped(err) {
 		msg = fmt.Sprintf("%s stopped before answering", s.name)
 		// The plugin is likely gone, so wait for the rest of its stderr.
-		s.waitStopped()
+		// CommandContext kills the child at the deadline.
+		s.wait()
 	}
 	if out := strings.TrimSpace(s.stderr.String()); out != "" {
 		msg += "\n" + indent(out)
@@ -320,10 +304,11 @@ func (s *session) wrap(err error) error {
 }
 
 // stopped reports whether err means the plugin closed its end: stdout at
-// EOF, or stdin, which fails a write with a broken pipe (#1545).
+// EOF, or stdin, which fails a write with a broken pipe (#1545). A pipe
+// already closed by an earlier wait means the same.
 func stopped(err error) bool {
 	return errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) ||
-		errors.Is(err, syscall.EPIPE)
+		errors.Is(err, syscall.EPIPE) || errors.Is(err, os.ErrClosed)
 }
 
 func indent(s string) string {

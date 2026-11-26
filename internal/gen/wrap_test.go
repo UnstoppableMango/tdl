@@ -16,7 +16,7 @@ import (
 
 // startScript runs body as a plugin and sends handshakes until a write
 // fails, which it does once the plugin closes its stdin.
-func startScript(t *testing.T, ctx context.Context, body string) (*session, error) {
+func startUntilBrokenPipe(t *testing.T, ctx context.Context, body string) (*session, error) {
 	t.Helper()
 	if runtime.GOOS == "windows" {
 		t.Skip("the plugin is a shell script")
@@ -43,7 +43,7 @@ func startScript(t *testing.T, ctx context.Context, body string) (*session, erro
 // A plugin that stops reading before it writes its stderr still has that
 // stderr in the error (#1545).
 func TestWrapWaitsAfterABrokenPipe(t *testing.T) {
-	s, err := startScript(t, context.Background(),
+	s, err := startUntilBrokenPipe(t, context.Background(),
 		"exec 0<&-\nsleep 0.3\necho 'the backend fell over' >&2\nexit 3\n")
 	defer s.close()
 	if !errors.Is(err, syscall.EPIPE) {
@@ -59,18 +59,17 @@ func TestWrapWaitsAfterABrokenPipe(t *testing.T) {
 	}
 }
 
-// A plugin that closes its stdin but keeps running does not hold up the
-// error past stopWait.
-func TestWrapGivesUpOnAPluginStillRunning(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	s, err := startScript(t, ctx, "exec 0<&-\necho 'still here' >&2\nexec sleep 60\n")
-	defer s.close()
+// A plugin that closes its stdin but keeps running holds the error only
+// until the deadline, when CommandContext kills it.
+func TestWrapWaitsOnlyUntilTheDeadline(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
+	s, err := startUntilBrokenPipe(t, ctx, "exec 0<&-\necho 'still here' >&2\nexec sleep 60\n")
+	defer s.close()
 
-	start := time.Now()
 	got := s.wrap(err).Error()
-	if took := time.Since(start); took > stopWait+5*time.Second {
-		t.Errorf("wrap waited %v for a plugin that never exits", took)
+	if ctx.Err() == nil {
+		t.Errorf("wrap returned before the deadline: %s", got)
 	}
 	if !strings.Contains(got, "still here") {
 		t.Errorf("the stderr written so far was not reported: %s", got)
