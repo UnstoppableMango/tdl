@@ -72,7 +72,7 @@ export class Session {
 	readonly #constraints = new Map<Constraint, ConstraintView>();
 
 	/** Makes {@link lose} report nothing, since annotations carry what it would. */
-	annotate = false;
+	roundtrip = false;
 
 	/**
 	 * Makes {@link lose} report read-back loss, which it otherwise leaves
@@ -295,7 +295,7 @@ export class Session {
 	/**
 	 * Warns that a fact is lost, with the loss code that names it. It reports
 	 * output loss: what the output itself drops or weakens, which annotations
-	 * do not restore, so it warns under annotate too. {@link lose} reports
+	 * do not restore, so it warns under roundtrip too. {@link lose} reports
 	 * read-back loss.
 	 */
 	lossy(code: LossCode, position: Position | undefined, message: string): void {
@@ -305,18 +305,18 @@ export class Session {
 	/**
 	 * Warns that a fact the output keeps is one reading it back would not
 	 * recover. It reports only under {@link readback}, and never under
-	 * {@link annotate}, where an annotation carries the fact. {@link lossy}
+	 * {@link roundtrip}, where an annotation carries the fact. {@link lossy}
 	 * reports output loss.
 	 */
 	lose(code: LossCode, position: Position | undefined, message: string): void {
-		if (this.readback && !this.annotate) {
+		if (this.readback && !this.roundtrip) {
 			this.lossy(code, position, message);
 		}
 	}
 
 	/**
 	 * Reports a declaration that is not generated. It is output loss, so it
-	 * warns under annotate too, where the declaration is carried as TDL but
+	 * warns under roundtrip too, where the declaration is carried as TDL but
 	 * the output still lacks it.
 	 */
 	skip(problem: Problem): void {

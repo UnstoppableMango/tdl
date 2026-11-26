@@ -184,7 +184,7 @@ public class SessionTests
 	}
 }
 
-public class AnnotationTests
+public class RoundtripTests
 {
 	// Reports read-back loss, so a helper's every warning shows.
 	static Session Catalog() => new(Repo.Request("catalog"), "Debug") { Readback = true };
@@ -231,7 +231,7 @@ public class AnnotationTests
 	}
 
 	[Fact]
-	public void WithoutAnnotateThereIsNoSource()
+	public void WithoutRoundtripThereIsNoSource()
 	{
 		var s = new Session(Repo.Request("shop"), "Debug");
 
@@ -245,9 +245,9 @@ public class AnnotationTests
 	[InlineData(true, false, new[] { "output", "skipped", "read back" })]
 	[InlineData(false, true, new[] { "output", "skipped" })]
 	[InlineData(true, true, new[] { "output", "skipped" })]
-	public void OutputLossAlwaysWarnsAndReadBackLossOnlyUnderReadback(bool readback, bool annotate, string[] want)
+	public void OutputLossAlwaysWarnsAndReadBackLossOnlyUnderReadback(bool readback, bool roundtrip, string[] want)
 	{
-		var s = new Session(Repo.Request("catalog"), "Debug") { Readback = readback, Annotate = annotate };
+		var s = new Session(Repo.Request("catalog"), "Debug") { Readback = readback, Roundtrip = roundtrip };
 		s.Lossy(LossCodes.Constraint, null, "output");
 		s.Skip(new Unsupported("skipped", null));
 		s.Lose(LossCodes.Doc, null, "read back");
