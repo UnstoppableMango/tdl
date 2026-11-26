@@ -129,7 +129,7 @@ fn reads_the_target_block() {
         Some("./gen")
     );
     assert!(s.block("note").is_none());
-    assert!(s.bare("roundtrip"));
+    assert!(s.bare("annotate"));
     assert!(!s.bare("closed"));
 }
 

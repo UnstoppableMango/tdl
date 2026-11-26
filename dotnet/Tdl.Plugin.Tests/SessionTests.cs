@@ -65,7 +65,7 @@ public class SessionTests
 
 		Assert.Equal("./gen", s.Block("out")?.Args[0].Text);
 		Assert.Null(s.Block("note"));
-		Assert.True(s.Bare("roundtrip"));
+		Assert.True(s.Bare("annotate"));
 		Assert.False(s.Bare("closed"));
 	}
 
@@ -227,7 +227,7 @@ public class RoundtripTests
 		Assert.Equal([1, 3], carried.Select(c => c.At));
 		Assert.Equal("type Marker { }", carried[0].Source);
 		Assert.StartsWith("target debug for catalog {", carried[1].Source);
-		Assert.DoesNotContain("roundtrip", carried[1].Source);
+		Assert.DoesNotContain("annotate", carried[1].Source);
 	}
 
 	[Fact]

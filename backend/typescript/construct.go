@@ -60,7 +60,7 @@ func (g *generator) constructor(b *strings.Builder, d *ir.Decl, name, param stri
 			continue
 		}
 		// Skip what the narrowed type states, and what already warned it
-		// cannot be checked: a second rendering, under roundtrip, writes
+		// cannot be checked: a second rendering, under annotate, writes
 		// the same checks and warns nothing again.
 		if g.unchecked[c] || (g.Enforced(c) && !g.checked[c]) {
 			continue

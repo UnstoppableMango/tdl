@@ -68,7 +68,7 @@ func (Backend) Describe() plugin.Description {
 			{Name: "stream", Placements: plugin.On(plugin.OnDecl)},
 			// Writes, as custom options from tdl/annotations.proto, every
 			// fact the schema alone would lose, so import rebuilds the model.
-			{Name: "roundtrip", Placements: plugin.On(plugin.OnBlock)},
+			{Name: "annotate", Placements: plugin.On(plugin.OnBlock)},
 			{Name: "readback", Placements: plugin.On(plugin.OnBlock)},
 		},
 		Reverse: true,
@@ -194,7 +194,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 		}
 	}
 
-	g.Roundtrip = g.Bare("roundtrip")
+	g.Annotate = g.Bare("annotate")
 	g.Readback = g.Bare("readback")
 	if g.pkg != req.GetModel().GetPackage() {
 		g.Lose(emit.LossName, pkgPos, "package %s is written %s, which reads back as the package", req.GetModel().GetPackage(), g.pkg)
@@ -278,7 +278,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 			grp.imports[annotationsFile] = true
 		}
 	}
-	if g.Roundtrip {
+	if g.Annotate {
 		if ann := g.fileAnnotation(placed); ann != "" {
 			first := filePath(g.pkg, g.file)
 			if len(groups) > 0 {
