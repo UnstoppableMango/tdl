@@ -565,14 +565,14 @@ func (r *reader) classify() {
 }
 
 // wireHelper is the primitive a type json writes for one stands for, read
-// from its doc comment, or "".
+// from its doc comment and its underlying type, or "".
 func wireHelper(t *typeInfo) string {
 	if t.doc == nil || t.source != nil {
 		return ""
 	}
 	doc := strings.TrimSpace(t.doc.Text())
 	for _, w := range wireTypes {
-		if doc == t.name+" "+w.doc {
+		if doc == t.name+" "+w.doc && w.over(t.spec.Type, t.file.imports) {
 			return w.prim
 		}
 	}
@@ -828,7 +828,7 @@ func (r *reader) checkMethods(t *typeInfo, sealedBy string) {
 		case name == "MarshalJSON" && m.Doc != nil && strings.HasSuffix(strings.TrimSpace(m.Doc.Text()), fillDoc):
 			// Written under json to fill empty collections, which the
 			// convention, not the model, asks for.
-		case (name == "MarshalJSON" || name == "UnmarshalJSON") && m.Doc != nil && strings.HasSuffix(strings.TrimSpace(m.Doc.Text()), overDoc):
+		case (name == "MarshalText" || name == "UnmarshalText") && m.Doc != nil && strings.HasSuffix(strings.TrimSpace(m.Doc.Text()), overDoc):
 			// Written under json for a newtype over a helper type.
 		case strings.HasPrefix(name, "is") && r.types[name[2:]] != nil && r.types[name[2:]].role == roleClass:
 		default:

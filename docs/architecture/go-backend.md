@@ -236,15 +236,15 @@ A field a `tag` directive renames is filled as any other; a tag adding `omitempt
 A field named `marshalJSON` would collide with the method, so a type holding one alongside a list or map is skipped.
 
 A `duration` is a `time.Duration`, which `encoding/json` writes as integer nanoseconds, and the convention writes as an ISO 8601 string such as `PT1M30S`.
-So under `json` the package declares a `Duration` over `time.Duration`, once and only when the model uses one, with `String`, `MarshalJSON`, and `UnmarshalJSON`, and every `duration` at any depth is that type:
+So under `json` the package declares a `Duration` over `time.Duration`, once and only when the model uses one, whose `String` and `MarshalText` write that string and whose `UnmarshalText` reads it, which `encoding/json` uses for a value and a map key, and every `duration` at any depth is that type:
 
 ```go
 type Duration time.Duration
 ```
 
-It is `WireDuration` when the model declares a `Duration`, and is written to its own file, or to the one a `file` directive names.
-Decoding reads weeks, days, hours, minutes, and seconds with a fraction and a sign, and refuses a year or month part, which has no fixed length.
-A newtype over it, directly or through another newtype, gets a `MarshalJSON` and an `UnmarshalJSON` converting back to call its methods, since Go drops methods across a type definition.
+It is `WireDuration` when the package declares a `Duration`, refusing the field when it declares both, and is written to its own file, or to the one a `file` directive names.
+Decoding reads days, hours, minutes, and seconds with a fraction and a sign, or weeks alone, and refuses a year or month part, which has no fixed length.
+A newtype over it, directly or through another newtype, gets a `MarshalText` and an `UnmarshalText` converting back to call its methods, since Go drops methods across a type definition.
 A `foreign` directive on `duration` still names its type.
 Import reads the helper as `duration` and declares nothing for it.
 

@@ -2,6 +2,7 @@ package golang
 
 import (
 	"fmt"
+	goast "go/ast"
 	"strings"
 
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
@@ -9,7 +10,8 @@ import (
 )
 
 // The JSON wire convention writes a duration as an ISO 8601 string, which
-// encoding/json does not do for a time.Duration. Under json, the package
+// encoding/json does not do for a time.Duration. The helper implements
+// encoding.TextMarshaler, which encoding/json uses for a value and a map key. Under json, the package
 // declares a helper type in its place, written once and only when the model
 // uses the primitive. It is named for the primitive, or Wire and that name
 // when the model declares a type of that name.
@@ -21,10 +23,24 @@ type wireType struct {
 	prim, name string
 	// doc follows the type's name in its doc comment, which import reads
 	// to tell the helper from a newtype.
-	doc     string
+	doc string
+	// base is the type it is declared over, as package path and name.
+	base    string
 	imports []string
 	// body writes the type and its methods, given its name.
 	body func(name string) string
+}
+
+// over reports whether a type expression is what the helper type is
+// declared over, in a file importing packages by those names.
+func (w wireType) over(e goast.Expr, imports map[string]string) bool {
+	path, name, _ := strings.Cut(w.base, ".")
+	sel, ok := e.(*goast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	pkg, ok := sel.X.(*goast.Ident)
+	return ok && imports[pkg.Name] == path && sel.Sel.Name == name
 }
 
 var wireTypes = []wireType{
@@ -32,7 +48,8 @@ var wireTypes = []wireType{
 		prim:    "duration",
 		name:    "Duration",
 		doc:     "is a time.Duration that the JSON wire convention writes as an ISO 8601 duration with no year or month part, such as PT1M30S.",
-		imports: []string{"encoding/json", "fmt", "strconv", "strings", "time"},
+		base:    "time.Duration",
+		imports: []string{"fmt", "strconv", "strings", "time"},
 		body:    durationBody,
 	},
 }
@@ -47,15 +64,35 @@ func wireFor(prim string) (wireType, bool) {
 	return wireType{}, false
 }
 
-// wireName is the Go name of a helper type in this package, or an error
-// when the model declares both names it could take.
+// wireTypeName is the Go name of a helper type in this package, or an
+// error when the package declares both names it could take.
 func (g *generator) wireTypeName(w wireType, pos *ir.Position) (string, error) {
 	for _, name := range []string{w.name, "Wire" + w.name} {
-		if !g.declares(name) {
+		if !g.packageDeclares(name) {
 			return name, nil
 		}
 	}
 	return "", emit.Unsupported(pos, "%s is written by a type named %s or Wire%s under json, and the model declares both", w.prim, w.name, w.name)
+}
+
+// packageDeclares reports whether the package declares an identifier for
+// the model: a declaration, a variant, a key struct, or an enum's decoder.
+func (g *generator) packageDeclares(goName string) bool {
+	if g.declares(goName) {
+		return true
+	}
+	for _, d := range g.Own() {
+		name := g.declName(d)
+		if goName == name+"Key" || goName == "Unmarshal"+name {
+			return true
+		}
+		for _, v := range d.GetEnumeration().GetVariants() {
+			if g.variantName(name, v) == goName {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // useWire records that the declaration being rendered names a helper type.
@@ -103,7 +140,7 @@ func wirePath(name string, taken func(string) bool) string {
 }
 
 // durationBody writes a Duration: String writes the convention's form, and
-// UnmarshalJSON reads weeks, days, hours, minutes, and seconds with a
+// UnmarshalText reads weeks, days, hours, minutes, and seconds with a
 // fraction, and refuses a year or month part.
 func durationBody(name string) string {
 	return strings.NewReplacer("$T", name, "$r", strings.ToLower(name[:1])).Replace(`type $T time.Duration
@@ -146,20 +183,16 @@ func ($r $T) String() string {
 	return b.String()
 }
 
-// MarshalJSON writes $r as an ISO 8601 duration string.
-func ($r $T) MarshalJSON() ([]byte, error) {
-	return json.Marshal($r.String())
+// MarshalText writes $r as an ISO 8601 duration, which encoding/json
+// writes as a string, as a map key too.
+func ($r $T) MarshalText() ([]byte, error) {
+	return []byte($r.String()), nil
 }
 
-// UnmarshalJSON reads an ISO 8601 duration string with no year or month part.
-func ($r *$T) UnmarshalJSON(data []byte) error {
-	if string(data) == "null" {
-		return nil
-	}
-	var s string
-	if err := json.Unmarshal(data, &s); err != nil {
-		return fmt.Errorf("a duration is an ISO 8601 string: %w", err)
-	}
+// UnmarshalText reads an ISO 8601 duration with no year or month part, and
+// with weeks only alone.
+func ($r *$T) UnmarshalText(text []byte) error {
+	s := string(text)
 	bad := fmt.Errorf("%q is not an ISO 8601 duration", s)
 	rest, neg := s, false
 	if rest != "" && (rest[0] == '-' || rest[0] == '+') {
@@ -203,7 +236,7 @@ func ($r *$T) UnmarshalJSON(data []byte) error {
 		switch {
 		case unit == 'Y' || (unit == 'M' && !inTime):
 			return fmt.Errorf("%q has a year or month part, which has no fixed length", s)
-		case unit == 'W' && !inTime:
+		case unit == 'W' && !inTime && last == ^uint64(0) && rest == "":
 			scale = uint64(7 * 24 * time.Hour)
 		case unit == 'D' && !inTime:
 			scale = uint64(24 * time.Hour)
@@ -248,7 +281,7 @@ func ($r *$T) UnmarshalJSON(data []byte) error {
 `)
 }
 
-// overDoc ends the doc comment of the JSON methods a newtype over a helper
+// overDoc ends the doc comment of the text methods a newtype over a helper
 // type gets, which import reads as this backend's output.
 const overDoc = "it is over, since Go drops methods across a type definition."
 
@@ -272,7 +305,7 @@ func (g *generator) overWire(id *ir.ID) bool {
 	}
 }
 
-// writeOverWire writes a newtype's JSON methods when it is over a helper
+// writeOverWire writes a newtype's text methods when it is over a helper
 // type, whose methods its type definition drops, converting back to call
 // them.
 func (g *generator) writeOverWire(b *strings.Builder, decl *ir.Decl, name, base string) {
@@ -280,8 +313,8 @@ func (g *generator) writeOverWire(b *strings.Builder, decl *ir.Decl, name, base 
 		return
 	}
 	recv, self := receiver(decl, name), name+typeArgs(decl)
-	fmt.Fprintf(b, "\n// MarshalJSON encodes a %s as the %s %s\n", name, base, overDoc)
-	fmt.Fprintf(b, "func (%s %s) MarshalJSON() ([]byte, error) {\nreturn %s(%s).MarshalJSON()\n}\n", recv, self, base, recv)
-	fmt.Fprintf(b, "\n// UnmarshalJSON decodes a %s as the %s %s\n", name, base, overDoc)
-	fmt.Fprintf(b, "func (%s *%s) UnmarshalJSON(data []byte) error {\nreturn (*%s)(%s).UnmarshalJSON(data)\n}\n", recv, self, base, recv)
+	fmt.Fprintf(b, "\n// MarshalText encodes a %s as the %s %s\n", name, base, overDoc)
+	fmt.Fprintf(b, "func (%s %s) MarshalText() ([]byte, error) {\nreturn %s(%s).MarshalText()\n}\n", recv, self, base, recv)
+	fmt.Fprintf(b, "\n// UnmarshalText decodes a %s as the %s %s\n", name, base, overDoc)
+	fmt.Fprintf(b, "func (%s *%s) UnmarshalText(text []byte) error {\nreturn (*%s)(%s).UnmarshalText(text)\n}\n", recv, self, base, recv)
 }

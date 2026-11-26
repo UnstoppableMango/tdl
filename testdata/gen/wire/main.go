@@ -17,6 +17,7 @@ func main() {
 			Ttls:   []Duration{0, Duration(time.Nanosecond), Duration(25*time.Hour + 30*time.Minute)},
 			ByName: map[string]Duration{"week": Duration(7 * 24 * time.Hour)},
 			Maybe:  &half,
+			ByTtl:  map[Duration]string{Duration(time.Minute): "m"},
 			Grace:  Grace(time.Hour),
 		},
 	} {

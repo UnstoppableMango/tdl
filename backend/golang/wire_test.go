@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-// leaseSource holds a duration directly, in a list, in a map, as T?, and
-// under a newtype and a newtype over that.
+// leaseSource holds a duration directly, in a list, in a map, as T?, as a
+// map key, and under a newtype and a newtype over that.
 const leaseSource = `package lease
 
 type Lease {
@@ -14,6 +14,7 @@ type Lease {
   ttls: [duration]
   byName: Map<string, duration>
   maybe: duration?
+  byTtl: Map<duration, string>
   grace: Grace
   notice: Notice
 }
@@ -40,6 +41,7 @@ func TestJSONDuration(t *testing.T) {
 		"Ttls []Duration `json:\"ttls\"`",
 		"ByName map[string]Duration `json:\"byName\"`",
 		"Maybe *Duration `json:\"maybe,omitempty\"`",
+		"ByTtl map[Duration]string `json:\"byTtl\"`",
 	)
 	contains(t, got["grace.go"], "type Grace Duration")
 	contains(t, got["duration.go"], "type Duration time.Duration")
@@ -114,6 +116,8 @@ func TestRefuses(t *testing.T) {
 		"PT.5S":                        "not an ISO 8601 duration",
 		"PT1.S":                        "not an ISO 8601 duration",
 		"PTT1S":                        "not an ISO 8601 duration",
+		"P1W1D":                        "not an ISO 8601 duration",
+		"P1WT1H":                       "not an ISO 8601 duration",
 		"P106751DT23H47M16.854775808S": "does not fit",
 		"P99999999999999999999D":       "does not fit",
 	} {
@@ -124,12 +128,12 @@ func TestRefuses(t *testing.T) {
 		}
 	}
 	var d Duration
-	if err := json.Unmarshal([]byte("90"), &d); err == nil || !strings.Contains(err.Error(), "ISO 8601 string") {
+	if err := json.Unmarshal([]byte("90"), &d); err == nil || !strings.Contains(err.Error(), "cannot unmarshal number") {
 		t.Errorf("a number: error %v", err)
 	}
 }
 
-const doc = `+"`"+`{"ttl":"PT1M30S","ttls":["PT0S","P1DT1H30M"],"byName":{"week":"P7D"},"maybe":"PT0.5S","grace":"PT1H","notice":"P7D"}`+"`"+`
+const doc = `+"`"+`{"ttl":"PT1M30S","ttls":["PT0S","P1DT1H30M"],"byName":{"week":"P7D"},"maybe":"PT0.5S","byTtl":{"PT1M":"m"},"grace":"PT1H","notice":"P7D"}`+"`"+`
 
 func TestRoundTrip(t *testing.T) {
 	half := Duration(500 * time.Millisecond)
@@ -138,6 +142,7 @@ func TestRoundTrip(t *testing.T) {
 		Ttls:   []Duration{0, Duration(25*time.Hour + 30*time.Minute)},
 		ByName: map[string]Duration{"week": Duration(7 * 24 * time.Hour)},
 		Maybe:  &half,
+		ByTtl:  map[Duration]string{Duration(time.Minute): "m"},
 		Grace:  Grace(time.Hour),
 		Notice: Notice(7 * 24 * time.Hour),
 	}
@@ -169,7 +174,8 @@ func TestImportReadsDuration(t *testing.T) {
 	}
 }
 
-// A model declaring its own Duration gets WireDuration in its file.
+// A model declaring its own Duration gets WireDuration in its file, and a
+// package declaring both names refuses the field.
 func TestJSONDurationNameClash(t *testing.T) {
 	resp := generateTDL(t, `package lease
 
@@ -181,8 +187,35 @@ target go for lease {
 `)
 	got := files(t, resp)
 	contains(t, got["duration.go"], "Length WireDuration `json:\"length\"`")
-	contains(t, got["wire_duration.go"], "type WireDuration time.Duration", "func (w *WireDuration) UnmarshalJSON(data []byte) error")
+	contains(t, got["wire_duration.go"], "type WireDuration time.Duration", "func (w *WireDuration) UnmarshalText(text []byte) error")
 	goTest(t, resp, "package lease\n")
+}
+
+func TestJSONDurationBothNamesTaken(t *testing.T) {
+	resp := generateTDL(t, `package lease
+
+type Duration { length: duration }
+
+enum Wire {
+  Duration { n: int }
+  Other { n: int }
+}
+
+target go for lease {
+  json
+}
+`)
+	got := files(t, resp)
+	if _, ok := got["wire_duration.go"]; ok {
+		t.Errorf("a helper is written beside the variant WireDuration")
+	}
+	var refused bool
+	for _, d := range resp.GetDiagnostics() {
+		refused = refused || strings.Contains(d.GetMessage(), "declares both")
+	}
+	if !refused {
+		t.Errorf("diagnostics = %v, want one refusing duration", resp.GetDiagnostics())
+	}
 }
 
 // A file directive puts the helper in the one file.
@@ -229,4 +262,14 @@ target go for lease {
 	if _, ok := got["duration.go"]; ok {
 		t.Errorf("a helper is written for a foreign duration")
 	}
+}
+
+// A type carrying the helper's doc over another type is a newtype.
+func TestImportReadsOnlyTheHelper(t *testing.T) {
+	src, _ := importGo(t, map[string]string{"lease.go": `package lease
+
+// Duration is a time.Duration that the JSON wire convention writes as an ISO 8601 duration with no year or month part, such as PT1M30S.
+type Duration int32
+`})
+	contains(t, src, "type Duration: int32")
 }
