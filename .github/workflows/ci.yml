@@ -216,7 +216,7 @@ jobs:
         working-directory: project
 
   required:
-    needs: [check, darwin, windows]
+    needs: [check, darwin, windows, windows-npm]
     if: always()
     runs-on: ubuntu-latest
     steps:
