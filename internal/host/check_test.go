@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"google.golang.org/protobuf/proto"
+
 	"github.com/unstoppablemango/tdl/internal/host"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -296,8 +298,24 @@ func TestRoundtripIsDeprecatedForAnnotate(t *testing.T) {
 		t.Errorf("problems = %v", problems)
 	}
 
-	if got := host.Rename(&ir.Directive{Name: "roundtrip", Args: []*ir.Literal{str("x")}}); got != "roundtrip" {
+	if got := host.Rename(&ir.Directive{Name: "roundtrip", Args: []*ir.Literal{str("x")}}, desc); got != "roundtrip" {
 		t.Errorf("roundtrip with an argument is read as %s", got)
+	}
+	both := proto.CloneOf(block)
+	both.Targets[0].Directives = append(both.Targets[0].Directives, &ir.Directive{Name: "annotate", Target: "t"})
+	if problems := host.CheckDirectives("t", both, desc); len(problems) != 2 || !strings.Contains(problems[1].GetMessage(), "set annotate") {
+		t.Errorf("roundtrip beside annotate = %v", problems)
+	}
+
+	// A backend still declaring roundtrip, or not declaring annotate,
+	// reads roundtrip as itself.
+	old := plugin.Description{Name: "t", Directives: []*plugin.DirectiveSpec{{Name: "roundtrip"}, {Name: "annotate"}}}
+	if problems := host.CheckDirectives("t", block, old); len(problems) != 0 {
+		t.Errorf("problems where roundtrip is declared = %v", problems)
+	}
+	problems = host.CheckDirectives("t", block, plugin.Description{Name: "t"})
+	if len(problems) != 1 || problems[0].GetMessage() != "t does not declare the directive roundtrip" {
+		t.Errorf("problems where annotate is not declared = %v", problems)
 	}
 	problems = host.CheckDirectives("t", modelWith(&ir.Directive{Name: "roundtrip", Target: "t"}), desc)
 	if len(problems) != 1 || problems[0].GetMessage() != "t does not declare the directive roundtrip" {
