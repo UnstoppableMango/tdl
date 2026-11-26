@@ -30,9 +30,8 @@ A bug fix comes with a test that fails without the fix.
 ## Commands
 
 ```shell
-go test ./...         # all tests
-command make lint     # nix flake check + golangci-lint + buf + markdownlint
-command make fmt      # nix fmt + buf format
+go test ./...   # all tests
+make lint       # nix flake check + golangci-lint + buf + markdownlint
 ```
 
 [AGENTS.md](AGENTS.md) has every other command and the architecture.

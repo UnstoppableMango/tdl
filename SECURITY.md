@@ -12,7 +12,6 @@ A first response comes within 14 days.
 
 Disclosure is coordinated through a GitHub security advisory.
 The advisory stays private while a fix is built, and is published once a release carrying the fix is out.
-A reporter who wants credit is named in it.
 
 ## Supported versions
 
@@ -21,7 +20,7 @@ A fix ships as a new release, not as a patch to an older one.
 
 ## Verifying a download
 
-Every release asset is attested, and `SHA256SUMS` lists each one's checksum:
+Every release asset is attested, and `SHA256SUMS` lists each tarball's checksum:
 
 ```shell
 sha256sum --ignore-missing -c SHA256SUMS
