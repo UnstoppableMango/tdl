@@ -63,7 +63,7 @@ func resolve(out, path string) (string, error) {
 	switch {
 	case path == "":
 		return "", fmt.Errorf("the backend returned a file with no path")
-	case filepath.IsAbs(path):
+	case rooted(path):
 		return "", fmt.Errorf("%s: a backend may not write an absolute path", path)
 	}
 

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -35,7 +36,7 @@ func pluginDir(t *testing.T) string {
 		for _, row := range shipped {
 			binary := gen.CommandPrefix + row.backend.Describe().Name
 			cmd := exec.Command("go", "build", "-o",
-				filepath.Join(dir, binary),
+				filepath.Join(dir, binary+exe),
 				"github.com/unstoppablemango/tdl/cmd/"+binary)
 			if out, err := cmd.CombinedOutput(); err != nil {
 				buildOnce.err = err
@@ -45,7 +46,7 @@ func pluginDir(t *testing.T) string {
 		}
 		// The echo test backend, which imports, is not shipped.
 		cmd := exec.Command("go", "build", "-o",
-			filepath.Join(dir, gen.CommandPrefix+echo.Name),
+			filepath.Join(dir, gen.CommandPrefix+echo.Name+exe),
 			"github.com/unstoppablemango/tdl/internal/gen/echo/"+gen.CommandPrefix+echo.Name)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			buildOnce.err = err
@@ -59,6 +60,24 @@ func pluginDir(t *testing.T) string {
 		t.Fatalf("building the plugin: %v", buildOnce.err)
 	}
 	return buildOnce.dir
+}
+
+// exe is the suffix of a binary go build writes, which Windows finds a
+// command by.
+var exe = map[bool]string{true: ".exe"}[runtime.GOOS == "windows"]
+
+// writeScript writes a plugin named tdl-gen-<name> into dir: the shell
+// script sh, or on Windows the batch file bat, since PATH finds only a file
+// whose extension PATHEXT names there.
+func writeScript(t *testing.T, dir, name, sh, bat string) {
+	t.Helper()
+	path, body := filepath.Join(dir, gen.CommandPrefix+name), "#!/bin/sh\n"+sh
+	if runtime.GOOS == "windows" {
+		path, body = path+".cmd", "@echo off\r\n"+bat+"exit /b %ERRORLEVEL%\r\n"
+	}
+	if err := os.WriteFile(path, []byte(body), 0o755); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func onPath(t *testing.T, dir string) {
@@ -91,11 +110,9 @@ func TestFindReportsAMissingPlugin(t *testing.T) {
 // A plugin that dies before answering has its stderr attached to the error.
 func TestPluginThatDies(t *testing.T) {
 	dir := t.TempDir()
-	script := filepath.Join(dir, gen.CommandPrefix+"dies")
-	body := "#!/bin/sh\necho 'the backend fell over' >&2\nexit 3\n"
-	if err := os.WriteFile(script, []byte(body), 0o755); err != nil {
-		t.Fatal(err)
-	}
+	writeScript(t, dir, "dies",
+		"echo 'the backend fell over' >&2\nexit 3\n",
+		"echo the backend fell over 1>&2\r\ncmd /c exit 3\r\n")
 	onPath(t, dir)
 
 	sub, err := gen.Find("dies")
@@ -116,11 +133,8 @@ func TestPluginThatDies(t *testing.T) {
 
 func TestPluginThatRefuses(t *testing.T) {
 	dir := t.TempDir()
-	script := filepath.Join(dir, gen.CommandPrefix+"refuses")
-	body := "#!/bin/sh\nexec " + goBin(t) + " run " + refuserPath(t) + "\n"
-	if err := os.WriteFile(script, []byte(body), 0o755); err != nil {
-		t.Fatal(err)
-	}
+	run := `"` + goBin(t) + `" run "` + refuserPath(t) + `"`
+	writeScript(t, dir, "refuses", "exec "+run+"\n", run+"\r\n")
 	onPath(t, dir)
 
 	sub, err := gen.Find("refuses")

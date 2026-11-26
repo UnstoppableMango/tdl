@@ -137,7 +137,7 @@ func (r *requestRun) request(path string) {
 		src = string(data)
 	}
 
-	file, err := parser.Parse(path, strings.NewReader(src))
+	file, err := parser.Parse(filepath.ToSlash(path), strings.NewReader(src))
 	if err != nil {
 		var errs parser.ErrorList
 		if !errors.As(err, &errs) {
