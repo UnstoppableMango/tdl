@@ -19,21 +19,21 @@ func lossSession() *emit.Session {
 
 // TestLossModes holds each kind of loss to the modes that report it:
 // output loss always, read-back loss only under readback and never under
-// roundtrip.
+// annotate.
 func TestLossModes(t *testing.T) {
 	for _, tt := range []struct {
 		name                 string
-		readback, roundtrip  bool
+		readback, annotate   bool
 		wantOutput, wantBack bool
 	}{
 		{"default", false, false, true, false},
 		{"readback", true, false, true, true},
-		{"roundtrip", false, true, true, false},
+		{"annotate", false, true, true, false},
 		{"both", true, true, true, false},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			s := emit.NewSession(&plugin.Request{Target: "x", Model: &ir.Model{}}, "X")
-			s.Readback, s.Roundtrip = tt.readback, tt.roundtrip
+			s.Readback, s.Annotate = tt.readback, tt.annotate
 			s.Lossy(emit.LossConstraint, nil, "output")
 			s.Skip(emit.Lost(emit.LossClass, nil, "skipped"))
 			s.Lose(emit.LossStructKind, nil, "read back")

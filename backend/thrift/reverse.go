@@ -21,7 +21,7 @@ import (
 // enum an enum, each typedef a newtype, and a union of structs nothing
 // else names, as Generate writes a fielded enum, an enum with fields.
 // What regenerating needs goes in a thrift target block. Under the tdl.*
-// annotations a `roundtrip` directive writes, it rebuilds the model the
+// annotations an `annotate` directive writes, it rebuilds the model the
 // file was generated from. docs/architecture/schema-backends.md has the mapping.
 func (Backend) Import(_ context.Context, req *plugin.ImportRequest) (*plugin.ImportResponse, error) {
 	r := &reader{names: map[string]string{}, sums: map[string]bool{}, variants: map[string]bool{}}
@@ -61,7 +61,7 @@ func (r *reader) read(files []*plugin.File) (*ir.Model, error) {
 		return nil, reverse.Failf(r.pos(ast.Position{}), "%s includes %s, and includes are not imported yet", r.path, t.Includes[0].Path)
 	}
 	r.at = r.locate(src)
-	r.Roundtrip = annotated(t)
+	r.Annotated = annotated(t)
 
 	file := &ast.File{Filename: r.path}
 	pkg, items, doc, err := r.header(file)
@@ -89,7 +89,7 @@ func (r *reader) pos(p ast.Position) *ir.Position {
 }
 
 // annotated reports whether a file carries any tdl.* annotation, which
-// only a `roundtrip` directive writes.
+// only an `annotate` directive writes.
 func annotated(t *parser.Thrift) bool {
 	var all []parser.Annotations
 	for _, ns := range t.Namespaces {
@@ -120,7 +120,7 @@ func annotated(t *parser.Thrift) bool {
 	return false
 }
 
-// header reads the namespaces: the package, and under roundtrip the
+// header reads the namespaces: the package, and under annotate the
 // file's annotations.
 func (r *reader) header(file *ast.File) (string, []reverse.Item, []string, error) {
 	pkg := ""
@@ -131,7 +131,7 @@ func (r *reader) header(file *ast.File) (string, []reverse.Item, []string, error
 			pkg = ns.Name
 		case carrier:
 		default:
-			if !r.Roundtrip {
+			if !r.Annotated {
 				r.Warn(emit.LossUnsupported, r.pos(ast.Position{}), "namespace %s %s regenerates as namespace *", ns.Language, ns.Name)
 			}
 		}
@@ -321,9 +321,9 @@ func at(anns parser.Annotations) int {
 	return n
 }
 
-// unknown warns about annotations with no TDL form, unless roundtrip.
+// unknown warns about annotations with no TDL form, unless annotating.
 func (r *reader) unknown(anns parser.Annotations, pos ast.Position, what string) {
-	if r.Roundtrip {
+	if r.Annotated {
 		return
 	}
 	for _, a := range anns {
@@ -387,7 +387,7 @@ func (r *reader) structure(s *parser.StructLike) (*reverse.Item, error) {
 	if s.Category == "exception" {
 		r.Warn(emit.LossUnsupported, r.pos(pos), "exception %s is read as a struct", s.Name)
 	}
-	if !r.Roundtrip {
+	if !r.Annotated {
 		r.rename(name, s.Name)
 	}
 	r.unknown(s.Annotations, pos, s.Name)
@@ -464,7 +464,7 @@ func (r *reader) fields(in []*parser.Field, pos ast.Position, owner string) ([]f
 	return out, nil
 }
 
-// field reads one field: from its annotation under roundtrip, and
+// field reads one field: from its annotation under annotate, and
 // otherwise from its name and type. It returns nil for a field it skips.
 func (r *reader) field(f *parser.Field, pos ast.Position, owner string) (*ast.Field, error) {
 	var out *ast.Field
@@ -505,7 +505,7 @@ func (r *reader) enum(e *parser.Enum) (*reverse.Item, error) {
 		return nil, err
 	}
 	decl.Conforms = conforms
-	if !r.Roundtrip {
+	if !r.Annotated {
 		r.rename(name, e.Name)
 	}
 	r.unknown(e.Annotations, pos, e.Name)
@@ -517,7 +517,7 @@ func (r *reader) enum(e *parser.Enum) (*reverse.Item, error) {
 		vname := emit.FromScreaming(v.Name)
 		if n, ok := get(v.Annotations, "tdl.name"); ok {
 			vname = n
-		} else if !r.Roundtrip && emit.ScreamingSnake(vname) != v.Name {
+		} else if !r.Annotated && emit.ScreamingSnake(vname) != v.Name {
 			r.Directive(name+"."+vname, "name", reverse.StrLit(v.Name))
 		}
 		decl.Variants = append(decl.Variants, &ast.Variant{DeclHead: r.head(vname, v.ReservedComments, v.Annotations, pos)})
@@ -550,7 +550,7 @@ func (r *reader) union(u *parser.StructLike) (*reverse.Item, error) {
 		return nil, err
 	}
 	decl.Conforms = conforms
-	if !r.Roundtrip {
+	if !r.Annotated {
 		r.rename(name, u.Name)
 	}
 	r.unknown(u.Annotations, pos, u.Name)
@@ -563,11 +563,11 @@ func (r *reader) union(u *parser.StructLike) (*reverse.Item, error) {
 		vname := variantBack(u.Name, s.Name, m.Name)
 		if n, ok := get(m.Annotations, "tdl.name"); ok {
 			vname = n
-		} else if !r.Roundtrip && emit.Camel(vname) != m.Name {
+		} else if !r.Annotated && emit.Camel(vname) != m.Name {
 			r.Respell(emit.LossName, r.pos(pos), "%s's member %s regenerates as %s", u.Name, m.Name, emit.Camel(vname))
 		}
 		path := name + "." + vname
-		if !r.Roundtrip && s.Name != u.Name+vname {
+		if !r.Annotated && s.Name != u.Name+vname {
 			r.Directive(path, "name", reverse.StrLit(s.Name))
 		}
 		v := &ast.Variant{DeclHead: r.head(vname, s.ReservedComments, s.Annotations, spos)}

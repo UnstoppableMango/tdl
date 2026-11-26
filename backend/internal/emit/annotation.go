@@ -36,10 +36,10 @@ func (s *Session) Bare(name string) bool {
 
 // Lose warns about read-back loss: a fact the output keeps but import would
 // not recover. It reports only under [Session.Readback], and never under
-// [Session.Roundtrip], where an annotation carries the fact. [Session.Lossy]
+// [Session.Annotate], where an annotation carries the fact. [Session.Lossy]
 // reports output loss.
 func (s *Session) Lose(code string, pos *ir.Position, format string, args ...any) {
-	if s.Readback && !s.Roundtrip {
+	if s.Readback && !s.Annotate {
 		s.Lossy(code, pos, format, args...)
 	}
 }
@@ -128,7 +128,7 @@ func (s *Session) LoseConforms(d *ir.Decl, target string) bool {
 }
 
 // Skip reports a declaration that is not generated. It is output loss, so
-// it warns under roundtrip too, where the declaration is carried as TDL
+// it warns under annotate too, where the declaration is carried as TDL
 // but the output still lacks it.
 func (s *Session) Skip(err error) {
 	s.Warn(err)
@@ -145,7 +145,7 @@ func (s *Session) Unlowered() *ast.File {
 }
 
 // source is the model as TDL: the request's, which the host sends under
-// the roundtrip directive, or derived when the request carries none.
+// the annotate directive, or derived when the request carries none.
 func (s *Session) source() *plugin.Source {
 	if src := s.analysis().GetSource(); src != nil {
 		return src
@@ -237,7 +237,7 @@ type Carried struct {
 }
 
 // Carried is every top-level item that is not an emitted declaration,
-// this target's block without its roundtrip directive included.
+// this target's block without its annotate directive included.
 func (s *Session) Carried(emitted map[string]bool) []Carried {
 	var out []Carried
 	for i, it := range s.Items() {
