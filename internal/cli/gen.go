@@ -278,7 +278,6 @@ func (r *genRun) generate(path string) error {
 			}
 		case r.clean && !r.cleaned[out]:
 			mode = gen.ModeClean
-			r.cleaned[out] = true
 		}
 
 		backend, err := r.backend(cmd.Context(), t.Name)
@@ -302,6 +301,12 @@ func (r *genRun) generate(path string) error {
 		}
 
 		result, err := gen.Run(cmd.Context(), backend, t, model, mode)
+		// A directory counts as cleaned once Clean has run on it, or once a
+		// run reusing kept output succeeds; a failure before then, such as
+		// a check, leaves it for the next file to clean.
+		if mode == gen.ModeClean && (result.Cleaned || err == nil) {
+			r.cleaned[out] = true
+		}
 		report(host.Silence(result.Diagnostics, slices.Concat(cfg.Allowed(t.Name), r.allowLossy)))
 		if err != nil {
 			return err

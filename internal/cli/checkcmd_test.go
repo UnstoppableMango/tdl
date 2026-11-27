@@ -260,3 +260,27 @@ func TestGenCheckStagesElsewhereBesideAReadOnlyParent(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+// A check failing before --clean empties a directory leaves it to be
+// cleaned by the next file writing there in the same run.
+func TestGenCleanAfterAFailedCheck(t *testing.T) {
+	dir := t.TempDir()
+	writeFiles(t, dir, map[string]string{
+		"tdl.toml":                     "[check]\nfail = 'sh -c \"exit 1\"'\n",
+		"models/a.tdl":                 postModel("  check(\"fail\")\n"),
+		"models/b.tdl":                 postModel(""),
+		"models/out/old.txt":           "old\n",
+		"models/out/" + gen.MarkerName: "old.txt\n",
+	})
+
+	_, errOut, err := run(t, newGenCmd(), "--clean", filepath.Join(dir, "models", "a.tdl"), filepath.Join(dir, "models", "b.tdl"))
+	if err == nil || !strings.Contains(errOut, "check command fail failed") {
+		t.Fatalf("gen: %v\n%s", err, errOut)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "models", "out", "old.txt")); err == nil {
+		t.Error("old.txt survived --clean: the second file did not clean")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "models", "out", "model.txt")); err != nil {
+		t.Errorf("the second file wrote nothing: %v", err)
+	}
+}
