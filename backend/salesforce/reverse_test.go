@@ -2,6 +2,7 @@ package salesforce_test
 
 import (
 	"context"
+	"path"
 	"strings"
 	"testing"
 
@@ -43,7 +44,7 @@ func generateTDL(t *testing.T, src string) []*plugin.File {
 // readBack imports files and prints the model as TDL.
 func readBack(t *testing.T, files []*plugin.File) (string, []*plugin.Diagnostic) {
 	t.Helper()
-	resp, err := salesforce.ReadObjects(files, true)
+	resp, err := salesforce.Backend{}.Import(context.Background(), &plugin.ImportRequest{Target: salesforce.Name, Files: files, Readback: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -191,7 +192,7 @@ func TestFieldsWarn(t *testing.T) {
 func TestRequiredCheckboxIsReadBackLoss(t *testing.T) {
 	files := []*plugin.File{object("Thing__c", ""), field("Thing__c", "Done__c", "<defaultValue>false</defaultValue><label>Done</label><required>true</required><type>Checkbox</type>")}
 	for _, readback := range []bool{false, true} {
-		resp, err := salesforce.ReadObjects(files, readback)
+		resp, err := salesforce.Backend{}.Import(context.Background(), &plugin.ImportRequest{Target: salesforce.Name, Files: files, Readback: readback})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -295,5 +296,56 @@ func TestFieldsRefuseWhatCannotRegenerate(t *testing.T) {
 	}
 	if strings.Contains(got, "length(") || strings.Contains(got, "scale(") || strings.Contains(got, "key(") || !strings.Contains(got, "entity: ThingEntity") {
 		t.Errorf("reads as\n%s", got)
+	}
+}
+
+// Normalize drops what import does not read from objects and fields, keeps
+// every other file as written, and refuses an object that does not parse.
+func TestNormalize(t *testing.T) {
+	apex := &plugin.File{Path: "classes/A.cls", Content: []byte("public class A {}")}
+	files := []*plugin.File{
+		object("A__c", "<enableHistory>true</enableHistory>"),
+		field("A__c", "B__c", "<label>B</label><type>Checkbox</type><trackHistory>true</trackHistory>"),
+		apex,
+	}
+	out, err := salesforce.Normalize(files)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(out) != 3 || out[2] != apex {
+		t.Fatalf("Normalize = %v, want the Apex file kept", out)
+	}
+	for _, f := range out[:2] {
+		if s := string(f.GetContent()); strings.Contains(s, "History") || !strings.Contains(s, "<label>") {
+			t.Errorf("%s = %s, want unread elements dropped", f.GetPath(), s)
+		}
+	}
+	private := object("A__c", "")
+	private.Content = []byte(strings.Replace(string(private.Content), "ReadWrite", "Private", 1))
+	norm, err := salesforce.Normalize([]*plugin.File{private, object("A__c", "")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a, b := string(norm[0].GetContent()), string(norm[1].GetContent()); a != b {
+		t.Errorf("an unread sharingModel normalizes to\n%s\nwant\n%s", a, b)
+	}
+	if _, err := salesforce.Normalize([]*plugin.File{{Path: "objects/A__c/A__c.object-meta.xml", Content: []byte("<CustomObject>")}}); err == nil {
+		t.Error("Normalize accepted broken XML")
+	}
+}
+
+// A directory hands import its Apex classes and unread folders, so they warn
+// as named files do.
+func TestImportPatternsReachUnreadFiles(t *testing.T) {
+	for _, name := range []string{"A__c.object-meta.xml", "B__c.field-meta.xml", "All.listView-meta.xml", "A.cls", "A.cls-meta.xml"} {
+		matched := false
+		for _, p := range (salesforce.Backend{}).Describe().ImportPatterns {
+			if ok, _ := path.Match(p, name); ok {
+				matched = true
+			}
+		}
+		if !matched {
+			t.Errorf("no import pattern matches %s", name)
+		}
 	}
 }

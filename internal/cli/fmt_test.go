@@ -3,11 +3,15 @@ package cli
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
 // Formatting keeps a file's permissions.
 func TestWriteFormattedKeepsMode(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows keeps no permission bits but read-only, so there is no 0600 to keep")
+	}
 	path := filepath.Join(t.TempDir(), "types.tdl")
 	if err := os.WriteFile(path, []byte("primitive string\n"), 0o600); err != nil {
 		t.Fatalf("writing the fixture: %v", err)
@@ -81,7 +85,7 @@ func TestFmtCheckListsOnlyStaleFiles(t *testing.T) {
 	if err := cmd.Execute(); err == nil {
 		t.Fatal("expected a non-zero exit when a file is not canonical")
 	}
-	if got, want := out.String(), messy+"\n"; got != want {
+	if got, want := out.String(), filepath.ToSlash(messy)+"\n"; got != want {
 		t.Errorf("stdout = %q, want %q", got, want)
 	}
 	if errOut.Len() != 0 {

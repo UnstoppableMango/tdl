@@ -37,7 +37,13 @@ runCommand "tdl-gen-mermaid-check"
 
     for target in ${lib.escapeShellArgs portable.targets}; do
       path=${portable}/''${target/\//-}/tdl-gen-mermaid
-      [ -x "$path" ] || fail "$path is missing"
+      machine=
+      if [[ $target == windows/* ]]; then
+        path=$path.exe
+        [ -f "$path" ] || fail "$path is missing"
+      else
+        [ -x "$path" ] || fail "$path is missing or not executable"
+      fi
       desc=$(file -b "$path")
       echo "$target: $desc"
       case $target in
@@ -45,8 +51,11 @@ runCommand "tdl-gen-mermaid-check"
         linux/arm64) want="ELF 64-bit LSB executable, ARM aarch64" ;;
         darwin/amd64) want="Mach-O 64-bit x86_64 executable" ;;
         darwin/arm64) want="Mach-O 64-bit arm64 executable" ;;
+        # As in checks.tdl-portable, file spells the PE machine two ways.
+        windows/amd64) want="PE32+ executable" machine="x86-64" ;;
+        windows/arm64) want="PE32+ executable" machine="Aarch64|ARM64" ;;
       esac
-      case $desc in "$want"*) ;; *) fail "$target is not $want" ;; esac
+      [[ $desc == "$want"* && ( -z $machine || $desc =~ $machine ) ]] || fail "$target is not $want $machine"
     done
 
     # The portable one, first on PATH. On linux it names the system's glibc
