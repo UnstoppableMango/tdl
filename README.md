@@ -106,8 +106,9 @@ Or install it with `nix profile install github:UnstoppableMango/tdl`.
 
 ### Release assets
 
-Each release carries `tdl_<version>_<os>_<arch>.tar.gz` for `linux` and `darwin`, `amd64` and `arm64`, `tdl_<version>.cdx.json`, a CycloneDX SBOM of the Go modules `tdl` and `tdl-gen-typescript` link, and `SHA256SUMS`.
+Each release carries `tdl_<version>_<os>_<arch>.tar.gz` for `linux` and `darwin`, `tdl_<version>_windows_<arch>.zip` for `windows`, each for `amd64` and `arm64`, `tdl_<version>.cdx.json`, a CycloneDX SBOM of the Go modules `tdl` and `tdl-gen-typescript` link, and `SHA256SUMS`.
 A tarball holds `tdl`, `tdl-gen-typescript` for the TypeScript content mapper, `tdl-gen-mermaid` for the `mermaid` backend, `LICENSE`, `README.md`, and bash, zsh, and fish completion in `completions/`.
+A zip holds the same, the binaries ending in `.exe`, and PowerShell completion as `completions/tdl.ps1` too.
 Nothing in a tarball needs Nix: `tdl` and `tdl-gen-typescript` are static on linux, and `tdl-gen-mermaid`, a Bun single executable, needs glibc there.
 `tdl` runs `tdl-gen-mermaid` from `PATH`, so install both to use the `mermaid` target.
 Every other file is attested, so `gh attestation verify` checks it was built by this repository's release workflow; `tdl_<version>.intoto.jsonl` is the attestation bundle.
@@ -124,7 +125,7 @@ tar -xzf "$asset" tdl && install tdl ~/.local/bin/
 
 ### npm
 
-`@unmango/tdl` installs `tdl` for linux and darwin, amd64 and arm64, from the same binaries as the release assets, with no install script:
+`@unmango/tdl` installs `tdl` for linux, darwin, and windows, amd64 and arm64, from the same binaries as the release assets, with no install script:
 
 ```shell
 npm i -D @unmango/tdl
