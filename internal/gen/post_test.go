@@ -98,8 +98,13 @@ func TestResolvePost(t *testing.T) {
 // {file} the destination relative to it.
 func TestPostApply(t *testing.T) {
 	dir := t.TempDir()
+	// The first command reads here from its working directory, which shows
+	// where it ran without comparing paths, which Windows spells another way.
+	if err := os.WriteFile(filepath.Join(dir, "here"), []byte("home\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	post := &Post{Dir: dir, Commands: []Command{
-		{Name: "tag", Args: []string{"sh", "-c", `cat; echo "$1 $(pwd)"`, "sh", "{file}"}},
+		{Name: "tag", Args: []string{"sh", "-c", `cat; echo "$1 $(cat here)"`, "sh", "{file}"}},
 		{Name: "up", Args: []string{"tr", "a-z", "A-Z"}},
 	}}
 	files := []*plugin.File{
@@ -115,8 +120,8 @@ func TestPostApply(t *testing.T) {
 	// shows.
 	up := strings.ToUpper
 	want := []string{
-		"ONE\n" + up(filepath.Join("gen", "a.ts")+" "+dir) + "\n",
-		"TWO\n" + up(filepath.Join("gen", "nested", "b.ts")+" "+dir) + "\n",
+		"ONE\n" + up(filepath.Join("gen", "a.ts")) + " HOME\n",
+		"TWO\n" + up(filepath.Join("gen", "nested", "b.ts")) + " HOME\n",
 	}
 	for i, f := range got {
 		if f.GetPath() != files[i].GetPath() || string(f.GetContent()) != want[i] {

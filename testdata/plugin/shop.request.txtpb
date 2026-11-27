@@ -899,9 +899,16 @@ analysis:  {
     words:  "Order"
     fields:  {
       words:  "id"
+      references:  {
+        name:  "string"
+      }
     }
     fields:  {
       words:  "total"
+      references:  {
+        index:  1
+        name:  "int"
+      }
     }
   }
 }

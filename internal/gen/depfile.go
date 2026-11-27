@@ -11,8 +11,14 @@ import (
 // DepFile renders a make dependency file in the style of gcc -MD -MP: one
 // rule naming target and every prerequisite, then an empty rule for each
 // prerequisite, so deleting one makes make rebuild rather than fail.
+// Every name is slash-separated, since make reads a backslash as an escape.
 func DepFile(target string, prereqs []string) []byte {
-	prereqs = slices.Compact(slices.Sorted(slices.Values(prereqs)))
+	target = filepath.ToSlash(target)
+	slashed := make([]string, len(prereqs))
+	for i, p := range prereqs {
+		slashed[i] = filepath.ToSlash(p)
+	}
+	prereqs = slices.Compact(slices.Sorted(slices.Values(slashed)))
 
 	var b strings.Builder
 	b.WriteString(makeEscape(target) + ":")

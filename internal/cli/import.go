@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/unstoppablemango/tdl/ast"
 	"github.com/unstoppablemango/tdl/internal/analysis"
+	"github.com/unstoppablemango/tdl/internal/config"
 	"github.com/unstoppablemango/tdl/internal/gen"
 	"github.com/unstoppablemango/tdl/internal/host"
 	"github.com/unstoppablemango/tdl/internal/sema"
@@ -37,6 +39,7 @@ func importCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 		pkg        string
 		allowLossy []string
 		readback   bool
+		strict     bool
 	)
 
 	cmd := &cobra.Command{
@@ -54,7 +57,8 @@ func importCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 			"What the source cannot say in TDL, or says ambiguously, is a\n" +
 			"warning naming a loss code, such as lossy.collection. The [lossy]\n" +
 			"table of the nearest tdl.toml above the first argument, or\n" +
-			"--allow-lossy, silences one.\n\n" +
+			"--allow-lossy, silences one. --strict, or [lossy] strict = true\n" +
+			"there, exits non-zero when a warning remains, after writing.\n\n" +
 			"The result goes to standard output unless -o names a file.",
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -91,11 +95,11 @@ func importCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 					dir = first
 				}
 			}
-			codes, err := host.Allowed(dir, from)
+			cfg, err := config.Find(dir)
 			if err != nil {
 				return err
 			}
-			allowed := slices.Concat(codes, allowLossy)
+			allowed := slices.Concat(cfg.Allowed(from), allowLossy)
 
 			resp, err := importer.Import(cmd.Context(), &plugin.ImportRequest{
 				Target:     from,
@@ -106,9 +110,14 @@ func importCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("%s: %w", from, err)
 			}
-			reportDiagnostics(cmd, host.Silence(resp.GetDiagnostics(), allowed))
-			if host.Fatal(resp.GetDiagnostics()) {
-				return fmt.Errorf("%s reported errors; nothing was written", from)
+			kept := host.Silence(resp.GetDiagnostics(), allowed)
+			reportDiagnostics(cmd, kept)
+			remaining := 0
+			if strictFor(cmd, cfg, strict) {
+				remaining = countWarnings(kept)
+			}
+			if host.Fatal(kept) {
+				return errors.Join(fmt.Errorf("%s reported errors; nothing was written", from), strictError(remaining))
 			}
 
 			model, err := analysis.Imported(resp)
@@ -132,10 +141,11 @@ func importCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 			}
 
 			if out == "" {
-				_, err := fmt.Fprint(cmd.OutOrStdout(), src)
-				return err
+				_, err = fmt.Fprint(cmd.OutOrStdout(), src)
+			} else {
+				err = os.WriteFile(out, []byte(src), 0o644)
 			}
-			return os.WriteFile(out, []byte(src), 0o644)
+			return errors.Join(err, strictError(remaining))
 		},
 	}
 
@@ -146,6 +156,7 @@ func importCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 	registerCompletion(cmd, "from", completeImporters)
 	registerCompletion(cmd, "package", cobra.NoFileCompletions)
 	registerCompletion(cmd, "allow-lossy", completeLossCodes)
+	cmd.Flags().BoolVar(&strict, "strict", false, strictUsage)
 	cmd.Flags().BoolVar(&readback, "readback", false, "also warn what regenerating would write differently, such as a name or a file layout")
 	return cmd
 }

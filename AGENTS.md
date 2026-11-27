@@ -81,21 +81,21 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
   It also installs bat's syntax as `share/bat/syntaxes/tdl.sublime-syntax`.
 - `vscode-extension.nix`: the editor extension (see [VS Code](#vs-code)).
 - `gmk.nix`: `tdl-gmk`, `cmd/tdl-gmk` built as the GNU make loadable object `lib/tdl.so`, with gnumake's header for cgo; `checks.gmk` loads it into make.
-- `portable.nix`: `tdl-portable`, `tdl` and `tdl-gen-typescript` for linux and darwin, amd64 and arm64, cross-compiled with `CGO_ENABLED=0` into `<goos>-<goarch>/`, for release assets and npm (#1385).
+- `portable.nix`: `tdl-portable`, `tdl` and `tdl-gen-typescript` for linux, darwin, and windows, amd64 and arm64, cross-compiled with `CGO_ENABLED=0` into `<goos>-<goarch>/`, `.exe` on windows, for release assets and npm (#1385, #1432).
   The linux binaries are static; the darwin ones link only `libSystem`, as every Go binary on darwin does.
   `vendor-modules.sh` writes the `vendor/modules.txt` gomod2nix leaves out, so each binary's build info names the modules it links.
   `packages.default` links against the store's glibc loader, so it does not run outside Nix.
   `dontFixup` keeps the build platform's `strip` off the darwin/arm64 binaries, which the Go linker signs.
   `checks.tdl-portable` checks each binary's format and static linking, allows only the store paths nixpkgs' Go patches in as zoneinfo and `/etc/protocols` fallbacks, and runs the binary for the checking system over the smoke model.
-- `npm.nix`: `packages.npm`, the seven npm packages packed as tarballs: `@unmango/tdl` from `npm/tdl/`, `@unmango/tdl-typescript`, the content mapper's manifest, from `npm/tdl-typescript/`, `@unmango/remark-tdl-mermaid` from `tdl-js`'s build, depending on `@unmango/tdl` at the flake's version, and one `@unmango/tdl-<os>-<cpu>` per `tdl-portable` target, written with `jq` around its two binaries and `tdl-gen-mermaid`'s portable one, with `os` and `cpu` set, which `@unmango/tdl` names in `optionalDependencies` at the flake's version.
+- `npm.nix`: `packages.npm`, the nine npm packages packed as tarballs: `@unmango/tdl` from `npm/tdl/`, `@unmango/tdl-typescript`, the content mapper's manifest, from `npm/tdl-typescript/`, `@unmango/remark-tdl-mermaid` from `tdl-js`'s build, depending on `@unmango/tdl` at the flake's version, and one `@unmango/tdl-<os>-<cpu>` per `tdl-portable` target, with npm's `win32` for windows, written with `jq` around its two binaries and `tdl-gen-mermaid`'s portable one, with `os` and `cpu` set, which `@unmango/tdl` names in `optionalDependencies` at the flake's version.
   The build fails if any of the three `package.json`s' version, which release-please bumps, is not the flake's.
   `npm/tdl/tdl.js` is the `bin`: it finds the platform package through `lib/resolve.js`, exported as `@unmango/tdl/resolve` for `@unmango/tdl-typescript`, and runs its binary with the package's `bin` first on `PATH`, so `tdl` finds `tdl-gen-mermaid`, passing through arguments, stdio, and the exit status. No package has an install script.
   The shim sits beside `package.json` because `.gitignore` ignores every `bin/`.
   `checks.npm-tdl` installs `@unmango/tdl`, the checking system's platform package, and `@unmango/tdl-typescript` offline with `--ignore-scripts`, then runs `tdl version`, `tdl gen` over the smoke model for `typescript` and `mermaid`, `tdl-gen-typescript` through the resolver, and the remark plugin's transformer, which finds `tdl` the same way, and reads the mapper command from `@unmango/tdl-typescript`.
-- `release.nix`: `packages.release`, the release assets: `tdl_<version>_<os>_<arch>.tar.gz` per `tdl-portable` target, each holding both binaries, `tdl-gen-mermaid`'s portable one, `LICENSE`, `README.md`, and `completions/` written by the build platform's `tdl`, plus `SHA256SUMS`.
+- `release.nix`: `packages.release`, the release assets: `tdl_<version>_<os>_<arch>.tar.gz` per linux and darwin `tdl-portable` target, and `tdl_<version>_windows_<arch>.zip` per windows one, which adds `completions/tdl.ps1`, each holding both binaries, `tdl-gen-mermaid`'s portable one, `LICENSE`, `README.md`, and `completions/` written by the build platform's `tdl`, plus `SHA256SUMS`.
   It also writes `tdl_<version>.cdx.json`, a CycloneDX SBOM `cyclonedx-gomod bin` reads from each binary's build info, merged across binaries and targets by `sbom.jq`, with no timestamp or serial number, which `SHA256SUMS` names.
   Members are sorted, owned by root, dated `SOURCE_DATE_EPOCH`, and gzipped without a name, so two builds give the same `SHA256SUMS`.
-  `checks.tdl-release` holds every tarball to the same file list, checks the SBOM names the `tdl` module, verifies the sums, and runs the checking system's `tdl`.
+  `checks.tdl-release` holds every tarball to one file list and every zip to another, checks the SBOM names the `tdl` module, verifies the sums, and runs the checking system's `tdl`.
   The `assets` job uploads the provenance bundle beside them as `tdl_<version>.intoto.jsonl`, the suffix Scorecard's Signed-Releases check reads, and `SHA256SUMS` does not name it.
 - `dotnet.nix`: the .NET plugins, built with `buildDotnetModule`, which runs their tests (see [.NET SDK](#net-sdk)): `tdl-gen-csharp`, compiled with Native AOT and linked by `stdenv.cc`, and the SDK's debug port, a self-contained single file.
   The same csproj packs as the nuget.org tool in `dotnet-tool.nix`.
@@ -105,7 +105,7 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 - `rust.nix`: `tdl-rust`, the Rust workspace built with `rustPlatform` from `rust/Cargo.lock`, which runs its tests (see [Rust SDK](#rust-sdk)); it installs only `tdl-gen-rust_debug`, which `cmd.nix` does not ship.
 - `js.nix`: `tdl-js`, the JS workspace built with `buildNpmPackage` and `importNpmLock` from `js/package-lock.json`, which runs its tests under node (see [JS SDK](#js-sdk)); it installs `tdl-gen-js_debug` and `tdl-gen-mermaid` as node scripts, which nothing ships, and the remark plugin's build, which `npm.nix` packs.
 - `mermaid.nix`: `tdl-gen-mermaid`, the mermaid plugin as a Bun single executable: `bun build --compile` over `tdl-js`'s build, written into nixpkgs' own `bun` so it runs under Nix, which `cmd.nix` ships.
-  `passthru.portable` cross-compiles it for the four `tdl-portable` targets into `<goos>-<goarch>/`, each written into that platform's official Bun release, fetched by hash for the `bunVersion` nixpkgs' `bun` must match, so bumping nixpkgs' `bun` means bumping the hashes.
+  `passthru.portable` cross-compiles it for the six `tdl-portable` targets into `<goos>-<goarch>/`, each written into that platform's official Bun release, fetched by hash for the `bunVersion` nixpkgs' `bun` must match, so bumping nixpkgs' `bun` means bumping the hashes.
   The linux ones need the system's glibc, unlike the Go binaries; `dontFixup` keeps strip and patchelf off them, since the bundle is a section of the executable and bun signs the darwin ones.
   `checks.tdl-gen-mermaid` runs the shipped one and this system's portable one, its loader pointed into the store, through `tdl gen` over the smoke model.
 - `protoc-gen-buffa.nix`: buffa's protoc plugin, which nixpkgs lacks, fetched from crates.io by hash, for `make generate` and `checks.generate`.
@@ -212,7 +212,7 @@ The plugin protocol in `docs/architecture/plugins.md` is complete.
   `loss.go` declares the loss codes, which `emit` re-exports, so `tdl`'s completion lists them too.
   `check.go` holds every directive to its backend's `DirectiveSpec` (arity, kinds, placement, allowed values, repeats) before the backend runs, so a backend need not check them itself; `Directives` holds the specs of those `tdl` reads itself for every target, `post` and `check`, and `out` is never checked.
   `Renamed` maps a deprecated block directive to its new name, `roundtrip` to `annotate` for one release; `CheckDirectives` warns about the old spelling and checks it as the new, unless the backend still declares the old one or does not declare the new.
-  `Silence` drops warnings with an allowed loss code, and `Allowed` reads which codes `tdl.toml` allows.
+  `Silence` drops warnings with an allowed loss code.
   `ImportFiles` (`walk.go`) expands a directory argument to `tdl import` into the files a backend's import patterns match.
 - `internal/config`: reads the nearest `tdl.toml` above a file; only its `[lossy]`, `[post]`, and `[check]` tables so far.
 - `internal/makefn`: what the make functions in `cmd/tdl-gmk` return, `Files` and `Imports`, kept out of the plugin so they test without make.
@@ -319,6 +319,8 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   A `key` directive makes a field a unique external ID.
   A `standard` directive maps an entity to a standard object, writing its fields under `objects/<Object>/fields/` and no object file, and on a field names a standard field, which is not written.
   Tests check the XML is well formed and `checks.gen-salesforce` runs `xmllint`; nothing checks the Apex.
+  It imports objects and fields: `reverse.go` reads them with `encoding/xml` into package `salesforce`, each custom object an entity and each picklist an enum; Apex waits on #1459 and `annotate` annotations on #1461.
+  `Normalize` is its normal form for the round-trip corpus, whose `Pending` skips smoke, the conformance corpus, and `TestLossKinds` until they land.
   See `docs/architecture/salesforce-backend.md`.
 - `backend/haskell`: one module per model, `Shop/Billing.hs` for package `shop.billing` unless a `module` directive names it.
   A struct is a record, an enum a sum type, a newtype a `newtype`, and an alias a `type` synonym; fields keep the model's names under `NoFieldSelectors` and `DuplicateRecordFields`.
@@ -379,6 +381,7 @@ A backend added to the registry needs a row in the `shipped` table in `internal/
 `docs/architecture/schema-backends.md` maps the seven schema backends.
 `docs/architecture/reverse.md` is the import direction, target language to TDL, and #972 tracks the remaining importers.
 `backend/internal/roundtrip` runs a backend forward and back over `testdata/roundtrip/<target>/<case>/`; its `targets` table holds every backend but those in `exempt` (`debug` and `yolo`), with each one's normal form, and `TestEveryTargetIsCovered` checks it against `cmd/`.
+A target whose reader cannot yet read back every model sets `Pending`, which skips smoke, `TestConformanceComesBack`, and `TestLossKinds` for it.
 A model-first case's `lossy.golden` holds the codes generating with `readback` reports, and generating with `annotate` must warn exactly what generating with neither does.
 `TestConformanceComesBack` also takes every conformance case without an import through each target that imports, and `TestLossKinds` holds each such target to both kinds of loss.
 `testdata/gen/smoke/source.tdl` exercises the whole mapping, with a target block for each schema backend and for `salesforce`; the nix checks generate from it and run each language's tool on the output.
@@ -402,6 +405,7 @@ Two matrices set one column of every table side by side, each cell its first wor
 Each is embedded exactly once, and reads the tables after committed cells fill unmeasured ones.
 A table naming no target or matrix belongs to a backend with no code: it is written by hand, holds every row in order with only `Planned (phase N)` or `No` in Generate and Import, and `CheckPlanned` checks it without rewriting it.
 When the backend is built and registered, the same table is measured, and its `features.toml` takes the phases.
+A delegated backend's table, `yolo`'s (`internal/features/delegated.go`), is written by hand too, every Generate cell `Depends on the model` and every Import cell `No`, since measuring it would grade one recorded answer; `CheckDelegated` checks it, and the `generate` matrix reads it as it reads a measured one.
 The tables stay out of `docs/architecture/`, which is for building the backend, not using it.
 
 ### Tests and goldens
@@ -507,6 +511,7 @@ A directory argument to `import` stands for the files under it that the backend'
 `gen --make <target>` writes a make dependency file once the whole run succeeds, naming every file it read through a `sema.Recording` loader, and leaves an existing one alone when the run fails.
 A target block's `check` directive runs `tdl.toml`'s `[check]` commands over a temporary copy of the output before anything is written, and a failure writes nothing; `--verify` runs none (see `docs/architecture/plugins.md`, Checks).
 `gen` and `import` both drop warnings whose loss code `tdl.toml` or `--allow-lossy` allows, and print a code after the message.
+Under `--strict`, or `[lossy] strict = true`, a warning that survives exits 1 once every file has run, after writing; `gen --make` then leaves its dependency file alone, as for any failed run.
 `import` reports read-back loss, what the TDL keeps but regenerating writes differently, only under `--readback`, which sets `ImportRequest.readback`; an importer writes it with `reverse.Reader.Respell` and everything else with `Warn`.
 
 `request --target <name>` writes, as framed messages, a `Handshake` and one `RequestSet`: the requests `gen` would send that backend, and every diagnostic, a file with an error yielding no request.
@@ -695,7 +700,7 @@ It is advisory, outside the `required` job's `needs`; triage each alert by fixin
 Reply with what changed, or why nothing did, then resolve.
 
 The one required check is the `required` job in `.github/workflows/ci.yml`.
-It needs `check`, on `ubuntu-latest`, and `darwin`, on `macos-latest`.
+It needs `check`, on `ubuntu-latest`, `darwin`, on `macos-latest`, `windows`, which runs `go test -short ./...` without Nix on `windows-latest` and `windows-11-arm`, and `windows-npm`, which installs the npm packages `check` packed on both and runs `tdl version`.
 A new CI job goes in its `needs`, not in the ruleset (declared in Pulumi in `UnstoppableMango/vcs`), unless it is advisory like `buf.yml` and `codeql.yml`.
 
 Pull requests are stacked, and GitHub rebases the rest of the stack on merge; reset local branches from the remote afterwards.
@@ -711,7 +716,7 @@ Never hand-edit `toolVersion` in `internal/cli/version.go`, `version` in `flake.
 The first two, the csproj line, the README line, and the skills' version lines carry an `x-release-please-version` annotation; the JSON files are listed in `release-please-config.json`.
 
 When it reports a release, the `assets` job builds `packages.release` at the tag on a GitHub-hosted runner, attests every file with `actions/attest-build-provenance`, and uploads them to the release with the bundle as `tdl_<version>.intoto.jsonl`.
-The `npm` job builds `packages.npm` at the tag and publishes the four platform packages, then `@unmango/tdl`, then `@unmango/tdl-typescript` and `@unmango/remark-tdl-mermaid`, through npm's trusted publishing, which needs no stored token and writes provenance; each package's trusted publisher on npmjs.com names `release-please.yml`, and a version already published is skipped.
+The `npm` job builds `packages.npm` at the tag and publishes the six platform packages, then `@unmango/tdl`, then `@unmango/tdl-typescript` and `@unmango/remark-tdl-mermaid`, through npm's trusted publishing, which needs no stored token and writes provenance; each package's trusted publisher on npmjs.com names `release-please.yml`, and a version already published is skipped.
 The `nuget` job builds `packages.tdl-gen-csharp-tool` at the tag and pushes it to nuget.org through trusted publishing: `NuGet/login` trades the job's OIDC token for a short-lived key as `vars.NUGET_USER`, whose policy on nuget.org names `release-please.yml`, and `--skip-duplicate` skips a version already pushed.
 
 Two versions are not release-please's:

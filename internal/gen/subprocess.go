@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/unstoppablemango/tdl/plugin"
@@ -290,9 +291,9 @@ func (s *session) wrap(err error) error {
 	}
 
 	msg := fmt.Sprintf("%s: %v", s.name, err)
-	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+	if stopped(err) {
 		msg = fmt.Sprintf("%s stopped before answering", s.name)
-		// The plugin is gone, so wait for the rest of its stderr.
+		// The plugin is likely gone, so wait for the rest of its stderr.
 		// CommandContext kills the child at the deadline.
 		s.wait()
 	}
@@ -300,6 +301,14 @@ func (s *session) wrap(err error) error {
 		msg += "\n" + indent(out)
 	}
 	return errors.New(msg)
+}
+
+// stopped reports whether err means the plugin closed its end: stdout at
+// EOF, or stdin, which fails a write with a broken pipe (#1545). A pipe
+// already closed by an earlier wait means the same.
+func stopped(err error) bool {
+	return errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) ||
+		errors.Is(err, syscall.EPIPE) || errors.Is(err, os.ErrClosed)
 }
 
 func indent(s string) string {
