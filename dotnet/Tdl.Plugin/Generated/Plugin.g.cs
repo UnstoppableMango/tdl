@@ -3191,7 +3191,7 @@ namespace Tdl.Plugin.V1 {
     private global::Tdl.Plugin.V1.Source source_;
     /// <summary>
     /// source is the model as TDL, set when the target block carries the
-    /// roundtrip directive or the backend declares itself nondeterministic.
+    /// annotate directive or the backend declares itself nondeterministic.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -3693,7 +3693,7 @@ namespace Tdl.Plugin.V1 {
     private string source_ = "";
     /// <summary>
     /// source is the item, doc comment included. The target block is written
-    /// without its roundtrip directive, and is empty when it holds nothing
+    /// without its annotate directive, and is empty when it holds nothing
     /// else.
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]

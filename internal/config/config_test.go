@@ -106,6 +106,24 @@ func TestLoadRejectsAWrongType(t *testing.T) {
 	}
 }
 
+// [lossy] strict is a bool, and anything else is refused.
+func TestLoadReadsStrict(t *testing.T) {
+	path := filepath.Join(t.TempDir(), config.FileName)
+	write(t, path, "[lossy]\nstrict = true\nallow = [\"lossy.order\"]\n")
+	c, err := config.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !c.Strict || len(c.Targets) != 0 {
+		t.Errorf("got %+v, want strict and no target named strict", c)
+	}
+
+	write(t, path, "[lossy]\nstrict = \"yes\"\n")
+	if _, err := config.Load(path); err == nil || !strings.Contains(err.Error(), "lossy.strict") {
+		t.Errorf("err = %v, want one naming lossy.strict", err)
+	}
+}
+
 // [post] maps each name to its command line, and Dir is the directory the
 // manifest was found in, where those commands run.
 func TestLoadReadsPost(t *testing.T) {

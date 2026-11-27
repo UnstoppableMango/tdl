@@ -106,8 +106,8 @@ type TargetEntry struct {
 	P         Position
 	E         Position       // just past the last token
 	Path      string         // "" for a bare directive
-	Directive *Directive     // nil when Entries is set
-	Entries   []*TargetEntry // nil when Directive is set
+	Directive *Directive     // nil for a nested block
+	Entries   []*TargetEntry // nil when Directive is set; never nil for a block
 	Rbrace    Position       // the nested block's `}`; zero without one
 }
 

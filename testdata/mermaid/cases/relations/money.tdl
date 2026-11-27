@@ -1,0 +1,5 @@
+package acme.money
+
+type Money {
+  units: int
+}

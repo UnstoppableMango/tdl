@@ -1,9 +1,6 @@
 package host_test
 
 import (
-	"os"
-	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 
@@ -31,29 +28,5 @@ func TestSilence(t *testing.T) {
 	}
 	if len(diags) != 4 {
 		t.Error("Silence changed its argument")
-	}
-}
-
-// Allowed reads the nearest tdl.toml's codes for one target.
-func TestAllowed(t *testing.T) {
-	dir := t.TempDir()
-	toml := "[lossy.typescript]\nallow = [\"lossy.alias\"]\n"
-	if err := os.WriteFile(filepath.Join(dir, "tdl.toml"), []byte(toml), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	sub := filepath.Join(dir, "models")
-	if err := os.Mkdir(sub, 0o755); err != nil {
-		t.Fatal(err)
-	}
-
-	got, err := host.Allowed(sub, "typescript")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !slices.Equal(got, []string{"lossy.alias"}) {
-		t.Errorf("Allowed = %v, want [lossy.alias]", got)
-	}
-	if got, _ := host.Allowed(sub, "go"); len(got) != 0 {
-		t.Errorf("Allowed(go) = %v, want none", got)
 	}
 }
