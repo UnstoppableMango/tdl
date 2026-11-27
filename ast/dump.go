@@ -195,7 +195,7 @@ func targetChildren(entries []*TargetEntry) []child {
 	var kids []child
 	for _, e := range entries {
 		switch {
-		case e.Entries != nil:
+		case e.Directive == nil:
 			for _, k := range targetChildren(e.Entries) {
 				kids = append(kids, child{e.Path + "." + strings.TrimPrefix(k.desc, "Entry "), k.pos})
 			}

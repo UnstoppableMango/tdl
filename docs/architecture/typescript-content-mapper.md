@@ -86,7 +86,7 @@ The module is types: interfaces, unions, and aliases, every one exported, and no
 A TypeScript file imports the types with `import type`; under `verbatimModuleSyntax`, a plain import of a type is the compiler's own error, and a constructor is imported as a value.
 
 A file needs no `typescript` target block.
-When it has one, its directives apply as they do under `tdl gen` (`discriminant`, `foreign`, and the declaration directives), except `out` and `file`, which place files the mapper does not write, and `roundtrip`, since tsc never imports the module back.
+When it has one, its directives apply as they do under `tdl gen` (`discriminant`, `foreign`, and the declaration directives), except `out` and `file`, which place files the mapper does not write, and `annotate`, since tsc never imports the module back.
 A directive in another target's block is ignored, as `tdl gen --target typescript` ignores it.
 
 A declaration from another TDL file is imported from that file:

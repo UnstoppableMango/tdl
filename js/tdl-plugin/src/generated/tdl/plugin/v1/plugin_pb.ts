@@ -466,7 +466,7 @@ export type Analysis = Message<"tdl.plugin.v1.Analysis"> & {
 
   /**
    * source is the model as TDL, set when the target block carries the
-   * roundtrip directive or the backend declares itself nondeterministic.
+   * annotate directive or the backend declares itself nondeterministic.
    *
    * @generated from field: tdl.plugin.v1.Source source = 3;
    */
@@ -530,7 +530,7 @@ export const SourceSchema: GenMessage<Source> = /*@__PURE__*/
 export type Item = Message<"tdl.plugin.v1.Item"> & {
   /**
    * source is the item, doc comment included. The target block is written
-   * without its roundtrip directive, and is empty when it holds nothing
+   * without its annotate directive, and is empty when it holds nothing
    * else.
    *
    * @generated from field: string source = 1;

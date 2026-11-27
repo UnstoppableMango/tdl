@@ -1043,7 +1043,7 @@ type Analysis struct {
 	Types []*TypeView            `protobuf:"bytes,1,rep,name=types" json:"types,omitempty"` // indexed like Model.types
 	Decls []*DeclView            `protobuf:"bytes,2,rep,name=decls" json:"decls,omitempty"` // indexed like Model.decls
 	// source is the model as TDL, set when the target block carries the
-	// roundtrip directive or the backend declares itself nondeterministic.
+	// annotate directive or the backend declares itself nondeterministic.
 	Source        *Source `protobuf:"bytes,3,opt,name=source" json:"source,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1175,7 +1175,7 @@ func (x *Source) GetExterns() []*Item {
 type Item struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// source is the item, doc comment included. The target block is written
-	// without its roundtrip directive, and is empty when it holds nothing
+	// without its annotate directive, and is empty when it holds nothing
 	// else.
 	Source string `protobuf:"bytes,1,opt,name=source" json:"source,omitempty"`
 	// name is a declaration's name, or empty for an instance or the target

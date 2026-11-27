@@ -119,7 +119,12 @@ func (t *targetPass) walkEntries(block *ast.TargetDecl, scope string, entries []
 		}
 
 		switch {
-		case entry.Entries != nil:
+		case entry.Directive == nil:
+			if len(entry.Entries) == 0 {
+				// An empty block attaches nothing, but its path must still
+				// name something.
+				t.attach(path, entry, nil)
+			}
 			t.walkEntries(block, path, entry.Entries, out)
 
 		case entry.Path == "":
@@ -140,6 +145,8 @@ func (t *targetPass) walkEntries(block *ast.TargetDecl, scope string, entries []
 
 // attach resolves a path and records the directive as a candidate for every
 // node it reaches.
+//
+// A nil d only checks that the path names something.
 func (t *targetPass) attach(path string, at ast.Node, d *ir.Directive) {
 	// A path is a declaration and one of its fields, or an enum, one of its
 	// variants, and one of that variant's fields.
@@ -152,6 +159,9 @@ func (t *targetPass) attach(path string, at ast.Node, d *ir.Directive) {
 	if ok && b.kind == bindExtern {
 		if member != "" {
 			t.diags.add(at, "target path %s names nothing: %s is imported, and its members are not visible here", path, head)
+			return
+		}
+		if d == nil {
 			return
 		}
 		idx := b.id.GetIndex()
@@ -172,11 +182,16 @@ func (t *targetPass) attach(path string, at ast.Node, d *ir.Directive) {
 			t.diags.add(at, "target path %s names nothing: a class path reaches a field and no further", path)
 			return
 		}
-		t.expandClass(b.id, member, d)
+		if d != nil {
+			t.expandClass(b.id, member, d)
+		}
 		return
 	}
 
 	if member == "" {
+		if d == nil {
+			return
+		}
 		t.byDecl[idx] = append(t.byDecl[idx], candidate{directive: d, spec: specDecl})
 		return
 	}
@@ -206,7 +221,9 @@ func (t *targetPass) attach(path string, at ast.Node, d *ir.Directive) {
 			return
 		}
 	}
-	t.byMember[key] = append(t.byMember[key], candidate{directive: d, spec: specField})
+	if d != nil {
+		t.byMember[key] = append(t.byMember[key], candidate{directive: d, spec: specField})
+	}
 }
 
 // expandClass applies a directive to every declaration satisfying a class.

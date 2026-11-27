@@ -111,6 +111,14 @@ func (g *generator) typeIn(id *ir.ID, fr *frame) (string, error) {
 				return "", emit.Lost(emit.LossUnit, pos,
 					"%s is applied to a type argument, and Go has no type carrying one", name)
 			}
+			if w, ok := wireFor(name); ok && g.wire {
+				goName, err := g.wireTypeName(w, pos)
+				if err != nil {
+					return "", err
+				}
+				g.useWire(w)
+				return goName, nil
+			}
 			if strings.HasPrefix(goName, "time.") {
 				g.use("time")
 			}
