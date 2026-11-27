@@ -65,6 +65,7 @@ A `DeclView` holds, per declaration:
 Fields, variants, and constraints gain the same kind of view:
 
 - **Fields and variants.** Each gets its number under the backend's rule (see [Numbering](#numbering)) and its name's words.
+  A structure's or variant's field also gets the declarations its type names, walked as the declaration's references are, so a backend drawing an edge per field, such as `mermaid` or `likec4`, need not walk types itself.
 - **Constraints.** Each gets its TDL source text, its `length` bounds normalized to an inclusive range, and whether its `matches` pattern is RE2.
   A length that can never hold becomes a host diagnostic, reported once, before any backend runs.
   A pattern RE2 refuses is not one, since a target with an ECMAScript engine reads a lookahead; the view says so, and a backend whose engine is RE2's decides.

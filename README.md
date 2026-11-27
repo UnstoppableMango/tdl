@@ -106,8 +106,9 @@ Or install it with `nix profile install github:UnstoppableMango/tdl`.
 
 ### Release assets
 
-Each release carries `tdl_<version>_<os>_<arch>.tar.gz` for `linux` and `darwin`, `amd64` and `arm64`, `tdl_<version>.cdx.json`, a CycloneDX SBOM of the Go modules `tdl` and `tdl-gen-typescript` link, and `SHA256SUMS`.
+Each release carries `tdl_<version>_<os>_<arch>.tar.gz` for `linux` and `darwin`, `tdl_<version>_windows_<arch>.zip` for `windows`, each for `amd64` and `arm64`, `tdl_<version>.cdx.json`, a CycloneDX SBOM of the Go modules `tdl` and `tdl-gen-typescript` link, and `SHA256SUMS`.
 A tarball holds `tdl`, `tdl-gen-typescript` for the TypeScript content mapper, `tdl-gen-mermaid` for the `mermaid` backend, `LICENSE`, `README.md`, and bash, zsh, and fish completion in `completions/`.
+A zip holds the same, the binaries ending in `.exe`, and PowerShell completion as `completions/tdl.ps1` too.
 Nothing in a tarball needs Nix: `tdl` and `tdl-gen-typescript` are static on linux, and `tdl-gen-mermaid`, a Bun single executable, needs glibc there.
 `tdl` runs `tdl-gen-mermaid` from `PATH`, so install both to use the `mermaid` target.
 Every other file is attested, so `gh attestation verify` checks it was built by this repository's release workflow; `tdl_<version>.intoto.jsonl` is the attestation bundle.
@@ -124,7 +125,7 @@ tar -xzf "$asset" tdl && install tdl ~/.local/bin/
 
 ### npm
 
-`@unmango/tdl` installs `tdl` for linux and darwin, amd64 and arm64, from the same binaries as the release assets, with no install script:
+`@unmango/tdl` installs `tdl` for linux, darwin, and windows, amd64 and arm64, from the same binaries as the release assets, with no install script:
 
 ```shell
 npm i -D @unmango/tdl
@@ -420,42 +421,44 @@ Each built-in backend also ships as a `tdl-gen-<name>` plugin.
 | [`smithy`](docs/backends/smithy.md) | Structures, both enum shapes, named collection shapes |
 | [`thrift`](docs/backends/thrift.md) | Structs, both enum shapes, newtypes as typedefs, collections, `number` pins |
 | [`typescript`](docs/backends/typescript.md) | JSON wire types: interfaces, both enum shapes, newtypes as aliases |
+| [`yolo`](docs/backends/yolo.md) | Whatever a language model writes for the `language` you name, kept until the request changes |
 | `debug` | A description of the model it was given |
 | Anything else | `tdl-gen-<name>` on `PATH`, over the [plugin protocol](docs/architecture/plugins.md) |
 
 What each backend generates from each feature of the language, measured by `make features`.
 Yes generates it, Warns loses part of it under a loss code that `tdl.toml` can allow, No skips it or refuses the model, and Planned names a phase that will generate it.
+Depends is `yolo`'s, whose output is whatever the language model answering it writes.
 A backend's page names the codes and phases.
 Warns counts only what the output loses: what a later `tdl import` would not read back is reported with a bare `readback` directive in the target block.
 
 <!-- tdl:features generate -->
 
-| Feature | `csharp` | `go` | `graphql` | `haskell` | `jsonschema` | `likec4` | `mermaid` | `nix` | `openapi` | `protobuf` | `salesforce` | `smithy` | `thrift` | `typescript` | `zod` |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Entity, value, and mixin | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| Mixin `include` | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| Fieldless enum | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| Fielded enum | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Planned | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| Newtype | Yes | Yes | Warns | Yes | Yes | Yes | Yes | Planned | Yes | Warns | Yes | Yes | Yes | Yes | Yes |
-| Alias | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| Optional and nullable | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| List, set, and map | Yes | Yes | No | Yes | Yes | Yes | Yes | Yes | Yes | Warns | Yes | Yes | Yes | Warns | Yes |
-| `min` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Planned | Yes | Warns | Warns | Warns | Warns | Warns | Yes |
-| `max` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Planned | Yes | Warns | Warns | Warns | Warns | Warns | Yes |
-| `length` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Planned | Yes | Warns | Warns | Warns | Warns | Warns | Yes |
-| `matches` | Planned | Yes | Warns | Warns | Yes | Yes | Yes | Planned | Yes | Warns | Warns | Warns | Warns | Warns | Yes |
-| `oneOf` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Planned | Yes | Warns | Warns | Warns | Warns | Yes | Yes |
-| `unique` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Planned | Yes | Warns | Warns | Warns | Warns | Warns | Yes |
-| `owned` | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Yes | Yes | Warns | No | Warns | Warns | Warns | Yes |
-| Field default | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Planned | Yes | Warns | Yes | Warns | Warns | Warns | Yes |
-| `key` directive | Yes | Yes | No | Yes | No | No | No | No | No | No | Yes | No | No | No | No |
-| `name` directive | Yes | Yes | Yes | Yes | Yes | No | No | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| `number` directive | No | No | No | No | No | No | No | No | No | Yes | No | No | Yes | No | No |
-| Doc comment | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
-| Type parameters | Planned | Yes | No | Yes | No | Yes | Yes | Planned | No | No | No | No | No | No | Planned |
-| Class | Planned | Warns | Warns | Yes | No | Yes | Yes | Warns | No | Warns | No | Warns | Warns | Warns | Planned |
-| Unit | Warns | Planned | Warns | Planned | No | Yes | Yes | Warns | No | Warns | No | Warns | Warns | Warns | Planned |
-| Import and extern | Yes | Yes | No | Yes | No | Yes | Yes | Planned | No | Yes | No | No | No | Yes | Yes |
+| Feature | `csharp` | `go` | `graphql` | `haskell` | `jsonschema` | `likec4` | `mermaid` | `nix` | `openapi` | `protobuf` | `salesforce` | `smithy` | `thrift` | `typescript` | `yolo` | `zod` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Entity, value, and mixin | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Depends | Yes |
+| Mixin `include` | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Depends | Yes |
+| Fieldless enum | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Depends | Yes |
+| Fielded enum | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Planned | Yes | Yes | Yes | Yes | Yes | Yes | Depends | Yes |
+| Newtype | Yes | Yes | Warns | Yes | Yes | Yes | Yes | Planned | Yes | Warns | Yes | Yes | Yes | Yes | Depends | Yes |
+| Alias | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Depends | Yes |
+| Optional and nullable | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Depends | Yes |
+| List, set, and map | Yes | Yes | No | Yes | Yes | Yes | Yes | Yes | Yes | Warns | Yes | Yes | Yes | Warns | Depends | Yes |
+| `min` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Planned | Yes | Warns | Warns | Warns | Warns | Warns | Depends | Yes |
+| `max` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Planned | Yes | Warns | Warns | Warns | Warns | Warns | Depends | Yes |
+| `length` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Planned | Yes | Warns | Warns | Warns | Warns | Warns | Depends | Yes |
+| `matches` | Planned | Yes | Warns | Warns | Yes | Yes | Yes | Planned | Yes | Warns | Warns | Warns | Warns | Warns | Depends | Yes |
+| `oneOf` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Planned | Yes | Warns | Warns | Warns | Warns | Yes | Depends | Yes |
+| `unique` | Planned | Yes | Warns | Planned | Yes | Yes | Yes | Planned | Yes | Warns | Warns | Warns | Warns | Warns | Depends | Yes |
+| `owned` | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Yes | Yes | Warns | No | Warns | Warns | Warns | Depends | Yes |
+| Field default | Yes | Warns | Warns | Yes | Yes | Yes | Yes | Planned | Yes | Warns | Yes | Warns | Warns | Warns | Depends | Yes |
+| `key` directive | Yes | Yes | No | Yes | No | No | No | No | No | No | Yes | No | No | No | Depends | No |
+| `name` directive | Yes | Yes | Yes | Yes | Yes | No | No | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Depends | Yes |
+| `number` directive | No | No | No | No | No | No | No | No | No | Yes | No | No | Yes | No | Depends | No |
+| Doc comment | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Depends | Yes |
+| Type parameters | Planned | Yes | No | Yes | No | Yes | Yes | Planned | No | No | No | No | No | No | Depends | Planned |
+| Class | Planned | Warns | Warns | Yes | No | Yes | Yes | Warns | No | Warns | No | Warns | Warns | Warns | Depends | Planned |
+| Unit | Warns | Planned | Warns | Planned | No | Yes | Yes | Warns | No | Warns | No | Warns | Warns | Warns | Depends | Planned |
+| Import and extern | Yes | Yes | No | Yes | No | Yes | Yes | Planned | No | Yes | No | No | No | Yes | Depends | Yes |
 
 <!-- /tdl:features -->
 

@@ -54,7 +54,7 @@ func Out(block *ir.TargetBlock) string {
 			continue
 		}
 		out := d.GetArgs()[0].GetText()
-		if file := block.GetMeta().GetPosition().GetFilename(); out != "" && file != "" && !filepath.IsAbs(out) {
+		if file := block.GetMeta().GetPosition().GetFilename(); out != "" && file != "" && !host.Rooted(out) {
 			out = filepath.Join(filepath.Dir(file), out)
 		}
 		return out

@@ -13,8 +13,10 @@ import (
 
 // Update measures every target and returns, for each markdown file under
 // root embedding a table, its content with the tables rewritten. Every
-// target and matrix is embedded exactly once, and a table naming neither
-// is a planned backend's, which is checked by [CheckPlanned] and left as it is.
+// target, delegated backend, and matrix is embedded exactly once. A
+// delegated backend's table is checked by [CheckDelegated] and left as it
+// is, and a table naming none of them is a planned backend's, which is
+// checked by [CheckPlanned] and left as it is.
 func Update(root string, short bool) (map[string][]byte, error) {
 	embedded, err := embedding(root)
 	if err != nil {
@@ -52,6 +54,16 @@ func Update(root string, short bool) (map[string][]byte, error) {
 		tables[t.Name] = grid
 		names = append(names, t.Name)
 	}
+	for _, name := range delegated {
+		rows, errs := written(embedded, where[name], name, "a delegated backend", CheckDelegated)
+		delete(where, name)
+		if errs != nil {
+			problems = append(problems, errs...)
+			continue
+		}
+		tables[name] = Grid{Header: Header, Rows: rows}
+		names = append(names, name)
+	}
 	slices.Sort(names)
 	for _, name := range sortedKeys(matrices) {
 		problems = append(problems, once(name, where[name])...)
@@ -61,14 +73,8 @@ func Update(root string, short bool) (map[string][]byte, error) {
 	// What remains is a backend with no code, whose table is written by
 	// hand and only checked.
 	for _, name := range sortedKeys(where) {
-		docs := where[name]
-		if errs := once(name, docs); errs != nil {
-			problems = append(problems, errs...)
-			continue
-		}
-		if err := CheckPlanned(Parse(embedded[docs[0]], name)); err != nil {
-			problems = append(problems, fmt.Errorf("%s: %s is no target, so a planned table: %w", docs[0], name, err))
-		}
+		_, errs := written(embedded, where[name], name, "no target, so a planned table", CheckPlanned)
+		problems = append(problems, errs...)
 	}
 
 	out := map[string][]byte{}
@@ -80,6 +86,19 @@ func Update(root string, short bool) (map[string][]byte, error) {
 		out[doc] = spliced
 	}
 	return out, errors.Join(problems...)
+}
+
+// written reads the table name that one of docs embeds, which is written
+// by hand, and checks it; kind says what the table is in an error.
+func written(embedded map[string][]byte, docs []string, name, kind string, check func([][]string) error) ([][]string, []error) {
+	if errs := once(name, docs); errs != nil {
+		return nil, errs
+	}
+	rows := Parse(embedded[docs[0]], name)
+	if err := check(rows); err != nil {
+		return nil, []error{fmt.Errorf("%s: %s is %s: %w", docs[0], name, kind, err)}
+	}
+	return rows, nil
 }
 
 // once reports a table embedded in any number of docs but one.
