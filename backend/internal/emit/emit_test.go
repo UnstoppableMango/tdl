@@ -317,9 +317,9 @@ func TestNumbersInReadsTheAnalysis(t *testing.T) {
 	}
 }
 
-// The round-trip helpers read the TDL the request carries, and print it
+// The annotation helpers read the TDL the request carries, and print it
 // themselves when the request carries none.
-func TestRoundtripHelpersReadTheAnalysis(t *testing.T) {
+func TestAnnotationHelpersReadTheAnalysis(t *testing.T) {
 	file, err := parser.Parse("shop.tdl", strings.NewReader(`package shop
 
 type Order: Entity {
@@ -328,7 +328,7 @@ type Order: Entity {
 }
 
 target x for shop {
-  roundtrip
+  annotate
 }
 `))
 	if err != nil {

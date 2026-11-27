@@ -42,6 +42,7 @@ runCommand "tdl-npm-check"
     patchShebangs node_modules/@unmango/tdl/tdl.js
 
     npx --offline tdl version
+    node --test ${../../npm/tdl}/test/resolve.test.js
     cp ${../../testdata/gen/smoke/source.tdl} source.tdl
     npx --offline tdl gen --target typescript -o out source.tdl 2>/dev/null
     find out -name '*.ts' | grep -q . || { echo "tdl gen wrote no TypeScript" >&2; exit 1; }

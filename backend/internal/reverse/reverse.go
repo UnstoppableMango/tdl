@@ -1,5 +1,5 @@
 // Package reverse holds what every reverse backend's reader shares:
-// diagnostics, the target block it writes, the items a roundtrip
+// diagnostics, the target block it writes, the items an
 // annotation carries as TDL, and lowering what it read.
 package reverse
 
@@ -21,9 +21,9 @@ import (
 type Reader struct {
 	Diags []*plugin.Diagnostic
 
-	// Roundtrip is set when the input carries roundtrip annotations, so
+	// Annotated is set when the input carries annotations, so
 	// they are read and no directive is inferred.
-	Roundtrip bool
+	Annotated bool
 
 	// Readback is the request's readback flag: report read-back loss too.
 	Readback bool
@@ -55,7 +55,7 @@ func (r *Reader) Respell(code string, pos *ir.Position, format string, args ...a
 // Directive adds `path => name(args)` to the target block, unless
 // annotations carry the block.
 func (r *Reader) Directive(path, name string, args ...*ast.Literal) {
-	if r.Roundtrip {
+	if r.Annotated {
 		return
 	}
 	r.Entries = append(r.Entries, &ast.TargetEntry{Path: path, Directive: &ast.Directive{N: name, Args: args}})
@@ -64,7 +64,7 @@ func (r *Reader) Directive(path, name string, args ...*ast.Literal) {
 // Pins writes a number directive on each member whose number allocation
 // would not give it.
 func (r *Reader) Pins(names []string, nums []int64, rule emit.NumberRule) {
-	if r.Roundtrip || len(nums) == 0 {
+	if r.Annotated || len(nums) == 0 {
 		return
 	}
 	for i, pinned := range emit.Pins(nums, rule) {

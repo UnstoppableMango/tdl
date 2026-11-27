@@ -15,6 +15,8 @@ npm installs the one platform package that matches the machine, from the `option
 - `@unmango/tdl-linux-arm64`: Linux, ARM64
 - `@unmango/tdl-darwin-x64`: macOS, Intel
 - `@unmango/tdl-darwin-arm64`: macOS, Apple silicon
+- `@unmango/tdl-win32-x64`: Windows, x86-64
+- `@unmango/tdl-win32-arm64`: Windows, ARM64
 
 No package runs an install script, so `--ignore-scripts` changes nothing.
 An install that leaves out optional dependencies, with `--omit=optional` or a lock file written on another platform, leaves `tdl` without a binary, and it says so.

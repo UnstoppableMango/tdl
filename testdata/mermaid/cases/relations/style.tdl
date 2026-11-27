@@ -1,0 +1,6 @@
+// A package Mermaid reserves as a word names its namespace with a `_`.
+package style
+
+type Theme {
+  name: string
+}

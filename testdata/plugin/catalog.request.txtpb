@@ -847,13 +847,13 @@ model: {
       target: "debug"
     }
     directives: {
-      name: "roundtrip"
+      name: "annotate"
       position: {
         filename: "catalog.tdl"
         line: 20
         column: 3
         end_line: 20
-        end_column: 12
+        end_column: 11
       }
       target: "debug"
     }
@@ -1101,6 +1101,9 @@ analysis: {
     fields: {
       words: "id"
       source: "id: string"
+      references: {
+        name: "string"
+      }
     }
     fields: {
       words: "name"
@@ -1112,15 +1115,32 @@ analysis: {
         }
       }
       source: "name: string where { length(1..64) }"
+      references: {
+        name: "string"
+      }
     }
     fields: {
       words: "category"
       source: "category: string?"
       deprecation: "deprecated(\"use tags\")"
+      references: {
+        name: "string"
+      }
+      references: {
+        index: 21
+        name: "Option"
+      }
     }
     fields: {
       words: "tags"
       source: "tags: Set<string>"
+      references: {
+        name: "string"
+      }
+      references: {
+        index: 11
+        name: "Set"
+      }
     }
   }
   decls: {
@@ -1144,6 +1164,9 @@ analysis: {
       fields: {
         words: "until"
         source: "until: string"
+        references: {
+          name: "string"
+        }
       }
     }
   }

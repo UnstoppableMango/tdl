@@ -361,6 +361,13 @@ pub struct Handshake {
     ///
     /// Field 4: `mode`
     pub mode: ::buffa::EnumValue<Mode>,
+    /// target is the target the host wants served, as Request.target names
+    /// it. A plugin answers for this target alone, and should refuse one it
+    /// does not serve, naming those it does. A host built before this field
+    /// sends none.
+    ///
+    /// Field 5: `target`
+    pub target: ::buffa::alloc::string::String,
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
 }
@@ -371,6 +378,7 @@ impl ::core::fmt::Debug for Handshake {
             .field("ir_version", &self.ir_version)
             .field("watch", &self.watch)
             .field("mode", &self.mode)
+            .field("target", &self.target)
             .finish()
     }
 }
@@ -417,6 +425,9 @@ impl ::buffa::Message for Handshake {
                 size += 1u64 + ::buffa::types::int32_encoded_len(val) as u64;
             }
         }
+        if !self.target.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.target) as u64;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
     }
@@ -441,6 +452,9 @@ impl ::buffa::Message for Handshake {
             if val != 0 {
                 ::buffa::types::put_int32_field(4u32, val, buf);
             }
+        }
+        if !self.target.is_empty() {
+            ::buffa::types::put_string_field(5u32, &self.target, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -483,6 +497,13 @@ impl ::buffa::Message for Handshake {
                 )?;
                 self.mode = ::buffa::EnumValue::from(::buffa::types::decode_int32(buf)?);
             }
+            5u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.target, buf)?;
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -495,6 +516,7 @@ impl ::buffa::Message for Handshake {
         self.ir_version.clear();
         self.watch = false;
         self.mode = ::buffa::EnumValue::from(0);
+        self.target.clear();
         self.__buffa_unknown_fields.clear();
     }
 }
@@ -512,11 +534,14 @@ impl ::buffa::ExtensionSet for Handshake {
 pub struct HandshakeReply {
     /// Field 1: `accepted`
     pub accepted: bool,
-    /// refusal says what the plugin needed, when accepted is false. It should
-    /// name both versions.
+    /// refusal says what the plugin needed, when accepted is false: both
+    /// versions, or the target asked for and the targets it serves. The host
+    /// shows it after the plugin's name.
     ///
     /// Field 2: `refusal`
     pub refusal: ::buffa::alloc::string::String,
+    /// name is the target served, and version the executable's version.
+    ///
     /// Field 3: `name`
     pub name: ::buffa::alloc::string::String,
     /// Field 4: `version`
@@ -1806,7 +1831,7 @@ pub struct Analysis {
     /// Field 2: `decls`
     pub decls: ::buffa::alloc::vec::Vec<DeclView>,
     /// source is the model as TDL, set only when the target block carries the
-    /// roundtrip directive.
+    /// annotate directive.
     ///
     /// Field 3: `source`
     pub source: ::buffa::MessageField<Source, ::buffa::Inline<Source>>,
@@ -2124,7 +2149,7 @@ impl ::buffa::ExtensionSet for Source {
 #[derive(Clone, PartialEq, Default)]
 pub struct Item {
     /// source is the item, doc comment included. The target block is written
-    /// without its roundtrip directive, and is empty when it holds nothing
+    /// without its annotate directive, and is empty when it holds nothing
     /// else.
     ///
     /// Field 1: `source`
@@ -3306,6 +3331,14 @@ pub struct MemberView {
     ///
     /// Field 7: `deprecation`
     pub deprecation: ::buffa::alloc::string::String,
+    /// references are the declarations a structure's or variant's field
+    /// names through its type and its type arguments, walked as
+    /// DeclView.references walks a body, with aliases expanded, each once. A
+    /// field naming its own declaration includes it, and prelude declarations
+    /// stay in the list. Unset on a variant, whose fields carry their own.
+    ///
+    /// Field 8: `references`
+    pub references: ::buffa::alloc::vec::Vec<super::super::ir::v1::ID>,
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
 }
@@ -3319,6 +3352,7 @@ impl ::core::fmt::Debug for MemberView {
             .field("constraints", &self.constraints)
             .field("source", &self.source)
             .field("deprecation", &self.deprecation)
+            .field("references", &self.references)
             .finish()
     }
 }
@@ -3385,6 +3419,14 @@ impl ::buffa::Message for MemberView {
         if !self.deprecation.is_empty() {
             size += 1u64 + ::buffa::types::string_encoded_len(&self.deprecation) as u64;
         }
+        for v in &self.references {
+            let __slot = __cache.reserve();
+            let inner_size = v.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
+                    + inner_size as u64;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
     }
@@ -3433,6 +3475,14 @@ impl ::buffa::Message for MemberView {
         }
         if !self.deprecation.is_empty() {
             ::buffa::types::put_string_field(7u32, &self.deprecation, buf);
+        }
+        for v in &self.references {
+            ::buffa::types::put_len_delimited_header(
+                8u32,
+                u64::from(__cache.consume_next()),
+                buf,
+            );
+            v.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -3543,6 +3593,18 @@ impl ::buffa::Message for MemberView {
                 )?;
                 ::buffa::types::merge_string(&mut self.deprecation, buf)?;
             }
+            8u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let mut elem = ::core::default::Default::default();
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&elem),
+                )?;
+                ::buffa::Message::merge_length_delimited(&mut elem, buf, ctx)?;
+                self.references.push(elem);
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -3558,6 +3620,7 @@ impl ::buffa::Message for MemberView {
         self.constraints.clear();
         self.source.clear();
         self.deprecation.clear();
+        self.references.clear();
         self.__buffa_unknown_fields.clear();
     }
 }

@@ -205,3 +205,29 @@ func changed(got, want string) string {
 	}
 	return b.String()
 }
+
+// A delegated table holds every row in order, Depends on the model in
+// Generate, and No in Import.
+func TestCheckDelegated(t *testing.T) {
+	var rows [][]string
+	for _, r := range features.Rows {
+		rows = append(rows, []string{r.Title, features.Depends, "No", "", ""})
+	}
+	if err := features.CheckDelegated(rows); err != nil {
+		t.Fatal(err)
+	}
+	for name, bad := range map[string]func([][]string) [][]string{
+		"yes":            func(r [][]string) [][]string { r[0][1] = "Yes"; return r },
+		"import-depends": func(r [][]string) [][]string { r[0][2] = features.Depends; return r },
+		"order":          func(r [][]string) [][]string { r[0], r[1] = r[1], r[0]; return r },
+		"missing":        func(r [][]string) [][]string { return r[1:] },
+	} {
+		rows := slices.Clone(rows)
+		for i := range rows {
+			rows[i] = slices.Clone(rows[i])
+		}
+		if err := features.CheckDelegated(bad(rows)); err == nil {
+			t.Errorf("%s: CheckDelegated succeeded", name)
+		}
+	}
+}

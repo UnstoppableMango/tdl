@@ -19,3 +19,6 @@ testdata/**
 !testdata/**/
 !testdata/**/*.tdl
 *.golden
+
+# Fuzz crashers, written by go test
+**/testdata/fuzz/

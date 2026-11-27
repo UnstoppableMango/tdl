@@ -127,3 +127,7 @@ target zod for smoke {
 target mermaid for smoke {
   out("mermaid")
 }
+
+target nix for smoke {
+  out("nix")
+}

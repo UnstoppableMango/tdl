@@ -22,7 +22,7 @@ import (
 // declaration, field, or variant where it is written, the hover also lists
 // the directives each target block resolves onto it.
 func (s *Server) Hover(_ context.Context, params *protocol.HoverParams) (*protocol.Hover, error) {
-	doc := s.store.get(params.TextDocument.URI.FsPath())
+	doc := s.store.get(fsPath(params.TextDocument.URI))
 	if doc == nil {
 		return nil, nil
 	}

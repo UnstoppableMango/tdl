@@ -171,7 +171,8 @@ func TestReferencesCrossAnImport(t *testing.T) {
 	if !ok {
 		t.Fatal("no reference on Money")
 	}
-	if ref.Target.Filename != dep {
+	// Sema names an import slash-separated on every OS.
+	if ref.Target.Filename != filepath.ToSlash(dep) {
 		t.Errorf("target file = %s, want %s", ref.Target.Filename, dep)
 	}
 	if ref.Target.Line != 5 {

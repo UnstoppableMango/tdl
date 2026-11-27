@@ -6,11 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"os"
+
+	"github.com/openai/openai-go/v3/option"
 )
 
 // Provider is a language model service: it takes a conversation and
-// returns the model's next turn. Anthropic is the only one; the interface
-// keeps a second one a new type rather than a redesign.
+// returns the model's next turn. A target block's provider directive
+// picks one of Providers.
 type Provider interface {
 	Send(ctx context.Context, c *Conversation) (Message, error)
 }
@@ -87,6 +89,16 @@ type Result struct {
 	Error   bool   `json:"error,omitempty"`
 }
 
+// The providers the provider directive names.
+const (
+	ProviderAnthropic = "anthropic"
+	ProviderOpenAI    = "openai"
+)
+
+// Providers are the values the provider directive takes; the first is the
+// default.
+var Providers = []string{ProviderAnthropic, ProviderOpenAI}
+
 // ReplayEnv names a directory holding a recorded conversation. When it is
 // set, the backend replays that instead of calling a provider, so tests
 // and checks run with no network and no key.
@@ -95,12 +107,18 @@ const ReplayEnv = "TDL_YOLO_REPLAY"
 // KeyEnv is where the Anthropic provider reads its key.
 const KeyEnv = "ANTHROPIC_API_KEY"
 
-// errNoKey reports a missing key, before anything is sent.
-var errNoKey = errors.New("the yolo backend calls Anthropic's API and needs " + KeyEnv + " set")
+// Where the openai provider reads its endpoint and key. A base URL alone
+// is enough, since a local server needs no key.
+const (
+	OpenAIBaseURLEnv = "OPENAI_BASE_URL"
+	OpenAIKeyEnv     = "OPENAI_API_KEY"
+
+	openAIDefaultBaseURL = "https://api.openai.com/v1/"
+)
 
 // FromEnv is the provider the environment names: a replay of the
-// directory ReplayEnv names, or Anthropic with the key KeyEnv holds.
-func FromEnv() (Provider, error) {
+// directory ReplayEnv names, or else the live provider name names.
+func FromEnv(name string) (Provider, error) {
 	if dir := os.Getenv(ReplayEnv); dir != "" {
 		r, err := LoadReplay(dir)
 		if err != nil {
@@ -108,9 +126,30 @@ func FromEnv() (Provider, error) {
 		}
 		return r, nil
 	}
-	key := os.Getenv(KeyEnv)
-	if key == "" {
-		return nil, errNoKey
+	return Live(name)
+}
+
+// Live is the provider name names, configured from the environment, or
+// an error naming what to set, before anything is sent.
+func Live(name string) (Provider, error) {
+	switch name {
+	case ProviderAnthropic:
+		key := os.Getenv(KeyEnv)
+		if key == "" {
+			return nil, errors.New("the yolo backend calls Anthropic's API and needs " + KeyEnv + " set")
+		}
+		return NewAnthropic(key), nil
+	case ProviderOpenAI:
+		if os.Getenv(OpenAIBaseURLEnv) == "" && os.Getenv(OpenAIKeyEnv) == "" {
+			return nil, errors.New("the yolo backend's openai provider needs " + OpenAIBaseURLEnv + ", " + OpenAIKeyEnv + ", or both set")
+		}
+		// The SDK takes an exported but empty OPENAI_BASE_URL as the base
+		// URL itself, which no request reaches.
+		var opts []option.RequestOption
+		if os.Getenv(OpenAIBaseURLEnv) == "" {
+			opts = append(opts, option.WithBaseURL(openAIDefaultBaseURL))
+		}
+		return NewOpenAI(opts...), nil
 	}
-	return NewAnthropic(key), nil
+	return nil, fmt.Errorf("there is no provider named %q", name)
 }
