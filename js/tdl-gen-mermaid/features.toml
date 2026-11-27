@@ -2,8 +2,8 @@
 spelling = "a class; a mixin is `<<mixin>>`"
 
 [include]
-spelling = "the mixin's fields as members"
-notes = "Phase 2 draws one inheritance edge per mixin."
+spelling = "an inheritance edge from the mixin, whose fields it no longer lists"
+notes = "One edge per mixin, however many fields it adds."
 
 [enum]
 spelling = "an `<<enumeration>>` class, one member per variant"
@@ -23,7 +23,7 @@ spelling = "`Option~T~`; a nullable union is written as text"
 
 [collection]
 spelling = "`List~T~`, `Set~T~`, and `Map~K,V~`"
-notes = "Phase 2 adds an edge to each declaration a field names."
+notes = "A field draws an edge to each declaration it names, its far end `*`."
 
 [min]
 notes = "A diagram enforces nothing, so constraints are left out without a warning."
@@ -44,7 +44,8 @@ notes = "Left out without a warning."
 notes = "Left out without a warning."
 
 [owned]
-notes = "Phase 2 draws a composition edge."
+spelling = "a composition edge, `*--`"
+notes = "An unowned field is an association, `-->`."
 
 [default]
 notes = "Left out without a warning."
@@ -66,7 +67,7 @@ spelling = "`class Page~T~`, and `Page~T~` where applied"
 
 [class]
 spelling = "an `<<interface>>` class"
-notes = "Phase 2 draws a realization edge to each conformance."
+notes = "A conforming declaration draws a dotted realization edge to each of the model's classes."
 
 [unit]
 spelling = "the unit as an argument, `decimal~kg~`"
@@ -74,4 +75,4 @@ notes = "A unit has no class."
 
 [import]
 spelling = "the extern's name"
-notes = "Phase 2 draws the extern as a class in its package's namespace."
+notes = "A field naming an extern draws it as a memberless class in its package's namespace, `namespace acme_money { }`."

@@ -157,10 +157,10 @@ describe("Session", () => {
 			[false, true, ["output", "skipped"]],
 			[true, true, ["output", "skipped"]],
 		];
-		for (const [readback, roundtrip, want] of cases) {
+		for (const [readback, annotate, want] of cases) {
 			const s = new Session(request("catalog"), "Debug");
 			s.readback = readback;
-			s.roundtrip = roundtrip;
+			s.annotate = annotate;
 
 			s.lossy(loss.CONSTRAINT, undefined, "output");
 			s.skip(unsupported("skipped"));
@@ -169,7 +169,7 @@ describe("Session", () => {
 			assert.deepEqual(
 				s.diagnostics.map((d) => d.message),
 				want,
-				`readback ${readback}, roundtrip ${roundtrip}`,
+				`readback ${readback}, annotate ${annotate}`,
 			);
 		}
 	});

@@ -26,3 +26,8 @@ classDiagram
   Stmt <|-- Stmt_Seq
   Expr <|-- Expr_Lit
   Expr <|-- Expr_Run
+  Stmt_Eval "1" --> "1" Expr : expr
+  Stmt_Seq "1" --> "1" Stmt : first
+  Stmt_Seq "1" --> "1" Stmt : then
+  Expr_Run "1" --> "1" Stmt : body
+  Expr_Run "1" --> "1" Expr : result
