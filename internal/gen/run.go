@@ -87,6 +87,7 @@ type Result struct {
 	Stale    []Stale
 	Expected []string // what a verify run would write
 	Kept     []string // what a nondeterministic backend wrote before, kept
+	Cleaned  bool     // whether ModeClean got as far as emptying the directory
 
 	Diagnostics []*plugin.Diagnostic
 }
@@ -149,7 +150,7 @@ func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.M
 
 	if mode == ModeClean {
 		removed, err := Clean(target.Out)
-		result.Removed = removed
+		result.Removed, result.Cleaned = removed, true
 		if err != nil {
 			return result, fmt.Errorf("target %s: %w", target.Name, err)
 		}
