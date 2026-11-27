@@ -3,6 +3,7 @@ package cli
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -13,8 +14,8 @@ import (
 // directory, {dir}, beside the output directory, which is gone afterwards.
 func TestGenCheckPassesAndWrites(t *testing.T) {
 	dir := t.TempDir()
-	seen := filepath.Join(dir, "seen")
-	toml := "[check]\nwhere = 'sh -c \"pwd >" + seen + "; echo $1 >>" + seen + "; test -f model.txt\" sh {dir}'\n"
+	seen := filepath.ToSlash(filepath.Join(dir, "seen"))
+	toml := "[check]\nwhere = 'sh -c \"echo \\\"$1\\\" >\\\"$2\\\"; test -f model.txt\" sh {dir} " + seen + "'\n"
 	path := writePostProject(t, dir, "  check(\"where\")\n", toml)
 
 	if _, errOut, err := run(t, newGenCmd(), path); err != nil {
@@ -28,22 +29,17 @@ func TestGenCheckPassesAndWrites(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	lines := strings.Fields(string(got))
-	if len(lines) != 2 {
-		t.Fatalf("check printed %q", got)
-	}
-	wd, dirArg := lines[0], lines[1]
-	if real, err := filepath.EvalSymlinks(dirArg); err == nil {
-		dirArg = real
-	}
-	if wd != dirArg {
-		t.Errorf("check ran in %s, but {dir} was %s", wd, dirArg)
+	// The check found model.txt where it ran, so it ran in {dir}.
+	wd := strings.TrimSpace(string(got))
+	parent, err := filepath.EvalSymlinks(filepath.Dir(wd))
+	if err != nil {
+		t.Fatal(err)
 	}
 	models, err := filepath.EvalSymlinks(filepath.Join(dir, "models"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if filepath.Dir(wd) != models {
+	if parent != models {
 		t.Errorf("staged in %s, want a directory in %s", wd, models)
 	}
 	if _, err := os.Stat(wd); err == nil {
@@ -125,7 +121,7 @@ func TestGenVerifyRunsNoCheck(t *testing.T) {
 		t.Fatalf("gen: %v\n%s", err, errOut)
 	}
 
-	ran := filepath.Join(dir, "ran")
+	ran := filepath.ToSlash(filepath.Join(dir, "ran"))
 	writeFiles(t, dir, map[string]string{"tdl.toml": "[check]\nok = 'sh -c \"touch " + ran + "; exit 1\"'\n"})
 	if _, errOut, err := run(t, newGenCmd(), "--verify", path); err != nil {
 		t.Errorf("--verify: %v\n%s", err, errOut)
@@ -228,11 +224,15 @@ func TestGenCheckSeesTheWholeOutputDirectory(t *testing.T) {
 // A program named by a relative path is relative to tdl.toml, as in post.
 func TestGenCheckProgramIsRelativeToTheManifest(t *testing.T) {
 	dir := t.TempDir()
-	writeFiles(t, dir, map[string]string{"bin/ok": "#!/bin/sh\nexit 0\n"})
-	if err := os.Chmod(filepath.Join(dir, "bin", "ok"), 0o755); err != nil {
+	prog, body := "ok", "#!/bin/sh\nexit 0\n"
+	if runtime.GOOS == "windows" {
+		prog, body = "ok.bat", "@exit /b 0\r\n"
+	}
+	writeFiles(t, dir, map[string]string{"bin/" + prog: body})
+	if err := os.Chmod(filepath.Join(dir, "bin", prog), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	path := writePostProject(t, dir, "  check(\"ok\")\n", "[check]\nok = \"./bin/ok {dir}\"\n")
+	path := writePostProject(t, dir, "  check(\"ok\")\n", "[check]\nok = \"./bin/"+prog+" {dir}\"\n")
 	if _, errOut, err := run(t, newGenCmd(), path); err != nil {
 		t.Fatalf("gen: %v\n%s", err, errOut)
 	}
