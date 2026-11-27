@@ -12,6 +12,8 @@ let
     "linux/arm64"
     "darwin/amd64"
     "darwin/arm64"
+    "windows/amd64"
+    "windows/arm64"
   ];
 
   # Everything else is compiled into tdl; the content mapper runs tdl-gen-typescript.
@@ -28,7 +30,7 @@ buildGoApplication {
   modules = ./gomod2nix.toml;
 
   # Static on linux, and linked only to libSystem on darwin as every darwin Go
-  # binary is, so they run outside Nix.
+  # binary is, so they run outside Nix. go build names the windows ones .exe.
   CGO_ENABLED = 0;
 
   # So the build info names the modules each binary links, for the SBOM.
@@ -67,7 +69,7 @@ buildGoApplication {
   passthru = { inherit targets; };
 
   meta = {
-    description = "tdl and tdl-gen-typescript for linux and darwin, amd64 and arm64, static on linux";
+    description = "tdl and tdl-gen-typescript for linux, darwin, and windows, amd64 and arm64, static on linux";
     homepage = "https://github.com/UnstoppableMango/tdl";
     license = lib.licenses.mit;
     platforms = lib.platforms.unix;

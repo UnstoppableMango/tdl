@@ -27,6 +27,9 @@ func Files(root string, dirs []string) ([]string, error) {
 	for _, dir := range dirs {
 		dir = abs(root, dir)
 		if _, err := os.Lstat(dir); errors.Is(err, fs.ErrNotExist) {
+			if throughFile(dir) {
+				return nil, fmt.Errorf("%s: a path through a file", dir)
+			}
 			continue
 		}
 		err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
@@ -41,6 +44,19 @@ func Files(root string, dirs []string) ([]string, error) {
 		}
 	}
 	return relative(root, files)
+}
+
+// throughFile reports whether a missing path names something beneath a
+// file: Unix reports that as ENOTDIR, but Windows as not existing.
+func throughFile(path string) bool {
+	for p := filepath.Dir(path); ; p = filepath.Dir(p) {
+		if info, err := os.Stat(p); err == nil {
+			return !info.IsDir()
+		}
+		if filepath.Dir(p) == p {
+			return false
+		}
+	}
 }
 
 // Imports returns files and every file they import, transitively, sorted and

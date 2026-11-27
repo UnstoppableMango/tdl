@@ -17,9 +17,15 @@ runCommand "tdl-portable-check" { nativeBuildInputs = [ file ]; } ''
 
   for target in ${lib.escapeShellArgs tdl-portable.targets}; do
     dir=${tdl-portable}/''${target/\//-}
+    exe= machine=
+    [[ $target == windows/* ]] && exe=.exe
     for bin in tdl tdl-gen-typescript; do
-      path=$dir/$bin
-      [ -x "$path" ] || fail "$path is missing"
+      path=$dir/$bin$exe
+      if [[ $target == windows/* ]]; then
+        [ -f "$path" ] || fail "$path is missing"
+      else
+        [ -x "$path" ] || fail "$path is missing or not executable"
+      fi
       desc=$(file -b "$path")
       echo "$target $bin: $desc"
       case $target in
@@ -27,8 +33,14 @@ runCommand "tdl-portable-check" { nativeBuildInputs = [ file ]; } ''
         linux/arm64) want="ELF 64-bit LSB executable, ARM aarch64" ;;
         darwin/amd64) want="Mach-O 64-bit x86_64 executable" ;;
         darwin/arm64) want="Mach-O 64-bit arm64 executable" ;;
+        # file has spelled the machine both "(console) x86-64, for MS
+        # Windows" and "for MS Windows 10.00 (console), x86-64", and arm64
+        # both Aarch64 and ARM64.
+        windows/amd64) want="PE32+ executable" machine="x86-64" ;;
+        windows/arm64) want="PE32+ executable" machine="Aarch64|ARM64" ;;
       esac
-      [[ $desc == "$want"* ]] || fail "$path is not $want"
+      # darwin's bash refuses an empty pattern, so only a set machine is matched.
+      [[ $desc == "$want"* && ( -z $machine || $desc =~ $machine ) ]] || fail "$path is not $want $machine"
       if [[ $target == linux/* && $desc != *"statically linked"* ]]; then
         fail "$path is not statically linked"
       fi

@@ -3545,6 +3545,14 @@ pub struct MemberView {
     ///
     /// Field 7: `deprecation`
     pub deprecation: ::buffa::alloc::string::String,
+    /// references are the declarations a structure's or variant's field
+    /// names through its type and its type arguments, walked as
+    /// DeclView.references walks a body, with aliases expanded, each once. A
+    /// field naming its own declaration includes it, and prelude declarations
+    /// stay in the list. Unset on a variant, whose fields carry their own.
+    ///
+    /// Field 8: `references`
+    pub references: ::buffa::alloc::vec::Vec<super::super::ir::v1::ID>,
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
 }
@@ -3558,6 +3566,7 @@ impl ::core::fmt::Debug for MemberView {
             .field("constraints", &self.constraints)
             .field("source", &self.source)
             .field("deprecation", &self.deprecation)
+            .field("references", &self.references)
             .finish()
     }
 }
@@ -3624,6 +3633,14 @@ impl ::buffa::Message for MemberView {
         if !self.deprecation.is_empty() {
             size += 1u64 + ::buffa::types::string_encoded_len(&self.deprecation) as u64;
         }
+        for v in &self.references {
+            let __slot = __cache.reserve();
+            let inner_size = v.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
+                    + inner_size as u64;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
     }
@@ -3672,6 +3689,14 @@ impl ::buffa::Message for MemberView {
         }
         if !self.deprecation.is_empty() {
             ::buffa::types::put_string_field(7u32, &self.deprecation, buf);
+        }
+        for v in &self.references {
+            ::buffa::types::put_len_delimited_header(
+                8u32,
+                u64::from(__cache.consume_next()),
+                buf,
+            );
+            v.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -3782,6 +3807,18 @@ impl ::buffa::Message for MemberView {
                 )?;
                 ::buffa::types::merge_string(&mut self.deprecation, buf)?;
             }
+            8u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let mut elem = ::core::default::Default::default();
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&elem),
+                )?;
+                ::buffa::Message::merge_length_delimited(&mut elem, buf, ctx)?;
+                self.references.push(elem);
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -3797,6 +3834,7 @@ impl ::buffa::Message for MemberView {
         self.constraints.clear();
         self.source.clear();
         self.deprecation.clear();
+        self.references.clear();
         self.__buffa_unknown_fields.clear();
     }
 }

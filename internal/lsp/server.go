@@ -106,7 +106,7 @@ func (s *Server) DidChange(ctx context.Context, params *protocol.DidChangeTextDo
 // DidSave re-analyzes, because a file this document imports may have been
 // written by something other than the editor.
 func (s *Server) DidSave(ctx context.Context, params *protocol.DidSaveTextDocumentParams) error {
-	if doc := s.store.get(params.TextDocument.URI.FsPath()); doc == nil {
+	if doc := s.store.get(fsPath(params.TextDocument.URI)); doc == nil {
 		return nil
 	}
 	s.store.invalidate()
@@ -131,7 +131,7 @@ func (s *Server) DidClose(ctx context.Context, params *protocol.DidCloseTextDocu
 // the cursor is not on a name, the name did not resolve, or it resolved
 // into the embedded prelude.
 func (s *Server) Definition(_ context.Context, params *protocol.DefinitionParams) (protocol.DefinitionResult, error) {
-	doc := s.store.get(params.TextDocument.URI.FsPath())
+	doc := s.store.get(fsPath(params.TextDocument.URI))
 	if doc == nil {
 		return nil, nil
 	}

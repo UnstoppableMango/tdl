@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
+	"github.com/unstoppablemango/tdl/internal/host"
 	"github.com/unstoppablemango/tdl/ir"
 )
 
@@ -88,7 +89,7 @@ func File(pkg string) string {
 // declaring its block. The caller has checked it has an argument.
 func Placed(out *ir.Directive) string {
 	dir := out.GetArgs()[0].GetText()
-	if filepath.IsAbs(dir) {
+	if host.Rooted(dir) {
 		return filepath.Clean(dir)
 	}
 	return filepath.Join(filepath.Dir(out.GetPosition().GetFilename()), dir)

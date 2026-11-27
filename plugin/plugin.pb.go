@@ -1578,7 +1578,13 @@ type MemberView struct {
 	// deprecation is a deprecated field's `deprecated` or
 	// `deprecated("reason")`, which precedes source when the field is
 	// written whole.
-	Deprecation   string `protobuf:"bytes,7,opt,name=deprecation" json:"deprecation,omitempty"`
+	Deprecation string `protobuf:"bytes,7,opt,name=deprecation" json:"deprecation,omitempty"`
+	// references are the declarations a structure's or variant's field
+	// names through its type and its type arguments, walked as
+	// DeclView.references walks a body, with aliases expanded, each once. A
+	// field naming its own declaration includes it, and prelude declarations
+	// stay in the list. Unset on a variant, whose fields carry their own.
+	References    []*ir.ID `protobuf:"bytes,8,rep,name=references" json:"references,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1660,6 +1666,13 @@ func (x *MemberView) GetDeprecation() string {
 		return x.Deprecation
 	}
 	return ""
+}
+
+func (x *MemberView) GetReferences() []*ir.ID {
+	if x != nil {
+		return x.References
+	}
+	return nil
 }
 
 // ConstraintView is what tdl reads from one constraint.
@@ -2353,7 +2366,7 @@ const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
 	"\x05words\x18\x06 \x03(\tR\x05words\x121\n" +
 	"\x06fields\x18\a \x03(\v2\x19.tdl.plugin.v1.MemberViewR\x06fields\x125\n" +
 	"\bvariants\x18\b \x03(\v2\x19.tdl.plugin.v1.MemberViewR\bvariants\x12?\n" +
-	"\vconstraints\x18\t \x03(\v2\x1d.tdl.plugin.v1.ConstraintViewR\vconstraints\"\x82\x02\n" +
+	"\vconstraints\x18\t \x03(\v2\x1d.tdl.plugin.v1.ConstraintViewR\vconstraints\"\xb1\x02\n" +
 	"\n" +
 	"MemberView\x12\x14\n" +
 	"\x05words\x18\x01 \x03(\tR\x05words\x121\n" +
@@ -2362,7 +2375,10 @@ const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
 	"\ainlined\x18\x04 \x03(\x03R\ainlined\x12?\n" +
 	"\vconstraints\x18\x05 \x03(\v2\x1d.tdl.plugin.v1.ConstraintViewR\vconstraints\x12\x16\n" +
 	"\x06source\x18\x06 \x01(\tR\x06source\x12 \n" +
-	"\vdeprecation\x18\a \x01(\tR\vdeprecation\"~\n" +
+	"\vdeprecation\x18\a \x01(\tR\vdeprecation\x12-\n" +
+	"\n" +
+	"references\x18\b \x03(\v2\r.tdl.ir.v1.IDR\n" +
+	"references\"~\n" +
 	"\x0eConstraintView\x12\x16\n" +
 	"\x06source\x18\x01 \x01(\tR\x06source\x12(\n" +
 	"\x06length\x18\x02 \x01(\v2\x10.tdl.ir.v1.RangeR\x06length\x12\x10\n" +
@@ -2516,22 +2532,23 @@ var file_tdl_plugin_v1_plugin_proto_depIdxs = []int32{
 	20, // 31: tdl.plugin.v1.DeclView.constraints:type_name -> tdl.plugin.v1.ConstraintView
 	19, // 32: tdl.plugin.v1.MemberView.fields:type_name -> tdl.plugin.v1.MemberView
 	20, // 33: tdl.plugin.v1.MemberView.constraints:type_name -> tdl.plugin.v1.ConstraintView
-	29, // 34: tdl.plugin.v1.ConstraintView.length:type_name -> tdl.ir.v1.Range
-	22, // 35: tdl.plugin.v1.Response.files:type_name -> tdl.plugin.v1.File
-	25, // 36: tdl.plugin.v1.Response.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
-	22, // 37: tdl.plugin.v1.ImportRequest.files:type_name -> tdl.plugin.v1.File
-	31, // 38: tdl.plugin.v1.ImportResponse.model:type_name -> tdl.ir.v1.Model
-	25, // 39: tdl.plugin.v1.ImportResponse.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
-	3,  // 40: tdl.plugin.v1.Diagnostic.severity:type_name -> tdl.plugin.v1.Severity
-	33, // 41: tdl.plugin.v1.Diagnostic.position:type_name -> tdl.ir.v1.Position
-	11, // 42: tdl.plugin.v1.RequestSet.requests:type_name -> tdl.plugin.v1.Request
-	25, // 43: tdl.plugin.v1.RequestSet.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
-	28, // 44: tdl.plugin.v1.Overlay.files:type_name -> tdl.plugin.v1.OverlayFile
-	45, // [45:45] is the sub-list for method output_type
-	45, // [45:45] is the sub-list for method input_type
-	45, // [45:45] is the sub-list for extension type_name
-	45, // [45:45] is the sub-list for extension extendee
-	0,  // [0:45] is the sub-list for field type_name
+	32, // 34: tdl.plugin.v1.MemberView.references:type_name -> tdl.ir.v1.ID
+	29, // 35: tdl.plugin.v1.ConstraintView.length:type_name -> tdl.ir.v1.Range
+	22, // 36: tdl.plugin.v1.Response.files:type_name -> tdl.plugin.v1.File
+	25, // 37: tdl.plugin.v1.Response.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
+	22, // 38: tdl.plugin.v1.ImportRequest.files:type_name -> tdl.plugin.v1.File
+	31, // 39: tdl.plugin.v1.ImportResponse.model:type_name -> tdl.ir.v1.Model
+	25, // 40: tdl.plugin.v1.ImportResponse.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
+	3,  // 41: tdl.plugin.v1.Diagnostic.severity:type_name -> tdl.plugin.v1.Severity
+	33, // 42: tdl.plugin.v1.Diagnostic.position:type_name -> tdl.ir.v1.Position
+	11, // 43: tdl.plugin.v1.RequestSet.requests:type_name -> tdl.plugin.v1.Request
+	25, // 44: tdl.plugin.v1.RequestSet.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
+	28, // 45: tdl.plugin.v1.Overlay.files:type_name -> tdl.plugin.v1.OverlayFile
+	46, // [46:46] is the sub-list for method output_type
+	46, // [46:46] is the sub-list for method input_type
+	46, // [46:46] is the sub-list for extension type_name
+	46, // [46:46] is the sub-list for extension extendee
+	0,  // [0:46] is the sub-list for field type_name
 }
 
 func init() { file_tdl_plugin_v1_plugin_proto_init() }
