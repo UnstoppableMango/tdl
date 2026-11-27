@@ -3,6 +3,7 @@ package gen_test
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -41,6 +42,13 @@ func TestWriteRefusesEscapingPaths(t *testing.T) {
 		{"climbing", "../escaped.txt"},
 		{"climbing through a subdirectory", "sub/../../escaped.txt"},
 		{"empty", ""},
+		{"backslash rooted", `\escaped.txt`},
+	}
+	if runtime.GOOS == "windows" {
+		tests = append(tests,
+			struct{ name, path string }{"drive", `C:\escaped.txt`},
+			struct{ name, path string }{"drive relative", "C:escaped.txt"},
+		)
 	}
 
 	for _, tt := range tests {

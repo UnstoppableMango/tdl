@@ -216,13 +216,13 @@ func declView(m *ir.Model, target string, r *resolver, d *ir.Decl) *plugin.DeclV
 		Words:      Words(lastSegment(d.GetMeta().GetName())),
 	}
 	for _, f := range d.Fields() {
-		v.Fields = append(v.Fields, fieldView(f))
+		v.Fields = append(v.Fields, fieldView(m, f))
 	}
 	if e := d.GetEnumeration(); e != nil {
 		v.Fielded = Fielded(e)
 		v.Discriminant = Discriminant(m, target, d)
 		for _, variant := range e.GetVariants() {
-			v.Variants = append(v.Variants, member(variant.GetMeta().GetName(), variant.GetFields()))
+			v.Variants = append(v.Variants, member(m, variant.GetMeta().GetName(), variant.GetFields()))
 		}
 	}
 	if n := d.GetNewtype(); n != nil {
@@ -232,16 +232,20 @@ func declView(m *ir.Model, target string, r *resolver, d *ir.Decl) *plugin.DeclV
 	return v
 }
 
-func member(name string, fields []*ir.Field) *plugin.MemberView {
+func member(m *ir.Model, name string, fields []*ir.Field) *plugin.MemberView {
 	v := &plugin.MemberView{Words: Words(name)}
 	for _, f := range fields {
-		v.Fields = append(v.Fields, fieldView(f))
+		v.Fields = append(v.Fields, fieldView(m, f))
 	}
 	return v
 }
 
-func fieldView(f *ir.Field) *plugin.MemberView {
-	return &plugin.MemberView{Words: Words(f.GetMeta().GetName()), Constraints: constraintViews(f.GetConstraints())}
+func fieldView(m *ir.Model, f *ir.Field) *plugin.MemberView {
+	return &plugin.MemberView{
+		Words:       Words(f.GetMeta().GetName()),
+		References:  references(m, f.GetType()),
+		Constraints: constraintViews(f.GetConstraints()),
+	}
 }
 
 // BodyTypes are the type references a declaration's body names: its

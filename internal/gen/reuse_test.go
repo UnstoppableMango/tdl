@@ -47,11 +47,8 @@ func TestSessionServesSeveralRequests(t *testing.T) {
 // generation.
 func TestSessionWithoutReuse(t *testing.T) {
 	dir := t.TempDir()
-	script := filepath.Join(dir, gen.CommandPrefix+"once")
-	body := "#!/bin/sh\nexec " + goBin(t) + " run " + oncePath(t) + "\n"
-	if err := os.WriteFile(script, []byte(body), 0o755); err != nil {
-		t.Fatal(err)
-	}
+	run := `"` + goBin(t) + `" run "` + oncePath(t) + `"`
+	writeScript(t, dir, "once", "exec "+run+"\n", run+"\r\n")
 	onPath(t, dir)
 
 	sub, err := gen.Find("once")
@@ -78,7 +75,7 @@ func TestSessionWithoutReuse(t *testing.T) {
 // A held connection restarts when the binary underneath changes.
 func TestSessionRestartsOnANewBinary(t *testing.T) {
 	dir := t.TempDir()
-	binary := filepath.Join(dir, gen.CommandPrefix+debug.Name)
+	binary := filepath.Join(dir, gen.CommandPrefix+debug.Name+exe)
 	build(t, binary)
 	onPath(t, dir)
 
@@ -123,7 +120,7 @@ func TestSessionRestartsOnANewBinary(t *testing.T) {
 
 func build(t *testing.T, path string) {
 	t.Helper()
-	src, err := os.ReadFile(filepath.Join(pluginDir(t), gen.CommandPrefix+debug.Name))
+	src, err := os.ReadFile(filepath.Join(pluginDir(t), gen.CommandPrefix+debug.Name+exe))
 	if err != nil {
 		t.Fatalf("reading the built plugin: %v", err)
 	}

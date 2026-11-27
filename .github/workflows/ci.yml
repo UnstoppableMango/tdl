@@ -64,6 +64,21 @@ jobs:
       - run: nix build .#release --rebuild
         if: ${{ !cancelled() }}
 
+      # The npm packages windows-npm installs. nix flake check built them
+      # for checks.npm-tdl.
+      - run: nix build .#npm -o result-npm
+        if: ${{ !cancelled() }}
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: npm-windows
+          path: |
+            result-npm/unmango-tdl-[0-9]*.tgz
+            result-npm/unmango-tdl-win32-*.tgz
+          if-no-files-found: error
+          retention-days: 1
+
       # nix develop keeps the runner's PATH after its own, so the race run
       # finds every plugin packages.plugins joins and runs the recorded
       # corpora through them (tdl-gen-csharp, tdl-gen-mermaid). Its own out
@@ -144,8 +159,96 @@ jobs:
       - run: nix build .#
         if: ${{ !cancelled() }}
 
+  # Nix does not run on Windows, so this job sets Go up from go.mod and
+  # runs the suite -short, which skips the tools the check job runs on
+  # generated code. .gitattributes checks every text file out with LF.
+  windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [windows-latest, windows-11-arm]
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: go.mod
+
+      - run: go build ./...
+
+      - run: go test -short ./...
+
+  # The packed @unmango/tdl and this runner's platform package, from the check
+  # job's Nix build, install with no registry and run, as they would from npm.
+  windows-npm:
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-latest
+            cpu: x64
+          - runner: windows-11-arm
+            cpu: arm64
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: npm-windows
+          path: packages
+
+      # A node built for the runner's own cpu, so process.arch names the
+      # platform package this row installs.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          architecture: ${{ matrix.cpu }}
+
+      # The manifest names the two tarballs, so npm installs what it lists.
+      - name: Install offline
+        shell: bash
+        env:
+          CPU: ${{ matrix.cpu }}
+        run: |
+          mkdir project && cd project
+          tdl=$(echo ../packages/unmango-tdl-[0-9]*.tgz)
+          platform=$(echo ../packages/unmango-tdl-win32-"$CPU"-*.tgz)
+          node -e '
+            const [tdl, platform, cpu] = process.argv.slice(1);
+            const dependencies = { "@unmango/tdl": "file:" + tdl, ["@unmango/tdl-win32-" + cpu]: "file:" + platform };
+            require("node:fs").writeFileSync("package.json", JSON.stringify({ name: "project", private: true, dependencies }));
+          ' "$tdl" "$platform" "$CPU"
+          npm install --offline --ignore-scripts --no-audit --no-fund
+
+      # tdl.exe runs, finds tdl-gen-mermaid.exe on the PATH the shim puts
+      # first, and the resolver finds tdl-gen-typescript.exe.
+      - name: Run tdl and its plugins
+        shell: bash
+        working-directory: project
+        run: |
+          npx --offline tdl version
+          printf 'package m\n\nprimitive string\n\ntype M {\n  id: string\n}\n\ntarget mermaid for m {}\n' > m.tdl
+          npx --offline tdl gen --target mermaid -o out m.tdl
+          grep -rq classDiagram out
+          node -e '
+            const { spawnSync } = require("node:child_process");
+            const { binaryPath } = require("@unmango/tdl/resolve");
+            const run = spawnSync(binaryPath("tdl-gen-typescript"), ["--help"], { encoding: "utf8" });
+            if (!run.stderr.includes("usage: tdl-gen-typescript")) {
+              console.error("tdl-gen-typescript did not run:", run.error ?? run.stderr);
+              process.exit(1);
+            }
+          '
+
   required:
-    needs: [check, darwin]
+    needs: [check, darwin, windows, windows-npm]
     if: always()
     runs-on: ubuntu-latest
     steps:

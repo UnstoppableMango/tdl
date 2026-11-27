@@ -12,7 +12,7 @@ import (
 // fields and variants as children. It reads the tree, so a file that does
 // not parse still outlines what the parser recovered.
 func (s *Server) DocumentSymbol(_ context.Context, params *protocol.DocumentSymbolParams) (protocol.DocumentSymbolResult, error) {
-	doc := s.store.get(params.TextDocument.URI.FsPath())
+	doc := s.store.get(fsPath(params.TextDocument.URI))
 	if doc == nil {
 		return nil, nil
 	}

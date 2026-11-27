@@ -13,7 +13,7 @@ import (
 // ignored. A file that does not parse is left alone, since printing its
 // tree would delete what the parser could not read.
 func (s *Server) Formatting(_ context.Context, params *protocol.DocumentFormattingParams) ([]protocol.TextEdit, error) {
-	doc := s.store.get(params.TextDocument.URI.FsPath())
+	doc := s.store.get(fsPath(params.TextDocument.URI))
 	if doc == nil {
 		return nil, nil
 	}
