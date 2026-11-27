@@ -1,0 +1,16 @@
+package salesforce
+
+type LineItem: Entity {
+  sku: string
+  price: decimal
+}
+
+target salesforce for salesforce {
+  LineItem => label("Line")
+  LineItem => plural("Line items")
+  LineItem => key(sku)
+  LineItem.sku => name("SKU")
+  LineItem.sku => label("Stock unit")
+  LineItem.sku => length(40)
+  LineItem.price => scale(2)
+}
