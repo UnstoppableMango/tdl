@@ -1,7 +1,7 @@
 // Package host holds what a host does around a backend that does not
 // depend on which backends exist: holding a target block's directives to
-// the backend's specs, reading which loss codes a project allows, and
-// dropping the warnings those codes silence.
+// the backend's specs and dropping the warnings a project's allowed loss
+// codes silence.
 //
 // internal/gen and every backend that hosts itself, as the typescript
 // content mapper does, share it; it imports no backend.
@@ -10,7 +10,6 @@ package host
 import (
 	"slices"
 
-	"github.com/unstoppablemango/tdl/internal/config"
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
@@ -28,14 +27,4 @@ func Silence(diags []*plugin.Diagnostic, allowed []string) []*plugin.Diagnostic 
 		return d.GetSeverity() == plugin.Severity_SEVERITY_WARNING &&
 			d.GetCode() != "" && slices.Contains(allowed, d.GetCode())
 	})
-}
-
-// Allowed returns the loss codes the nearest tdl.toml above dir allows for
-// target.
-func Allowed(dir, target string) ([]string, error) {
-	cfg, err := config.Find(dir)
-	if err != nil {
-		return nil, err
-	}
-	return cfg.Allowed(target), nil
 }

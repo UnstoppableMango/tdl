@@ -137,12 +137,17 @@ allow = ["lossy.collection"]
 `[lossy]` applies to every backend, and `[lossy.<target>]` to one, in both directions.
 `--allow-lossy` on `tdl gen` and `tdl import` adds codes to the list.
 
+`--strict` on either command exits 1, after writing, when a warning survives that silencing, with or without a loss code, and prints `N warning(s) remain under --strict`.
+`gen` counts across every file and combines it with `--verify`, reporting drift and warnings together; under `--watch` it prints the line after each run and keeps watching, and a run that fails it writes no `--make` dependency file.
+`strict` is a key of `[lossy]`, so no target is named `strict`.
+`strict = true` in `[lossy]` turns it on for every file whose nearest `tdl.toml` sets it, and `--strict=false` turns it off for one invocation.
+
 Silencing is diagnostics policy, not type mapping, which is why it lives in the manifest and not in a target block ([workflow.md](https://github.com/UnstoppableMango/tdl/blob/fc0682d/docs/design/workflow.md)).
 
 ## Command
 
 ```text
-tdl import --from <target> [-o out.tdl] [--package <path>] [--allow-lossy <code>,...] [--readback] <file|dir>...
+tdl import --from <target> [-o out.tdl] [--package <path>] [--allow-lossy <code>,...] [--strict] [--readback] <file|dir>...
 ```
 
 `--from` resolves through `gen.Resolve`, so a plugin on `PATH` imports the same way a built-in does.
@@ -164,7 +169,7 @@ An importer keeps its own limits: `thrift`, `graphql`, and `typescript` read one
 | `typescript` | the TypeScript compiler API, run by an embedded script under `node` |
 | `smithy` | `smithy ast`, the CLI's JSON AST |
 | `jsonschema` | `encoding/json`, after `santhosh-tekuri/jsonschema` compiles the document |
-| `salesforce` | `encoding/xml` and a recognizer for Apex |
+| `salesforce` | `encoding/xml` for objects and fields; Apex is not read yet (#1459) |
 
 `typescript` needs `node` and `tsc` on `PATH`, and `smithy` the Smithy CLI, and each says so when one is missing.
 Each is replaced by a Go parser: Smithy IDL is small enough to parse from its published grammar, and TypeScript moves to `microsoft/typescript-go` once its AST is importable.
@@ -184,7 +189,7 @@ Schema-first tests compare each schema in a normal form:
 | `typescript` | the compiler API's outline as JSON, without positions, its JSDoc read into doc comments and tags |
 | `smithy` | the `smithy ast` JSON of the shapes each file declares, and the metadata |
 | `jsonschema` | the parsed document with object keys sorted |
-| `salesforce` | the parsed XML, and the Apex recognizer's output |
+| `salesforce` | each object and field parsed and written again without the elements import does not read; Apex compared as written until it is read |
 
 Formatting and ordinary comments are not part of a model, so they are not compared.
 

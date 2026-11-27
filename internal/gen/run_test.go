@@ -60,7 +60,7 @@ func TestOutIsRelativeToTheDeclaringFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("targets: %v", err)
 	}
-	if got, want := targets[0].Out, "api/model"; got != want {
+	if got, want := targets[0].Out, filepath.FromSlash("api/model"); got != want {
 		t.Errorf("relative out = %q, want %q", got, want)
 	}
 	if got, want := targets[1].Out, "/abs/sql"; got != want {

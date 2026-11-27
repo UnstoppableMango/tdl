@@ -70,7 +70,7 @@ func TestCommandsTakeSeveralFiles(t *testing.T) {
 			if err != nil {
 				t.Fatalf("two files: %v", err)
 			}
-			if got := strings.Count(two, "==> "+good+" <=="); got != 2 {
+			if got := strings.Count(two, "==> "+filepath.ToSlash(good)+" <=="); got != 2 {
 				t.Errorf("banner appeared %d times, want 2:\n%s", got, two)
 			}
 
@@ -123,7 +123,7 @@ func TestCommandsReportEveryBadFile(t *testing.T) {
 	if got, want := err.Error(), "2 files failed"; got != want {
 		t.Errorf("error = %q, want %q", got, want)
 	}
-	if got := strings.Count(errOut, bad+":"); got != 2 {
+	if got := strings.Count(errOut, filepath.ToSlash(bad)+":"); got != 2 {
 		t.Errorf("the bad file was reported %d times, want 2:\n%s", got, errOut)
 	}
 }

@@ -57,9 +57,12 @@ func TestGenPostFiltersWrittenFiles(t *testing.T) {
 func TestGenPostRunsInOrderFromTheManifestDir(t *testing.T) {
 	dir := t.TempDir()
 	toml := "[post]\n" +
-		"where = 'sh -c \"cat >/dev/null; echo $1; pwd\" sh {file}'\n" +
+		"where = 'sh -c \"cat >/dev/null; echo $1; cat here\" sh {file}'\n" +
 		"up = \"tr a-z A-Z\"\n"
 	path := writePostProject(t, dir, "  post(\"where\", \"up\")\n", toml)
+	// where reads here from its working directory, which shows where it ran
+	// without comparing paths, which Windows spells another way.
+	writeFiles(t, dir, map[string]string{"here": "home\n"})
 
 	if _, errOut, err := run(t, newGenCmd(), path); err != nil {
 		t.Fatalf("gen: %v\n%s", err, errOut)
@@ -68,12 +71,8 @@ func TestGenPostRunsInOrderFromTheManifestDir(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wd, err := filepath.EvalSymlinks(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
 	// Upper-cased, so `up` ran after `where`.
-	want := strings.ToUpper(filepath.Join("models", "out", "model.txt") + "\n" + wd + "\n")
+	want := strings.ToUpper(filepath.Join("models", "out", "model.txt") + "\nhome\n")
 	if string(got) != want {
 		t.Errorf("model.txt = %q, want %q", got, want)
 	}

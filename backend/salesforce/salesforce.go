@@ -57,8 +57,26 @@ func (Backend) Describe() plugin.Description {
 			{Name: "prefix", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock)},
 			// On the target block: the API version each Apex class declares.
 			{Name: "apiVersion", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: plugin.On(plugin.OnBlock)},
+			// On the target block: write what generating loses, for import.
+			// Nothing is written yet (#1461).
+			{Name: "annotate", Placements: plugin.On(plugin.OnBlock)},
+			// On the target block: also report what import would not read
+			// back.
+			{Name: "readback", Placements: plugin.On(plugin.OnBlock)},
 		},
+		Reverse: true,
+		// Import reads objects and their fields, and is handed every other
+		// component too, so a directory's Apex classes and unread folders
+		// warn as named files do; Apex waits on #1459.
+		ImportPatterns: []string{"*-meta.xml", "*.cls"},
 	}
+}
+
+// Import reads custom objects and their fields into entities, and each
+// picklist's values into an enum. The mapping is in
+// docs/architecture/salesforce-backend.md.
+func (Backend) Import(_ context.Context, req *plugin.ImportRequest) (*plugin.ImportResponse, error) {
+	return readObjects(req.GetFiles(), req.GetReadback())
 }
 
 type generator struct {
@@ -88,6 +106,7 @@ func (Backend) Generate(_ context.Context, req *plugin.Request) (*plugin.Respons
 	if d, ok := g.Block("apiVersion"); ok {
 		g.apiVersion = d.GetArgs()[0].GetText()
 	}
+	g.Annotate, g.Readback = g.Bare("annotate"), g.Bare("readback")
 
 	own := g.Own()
 	out := map[*ir.Decl][]*plugin.File{}

@@ -70,7 +70,7 @@ jobs:
           cp "$BUNDLE" "$RUNNER_TEMP/assets/tdl_${VERSION}.intoto.jsonl"
           gh release upload "$TAG" "$RUNNER_TEMP"/assets/* --repo "$GITHUB_REPOSITORY" --clobber
 
-  # The seven npm packages, packed by Nix from the tagged commit, published with
+  # The nine npm packages, packed by Nix from the tagged commit, published with
   # npm's trusted publishing: npm trusts this workflow's OIDC token in place of
   # a stored token, and writes provenance. Each package's trusted publisher on
   # npmjs.com names this file. The platform packages go first, so nothing
@@ -122,12 +122,12 @@ jobs:
 
           cd result
           shopt -s nullglob
-          platforms=(unmango-tdl-{linux,darwin}-*-"$VERSION".tgz)
+          platforms=(unmango-tdl-{linux,darwin,win32}-*-"$VERSION".tgz)
           # After the platform packages, since @unmango/tdl names them, and
           # the remark plugin after @unmango/tdl, which it depends on.
           rest=("unmango-tdl-$VERSION.tgz" "unmango-tdl-typescript-$VERSION.tgz" "unmango-remark-tdl-mermaid-$VERSION.tgz")
-          [ ${#platforms[@]} = 4 ] && [ -f "${rest[0]}" ] && [ -f "${rest[1]}" ] && [ -f "${rest[2]}" ] || {
-            echo "packages.npm does not hold seven packages at $VERSION:" >&2
+          [ ${#platforms[@]} = 6 ] && [ -f "${rest[0]}" ] && [ -f "${rest[1]}" ] && [ -f "${rest[2]}" ] || {
+            echo "packages.npm does not hold nine packages at $VERSION:" >&2
             ls >&2
             exit 1
           }
