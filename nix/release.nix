@@ -1,6 +1,7 @@
 {
   lib,
   stdenvNoCC,
+  zip,
   go,
   tdl-portable,
   tdl-gen-mermaid,
@@ -14,13 +15,14 @@ let
   # tarball.
   tdl = "${tdl-portable}/${go.GOOS}-${go.GOARCH}/tdl";
 in
-# The release assets: tdl_<version>_<os>_<arch>.tar.gz per tdl-portable target,
-# each holding tdl, tdl-gen-typescript, tdl-gen-mermaid, LICENSE, README.md,
-# and completions/,
-# tdl_<version>.cdx.json, a CycloneDX SBOM of the Go modules they link,
-# and SHA256SUMS. The release job uploads and attests these files as built, so
-# every byte must be reproducible: names sorted, owner and mtime fixed, gzip
-# without a name or timestamp.
+# The release assets: tdl_<version>_<os>_<arch>.tar.gz per linux and darwin
+# tdl-portable target, each holding tdl, tdl-gen-typescript, tdl-gen-mermaid,
+# LICENSE, README.md, and completions/; tdl_<version>_windows_<arch>.zip per
+# windows target, holding the same with .exe binaries and PowerShell
+# completion too; tdl_<version>.cdx.json, a CycloneDX SBOM of the Go modules
+# they link; and SHA256SUMS. The release job uploads and attests these files
+# as built, so every byte must be reproducible: names sorted, owner and mtime
+# fixed, gzip without a name or timestamp, zip without extra fields.
 stdenvNoCC.mkDerivation {
   pname = "tdl-release";
   inherit version;
@@ -36,6 +38,7 @@ stdenvNoCC.mkDerivation {
   nativeBuildInputs = [
     cyclonedx-gomod
     jq
+    zip
   ];
 
   buildPhase = ''
@@ -44,6 +47,7 @@ stdenvNoCC.mkDerivation {
     for shell in bash zsh fish; do
       ${tdl} completion $shell > completions/tdl.$shell
     done
+    ${tdl} completion powershell > tdl.ps1
 
     mkdir $NIX_BUILD_TOP/dist
     for target in ${lib.escapeShellArgs tdl-portable.targets}; do
@@ -53,6 +57,17 @@ stdenvNoCC.mkDerivation {
       cp ${tdl-portable}/''${target/\//-}/* ${tdl-gen-mermaid.portable}/''${target/\//-}/* \
         LICENSE README.md $stage/
       cp -r completions $stage/
+      if [[ $target == windows/* ]]; then
+        cp tdl.ps1 $stage/completions/
+        chmod -R u+w,go-w $stage
+        # A zip's times are local and in two-second steps; the sandbox is
+        # UTC and SOURCE_DATE_EPOCH falls on one. -X leaves out the uid,
+        # gid, and extended times, and -D the directory entries.
+        find $stage -exec touch -h -d @$SOURCE_DATE_EPOCH {} +
+        (cd $stage && find . -type f -printf '%P\n' | LC_ALL=C sort \
+          | TZ=UTC zip -q -X -D -9 -@ $NIX_BUILD_TOP/dist/$name.zip)
+        continue
+      fi
       chmod -R u+w,go-w $stage
       # Members are named without ./, so `tar -xzf <tarball> tdl` finds one.
       (cd $stage && tar --create --sort=name --format=gnu \
@@ -62,16 +77,18 @@ stdenvNoCC.mkDerivation {
 
     mkdir $NIX_BUILD_TOP/boms
     for target in ${lib.escapeShellArgs tdl-portable.targets}; do
+      exe=
+      [[ $target == windows/* ]] && exe=.exe
       for bin in tdl tdl-gen-typescript; do
         cyclonedx-gomod bin -json -noserial -notimestamp -version v${version} \
           -output $NIX_BUILD_TOP/boms/''${target/\//-}-$bin.json \
-          ${tdl-portable}/''${target/\//-}/$bin
+          ${tdl-portable}/''${target/\//-}/$bin$exe
       done
     done
     jq --slurp --sort-keys -f ${./sbom.jq} $NIX_BUILD_TOP/boms/*.json \
       > $NIX_BUILD_TOP/dist/tdl_${version}.cdx.json
 
-    (cd $NIX_BUILD_TOP/dist && sha256sum *.tar.gz *.cdx.json > SHA256SUMS)
+    (cd $NIX_BUILD_TOP/dist && sha256sum *.tar.gz *.zip *.cdx.json > SHA256SUMS)
     runHook postBuild
   '';
 
@@ -86,7 +103,7 @@ stdenvNoCC.mkDerivation {
   dontFixup = true;
 
   meta = {
-    description = "The tdl release assets: a tarball per platform, an SBOM, and SHA256SUMS";
+    description = "The tdl release assets: a tarball or zip per platform, an SBOM, and SHA256SUMS";
     homepage = "https://github.com/UnstoppableMango/tdl";
     license = lib.licenses.mit;
   };

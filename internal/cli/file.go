@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 
@@ -25,7 +26,9 @@ func displayName(path string) string {
 	if isStdin(path) {
 		return stdinName
 	}
-	return path
+	// Slash-separated, as sema names imports, so positions and the output
+	// built from them are the same bytes on Windows.
+	return filepath.ToSlash(path)
 }
 
 // loadFile reads and parses one source file. Every command that works on a

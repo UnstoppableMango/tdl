@@ -155,7 +155,7 @@ func TestRequestReadsTheOverlay(t *testing.T) {
 	var names []string
 	for _, req := range set.GetRequests() {
 		for _, d := range req.GetModel().GetDecls() {
-			if strings.HasPrefix(d.GetMeta().GetPosition().GetFilename(), dir) {
+			if strings.HasPrefix(d.GetMeta().GetPosition().GetFilename(), filepath.ToSlash(dir)) {
 				names = append(names, d.GetMeta().GetName())
 			}
 		}
@@ -200,7 +200,7 @@ func TestRequestReportsErrors(t *testing.T) {
 		}
 		files[filepath.Base(d.GetPosition().GetFilename())] = d.GetPosition()
 	}
-	want := &ir.Position{Filename: broken, Line: 4, Column: 7, EndLine: 4, EndColumn: 14}
+	want := &ir.Position{Filename: filepath.ToSlash(broken), Line: 4, Column: 7, EndLine: 4, EndColumn: 14}
 	if !proto.Equal(files["broken.tdl"], want) {
 		t.Errorf("broken.tdl's error is at %v, want %v", files["broken.tdl"], want)
 	}

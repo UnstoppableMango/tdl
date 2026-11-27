@@ -420,6 +420,13 @@ message MemberView {
   // `deprecated("reason")`, which precedes source when the field is
   // written whole.
   string deprecation = 7;
+
+  // references are the declarations a structure's or variant's field
+  // names through its type and its type arguments, walked as
+  // DeclView.references walks a body, with aliases expanded, each once. A
+  // field naming its own declaration includes it, and prelude declarations
+  // stay in the list. Unset on a variant, whose fields carry their own.
+  repeated tdl.ir.v1.ID references = 8;
 }
 
 // ConstraintView is what tdl reads from one constraint.
