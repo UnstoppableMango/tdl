@@ -290,7 +290,7 @@ func TestKeptOutputRunsNoCheck(t *testing.T) {
 	out, b := t.TempDir(), &fickle{}
 	runFickle(t, b, out, keepSource, gen.ModeWrite)
 
-	ran := filepath.Join(t.TempDir(), "ran")
+	ran := filepath.ToSlash(filepath.Join(t.TempDir(), "ran"))
 	checks := &host.Checks{Commands: []host.Command{{Name: "fail", Args: []string{"sh", "-c", "touch " + ran + "; exit 1"}}}}
 	target := gen.Target{Name: "fickle", Out: out, Checks: checks}
 	result, err := gen.Run(context.Background(), b, target, lowerSource(t, "shop.tdl", keepSource), gen.ModeWrite)
