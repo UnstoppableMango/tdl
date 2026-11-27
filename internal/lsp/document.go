@@ -2,6 +2,7 @@ package lsp
 
 import (
 	"errors"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -51,7 +52,7 @@ func (s *store) open(u uri.URI, version int32, text string) *document {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	doc := &document{uri: u, path: u.FsPath(), version: version, text: text}
+	doc := &document{uri: u, path: fsPath(u), version: version, text: text}
 	s.docs[doc.path] = doc
 	return doc
 }
@@ -62,7 +63,7 @@ func (s *store) change(u uri.URI, version int32, text string) *document {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	doc, ok := s.docs[u.FsPath()]
+	doc, ok := s.docs[fsPath(u)]
 	if !ok {
 		return nil
 	}
@@ -74,7 +75,7 @@ func (s *store) change(u uri.URI, version int32, text string) *document {
 func (s *store) close(u uri.URI) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	delete(s.docs, u.FsPath())
+	delete(s.docs, fsPath(u))
 }
 
 // invalidate drops every snapshot. A snapshot depends on the imports it
@@ -92,8 +93,12 @@ func (s *store) invalidate() {
 func (s *store) get(path string) *document {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.docs[path]
+	return s.docs[filepath.ToSlash(path)]
 }
+
+// fsPath is the path a document is keyed and lowered by: slash-separated,
+// as sema names the files it imports.
+func fsPath(u uri.URI) string { return filepath.ToSlash(u.FsPath()) }
 
 // paths returns every open document's path.
 func (s *store) paths() []string {

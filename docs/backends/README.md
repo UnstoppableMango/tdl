@@ -1,7 +1,7 @@
 # Backends
 
 Each page says what a backend generates and what it does with each feature of the language: generated, generated with a warning that names the loss, or skipped.
-The cells are measured by `make features`, so a page cannot claim more than the backend does.
+The cells are measured by `make features`, so a page cannot claim more than the backend does; `yolo`'s are written by hand, since a language model writes its output.
 
 | Backend | Target |
 | --- | --- |
@@ -18,6 +18,7 @@ The cells are measured by `make features`, so a page cannot claim more than the 
 | [`csharp`](csharp.md) | C# |
 | [`likec4`](likec4.md) | LikeC4 |
 | [`zod`](zod.md) | Zod |
+| [`yolo`](yolo.md) | Any language, written by a language model |
 
 These are designed and not built yet, and each page names the phase that builds each feature:
 
@@ -36,7 +37,7 @@ These are designed and not built yet, and each page names the phase that builds 
 
 ## Import
 
-What `tdl import` reads back of each feature, for the backends that import: each generates a model using the feature without `roundtrip` annotations, and imports the files it wrote.
+What `tdl import` reads back of each feature, for the backends that import: each generates a model using the feature without `annotate`, and imports the files it wrote.
 Yes means reading back adds no loss: the same model, or one differing only by the output loss Generate reports. Warns reads back less under a loss code, and No reads back a different model without one, or fails.
 A backend that imports nothing has no column.
 

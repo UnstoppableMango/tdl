@@ -25,3 +25,12 @@ classDiagram
     Placed
     Shipped
   }
+  namespace shop_common {
+    class Address
+  }
+  Order "1" --> "1" OrderId : id
+  Order "1" --> "1" User : customer
+  Order "1" --> "0..1" Address : shipping
+  Order "1" *-- "*" LineItem : items
+  Order "1" --> "1" Status : status
+  LineItem "1" --> "1" Order : order

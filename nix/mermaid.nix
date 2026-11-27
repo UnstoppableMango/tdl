@@ -33,7 +33,17 @@ let
       name = "bun-darwin-aarch64";
       hash = "sha256-wkDX8My5DCY6hJ/NsJt+5iYw2SE0jtaq/ahrnVd7xRA=";
     };
+    "windows/amd64" = {
+      name = "bun-windows-x64-baseline";
+      hash = "sha256-DyDOZnTU8tvMjF1Z/fmfe6RfjDs2fg9Xgcv6MKHHjZk=";
+    };
+    "windows/arm64" = {
+      name = "bun-windows-aarch64";
+      hash = "sha256-LVeg7sDLRNlckYw/lzT2BFWhMGrlCF12/Gj0Tj7jDQk=";
+    };
   };
+  # A windows executable, bun's own and the one it writes, ends in .exe.
+  exe = target: lib.optionalString (lib.hasPrefix "windows/" target) ".exe";
   fetch =
     r:
     fetchurl {
@@ -57,8 +67,8 @@ let
     };
   };
 
-  # tdl-gen-mermaid for linux and darwin, amd64 and arm64, as
-  # <goos>-<goarch>/tdl-gen-mermaid beside tdl-portable's layout, for the
+  # tdl-gen-mermaid for linux, darwin, and windows, amd64 and arm64, as
+  # <goos>-<goarch>/tdl-gen-mermaid (.exe on windows) beside tdl-portable's layout, for the
   # release tarballs and the npm platform packages. Each is the official
   # Bun for its platform, so the linux ones need the system's glibc.
   portable = stdenvNoCC.mkDerivation (
@@ -76,15 +86,15 @@ let
           lib.mapAttrsToList (target: r: ''
             unzip -q ${fetch r} -d $TMPDIR/bun
             bun build --compile --target=${r.name} \
-              --compile-executable-path=$TMPDIR/bun/${r.name}/bun \
-              ${entry} --outfile $out/${lib.replaceStrings [ "/" ] [ "-" ] target}/tdl-gen-mermaid
+              --compile-executable-path=$TMPDIR/bun/${r.name}/bun${exe target} \
+              ${entry} --outfile $out/${lib.replaceStrings [ "/" ] [ "-" ] target}/tdl-gen-mermaid${exe target}
           '') releases
         )}
         runHook postBuild
       '';
       passthru.targets = lib.attrNames releases;
       meta = common.meta // {
-        description = "tdl-gen-mermaid as a Bun single executable for linux and darwin, amd64 and arm64";
+        description = "tdl-gen-mermaid as a Bun single executable for linux, darwin, and windows, amd64 and arm64";
       };
     }
   );

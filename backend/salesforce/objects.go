@@ -30,6 +30,10 @@ type customObject struct {
 	NameField        nameField `xml:"nameField"`
 	PluralLabel      string    `xml:"pluralLabel"`
 	SharingModel     string    `xml:"sharingModel"`
+
+	// Other is every element import does not read, which generating
+	// never writes.
+	Other []element `xml:",any"`
 }
 
 type nameField struct {
@@ -58,6 +62,17 @@ type customField struct {
 	Unique            bool      `xml:"unique,omitempty"`
 	ValueSet          *valueSet `xml:"valueSet,omitempty"`
 	VisibleLines      int       `xml:"visibleLines,omitempty"`
+
+	// Other is every element import does not read, which generating
+	// never writes.
+	Other []element `xml:",any"`
+}
+
+// element is an element import does not read, kept to name it in a
+// warning.
+type element struct {
+	XMLName xml.Name
+	Inner   string `xml:",innerxml"`
 }
 
 type valueSet struct {

@@ -36,7 +36,7 @@ var outlineScript string
 // else names, each tagged by one string-literal property, as Generate
 // writes a fielded enum, an enum with fields, and any other type alias a
 // newtype. The file's name is the package. What regenerating needs goes in
-// a typescript target block. Under the JSDoc @tdl tags a `roundtrip`
+// a typescript target block. Under the JSDoc @tdl tags an `annotate`
 // directive writes, it rebuilds the model the file was generated from.
 //
 // The file is parsed by the TypeScript compiler, which import runs under
@@ -141,15 +141,40 @@ func Compiler() (node, pkg string, err error) {
 	if err != nil {
 		return "", "", ErrNoCompiler
 	}
-	// tsc is the package's bin/tsc, or a wrapper in a prefix's bin, as
-	// nixpkgs installs it, that runs lib/node_modules/typescript/bin/tsc.
-	prefix := filepath.Dir(filepath.Dir(real))
-	for _, dir := range []string{prefix, filepath.Join(prefix, "lib", "node_modules", "typescript")} {
-		if _, err := os.Stat(filepath.Join(dir, "package.json")); err == nil {
-			return node, dir, nil
-		}
+	if pkg, ok := findPackage(real); ok {
+		return node, pkg, nil
 	}
 	return "", "", ErrNoCompiler
+}
+
+// findPackage finds the typescript package's directory from tsc.
+func findPackage(tsc string) (string, bool) {
+	for _, dir := range packageDirs(tsc) {
+		if _, err := os.Stat(filepath.Join(dir, "package.json")); err == nil {
+			return dir, true
+		}
+	}
+	return "", false
+}
+
+// packageDirs lists where the typescript package may be, given the tsc
+// that PATH found, its symlinks resolved.
+//
+// tsc is the package's bin/tsc, or a wrapper in a prefix's bin, as
+// nixpkgs installs it, that runs lib/node_modules/typescript/bin/tsc.
+// On Windows, npm writes a tsc.cmd shim instead of a symlink: in a global
+// prefix's root, beside node_modules, or in a project's node_modules/.bin.
+func packageDirs(tsc string) []string {
+	bin := filepath.Dir(tsc)
+	prefix := filepath.Dir(bin)
+	dirs := []string{prefix, filepath.Join(prefix, "lib", "node_modules", "typescript")}
+	if ext := filepath.Ext(tsc); strings.EqualFold(ext, ".cmd") || strings.EqualFold(ext, ".ps1") {
+		dirs = append(dirs,
+			filepath.Join(bin, "node_modules", "typescript"),
+			filepath.Join(prefix, "typescript"),
+		)
+	}
+	return dirs
 }
 
 // parse runs the compiler over files and returns their outline.
@@ -241,7 +266,7 @@ func (r *reader) read(ctx context.Context, files []*plugin.File) (*ir.Model, err
 			return nil, err
 		}
 		docs[s] = doc
-		r.Roundtrip = r.Roundtrip || len(doc.tdl) > 0
+		r.Annotated = r.Annotated || len(doc.tdl) > 0
 	}
 
 	file := &ast.File{Filename: r.path}
@@ -304,7 +329,7 @@ func packageBack(file string) string {
 }
 
 // header reads what the file says of the whole model: the package, from
-// the file's name, and under roundtrip the file annotations.
+// the file's name, and under annotate the file annotations.
 func (r *reader) header(file *ast.File, docs map[*statement]*jsdoc) (string, []reverse.Item, []string, error) {
 	pkg := packageBack(r.path)
 	if pkg != "" && !tdlName(pkg) {
@@ -665,7 +690,7 @@ func (r *reader) constructor(s *statement) bool {
 	if _, key := unbrand(alias.Type); key == "" {
 		r.Directive(name, "construct")
 	}
-	if s.Checks > 0 && !r.Roundtrip {
+	if s.Checks > 0 && !r.Annotated {
 		r.Warn(emit.LossConstraint, r.pos(s.Line, s.Col), "%s's constructor checks %d constraint(s), which are not read", s.Name, s.Checks)
 	}
 	return true

@@ -44,15 +44,17 @@ func testResolver(name string) (plugin.Backend, error) {
 	return described{plugin.Description{Name: name}}, nil
 }
 
-// readRequestSet decodes what request wrote, checking the handshake.
-func readRequestSet(t *testing.T, out string) *plugin.RequestSet {
+// readRequestSet decodes what request wrote, checking the handshake names
+// target.
+func readRequestSet(t *testing.T, out, target string) *plugin.RequestSet {
 	t.Helper()
 	conn := plugin.NewConn(strings.NewReader(out), nil)
 	var hello plugin.Handshake
 	if err := conn.Recv(&hello); err != nil {
 		t.Fatalf("reading the handshake: %v", err)
 	}
-	if hello.GetFramingVersion() != plugin.FramingVersion || hello.GetIrVersion() != plugin.IRVersion {
+	if hello.GetFramingVersion() != plugin.FramingVersion || hello.GetIrVersion() != plugin.IRVersion ||
+		hello.GetTarget() != target {
 		t.Errorf("handshake = %v", &hello)
 	}
 	var set plugin.RequestSet
@@ -62,16 +64,16 @@ func readRequestSet(t *testing.T, out string) *plugin.RequestSet {
 	return &set
 }
 
-// runRequest runs request with stdin and decodes what it wrote.
-func runRequest(t *testing.T, stdin []byte, args ...string) *plugin.RequestSet {
+// runRequest runs request for target with stdin and decodes what it wrote.
+func runRequest(t *testing.T, stdin []byte, target string, args ...string) *plugin.RequestSet {
 	t.Helper()
 	cmd := requestCmd(testResolver)
 	cmd.SetIn(bytes.NewReader(stdin))
-	out, errOut, err := run(t, cmd, args...)
+	out, errOut, err := run(t, cmd, append([]string{"--target", target}, args...)...)
 	if err != nil {
 		t.Fatalf("request: %v\n%s", err, errOut)
 	}
-	return readRequestSet(t, out)
+	return readRequestSet(t, out, target)
 }
 
 // overlay frames an Overlay holding path and text pairs.
@@ -112,7 +114,7 @@ func TestRequestMatchesGen(t *testing.T) {
 				t.Fatalf("gen: %v\n%s", err, errOut)
 			}
 
-			set := runRequest(t, nil, "--target", target, path)
+			set := runRequest(t, nil, target, path)
 			if len(sent) != 1 || len(set.GetRequests()) != 1 {
 				t.Fatalf("gen sent %d requests and request wrote %d, want 1 each", len(sent), len(set.GetRequests()))
 			}
@@ -145,7 +147,7 @@ func TestRequestReadsTheOverlay(t *testing.T) {
 			common, "package q\n\ntype Unsaved {\n  id: string\n}\n",
 			filepath.Join(dir, "new.tdl"), "package n\n\ntype Fresh {\n  id: string\n}\n\ntarget csharp for n {}\n",
 		),
-		"--target", "csharp", "--overlay", main)
+		"csharp", "--overlay", main)
 
 	if len(set.GetDiagnostics()) > 0 {
 		t.Fatalf("diagnostics: %v", set.GetDiagnostics())
@@ -153,7 +155,7 @@ func TestRequestReadsTheOverlay(t *testing.T) {
 	var names []string
 	for _, req := range set.GetRequests() {
 		for _, d := range req.GetModel().GetDecls() {
-			if strings.HasPrefix(d.GetMeta().GetPosition().GetFilename(), dir) {
+			if strings.HasPrefix(d.GetMeta().GetPosition().GetFilename(), filepath.ToSlash(dir)) {
 				names = append(names, d.GetMeta().GetName())
 			}
 		}
@@ -186,7 +188,7 @@ func TestRequestReportsErrors(t *testing.T) {
 		}
 	}
 
-	set := runRequest(t, nil, "--target", "csharp", good, broken, unparsed, filepath.Join(dir, "absent.tdl"))
+	set := runRequest(t, nil, "csharp", good, broken, unparsed, filepath.Join(dir, "absent.tdl"))
 
 	if len(set.GetRequests()) != 1 || set.GetRequests()[0].GetModel().GetPackage() != "p" {
 		t.Fatalf("got %d requests, want good.tdl's alone", len(set.GetRequests()))
@@ -198,7 +200,7 @@ func TestRequestReportsErrors(t *testing.T) {
 		}
 		files[filepath.Base(d.GetPosition().GetFilename())] = d.GetPosition()
 	}
-	want := &ir.Position{Filename: broken, Line: 4, Column: 7, EndLine: 4, EndColumn: 14}
+	want := &ir.Position{Filename: filepath.ToSlash(broken), Line: 4, Column: 7, EndLine: 4, EndColumn: 14}
 	if !proto.Equal(files["broken.tdl"], want) {
 		t.Errorf("broken.tdl's error is at %v, want %v", files["broken.tdl"], want)
 	}
@@ -218,7 +220,7 @@ func TestRequestKeepsWarnings(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	set := runRequest(t, nil, "--target", "csharp", path)
+	set := runRequest(t, nil, "csharp", path)
 	if len(set.GetRequests()) != 1 || len(set.GetDiagnostics()) != 1 {
 		t.Fatalf("got %d requests and %v, want one request and the undeclared directive's warning", len(set.GetRequests()), set.GetDiagnostics())
 	}

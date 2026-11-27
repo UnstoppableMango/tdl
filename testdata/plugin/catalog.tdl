@@ -17,6 +17,6 @@ enum Availability {
 
 target debug for catalog {
   out("./gen")
-  roundtrip
+  annotate
   Product => note("carried as TDL")
 }

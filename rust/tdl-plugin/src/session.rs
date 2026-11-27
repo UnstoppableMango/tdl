@@ -27,7 +27,7 @@ pub struct Session<'a> {
     constraints: HashMap<*const Constraint, &'a ConstraintView>,
     /// Makes [`lose`](Session::lose) report nothing, since annotations
     /// carry what it would.
-    pub roundtrip: bool,
+    pub annotate: bool,
     /// Makes [`lose`](Session::lose) report read-back loss, which it
     /// otherwise leaves out: a backend sets it from a bare `readback`
     /// directive in its target block.
@@ -65,7 +65,7 @@ impl<'a> Session<'a> {
             decls: HashMap::new(),
             members: HashMap::new(),
             constraints: HashMap::new(),
-            roundtrip: false,
+            annotate: false,
             readback: false,
             diagnostics: Vec::new(),
         };
@@ -298,7 +298,7 @@ impl<'a> Session<'a> {
 
     /// Warns that a fact is lost, with the loss code that names it. It
     /// reports output loss: what the output itself drops or weakens, which
-    /// annotations do not restore, so it warns under roundtrip too.
+    /// annotations do not restore, so it warns under annotate too.
     /// [`lose`](Session::lose) reports read-back loss.
     pub fn lossy(
         &mut self,
@@ -316,7 +316,7 @@ impl<'a> Session<'a> {
 
     /// Warns that a fact the output keeps is one reading it back would not
     /// recover. It reports only under [`readback`](Session::readback), and
-    /// never under [`roundtrip`](Session::roundtrip), where an annotation
+    /// never under [`annotate`](Session::annotate), where an annotation
     /// carries the fact. [`lossy`](Session::lossy) reports output loss.
     pub fn lose(
         &mut self,
@@ -324,13 +324,13 @@ impl<'a> Session<'a> {
         position: Option<&Position>,
         message: impl Into<String>,
     ) {
-        if self.readback && !self.roundtrip {
+        if self.readback && !self.annotate {
             self.lossy(code, position, message);
         }
     }
 
     /// Reports a declaration that is not generated. It is output loss, so it
-    /// warns under roundtrip too, where the declaration is carried as TDL but
+    /// warns under annotate too, where the declaration is carried as TDL but
     /// the output still lacks it.
     pub fn skip(&mut self, problem: Problem) {
         self.warn(problem);

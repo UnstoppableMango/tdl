@@ -365,7 +365,12 @@ type Handshake struct {
 	Watch bool `protobuf:"varint,3,opt,name=watch" json:"watch,omitempty"`
 	// mode says which requests follow: Request, or ImportRequest under
 	// MODE_IMPORT.
-	Mode          Mode `protobuf:"varint,4,opt,name=mode,enum=tdl.plugin.v1.Mode" json:"mode,omitempty"`
+	Mode Mode `protobuf:"varint,4,opt,name=mode,enum=tdl.plugin.v1.Mode" json:"mode,omitempty"`
+	// target is the target the host wants served, as Request.target names
+	// it. A plugin answers for this target alone, and should refuse one it
+	// does not serve, naming those it does. A host built before this field
+	// sends none.
+	Target        string `protobuf:"bytes,5,opt,name=target" json:"target,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -428,13 +433,22 @@ func (x *Handshake) GetMode() Mode {
 	return Mode_MODE_UNSPECIFIED
 }
 
+func (x *Handshake) GetTarget() string {
+	if x != nil {
+		return x.Target
+	}
+	return ""
+}
+
 // HandshakeReply is the plugin's answer.
 type HandshakeReply struct {
 	state    protoimpl.MessageState `protogen:"open.v1"`
 	Accepted bool                   `protobuf:"varint,1,opt,name=accepted" json:"accepted,omitempty"`
-	// refusal says what the plugin needed, when accepted is false. It should
-	// name both versions.
+	// refusal says what the plugin needed, when accepted is false: both
+	// versions, or the target asked for and the targets it serves. The host
+	// shows it after the plugin's name.
 	Refusal string `protobuf:"bytes,2,opt,name=refusal" json:"refusal,omitempty"`
+	// name is the target served, and version the executable's version.
 	Name    string `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
 	Version string `protobuf:"bytes,4,opt,name=version" json:"version,omitempty"`
 	// directives are what this backend understands. tdl checks the target
@@ -952,7 +966,7 @@ type Analysis struct {
 	Types []*TypeView            `protobuf:"bytes,1,rep,name=types" json:"types,omitempty"` // indexed like Model.types
 	Decls []*DeclView            `protobuf:"bytes,2,rep,name=decls" json:"decls,omitempty"` // indexed like Model.decls
 	// source is the model as TDL, set only when the target block carries the
-	// roundtrip directive.
+	// annotate directive.
 	Source        *Source `protobuf:"bytes,3,opt,name=source" json:"source,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1071,7 +1085,7 @@ func (x *Source) GetImports() []string {
 type Item struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// source is the item, doc comment included. The target block is written
-	// without its roundtrip directive, and is empty when it holds nothing
+	// without its annotate directive, and is empty when it holds nothing
 	// else.
 	Source string `protobuf:"bytes,1,opt,name=source" json:"source,omitempty"`
 	// name is a declaration's name, or empty for an instance or the target
@@ -1474,7 +1488,13 @@ type MemberView struct {
 	// deprecation is a deprecated field's `deprecated` or
 	// `deprecated("reason")`, which precedes source when the field is
 	// written whole.
-	Deprecation   string `protobuf:"bytes,7,opt,name=deprecation" json:"deprecation,omitempty"`
+	Deprecation string `protobuf:"bytes,7,opt,name=deprecation" json:"deprecation,omitempty"`
+	// references are the declarations a structure's or variant's field
+	// names through its type and its type arguments, walked as
+	// DeclView.references walks a body, with aliases expanded, each once. A
+	// field naming its own declaration includes it, and prelude declarations
+	// stay in the list. Unset on a variant, whose fields carry their own.
+	References    []*ir.ID `protobuf:"bytes,8,rep,name=references" json:"references,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1556,6 +1576,13 @@ func (x *MemberView) GetDeprecation() string {
 		return x.Deprecation
 	}
 	return ""
+}
+
+func (x *MemberView) GetReferences() []*ir.ID {
+	if x != nil {
+		return x.References
+	}
+	return nil
 }
 
 // ConstraintView is what tdl reads from one constraint.
@@ -2144,13 +2171,14 @@ var File_tdl_plugin_v1_plugin_proto protoreflect.FileDescriptor
 
 const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
 	"\n" +
-	"\x1atdl/plugin/v1/plugin.proto\x12\rtdl.plugin.v1\x1a!google/protobuf/go_features.proto\x1a\x12tdl/ir/v1/ir.proto\"\x92\x01\n" +
+	"\x1atdl/plugin/v1/plugin.proto\x12\rtdl.plugin.v1\x1a!google/protobuf/go_features.proto\x1a\x12tdl/ir/v1/ir.proto\"\xaa\x01\n" +
 	"\tHandshake\x12'\n" +
 	"\x0fframing_version\x18\x01 \x01(\x05R\x0eframingVersion\x12\x1d\n" +
 	"\n" +
 	"ir_version\x18\x02 \x01(\tR\tirVersion\x12\x14\n" +
 	"\x05watch\x18\x03 \x01(\bR\x05watch\x12'\n" +
-	"\x04mode\x18\x04 \x01(\x0e2\x13.tdl.plugin.v1.ModeR\x04mode\"\xc8\x02\n" +
+	"\x04mode\x18\x04 \x01(\x0e2\x13.tdl.plugin.v1.ModeR\x04mode\x12\x16\n" +
+	"\x06target\x18\x05 \x01(\tR\x06target\"\xc8\x02\n" +
 	"\x0eHandshakeReply\x12\x1a\n" +
 	"\baccepted\x18\x01 \x01(\bR\baccepted\x12\x18\n" +
 	"\arefusal\x18\x02 \x01(\tR\arefusal\x12\x12\n" +
@@ -2242,7 +2270,7 @@ const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
 	"\x05words\x18\x06 \x03(\tR\x05words\x121\n" +
 	"\x06fields\x18\a \x03(\v2\x19.tdl.plugin.v1.MemberViewR\x06fields\x125\n" +
 	"\bvariants\x18\b \x03(\v2\x19.tdl.plugin.v1.MemberViewR\bvariants\x12?\n" +
-	"\vconstraints\x18\t \x03(\v2\x1d.tdl.plugin.v1.ConstraintViewR\vconstraints\"\x82\x02\n" +
+	"\vconstraints\x18\t \x03(\v2\x1d.tdl.plugin.v1.ConstraintViewR\vconstraints\"\xb1\x02\n" +
 	"\n" +
 	"MemberView\x12\x14\n" +
 	"\x05words\x18\x01 \x03(\tR\x05words\x121\n" +
@@ -2251,7 +2279,10 @@ const file_tdl_plugin_v1_plugin_proto_rawDesc = "" +
 	"\ainlined\x18\x04 \x03(\x03R\ainlined\x12?\n" +
 	"\vconstraints\x18\x05 \x03(\v2\x1d.tdl.plugin.v1.ConstraintViewR\vconstraints\x12\x16\n" +
 	"\x06source\x18\x06 \x01(\tR\x06source\x12 \n" +
-	"\vdeprecation\x18\a \x01(\tR\vdeprecation\"~\n" +
+	"\vdeprecation\x18\a \x01(\tR\vdeprecation\x12-\n" +
+	"\n" +
+	"references\x18\b \x03(\v2\r.tdl.ir.v1.IDR\n" +
+	"references\"~\n" +
 	"\x0eConstraintView\x12\x16\n" +
 	"\x06source\x18\x01 \x01(\tR\x06source\x12(\n" +
 	"\x06length\x18\x02 \x01(\v2\x10.tdl.ir.v1.RangeR\x06length\x12\x10\n" +
@@ -2402,22 +2433,23 @@ var file_tdl_plugin_v1_plugin_proto_depIdxs = []int32{
 	19, // 29: tdl.plugin.v1.DeclView.constraints:type_name -> tdl.plugin.v1.ConstraintView
 	18, // 30: tdl.plugin.v1.MemberView.fields:type_name -> tdl.plugin.v1.MemberView
 	19, // 31: tdl.plugin.v1.MemberView.constraints:type_name -> tdl.plugin.v1.ConstraintView
-	28, // 32: tdl.plugin.v1.ConstraintView.length:type_name -> tdl.ir.v1.Range
-	21, // 33: tdl.plugin.v1.Response.files:type_name -> tdl.plugin.v1.File
-	24, // 34: tdl.plugin.v1.Response.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
-	21, // 35: tdl.plugin.v1.ImportRequest.files:type_name -> tdl.plugin.v1.File
-	30, // 36: tdl.plugin.v1.ImportResponse.model:type_name -> tdl.ir.v1.Model
-	24, // 37: tdl.plugin.v1.ImportResponse.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
-	3,  // 38: tdl.plugin.v1.Diagnostic.severity:type_name -> tdl.plugin.v1.Severity
-	32, // 39: tdl.plugin.v1.Diagnostic.position:type_name -> tdl.ir.v1.Position
-	11, // 40: tdl.plugin.v1.RequestSet.requests:type_name -> tdl.plugin.v1.Request
-	24, // 41: tdl.plugin.v1.RequestSet.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
-	27, // 42: tdl.plugin.v1.Overlay.files:type_name -> tdl.plugin.v1.OverlayFile
-	43, // [43:43] is the sub-list for method output_type
-	43, // [43:43] is the sub-list for method input_type
-	43, // [43:43] is the sub-list for extension type_name
-	43, // [43:43] is the sub-list for extension extendee
-	0,  // [0:43] is the sub-list for field type_name
+	31, // 32: tdl.plugin.v1.MemberView.references:type_name -> tdl.ir.v1.ID
+	28, // 33: tdl.plugin.v1.ConstraintView.length:type_name -> tdl.ir.v1.Range
+	21, // 34: tdl.plugin.v1.Response.files:type_name -> tdl.plugin.v1.File
+	24, // 35: tdl.plugin.v1.Response.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
+	21, // 36: tdl.plugin.v1.ImportRequest.files:type_name -> tdl.plugin.v1.File
+	30, // 37: tdl.plugin.v1.ImportResponse.model:type_name -> tdl.ir.v1.Model
+	24, // 38: tdl.plugin.v1.ImportResponse.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
+	3,  // 39: tdl.plugin.v1.Diagnostic.severity:type_name -> tdl.plugin.v1.Severity
+	32, // 40: tdl.plugin.v1.Diagnostic.position:type_name -> tdl.ir.v1.Position
+	11, // 41: tdl.plugin.v1.RequestSet.requests:type_name -> tdl.plugin.v1.Request
+	24, // 42: tdl.plugin.v1.RequestSet.diagnostics:type_name -> tdl.plugin.v1.Diagnostic
+	27, // 43: tdl.plugin.v1.Overlay.files:type_name -> tdl.plugin.v1.OverlayFile
+	44, // [44:44] is the sub-list for method output_type
+	44, // [44:44] is the sub-list for method input_type
+	44, // [44:44] is the sub-list for extension type_name
+	44, // [44:44] is the sub-list for extension extendee
+	0,  // [0:44] is the sub-list for field type_name
 }
 
 func init() { file_tdl_plugin_v1_plugin_proto_init() }

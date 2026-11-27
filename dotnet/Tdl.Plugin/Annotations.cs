@@ -19,12 +19,12 @@ public sealed partial class Session
 	/// <summary>
 	/// Warns about read-back loss: a fact the output keeps but import would
 	/// not recover. It reports only under <see cref="Readback"/>, and never
-	/// under <see cref="Roundtrip"/>, where an annotation carries the fact.
+	/// under <see cref="Annotate"/>, where an annotation carries the fact.
 	/// <see cref="Lossy"/> reports output loss.
 	/// </summary>
 	public void Lose(string code, Position? position, string message)
 	{
-		if (Readback && !Roundtrip)
+		if (Readback && !Annotate)
 		{
 			Lossy(code, position, message);
 		}
@@ -32,7 +32,7 @@ public sealed partial class Session
 
 	/// <summary>
 	/// Reports a declaration that is not generated. It is output loss, so it
-	/// warns under roundtrip too, where the declaration is carried as TDL but
+	/// warns under annotate too, where the declaration is carried as TDL but
 	/// the output still lacks it.
 	/// </summary>
 	public void Skip(Problem problem) => Warn(problem);
@@ -140,7 +140,7 @@ public sealed partial class Session
 
 	/// <summary>
 	/// The model's top-level items as TDL, in order. tdl sends them only when
-	/// the target block carries the roundtrip directive.
+	/// the target block carries the annotate directive.
 	/// </summary>
 	public IReadOnlyList<Item> Items => Analysis.Source?.Items ?? (IReadOnlyList<Item>)[];
 
@@ -183,7 +183,7 @@ public sealed partial class Session
 
 	/// <summary>
 	/// Every top-level item that is not an emitted declaration, this target's
-	/// block without its roundtrip directive included.
+	/// block without its annotate directive included.
 	/// </summary>
 	public IReadOnlyList<CarriedItem> Carried(ISet<string> emitted)
 	{

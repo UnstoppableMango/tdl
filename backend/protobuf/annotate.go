@@ -15,7 +15,7 @@ import (
 // path a file using its options imports.
 const annotationsFile = "tdl/annotations.proto"
 
-// annotationsProto declares the options a `roundtrip` directive writes.
+// annotationsProto declares the options an `annotate` directive writes.
 //
 //go:embed tdl/annotations.proto
 var annotationsProto []byte
@@ -48,9 +48,9 @@ func text(key, value string) kv {
 }
 
 // annotation is the option setting one of tdl/annotations.proto's
-// extensions, or "" when it would be empty or roundtrip is off.
+// extensions, or "" when it would be empty or annotate is off.
 func (g *generator) annotation(ext string, kvs ...kv) string {
-	if !g.Roundtrip {
+	if !g.Annotate {
 		return ""
 	}
 	var parts []string
@@ -296,7 +296,7 @@ func (g *generator) fileAnnotation(placed map[*ir.Decl]string) string {
 	for _, it := range g.Carried(emitted) {
 		kvs = append(kvs, kv{"items", fmt.Sprintf("{at: %d source: %s}", it.At, quote(it.Source))})
 	}
-	if !g.Roundtrip || len(kvs) == 0 {
+	if !g.Annotate || len(kvs) == 0 {
 		return ""
 	}
 	parts := make([]string, len(kvs))

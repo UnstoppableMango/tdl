@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/unstoppablemango/tdl/plugin"
@@ -255,14 +256,18 @@ func (s *Subprocess) start(ctx context.Context) (*session, error) {
 	}, nil
 }
 
-// shake sends the handshake and reads the reply, refusing a plugin that
-// will not accept what is about to be sent.
+// shake sends the handshake, naming the target this session serves, and
+// reads the reply. A refusal is the plugin's own text after its name, since
+// only the plugin knows whether it refused a version, a mode, or the
+// target. The reply's name is not checked against the target: a plugin on
+// PATH is trusted to serve what it is started for.
 func (s *session) shake(watch bool, mode plugin.Mode) (*plugin.HandshakeReply, error) {
 	err := s.conn.Send(&plugin.Handshake{
 		FramingVersion: plugin.FramingVersion,
 		IrVersion:      plugin.IRVersion,
 		Watch:          watch,
 		Mode:           mode,
+		Target:         s.name,
 	})
 	if err != nil {
 		return nil, s.wrap(err)
@@ -273,11 +278,7 @@ func (s *session) shake(watch bool, mode plugin.Mode) (*plugin.HandshakeReply, e
 		return nil, s.wrap(err)
 	}
 	if !reply.GetAccepted() {
-		if mode == plugin.Mode_MODE_IMPORT {
-			return nil, fmt.Errorf("%s refused to import: %s", s.name, reply.GetRefusal())
-		}
-		return nil, fmt.Errorf("%s refused framing %d and %s: %s",
-			s.name, plugin.FramingVersion, plugin.IRVersion, reply.GetRefusal())
+		return nil, fmt.Errorf("%s%s refused: %s", CommandPrefix, s.name, reply.GetRefusal())
 	}
 	return &reply, nil
 }
@@ -290,9 +291,9 @@ func (s *session) wrap(err error) error {
 	}
 
 	msg := fmt.Sprintf("%s: %v", s.name, err)
-	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+	if stopped(err) {
 		msg = fmt.Sprintf("%s stopped before answering", s.name)
-		// The plugin is gone, so wait for the rest of its stderr.
+		// The plugin is likely gone, so wait for the rest of its stderr.
 		// CommandContext kills the child at the deadline.
 		s.wait()
 	}
@@ -300,6 +301,14 @@ func (s *session) wrap(err error) error {
 		msg += "\n" + indent(out)
 	}
 	return errors.New(msg)
+}
+
+// stopped reports whether err means the plugin closed its end: stdout at
+// EOF, or stdin, which fails a write with a broken pipe (#1545). A pipe
+// already closed by an earlier wait means the same.
+func stopped(err error) bool {
+	return errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) ||
+		errors.Is(err, syscall.EPIPE) || errors.Is(err, os.ErrClosed)
 }
 
 func indent(s string) string {
