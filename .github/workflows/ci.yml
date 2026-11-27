@@ -144,8 +144,32 @@ jobs:
       - run: nix build .#
         if: ${{ !cancelled() }}
 
+  # Nix does not run on Windows, so this job sets Go up from go.mod and
+  # runs the suite -short, which skips the tools the check job runs on
+  # generated code. .gitattributes checks every text file out with LF.
+  windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [windows-latest, windows-11-arm]
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: go.mod
+
+      - run: go build ./...
+
+      - run: go test -short ./...
+
   required:
-    needs: [check, darwin]
+    needs: [check, darwin, windows]
     if: always()
     runs-on: ubuntu-latest
     steps:

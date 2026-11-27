@@ -127,21 +127,23 @@ func (r *requestRun) text(name string) (string, bool) {
 
 // request adds one file's requests, or what stopped them, to the set.
 func (r *requestRun) request(path string) {
+	// Positions are slash-separated, as sema names imports.
+	name := filepath.ToSlash(path)
 	src, ok := r.text(path)
 	if !ok {
 		data, err := os.ReadFile(path)
 		if err != nil {
-			r.fail(&ir.Position{Filename: path}, err.Error())
+			r.fail(&ir.Position{Filename: name}, err.Error())
 			return
 		}
 		src = string(data)
 	}
 
-	file, err := parser.Parse(path, strings.NewReader(src))
+	file, err := parser.Parse(name, strings.NewReader(src))
 	if err != nil {
 		var errs parser.ErrorList
 		if !errors.As(err, &errs) {
-			r.fail(&ir.Position{Filename: path}, err.Error())
+			r.fail(&ir.Position{Filename: name}, err.Error())
 			return
 		}
 		for _, e := range errs {
@@ -173,7 +175,7 @@ func (r *requestRun) request(path string) {
 
 	cfg, err := config.Find(filepath.Dir(path))
 	if err != nil {
-		r.fail(&ir.Position{Filename: path}, err.Error())
+		r.fail(&ir.Position{Filename: name}, err.Error())
 		return
 	}
 	allowed := slices.Concat(cfg.Allowed(r.target), r.allowLossy)

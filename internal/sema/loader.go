@@ -20,12 +20,20 @@ type Loader interface {
 type FSLoader struct{}
 
 func (FSLoader) Load(from, path string) (string, string, error) {
-	name := filepath.Join(filepath.Dir(from), path)
+	name := resolve(from, path)
 	src, err := os.ReadFile(name)
 	if err != nil {
 		return name, "", err
 	}
 	return name, string(src), nil
+}
+
+// resolve names the file imported as path from the file at from. The name
+// is slash-separated on every OS, so positions in the model, and the
+// requests and files built from it, are the same bytes on Windows; the
+// filesystem reads either separator there.
+func resolve(from, path string) string {
+	return filepath.ToSlash(filepath.Join(filepath.Dir(from), path))
 }
 
 // Overlay resolves an import as FSLoader does, and reads the resolved
@@ -37,7 +45,7 @@ type Overlay struct {
 }
 
 func (o Overlay) Load(from, path string) (string, string, error) {
-	name := filepath.Join(filepath.Dir(from), path)
+	name := resolve(from, path)
 	if src, ok := o.Text(name); ok {
 		return name, src, nil
 	}
