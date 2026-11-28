@@ -114,7 +114,7 @@ Nothing in a tarball needs Nix: `tdl` and `tdl-gen-typescript` are static on lin
 Every other file is attested, so `gh attestation verify` checks it was built by this repository's release workflow; `tdl_<version>.intoto.jsonl` is the attestation bundle.
 
 ```shell
-version=0.5.13 # x-release-please-version
+version=0.6.0 # x-release-please-version
 asset=tdl_${version}_linux_amd64.tar.gz
 curl -fsSLO "https://github.com/UnstoppableMango/tdl/releases/download/v$version/$asset"
 curl -fsSLO "https://github.com/UnstoppableMango/tdl/releases/download/v$version/SHA256SUMS"
