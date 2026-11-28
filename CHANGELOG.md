@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.1](https://github.com/UnstoppableMango/tdl/compare/v0.6.0...v0.6.1) (2026-11-28)
+
+
+### Continuous Integration
+
+* leave the Linux nix flake check to Hercules ([#1668](https://github.com/UnstoppableMango/tdl/issues/1668)) ([f9286f6](https://github.com/UnstoppableMango/tdl/commit/f9286f665ca294b8442f11883009c3bc45d1d8a9))
+* make nix flake check the whole Linux gate, with a Hercules coverage effect ([#1587](https://github.com/UnstoppableMango/tdl/issues/1587)) ([528ed69](https://github.com/UnstoppableMango/tdl/commit/528ed695a94a0eb8fafa35d866629ccf1175542d))
+
 ## [0.6.0](https://github.com/UnstoppableMango/tdl/compare/v0.5.13...v0.6.0) (2026-11-28)
 
 

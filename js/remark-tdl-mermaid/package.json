@@ -1,6 +1,6 @@
 {
 	"name": "@unmango/remark-tdl-mermaid",
-	"version": "0.6.0",
+	"version": "0.6.1",
 	"description": "A remark plugin that draws each tdl mermaid code fence as a Mermaid class diagram, through the Type Description Language compiler",
 	"license": "MIT",
 	"repository": {
