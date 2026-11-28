@@ -32,8 +32,8 @@ jobs:
       CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
   # One job rather than a build and a test job: each job on a fresh runner
-  # pays to fetch nixpkgs and evaluate the flake, and the checks and the
-  # devShell share most of their closure (go, node, typescript, smithy).
+  # pays to fetch nixpkgs and evaluate the flake, and the npm packages and
+  # the devShell share most of their closure.
   check:
     runs-on: ubuntu-latest
     permissions:
@@ -65,14 +65,7 @@ jobs:
           nix develop -c make dotnet-deps
           git diff --exit-code dotnet/deps.json
 
-      - run: nix flake check --keep-going
-        if: ${{ !cancelled() }}
-
-      - run: nix build .#
-        if: ${{ !cancelled() }}
-
-      # The npm packages windows-npm installs. nix flake check built them
-      # for checks.npm-tdl.
+      # The npm packages windows-npm installs.
       - run: nix build .#npm -o result-npm
         if: ${{ !cancelled() }}
 
@@ -86,10 +79,10 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-      # nix flake check above ran the race tests with every plugin and tool
-      # (checks.go-test), golangci-lint, Biome, the tree-sitter regeneration
-      # diff, markdownlint, and a second release build (nix/gate.nix).
-      # This job uploads coverage, from the -short run checks.go-cover also
+      # Hercules builds every check: the race tests with every plugin and
+      # tool (checks.go-test), golangci-lint, Biome, the tree-sitter
+      # regeneration diff, markdownlint, and a second release build
+      # (nix/gate.nix). This job uploads coverage, from the -short run checks.go-cover also
       # builds, since the shared Hercules jobs have no coverage effect.
       - id: test
         run: nix develop -c go test -short -coverpkg=./... -coverprofile=cover.profile ./...
