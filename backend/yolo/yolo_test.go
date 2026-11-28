@@ -16,6 +16,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/backend/yolo"
 	"github.com/unstoppablemango/tdl/internal/analysis"
+	"github.com/unstoppablemango/tdl/internal/gen"
 	"github.com/unstoppablemango/tdl/internal/sema"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/parser"
@@ -69,6 +70,38 @@ func lower(t *testing.T, src string) *ir.Model {
 	return model
 }
 
+// caseRequest is a case's request as tdl gen sends it: a source.tdl is
+// lowered from disk, so its imports resolve, with what each dependency
+// declares and generated.
+func caseRequest(t *testing.T, dir string) *plugin.Request {
+	t.Helper()
+	path := filepath.Join(dir, "source.tdl")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return request(t, Source(t, dir))
+	}
+	file, err := parser.Parse(path, strings.NewReader(string(data)))
+	if err != nil {
+		t.Fatalf("parsing: %v", err)
+	}
+	model, diags := sema.Lower(file, sema.WithLoader(sema.FSLoader{}))
+	if len(diags) > 0 {
+		t.Fatalf("lowering: %v", diags.Error())
+	}
+	out := filepath.Join(dir, "out")
+	if targets, err := gen.Targets(model, ""); err == nil {
+		out = targets[0].Out
+	}
+	req, problems := analysis.Request(model, yolo.Backend{}.Describe(), yolo.Name, out)
+	if len(problems) > 0 {
+		t.Fatalf("request: %v", problems)
+	}
+	if _, err := gen.Depend(req, sema.FSLoader{}); err != nil {
+		t.Fatal(err)
+	}
+	return req
+}
+
 func request(t *testing.T, src string) *plugin.Request {
 	t.Helper()
 	req, diags := analysis.Request(lower(t, src), yolo.Backend{}.Describe(), yolo.Name, "out")
@@ -92,7 +125,7 @@ func TestCases(t *testing.T) {
 		dir := filepath.Join(cases, d.Name())
 		t.Run(d.Name(), func(t *testing.T) {
 			src := Source(t, dir)
-			req := request(t, src)
+			req := caseRequest(t, dir)
 
 			var provider yolo.Provider
 			var recorder *yolo.Recorder

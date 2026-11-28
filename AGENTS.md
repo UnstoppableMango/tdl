@@ -205,6 +205,7 @@ The plugin protocol in `docs/architecture/plugins.md` is complete.
   Under an `annotate` directive it also carries the model as TDL (`source.go`), which `emit`'s annotation helpers read; `Imported` lowers an import response that returns TDL source instead of a model.
 - `internal/gen`: the compiler side of the plugin protocol: the backend registry, request building, and writing returned files.
   `keep.go` keeps a nondeterministic backend's output while its request hashes the same, recording the hashes in `.tdl-output` (ADR-0002).
+  `deps.go` adds to such a backend's request, before hashing, each extern's declaration and the files each dependency's own block for the target last wrote, so regenerating a dependency regenerates its dependents.
   `post.go` runs the commands a target block's `post` directive names, through `tdl.toml`'s `[post]` table, over each returned file before anything is compared or written.
   `internal/gen/echo` is a test backend that writes a model as JSON and imports it back; it is not compiled into `tdl`.
 - `internal/host`: what a host does around a backend, importing none, so a backend hosting itself can use it.
@@ -361,10 +362,10 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   The `provider` directive picks it: `anthropic`, the default, through `anthropic-sdk-go` with `ANTHROPIC_API_KEY`, or `openai` (`openai.go`), Chat Completions through `openai-go` against `OPENAI_BASE_URL` with `OPENAI_API_KEY`, either alone enough, for OpenAI and the servers speaking its API (#1513).
   The prompt (`prompt.go`) is the model as TDL, the target block's `language` (required), `prompt`, the loss codes, the JSON wire convention, and `docs/spec.md`, which the `docs` package embeds; `model` picks the model, `claude-opus-5-5` by default and required under `openai`, and `effort` the effort it spends, `medium` by default; under `openai` it is sent as `reasoning_effort` only when written, and only `low`, `medium`, or `high`.
   A path that is absolute or holds `..` ends the conversation with an error and nothing written; a `report_loss` with an unknown code or name is refused back to the model, and the rest become positioned warnings under their codes.
-  Each extern warns `lossy.unsupported`, since the prompt does not show what its dependency generates.
+  For each import the prompt also shows the dependency's `language` and output directory, the declarations its externs name, their `foreign` mappings, and the files the dependency's own `yolo` block last wrote, which `gen.Depend` sends a nondeterministic backend; an extern with no `foreign` and no such files warns `lossy.unsupported`.
   A missing key is an error before anything is sent, and a conversation is cut off after 50 turns.
   `TDL_YOLO_REPLAY` names a directory whose `conversation.json` a `Replay` answers from instead, refusing a conversation other than the one it recorded; the recorded system prompt holds a marker in place of the spec.
-  `testdata/yolo/<case>/` holds a model, its conversation, the files it wants in `want/`, and `diagnostics.golden`; a case with only a `target.tdl` appends it to the smoke model.
+  `testdata/yolo/<case>/` holds a model, its conversation, the files it wants in `want/`, and `diagnostics.golden`; a case with only a `target.tdl` appends it to the smoke model, and `import` holds dependencies beside its model, with one's output under `generated/`.
   `go test ./backend/yolo -record` re-records every case live against the provider its block names, which needs a key; the committed recordings were written by hand, `testdata/yolo/openai` among them.
   `TestHostsAgree` replays `testdata/yolo/order` in both hosts, its `shipped` row is `pluginOnly`, the round-trip `exempt` list holds it beside `debug`, and `checks.gen-yolo` replays `testdata/yolo/smoke` through the packaged binary.
   It declares itself nondeterministic, so `tdl gen` keeps its output while the request is unchanged and `--verify` needs no key.
