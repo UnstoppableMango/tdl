@@ -282,3 +282,24 @@ func TestEmptyOutputIsKept(t *testing.T) {
 		t.Errorf("verify: %d calls, stale %v", b.calls, verify.Stale)
 	}
 }
+
+// Kept output was checked when it was written, so reusing it runs no check:
+// a check that would now fail does not fail the run.
+func TestKeptOutputRunsNoCheck(t *testing.T) {
+	out, b := t.TempDir(), &fickle{}
+	runFickle(t, b, out, keepSource, gen.ModeWrite)
+
+	ran := filepath.ToSlash(filepath.Join(t.TempDir(), "ran"))
+	checks := &gen.Checks{Commands: []gen.Command{{Name: "fail", Args: []string{"sh", "-c", "touch " + ran + "; exit 1"}}}}
+	target := gen.Target{Name: "fickle", Out: out, Checks: checks}
+	result, err := gen.Run(context.Background(), b, target, lowerSource(t, "shop.tdl", keepSource), gen.ModeWrite)
+	if err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	if b.calls != 1 || len(result.Kept) != 1 {
+		t.Errorf("%d calls, kept %v", b.calls, result.Kept)
+	}
+	if _, err := os.Stat(ran); err == nil {
+		t.Error("reusing kept output ran the check")
+	}
+}

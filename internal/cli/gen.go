@@ -63,7 +63,10 @@ func genCmd(resolve func(string) (plugin.Backend, error)) *cobra.Command {
 			"compared or written: each reads the content on stdin and writes\n" +
 			"the new content to stdout, runs in the directory holding\n" +
 			"tdl.toml, and has {file} in its command line replaced with the\n" +
-			"file's destination relative to there.",
+			"file's destination relative to there. Its check directive names\n" +
+			"commands from [check], which run in a temporary copy of the\n" +
+			"processed output beside the output directory, and a failure\n" +
+			"writes nothing; --verify runs no check.",
 		Args: cobra.MinimumNArgs(1),
 
 		ValidArgsFunction: tdlFiles,
@@ -275,7 +278,6 @@ func (r *genRun) generate(path string) error {
 			}
 		case r.clean && !r.cleaned[out]:
 			mode = gen.ModeClean
-			r.cleaned[out] = true
 		}
 
 		backend, err := r.backend(cmd.Context(), t.Name)
@@ -294,9 +296,18 @@ func (r *genRun) generate(path string) error {
 		if t.Post, err = gen.ResolvePost(t.Block, cfg); err != nil {
 			return err
 		}
+		if t.Checks, err = gen.ResolveChecks(t.Block, cfg); err != nil {
+			return err
+		}
 		t.Loader = loader
 
 		result, err := gen.Run(cmd.Context(), backend, t, model, mode)
+		// A directory counts as cleaned once Clean has run on it, or once a
+		// run reusing kept output succeeds; a failure before then, such as
+		// a check, leaves it for the next file to clean.
+		if mode == gen.ModeClean && (result.Cleaned || err == nil) {
+			r.cleaned[out] = true
+		}
 		report(host.Silence(result.Diagnostics, slices.Concat(cfg.Allowed(t.Name), r.allowLossy)))
 		if err != nil {
 			return err

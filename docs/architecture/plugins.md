@@ -2,7 +2,7 @@
 
 Design document.
 The protocol is implemented: the wire types are in `plugin/`, generated from `proto/tdl/plugin/v1/plugin.proto`, and the compiler side is `internal/gen`.
-Of the `tdl.toml` settings below, post-processing commands are built in `internal/gen/post.go`, and per-plugin timeouts are not.
+Of the `tdl.toml` settings below, post-processing commands are built in `internal/gen/post.go` and checks in `internal/gen/checks.go`, and per-plugin timeouts are not.
 
 A backend turns a resolved model into files.
 The backends in `internal/gen/registry.go` ship with `tdl`; any other target name resolves to `tdl-gen-<name>` on `PATH`.
@@ -186,6 +186,39 @@ The table is a record of what a build runs, not a security boundary, since the p
 
 `Response.post` is deprecated and ignored.
 It once let a plugin request a command by name, but which formatter runs is the project's choice, and the backends that format their output do it in process.
+
+## Checks
+
+A project may also hold a target's output to a tool, a compiler or a linter, with `tdl` running it rather than a separate build step.
+A target block names the commands with `check`, and `tdl.toml`'s `[check]` table maps each name to a command line, split as `[post]`'s are:
+
+```tdl
+target typescript for shop {
+  out("gen/ts")
+  post("biome")
+  check("tsc")
+}
+```
+
+```toml
+[check]
+tsc = "tsc --noEmit --strict shop.ts"
+```
+
+`check` is read by `tdl` itself, as `post` is: every target accepts it in its block, taking one or more strings, whatever a backend declares under the same name.
+After the files have gone through `post`, `tdl` stages the output directory as the run would leave it: a copy of what it holds now, hand-written files and other targets' output included, less the files `--clean` would remove, with the target's files written over it.
+The copy is placed beside the output directory, in the nearest directory above it that exists, so a tool run there finds the configuration above the real output as if the files were in place; when that directory cannot be written, it goes in the system's temporary directory instead, where configuration above the output is not found.
+Each named command runs in order with that directory as its working directory, which `{dir}` in a command line also names, absolute; a command wanting the files by a glob names `sh -c`.
+A program named by a relative path, such as `./node_modules/.bin/tsc`, is relative to the directory holding `tdl.toml`, as in `[post]`.
+A command exiting non-zero is an error naming the target and the command, carrying everything it printed on either stream, and nothing is written, marked, or cleaned for that target.
+A name `[check]` does not declare, including when there is no `tdl.toml`, or a command that is not found, is an error too, never a skip, so a result does not depend on the machine.
+The temporary directory is always removed.
+
+`--verify` runs no check, though it still refuses a name `[check]` does not declare, and neither does reusing a nondeterministic backend's kept output (ADR-0002): both compare bytes that were checked when they were written.
+As with `[post]`, the request hash covers the directive's names but not the command lines `[check]` maps them to, so changing a command line alone reuses kept output without running the new line; `--clean` regenerates and checks it.
+So the flake-parts module's `checks.tdl-gen`, which runs `tdl gen --verify`, needs no check command on its `PATH`.
+`tdl request`, `tdl import`, `tdl play`, and the language server never run checks.
+The delegated backend will read the same directive from its request for its retry loop (#1508); the host still runs the checks once at the end, as the final gate.
 
 ## Dry run
 

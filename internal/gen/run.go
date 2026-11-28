@@ -23,6 +23,11 @@ type Target struct {
 	// compared or written, from [ResolvePost]; nil runs nothing.
 	Post *Post
 
+	// Checks is what runs over a staged copy of the output directory, with
+	// those files written into it, before anything is written, from
+	// [ResolveChecks]; nil runs nothing. A verify run runs none.
+	Checks *Checks
+
 	// Loader reads the model's imports again for a nondeterministic
 	// backend, so [Depend] can send what each dependency declares and
 	// generated; nil sends nothing.
@@ -88,6 +93,7 @@ type Result struct {
 	Stale    []Stale
 	Expected []string // what a verify run would write
 	Kept     []string // what a nondeterministic backend wrote before, kept
+	Cleaned  bool     // whether ModeClean got as far as emptying the directory
 	Read     []string // dependency output a nondeterministic backend's request holds
 
 	Diagnostics []*plugin.Diagnostic
@@ -141,9 +147,15 @@ func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.M
 		return result, nil
 	}
 
+	// Checked before anything is cleaned, written, or marked, so a failing
+	// check leaves the directory as it was.
+	if err := target.Checks.Run(ctx, target.Out, files, mode == ModeClean); err != nil {
+		return result, fmt.Errorf("target %s: %w", target.Name, err)
+	}
+
 	if mode == ModeClean {
 		removed, err := Clean(target.Out)
-		result.Removed = removed
+		result.Removed, result.Cleaned = removed, true
 		if err != nil {
 			return result, fmt.Errorf("target %s: %w", target.Name, err)
 		}
