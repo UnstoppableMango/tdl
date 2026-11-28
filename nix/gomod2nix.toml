@@ -26,8 +26,8 @@ schema = 3
     hash = 'sha256-BIzqwG61hnMDknZOn/5+VX09yemzFzMjhPF48XoALto='
 
   [mod.'github.com/bufbuild/protocompile']
-    version = 'v0.14.2-0.20261105212643-e229a0e11161'
-    hash = 'sha256-6J2Q33Xeo698MbMf/Qqx0PFb6vLYjJR5S+Aw5a4X/mE='
+    version = 'v0.14.2-0.20261126171244-e0dc630fbef2'
+    hash = 'sha256-FKEUuSuoVlQA6ZWNA4c55OWgWeshV6/CqOtAh1+Dvqk='
 
   [mod.'github.com/buger/jsonparser']
     version = 'v1.1.2'
