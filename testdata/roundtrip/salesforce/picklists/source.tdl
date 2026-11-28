@@ -1,0 +1,11 @@
+package salesforce
+
+type Order: Entity {
+  status: Status
+  priority: Priority?
+  flags: {Flags}
+}
+
+enum Status { Open Closed }
+enum Priority { Low High }
+enum Flags { Gift Rush }

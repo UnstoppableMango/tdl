@@ -57,6 +57,9 @@ func (Backend) Describe() plugin.Description {
 			// anthropic; under openai, one of OpenAIEfforts, and not sent
 			// when absent.
 			{Name: "effort", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: block, Values: Efforts},
+			// A module and the name it declares, for an extern mapped to
+			// existing code. The model's own declarations are always written.
+			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: append(str, str...), Placements: plugin.On(plugin.OnExtern)},
 		},
 	}
 }
@@ -70,11 +73,19 @@ type generator struct {
 	block *ir.Position
 
 	files map[string][]byte
+
+	// deps are the files the model's dependencies generated, which the
+	// host sends a nondeterministic backend.
+	deps []*plugin.DependencyFile
+
+	// out is the request's output directory, which a dependency file's
+	// path is relative to.
+	out string
 }
 
 // Generate runs one conversation and returns the files the model wrote.
 func (b Backend) Generate(ctx context.Context, req *plugin.Request) (*plugin.Response, error) {
-	g := &generator{Session: emit.NewSession(req, "yolo"), files: map[string][]byte{}}
+	g := &generator{Session: emit.NewSession(req, "yolo"), files: map[string][]byte{}, deps: req.GetDependencies(), out: req.GetOut()}
 	for _, t := range g.Model.GetTargets() {
 		if t.GetMeta().GetName() == g.Target {
 			g.block = t.GetMeta().GetPosition()
@@ -115,7 +126,7 @@ func (b Backend) Generate(ctx context.Context, req *plugin.Request) (*plugin.Res
 		Effort:   effort,
 		System:   system(),
 		Tools:    tools,
-		Messages: []Message{{Role: User, Text: userPrompt(language, instructions, src)}},
+		Messages: []Message{{Role: User, Text: userPrompt(language, instructions, src, g.dependencies(src))}},
 	}
 	if err := g.converse(ctx, provider, conv); err != nil {
 		g.Error(g.block, "%v", err)
@@ -125,11 +136,18 @@ func (b Backend) Generate(ctx context.Context, req *plugin.Request) (*plugin.Res
 		g.Error(g.block, "the model wrote no files")
 		return g.Response(nil), nil
 	}
-	// The prompt holds an import's line but not what the dependency's own
-	// target block generates, so the model guessed each reference to it.
+	// An extern with neither a foreign mapping nor its dependency's files
+	// in the prompt is a reference the model guessed.
+	shown := map[string]bool{}
+	for _, f := range g.deps {
+		shown[f.GetPackage()] = true
+	}
 	for _, ext := range g.Model.GetExterns() {
+		if _, _, ok := g.foreign(ext); ok || shown[ext.GetPackage()] {
+			continue
+		}
 		g.Lossy(emit.LossUnsupported, ext.GetPosition(),
-			"%s.%s comes from another file, whose output the model was not shown; check how the files refer to it",
+			"%s.%s comes from another file with no foreign directive, and its package has no yolo output yet for the model to import; check how the files refer to it",
 			ext.GetPackage(), ext.GetName())
 	}
 
@@ -143,6 +161,40 @@ func (b Backend) Generate(ctx context.Context, req *plugin.Request) (*plugin.Res
 		files[i] = &plugin.File{Path: p, Content: g.files[p]}
 	}
 	return g.Response(files), nil
+}
+
+// foreign is the module and name an extern's foreign directive maps it to.
+func (g *generator) foreign(ext *ir.Extern) (module, name string, ok bool) {
+	d, ok := g.Find(ext.GetDirectives(), "foreign")
+	if !ok || len(d.GetArgs()) != 2 {
+		return "", "", false
+	}
+	return d.GetArgs()[0].GetText(), d.GetArgs()[1].GetText(), true
+}
+
+// depDir is the import's output directory relative to the request's, as
+// a dependency file's path is: the dependency's out directive is relative
+// to the file declaring its block.
+func (g *generator) depDir(imp *ir.Import) (string, bool) {
+	to, ok := g.Text(imp.GetDirectives(), "out")
+	if !ok || to == "" || g.out == "" {
+		return "", false
+	}
+	if !filepath.IsAbs(to) {
+		to = filepath.Join(filepath.Dir(imp.GetPosition().GetFilename()), filepath.Dir(imp.GetPath()), to)
+	}
+	from, err := filepath.Abs(g.out)
+	if err != nil {
+		return "", false
+	}
+	if to, err = filepath.Abs(to); err != nil {
+		return "", false
+	}
+	rel, err := filepath.Rel(from, to)
+	if err != nil {
+		return "", false
+	}
+	return filepath.ToSlash(rel), true
 }
 
 // modelAndEffort reads the model and effort directives as the provider

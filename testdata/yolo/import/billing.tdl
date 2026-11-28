@@ -1,0 +1,11 @@
+package shop.billing
+
+/// An invoice.
+type Invoice {
+  id: string
+}
+
+target yolo for shop.billing {
+  language("elixir")
+  out("generated/billing")
+}

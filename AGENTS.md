@@ -115,10 +115,12 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 - `zod.nix`: the `zod` npm package, fetched by hash, for `checks.gen-zod` and the devShell's `NODE_PATH`.
 - `demo.nix`: renders `docs/demo/demo.tape`, the README's GIF, with VHS. It is a package and not a check, since it runs a browser.
   The tape's `cat`, from `docs/demo/demo.bash`, highlights everything with bat, TDL through the syntax the `tdl` package installs.
-- `hercules.nix`: Hercules CI's jobs, on `herculesCI.ciSystems` alone (x86_64-linux, from the `systems` input).
-  `onPush.default`, the status `main` requires, builds the checks and every package but `demo`, and no devShell.
+- `hercules.nix`: settings for `flakeModules.ci` from the `mangonix` input (UnstoppableMango/nix), which writes `herculesCI` on `herculesCI.ciSystems` alone (x86_64-linux, from the `systems` input).
+  `onPush.default` builds the checks and every package but `demo`, and no devShell.
   `onSchedule.nightly`, at 04:00 UTC, builds `demo` and every devShell, so vhs and the editors stay out of a pull request's fetch, and a Hydra failure in them blocks nothing; its result shows only on Hercules.
-  It declares `flake.herculesCI` as an attribute set, since the `systems` input's module sets `ciSystems` in it and flake-parts refuses two raw definitions of one output.
+  `perSystem.ci.fixup.steps` become `apps.renovate-fixup`, which `.github/workflows/renovate-fixup.yml` runs on each Renovate branch.
+  They regenerate `nix/gomod2nix.toml`, `dotnet/deps.json`, the protobuf code, and both derived grammars.
+  It is not `nix/ci.nix`, since Hercules evaluates a file by that name in place of the flake.
 - `overlay.nix`: names both packages and composes gomod2nix's overlay, so a consumer adding it also gets `buildGoApplication` and `mkGoEnv`.
 - `hm-module.nix`: the home-manager module.
 - `flake-module.nix`: the flake-parts module a consuming project imports.
@@ -206,6 +208,7 @@ The plugin protocol in `docs/architecture/plugins.md` is complete.
   Under an `annotate` directive it also carries the model as TDL (`source.go`), which `emit`'s annotation helpers read; `Imported` lowers an import response that returns TDL source instead of a model.
 - `internal/gen`: the compiler side of the plugin protocol: the backend registry, request building, and writing returned files.
   `keep.go` keeps a nondeterministic backend's output while its request hashes the same, recording the hashes in `.tdl-output` (ADR-0002).
+  `deps.go` adds to such a backend's request, before hashing, each extern's declaration and the files each dependency's own block for the target last wrote, so regenerating a dependency regenerates its dependents.
   `post.go` runs the commands a target block's `post` directive names, through `tdl.toml`'s `[post]` table, over each returned file before anything is compared or written.
   `internal/gen/echo` is a test backend that writes a model as JSON and imports it back; it is not compiled into `tdl`.
 - `internal/host`: what a host does around a backend, importing none, so a backend hosting itself can use it.
@@ -319,6 +322,8 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   A `key` directive makes a field a unique external ID.
   A `standard` directive maps an entity to a standard object, writing its fields under `objects/<Object>/fields/` and no object file, and on a field names a standard field, which is not written.
   Tests check the XML is well formed and `checks.gen-salesforce` runs `xmllint`; nothing checks the Apex.
+  It imports objects and fields: `reverse.go` reads them with `encoding/xml` into package `salesforce`, each custom object an entity and each picklist an enum; Apex waits on #1459 and `annotate` annotations on #1461.
+  `Normalize` is its normal form for the round-trip corpus, whose `Pending` skips smoke, the conformance corpus, and `TestLossKinds` until they land.
   See `docs/architecture/salesforce-backend.md`.
 - `backend/haskell`: one module per model, `Shop/Billing.hs` for package `shop.billing` unless a `module` directive names it.
   A struct is a record, an enum a sum type, a newtype a `newtype`, and an alias a `type` synonym; fields keep the model's names under `NoFieldSelectors` and `DuplicateRecordFields`.
@@ -360,10 +365,10 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   The `provider` directive picks it: `anthropic`, the default, through `anthropic-sdk-go` with `ANTHROPIC_API_KEY`, or `openai` (`openai.go`), Chat Completions through `openai-go` against `OPENAI_BASE_URL` with `OPENAI_API_KEY`, either alone enough, for OpenAI and the servers speaking its API (#1513).
   The prompt (`prompt.go`) is the model as TDL, the target block's `language` (required), `prompt`, the loss codes, the JSON wire convention, and `docs/spec.md`, which the `docs` package embeds; `model` picks the model, `claude-opus-5-5` by default and required under `openai`, and `effort` the effort it spends, `medium` by default; under `openai` it is sent as `reasoning_effort` only when written, and only `low`, `medium`, or `high`.
   A path that is absolute or holds `..` ends the conversation with an error and nothing written; a `report_loss` with an unknown code or name is refused back to the model, and the rest become positioned warnings under their codes.
-  Each extern warns `lossy.unsupported`, since the prompt does not show what its dependency generates.
+  For each import the prompt also shows the dependency's `language` and output directory, the declarations its externs name, their `foreign` mappings, and the files the dependency's own `yolo` block last wrote, which `gen.Depend` sends a nondeterministic backend; an extern with no `foreign` and no such files warns `lossy.unsupported`.
   A missing key is an error before anything is sent, and a conversation is cut off after 50 turns.
   `TDL_YOLO_REPLAY` names a directory whose `conversation.json` a `Replay` answers from instead, refusing a conversation other than the one it recorded; the recorded system prompt holds a marker in place of the spec.
-  `testdata/yolo/<case>/` holds a model, its conversation, the files it wants in `want/`, and `diagnostics.golden`; a case with only a `target.tdl` appends it to the smoke model.
+  `testdata/yolo/<case>/` holds a model, its conversation, the files it wants in `want/`, and `diagnostics.golden`; a case with only a `target.tdl` appends it to the smoke model, and `import` holds dependencies beside its model, with one's output under `generated/`.
   `go test ./backend/yolo -record` re-records every case live against the provider its block names, which needs a key; the committed recordings were written by hand, `testdata/yolo/openai` among them.
   `TestHostsAgree` replays `testdata/yolo/order` in both hosts, its `shipped` row is `pluginOnly`, the round-trip `exempt` list holds it beside `debug`, and `checks.gen-yolo` replays `testdata/yolo/smoke` through the packaged binary.
   It declares itself nondeterministic, so `tdl gen` keeps its output while the request is unchanged and `--verify` needs no key.
@@ -379,6 +384,7 @@ A backend added to the registry needs a row in the `shipped` table in `internal/
 `docs/architecture/schema-backends.md` maps the seven schema backends.
 `docs/architecture/reverse.md` is the import direction, target language to TDL, and #972 tracks the remaining importers.
 `backend/internal/roundtrip` runs a backend forward and back over `testdata/roundtrip/<target>/<case>/`; its `targets` table holds every backend but those in `exempt` (`debug` and `yolo`), with each one's normal form, and `TestEveryTargetIsCovered` checks it against `cmd/`.
+A target whose reader cannot yet read back every model sets `Pending`, which skips smoke, `TestConformanceComesBack`, and `TestLossKinds` for it.
 A model-first case's `lossy.golden` holds the codes generating with `readback` reports, and generating with `annotate` must warn exactly what generating with neither does.
 `TestConformanceComesBack` also takes every conformance case without an import through each target that imports, and `TestLossKinds` holds each such target to both kinds of loss.
 `testdata/gen/smoke/source.tdl` exercises the whole mapping, with a target block for each schema backend and for `salesforce`; the nix checks generate from it and run each language's tool on the output.
@@ -696,7 +702,9 @@ It is advisory, outside the `required` job's `needs`; triage each alert by fixin
 Reply with what changed, or why nothing did, then resolve.
 
 The one required check is the `required` job in `.github/workflows/ci.yml`.
-It needs `check`, on `ubuntu-latest`, `darwin`, on `macos-latest`, `windows`, which runs `go test -short ./...` without Nix on `windows-latest` and `windows-11-arm`, and `windows-npm`, which installs the npm packages `check` packed on both and runs `tdl version`.
+It needs `check`, on `ubuntu-latest`, `windows`, which runs `go test -short ./...` without Nix on `windows-latest` and `windows-11-arm`, and `windows-npm`, which installs the npm packages `check` packed on both and runs `tdl version`.
+It also needs `nix`, which calls `unmango/ci`'s `nix-ci.yml`: `nix flake check` on `macos-latest`, and a wait for Hercules's `onPush.default` status.
+macOS builds only what a check builds, since `nix build .#` runs on Linux alone.
 A new CI job goes in its `needs`, not in the ruleset (declared in Pulumi in `UnstoppableMango/vcs`), unless it is advisory like `buf.yml`, `codeql.yml`, and `ci.yml`'s `govulncheck` job, so a newly published advisory blocks no unrelated work.
 
 Pull requests are stacked, and GitHub rebases the rest of the stack on merge; reset local branches from the remote afterwards.

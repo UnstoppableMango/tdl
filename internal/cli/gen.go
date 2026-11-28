@@ -294,6 +294,7 @@ func (r *genRun) generate(path string) error {
 		if t.Post, err = gen.ResolvePost(t.Block, cfg); err != nil {
 			return err
 		}
+		t.Loader = loader
 
 		result, err := gen.Run(cmd.Context(), backend, t, model, mode)
 		report(host.Silence(result.Diagnostics, slices.Concat(cfg.Allowed(t.Name), r.allowLossy)))
@@ -309,6 +310,9 @@ func (r *genRun) generate(path string) error {
 		if r.makeTarget != "" {
 			for _, p := range slices.Concat(result.Written, result.Expected, result.Kept) {
 				r.outputs[p] = true
+			}
+			for _, p := range result.Read {
+				r.read[p] = true
 			}
 		}
 		for _, p := range result.Expected {

@@ -535,3 +535,39 @@ func at(f *plugin.File, elem string) *ir.Position {
 func astPos(p *ir.Position) ast.Position {
 	return ast.Position{Filename: p.GetFilename(), Line: int(p.GetLine()), Col: int(p.GetColumn())}
 }
+
+// Normalize is the normal form of objects and fields for the round-trip
+// corpus: each parsed and written again without the elements import does
+// not read. Every other file is compared as written until Apex is read.
+func Normalize(files []*plugin.File) ([]*plugin.File, error) {
+	out := make([]*plugin.File, len(files))
+	for i, f := range files {
+		var v any
+		switch p := f.GetPath(); {
+		case strings.HasSuffix(p, ".object-meta.xml"):
+			v = &customObject{}
+		case strings.HasSuffix(p, ".field-meta.xml"):
+			v = &customField{}
+		default:
+			out[i] = f
+			continue
+		}
+		if err := xml.Unmarshal(f.GetContent(), v); err != nil {
+			return nil, fmt.Errorf("%s: %w", f.GetPath(), err)
+		}
+		switch v := v.(type) {
+		case *customObject:
+			v.NS, v.Other = metadataNS, nil
+			// Import reads none of these, so regenerating writes the
+			// defaults.
+			api, _, _ := objectPath(f.GetPath())
+			base := strings.TrimSuffix(api, "__c")
+			v.DeploymentStatus, v.SharingModel = "Deployed", "ReadWrite"
+			v.NameField = nameField{DisplayFormat: base + "-{0000}", Label: v.Label + " Number", Type: "AutoNumber"}
+		case *customField:
+			v.NS, v.Other = metadataNS, nil
+		}
+		out[i] = xmlFile(f.GetPath(), v)
+	}
+	return out, nil
+}
