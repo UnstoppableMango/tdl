@@ -19,8 +19,6 @@ env:
   GOCACHE: ${{ github.workspace }}/.go/build
 
 jobs:
-  # Hercules builds x86_64-linux; nix-ci.yml runs the checks on darwin and
-  # waits for Hercules's status.
   nix:
     uses: unmango/ci/.github/workflows/nix-ci.yml@30ae545a17dc3cd88663c8d0aa92ae374b62779c
     permissions:
@@ -52,8 +50,7 @@ jobs:
       - uses: unmango/actions/setup-nix@e8bbcbd12a2c521c5cb36957c00a7a8f4fe2e766 # v2.0.0
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
-          # Only main pushes to Cachix.
-          cachix_auth_token: ${{ github.event_name == 'push' && secrets.CACHIX_AUTH_TOKEN || '' }}
+          cachix_auth_token: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.CACHIX_AUTH_TOKEN || '' }}
 
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:

@@ -21,7 +21,6 @@
       inputs.flake-utils.inputs.systems.follows = "systems";
     };
 
-    # flakeModules.ci, which sets herculesCI and apps.renovate-fixup
     mangonix = {
       url = "github:UnstoppableMango/nix";
       inputs.nixpkgs.follows = "nixpkgs";
