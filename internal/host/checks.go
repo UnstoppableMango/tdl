@@ -1,4 +1,4 @@
-package gen
+package host
 
 import (
 	"bytes"
@@ -13,7 +13,6 @@ import (
 	"syscall"
 
 	"github.com/unstoppablemango/tdl/internal/config"
-	"github.com/unstoppablemango/tdl/internal/host"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -39,7 +38,7 @@ type Checks struct {
 // an error naming the target for a name cfg does not declare, including
 // when there is no tdl.toml.
 func ResolveChecks(block *ir.TargetBlock, cfg *config.Config) (*Checks, error) {
-	cmds, err := commands(block, cfg, host.CheckDirective, cfg.Check)
+	cmds, err := Commands(block, cfg, CheckDirective, cfg.Check)
 	if err != nil || cmds == nil {
 		return nil, err
 	}
@@ -47,15 +46,15 @@ func ResolveChecks(block *ir.TargetBlock, cfg *config.Config) (*Checks, error) {
 }
 
 // Run stages the output directory as the run would leave it: a copy of
-// what out holds now, less the files tdl owns there when clean is set,
-// with files written over it. The copy is placed beside out, so a tool run
+// what out holds now, less the paths skip names (joined to out), which a
+// clean run would remove, with files written over it. The copy is placed beside out, so a tool run
 // there finds the configuration the real output would, or in the system's
 // temporary directory when the directory above out cannot be written.
 // Each command runs there in order, with {dir} naming that directory. The
 // first to fail is an error carrying everything it printed on either
 // stream. The directory is removed whatever happens. A nil Checks runs
 // nothing.
-func (c *Checks) Run(ctx context.Context, out string, files []*plugin.File, clean bool) (err error) {
+func (c *Checks) Run(ctx context.Context, out string, files []*plugin.File, skip map[string]bool) (err error) {
 	if c == nil || len(c.Commands) == 0 {
 		return nil
 	}
@@ -75,16 +74,10 @@ func (c *Checks) Run(ctx context.Context, out string, files []*plugin.File, clea
 		err = errors.Join(err, os.RemoveAll(staged))
 	}()
 
-	var skip map[string]bool
-	if clean {
-		if skip, err = Owned(out); err != nil {
-			return err
-		}
-	}
 	if err := copyTree(out, staged, skip); err != nil {
 		return fmt.Errorf("staging the files to check: %w", err)
 	}
-	if _, err := Write(staged, files); err != nil {
+	if err := stage(staged, files); err != nil {
 		return fmt.Errorf("staging the files to check: %w", err)
 	}
 	for _, cmd := range c.Commands {
@@ -167,13 +160,54 @@ func (c Command) check(ctx context.Context, manifest, dir string) error {
 	case errors.Is(err, exec.ErrNotFound), errors.Is(err, os.ErrNotExist):
 		return fmt.Errorf("check command %s: %s was not found", c.Name, args[0])
 	case errors.As(err, &exit):
-		msg := fmt.Sprintf("check command %s failed: %v", c.Name, err)
-		if s := strings.TrimSpace(output.String()); s != "" {
-			msg += "\n" + s
-		}
-		return errors.New(msg)
+		return &CheckFailure{Name: c.Name, Status: exit.String(), Output: strings.TrimSpace(output.String())}
 	}
 	return fmt.Errorf("check command %s: %w", c.Name, err)
+}
+
+// CheckFailure is a check command that ran and exited non-zero, as
+// opposed to one that could not run at all.
+type CheckFailure struct {
+	// Name is what the check directive and [check] call the command.
+	Name string
+	// Status is how it exited: "exit status 1".
+	Status string
+	// Output is everything it printed on either stream, trimmed.
+	Output string
+}
+
+func (f *CheckFailure) Error() string {
+	msg := fmt.Sprintf("check command %s failed: %s", f.Name, f.Status)
+	if f.Output != "" {
+		msg += "\n" + f.Output
+	}
+	return msg
+}
+
+// stage writes files under dir, which is new and empty, through an
+// [os.Root], so that no path leaves it.
+func stage(dir string, files []*plugin.File) error {
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return err
+	}
+	defer root.Close()
+	for _, f := range files {
+		switch {
+		case f.GetPath() == "":
+			return fmt.Errorf("the backend returned a file with no path")
+		case filepath.IsAbs(f.GetPath()):
+			return fmt.Errorf("%s: a backend may not write an absolute path", f.GetPath())
+		}
+		rel := filepath.FromSlash(f.GetPath())
+		if err := root.MkdirAll(filepath.Dir(rel), 0o755); err != nil {
+			return err
+		}
+		if err := root.WriteFile(rel, f.GetContent(), 0o644); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // existingParent returns the nearest directory above out that exists,

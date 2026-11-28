@@ -207,7 +207,7 @@ The plugin protocol in `docs/architecture/plugins.md` is complete.
   `keep.go` keeps a nondeterministic backend's output while its request hashes the same, recording the hashes in `.tdl-output` (ADR-0002).
   `deps.go` adds to such a backend's request, before hashing, each extern's declaration and the files each dependency's own block for the target last wrote, so regenerating a dependency regenerates its dependents.
   `post.go` runs the commands a target block's `post` directive names, through `tdl.toml`'s `[post]` table, over each returned file before anything is compared or written.
-  `checks.go` runs the commands a `check` directive names, through `[check]`, over a temporary copy of the output directory as the run would leave it, staged beside it, before anything is cleaned, written, or marked; a verify run or kept output runs none.
+  It runs `internal/host`'s checks over a temporary copy of the output directory as the run would leave it before anything is cleaned, written, or marked; a verify run or kept output runs none.
   `internal/gen/echo` is a test backend that writes a model as JSON and imports it back; it is not compiled into `tdl`.
 - `internal/host`: what a host does around a backend, importing none, so a backend hosting itself can use it.
   `loss.go` declares the loss codes, which `emit` re-exports, so `tdl`'s completion lists them too.
@@ -215,6 +215,7 @@ The plugin protocol in `docs/architecture/plugins.md` is complete.
   `Renamed` maps a deprecated block directive to its new name, `roundtrip` to `annotate` for one release; `CheckDirectives` warns about the old spelling and checks it as the new, unless the backend still declares the old one or does not declare the new.
   `Silence` drops warnings with an allowed loss code.
   `ImportFiles` (`walk.go`) expands a directory argument to `tdl import` into the files a backend's import patterns match.
+  `command.go` resolves a `post` or `check` directive's names through their `tdl.toml` table and splits each command line into words; `checks.go` runs the commands `check` names over a temporary copy of the files beside the output directory, which the delegated backend also does between attempts.
 - `internal/config`: reads the nearest `tdl.toml` above a file; only its `[lossy]`, `[post]`, and `[check]` tables so far.
 - `internal/makefn`: what the make functions in `cmd/tdl-gmk` return, `Files` and `Imports`, kept out of the plugin so they test without make.
   `cmd/tdl-gmk` is behind the `makeplugin` build tag, since a `main` package built with `-buildmode=c-shared` links against symbols only make defines; `go build ./...` and the linters never see it.

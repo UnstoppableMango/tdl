@@ -25,8 +25,8 @@ type Target struct {
 
 	// Checks is what runs over a staged copy of the output directory, with
 	// those files written into it, before anything is written, from
-	// [ResolveChecks]; nil runs nothing. A verify run runs none.
-	Checks *Checks
+	// [host.ResolveChecks]; nil runs nothing. A verify run runs none.
+	Checks *host.Checks
 
 	// Loader reads the model's imports again for a nondeterministic
 	// backend, so [Depend] can send what each dependency declares and
@@ -149,7 +149,14 @@ func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.M
 
 	// Checked before anything is cleaned, written, or marked, so a failing
 	// check leaves the directory as it was.
-	if err := target.Checks.Run(ctx, target.Out, files, mode == ModeClean); err != nil {
+	var removed map[string]bool
+	if mode == ModeClean && target.Checks != nil {
+		var err error
+		if removed, err = Owned(target.Out); err != nil {
+			return result, fmt.Errorf("target %s: %w", target.Name, err)
+		}
+	}
+	if err := target.Checks.Run(ctx, target.Out, files, removed); err != nil {
 		return result, fmt.Errorf("target %s: %w", target.Name, err)
 	}
 

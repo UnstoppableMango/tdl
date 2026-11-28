@@ -2,7 +2,7 @@
 
 Design document.
 The protocol is implemented: the wire types are in `plugin/`, generated from `proto/tdl/plugin/v1/plugin.proto`, and the compiler side is `internal/gen`.
-Of the `tdl.toml` settings below, post-processing commands are built in `internal/gen/post.go` and checks in `internal/gen/checks.go`, and per-plugin timeouts are not.
+Of the `tdl.toml` settings below, post-processing commands are built in `internal/gen/post.go` and checks in `internal/host/checks.go`, and per-plugin timeouts are not.
 
 A backend turns a resolved model into files.
 The backends in `internal/gen/registry.go` ship with `tdl`; any other target name resolves to `tdl-gen-<name>` on `PATH`.

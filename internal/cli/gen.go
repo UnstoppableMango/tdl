@@ -296,7 +296,7 @@ func (r *genRun) generate(path string) error {
 		if t.Post, err = gen.ResolvePost(t.Block, cfg); err != nil {
 			return err
 		}
-		if t.Checks, err = gen.ResolveChecks(t.Block, cfg); err != nil {
+		if t.Checks, err = host.ResolveChecks(t.Block, cfg); err != nil {
 			return err
 		}
 		t.Loader = loader
