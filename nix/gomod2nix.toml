@@ -166,12 +166,12 @@ schema = 3
     hash = 'sha256-QW79npXNAVF7ASc5myWf8i9uVzDHe52YJXuch3wwCDg='
 
   [mod.'golang.org/x/exp']
-    version = 'v0.0.0-20261106192419-47ce03d25ef0'
-    hash = 'sha256-3xXjW9EkbIvMd52XRiK5Z9uwkfKUOXe12vVEzvYqAoI='
+    version = 'v0.0.0-20261127181632-b10a66b71b35'
+    hash = 'sha256-+bBF0XTMG0W9V93R6lypGt/J3qfnaqmPrRO3nW6iHCc='
 
   [mod.'golang.org/x/sync']
-    version = 'v0.24.0'
-    hash = 'sha256-gViyLpsZFBKTEUtK6Li3m6plz5J/VCAcpTLymQVRpj4='
+    version = 'v0.25.0'
+    hash = 'sha256-exsN7AZ9kxJ+V5TK5XewgUVKAu3L0FqmNe95mlPMMSI='
 
   [mod.'golang.org/x/text']
     version = 'v0.43.0'
