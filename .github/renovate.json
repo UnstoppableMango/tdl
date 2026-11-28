@@ -8,7 +8,7 @@
 		"github>UnstoppableMango/renovate-config:nuget2nix(./tools/nugetdeps)"
 	],
 	"constraints": {
-		"dotnet": "10.0.404"
+		"dotnet": "11.0.100"
 	},
 	"packageRules": [
 		{
