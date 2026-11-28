@@ -11,6 +11,7 @@ go test -short ./...               # skips every test that runs an external tool
 go test ./parser -run TestConformanceCorpusParses   # a single test
 go test ./parser -run '^$' -fuzz '^FuzzParse$' -fuzztime 5m   # fuzz one target (FuzzLex in ./lex)
 go build ./...
+govulncheck ./...                  # in the devShell or .#govulncheck; CI's advisory govulncheck job
 
 command make build            # nix build .#
 command make test             # go test ./...
@@ -720,7 +721,7 @@ The one required check is the `required` job in `.github/workflows/ci.yml`.
 It needs `nix`, which calls `unmango/ci`'s `nix-ci.yml`: `nix flake check` on `macos-latest`, and a wait for Hercules's `onPush.default` status, which builds every check on x86_64-linux.
 macOS builds only what a check builds, and Hercules builds every package as well.
 It also needs `windows`, which runs `go test -short ./...` without Nix on `windows-latest` and `windows-11-arm`, `windows-npm`, which installs the npm packages `check` packed on both and runs `tdl version`, and `check`, the Linux job on `ubuntu-latest`, which packs those npm packages and uploads coverage.
-A new check is a flake check, which Hercules and macOS both run; a new CI job goes in `required`'s `needs`, not in the ruleset (declared in Pulumi in `UnstoppableMango/vcs`), unless it is advisory like `buf.yml` and `codeql.yml`.
+A new check is a flake check, which Hercules and macOS both run; a new CI job goes in `required`'s `needs`, not in the ruleset (declared in Pulumi in `UnstoppableMango/vcs`), unless it is advisory like `buf.yml`, `codeql.yml`, and `ci.yml`'s `govulncheck` job, so a newly published advisory blocks no unrelated work.
 
 Pull requests are stacked, and GitHub rebases the rest of the stack on merge; reset local branches from the remote afterwards.
 `gh pr merge` and `PUT /pulls/{n}/merge` refuse a stacked pull request.

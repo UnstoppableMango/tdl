@@ -87,6 +87,7 @@
               gomod2nix
               gopls
               golangci-lint
+              govulncheck
               ghc
               gnumake
               nixfmt
@@ -135,6 +136,13 @@
               pkgs.gnumake
               pkgs.nodejs
               pkgs.tree-sitter
+            ];
+          };
+
+          devShells.govulncheck = pkgs.mkShell {
+            packages = [
+              pkgs.go_1_27
+              pkgs.govulncheck
             ];
           };
 
