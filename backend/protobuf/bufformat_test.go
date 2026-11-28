@@ -5,6 +5,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+
+	"github.com/unstoppablemango/tdl/internal/tooltest"
 )
 
 // bufFormatModel exercises every place the backend writes an option or a
@@ -62,10 +64,7 @@ target protobuf for acme.widgets.v1 {
 // The backend writes what buf format writes, so a project can hold its
 // generated files to both buf format and tdl gen --verify.
 func TestOutputIsBufFormatted(t *testing.T) {
-	bin, err := exec.LookPath("buf")
-	if err != nil {
-		t.Skip("buf is not on PATH")
-	}
+	bin := tooltest.Require(t, "buf")
 	resp := generateModel(t, bufFormatModel)
 	dir := t.TempDir()
 	for _, f := range resp.GetFiles() {

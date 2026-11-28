@@ -12,6 +12,7 @@ import (
 	"github.com/unstoppablemango/tdl/internal/analysis"
 	"github.com/unstoppablemango/tdl/internal/gen"
 	"github.com/unstoppablemango/tdl/internal/sema"
+	"github.com/unstoppablemango/tdl/internal/tooltest"
 	"github.com/unstoppablemango/tdl/parser"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -64,7 +65,7 @@ func checkPluginCases(t *testing.T, target string) {
 
 // checkPluginCorpus records a request for every conformance case and the
 // smoke model, and compares what tdl-gen-<target> generates for each with
-// the files beside it when the plugin is on PATH. -record rewrites both.
+// the files beside it. -record rewrites both.
 func checkPluginCorpus(t *testing.T, target string) {
 	t.Helper()
 	cases, err := filepath.Glob("../../testdata/conformance/*")
@@ -78,10 +79,8 @@ func checkPluginCorpus(t *testing.T, target string) {
 	cases = append(cases, "../../testdata/gen/smoke")
 
 	corpus := "../../testdata/" + target + "/corpus"
-	backend, err := gen.Resolve(target)
-	if err != nil {
-		backend = nil
-	}
+	// Comparing runs the plugin.
+	backend, missing := gen.Resolve(target)
 
 	want := map[string]bool{}
 	for _, dir := range cases {
@@ -96,9 +95,7 @@ func checkPluginCorpus(t *testing.T, target string) {
 			}
 			req := pluginRequest(t, target, filepath.Join(dir, "source.tdl"))
 			checkBinary(t, filepath.Join(out, "request.binpb"), req)
-			if backend == nil {
-				t.Skipf("tdl-gen-%s is not on PATH", target)
-			}
+			tooltest.Need(t, missing)
 			resp, err := backend.Generate(context.Background(), req)
 			if err != nil {
 				t.Fatalf("generate: %v", err)

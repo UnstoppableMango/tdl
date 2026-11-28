@@ -29,6 +29,7 @@ import (
 	"github.com/unstoppablemango/tdl/ast"
 	"github.com/unstoppablemango/tdl/internal/analysis"
 	"github.com/unstoppablemango/tdl/internal/sema"
+	"github.com/unstoppablemango/tdl/internal/tooltest"
 	"github.com/unstoppablemango/tdl/internal/unlower"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/parser"
@@ -78,9 +79,7 @@ type Target struct {
 func Run(t *testing.T, target Target, dir string, smoke ...string) {
 	t.Helper()
 	if target.Needs != nil {
-		if err := target.Needs(); err != nil {
-			t.Skip(err)
-		}
+		tooltest.Need(t, target.Needs())
 	}
 
 	cases, err := cases(dir)

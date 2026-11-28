@@ -1,5 +1,82 @@
 # Changelog
 
+## [0.6.0](https://github.com/UnstoppableMango/tdl/compare/v0.5.13...v0.6.0) (2026-11-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* **plugin:** the Go SDK serves several backends from one main ([#1626](https://github.com/UnstoppableMango/tdl/issues/1626))
+
+### Features
+
+* **analysis:** MemberView.references, the declarations each field names ([#1607](https://github.com/UnstoppableMango/tdl/issues/1607)) ([fc08a96](https://github.com/UnstoppableMango/tdl/commit/fc08a96af67204d4abf5621a3ad5ca29a96247bf))
+* **cli:** --strict fails gen and import on warnings that remain ([#1601](https://github.com/UnstoppableMango/tdl/issues/1601)) ([bac99df](https://github.com/UnstoppableMango/tdl/commit/bac99df424b5b3ed9ea22c19f3ae036bbffc1b61))
+* **dist:** Windows binaries in the release assets and npm packages ([#1647](https://github.com/UnstoppableMango/tdl/issues/1647)) ([fcdbc6d](https://github.com/UnstoppableMango/tdl/commit/fcdbc6dc7f1581473c7bd66f583b637ffbbb213d))
+* **emit:** rename a field's JSON key with a wire directive ([#1584](https://github.com/UnstoppableMango/tdl/issues/1584)) ([936c721](https://github.com/UnstoppableMango/tdl/commit/936c7219e3bcc30d12a5639c0f614078d04f1724))
+* **emit:** rename a variant's wire value with a wire directive ([#1583](https://github.com/UnstoppableMango/tdl/issues/1583)) ([79e9864](https://github.com/UnstoppableMango/tdl/commit/79e98645a953d2171ac991ff8c41eb2a5dc1ed3a))
+* **gen:** send a nondeterministic backend each dependency's externs and output ([#1623](https://github.com/UnstoppableMango/tdl/issues/1623)) ([88965b6](https://github.com/UnstoppableMango/tdl/commit/88965b6f61c45ce5c787b21a82a1ea53ae788825))
+* **go:** write duration as an ISO 8601 string under json ([#1618](https://github.com/UnstoppableMango/tdl/issues/1618)) ([484b2ab](https://github.com/UnstoppableMango/tdl/commit/484b2abf8e61d82a3deb42f4c703c2a3a41297db))
+* **import:** accept a directory argument in tdl import ([#1581](https://github.com/UnstoppableMango/tdl/issues/1581)) ([aaa18e6](https://github.com/UnstoppableMango/tdl/commit/aaa18e68248f254a0c72a5e088f69e8a2d417d1c)), closes [#1462](https://github.com/UnstoppableMango/tdl/issues/1462)
+* **mermaid:** draw relationships and externs ([#1621](https://github.com/UnstoppableMango/tdl/issues/1621)) ([f3e235e](https://github.com/UnstoppableMango/tdl/commit/f3e235ec9bf247aafd9b107a414d46e6450c380a))
+* **mermaid:** ship tdl-gen-mermaid as a Bun single executable through Nix, tarballs, and npm ([#1560](https://github.com/UnstoppableMango/tdl/issues/1560)) ([506b98f](https://github.com/UnstoppableMango/tdl/commit/506b98f7dc7100ab0acb1ff84b93297e8da005bc))
+* **nix:** a nix backend writing fieldless enums as lib.types ([#1635](https://github.com/UnstoppableMango/tdl/issues/1635)) ([9bb1709](https://github.com/UnstoppableMango/tdl/commit/9bb17098fabffb13eb2e40bc1df15449027113f7))
+* **nix:** guard reserved names and recursive structs ([#1645](https://github.com/UnstoppableMango/tdl/issues/1645)) ([78c3966](https://github.com/UnstoppableMango/tdl/commit/78c3966c27071d592c17ff846b632ba1d2375cc7))
+* **nix:** ship the nix backend ([#1638](https://github.com/UnstoppableMango/tdl/issues/1638)) ([79feb62](https://github.com/UnstoppableMango/tdl/commit/79feb62b7d6f24d25e625097936686ec508cdb5f))
+* **nix:** write sets and maps ([#1637](https://github.com/UnstoppableMango/tdl/issues/1637)) ([42721f6](https://github.com/UnstoppableMango/tdl/commit/42721f62986c63efa92a416e677399f8c601abf6))
+* **nix:** write structs as submodules ([#1636](https://github.com/UnstoppableMango/tdl/issues/1636)) ([3fb5c77](https://github.com/UnstoppableMango/tdl/commit/3fb5c773baecdbd6243234ee6e47077309a2670b))
+* **plugin:** send nondeterministic backends the model as TDL, with extern and dependency fields ([#1622](https://github.com/UnstoppableMango/tdl/issues/1622)) ([0ce0a44](https://github.com/UnstoppableMango/tdl/commit/0ce0a441bf9127d3efa75ca6e130c971b74325f6))
+* **plugin:** the Go SDK serves several backends from one main ([#1626](https://github.com/UnstoppableMango/tdl/issues/1626)) ([ecc59c6](https://github.com/UnstoppableMango/tdl/commit/ecc59c69cfd5b76012ae1054de85858366fb4143))
+* **plugin:** the handshake names its target ([#1616](https://github.com/UnstoppableMango/tdl/issues/1616)) ([6ea8081](https://github.com/UnstoppableMango/tdl/commit/6ea80810ec07b997b65c63e8d40c2100f9881677))
+* **release:** attach a CycloneDX SBOM and the provenance as .intoto.jsonl ([#1644](https://github.com/UnstoppableMango/tdl/issues/1644)) ([10bc7fc](https://github.com/UnstoppableMango/tdl/commit/10bc7fc48873d2f3d47f08c810d7c3867ca0b3f6))
+* **remark:** draw tdl mermaid fences with @unmango/remark-tdl-mermaid ([#1561](https://github.com/UnstoppableMango/tdl/issues/1561)) ([410cbc6](https://github.com/UnstoppableMango/tdl/commit/410cbc600809ef81f7513db1035482041719af3d))
+* **salesforce:** import objects with tdl import --from salesforce ([#1633](https://github.com/UnstoppableMango/tdl/issues/1633)) ([ddf350b](https://github.com/UnstoppableMango/tdl/commit/ddf350b96f8ba323a3f2721bbb6625f7653f9e84))
+* **salesforce:** read custom objects back into entities ([#1631](https://github.com/UnstoppableMango/tdl/issues/1631)) ([051a56f](https://github.com/UnstoppableMango/tdl/commit/051a56f2bc9bbcfe2bcb829306e46e17a29a377b))
+* **salesforce:** read lookups and picklists back ([#1642](https://github.com/UnstoppableMango/tdl/issues/1642)) ([f68d3f9](https://github.com/UnstoppableMango/tdl/commit/f68d3f900714034b06ee3557b59b5747d0fe3ffe))
+* **salesforce:** read primitive fields back ([#1632](https://github.com/UnstoppableMango/tdl/issues/1632)) ([613a5d2](https://github.com/UnstoppableMango/tdl/commit/613a5d226f8e7a2ac43c41bc8601e59a481bf339))
+* **salesforce:** warn about what an object holds that the model cannot ([#1641](https://github.com/UnstoppableMango/tdl/issues/1641)) ([d0b30d4](https://github.com/UnstoppableMango/tdl/commit/d0b30d4493f70630b43b0967dc921f6705b5c05c))
+* **sema:** check an aliased reference against its dependency's declarations ([#1576](https://github.com/UnstoppableMango/tdl/issues/1576)) ([331dd66](https://github.com/UnstoppableMango/tdl/commit/331dd66270fd1520b6e3c846445ce72c4a5154e6))
+* **skills:** add the tdl-modeling skill and its references ([#1606](https://github.com/UnstoppableMango/tdl/issues/1606)) ([f1c496d](https://github.com/UnstoppableMango/tdl/commit/f1c496d776a2071396fbd325c1822a8ef5ea7e55))
+* **skills:** write skill references with make skills ([#1613](https://github.com/UnstoppableMango/tdl/issues/1613)) ([7d8e0ee](https://github.com/UnstoppableMango/tdl/commit/7d8e0ee5321ac0e27bca018f4fb7fbc79d954f87))
+* **yolo:** an OpenAI-compatible Chat Completions provider ([#1604](https://github.com/UnstoppableMango/tdl/issues/1604)) ([1328bb7](https://github.com/UnstoppableMango/tdl/commit/1328bb73f4cd236a6c306b7d5c8db6eb4010f451))
+* **yolo:** pick the model provider with a provider directive ([#1605](https://github.com/UnstoppableMango/tdl/issues/1605)) ([3ab23e5](https://github.com/UnstoppableMango/tdl/commit/3ab23e5695f8c870c3d6b22d78b4a7c6a4273f35))
+* **yolo:** show the model each extern's dependency, and warn only on a guess ([#1624](https://github.com/UnstoppableMango/tdl/issues/1624)) ([8da78db](https://github.com/UnstoppableMango/tdl/commit/8da78db694289d85a14e70384495e6a220b65631))
+
+
+### Bug Fixes
+
+* **gen:** keep the stderr of a plugin that stops reading its request ([#1603](https://github.com/UnstoppableMango/tdl/issues/1603)) ([5c96ca2](https://github.com/UnstoppableMango/tdl/commit/5c96ca29f718b2603cdb6321803d9277bcac5857))
+
+
+### Documentation
+
+* add SECURITY.md and CONTRIBUTING.md ([#1598](https://github.com/UnstoppableMango/tdl/issues/1598)) ([5f62d0e](https://github.com/UnstoppableMango/tdl/commit/5f62d0e27d4da78837ca819ee5684714075c3c72))
+* name the annotate directive ([#1612](https://github.com/UnstoppableMango/tdl/issues/1612)) ([fabe34d](https://github.com/UnstoppableMango/tdl/commit/fabe34d78a606b6ff862909afb65aab56b04e20f))
+* **yolo:** the delegated backend's page and matrix column ([#1602](https://github.com/UnstoppableMango/tdl/issues/1602)) ([e17271c](https://github.com/UnstoppableMango/tdl/commit/e17271c91ac2c18738eab1e7d1e8476cf8b2007c))
+
+
+### Code Refactoring
+
+* name the SDKs annotate members ([#1629](https://github.com/UnstoppableMango/tdl/issues/1629)) ([dbf9799](https://github.com/UnstoppableMango/tdl/commit/dbf979965550712f3f8dc70bb82626fc87ea53cf))
+* rename the roundtrip directive to annotate ([#1611](https://github.com/UnstoppableMango/tdl/issues/1611)) ([837e199](https://github.com/UnstoppableMango/tdl/commit/837e199fd41a4011be7ead589a0dc81f80b472b8))
+
+
+### Tests
+
+* fuzz the lexer and parser, weekly in Actions ([#1617](https://github.com/UnstoppableMango/tdl/issues/1617)) ([62b4e97](https://github.com/UnstoppableMango/tdl/commit/62b4e9764c40e6dadb5aef58277b38c8e98ac4b7))
+* **skills:** hold every skill to its references, frontmatter, and snippets ([#1614](https://github.com/UnstoppableMango/tdl/issues/1614)) ([9fd4431](https://github.com/UnstoppableMango/tdl/commit/9fd4431df65f96b4d27ff6e611d9f3f735b5dbad)), closes [#1448](https://github.com/UnstoppableMango/tdl/issues/1448)
+
+
+### Dependencies
+
+* update module go.yaml.in/yaml/v3 to v3.0.6 ([#1655](https://github.com/UnstoppableMango/tdl/issues/1655)) ([001440f](https://github.com/UnstoppableMango/tdl/commit/001440f053c97a97cfe97601f93143c6ee13a755))
+
+
+### Continuous Integration
+
+* add advisory CodeQL scanning for Go and GitHub Actions ([#1599](https://github.com/UnstoppableMango/tdl/issues/1599)) ([f7c1844](https://github.com/UnstoppableMango/tdl/commit/f7c1844e3da0da8ddae09f7e5bcf2bd6affff7c6))
+* join the shared Nix CI pieces and the required gate ([#1666](https://github.com/UnstoppableMango/tdl/issues/1666)) ([0b015f6](https://github.com/UnstoppableMango/tdl/commit/0b015f6f981ec7c9897d90ebdbfa3b85131dcaa2))
+* run the Go test suite on Windows ([#1600](https://github.com/UnstoppableMango/tdl/issues/1600)) ([26484fc](https://github.com/UnstoppableMango/tdl/commit/26484fca207ccc0daf2acd63d190ae873a8bcc43))
+
 ## [0.5.13](https://github.com/UnstoppableMango/tdl/compare/v0.5.12...v0.5.13) (2026-11-26)
 
 

@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
+	"github.com/unstoppablemango/tdl/internal/tooltest"
 )
 
 // A patternCase is a pattern in RE2 syntax and inputs to match it
@@ -168,13 +169,7 @@ func TestBacktracks(t *testing.T) {
 // [emit.NeedsUnicode] says the flag changes nothing, without it.
 func TestECMAScriptAgreesWithRE2(t *testing.T) {
 	cases := patternCases(t)
-	if testing.Short() {
-		t.Skip("-short")
-	}
-	node, err := exec.LookPath("node")
-	if err != nil {
-		t.Skip("node is not on PATH")
-	}
+	node := tooltest.Require(t, "node")
 
 	type form struct {
 		name    string

@@ -122,35 +122,45 @@ func (l *tsLit) text() string {
 	return "?"
 }
 
-// ErrNoCompiler is why import cannot run: node or the TypeScript compiler
-// is not on PATH.
-var ErrNoCompiler = errors.New("importing TypeScript runs the TypeScript compiler under node, and needs node and tsc on PATH")
+// ErrNoCompiler is why import cannot run: node, or a TypeScript package
+// with the compiler API, is missing.
+var ErrNoCompiler = errors.New("importing TypeScript runs the TypeScript 5 compiler API under node, and needs node on PATH and a typescript 5 package, from tsc on PATH or on NODE_PATH")
 
-// Compiler finds node and the TypeScript package's directory, from tsc on
-// PATH, or returns [ErrNoCompiler].
+// Compiler finds node and the directory of a TypeScript package holding
+// the compiler API, lib/typescript.js, or returns [ErrNoCompiler]. The
+// package is tsc's on PATH, or else one on NODE_PATH, as node resolves it;
+// TypeScript 7's tsc is a native binary without the API, so a tsc of 7 or
+// later on PATH needs a typescript 5 package on NODE_PATH beside it.
 func Compiler() (node, pkg string, err error) {
 	node, err = exec.LookPath("node")
 	if err != nil {
 		return "", "", ErrNoCompiler
 	}
-	tsc, err := exec.LookPath("tsc")
-	if err != nil {
-		return "", "", ErrNoCompiler
+	if tsc, err := exec.LookPath("tsc"); err == nil {
+		if real, err := filepath.EvalSymlinks(tsc); err == nil {
+			if pkg, ok := findPackage(packageDirs(real)); ok {
+				return node, pkg, nil
+			}
+		}
 	}
-	real, err := filepath.EvalSymlinks(tsc)
-	if err != nil {
-		return "", "", ErrNoCompiler
+	var dirs []string
+	for _, dir := range filepath.SplitList(os.Getenv("NODE_PATH")) {
+		// Absolute, since the script requires the directory, and node
+		// reads a relative path without ./ as a package name.
+		if abs, err := filepath.Abs(dir); dir != "" && err == nil {
+			dirs = append(dirs, filepath.Join(abs, "typescript"))
+		}
 	}
-	if pkg, ok := findPackage(real); ok {
+	if pkg, ok := findPackage(dirs); ok {
 		return node, pkg, nil
 	}
 	return "", "", ErrNoCompiler
 }
 
-// findPackage finds the typescript package's directory from tsc.
-func findPackage(tsc string) (string, bool) {
-	for _, dir := range packageDirs(tsc) {
-		if _, err := os.Stat(filepath.Join(dir, "package.json")); err == nil {
+// findPackage returns the first of dirs holding the compiler API.
+func findPackage(dirs []string) (string, bool) {
+	for _, dir := range dirs {
+		if _, err := os.Stat(filepath.Join(dir, "lib", "typescript.js")); err == nil {
 			return dir, true
 		}
 	}

@@ -11,6 +11,7 @@ import (
 
 	"github.com/unstoppablemango/tdl/backend/internal/irtest"
 	"github.com/unstoppablemango/tdl/backend/likec4"
+	"github.com/unstoppablemango/tdl/internal/tooltest"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 	"github.com/unstoppablemango/tdl/prelude"
@@ -29,7 +30,7 @@ func generate(t *testing.T, m *ir.Model) *plugin.Response {
 }
 
 // model returns the response's model file, the one beside tdl.c4, and
-// validates the pair when the likec4 CLI is on PATH.
+// validates the pair with the likec4 CLI.
 func model(t *testing.T, resp *plugin.Response) (string, string) {
 	t.Helper()
 	files := resp.GetFiles()
@@ -40,15 +41,11 @@ func model(t *testing.T, resp *plugin.Response) (string, string) {
 	return files[1].GetPath(), string(files[1].GetContent())
 }
 
-// validate runs `likec4 validate` over the files as one project. Without
-// the CLI, or under -short, these tests check substrings only.
+// validate runs `likec4 validate` over the files as one project.
 func validate(t *testing.T, files []*plugin.File) {
 	t.Helper()
-	if testing.Short() {
-		return
-	}
-	cli, err := exec.LookPath("likec4")
-	if err != nil {
+	cli, ok := tooltest.Lookup(t, "likec4")
+	if !ok {
 		return
 	}
 	dir := t.TempDir()

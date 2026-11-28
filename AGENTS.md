@@ -6,8 +6,8 @@ Guidance for coding agents working in this repository.
 
 ```shell
 go test ./...                      # all tests
-go test -race ./...                # what CI runs; the plugin subprocess needs it
-go test -short ./...               # skips running external tools on generated code
+go test -race ./...                # what checks.go-test runs; the plugin subprocess needs it
+go test -short ./...               # skips every test that runs an external tool
 go test ./parser -run TestConformanceCorpusParses   # a single test
 go test ./parser -run '^$' -fuzz '^FuzzParse$' -fuzztime 5m   # fuzz one target (FuzzLex in ./lex)
 go build ./...
@@ -37,10 +37,15 @@ command make js-test          # npm ci, then js/'s tests under node --test and b
 command make js-check         # npm ci, then build js/ (typecheck) and biome check it
 command make mutate           # in the devShell: gremlins over the core packages; PKG=./lex for one
 command make test-treesitter  # the conformance corpus, run by tree-sitter
-command make check-treesitter # what CI runs: treesitter + a diff + test-treesitter
+command make check-treesitter # treesitter + a diff + test-treesitter, as checks.treesitter runs
 ```
 
 Prefix `make` with `command` (see the shell autoload note in the global instructions).
+
+Without `-short`, every test that runs an external tool (`tsc`, `node`, `smithy`, `ghc`, `buf`, `likec4`, `cml-check`, `make`, `go`, `biome`, `tdl-gen-csharp`, `tdl-gen-mermaid`, the zod and TypeScript 5 packages on `NODE_PATH`) requires it: a tool missing from `PATH`, or one too old, such as a `tsc` before 7.1 for the content mapper, fails the test and names the tool.
+The devShell has them all, and `checks.go-test` runs the suite with them.
+`-short` skips those tests, so it is the fast suite without the devShell.
+A test finds a tool through `internal/tooltest` (`Require`, `Lookup`, `Need`, `RequireVersion`), never `exec.LookPath` and a skip of its own.
 
 `generate`, `treesitter`, `textmate`, and `skills` are file targets, so each reruns only when its inputs are newer.
 `tree-sitter/Makefile`, `editors/vscode/Makefile`, and `js/Makefile` hold the targets for their directories; the root delegates to them.
@@ -49,8 +54,11 @@ Prefix `make` with `command` (see the shell autoload note in the global instruct
 It mutates `lex`, `parser`, `ast`, `internal/sema`, and `internal/analysis`, and nothing runs it in CI (see `docs/architecture/mutation-testing.md`).
 `go run ./tools/mutate -report mutate.json` reprints a report without running gremlins.
 Never combine `-race` with `-coverpkg`: every covered statement becomes an atomic the race detector tracks, and the protocompile tests time out.
-CI runs them as two steps.
+`checks.go-test` and `checks.go-cover` are two derivations for this reason.
 `vscode-install` regenerates the TextMate grammar first, and `install.sh` refuses to run without a bundle built by `make`.
+
+`nix flake check` runs every check the merge gate does: `nix/gate.nix` holds the race run, coverage, and the lints as checks (see [Nix](#nix)).
+Hercules also builds every package but `demo`, and until the cutover in #1187 the Linux Actions job stays required too (see [Review](#review)).
 
 `nix fmt` formats Go, Nix, YAML, JSON, TOML, Markdown, protobuf, and TypeScript, and `nix flake check` fails on anything unformatted.
 
@@ -114,6 +122,14 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 - `zod.nix`: the `zod` npm package, fetched by hash, for `checks.gen-zod` and the devShell's `NODE_PATH`.
 - `demo.nix`: renders `docs/demo/demo.tape`, the README's GIF, with VHS. It is a package and not a check, since it runs a browser.
   The tape's `cat`, from `docs/demo/demo.bash`, highlights everything with bat, TDL through the syntax the `tdl` package installs.
+- `gate.nix`: the checks that make `nix flake check` the merge gate (#1187).
+  Hercules reads a `ci.nix` or `nix/ci.nix` as its non-flake entry point in place of `herculesCI`, so neither name may exist.
+  `checks.go-test` runs `go test -race ./...` with every tool the tests run on `PATH`, `packages.plugins` included, and the zod and TypeScript 5 packages on `NODE_PATH`; `checks.go-cover` writes the `-short` coverage profile to `$out/cover.profile`, a separate run, since `-race` with `-coverpkg` timed the protocompile tests out.
+  Both, `checks.golangci-lint`, and `checks.treesitter` (the grammar regenerated with the treesitter devShell's CLI must be what is committed, and `tree-sitter/corpus.sh` passes) run through `checks/go.nix`: the module with gomod2nix's vendored modules and no network.
+  `checks.biome` runs nixpkgs' Biome over `editors/vscode` and `js` with each one's `biome.json`, since the lock's Biome is a binary linked for a loader the sandbox lacks; building `vscode-tdl` and `tdl-js` typechecks both.
+  `checks.markdownlint` reads `.markdownlint-cli2.yaml`, and `checks.tdl-release-reproducible` builds `packages.release` twice and compares `SHA256SUMS`.
+- `tsc.nix`: tsc 7.1.0-beta from the registry's platform packages, for the content mapper's test; drop it once nixpkgs' `typescript` reaches 7.1.
+- `cml-check.nix`: `backend/contextmapper/testdata/cmlcheck` compiled against `context-mapper-cli`'s jars, from `unmango/pkgs`.
 - `hercules.nix`: settings for `flakeModules.ci` from the `mangonix` input (UnstoppableMango/nix), which writes `herculesCI` on `herculesCI.ciSystems` alone (x86_64-linux, from the `systems` input).
   `onPush.default` builds the checks and every package but `demo`, and no devShell.
   `onSchedule.nightly`, at 04:00 UTC, builds `demo` and every devShell, so vhs and the editors stay out of a pull request's fetch, and a Hydra failure in them blocks nothing; its result shows only on Hercules.
@@ -249,7 +265,7 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   Target-block `import` adds an import to every file; `option` writes a field, value, or statement option.
   A type tagged `service` becomes a service; its fields apply primitives tagged `rpc`, with arguments in a `stream`-tagged primitive streamed.
   `format.go` lays out every file with protocompile's printer under its `Legacy` preset, which reproduces `buf format`, so formatting the output changes nothing.
-  Tests compile every response with `bufbuild/protocompile`, and `TestOutputIsBufFormatted` runs `buf format -d` when `buf` is on `PATH`.
+  Tests compile every response with `bufbuild/protocompile`, and `TestOutputIsBufFormatted` runs `buf format -d`.
   It imports: `reverse.go` reads files compiled by `compile.go` into an `ast.File` and lowers it, and `annotate.go` writes the loss warnings and, under `annotate`, the options `tdl/annotations.proto` declares.
   `Normalize` is its normal form for the round-trip corpus.
 - `backend/thrift`: one `.thrift` file per model under `namespace *`, in dependency order.
@@ -261,8 +277,8 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   Each list or map a field holds becomes a named shape (`LineItemList`, `StringLongMap`); a shadowed prelude shape is written `smithy.api#`.
   Non-optional fields are `@required`, and an optional element makes a collection `@sparse`.
   `shapes.go` is the shape model both directions share: generating builds shapes and renders them, and import reads them from the CLI's JSON AST.
-  Tests run `smithy validate` when it is on `PATH`; `checks.gen-smithy` always does.
-  It imports: `reverse.go` runs `smithy ast` from `PATH` and reads the JSON, which has no positions, so `locate` scans the source for each shape's statement; without the CLI, import and its tests skip.
+  Tests run `smithy validate` unless `-short`; `checks.gen-smithy` always does.
+  It imports: `reverse.go` runs `smithy ast` from `PATH` and reads the JSON, which has no positions, so `locate` scans the source for each shape's statement; without the CLI import fails, and its tests skip only under `-short`.
   `annotate.go` writes the loss warnings and, under `annotate`, `metadata tdl` and a `tdl#source` trait on each declaration whose shapes the reader does not read back as it.
   `Normalize` is its normal form for the round-trip corpus.
 - `backend/graphql`: one schema per model, output types only.
@@ -276,11 +292,11 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   `construct.go` writes the constructor, a function named for the newtype that casts its base and throws a `RangeError` for each constraint the type cannot state, `matches` only under `patterns`; import reads one back as a `construct` directive.
   An extern is imported with `import type`, through `backend/internal/ts`'s `imports.go`: from the module a `foreign` directive names, or from its dependency's file by a path relative to this one, which both blocks' `out` directives place.
   A narrowed type from `emit.Narrow` is written as a literal union, which warns only that it reads back as `oneOf`, or a tuple, which import reads back as a list with its `length`.
-  Tests run `tsc --noEmit --strict` when it is on `PATH`; `checks.gen-typescript` always does.
-  It imports one file: `reverse.go` runs the embedded `outline.js` under `node` with the `typescript` package found from `tsc` on `PATH`, and reads the JSON outline it writes; without both, import and its tests skip.
+  Tests run `tsc --noEmit --strict` unless `-short`; `checks.gen-typescript` always does.
+  It imports one file: `reverse.go` runs the embedded `outline.js` under `node` with TypeScript 5's compiler API, `lib/typescript.js`, from `tsc`'s package on `PATH` or a `typescript` package on `NODE_PATH`, since TypeScript 7's native `tsc` has none, and reads the JSON outline it writes; without both, import fails, and its tests skip only under `-short`.
   `annotate.go` writes the loss warnings and, under `annotate`, JSDoc `@tdl` tags, carrying a declaration whole where it loses anything.
   `Normalize` is its normal form for the round-trip corpus.
-  `mapper.go` is a TypeScript 7.1 content mapper, served by `tdl-gen-typescript content-mapper`: tsc sends it a `.tdl` file and it lowers the file and returns the module this backend writes, importing an extern from its `.tdl` file; `TestMapperUnderTsc` runs tsc when a 7.1 or later is on `PATH`, through `npm/tdl-typescript/` as it ships.
+  `mapper.go` is a TypeScript 7.1 content mapper, served by `tdl-gen-typescript content-mapper`: tsc sends it a `.tdl` file and it lowers the file and returns the module this backend writes, importing an extern from its `.tdl` file; `TestMapperUnderTsc` runs a tsc of 7.1 or later, through `npm/tdl-typescript/` as it ships.
   See `docs/architecture/typescript-content-mapper.md`.
 - `backend/zod`: one `<package>.zod.ts` module per model of Zod schemas, each a `const` and a same-named `type` inferred from it, parsing the JSON wire convention `typescript` types.
   It shares the primitive mapping, names, property quoting, and the extern import path with `typescript` through `backend/internal/ts`.
@@ -332,7 +348,7 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   `generics.go` writes type variables and kind signatures, derives a declaration holding an applied type variable through standalone deriving with the context reduced from its fields, and decides `Functor`, `Foldable`, and `Traversable` across the whole model.
   `classes.go` writes a class as a type class with a `HasField` superclass per field, and an instance per conformance and per separate instance, plus each instance a required class implies; `requires` on a type constrains its key function.
   Phases 1 to 4 are built, and #1207 tracks the rest: units and validation warn.
-  Tests run `ghc -fno-code -Wall -Werror` when `ghc` is on `PATH`; `checks.gen-haskell` always does.
+  Tests run `ghc -fno-code -Wall -Werror` unless `-short`; `checks.gen-haskell` always does.
 - `dotnet/Tdl.Gen.CSharp` (`csharp`): a .NET plugin on the SDK, not compiled into `tdl`; `tdl` runs `tdl-gen-csharp` from `PATH`, and `nix/cmd.nix` ships it beside the Go binaries.
   Outside Nix it is the `Tdl.Gen.CSharp` .NET tool on nuget.org, whose `PackAsTool` metadata and package README sit beside it.
   It writes one `Order.g.cs` per declaration, or one file for the whole target that a `file` directive in the target block names, in the namespace a `namespace` directive names or the package derives.
@@ -345,11 +361,11 @@ Every backend reports what it cannot generate as a positioned warning rather tha
   `dotnet/Tdl.DotNet` holds what it shares with the planned `fsharp` target: the primitive mapping, the namespace a package derives, and parsing `foreign` and `attribute`.
   Phases 1 and 2 are built, and #1194 tracks the rest: generics, classes, and validation warn.
   Its tests cannot lower TDL, so `internal/gen/plugins_test.go` records requests: one beside each `testdata/csharp/cases/*/*.tdl`, and one per conformance case and the smoke model in `testdata/csharp/corpus/<case>/`, with the files it generates in `want/`.
-  `go test ./internal/gen -record` rewrites them, generating through `tdl-gen-csharp` on `PATH`, and without `-record` compares with them when it is there; CI's race run puts `packages.plugins` on `PATH`.
+  `go test ./internal/gen -record` rewrites them, generating through `tdl-gen-csharp` on `PATH`, and without `-record` compares with them, which needs the plugin unless `-short`; `checks.go-test` puts `packages.plugins` on `PATH`.
   The tests compile every response with `CSharpCompilation`, warnings as errors, and run the equality, key, and default checks in process; `checks.gen-csharp` builds the smoke model with `dotnet build` and the SDK's analyzers.
 - `backend/likec4`: LikeC4 source for an architecture diagram: `tdl.c4`, the specification of element kinds, the same bytes for every model, and one `<package>.c4` holding a package element and one element per structure, enum, newtype, or class; aliases, primitives, and units have none.
   Only phase 1 is built, and #1210 tracks the rest: no relationships or views yet.
-  No Go library parses LikeC4, so tests compare text, and also run `likec4 validate --no-layout` when `likec4` is on `PATH`.
+  No Go library parses LikeC4, so tests compare text, and also run `likec4 validate --no-layout` unless `-short`.
 - `js/tdl-gen-mermaid` (`mermaid`): a TypeScript plugin on the JS SDK, not compiled into `tdl`; `tdl` runs `tdl-gen-mermaid` from `PATH`, a Bun single executable `nix/mermaid.nix` builds and `nix/cmd.nix`, the release tarballs, and the npm platform packages ship.
   It writes one Mermaid `classDiagram` per package to `<package id>.mmd`, or to `<package id>.md` in a fenced block under `format("markdown")`.
   Each own declaration is a class: a mixin `<<mixin>>`, a fieldless enum `<<enumeration>>`, a fielded enum `<<union>>` with a class per variant joined by `<|--`, a newtype `<<newtype>>`, a class `<<interface>>`, and a structure tagged `service` `<<service>>` with each field applying an `rpc`-tagged primitive a method; an alias is expanded.
@@ -400,8 +416,8 @@ Import generates with `readback` and without `annotate` and reads the files back
 The same model is Yes, as is a difference output loss alone explains; a difference with no loss code anywhere is No.
 `features.toml` beside a backend's source (`backend/<package>/`, `dotnet/Tdl.Gen.CSharp/` for `csharp`, or `js/tdl-gen-mermaid/` for `mermaid`) holds the cells a measurement cannot: `spelling`, `notes`, and `planned`, which shows in place of Generate and fails once the row generates.
 A cell may not hold a `|`.
-An Import cell a tool missing from PATH, or `-short`, leaves unmeasured keeps its committed text, so `make features` needs `smithy` and `tsc` to change those cells.
-A plugin this repository serves, `csharp` or `mermaid`, is measured through `tdl-gen-<name>` when it is on PATH, as in CI's race run, and otherwise keeps every committed cell.
+Under `-short`, an Import cell that runs a tool keeps its committed text, and so does every cell of a plugin this repository serves, `csharp` or `mermaid`; otherwise the tool, or `tdl-gen-<name>`, must be on PATH, or the test and `make features` fail naming it.
+`go run ./tools/features -short` rewrites the rest without them.
 Every target but `debug` is embedded exactly once.
 Two matrices set one column of every table side by side, each cell its first word: `generate` in `README.md` and `import` in `docs/backends/README.md`, where a backend that imports nothing has no column.
 Each is embedded exactly once, and reads the tables after committed cells fill unmeasured ones.
@@ -490,7 +506,7 @@ A session reaches the model through methods only, so a later transport can sit b
 `@bufbuild/protobuf` and `@bufbuild/protoc-gen-es` are pinned exactly to one version, since the generated code targets one runtime; bump both together and regenerate, since `.github/renovate.json` leaves them alone.
 The SDK's tests check the loss codes against `reverse.md` and the session, the framing, and the handshake; the debug port's replay `testdata/plugin/*.binpb` byte for byte, in process and over a connection.
 `checks.js-sdk-node` and `checks.js-sdk-bun` build and test the workspace with no network, and `checks.gen-js-debug` runs the debug port through `tdl gen` beside the Go backend.
-CI's `check` job runs `make js-check`.
+`checks.biome` runs its Biome check, and building `tdl-js` typechecks it.
 
 ## CLI
 
@@ -564,7 +580,7 @@ A keyword added to `lex` and `reserved_word` shows up in both.
 
 `make test-treesitter` runs `tree-sitter/corpus.sh`: `testdata/conformance/*/source.tdl` must parse with no ERROR node and `testdata/invalid/*/source.tdl` must produce one.
 It also compiles the hand-written `tree-sitter/queries/highlights.scm`; `TestHighlightsCoverKeywords` checks it covers every keyword.
-CI runs `make check-treesitter` in `nix develop .#treesitter`, since the regeneration diff is only stable against the pinned CLI.
+`checks.treesitter` runs the same regeneration, diff, and corpus with the `treesitter` devShell's CLI, since the regeneration diff is only stable against the pinned CLI.
 That shell holds only go, gnumake, node, and tree-sitter to keep its closure small; node runs `grammar.js`.
 
 ### TextMate grammar
@@ -690,7 +706,7 @@ CodeRabbit reviews only the tip of a stack.
 A lower pull request with no comments may be unreviewed; check the CodeRabbit check, not the thread count.
 
 DeepSource (`.deepsource.toml`) runs the `go`, `shell`, `secrets`, and `test-coverage` analyzers.
-Coverage comes from the `check` job's `cover.profile`, authenticated with OIDC; the CLI comes from the devShell.
+Coverage comes from the Linux Actions job's `cover.profile`, the `-short` run `checks.go-cover` also builds, uploaded with OIDC; the shared Hercules jobs have no coverage effect.
 Check a Go style finding against `.golangci.yml` before acting on it.
 
 CodeQL (`.github/workflows/codeql.yml`) analyses the Go `go build ./...` compiles, so neither tests nor `cmd/tdl-gmk`, and the workflows, on every pull request, every push to `main`, and weekly.
@@ -701,10 +717,10 @@ It is advisory, outside the `required` job's `needs`; triage each alert by fixin
 Reply with what changed, or why nothing did, then resolve.
 
 The one required check is the `required` job in `.github/workflows/ci.yml`.
-It needs `check`, on `ubuntu-latest`, `windows`, which runs `go test -short ./...` without Nix on `windows-latest` and `windows-11-arm`, and `windows-npm`, which installs the npm packages `check` packed on both and runs `tdl version`.
-It also needs `nix`, which calls `unmango/ci`'s `nix-ci.yml`: `nix flake check` on `macos-latest`, and a wait for Hercules's `onPush.default` status.
+It needs `nix`, which calls `unmango/ci`'s `nix-ci.yml`: `nix flake check` on `macos-latest`, and a wait for Hercules's `onPush.default` status, which builds every check on x86_64-linux.
 macOS builds only what a check builds, since `nix build .#` runs on Linux alone.
-A new CI job goes in its `needs`, not in the ruleset (declared in Pulumi in `UnstoppableMango/vcs`), unless it is advisory like `buf.yml`, `codeql.yml`, and `scorecard.yml`.
+It also needs `windows`, which runs `go test -short ./...` without Nix on `windows-latest` and `windows-11-arm`, `windows-npm`, which installs the npm packages `check` packed on both and runs `tdl version`, and, until the cutover in #1187 removes it, `check`, the Linux job on `ubuntu-latest`, which also uploads coverage.
+A new check is a flake check, which Hercules and macOS both run; a new CI job goes in `required`'s `needs`, not in the ruleset (declared in Pulumi in `UnstoppableMango/vcs`), unless it is advisory like `buf.yml`, `codeql.yml`, and `scorecard.yml`.
 `.github/workflows/scorecard.yml` runs OpenSSF Scorecard weekly, on every push to `main`, and when branch protection changes, publishing to the README badge and code scanning.
 It is advisory, since a one-maintainer repository accepts low Code-Review, Contributors, and Branch-Protection scores.
 
