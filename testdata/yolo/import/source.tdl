@@ -1,0 +1,17 @@
+package shop
+
+import "billing.tdl" as billing
+import "money.tdl" as money
+import "tax.tdl" as tax
+
+/// An order.
+type Order {
+  invoice: billing.Invoice
+  total: money.Money
+  rate: tax.Rate
+}
+
+target yolo for shop {
+  language("elixir")
+  out("generated/shop")
+}

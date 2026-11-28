@@ -299,6 +299,7 @@ func (r *genRun) generate(path string) error {
 		if t.Checks, err = gen.ResolveChecks(t.Block, cfg); err != nil {
 			return err
 		}
+		t.Loader = loader
 
 		result, err := gen.Run(cmd.Context(), backend, t, model, mode)
 		// A directory counts as cleaned once Clean has run on it, or once a
@@ -320,6 +321,9 @@ func (r *genRun) generate(path string) error {
 		if r.makeTarget != "" {
 			for _, p := range slices.Concat(result.Written, result.Expected, result.Kept) {
 				r.outputs[p] = true
+			}
+			for _, p := range result.Read {
+				r.read[p] = true
 			}
 		}
 		for _, p := range result.Expected {

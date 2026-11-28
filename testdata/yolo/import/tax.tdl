@@ -1,0 +1,9 @@
+package shop.tax
+
+type Rate {
+  percent: int
+}
+
+target yolo for shop.tax {
+  Rate => foreign("MyApp.Tax", "Rate")
+}
