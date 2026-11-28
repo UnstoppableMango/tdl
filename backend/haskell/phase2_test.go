@@ -10,6 +10,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/backend/internal/irtest"
 	"github.com/unstoppablemango/tdl/internal/sema"
+	"github.com/unstoppablemango/tdl/internal/tooltest"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/parser"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -254,11 +255,8 @@ func lowerSource(t *testing.T, name, src string, d deps) *ir.Model {
 // source tree.
 func compileTogether(t *testing.T, resps ...*plugin.Response) {
 	t.Helper()
-	if testing.Short() {
-		return
-	}
-	ghc, err := exec.LookPath("ghc")
-	if err != nil {
+	ghc, ok := tooltest.Lookup(t, "ghc")
+	if !ok {
 		return
 	}
 	dir := t.TempDir()

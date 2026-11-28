@@ -17,6 +17,10 @@ import (
 // delegated backend's table is checked by [CheckDelegated] and left as it
 // is, and a table naming none of them is a planned backend's, which is
 // checked by [CheckPlanned] and left as it is.
+//
+// Unless short, a tool or plugin missing from PATH is an error, so a
+// committed cell never stands in for one that could not be measured; short
+// leaves those cells unmeasured, and they keep their committed text.
 func Update(root string, short bool) (map[string][]byte, error) {
 	embedded, err := embedding(root)
 	if err != nil {
@@ -34,6 +38,9 @@ func Update(root string, short bool) (map[string][]byte, error) {
 	tables := map[string]Grid{}
 	var names []string
 	for _, t := range Targets(short) {
+		if err := t.missing(); !short && err != nil {
+			problems = append(problems, fmt.Errorf("%s: %w; -short leaves its cells unmeasured", t.Name, err))
+		}
 		docs := where[t.Name]
 		problems = append(problems, once(t.Name, docs)...)
 		delete(where, t.Name)

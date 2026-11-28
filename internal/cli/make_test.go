@@ -13,6 +13,7 @@ import (
 
 	"github.com/unstoppablemango/tdl/internal/gen"
 	"github.com/unstoppablemango/tdl/internal/gen/echo"
+	"github.com/unstoppablemango/tdl/internal/tooltest"
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
@@ -255,13 +256,7 @@ func TestGenWatchAndMakeAreExclusive(t *testing.T) {
 // Under make, a second run does nothing, touching an import regenerates,
 // and deleting an import with its reference does not break the build.
 func TestGenMakeDrivesMake(t *testing.T) {
-	if testing.Short() {
-		t.Skip("runs make and tdl")
-	}
-	makeBin, err := exec.LookPath("make")
-	if err != nil {
-		t.Skip("make is not on PATH")
-	}
+	makeBin := tooltest.Require(t, "make")
 	tdl := filepath.Join(t.TempDir(), "tdl")
 	if out, err := exec.Command("go", "build", "-o", tdl, "github.com/unstoppablemango/tdl/cmd/tdl").CombinedOutput(); err != nil {
 		t.Fatalf("building tdl: %v\n%s", err, out)

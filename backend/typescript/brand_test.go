@@ -10,6 +10,7 @@ import (
 
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/backend/typescript"
+	"github.com/unstoppablemango/tdl/internal/tooltest"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -139,13 +140,7 @@ func generateRaw(t *testing.T, model *ir.Model) *plugin.Response {
 // fails unless tsc accepts it exactly when ok is set.
 func compiles(t *testing.T, module, snippet string, ok bool) {
 	t.Helper()
-	if testing.Short() {
-		t.Skip("runs tsc")
-	}
-	tsc, err := exec.LookPath("tsc")
-	if err != nil {
-		t.Skip("tsc is not on PATH")
-	}
+	tsc := tooltest.Require(t, "tsc")
 	path := filepath.Join(t.TempDir(), "snippet.ts")
 	if err := os.WriteFile(path, []byte(module+"\n"+snippet+"\n"), 0o644); err != nil {
 		t.Fatal(err)
@@ -236,11 +231,8 @@ target typescript for acme.shop {
 	}
 	typecheckTree(t, tree(`import type { UserId } from "../ids/ids.js";
 export const o: Order = { owner: "ann" as UserId };`), "gen/shop/use.ts")
-	if testing.Short() {
-		return
-	}
-	tsc, err := exec.LookPath("tsc")
-	if err != nil {
+	tsc, ok := tooltest.Lookup(t, "tsc")
+	if !ok {
 		return
 	}
 	dir := t.TempDir()

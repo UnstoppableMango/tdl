@@ -12,6 +12,7 @@ import (
 
 	"github.com/unstoppablemango/tdl/internal/gen"
 	"github.com/unstoppablemango/tdl/internal/gen/echo"
+	"github.com/unstoppablemango/tdl/internal/tooltest"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -172,11 +173,7 @@ func TestHandshakeNamesTheTarget(t *testing.T) {
 
 func goBin(t *testing.T) string {
 	t.Helper()
-	path, err := exec.LookPath("go")
-	if err != nil {
-		t.Skipf("go is not on PATH: %v", err)
-	}
-	return path
+	return tooltest.Require(t, "go")
 }
 
 // twinDir builds a plugin that serves the targets left and right, without
