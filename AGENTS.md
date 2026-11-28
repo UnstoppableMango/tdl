@@ -114,10 +114,10 @@ Run generators through the devShell: `nix develop --command make tidy`, and `buf
 - `zod.nix`: the `zod` npm package, fetched by hash, for `checks.gen-zod` and the devShell's `NODE_PATH`.
 - `demo.nix`: renders `docs/demo/demo.tape`, the README's GIF, with VHS. It is a package and not a check, since it runs a browser.
   The tape's `cat`, from `docs/demo/demo.bash`, highlights everything with bat, TDL through the syntax the `tdl` package installs.
-- `hercules.nix`: Hercules CI's jobs, on `herculesCI.ciSystems` alone (x86_64-linux, from the `systems` input).
-  `onPush.default`, the status `main` requires, builds the checks and every package but `demo`, and no devShell.
+- `ci.nix`: settings for `flakeModules.ci` from the `mangonix` input (UnstoppableMango/nix), which writes `herculesCI` on `herculesCI.ciSystems` alone (x86_64-linux, from the `systems` input).
+  `onPush.default` builds the checks and every package but `demo`, and no devShell.
   `onSchedule.nightly`, at 04:00 UTC, builds `demo` and every devShell, so vhs and the editors stay out of a pull request's fetch, and a Hydra failure in them blocks nothing; its result shows only on Hercules.
-  It declares `flake.herculesCI` as an attribute set, since the `systems` input's module sets `ciSystems` in it and flake-parts refuses two raw definitions of one output.
+  `ci.fixup.steps` become `apps.renovate-fixup`, which `.github/workflows/renovate-fixup.yml` runs on each Renovate branch to regenerate `nix/gomod2nix.toml`, `dotnet/deps.json`, the protobuf code, and both derived grammars, with `make -B`, since a fresh checkout gives every file one mtime.
 - `overlay.nix`: names both packages and composes gomod2nix's overlay, so a consumer adding it also gets `buildGoApplication` and `mkGoEnv`.
 - `hm-module.nix`: the home-manager module.
 - `flake-module.nix`: the flake-parts module a consuming project imports.
@@ -698,7 +698,7 @@ It is advisory, outside the `required` job's `needs`; triage each alert by fixin
 Reply with what changed, or why nothing did, then resolve.
 
 The one required check is the `required` job in `.github/workflows/ci.yml`.
-It needs `check`, on `ubuntu-latest`, `darwin`, on `macos-latest`, `windows`, which runs `go test -short ./...` without Nix on `windows-latest` and `windows-11-arm`, and `windows-npm`, which installs the npm packages `check` packed on both and runs `tdl version`.
+It needs `nix`, which calls `unmango/ci`'s `nix-ci.yml` to run `nix flake check` on `macos-latest` and wait for Hercules's `onPush.default` status, `check`, on `ubuntu-latest`, `windows`, which runs `go test -short ./...` without Nix on `windows-latest` and `windows-11-arm`, and `windows-npm`, which installs the npm packages `check` packed on both and runs `tdl version`.
 A new CI job goes in its `needs`, not in the ruleset (declared in Pulumi in `UnstoppableMango/vcs`), unless it is advisory like `buf.yml` and `codeql.yml`.
 
 Pull requests are stacked, and GitHub rebases the rest of the stack on merge; reset local branches from the remote afterwards.
