@@ -39,8 +39,8 @@ A replacement prelude is not recognized and is generated too.
 | `bytes` | `[]byte` | |
 | `uuid` | `string` | The standard library has no UUID type, and picking a third-party one for every consumer is not the backend's call. See [Foreign types](#foreign-types). |
 | `instant` | `time.Time` | |
-| `date` | `time.Time` | Go has no date-only type; midnight UTC is the ecosystem convention. |
-| `duration` | `time.Duration` | |
+| `date` | `time.Time` | Go has no date-only type; midnight UTC is the ecosystem convention. Under `json`, the package's `Date`. |
+| `duration` | `time.Duration` | Under `json`, the package's `Duration`. |
 | `decimal` | `string` | `float64` is wrong for what `decimal` expresses, and every correct answer is a dependency. A string round-trips exactly and leaves the library choice to the consumer. |
 
 `uuid`, `date`, and `decimal` are placeholders a target block replaces with `foreign`: `decimal => foreign("github.com/shopspring/decimal", "Decimal")` gives `decimal.Decimal` everywhere the model says `decimal`.
@@ -236,14 +236,19 @@ A field a `tag` directive renames is filled as any other; a tag adding `omitempt
 A field named `marshalJSON` would collide with the method, so a type holding one alongside a list or map is skipped.
 
 A `duration` is a `time.Duration`, which `encoding/json` writes as integer nanoseconds, and the convention writes as an ISO 8601 string such as `PT1M30S`.
-So under `json` the package declares a `Duration` over `time.Duration`, once and only when the model uses one, whose `String` and `MarshalText` write that string, which `encoding/json` uses for a value and a map key, and every `duration` at any depth is that type:
+So under `json` the package declares a `Duration` over `time.Duration`, once and only when the model uses one, whose `String` and `MarshalText` write that string and whose `UnmarshalText` reads it, which `encoding/json` uses for a value and a map key, and every `duration` at any depth is that type:
 
 ```go
 type Duration time.Duration
 ```
 
 It is `WireDuration` when the package declares a `Duration`, refusing the field when it declares both, and is written to its own file, or to the one a `file` directive names.
-A `foreign` directive on `duration` still names its type.
+Decoding reads days, hours, minutes, and seconds with a fraction and a sign, or weeks alone, and refuses a year or month part, which has no fixed length.
+A `date` is a `time.Time`, which `encoding/json` writes as a full timestamp, and the convention writes as `YYYY-MM-DD`.
+So under `json` the package also declares a `Date`, a struct of `Year`, `Month`, and `Day`, with a `Time` method, whose `MarshalText` writes that form, the zero `Date` as `0001-01-01` as the zero `time.Time` is, and refuses a date the calendar does not hold, and whose `UnmarshalText` reads only that form; it is `WireDate` when the package declares a `Date`.
+A newtype over either, directly or through another newtype, gets a `MarshalText` and an `UnmarshalText` converting back to call its methods, since Go drops methods across a type definition.
+A `foreign` directive on `duration` or `date` still names its type, such as `cloud.google.com/go/civil.Date`.
+Import reads each helper as its primitive and declares nothing for it, so under `json` a `date` does not warn that it reads back as `instant`.
 
 What the convention cannot carry warns: a variant field named like the discriminant skips the enum, a `Set` is a Go map, which `encoding/json` writes as an object rather than an array, a generic declaration applied to a fielded enum decodes it as a plain value, and one applied to a type holding a list or map writes it as a plain value, a nil one as `null`.
 A type parameter named like a local of the generated methods (`plain`, `data`, `raw`, `err`, `v`, and in a `MarshalJSON` `self`, `out0`, `e0`, `k0` at any depth) skips the declaration.
@@ -415,6 +420,7 @@ The package clause is the TDL package, except `main`, which is none.
 | `string`, `bool`, `int32`, `int64`, `uint32`, `uint64`, `float32`, `float64`, `[]byte` | the primitive of that name, `bytes` for `[]byte` |
 | `int`, `int8`, `int16`, `rune`, `uint`, `uint8`, `uint16`, `uintptr` | the nearest wider primitive, with `lossy.primitive` |
 | `time.Time`, `time.Duration` | `instant`, `duration` |
+| the `Duration` and `Date` `json` declares | `duration`, `date` |
 | another package's `pkg.T` | an empty struct `T`, with a `foreign` directive |
 | a func, a var, a const of another kind, a method Generate does not write, an embedded field, an array, a channel, a func type, an anonymous struct or interface, a pointer to a pointer | `lossy.unsupported` |
 

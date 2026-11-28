@@ -644,6 +644,7 @@ func (g *generator) newtype(b *strings.Builder, decl *ir.Decl) error {
 	if err := g.writeMarshal(b, decl, g.declName(decl)); err != nil {
 		return err
 	}
+	g.writeOverWire(b, decl, g.declName(decl), base)
 	g.writeValidation(b, decl, -1)
 	g.writeMarkers(b, g.declName(decl)+typeArgs(decl))
 	return nil

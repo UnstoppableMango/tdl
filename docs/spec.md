@@ -554,6 +554,8 @@ A `target` block holds what only one backend needs: how that target spells, lays
 A fact true of the domain, such as a default, a constraint, or a deprecation, belongs in the model even though backends read it, and the model never names a target.
 A fact several targets share only because they follow the same encoding or API style, such as the JSON wire convention's discriminant, belongs to a convention, written once for every target that follows it; conventions are not designed yet, so today each target block repeats it.
 The JSON wire convention writes an empty list as `[]` and an empty map as `{}`, at every depth, never `null`.
+It writes a `duration` as an ISO 8601 duration string with no year or month part, since those have no fixed length, counting a day as 24 hours: `PT1M30S`, `P1DT1H30M`, `PT0.5S`, or `PT0S` for none, with a leading `-` for a negative one.
+It writes a `date` as `YYYY-MM-DD`, and an `instant` as an RFC 3339 timestamp with an offset, such as `2026-11-13T09:30:00Z`.
 
 ```tdl
 target go for billing {
