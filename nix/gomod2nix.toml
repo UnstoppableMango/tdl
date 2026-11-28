@@ -18,8 +18,8 @@ schema = 3
     hash = 'sha256-Q/6abljNb1LER7789i1MO7C0X0ep9VVJAzQlpv3tDak='
 
   [mod.'github.com/anthropics/anthropic-sdk-go/v2']
-    version = 'v2.7.0'
-    hash = 'sha256-IukDrulSDwICzakjLnnB7mN+ZsmSRfWcAqrTt9PoiZ0='
+    version = 'v2.15.0'
+    hash = 'sha256-VbXh6zmHytJxJd62oltO/dUjGz624N1FG+kiCzq86Gk='
 
   [mod.'github.com/bahlo/generic-list-go']
     version = 'v0.2.0'
