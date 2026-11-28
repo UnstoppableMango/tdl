@@ -8,6 +8,7 @@ import (
 
 	"github.com/unstoppablemango/tdl/internal/analysis"
 	"github.com/unstoppablemango/tdl/internal/host"
+	"github.com/unstoppablemango/tdl/internal/sema"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -26,6 +27,11 @@ type Target struct {
 	// those files written into it, before anything is written, from
 	// [host.ResolveChecks]; nil runs nothing. A verify run runs none.
 	Checks *host.Checks
+
+	// Loader reads the model's imports again for a nondeterministic
+	// backend, so [Depend] can send what each dependency declares and
+	// generated; nil sends nothing.
+	Loader sema.Loader
 }
 
 // Targets returns the target blocks in a model, with their output
@@ -88,6 +94,7 @@ type Result struct {
 	Expected []string // what a verify run would write
 	Kept     []string // what a nondeterministic backend wrote before, kept
 	Cleaned  bool     // whether ModeClean got as far as emptying the directory
+	Read     []string // dependency output a nondeterministic backend's request holds
 
 	Diagnostics []*plugin.Diagnostic
 }
@@ -101,22 +108,27 @@ func Run(ctx context.Context, backend plugin.Backend, target Target, model *ir.M
 	req.DryRun = mode == ModeVerify
 
 	var hash string
+	var read []string
 	if backend.Describe().Nondeterministic {
 		var err error
-		if hash, err = RequestHash(req); err != nil {
+		if read, err = Depend(req, target.Loader); err != nil {
 			return Result{Target: target.Name}, fmt.Errorf("target %s: %w", target.Name, err)
 		}
+		if hash, err = RequestHash(req); err != nil {
+			return Result{Target: target.Name, Read: read}, fmt.Errorf("target %s: %w", target.Name, err)
+		}
 		if result, done, err := reuse(target, hash, mode); done || err != nil {
+			result.Read = read
 			return result, err
 		}
 	}
 
 	resp, err := backend.Generate(ctx, req)
 	if err != nil {
-		return Result{Target: target.Name}, fmt.Errorf("target %s: %w", target.Name, err)
+		return Result{Target: target.Name, Read: read}, fmt.Errorf("target %s: %w", target.Name, err)
 	}
 
-	result := Result{Target: target.Name, Diagnostics: resp.GetDiagnostics()}
+	result := Result{Target: target.Name, Diagnostics: resp.GetDiagnostics(), Read: read}
 	if host.Fatal(resp.GetDiagnostics()) {
 		return result, fmt.Errorf("target %s reported errors", target.Name)
 	}

@@ -1635,6 +1635,14 @@ pub struct Request {
     ///
     /// Field 5: `analysis`
     pub analysis: ::buffa::MessageField<Analysis, ::buffa::Inline<Analysis>>,
+    /// dependencies are the files each import's dependency already generated
+    /// for this target, sent only to a backend that declares itself
+    /// nondeterministic, so it can refer to what they declare. A dependency
+    /// with no block for this target, no out directive, or no output yet
+    /// sends nothing.
+    ///
+    /// Field 6: `dependencies`
+    pub dependencies: ::buffa::alloc::vec::Vec<DependencyFile>,
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
 }
@@ -1646,6 +1654,7 @@ impl ::core::fmt::Debug for Request {
             .field("out", &self.out)
             .field("dry_run", &self.dry_run)
             .field("analysis", &self.analysis)
+            .field("dependencies", &self.dependencies)
             .finish()
     }
 }
@@ -1701,6 +1710,14 @@ impl ::buffa::Message for Request {
                 += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
                     + inner_size as u64;
         }
+        for v in &self.dependencies {
+            let __slot = __cache.reserve();
+            let inner_size = v.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
+                    + inner_size as u64;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
     }
@@ -1735,6 +1752,14 @@ impl ::buffa::Message for Request {
                 buf,
             );
             self.analysis.write_to(__cache, buf);
+        }
+        for v in &self.dependencies {
+            ::buffa::types::put_len_delimited_header(
+                6u32,
+                u64::from(__cache.consume_next()),
+                buf,
+            );
+            v.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -1792,6 +1817,18 @@ impl ::buffa::Message for Request {
                     ctx,
                 )?;
             }
+            6u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let mut elem = ::core::default::Default::default();
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&elem),
+                )?;
+                ::buffa::Message::merge_length_delimited(&mut elem, buf, ctx)?;
+                self.dependencies.push(elem);
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -1805,11 +1842,150 @@ impl ::buffa::Message for Request {
         self.out.clear();
         self.dry_run = false;
         self.analysis = ::buffa::MessageField::none();
+        self.dependencies.clear();
         self.__buffa_unknown_fields.clear();
     }
 }
 impl ::buffa::ExtensionSet for Request {
     const PROTO_FQN: &'static str = "tdl.plugin.v1.Request";
+    fn unknown_fields(&self) -> &::buffa::UnknownFields {
+        &self.__buffa_unknown_fields
+    }
+    fn unknown_fields_mut(&mut self) -> &mut ::buffa::UnknownFields {
+        &mut self.__buffa_unknown_fields
+    }
+}
+/// DependencyFile is one file a dependency's own target block generated.
+#[derive(Clone, PartialEq, Default)]
+pub struct DependencyFile {
+    /// package is the dependency's package.
+    ///
+    /// Field 1: `package`
+    pub package: ::buffa::alloc::string::String,
+    /// path is the file's path relative to the request's out, with forward
+    /// slashes; it may begin with "..".
+    ///
+    /// Field 2: `path`
+    pub path: ::buffa::alloc::string::String,
+    /// Field 3: `content`
+    pub content: ::buffa::alloc::vec::Vec<u8>,
+    #[doc(hidden)]
+    pub __buffa_unknown_fields: ::buffa::UnknownFields,
+}
+impl ::core::fmt::Debug for DependencyFile {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        f.debug_struct("DependencyFile")
+            .field("package", &self.package)
+            .field("path", &self.path)
+            .field("content", &self.content)
+            .finish()
+    }
+}
+impl DependencyFile {
+    /// Protobuf type URL for this message, for use with `Any::pack` and
+    /// `Any::unpack_if`.
+    ///
+    /// Format: `type.googleapis.com/<fully.qualified.TypeName>`
+    pub const TYPE_URL: &'static str = "type.googleapis.com/tdl.plugin.v1.DependencyFile";
+}
+::buffa::impl_default_instance!(DependencyFile);
+impl ::buffa::MessageName for DependencyFile {
+    const PACKAGE: &'static str = "tdl.plugin.v1";
+    const NAME: &'static str = "DependencyFile";
+    const FULL_NAME: &'static str = "tdl.plugin.v1.DependencyFile";
+    const TYPE_URL: &'static str = "type.googleapis.com/tdl.plugin.v1.DependencyFile";
+}
+impl ::buffa::Message for DependencyFile {
+    /// Returns the total encoded size in bytes.
+    ///
+    /// Accumulates in `u64` (which cannot overflow for in-memory
+    /// data) and saturates to `u32` at return, so a message whose
+    /// encoded size exceeds the 2 GiB protobuf limit yields a value
+    /// above [`::buffa::MAX_MESSAGE_BYTES`] that the encode entry
+    /// points reject, never a silently wrapped size.
+    #[allow(clippy::let_and_return)]
+    fn compute_size(&self, _cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u64;
+        if !self.package.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.package) as u64;
+        }
+        if !self.path.is_empty() {
+            size += 1u64 + ::buffa::types::string_encoded_len(&self.path) as u64;
+        }
+        if !self.content.is_empty() {
+            size += 1u64 + ::buffa::types::bytes_encoded_len(&self.content) as u64;
+        }
+        size += self.__buffa_unknown_fields.encoded_len() as u64;
+        ::buffa::saturate_size(size)
+    }
+    fn write_to(
+        &self,
+        _cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::EncodeSink,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        if !self.package.is_empty() {
+            ::buffa::types::put_string_field(1u32, &self.package, buf);
+        }
+        if !self.path.is_empty() {
+            ::buffa::types::put_string_field(2u32, &self.path, buf);
+        }
+        if !self.content.is_empty() {
+            ::buffa::types::put_shared_bytes_field(3u32, &self.content, buf);
+        }
+        self.__buffa_unknown_fields.write_to(buf);
+    }
+    fn merge_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        buf: &mut impl ::buffa::bytes::Buf,
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<(), ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::bytes::Buf as _;
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.package, buf)?;
+            }
+            2u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.path, buf)?;
+            }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_bytes(&mut self.content, buf)?;
+            }
+            _ => {
+                self.__buffa_unknown_fields
+                    .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
+            }
+        }
+        ::core::result::Result::Ok(())
+    }
+    fn clear(&mut self) {
+        self.package.clear();
+        self.path.clear();
+        self.content.clear();
+        self.__buffa_unknown_fields.clear();
+    }
+}
+impl ::buffa::ExtensionSet for DependencyFile {
+    const PROTO_FQN: &'static str = "tdl.plugin.v1.DependencyFile";
     fn unknown_fields(&self) -> &::buffa::UnknownFields {
         &self.__buffa_unknown_fields
     }
@@ -1830,8 +2006,8 @@ pub struct Analysis {
     ///
     /// Field 2: `decls`
     pub decls: ::buffa::alloc::vec::Vec<DeclView>,
-    /// source is the model as TDL, set only when the target block carries the
-    /// annotate directive.
+    /// source is the model as TDL, set when the target block carries the
+    /// annotate directive or the backend declares itself nondeterministic.
     ///
     /// Field 3: `source`
     pub source: ::buffa::MessageField<Source, ::buffa::Inline<Source>>,
@@ -2017,6 +2193,14 @@ pub struct Source {
     ///
     /// Field 2: `imports`
     pub imports: ::buffa::alloc::vec::Vec<::buffa::alloc::string::String>,
+    /// externs are the declarations the model's externs name, as `tdl fmt`
+    /// prints them in their own file, indexed like Model.externs, for a
+    /// backend that declares itself nondeterministic. An extern whose file
+    /// tdl could not read has an empty item. Empty when the host read no
+    /// dependency.
+    ///
+    /// Field 3: `externs`
+    pub externs: ::buffa::alloc::vec::Vec<Item>,
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
 }
@@ -2025,6 +2209,7 @@ impl ::core::fmt::Debug for Source {
         f.debug_struct("Source")
             .field("items", &self.items)
             .field("imports", &self.imports)
+            .field("externs", &self.externs)
             .finish()
     }
 }
@@ -2066,6 +2251,14 @@ impl ::buffa::Message for Source {
         for v in &self.imports {
             size += 1u64 + ::buffa::types::string_encoded_len(v) as u64;
         }
+        for v in &self.externs {
+            let __slot = __cache.reserve();
+            let inner_size = v.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 1u64 + ::buffa::encoding::varint_len(inner_size as u64) as u64
+                    + inner_size as u64;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u64;
         ::buffa::saturate_size(size)
     }
@@ -2086,6 +2279,14 @@ impl ::buffa::Message for Source {
         }
         for v in &self.imports {
             ::buffa::types::put_string_field(2u32, v, buf);
+        }
+        for v in &self.externs {
+            ::buffa::types::put_len_delimited_header(
+                3u32,
+                u64::from(__cache.consume_next()),
+                buf,
+            );
+            v.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -2123,6 +2324,18 @@ impl ::buffa::Message for Source {
                 )?;
                 self.imports.push(__elem);
             }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let mut elem = ::core::default::Default::default();
+                ctx.register_element_memory(
+                    ::buffa::__private::element_footprint(&elem),
+                )?;
+                ::buffa::Message::merge_length_delimited(&mut elem, buf, ctx)?;
+                self.externs.push(elem);
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -2133,6 +2346,7 @@ impl ::buffa::Message for Source {
     fn clear(&mut self) {
         self.items.clear();
         self.imports.clear();
+        self.externs.clear();
         self.__buffa_unknown_fields.clear();
     }
 }
