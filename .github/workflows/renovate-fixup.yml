@@ -1,0 +1,23 @@
+name: Renovate fixup
+
+on:
+  push:
+    branches: ["renovate/**"]
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fixup:
+    uses: unmango/ci/.github/workflows/renovate-fixup.yml@30ae545a17dc3cd88663c8d0aa92ae374b62779c
+    permissions:
+      checks: read
+      contents: read
+      pull-requests: write
+    with:
+      client-id: ${{ vars.RENOVATE_FIXUP_APP_CLIENT_ID }}
+    secrets:
+      RENOVATE_FIXUP_APP_PRIVATE_KEY: ${{ secrets.RENOVATE_FIXUP_APP_PRIVATE_KEY }}
