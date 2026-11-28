@@ -19,6 +19,18 @@ env:
   GOCACHE: ${{ github.workspace }}/.go/build
 
 jobs:
+  nix:
+    uses: unmango/ci/.github/workflows/nix-ci.yml@30ae545a17dc3cd88663c8d0aa92ae374b62779c
+    permissions:
+      checks: read
+      contents: read
+      pull-requests: write
+      statuses: read
+    with:
+      darwin: true
+    secrets:
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
   # One job rather than a build and a test job: each job on a fresh runner
   # pays to fetch nixpkgs and evaluate the flake, and the checks and the
   # devShell share most of their closure (go, node, typescript, smithy).
@@ -38,7 +50,7 @@ jobs:
       - uses: unmango/actions/setup-nix@e8bbcbd12a2c521c5cb36957c00a7a8f4fe2e766 # v2.0.0
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
-          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          cachix_auth_token: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.CACHIX_AUTH_TOKEN || '' }}
 
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -136,29 +148,6 @@ jobs:
       - uses: DavidAnson/markdownlint-cli2-action@696eb3f2509270d7b882d2aa68347bc676e7af34 # v25.0.0
         if: ${{ !cancelled() }}
 
-  # The only build on darwin: the packages, with tdl-gen-csharp linked
-  # ahead of time against the macOS SDK, and every check. macos-latest is
-  # aarch64. The runner has no Nix, so setup-nix installs it.
-  darwin:
-    runs-on: macos-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - uses: unmango/actions/setup-nix@e8bbcbd12a2c521c5cb36957c00a7a8f4fe2e766 # v2.0.0
-        with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-          cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
-
-      # --keep-going, so one darwin-only failure does not hide the next.
-      - run: nix flake check --keep-going
-
-      - run: nix build .#
-        if: ${{ !cancelled() }}
-
   # Nix does not run on Windows, so this job sets Go up from go.mod and
   # runs the suite -short, which skips the tools the check job runs on
   # generated code. .gitattributes checks every text file out with LF.
@@ -248,7 +237,7 @@ jobs:
           '
 
   required:
-    needs: [check, darwin, windows, windows-npm]
+    needs: [nix, check, windows, windows-npm]
     if: always()
     runs-on: ubuntu-latest
     steps:

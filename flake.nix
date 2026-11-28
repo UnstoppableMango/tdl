@@ -21,6 +21,15 @@
       inputs.flake-utils.inputs.systems.follows = "systems";
     };
 
+    mangonix = {
+      url = "github:UnstoppableMango/nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "systems";
+      inputs.flake-parts.follows = "flake-parts";
+      inputs.treefmt-nix.follows = "treefmt-nix";
+      inputs.gomod2nix.follows = "gomod2nix";
+    };
+
     # graphify and gremlins for the devShell
     mangopkgs = {
       url = "github:unmango/pkgs";
@@ -45,6 +54,7 @@
       imports = with inputs; [
         systems.flakeModule or { }
         treefmt-nix.flakeModule
+        mangonix.flakeModules.ci
         ./nix
         ./nix/hercules.nix
       ];
