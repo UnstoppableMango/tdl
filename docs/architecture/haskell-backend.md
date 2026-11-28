@@ -372,7 +372,7 @@ An error stops the run, and only a module name Haskell refuses earns one.
 
 ## Checking the output
 
-The tests type check every response with `ghc -fno-code -Wall -Werror` when `ghc` is on `PATH`, since generated code that compiles with warnings is noise in a consumer's build.
+The tests type check every response with `ghc -fno-code -Wall -Werror` unless `-short`, since generated code that compiles with warnings is noise in a consumer's build.
 `checks.gen-haskell` always does, over `testdata/gen/smoke`, with `ghc` from nixpkgs.
 
 The backend does not run a formatter; its layout is fixed and stable, so a regenerated module diffs only where the model changed.

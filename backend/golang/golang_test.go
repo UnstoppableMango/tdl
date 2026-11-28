@@ -19,6 +19,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/golang"
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/backend/internal/irtest"
+	"github.com/unstoppablemango/tdl/internal/tooltest"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -484,13 +485,7 @@ func TestOrder(t *testing.T) {
 // goTest runs a test file inside the generated package, in its own module.
 func goTest(t *testing.T, resp *plugin.Response, test string) {
 	t.Helper()
-	if testing.Short() {
-		t.Skip("runs go test on the generated package")
-	}
-	goBin, err := exec.LookPath("go")
-	if err != nil {
-		t.Skip("go is not on PATH")
-	}
+	goBin := tooltest.Require(t, "go")
 	got := files(t, resp)
 
 	dir := t.TempDir()

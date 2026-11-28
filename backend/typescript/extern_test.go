@@ -11,6 +11,7 @@ import (
 
 	"github.com/unstoppablemango/tdl/backend/typescript"
 	"github.com/unstoppablemango/tdl/internal/sema"
+	"github.com/unstoppablemango/tdl/internal/tooltest"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/parser"
 	"github.com/unstoppablemango/tdl/plugin"
@@ -71,11 +72,8 @@ target typescript for acme.money {
 // tree and runs tsc over the last, so its imports resolve against the rest.
 func typecheckTree(t *testing.T, files map[string][]byte, root string) {
 	t.Helper()
-	if testing.Short() {
-		return
-	}
-	tsc, err := exec.LookPath("tsc")
-	if err != nil {
+	tsc, ok := tooltest.Lookup(t, "tsc")
+	if !ok {
 		return
 	}
 	dir := t.TempDir()

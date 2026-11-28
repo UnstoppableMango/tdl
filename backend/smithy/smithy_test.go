@@ -12,6 +12,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/backend/internal/irtest"
 	"github.com/unstoppablemango/tdl/backend/smithy"
+	"github.com/unstoppablemango/tdl/internal/tooltest"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -40,8 +41,7 @@ func readsBackOtherwise(d *plugin.Diagnostic) bool {
 	return false
 }
 
-// check returns the response's one file, validated by the Smithy CLI when
-// it is on PATH.
+// check returns the response's one file, validated by the Smithy CLI.
 func check(t *testing.T, resp *plugin.Response) string {
 	t.Helper()
 	if len(resp.GetFiles()) != 1 {
@@ -52,16 +52,12 @@ func check(t *testing.T, resp *plugin.Response) string {
 	return string(f.GetContent())
 }
 
-// validate runs `smithy validate` over a file. Without the CLI, or under
-// -short, these tests check substrings only; checks.gen-smithy validates
-// regardless.
+// validate runs `smithy validate` over a file; checks.gen-smithy
+// validates the smoke model too.
 func validate(t *testing.T, f *plugin.File) {
 	t.Helper()
-	if testing.Short() {
-		return
-	}
-	cli, err := exec.LookPath("smithy")
-	if err != nil {
+	cli, ok := tooltest.Lookup(t, "smithy")
+	if !ok {
 		return
 	}
 	dir := t.TempDir()

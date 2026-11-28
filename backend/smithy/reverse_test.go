@@ -9,18 +9,17 @@ import (
 	"github.com/unstoppablemango/tdl/ast"
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/backend/smithy"
+	"github.com/unstoppablemango/tdl/internal/tooltest"
 	"github.com/unstoppablemango/tdl/internal/unlower"
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
 // importSmithy imports files by path, and returns the TDL printed from the
-// model, with the response's diagnostics. It skips without the Smithy
-// CLI, which import runs.
+// model, with the response's diagnostics. Import runs the Smithy CLI.
 func importSmithy(t *testing.T, files map[string]string) (string, []*plugin.Diagnostic) {
 	t.Helper()
-	if _, err := smithy.CLI(); err != nil {
-		t.Skip(err)
-	}
+	_, err := smithy.CLI()
+	tooltest.Need(t, err)
 	req := &plugin.ImportRequest{Target: smithy.Name, Readback: true}
 	for path, src := range files {
 		req.Files = append(req.Files, &plugin.File{Path: path, Content: []byte(src)})

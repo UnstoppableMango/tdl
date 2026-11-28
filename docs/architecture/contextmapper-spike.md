@@ -96,7 +96,7 @@ Relationship roles (`OHS`, `PL`, `ACL`, `CF`, customer/supplier, partnership, sh
 ## The prototype
 
 `backend/contextmapper` is unregistered: it has no `cmd/tdl-gen-cml`, no registry entry, no `shipped` row, no feature table, and no nix check.
-Its tests lower TDL sources, including `testdata/gen/smoke`, and run `cml-check` when it is on `PATH`.
+Its tests lower TDL sources, including `testdata/gen/smoke`, and run `cml-check` unless `-short`; `nix/cml-check.nix` builds it for the devShell and `checks.go-test`.
 
 To run them against the real parser:
 
