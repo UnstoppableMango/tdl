@@ -9,14 +9,18 @@ package yolo
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"path"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/internal/analysis"
+	"github.com/unstoppablemango/tdl/internal/config"
+	"github.com/unstoppablemango/tdl/internal/host"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -24,9 +28,13 @@ import (
 // Name names this backend in a target block and as tdl-gen-yolo.
 const Name = "yolo"
 
-// maxTurns bounds a conversation, so a model that never stops calling
-// tools cannot run up a bill.
+// maxTurns bounds a conversation, across every try, so a model that never
+// stops calling tools cannot run up a bill.
 const maxTurns = 50
+
+// DefaultTries is how many times the model may answer when a check
+// directive names commands and no tries directive says otherwise.
+const DefaultTries = 3
 
 // Backend implements [plugin.Backend].
 type Backend struct {
@@ -36,6 +44,7 @@ type Backend struct {
 
 func (Backend) Describe() plugin.Description {
 	str := []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_STRING}
+	integer := []ir.LiteralKind{ir.LiteralKind_LITERAL_KIND_INT}
 	block := plugin.On(plugin.OnBlock)
 	return plugin.Description{
 		Name:    Name,
@@ -57,6 +66,9 @@ func (Backend) Describe() plugin.Description {
 			// anthropic; under openai, one of OpenAIEfforts, and not sent
 			// when absent.
 			{Name: "effort", MinArgs: 1, MaxArgs: 1, ArgKinds: str, Placements: block, Values: Efforts},
+			// How many times the model may answer while a check fails,
+			// DefaultTries when absent. The host owns check itself.
+			{Name: "tries", MinArgs: 1, MaxArgs: 1, ArgKinds: integer, Placements: block},
 			// A module and the name it declares, for an extern mapped to
 			// existing code. The model's own declarations are always written.
 			{Name: "foreign", MinArgs: 2, MaxArgs: 2, ArgKinds: append(str, str...), Placements: plugin.On(plugin.OnExtern)},
@@ -74,6 +86,9 @@ type generator struct {
 
 	files map[string][]byte
 
+	// turns counts the replies so far, across every try.
+	turns int
+
 	// deps are the files the model's dependencies generated, which the
 	// host sends a nondeterministic backend.
 	deps []*plugin.DependencyFile
@@ -86,8 +101,10 @@ type generator struct {
 // Generate runs one conversation and returns the files the model wrote.
 func (b Backend) Generate(ctx context.Context, req *plugin.Request) (*plugin.Response, error) {
 	g := &generator{Session: emit.NewSession(req, "yolo"), files: map[string][]byte{}, deps: req.GetDependencies(), out: req.GetOut()}
+	var target *ir.TargetBlock
 	for _, t := range g.Model.GetTargets() {
 		if t.GetMeta().GetName() == g.Target {
+			target = t
 			g.block = t.GetMeta().GetPosition()
 		}
 	}
@@ -104,6 +121,11 @@ func (b Backend) Generate(ctx context.Context, req *plugin.Request) (*plugin.Res
 	}
 	model, effort, ok := g.modelAndEffort(name)
 	if !ok {
+		return g.Response(nil), nil
+	}
+	checks, tries, err := g.checks(target)
+	if err != nil {
+		g.Error(g.block, "%v", err)
 		return g.Response(nil), nil
 	}
 
@@ -126,15 +148,45 @@ func (b Backend) Generate(ctx context.Context, req *plugin.Request) (*plugin.Res
 		Effort:   effort,
 		System:   system(),
 		Tools:    tools,
-		Messages: []Message{{Role: User, Text: userPrompt(language, instructions, src, g.dependencies(src))}},
+		Messages: []Message{{Role: User, Text: userPrompt(language, instructions, src, checks, g.dependencies(src))}},
 	}
-	if err := g.converse(ctx, provider, conv); err != nil {
-		g.Error(g.block, "%v", err)
-		return g.Response(nil), nil
-	}
-	if len(g.files) == 0 {
-		g.Error(g.block, "the model wrote no files")
-		return g.Response(nil), nil
+	// Each try is a whole answer: a retry starts with no files and no
+	// reported loss, so a stray file or a loss the fix removed does not
+	// outlive the try that made it.
+	before := len(g.Diags)
+	for try := 1; ; try++ {
+		if err := g.converse(ctx, provider, conv); err != nil {
+			g.Error(g.block, "%v", err)
+			return g.Response(nil), nil
+		}
+		if len(g.files) == 0 {
+			g.Error(g.block, "the model wrote no files")
+			return g.Response(nil), nil
+		}
+		// A dry run's files are compared, not written, and the host runs
+		// no check for one.
+		if req.GetDryRun() {
+			break
+		}
+		// Staged over what the output directory holds, as the host stages it
+		// without --clean.
+		err := checks.Run(ctx, req.GetOut(), g.written(), nil)
+		var failed *host.CheckFailure
+		switch {
+		case err == nil:
+		case !errors.As(err, &failed):
+			g.Error(g.block, "%v", err)
+			return g.Response(nil), nil
+		case try >= tries:
+			g.Error(g.block, "after %d tries the model's files still fail, so none were written: %v", tries, failed)
+			return g.Response(nil), nil
+		default:
+			conv.Messages = append(conv.Messages, Message{Role: User, Text: retryPrompt(failed, try, tries)})
+			g.files = map[string][]byte{}
+			g.Diags = g.Diags[:before]
+			continue
+		}
+		break
 	}
 	// An extern with neither a foreign mapping nor its dependency's files
 	// in the prompt is a reference the model guessed.
@@ -151,6 +203,11 @@ func (b Backend) Generate(ctx context.Context, req *plugin.Request) (*plugin.Res
 			ext.GetPackage(), ext.GetName())
 	}
 
+	return g.Response(g.written()), nil
+}
+
+// written is the files the model has written so far, by path.
+func (g *generator) written() []*plugin.File {
 	paths := make([]string, 0, len(g.files))
 	for p := range g.files {
 		paths = append(paths, p)
@@ -160,7 +217,32 @@ func (b Backend) Generate(ctx context.Context, req *plugin.Request) (*plugin.Res
 	for i, p := range paths {
 		files[i] = &plugin.File{Path: p, Content: g.files[p]}
 	}
-	return g.Response(files), nil
+	return files
+}
+
+// checks reads the commands the host's check directive names, through the
+// tdl.toml the host reads, the nearest above the model's file, and how
+// many tries the model gets. The host refuses a name [check] does not
+// declare before this backend runs; it is refused here too, for a request
+// some other host built.
+func (g *generator) checks(block *ir.TargetBlock) (*host.Checks, int, error) {
+	tries := DefaultTries
+	if d, ok := g.Block("tries"); ok {
+		n, err := strconv.ParseInt(strings.ReplaceAll(d.GetArgs()[0].GetText(), "_", ""), 0, 0)
+		if err != nil || n < 1 {
+			return nil, 0, fmt.Errorf("tries(%s) must be a whole number of at least 1", d.GetArgs()[0].GetText())
+		}
+		tries = int(n)
+	}
+	if block == nil {
+		return nil, tries, nil
+	}
+	cfg, err := config.Find(filepath.Dir(block.GetMeta().GetPosition().GetFilename()))
+	if err != nil {
+		return nil, 0, err
+	}
+	checks, err := host.ResolveChecks(block, cfg)
+	return checks, tries, err
 }
 
 // foreign is the module and name an extern's foreign directive maps it to.
@@ -241,7 +323,7 @@ func (g *generator) blockText(name string) (string, bool) {
 // converse sends turns until the model ends one without calling a tool,
 // answering each call. An unsafe path ends it with an error.
 func (g *generator) converse(ctx context.Context, p Provider, conv *Conversation) error {
-	for range maxTurns {
+	for ; g.turns < maxTurns; g.turns++ {
 		reply, err := p.Send(ctx, conv)
 		if err != nil {
 			return fmt.Errorf("asking %s: %w", conv.Model, err)
@@ -256,6 +338,7 @@ func (g *generator) converse(ctx context.Context, p Provider, conv *Conversation
 			return fmt.Errorf("%s's answer was cut off at the token limit", conv.Model)
 		}
 		if len(reply.Calls) == 0 {
+			g.turns++
 			return nil
 		}
 
@@ -269,7 +352,7 @@ func (g *generator) converse(ctx context.Context, p Provider, conv *Conversation
 		}
 		conv.Messages = append(conv.Messages, Message{Role: User, Results: results})
 	}
-	return fmt.Errorf("%s was still calling tools after %d turns", conv.Model, maxTurns)
+	return fmt.Errorf("%s was still calling tools after %d turns, counted across every try", conv.Model, maxTurns)
 }
 
 // call answers one tool call. A call the model can correct is refused back

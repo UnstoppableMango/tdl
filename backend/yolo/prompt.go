@@ -6,6 +6,7 @@ import (
 
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/docs"
+	"github.com/unstoppablemango/tdl/internal/host"
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
@@ -63,12 +64,19 @@ The TDL specification:
 }
 
 // userPrompt is the first message: the language, the user's instructions,
-// the model, and what it needs from the packages it imports.
-func userPrompt(language, instructions string, src *plugin.Source, deps string) string {
+// the commands checking the files, the model, and what it needs from the
+// packages it imports.
+func userPrompt(language, instructions string, src *plugin.Source, checks *host.Checks, deps string) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Write this model in %s.\n", language)
 	if instructions != "" {
 		fmt.Fprintf(&b, "\n%s\n", instructions)
+	}
+	if checks != nil && len(checks.Commands) > 0 {
+		b.WriteString("\nWhen you end your turn, the project runs these commands, in order, in a copy of the output directory holding the files you wrote ({dir} names it), and sends you the first failure to fix:\n\n")
+		for _, c := range checks.Commands {
+			fmt.Fprintf(&b, "- %s\n", c.Line)
+		}
 	}
 	b.WriteString("\nThe model:\n\n```tdl\n")
 	b.WriteString(modelText(src))
@@ -138,6 +146,27 @@ func (g *generator) dependencies(src *plugin.Source) string {
 			b.WriteString("````\n")
 		}
 	}
+	return b.String()
+}
+
+// maxOutput bounds how much of a failed check's output goes back to the
+// model, so a noisy compiler cannot fill its context. The end is kept,
+// where a compiler usually summarizes.
+const maxOutput = 16 << 10
+
+// retryPrompt hands a failed check back to the model.
+func retryPrompt(f *host.CheckFailure, try, tries int) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "The check %s failed (%s)", f.Name, f.Status)
+	switch out := f.Output; {
+	case out == "":
+		b.WriteString(", printing nothing.\n")
+	case len(out) > maxOutput:
+		fmt.Fprintf(&b, ". The last %d bytes of what it printed:\n\n```\n%s\n```\n", maxOutput, strings.ToValidUTF8(out[len(out)-maxOutput:], ""))
+	default:
+		fmt.Fprintf(&b, ":\n\n```\n%s\n```\n", out)
+	}
+	fmt.Fprintf(&b, "\nThat was try %d of %d. Answer again in full: write every file with write_file and report every loss with report_loss, since nothing from this try is kept. Then end your turn.\n", try, tries)
 	return b.String()
 }
 
