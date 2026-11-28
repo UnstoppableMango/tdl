@@ -56,10 +56,11 @@
         treefmt-nix.flakeModule
         mangonix.flakeModules.ci
         ./nix
+        ./nix/gate.nix
         ./nix/hercules.nix
       ];
 
-      _module.args.version = "0.5.13"; # x-release-please-version
+      _module.args.version = "0.6.0"; # x-release-please-version
 
       perSystem =
         { inputs', pkgs, ... }:
@@ -102,7 +103,16 @@
               clippy
               rustfmt
               smithy-cli
-              typescript
+              # The tools the tests run without -short beside these, as
+              # checks.go-test has them (nix/gate.nix): tsc 7.1 for the content
+              # mapper, likec4, cml-check, and tdl-gen-csharp and
+              # tdl-gen-mermaid from the tdl package.
+              tdl
+              (callPackage ./nix/tsc.nix { })
+              inputs'.mangopkgs.packages.likec4
+              (callPackage ./nix/cml-check.nix {
+                inherit (inputs'.mangopkgs.packages) context-mapper-cli;
+              })
               tree-sitter
               deepsource
               zip
@@ -111,8 +121,13 @@
               inputs'.mangopkgs.packages.gremlins
             ];
             # The zod backend's tests type check and run its output with the
-            # zod package, found here.
-            NODE_PATH = "${pkgs.callPackage ./nix/zod.nix { }}/lib/node_modules";
+            # zod package, and the typescript importer reads with TypeScript
+            # 5's compiler API, which TypeScript 7's native tsc lacks; both
+            # are found here.
+            NODE_PATH = pkgs.lib.makeSearchPath "lib/node_modules" [
+              (pkgs.callPackage ./nix/zod.nix { })
+              pkgs.typescript_5
+            ];
           };
 
           devShells.treesitter = pkgs.mkShell {

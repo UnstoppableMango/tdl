@@ -4,6 +4,9 @@
 // Run it from the module root:
 //
 //	go run ./tools/features
+//
+// Every tool an import runs, and every plugin, must be on PATH; -short
+// leaves the cells needing them as they are committed.
 package main
 
 import (
@@ -19,16 +22,17 @@ import (
 
 func main() {
 	root := flag.String("root", ".", "the module root")
+	short := flag.Bool("short", false, "keep the committed cells that need a tool or plugin on PATH")
 	flag.Parse()
 
-	if err := run(*root); err != nil {
+	if err := run(*root, *short); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func run(root string) error {
-	docs, err := features.Update(root, false)
+func run(root string, short bool) error {
+	docs, err := features.Update(root, short)
 	if err != nil {
 		return err
 	}

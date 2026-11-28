@@ -7,7 +7,7 @@ import (
 )
 
 // TestFindPackage lays out each way tsc is installed and finds the
-// typescript package from the tsc PATH would name.
+// typescript package, holding the compiler API, from the tsc PATH would name.
 func TestFindPackage(t *testing.T) {
 	tests := []struct {
 		name string
@@ -26,7 +26,7 @@ func TestFindPackage(t *testing.T) {
 			root := t.TempDir()
 			tsc := filepath.Join(root, filepath.FromSlash(tt.tsc))
 			pkg := filepath.Join(root, filepath.FromSlash(tt.pkg))
-			for _, f := range []string{tsc, filepath.Join(pkg, "package.json")} {
+			for _, f := range []string{tsc, filepath.Join(pkg, "lib", "typescript.js")} {
 				if err := os.MkdirAll(filepath.Dir(f), 0o755); err != nil {
 					t.Fatal(err)
 				}
@@ -34,7 +34,7 @@ func TestFindPackage(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			got, ok := findPackage(tsc)
+			got, ok := findPackage(packageDirs(tsc))
 			if !ok || got != pkg {
 				t.Errorf("findPackage(%s) = %q, %v; want %q", tt.tsc, got, ok, pkg)
 			}
@@ -45,7 +45,7 @@ func TestFindPackage(t *testing.T) {
 // TestFindPackageWithoutOne refuses a tsc with no package beside it.
 func TestFindPackageWithoutOne(t *testing.T) {
 	tsc := filepath.Join(t.TempDir(), "npm", "tsc.cmd")
-	if got, ok := findPackage(tsc); ok {
+	if got, ok := findPackage(packageDirs(tsc)); ok {
 		t.Errorf("findPackage found %q in an empty layout", got)
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
+	"github.com/unstoppablemango/tdl/internal/tooltest"
 	"github.com/unstoppablemango/tdl/plugin"
 )
 
@@ -281,17 +282,8 @@ export const Tier = (v: "free" | "paid"): Tier => v as Tier;
 // returns exactly when its value is set and throws a RangeError otherwise.
 func runs(t *testing.T, module string, calls map[string]bool) {
 	t.Helper()
-	if testing.Short() {
-		t.Skip("runs node")
-	}
-	tsc, err := exec.LookPath("tsc")
-	if err != nil {
-		t.Skip("tsc is not on PATH")
-	}
-	node, err := exec.LookPath("node")
-	if err != nil {
-		t.Skip("node is not on PATH")
-	}
+	tsc := tooltest.Require(t, "tsc")
+	node := tooltest.Require(t, "node")
 	var b strings.Builder
 	b.WriteString(module)
 	b.WriteString("\nconst calls: [string, boolean, () => unknown][] = [\n")

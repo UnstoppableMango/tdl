@@ -163,7 +163,7 @@ The npm trusted publisher names `release-please.yml`; the scope's owner configur
 
 - Go tests in `backend/typescript` drive the mapper over a pipe: initialize, open a project, transform the smoke model, conformance cases, and a file importing another, and close.
   The text of each module equals what the backend writes for `tdl gen`, and each diagnostic kind is asserted at its range.
-- A second test runs `tsc --noEmit --runExternalCode` over `backend/typescript/testdata/mapper/`, a TypeScript project importing `.tdl` files, when a `tsc` of 7.1 or later is on `PATH` and `-short` is not set, and skips otherwise.
+- A second test runs `tsc --noEmit --runExternalCode` over `backend/typescript/testdata/mapper/`, a TypeScript project importing `.tdl` files, unless `-short`, which skips it; otherwise a missing `tsc`, or one before 7.1, fails it. `checks.go-test` runs it with the 7.1 beta from `nix/tsc.nix`.
   It installs `npm/tdl-typescript/` as the project's mapper package, puts `tdl-gen-typescript` built by the test on `PATH`, and asserts a TDL error is reported in the `.tdl` file.
 - `checks.typescript-content-mapper` runs the same project once nixpkgs carries TypeScript 7.1.
 

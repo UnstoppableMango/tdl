@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/unstoppablemango/tdl/internal/gen"
+	"github.com/unstoppablemango/tdl/internal/tooltest"
 )
 
 // postModel is a model under models/ whose debug target writes
@@ -185,13 +186,7 @@ func TestGenRefusesAMisusedPost(t *testing.T) {
 // The smoke model's typescript output, formatted by Biome through post,
 // passes `biome check`.
 func TestGenPostBiome(t *testing.T) {
-	if testing.Short() {
-		t.Skip("runs biome")
-	}
-	biome, err := exec.LookPath("biome")
-	if err != nil {
-		t.Skip("biome is not on PATH")
-	}
+	biome := tooltest.Require(t, "biome")
 
 	src, err := os.ReadFile(filepath.Join("..", "..", "testdata", "gen", "smoke", "source.tdl"))
 	if err != nil {

@@ -11,6 +11,7 @@ import (
 	"github.com/unstoppablemango/tdl/backend/haskell"
 	"github.com/unstoppablemango/tdl/backend/internal/emit"
 	"github.com/unstoppablemango/tdl/backend/internal/irtest"
+	"github.com/unstoppablemango/tdl/internal/tooltest"
 	"github.com/unstoppablemango/tdl/ir"
 	"github.com/unstoppablemango/tdl/plugin"
 )
@@ -27,8 +28,7 @@ func generate(t *testing.T, m *ir.Model) *plugin.Response {
 	return resp
 }
 
-// check returns the response's one module, type checked by ghc when it is
-// on PATH.
+// check returns the response's one module, type checked by ghc.
 func check(t *testing.T, resp *plugin.Response) string {
 	t.Helper()
 	if len(resp.GetFiles()) != 1 {
@@ -39,16 +39,12 @@ func check(t *testing.T, resp *plugin.Response) string {
 	return string(f.GetContent())
 }
 
-// compile runs `ghc -fno-code -Wall -Werror` over a module. Without ghc,
-// or under -short, these tests check substrings only; checks.gen-haskell
-// runs it regardless.
+// compile runs `ghc -fno-code -Wall -Werror` over a module; checks.gen-haskell
+// runs it over the smoke model too.
 func compile(t *testing.T, f *plugin.File) {
 	t.Helper()
-	if testing.Short() {
-		return
-	}
-	ghc, err := exec.LookPath("ghc")
-	if err != nil {
+	ghc, ok := tooltest.Lookup(t, "ghc")
+	if !ok {
 		return
 	}
 	dir := t.TempDir()
