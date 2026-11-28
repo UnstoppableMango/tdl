@@ -32,8 +32,8 @@ jobs:
       CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
   # One job rather than a build and a test job: each job on a fresh runner
-  # pays to fetch nixpkgs and evaluate the flake, and the checks and the
-  # devShell share most of their closure (go, node, typescript, smithy).
+  # pays to fetch nixpkgs and evaluate the flake, and the release, the
+  # plugins, and the devShell share most of their closure.
   check:
     runs-on: ubuntu-latest
     permissions:
@@ -65,19 +65,12 @@ jobs:
           nix develop -c make dotnet-deps
           git diff --exit-code dotnet/deps.json
 
-      - run: nix flake check
-        if: ${{ !cancelled() }}
-
-      - run: nix build .#
-        if: ${{ !cancelled() }}
-
       # The release uploads and attests these bytes; a second build must give
-      # the same. nix flake check built them for checks.tdl-release.
-      - run: nix build .#release --rebuild
+      # the same. Hercules builds every check and package.
+      - run: nix build .#release && nix build .#release --rebuild
         if: ${{ !cancelled() }}
 
-      # The npm packages windows-npm installs. nix flake check built them
-      # for checks.npm-tdl.
+      # The npm packages windows-npm installs.
       - run: nix build .#npm -o result-npm
         if: ${{ !cancelled() }}
 

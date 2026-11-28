@@ -703,7 +703,7 @@ Reply with what changed, or why nothing did, then resolve.
 The one required check is the `required` job in `.github/workflows/ci.yml`.
 It needs `check`, on `ubuntu-latest`, `windows`, which runs `go test -short ./...` without Nix on `windows-latest` and `windows-11-arm`, and `windows-npm`, which installs the npm packages `check` packed on both and runs `tdl version`.
 It also needs `nix`, which calls `unmango/ci`'s `nix-ci.yml`: `nix flake check` on `macos-latest`, and a wait for Hercules's `onPush.default` status.
-macOS builds only what a check builds, since `nix build .#` runs on Linux alone.
+macOS builds only what a check builds, and only Hercules builds every check and package on Linux; `check` builds just what its own steps use.
 A new CI job goes in its `needs`, not in the ruleset (declared in Pulumi in `UnstoppableMango/vcs`), unless it is advisory like `buf.yml` and `codeql.yml`.
 
 Pull requests are stacked, and GitHub rebases the rest of the stack on merge; reset local branches from the remote afterwards.
