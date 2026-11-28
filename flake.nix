@@ -56,7 +56,7 @@
         treefmt-nix.flakeModule
         mangonix.flakeModules.ci
         ./nix
-        ./nix/ci.nix
+        ./nix/hercules.nix
       ];
 
       _module.args.version = "0.5.13"; # x-release-please-version
