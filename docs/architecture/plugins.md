@@ -144,6 +144,15 @@ While a later request hashes the same, the record lists as many files as it says
 `--verify` never sends the request: a changed request, a target never generated here, an incomplete record, and a recorded file that is missing or edited are stale.
 `--clean` always sends it.
 
+A nondeterministic backend's request also carries what it needs to refer to each import's dependency, since it writes from the model as TDL rather than from the IR.
+`Analysis.source` is set for it as under `roundtrip`, and `Source.externs`, indexed like `Model.externs`, holds the declaration each extern names as `tdl fmt` prints it, read from the dependency's file; an extern whose file could not be read has an empty item.
+`Request.dependencies` holds each file the dependency's own block for the same target last wrote, as its `.tdl-output` records, with the dependency's package and its path relative to the request's `out`.
+A dependency with no such block, no `out`, an `out` that is the request's own, or no output yet sends no files, and that is not an error: `tdl` reads what is on disk and never generates a dependency first.
+A record listing a file outside its directory is an error for the dependent.
+The files are part of the request, so regenerating a dependency changes its dependents' hashes and they regenerate too, and `--make` names the marker and each file read among the prerequisites.
+`tdl request` sends the same.
+A deterministic backend's request carries neither.
+
 ## Post-processing
 
 The project, not the plugin, chooses commands to run over a target's output, typically a formatter.

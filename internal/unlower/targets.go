@@ -105,6 +105,11 @@ func (u *unlowerer) placements() []placed {
 	}
 	for _, ext := range u.model.GetExterns() {
 		for _, d := range ext.GetDirectives() {
+			// A directive the dependency's own block wrote stays in its file:
+			// this one cannot name the declaration by its bare name.
+			if file := d.GetPosition().GetFilename(); file != "" && file != ext.GetPosition().GetFilename() {
+				continue
+			}
 			add(ext.GetName(), "", d)
 		}
 	}
